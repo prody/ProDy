@@ -1,37 +1,35 @@
 DOWNLOADS
-  http://code.google.com/p/prody/downloads/list
+  
 
 LICENSE
-  ProDy: A Python Package for Protein Structural Dynamics Analysis
 
-  Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-   
-  You should have received a copy of the GNU General Public License
-  along with this program in LICENSE.txt file.  If not, see 
-  <http://www.gnu.org/licenses/>.
-
-NOTES
-  This software is using a modified version of PDB module of Biopython.
-  Biopython license agreement is appended to LICENSE.txt file.
+  ProDy is distributed under GNU General Public License version 3. 
+  See LICENSE.txt for more details. 
   
+  Pyparsing (http://pyparsing.wikispaces.com/) code is contained 
+  in ProDy releases. Pyparsing is developed by Paul T. McGuire 
+  and is distributed under MIT license 
+  (http://www.opensource.org/licenses/mit-license.php).
+
+
 INSTALLATION
-  See INSTALL.txt or PDF documentation or
-  http://code.google.com/p/prody/wiki/Installation
+
+  See INSTALL.txt or PDF documentation (ProDy.pdf) or ProDy web page 
+  http://www.pitt.edu/~ahb12/python/prody
+
 
 CHANGES
-  See PDF documentation. 
+
+  See PDF documentation (ProDy.pdf) or web page 
+  http://www.pitt.edu/~ahb12/python/prody.
+
   
-WEB SITES
-  http://code.google.com/p/prody/
-  http://www.pitt.edu/~ahb12/python/prody/
+DOCUMENTATION
+
+  See PDF documentation (ProDy.pdf) or web page 
+  http://www.pitt.edu/~ahb12/python/prody.
+
+
+SOURCE
+  http://github.com/abakan/prody
   
