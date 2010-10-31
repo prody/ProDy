@@ -1,0 +1,82 @@
+*******************************************************************************
+Getting Prody
+*******************************************************************************
+
+ProDy is a Python package. Dependencies, which includes a Python interpreter,
+need to be installed before you can use it. In addition, installing the 
+recommended software greatly improves user's experience with ProDy.
+
+**Steps to get ProDy running**:
+
+  1. Install dependencies.
+  2. Install recommended software (optional)
+  3. Follow the directions in one or both of these sub-sections:
+  
+     a. **Using from the Share Drive**
+     b. **Installation**
+
+Dependencies
+===============================================================================
+
+* `Python 2.6 <http://python.org/>`_ (On windows, please choose 32 bit option)
+* `Numpy 1.3+ <http://numpy.scipy.org/>`_
+* `Scipy 0.7+ <http://www.scipy.org/SciPy>`_
+* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_
+
+
+Recommended Software
+===============================================================================
+
+* `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
+* `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for interactive ProDy sessions on Windows.
+* `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting data using Python.
+* `NMWiz <http://code.google.com/p/nmwiz/>`_ for visualizing normal mode data.
+
+Related Software
+===============================================================================
+
+* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular dynamics trajectories.
+
+
+Using from the Share Drive
+===============================================================================
+
+*Choose this option if your machine has access to share drive always. You will 
+have access to most up-to-date version of the code.*
+
+After you install at least the dependencies, add one of the following path to your
+``PYTHONPATH`` system variable:
+
+  * Linux: :file:`/shared/Ahmet/newprody/source/`
+  * Windows: :file:`S\:\\Ahmet\\newprody\\source\\`
+
+
+
+Installation
+===============================================================================
+
+Obtain one of the installation files from the share drive 
+(:file:`S\:\\Ahmet\\newprody\\` or :file:`/shared/Ahmet/newprody/`):  
+
+**Linux**
+
+Grab :file:`prody-0.0.1.tar.gz` from share drive.
+Extract tarball contents and run setup.py as follows::
+
+    tar -xzf pypdb-0.x.y.tar.gz
+    cd pypdb-0.x.y
+    python setup.py install
+
+You may need root access for the last step.
+  
+If you don't have root access, you can edit ``PYTHONPATH`` system variable to 
+recognize the path to this package.
+  
+e.g. move :file:`pypdb` directory to a folder like :file:`/home/username/mypackages/`
+then add a line to your .bashrc (or alike) script as follows
+``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
+
+**Windows**
+
+Grab :file:`prody-0.0.1.windows.exe` from the share drive and run it to install
+ProDy.
