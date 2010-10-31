@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% set title = 'Overview' %}
+{% block body %}
+  <h1>Welcome</h1>
+
+  <div class="quotebar">
+    <p><em>What is ProDy for:</em></p>
+    <p>ProDy is designed to facilitate flexible and rapid exploitation of the 
+       ever growing protein structural data in the study of protein dynamics.</p>
+  </div>
+
+  <p>
+    ProDy is a Python package designed for flexible and interactive protein
+    structural dynamics analysis. ProDy is developed by Ahmet Bakan and 
+    licensed under the GPLv3.
+  </p>
+  <p>
+    New features and functions are being constantly added to ProDy package.  
+    The following are the main features that are present and working fine:
+  </p>
+  <ul>
+    <li><b>Protein structure analysis:</b> 
+      <ul>
+        <li> parse PDB files quickly</li>
+        <li> access subsets of atoms with the powerful and sophisticated atom selector </li>
+        <li> automatically find similar/matching chains and compare, e.g. calculate RMSD, get deformation vector </li>
+        <li> measure quantities, such as distances, radius of gyration, etc. </li>
+      </ul>    
+    </li>
+    <li><b>Elastic Network Models (ENMs):</b> perform Anisotropic/Gaussian Network 
+      models (ANM/GNM) analysis of proteins
+    </li>
+    <li><b>Principal Component Analysis (PCA):</b> analyze <i>ensembles of X-ray structures</i>, 
+      NMR models, or molecular dynamics trajectories 
+      (also known as Essential Dynamics Analysis or EDA) 
+    </li>
+    <li><b>Comparative Normal Mode Analysis (NMA):</b> functions for 
+      comparing different models and plotting data
+    </li>
+  </ul>
+
+  <h2>Documentation</h2>
+
+  <table class="contentstable" align="center" style="margin-left: 30px"><tr>
+    <td width="50%">
+      <p class="biglink"><a class="biglink" href="{{ pathto("tutorial") }}">Tutorial</a><br/>
+         <span class="linkdescr">overview of basic tasks</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("insight/index") }}">Insight</a><br/>
+         <span class="linkdescr">insight, tips, tricks</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("scripts/index") }}">Scripts</a><br/>
+         <span class="linkdescr">stand-alone scripts</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
+         <span class="linkdescr">search the documentation</span></p>
+    </td><td width="50%" valign="top">
+      <p class="biglink"><a class="biglink" href="{{ pathto("examples/index") }}">Examples</a><br/>
+         <span class="linkdescr">usage examples</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("reference/index") }}">Reference</a><br/>
+         <span class="linkdescr">classes and functions</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Contents</a><br/>
+         <span class="linkdescr">for a complete overview</span></p> 
+      <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}">General Index</a><br/>
+         <span class="linkdescr">all functions, classes, terms</span></p>
+    </td></tr>
+  </table>
+
+<!--  <p>
+    You can also download PDF versions of the Sphinx documentation:
+    a <a href="http://sphinx.pocoo.org/sphinx.pdf">version</a> generated from
+    the LaTeX Sphinx produces, and
+    a <a href="http://sphinx.pocoo.org/sphinx-rst2pdf.pdf">version</a> generated
+    by rst2pdf.
+  </p> -->
+
+  <h2>Get ProDy</h2>
+    <p>
+      ProDy is available in the share drive. See <a href="{{ pathto("getprody") }}">Get Prody</a>.
+    </p>
+
+  <h2>See also</h2>
+    <p> <b>Software</b>
+      <a class="reference external" href="http://ipython.scipy.org/">IPython</a> |
+      <a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a> |
+      <a class="reference external" href="http://code.google.com/p/mdanalysis">MDAnalysis</a> |
+      <a class="reference external" href="http://code.google.com/p/nmwiz">NMWiz</a>
+    <br/> <b>Servers</b>
+      <a class="reference external" href="http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi">ANM Server</a> |
+      <a class="reference external" href="http://ignm.ccbb.pitt.edu/GNM_Online_Calculation.htm">oGNM Server</a> |
+      <a class="reference external" href="http://ignm.ccbb.pitt.edu/oPCA_Online.htm">PCA_NEST</a></p> 
+
+
+{% endblock %}
