@@ -25,15 +25,23 @@ Dependencies
 **Required for certain functionality:**
 
 * `Scipy 0.7+ <http://www.scipy.org/SciPy>`_ for NMA calculations.
-* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ for ENM calculations and proximity based atom selections.
-* `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting normal mode data.
+* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ for ENM calculations 
+   and proximity based atom selections.
+* `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting normal mode 
+   data.
+
+Complementary Software
+===============================================================================
+
+* `NMWiz <http://code.google.com/p/nmwiz/>`_ for visualizing normal mode data 
+  in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
 
 Recommended Software
 ===============================================================================
 
 * `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
-* `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for interactive ProDy sessions on Windows.
-* `NMWiz <http://code.google.com/p/nmwiz/>`_ for visualizing normal mode data.
+* `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
+   interactive ProDy sessions on Windows.
 
 Related Software
 ===============================================================================

@@ -1,8 +1,11 @@
-DOWNLOADS
-  
+ProDy is a Python package designed for flexible and interactive protein
+structural dynamics analysis. ProDy is developed by Ahmet Bakan and 
+licensed under the GPLv3.
+
+DOCUMENTATION
+  http://www.pitt.edu/~ahb12/python/ProDy
 
 LICENSE
-
   ProDy is distributed under GNU General Public License version 3. 
   See LICENSE.txt for more details. 
   
@@ -11,25 +14,15 @@ LICENSE
   and is distributed under MIT license 
   (http://www.opensource.org/licenses/mit-license.php).
 
+DOWNLOADS
+  http://pypi.python.org/pypi/ProDy/  
 
 INSTALLATION
-
-  See INSTALL.txt or PDF documentation (ProDy.pdf) or ProDy web page 
-  http://www.pitt.edu/~ahb12/python/prody
-
+  http://www.pitt.edu/~ahb12/python/ProDy/getprody.html
 
 CHANGES
-
-  See PDF documentation (ProDy.pdf) or web page 
-  http://www.pitt.edu/~ahb12/python/prody.
-
-  
-DOCUMENTATION
-
-  See PDF documentation (ProDy.pdf) or web page 
-  http://www.pitt.edu/~ahb12/python/prody.
-
+  http://www.pitt.edu/~ahb12/python/ProDy/changes.html
 
 SOURCE
-  http://github.com/abakan/prody
+  http://github.com/abakan/ProDy
   
