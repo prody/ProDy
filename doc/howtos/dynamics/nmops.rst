@@ -3,7 +3,7 @@
 .. _nmops:
 
 *******************************************************************************
-Normal mode operations
+Normal Mode Operations
 *******************************************************************************
 
 In this example we will compare modes from two ANMs for the same protein, 

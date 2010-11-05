@@ -4,13 +4,23 @@
 To Do
 *******************************************************************************
 
+Following are planned improvements in ProDy code. A timeline is not determined,
+but minor changes may be expected to happen sooner. 
+
+Minor Changes
+===============================================================================
+
+* Define addition for selections
+
+* Implement NMA sampling methods
+
+
+Major Changes
+===============================================================================
+
 * ANM/GNM
   - Enable using masses
  
-* Selections
-  - More sophisticated selections
-    e.g. abs(x) < 10 or (x**2 + y**2 x**2) ** 0.5 < 10
-
 * Multithreading
   - Ensemble superimposition
   - PCA calculate covariance
@@ -18,5 +28,3 @@ To Do
 * Units
   - Implements units in dynamics analysis
 
-* Define addition for selections
-* Implement NMA sampling methods

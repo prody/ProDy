@@ -3,8 +3,13 @@
 .. _selections:
 
 *******************************************************************************
-Atom selections
+Atom Selections
 *******************************************************************************
+
+ProDy offers a powerful atom selector which works very much the same way |vmd| 
+does. There are only small differences which should not affect most practical 
+uses of atom selections. This section describes the keywords and selection 
+syntax.
 
 .. _selkeys:
 
@@ -26,6 +31,11 @@ Single words
 **Examples**:
   * "noh protein" selects non-hydrogen protein atoms
   * "charged and cyclic" selects histidine residues 
+
+.. note::
+   Definitions of these keywords can be obtained and changed using 
+   corresponding get and set functions. These functions are mentioned in the
+   definition of the keyword in this page and are also listed in :ref:`keywords`.
 
 Keywords followed by characters or words
 -------------------------------------------------------------------------------

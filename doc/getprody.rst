@@ -19,16 +19,16 @@ Dependencies
 
 **Required for all functionality:**
 
-* `Python 2.6 <http://python.org/>`_ (On windows, please choose 32 bit option)
+* `Python 2.6 <http://python.org/>`_ (for Windows, please choose 32 bit option)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
 
 **Required for certain functionality:**
 
 * `Scipy 0.7+ <http://www.scipy.org/SciPy>`_ for NMA calculations.
-* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ for ENM calculations 
-   and proximity based atom selections.
+* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ for ENM calculations, 
+  sequence alignment, and proximity based atom selections.
 * `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting normal mode 
-   data.
+  data.
 
 Complementary Software
 ===============================================================================
@@ -41,12 +41,13 @@ Recommended Software
 
 * `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
-   interactive ProDy sessions on Windows.
+  colorful interactive ProDy sessions on Windows.
 
 Related Software
 ===============================================================================
 
-* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular dynamics trajectories.
+* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular 
+  dynamics trajectories.
 
 
 Installation

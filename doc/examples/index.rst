@@ -38,5 +38,7 @@ Dynamics
    :maxdepth: 1
 
    dynamics/anm_p38
-   dynamics/pca_anm_xray_p38
+   dynamics/pca_xray_anm_p38
+   dynamics/pca_nmr_anm_ubi
    proteins/deformation
+   dynamics/eda_md

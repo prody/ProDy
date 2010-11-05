@@ -101,7 +101,9 @@ latexpdf:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
+	mv $(BUILDDIR)/latex/ProDy.pdf ../
+	cp ../ProDy.pdf ../Documentation
+	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 text:
 	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text

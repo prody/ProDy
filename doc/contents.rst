@@ -16,7 +16,7 @@ Contents
 
    getprody 
    tutorial
-   insight/index
+   howtos/index
    examples/index
    scripts/index
    reference/index
