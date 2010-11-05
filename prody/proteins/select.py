@@ -28,7 +28,6 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
 import time
-#import re
 
 import numpy as np
 from . import pyparsing as pp
@@ -38,7 +37,7 @@ import prody
 from prody import ProDyLogger as LOGGER
 from . import keywords
 
-DEBUG = True
+DEBUG = False
 
 __all__ = ['Select']
 

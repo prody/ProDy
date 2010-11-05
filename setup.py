@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(name='ProDy',
-      version='0.1.0a',
+      version='0.5',
       description='Protein Dynamics Analysis',
       long_description='A Python Package for Protein Structural Dynamics Analysis',
       author='Ahmet Bakan',

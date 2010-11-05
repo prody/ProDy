@@ -840,7 +840,7 @@ class AtomGroup(object):
             newmol = AtomGroup('Copy of {0:s} index {1:d}'.format(
                                  self._name, which))
         elif isinstance(which, str):
-            indices = SELECTOR.select(self, which).getIndices()
+            indices = SELECT.select(self, which).getIndices()
             newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'
                               .format(self._name, which))
         elif isinstance(which, (list, np.ndarray)):

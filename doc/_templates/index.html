@@ -4,38 +4,37 @@
   <h1>Welcome</h1>
 
   <div class="quotebar">
-    <p><em>What is ProDy for:</em></p>
-    <p>ProDy is designed to facilitate flexible and rapid exploitation of the 
-       ever growing protein structural data in the study of protein dynamics.</p>
+    <h3>Quick Example</h3>
+    <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">prody</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pdb</span> <span class="o">=</span> <span class="n">parsePDB</span><span class="p">(</span><span class="s">'1p38'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ca</span> <span class="o">=</span> <span class="n">pdb</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s">'calpha'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span> <span class="o">=</span> <span class="n">ANM</span><span class="p">(</span><span class="s">'p38 MAPK ANM'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">buildHessian</span><span class="p">(</span> <span class="n">ca</span> <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span> <span class="n">anm</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span> <span class="p">)</span></pre></div>
+    </div>    
+    <span class="linkdescr">Reads a p38 PDB structure, selects alpha carbons, and performs ANM calculations. Slowest 6 modes are written in NMD format.</span>
   </div>
 
   <p>
-    ProDy is a fast, flexible and powerful Python package designed for protein 
-    structural dynamics analysis. ProDy is developed by Ahmet Bakan and 
-    licensed under the GPLv3.
-  </p>
-  <p>
-    New features and functions are being constantly added to ProDy package.  
+    ProDy is a Python package designed for protein structural dynamics analysis. 
+    ProDy is developed by Ahmet Bakan and licensed under the GPLv3.
+    New features and functions are constantly being added to ProDy.  
     The following are the main features that are present and working fine:
   </p>
   <ul>
     <li><b>Protein structure analysis:</b> 
       <ul>
-        <li> parse PDB files quickly</li>
-        <li> access subsets of atoms with the powerful and sophisticated atom selector </li>
-        <li> automatically find similar/matching chains and compare, e.g. calculate RMSD, get deformation vector </li>
-        <li> measure quantities, such as distances, radius of gyration, etc. </li>
+        <li> fast PDB file parser and a powerful atom selector </li>
+        <li> functions for matching and comparing polypeptide chains </li>
       </ul>    
     </li>
-    <li><b>Elastic Network Models (ENMs):</b> perform Anisotropic/Gaussian Network 
-      models (ANM/GNM) analysis of proteins
-    </li>
-    <li><b>Principal Component Analysis (PCA):</b> analyze <i>ensembles of X-ray structures</i>, 
-      NMR models, or molecular dynamics trajectories 
-      (also known as Essential Dynamics Analysis or EDA) 
-    </li>
-    <li><b>Comparative Normal Mode Analysis (NMA):</b> functions for 
-      comparing different models and plotting data
+    <li><b>Normal Mode Analysis (NMA):</b> 
+      <ul>
+        <li> Elastic network models (Anisotropic/Gaussian network models) </li>
+        <li> Principal component analysis of X-ray structures, NMR models, MD snapshots </li>
+        <li> Functions for comparative NMA, i.e. calculate/plot overlaps </li>
+      </ul>
     </li>
   </ul>
 
@@ -45,10 +44,10 @@
     <td width="50%">
       <p class="biglink"><a class="biglink" href="{{ pathto("tutorial") }}">Tutorial</a><br/>
          <span class="linkdescr">overview of basic tasks</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("insight/index") }}">Insight</a><br/>
-         <span class="linkdescr">insight, tips, tricks</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("howtos/index") }}">How To</a><br/>
+         <span class="linkdescr">how tos, tips, tricks</span></p>
       <p class="biglink"><a class="biglink" href="{{ pathto("scripts/index") }}">Scripts</a><br/>
-         <span class="linkdescr">stand-alone scripts</span></p>
+         <span class="linkdescr">scripts for automated tasks</span></p>
       <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
          <span class="linkdescr">search the documentation</span></p>
     </td><td width="50%" valign="top">
@@ -63,18 +62,21 @@
     </td></tr>
   </table>
 
-<!--  <p>
+  <p>
     You can also download PDF versions of the Sphinx documentation:
-    a <a href="http://sphinx.pocoo.org/sphinx.pdf">version</a> generated from
-    the LaTeX Sphinx produces, and
-    a <a href="http://sphinx.pocoo.org/sphinx-rst2pdf.pdf">version</a> generated
-    by rst2pdf.
-  </p> -->
+    a <a href="ProDy.pdf">version</a> generated from
+    the LaTeX Sphinx produces.
+  </p>
 
   <h2>Get ProDy</h2>
-    <p>
-      ProDy is available in the share drive. See <a href="{{ pathto("getprody") }}">Get Prody</a>.
-    </p>
+  <p>
+    ProDy is available as an <a
+    href="http://peak.telecommunity.com/DevCenter/EasyInstall">easy-install</a>able
+    package on the <a href="http://pypi.python.org/pypi/ProDy">Python Package
+    Index</a>.
+  </p>
+  <p>The code can be found in a git repository, at
+    <a href="http://github.com/abakan/ProDy/">http://github.com/abakan/ProDy/</a>.</p>
 
   <h2>See also</h2>
     <p> <b>Software</b>

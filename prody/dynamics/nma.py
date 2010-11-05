@@ -38,7 +38,7 @@ from prody import ProDyLogger as LOGGER
 from .modes import Mode
 
 
-__all__ = ['GNM', 'ANM', 'PCA', 'NMA', 'ModeSet']
+__all__ = ['GNM', 'ANM', 'PCA', 'NMA', 'ModeSet', 'EDA']
 
 
 ZERO = 1e-8
@@ -688,3 +688,5 @@ class PCA(NMA):
         self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} essential modes were calculated in {1:.2f}s.'
                          .format(self._n_modes, time.time()-start))
+
+EDA = PCA

@@ -60,6 +60,6 @@ For unmapped atoms, atom names are set to "DUMMY" and residue names are set to
 AtomMaps are used by functions that compare protein chains.
 
 .. seealso::
-   :ref:`edaxray` example makes use of AtomMap's extensively.
+   :ref:`egp38` example makes use of AtomMap's extensively.
    
 

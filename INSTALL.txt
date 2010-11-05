@@ -44,7 +44,8 @@ Recommended Software
 Related Software
 ===============================================================================
 
-* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular dynamics trajectories.
+* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular 
+  dynamics trajectories.
 
 
 Installation

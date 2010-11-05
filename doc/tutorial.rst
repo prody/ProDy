@@ -4,9 +4,31 @@
 Tutorial
 *******************************************************************************
 
-This tutorial is incomplete, but should give the reader a feeling of what can
-be done using ProDy. :ref:`remarks` and :ref:`examples` sections contain 
-more specific examples and may be followed after completion of the tutorial. 
+ProDy can be used in two ways:
+
+  * by writing scripts for automated tasks
+  * interactively in a Python interpreter
+  
+First part of the tutorial shows how to use one of the scripts that is 
+distributed with ProDy. Following parts assume user is in an interactive
+Python shell, but should be useful for those who may want to write their own
+scripts for automatizing certain analysis tasks. 
+
+Upon completion of the tutorial, user is referred to :ref:`examples` section 
+that gives more specific and comprehensive examples. Also, :ref:`howtos` section 
+that elaborates on important features of ProDy is recommended for further 
+reading.
+
+Using ProDy scripts
+===============================================================================
+
+ANM example
+
+
+
+
+Using ProDy interactively
+===============================================================================
 
 Tutorial assumes that commands are typed in an interaction Python session.
 If you are using Python IDE, try using `IPython <http://ipython.scipy.org/>`_.
@@ -17,7 +39,7 @@ Import all functions and classes from ProDy as follows:
 >>> from prody import *
 
 Parse a PDB file
-===============================================================================
+-------------------------------------------------------------------------------
 
 Let's start with reading the contents of a PDB file. ProDy offers a fast PDB 
 file parser (:func:`prody.proteins.parsePDB`). For this function to work, 
@@ -44,7 +66,7 @@ See :ref:`parsepdb`, :ref:`fetchpdb`, and :ref:`blastpdb` examples.
 List of functions for accessing protein data can also be found in :ref:`prodb`
 
 Select subset of atoms
-===============================================================================
+-------------------------------------------------------------------------------
 
 ProDy :class:`prody.proteins.AtomGroup` instances offer powerful atom
 selection capabilities that are comparable to that of 
@@ -114,7 +136,7 @@ Or, we could use residue names expilicitly:
    For more information, tips and tricks see :ref:`selections` and :ref:`selops`.
 
 Hierarchical view of atoms in a PDB 
-===============================================================================
+-------------------------------------------------------------------------------
 
 :class:`prody.proteins.AtomGroup` instances has a flat view of atoms in PDB
 files, but it is possible to get a hierarchical view (:class:`prody.proteins.HierView`) 
@@ -139,7 +161,7 @@ THR 7 from Chain A from 1p38 (7 atoms; 1 coordinate sets, active set index: 0)
 ...
 
 Write a PDB file
-===============================================================================
+-------------------------------------------------------------------------------
 
 PDB files can be written using :func:`prody.proteins.writePDB` function.
 This function accepts objects containing or referring to atomic data.
@@ -161,7 +183,7 @@ successfully written.
 
 
 Perform ANM calculations
-===============================================================================
+-------------------------------------------------------------------------------
 
 Let's perform an ANM analysis for chain A alpha carbon atoms. ANM instances
 are instantiated using a name:
@@ -187,3 +209,11 @@ Individual modes can be accessed by indexing ANM instance:
 NormalMode 0 from p38 ANM analysis
 
 Note that indices start from 0, and modes with 0 eigenvalues are omitted. 
+
+>>> from prody import * 
+>>> pdb = parsePDB('1p38') 
+>>> ca = pdb.select('calpha') 
+>>> anm = ANM('p38 MAPK ANM') 
+>>> anm.buildHessian( ca ) 
+>>> anm.calcModes() 
+>>> writeNMD( anm[:6] ) 
