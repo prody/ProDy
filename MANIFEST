@@ -1,6 +1,7 @@
 INSTALL.txt
 LICENSE.txt
 README.txt
+ProDy.pdf
 setup.py
 prody/__init__.py
 prody/dynamics/ensemble.py

@@ -122,9 +122,9 @@ __all__ += measure.__all__
 
 import select
 
-from . import atomgroup 
-from atomgroup import *
-__all__ += atomgroup.__all__
+from . import atomic 
+from atomic import *
+__all__ += atomic.__all__
 
 from . import compare
 from compare import *
