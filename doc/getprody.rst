@@ -1,7 +1,7 @@
 .. _getprody:
 
 *******************************************************************************
-Getting Prody
+Getting ProDy
 *******************************************************************************
 
 ProDy is a Python package. Dependencies, which include a Python interpreter,
@@ -43,6 +43,15 @@ Recommended Software
 Installation
 ===============================================================================
 
+After installing required packages, you will need to do one of the following:
+
+**Easy Install**
+
+If you have `Easy Install <http://peak.telecommunity.com/DevCenter/EasyInstall>`_
+installed, following will work for you::
+
+  easy_install -U ProDy
+
 **Linux**
 
 Download :file:`prody-0.x.y.tar.gz`. Extract tarball contents and run 
@@ -64,3 +73,9 @@ then add a line to your .bashrc (or alike) script as follows
 **Windows**
 
 Download :file:`prody-0.x.y.windows.exe` and run it to install ProDy.
+
+Source Code
+===============================================================================
+
+The source code can be found in a git repository, at 
+http://github.com/abakan/ProDy/.
