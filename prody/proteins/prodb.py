@@ -52,7 +52,7 @@ import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
 import prody
-from . import DTYPES
+from . import ATOMIC_DATA_FIELDS
 
 
 __all__ = ['PDBlastRecord', 'PDBFetcher', 'RCSB_PDBFetcher', 
@@ -424,21 +424,21 @@ def _getAtomGroup(lines, split, model, subset, altloc_torf):
     
     asize = len(lines) - split
     alength = 5000
-    coordinates = np.zeros((asize, 3), dtype=DTYPES['coordinates'])
-    atomnames = np.zeros(asize, dtype=DTYPES['atomnames'])
-    resnames = np.zeros(asize, dtype=DTYPES['resnames'])
-    resnums = np.zeros(asize, dtype=DTYPES['resnums'])
-    chainids = np.zeros(asize, dtype=DTYPES['chainids'])
-    bfactors = np.zeros(asize, dtype=DTYPES['bfactors'])
-    occupancies = np.zeros(asize, dtype=DTYPES['occupancies'])
-    hetero = np.zeros(asize, dtype=DTYPES['hetero'])
-    altlocs = np.zeros(asize, dtype=DTYPES['altlocs'])
-    segnames = np.zeros(asize, dtype=DTYPES['segnames'])
-    elements = np.zeros(asize, dtype=DTYPES['elements'])
-    secondary = np.zeros(asize, dtype=DTYPES['secondary'])
-    anisou = np.zeros((asize, 6), dtype=DTYPES['anisou'])
-    siguij = np.zeros((asize, 6), dtype=DTYPES['siguij'])
-    icodes = np.zeros(asize, dtype=DTYPES['icodes'])
+    coordinates = np.zeros((asize, 3), dtype=np.float64)
+    atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
+    resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
+    resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
+    chainids = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+    bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
+    occupancies = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['occupancy'].dtype)
+    hetero = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['hetero'].dtype)
+    altlocs = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['altloc'].dtype)
+    segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
+    elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
+    secondary = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['secondary'].dtype)
+    anisou = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
+    siguij = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
+    icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
     asize = 2000
     
     onlycoords = False
@@ -523,35 +523,35 @@ def _getAtomGroup(lines, split, model, subset, altloc_torf):
             if acount >= alength:
                 alength += asize
                 coordinates = np.concatenate(
-                    (coordinates, np.zeros((asize, 3), DTYPES['coordinates'])))
+                    (coordinates, np.zeros((asize, 3), np.float64)))
                 atomnames = np.concatenate(
-                    (atomnames, np.zeros(asize, DTYPES['atomnames'])))
+                    (atomnames, np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
                 resnames = np.concatenate( 
-                    (resnames, np.zeros(asize, DTYPES['resnames'])))
+                    (resnames, np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
                 resnums = np.concatenate( 
-                    (resnums, np.zeros(asize, DTYPES['resnums'])))
+                    (resnums, np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
                 chainids = np.concatenate( 
-                    (chainids, np.zeros(asize, DTYPES['chainids'])))
+                    (chainids, np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
                 bfactors = np.concatenate( 
-                    (bfactors, np.zeros(asize, DTYPES['bfactors'])))
+                    (bfactors, np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
                 occupancies = np.concatenate( 
-                    (occupancies, np.zeros(asize, DTYPES['occupancies'])))
+                    (occupancies, np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
                 hetero = np.concatenate( 
-                    (hetero, np.zeros(asize, DTYPES['hetero'])))
+                    (hetero, np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
                 altlocs = np.concatenate( 
-                    (altlocs, np.zeros(asize, DTYPES['altlocs'])))
+                    (altlocs, np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
                 segnames = np.concatenate( 
-                    (segnames, np.zeros(asize, DTYPES['segnames'])))
+                    (segnames, np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
                 elements = np.concatenate(
-                    (elements, np.zeros(asize, DTYPES['elements'])))
+                    (elements, np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
                 secondary = np.concatenate(
-                    (secondary, np.zeros(asize, DTYPES['secondary'])))
+                    (secondary, np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
                 anisou = np.concatenate(
-                    (anisou, np.zeros((asize, 6), DTYPES['anisou'])))
+                    (anisou, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
                 siguij = np.concatenate(
-                    (siguij, np.zeros((asize, 6), DTYPES['siguij'])))
+                    (siguij, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
                 icodes = np.concatenate(
-                    (icodes, np.zeros(asize, DTYPES['icodes'])))
+                    (icodes, np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
         elif startswith == 'ANISOU':
             is_anisou = True
             try:
@@ -578,23 +578,23 @@ def _getAtomGroup(lines, split, model, subset, altloc_torf):
             else:
                 atomgroup = prody.AtomGroup('')
                 atomgroup.setCoordinates(coordinates[:acount])
-                atomgroup._atomnames = atomnames[:acount]
-                atomgroup._resnames = resnames[:acount]
-                atomgroup._resnums = resnums[:acount]
-                atomgroup._chainids = chainids[:acount]
-                atomgroup._bfactors = bfactors[:acount]
-                atomgroup._occupancies = occupancies[:acount]
-                atomgroup._hetero = hetero[:acount]
-                atomgroup._altlocs = altlocs[:acount]
-                atomgroup._segnames = segnames[:acount]
-                atomgroup._elements = elements[:acount]
-                atomgroup._icodes = icodes[:acount]
+                atomgroup.setAtomNames(atomnames[:acount])
+                atomgroup.setResidueNames(resnames[:acount])
+                atomgroup.setResidueNumbers(resnums[:acount])
+                atomgroup.setChainIdentifiers(chainids[:acount])
+                atomgroup.setTempFactors(bfactors[:acount])
+                atomgroup.setOccupancies(occupancies[:acount])
+                atomgroup.setHeteroFlags(hetero[:acount])
+                atomgroup.setAltLocIndicators(altlocs[:acount])
+                atomgroup.setSegmentNames(segnames[:acount])
+                atomgroup.setElementSymbols(elements[:acount])
+                atomgroup.setInsertionCodes(icodes[:acount])
                 if is_scndry:
-                    atomgroup._secondary = secondary[:acount]
+                    atomgroup.setSecondaryStrs(secondary[:acount])
                 if is_anisou:
-                    atomgroup._anisou = anisou[:acount] / 10000
+                    atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
                 if is_siguij:
-                    atomgroup._siguij = siguij[:acount] / 10000
+                    atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
                 
                 onlycoords = True
                 coordinates = np.zeros((acount, 3), dtype=np.float64)
@@ -623,23 +623,24 @@ def _getAtomGroup(lines, split, model, subset, altloc_torf):
     else:            
         atomgroup = prody.AtomGroup('')
         atomgroup.setCoordinates(coordinates[:acount])
-        atomgroup._atomnames = atomnames[:acount]
-        atomgroup._resnames = resnames[:acount]
-        atomgroup._resnums = resnums[:acount]
-        atomgroup._chainids = chainids[:acount]
-        atomgroup._bfactors = bfactors[:acount]
-        atomgroup._occupancies = occupancies[:acount]
-        atomgroup._hetero = hetero[:acount]
-        atomgroup._altlocs = altlocs[:acount]
-        atomgroup._segnames = segnames[:acount]
-        atomgroup._elements = elements[:acount]
-        atomgroup._icodes = icodes[:acount]
+        atomgroup.setCoordinates(coordinates[:acount])
+        atomgroup.setAtomNames(atomnames[:acount])
+        atomgroup.setResidueNames(resnames[:acount])
+        atomgroup.setResidueNumbers(resnums[:acount])
+        atomgroup.setChainIdentifiers(chainids[:acount])
+        atomgroup.setTempFactors(bfactors[:acount])
+        atomgroup.setOccupancies(occupancies[:acount])
+        atomgroup.setHeteroFlags(hetero[:acount])
+        atomgroup.setAltLocIndicators(altlocs[:acount])
+        atomgroup.setSegmentNames(segnames[:acount])
+        atomgroup.setElementSymbols(elements[:acount])
+        atomgroup.setInsertionCodes(icodes[:acount])
         if is_scndry:
-            atomgroup._secondary = secondary[:acount]
+            atomgroup.setSecondaryStrs(secondary[:acount])
         if is_anisou:
-            atomgroup._anisou = anisou[:acount] / 10000
+            atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
         if is_siguij:
-            atomgroup._siguij = siguij[:acount] / 10000
+            atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
 
     if altloc and altloc_torf:
         altloc_keys = altloc.keys()
@@ -679,7 +680,7 @@ def _getAtomGroup(lines, split, model, subset, altloc_torf):
                     continue
                 success += 1
             LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were parsed successfully.'.format(success, len(lines), key))
-            LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup._name))
+            LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup.getName()))
             atomgroup.addCoordset(xyz)
                 
     return atomgroup
@@ -1030,7 +1031,7 @@ def assignSecondaryStructure(header, atoms):
             ag = atoms
         else:
             ag = atoms.getAtomGroup()
-        ag.setSecondaryStructureAssignments(np.zeros(ag.getNumOfAtoms(), DTYPES['secondary']))
+        ag.setSecondaryStructureAssignments(np.zeros(ag.getNumOfAtoms(), ATOMIC_DATA_FIELDS['secondary'].dtype))
             
     hierview = atoms.getHierView()
     count = 0

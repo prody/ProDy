@@ -15,27 +15,81 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""":mod:`atomgroup` module defines a class for mainly storing atomic data.
+""":mod:`atomgroup` module defines classes for handling atomic data.
 
 Classes:
 
     * :class:`AtomGroup`
-
+    * :class:`AtomMap`
+    * :class:`AtomSubset`
+    * :class:`Chain`
+    * :class:`Residue`
+    * :class:`Selection`
+    * :class:`AtomMap`
+    * :class:`HierView`
 """
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
+from collections import defaultdict
+
 import numpy as np
 
 import prody
 from prody import ProDyLogger as LOGGER
-from . import Atom, Selection
 from .select import ProDyAtomSelect as SELECT
-from . import DTYPES
-from .hierview import HierView
+from . import ATOMIC_DATA_FIELDS
 
-__all__ = ['AtomGroup']
+__all__ = ['AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain', 'Residue', 'HierView', 'AtomMap']
+
+
+class AtomGroupMeta(type):
+    
+    def __init__(cls, name, bases, dict):
+
+        def wrapGetMethod(fn):
+            def wrapped(self):
+                return fn(self)
+            return wrapped
+
+        def wrapSetMethod(fn):
+            def wrapped(self, array):
+                return fn(self, array)
+            return wrapped
+
+        for field in ATOMIC_DATA_FIELDS.values():
+            def getData(self, var=field.var):
+                array = self.__dict__['_'+var]
+                if array is None:
+                    return None
+                return array.copy() 
+            getData = wrapGetMethod(getData)
+            getData.__name__ = field.meth_pl
+            getData.__doc__ = 'Return a copy of {0:s}.'.format(field.doc_pl)
+            setattr(cls, 'get'+field.meth_pl, getData)
+            
+            def setData(self, array, var=field.var, dtype=field.dtype):
+                if self._n_atoms == 0:
+                    self._n_atoms = len(array)
+                elif len(array) != self._n_atoms:
+                    raise ValueError('length of array must match n_atoms')
+                    
+                if isinstance(array, list):
+                    array = np.array(array, dtype)
+                elif not isinstance(array, np.ndarray):
+                    raise TypeError('array must be a NumPy array or a list')
+                elif array.dtype != dtype:
+                    try:
+                        array.astype(dtype)
+                    except ValueError:
+                        raise ValueError('array cannot be assigned type '
+                                         '{0:s}'.format(dtype))
+                self.__dict__['_'+var] = array
+            setData = wrapSetMethod(setData)
+            setData.__name__ = field.meth_pl 
+            setData.__doc__ = 'Set {0:s}.'.format(field.doc_pl)  
+            setattr(cls, 'set'+field.meth_pl, setData)
 
 
 class AtomGroup(object):
@@ -52,9 +106,9 @@ class AtomGroup(object):
 
     **Get and Set Methods** 
     
-    *get_attribute()* methods return copies of the data arrays. 
+    *getAttribute()* methods return copies of the data arrays. 
     
-    *set_attribute()* methods accepts data contained in :class:`list` or 
+    *setAttribute()* methods accepts data contained in :class:`list` or 
     :class:`numpy.ndarray` instances. The length of the list or array must 
     match the number of atoms in the atom group. Set method sets attributes of 
     all atoms at once.
@@ -73,6 +127,8 @@ class AtomGroup(object):
     group by calling :meth:`getHierView()`. 
 
     """
+    __metaclass__ = AtomGroupMeta
+    
     
     def __init__(self, name):
         """Instantiate an AtomGroup with a *name*."""
@@ -82,26 +138,9 @@ class AtomGroup(object):
         self._acsi = 0                  # Active Coordinate Set Index
         self._n_coordsets = 0
         
-        self._atomnames = None          # Attributes parsed from PDB files 
-        self._altlocs = None
-        self._anisou = None
-        self._chainids = None
-        self._elements = None
-        self._occupancies = None
-        self._resnums = None
-        self._resnames = None
-        self._hetero = None
-        self._secondary = None
-        self._segnames = None
-        self._siguij = None
-        self._bfactors = None
-        self._icodes = None
+        for field in ATOMIC_DATA_FIELDS.values():
+            self.__dict__['_'+field.var] = None
 
-        self._charges = None            # Some useful atomic attributes
-        self._masses = None
-        self._radii = None
-        self._atomtypes = None          # Typically used in force fields
-        
     def __repr__(self):
         return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, active '
                'set index: {3:d})>').format(self._name, 
@@ -113,7 +152,7 @@ class AtomGroup(object):
         return ('{0:s} ({1:d} atoms; {2:d} coordinate sets, active '
                'set index: {3:d})').format(self._name, 
               self._n_atoms, self._n_coordsets, self._acsi)
-    
+
     def __getitem__(self, indices):
         if isinstance(indices, int):
             if indices < 0:
@@ -166,56 +205,12 @@ class AtomGroup(object):
         new.setCoordinates(np.concatenate((self._coordinates[coordset_range],
                                         other._coordinates[coordset_range]), 1))
         
-        if self._atomnames is not None and other._atomnames is not None:
-            new._atomnames = np.concatenate((self._atomnames, other._atomnames))
-
-        if self._altlocs is not None and other._altlocs is not None:
-            new._altlocs = np.concatenate((self._altlocs, other._altlocs))
-
-        if self._anisou is not None and other._anisou is not None:
-            new._anisou = np.concatenate((self._anisou, other._anisou))
-
-        if self._resnames is not None and other._resnames is not None:
-            new._resnames = np.concatenate((self._resnames, other._resnames))
-            
-        if self._resnums is not None and other._resnums is not None:
-            new._resnums = np.concatenate((self._resnums, other._resnums))
-            
-        if self._chainids is not None and other._chainids is not None:
-            new._chainids = np.concatenate((self._chainids, other._chainids))
-            
-        if self._bfactors is not None and other._bfactors is not None:
-            new._bfactors = np.concatenate((self._bfactors, other._bfactors))
-            
-        if self._occupancies is not None and other._occupancies is not None:
-            new._occupancies = np.concatenate((self._occupancies, other._occupancies))
-            
-        if self._hetero is not None and other._hetero is not None:
-            new._hetero = np.concatenate((self._hetero, other._hetero))
-            
-        if self._elements is not None and other._elements is not None:
-            new._elements = np.concatenate((self._elements, other._elements))
-            
-        if self._segnames is not None and other._segnames is not None:
-            new._segnames = np.concatenate((self._segnames, other._segnames))
-            
-        if self._secondary is not None and other._secondary is not None:
-            new._secondary = np.concatenate((self._secondary, other._secondary))
-            
-        if self._siguij is not None and other._siguij is not None:
-            new._siguij = np.concatenate((self._siguij, other._siguij))
-            
-        if self._charges is not None and other._charges is not None:
-            new._charges = np.concatenate((self._charges, other._charges))
-
-        if self._radii is not None and other._radii is not None:
-            new._radii = np.concatenate((self._radii, other._radii))
-
-        if self._masses is not None and other._masses is not None:
-            new._masses = np.concatenate((self._masses, other._masses))
-
-        if self._atomtypes is not None and other._atomtypes is not None:
-            new._atomtypes = np.concatenate((self._atomtypes, other._atomtypes))
+        for field in ATOMIC_DATA_FIELDS:
+            var = '_' + field.var
+            this = self.__dict__[var]
+            that = other.__dict__[var]
+            if this is not None and that is not None:
+                new.__dict__[var] = np.concatenate((this, that))
 
         return new
 
@@ -260,13 +255,13 @@ class AtomGroup(object):
         if coordinates.shape[-1] != 3:
             raise ValueError('shape of coordinates must be (n_atoms,3) or '
                              '(n_coordsets,n_atoms,3)')
-        
-        if coordinates.dtype != DTYPES['coordinates']:
+        float64 = np.float64
+        if coordinates.dtype != float64:
             try:
-                coordinates.astype(DTYPES['coordinates'])
+                coordinates.astype(float64)
             except ValueError:
                 raise ValueError('coordinate array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['coordinates']))
+                                 '{0:s}'.format(np.float64))
 
         if self._n_atoms == 0:
             self._n_atoms = coordinates.shape[-2] 
@@ -301,12 +296,12 @@ class AtomGroup(object):
             raise ValueError('coords must be a 2d or a 3d array')
         elif coords.shape[-2:] != self._coordinates.shape[1:]:
             raise ValueError('shape of coords must be ([n_coordsets,] n_atoms, 3)')
-        elif coords.dtype != DTYPES['coordinates']:
+        elif coords.dtype != np.float64:
             try:
-                coords.astype(DTYPES['coordinates'])
+                coords.astype(np.float64)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['coordinates']))
+                                 '{0:s}'.format(np.float64))
         if coords.ndim == 2:
             coords = coords.reshape((1, coords.shape[0], coords.shape[1]))
         
@@ -368,452 +363,6 @@ class AtomGroup(object):
         #self._kdtree = None
         self._acsi = index
     
-    def getAtomNames(self):
-        """Return a copy of atom names."""
-        if self._atomnames is None:
-            return None
-        return self._atomnames.copy()
-
-    def setAtomNames(self, atom_names):
-        """Set atom names."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(atom_names)
-        elif len(atom_names) != self._n_atoms:
-            raise ValueError('length of atom_names must match n_atoms')
-
-        if isinstance(atom_names, list):
-            atom_names = np.array(atom_names, DTYPES['atomnames'])
-        elif not isinstance(atom_names, np.ndarray):
-            raise TypeError('atom_names must be an ndarray or a list')
-        elif atom_names.dtype != DTYPES['atomnames']:
-            try:
-                atom_names.astype(DTYPES['atomnames'])
-            except ValueError:
-                raise ValueError('atom_names array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['atomnames']))
-        self._atomnames = atom_names
-        
-    def getAlternateLocationIndicators(self):
-        """Return a copy of alternate location indicators."""
-        if self._altlocs is None:
-            return None
-        return self._altlocs.copy()
-
-    def setAlternateLocationIndicators(self, alternate_location_indicators):
-        """Set alternate location identifiers."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(alternate_location_indicators)
-        elif len(alternate_location_indicators) != self._n_atoms:
-            raise ValueError('length of alternate_location_indicators must match n_atoms')
-            
-        if isinstance(alternate_location_indicators, list):
-            alternate_location_indicators = np.array(alternate_location_indicators, DTYPES['altlocs'])
-        elif not isinstance(alternate_location_indicators, np.ndarray):
-            raise TypeError('alternate_location_indicators must be an array or a list')
-        elif alternate_location_indicators.dtype != DTYPES['altlocs']:
-            try:
-                alternate_location_indicators.astype(DTYPES['altlocs'])
-            except ValueError:
-                raise ValueError('alternate_location_indicators array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['altlocs']))
-        self._altlocs = alternate_location_indicators
-        
-    def getAnisotropicTemperatureFactors(self):
-        """Return a copy of anisotropic temperature factors."""
-        if self._anisou is None:
-            return None
-        return self._anisou.copy()
-    
-    def setAnisotropicTemperatureFactors(self, anisotropic_temperature_factors):
-        """Set anisotropic temperature factors."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(anisotropic_temperature_factors)
-        elif len(anisotropic_temperature_factors) != self._n_atoms:
-            raise ValueError('length of anisotropic_temperature_factors must match n_atoms')
-
-        if isinstance(anisotropic_temperature_factors, list):
-            anisotropic_temperature_factors = np.array(anisotropic_temperature_factors, DTYPES['anisou'])
-        elif not isinstance(anisotropic_temperature_factors, np.ndarray):
-            raise TypeError('anisotropic_temperature_factors must be an array or a list')
-        elif anisotropic_temperature_factors.dtype != DTYPES['anisou']:
-            try:
-                anisotropic_temperature_factors.astype(DTYPES['anisou'])
-            except ValueError:
-                raise ValueError('anisotropic_temperature_factors array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['anisou']))
-        self._anisou = anisotropic_temperature_factors
-        
-    def getChainIdentifiers(self):
-        """Return a copy of chain identifiers."""
-        if self._chainids is None:
-            return None
-        return self._chainids.copy()
-    
-    def setChainIdentifiers(self, chain_identifiers):
-        """Set chain identifiers."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(chain_identifiers)
-        elif len(chain_identifiers) != self._n_atoms:
-            raise ValueError('length of chain_identifiers must match n_atoms')
-                
-        if isinstance(chain_identifiers, list):
-            chain_identifiers = np.array(chain_identifiers)
-        elif not isinstance(chain_identifiers, np.ndarray):
-            raise TypeError('chain_identifiers must be an array or a list')
-        elif chain_identifiers.dtype != DTYPES['chainids']:
-            try:
-                chain_identifiers.astype(DTYPES['chainids'])
-            except ValueError:
-                raise ValueError('chain_identifiers array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['chainids']))
-        self._chainids = chain_identifiers
-        
-    def getElementSymbols(self):
-        """Return a copy of element symbols."""
-        if self._elements is None:
-            return None
-        return self._elements.copy()
-
-    def setElementSymbols(self, element_symbols):
-        """Set element symbols."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(element_symbols)
-        elif len(element_symbols) != self._n_atoms:
-            raise ValueError('length of element_symbols must match n_atoms')
-
-        if isinstance(element_symbols, list):
-            element_symbols = np.array(element_symbols, DTYPES['elements'])
-        elif not isinstance(element_symbols, np.ndarray):
-            raise TypeError('element_symbols must be an array or a list')
-        elif element_symbols.dtype != DTYPES['elements']:
-            try:
-                element_symbols.astype(DTYPES['elements'])
-            except ValueError:
-                raise ValueError('element_symbols array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['elements']))
-        self._elements = element_symbols
-        
-    def getHeteroFlags(self):
-        """Return a copy of hetero flags."""
-        if self._hetero is None:
-            return None
-        return self._hetero.copy()
-
-    def setHeteroFlags(self, hetero_flags):
-        """Set hetero flags."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(hetero_flags)
-        elif len(hetero_flags) != self._n_atoms:
-            raise ValueError('length of hetero_flags must match n_atoms')
-        
-        if isinstance(hetero_flags, list):
-            hetero_flags = np.array(hetero_flags, DTYPES['hetero'])
-        elif not isinstance(hetero_flags, np.ndarray):
-            raise TypeError('hetero_flags must be an array or a list')
-        elif hetero_flags.dtype != DTYPES['hetero']:
-            try:
-                hetero_flags.astype(DTYPES['hetero'])
-            except ValueError:
-                raise ValueError('hetero_flags array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['hetero']))
-        self._hetero = hetero_flags
-
-    def getOccupancies(self):
-        """Return a copy of occupancies."""
-        if self._occupancies is None:
-            return None
-        return self._occupancies.copy()
-
-    def setOccupancies(self, occupancies):
-        """Set occupancies."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(occupancies)
-        elif len(occupancies) != self._n_atoms:
-            raise ValueError('length of occupancies must match n_atoms')
-
-        if isinstance(occupancies, list):
-            occupancies = np.array(occupancies, DTYPES['occupancies'])
-        elif not isinstance(occupancies, np.ndarray):
-            raise TypeError('occupancies must be an array or a list')
-        elif occupancies.dtype != DTYPES['occupancies']:
-            try:
-                occupancies.astype(DTYPES['occupancies'])
-            except ValueError:
-                raise ValueError('occupancies array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['occupancies']))
-        self._occupancies = occupancies
-        
-    def getResidueNames(self):
-        """Return a copy of residue names."""
-        if self._resnames is None:
-            return None
-        return self._resnames.copy()
-    
-    def setResidueNames(self, residue_names):
-        """Set residue names."""
-        if len(residue_names) != self._n_atoms:
-            raise ValueError('length of residue_names must match n_atoms')
-        elif isinstance(residue_names, list):
-            residue_names = np.array(residue_names, DTYPES['resnames'])
-        elif not isinstance(residue_names, np.ndarray):
-            raise TypeError('residue_names must be an array or a list')
-        elif residue_names.dtype != DTYPES['resnames']:
-            try:
-                residue_names.astype(DTYPES['resnames'])
-            except ValueError:
-                raise ValueError('residue_names array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['resnames']))
-        self._resnames = residue_names
-        
-    def getResidueNumbers(self):
-        """Return a copy of residue numbers."""
-        if self._resnums is None:
-            return None
-        return self._resnums.copy()
-
-    def setResidueNumbers(self, residue_numbers):
-        """Set residue numbers."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(residue_numbers)
-        elif len(residue_numbers) != self._n_atoms:
-            raise ValueError('length of residue_numbers must match n_atoms')
-        
-        if isinstance(residue_numbers, list):
-            residue_numbers = np.array(residue_numbers, DTYPES['resnums'])
-        elif not isinstance(residue_numbers, np.ndarray):
-            raise TypeError('residue_numbers must be an array or a list')
-        elif residue_numbers.dtype != DTYPES['resnums']:
-            try:
-                residue_numbers.astype(DTYPES['resnums'])
-            except ValueError:
-                raise ValueError('residue_numbers array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['resnums']))
-        self._resnums = residue_numbers
-        
-    def getSecondaryStructureAssignments(self):
-        """Return a copy of secondary structure assignments."""
-        if self._secondary is None:
-            return None
-        return self._secondary.copy()
-    
-    def setSecondaryStructureAssignments(self, secondary_structure_assignments):
-        """Set secondary structure assignments."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(secondary_structure_assignments)
-        elif len(secondary_structure_assignments) != self._n_atoms:
-            raise ValueError('length of secondary_structure_assignments must match n_atoms')
-        
-        if isinstance(secondary_structure_assignments, list):
-            secondary_structure_assignments = np.array(secondary_structure_assignments, DTYPES['secondary'])
-        elif not isinstance(secondary_structure_assignments, np.ndarray):
-            raise TypeError('secondary_structure_assignments must be an array or a list')
-        elif secondary_structure_assignments.dtype != DTYPES['secondary']:
-            try:
-                secondary_structure_assignments.astype(DTYPES['secondary'])
-            except ValueError:
-                raise ValueError('secondary_structure_assignments array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['secondary']))
-        self._secondary = secondary_structure_assignments
-        
-    def getSegmentNames(self):
-        """Return a copy of segment names."""
-        if self._segnames is None:
-            return None
-        return self._segnames.copy()
-    
-    def setSegmentNames(self, segment_names):
-        """Set segment names."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(segment_names)
-        elif len(segment_names) != self._n_atoms:
-            raise ValueError('length of segment_names must match n_atoms')
-        
-        if isinstance(segment_names, list):
-            segment_names = np.array(segment_names, DTYPES['segnames'])
-        elif not isinstance(segment_names, np.ndarray):
-            raise TypeError('segment_names must be an array or a list')
-        elif segment_names.dtype != DTYPES['segnames']:
-            try:
-                segment_names.astype(DTYPES['segnames'])
-            except ValueError:
-                raise ValueError('segment_names array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['segnames']))
-        self._segnames = segment_names
-        
-    def getAnisotropicStandardDeviations(self):
-        """Return a copy of standard deviations for the anisotropic temperature factors."""
-        if self._siguij is None:
-            return None
-        return self._siguij.copy()
-    
-    def setAnisotropicStandardDeviations(self, anisotropic_standard_deviations):
-        """Set standard deviations for the anisotropic temperature factors."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(anisotropic_standard_deviations)
-        elif len(anisotropic_standard_deviations) != self._n_atoms:
-            raise ValueError('length of siguij must match n_atoms')
-        
-        if isinstance(anisotropic_standard_deviations, list):
-            anisotropic_standard_deviations = np.array(anisotropic_standard_deviations, DTYPES['siguij'])
-        elif not isinstance(anisotropic_standard_deviations, np.ndarray):
-            raise TypeError('anisotropic_standard_deviations must be an array or a list')
-        elif anisotropic_standard_deviations.dtype != DTYPES['siguij']:
-            try:
-                anisotropic_standard_deviations.astype(DTYPES['siguij'])
-            except ValueError:
-                raise ValueError('anisotropic_standard_deviations array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['siguij']))
-        self._siguij = anisotropic_standard_deviations
-        
-    def getTemperatureFactors(self):
-        """Return a copy of temperature (B) factors."""
-        if self._bfactors is None:
-            return None
-        return self._bfactors.copy()
-                        
-    def setTemperatureFactors(self, temperature_factors):
-        """Set temperature (B) factors."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(temperature_factors)
-        elif len(temperature_factors) != self._n_atoms:
-            raise ValueError('length of temperature_factors must match n_atoms')
-        
-        if isinstance(temperature_factors, list):
-            temperature_factors = np.array(temperature_factors, DTYPES['bfactor'])
-        elif not isinstance(temperature_factors, np.ndarray):
-            raise TypeError('temperature_factors must be an array or a list')
-        elif temperature_factors.dtype != DTYPES['bfactors']:
-            try:
-                temperature_factors.astype(DTYPES['bfactors'])
-            except ValueError:
-                raise ValueError('temperature_factors array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['bfactors']))
-        self._bfactor = temperature_factors
-        
-    def getRadii(self):
-        """Return a copy of atomic radii."""
-        if self._radii is None:
-            return None
-        return self._radii.copy()
-    
-    def setRadii(self, radii):
-        """Set atomic radii."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(radii)
-        elif len(radii) != self._n_atoms:
-            raise ValueError('length of radii must match n_atoms')
-        
-        if isinstance(radii, list):
-            radii = np.array(radii, DTYPES['radii'])
-        elif not isinstance(radii, np.ndarray):
-            raise TypeError('radii must be an array or a list')
-        elif radii.dtype != DTYPES['radii']:
-            try:
-                radii.astype(DTYPES['radii'])
-            except ValueError:
-                raise ValueError('radii array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['radii']))
-        self._radii = radii
-        
-    def getMasses(self):
-        """Return a copy of atomic masses."""
-        if self._masses is None:
-            return None
-        return self._masses.copy()
-    
-    def setMasses(self, masses):
-        """Set atomic masses."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(masses)
-        elif len(masses) != self._n_atoms:
-            raise ValueError('length of masses must match n_atoms')
-        
-        if isinstance(masses, list):
-            masses = np.array(masses, DTYPES['masses'])
-        elif not isinstance(masses, np.ndarray):
-            raise TypeError('masses must be an array or a list')
-        elif masses.dtype != DTYPES['masses']:
-            try:
-                masses.astype(DTYPES['masses'])
-            except ValueError:
-                raise ValueError('masses array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['masses']))
-        self._masses = masses
-        
-    def getCharges(self):
-        """Return a copy of atomic partial charges."""
-        if self._charges is None:
-            return None
-        return self._charges.copy()
-    
-    def setCharges(self, charges):
-        """Set atomic partial charges."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(charges)
-        elif len(charges) != self._n_atoms:
-            raise ValueError('length of charges must match n_atoms')
-        
-        if isinstance(charges, list):
-            charges = np.array(charges, DTYPES['charges'])
-        elif not isinstance(charges, np.ndarray):
-            raise TypeError('charges must be an array or a list')
-        elif charges.dtype != DTYPES['charges']:
-            try:
-                charges.astype(DTYPES['charges'])
-            except ValueError:
-                raise ValueError('charges array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['charges']))
-        self._charges = charges
-        
-    def getAtomTypes(self):
-        """Return a copy of atom types."""
-        if self._atomtypes is None:
-            return None
-        return self._atomtypes.copy()
-
-    def setAtomTypes(self, atom_types):
-        """Set atom types."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(atom_types)
-        elif len(atom_types) != self._n_atoms:
-            raise ValueError('length of atom_types must match n_atoms')
-        
-        if isinstance(atom_types, list):
-            atom_types = np.array(atom_types, DTYPES['atomtypes'])
-        elif not isinstance(atom_types, np.ndarray):
-            raise TypeError('atom_types must be an ndarray or a list')
-        elif atom_types.dtype != DTYPES['atomtypes']:
-            try:
-                atom_types.astype(DTYPES['atomtypes'])
-            except ValueError:
-                raise ValueError('atom_types array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['atomtypes']))
-        self._atomtypes = atom_types
-        
-    def getInsertionCodes(self):
-        """Return a copy of insertion codes."""
-        if self._icodes is None:
-            return None
-        return self._icodes.copy()
-
-    def setInsertionCodes(self, insertion_codes):
-        """Set atom types."""
-        if self._n_atoms == 0:
-            self._n_atoms = len(insertion_codes)
-        elif len(insertion_codes) != self._n_atoms:
-            raise ValueError('length of insertion_codes must match n_atoms')
-        
-        if isinstance(insertion_codes, list):
-            insertion_codes = np.array(insertion_codes, DTYPES['icodes'])
-        elif not isinstance(insertion_codes, np.ndarray):
-            raise TypeError('insertion_codes must be an ndarray or a list')
-        elif insertion_codes.dtype != DTYPES['icodes']:
-            try:
-                insertion_codes.astype(DTYPES['icodes'])
-            except ValueError:
-                raise ValueError('insertion_codes array cannot be assigned type '
-                                 '{0:s}'.format(DTYPES['icodes']))
-        self._icodes = insertion_codes
 
 
     def select(self, selstr):
@@ -874,85 +423,902 @@ class AtomGroup(object):
 
         if indices is None:
             newmol.setCoordinates(self._coordinates.copy())
-            if self._atomnames is not None:
-                newmol._atomnames = self._atomnames.copy()
-            if self._resnames is not None:
-                newmol._resnames = self._resnames.copy()
-            if self._resnums is not None:
-                newmol._resnums = self._resnums.copy()
-            if self._chainids is not None:
-                newmol._chainids = self._chainids.copy()
-            if self._bfactors is not None:
-                newmol._bfactors = self._bfactors.copy()
-            if self._occupancies is not None:
-                newmol._occupancies = self._occupancies.copy()
-            if self._hetero is not None:
-                newmol._hetero = self._hetero.copy()
-            if self._altlocs is not None:
-                newmol._altlocs = self._altlocs.copy()
-            if self._elements is not None:
-                newmol._elements = self._elements.copy()
-            if self._segnames is not None:
-                newmol._segnames = self._segnames.copy()
-            if self._secondary is not None:
-                newmol._secondary = self._secondary.copy()
-            if self._anisou is not None:
-                newmol._anisou = self._anisou.copy()
-            if self._siguij is not None:
-                newmol._siguij = self._siguij.copy()
-            if self._charges is not None:
-                newmol._charges = self._charges.copy()
-            if self._masses is not None:
-                newmol._masses = self._masses.copy()
-            if self._radii is not None:
-                newmol._radii = self._radii.copy()
-            if self._atomtypes is not None:
-                newmol._atomtypes = self._atomtypes.copy()
-            if self._icodes is not None:
-                newmol._icodes = self._icodes.copy()
+            for field in ATOMIC_DATA_FIELDS:
+                var = '_' + field.var
+            array = self.__dict__[var]
+            if array is not None:
+                newmol.__dict__[var] = array.copy()
         else:
             newmol.setCoordinates(
                     self._coordinates[:, indices].copy(
                         ).reshape((self._n_coordsets, len(indices), 3)))
-            if self._atomnames is not None:
-                newmol._atomnames = self._atomnames[indices].copy()
-            if self._resnames is not None:
-                newmol._resnames = self._resnames[indices].copy()
-            if self._resnums is not None:
-                newmol._resnums = self._resnums[indices].copy()
-            if self._chainids is not None:
-                newmol._chainids = self._chainids[indices].copy()
-            if self._bfactors is not None:
-                newmol._bfactors = self._bfactors[indices].copy()
-            if self._occupancies is not None:
-                newmol._occupancies = self._occupancies[indices].copy()
-            if self._hetero is not None:
-                newmol._hetero = self._hetero[indices].copy()
-            if self._altlocs is not None:
-                newmol._altlocs = self._altlocs[indices].copy()
-            if self._elements is not None:
-                newmol._elements = self._elements[indices].copy()
-            if self._segnames is not None:
-                newmol._segnames = self._segnames[indices].copy()
-            if self._secondary is not None:
-                newmol._secondary = self._secondary[indices].copy()
-            if self._anisou is not None:
-                newmol._anisou = self._anisou[indices].copy()
-            if self._siguij is not None:
-                newmol._siguij = self._siguij[indices].copy()
-            if self._charges is not None:
-                newmol._charges = self._charges[indices].copy()
-            if self._masses is not None:
-                newmol._masses = self._masses[indices].copy()
-            if self._radii is not None:
-                newmol._radii = self._radii[indices].copy()
-            if self._atomtypes is not None:
-                newmol._atomtypes = self._atomtypes[indices].copy()
-            if self._icodes is not None:
-                newmol._icodes = self._icodes[indices].copy()
-        
+            for field in ATOMIC_DATA_FIELDS:
+                var = '_' + field.var
+            array = self.__dict__[var]
+            if array is not None:
+                newmol.__dict__[var] = array[indices].copy()
+
         return newmol
     
     def getHierView(self):
         """Return a hierarchical view of the atom group."""
         return HierView(self)
+    
+class AtomMeta(type):
+    
+    def __init__(cls, name, bases, dict):
+
+        def wrapGetMethod(fn):
+            def wrapped(self):
+                return fn(self)
+            return wrapped
+        def wrapSetMethod(fn):
+            def wrapped(self, value):
+                return fn(self, value)
+            return wrapped
+
+        for field in ATOMIC_DATA_FIELDS.values():
+            def getData(self, var=field.var):
+                array = self._ag.__dict__['_'+var]
+                if array is None:
+                    return None
+                return array[self._index] 
+            getData = wrapGetMethod(getData)
+            getData.__name__ = field.meth
+            getData.__doc__ = 'Return {0:s} of the atom.'.format(field.doc)
+              
+            setattr(cls, 'get'+field.meth, getData)
+            
+            def setData(self, value, var=field.var):
+                array = self._ag.__dict__['_'+var]
+                if array is None:
+                    raise AttributeError('attribute of the AtomGroup is not set')
+                array[self._index] = value
+            setData = wrapSetMethod(setData)
+            setData.__name__ = field.meth 
+            setData.__doc__ = 'Set {0:s} of the atom.'.format(field.doc)  
+            setattr(cls, 'set'+field.meth, setData)
+        setattr(cls, 'getName', getattr(cls, 'getAtomName'))
+        setattr(cls, 'setName', getattr(cls, 'setAtomName'))
+
+class Atom(object):
+    """A class for accessing and manipulating attributes of an atom 
+    in a :class:`AtomGroup` instance."""
+    
+    __metaclass__ = AtomMeta
+    
+    __slots__ = ('_ag', '_index', '_acsi')
+    
+    def __init__(self, atomgroup, index, acsi=None):
+        if not isinstance(atomgroup, prody.AtomGroup):
+            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
+                            .format(type(atomgroup)))
+        self._ag = atomgroup
+        self._index = int(index)
+        if acsi is None:
+            self._acsi = atomgroup.getActiveCoordsetIndex()
+        else: 
+            self._acsi = int(acsi)
+        
+    def __repr__(self):
+        return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
+                'coordinate sets, active set index: {4:d})>').format(
+                self.getAtomName(), self._ag._name, self._index,  
+                self._ag._n_coordsets, self._acsi)
+
+    def __str__(self):
+        return ('Atom {0:s} from {1:s} (index {2:d})').format(
+                self.getAtomName(), self._ag.getName(), self._index)
+        return ('{0:s} from {2:s} (index {1:d}; {3:d} '
+                'coordinate sets, active set index: {4:d})').format(
+                self.getAtomName(), self._index, self._ag._name, 
+                self._ag._n_coordsets, self._acsi)
+
+    def __len__(self):
+        return 1
+    
+    def getAtomGroup(self):
+        """Return associated atom group."""
+        return self._ag
+    
+    def getIndex(self):
+        """Return index of the atom."""
+        return self._index
+    
+    def getNumOfCoordsets(self):
+        """Return number of coordinate sets."""
+        return self._ag._n_coordsets
+    
+    def getActiveCoordsetIndex(self):
+        """Return the index of the active coordinate set for the atom."""
+        return self._acsi
+    
+    def setActiveCoordsetIndex(self, index):
+        """Set the index of the active coordinate set for the atom."""
+        if self._ag._coordinates is None:
+            raise AttributeError('coordinates are not set')
+        if not isinstance(index, int):
+            raise TypeError('index must be an integer')
+        if self._ag._n_coordsets <= index or \
+           self._ag._n_coordsets < abs(index):
+            raise IndexError('coordinate set index is out of range')
+        if index < 0:
+            index += self._ag._n_coordsets
+        self._acsi = index
+    
+    def getCoordinates(self):
+        """Return a copy of coordinates of the atom from the active coordinate set."""
+        return self._ag._coordinates[self._acsi, self._index].copy()
+    
+    def setCoordinates(self, coordinates):
+        """Set coordinates of the atom in the active coordinate set."""
+        self._ag._coordinates[self._acsi, self._index] = coordinates
+        
+    def getCoordsets(self, indices):
+        """Return a copy of coordinate sets at given indices.
+        
+        *indices* may be an integer or a list of integers.
+        
+        """
+        if self._ag._coordinates is None:
+            raise AttributeError('coordinates are not set')
+        try: 
+            return self._ag._coordinates[indices, self._index].copy()
+        except IndexError:
+            raise IndexError('indices may be an integer or a list of integers')
+
+    def iterCoordsets(self):
+        """Iterate over coordinate sets."""
+        for i in range(self._ag._n_coordsets):
+            yield self._ag._coordinates[i, self._index].copy()
+
+    def getSelectionString(self):
+        """Return selection string that will select this atom."""
+        return 'index {0:d}'.format(self._index)
+    
+class AtomSubsetMeta(type):
+    
+    def __init__(cls, name, bases, dict):
+        def wrapGetMethod(fn):
+            def wrapped(self):
+                return fn(self)
+            return wrapped
+        def wrapSetMethod(fn):
+            def wrapped(self, value):
+                return fn(self, value)
+            return wrapped
+
+        for field in ATOMIC_DATA_FIELDS.values():
+            def getData(self, var=field.var):
+                array = self._ag.__dict__['_'+var]
+                if array is None:
+                    return None
+                return array[self._indices] 
+            getData = wrapGetMethod(getData)
+            getData.__name__ = field.meth_pl
+            getData.__doc__ = 'Return {0:s} of the atoms.'.format(field.doc_pl)
+              
+            setattr(cls, 'get'+field.meth_pl, getData)
+            
+            def setData(self, value, var=field.var):
+                array = self._ag.__dict__['_'+var]
+                if array is None:
+                    raise AttributeError('attribute of the AtomGroup is not set')
+                array[self._indices] = value
+            setData = wrapSetMethod(setData)
+            setData.__name__ = field.meth_pl 
+            setData.__doc__ = 'Set {0:s} of the atoms.'.format(field.doc_pl)  
+            setattr(cls, 'set'+field.meth_pl, setData)
+        
+class AtomSubset(object):
+    """A class for manipulating subset of atomic data in an :class:`AtomGroup`.
+    
+    This class stores a reference to an :class:`AtomGroup` instance, a set of 
+    atom indices, and active coordinate set index for the atom group.
+    
+    """
+    __metaclass__ = AtomSubsetMeta    
+    __slots__ = ['_ag', '_indices', '_acsi']
+    
+    def __init__(self, atomgroup, indices, acsi=None):
+        """Instantiate atom group base class. 
+        
+        :arg atomgroup: an atom group
+        :type atomgroup: :class:`AtomGroup`
+        
+        :arg indices: list of indices of atoms in the subset
+        :type indices: list of integers
+        
+        :arg acsi: active coordinate set index
+        :type acsi: integer
+        
+        """
+        
+        if not isinstance(atomgroup, prody.AtomGroup):
+            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
+                            .format(type(atomgroup)))
+        self._ag = atomgroup
+
+        if not isinstance(indices, np.ndarray):
+            indices = np.array(indices, np.int64)
+        elif not indices.dtype == np.int64:
+            indices = indices.astype(np.int64)
+        else:
+            indices = indices
+        self._indices = np.unique(indices)
+
+        if acsi is None:
+            self._acsi = atomgroup.getActiveCoordsetIndex()
+        else:
+            self._acsi = int(acsi)
+
+    
+    def __iter__(self):
+        """Iterate over atoms."""
+        acsi = self._acsi
+        ag = self._ag 
+        for index in self._indices:
+            yield Atom(ag, index, acsi)
+    
+    def __len__(self):
+        return len(self._indices)
+    
+    def __invert__(self):
+        
+        arange = range(self._ag.getNumOfAtoms())
+        indices = list(self._indices)
+        while indices:
+            arange.pop(indices.pop())
+        sel = Selection(self._ag, arange, "not ({0:s}) ".format(
+                                                self.getSelectionString()),
+                        self._acsi)        
+        return sel
+    
+    def __or__(self, other):
+        if not isinstance(other, AtomSubset):
+            raise TypeError('other must be an AtomSubset')
+        if self._ag != other._ag:
+            raise ValueError('both selections must be from the same AtomGroup')
+        if self is other:
+            return self
+        acsi = self._acsi
+        if acsi != other._acsi:
+            LOGGER.warning('active coordinate set indices do not match, '
+                           'so it will be set to zero in the union.')
+            acsi = 0
+        if isinstance(other, Atom):
+            other_indices = np.array([other._index])
+        else:
+            other_indices = other._indices
+        indices = np.unique(np.concatenate((self._indices, other_indices)))
+        return Selection(self._ag, indices, 
+                         '({0:s}) or ({1:s})'.format(self.getSelectionString(), 
+                                                    other.getSelectionString()),
+                          acsi)
+
+    def __and__(self, other):
+        if not isinstance(other, AtomSubset):
+            raise TypeError('other must be an AtomSubset')
+        if self._ag != other._ag:
+            raise ValueError('both selections must be from the same AtomGroup')
+        if self is other:
+            return self
+        acsi = self._acsi
+        if acsi != other._acsi:
+            LOGGER.warning('active coordinate set indices do not match, '
+                           'so it will be set to zero in the union.')
+            acsi = 0
+        indices = set(self._indices)
+        if isinstance(other, Atom):
+            other_indices = set([other._index])
+        else:
+            other_indices = set(other._indices)
+        indices = indices.intersection(other_indices)
+        indices = np.unique(indices)
+        return Selection(self._ag, indices, 
+                         '({0:s}) and ({1:s})'.format(self.getSelectionString(), 
+                                                    other.getSelectionString()),
+                         acsi)    
+    
+    def getAtomGroup(self):
+        """Return associated atom group."""
+        return self._ag
+
+    def getIndices(self):
+        """Return the indices of atoms."""
+        return self._indices.copy()
+    
+    def getNumOfAtoms(self):
+        """Return number of atoms."""
+        return self._indices.__len__()
+
+    def getCoordinates(self):
+        """Return coordinates from the active coordinate set."""
+        if self._ag._coordinates is None:
+            return None
+        return self._ag._coordinates[self._acsi, self._indices].copy()
+    
+    def setCoordinates(self, coordinates):
+        """Set coordinates in the active coordinate set."""
+        self._ag._coordinates[self._acsi, self._indices] = coordinates
+        
+    def getCoordsets(self, indices):
+        """Return coordinate sets at given *indices*.
+        
+        *indices* may be an integer or a list of integers.
+        
+        """
+        if self._ag._coordinates is None:
+            return None
+        if indices is None:
+            indices = slice(None)
+        try: 
+            return self._ag._coordinates[indices, self._indices].copy()
+        except IndexError:
+            raise IndexError('indices may be an integer or a list of integers')
+
+    def getNumOfCoordsets(self):
+        """Return number of coordinate sets."""
+        return self._ag._n_coordsets
+    
+    def iterCoordsets(self):
+        """Iterate over coordinate sets by returning a copy of each coordinate set."""
+        for i in range(self._ag._n_coordsets):
+            yield self._ag._coordinates[i, self._indices].copy()
+
+    def getActiveCoordsetIndex(self):
+        """Return the index of the active coordinate set."""
+        return self._acsi
+    
+    def setActiveCoordsetIndex(self, index):
+        """Set the index of the active coordinate set."""
+        if self._ag._coordinates is None:
+            return None
+        if not isinstance(index, int):
+            raise TypeError('index must be an integer')
+        if self._ag._n_coordsets <= index or \
+           self._ag._n_coordsets < abs(index):
+            raise IndexError('coordinate set index is out of range')
+        if index < 0:
+            index += self._ag._n_coordsets
+        self._acsi = index
+
+    def select(self, selstr):
+        """Return a selection matching the given selection criteria."""
+        return SELECT.select(self, selstr)
+
+class Chain(AtomSubset):
+    
+    __slots__ = AtomSubset.__slots__ + ['_seq', '_dict']
+    
+    def __init__(self, atomgroup, indices, acsi=None):
+        AtomSubset.__init__(self, atomgroup, indices, acsi)
+        self._seq = None
+        self._dict = dict()
+        
+    def __repr__(self):
+        return ('<Chain: {0:s} from {1:s} ({2:d} atoms; '
+                '{3:d} coordinate sets, active set index: {4:d})>').format(
+                self.getIdentifier(), self._ag.getName(), len(self), 
+                self._ag.getNumOfCoordsets(), self._acsi)
+
+    def __str__(self):
+        return ('Chain {0:s} from {1:s}').format(self.getIdentifier(), self._ag.getName())
+        return ('Chain {0:s} from {1:s} ({2:d} atoms; '
+                '{3:d} coordinate sets, active set index: {4:d})').format(
+                self.getIdentifier(), self._ag.getName(), len(self), 
+                self._ag.getNumOfCoordsets(), self._acsi)
+
+    def __getitem__(self, number):
+        """Returns the residue with given number, if it exists. Assumes
+        the insertion code is an empty string."""
+        return self.getResidue(number)
+    
+    def getResidue(self, number, insertcode=''):
+        """Return residue with given number."""
+        return self._dict.get((number, insertcode), None)
+
+    def iterResidues(self):
+        """Iterate residues in the chain."""
+        keys = self._dict.keys()
+        keys.sort()
+        for key in keys:
+            yield self._dict[key]
+    
+    def getNumOfResidues(self):
+        """Return number of residues."""
+        return len(self._dict)
+
+    def getIdentifier(self):
+        """Return chain identifier."""
+        return self._ag._chids[self._indices[0]]
+    
+    def setIdentifier(self, identifier):
+        """Set chain identifier."""
+        self.setChainIdentifiers(identifier)
+    
+    def getSequence(self):
+        """Return sequence, if chain is a polypeptide."""
+        if self._seq:
+            return self._seq
+        CAs = self.select('name CA').select('protein')
+        if len(CAs) > 0:
+            self._seq = prody.proteins.compare._getSequence(CAs.residue_names)
+        else:
+            self._seq = ''
+        return self._seq
+
+    def getSelectionString(self):
+        """Return selection string that selects this atom group."""
+        return 'chain {0:s}'.format(self.getIdentifier())
+
+
+class Residue(AtomSubset):
+    
+    __slots__ = AtomSubset.__slots__ + ['_icode', '_chain']
+    
+    def __init__(self, atomgroup, indices, chain, acsi=None):
+        AtomSubset.__init__(self, atomgroup, indices, acsi)
+        self._chain = chain
+
+    def __repr__(self):
+        return '<Residue: {0:s}>'.format(str(self))
+        
+    def __str__(self):
+        return ('{0:s} {1:d}{2:s} from Chain {3:s} from {4:s} '
+                '({5:d} atoms; {6:d} coordinate sets, '
+                'active set index: {7:d})').format(self.getName(), 
+                self.getNumber(), self.getInsertionCode(), 
+                self.getChain().getIdentifier(), self._ag.getName(), 
+                len(self), self._ag.getNumOfCoordsets(), self._acsi)
+
+    def __getitem__(self, name):
+        return self.getAtom(name)
+    
+    def getAtom(self, name):
+        """Return atom with given *name*, ``None`` if not found.
+        
+        Assumes that atom names in a residue are unique. If more than one atoms 
+        with the given *name* exists, the one with the smaller index will be 
+        returned.
+        
+        """
+        nz = (self.getAtomNames() == name).nonzero()[0]
+        if len(nz) > 0:
+            return Atom(self._ag, self._indices[nz[0]], self._acsi)
+    
+    def getChain(self):
+        """Return the chain that the residue belongs to."""
+        return self._chain
+    
+    def getNumber(self):
+        """Return residue number."""
+        return self._ag._resnums[self._indices[0]]
+    
+    def setNumber(self, number):
+        """Set residue number."""
+        self.setResidueNumbers(number)
+    
+    def getName(self):
+        """Return residue name."""
+        return self._ag._resnames[self._indices[0]]
+    
+    def setName(self, name):
+        """Set residue name."""
+        self.setResidueNames(name)
+
+    def getInsertionCode(self):
+        """Return residue insertion code."""
+        return self._ag._icodes[self._indices[0]]
+        
+    def setInsertionCode(self, icode):
+        """Set residue insertion code."""
+        self.setInsertionCodes(icode)
+    
+    def getChainIdentifier(self):
+        return self._chain.getIdentifier()
+    
+    def getSelectionString(self):
+        """Return selection string that will select this residue."""
+        return 'chain {0:s} and resnum {1:d}{2:s}'.format(
+                self.getChainIdentifier(), self.getNumber(), 
+                self.getInsertionCode())
+
+class Selection(AtomSubset):
+    """A class for accessing and manipulating attributes of select of atoms 
+    in an :class:`AtomGroup` instance."""
+    
+    __slots__ = AtomSubset.__slots__ + ['_selstr']
+    
+    def __init__(self, atomgroup, indices, selstr, acsi=None):
+        AtomSubset.__init__(self, atomgroup, indices, acsi)
+        self._selstr = str(selstr)
+        
+    def __repr__(self):
+        selstr = self._selstr
+        if len(selstr) > 33:
+            selstr = selstr[:15] + '...' + selstr[-15:]  
+        return ('<Selection: "{0:s}" from {1:s} ({2:d} atoms; '
+                '{3:d} coordinate sets, active set index: {4:d})>').format(
+                selstr, self._ag.getName(), len(self), 
+                         self._ag._n_coordsets, self._acsi)
+        return '<Selection: {0:s}>'.format(str(self))
+                   
+    def __str__(self):
+        selstr = self._selstr
+        if len(selstr) > 33:
+            selstr = selstr[:15] + '...' + selstr[-15:]  
+        return 'Selection "{0:s}" from {1:s}'.format(selstr, self._ag.getName())
+        
+    
+    def getSelectionString(self):
+        """Return selection string that selects this atom subset."""
+        return self._selstr
+
+    def getHierView(self):
+        """Return a hierarchical view of the atom subset."""
+        LOGGER.warning('HierView will be disabled for selections.')
+        return prody.proteins.HierView(self)
+
+class HierView(object):
+    
+    
+    __slots__ = ['_atoms', '_chains']
+    
+    def __init__(self, atoms):
+        """Instantiate a hierarchical view for atoms in an :class:`AtomGroup` 
+        or :class:`Selection`."""
+        self._atoms = atoms
+        self._chains = dict()
+        self.build()
+        
+    def build(self):
+        """Build hierarchical view of the atom group.
+        
+        This method is called at instantiation, but can be used to rebuild
+        the hierarchical view when attributes of atoms change.
+        
+        """
+        
+        acsi = self._atoms.getActiveCoordsetIndex()
+        atoms = self._atoms
+        if isinstance(atoms, AtomGroup):
+            atomgroup = atoms
+            _indices = np.arange(atomgroup._n_atoms)
+            chainids = atomgroup.getChainIdentifiers() 
+            if chainids is None:
+                chainids = np.zeros(atomgroup._n_atoms, 
+                                    dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+                atomgroup.setChainIdentifiers(chainids)
+        else:
+            atomgroup = atoms._ag
+            _indices = atoms._indices
+            if atomgroup.getChainIdentifiers() is None:
+                chainids = np.zeros(atomgroup._n_atoms, 
+                                    dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+                atomgroup.setChainIdentifiers(chainids)
+            chainids = chainids[_indices]
+
+
+        for chid in np.unique(chainids):
+            ch = Chain(atomgroup, _indices[chainids == chid], acsi)
+            self._chains[chid] = ch
+        
+        if atomgroup.getResidueNumbers() is None:
+            atomgroup.setResidueNumbers(np.zeros(atomgroup._n_atoms, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype))
+        if atomgroup.getResidueNames() is None:
+            atomgroup.setResidueNames(np.zeros(atomgroup._n_atoms, dtype=ATOMIC_DATA_FIELDS['resname'].dtype))
+        if atomgroup.getInsertionCodes() is None:
+            atomgroup.setInsertionCodes(np.zeros(atomgroup._n_atoms, dtype=ATOMIC_DATA_FIELDS['icode'].dtype))
+
+        icodes = atomgroup.getInsertionCodes()
+        
+
+        for chain in self.iterChains():
+            chid = chain.getIdentifier()
+            rd = defaultdict(list)
+            indices = chain.getIndices()
+            resnums = chain.getResidueNumbers()
+            for i in xrange(len(resnums)):
+                rd[resnums[i]].append(indices[i])
+            
+            resnums = rd.keys()
+            resnums.sort()
+            for resnum in resnums:
+                resindices = np.array(rd[resnum])
+                res_icodes = icodes[resindices]
+                
+                for ic in np.unique(res_icodes): 
+                    subindices = resindices[res_icodes == ic]
+                    temp = subindices[0]
+                    res = Residue(atomgroup, subindices, chain, acsi)   
+                    chain._dict[(resnum, ic)] = res
+        
+    def __repr__(self):
+        return '<HierView: {0:s}>'.format(str(self._atoms))
+    
+    def __str__(self):
+        return 'HierView of {0:s}'.format(str(self._atoms))
+    
+    def __iter__(self):
+        """Iterate over chains."""
+        return self.iterChains()
+    
+    def iterResidues(self):
+        """Iterate over residues."""
+        chids = self._chains.keys()
+        chids.sort()
+        for chid in chids:
+            chain = self._chains[chid]
+            for res in chain.iterResidues():
+                yield res
+
+                
+    def getResidue(self, chainid, resnum, icode=''):
+        """Return residue with number *resnum* and insertion code *icode* from 
+        the chain with identifier *chainid*, if it exists."""
+        ch = self._chains.get(chainid, None)
+        if ch is not None:
+            return ch.getResidue(resnum, icode)
+        return None
+
+    def getNumOfResidues(self):
+        """Returns number of residues."""
+        return sum([ch.getNumOfResidues() for ch in self._chains.itervalues()])    
+
+    def iterChains(self):
+        """Iterate over chains."""
+        chids = self._chains.keys()
+        chids.sort()
+        for chid in chids:
+            yield self._chains[chid]
+    
+    def getChain(self, chainid):
+        """Return chain with identifier *chainid*, if it exists."""
+        return self._chains.get(chainid, None)
+
+    def getNumOfChains(self):
+        """Return number of chains."""
+        return len(self._chains)
+    
+class AtomMapMeta(type):
+    
+    def __init__(cls, name, bases, dict):
+        def wrapSetMethod(fn):
+            def wrapped(self, value):
+                return fn(self, value)
+            return wrapped
+
+        for field in ATOMIC_DATA_FIELDS.values():
+            def getData(self, name=field.name, var=field.var):
+                var = '_'+var
+                array = self._ag.__dict__[var]
+                if array is None:
+                    return None
+                result = np.zeros(self._len, ATOMIC_DATA_FIELDS[name].dtype)
+                result[self._mapping] = self._ag.__dict__[var][self._indices]
+                return result 
+            getData = wrapGetMethod(getData)
+            getData.__name__ = field.meth_pl
+            getData.__doc__ = 'Return {0:s} of the atoms. Unmapped atoms will have 0 or empty entries.'.format(field.doc_pl)
+              
+            setattr(cls, 'get'+field.meth_pl, getData)
+
+
+class AtomMap(object):
+    """A class for mapping atomic data.
+    
+    This class stores a reference to an :class:`AtomGroup` instance, a set of 
+    atom indices, active coordinate set index, mapping for indices, and
+    indices of unmapped atoms.
+    
+    """
+    
+    __slots__ = ['_ag', '_indices', '_acsi', '_name', '_mapping', '_unmapped',
+                 '_len']
+    
+    def __init__(self, atomgroup, indices, mapping, unmapped, name='Unnamed', acsi=None):
+        """Instantiate with an AtomMap with following arguments:        
+        
+        :arg atomgroup: the atomgroup instance from which atoms are mapped
+        :arg indices: indices of mapped atoms
+        :arg mapping: mapping of the atoms as a list of indices
+        :arg unmapped: list of indices for unmapped atoms
+        :arg name: name of the AtomMap instance
+        :arg acsi: active coordinate set index, if ``None`` defaults to that of *atomgrup*
+        
+        Length of *mapping* must be equal to length of *indices*. Number of 
+        atoms (including unmapped dummy atoms) are determined from the 
+        sum of lengths of *mapping* and *unmapped* arrays.         
+        
+        """
+        if not isinstance(atomgroup, AtomGroup):
+            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
+                            .format(type(atomgroup)))
+            
+        self._ag = atomgroup
+
+        if not isinstance(indices, np.ndarray):
+            self._indices = np.array(indices, np.int64)
+        elif not indices.dtype == np.int64:
+            self._indices = indices.astype(np.int64)
+        else:
+            self._indices = indices
+
+        if not isinstance(mapping, np.ndarray):
+            self._mapping = np.array(mapping, np.int64)
+        elif not mapping.dtype == np.int64:
+            self._mapping = mapping.astype(np.int64)
+        else:
+            self._mapping = mapping
+
+        if not isinstance(unmapped, np.ndarray):
+            self._unmapped = np.array(unmapped, np.int64)
+        elif not unmapped.dtype == np.int64:
+            self._unmapped = unmapped.astype(np.int64)
+        else:
+            self._unmapped = unmapped
+        
+        self._name = str(name)
+        
+        if acsi is None:
+            self._acsi = atomgroup.getActiveCoordsetIndex()
+        else:
+            self._acsi = int(acsi)
+
+        self._len = len(self._unmapped) + len(self._mapping)
+
+        
+    def __repr__(self):
+        return ('<AtomMap: {0:s} (from {1:s}; {2:d} atoms; '
+                '{3:d} mapped; {4:d} unmapped; {5:d} coordinate sets, '
+                'active set index: {6:d})>').format(self._name,
+                self._ag.getName(), self._len, len(self._mapping), 
+                len(self._unmapped), self.getNumOfCoordsets(), self._acsi)
+    
+    def __str__(self):
+        return 'AtomMap {0:s}'.format(self._name)
+    
+    def __iter__(self):
+        indices = np.zeros(self._len, np.int64)
+        indices[self._unmapped] = -1
+        indices[self._mapping] = self._indices
+        ag = self._ag
+        acsi = self._acsi
+        for index in indices:
+            if index > -1:
+                yield Atom(ag, index, acsi)
+            else:
+                yield None
+    
+    def __len__(self):
+        return self._len
+    
+    def __add__(self, other):
+        if not isinstance(other, AtomMap):
+            raise TypeError('other must be an AtomMap instance')
+        if self._ag != other._ag:
+            raise ValueError('both AtomMaps must be from the same AtomGroup')
+        acsi = self._acsi
+        if acsi != other._acsi:
+            LOGGER.warning('active coordinate set indices do not match, '
+                           'so it will be set to zero')
+            acsi = 0
+        indices = np.concatenate((self._indices, other._indices))
+        #if isinstance(other, AtomMap): 
+        name = '({0:s}) + ({1:s})'.format(self._name, other._name)
+        mapping = np.concatenate((self._mapping, other._mapping + self._len))
+        unmapped = np.concatenate((self._unmapped, other._unmapped + self._len))
+        #else:
+        #    name = '({0:s}) + ({1:s})'.format(self._name, other.getSelectionString())
+        #    mapping = np.concatenate((self._mapping, np.arange(len(other)) + self._len))
+        #    unmapped = self._unmapped.copy()
+            
+        return AtomMap(self._ag, indices, mapping, unmapped, name, acsi)
+    
+    def getName(self):
+        return self._name
+    
+    def setName(self, name):
+        self._name = name
+
+
+    def getAtomGroup(self):
+        """Return the atom group from which the atoms are mapped."""
+        return self._ag
+    
+    def getNumOfAtoms(self):
+        """Return number of mapped atoms."""
+        return self._len
+
+    def getNumOfUnmapped(self):
+        """Return number of unmapped atoms."""
+        return len(self._unmapped)
+
+    def getNumOfMapped(self):
+        """Return number of mapped atoms."""
+        return len(self._mapping)
+
+    def getIndices(self):
+        """Return indices of mapped atoms."""
+        return self._indices.copy()
+
+    def getMapping(self):
+        """Return mapping of indices."""
+        return self._mapping.copy()
+
+
+    def iterCoordsets(self):
+        """Iterate over coordinate sets by returning a copy of each coordinate set."""
+        for i in range(self._ag._n_coordsets):
+            coordinates = np.zeros((self._len, 3), np.float64)
+            coordinates[self._mapping] = self._ag._coordinates[i, self._indices] 
+            yield coordinates
+
+    def getNumOfCoordsets(self):
+        """Return number of coordinate sets."""
+        return self._ag._n_coordsets
+    
+    def getActiveCoordsetIndex(self):
+        """Return the index of the active coordinate set."""
+        return self._acsi
+    
+    def setActiveCoordsetIndex(self, index):
+        """Set the index of the active coordinate set."""
+        if self._ag._coordinates is None:
+            return
+        if not isinstance(index, int):
+            raise TypeError('index must be an integer')
+        if self._ag._n_coordsets <= index or \
+           self._ag._n_coordsets < abs(index):
+            raise IndexError('coordinate set index is out of range')
+        if index < 0:
+            index += self._ag._n_coordsets
+        self._acsi = index
+    
+    def getCoordinates(self):
+        """Return coordinates from the active coordinate set."""
+        coordinates = np.zeros((self._len, 3), np.float64)
+        coordinates[self._mapping] = self._ag._coordinates[self._acsi, self._indices] 
+        return coordinates
+    
+    def setCoordinates(self, coordinates):
+        """Set coordinates in the active coordinate set."""
+        self._ag._coordinates[self._acsi, self._indices] = coordinates
+    
+    def getCoordsets(self, indices):
+        """Return coordinate sets at given indices.
+        
+        *indices* may be an integer or a list of integers.
+        
+        """
+        if self._ag._coordinates is None:
+            return None
+        try: 
+            return self._ag._coordinates[indices, self._indices].copy()
+        except IndexError:
+            raise IndexError('indices may be an integer or a list of integers')
+
+    def getUnmappedFlags(self):
+        """Return an array with 1s for unmapped atoms."""
+        flags = np.zeros(self._len)
+        if len(self._unmapped):
+            flags[self._unmapped] = 1
+        return flags
+    
+    def getMappedFlags(self):
+        """Return an array with 1s for mapped atoms."""
+        flags = np.ones(self._len)
+        if len(self._unmapped):
+            flags[self._unmapped] = 0
+        return flags
+
+    def select(self, selstr):
+        """Return a atom map matching the criteria given by *selstr*.
+        
+        Note that this is a special case for making atom selections. Unmapped
+        atoms will not be included in the returned :class:`AtomMap` instance.
+        The order of atoms will be preserved.
+        
+        """
+        return SELECT.select(self, selstr)
