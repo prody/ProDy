@@ -36,7 +36,7 @@ pp.ParserElement.enablePackrat()
 import prody
 from prody import ProDyLogger as LOGGER
 from . import keywords
-
+from . import ATOMIC_DATA_FIELDS
 DEBUG = False
 
 __all__ = ['Select']
@@ -116,21 +116,10 @@ class Select(object):
         self._evalonly = None
         
         self._coordinates = None
-        self._atomnames = None
-        self._resnames = None
-        self._chainids = None
-        self._elements = None
-        self._resnames = None
-        self._bfactors = None
-        self._occupancies = None
-        self._radius = None
-        self._charges = None
-        self._masses = None
-        self._segnames = None
-        self._resnums = None
-        self._icodes = None
-        self._atomtypes = None
         self._kdtree = None
+
+        for field in ATOMIC_DATA_FIELDS.values():
+            self.__dict__['_'+field.var] = None        
         
         self._tokenizer = pp.operatorPrecedence(
              pp.OneOrMore(pp.Word(pp.alphanums+'.:_') | 
@@ -157,82 +146,25 @@ class Select(object):
         self._evalonly = None
 
         self._coordinates = None
-        self._atomnames = None
-        self._resnames = None
-        self._chainids = None
-        self._elements = None
-        self._resnames = None
-        self._bfactors = None
-        self._occupancies = None
-        self._radius = None
-        self._charges = None
-        self._masses = None
-        self._segnames = None
-        self._resnums = None
-        self._icodes = None
-        self._atomtypes = None
         self._kdtree = None
+        for field in ATOMIC_DATA_FIELDS.values():
+            self.__dict__['_'+field.var] = None        
                     
-    def _getAtomNames(self):
-        if self._atomnames is None:
-            if self._ag._atomnames is None:
-                raise SelectionError('atom names are not set')                
-            if self._indices is None:
-                self._atomnames = self._ag._atomnames
-            else:
-                self._atomnames = self._atoms.getAtomNames()
-        return self._atomnames
-
-    def _getResidueNames(self):
-        if self._resnames is None:
-            if self._ag._resnames is None:
-                raise SelectionError('residue names are not set')                
-            if self._indices is None:
-                self._resnames = self._ag._resnames
-            else:
-                self._resnames = self._atoms.getResidueNames()
-        return self._resnames
-    
-    def _getResidueNumbers(self):
-        if self._resnums is None:
-            if self._ag._resnums is None:
-                raise SelectionError('residue numbers are not set')                
-            if self._indices is None:
-                self._resnums = self._ag._resnums
-            else:
-                self._resnums = self._atoms.getResidueNumbers()
-        return self._resnums
-    
-    def _getChainIdentifiers(self):
-        if self._chainids is None:
-            if self._ag._chainids is None:
-                raise SelectionError('chain identifiers are not set')                
-            if self._indices is None:
-                self._chainids = self._ag._chainids
-            else:
-                self._chainids = self._atoms.getChainIdentifiers()
-        return self._chainids
-
-    def _getInsertionCodes(self):
-        if self._icodes is None:
-            if self._ag._icodes is None:
-                raise SelectionError('insertion codes are not set')                
-            if self._indices is None:
-                self._icodes = self._ag._icodes
-            else:
-                self._icodes = self._atoms.getInsertionCodes()
-        return self._icodes
-
-    
-    def _getSegmentNames(self):
-        if self._segnames is None:
-            if self._ag._segnames is None:
-                raise SelectionError('segment names are not set')                
-            if self._indices is None:
-                self._segnames = self._ag._segnames
-            else:
-                self._segnames = self._atoms.getSegmentNames()
-        return self._segnames
+    def _getAtomicData(self, keyword):
+        field = ATOMIC_DATA_FIELDS.get(keyword, None)
+        if field is None:
+            raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
+        __dict__ = self.__dict__
+        var = '_'+field.var
+        data = __dict__[var]
+        if data is None:
+            data = self._ag.__dict__[var] 
+            if data is None:
+                raise SelectionError('{0:s} are not set.'.format(field.doc_pl))
+            if self._indices is not None:
+                data = data[self._indices]
+            __dict__[var] = data 
+        return data
     
     def _getCoordinates(self):
         if self._coordinates is None:
@@ -241,77 +173,6 @@ class Select(object):
             else:
                 self._coordinates = self._atoms.getCoordinates()
         return self._coordinates
-    
-    def _getTemperatureFactors(self):
-        if self._bfactors is None:
-            if self._ag._bfactors is None:
-                raise SelectionError('temperature factors are not set')                
-            if self._indices is None:
-                self._bfactors = self._ag._bfactors
-            else:
-                self._bfactors = self._atoms.getTemperatureFactors()
-        return self._bfactors
-
-    def _getOccupancies(self):
-        if self._occupancies is None:
-            if self._ag._occupancies is None:
-                raise SelectionError('occupancies are not set')                
-            if self._indices is None:
-                self._occupancies = self._ag._occupancies
-            else:
-                self._occupancies = self._atoms.getOccupancies()
-        return self._occupancies
-
-    def _getMasses(self):
-        if self._masses is None:
-            if self._ag._masses is None:
-                raise SelectionError('masses are not set')                
-            if self._indices is None:
-                self._masses = self._ag._masses
-            else:
-                self._masses = self._atoms.getMasses()
-        return self._masses
-
-    def _getRadii(self):
-        if self._radii is None:
-            if self._ag._radii is None:
-                raise SelectionError('radii are not set')                
-            if self._indices is None:
-                self._radii = self._ag._radii
-            else:
-                self._radii = self._atoms.getRadii()
-        return self._radii
-
-    def _getCharges(self):
-        if self._charges is None:
-            if self._ag._charges is None:
-                raise SelectionError('charges are not set')                
-            if self._indices is None:
-                self._charges = self._ag._charges
-            else:
-                self._charges = self._atoms.getCharges()
-        return self._charges
-    
-    def _getElementSymbols(self):
-        if self._elements is None:
-            if self._ag._elements is None:
-                raise SelectionError('segment names are not set')
-            if self._indices is None:
-                self._elements = self._ag._elements
-            else:
-                self._elements = self._atoms.getElementSymbols()
-        return self._elements
-        
-    def _getAtomTypes(self):
-        if self._atomtypes is None:
-            if self._ag._atomtypes is None:
-                raise SelectionError('atom names are not set')                
-            if self._indices is None:
-                self._atomtypes = self._ag._atomtypes
-            else:
-                self._atomtypes = self._atoms.getAtomTypes()
-        return self._atomtypes
-
    
     def _getKDTree(self):
         if prody.KDTree is None:
@@ -392,7 +253,7 @@ class Select(object):
         else:
             raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
             
-        resnames = self._getResidueNames()
+        resnames = self._getAtomicData('resname')
         if self._evalonly is not None:
             resnames = resnames[self._evalonly]
        
@@ -402,7 +263,7 @@ class Select(object):
             for i in xrange(n_atoms):
                 torf[i] = (resnames[i] in residue_names)
         else:
-            atomnames = self._getAtomNames()
+            atomnames = self._getAtomicData('name')
             if self._evalonly is not None:
                 atomnames = atomnames[self._evalonly]
             if atom_names_not:
@@ -463,14 +324,14 @@ class Select(object):
     def _resnum(self, token=None):
         if DEBUG: print '_resnum', token
         if token is None:
-            return self._getResidueNumbers() 
+            return self._getAtomicData('resnum') 
         icodes = None
         if self._evalonly is None:
-            resids = self._getResidueNumbers()
+            resids = self._getAtomicData('resnum')
             n_atoms = self._n_atoms
         else:
             evalonly = self._evalonly
-            resids = self._getResidueNumbers()[evalonly]
+            resids = self._getAtomicData('resnum')[evalonly]
             n_atoms = len(evalonly)
         torf = np.zeros(n_atoms, np.bool)
         
@@ -478,9 +339,9 @@ class Select(object):
             if isinstance(item, str):
                 if icodes is None:
                     if self._evalonly is None:
-                        icodes = self._getInsertionCodes()
+                        icodes = self._getAtomicData('icode')
                     else:
-                        icodes = self._getInsertionCodes()[evalonly]
+                        icodes = self._getAtomicData('icode')[evalonly]
                 icode = str(item[-1])
                 if icode == '_':
                     icode = ''
@@ -535,23 +396,11 @@ class Select(object):
         return torf
 
     def _evalAlnum(self, keyword, values):
+        data = self._getAtomicData(keyword)
         if keyword == 'chain':
-            data = self._getChainIdentifiers()
             for i, value in enumerate(values):
                 if value == '_':
                     values[i] = ' '
-        elif keyword == 'element':
-            data = self._getElementSymbols()
-        elif keyword == 'name':
-            data = self._getAtomNames()
-        elif keyword == 'resname':
-            data = self._getResidueNames()
-        elif keyword == 'segment':
-            data = self._getSegmentNames()
-        elif keyword == 'type':
-            data = self._getAtomTypes()
-        else:
-            raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
             
         if self._evalonly is not None:
             data = data[self._evalonly]
@@ -578,18 +427,8 @@ class Select(object):
             data = self._getCoordinates()[:,1]
         elif keyword == 'z':
             data = self._getCoordinates()[:,2]
-        elif keyword == 'beta':
-            data = self._getTemperatureFactors()   
-        elif keyword == 'occupancy':
-            data = self._getOccupancies()
-        elif keyword == 'mass':
-            data = self._getMasses()
-        elif keyword == 'radius':
-            data = self._getRadii()
-        elif keyword == 'charge':
-            data = self._getCharges()
         else:
-            raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
+            data = self._getAtomicData(keyword)
         
         if values is None:
             return data
@@ -740,17 +579,17 @@ class Select(object):
             which = self._evaluate(token[1:])
         
         if what == 'residue':
-            chainids = self._getChainIdentifiers()
-            resids =  self._getResidueNumbers()
+            chainids = self._getAtomicData('chain')
+            resids =  self._getAtomicData('resnum')
             resnum = list(np.unique(resids[which]).astype(np.str))
             torf = np.all(
                 [self._evalAlnum('chain', list(np.unique(chainids[which]))),
                  self._resnum(resnum)], 0)
         elif what == 'chain':
-            chainids = self._getChainIdentifiers()
+            chainids = self._getAtomicData('chain')
             torf = self._evalAlnum('chain', list(np.unique(chainids[which])))        
         elif what == 'segment':
-            segnames = self._getSegmentNames()
+            segnames = self._getAtomicData('segment')
             torf = self._evalAlnum('segment', list(np.unique(segnames[which]))) 
         return torf
 
