@@ -268,6 +268,7 @@ class Select(object):
             if self._evalonly is not None:
                 atomnames = atomnames[self._evalonly]
             if atom_names_not:
+                for i in xrange(n_atoms):
                     torf[i] = (not atomnames[i] in atom_names and
                                resnames[i] in residue_names)                
             else:
@@ -487,6 +488,12 @@ class Select(object):
         if DEBUG:
             print '_select', selstr
         torf = self._parseSelStr()[0]
+        if not isinstance(torf, np.ndarray):
+            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
+        elif torf.dtype != np.bool:
+            if DEBUG:
+                print '_select torf.dtype', torf.dtype, isinstance(torf.dtype, np.bool)
+            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
         if DEBUG:
             print '_select', torf
         if isinstance(atoms, prody.AtomGroup):
@@ -685,7 +692,10 @@ class Select(object):
             elif Select.isNumericKeyword(keyword):
                 return self._getnum(keyword)
             else:
-                raise SelectionError('"{0:s}" is not a valid keyword'.format(keyword))
+                try:
+                    return float(keyword)
+                except ValueError:
+                    raise SelectionError('"{0:s}" is not a valid keyword or a number.'.format(keyword))
         elif Select.isBooleanKeyword(keyword):
             return self._and([token])
         elif Select.isAlnumKeyword(keyword):
@@ -713,6 +723,11 @@ class Select(object):
     def _comp(self, token):
         if DEBUG: print '_comp', token
         token = token[0]
+        if len(token) > 3:
+            if Select.isBooleanKeyword(token[0]):
+                return self._and([[token[0], '&&&', self._comp([token[1:]])] ])
+            else:
+                raise SelectionError('{0:s} is not a valid selection string.'.format(' '.join(token)))
         comp = token[1]
         left = self._getnum(token[0])
         if DEBUG: print '_comp', left

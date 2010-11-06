@@ -769,12 +769,9 @@ class Residue(AtomSubset):
         return '<Residue: {0:s}>'.format(str(self))
         
     def __str__(self):
-        return ('{0:s} {1:d}{2:s} from Chain {3:s} from {4:s} '
-                '({5:d} atoms; {6:d} coordinate sets, '
-                'active set index: {7:d})').format(self.getName(), 
-                self.getNumber(), self.getInsertionCode(), 
-                self.getChain().getIdentifier(), self._ag.getName(), 
-                len(self), self._ag.getNumOfCoordsets(), self._acsi)
+        return '{0:s} {1:d}{2:s} from Chain {3:s} from {4:s}'.format(
+                self.getName(), self.getNumber(), self.getInsertionCode(), 
+                self.getChain().getIdentifier(), self._ag.getName())
 
     def __getitem__(self, name):
         return self.getAtom(name)

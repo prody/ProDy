@@ -924,7 +924,7 @@ def writePDBStream(stream, atoms, models=None, sort=False):
     occupancies = atoms.getOccupancies()
     if occupancies is None:
         occupancies = np.zeros(n_atoms, np.float64)
-    bfactors = atoms.getTemperatureFactors()
+    bfactors = atoms.getTempFactors()
     if bfactors is None:
         bfactors = np.zeros(n_atoms, np.float64)
     icodes = atoms.getInsertionCodes()
