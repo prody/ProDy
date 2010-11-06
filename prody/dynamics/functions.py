@@ -29,7 +29,6 @@ import numpy as np
 
 import prody
 from prody import ProDyLogger as LOGGER
-from .modes import VectorBase, Mode, Vector
 from .nma import ZERO
 from .nma import *
 
