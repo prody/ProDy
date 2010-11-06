@@ -695,8 +695,8 @@ class SimpleChain(object):
         for res in chain.iterResidues():
             if res.getAtom('CA') is None:
                 continue
-            resid = res._number
-            aa = _aaa2a.get(res._name, 'X')
+            resid = res.getNumber()
+            aa = _aaa2a.get(res.getName(), 'X')
             simpres = SimpleResidue(resid, aa, res)
             if self._gaps:
                 diff = resid - temp - 1
@@ -706,5 +706,6 @@ class SimpleChain(object):
             self._seq += aa
             self._list.append(simpres)
             self._dict[resid] = simpres
-        self._name = 'Chain {0:s} from {1:s}'.format(chain._chid,
-                                                     chain._ag._name)
+        self._name = 'Chain {0:s} from {1:s}'.format(chain.getIdentifier(),
+                                                     chain._ag.getName())
+

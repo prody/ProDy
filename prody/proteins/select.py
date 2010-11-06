@@ -254,9 +254,10 @@ class Select(object):
             raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
             
         resnames = self._getAtomicData('resname')
+        #print len(resnames), resnames
         if self._evalonly is not None:
             resnames = resnames[self._evalonly]
-       
+        #print len(resnames), resnames
         torf = np.zeros(n_atoms, np.bool)
 
         if atom_names is None:
@@ -276,7 +277,7 @@ class Select(object):
             
         if invert:
             torf = np.invert(torf, torf)
-        
+        #print torf, torf.sum()
         return torf
     
     def _numrange(self, token):
@@ -630,7 +631,10 @@ class Select(object):
                     self._evalonly = self._evalonly[zero[self._evalonly].nonzero()[0]]
             else:
                 torf = self._evaluate(token)
-                self._evalonly = torf.nonzero()[0]
+                if self._evalonly is None:
+                    self._evalonly = torf.nonzero()[0]
+                else:
+                    self._evalonly = self._evalonly[torf]
             if DEBUG: print '_and', self._evalonly
         torf = np.zeros(self._n_atoms, np.bool)
         torf[self._evalonly] = True
@@ -662,7 +666,10 @@ class Select(object):
                     self._evalonly = self._evalonly[np.invert(zero[self._evalonly]).nonzero()[0]]
             else:
                 torf = self._evaluate(token)
-                self._evalonly = np.invert(torf).nonzero()[0]
+                if self._evalonly is None:
+                    self._evalonly = np.invert(torf).nonzero()[0]
+                else:
+                    self._evalonly = self._evalonly[np.invert(torf)]
             if DEBUG: print '_or', self._evalonly
         torf = np.ones(self._n_atoms, np.bool)
         torf[self._evalonly] = False
