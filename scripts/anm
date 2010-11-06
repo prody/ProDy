@@ -86,7 +86,7 @@ Fetch pdb 1p38 and run ANM using default parameters on all CA atoms of protein c
     # output
     eigenvaluesfn = "%s_evalues.csv"%(prefix)
     eigenvectorsfn = "%s_evectors.csv"%(prefix)
-    nmdfile = "%s_nmwiz.nmd"%(prefix)
+    nmdfile = "%s.nmd"%(prefix)
         
     writeArray(eigenvectorsfn,anm.getArray(),sep=',')
     writeArray(eigenvaluesfn,anm.getEigenvalues(),sep=',')
