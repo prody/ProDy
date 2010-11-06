@@ -43,7 +43,7 @@ def main():
     parser.add_option('-n','--nmodes',dest="nmodes",type="int",default=20,metavar="INT",help="number of non-zero eigenvalues/vectors to calculate (%default)")    
     parser.add_option('-c','--cutoff',dest="cutoff",type="float",default=10.0,metavar="FLOAT",help="cutoff distance (%default)")
     parser.add_option('-g','--gamma',dest="gamma",type="float",default=1.0,metavar="FLOAT",help="spring constant (%default)")
-    parser.add_option('-p','--prefix',dest="prefix",type="string",default="gnm_",metavar="STRING",help="prefix for output files (%default)")
+    parser.add_option('-p','--prefix',dest="prefix",type="string",default="gnm",metavar="STRING",help="prefix for output files (%default)")
     parser.add_option('-s','--select',dest="select",type="string",default="protein and name CA",metavar="STRING",help="selection string (%default)")
     parser.add_option('','--silent',dest='silent',action='store_true',default=False,help='omit verbose information (%default)')
     parser.add_option('-e','--examples',dest='examples',action='store_true',default=False,help='show usage examples')
@@ -81,8 +81,8 @@ Fetch pdb 1p38 and run GNM using default parameters on all CA atoms of protein c
     gnm.calcModes(nmodes)
     
     # output
-    eigenvaluesfn = "%sevalues.csv"%(prefix)
-    eigenvectorsfn = "%sevectors.csv"%(prefix)
+    eigenvaluesfn = "%s_evalues.csv"%(prefix)
+    eigenvectorsfn = "%s_evectors.csv"%(prefix)
     
     #writeModes(eigenvectorsfn,gnm.getEigenvectors())
     #TypeError: modes must be NMA, ModeSet, or Mode, not <type 'numpy.ndarray'>
