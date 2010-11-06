@@ -6,13 +6,7 @@ Getting Prody
 
 ProDy is a Python package. Dependencies, which include a Python interpreter,
 need to be installed before you can use it. In addition, installing the 
-recommended software greatly improves user's experience with ProDy.
-
-**Steps to get ProDy running**:
-
-  1. Install dependencies.
-  2. Install recommended software (optional)
-  3. Install ProDy.
+complementary/recommended software improves user's experience with ProDy.
 
 Dependencies
 ===============================================================================
@@ -39,15 +33,11 @@ Complementary Software
 Recommended Software
 ===============================================================================
 
+* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular 
+  dynamics trajectories.
 * `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
   colorful interactive ProDy sessions on Windows.
-
-Related Software
-===============================================================================
-
-* `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular 
-  dynamics trajectories.
 
 
 Installation
