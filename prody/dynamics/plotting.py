@@ -29,7 +29,6 @@ import prody
 from .functions import getUniformModel
 from .functions import *
 from .nma import *
-from .modes import *
 
 __all__ = ['showFractOfVariances', 'showProjection',
            'showSumOfWeights', 'showOverlapMatrix',

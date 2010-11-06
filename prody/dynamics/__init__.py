@@ -25,10 +25,6 @@ from . import nma
 from .nma import *
 __all__ += nma.__all__
 
-from . import modes
-from .modes import *
-__all__ += modes.__all__
-
 from . import ensemble
 from .ensemble import *
 __all__ += ensemble.__all__
@@ -37,9 +33,6 @@ from . import functions
 from .functions import *
 __all__ += functions.__all__
 
-try:
-    from . import plotting
-    from .plotting import *
-    __all__ += plotting.__all__
-except ImportError:
-    LOGGER.warning('Matplotlib package could not be imported. Plotting functions will be unavailable.')    
+from . import plotting
+from .plotting import *
+__all__ += plotting.__all__

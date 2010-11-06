@@ -38,11 +38,8 @@ import numpy as np
 
 import prody
 from prody import ProDyLogger as LOGGER
-from .modes import Mode
-
 
 __all__ = ['GNM', 'ANM', 'PCA', 'NMA', 'ModeSet', 'EDA', 'Mode', 'Vector']
-
 
 ZERO = 1e-8
 
