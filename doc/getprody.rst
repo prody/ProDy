@@ -8,6 +8,11 @@ ProDy is a Python package. Dependencies, which include a Python interpreter,
 need to be installed before you can use it. In addition, installing the 
 complementary/recommended software improves user's experience with ProDy.
 
+Download
+===============================================================================
+
+ProDy is available on the `Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
+
 Dependencies
 ===============================================================================
 
@@ -15,6 +20,9 @@ Dependencies
 
 * `Python 2.6 <http://python.org/>`_ (for Windows, please choose 32 bit option)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
+
+With NumPy, you can use the PDB parser and the powerful atom selector. For
+dynamics analysis, you need to have the following as well.
 
 **Required for certain functionality:**
 
@@ -38,12 +46,6 @@ Recommended Software
 * `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
   colorful interactive ProDy sessions on Windows.
-
-Download
-===============================================================================
-
-ProDy is available on the `Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
-
 
 Installation
 ===============================================================================
