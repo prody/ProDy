@@ -16,5 +16,8 @@ Classes:
   * :class:`Ensemble`
 Functions:
   * :func:`prody.proteins.parsePDB`
+  * :func:`getANM`
+  * :func:`printOverlapTable`
+  * :func:`writeNMD`
   
 .. literalinclude:: pca_nmr_anm_ubi.py

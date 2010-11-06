@@ -39,6 +39,11 @@ Recommended Software
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
   colorful interactive ProDy sessions on Windows.
 
+Download
+===============================================================================
+
+ProDy is available on the `Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
+
 
 Installation
 ===============================================================================
