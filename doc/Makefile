@@ -36,6 +36,17 @@ help:
 clean:
 	-rm -rf $(BUILDDIR)/* $(BUILDDIR)/../../Documentation/*
 
+both:
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
+	@echo
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/../../Documentation."
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	@echo "Running LaTeX files through pdflatex..."
+	make -C $(BUILDDIR)/latex all-pdf
+	mv $(BUILDDIR)/latex/ProDy.pdf ../
+	cp ../ProDy.pdf ../Documentation
+	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
+
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
 	@echo

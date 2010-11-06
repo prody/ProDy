@@ -7,5 +7,6 @@ Reference
 .. toctree::
    :maxdepth: 2
 
+   prody/functions
    proteins/index
    dynamics/index

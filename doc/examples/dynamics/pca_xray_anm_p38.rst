@@ -17,7 +17,11 @@ Classes:
   * :class:`Ensemble`
 Functions:
   * :func:`prody.proteins.fetchPDB`
+  * :func:`prody.proteins.parsePDB`
   * :func:`prody.proteins.mapAtomsToChain`
+  * :func:`getANM`
+  * :func:`writeNMD`
+  * :func:`printOverlapTable`
   
 This example also use :class:`prody.proteins.AtomMap` instances. Further reading
 :ref:`atommaps` may help to understand how an X-ray ensemble is constructed.
