@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010 Ahmet Bakan'
-__version__ = '0.0.2'
+__version__ = '0.1.0'
 
 import logging
 import logging.handlers
@@ -95,7 +95,8 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'info': logging.INFO,
                   'warning': logging.WARNING,
                   'error': logging.ERROR,
-                  'critical': logging.CRITICAL}
+                  'critical': logging.CRITICAL,
+                  'none': logging.CRITICAL}
 LOGGING_LEVELS.setdefault(logging.INFO)
 ProDySignature = '@>'
 
@@ -128,7 +129,7 @@ def ProDyStartLogfile(filename, **kwargs):
     
     :keyword mode: mode in which logfile will be opened, default is "w" 
     
-    :keyword backupcount: number of old *name.log* files to save, default is 1
+    :keyword backupcount: number of old *filename.log* files to save, default is 1
 
     """
     
@@ -136,15 +137,7 @@ def ProDyStartLogfile(filename, **kwargs):
     :keyword loglevel: loglevel for logfile verbosity
     :type loglevel: str, default is *debug*
     
-    ======== ===========
-    Loglevel Description
-    ======== ===========
-    debug    Eveything will be printed on the colsole or written into logfile.
-    info     Only brief information will be printed or written.
-    warning  Only critical information will be printed or written.
-    error    This loglevel is equivalent to *warning* in package.
-    critical This loglevel is equivalent to *warning* in package.
-    ======== =========== 
+
     
     """
     global ProDyLogger
@@ -184,24 +177,27 @@ def ProDyCloseLogfile(filename):
                 return
     logger.warning('Logfile "{0:s}" was not found.'.format(filename))
 
-def ProDyMute():
-    """ProDy will only print warnings."""
-    ProDyLogger.debug('Good bye :|')
-    ProDyLogger.handlers[0].level = LOGGING_LEVELS['warning']
+def ProDySetVerbosity(level):
+    """Set ProDy console verbosity *level*.
+    
+    By default, console verbosity *level* is debug. This function accepts
+    one of the following:
+    
+    ======== ===========
+    Level    Description
+    ======== ===========
+    debug    Eveything will be printed on the colsole or written into logfile.
+    info     Only brief information will be printed or written.
+    warning  Only warning information will be printed or written.
+    none     ProDy will not log any messages.
+    ======== ===========    
+    """
+    lvl = LOGGING_LEVELS.get(level, None)
+    if lvl is None: 
+        ProDyLogger.warning('{0:s} is not a valid log level.'.format(level))
+    else:
+        ProDyLogger.handlers[0].level = lvl 
 
-def ProDyUnmute():
-    """ProDy will only print some useful information."""
-    ProDyLogger.handlers[0].level = LOGGING_LEVELS['info']
-    ProDyLogger.info('Hi again :)')
-
-def ProDyTalkToMe():
-    """ProDy will print both useful and not so useful information."""
-    ProDyLogger.handlers[0].level = LOGGING_LEVELS['debug']
-    ProDyLogger.debug('Hello world :D')
-
-def ProDyShutUp():
-    """ProDy will not print anything."""
-    ProDyLogger.handlers[0].level = LOGGING_LEVELS['critical']
 
 
 try:
@@ -209,8 +205,7 @@ try:
 except ImportError, err:
     raise ImportError('numpy not found, it is a required package')
 
-__all__ = ['ProDyStartLogfile', 'ProDyCloseLogfile']
-#           'ProDyTalkToMe', 'ProDyMute', 'ProDyUnmute', 'ProDyShutUp']
+__all__ = ['ProDyStartLogfile', 'ProDyCloseLogfile', 'ProDySetVerbosity']
 
 import proteins
 __all__.append('proteins')
@@ -228,10 +223,4 @@ __all__.append('prody')
 
 
 def ProDySetLocalPDBFolder(path):
-    pass
-
-def ProDyStartLogFile(filename):
-    pass
-
-def ProDySetVerbosity(level):
     pass
