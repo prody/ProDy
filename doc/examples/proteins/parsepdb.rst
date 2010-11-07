@@ -1,4 +1,4 @@
-.. module:: prody.proteins
+.. currentmodule:: prody.proteins
 
 .. _parsepdb:
 

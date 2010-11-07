@@ -1,4 +1,4 @@
-.. module:: prody.dynamics
+.. currentmodule:: prody.dynamics
 
 .. _dyplotting:
 

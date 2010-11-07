@@ -43,8 +43,8 @@ both:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	mv $(BUILDDIR)/latex/ProDy.pdf ../
-	cp ../ProDy.pdf ../Documentation
+	mv -f $(BUILDDIR)/latex/ProDy.pdf ../
+	cp -f ../ProDy.pdf ../Documentation
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 html:
