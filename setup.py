@@ -26,6 +26,6 @@ setup(name='ProDy',
                'Topic :: Scientific/Engineering :: Bio-Informatics',
                'Topic :: Scientific/Engineering :: Chemistry',
                ],
-      requires=['NumPy']
-                
+      requires=['NumPy', ],
+      provides=['ProDy(0.1.0)']
       )
