@@ -59,11 +59,11 @@ installed, following will work for you::
 
 **Linux**
 
-Download :file:`prody-0.x.y.tar.gz`. Extract tarball contents and run 
+Download :file:`ProDy-0.x.y.tar.gz`. Extract tarball contents and run 
 :file:`setup.py` as follows::
 
-    tar -xzf pypdb-0.x.y.tar.gz
-    cd pypdb-0.x.y
+    tar -xzf ProDy-0.x.y.tar.gz
+    cd ProDy-0.x.y
     python setup.py install
 
 You may need root access for the last step.
@@ -77,7 +77,7 @@ then add a line to your .bashrc (or alike) script as follows
 
 **Windows**
 
-Download :file:`prody-0.x.y.windows.exe` and run it to install ProDy.
+Download :file:`ProDy-0.x.y.linux-x86_64.exe` and run it to install ProDy.
 
 Source Code
 ===============================================================================
