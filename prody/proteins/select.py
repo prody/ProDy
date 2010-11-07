@@ -726,6 +726,8 @@ class Select(object):
         if len(token) > 3:
             if Select.isBooleanKeyword(token[0]):
                 return self._and([[token[0], '&&&', self._comp([token[1:]])] ])
+            elif Select.isBooleanKeyword(token[-1]):
+                return self._and([[token[-1], '&&&', self._comp([token[:-1]])] ])
             else:
                 raise SelectionError('{0:s} is not a valid selection string.'.format(' '.join(token)))
         comp = token[1]
