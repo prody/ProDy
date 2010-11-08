@@ -143,6 +143,8 @@ def ProDyStartLogfile(filename, **kwargs):
     global ProDyLogger
     logger = ProDyLogger
     logfilename = filename
+    if not logfilename.endswith('.log'):
+        logfilename += '.log'
     if isinstance(logfilename, str):
         rollover = False 
         # if filemode='a' is provided, rollover is not performed
@@ -165,7 +167,8 @@ def ProDyStartLogfile(filename, **kwargs):
 def ProDyCloseLogfile(filename):
     """Close logfile with *filename*."""
     filename = str(filename)
-
+    if not filename.endswith('.log'):
+        filename += '.log'
     global ProDyLogger
     logger = ProDyLogger
     for index, handler in enumerate(logger.handlers):
