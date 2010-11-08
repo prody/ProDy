@@ -255,21 +255,7 @@ def findMatchingChains(atoms1, atoms2, seqid=90, coverage=90, subset='calpha'):
                 ares = match1[i]
                 bres = match2[i]
 
-                if subset is None:
-                    aans = ares.getAtomNames()
-                    bans = bres.getAtomNames().tolist()
-
-                    aids = ares.getIndices()
-                    bids = bres.getIndices()
-                    
-                    for j in xrange(len(aans)):
-                        try:
-                            bid = bres._indices[ bans.index( aans[j] ) ]
-                            indices1.append(ares_indices[j])
-                            indices2.append(bid)
-                        except ValueError:
-                            pass
-                elif subset == 'calpha':
+                if subset == 'calpha':
                     try:
                         aid = ares.getAtomNames().tolist().index('CA')
                     except ValueError:
@@ -286,12 +272,25 @@ def findMatchingChains(atoms1, atoms2, seqid=90, coverage=90, subset='calpha'):
                         try:
                             aid = ares.getAtomNames().tolist().index(bban)
                         except ValueError:
-                            aid = None
+                            contine
                         try:
                             bid = bres.getAtomNames().tolist().index(bban)
-                            if aid is not None:
-                                indices1.append(ares._indices[aid])
-                                indices2.append(bres._indices[bid])
+                            indices1.append(ares._indices[aid])
+                            indices2.append(bres._indices[bid])
+                        except ValueError:
+                            continue
+                elif subset is None or subset is 'all':
+                    aans = ares.getAtomNames()
+                    bans = bres.getAtomNames().tolist()
+
+                    aids = ares.getIndices()
+                    bids = bres.getIndices()
+                    
+                    for j in xrange(len(aans)):
+                        try:
+                            bid = bres._indices[ bans.index( aans[j] ) ]
+                            indices1.append(aids[j])
+                            indices2.append(bid)
                         except ValueError:
                             pass
                     
@@ -541,7 +540,7 @@ def _getMapping(target, chain, seqid, coverage):
     else:
         LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'
                      .format(_seqid, _cover))
-        target_list, chain_list, n_match, n_mapped = _getTrivialMapping(target, chain)
+        target_list, chain_list, n_match, n_mapped = _getAlignedMapping(target, chain)
         
     
     
@@ -560,12 +559,12 @@ def _getTrivialMapping(target, chain):
     chain_list = []
     n_match = 0
     n_mapped = 0.0
-    chain_dict = chain._dict
+    chain_dict_get = chain._dict.get
     append = target_list.append 
     for target_residue in target:
         append(target_residue.getResidue())
 
-        chain_residue = chain_dict.get(target_residue.getNumber(), None)
+        chain_residue = chain_dict_get(target_residue.getNumber(), None)
         if chain_residue is None:
             chain_list.append(chain_residue)
         else:
@@ -576,6 +575,46 @@ def _getTrivialMapping(target, chain):
             
     return target_list, chain_list, n_match, n_mapped
 
+def _getAlignedMapping(ach, bch):
+    if prody.PWALIGN is None: prody.importBioPairwise2()
+    if PAIRWISE_ALIGNMENT_METHOD == 'local':
+        alignment = prody.PWALIGN.align.localms(ach.sequence, bch.sequence, 
+                                                PAIRWISE_MATCH_SCORE, 
+                                                PAIRWISE_MISMATCH_SCORE,
+                                                PAIRWISE_GAP_OPENING_PENALTY, 
+                                                PAIRWISE_GAP_EXTENSION_PENALTY,
+                                                one_alignment_only=1)
+    else:
+        alignment = prody.PWALIGN.align.globalms(ach.sequence, bch.sequence, 
+                                                 PAIRWISE_MATCH_SCORE, 
+                                                 PAIRWISE_MISMATCH_SCORE,
+                                                 PAIRWISE_GAP_OPENING_PENALTY, 
+                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
+                                                 one_alignment_only=1)
+               
+    this = alignment[0][0]
+    that = alignment[0][1]
+    print this
+    print that
+    stop
+    amatch = []
+    bmatch = []
+    aiter = ach.__iter__()
+    biter = bch.__iter__()
+    match = 0.0
+    for i in xrange(len(this)):
+        a = this[i]
+        b = that[i]
+        if a != PWAGAP:
+            ares = next(aiter)
+        if b != PWAGAP:
+            bres = next(biter)
+            if a != PWAGAP:
+                amatch.append(ares[0])
+                bmatch.append(bres[0])
+                if a == b:
+                    match += 1
+    return amatch, bmatch, match
 
 class SimpleResidue(object):
     
