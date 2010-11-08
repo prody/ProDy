@@ -79,6 +79,11 @@ then add a line to your .bashrc (or alike) script as follows
 
 Download :file:`ProDy-0.x.y.linux-x86_64.exe` and run it to install ProDy.
 
+Installer might give some errors start with message "Could not create ...".
+This happens probably because the installer was prepared in Linux. It should
+not affect the installation. You can try the commands in :ref:`tutorial` to see
+for yourself. 
+
 Source Code
 ===============================================================================
 

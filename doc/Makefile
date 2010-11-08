@@ -49,6 +49,7 @@ both:
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
+	cp -f ../Documentation/ProDy.pdf ../ProDy.pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 html:
@@ -119,6 +120,7 @@ latexpdf:
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
+	cp -f ../Documentation/ProDy.pdf ../ProDy.pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 text:

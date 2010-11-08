@@ -35,7 +35,7 @@ def importScipyLinalg():
     try:
         import scipy.linalg as linalg
     except ImportError:
-        raise ImportError('SciPy is required for NMA calculations')
+        raise ImportError('SciPy is required for NMA/rmsd/superimposition calculations.')
     global la
     la = linalg
 
@@ -45,7 +45,7 @@ def importPyPlot():
         import matplotlib.pyplot as pyplot
         from mpl_toolkits.mplot3d import Axes3D
     except ImportError:
-        raise ImportError('Matplotlib is required for plotting')
+        raise ImportError('Matplotlib is required for plotting.')
     global pl
     pl = pyplot
     dynamics.plotting.pl = pl
@@ -55,7 +55,7 @@ def importBioKDTree():
     try:
         from Bio.KDTree import KDTree as BioKDTree
     except ImportError:
-        raise ImportError('BioPython is required for ENM calculations')
+        raise ImportError('BioPython is required for ENM calculations.')
     global KDTree
     KDTree = BioKDTree
 
@@ -66,7 +66,7 @@ def importBioBlast():
         from Bio.Blast import NCBIWWW as ncbiwww 
         from Bio.Blast import NCBIXML as ncbixml 
     except ImportError:
-        raise ImportError('BioPython is required for Blast searching PDB.org')
+        raise ImportError('BioPython is required for Blast searching PDB.org.')
     global NCBIWWW, NCBIXML
     NCBIWWW = ncbiwww
     NCBIXML = ncbixml
@@ -76,7 +76,7 @@ def importBioPairwise2():
     try:
         from Bio import pairwise2 
     except ImportError:
-        raise ImportError('BioPython is required for pairwise alignments')
+        raise ImportError('BioPython is required for pairwise alignments.')
     global PWALIGN
     PWALIGN = pairwise2
 
