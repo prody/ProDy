@@ -116,7 +116,9 @@ from . import measure
 from measure import *
 __all__ += measure.__all__
 
-import select
+from . import select
+from select import *
+__all__ += select.__all__
 
 from . import atomic 
 from atomic import *
