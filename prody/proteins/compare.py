@@ -454,7 +454,6 @@ def mapAtomsToChain(atoms, target_chain, **kwargs):
         result = _getMapping(simple_target, simple_chain, seqid, coverage)
         if result is None: 
             continue
-        
         residues_target, residues_chain, _seqid, _cover = result
         indices_target = []
         indices_chain = []
@@ -520,17 +519,27 @@ def _getMapping(target, chain, seqid, coverage):
     if _seqid >= seqid and _cover >= coverage:
         LOGGER.debug('\t{0:d} residues match with {1:.0f}% sequence identity '
                      'and {2:.0f}% coverage based on residue numbers.'
-                    .format(len(target), _seqid, _cover))
+                    .format(n_mapped, _seqid, _cover))
     else:
         LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'
                      .format(_seqid, _cover))
-        target_list, chain_list, n_match, n_mapped = _getAlignedMapping(target, chain)
+        result = _getAlignedMapping(target, chain)
+        if result is not None:
+            target_list, chain_list, n_match, n_mapped = result
+            if n_mapped > 0:
+                _seqid = n_match * 100 / n_mapped
+                _cover = n_mapped * 100 / len(target)
+            else:
+                _seqid = 0
+                _cover = 0
+            if _seqid >= seqid and _cover >= coverage:
+                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on {3:s} alignment using Bio.pairwise2.'
+                            .format(n_mapped, _seqid, _cover, PAIRWISE_ALIGNMENT_METHOD))
         
     
     
     if _seqid < seqid or _cover < coverage:
-        LOGGER.debug('\t{0:s} and {1:s} chains do not match.'
-                     .format(str(target), str(chain)))
+        LOGGER.debug('\tThese two chains do not match.')
         return None
     else:
         return target_list, chain_list, _seqid, _cover
@@ -542,7 +551,7 @@ def _getTrivialMapping(target, chain):
     target_list = []
     chain_list = []
     n_match = 0
-    n_mapped = 0.0
+    n_mapped = 0
     chain_dict_get = chain._dict.get
     append = target_list.append 
     for target_residue in target:
@@ -559,18 +568,18 @@ def _getTrivialMapping(target, chain):
             
     return target_list, chain_list, n_match, n_mapped
 
-def _getAlignedMapping(ach, bch):
+def _getAlignedMapping(target, chain):
     if prody.PWALIGN is None: prody.importBioPairwise2()
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = prody.PWALIGN.align.localms(ach.getSequence(), bch.getSequence(), 
+        alignment = prody.PWALIGN.align.localms(target.getSequence(), chain.getSequence(), 
                                                 PAIRWISE_MATCH_SCORE, 
                                                 PAIRWISE_MISMATCH_SCORE,
                                                 PAIRWISE_GAP_OPENING_PENALTY, 
                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
                                                 one_alignment_only=1)
     else:
-        alignment = prody.PWALIGN.align.globalms(ach.getSequence(), bch.getSequence(), 
-                                                 PAIRWISE_MATCH_SCORE, 
+        alignment = prody.PWALIGN.align.globalms(target.getSequence(), chain.getSequence(), 
+                                                 PAIRWISE_MATCH_SCORE,
                                                  PAIRWISE_MISMATCH_SCORE,
                                                  PAIRWISE_GAP_OPENING_PENALTY, 
                                                  PAIRWISE_GAP_EXTENSION_PENALTY,
@@ -578,27 +587,30 @@ def _getAlignedMapping(ach, bch):
                
     this = alignment[0][0]
     that = alignment[0][1]
-    print this
-    print that
-    stop
+    
     amatch = []
     bmatch = []
-    aiter = ach.__iter__()
-    biter = bch.__iter__()
-    match = 0.0
+    aiter = target.__iter__()
+    biter = chain.__iter__()
+    n_match = 0
+    n_mapped = 0
     for i in xrange(len(this)):
         a = this[i]
         b = that[i]
-        if a != PAIRWISE_ALIGNMENT_GAP:
+        if a not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
             ares = next(aiter)
-        if b != PAIRWISE_ALIGNMENT_GAP:
-            bres = next(biter)
-            if a != PAIRWISE_ALIGNMENT_GAP:
-                amatch.append(ares[0])
-                bmatch.append(bres[0])
+            amatch.append(ares.getResidue())
+            if b not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
+                bres = next(biter)
+                bmatch.append(bres.getResidue())
                 if a == b:
-                    match += 1
-    return amatch, bmatch, match
+                    n_match += 1
+                n_mapped += 1
+            else:
+                bmatch.append(None)
+        elif b not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
+                bres = next(biter)
+    return amatch, bmatch, n_match, n_mapped
 
 class SimpleResidue(object):
     
