@@ -12,7 +12,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
+.PHONY: help upload clean both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -36,21 +36,27 @@ help:
 clean:
 	-rm -rf $(BUILDDIR)/* $(BUILDDIR)/../../Documentation/*
 
+upload:
+    scp -r ../Documentation/* ahb12@unixs.cis.pitt.edu:/afs/pitt.edu/home/a/h/ahb12/public/html/python/ProDy
+
 both:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/../../Documentation."
+	cp -f changes.rst ../CHANGES.txt
+	cp -f getprody.rst ../INSTALL.txt
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	mv -f $(BUILDDIR)/latex/ProDy.pdf ../
-	cp -f ../ProDy.pdf ../Documentation
+	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/../../Documentation."
+	cp -f changes.rst ../CHANGES.txt
+	cp -f getprody.rst ../INSTALL.txt
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
@@ -112,8 +118,7 @@ latexpdf:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	mv $(BUILDDIR)/latex/ProDy.pdf ../
-	cp ../ProDy.pdf ../Documentation
+	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 text:
