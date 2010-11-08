@@ -52,13 +52,11 @@ import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
 
-from . import AtomMap, keywords
+from . import AtomMap, select
 
 __all__ = ['findMatchingChains',
            'mapAtomsToChain',
-           
            'getIntAsStr',
-           
            'getPairwiseMatchScore', 'setPairwiseMatchScore',
            'getPairwiseMismatchScore', 'setPairwiseMismatchScore',
            'getPairwiseGapOpeningPenalty', 'setPairwiseGapOpeningPenalty',
@@ -284,7 +282,7 @@ def findMatchingChains(atoms1, atoms2, seqid=90, coverage=90, subset='calpha'):
                     except ValueError:
                         pass
                 elif subset == 'backbone':
-                    for bban in keywords.BACKBONE_ATOM_NAMES:
+                    for bban in select.BACKBONE_ATOM_NAMES:
                         try:
                             aid = ares.getAtomNames().tolist().index(bban)
                         except ValueError:
@@ -415,10 +413,10 @@ def mapAtomsToChain(atoms, target_chain, **kwargs):
     unmapped atoms.
     
     :arg atoms: chain(s) that will be mapped to the target chain
-    :type atoms: :class:`prody.proteins.subsets.Chain` or :class:`prody.proteins.atomgroup.AtomGroup`
+    :type atoms: :class:`Chain`, :class:`AtomGroup`, or  :class:`Selection`
     
     :arg target_chain: chain to which atoms will be mapped
-    :type target_chain: :class:`prody.proteins.subsets.Chain`
+    :type target_chain: :class:`Chain`
     
     :keyword subset: "calpha", "backbone", or "all"
     :type subset: string, default is "calpha"  
@@ -523,7 +521,7 @@ def mapAtomsToChain(atoms, target_chain, **kwargs):
         mappings.append((atommap, selection, _seqid, _cover))
 
     return mappings
-    
+
 
 def _getMapping(target, chain, seqid, coverage):
     
@@ -541,8 +539,12 @@ def _getMapping(target, chain, seqid, coverage):
                      'and {2:.0f}% coverage based on residue numbers.'
                     .format(len(target), _seqid, _cover))
     else:
-        LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, cover={1:.0f}%).'
+        LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'
                      .format(_seqid, _cover))
+        target_list, chain_list, n_match, n_mapped = _getTrivialMapping(target, chain)
+        
+    
+    
     if _seqid < seqid or _cover < coverage:
         LOGGER.debug('\t{0:s} and {1:s} chains do not match.'
                      .format(str(target), str(chain)))
