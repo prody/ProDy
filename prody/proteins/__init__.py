@@ -112,10 +112,6 @@ import prodb
 from prodb import *  
 __all__ += prodb.__all__
 
-from . import keywords
-from keywords import *
-__all__ += keywords.__all__
-
 from . import measure
 from measure import *
 __all__ += measure.__all__
