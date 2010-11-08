@@ -2,7 +2,9 @@
 Changes
 *******************************************************************************
 
-Release 0.1.1
+Release 0.1.1 (not released yet)
 ===============================================================================
 
-* None yet.
+* Bugfixes.
+* Source clean up.
+* Documentation improvements.
