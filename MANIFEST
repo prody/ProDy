@@ -13,7 +13,6 @@ prody/dynamics/plotting.py
 prody/proteins/__init__.py
 prody/proteins/atomic.py
 prody/proteins/compare.py
-prody/proteins/keywords.py
 prody/proteins/measure.py
 prody/proteins/prodb.py
 prody/proteins/pyparsing.py
