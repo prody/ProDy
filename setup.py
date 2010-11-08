@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(name='ProDy',
-      version='0.1.0',
+      version='0.1.1',
       author='Ahmet Bakan',
       author_email='ahb12@pitt.edu',
       description='A Python Package for Protein Structural Dynamics Analysis',
@@ -27,5 +27,5 @@ setup(name='ProDy',
                'Topic :: Scientific/Engineering :: Chemistry',
                ],
       requires=['NumPy', ],
-      provides=['ProDy(0.1.0)']
+      provides=['ProDy(0.1.1)']
       )

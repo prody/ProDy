@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010 Ahmet Bakan'
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 import logging
 import logging.handlers
