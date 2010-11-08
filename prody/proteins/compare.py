@@ -228,25 +228,11 @@ def findMatchingChains(atoms1, atoms2, seqid=90, coverage=90, subset='calpha'):
             LOGGER.debug('Comparing {0:s} (len={1:d}) and {2:s} (len={3:d}):'
                         .format(simpch1.getName(), len(simpch1), simpch2.getName(), len(simpch2)))
             
-            match1, match2, nmatches = _getTrivialMatch(simpch1, simpch2)
-            _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-            _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
-            
-            if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\t{0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on residue numbers.'
-                            .format(len(match1), _seqid, _cover))
-            else:
-                LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'.format(_seqid, _cover))
-            
-            if not (_seqid >= seqid and _cover >= coverage):
-                match1, match2, nmatches = _getAlignedMatch(simpch1, simpch2)
-                _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-                _cover = len(bmatch) * 100 / max(len(simpch1), len(simpch2))
-                LOGGER.debug('\t{0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on {3:s} alignment using Bio.pairwise2.'
-                            .format(len(match1), seqid, cover, PAIRWISE_ALIGNMENT_METHOD))
-            if _seqid < seqid or _cover < coverage:
-                LOGGER.debug('\tThese chains do not match.')
+            result = _getMatch(simpch1, simpch2, seqid, coverage)
+            if result is None:
                 continue
+            else:
+                match1, match2, _seqid, _cover = result
             
             indices1 = []
             indices2 = []
@@ -309,27 +295,25 @@ def findMatchingChains(atoms1, atoms2, seqid=90, coverage=90, subset='calpha'):
             matches.append((match1, match2, _seqid, _cover))
     return matches
 
-def _getMatch(one, two, seqid, coverage):
-    
-    match1, match2, nmatches = _getTrivialMatch(one, two)
-    _seqid = nmatches * 100 / min(len(one), len(two))
-    _cover = len(match2) * 100 / max(len(one), len(two))
-    
+def _getMatch(simpch1, simpch2, seqid, coverage):
+  
+    match1, match2, nmatches = _getTrivialMatch(simpch1, simpch2)
+    _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+    _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+
     if _seqid >= seqid and _cover >= coverage:
-        LOGGER.debug('\t{0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on residue numbers.'
+        LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on residue numbers.'
                     .format(len(match1), _seqid, _cover))
     else:
         LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'.format(_seqid, _cover))
-    
-    if not (_seqid >= seqid and _cover >= coverage):
-        match1, match2, nmatches = _getAlignedMatch(one, two)
-        _seqid = nmatches * 100 / min(len(one), len(two))
-        _cover = len(bmatch) * 100 / max(len(one), len(two))
-        LOGGER.debug('\t{0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on {3:s} alignment using Bio.pairwise2.'
-                    .format(len(match1), seqid, cover, PAIRWISE_ALIGNMENT_METHOD))
+
+        match1, match2, nmatches = _getAlignedMatch(simpch1, simpch2)
+        _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+        _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+        LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on {3:s} alignment using Bio.pairwise2.'
+                    .format(len(match1), _seqid, _cover, PAIRWISE_ALIGNMENT_METHOD))
     if _seqid < seqid or _cover < coverage:
-        LOGGER.debug('\t{0:s} and {1:s} chains do not match.'
-                     .format(one.getName(), two.getName()))
+        LOGGER.debug('\tThese chains do not match.')
         return None
     else:
         return match1, match2, _seqid, _cover
@@ -362,14 +346,14 @@ def _getAlignedMatch(ach, bch):
     """
     if prody.PWALIGN is None: prody.importBioPairwise2()
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = prody.PWALIGN.align.localms(ach.sequence, bch.sequence, 
+        alignment = prody.PWALIGN.align.localms(ach.getSequence(), bch.getSequence(), 
                                                 PAIRWISE_MATCH_SCORE, 
                                                 PAIRWISE_MISMATCH_SCORE,
                                                 PAIRWISE_GAP_OPENING_PENALTY, 
                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
                                                 one_alignment_only=1)
     else:
-        alignment = prody.PWALIGN.align.globalms(ach.sequence, bch.sequence, 
+        alignment = prody.PWALIGN.align.globalms(ach.getSequence(), bch.getSequence(), 
                                                  PAIRWISE_MATCH_SCORE, 
                                                  PAIRWISE_MISMATCH_SCORE,
                                                  PAIRWISE_GAP_OPENING_PENALTY, 
@@ -386,13 +370,13 @@ def _getAlignedMatch(ach, bch):
     for i in xrange(len(this)):
         a = this[i]
         b = that[i]
-        if a != PWAGAP:
+        if a != PAIRWISE_ALIGNMENT_GAP:
             ares = next(aiter)
-        if b != PWAGAP:
+        if b != PAIRWISE_ALIGNMENT_GAP:
             bres = next(biter)
-            if a != PWAGAP:
-                amatch.append(ares[0])
-                bmatch.append(bres[0])
+            if a != PAIRWISE_ALIGNMENT_GAP:
+                amatch.append(ares.getResidue())
+                bmatch.append(bres.getResidue())
                 if a == b:
                     match += 1
     return amatch, bmatch, match
@@ -578,14 +562,14 @@ def _getTrivialMapping(target, chain):
 def _getAlignedMapping(ach, bch):
     if prody.PWALIGN is None: prody.importBioPairwise2()
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = prody.PWALIGN.align.localms(ach.sequence, bch.sequence, 
+        alignment = prody.PWALIGN.align.localms(ach.getSequence(), bch.getSequence(), 
                                                 PAIRWISE_MATCH_SCORE, 
                                                 PAIRWISE_MISMATCH_SCORE,
                                                 PAIRWISE_GAP_OPENING_PENALTY, 
                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
                                                 one_alignment_only=1)
     else:
-        alignment = prody.PWALIGN.align.globalms(ach.sequence, bch.sequence, 
+        alignment = prody.PWALIGN.align.globalms(ach.getSequence(), bch.getSequence(), 
                                                  PAIRWISE_MATCH_SCORE, 
                                                  PAIRWISE_MISMATCH_SCORE,
                                                  PAIRWISE_GAP_OPENING_PENALTY, 
@@ -605,11 +589,11 @@ def _getAlignedMapping(ach, bch):
     for i in xrange(len(this)):
         a = this[i]
         b = that[i]
-        if a != PWAGAP:
+        if a != PAIRWISE_ALIGNMENT_GAP:
             ares = next(aiter)
-        if b != PWAGAP:
+        if b != PAIRWISE_ALIGNMENT_GAP:
             bres = next(biter)
-            if a != PWAGAP:
+            if a != PAIRWISE_ALIGNMENT_GAP:
                 amatch.append(ares[0])
                 bmatch.append(bres[0])
                 if a == b:
