@@ -27,6 +27,11 @@ pdbids = ['1A9U', '1BL6', '1BL7', '1BMK', '1DI9', '1IAN', '1KV1', '1KV2', '1LEW'
 # fetchPDB function returns a list of filenames
 pdbfiles = fetchPDB(pdbids, folder='p38')
 
+# ProDy will print some output to the screen
+# Sometimes it is useful to have them in a file
+# So, we will start a logfile 
+ProDyStartLogfile('p38_pca_anm_calculations') 
+
 # Parse the reference PDB file
 ref_structure = parsePDB('p38/1p38.pdb.gz')
 
@@ -45,7 +50,7 @@ ensemble = Ensemble('p38 X-ray ensemble')
 ref_chain = ref_structure.getHierView().getChain('A')
 
 
-# To make sure 
+# Let's start a list to keep PDB filenames for which mapping to reference failed 
 failures = []
 
 # For each PDB file we find matching chain and add it to the ensemble
@@ -80,6 +85,9 @@ for pdbfile in pdbfiles:
     # so we pass weights (1 for mapped atoms, 0 for unmapped atoms)
     ensemble.addCoordset(current_atommap, weights=current_atommap.getMappedFlags())    
 
+# Let's see if any mapping failed
+print failures
+
 # Set the reference coordinates
 ensemble.setCoordinates(ref_structure) 
     
@@ -93,14 +101,14 @@ pl.hist(ensemble.getRMSDs())
 # sets of atoms were used in RMSD calculation
 
 # Perform PCA
-pca = PCA('p38 essential dynamics')
+pca = PCA('p38 xray')
 pca.buildCovariance(ensemble)
 pca.calcModes()
 
-# Write essential modes into an NMD file for NMWiz
-writeNMD('p38_essential_modes.nmd', pca[:3], ref_structure)
+# Write principal modes into an NMD file for NMWiz
+writeNMD('p38_principal_modes.nmd', pca[:3], ref_structure)
 
-# Let's print fraction of variance for top raking 6 PCs (or essential modes)
+# Let's print fraction of variance for top raking 6 PCs (or principal modes)
 # These numbers are listed in Table 1
 for mode in pca[:3]:
     print mode.getFractOfVariance()
@@ -116,7 +124,15 @@ printOverlapTable(pca[:3], anm[:3])
 
 # Let's do some cleaning
 import os
-os.remove('p38_essential_modes.nmd')
+os.remove('p38_principal_modes.nmd')
 #for fn in pdbfiles:
 #    os.remove(fn)
 #os.rmdir('p38')
+
+
+# Most of the screen output will be stored in p38_pca_anm_calculations.log file
+# It may be useful if you want to see how each individual structure mapped to 
+# the reference chain 
+
+# If you want to keep working in the same Python session and close the logfile, try:
+ProDyCloseLogfile('p38_pca_anm_calculations')
