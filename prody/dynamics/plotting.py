@@ -31,7 +31,7 @@ from .nma import *
 from .nma import GNMBase
 
 __all__ = ['showFractOfVariances', 'showProjection',
-           'showSumOfWeights', 'showOverlapMatrix',
+           'showSumOfWeights', 'showOverlapMatrix', 'showOverlapTable',
            'showCrossCorrelations', 'showMode', 'showSqFlucts',
            'showContactMap', 'showOverlap', 'showCumulativeOverlap',
            'showCumFractOfVariances'
@@ -157,8 +157,8 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     return show
     
     
-def showOverlapMatrix(rows, cols, *args, **kwargs):
-    """Show overlap matrix using :func:`matplotlib.pyplot.pcolor`.
+def showOverlapTable(rows, cols, *args, **kwargs):
+    """Show overlap table using :func:`matplotlib.pyplot.pcolor`.
     
     *rows* and *cols* are sets of normal modes, and correspond to rows
     and columns of the displayed matrix.
@@ -190,6 +190,8 @@ def showOverlapMatrix(rows, cols, *args, **kwargs):
     pl.ylabel(str(rows))
     pl.axis(axis)
     return show
+
+showOverlapMatrix = showOverlapTable
 
 def showCrossCorrelations(modes, *args, **kwargs):
     """Show cross-correlations for given modes using :func:`matplotlib.pyplot.imshow`.

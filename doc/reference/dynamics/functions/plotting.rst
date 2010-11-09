@@ -23,7 +23,7 @@ Matplotlib functions.
     * :func:`showFractOfVariances`
     * :func:`showMode`
     * :func:`showOverlap`
-    * :func:`showOverlapMatrix`
+    * :func:`showOverlapTable`
     * :func:`showProjection`
     * :func:`showSqFlucts`
     * :func:`showSumOfWeights`
@@ -43,7 +43,7 @@ Matplotlib functions.
 
 .. autofunction:: showOverlap
 
-.. autofunction:: showOverlapMatrix
+.. autofunction:: showOverlapTable
 
 .. autofunction:: showProjection
 
