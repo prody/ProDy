@@ -1,28 +1,54 @@
 ProDy is a Python package designed for protein structural dynamics analysis. 
-ProDy is developed by Ahmet Bakan and licensed under the GPLv3.
+ProDy is developed by Ahmet Bakan and licensed under the GPLv3. 
+New features and functions are constantly being added to ProDy. 
+The following are the main features that are present and working fine:
 
-DOCUMENTATION
-  http://www.pitt.edu/~ahb12/python/ProDy 
-  or see ProDy.pdf that comes with the tar.gz.
+Protein structure analysis:
+  * fast PDB file parser and a powerful atom selector
+  * functions for matching and comparing polypeptide chains
+Normal Mode Analysis (NMA):
+  * Elastic network models (Anisotropic/Gaussian network models)
+  * PCA of X-ray structures, NMR models, MD snapshots
+  * Functions for comparative NMA, i.e. calculate/plot overlaps
 
-LICENSE
-  ProDy is distributed under GNU General Public License version 3. 
-  See LICENSE.txt for more details. 
+**DOCUMENTATION**
+
+* http://www.pitt.edu/~ahb12/python/ProDy 
+* http://www.pitt.edu/~ahb12/python/ProDy/ProDy.pdf
+
+**LICENSE**
   
-  Pyparsing (http://pyparsing.wikispaces.com/) code is contained 
-  in ProDy releases. Pyparsing is developed by Paul T. McGuire 
-  and is distributed under MIT license 
-  (http://www.opensource.org/licenses/mit-license.php).
+ProDy is distributed under GNU General Public License version 3. 
+See LICENSE.txt for more details. 
 
-DOWNLOADS
-  http://pypi.python.org/pypi/ProDy/  
+Pyparsing (http://pyparsing.wikispaces.com/) code is contained 
+in ProDy releases. Pyparsing is developed by Paul T. McGuire 
+and is distributed under MIT license 
+(http://www.opensource.org/licenses/mit-license.php).
 
-INSTALLATION
-  http://www.pitt.edu/~ahb12/python/ProDy/getprody.html
+**DOWNLOADS**
+  
+* http://pypi.python.org/pypi/ProDy/  
 
-CHANGES
-  http://www.pitt.edu/~ahb12/python/ProDy/changes.html
+**INSTALLATION**
 
-SOURCE
-  http://github.com/abakan/ProDy
+* http://www.pitt.edu/~ahb12/python/ProDy/getprody.html
+* INSTALL.txt
+
+**CHANGES**
+
+* http://www.pitt.edu/~ahb12/python/ProDy/changes.html
+* CHANGES.txt
+
+**SOURCE**
+
+* http://github.com/abakan/ProDy
+
+**EMAILING LIST**
+
+* http://groups.google.com/group/prody-dev
+
+**REPORT ISSUES**
+
+* https://github.com/abakan/ProDy/issues
   
