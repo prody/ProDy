@@ -255,7 +255,7 @@ def showContactMap(enm, *args, **kwargs):
         LOGGER.warning('kirchhoff matrix is not set')
         return None
     show = pl.spy(kirchhoff, *args, **kwargs)
-    pl.title('{0:s} contact map'.format(enm.getName()) 
+    pl.title('{0:s} contact map'.format(enm.getName())) 
     pl.xlabel('Residue index')
     pl.ylabel('Residue index')
     return show
