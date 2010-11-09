@@ -26,9 +26,9 @@ pl = None
 
 from prody import ProDyLogger as LOGGER
 import prody
-from .functions import getUniformModel
 from .functions import *
 from .nma import *
+from .nma import GNMBase
 
 __all__ = ['showFractOfVariances', 'showProjection',
            'showSumOfWeights', 'showOverlapMatrix',
@@ -66,12 +66,12 @@ def showCumFractOfVariances(modes, *args, **kwargs):
     
     """
     if pl is None: prody.importPyPlot()
-    modes = getUniformModel(modes)
-    if modes.simple:
-        LOGGER.warning('Vector instances are not accepted')
-        return None
-    
-    fracts = np.array([mode.getFractOfVariance() for mode in modes.modes]).cumsum()
+    if not isinstance(modes, (Mode, NMA, ModeSet)):
+        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                        'not {0:s}'.format(type(modes)))
+    if isinstance(modes, Mode):
+        modes = [modes]
+    fracts = np.array([mode.getFractOfVariance() for mode in modes]).cumsum()
     show = pl.plot(modes.indices+0.5, fracts, *args, **kwargs)
     axis = list(pl.axis())
     axis[0] = 0.5
@@ -202,8 +202,7 @@ def showCrossCorrelations(modes, *args, **kwargs):
     
     """
     if pl is None: prody.importPyPlot()
-    modes = getUniformModel(modes)
-    arange = np.arange(modes.n_atoms)
+    arange = np.arange(modes.getNumOfAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
                        arange[0]+1:] = getCrossCorrelations(modes)
@@ -215,17 +214,20 @@ def showCrossCorrelations(modes, *args, **kwargs):
     pl.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
     pl.title('{0:s} cross-correlations ({1:d} modes)'
              .format(str(modes), len(modes))) 
-    pl.xlabel('Atom indices')
-    pl.ylabel('Atom indices')
+    pl.xlabel('Indices')
+    pl.ylabel('Indices')
     return show
 
 def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`matplotlib.pyplot.plot`."""
     if pl is None: prody.importPyPlot()
-    modes = getUniformModel(mode)
-
+    if not isinstance(modes, (Mode, NMA, ModeSet)):
+        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                        'not {0:s}'.format(type(modes)))
+    if isinstance(modes, Mode):
+        modes = [modes]
     for mode in modes:
-        if modes.is3d:
+        if modes.is3d():
             a3d = mode.getArrayNx3()
             show = pl.plot(a3d[:, 0], *args, label='x-component', **kwargs)
             pl.plot(a3d[:, 1], *args, label='y-component', **kwargs)
@@ -237,10 +239,9 @@ def showMode(mode, *args, **kwargs):
 def showSqFlucts(modes, *args, **kwargs):
     """Show square fluctuations using :func:`matplotlib.pyplot.imshow`."""
     if pl is None: prody.importPyPlot()
-    modes = getUniformModel(modes)
     sqf = getSqFlucts(modes)
     show = pl.plot(sqf, *args, **kwargs)
-    pl.xlabel('Atom indices')
+    pl.xlabel('Indices')
     pl.ylabel('Square fluctuations (A^2)')
     return show
 
@@ -253,9 +254,8 @@ def showContactMap(enm, *args, **kwargs):
     if kirchhoff is None:
         LOGGER.warning('kirchhoff matrix is not set')
         return None
-    enm = getUniformModel(enm)
     show = pl.spy(kirchhoff, *args, **kwargs)
-    pl.title('{0:s} connectivity'.format(str(enm))) 
+    pl.title('{0:s} contact map'.format(enm.getName()) 
     pl.xlabel('Residue index')
     pl.ylabel('Residue index')
     return show
@@ -288,7 +288,8 @@ def showOverlap(mode, modes, *args, **kwargs):
     
 def showCumulativeOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`matplotlib.pyplot.plot`.
-   :type mode: :class:`Mode`, :class:`Vector` 
+ 
+    :type mode: :class:`Mode`, :class:`Vector` 
     :arg modes: multiple modes
     :type modes: :class:`ModeSet`, :class:`ANM`, :class:`GNM`, or :class:`PCA` 
     

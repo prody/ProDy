@@ -53,125 +53,6 @@ def setVMDpath(path):
     if not path.startswith('vmd') and not os.path.isfile(path):
         LOGGER.warning('{0:s} may not be a valid path for VMD executable.')
     VMDPATH = path
-    
-
-
-class UniformModel(object):
-    
-    """A class to uniformize NMA or arbitrary sets of Mode instances."""
-    
-    __slots__ = ['_model', '_is3d', '_modes', '_indices', '_simple', '_n_dof', 
-                 '_n_atoms', '_name']
-    
-    def __init__(self, modes):
-        self._simple = False
-        if isinstance(modes, list) and len(modes) == 1:
-            modes = modes[0]
-
-        if isinstance(modes, Mode):
-            model = modes.getModel()
-            self._modes = [modes]
-            self._model = model 
-            self._indices = np.array([modes.getIndex()])
-            self._is3d = model._is3d
-            self._name = model.getName()
-            self._n_atoms = model.getNumOfAtoms()
-            self._n_dof = model.getNumOfDegOfFreedom()
-        elif isinstance(modes, NMA):
-            model = modes
-            if len(modes) > 0:
-                self._modes = modes[:]
-            else:
-                self.modes = []
-            self._model = modes
-            self._indices = np.arange(len(modes))
-            self._is3d = model._is3d
-            self._name = model.getName()
-            self._n_dof = model.getNumOfDegOfFreedom()
-            self._n_atoms = model.getNumOfAtoms()
-        elif isinstance(modes, (list, tuple, np.ndarray)):
-            model = modes[0].getModel()
-            for mode in modes:
-                if not isinstance(mode, Mode):
-                    raise TypeError('all list elements are not mode instances')
-                elif model is not mode.getModel():
-                    raise TypeError('all mode instances are not from the same model') 
-            self._modes = modes
-            self._is3d = modes[0]._is3d
-            self._model = model
-            self._name = model.getName()
-            self._indices = np.array([mode.getIndex() for mode in modes])
-            self._n_dof = self._model.getNumOfDegOfFreedom()
-            self._n_atoms = self._model.getNumOfAtoms()
-        elif isinstance(modes, Vector):
-            self._modes = [modes]
-            self._model = None
-            self._indices = []
-            self._is3d = modes._is3d
-            self._simple = True
-            self._name = modes.getName()
-            self._n_dof = modes._array.shape[0]
-            if self._is3d:
-                self._n_atoms = self._n_dof / 3
-            else: 
-                self._n_atoms = self._n_dof
-        else:
-            raise TypeError('{0:s} is not a valid type'.format(str(type(modes))))
-    
-    
-    def __len__(self):   
-        return len(self._modes)
-    
-    def __str__(self):
-        return self._name
-    
-    def __iter__(self):
-        return self._modes.__iter__()
-    
-    def name(self):
-        return self._name
-    name = property(name) 
-    def model(self):
-        return self._model
-    model = property(model) 
-    def is3d(self):
-        return self._is3d
-    is3d = property(is3d) 
-    def simple(self):
-        return self._simple
-    simple = property(simple)
-    def n_atoms(self):
-        return self._n_atoms
-    n_atoms = property(n_atoms)
-    def n_dof(self):
-        return self._n_dof
-    n_dof = property(n_dof)
-    def modes(self):
-        return self._modes
-    modes = property(modes)
-    def indices(self):
-        return self._indices
-    indices = property(indices)
-    
-    def getArray(self):
-        if self._simple:
-            return self._modes[0].getArray()
-        else:
-            return self._model._array[:, self._indices]
-    def getVariances(self):
-        if self._simple:
-            return None
-        else:
-            return self._model._vars[self._indices]
-
-
-def getUniformModel(modes):
-    if isinstance(modes, UniformModel):
-        return modes
-    else:
-        return UniformModel(modes)
-    
-
 
 def writeNMD(filename, modes, atoms):
     """Writes an NMD file for given *modes* and includes applicable data from 
@@ -179,8 +60,7 @@ def writeNMD(filename, modes, atoms):
     
     Returns *filename*, if file is successfully written.
     
-    This function skips modes with zero eigenvalues.  
-    
+    This function skips modes with zero eigenvalues.    
     """
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, not {0:s}'.format(type(modes)))
@@ -390,30 +270,24 @@ def getOverlapTable(rows, cols):
     rname = rows.getName()
     cname = cols.getName()
     if isinstance(rows, Mode):
-        rlen = 1
         rids = [rows.getIndex()]
     elif isinstance(rows, NMA): 
-        rlen = len(rows)
-        rids = range(rlen)        
+        rids = range(len(rows))        
     elif isinstance(rows, ModeSet): 
-        rlen = len(rows)
         rids = rows.getIndices()
     else:
-        rlen = 1
         rids = [1]
+    rlen = len(rids)
     if isinstance(cols, Mode):
-        clen = 1
         cids = [cols.getIndex()]
     elif isinstance(cols, NMA): 
-        clen = len(cols)
-        cids = range(clen)        
-    elif isinstance(rows, ModeSet):
-        clen = len(cols)
+        cids = range(len(cols))    
+    elif isinstance(cols, ModeSet):
         cids = cols.getIndices()
     else:
-        clen = 1
         cids = [1]
-    
+    clen = len(cids)
+
     table = 'Overlap/Correlation Table\n'
     table += ' '*(len(rname)+5) + cname.center(clen*7)+'\n'  
     table += ' '*(len(rname)+5)
@@ -575,36 +449,16 @@ def writeArray(filename, array, format='g', sep=' ', compressed=False):
 
 def getSqFlucts(modes):
     """Returns sum of square-fluctuations for given set of normal *modes*."""
-    modes = getUniformModel(modes)
-    if modes.simple:
-        LOGGER.warning('Vector instances are not evaluated.')
-        return None
-    square_fluctuations = np.zeros(modes.n_atoms) 
+    if not isinstance(modes, (Mode, NMA, ModeSet)):
+        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                        'not {0:s}'.format(type(modes)))
+    if isinstance(modes, Mode):
+        modes = [modes]
+    square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
     for mode in modes.modes:
         square_fluctuations += mode.getSqFlucts()
     return square_fluctuations
  
-def _getCrossCorrelations(modes):
-    """Returns cross-correlations matrix.
-
-    This function is a slower version of :func:`get_cross_correlations`. It is 
-    kept as a reference for checking correctness of other implementations.      
-    
-    """
-    modes = get_dict(modes)
-    if adict['is_3d']:
-        n_atoms = adict['model'].n_atoms
-        covariance = np.zeros((n_atoms, n_atoms))
-        for index in adict['index']:  
-            array3d = adict['model'].array[:, index].reshape((n_atoms, 3))
-            covariance = covariance + adict['model'].vars[index] * (
-                                    np.dot(array3d, array3d.T))
-    else:
-        covariance = adict['model'].get_covariance(adict['index'])
-    diag = np.power(covariance.diagonal(), 0.5)
-    cross_correlations = covariance / np.outer(diag, diag)
-    return cross_correlations
-
 def getCrossCorrelations(modes, n_cpu=1):
     """Returns cross-correlations matrix.
     
@@ -628,16 +482,26 @@ def getCrossCorrelations(modes, n_cpu=1):
     elif n_cpu < 1:
         raise NMAError('n_cpu must be equal to or greater than 1')
         
-    modes = getUniformModel(modes)
-    if modes.simple:
-        LOGGER.warning('Vector instances are not evaluated.')
-        return None
-    if modes.is3d:
-        indices = modes.indices
-        n_atoms = modes.n_atoms
-        n_modes = len(modes)
-        array = modes.model._array
-        variances = modes.model._vars
+    if not isinstance(modes, (Mode, NMA, ModeSet)):
+        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                        'not {0:s}'.format(type(modes)))
+        
+    if modes.is3d():
+        model = modes
+        if isinstance(modes, (Mode, ModeSet)):
+            model = modes._model
+            if isinstance(modes, (Mode)):
+                indices = [modes.getIndex()]
+                n_modes = 1
+            else:
+                indices = modes.getIndices()
+                n_modes = len(modes)
+        else:
+            n_modes = len(modes)
+            indices = np.arange(n_modes)
+        array = model._array
+        n_atoms = model._n_atoms
+        variances = model._vars
         if n_cpu == 1:
             arvar = (array[:, indices]*variances[indices]).T.reshape((n_modes,
                                                                    n_atoms, 3))
@@ -664,9 +528,7 @@ def getCrossCorrelations(modes, n_cpu=1):
             while queue.qsize() > 0:
                 covariance += queue.get()
     else:
-        indices = modes.indices
-        array = modes.model._array[:, indices]
-        covariance = np.dot(array, np.dot(np.diag(modes.model._vars[indices]), array.T))
+        covariance = modes.getCovariance()
     diag = np.power(covariance.diagonal(), 0.5)
     return covariance / np.outer(diag, diag)
 
@@ -689,8 +551,6 @@ def getCumulativeOverlap(modes1, modes2):
     *modes1* argument. 
         
     """
-    modes1 = getUniformModel(modes1)
-    modes2 = getUniformModel(modes2)
     overlap = getOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
     return cumov
@@ -714,6 +574,4 @@ def getSubspaceOverlap(modes1, modes2):
 
 def getCovariance(modes):
     """Calculate covariance matrix from given modes and return it."""
-    modes = getUniformModel(modes)
-    array = modes.getArray()
-    return np.dot(array, np.dot(np.diag(modes.getVariances()), array.T))
+    return modes.getCovariance()
