@@ -273,12 +273,12 @@ def showOverlap(mode, modes, *args, **kwargs):
     """
     if pl is None: prody.importPyPlot()
     if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'.format(type(mode)))
+        raise TypeError('mode must be Mode or Vector, not {0:s}'.format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMA or ModeSet, not {0:s}'.format(type(modes)))
     overlap = abs(getOverlap(mode, modes))
     if isinstance(modes, NMA):
-        arange = np.arange(0.5, len(modes)+1.5)
+        arange = np.arange(0.5, len(modes)+0.5)
     else:
         arange = modes.getIndices() + 0.5
     show = pl.bar(arange, overlap, *args, **kwargs)

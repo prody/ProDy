@@ -67,7 +67,8 @@ class Ensemble(object):
         if isinstance(index, int):
             return self._getConformation(index) 
         elif isinstance(index, slice):
-            ens = Ensemble()
+            ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+                                self._name, index.indice(len(self))))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self._confs[slice].copy())
             return ens
