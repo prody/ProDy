@@ -886,7 +886,8 @@ class HierView(object):
         else:
             atomgroup = atoms._ag
             _indices = atoms._indices
-            if atomgroup.getChainIdentifiers() is None:
+            chainids = atomgroup.getChainIdentifiers() 
+            if chainids is None:
                 chainids = np.zeros(atomgroup._n_atoms, 
                                     dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
                 atomgroup.setChainIdentifiers(chainids)
