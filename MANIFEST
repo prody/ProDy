@@ -2,7 +2,6 @@ INSTALL.txt
 LICENSE.txt
 README.txt
 CHANGES.txt
-ProDy.pdf
 setup.py
 prody/__init__.py
 prody/dynamics/__init__.py
