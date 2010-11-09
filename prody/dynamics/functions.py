@@ -272,7 +272,7 @@ def getOverlapTable(rows, cols):
     if isinstance(rows, Mode):
         rids = [rows.getIndex()]
     elif isinstance(rows, NMA): 
-        rids = range(len(rows))        
+        rids = np.arange(len(rows))        
     elif isinstance(rows, ModeSet): 
         rids = rows.getIndices()
     else:
@@ -281,22 +281,22 @@ def getOverlapTable(rows, cols):
     if isinstance(cols, Mode):
         cids = [cols.getIndex()]
     elif isinstance(cols, NMA): 
-        cids = range(len(cols))    
+        cids = np.arange(len(cols))    
     elif isinstance(cols, ModeSet):
         cids = cols.getIndices()
     else:
         cids = [1]
     clen = len(cids)
-
-    table = 'Overlap/Correlation Table\n'
+    overlap = overlap.reshape((rlen, clen)) 
+    table = 'Overlap Table\n'
     table += ' '*(len(rname)+5) + cname.center(clen*7)+'\n'  
     table += ' '*(len(rname)+5)
     for j in range(clen):
         table += ('#{0}'.format(cids[j]+1)).center(7)
     table += '\n'
-    for i in  range(rlen):
+    for i in range(rlen):
         table += rname + (' #{0}'.format(rids[i]+1)).ljust(5)
-        for j in  range(clen):
+        for j in range(clen):
             if overlap[i, j] < 0: 
                 minplus = '-'
             else: 
@@ -377,7 +377,7 @@ def reduceModel(model, atoms, selstr):
         index += 1
     ss = matrix[system,:][:,system]
     if isinstance(model, prody.PCA):
-        eda = prody.PCA('Reduced '+model.getName())
+        eda = prody.PCA(model.getName()+' reduced')
         eda.setCovariance(ss)
         return eda, selection
     so = matrix[system,:][:,other]
@@ -386,15 +386,15 @@ def reduceModel(model, atoms, selstr):
     matrix = ss - np.dot(so, np.dot(prody.la.inv(oo), os))
     
     if isinstance(model, prody.GNM):
-        gnm = prody.GNM('Reduced '+model.getName())
+        gnm = prody.GNM(model.getName()+' reduced')
         gnm.setKirchhoff(matrix)
         return gnm, selection
     elif isinstance(model, prody.ANM):
-        anm = prody.ANM('Reduced '+model.getName())
+        anm = prody.ANM(model.getName()+' reduced')
         anm.setHessian(matrix)
         return anm, selection
     elif isinstance(model, prody.PCA):
-        eda = prody.PCA('Reduced '+model.getName())
+        eda = prody.PCA(model.getName()+' reduced')
         eda.setCovariance(matrix)
         return eda, selection
 
