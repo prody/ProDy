@@ -1,13 +1,14 @@
+readme = open('README.txt')
+long_description = ''.join(readme.readlines())
+readme.close()
+
 from distutils.core import setup
 setup(name='ProDy',
       version='0.1.1',
       author='Ahmet Bakan',
       author_email='ahb12@pitt.edu',
       description='A Python Package for Protein Structural Dynamics Analysis',
-      long_description=('ProDy is a Python package for protein structural dynamics analysis. '
-                'ProDy features a fast PDB parser and a powerful atom seletion engine. '
-                'ProDy can be used for elastic network model and principal component analysis. '
-                'ProDy comes with many handy functions for comparative analysis and plotting.'),
+      long_description=long_description,
       url='http://www.pitt.edu/~ahb12/python/ProDy',
       packages=['prody', 'prody.dynamics', 'prody.proteins'],
       license='GPLv3',
