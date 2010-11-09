@@ -68,9 +68,9 @@ class Ensemble(object):
             return self._getConformation(index) 
         elif isinstance(index, slice):
             ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                self._name, index.indice(len(self))))
+                                self._name, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[slice].copy())
+            ens.addCoordset(self._confs[index].copy())
             return ens
         else:
             raise IndexError('invalid index')
