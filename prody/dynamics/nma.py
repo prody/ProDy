@@ -507,7 +507,7 @@ class ModeSet(object):
                 self._model._name, len(self))
 
     def __str__(self):
-        return 'ModeSet {0:s} from {1:s}'.format(self._slice, self._model._name)
+        return 'Modes {0:s} from {1:s}'.format(self._slice, str(self._model))
     
     def is3d(self):
         return self._model._is3d
