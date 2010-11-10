@@ -231,7 +231,7 @@ intersphinx_mapping = {'http://matplotlib.sourceforge.net/': None,
 
 rst_epilog = """
 
-.. |nmwiz| replace:: NMWiz (http://www.pitt.edu/~ahb12/plugins/nmwiz/)
+.. |nmwiz| replace:: NMWiz (http://www.pitt.edu/~ahb12/software/NMWiz/)
 
 .. |vmd| replace:: VMD (http://www.ks.uiuc.edu/Research/vmd/)
 

@@ -37,7 +37,7 @@ clean:
 	-rm -rf $(BUILDDIR)/* $(BUILDDIR)/../../Documentation/*
 
 upload:
-    scp -r ../Documentation/* ahb12@unixs.cis.pitt.edu:/afs/pitt.edu/home/a/h/ahb12/public/html/python/ProDy
+    scp -r ../Documentation/* ahb12@unixs.cis.pitt.edu:/afs/pitt.edu/home/a/h/ahb12/public/html/software/ProDy
 
 both:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
@@ -49,7 +49,6 @@ both:
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
-	cp -f ../Documentation/ProDy.pdf ../ProDy.pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 html:
@@ -120,7 +119,6 @@ latexpdf:
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
-	cp -f ../Documentation/ProDy.pdf ../ProDy.pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 text:

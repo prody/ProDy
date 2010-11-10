@@ -15,8 +15,8 @@ Normal mode analysis (NMA):
 
 **DOCUMENTATION**
 
-* http://www.pitt.edu/~ahb12/python/ProDy 
-* http://www.pitt.edu/~ahb12/python/ProDy/ProDy.pdf
+* http://www.pitt.edu/~ahb12/software/ProDy 
+* http://www.pitt.edu/~ahb12/software/ProDy/ProDy.pdf
 
 **LICENSE**
   
@@ -34,12 +34,12 @@ and is distributed under MIT license
 
 **INSTALLATION**
 
-* http://www.pitt.edu/~ahb12/python/ProDy/getprody.html
+* http://www.pitt.edu/~ahb12/software/ProDy/getprody.html
 * INSTALL.txt
 
 **CHANGES**
 
-* http://www.pitt.edu/~ahb12/python/ProDy/changes.html
+* http://www.pitt.edu/~ahb12/software/ProDy/changes.html
 * CHANGES.txt
 
 **SOURCE**
