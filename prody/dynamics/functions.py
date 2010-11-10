@@ -424,13 +424,10 @@ def writeArray(filename, array, format='g', sep=' ', compressed=False):
         raise ValueError('array must be 1- or 2-dimensional')
     if array.ndim == 2:
         length = array.shape[1]
+        line = '{' + '0[{0:d}]:{1:s}'.format(0, format) + '}'
     else:
         length = 1
-        
-    if length == 1:
         line = '{' + '0:{0:s}'.format(format) + '}'
-    else:
-        line = '{' + '0[{0:d}]:{1:s}'.format(0, format) + '}'
     for j in range(1, length):
         line += sep + '{' + '0[{0:d}]:{1:s}'.format(j, format) + '}' 
     line += '\n'
