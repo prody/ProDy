@@ -411,9 +411,9 @@ class AtomGroup(object):
             index += self._n_coordsets 
         self._acsi = index
 
-    def select(self, selstr):
+    def select(self, selstr, **kwargs):
         """Return a selection matching the criteria given by *selstr*."""
-        return prody.ProDyAtomSelect.select(self, selstr)
+        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
     
     def copy(self, which=None):
         """Return a copy of atoms indicated *which* as a new AtomGroup instance.
@@ -761,9 +761,9 @@ class AtomSubset(object):
             index += self._ag._n_coordsets
         self._acsi = index
 
-    def select(self, selstr):
+    def select(self, selstr, **kwargs):
         """Return a selection matching the given selection criteria."""
-        return prody.ProDyAtomSelect.select(self, selstr)
+        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
 
 class Chain(AtomSubset):
     
@@ -1256,11 +1256,11 @@ class AtomMap(object):
             flags[self._unmapped] = 0
         return flags
 
-    def select(self, selstr):
+    def select(self, selstr, **kwargs):
         """Return a atom map matching the criteria given by *selstr*.
         
         Note that this is a special case for making atom selections. Unmapped
         atoms will not be included in the returned :class:`AtomMap` instance.
         The order of atoms will be preserved.
         """
-        return prody.ProDyAtomSelect.select(self, selstr)
+        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)

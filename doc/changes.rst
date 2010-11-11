@@ -5,12 +5,15 @@ Changes
 Release 0.2.0
 ===============================================================================
 
-**Major Changes**
+**Major Changes**:
 
 
-* Modules are reorganized.
+  * Modules are reorganized.
 
-**New Features**
+**New Features**:
+
+  * :class:`prody.select.Select` can not identify intermolecular contacts. See
+    :ref:`contacts` for an example
 
 
 
