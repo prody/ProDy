@@ -13,7 +13,7 @@ Following classes and functions are used in the example:
 
 Classes:
   * :class:`PCA`
-  * :class:`Ensemble`
+  * :class:`prody.ensemble.Ensemble`
 Functions:
   * :func:`prody.proteins.parsePDB`
   * :func:`getANM`

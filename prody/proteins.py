@@ -58,7 +58,7 @@ import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
 import prody
-from . import ATOMIC_DATA_FIELDS
+from prody.atomic import *
 
 
 __all__ = ['PDBlastRecord', 'PDBFetcher', 'RCSB_PDBFetcher', 
@@ -68,7 +68,6 @@ __all__ = ['PDBlastRecord', 'PDBFetcher', 'RCSB_PDBFetcher',
            'fetchPDB',
            'parsePDBStream', 'parsePDB', 
            'writePDBStream', 'writePDB',
-           
            ]
 
 class PDBParserError(Exception):    

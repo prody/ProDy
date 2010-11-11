@@ -77,7 +77,7 @@ pp.ParserElement.enablePackrat()
 
 import prody
 from prody import ProDyLogger as LOGGER
-from . import ATOMIC_DATA_FIELDS
+from prody.atomic import *
 DEBUG = False
 
 __all__ = ['Select',
@@ -1042,5 +1042,3 @@ class Select(object):
             return np.log(num)
         elif fun == 'log10':
             return np.log10(num)
-
-ProDyAtomSelect = Select()

@@ -74,7 +74,7 @@ connection. ProDy will fetch the PDB file if a valid identifier is provided.
 
 
 1p38 is an unliganded structure of p38 MAP kinase. :file:`1p38.pdb.gz` has been 
-downloaded, and coordinates were parsed into an :class:`prody.proteins.AtomGroup`
+downloaded, and coordinates were parsed into an :class:`prody.atomic.AtomGroup`
 instance.
 
 .. note::
@@ -96,7 +96,7 @@ List of functions for accessing protein data can also be found in :ref:`prodb`
 Select subset of atoms
 -------------------------------------------------------------------------------
 
-ProDy :class:`prody.proteins.AtomGroup` instances offer powerful atom
+ProDy :class:`prody.atomic.AtomGroup` instances offer powerful atom
 selection capabilities that are comparable to that of 
 `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_. Full list of selection keywords 
 are given in section :ref:`selections`. Here, only a few examples are shown:
@@ -168,8 +168,8 @@ Or, we could use residue names expilicitly:
 Hierarchical view of atoms in a PDB 
 -------------------------------------------------------------------------------
 
-:class:`prody.proteins.AtomGroup` instances has a flat view of atoms in PDB
-files, but it is possible to get a hierarchical view (:class:`prody.proteins.HierView`) 
+:class:`prody.atomic.AtomGroup` instances has a flat view of atoms in PDB
+files, but it is possible to get a hierarchical view (:class:`prody.atomic.HierView`) 
 of them:
 
 >>> hv = prot.getHierView()

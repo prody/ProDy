@@ -1,4 +1,4 @@
-.. currentmodule:: prody.proteins
+.. currentmodule:: prody.select
 
 .. _selops:
 

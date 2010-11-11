@@ -47,7 +47,7 @@ Let's get started by getting ANM models for two related protein structures:
 @> 20 modes were calculated in 1.50s.
 
 >>> print anm_one[0]
-NormalMode 0 from "(calpha and all) a...o 2797 2804)" from 1p38 (345 atoms; 1 coordinate sets, active set index: 0)
+Mode 0 from "(calpha and all) a...o 2797 2804)" from 1p38 (345 atoms; 1 coordinate sets, active set index: 0)
 
 Let's rename these :class:`ANM` instances, so that they print short: 
 
@@ -57,14 +57,14 @@ Let's rename these :class:`ANM` instances, so that they print short:
 This is how they print now:
 
 >>> print anm_one[0]
-NormalMode 0 from 1p38_anm
+Mode 0 from 1p38_anm
 >>> print anm_two[0]
-NormalMode 0 from 1r39_anm
+Mode 0 from 1r39_anm
 
 Calculate overlap
 ===============================================================================
 
-Multiplication of two :class:`NormalMode` instances returns dot product
+Multiplication of two :class:`Mode` instances returns dot product
 of their eigenvectors. This dot product is the overlap or cosine correlation
 between modes.
 
@@ -102,11 +102,11 @@ Overlap/Correlation Table
 
 **Scaling**
 
-:class:`NormalMode` instances can be scaled, but after this operation they will
-become :class:`SimpleMode` instances:
+:class:`Mode` instances can be scaled, but after this operation they will
+become :class:`Vector` instances:
 
 >>> anm_one[0] * 10
-<SimpleMode: 10*(NormalMode 0 from 1p38_anm)>
+<Vector: 10*(Mode 0 from 1p38_anm)>
 
 Linear combination
 ===============================================================================
@@ -114,16 +114,16 @@ Linear combination
 It is also possible to linearly combine normal modes:
 
 >>> anm_one[0] * 3 + anm_one[1] + anm_one[2] * 2
-<SimpleMode: 3*(NormalMode 0 from 1p38_anm) + NormalMode 1 from 1p38_anm + 2*(NormalMode 2 from 1p38_anm)>
+<Vector: 3*(Mode 0 from 1p38_anm) + Mode 1 from 1p38_anm + 2*(Mode 2 from 1p38_anm)>
 
 Or, we could use eigenvalues for linear combination:
 
 >>> lincomb = anm_one[0] * anm_one[0].getEigenvalue() + anm_one[1] * anm_one[1].getEigenvalue()
 
-It is the name of the :class:`SimpleMode` instance that keeps track of operations.
+It is the name of the :class:`Vector` instance that keeps track of operations.
 
 >>> print lincomb.getName()  
-0.148971269751*(NormalMode 0 from 1p38_anm) + 0.24904210757*(NormalMode 1 from 1p38_anm)
+0.148971269751*(Mode 0 from 1p38_anm) + 0.24904210757*(Mode 1 from 1p38_anm)
 
 Approximate a deformation vector
 ===============================================================================
@@ -143,7 +143,7 @@ We can use these numbers to combine ANM modes:
 
 >>> approximate_defvec = sum( (np.array(anm_one[:3]) * defvec) * np.array(anm_one[:3]) ) 
 >>> print approximate_defvec
--5.60860594784*(NormalMode 0 from 1p38_anm) + 2.15393365959*(NormalMode 1 from 1p38_anm) + -3.13701609199*(NormalMode 2 from 1p38_anm)
+-5.60860594784*(Mode 0 from 1p38_anm) + 2.15393365959*(Mode 1 from 1p38_anm) + -3.13701609199*(Mode 2 from 1p38_anm)
 
 Let's deform 1r39 chain along this approximate deformation vector and see
 how RMSD changes:

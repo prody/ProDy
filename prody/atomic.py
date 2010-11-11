@@ -44,11 +44,70 @@ import numpy as np
 
 import prody
 from prody import ProDyLogger as LOGGER
-from .select import ProDyAtomSelect as SELECT
-from . import ATOMIC_DATA_FIELDS
 
 __all__ = ['AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain', 
-           'Residue', 'HierView', 'AtomMap']
+           'Residue', 'HierView', 'AtomMap', 'ATOMIC_DATA_FIELDS']
+
+class Field(object):
+    __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', '_meth', '_meth_pl')
+    def __init__(self, name, var, dtype, doc, meth, doc_pl=None, meth_pl=None):
+        self._name = name
+        self._var = var
+        self._dtype = dtype
+        self._doc = doc
+        if doc_pl is None:
+            self._doc_pl = doc + 's'
+        else:
+            self._doc_pl = doc_pl
+        self._meth = meth
+        if meth_pl is None:
+            self._meth_pl = meth + 's'
+        else:
+            self._meth_pl = meth_pl
+        
+    def name(self):
+        return self._name
+    name = property(name, doc='Atomic data field name.')
+    def var(self):
+        return self._var
+    var = property(var, doc='Atomic data variable name.')
+    def dtype(self):
+        return self._dtype
+    dtype = property(dtype, doc='Atomic data type (NumPy types).')
+    def doc(self):
+        return self._doc
+    doc = property(doc, doc='Atomic data field name to be used in documentation.')
+    def doc_pl(self):
+        return self._doc_pl
+    doc_pl = property(doc_pl, doc='Atomic data field name in plural form to be used in documentation.')
+    def meth(self):
+        return self._meth
+    meth = property(meth, doc='Atomic data field name to be used in get/set methods.')
+    def meth_pl(self):
+        return self._meth_pl
+    meth_pl = property(meth_pl, doc='Atomic data field name in plural form to be used in get/set methods.')
+
+ATOMIC_DATA_FIELDS = {
+    'name':      Field('name',      'names',       '|S6',      'atom name',                      'AtomName'),
+    'altloc':    Field('altloc',    'altlocs',     '|S1',      'alternate location indicator',   'AltLocIndicator'),
+    'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor'),
+    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier'),
+    'element':   Field('element',   'elements',    '|S2',      'element symbol',                 'ElementSymbol'),
+    'hetero':    Field('hetero',    'hetero',      np.bool,    'hetero flag',                    'HeteroFlag'),
+    'occupancy': Field('occupancy', 'occupancies', np.float64, 'occupancy value',                'Occupancy',      meth_pl='Occupancies'),
+    'resname':   Field('resname',   'resnames',    '|S6',      'residue name',                   'ResidueName'),
+    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber'),
+    'secondary': Field('secondary', 'secondary',   '|S1',      'secondary structure assignment', 'SecondaryStr'),
+    'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
+    'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
+                                                                                                 'AnisoStdDev'),
+    'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
+    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode'),
+    'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
+    'charge':    Field('charge',    'charges',     np.float64, 'atomic partial charge',          'Charge'),
+    'mass':      Field('mass',      'masses',      np.float64, 'atomic mass',                    'Mass', 'atomic masses', 'Masses'),
+    'radius':    Field('radius',    'radii',       np.float64, 'atomic radius',                  'Radius', 'atomic radii', 'Radii'),
+}
 
 def wrapGetMethod(fn):
     def wrapped(self):
@@ -127,8 +186,10 @@ class AtomGroup(object):
     User can iterate over atoms and coordinate sets in an atom group. To 
     iterate over residues and chains, get a hierarchical view of the atom 
     group by calling :meth:`getHierView()`.
+    
     """
     __metaclass__ = AtomGroupMeta
+    
     def __init__(self, name):
         """Instantiate an AtomGroup with a *name*."""
         self._name = str(name)
@@ -352,7 +413,7 @@ class AtomGroup(object):
 
     def select(self, selstr):
         """Return a selection matching the criteria given by *selstr*."""
-        return SELECT.select(self, selstr)
+        return prody.ProDyAtomSelect.select(self, selstr)
     
     def copy(self, which=None):
         """Return a copy of atoms indicated *which* as a new AtomGroup instance.
@@ -378,7 +439,7 @@ class AtomGroup(object):
             indices = [which]
             newmol = AtomGroup('Copy of {0:s} index {1:d}'.format(name, which))
         elif isinstance(which, str):
-            indices = SELECT.select(self, which).getIndices()
+            indices = prody.ProDyAtomSelect.select(self, which).getIndices()
             newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(name, which))
         elif isinstance(which, (list, np.ndarray)):
             if isinstance(which, list):
@@ -702,7 +763,7 @@ class AtomSubset(object):
 
     def select(self, selstr):
         """Return a selection matching the given selection criteria."""
-        return SELECT.select(self, selstr)
+        return prody.ProDyAtomSelect.select(self, selstr)
 
 class Chain(AtomSubset):
     
@@ -1202,4 +1263,4 @@ class AtomMap(object):
         atoms will not be included in the returned :class:`AtomMap` instance.
         The order of atoms will be preserved.
         """
-        return SELECT.select(self, selstr)
+        return prody.ProDyAtomSelect.select(self, selstr)
