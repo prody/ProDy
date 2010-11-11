@@ -14,11 +14,16 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-""":mod:`compare` module defines functions for comparing and mapping polypeptide 
-chains.
+"""
+*******************************************************************************
+:mod:`compare` - Compare protein chains
+*******************************************************************************
 
-Functions:
-    
+This module defines functions for comparing and mapping polypeptide chains.
+
+Functions
+=========
+
   * Compare chains:
     
     * :func:`findMatchingChains`
@@ -721,7 +726,7 @@ class SimpleChain(object):
                 self._sequence += aa
     
     def buildFromChain(self, chain):
-        """Build from a :class:`prody.proteins.subsets.Chain`."""
+        """Build from a :class:`prody.atomic.Chain`."""
         if not isinstance(chain, prody.Chain):
             raise TypeError('chain must be a Chain instance')
         self._dict = dict()

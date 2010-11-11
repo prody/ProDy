@@ -15,16 +15,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""":mod:`selector` module defines a class for selecting subsets of atoms based 
-on a string.
+"""
+*******************************************************************************
+:mod:`select` - Select atoms
+*******************************************************************************
 
-Classes:
+This module defines a class for selecting subsets of atoms based on a 
+string, and functions to learn and change definitions of selection keywords.
+
+Classes
+=======
 
   * :class:`Select`
   
-Functions:
+Functions
+=========
 
-  * Get:
+Below functions can be used to learn the definitions of :ref:`selkeys`
+and to change the behavior of the default atom selector object.
+
+  * Learn keyword definitions:
     
     * :func:`getAromaticResidueNames`
     * :func:`getNucleicResidueNames`
@@ -39,7 +49,7 @@ Functions:
     * :func:`getMediumResidueNames`
     * :func:`getAcidicResidueNames`
     
-  * Set:
+  * Change keyword definitions:
     
     * :func:`setAromaticResidueNames`
     * :func:`setNucleicResidueNames`
@@ -236,8 +246,8 @@ class Select(object):
     """Select subsets of atoms based on a selection string.
     
     Definitions of single word keywords, such as :term:`protein`, 
-    :term:`backbone`, :term:`polar`, etc., are stored in :mod:`definitions`
-    module and may be altered using functions in this module. 
+    :term:`backbone`, :term:`polar`, etc., may be altered using functions in 
+    :mod:`select`. 
 
     """
     # Numbers and ranges
@@ -661,7 +671,7 @@ class Select(object):
             self._ag = atoms.getAtomGroup()
             self._indices = atoms.getIndices()
             if isinstance(atoms, prody.AtomMap):
-                self._atoms = prody.proteins.Selection(self._ag, self._indices, '')
+                self._atoms = prody.Selection(self._ag, self._indices, '')
                 self._atoms._indices = self._indices
             else: 
                 self._atoms = atoms

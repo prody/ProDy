@@ -15,16 +15,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""":mod:`prodata` module defines classes and functions to fetch, parse, 
-and write PDB files, and also to blast search `ProteinDataBank  <http://wwpdb.org>`_.
+"""
+*******************************************************************************
+:mod:`proteins` - Access protein structural data
+*******************************************************************************
 
-Classes:
+This module defines classes and functions to fetch, parse, 
+and write PDB files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
+
+Classes
+=======
 
   * :class:`PDBFetcher`
   * :class:`RCSB_PDBFetcher`
   * :class:`PDBlastRecord`
 
-Functions:
+Functions
+=========
 
   * :func:`applyBiomolecularTransformations`
   * :func:`assignSecondaryStructure`
@@ -34,7 +41,6 @@ Functions:
   * :func:`parsePDBStream`
   * :func:`writePDB`
   * :func:`writePDBStream`
-  
     
 """
 
@@ -200,7 +206,7 @@ def fetchPDB(pdb, folder='.', fetcher=None):
     """Fetch PDB files using default PDB fetcher class.
     
     If *fetcher* is ``None``, default fetcher will be used. Default fetcher 
-    (:data:`prody.proteins.prodata.DEFAULT_PDBFetcher`) is :class:`RCSB_PDBFetcher`.
+    (:data:`prody.proteins.DEFAULT_PDBFetcher`) is :class:`RCSB_PDBFetcher`.
     
     """
     if fetcher is None:
@@ -236,7 +242,7 @@ def parsePDB(pdb, model=None, subset=None, header=False, altlocs=True):
     return result
     
 def parsePDBStream(stream, model=None, subset=None, header=False, altlocs=True, name=None):
-    """Return an :class:`prody.proteins.atomgroup.AtomGroup` and/or 
+    """Return an :class:`prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
     :arg stream: anything that implements the method readlines() (e.g. file, buffer, stdin)

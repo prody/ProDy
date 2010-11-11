@@ -15,13 +15,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""":mod:`ensemble` module defines a class for working on conformational 
-ensembles and also arbitrary coordinate data sets.
+"""
+*******************************************************************************
+:mod:`ensemble` - Ensemble analysis
+*******************************************************************************
 
-Classes:
+This module defines a class for working on conformational ensembles and 
+also arbitrary coordinate data sets.
+
+Classes
+=======
 
   * :class:`Ensemble`
   * :class:`Conformation`
+  
+Functions
+=========
+
+    * :func:`getSumOfWeights`
 
 """
 
@@ -35,9 +46,9 @@ import time
 import numpy as np
 
 from prody import ProDyLogger as LOGGER
-from prody.proteins import measure
+from prody import measure
 
-__all__ = ['Ensemble', 'Conformation']
+__all__ = ['Ensemble', 'Conformation', 'getSumOfWeights']
         
 class EnsembleError(Exception):
     pass
@@ -493,4 +504,26 @@ class Conformation(object):
     def getTransformation(self):
         """Return the transformation from the last superimposition."""
         return self._ensemble._transformations[self._index].copy()
+    
+def getSumOfWeights(ensemble):
+    """Returns sum of weights from an ensemble.
+    
+    Weights are summed for each atom over conformations in the ensemble.
+    Size of the plotted array will be equal to the number of atoms.
+    
+    When analyzing an ensemble of X-ray structures, this function can be used 
+    to see how many times a residue is resolved.
+    
+    """
+    
+    if not isinstance(ensemble, prody.Ensemble):
+        raise TypeError('ensemble must be an Ensemble instance')
+    
+    weights = ensemble.getWeights()
+    
+    if weights is None:
+        return None
+    
+    return weights.sum(0)
+    
     
