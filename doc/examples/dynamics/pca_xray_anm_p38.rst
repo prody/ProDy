@@ -14,11 +14,11 @@ Following classes and functions are used in the example:
 Classes:
   * :class:`ANM`
   * :class:`PCA`
-  * :class:`Ensemble`
+  * :class:`prody.ensemble.Ensemble`
 Functions:
   * :func:`prody.proteins.fetchPDB`
   * :func:`prody.proteins.parsePDB`
-  * :func:`prody.proteins.mapAtomsToChain`
+  * :func:`prody.compare.mapAtomsToChain`
   * :func:`getANM`
   * :func:`writeNMD`
   * :func:`printOverlapTable`

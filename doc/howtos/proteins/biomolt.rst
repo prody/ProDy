@@ -29,5 +29,5 @@ Let's iterate over chains in the dimer:
 Chain A from Biomolecule 3enl (3647 atoms; 1 coordinate sets, active set index: 0)
 Chain B from Biomolecule 3enl (3647 atoms; 1 coordinate sets, active set index: 0)
 
-You can use :class:`AtomGroup` instance *dimer* in anywhere you can use
+You can use :class:`prody.atomic.AtomGroup` instance *dimer* in anywhere you can use
 *monomer*. 

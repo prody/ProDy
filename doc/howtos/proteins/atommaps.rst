@@ -1,4 +1,4 @@
-.. currentmodule:: prody.proteins
+.. currentmodule:: prody.atomic
 
 .. _atommaps:
 

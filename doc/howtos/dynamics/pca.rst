@@ -50,7 +50,7 @@ Functions and Plotting
 ===============================================================================
 
 ProDy comes with several functions to compare PCA/ENM models or to plot data
-from such models. Interested user should see the following pages:
+from such models. Interested user should see the following page:
 
-  * :ref:`dyfunctions`
-  * :ref:`dyplotting`
+  * :mod:`prody.dynamics`
+

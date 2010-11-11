@@ -1191,7 +1191,7 @@ def getANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
             name = ag.getAtomGroup().getName()
     else:
         raise TypeError('pdb must be an atom container, not {0:s}'.format(type(pdb)))
-    anm = prody.ANM(name + ' ANM')
+    anm = ANM(name + ' ANM')
     anm.buildHessian(ag.select(selstr), cutoff, gamma)
     anm.calcModes(n_modes)
     return anm
@@ -1217,7 +1217,7 @@ def getGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
             name = ag.getAtomGroup().getName()
     else:
         raise TypeError('pdb must be an atom container, not {0:s}'.format(type(pdb)))
-    gnm = prody.GNM(name + ' GNM')
+    gnm = GNM(name + ' GNM')
     gnm.buildKirchhoff(ag.select(selstr), cutoff, gamma)
     gnm.calcModes(n_modes)
     return gnm
@@ -1355,21 +1355,21 @@ def reduceModel(model, atoms, selstr):
         prody.importScipyLinalg()
 
     #LOGGER.warning('Implementation of this function is not finalized. Use it with caution.')
-    if not isinstance(model, prody.NMA):
+    if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance, not {0:s}'.format(type(model)))
     if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
         raise TypeError('atoms type is not valid')
     if len(atoms) <= 1:
         raise TypeError('atoms must contain more than 1 atoms')
 
-    if isinstance(model, prody.GNM):
+    if isinstance(model, GNM):
         matrix = model._kirchhoff
-    elif isinstance(model, prody.ANM):
+    elif isinstance(model, ANM):
         matrix = model._hessian
-    elif isinstance(model, prody.PCA):
+    elif isinstance(model, PCA):
         matrix = model._cov
     else:
-        raise TypeError('model does not have a valid type derived from prody.NMA')
+        raise TypeError('model does not have a valid type derived from NMA')
 
     if matrix is None:
         raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not built')
@@ -1400,8 +1400,8 @@ def reduceModel(model, atoms, selstr):
             other.extend(range(index*ndim, (index+1)*ndim))
         index += 1
     ss = matrix[system,:][:,system]
-    if isinstance(model, prody.PCA):
-        eda = prody.PCA(model.getName()+' reduced')
+    if isinstance(model, PCA):
+        eda = PCA(model.getName()+' reduced')
         eda.setCovariance(ss)
         return eda, selection
     so = matrix[system,:][:,other]
@@ -1409,16 +1409,16 @@ def reduceModel(model, atoms, selstr):
     oo = matrix[other,:][:,other]
     matrix = ss - np.dot(so, np.dot(prody.la.inv(oo), os))
     
-    if isinstance(model, prody.GNM):
-        gnm = prody.GNM(model.getName()+' reduced')
+    if isinstance(model, GNM):
+        gnm = GNM(model.getName()+' reduced')
         gnm.setKirchhoff(matrix)
         return gnm, selection
-    elif isinstance(model, prody.ANM):
-        anm = prody.ANM(model.getName()+' reduced')
+    elif isinstance(model, ANM):
+        anm = ANM(model.getName()+' reduced')
         anm.setHessian(matrix)
         return anm, selection
-    elif isinstance(model, prody.PCA):
-        eda = prody.PCA(model.getName()+' reduced')
+    elif isinstance(model, PCA):
+        eda = PCA(model.getName()+' reduced')
         eda.setCovariance(matrix)
         return eda, selection
 
