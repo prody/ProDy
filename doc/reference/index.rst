@@ -7,6 +7,11 @@ Reference
 .. toctree::
    :maxdepth: 2
 
-   prody/functions
-   proteins/index
-   dynamics/index
+   atomic
+   compare
+   dynamics
+   ensemble
+   measure
+   proteins
+   prody
+   select

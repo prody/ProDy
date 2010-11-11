@@ -15,12 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""":mod:`atomic` module defines classes for handling atomic data.
+"""
+*******************************************************************************
+:mod:`atomic` - Handle atomic data
+*******************************************************************************
 
-Classes:
+This module defines classes for handling atomic data.
+
+Classes
+=======
 
     * :class:`AtomGroup`
-    * :class:`AtomMap`
+    * :class:`Atom`
     * :class:`AtomSubset`
     * :class:`Chain`
     * :class:`Residue`
@@ -432,7 +438,7 @@ class Atom(object):
     __slots__ = ('_ag', '_index', '_acsi')
     
     def __init__(self, atomgroup, index, acsi=None):
-        if not isinstance(atomgroup, prody.AtomGroup):
+        if not isinstance(atomgroup, AtomGroup):
             raise TypeError('atomgroup must be AtomGroup, not {0:s}'
                             .format(type(atomgroup)))
         self._ag = atomgroup
@@ -557,7 +563,7 @@ class AtomSubset(object):
         :arg acsi: active coordinate set index
         :type acsi: integer
         """
-        if not isinstance(atomgroup, prody.AtomGroup):
+        if not isinstance(atomgroup, AtomGroup):
             raise TypeError('atomgroup must be AtomGroup, not {0:s}'
                             .format(type(atomgroup)))
         self._ag = atomgroup
@@ -750,7 +756,7 @@ class Chain(AtomSubset):
             return self._seq
         CAs = self.select('name CA').select('protein')
         if len(CAs) > 0:
-            self._seq = prody.proteins.compare._getSequence(CAs.residue_names)
+            self._seq = prody.compare._getSequence(CAs.residue_names)
         else:
             self._seq = ''
         return self._seq
@@ -856,7 +862,7 @@ class Selection(AtomSubset):
     def getHierView(self):
         """Return a hierarchical view of the atom subset."""
         LOGGER.warning('HierView will be disabled for selections.')
-        return prody.proteins.HierView(self)
+        return HierView(self)
 
 class HierView(object):
     __slots__ = ['_atoms', '_chains']

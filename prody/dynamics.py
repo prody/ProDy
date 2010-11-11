@@ -14,18 +14,97 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-""":mod:`nma` module defines classes for normal mode analysis. 
+"""
+*******************************************************************************
+:mod:`dynamics` - Protein dynamics analysis
+*******************************************************************************
 
-Classes:
+This module defines classes and functions for dynamics analysis. 
 
-  * Normal Mode Analysis (:class:`NMA`) 
-  * Base class for GNM/ANM (:class:`GNMBase`)
-  * Gaussian Network Model (:class:`GNM`)
-  * Anisotropic Network Model (:class:`ANM`)
-  * Principal Component Analysis (:class:`PCA`)
-  * :class:`VectorBase`
+Classes
+-------
+
+  * :class:`GNM`
+  * :class:`ANM`
+  * :class:`PCA`
   * :class:`Vector`
   * :class:`Mode`
+  * :class:`ModeSet`
+  
+Analysis Functions
+------------------
+
+Many of the functions documented in this page accepts a *modes* argument 
+(may also have different names).
+This argument may be:
+
+  * an NMA model, which may be an instance of one of :class:`ANM`, :class:`GNM`, :class:`PCA`.
+  * a :class:`Mode` instance obtained by indexing an NMA model, e.g. ``nma[0]``
+  * a list of :class:`Mode` instances obtained by slicing an NMA model, e.g. ``nma[:10]``
+
+Some of these functions may also accept :class:`Vector` instances as *modes* argument.
+
+**List of Functions**:
+
+  * Short-hand functions:
+
+    * :func:`getANM`
+    * :func:`getGNM`
+
+  * Analysis:
+
+    * :func:`getCrossCorrelations`
+    * :func:`getSqFlucts`  
+
+  * Write data:
+
+    * :func:`writeArray`
+    * :func:`writeModes`
+    * :func:`writeNMD`
+        
+  * Visualization:
+
+    * :func:`viewNMDinVMD`
+    * :func:`setVMDpath`
+    * :func:`getVMDpath`
+    
+  * Compare NMA models:
+
+    * :func:`getOverlap`
+    * :func:`getCumulativeOverlap`
+    * :func:`getSubspaceOverlap`
+    * :func:`printOverlapTable`
+  
+  * Other:
+
+    * :func:`getProjection`
+    * :func:`reduceModel`
+
+Plotting Functions
+------------------
+
+For many plotting functions documented in this page there are corresponding 
+functions that returns numbers or arrays. These are documented in :ref:`dyfunctions`.   
+
+Plotting functions are called by the name of the plotted data/property and are
+prefixed with "show". Function documentations include the :mod:`matplotlib.pyplot` 
+function utilized for actual plotting. Arguments and keyword arguments are passed to the
+Matplotlib functions.  
+
+**List of Functions**:
+
+    * :func:`showContactMap`
+    * :func:`showCrossCorrelations`
+    * :func:`showCumulativeOverlap`
+    * :func:`showCumFractOfVariances`
+    * :func:`showFractOfVariances`
+    * :func:`showMode`
+    * :func:`showOverlap`
+    * :func:`showOverlapTable`
+    * :func:`showProjection`
+    * :func:`showSqFlucts`
+    * :func:`showSumOfWeights`
+    
     
 """
 
@@ -43,10 +122,10 @@ pl = None
 import prody
 from prody import ProDyLogger as LOGGER
 
-__all__ = ['GNM', 'ANM', 'PCA', 'NMA', 'ModeSet', 'EDA', 'Mode', 'Vector',
+__all__ = ['GNM', 'ANM', 'PCA', 'ModeSet', 'EDA', 'Mode', 'Vector', 
            'getANM', 'getGNM', 'writeNMD', 
            'viewNMDinVMD', 'setVMDpath', 'getVMDpath',
-           'getProjection', 'getSumOfWeights',
+           'getProjection',
            'getOverlap', 'reduceModel', 'printOverlapTable',
            'writeModes', 'writeArray',
            'getSqFlucts', 'getCrossCorrelations',
@@ -58,6 +137,7 @@ __all__ = ['GNM', 'ANM', 'PCA', 'NMA', 'ModeSet', 'EDA', 'Mode', 'Vector',
            'showContactMap', 'showOverlap', 'showCumulativeOverlap',
            'showCumFractOfVariances']
 
+VMDPATH = '/usr/local/bin/vmd'
 ZERO = 1e-8
 
 class NMAError(Exception):
@@ -1096,8 +1176,8 @@ def getANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
     
-    *pdb* can be :class:`prody.proteins.AtomGroup`, :class:`prody.proteins.Selection`,  
-    or :class:`prody.proteins.Chain` instance.  
+    *pdb* can be :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Selection`,  
+    or :class:`prody.atomic.Chain` instance.  
     
     """
     if isinstance(pdb, str):
@@ -1122,8 +1202,8 @@ def getGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
     
-    *pdb* can be :class:`prody.proteins.AtomGroup`, :class:`prody.proteins.Selection`,  
-    or :class:`prody.proteins.Chain` instance.  
+    *pdb* can be :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Selection`,  
+    or :class:`prody.atomic.Chain` instance.  
     
     """
     if isinstance(pdb, str):
@@ -1165,28 +1245,6 @@ def getProjection(ensemble, modes):
     return np.dot(deviations, modes.getArray())
 
 
-def getSumOfWeights(ensemble):
-    """Returns sum of weights from an ensemble.
-    
-    Weights are summed for each atom over conformations in the ensemble.
-    Size of the plotted array will be equal to the number of atoms.
-    
-    When analyzing an ensemble of X-ray structures, this function can be used 
-    to see how many times a residue is resolved.
-    
-    """
-    
-    if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble instance')
-    
-    weights = ensemble.getWeights()
-    
-    if weights is None:
-        return None
-    
-    return weights.sum(0)
-    
-    
 def getOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and *cols*).
     
