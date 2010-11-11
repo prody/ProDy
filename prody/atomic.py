@@ -41,7 +41,8 @@ from prody import ProDyLogger as LOGGER
 from .select import ProDyAtomSelect as SELECT
 from . import ATOMIC_DATA_FIELDS
 
-__all__ = ['AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain', 'Residue', 'HierView', 'AtomMap']
+__all__ = ['AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain', 
+           'Residue', 'HierView', 'AtomMap']
 
 def wrapGetMethod(fn):
     def wrapped(self):

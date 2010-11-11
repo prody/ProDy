@@ -48,7 +48,7 @@ def importPyPlot():
         raise ImportError('Matplotlib is required for plotting.')
     global pl
     pl = pyplot
-    dynamics.plotting.pl = pl
+    dynamics.pl = pl
 
 KDTree = None
 def importBioKDTree():
@@ -210,15 +210,94 @@ except ImportError, err:
 
 __all__ = ['ProDyStartLogfile', 'ProDyCloseLogfile', 'ProDySetVerbosity']
 
+class Field(object):
+    __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', '_meth', '_meth_pl')
+    def __init__(self, name, var, dtype, doc, meth, doc_pl=None, meth_pl=None):
+        self._name = name
+        self._var = var
+        self._dtype = dtype
+        self._doc = doc
+        if doc_pl is None:
+            self._doc_pl = doc + 's'
+        else:
+            self._doc_pl = doc_pl
+        self._meth = meth
+        if meth_pl is None:
+            self._meth_pl = meth + 's'
+        else:
+            self._meth_pl = meth_pl
+        
+    def name(self):
+        return self._name
+    name = property(name, doc='Atomic data field name.')
+    def var(self):
+        return self._var
+    var = property(var, doc='Atomic data variable name.')
+    def dtype(self):
+        return self._dtype
+    dtype = property(dtype, doc='Atomic data type (NumPy types).')
+    def doc(self):
+        return self._doc
+    doc = property(doc, doc='Atomic data field name to be used in documentation.')
+    def doc_pl(self):
+        return self._doc_pl
+    doc_pl = property(doc_pl, doc='Atomic data field name in plural form to be used in documentation.')
+    def meth(self):
+        return self._meth
+    meth = property(meth, doc='Atomic data field name to be used in get/set methods.')
+    def meth_pl(self):
+        return self._meth_pl
+    meth_pl = property(meth_pl, doc='Atomic data field name in plural form to be used in get/set methods.')
+
+ATOMIC_DATA_FIELDS = {
+    'name':      Field('name',      'names',       '|S6',      'atom name',                      'AtomName'),
+    'altloc':    Field('altloc',    'altlocs',     '|S1',      'alternate location indicator',   'AltLocIndicator'),
+    'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor'),
+    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier'),
+    'element':   Field('element',   'elements',    '|S2',      'element symbol',                 'ElementSymbol'),
+    'hetero':    Field('hetero',    'hetero',      np.bool,    'hetero flag',                    'HeteroFlag'),
+    'occupancy': Field('occupancy', 'occupancies', np.float64, 'occupancy value',                'Occupancy',      meth_pl='Occupancies'),
+    'resname':   Field('resname',   'resnames',    '|S6',      'residue name',                   'ResidueName'),
+    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber'),
+    'secondary': Field('secondary', 'secondary',   '|S1',      'secondary structure assignment', 'SecondaryStr'),
+    'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
+    'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
+                                                                                                 'AnisoStdDev'),
+    'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
+    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode'),
+    'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
+    'charge':    Field('charge',    'charges',     np.float64, 'atomic partial charge',          'Charge'),
+    'mass':      Field('mass',      'masses',      np.float64, 'atomic mass',                    'Mass', 'atomic masses', 'Masses'),
+    'radius':    Field('radius',    'radii',       np.float64, 'atomic radius',                  'Radius', 'atomic radii', 'Radii'),
+}
+
 import proteins
-__all__.append('proteins')
-from proteins import *
+from proteins import *  
 __all__ += proteins.__all__
 
-import dynamics
-__all__.append('dynamics')
-from dynamics import *
+from . import measure
+from measure import *
+__all__ += measure.__all__
+
+from . import select
+from select import *
+__all__ += select.__all__
+
+from . import atomic 
+from atomic import *
+__all__ += atomic.__all__
+
+from . import compare
+from compare import *
+__all__ += compare.__all__
+
+from . import dynamics
+from .dynamics import *
 __all__ += dynamics.__all__
+
+from . import ensemble
+from .ensemble import *
+__all__ += ensemble.__all__
 
 import prody
 
