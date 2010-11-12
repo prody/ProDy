@@ -29,7 +29,7 @@ More on AtomGroup's
 .. toctree::
    :maxdepth: 1
    
-   proteins/water
+   atomic/water
 
 Dynamics
 ===============================================================================

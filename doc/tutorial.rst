@@ -165,7 +165,7 @@ Or, we could use residue names expilicitly:
 .. seealso::
    For more information, tips and tricks see :ref:`selections` and :ref:`selops`.
 
-Hierarchical view of atoms in a PDB 
+Hierarchical view of atoms
 -------------------------------------------------------------------------------
 
 :class:`prody.atomic.AtomGroup` instances has a flat view of atoms in PDB

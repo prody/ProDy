@@ -655,7 +655,15 @@ class Select(object):
         return torf
     
     def select(self, atoms, selstr, **kwargs):
-        """Return a Selection (or an AtomMap) of atoms matching *selstr*."""
+        """Return a Selection (or an AtomMap) of atoms matching *selstr*.
+        
+        If type of atoms is :class:`prody.atomic.AtomMap`, an 
+        :class:`prody.atomic.AtomMap` instance is returned.
+        
+        .. versionchanged:: 0.2.0
+            If selection string does not match any atoms, ``None`` is returned.
+        
+        """
         
         if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
             raise TypeError('atoms must be an atom container, not {0:s}'.format(type(atoms)))
@@ -693,7 +701,9 @@ class Select(object):
             indices = torf.nonzero()[0]
         else:
             indices = self._indices[torf]
-            
+        if len(indices) == 0:
+            return None
+        
         ag = self._ag
         self._reset()
         if isinstance(atoms, prody.AtomMap):
@@ -752,13 +762,16 @@ class Select(object):
         if not isinstance(which, np.ndarray):
             which = self._evaluate(terms[1:])
         result = []
+        append = result.append
         kdtree = self._getKDTree()
+        get_indices = kdtree.get_indices
+        search = kdtree.search
         if isinstance(which, np.ndarray):
             coordinates = self._getCoordinates()
             which = which.nonzero()[0]
             for index in which:
-                kdtree.search(coordinates[index], within)
-                result.append(kdtree.get_indices())
+                search(coordinates[index], within)
+                append(get_indices())
         elif which in self._kwargs:
             kw = which
             which = self._kwargs[which]
@@ -768,8 +781,8 @@ class Select(object):
                 elif not (which.ndim == 2 and which.shape[1] == 3):
                     raise SelectionError('{0:s} must be a coordinate array, shape (N, 3) or (3,)'.format(kw))
                 for xyz in which:
-                    kdtree.search(xyz, within)
-                    result.append(kdtree.get_indices())
+                    search(xyz, within)
+                    append(get_indices())
             else:
                 try:
                     coordinates = which.getCoordinates()
@@ -778,8 +791,8 @@ class Select(object):
                 if not isinstance(coordinates, np.ndarray):
                     raise SelectionError('{0:s}.getCoordinates() method must return a numpy.ndarray instance'.format(kw))
                 for xyz in coordinates:
-                    kdtree.search(xyz, within)
-                    result.append(kdtree.get_indices())
+                    search(xyz, within)
+                    append(get_indices())
         else:
             raise SelectionError('unknown error when using within keyword')
                 

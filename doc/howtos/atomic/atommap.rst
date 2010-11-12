@@ -49,13 +49,13 @@ Calling the same functions for this AtomMap instance would result in the followi
    1, 8, CE1, PHE, 1, 1, 0
    2, 9, CE2, PHE, 1, 1, 0
    3, 10, CZ, PHE, 1, 1, 0
-   4, , DUMMY, NONE, 0, 0, 1
+   4, , , , 0, 0, 1
    5, 0, N, PHE, 1, 1, 0
    6, 1, CA, PHE, 1, 1, 0
    7, 3, O, PHE, 1, 1, 0
    
-For unmapped atoms, atom names are set to "DUMMY" and residue names are set to 
-"NONE". Other attributes are set to 0 or empty string (i.e. "").
+For unmapped atoms, numeric attributes are set to 0, others to empty string,
+i.e. ``""``.
 
 AtomMaps are used by functions that compare protein chains.
 
