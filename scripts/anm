@@ -23,8 +23,6 @@ import sys
 from optparse import OptionParser
 from prody import *
 
-
-
 """
 Workflow
 - load pdb
@@ -72,8 +70,11 @@ Fetch pdb 1p38 and run ANM using default parameters on all CA atoms of protein c
 
     # parameters
     pdbfn = args[0]
-    nmodes, select, cutoff, gamma, prefix = opt.nmodes, opt.select, opt.cutoff, opt.gamma, opt.prefix
+    nmodes, select, cutoff, gamma, prefix, silent = opt.nmodes, opt.select, opt.cutoff, opt.gamma, opt.prefix, opt.silent
     
+    
+    if silent:
+        ProDySetVerbosity('warning')
     # parsing pdb
     pdb = parsePDB(pdbfn)
     pdbselect = pdb.select(select)

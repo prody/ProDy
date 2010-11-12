@@ -69,7 +69,10 @@ Fetch pdb 1p38 and run GNM using default parameters on all CA atoms of protein c
 
     # parameters
     pdbfn = args[0]
-    nmodes, select, cutoff, gamma, prefix = opt.nmodes, opt.select, opt.cutoff, opt.gamma, opt.prefix
+    nmodes, select, cutoff, gamma, prefix, silent = opt.nmodes, opt.select, opt.cutoff, opt.gamma, opt.prefix, opt.silent
+
+    if silent:
+        ProDySetVerbosity('warning')
     
     # parsing pdb
     pdb = parsePDB(pdbfn)
