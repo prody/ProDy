@@ -319,10 +319,10 @@ class Select(object):
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              (pp.Keyword('!!!'), 1, pp.opAssoc.RIGHT, self._not),
+              (pp.Keyword('not'), 1, pp.opAssoc.RIGHT, self._not),
               (pp.Regex('same [a-z]+ as') | pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 1, pp.opAssoc.RIGHT, self._special),
-              (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
-              (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
+              (pp.Keyword('and'), 2, pp.opAssoc.LEFT, self._and),
+              (pp.Keyword('or'), 2, pp.opAssoc.LEFT, self._or),]
             )
         """
         self._tokenizer = pp.operatorPrecedence(
@@ -409,14 +409,13 @@ class Select(object):
             indices = torf.nonzero()[0]
         else:
             indices = self._indices[torf]
-        if len(indices) == 0:
-            return None
-        
         ag = self._ag
         self._kwargs  = None
         if not kwargs.get('cache', False):
             self._reset()
-        if isinstance(atoms, prody.AtomMap):
+        if len(indices) == 0:
+            return None
+        elif isinstance(atoms, prody.AtomMap):
             return prody.AtomMap(ag, indices, np.arange(len(indices)), 
                                  np.array([]),
                                  'Selection "{0:s}" from AtomMap {1:s}'.format(
@@ -715,6 +714,7 @@ class Select(object):
         return torf
     
     def _evalFloat(self, keyword, values=None):
+        if DEBUG: print '_evalFloat', keyword, values
         if keyword == 'x':
             data = self._getCoordinates()[:,0]
         elif keyword == 'y':
@@ -757,16 +757,16 @@ class Select(object):
 
     def _getStdSelStr(self):
         selstr = self._selstr
-        selstr = ' ' + selstr + ' '
+        #selstr = ' ' + selstr + ' '
         #selstr = selstr.replace('(', ' ( ').replace(')', ' ) ')
-        while ' and ' in selstr:
-            selstr = selstr.replace(' and ', ' &&& ')
-        while ' or ' in selstr:
-            selstr = selstr.replace(' or ', ' || ')
-        while ' not ' in selstr:
-            selstr = selstr.replace(' not ', ' !!! ')
-        while '  ' in selstr:
-            selstr = selstr.replace('  ', ' ')
+        #while ' and ' in selstr:
+        #    selstr = selstr.replace(' and ', ' &&& ')
+        #while ' or ' in selstr:
+        #    selstr = selstr.replace(' or ', ' || ')
+        #while ' not ' in selstr:
+        #    selstr = selstr.replace(' not ', ' !!! ')
+        #while '  ' in selstr:
+        #    selstr = selstr.replace('  ', ' ')
         selstr = selstr.strip()
         return selstr
 
@@ -804,8 +804,10 @@ class Select(object):
         get_indices = kdtree.get_indices
         search = kdtree.search
         if isinstance(which, np.ndarray):
-            coordinates = self._getCoordinates()
             which = which.nonzero()[0]
+            if len(which) == 0:
+                return np.zeros(self._n_atoms, np.bool)
+            coordinates = self._getCoordinates()
             for index in which:
                 search(coordinates[index], within)
                 append(get_indices())
