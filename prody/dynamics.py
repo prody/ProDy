@@ -1301,7 +1301,7 @@ def getOverlapTable(rows, cols):
         rids = rows.getIndices()
         rname = str(rows.getModel())
     else:
-        rids = [1]
+        rids = [0]
         rname = str(rows)
     rlen = len(rids)
     if isinstance(cols, Mode):
@@ -1314,7 +1314,7 @@ def getOverlapTable(rows, cols):
         cids = cols.getIndices()
         cname = str(cols.getModel())
     else:
-        cids = [1]
+        cids = [0]
         cname = str(cols)        
     clen = len(cids)
     overlap = overlap.reshape((rlen, clen)) 
@@ -1848,7 +1848,6 @@ def showOverlap(mode, modes, *args, **kwargs):
     else:
         arange = modes.getIndices() + 0.5
     show = pl.bar(arange, overlap, *args, **kwargs)
-            
     pl.title('Overlap: {0:s} & {1:s}'.format(str(mode), str(modes)))
     pl.xlabel('Mode index')
     pl.ylabel('Overlap')
@@ -1867,15 +1866,15 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'.format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
-    cumov = (getOverlap(mode, modes) ** 2).cumsum(1) ** 0.5
+    cumov = (getOverlap(mode, modes) ** 2).cumsum() ** 0.5
     if isinstance(modes, NMA):
         arange = np.arange(0.5, len(modes)+1.5)
     else:
         arange = modes.getIndices() + 0.5
-    show = pl.plot(indices, cumov, *args, **kwargs)
+    show = pl.plot(arange, cumov, *args, **kwargs)
     pl.title('Cumulative overlap: {0:s} & {1:s}'.format(str(mode), str(modes)))
     pl.xlabel('Mode index')
     pl.ylabel('Cumulative overlap')
-    pl.axis((indices[0]-0.5, indices[-1]+0.5, 0, 1))
+    pl.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
     return show
     
