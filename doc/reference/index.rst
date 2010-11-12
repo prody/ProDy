@@ -5,13 +5,13 @@ Reference
 *******************************************************************************
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
+   prody
    atomic
    compare
    dynamics
    ensemble
    measure
    proteins
-   prody
    select

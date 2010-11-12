@@ -15,24 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""
-*******************************************************************************
-:mod:`select` - Select atoms
-*******************************************************************************
-
-This module defines a class for selecting subsets of atoms based on a 
+"""This module defines a class for selecting subsets of atoms based on a 
 string, and functions to learn and change definitions of selection keywords.
 
 Classes
-=======
+-------
 
   * :class:`Select`
   
 Functions
-=========
+---------
 
-Below functions can be used to learn the definitions of :ref:`selkeys`
-and to change the behavior of the default atom selector object.
+Below functions can be used to learn and change the definitions of :ref:`selkeys`.
 
   * Learn keyword definitions:
     
@@ -100,6 +94,10 @@ __all__ = ['Select',
 - make classmethods from methods not related to instances
 - evalonly in within and sameas 
 """
+
+mapField2Var = {}
+for field in ATOMIC_DATA_FIELDS.values():
+    mapField2Var[field.name] = field.var
 
 BACKBONE_ATOM_NAMES = ('CA', 'N', 'C', 'O') 
 PROTEIN_RESIDUE_NAMES = ('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
@@ -247,7 +245,7 @@ class Select(object):
     
     Definitions of single word keywords, such as :term:`protein`, 
     :term:`backbone`, :term:`polar`, etc., may be altered using functions in 
-    :mod:`select`. 
+    :mod:`prody.select` module. 
 
     """
     # Numbers and ranges
@@ -309,8 +307,8 @@ class Select(object):
         self._coordinates = None
         self._kdtree = None
         self._kwargs  = None
-        for field in ATOMIC_DATA_FIELDS.values():
-            self.__dict__['_'+field.var] = None        
+        for var in mapField2Var.values():
+            self.__dict__['_'+var] = None        
         
         self._tokenizer = pp.operatorPrecedence(
              pp.OneOrMore(pp.Word(pp.alphanums+'.:_') | 
@@ -321,14 +319,117 @@ class Select(object):
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              (pp.Regex('same [a-z]+ as') | pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 1, pp.opAssoc.RIGHT, self._special),
               (pp.Keyword('!!!'), 1, pp.opAssoc.RIGHT, self._not),
+              (pp.Regex('same [a-z]+ as') | pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 1, pp.opAssoc.RIGHT, self._special),
               (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
               (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
             )
+        """
+        self._tokenizer = pp.operatorPrecedence(
+             pp.OneOrMore(pp.Word(pp.alphanums+'.:_') | 
+             pp.Group(pp.oneOf('" \'') + pp.Word(pp.alphanums+'~!@#$%^&*_+`=:;,.<>?|') + pp.oneOf('" \' "r \'r'))),
+             [(pp.Keyword('!!!'), 1, pp.opAssoc.RIGHT, self._not),
+              (pp.Regex('same [a-z]+ as') | pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 1, pp.opAssoc.RIGHT, self._special),
+              (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
+              (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
+            )
+        """
         self._tokenizer.setParseAction(self._action)
+
+    
+    def select(self, atoms, selstr, **kwargs):
+        """Return a subset of atoms matching *selstr*.
+        
+        :arg atoms: atoms to select from which    
+        :type atoms: :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Selection`,
+                     :class:`prody.atomic.Residue`, :class:`prody.atomic.Chain`,
+                     :class:`prody.atomic.AtomMap`
+        :arg selstr: selection string
+        :type selstr: str
+        :keyword cache: cache atomic data and KDTree, default is ``False``
+        :type cache: bool
+        
+        If type of *atoms* is :class:`prody.atomic.AtomMap`, an 
+        :class:`prody.atomic.AtomMap` instance is returned. Otherwise,
+        :class:`prody.atomic.Selection` instances are returned.
+
+        .. versionchanged:: 0.2
+            If selection string does not match any atoms, ``None`` is returned.
+            
+        .. versionadded:: 0.2
+            :meth:`select` accepts arbitrary keyword arguments which enables 
+            identification of intermolecular contacts. See :ref:`contacts` for 
+            its details.
+        
+        .. versionadded:: 0.2
+            :meth:`select` accepts a keyword argument that enables caching
+            atomic data and KDTree from previous select operation. It works
+            if *atoms* objects in two consecutive selections are the same.
+        
+        .. warning:: ``cache=True`` should be used if attributes of *atoms* 
+           object have not changed since the previous selection operation.
+
+        """
+        
+        if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
+            raise TypeError('atoms must be an atom container, not {0:s}'.format(type(atoms)))
+        elif not isinstance(selstr, str):
+            raise TypeError('selstr must be a string, not a {0:s}'.format(type(selstr)))
+        if self._atoms is not None and atoms != self._atoms:
+            self._reset
+            
+        self._selstr = selstr
+        if isinstance(atoms, prody.AtomGroup): 
+            self._ag = atoms
+            self._atoms = atoms
+            self._indices = None
+            self._n_atoms = atoms._n_atoms
+        else:
+            self._ag = atoms.getAtomGroup()
+            self._indices = atoms.getIndices()
+            if isinstance(atoms, prody.AtomMap):
+                self._atoms = prody.Selection(self._ag, self._indices, '')
+                self._atoms._indices = self._indices
+            else: 
+                self._atoms = atoms
+            self._n_atoms = len(self._indices)
+        self._kwargs = kwargs
+        if DEBUG:
+            print '_select', selstr
+        torf = self._parseSelStr()[0]
+        if not isinstance(torf, np.ndarray):
+            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
+        elif torf.dtype != np.bool:
+            if DEBUG:
+                print '_select torf.dtype', torf.dtype, isinstance(torf.dtype, np.bool)
+            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
+        if DEBUG:
+            print '_select', torf
+        if isinstance(atoms, prody.AtomGroup):
+            indices = torf.nonzero()[0]
+        else:
+            indices = self._indices[torf]
+        if len(indices) == 0:
+            return None
+        
+        ag = self._ag
+        self._kwargs  = None
+        if not kwargs.get('cache', False):
+            self._reset()
+        if isinstance(atoms, prody.AtomMap):
+            return prody.AtomMap(ag, indices, np.arange(len(indices)), 
+                                 np.array([]),
+                                 'Selection "{0:s}" from AtomMap {1:s}'.format(
+                                 selstr, atoms.getName()),
+                                 atoms.getActiveCoordsetIndex())
+        else:
+            if isinstance(atoms, prody.AtomSubset):
+                selstr = '({0:s}) and ({1:s})'.format(selstr, atoms.getSelectionString())
+            return prody.Selection(ag, indices, selstr, 
+                                   atoms.getActiveCoordsetIndex())
         
     def _reset(self):
+        if DEBUG: print '_reset'
         self._ag = None
         self._atoms = None
         self._indices = None
@@ -338,9 +439,8 @@ class Select(object):
 
         self._coordinates = None
         self._kdtree = None
-        self._kwargs  = None
-        for field in ATOMIC_DATA_FIELDS.values():
-            self.__dict__['_'+field.var] = None        
+        for var in mapField2Var.values():
+            self.__dict__['_'+var] = None        
                     
     def _getAtomicData(self, keyword):
         field = ATOMIC_DATA_FIELDS.get(keyword, None)
@@ -653,70 +753,7 @@ class Select(object):
             else:
                 torf[data == item] = True
         return torf
-    
-    def select(self, atoms, selstr, **kwargs):
-        """Return a Selection (or an AtomMap) of atoms matching *selstr*.
-        
-        If type of atoms is :class:`prody.atomic.AtomMap`, an 
-        :class:`prody.atomic.AtomMap` instance is returned.
-        
-        .. versionchanged:: 0.2.0
-            If selection string does not match any atoms, ``None`` is returned.
-        
-        """
-        
-        if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
-            raise TypeError('atoms must be an atom container, not {0:s}'.format(type(atoms)))
-        elif not isinstance(selstr, str):
-            raise TypeError('selstr must be a string, not a {0:s}'.format(type(selstr)))
-        self._reset()
-        self._selstr = selstr
-        if isinstance(atoms, prody.AtomGroup): 
-            self._ag = atoms
-            self._atoms = atoms
-            self._indices = None
-            self._n_atoms = atoms._n_atoms
-        else:
-            self._ag = atoms.getAtomGroup()
-            self._indices = atoms.getIndices()
-            if isinstance(atoms, prody.AtomMap):
-                self._atoms = prody.Selection(self._ag, self._indices, '')
-                self._atoms._indices = self._indices
-            else: 
-                self._atoms = atoms
-            self._n_atoms = len(self._indices)
-        self._kwargs = kwargs
-        if DEBUG:
-            print '_select', selstr
-        torf = self._parseSelStr()[0]
-        if not isinstance(torf, np.ndarray):
-            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
-        elif torf.dtype != np.bool:
-            if DEBUG:
-                print '_select torf.dtype', torf.dtype, isinstance(torf.dtype, np.bool)
-            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
-        if DEBUG:
-            print '_select', torf
-        if isinstance(atoms, prody.AtomGroup):
-            indices = torf.nonzero()[0]
-        else:
-            indices = self._indices[torf]
-        if len(indices) == 0:
-            return None
-        
-        ag = self._ag
-        self._reset()
-        if isinstance(atoms, prody.AtomMap):
-            return prody.AtomMap(ag, indices, np.arange(len(indices)), 
-                                 np.array([]),
-                                 'Selection "{0:s}" from AtomMap {1:s}'.format(
-                                 selstr, atoms.getName()),
-                                 atoms.getActiveCoordsetIndex())
-        else:
-            if isinstance(atoms, prody.AtomSubset):
-                selstr = '({0:s}) and ({1:s})'.format(selstr, atoms.getSelectionString())
-            return prody.Selection(ag, indices, selstr, 
-                                   atoms.getActiveCoordsetIndex())
+
 
     def _getStdSelStr(self):
         selstr = self._selstr
@@ -760,10 +797,7 @@ class Select(object):
         within = float(terms[0].split()[1])
         which = terms[1]
         if not isinstance(which, np.ndarray):
-            if self._kwargs is not None and which in self._kwargs:
-                which = self._kwargs[which]
-            else:
-                which = self._evaluate(terms[1:])
+            which = self._evaluate(terms[1:])
         result = []
         append = result.append
         kdtree = self._getKDTree()
@@ -776,12 +810,15 @@ class Select(object):
                 search(coordinates[index], within)
                 append(get_indices())
         else:
+            if self._kwargs is not None and which in self._kwargs:
+                which = self._kwargs[which]
             if isinstance(which, np.ndarray):
                 if which.ndim == 1 and len(which) == 3:
                     which = [which]
                 elif not (which.ndim == 2 and which.shape[1] == 3):
                     raise SelectionError('{0:s} must be a coordinate array, shape (N, 3) or (3,)'.format(kw))
                 for xyz in which:
+                    if DEBUG: print 'xyz', xyz
                     search(xyz, within)
                     append(get_indices())
             else:
@@ -806,8 +843,11 @@ class Select(object):
             torf = torf[self._indices]
         if exclude:
             torf[which] = False
-        return torf
-
+        if self._evalonly is None:
+            return torf
+        else:
+            return torf[self._evalonly]
+    
     def _sameas(self, token):
         terms = token
         if DEBUG: print '_sameas', terms
@@ -921,6 +961,8 @@ class Select(object):
                 return self._evalBoolean(keyword)
             elif Select.isNumericKeyword(keyword):
                 return self._getnum(keyword)
+            elif self._kwargs is not None and keyword in self._kwargs:
+                return keyword
             else:
                 try:
                     return float(keyword)
@@ -938,6 +980,12 @@ class Select(object):
             return self._index(token[1:])
         elif keyword == 'serial':
             return self._index(token[1:], 1)
+        elif keyword == 'within':
+            return self._within([' '.join(token[:3])] + token[3:], False)
+        elif keyword == 'exwithin':
+            return self._within([' '.join(token[:3])] + token[3:], True)
+        elif keyword == 'same':
+            return self._sameas([' '.join(token[:3])] + token[3:])
         for item in token[1:]:
             if Select.isKeyword(item):
                 raise SelectionError('"{0:s}" in "{1:s}" is not understood, use "" to escape'.format(item, ' '.join(token)))
@@ -992,28 +1040,38 @@ class Select(object):
         if DEBUG: print '_add', token
         items = token[0]
         left = self._getnum(items[0])
-        op = items[1]
-        right = self._getnum(items[2])
-        if op == '+':
-            return left + right
-        else:
-            return left - right
+        i = 1
+        while i < len(items):
+            op = items[i]
+            i += 1
+            right = self._getnum(items[i])
+            i += 1
+            if op == '+':
+                left = left + right
+            else:
+                left = left - right
+        return left
  
     def _mul(self, token):
         if DEBUG: print '_mul', token
         items = token[0]
         left = self._getnum(items[0])
-        op = items[1]
-        right = self._getnum(items[2])
-        if op == '*':
-            return left * right
-        elif op == '/':
-            if right == 0.0:
-                raise ZeroDivisionError(' '.join(items))
-            return left / right
-        else:
-            return left % right
-
+        i = 1
+        while i < len(items):
+            op = items[i]
+            i += 1
+            right = self._getnum(items[i])
+            i += 1
+            if op == '*':
+                left = left * right
+            elif op == '/':
+                if right == 0.0:
+                    raise ZeroDivisionError(' '.join(items))
+                left = left / right
+            else:
+                left = left % right
+        return left
+    
     def _getnum(self, token):
         if DEBUG: print '_getnum', token
         if isinstance(token, np.ndarray):

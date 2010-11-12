@@ -15,15 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""
-*******************************************************************************
-:mod:`atomic` - Handle atomic data
-*******************************************************************************
-
-This module defines classes for handling atomic data.
+"""This module defines classes for handling atomic data.
 
 Classes
-=======
+-------
 
     * :class:`AtomGroup`
     * :class:`Atom`
@@ -33,6 +28,14 @@ Classes
     * :class:`Selection`
     * :class:`AtomMap`
     * :class:`HierView`
+    
+
+Inheritance Diagram
+-------------------
+
+.. inheritance-diagram:: prody.atomic
+   :parts: 1
+    
 """
 
 __author__ = 'Ahmet Bakan'

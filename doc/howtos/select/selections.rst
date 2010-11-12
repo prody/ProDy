@@ -6,10 +6,13 @@
 Atom Selections
 *******************************************************************************
 
-ProDy offers a powerful atom selector which works very much the same way |vmd| 
-does. There are only small differences which should not affect most practical 
-uses of atom selections. This section describes the keywords and selection 
-syntax.
+ProDy offers a powerful atom selector which works quite the same way |vmd| 
+does. There are small differences which should not affect most practical 
+uses of atom selections. ProDy selection engine also enables
+identifying intermolecular contacts. This section describes the keywords and 
+selection syntax.
+
+.. seealso:: :ref:`contacts` and :ref:`selops`
 
 .. _selkeys:
 
@@ -35,7 +38,8 @@ Single words
 .. note::
    Definitions of these keywords can be obtained and changed using 
    corresponding get and set functions. These functions are mentioned in the
-   definition of the keyword in this page and are also listed in :ref:`keywords`.
+   definition of the keyword in this page and are also listed in 
+   :mod:`prody.select` page.
 
 Keywords followed by characters or words
 -------------------------------------------------------------------------------
