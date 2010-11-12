@@ -22,7 +22,7 @@ Let's get started by getting ANM models for two related protein structures:
 
 **Find and align matching chains**
 
->>> matches = findMatchingChains(str_one, str_two)
+>>> matches = matchChains(str_one, str_two)
 @> Checking 1p38: 1 chains are identified
 @> Checking 1r39: 1 chains are identified
 @> Comparing Chain A from 1p38 (len=351) and Chain A from 1r39 (len=345):

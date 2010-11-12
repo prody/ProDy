@@ -15,9 +15,9 @@ reference = parsePDB('1p38')
 mobile = parsePDB('1zz2')   # this is the one we want to superimpose
 
 # Let's find matching chains in these structures
-matches = findMatchingChains(reference, mobile)
+matches = matchChains(reference, mobile)
 
-# findMatchingChains() function returns a list
+# matchChains() function returns a list
 # if there are no matching chains, list is empty
 # else, list contains a tuple for each pair of matching chains
 
