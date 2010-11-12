@@ -51,4 +51,4 @@ in a spherical region. Let's find backbone atoms within 5 angstroms of point
 
 >>> import numpy as np # We will need to pass a Numpy array
 >>> sel = protein.select('backbone within 5 of somepoint', somepoint=np.array((10, 10, 10)))
->>> sel
+
