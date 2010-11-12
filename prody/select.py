@@ -760,7 +760,10 @@ class Select(object):
         within = float(terms[0].split()[1])
         which = terms[1]
         if not isinstance(which, np.ndarray):
-            which = self._evaluate(terms[1:])
+            if self._kwargs is not None and which in self._kwargs:
+                which = self._kwargs[which]
+            else:
+                which = self._evaluate(terms[1:])
         result = []
         append = result.append
         kdtree = self._getKDTree()
@@ -772,9 +775,7 @@ class Select(object):
             for index in which:
                 search(coordinates[index], within)
                 append(get_indices())
-        elif which in self._kwargs:
-            kw = which
-            which = self._kwargs[which]
+        else:
             if isinstance(which, np.ndarray):
                 if which.ndim == 1 and len(which) == 3:
                     which = [which]
@@ -793,8 +794,6 @@ class Select(object):
                 for xyz in coordinates:
                     search(xyz, within)
                     append(get_indices())
-        else:
-            raise SelectionError('unknown error when using within keyword')
                 
         unique = np.unique(np.concatenate(result))
         
@@ -820,7 +819,7 @@ class Select(object):
         if what == 'residue':
             chainids = self._getAtomicData('chain')
             resids =  self._getAtomicData('resnum')
-            resnum = list(np.unique(resids[which]).astype(np.str))
+            resnum = np.unique(resids[which]).astype('|S6')
             torf = np.all(
                 [self._evalAlnum('chain', list(np.unique(chainids[which]))),
                  self._resnum(resnum)], 0)
@@ -922,8 +921,6 @@ class Select(object):
                 return self._evalBoolean(keyword)
             elif Select.isNumericKeyword(keyword):
                 return self._getnum(keyword)
-            elif self._kwargs is not None and keyword in self._kwargs:
-                return keyword
             else:
                 try:
                     return float(keyword)
