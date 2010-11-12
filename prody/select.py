@@ -72,7 +72,7 @@ pp.ParserElement.enablePackrat()
 import prody
 from prody import ProDyLogger as LOGGER
 from prody.atomic import *
-DEBUG = True
+DEBUG = False
 
 __all__ = ['Select',
            'getAromaticResidueNames', 'setAromaticResidueNames',
@@ -428,8 +428,8 @@ class Select(object):
                                    atoms.getActiveCoordsetIndex())
         
     def _getStdSelStr(self):
-        selstr = self._selstr
-
+        selstr = ' ' + self._selstr + ' '
+        
         while ')and(' in selstr:
             selstr = selstr.replace(')and(', ')&&&(')
         while ' and(' in selstr:
@@ -453,7 +453,7 @@ class Select(object):
         while ' not ' in selstr:
             selstr = selstr.replace(' not ', ' !!! ')
         
-        return selstr
+        return selstr.strip()
 
     def _parseSelStr(self):
         selstr = self._getStdSelStr()
@@ -604,6 +604,7 @@ class Select(object):
         return torf
     
     def _special(self, token):
+        if DEBUG: print '_special', token
         token = token[0]
         if token[0].startswith('same'):
             return self._sameas(token)
@@ -632,7 +633,9 @@ class Select(object):
                 append(get_indices())
         else:
             if self._kwargs is not None and which in self._kwargs:
+                if DEBUG: print '_kwargs', which
                 which = self._kwargs[which]
+                exclude=False
             if isinstance(which, np.ndarray):
                 if which.ndim == 1 and len(which) == 3:
                     which = [which]
@@ -654,7 +657,8 @@ class Select(object):
                     append(get_indices())
                 
         unique = np.unique(np.concatenate(result))
-        
+        if len(unique) == 0:
+            return np.zeros(self._n_atoms, np.bool)
         if self._indices is None:
             torf = np.zeros(self._n_atoms, np.bool)
             torf[unique] = True
