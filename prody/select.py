@@ -72,7 +72,7 @@ pp.ParserElement.enablePackrat()
 import prody
 from prody import ProDyLogger as LOGGER
 from prody.atomic import *
-DEBUG = False
+DEBUG = True
 
 __all__ = ['Select',
            'getAromaticResidueNames', 'setAromaticResidueNames',
@@ -888,17 +888,9 @@ class Select(object):
                 tokenlist.append(token)
                 token = []
             else:
-                if Select.isBooleanKeyword(tkn) and not token and temp and temp[0] != '&&&':
-                    if DEBUG: print '_and inserting &&&'
-                    token.append(tkn)
-                    tokenlist.append(token)
-                    token = []
-                else:
-                    token.append(tkn)
+                token.append(tkn)
         tokenlist.append(token)
-        
         if DEBUG: print '_and tokenlist', tokenlist
-
         for token in tokenlist:
             zero = token[0]
             if isinstance(zero, np.ndarray):                    
@@ -968,8 +960,6 @@ class Select(object):
                     return float(keyword)
                 except ValueError:
                     raise SelectionError('"{0:s}" is not a valid keyword or a number.'.format(keyword))
-        elif Select.isBooleanKeyword(keyword):
-            return self._and([token])
         elif Select.isAlnumKeyword(keyword):
             return self._evalAlnum(keyword, token[1:])
         elif Select.isFloatKeyword(keyword):
@@ -986,10 +976,13 @@ class Select(object):
             return self._within([' '.join(token[:3])] + token[3:], True)
         elif keyword == 'same':
             return self._sameas([' '.join(token[:3])] + token[3:])
-        for item in token[1:]:
-            if Select.isKeyword(item):
-                raise SelectionError('"{0:s}" in "{1:s}" is not understood, use "" to escape'.format(item, ' '.join(token)))
-        raise SelectionError('{0:s} is not yet implemented'.format(' '.join(token)))
+        elif Select.isBooleanKeyword(keyword):
+            raise SelectionError('Single word keywords must be followed with and operator.')            
+            return self._and([token])
+        #for item in token[1:]:
+        #    if Select.isKeyword(item):
+        #        raise SelectionError('"{0:s}" in "{1:s}" is not understood. Please report this if you think there is a bug.'.format(item, ' '.join(token)))
+        raise SelectionError('{0:s} understood. Please report this if you think there is a bug.'.format(' '.join(token)))
     
     def _action(self, token):
         if DEBUG: print '_action', token
