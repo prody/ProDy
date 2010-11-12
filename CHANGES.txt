@@ -9,8 +9,10 @@ Release 0.2.0
 
 
   * Modules are reorganized.
-  * :func:`prody.compare.findMatchingChains` is renamed as 
+  * :func:`prody.compare.findMatchingChains` is renamed to 
     :func:`prody.compare.matchChains`.
+  * :func:`prody.dynamics.showOverlapMatrix` is renamed to 
+    :func:`prody.dynamics.showOverlapTable`.
 
 **New Features**:
 
@@ -23,6 +25,9 @@ Release 0.2.0
     alignment if simple residue number/identity based matchin does not work,
     or if user passes ``pwalign=True`` argument. This impacts the speed 
     of X-ray ensemble analysis.
+  * :class:`prody.select.Select` can cache data optionally. This results
+    in speeds up from 2 to 40 folds depending on number of atoms and selection
+    operations.
 
 Release 0.1.2
 ===============================================================================

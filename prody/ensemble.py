@@ -15,22 +15,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""
-*******************************************************************************
-:mod:`ensemble` - Ensemble analysis
-*******************************************************************************
-
-This module defines a class for working on conformational ensembles and 
+"""This module defines a class for working on conformational ensembles and 
 also arbitrary coordinate data sets.
 
 Classes
-=======
+-------
 
   * :class:`Ensemble`
   * :class:`Conformation`
   
 Functions
-=========
+---------
 
     * :func:`getSumOfWeights`
 
@@ -48,7 +43,7 @@ import numpy as np
 from prody import ProDyLogger as LOGGER
 from prody import measure
 
-__all__ = ['Ensemble', 'Conformation', 'getSumOfWeights']
+__all__ = ['Ensemble', 'Conformation', 'getSumOfWeights', 'showSumOfWeights']
         
 class EnsembleError(Exception):
     pass
@@ -527,3 +522,35 @@ def getSumOfWeights(ensemble):
     return weights.sum(0)
     
     
+def showSumOfWeights(ensemble, *args, **kwargs):
+    """Show sum of weights from an ensemble using :func:`matplotlib.pyplot.plot`.
+    
+    Weights are summed for each atom over conformations in the ensemble.
+    Size of the plotted array will be equal to the number of atoms.
+    
+    When analyzing an ensemble of X-ray structures, this function can be used 
+    to see how many times a residue is resolved.
+    """
+    """
+    *indices*, if given, will be used as X values. Otherwise, X axis will
+    start from 0 and increase by 1 for each atom. 
+    
+    """
+    if pl is None: prody.importPyPlot()
+    if not isinstance(ensemble, prody.Ensemble):
+        raise TypeError('ensemble must be an Ensemble instance')
+    
+    weights = getSumOfWeights(ensemble)
+    
+    if weights is None:
+        return None
+    
+    show = pl.plot(weights, *args, **kwargs)
+    
+    axis = list(pl.axis())
+    axis[2] = 0
+    axis[3] += 1
+    pl.axis(axis)
+    pl.xlabel('Atom index')
+    pl.ylabel('Sum of weights')
+    return show

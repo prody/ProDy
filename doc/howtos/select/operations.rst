@@ -3,7 +3,7 @@
 .. _selops:
 
 *******************************************************************************
-Selection operations
+Operations on Selections 
 *******************************************************************************
 
 Before reading this section, familiarity with :ref:`selections` might be 

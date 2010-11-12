@@ -14,40 +14,34 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""
-*******************************************************************************
-:mod:`compare` - Compare protein chains
-*******************************************************************************
-
-This module defines functions for comparing and mapping polypeptide chains.
+"""This module defines functions for comparing and mapping polypeptide chains.
 
 Functions
-=========
+---------
 
-  * Compare chains:
-    
-    * :func:`matchChains`
-    * :func:`mapAtomsToChain`
+**Compare chains**:
+
+  * :func:`matchChains`
+  * :func:`mapAtomsToChain`
         
-  * Adjust settings:
+**Adjust settings**:
         
-    * :func:`getPairwiseAlignmentMethod`
-    * :func:`setPairwiseAlignmentMethod`
-    * :func:`getPairwiseMatchScore`
-    * :func:`setPairwiseMatchScore`
-    * :func:`getPairwiseMismatchScore`
-    * :func:`setPairwiseMismatchScore`
-    * :func:`getPairwiseGapOpeningPenalty`
-    * :func:`setPairwiseGapOpeningPenalty`
-    * :func:`getPairwiseGapExtensionPenalty`
-    * :func:`setPairwiseGapExtensionPenalty`
+  * :func:`getPairwiseAlignmentMethod`
+  * :func:`setPairwiseAlignmentMethod`
+  * :func:`getPairwiseMatchScore`
+  * :func:`setPairwiseMatchScore`
+  * :func:`getPairwiseMismatchScore`
+  * :func:`setPairwiseMismatchScore`
+  * :func:`getPairwiseGapOpeningPenalty`
+  * :func:`setPairwiseGapOpeningPenalty`
+  * :func:`getPairwiseGapExtensionPenalty`
+  * :func:`setPairwiseGapExtensionPenalty`
     
-  * Miscellaneous:
+**Miscellaneous**:
     
-    * :func:`getIntAsStr`
-
-
-"""
+  ** :func:`getIntAsStr`
+  
+  """
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
@@ -61,12 +55,12 @@ from . import AtomMap, select
 
 __all__ = ['matchChains',
            'mapAtomsToChain',
-           'getIntAsStr',
            'getPairwiseMatchScore', 'setPairwiseMatchScore',
            'getPairwiseMismatchScore', 'setPairwiseMismatchScore',
            'getPairwiseGapOpeningPenalty', 'setPairwiseGapOpeningPenalty',
            'getPairwiseGapExtensionPenalty', 'setPairwiseGapExtensionPenalty',
            'getPairwiseAlignmentMethod', 'setPairwiseAlignmentMethod',
+           'getIntAsStr',
            ]
 
 PAIRWISE_MATCH_SCORE = 1.0

@@ -14,23 +14,31 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""
-*******************************************************************************
-:mod:`dynamics` - Protein dynamics analysis
-*******************************************************************************
-
-This module defines classes and functions for dynamics analysis. 
+"""This module defines classes and functions for dynamics analysis. 
 
 Classes
 -------
 
-  * :class:`GNM`
   * :class:`ANM`
+  * :class:`GNM`
   * :class:`PCA`
-  * :class:`Vector`
   * :class:`Mode`
   * :class:`ModeSet`
+  * :class:`Vector`
   
+Base Classes
+------------
+
+  * :class:`NMA`
+  * :class:`GNMBase`
+  * :class:`VectorBase`
+
+Inheritance Diagram
+-------------------
+
+.. inheritance-diagram:: prody.dynamics
+   :parts: 1
+
 Analysis Functions
 ------------------
 
@@ -40,51 +48,48 @@ This argument may be:
 
   * an NMA model, which may be an instance of one of :class:`ANM`, :class:`GNM`, :class:`PCA`.
   * a :class:`Mode` instance obtained by indexing an NMA model, e.g. ``nma[0]``
-  * a list of :class:`Mode` instances obtained by slicing an NMA model, e.g. ``nma[:10]``
+  * a :class:`ModeSet` instance obtained by slicing an NMA model, e.g. ``nma[:10]``
 
-Some of these functions may also accept :class:`Vector` instances as *modes* argument.
+Some of these functions may also accept :class:`Vector` instances as *mode* argument.
 
-**List of Functions**:
+**Short-hand functions**:
 
-  * Short-hand functions:
+  * :func:`getANM`
+  * :func:`getGNM`
 
-    * :func:`getANM`
-    * :func:`getGNM`
+**Analysis**:
 
-  * Analysis:
+  * :func:`getCovariance`
+  * :func:`getCrossCorrelations`
+  * :func:`getSqFlucts`  
 
-    * :func:`getCrossCorrelations`
-    * :func:`getSqFlucts`  
+**Write data**:
 
-  * Write data:
-
-    * :func:`writeArray`
-    * :func:`writeModes`
-    * :func:`writeNMD`
+  * :func:`writeArray`
+  * :func:`writeModes`
+  * :func:`writeNMD`
+  * :func:`writeOverlapTable`
         
-  * Visualization:
+**Visualization**:
 
-    * :func:`viewNMDinVMD`
-    * :func:`setVMDpath`
-    * :func:`getVMDpath`
+  * :func:`getVMDpath`
+  * :func:`setVMDpath`
+  * :func:`viewNMDinVMD`
     
-  * Compare NMA models:
+**Compare NMA models**:
 
-    * :func:`getOverlap`
-    * :func:`getCumulativeOverlap`
-    * :func:`getSubspaceOverlap`
-    * :func:`printOverlapTable`
+  * :func:`getOverlap`
+  * :func:`getCumulativeOverlap`
+  * :func:`getSubspaceOverlap`
+  * :func:`printOverlapTable`
   
-  * Other:
+**Other**:
 
-    * :func:`getProjection`
-    * :func:`reduceModel`
+  * :func:`getProjection`
+  * :func:`reduceModel`
 
 Plotting Functions
 ------------------
-
-For many plotting functions documented in this page there are corresponding 
-functions that returns numbers or arrays. These are documented in :ref:`dyfunctions`.   
 
 Plotting functions are called by the name of the plotted data/property and are
 prefixed with "show". Function documentations include the :mod:`matplotlib.pyplot` 
@@ -93,17 +98,16 @@ Matplotlib functions.
 
 **List of Functions**:
 
-    * :func:`showContactMap`
-    * :func:`showCrossCorrelations`
-    * :func:`showCumulativeOverlap`
-    * :func:`showCumFractOfVariances`
-    * :func:`showFractOfVariances`
-    * :func:`showMode`
-    * :func:`showOverlap`
-    * :func:`showOverlapTable`
-    * :func:`showProjection`
-    * :func:`showSqFlucts`
-    * :func:`showSumOfWeights`
+  * :func:`showContactMap`
+  * :func:`showCrossCorrelations`
+  * :func:`showCumulativeOverlap`
+  * :func:`showCumFractOfVariances`
+  * :func:`showFractOfVariances`
+  * :func:`showMode`
+  * :func:`showOverlap`
+  * :func:`showOverlapTable`
+  * :func:`showProjection`
+  * :func:`showSqFlucts`
     
     
 """
@@ -122,20 +126,27 @@ pl = None
 import prody
 from prody import ProDyLogger as LOGGER
 
-__all__ = ['GNM', 'ANM', 'PCA', 'ModeSet', 'EDA', 'Mode', 'Vector', 
-           'getANM', 'getGNM', 'writeNMD', 
-           'viewNMDinVMD', 'setVMDpath', 'getVMDpath',
-           'getProjection',
-           'getOverlap', 'reduceModel', 'printOverlapTable',
-           'writeModes', 'writeArray',
-           'getSqFlucts', 'getCrossCorrelations',
-           'getSubspaceOverlap', 'getCumulativeOverlap',
-           'writeOverlapTable', 'getCovariance',
-           'showFractOfVariances', 'showProjection',
-           'showSumOfWeights', 'showOverlapMatrix', 'showOverlapTable',
-           'showCrossCorrelations', 'showMode', 'showSqFlucts',
-           'showContactMap', 'showOverlap', 'showCumulativeOverlap',
-           'showCumFractOfVariances']
+__all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
+           
+           'NMA', 'GNMBase', 'VectorBase',
+           
+           'getANM', 'getGNM', 
+           
+           'getCovariance', 'getCrossCorrelations', 'getSqFlucts', 
+           
+           'writeArray', 'writeModes', 'writeNMD', 'writeOverlapTable',
+           
+           'getVMDpath', 'setVMDpath', 'viewNMDinVMD', 
+           
+           'getOverlap', 'getCumulativeOverlap', 'getSubspaceOverlap',
+           'printOverlapTable',
+           
+           'getProjection', 'reduceModel', 
+            
+           'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
+           'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
+           'showOverlap', 'showOverlapTable', 'showProjection', 'showSqFlucts',
+           ]
 
 VMDPATH = '/usr/local/bin/vmd'
 ZERO = 1e-8
@@ -1687,41 +1698,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         return
     return show
-
-#def showSumOfWeights(ensemble, indices=None, *args, **kwargs):
-def showSumOfWeights(ensemble, *args, **kwargs):
-    """Show sum of weights from an ensemble using :func:`matplotlib.pyplot.plot`.
-    
-    Weights are summed for each atom over conformations in the ensemble.
-    Size of the plotted array will be equal to the number of atoms.
-    
-    When analyzing an ensemble of X-ray structures, this function can be used 
-    to see how many times a residue is resolved.
-    """
-    """
-    *indices*, if given, will be used as X values. Otherwise, X axis will
-    start from 0 and increase by 1 for each atom. 
-    
-    """
-    if pl is None: prody.importPyPlot()
-    if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble instance')
-    
-    weights = getSumOfWeights(ensemble)
-    
-    if weights is None:
-        return None
-    
-    show = pl.plot(weights, *args, **kwargs)
-    
-    axis = list(pl.axis())
-    axis[2] = 0
-    axis[3] += 1
-    pl.axis(axis)
-    pl.xlabel('Atom index')
-    pl.ylabel('Sum of weights')
-    return show
-    
     
 def showOverlapTable(rows, cols, *args, **kwargs):
     """Show overlap table using :func:`matplotlib.pyplot.pcolor`.

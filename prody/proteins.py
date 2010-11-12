@@ -15,23 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""
-*******************************************************************************
-:mod:`proteins` - Access protein structural data
-*******************************************************************************
-
-This module defines classes and functions to fetch, parse, 
+"""This module defines classes and functions to fetch, parse, 
 and write PDB files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
 
 Classes
-=======
+-------
 
   * :class:`PDBFetcher`
   * :class:`RCSB_PDBFetcher`
   * :class:`PDBlastRecord`
 
 Functions
-=========
+---------
 
   * :func:`applyBiomolecularTransformations`
   * :func:`assignSecondaryStructure`

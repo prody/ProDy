@@ -15,21 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""
-*******************************************************************************
-:mod:`measure` - Measure quantities 
-*******************************************************************************
-
-This module defines class and methods and for calculating comparing coordinate 
+"""This module defines class and methods and for calculating comparing coordinate 
 data and measuring quantities.
 
 Classes
-=======
+-------
   
   * :class:`Transformation`
     
 Functions
-=========
+---------
     
   * :func:`applyTransformation`
   * :func:`getDeformVector`
