@@ -1291,25 +1291,31 @@ def writeOverlapTable(filename, rows, cols):
     
 def getOverlapTable(rows, cols):
     overlap = getOverlap(rows, cols)
-    rname = rows.getName()
-    cname = cols.getName()
     if isinstance(rows, Mode):
         rids = [rows.getIndex()]
+        rname = str(rows.getModel())
     elif isinstance(rows, NMA): 
-        rids = np.arange(len(rows))        
+        rids = np.arange(len(rows))
+        rname = str(rows)
     elif isinstance(rows, ModeSet): 
         rids = rows.getIndices()
+        rname = str(rows.getModel())
     else:
         rids = [1]
+        rname = str(rows)
     rlen = len(rids)
     if isinstance(cols, Mode):
         cids = [cols.getIndex()]
+        cname = str(cols.getModel())
     elif isinstance(cols, NMA): 
         cids = np.arange(len(cols))    
+        cname = str(cols)        
     elif isinstance(cols, ModeSet):
         cids = cols.getIndices()
+        cname = str(cols.getModel())
     else:
         cids = [1]
+        cname = str(cols)        
     clen = len(cids)
     overlap = overlap.reshape((rlen, clen)) 
     table = 'Overlap Table\n'

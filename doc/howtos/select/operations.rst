@@ -23,9 +23,11 @@ Let's select beta-carbon atoms of for non-GLY amino acid residues, and
 alpha-carbons for GLYs in two steps:
 
 >>> betas = prot.select('name CB and protein')
-"name CB and protein" from 1p38 (336 atoms; 1 coordinate sets, active set index: 0)
+>>> print len(betas)
+336
 >>> somealphas = prot.select('name CA and resname GLY')
-"name CA and resname GLY" from 1p38 (15 atoms; 1 coordinate sets, active set index: 0)
+>>> print len(somealphas)
+15
 
 This shows that p38 structure contains 15 GLY residues.
 
@@ -33,7 +35,9 @@ These two selections can be combined as follows:
 
 >>> betas_somealphas = betas | somealphas
 >>> print betas_somealphas
-"(name CB and prote...resname GLY)" from 1p38 (351 atoms; 1 coordinate sets, active set index: 0)
+Selection "(name CB and pr...nd resname GLY)" from 1p38
+>>> print len(betas_somealphas)
+351
 
 The selection string for the union of selections become:
 
@@ -52,14 +56,14 @@ and medium size residues in a protein:
 
 >>> charged = prot.select('charged')
 >>> print charged
-"charged" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)
+Selection "charged" from 1p38
 >>> medium = prot.select('medium')
 >>> print medium
-"medium" from 1p38 (751 atoms; 1 coordinate sets, active set index: 0)
+Selection "medium" from 1p38
 
 >>> medium_charged = medium & charged
 >>> print medium_charged
-"(medium) and (charged)" from 1p38 (216 atoms; 1 coordinate sets, active set index: 0)
+Selection "(medium) and (charged)" from 1p38
 >>> print medium_charged.getSelectionString()
 (medium) and (charged)
 
@@ -81,13 +85,13 @@ It is also possible to invert a selection:
 
 >>> only_protein = prot.select('protein')
 >>> print only_protein
-"protein" from 1p38 (2833 atoms; 1 coordinate sets, active set index: 0)
+Selection "protein" from 1p38
 >>> only_non_protein = ~only_protein
 >>> print only_non_protein
-"not (protein) " from 1p38 (129 atoms; 1 coordinate sets, active set index: 0)
+Selection "not (protein) " from 1p38
 
 >>> water = prot.select('water')
 >>> print water
-"water" from 1p38 (129 atoms; 1 coordinate sets, active set index: 0)
+Selection "water" from 1p38
 
 This shows that, structure 1p38 does not contain any non-water hetero atoms.

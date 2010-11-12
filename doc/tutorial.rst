@@ -69,9 +69,6 @@ PDB file does not need to exist on your machine, so long as you have internet
 connection. ProDy will fetch the PDB file if a valid identifier is provided.
 
 >>> prot = parsePDB('1p38')
-@> 1p38 downloaded (./1p38.pdb.gz)
-@> 2962 atoms and 1 coordinate sets were parsed in 0.08s.
-
 
 1p38 is an unliganded structure of p38 MAP kinase. :file:`1p38.pdb.gz` has been 
 downloaded, and coordinates were parsed into an :class:`prody.atomic.AtomGroup`
@@ -113,7 +110,7 @@ This shows that 2833 of 2962 atoms are protein atoms.
 
 >>> side_chain_atoms = prot.select('protein and not name N CA C O')
 >>> print side_chain_atoms
-<Selection: "protein and not name N CA C O" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
+Selection "protein and not name N CA C O" from 1p38
 >>> len(side_chain_atoms)
 1429
 
@@ -146,11 +143,11 @@ This has now worked as "sidecain" did.
 
 >>> charged = prot.select('acidic or basic')
 >>> print charged
-<Selection: "acidic or basic" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
+Selection "acidic or basic" from 1p38
 >>> len(charged)
 906
 >>> set(charged.getResidueNames())
-set(['ARG', 'ASP', 'GLU', 'HIS', 'LYS'])
+set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
 Same selection could also be made using ``charged`` keyword:
 
@@ -176,14 +173,10 @@ of them:
 
 Now, one can iterate over chains and residues:
 
->>> for chain in hv:
->>>     print chain
->>> ...
+>>> for chain in hv: print chain
 Chain A from 1p38
 
->>> for res in hv.iterResidues():
->>>     print res
->>> ...
+>>> for res in hv.iterResidues(): print res
 GLU 4 from Chain A from 1p38
 ARG 5 from Chain A from 1p38
 PRO 6 from Chain A from 1p38
@@ -218,19 +211,17 @@ Perform ANM calculations
 Let's perform an ANM analysis for chain A alpha carbon atoms. ANM instances
 are instantiated using a name:
 
->>> anm = ANM('p38 ANM anlaysis')
+>>> anm = ANM('p38 ANM analysis')
 
 Hessian matrix can be built for any set of atoms. In this case, we will 
 use selection that contains alpha carbon atoms. 
 
 >>> anm.buildHessian(calphas)
-@> Hessian was built in 1.62s.
 
 Normal modes are calculated by calling :meth:`prody.dynamics.ANM.calcModes`. 
 This will calculate 20 modes by default.
 
 >>> anm.calcModes()
-@> 20 modes were calculated in 1.52s.
 
 This omits modes with zero eigenvalues. For moreinformation on ANM methods 
 see :func:`prody.dynamics.ANM`.
@@ -248,3 +239,4 @@ The following function (:func:`prody.dynamics.writeNMD`) writes ANM results
 in NMD format. NMD files can be viewed using |vmd| plugin |nmwiz|. 
 
 >>> writeNMD('p38anm.nmd', anm[:6], calphas) 
+'p38anm.nmd'
