@@ -39,8 +39,8 @@ Inheritance Diagram
 .. inheritance-diagram:: prody.dynamics
    :parts: 1
 
-Analysis Functions
-------------------
+Functions
+---------
 
 Many of the functions documented in this page accepts a *modes* argument 
 (may also have different names).
@@ -87,16 +87,15 @@ Some of these functions may also accept :class:`Vector` instances as *mode* argu
 
   * :func:`getProjection`
   * :func:`reduceModel`
+  * :func:`sampleModes`
 
-Plotting Functions
-------------------
+**Plotting Functions**:
 
 Plotting functions are called by the name of the plotted data/property and are
 prefixed with "show". Function documentations include the :mod:`matplotlib.pyplot` 
 function utilized for actual plotting. Arguments and keyword arguments are passed to the
 Matplotlib functions.  
 
-**List of Functions**:
 
   * :func:`showContactMap`
   * :func:`showCrossCorrelations`
@@ -124,6 +123,8 @@ import numpy as np
 pl = None
 
 import prody
+from .atomic import *
+from .ensemble import *
 from prody import ProDyLogger as LOGGER
 
 __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
@@ -141,7 +142,7 @@ __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'getOverlap', 'getCumulativeOverlap', 'getSubspaceOverlap',
            'printOverlapTable',
            
-           'getProjection', 'reduceModel', 
+           'getProjection', 'reduceModel', 'sampleModes',
             
            'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
            'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
@@ -160,7 +161,7 @@ class VectorBase(object):
     This base class defines some shared methods, such as scalar multiplication
     or addition of mode instances.
     
-    Defined functions are:
+    Defined operations are:
         
         * Absolute value (abs(mode)) returns mode length
         * Additive inverse (-mode) 
@@ -190,7 +191,7 @@ class VectorBase(object):
         return self.__div__(other)
     
     def __mul__(self, other):
-        """Returns scaled mode or dot product between modes."""
+        """Return scaled mode or dot product between modes."""
         if isinstance(other, (int, float, long)): 
             return Vector('{0}*({1:s})'.format(other, str(self)),
                               other * self.getArray(), self.is3d())
@@ -200,7 +201,7 @@ class VectorBase(object):
             raise TypeError('{0} is not a scalar or a mode'.format(other))
     
     def __rmul__(self, other):   
-        """Returns scaled mode or dot product between modes."""
+        """Return scaled mode or dot product between modes."""
         if isinstance(other, (int, float, long)): 
             return Vector('{0}*({1:s})'.format(other, str(self)),
                               other * self.getArray(), self.is3d())
@@ -441,7 +442,7 @@ class Vector(VectorBase):
         return self._array.copy()
     
     def getNormed(self):
-        """Returns mode after normalizing it."""
+        """Return mode after normalizing it."""
         return Vector('({0:s})/||{0:s}||'.format(self._name), 
                           self._array/(self._array**2).sum()**0.5, self._is3d)
 
@@ -1102,7 +1103,7 @@ class PCA(NMA):
 EDA = PCA
 
 def getVMDpath():
-    """Returns path to the VMD executable."""
+    """Return path to the VMD executable."""
     return VMDPATH
 
 def setVMDpath(path):
@@ -1182,7 +1183,7 @@ def viewNMDinVMD(filename):
     os.system('{0:s} -e {1:s}'.format(VMDPATH, os.path.abspath(filename)))
     
 def getANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
-    """Returns an ANM instance for given PDB identifier or atom data.
+    """Return an ANM instance for given PDB identifier or atom data.
     
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
@@ -1194,7 +1195,7 @@ def getANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
         name = ag.getName()
-    elif isinstance(pdb, (prody.AtomGroup, prody.Selection, prody.Chain, prody.AtomMap)):
+    elif isinstance(pdb, (AtomGroup, Selection, Chain, AtomMap)):
         ag = pdb
         if isinstance(pdb, prody.AtomGroup):
             name = ag.getName()
@@ -1208,7 +1209,7 @@ def getANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
     return anm
 
 def getGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
-    """Returns an GNM instance for given PDB identifier or atom data.
+    """Return an GNM instance for given PDB identifier or atom data.
     
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
@@ -1234,7 +1235,7 @@ def getGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
     return gnm
 
 def getProjection(ensemble, modes):
-    """Returns projection of conformational deviations onto given modes.
+    """Return projection of conformational deviations onto given modes.
 
     For K conformations and M modes, a (K,M) matrix is returned.     
                    
@@ -1257,7 +1258,7 @@ def getProjection(ensemble, modes):
 
 
 def getOverlap(rows, cols):
-    """Returns overlap (or correlation) between two sets of modes (*rows* and *cols*).
+    """Return overlap (or correlation) between two sets of modes (*rows* and *cols*).
     
     Returns a matrix whose rows correspond to modes passed as 
     *rows* argument, and columns correspond to those passed as *cols* 
@@ -1483,10 +1484,110 @@ def writeArray(filename, array, format='g', sep=' ', compressed=False):
     out.close()
     return filename
 
+def sampleModes(modes, atoms=None, **kwargs):
+    """Samples conformations along given *modes* and returns an ensemble.
+    
+    .. versionadded:: 0.2
+    
+    If *atoms* are provided, sampling is around the active coordinate set of 
+    *atoms*. Otherwise, sampling is around the 0 coordinates, Conformations
+    are deformations.
+    
+    :arg modes: Modes along which sampling will be performed.
+    :type modes: :class:`Mode`, :class:`ModeSet`, :class:`PCA`, or :class:`ANM`  
+    
+    :arg atoms: Atoms whose active coordinate will be used as the initial 
+        conformation.
+    :type atoms: :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Chain`, 
+        :class:`prody.atomic.Selection`  
+    
+    :keyword n_steps: Number of steps to take along each direction of each
+        mode. For example, for ``n_steps=10``, 20 conformations will be 
+        generated along the first mode. Default is 10.
+    :type n_steps: int 
+    
+    :keyword rmsd_step: RMSD change along the slowest mode at each step.
+        Default is 0.2 A. 
+    :type rmsd_step: float    
+    
+    :keyword rmsd_max: The maximum RMSD that the conformations will have with 
+        respect to the initial conformation.  
+    :type rmsd_max: float 
 
+    :returns: :class:`prody.ensemble.Ensemble`
+    
+    If *rmsd_max* and *n_steps* are provided, *rmsd_step* is 
+    calculated based on them. If *n_steps* and *rmsd_step* are given,
+    *rmsd_max* is determined based on them.
+    
+    Note that *rmsd_step* is for the slowest mode. Effective *rmsd_step* is 
+    smaller for faster modes. It is scaled down by the ratio of 
+    the inverse eigenvalue of the faster mode to that of the slowest mode.
+    """
+
+    if not isinstance(modes, (Mode, PCA, ANM, ModeSet)):
+        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                        'not {0:s}'.format(type(modes)))
+    if not modes.is3d():
+        raise ValueError('modes must be a from a 3-dimentional model.')
+    n_atoms = modes.getNumOfAtoms()
+    if atoms is not None:
+        if not isinstance(atoms, (AtomGroup, Selection, Chain)):
+            raise TypeError('{0:s} is not correct type for atoms'.format(type(modes)))
+
+        if atoms.getNumOfAtoms() != n_atoms:
+            raise ValueError('Number of atoms must match.')
+        confs = [atoms.getCoordinates()]
+    else:    
+        confs = [np.zeros((n_atoms, 3))]
+    if isinstance(modes, Mode):
+        modes = [modes]
+    elif isinstance(modes, ModeSet):
+        modes = list(modes)
+    arrays = []
+    if 'rmsd_max' in kwargs:
+        rmsd_max = float(kwargs['rmsd_max'])
+        LOGGER.info('Parameter: rmsd_max={0:.2f}'.format(rmsd_max))
+        if 'rmsd_step' in kwargs:
+            rmsd_step = float(kwargs['rmsd_step'])
+            n_steps = int(round(rmsd_max / rmsd_step))
+        else:
+            n_steps = int(kwargs.get('n_steps', 10))
+            rmsd_step = rmsd_max / n_steps
+    else:
+        rmsd_max = None
+        n_steps = int(kwargs.get('n_steps', 10))
+        rmsd_step = float(kwargs.get('rmsd_step', 0.2))
+    LOGGER.info('Parameter: n_steps={0:.2f}'.format(n_steps))
+    LOGGER.info('Parameter: rmsd_step={0:.2f}'.format(rmsd_step))
+    
+    m = modes[0]
+    arr = m.getArrayNx3()
+    var = m.getVariance()
+    scale = ((n_atoms * rmsd_step**2) / var) **0.5
+    LOGGER.info('Modes are scaled by s={0:g}'.format(scale))
+    
+    for m in modes:
+        arr = m.getArrayNx3()
+        var = m.getVariance()
+        arrays.append( arr * scale * var**0.5 )
+        if rmsd_max is not None:         
+            pass
+    extend = confs.extend
+    for mdarr in arrays:
+        newconfs = []
+        append = newconfs.append 
+        for c in confs:
+            for s in range(-n_steps,0)+range(1, n_steps+1):
+                append(c +  mdarr * s)
+        extend(newconfs)
+    ensemble = Ensemble('Conformations along {0:s}'.format(modes))
+    ensemble.setCoordinates(confs[0])    
+    ensemble.addCoordset(np.array(confs[1:]))
+    return ensemble
 
 def getSqFlucts(modes):
-    """Returns sum of square-fluctuations for given set of normal *modes*."""
+    """Return sum of square-fluctuations for given set of normal *modes*."""
     if not isinstance(modes, (Mode, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -1498,7 +1599,7 @@ def getSqFlucts(modes):
     return square_fluctuations
  
 def getCrossCorrelations(modes, n_cpu=1):
-    """Returns cross-correlations matrix.
+    """Return cross-correlations matrix.
     
     For a 3-d model, cross-correlations matrix is an NxN matrix, where N is the 
     number of atoms. Each element of this matrix is the trace of the 
@@ -1583,7 +1684,7 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 
 
 def getCumulativeOverlap(modes1, modes2):
-    """Returns cumulative overlap of modes in *modes2* with those in *modes1*.
+    """Return cumulative overlap of modes in *modes2* with those in *modes1*.
     
     Returns an array. Elements of the array correspond to modes passed as 
     *modes1* argument. 
@@ -1595,7 +1696,7 @@ def getCumulativeOverlap(modes1, modes2):
 
 
 def getSubspaceOverlap(modes1, modes2):
-    """Returns subspace overlap between two sets of modes (*modes1* and *modes2*).
+    """Return subspace overlap between two sets of modes (*modes1* and *modes2*).
     
     Also known as the root mean square inner product (RMSIP) of essential 
     subspaces [AA99]_.
@@ -1662,7 +1763,7 @@ def showCumFractOfVariances(modes, *args, **kwargs):
 def showProjection(ensemble, modes, *args, **kwargs):
     """Show projection of conformational deviations onto given modes.
     
-    :arg ensemble: an :class:`Ensemble` instance
+    :arg ensemble: an :class:`prody.ensemble.Ensemble` instance
     
     Matplotlib function used for plotting depends on the number of modes:
         
@@ -1680,23 +1781,18 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if not modes.is3d(): 
         raise Exception('modes must be 3-dimensional')
     if isinstance(modes, Mode):
-        n_modes = 1
-    else:
-        n_modes = len(modes)
-    if not 0 < n_modes < 4: 
-        raise Exception('1, 2, or 3 modes are accepted')
-    projection = getProjection(ensemble, modes)
-    if n_modes == 1:
+        projection = getProjection(ensemble, modes)
         show = pl.hist(projection.flatten(), *args, **kwargs)
-        pl.xlabel(str(modes.modes[0])+ ' coordinate')
+        pl.xlabel(str(modes)+ ' coordinate')
         pl.ylabel('Number of conformations')
-    elif n_modes == 2:
+    elif len(modes) == 2:
+        projection = getProjection(ensemble, modes)
         show = pl.scatter(projection[:,0], projection[:,1], *args, **kwargs)
         modes = [m for m in modes]
         pl.xlabel(str(modes[0])+ ' coordinate')
         pl.ylabel(str(modes[1])+ ' coordinate')
     else:
-        return
+        raise ValueError('more than 2 modes is not implemented')
     return show
     
 def showOverlapTable(rows, cols, *args, **kwargs):
@@ -1756,8 +1852,8 @@ def showCrossCorrelations(modes, *args, **kwargs):
         kwargs['origin'] = 'lower'
     show = pl.imshow(cross_correlations, *args, **kwargs), pl.colorbar()
     pl.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
-    pl.title('{0:s} cross-correlations ({1:d} modes)'
-             .format(str(modes), len(modes))) 
+    pl.title('Cross-correlations for {0:s}'
+             .format(str(modes))) 
     pl.xlabel('Indices')
     pl.ylabel('Indices')
     return show
@@ -1765,19 +1861,15 @@ def showCrossCorrelations(modes, *args, **kwargs):
 def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`matplotlib.pyplot.plot`."""
     if pl is None: prody.importPyPlot()
-    if not isinstance(modes, (Mode, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0:s}'.format(type(modes)))
-    if isinstance(modes, Mode):
-        modes = [modes]
-    for mode in modes:
-        if modes.is3d():
-            a3d = mode.getArrayNx3()
-            show = pl.plot(a3d[:, 0], *args, label='x-component', **kwargs)
-            pl.plot(a3d[:, 1], *args, label='y-component', **kwargs)
-            pl.plot(a3d[:, 2], *args, label='z-component', **kwargs)
-        else:
-            show = pl.plot(mode.getArray(), *args, **kwargs)
+    if not isinstance(mode, Mode):
+        raise TypeError('mode must be a Mode, not {0:s}'.format(type(modes)))
+    if mode.is3d():
+        a3d = mode.getArrayNx3()
+        show = pl.plot(a3d[:, 0], *args, label='x-component', **kwargs)
+        pl.plot(a3d[:, 1], *args, label='y-component', **kwargs)
+        pl.plot(a3d[:, 2], *args, label='z-component', **kwargs)
+    else:
+        show = pl.plot(mode.getArray(), *args, **kwargs)
     return show
 
 def showSqFlucts(modes, *args, **kwargs):

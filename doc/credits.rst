@@ -4,4 +4,5 @@
 Credits
 *******************************************************************************
 
-Ahmet Bakan thanks Lidio Meireles for his insightful suggestions.
+Lidio Meireles wrote anm, gnm, and pdbselect scripts and helped planning design
+and organization of ProDy modules and classes.

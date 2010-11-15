@@ -257,7 +257,7 @@ def getRMSD(reference, target, weights=None):
     else:
         tar = target
     
-    if ref.shape != tar.shape:
+    if ref.shape != tar.shape[-2:]:
         raise ValueError('reference and target coordinate arrays must have same shape')
     return _getRMSD(ref, tar, weights)
     
@@ -272,8 +272,10 @@ def _getRMSD(ref, tar, weights=None):
         elif weights.shape[0] != n_atoms:
             raise ValueError('lenth of weights array and coordinate arrays must be the same')
         weights_sum = weights.sum()
-    
-    return np.sqrt(((ref-tar) ** 2).sum() / weights_sum)
+    if tar.ndim == 2:
+        return np.sqrt(((ref-tar) ** 2).sum() / weights_sum)
+    else:
+        return np.sqrt(((ref-tar) ** 2).sum(2).sum(1) / weights_sum)
     
 def superimpose(mobile, target, weights=None):
     """Superimpose *mobile* onto *target* to minimize the RMSD distance."""

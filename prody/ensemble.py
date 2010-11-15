@@ -81,6 +81,13 @@ class Ensemble(object):
         else:
             raise IndexError('invalid index')
             
+    #To be defined.
+    #def __add__(self, other):
+    #    if not isinstance(other, Ensemble):
+    #        raise TypeError('an Ensemble instance cannot be added to an {0:s} '
+    #                        'instance'.format(type(other)))
+    #    return None
+    
     def __len__(self):
         return len(self._ensemble)
         
