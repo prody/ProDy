@@ -19,8 +19,8 @@ Release 0.2.0
 
 **New Features**:
 
-  * :class:`prody.select.Select` can not identify intermolecular contacts. See
-    :ref:`contacts` for an example
+  * :class:`prody.select.Select` can identify intermolecular contacts. See
+    :ref:`contacts` for an examples and details.
 
 **Improvements**:
 
@@ -29,7 +29,7 @@ Release 0.2.0
     or if user passes ``pwalign=True`` argument. This impacts the speed 
     of X-ray ensemble analysis.
   * :class:`prody.select.Select` can cache data optionally. This results
-    in speeds up from 2 to 40 folds depending on number of atoms and selection
+    in speeds up from 2 to 50 folds depending on number of atoms and selection
     operations.
 
 Release 0.1.2
