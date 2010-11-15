@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines a class for selecting subsets of atoms based on a 
-string, and functions to learn and change definitions of selection keywords.
+"""This module defines classes for selecting subsets of atoms and identifying 
+contacts, and functions to learn and change definitions of selection keywords.
 
 Classes
 -------
 
   * :class:`Select`
+  * :class:`Contacts`
   
 Functions
 ---------
@@ -109,6 +110,11 @@ Below functions can be used to learn and change the definitions of :ref:`selkeys
     29
     >>> len(c.select('sqrt((x - {0[0]:.3f})**2 + (y - {0[1]:.3f})**2 + (z - {0[2]:.3f})**2) <= 5'.format(point)))
     29
+    >>> contacts = Contacts(p)
+    >>> print len(contacts.select(5, i)) == len(p.select('within 5 of inhibitor', inhibitor=i))
+    True
+    >>> print len(contacts.select(5, np.array((25, 73, 13)))) == len(p.select('within 5 of point', point=np.array((25, 73, 13))))
+    True
     
 
 """
@@ -121,13 +127,14 @@ import time
 import numpy as np
 from . import pyparsing as pp
 pp.ParserElement.enablePackrat()
+KDTree = None
 
 import prody
 from prody import ProDyLogger as LOGGER
 from prody.atomic import *
 DEBUG = False
 
-__all__ = ['Select',
+__all__ = ['Select', 'Contacts',
            'getAromaticResidueNames', 'setAromaticResidueNames',
            'getNucleicResidueNames', 'setNucleicResidueNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
@@ -1208,3 +1215,70 @@ class Select(object):
             return kdtree
         return self._kdtree
 
+
+class Contacts(object):
+    
+    """A class for identification of intermolecular contacts.
+    
+    .. versionadded:: 0.2   
+    """
+    
+    def __init__(self, atoms):
+        """
+        
+        :arg atoms: atoms for which contacts will be identified
+        :type atoms: :class:`prody.atomic.AtomGroup` or  :class:`prody.atomic.AtomSubset`
+        
+        """
+        if not isinstance(atoms, (AtomGroup, AtomSubset)):                
+            raise TypeError('{0:s} is not a valid type for atoms'.format(type(atoms)))
+        self._atoms = atoms
+        self._acsi = atoms.getActiveCoordsetIndex()
+        if not isinstance(atoms, AtomGroup):
+            self._indices = atoms.getIndices()
+            self._ag = self.getAtomGroup()
+        else:
+            self._ag = atoms 
+            self._indices = None
+        if KDTree is None:
+            prody.importBioKDTree()
+        kdtree = KDTree(3)
+        kdtree.set_coords(atoms.getCoordinates())
+        self._kdtree = kdtree
+
+    def select(self, within, what):
+        """Select atoms *within* of *what*.
+        
+        :arg within: distance
+        :type within: float
+        :arg what: point contacting atoms 
+        :type what: :class:`numpy.ndarray` or :class:`prody.atomic.Atomic`
+        
+        """
+        if isinstance(what, np.ndarray):
+            if what.ndim == 1 and len(what) == 3:
+                what = [what]
+            elif not (what.ndim == 2 and what.shape[1] == 3):
+                raise SelectionError('*what* must be a coordinate array, shape (N, 3) or (3,).')
+        else:
+            try:
+                what = what.getCoordinates()
+            except:
+                raise SelectionError('*what* must have a getCoordinates() method.')
+            if not isinstance(what, np.ndarray):
+                raise SelectionError('what.getCoordinates() method must return a numpy.ndarray instance.')
+        kdtree = self._kdtree
+        search = kdtree.search
+        get_indices = kdtree.get_indices
+        indices = []
+        append = indices.append
+        for xyz in what:
+            search(xyz, float(within))
+            append(get_indices())
+        if self._indices is not None:        
+            indices = self._indices[indices]
+        indices = np.unique(np.concatenate(indices))
+        if len(indices) != 0:
+            return Selection(self._ag, np.array(indices), 
+                'index {0:s}'.format(' '.join(np.array(indices, '|S'))), self._acsi)
+        return None

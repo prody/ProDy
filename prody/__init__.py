@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010 Ahmet Bakan'
-__version__ = '0.2.0a1'
+__version__ = '0.2.0a2'
 
 import logging
 import logging.handlers
@@ -49,6 +49,7 @@ def importPyPlot():
     global pl
     pl = pyplot
     dynamics.pl = pl
+    dynamics.Axes3D = Axes3D 
 
 KDTree = None
 def importBioKDTree():
@@ -58,6 +59,7 @@ def importBioKDTree():
         raise ImportError('BioPython is required for ENM calculations.')
     global KDTree
     KDTree = BioKDTree
+    select.KDTree = KDTree 
 
 NCBIWWW = None
 NCBIXML = None

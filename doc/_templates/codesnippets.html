@@ -29,45 +29,39 @@ function removeHTMLTags(strInputCode){
 }
 
 function showCodeSnippets(withComments) {
+  pycode = "";
+  blankline = 1;
   var div = document.getElementsByTagName("div");
   for (var i = 0; i < div.length; i++) {
-    if (div.item(i).className == "body") {
+    if (div.item(i).className == "highlight-python") {
       cleanHTML = removeHTMLTags(div.item(i).innerHTML);
-      pycode = "";
-      cleanHTML = cleanHTML.split('\n');
-      pylines = 0;
-      blank = 1;
-      for (var i = 0; i < cleanHTML.length; i++) {
-        line = cleanHTML[i]
-        if (line.indexOf('>>> ') == 0) {
-          pycode += "\n" + line.slice(4)
-          pylines++;
-          blank = 0;
-        } else if (withComments) {
-          if (line.trim() == "") {
-            if (blank == 0) {
-              pycode += "\n"
-              blank = 1;  
-            }
-          } else {
-            pycode += "\n# " + line;
-            blank = 0;
+      if (cleanHTML.search('>>> ') > -1) {
+        cleanHTML = cleanHTML.split('\n');
+        for (var j = 0; j < cleanHTML.length; j++) {
+          line = cleanHTML[j]
+          if (line.indexOf('>>> ') == 0) {
+            pycode += line.slice(4) + "\n"
+            blankline = 0;
+          } else if (line != "") {
+            pycode += "# " + line + "\n";
+            blankline = 0;
+          } else if (blankline == 0) {
+            pycode += "\n";
+            blankline = 1;
           }
         }
       }
-      if (pylines == 0) {
-        alert("This page does not contain any code snippets.");
-      } else {
-        alert(pycode);
-      }
-      break;
     }
+  }
+  if (pycode == "") {
+    alert("This page does not contain any code snippets.");
+  } else {
+    alert(pycode);
   }
 }
 </script>
 <p> 
-<small>Show code snippets as plain text:</small>
-<input type="button" onclick="showCodeSnippets(Boolean(0))" value="Only Python Code" /> </br>
-<input type="button" onclick="showCodeSnippets(Boolean(1))" value="Python Code with Comments" />
+Show Python code snippets as plain text:
+<input type="button" onclick="showCodeSnippets(Boolean(0))" value="Get Code" /> </br>
 </p>
 

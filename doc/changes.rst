@@ -2,6 +2,20 @@
 Changes
 *******************************************************************************
 
+Release 0.2.0a2
+===============================================================================
+
+**New Features**:
+
+  * :func:`prody.dynamics.getCumulativeOverlapArray`.
+  * :class:`prody.atomic.Atomic` for easy type checking.
+  * :class:`prody.select.Contacts` for faster intermolecular contact 
+    identification.
+
+**Improvements**:
+
+  * Implementation of :func:`prody.dynamics.showProjection` is completed.
+
 Release 0.2.0a1
 ===============================================================================
 

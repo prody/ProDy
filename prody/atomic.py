@@ -20,6 +20,7 @@
 Classes
 -------
 
+    * :class:`Atomic`
     * :class:`AtomGroup`
     * :class:`Atom`
     * :class:`AtomSubset`
@@ -48,7 +49,7 @@ import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
 
-__all__ = ['AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain', 
+__all__ = ['Atomic', 'AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain',
            'Residue', 'HierView', 'AtomMap', 'ATOMIC_DATA_FIELDS']
 
 class Field(object):
@@ -121,6 +122,21 @@ def wrapSetMethod(fn):
         return fn(self, data)
     return wrapped
 
+class Atomic(object):
+    """Base class for all atomic classes.
+    
+    .. versionadded:: 0.2
+    
+    Derived classes are:
+        
+      * :class:`AtomGroup`
+      * :class:`Atom`
+      * :class:`AtomSubset`
+      * :class:`AtomMap`
+    
+    """
+    pass
+
 class AtomGroupMeta(type):
     def __init__(cls, name, bases, dict):
         for field in ATOMIC_DATA_FIELDS.values():
@@ -157,7 +173,7 @@ class AtomGroupMeta(type):
             setattr(cls, 'set'+field.meth_pl, setData)
 
 
-class AtomGroup(object):
+class AtomGroup(Atomic):
     
     """A class for storing and accessing atomic data.
     
@@ -495,7 +511,7 @@ class AtomMeta(type):
         setattr(cls, 'getName', getattr(cls, 'getAtomName'))
         setattr(cls, 'setName', getattr(cls, 'setAtomName'))
 
-class Atom(object):
+class Atom(Atomic):
     """A class for accessing and manipulating attributes of an atom 
     in a :class:`AtomGroup` instance."""
     __metaclass__ = AtomMeta
@@ -606,7 +622,7 @@ class AtomSubsetMeta(type):
             setData.__doc__ = 'Set {0:s} of the atoms.'.format(field.doc_pl)  
             setattr(cls, 'set'+field.meth_pl, setData)
         
-class AtomSubset(object):
+class AtomSubset(Atomic):
     """A class for manipulating subset of atomic data in an :class:`AtomGroup`.
     
     This class stores a reference to an :class:`AtomGroup` instance, a set of 
@@ -1061,7 +1077,7 @@ class AtomMapMeta(type):
             getData.__doc__ = 'Return {0:s} of the atoms. Unmapped atoms will have 0/empty entries.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
 
-class AtomMap(object):
+class AtomMap(Atomic):
     """A class for mapping atomic data.
     
     This class stores a reference to an :class:`AtomGroup` instance, a set of 
