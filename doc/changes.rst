@@ -21,6 +21,8 @@ Release 0.2.0
 
   * :class:`prody.select.Select` can identify intermolecular contacts. See
     :ref:`contacts` for an examples and details.
+  * :func:`prody.dynamics.sampleModes` implemented for sampling conformations 
+    along normal modes.
 
 **Improvements**:
 

@@ -10,7 +10,7 @@ setup(name='ProDy',
       description='A Python Package for Protein Structural Dynamics Analysis',
       long_description=long_description,
       url='http://www.pitt.edu/~ahb12/software/ProDy',
-      packages=['prody', 'prody.dynamics', 'prody.proteins'],
+      packages=['prody'],
       license='GPLv3',
       keywords=('protein, dynamics, elastic network model, gaussian network model, '
                 'anisotropic network model, essential dynamics analysis, '
