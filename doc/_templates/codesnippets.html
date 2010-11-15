@@ -1,0 +1,73 @@
+<h3>Get Code Snippets</h3>
+
+<script type="text/javascript">
+/* trim() from
+http://stackoverflow.com/questions/1418050/string-strip-for-javascript
+*/
+if(typeof(String.prototype.trim) === "undefined")
+{
+    String.prototype.trim = function() 
+    {
+        return String(this).replace(/^\s+|\s+$/g, '');
+    };
+}
+
+/* This script and many more are available free online at
+The JavaScript Source!! http://javascript.internet.com
+Created by: Robert Nyman | http://robertnyman.com/ */
+
+function removeHTMLTags(strInputCode){
+	/* 
+			This line is optional, it replaces escaped brackets with real ones, 
+			i.e. < is replaced with < and > is replaced with >
+	*/	
+ 	strInputCode = strInputCode.replace(/&(lt|gt);/g, function (strMatch, p1){
+	 	return (p1 == "lt")? "<" : ">";
+	});
+	var strTagStrippedText = strInputCode.replace(/<\/?[^>]+(>|$)/g, "");
+	return strTagStrippedText;
+}
+
+function showCodeSnippets(withComments) {
+  var div = document.getElementsByTagName("div");
+  for (var i = 0; i < div.length; i++) {
+    if (div.item(i).className == "body") {
+      cleanHTML = removeHTMLTags(div.item(i).innerHTML);
+      pycode = "";
+      cleanHTML = cleanHTML.split('\n');
+      pylines = 0;
+      blank = 1;
+      for (var i = 0; i < cleanHTML.length; i++) {
+        line = cleanHTML[i]
+        if (line.indexOf('>>> ') == 0) {
+          pycode += "\n" + line.slice(4)
+          pylines++;
+          blank = 0;
+        } else if (withComments) {
+          if (line.trim() == "") {
+            if (blank == 0) {
+              pycode += "\n"
+              blank = 1;  
+            }
+          } else {
+            pycode += "\n# " + line;
+            blank = 0;
+          }
+        }
+      }
+      if (pylines == 0) {
+        alert("This page does not contain any code snippets.");
+      } else {
+        alert(pycode);
+      }
+      break;
+    }
+  }
+}
+</script>
+<p> 
+<small>Show code snippets as plain text:</small>
+<input type="button" onclick="showCodeSnippets(Boolean(0))" value="Only Python Code" /> </br>
+<input type="button" onclick="showCodeSnippets(Boolean(1))" value="Python Code with Comments" />
+</p>
+
