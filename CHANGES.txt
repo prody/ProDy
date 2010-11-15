@@ -2,7 +2,7 @@
 Changes
 *******************************************************************************
 
-Release 0.2.0
+Release 0.2.0a1
 ===============================================================================
 
 **Important Changes**:
@@ -13,9 +13,9 @@ Release 0.2.0
     :func:`prody.compare.matchChains`.
   * :func:`prody.dynamics.showOverlapMatrix` is renamed to 
     :func:`prody.dynamics.showOverlapTable`.
-  * Single word keywords "not" followed by and operator are not accepted, e.g.
-    "protein within 5 of water" will raise an SelectionError, use 
-    "protein and within 5 of water" instead.
+  * Single word keywords *not* followed by "and" logical operator are not 
+    accepted, e.g. "protein within 5 of water" will raise an SelectionError, 
+    use "protein and within 5 of water" instead.
 
 **New Features**:
 
