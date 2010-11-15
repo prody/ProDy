@@ -80,6 +80,7 @@ Some of these functions may also accept :class:`Vector` instances as *mode* argu
 
   * :func:`getOverlap`
   * :func:`getCumulativeOverlap`
+  * :func:`getCumulativeOverlapArray`
   * :func:`getSubspaceOverlap`
   * :func:`printOverlapTable`
   
@@ -139,8 +140,8 @@ __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'getVMDpath', 'setVMDpath', 'viewNMDinVMD', 
            
-           'getOverlap', 'getCumulativeOverlap', 'getSubspaceOverlap',
-           'printOverlapTable',
+           'getOverlap', 'getCumulativeOverlap', 'getCumulativeOverlapArray', 
+           'getSubspaceOverlap', 'printOverlapTable',
            
            'getProjection', 'reduceModel', 'sampleModes',
             
@@ -1544,10 +1545,9 @@ def sampleModes(modes, atoms=None, **kwargs):
         modes = [modes]
     elif isinstance(modes, ModeSet):
         modes = list(modes)
-    arrays = []
     if 'rmsd_max' in kwargs:
-        rmsd_max = float(kwargs['rmsd_max'])
-        LOGGER.info('Parameter: rmsd_max={0:.2f}'.format(rmsd_max))
+        rmsd_max = float(kwargs['rmsd_max']) + 0.000004
+        LOGGER.info('Parameter: rmsd_max={0:.2f} A'.format(rmsd_max))
         if 'rmsd_step' in kwargs:
             rmsd_step = float(kwargs['rmsd_step'])
             n_steps = int(round(rmsd_max / rmsd_step))
@@ -1558,8 +1558,8 @@ def sampleModes(modes, atoms=None, **kwargs):
         rmsd_max = None
         n_steps = int(kwargs.get('n_steps', 10))
         rmsd_step = float(kwargs.get('rmsd_step', 0.2))
-    LOGGER.info('Parameter: n_steps={0:.2f}'.format(n_steps))
-    LOGGER.info('Parameter: rmsd_step={0:.2f}'.format(rmsd_step))
+    LOGGER.info('Parameter: n_steps={0:d}'.format(n_steps))
+    LOGGER.info('Parameter: rmsd_step={0:.2f} A'.format(rmsd_step))
     
     m = modes[0]
     arr = m.getArrayNx3()
@@ -1567,19 +1567,27 @@ def sampleModes(modes, atoms=None, **kwargs):
     scale = ((n_atoms * rmsd_step**2) / var) **0.5
     LOGGER.info('Modes are scaled by s={0:g}'.format(scale))
     
+    arrays = []
+    drmsds = []
     for m in modes:
         arr = m.getArrayNx3()
         var = m.getVariance()
         arrays.append( arr * scale * var**0.5 )
         if rmsd_max is not None:         
-            pass
+            drmsds.append(((var * scale**2) / n_atoms)**0.5)
     extend = confs.extend
-    for mdarr in arrays:
+    rmsds = [0]
+    for mdarr, drmsd in zip(arrays, drmsds):
         newconfs = []
         append = newconfs.append 
-        for c in confs:
+        for r, c in enumerate(confs):
             for s in range(-n_steps,0)+range(1, n_steps+1):
+                if rmsd_max is not None:
+                    rmsd = rmsds[r] + abs(s)*drmsd  
+                    if rmsd > rmsd_max:
+                        continue
                 append(c +  mdarr * s)
+                rmsds.append(rmsd)
         extend(newconfs)
     ensemble = Ensemble('Conformations along {0:s}'.format(modes))
     ensemble.setCoordinates(confs[0])    
@@ -1686,12 +1694,26 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 def getCumulativeOverlap(modes1, modes2):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
     
-    Returns an array. Elements of the array correspond to modes passed as 
-    *modes1* argument. 
-        
-    """
+    Returns a number of *modes1* contains a single :class:`Mode` or a 
+    :class:`Vector` instance. If *modes1* contains multiple modes, returns an
+    array. Elements of the array correspond to cumulative overlaps for modes 
+    in *modes1* with those in *modes2*."""
     overlap = getOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
+    return cumov
+
+def getCumulativeOverlapArray(modes1, modes2):
+    """Return array of cumulative overlaps.
+   
+    .. versionadded: 0.2
+    
+    Returned array has the shape ``(len(modes1), len(modes2))``. Each row
+    corresponds to cumulative overlaps calculated for modes in *modes1* with
+    those in *modes2*. Each value in a row corresponds to cumulative overlap
+    calculated using upto that many number of modes from *modes2*.
+    """
+    overlap = getOverlap(modes1, modes2)
+    cumov = np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
     return cumov
 
 
@@ -1763,15 +1785,13 @@ def showCumFractOfVariances(modes, *args, **kwargs):
 def showProjection(ensemble, modes, *args, **kwargs):
     """Show projection of conformational deviations onto given modes.
     
-    :arg ensemble: an :class:`prody.ensemble.Ensemble` instance
+    :arg ensemble: a :class:`prody.ensemble.Ensemble` instance
     
     Matplotlib function used for plotting depends on the number of modes:
         
       * 1 mode: :func:`matplotlib.pyplot.hist`
       * 2 modes: :func:`matplotlib.pyplot.scatter`
-      * 3 modes: not implemented yet
-     
-    
+      * 3 modes: :meth:`mpl_toolkits.mplot3d.Axes3D.scatter`
     """
     if pl is None: prody.importPyPlot()
     if not isinstance(ensemble, prody.Ensemble):
@@ -1783,16 +1803,25 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if isinstance(modes, Mode):
         projection = getProjection(ensemble, modes)
         show = pl.hist(projection.flatten(), *args, **kwargs)
-        pl.xlabel(str(modes)+ ' coordinate')
+        pl.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
         pl.ylabel('Number of conformations')
     elif len(modes) == 2:
         projection = getProjection(ensemble, modes)
         show = pl.scatter(projection[:,0], projection[:,1], *args, **kwargs)
         modes = [m for m in modes]
-        pl.xlabel(str(modes[0])+ ' coordinate')
-        pl.ylabel(str(modes[1])+ ' coordinate')
+        pl.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
+        pl.ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
+    elif len(modes) == 3:
+        projection = getProjection(ensemble, modes)
+        modes = [m for m in modes]
+        show = Axes3D(pl.gcf())
+        show.scatter(projection[:, 0], projection[:, 1], projection[:, 2], *args, **kwargs)
+        show.set_xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
+        show.set_ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
+        show.set_zlabel('Mode {0:d} coordinate'.format(modes[2].getIndex()+1))
     else:
-        raise ValueError('more than 2 modes is not implemented')
+        raise ValueError('Projection onto upto 3 modes can be shown. You have given {0:d} mode.'.format(len(modes)))
+    
     return show
     
 def showOverlapTable(rows, cols, *args, **kwargs):

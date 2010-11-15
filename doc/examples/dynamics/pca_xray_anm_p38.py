@@ -123,10 +123,10 @@ printOverlapTable(pca[:3], anm[:3])
 # These numbers are included in Table 1
 
 # Let's generate conformations along ANM modes and compare them with PDBs
-anm_ens = sampleModes(anm[:3], ref_structure, rmsd_max=1.5, n_steps=5)
+anm_ens = sampleModes(anm[:3], ref_structure, rmsd_max=1.5, n_steps=8)
 pl.figure()
-showProjection(anm_ens, pca[:2], c='gray', marker='s', linewidth=0)
-showProjection(ensemble, pca[:2], marker='o')
+showProjection(anm_ens, pca[:2], s=20, c='gray', marker='s', linewidth=0)
+showProjection(ensemble, pca[:2], s=30, c='blue', marker='o', linewidth=1)
 
 # Let's do some cleaning
 import os
