@@ -1,3 +1,4 @@
+"""
 #!/usr/bin/env python
 """PCA of X-ray structures
 
@@ -107,13 +108,13 @@ pca.calcModes()
 
 # Write principal modes into an NMD file for NMWiz
 writeNMD('p38_principal_modes.nmd', pca[:3], ref_structure)
-
+stop
 # Let's print fraction of variance for top raking 6 PCs (or principal modes)
 # These numbers are listed in Table 1
 for mode in pca[:3]:
     print mode.getFractOfVariance()
 
-
+"""
 # Get ANM instance for reference structure
 anm = getANM(ref_structure)
 anm.setName('p38 ANM')

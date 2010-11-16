@@ -1251,7 +1251,7 @@ class Contacts(object):
         
         :arg within: distance
         :type within: float
-        :arg what: point contacting atoms 
+        :arg what: a point or contacting atoms 
         :type what: :class:`numpy.ndarray` or :class:`prody.atomic.Atomic`
         
         """
