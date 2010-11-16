@@ -1236,7 +1236,7 @@ class Contacts(object):
         self._acsi = atoms.getActiveCoordsetIndex()
         if not isinstance(atoms, AtomGroup):
             self._indices = atoms.getIndices()
-            self._ag = self.getAtomGroup()
+            self._ag = atoms.getAtomGroup()
         else:
             self._ag = atoms 
             self._indices = None
@@ -1245,6 +1245,32 @@ class Contacts(object):
         kdtree = KDTree(3)
         kdtree.set_coords(atoms.getCoordinates())
         self._kdtree = kdtree
+
+    def __repr__(self):
+        return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(str(self._atoms), self._acsi)
+    
+    def getActiveCoordsetIndex(self):
+        """Return active coordinate set index.
+        
+        .. versionadded:: 0.2.1
+        """
+        return self._acsi
+    
+    def setActiveCoordsetIndex(self, acsi):
+        """Set active coordinate set index.
+        
+        .. versionadded:: 0.2.1
+        
+        .. note:: When active coordinate set index is changed, KDTree
+           that is used for identifying contacts is rebuilt for this instance. 
+           This does not affect the associated Atomic class instance. The 
+           active coordinate set index of the associated Atomic instance 
+           remains the same. 
+        """
+        kdtree = KDTree(3)
+        kdtree.set_coords(self._atoms.getCoordsets(acsi))
+        self._kdtree = kdtree
+        self._acsi = acsi
 
     def select(self, within, what):
         """Select atoms *within* of *what*.
