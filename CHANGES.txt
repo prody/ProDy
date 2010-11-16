@@ -2,6 +2,19 @@
 Changes
 *******************************************************************************
 
+Release 0.2.1
+===============================================================================
+
+**New Features**:
+
+  * :class:`prody.atomic.AtomPointer` base class for classes pointing to
+    atoms in an :class:`prody.atomic.AtomGroup`.
+
+**Improvements**:
+
+  * Bugfixes and improvements in :class:`prody.select.Contacts` class.
+
+
 Release 0.2.0
 ===============================================================================
 

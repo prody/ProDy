@@ -22,6 +22,7 @@ Classes
 
     * :class:`Atomic`
     * :class:`AtomGroup`
+    * :class:`AtomPointer`
     * :class:`Atom`
     * :class:`AtomSubset`
     * :class:`Chain`
@@ -49,7 +50,8 @@ import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
 
-__all__ = ['Atomic', 'AtomGroup', 'Atom', 'AtomSubset', 'Selection', 'Chain',
+__all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
+           'Selection', 'Chain',
            'Residue', 'HierView', 'AtomMap', 'ATOMIC_DATA_FIELDS']
 
 class Field(object):
@@ -135,7 +137,9 @@ class Atomic(object):
       * :class:`AtomMap`
     
     """
-    pass
+    def getActiveCoordsetIndex(self):
+        """Return index of the active coordinate set."""
+        return self._acsi
 
 class AtomGroupMeta(type):
     def __init__(cls, name, bases, dict):
@@ -395,10 +399,13 @@ class AtomGroup(Atomic):
         returns all coordinate sets. 
         
         """
-        if indices is None:
-            indices = slice(None)
         if self._coordinates is None:
             return None
+        if indices is None:
+            indices = slice(None)
+        elif isinstance(indices, int):
+            if indices >= self._n_coordsets or indices < -self._n_coordsets:
+                raise IndexError('coordinate set index out of range')
         try: 
             return self._coordinates[indices].copy()
         except IndexError:
@@ -413,10 +420,6 @@ class AtomGroup(Atomic):
         coordinate set."""
         for i in range(self._n_coordsets):
             yield self._coordinates[i].copy()
-    
-    def getActiveCoordsetIndex(self):
-        """Return index of the active coordinate set."""
-        return self._acsi
     
     def setActiveCoordsetIndex(self, index):
         """Set the index of the active coordinate set."""
@@ -487,6 +490,35 @@ class AtomGroup(Atomic):
         """Return a hierarchical view of the atom group."""
         return HierView(self)
     
+class AtomPointer(Atomic):
+    """Base class for classes pointing to atom(s) :class:`AtomGroup` instances.
+    
+    .. versionadded:: 0.2
+    
+    Derived classes are:
+        
+      * :class:`Atom`
+      * :class:`AtomSubset`
+      * :class:`AtomMap`
+    """
+
+    def getNumOfCoordsets(self):
+        """Return number of coordinate sets."""
+        return self._ag._n_coordsets
+
+    def setActiveCoordsetIndex(self, index):
+        """Set the index of the active coordinate set."""
+        if self._ag._coordinates is None:
+            raise AttributeError('coordinates are not set')
+        if not isinstance(index, int):
+            raise TypeError('index must be an integer')
+        if self._ag._n_coordsets <= index or \
+           self._ag._n_coordsets < abs(index):
+            raise IndexError('coordinate set index is out of range')
+        if index < 0:
+            index += self._ag._n_coordsets
+        self._acsi = index
+
 class AtomMeta(type):
     def __init__(cls, name, bases, dict):
         for field in ATOMIC_DATA_FIELDS.values():
@@ -511,7 +543,7 @@ class AtomMeta(type):
         setattr(cls, 'getName', getattr(cls, 'getAtomName'))
         setattr(cls, 'setName', getattr(cls, 'setAtomName'))
 
-class Atom(Atomic):
+class Atom(AtomPointer):
     """A class for accessing and manipulating attributes of an atom 
     in a :class:`AtomGroup` instance."""
     __metaclass__ = AtomMeta
@@ -548,27 +580,6 @@ class Atom(Atomic):
     def getIndex(self):
         """Return index of the atom."""
         return self._index
-    
-    def getNumOfCoordsets(self):
-        """Return number of coordinate sets."""
-        return self._ag._n_coordsets
-    
-    def getActiveCoordsetIndex(self):
-        """Return the index of the active coordinate set for the atom."""
-        return self._acsi
-    
-    def setActiveCoordsetIndex(self, index):
-        """Set the index of the active coordinate set for the atom."""
-        if self._ag._coordinates is None:
-            raise AttributeError('coordinates are not set')
-        if not isinstance(index, int):
-            raise TypeError('index must be an integer')
-        if self._ag._n_coordsets <= index or \
-           self._ag._n_coordsets < abs(index):
-            raise IndexError('coordinate set index is out of range')
-        if index < 0:
-            index += self._ag._n_coordsets
-        self._acsi = index
     
     def getCoordinates(self):
         """Return a copy of coordinates of the atom from the active coordinate set."""
@@ -622,7 +633,7 @@ class AtomSubsetMeta(type):
             setData.__doc__ = 'Set {0:s} of the atoms.'.format(field.doc_pl)  
             setattr(cls, 'set'+field.meth_pl, setData)
         
-class AtomSubset(Atomic):
+class AtomSubset(AtomPointer):
     """A class for manipulating subset of atomic data in an :class:`AtomGroup`.
     
     This class stores a reference to an :class:`AtomGroup` instance, a set of 
@@ -754,31 +765,10 @@ class AtomSubset(Atomic):
         except IndexError:
             raise IndexError('indices may be an integer or a list of integers')
 
-    def getNumOfCoordsets(self):
-        """Return number of coordinate sets."""
-        return self._ag._n_coordsets
-    
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each coordinate set."""
         for i in range(self._ag._n_coordsets):
             yield self._ag._coordinates[i, self._indices].copy()
-
-    def getActiveCoordsetIndex(self):
-        """Return the index of the active coordinate set."""
-        return self._acsi
-    
-    def setActiveCoordsetIndex(self, index):
-        """Set the index of the active coordinate set."""
-        if self._ag._coordinates is None:
-            return None
-        if not isinstance(index, int):
-            raise TypeError('index must be an integer')
-        if self._ag._n_coordsets <= index or \
-           self._ag._n_coordsets < abs(index):
-            raise IndexError('coordinate set index is out of range')
-        if index < 0:
-            index += self._ag._n_coordsets
-        self._acsi = index
 
     def select(self, selstr, **kwargs):
         """Return a selection matching the given selection criteria."""
@@ -1077,7 +1067,7 @@ class AtomMapMeta(type):
             getData.__doc__ = 'Return {0:s} of the atoms. Unmapped atoms will have 0/empty entries.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
 
-class AtomMap(Atomic):
+class AtomMap(AtomPointer):
     """A class for mapping atomic data.
     
     This class stores a reference to an :class:`AtomGroup` instance, a set of 
@@ -1218,27 +1208,6 @@ class AtomMap(Atomic):
             coordinates[self._mapping] = self._ag._coordinates[i, self._indices] 
             yield coordinates
 
-    def getNumOfCoordsets(self):
-        """Return number of coordinate sets."""
-        return self._ag._n_coordsets
-    
-    def getActiveCoordsetIndex(self):
-        """Return the index of the active coordinate set."""
-        return self._acsi
-    
-    def setActiveCoordsetIndex(self, index):
-        """Set the index of the active coordinate set."""
-        if self._ag._coordinates is None:
-            return
-        if not isinstance(index, int):
-            raise TypeError('index must be an integer')
-        if self._ag._n_coordsets <= index or \
-           self._ag._n_coordsets < abs(index):
-            raise IndexError('coordinate set index is out of range')
-        if index < 0:
-            index += self._ag._n_coordsets
-        self._acsi = index
-    
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
         coordinates = np.zeros((self._len, 3), np.float64)
