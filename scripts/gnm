@@ -22,23 +22,14 @@ __copyright__ = 'Copyright (C) 2010 Lidio Meireles, Ahmet Bakan'
 import sys
 from optparse import OptionParser
 from prody import *
-
-"""
-Workflow
-- load pdb
-- select atoms
-- set up GNM
-- run calculation
-- output results
-"""
+import os.path
 
 # TO DO LIST
-# enable/disable silent (verbose) mode
 # improve output formatting
 # give more usage examples
     
 def main():
-    usage = '%prog [options] <pdb>\n\nProDy - Gaussian Network Model'
+    usage = '%prog [options] <pdb>\n\nProDy v{0:s} - Gaussian Network Model'.format(prody.__version__)
     parser = OptionParser(usage=usage)
     parser.add_option('-n','--nmodes',dest="nmodes",type="int",default=20,metavar="INT",help="number of non-zero eigenvalues/vectors to calculate (%default)")    
     parser.add_option('-c','--cutoff',dest="cutoff",type="float",default=10.0,metavar="FLOAT",help="cutoff distance (%default)")
@@ -79,13 +70,13 @@ Fetch pdb 1p38 and run GNM using default parameters on all CA atoms of protein c
     pdbselect = pdb.select(select)
         
     # gnm calculation
-    gnm = GNM('GNM pdb:%s select:%s cutoff:%0.2f gamma:%0.2f'%(pdb,select,cutoff,gamma))
+    gnm = GNM(os.path.splitext(os.path.split(pdbfn)[1])[0])
     gnm.buildKirchhoff(pdbselect,cutoff,gamma)
     gnm.calcModes(nmodes)
     
     # output
-    eigenvaluesfn = "%s_evalues.csv"%(prefix)
-    eigenvectorsfn = "%s_evectors.csv"%(prefix)
+    eigenvaluesfn = "{0:s}_evalues.csv".format(prefix)
+    eigenvectorsfn = "{0:s}_evectors.csv".format(prefix)
     
     #writeModes(eigenvectorsfn,gnm.getEigenvectors())
     #TypeError: modes must be NMA, ModeSet, or Mode, not <type 'numpy.ndarray'>
@@ -96,8 +87,8 @@ Fetch pdb 1p38 and run GNM using default parameters on all CA atoms of protein c
     #writeModes(eigenvectorsfn,gnm.getArray())
     #TypeError: modes must be NMA, ModeSet, or Mode, not <type 'numpy.ndarray'>
     
-    writeArray(eigenvectorsfn,gnm.getArray(),sep=',')
-    writeArray(eigenvaluesfn,gnm.getEigenvalues(),sep=',')
+    writeArray(eigenvectorsfn, gnm.getArray(), sep=',')
+    writeArray(eigenvaluesfn, gnm.getEigenvalues(), sep=',')
     
 if __name__ == '__main__':
     main()

@@ -63,8 +63,8 @@
      inkscape:current-layer="layer1"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:window-width="1280"
-     inkscape:window-height="739"
+     inkscape:window-width="1920"
+     inkscape:window-height="1139"
      inkscape:window-x="0"
      inkscape:window-y="21"
      inkscape:window-maximized="1" />
@@ -76,7 +76,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -115,6 +115,6 @@
        id="image3763"
        height="139.64854"
        width="112.11926"
-       xlink:href="file:///home/abakan/code/prody/ubiquitin.png" />
+       xlink:href="file:///home/abakan/code/ProDy/ubiquitin.png" />
   </g>
 </svg>

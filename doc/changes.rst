@@ -9,6 +9,11 @@ Release 0.2.1
 
   * :class:`prody.atomic.AtomPointer` base class for classes pointing to
     atoms in an :class:`prody.atomic.AtomGroup`.
+  * :class:`prody.atomic.AtomPointer` instances (Selection, Residue, etc.)
+    can be added. See :ref:`selops` for examples.
+  * :meth:`prody.select.Select.getIndices` and :meth:`prody.select.Select.getBoolArray` 
+    methods to expand the usage of :class:`prody.select.Select`.
+  * :meth:`prody.dynamics.sliceVector` function.
 
 **Improvements**:
 

@@ -10,9 +10,9 @@ but minor changes may be expected to happen sooner.
 Minor Changes
 ===============================================================================
 
-* Define addition for selections
+* Done. Define addition for selections
 
-* Implement NMA sampling methods
+* Done. Implement NMA sampling methods
 
 
 Major Changes

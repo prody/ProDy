@@ -24,7 +24,7 @@ from prody import *
     
 def main():
     if len(sys.argv) != 4:
-        usage = "ProDy - PDBSelect\nusage: %s <input> <output> <selection>"%(sys.argv[0])
+        usage = "ProDy v{0:s} - PDBSelect\nusage: {1:s} <input> <output> <selection>".format(prody.__version__, sys.argv[0])
         print usage
         sys.exit(-1)
         

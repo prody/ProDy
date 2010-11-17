@@ -22,24 +22,14 @@ __copyright__ = 'Copyright (C) 2010 Lidio Meireles, Ahmet Bakan'
 import sys
 from optparse import OptionParser
 from prody import *
-
-"""
-Workflow
-- load pdb
-- select atoms
-- set up ANM
-- run calculation
-- output results
-"""
+import os.path
 
 # TO DO LIST
-# enable/disable silent (verbose) mode
-# write NMD file
 # improve output formatting
 # give more usage examples
     
 def main():
-    usage = '%prog [options] <pdb>\n\nProDy - Anisotropic Network Model'
+    usage = '%prog [options] <pdb>\n\nProDy v{0:s} - Anisotropic Network Model'.format(prody.__version__) 
     parser = OptionParser(usage=usage)
     parser.add_option('-n','--nmodes',dest="nmodes",type="int",default=20,metavar="INT",help="number of non-zero eigenvalues/vectors to calculate (%default)")    
     parser.add_option('-c','--cutoff',dest="cutoff",type="float",default=15.0,metavar="FLOAT",help="cutoff distance (%default)")
@@ -80,18 +70,18 @@ Fetch pdb 1p38 and run ANM using default parameters on all CA atoms of protein c
     pdbselect = pdb.select(select)
         
     # gnm calculation
-    anm = ANM('ANM pdb:%s select:%s cutoff:%0.2f gamma:%0.2f'%(pdb,select,cutoff,gamma))
+    anm = ANM(os.path.splitext(os.path.split(pdbfn)[1])[0])
     anm.buildHessian(pdbselect,cutoff,gamma)
     anm.calcModes(nmodes)
     
     # output
-    eigenvaluesfn = "%s_evalues.csv"%(prefix)
-    eigenvectorsfn = "%s_evectors.csv"%(prefix)
-    nmdfile = "%s.nmd"%(prefix)
+    eigenvaluesfn = "{0:s}_evalues.csv".format(prefix)
+    eigenvectorsfn = "{0:s}_evectors.csv".format(prefix)
+    nmdfile = "{0:s}.nmd".format(prefix)
         
-    writeArray(eigenvectorsfn,anm.getArray(),sep=',')
-    writeArray(eigenvaluesfn,anm.getEigenvalues(),sep=',')
-    writeNMD(nmdfile,anm,pdbselect)
+    writeArray(eigenvectorsfn, anm.getArray(), sep=',')
+    writeArray(eigenvaluesfn, anm.getEigenvalues(), sep=',')
+    writeNMD(nmdfile, anm, pdbselect)
     
     
 if __name__ == '__main__':

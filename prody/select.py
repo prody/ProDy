@@ -306,6 +306,8 @@ class Select(object):
     Definitions of single word keywords, such as :term:`protein`, 
     :term:`backbone`, :term:`polar`, etc., may be altered using functions in 
     :mod:`prody.select` module. 
+    
+    This class makes a great use of |pyparsing| module.
 
     """
     # Numbers and ranges
@@ -396,42 +398,16 @@ class Select(object):
         """
         self._tokenizer.setParseAction(self._action)
 
-    
-    def select(self, atoms, selstr, **kwargs):
-        """Return a subset of atoms matching *selstr*.
+    def getBoolArray(self, atoms, selstr, **kwargs):
+        """Return a boolean array with ``True`` values for matching atoms.
         
-        :arg atoms: atoms to select from which    
-        :type atoms: :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Selection`,
-                     :class:`prody.atomic.Residue`, :class:`prody.atomic.Chain`,
-                     :class:`prody.atomic.AtomMap`
-        :arg selstr: selection string
-        :type selstr: str
-        :keyword cache: cache atomic data and KDTree, default is ``False``
-        :type cache: bool
+        .. versionadded:: 0.2.1
         
-        If type of *atoms* is :class:`prody.atomic.AtomMap`, an 
-        :class:`prody.atomic.AtomMap` instance is returned. Otherwise,
-        :class:`prody.atomic.Selection` instances are returned.
-
-        .. versionchanged:: 0.2
-            If selection string does not match any atoms, ``None`` is returned.
-            
-        .. versionadded:: 0.2
-            :meth:`select` accepts arbitrary keyword arguments which enables 
-            identification of intermolecular contacts. See :ref:`contacts` for 
-            its details.
-        
-        .. versionadded:: 0.2
-            :meth:`select` accepts a keyword argument that enables caching
-            atomic data and KDTree from previous select operation. It works
-            if *atoms* objects in two consecutive selections are the same.
-        
-        .. warning:: ``cache=True`` should be used if attributes of *atoms* 
-           object have not changed since the previous selection operation.
-
+        .. note:: The length of the boolean :class:`numpy.ndarray` will be
+           equal to the number of atoms in *atoms* argument. 
         """
         
-        if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
+        if not isinstance(atoms, prody.Atomic):
             raise TypeError('atoms must be an atom container, not {0:s}'.format(type(atoms)))
         elif not isinstance(selstr, str):
             raise TypeError('selstr must be a string, not a {0:s}'.format(type(selstr)))
@@ -465,14 +441,63 @@ class Select(object):
             raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
         if DEBUG:
             print '_select', torf
+        return torf
+    
+    def getIndices(self, atoms, selstr, **kwargs):
+        """Return indices of atoms matching *selstr*.
+        
+        .. versionadded:: 0.2.1
+        """
+        torf = self.getBoolArray(atoms, selstr, **kwargs)        
         if isinstance(atoms, prody.AtomGroup):
             indices = torf.nonzero()[0]
         else:
             indices = self._indices[torf]
+        return indices
+        
+    def select(self, atoms, selstr, **kwargs):
+        """Return a subset of atoms matching *selstr* as a :class:`Selection`.
+        
+        :arg atoms: atoms to select from which    
+        :type atoms: :class:`prody.atomic.Atomic`
+        
+        :arg selstr: selection string
+        :type selstr: str
+        
+        :keyword cache: cache atomic data and KDTree, default is ``False``
+        :type cache: bool
+        
+        If type of *atoms* is :class:`prody.atomic.AtomMap`, an 
+        :class:`prody.atomic.AtomMap` instance is returned. Otherwise,
+        :class:`prody.atomic.Selection` instances are returned.
+
+        .. versionchanged:: 0.2
+            If selection string does not match any atoms, ``None`` is returned.
+            
+        .. versionadded:: 0.2
+            :meth:`select` accepts arbitrary keyword arguments which enables 
+            identification of intermolecular contacts. See :ref:`contacts` for 
+            its details.
+        
+        .. versionadded:: 0.2
+            :meth:`select` accepts a keyword argument that enables caching
+            atomic data and KDTree from previous select operation. It works
+            if *atoms* objects in two consecutive selections are the same.
+        
+        .. note:: A special case for making atom selections is passing an
+           :class:`prody.atomic.AtomMap` instance as *atoms* argument. Unmapped
+           atoms will not be included in the returned :class:`prody.atomic.AtomMap` 
+           instance. The order of atoms will be preserved.
+
+        .. warning:: ``cache=True`` should be used if attributes of *atoms* 
+           object have not changed since the previous selection operation.
+
+        """
+        indices = self.getIndices(atoms, selstr, **kwargs)
         ag = self._ag
-        self._kwargs  = None
         if not kwargs.get('cache', False):
             self._reset()
+        self._kwargs = None
         if len(indices) == 0:
             return None
         elif isinstance(atoms, prody.AtomMap):
@@ -482,10 +507,11 @@ class Select(object):
                                  selstr, atoms.getName()),
                                  atoms.getActiveCoordsetIndex())
         else:
-            if isinstance(atoms, prody.AtomSubset):
+            
+            if isinstance(atoms, prody.AtomPointer):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, atoms.getSelectionString())
-            return prody.Selection(ag, indices, selstr, 
-                                   atoms.getActiveCoordsetIndex())
+            
+            return prody.Selection(ag, indices, selstr, atoms.getActiveCoordsetIndex())
         
     def _getStdSelStr(self):
         selstr = ' ' + self._selstr + ' '

@@ -21,7 +21,6 @@ Contents
    scripts/index
    reference/index
    changes
-   todo
    license
    credits
    bibliography

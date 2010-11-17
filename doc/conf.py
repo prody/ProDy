@@ -242,4 +242,6 @@ rst_epilog = """
 
 .. |mdanalysis| replace:: MDAnalysis (http://code.google.com/p/mdanalysis/)
 
+.. |pyparsing| replace:: pyparsing (http://pyparsing.wikispaces.com/)
+
 """

@@ -20,17 +20,20 @@
 Classes
 -------
 
-    * :class:`Atomic`
     * :class:`AtomGroup`
-    * :class:`AtomPointer`
     * :class:`Atom`
-    * :class:`AtomSubset`
     * :class:`Chain`
     * :class:`Residue`
     * :class:`Selection`
     * :class:`AtomMap`
     * :class:`HierView`
     
+Base Classes
+------------
+
+    * :class:`Atomic`
+    * :class:`AtomPointer`
+    * :class:`AtomSubset`
 
 Inheritance Diagram
 -------------------
@@ -132,14 +135,18 @@ class Atomic(object):
     Derived classes are:
         
       * :class:`AtomGroup`
-      * :class:`Atom`
-      * :class:`AtomSubset`
-      * :class:`AtomMap`
-    
+      * :class:`AtomPointer`
     """
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
         return self._acsi
+    
+    def select(self, selstr, **kwargs):
+        """Return atoms matching the criteria in *selstr*.
+        
+        .. seealso:: :meth:`prody.select.Select.select()` for more usage 
+           details."""
+        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
 
 class AtomGroupMeta(type):
     def __init__(cls, name, bases, dict):
@@ -433,10 +440,6 @@ class AtomGroup(Atomic):
             index += self._n_coordsets 
         self._acsi = index
 
-    def select(self, selstr, **kwargs):
-        """Return a selection matching the criteria given by *selstr*."""
-        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
-    
     def copy(self, which=None):
         """Return a copy of atoms indicated *which* as a new AtomGroup instance.
         
@@ -491,7 +494,7 @@ class AtomGroup(Atomic):
         return HierView(self)
     
 class AtomPointer(Atomic):
-    """Base class for classes pointing to atom(s) :class:`AtomGroup` instances.
+    """Base class for classes pointing to atom(s) in :class:`AtomGroup` instances.
     
     .. versionadded:: 0.2
     
@@ -501,7 +504,11 @@ class AtomPointer(Atomic):
       * :class:`AtomSubset`
       * :class:`AtomMap`
     """
-
+    
+    def getAtomGroup(self):
+        """Return associated atom group."""
+        return self._ag
+    
     def getNumOfCoordsets(self):
         """Return number of coordinate sets."""
         return self._ag._n_coordsets
@@ -573,13 +580,13 @@ class Atom(AtomPointer):
     def __len__(self):
         return 1
     
-    def getAtomGroup(self):
-        """Return associated atom group."""
-        return self._ag
-    
     def getIndex(self):
         """Return index of the atom."""
         return self._index
+
+    def getIndices(self):
+        """Return index of the atom in a :class:`numpy.ndarray`."""
+        return np.array([self._index])
     
     def getCoordinates(self):
         """Return a copy of coordinates of the atom from the active coordinate set."""
@@ -729,10 +736,34 @@ class AtomSubset(AtomPointer):
         return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
                self.getSelectionString(), other.getSelectionString()), acsi)    
     
-    def getAtomGroup(self):
-        """Return associated atom group."""
-        return self._ag
-
+    def __add__(self, other):
+        """Returns an :class:`AtomMap` instance. Order of pointed atoms are
+        preserved.
+        
+        .. versionadded:: 0.2.1"""
+        if not isinstance(other, AtomPointer):
+            raise TypeError('an AtomPointer instance cannot be added to a {0:s} instance'.format(type(other)))
+        ag = self._ag
+        if ag != other._ag:
+            raise ValueError('AtomPointer instances must point to same AtomGroup instance')
+        acsi = self._acsi
+        if self._acsi != other._acsi:
+            LOGGER.warning('Active coordinate set indices of operands are not the same. Result will have {0:d}'.format(acsi))
+        
+        if isinstance(other, AtomMap):
+            length = len(self._indices)
+            name = '{0:s} + {1:s}'.format(str(self), str(other))
+            indices = np.concatenate([self.getIndices(), other.getIndices()])
+            mapping = np.concatenate([np.arange(length), other.getMapping()])
+            unmapped = other._unmapped + length 
+        else:
+            name = '{0:s} + {1:s}'.format(str(self), str(other))
+            indices = np.concatenate([self.getIndices(), other.getIndices()])
+            mapping = np.arange(len(indices))
+            unmapped = np.array([])
+        
+        return AtomMap(ag, indices, mapping, unmapped, name, acsi)
+    
     def getIndices(self):
         """Return the indices of atoms."""
         return self._indices.copy()
@@ -769,10 +800,6 @@ class AtomSubset(AtomPointer):
         """Iterate over coordinate sets by returning a copy of each coordinate set."""
         for i in range(self._ag._n_coordsets):
             yield self._ag._coordinates[i, self._indices].copy()
-
-    def select(self, selstr, **kwargs):
-        """Return a selection matching the given selection criteria."""
-        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
 
 class Chain(AtomSubset):
     
@@ -1151,24 +1178,24 @@ class AtomMap(AtomPointer):
         return self._len
     
     def __add__(self, other):
-        if not isinstance(other, AtomMap):
-            raise TypeError('other must be an AtomMap instance')
+        if not isinstance(other, AtomPointer):
+            raise TypeError('other must be an AtomPointer instance')
         if self._ag != other._ag:
             raise ValueError('both AtomMaps must be from the same AtomGroup')
         acsi = self._acsi
         if acsi != other._acsi:
-            LOGGER.warning('active coordinate set indices do not match, '
-                           'so it will be set to zero')
+            LOGGER.warning('Active coordinate set indices of operands do not match. Result'
+                           'will have {0:d}'.format(acsi))
             acsi = 0
         indices = np.concatenate((self._indices, other._indices))
-        #if isinstance(other, AtomMap): 
-        name = '({0:s}) + ({1:s})'.format(self._name, other._name)
-        mapping = np.concatenate((self._mapping, other._mapping + self._len))
-        unmapped = np.concatenate((self._unmapped, other._unmapped + self._len))
-        #else:
-        #    name = '({0:s}) + ({1:s})'.format(self._name, other.getSelectionString())
-        #    mapping = np.concatenate((self._mapping, np.arange(len(other)) + self._len))
-        #    unmapped = self._unmapped.copy()
+        if isinstance(other, AtomMap): 
+            name = '({0:s}) + ({1:s})'.format(self._name, other._name)
+            mapping = np.concatenate((self._mapping, other._mapping + self._len))
+            unmapped = np.concatenate((self._unmapped, other._unmapped + self._len))
+        else:
+            name = '({0:s}) + ({1:s})'.format(self._name, other.getSelectionString())
+            mapping = np.concatenate((self._mapping, np.arange(len(other)) + self._len))
+            unmapped = self._unmapped.copy()
         return AtomMap(self._ag, indices, mapping, unmapped, name, acsi)
     
     def getName(self):
@@ -1177,10 +1204,6 @@ class AtomMap(AtomPointer):
     def setName(self, name):
         self._name = str(name)
 
-    def getAtomGroup(self):
-        """Return the atom group from which the atoms are mapped."""
-        return self._ag
-    
     def getNumOfAtoms(self):
         """Return number of mapped atoms."""
         return self._len
@@ -1243,12 +1266,3 @@ class AtomMap(AtomPointer):
         if len(self._unmapped):
             flags[self._unmapped] = 0
         return flags
-
-    def select(self, selstr, **kwargs):
-        """Return a atom map matching the criteria given by *selstr*.
-        
-        Note that this is a special case for making atom selections. Unmapped
-        atoms will not be included in the returned :class:`AtomMap` instance.
-        The order of atoms will be preserved.
-        """
-        return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
