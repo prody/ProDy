@@ -1,12 +1,12 @@
 **SYNOPSIS**
 
 ProDy is a Python package designed for protein structural dynamics analysis. 
-ProDy is developed by Ahmet Bakan and licensed under the GPLv3. 
 New features and functions are constantly being added to ProDy. 
 The following are the main features that are present and working fine:
 
 Protein structure analysis:
-  * fast PDB file parser and a powerful atom selector
+  * a fast PDB file parser
+  * a powerful atom selector and intermolecular contact finder
   * functions for matching and comparing polypeptide chains
 Normal mode analysis (NMA):
   * elastic network models (Anisotropic/Gaussian network models)

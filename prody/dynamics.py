@@ -22,6 +22,7 @@ Classes
   * :class:`ANM`
   * :class:`GNM`
   * :class:`PCA`
+  * :class:`EDA`
   * :class:`Mode`
   * :class:`ModeSet`
   * :class:`Vector`
@@ -62,6 +63,7 @@ Some of these functions may also accept :class:`Vector` instances as *mode* argu
   * :func:`getCovariance`
   * :func:`getCrossCorrelations`
   * :func:`getSqFlucts`  
+  * :func:`getProjection`
 
 **Write data**:
 
@@ -76,7 +78,7 @@ Some of these functions may also accept :class:`Vector` instances as *mode* argu
   * :func:`setVMDpath`
   * :func:`viewNMDinVMD`
     
-**Compare NMA models**:
+**Comparative analysis**:
 
   * :func:`getOverlap`
   * :func:`getCumulativeOverlap`
@@ -84,11 +86,14 @@ Some of these functions may also accept :class:`Vector` instances as *mode* argu
   * :func:`getSubspaceOverlap`
   * :func:`printOverlapTable`
   
-**Other**:
+**Sampling**:
 
-  * :func:`getProjection`
-  * :func:`reduceModel`
   * :func:`sampleModes`
+
+**Model reduction**:
+  * :func:`reduceModel`
+  * :func:`sliceVector`
+  * :func:`sliceMode`
 
 **Plotting Functions**:
 
@@ -127,6 +132,7 @@ import prody
 from .atomic import *
 from .ensemble import *
 from prody import ProDyLogger as LOGGER
+from prody import ProDyAtomSelect as SELECT
 
 __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
            
@@ -143,7 +149,7 @@ __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'getOverlap', 'getCumulativeOverlap', 'getCumulativeOverlapArray', 
            'getSubspaceOverlap', 'printOverlapTable',
            
-           'getProjection', 'reduceModel', 'sampleModes',
+           'getProjection', 'reduceModel', 'sampleModes', 'sliceVector', 'sliceMode',
             
            'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
            'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
@@ -1348,10 +1354,41 @@ def getOverlapTable(rows, cols):
         table += '\n'
     return table
 
-def reduceModel(model, atoms, selstr):
-    """Reduce dynamics model to a subset of *atoms* matching a selection *selstr*.
+def sliceVector(vector, atoms, selstr):
+    """Return a slice of *vector* matching *atoms* specified by *selstr*.
+    
+    Note that retuned :class:`Vector` instance is not normalized.
+    
+    .. versionadded:: 0.2.1
+    
+    :arg vector: vector instance to be sliced
+    :type vector: :class:`VectorBase`
+    
+    :arg atoms: atoms for which *vector* describes a deformation, motion, etc.
+    :type atoms: :class:`prody.atomic.Atomic`
+    
+    :arg selstr: selection string
+    :type selstr: str 
+    
+    :returns: :class:`Vector`
+    
+    """
+    if not isinstance(vector, VectorBase):
+        raise TypeError('vector must be a VectorBase instance, not {0:s}'.format(type(vector)))
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance, not {0:s}'.format(type(atoms)))
+    if atoms.getNumOfAtoms() != vector.getNumOfAtoms(): 
+        raise ValueError('number of atoms in *vector* and *atoms* must be equal')
+    return Vector('{0:s} slice "{1:s}"'.format(str(vector), selstr), 
+       vector.getArrayNx3()[SELECT.getBoolArray(atoms, selstr), :].flatten())
 
-    Returns a tuple containing reduced model and atom selection.
+sliceMode = sliceVector
+
+def reduceModel(model, atoms, selstr):
+    """Returns a tuple containing reduced model and corresponding atom selection.
+    
+    Reduces a dynamics model to a subset of *atoms* matching a selection *selstr*.
+    
     
     This function behaves depending on the type of the model.
     

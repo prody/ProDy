@@ -95,3 +95,27 @@ Selection "not (protein) " from 1p38
 Selection "water" from 1p38
 
 This shows that, structure 1p38 does not contain any non-water hetero atoms.
+
+Addition
+===============================================================================
+
+.. versionadded:: 0.2.1
+
+Final operation defined on :class:`Selection` object (also on other 
+:class:`AtomPointer` derived classes) is addition. 
+
+This may be useful if you want to get atoms in an :class:`AtomGroup` in a 
+specific order.
+Let's think of a simple case, where we want to write atoms in 1p38 in a 
+specific order.
+
+>>> protein = prot.select('protein')
+>>> water = prot.select('water')
+>>> water_protein = water + protein
+>>> writePDB('1p38_water_protein.pdb', water_protein)
+'1p38_water_protein.pdb'
+
+In the resulting file, water atoms will preceed protein atoms.
+ 
+  
+
