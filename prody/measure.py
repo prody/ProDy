@@ -220,23 +220,21 @@ def applyTransformation(transformation, coordinates):
     
     transformed = transformation._translation + np.dot(coordinates, 
                                                        transformation._rotation)
-                                      
-                                    
     if molecule is not None:
         molecule.setCoordinates(transformed) 
         return molecule
     else:
         return transformed
 
-def getDeformVector(atoms_from, atoms_to):
-    """Returns deformation :class:`prody.dynamics.Vector` from *atoms_from* 
+def getDeformVector(from_atoms, to_atoms):
+    """Returns deformation :class:`prody.dynamics.Vector` from *from_atoms* 
     to *atoms_to*."""
     
-    name = '"{0:s}" => "{1:s}"'.format(str(atoms_from), str(atoms_to))
+    name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
     if len(name) > 30: 
         name = 'Deformation'
-    array = (atoms_to.getCoordinates() - atoms_from.getCoordinates()).flatten()
-    return pd.Vector(name,array)
+    array = (to_atoms.getCoordinates() - from_atoms.getCoordinates()).flatten()
+    return pd.Vector(array, name)
 
 def getRMSD(reference, target, weights=None):
     """Returns Root-Mean-Square-Deviations between reference and target coordinates."""
