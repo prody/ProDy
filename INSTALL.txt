@@ -22,6 +22,12 @@ Dependencies
 With NumPy, you can use the PDB parser and the powerful atom selector. For
 dynamics analysis, you need to have the following as well.
 
+.. note:: ProDy works with Python 2.7, and there is a NumPy installer for
+   that version of Python. SciPy does not have an installer for
+   that version, so if you intend to use ProDy for ANM/GNM/PCA calculations,
+   using Python 2.6 will be easier to get all required packages.   
+
+
 **Required for certain functionality:**
 
 * `Scipy 0.7+ <http://www.scipy.org/SciPy>`_ for NMA calculations.

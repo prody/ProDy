@@ -232,7 +232,9 @@ todo_include_todos = True
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://matplotlib.sourceforge.net/': None, 
                        'http://docs.python.org/release/2.6.6/': None,
-                       'http://docs.scipy.org/doc/numpy/': None}
+                       'http://docs.scipy.org/doc/numpy/': None,
+                       'http://docs.scipy.org/doc/scipy-0.7.x/reference/': None
+                       }
 
 rst_epilog = """
 

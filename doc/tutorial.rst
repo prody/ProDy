@@ -174,13 +174,13 @@ of them:
 Now, one can iterate over chains and residues:
 
 >>> for chain in hv: print chain
-Chain A from 1p38
+Chain A
 
 >>> for res in hv.iterResidues(): print res
-GLU 4 from Chain A from 1p38
-ARG 5 from Chain A from 1p38
-PRO 6 from Chain A from 1p38
-THR 7 from Chain A from 1p38
+GLU 4
+ARG 5
+PRO 6
+THR 7
 ...
 
 Write a PDB file

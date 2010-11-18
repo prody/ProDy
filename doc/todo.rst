@@ -10,10 +10,8 @@ but minor changes may be expected to happen sooner.
 Minor Changes
 ===============================================================================
 
-* Done. Define addition for selections
-
-* Done. Implement NMA sampling methods
-
+* Build Hessian and Kirchhoff as lower triangular matrices.
+  For ANM, this saves 0.3s in a 1.5s calculation.
 
 Major Changes
 ===============================================================================
@@ -27,4 +25,11 @@ Major Changes
   
 * Units
   - Implements units in dynamics analysis
+
+Done
+===============================================================================
+
+* Define addition for selections
+
+* Implement NMA sampling methods
 

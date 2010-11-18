@@ -24,8 +24,8 @@ Let's get the dimer coordinates:
 Let's iterate over chains in the dimer:
 
 >>> for chain in dimer.getHierView(): print chain
-Chain A from 3enl biomolecule 1
-Chain B from 3enl biomolecule 1
+Chain A
+Chain B
 
 You can use :class:`prody.atomic.AtomGroup` instance *dimer* in anywhere you can use
 *monomer*. 

@@ -185,12 +185,12 @@ class VectorBase(object):
         return np.sqrt((self.getArray()**2).sum())
     
     def __neg__(self):
-        return Vector('-({0:s})'.format(str(self)), -self.getArray(), self.is3d())
+        return Vector(-self.getArray(), '-({0:s})'.format(str(self)), self.is3d())
     
     def __div__(self, other):
         if isinstance(other, (int, float, long)):
-            return Vector('({1:s})/{0}'.format(other, str(self)), 
-                              self.getArray() / other, self.is3d())
+            return Vector(self.getArray() / other, 
+                          '({1:s})/{0}'.format(other, str(self)), self.is3d())
         else:
             raise TypeError('{0} is not a scalar'.format(other))
     
@@ -200,8 +200,8 @@ class VectorBase(object):
     def __mul__(self, other):
         """Return scaled mode or dot product between modes."""
         if isinstance(other, (int, float, long)): 
-            return Vector('{0}*({1:s})'.format(other, str(self)),
-                              other * self.getArray(), self.is3d())
+            return Vector(other * self.getArray(), 
+                          '{0}*({1:s})'.format(other, str(self)), self.is3d())
         elif isinstance(other, VectorBase):
             return np.dot(self.getArray(), other.getArray())
         else:
@@ -210,8 +210,8 @@ class VectorBase(object):
     def __rmul__(self, other):   
         """Return scaled mode or dot product between modes."""
         if isinstance(other, (int, float, long)): 
-            return Vector('{0}*({1:s})'.format(other, str(self)),
-                              other * self.getArray(), self.is3d())
+            return Vector(other * self.getArray(), 
+                          '{0}*({1:s})'.format(other, str(self)), self.is3d())
         elif isinstance(other, VectorBase):
             return np.dot(self.getArray(), other.getArray())
         else:
@@ -224,8 +224,8 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return Vector('{0:s} + {1:s}'.format(str(self), str(other)),
-                              self.getArray() + other.getArray(), self.is3d())
+            return Vector(self.getArray() + other.getArray(), 
+                          '{0:s} + {1:s}'.format(str(self), str(other)), self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
 
@@ -233,8 +233,8 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return Vector('{0:s} + {1:s}'.format(str(other), str(self)),
-                               self.getArray() + other.getArray(), self.is3d())
+            return Vector(self.getArray() + other.getArray(), 
+                          '{0:s} + {1:s}'.format(str(other), str(self)), self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
         
@@ -245,8 +245,8 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return Vector('{0:s} - {1:s}'.format(str(self), str(other)), 
-                                self.getArray() - other.getArray(), self.is3d())
+            return Vector(self.getArray() - other.getArray(), 
+                          '{0:s} - {1:s}'.format(str(self), str(other)), self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
 
@@ -254,8 +254,8 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return  Vector('{0:s} - {1:s}'.format(str(other), str(self)),
-                               other.getArray() - self.getArray(), self.is3d())
+            return  Vector(other.getArray() - self.getArray(), 
+                           '{0:s} - {1:s}'.format(str(other), str(self)), self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
 
@@ -264,8 +264,8 @@ class VectorBase(object):
 
     def __pow__(self, other):
         if isinstance(other, (int, float, long)): 
-            return Vector('({0:s})**{1}'.format(str(self), other),
-                              self.getArray() ** other, self.is3d())
+            return Vector(self.getArray() ** other, 
+                          '({0:s})**{1}'.format(str(self), other), self.is3d())
         else:
             raise TypeError('{0} is not a scalar'.format(other))
 
@@ -416,15 +416,13 @@ class Vector(VectorBase):
     
     __slots__ = ['_name', '_array', '_is3d']
     
-    def __init__(self, name, array, is_3d=True):
+    def __init__(self, array, name='Unknown', is_3d=True):
         """Instantiate with a name, an array, and a 3d flag."""
-        if not isinstance(name, str):
-            raise TypeError('name must be a string')
-        if not isinstance(array, np.ndarray):
-            raise TypeError('array must be an ndarray')
+        if not isinstance(array, np.ndarray) and array.ndim != 1:
+            raise TypeError('array must be a 1-dimentional numpy.ndarray')
         if not isinstance(is_3d, bool):
             raise TypeError('is_3d must be a boolean')
-        self._name = name
+        self._name = str(name)
         self._array = array
         self._is3d = is_3d
         
@@ -441,8 +439,12 @@ class Vector(VectorBase):
         return self._is3d
     
     def getName(self):
-        """A descriptive name for the vector instance."""
+        """Get the descriptive name for the vector instance."""
         return self._name
+    
+    def setName(self, name):
+        """Set the descriptive name for the vector instance."""
+        self._name = str(name) 
     
     def getArray(self):
         """Normal mode array"""
@@ -450,15 +452,18 @@ class Vector(VectorBase):
     
     def getNormed(self):
         """Return mode after normalizing it."""
-        return Vector('({0:s})/||{0:s}||'.format(self._name), 
-                          self._array/(self._array**2).sum()**0.5, self._is3d)
+        return Vector(self._array/(self._array**2).sum()**0.5, 
+                      '({0:s})/||{0:s}||'.format(self._name), self._is3d)
 
     def getNumOfDegOfFreedom(self):
         """Return number of degrees of freedom."""
         return len(self._array)
 
     def getNumOfAtoms(self):
-        """Return number of atoms."""
+        """Return number of atoms.
+        
+        For a 3-dimentional vector, returns length of the vector divided by 3.
+        """
         if self._is3d: 
             return len(self._array)/3
         else:
@@ -475,17 +480,13 @@ class NMA(object):
         self._modes = []
         self._n_modes = 0
         self._cov = None
-
         self._n_atoms = 0
         self._dof = 0
-        
-        self._array = None                # modes/eigenvectors
+        self._array = None      # modes/eigenvectors
         self._eigvals = None
-        self._vars = None                # evs for PCA, inverse evs for ENM
+        self._vars = None       # evs for PCA, inverse evs for ENM
         self._trace = None
-        
-        self._is3d = True               # is set to false for GNM
-
+        self._is3d = True       # is set to false for GNM
 
     def __len__(self):
         return self._n_modes
@@ -704,7 +705,6 @@ class GNMBase(NMA):
         NMA._reset(self)
         self._cutoff = None
         self._gamma = None
-        
     
     def getCutoff(self):
         """Return cutoff distance."""
@@ -790,6 +790,9 @@ class GNM(GNMBase):
         
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.
+
+        This method uses :func:`scipy.linalg.eigh` function to diagonalize
+        Kirchhoff matrix.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
@@ -915,7 +918,12 @@ class ANM(GNMBase):
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         hessian = np.zeros((dof, dof), 'd')
 
-        for i, j in kdtree.all_get_indices():
+        for i, k in kdtree.all_get_indices():
+            if k > i: 
+                j = i
+                i = k
+            else:
+                j = k
             i2j = coords[j] - coords[i]
             dist2 = np.dot(i2j, i2j)
             super_element = np.outer(i2j, i2j) / dist2 * gamma 
@@ -943,6 +951,9 @@ class ANM(GNMBase):
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.
+
+        This method uses :func:`scipy.linalg.eigh` function to diagonalize
+        Hessian matrix.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
@@ -1074,6 +1085,9 @@ class PCA(NMA):
     def calcModes(self, n_modes=20, turbo=True):
         """Calculate essential modes.
 
+        This method uses :func:`scipy.linalg.eigh` function to diagonalize
+        covariance matrix.
+        
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
         :type n_modes: int or None, default is 20
@@ -1125,7 +1139,12 @@ def writeNMD(filename, modes, atoms):
     
     Returns *filename*, if file is successfully written.
     
-    This function skips modes with zero eigenvalues.    
+    .. note:: 
+       #. This function skips modes with zero eigenvalues.
+       #. If a :class:`Vector` instance is given, it will be normalized before
+          it is written. It's length before normalization will be written
+          as the scaling factor of the vector.
+        
     """
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, not {0:s}'.format(type(modes)))
@@ -1135,7 +1154,14 @@ def writeNMD(filename, modes, atoms):
     
     #out.write('#!{0:s} -e\n'.format(VMDPATH))
     out.write('nmwiz_load {0:s}\n'.format(os.path.abspath(filename)))
-    out.write('name {0:s}\n'.format(modes.getName()))
+    name = modes.getName()
+    name = name.replace(' ', '_').replace('.', '_')
+    if not name.replace('_', '').isalnum() or len(name) > 30:
+        name = str(atoms)
+        name = name.replace(' ', '_').replace('.', '_')
+    if not name.replace('_', '').isalnum() or len(name) > 30:
+        name = os.path.splitext(os.path.split(filename)[1])[0]
+    out.write('name {0:s}\n'.format(name))
     try:
         coords = atoms.getCoordinates()
     except:
@@ -1172,7 +1198,7 @@ def writeNMD(filename, modes, atoms):
     
     count = 0
     if isinstance(modes, Vector):
-        out.write('mode {0:s}\n'.format(' '.join(['{0:.3f}'.format(x) for x in modes.getArray()])))
+        out.write('mode 1 {0:.2f} {1:s}\n'.format(abs(modes), ' '.join(['{0:.3f}'.format(x) for x in modes.getNormed().getArray()])))
         count += 1
     else:
         for mode in modes:
@@ -1195,16 +1221,15 @@ def getANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
     
-    *pdb* can be :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Selection`,  
-    or :class:`prody.atomic.Chain` instance.  
+    *pdb* can be :class:`prody.atomic.Atomic` instance.  
     
     """
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
         name = ag.getName()
-    elif isinstance(pdb, (AtomGroup, Selection, Chain, AtomMap)):
+    elif isinstance(pdb, Atomic):
         ag = pdb
-        if isinstance(pdb, prody.AtomGroup):
+        if isinstance(pdb, AtomGroup):
             name = ag.getName()
         else: 
             name = ag.getAtomGroup().getName()
@@ -1221,16 +1246,15 @@ def getGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
     
-    *pdb* can be :class:`prody.atomic.AtomGroup`, :class:`prody.atomic.Selection`,  
-    or :class:`prody.atomic.Chain` instance.  
+    *pdb* can be :class:`prody.atomic.Atomic` instance.  
     
     """
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
         name = ag.getName()
-    elif isinstance(pdb, (prody.AtomGroup, prody.Selection, prody.Chain, prody.AtomMap)):
+    elif isinstance(pdb, Atomic):
         ag = pdb
-        if isinstance(pdb, prody.AtomGroup):
+        if isinstance(pdb, AtomGroup):
             name = ag.getName()
         else: 
             name = ag.getAtomGroup().getName()
@@ -1338,20 +1362,20 @@ def getOverlapTable(rows, cols):
     clen = len(cids)
     overlap = overlap.reshape((rlen, clen)) 
     table = 'Overlap Table\n'
-    table += ' '*(len(rname)+5) + cname.center(clen*7)+'\n'  
-    table += ' '*(len(rname)+5)
+    table += (' '*(len(rname)+5) + cname.center(clen*7)).rstrip() + '\n'
+    line = ' '*(len(rname)+5)
     for j in range(clen):
-        table += ('#{0}'.format(cids[j]+1)).center(7)
-    table += '\n'
+        line += ('#{0}'.format(cids[j]+1)).center(7)
+    table += line.rstrip() + '\n'
     for i in range(rlen):
-        table += rname + (' #{0}'.format(rids[i]+1)).ljust(5)
+        line = rname + (' #{0}'.format(rids[i]+1)).ljust(5)
         for j in range(clen):
             if overlap[i, j] < 0: 
                 minplus = '-'
             else: 
                 minplus = '+'
-            table += (minplus+'{0:-.2f}').format(abs(overlap[i, j])).center(7)
-        table += '\n'
+            line += (minplus+'{0:-.2f}').format(abs(overlap[i, j])).center(7)
+        table += line.rstrip() + '\n'
     return table
 
 def sliceVector(vector, atoms, selstr):
@@ -1371,7 +1395,6 @@ def sliceVector(vector, atoms, selstr):
     :type selstr: str 
     
     :returns: :class:`Vector`
-    
     """
     if not isinstance(vector, VectorBase):
         raise TypeError('vector must be a VectorBase instance, not {0:s}'.format(type(vector)))
@@ -1379,11 +1402,41 @@ def sliceVector(vector, atoms, selstr):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'.format(type(atoms)))
     if atoms.getNumOfAtoms() != vector.getNumOfAtoms(): 
         raise ValueError('number of atoms in *vector* and *atoms* must be equal')
-    return Vector('{0:s} slice "{1:s}"'.format(str(vector), selstr), 
-       vector.getArrayNx3()[SELECT.getBoolArray(atoms, selstr), :].flatten())
+    return Vector(vector.getArrayNx3()[SELECT.getBoolArray(atoms, selstr), :].flatten(),
+                  '{0:s} slice "{1:s}"'.format(str(vector), selstr), vector.is3d())
 
-sliceMode = sliceVector
-
+def sliceMode(mode, atoms, selstr):
+    """Return a slice of *mode* matching *atoms* specified by *selstr*.
+    
+    This works sligtly difference from :func:`sliceVector`. Mode array 
+    (eigenvector) is multiplied by square-root of the variance along the mode.
+    If mode is from an elastic network model, variance is defined as the 
+    inverse of the eigenvalue.
+    
+    Note that retuned :class:`Vector` instance is not normalized.
+    
+    .. versionadded:: 0.2.1
+    
+    :arg mode: mode instance to be sliced
+    :type mode: :class:`Mode`
+    
+    :arg atoms: atoms for which *mode* describes a deformation, motion, etc.
+    :type atoms: :class:`prody.atomic.Atomic`
+    
+    :arg selstr: selection string
+    :type selstr: str 
+    
+    :returns: :class:`Vector`
+    """
+    if not isinstance(mode, Mode):
+        raise TypeError('mode must be a Mode instance, not {0:s}'.format(type(mode)))
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance, not {0:s}'.format(type(atoms)))
+    if atoms.getNumOfAtoms() != mode.getNumOfAtoms(): 
+        raise ValueError('number of atoms in *mode* and *atoms* must be equal')
+    return Vector(mode.getArrayNx3()[SELECT.getBoolArray(atoms, selstr), :].flatten() * mode.getVariance()**0.5,
+                  '{0:s} slice "{1:s}"'.format(str(mode), selstr), mode.is3d())
+    
 def reduceModel(model, atoms, selstr):
     """Returns a tuple containing reduced model and corresponding atom selection.
     
@@ -1657,8 +1710,8 @@ def getCrossCorrelations(modes, n_cpu=1):
     consuming. Optionally, multiple processors may be employed to perform
     calculations by passing ``n_cpu=2`` or more. 
 
-    :arg n_cpu: number of CPUs to use 
-    :type n_cpu: int, default is 1
+    :arg n_cpu: Number of CPUs to use. Default is 1. 
+    :type n_cpu: int 
     
     """
     if not isinstance(n_cpu, int):
@@ -1860,6 +1913,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         raise ValueError('Projection onto upto 3 modes can be shown. You have given {0:d} mode.'.format(len(modes)))
     
     return show
+
+
     
 def showOverlapTable(rows, cols, *args, **kwargs):
     """Show overlap table using :func:`matplotlib.pyplot.pcolor`.
@@ -1878,17 +1933,17 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         raise TypeError('cols must be an NMA model or a ModeSet, not {0:s}'.format(type(cols)))
         
     overlap = abs(getOverlap(rows, cols))
-    
     if isinstance(rows, NMA):
         rows = rows[:]
     if isinstance(cols, NMA):
         cols = cols[:]
-    
-    X = rows.getIndices()+0.5#np.arange(modes1.indices[0]+0.5, len(modes1)+1.5)
-    Y = cols.getIndices()+0.5#np.arange(modes2.indices[0]+0.5, len(modes2)+1.5)
-    axis = (X[0], X[-1], Y[0], Y[-1])
-    X, Y = np.meshgrid(X, Y)
 
+    Y = rows.getIndices()+0.5#np.arange(modes1.indices[0]+0.5, len(modes1)+1.5)
+    X = cols.getIndices()+0.5#np.arange(modes2.indices[0]+0.5, len(modes2)+1.5)
+    axis = (X[0], X[-1], Y[0], Y[-1])
+    print X, Y
+    X, Y = np.meshgrid(X, Y)
+    print X, Y
     show = pl.pcolor(X, Y, overlap, cmap=pl.cm.jet, *args, **kwargs), pl.colorbar()
     pl.xlabel(str(cols))
     pl.ylabel(str(rows))

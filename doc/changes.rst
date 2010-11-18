@@ -18,6 +18,7 @@ Release 0.2.1
 **Improvements**:
 
   * Bugfixes and improvements in :class:`prody.select.Contacts` class.
+  * Bugfixes and improvements in :mod:`prody.dynamics` module.
 
 
 Release 0.2.0
