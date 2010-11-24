@@ -26,10 +26,10 @@ can be analyzed. An example is provided for p38 MAP kinase [AB09]_.
 .. toctree::
    :maxdepth: 2
 
-   p38_PCA_ANM/p38_PCA_ANM_I
-   p38_PCA_ANM/p38_PCA_ANM_II
-   p38_PCA_ANM/p38_PCA_ANM_III
-   p38_PCA_ANM/p38_PCA_ANM_IV
+   p38_Xray/p38_Xray_I
+   p38_Xray/p38_Xray_II
+   p38_Xray/p38_Xray_III
+   p38_Xray/p38_Xray_IV
 
 
 NMR models
