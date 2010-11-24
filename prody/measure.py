@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Structural Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
+# Copyright (C) 2010  Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

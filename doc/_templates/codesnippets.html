@@ -1,4 +1,4 @@
-<h3>Get Code Snippets</h3>
+<h3>Get code snippets</h3>
 
 <script type="text/javascript">
 /* trim() from
@@ -28,26 +28,41 @@ function removeHTMLTags(strInputCode){
 	return strTagStrippedText;
 }
 
-function showCodeSnippets(withComments) {
+function showCodeSnippets() {
   pycode = "";
   blankline = 1;
   var div = document.getElementsByTagName("div");
   for (var i = 0; i < div.length; i++) {
     if (div.item(i).className == "highlight-python") {
-      cleanHTML = removeHTMLTags(div.item(i).innerHTML);
-      if (cleanHTML.search('>>> ') > -1) {
-        cleanHTML = cleanHTML.split('\n');
-        for (var j = 0; j < cleanHTML.length; j++) {
-          line = cleanHTML[j]
-          if (line.indexOf('>>> ') == 0) {
-            pycode += line.slice(4) + "\n"
-            blankline = 0;
-          } else if (line != "") {
-            pycode += "# " + line + "\n";
-            blankline = 0;
-          } else if (blankline == 0) {
-            pycode += "\n";
-            blankline = 1;
+      HTML = div.item(i).innerHTML;
+      if (HTML.search('class="highlight"') > -1) {
+        cleanHTML = removeHTMLTags(HTML);
+        if (cleanHTML.search('>>> ') > -1) {
+          cleanHTML = cleanHTML.split('\n');
+          for (var j = 0; j < cleanHTML.length; j++) {
+            line = cleanHTML[j]
+            if (line.indexOf('>>> ') == 0) {
+              pycode += line.slice(4) + "\n"
+              blankline = 0;
+            } else if (line != "") {
+              pycode += "# " + line + "\n";
+              blankline = 0;
+            } else if (blankline == 0) {
+              pycode += "\n";
+              blankline = 1;
+            }
+          } 
+        } else {
+          cleanHTML = cleanHTML.split('\n');
+          for (var j = 0; j < cleanHTML.length; j++) {
+            line = cleanHTML[j]
+            if (line != "") {
+              pycode += line + "\n";
+              blankline = 0;
+            } else if (blankline == 0) {
+              pycode += "\n";
+              blankline = 1;
+            }
           }
         }
       }
@@ -56,12 +71,33 @@ function showCodeSnippets(withComments) {
   if (pycode == "") {
     alert("This page does not contain any code snippets.");
   } else {
-    alert(pycode);
+    prolog = "#!/usr/bin/env python\n"
+    prolog += "'''This code was copied from ProDy documentation:\n"
+    prolog += "http://www.csb.pitt.edu/People/abakan/software/ProDy'''\n\n"
+    prolog += "__author__ = 'Ahmet Bakan'\n"
+    prolog += "__copyright__ = 'Copyright (C) 2010 Ahmet Bakan'\n\n"
+    alert(prolog + pycode);
   }
+}
+
+function showHelp() {
+helpText  = "You can get Python code snippets from this page by clicking on "
+helpText += "\"Show code snippets\" button. Code will appear in a message window.\n\n"
+helpText += "Note that if it's a long page of code snippets, you may not see "
+helpText += "\"Okay\" button at the end of the message window.\n\n"
+helpText += "To copy the code into your clipboard:\n"
+helpText += " 1. Click somewhere on the text in the message window.\n"
+helpText += " 2. Press \"Ctrl+A\" to select all of the Python code.\n"
+helpText += " 3. Press \"Ctrl+C\" to copy your selection into your clipboard.\n"
+helpText += " 4. Press \"Esc\" to close the message window.\n"
+helpText += " 5. Open a new file in your text editor and paste the code"
+alert(helpText)
+
 }
 </script>
 <p> 
-Show Python code snippets as plain text:
-<input type="button" onclick="showCodeSnippets(Boolean(0))" value="Get Code" /> </br>
+<input type="button" onclick="showCodeSnippets()" value="Show code snippets" /> 
+<input type="button" onclick="showHelp()" value="Help" />
+</br>
 </p>
 

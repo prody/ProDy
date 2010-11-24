@@ -12,14 +12,14 @@ Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    getprody 
    tutorial
-   howtos/index
    examples/index
    scripts/index
    reference/index
+   reports
    changes
    todo
    license

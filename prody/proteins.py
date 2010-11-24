@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Structural Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
+# Copyright (C) 2010  Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -209,7 +209,8 @@ def fetchPDB(pdb, folder='.', fetcher=None):
     else:
         return fetcher.fetch(pdb, folder)
 
-def parsePDB(pdb, model=None, subset=None, header=False, altlocs=True):
+def parsePDB(pdb, model=None, header=False, chains=None, subset=None, 
+             altlocs=True, name=None):
     """Similar to :func:`parsePDBStream`, but downloads pdb files if needed.
     
     PDB files are downloaded using :func:`fetchPDB` function.
@@ -232,22 +233,50 @@ def parsePDB(pdb, model=None, subset=None, header=False, altlocs=True):
     else:
         pdb = open(pdb)
     name = name.lower()
-    result = parsePDBStream(pdb, model, subset, header, altlocs, name)
+    result = parsePDBStream(pdb, model, header, chains, subset, altlocs, name)
     return result
     
-def parsePDBStream(stream, model=None, subset=None, header=False, altlocs=True, name=None):
+def parsePDBStream(stream, model=None, header=False, chains=None, subset=None, 
+                   altlocs=True, name=None):
     """Return an :class:`prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
-    :arg stream: anything that implements the method readlines() (e.g. file, buffer, stdin)
+    :arg stream: Anything that implements the method readlines() 
+        (e.g. :class:`file`, buffer, stdin).
+
     :arg model: model index (int or list) or None (read all models)
-    :arg subset: keyword, "calpha" ("ca") or "backbone" ("bb"), or None (read all atoms)
-    :arg header: if ``True`` parse pdb header content
-    :arg altlocs: if ``True`` alternate locations will be parsed and appended as another coordinate set
-    :arg name: name of the AtomGroup instance
+    :type model: int
+
+    :arg header: If ``True`` PDB header content will be parsed and returned.
+    :type header: bool
+
+    :arg chains: Chain identifiers for parsing specific chains, e.g. 
+        ``chains='A'``, ``chains='B'``, ``chains='DE'``.
+    :type chains: str
+
+    :arg subset: A predefined keyword to parse subset of atoms.
+        Available keywords are ``"calpha"`` (``"ca"``) or ``"backbone"`` (``"bb"``), 
+        or ``None`` (read all atoms).
+    :type subset: str
+
+    :arg altlocs: If ``True`` all alternate locations will be parsed and 
+         each will be appended as distict coordinate set.
+         If a location indicator is passed, such as ``'A'`` or ``'B'``, 
+         only indicated alternate locations will be parsed as the single 
+         coordinate set of the AtomGroup. Default is ``True``.
+    :type altlocs: str
+
+    :arg name: Name of the AtomGroup instance. When ``None`` is passed,
+        AtomGroup is named after the PDB filename.  
+    :type name: str
 
     If *model* equals to ``0`` and *header* is ``True``, return header 
     dictionary only.
+    
+    .. versionchanged:: 0.3
+         Which alternate locations to parse can be indicated using *altlocs* 
+         argument.
+         Which chains to parse can be indicated using *chains* argument.
 
     """
     if model is not None:
@@ -268,7 +297,7 @@ def parsePDBStream(stream, model=None, subset=None, header=False, altlocs=True, 
     
     if model != 0:
         start = time.time()
-        ag = _getAtomGroup(lines, split, model, subset, altlocs)
+        ag = _getAtomGroup(lines, split, model, chains, subset, altlocs)
         if name is None:
             ag.setName('unknown')
         else:
@@ -282,6 +311,317 @@ def parsePDBStream(stream, model=None, subset=None, header=False, altlocs=True, 
         return ag
     else:
         return hd
+
+def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
+    """Return an AtomGroup. See also :func:`parsePDBStream()`.
+    
+    :arg lines: Lines from a PDB file.
+    :arg split: Starting index for lines related to coordinate data.
+    """
+    
+    asize = len(lines) - split
+    alength = 5000
+    coordinates = np.zeros((asize, 3), dtype=np.float64)
+    atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
+    resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
+    resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
+    chainids = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+    bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
+    occupancies = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['occupancy'].dtype)
+    hetero = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['hetero'].dtype)
+    altlocs = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['altloc'].dtype)
+    segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
+    elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
+    secondary = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['secondary'].dtype)
+    anisou = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
+    siguij = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
+    icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
+    asize = 2000
+    
+    onlycoords = False
+        
+    if subset is not None:
+        subset = subset.lower()
+        if subset in ('calpha', 'ca'):
+            subset = ('CA',)
+        elif subset in ('backbone', 'bb'):
+            subset = ('CA', 'C', 'N', 'O')
+        only_subset = True
+    else:    
+        only_subset = False
+    if isinstance(chains, str):
+        only_chains = True
+    else:
+        only_chains = False
+    start = split
+    stop = len(lines)
+    if model is not None and model != 1:
+        nmodel = 0
+        for i in range(split, len(lines)):
+            if lines[i][:5] == 'MODEL':
+                nmodel += 1
+                if model == nmodel:
+                    start = i+1 
+                    stop = len(lines)
+                    break
+        if nmodel != model:
+            raise PDBParserError('model {0:d} is not found'.format(model))
+    if isinstance(altloc_torf, str): 
+        LOGGER.info('Parsing alternate locations {0:s}.'.format(altloc_torf))
+        which_altlocs = ' ' + ''.join(altloc_torf.split())
+        altloc_torf = False
+    else:
+        which_altlocs = ' A'
+        
+    acount = 0
+    nmodel = 0
+    is_anisou = False
+    is_siguij = False
+    is_scndry = False
+    altloc = defaultdict(list)
+    n_atoms = 0
+    i = start - 1
+    while i < stop:
+        i += 1
+        line = lines[i]
+        startswith = line[0:6]
+        
+        if startswith == 'ATOM  ' or startswith == 'HETATM':
+            atomname = line[12:16].strip()
+            if only_subset:
+                if not atomname in subset: 
+                    continue
+            chid = line[21]
+            if only_chains:
+                if not chid in chains:
+                    continue
+            alt = line[16]
+            if alt not in which_altlocs:
+                altloc[alt].append((line, i))
+                continue
+            try:
+                coordinates[acount, 0] = float(line[30:38])
+                coordinates[acount, 1] = float(line[38:46])
+                coordinates[acount, 2] = float(line[46:54])
+            except:
+                if acount >= n_atoms:
+                    LOGGER.warning('Discarding model {0:d}, which contains '
+                                   'more atoms than the previous.'.format(nmodel+1))
+                    acount = 0
+                    nmodel += 1
+                    coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                    while lines[i][:6] != 'ENDMDL':
+                        i += 1
+                else:
+                    raise PDBParserError('invalid or missing coordinate(s) at '
+                                         'line {0:d}.'.format(i+1))
+            if onlycoords:
+                acount += 1
+                continue
+            
+            altlocs[acount] = alt 
+            atomnames[acount] = atomname
+            
+            # resname = line[17:21], but some are 4 chars long
+            resnames[acount] = line[17:21].strip()
+            chainids[acount] = chid
+            resnums[acount] = int(line[22:26].split()[0])
+            icodes[acount] = line[26].strip()
+            try:
+                occupancies[acount] = float(line[54:60])
+            except:
+                LOGGER.warning('failed to parse occupancy at line {0:d}'
+                               .format(i))
+            try:
+                bfactors[acount] = float(line[60:66])
+            except :
+                LOGGER.warning('failed to parse beta-factor at line {0:d}'
+                               .format(i))
+            
+            if startswith[0] == 'H':
+                hetero[acount] = True
+
+            segnames[acount] = line[72:76].strip()
+            elements[acount] = line[76:78].strip()
+            acount += 1
+            if acount >= alength:
+                alength += asize
+                coordinates = np.concatenate(
+                    (coordinates, np.zeros((asize, 3), np.float64)))
+                atomnames = np.concatenate(
+                    (atomnames, np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
+                resnames = np.concatenate( 
+                    (resnames, np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
+                resnums = np.concatenate( 
+                    (resnums, np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
+                chainids = np.concatenate( 
+                    (chainids, np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
+                bfactors = np.concatenate( 
+                    (bfactors, np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
+                occupancies = np.concatenate( 
+                    (occupancies, np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
+                hetero = np.concatenate( 
+                    (hetero, np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
+                altlocs = np.concatenate( 
+                    (altlocs, np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
+                segnames = np.concatenate( 
+                    (segnames, np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
+                elements = np.concatenate(
+                    (elements, np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
+                secondary = np.concatenate(
+                    (secondary, np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
+                anisou = np.concatenate(
+                    (anisou, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
+                siguij = np.concatenate(
+                    (siguij, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
+                icodes = np.concatenate(
+                    (icodes, np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
+        elif startswith == 'END   ' or startswith == 'CONECT':
+            break
+        elif startswith == 'ENDMDL':
+            if model is not None:
+                break
+            elif onlycoords:
+                if acount < n_atoms:
+                    LOGGER.warning('Discarding model {0:d}, which contains {1:d} '
+                                   'fewer atoms.'.format(nmodel+1, n_atoms-acount))
+                else:
+                    atomgroup.addCoordset(coordinates)
+                nmodel += 1
+                acount = 0
+                coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+            else:
+                atomgroup = prody.AtomGroup('')
+                atomgroup.setCoordinates(coordinates[:acount])
+                atomgroup.setAtomNames(atomnames[:acount])
+                atomgroup.setResidueNames(resnames[:acount])
+                atomgroup.setResidueNumbers(resnums[:acount])
+                atomgroup.setChainIdentifiers(chainids[:acount])
+                atomgroup.setTempFactors(bfactors[:acount])
+                atomgroup.setOccupancies(occupancies[:acount])
+                atomgroup.setHeteroFlags(hetero[:acount])
+                atomgroup.setAltLocIndicators(altlocs[:acount])
+                atomgroup.setSegmentNames(segnames[:acount])
+                atomgroup.setElementSymbols(elements[:acount])
+                atomgroup.setInsertionCodes(icodes[:acount])
+                if is_scndry:
+                    atomgroup.setSecondaryStrs(secondary[:acount])
+                if is_anisou:
+                    atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
+                if is_siguij:
+                    atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+                
+                onlycoords = True
+                nmodel += 1
+                n_atoms = acount 
+                acount = 0
+                coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+        elif startswith == 'ANISOU':
+            is_anisou = True
+            try:
+                index = acount - 1
+                anisou[index, 0] = float(line[28:35])
+                anisou[index, 1] = float(line[35:42])
+                anisou[index, 2] = float(line[43:49])
+                anisou[index, 3] = float(line[49:56])
+                anisou[index, 4] = float(line[56:63])
+                anisou[index, 5] = float(line[63:70])
+            except:
+                LOGGER.warning('failed to parse anisotropic temperature '
+                    'factors at line {0:d}'.format(i))
+        elif startswith =='SIGUIJ':
+            is_siguij = True
+            try:
+                index = acount - 1
+                siguij[index, 0] = float(line[28:35])
+                siguij[index, 1] = float(line[35:42])
+                siguij[index, 2] = float(line[43:49])
+                siguij[index, 3] = float(line[49:56])
+                siguij[index, 4] = float(line[56:63])
+                siguij[index, 5] = float(line[63:70])
+            except:
+                LOGGER.warning('failed to parse standard deviations of '
+                    'anisotropic temperature factors at line {0:d}'.format(i))
+        elif startswith =='SIGATM':
+            pass
+    if onlycoords:
+        if acount == atomgroup.getNumOfAtoms():
+            atomgroup.addCoordset(coordinates)
+    else:            
+        atomgroup = prody.AtomGroup('')
+        atomgroup.setCoordinates(coordinates[:acount])
+        atomgroup.setCoordinates(coordinates[:acount])
+        atomgroup.setAtomNames(atomnames[:acount])
+        atomgroup.setResidueNames(resnames[:acount])
+        atomgroup.setResidueNumbers(resnums[:acount])
+        atomgroup.setChainIdentifiers(chainids[:acount])
+        atomgroup.setTempFactors(bfactors[:acount])
+        atomgroup.setOccupancies(occupancies[:acount])
+        atomgroup.setHeteroFlags(hetero[:acount])
+        atomgroup.setAltLocIndicators(altlocs[:acount])
+        atomgroup.setSegmentNames(segnames[:acount])
+        atomgroup.setElementSymbols(elements[:acount])
+        atomgroup.setInsertionCodes(icodes[:acount])
+        if is_scndry:
+            atomgroup.setSecondaryStrs(secondary[:acount])
+        if is_anisou:
+            atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
+        if is_siguij:
+            atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+
+    if altloc and altloc_torf:
+        altloc_keys = altloc.keys()
+        altloc_keys.sort()
+        indices = {}
+        for key in altloc_keys:
+            xyz = atomgroup.getCoordinates()
+            success = 0
+            lines = altloc[key]
+            for line, i in lines:
+                #-->
+                #try:
+                aan = line[12:16].strip()
+                arn = line[17:21].strip()
+                ach = line[21]
+                ari = int(line[22:26].split()[0])
+                rn, ids, ans = indices.get((ach, ari), (None, None, None))
+                if ids is None:
+                    ids = indices.get(ach, None)
+                    if ids is None:
+                        ids = (chainids == ach).nonzero()[0]
+                        indices[ach] = ids
+                    ids = ids[resnums[ids] == ari]
+                    if len(ids) == 0:
+                        LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue does not exist as altloc A'.format(key, i+1))
+                        continue
+                    rn = resnames[ids[0]]
+                    ans = atomnames[ids]
+                    indices[(ach, ari)] = (rn, ids, ans)
+                if rn != arn:
+                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue names do not match (expected {2:s}, parsed {3:s})'.format(key, i+1, rn, arn))
+                    continue
+                index = ids[(ans == aan).nonzero()[0]]
+                if len(index) != 1:
+                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not identify matching atom ({2:s} not found in the residue)'.format(key, i+1, aan))
+                    continue
+                try:
+                    xyz[index[0], 0] = float(line[30:38])
+                    xyz[index[0], 1] = float(line[38:46])
+                    xyz[index[0], 2] = float(line[46:54])
+                except:
+                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not read coordinates'.format(key, i+1))
+                    continue
+                success += 1
+                #except Exception as exception:
+                #    print i, line
+                #    print exception
+                #-->
+            LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were parsed successfully.'.format(success, len(lines), key))
+            if success > 0:
+                LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup.getName()))
+                atomgroup.addCoordset(xyz)
+                
+    return atomgroup
     
 def _getHeaderDict(lines):
     """Return header data in a dictionary."""
@@ -413,277 +753,6 @@ def _getHeaderDict(lines):
     if sheet:
         header['sheet'] = sheet
     return header, i
-
-def _getAtomGroup(lines, split, model, subset, altloc_torf):
-    """Return coordinate data in an AtomGroup.
-    
-    :arg lines: lines from a PDB file
-    :arg split: starting index for lines related to coordinate data
-    
-    """
-    
-    asize = len(lines) - split
-    alength = 5000
-    coordinates = np.zeros((asize, 3), dtype=np.float64)
-    atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
-    resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
-    resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
-    chainids = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
-    bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
-    occupancies = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['occupancy'].dtype)
-    hetero = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['hetero'].dtype)
-    altlocs = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['altloc'].dtype)
-    segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
-    elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
-    secondary = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['secondary'].dtype)
-    anisou = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
-    siguij = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
-    icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
-    asize = 2000
-    
-    onlycoords = False
-        
-    if subset is not None:
-        subset = subset.lower()
-        if subset in ('calpha', 'ca'):
-            subset = ('CA',)
-        elif subset in ('backbone', 'bb'):
-            subset = ('CA', 'C', 'N', 'O')
-        
-    if model is None:
-        lrange = range(split, len(lines))
-    elif model is 1:
-        lrange = range(split, len(lines))
-    else:
-        nmodel = 0
-        for i in range(split, len(lines)):
-            if lines[i][:5] == 'MODEL':
-                nmodel += 1
-                if model == nmodel:
-                    lrange = range(i+1, len(lines))
-                    break
-        if nmodel != model:
-            raise PDBParserError('model {0:d} is not found'.format(model))
-            
-    acount = 0
-    nmodel = 0
-    is_anisou = False
-    is_siguij = False
-    is_scndry = False
-    altloc = defaultdict(list)
-    for i in lrange:
-        line = lines[i]
-        startswith = line[0:6]
-        
-        if startswith == 'ATOM  ' or startswith == 'HETATM':
-            atomname = line[12:16].strip()
-            if subset:
-                if not atomname in subset: 
-                    continue
-            atomnames[acount] = atomname
-            try:
-                coordinates[acount, 0] = float(line[30:38])
-                coordinates[acount, 1] = float(line[38:46])
-                coordinates[acount, 2] = float(line[46:54])
-            except:
-                raise PDBParserError('invalid or missing coordinate(s) at '
-                                   'line {0:d}.'.format(i+1))
-            
-            alt = line[16]
-            altlocs[acount] = alt 
-            if not alt in (' ', 'A'):
-                altloc[alt].append((line, i))
-                continue
-            if onlycoords:
-                acount += 1
-                continue
-            
-            # resname = line[17:21], but some are 4 chars long
-            resnames[acount] = line[17:21].strip()
-            chainids[acount] = line[21]
-            resnums[acount] = int(line[22:26].split()[0])
-            icodes[acount] = line[26].strip()
-            try:
-                occupancies[acount] = float(line[54:60])
-            except:
-                LOGGER.warning('failed to parse occupancy at line {0:d}'
-                               .format(i))
-            try:
-                bfactors[acount] = float(line[60:66])
-            except :
-                LOGGER.warning('failed to parse beta-factor at line {0:d}'
-                               .format(i))
-            
-            if startswith[0] == 'H':
-                hetero[acount] = True
-
-            segnames[acount] = line[72:76].strip()
-            elements[acount] = line[76:78].strip()
-            acount += 1
-            if acount >= alength:
-                alength += asize
-                coordinates = np.concatenate(
-                    (coordinates, np.zeros((asize, 3), np.float64)))
-                atomnames = np.concatenate(
-                    (atomnames, np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
-                resnames = np.concatenate( 
-                    (resnames, np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
-                resnums = np.concatenate( 
-                    (resnums, np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
-                chainids = np.concatenate( 
-                    (chainids, np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
-                bfactors = np.concatenate( 
-                    (bfactors, np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
-                occupancies = np.concatenate( 
-                    (occupancies, np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
-                hetero = np.concatenate( 
-                    (hetero, np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
-                altlocs = np.concatenate( 
-                    (altlocs, np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
-                segnames = np.concatenate( 
-                    (segnames, np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
-                elements = np.concatenate(
-                    (elements, np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
-                secondary = np.concatenate(
-                    (secondary, np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
-                anisou = np.concatenate(
-                    (anisou, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
-                siguij = np.concatenate(
-                    (siguij, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
-                icodes = np.concatenate(
-                    (icodes, np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
-        elif startswith == 'ANISOU':
-            is_anisou = True
-            try:
-                index = acount - 1
-                anisou[index, 0] = float(line[28:35])
-                anisou[index, 1] = float(line[35:42])
-                anisou[index, 2] = float(line[43:49])
-                anisou[index, 3] = float(line[49:56])
-                anisou[index, 4] = float(line[56:63])
-                anisou[index, 5] = float(line[63:70])
-            except:
-                LOGGER.warning('failed to parse anisotropic temperature '
-                    'factors at line {0:d}'.format(i))
-        elif startswith == 'END   ' or startswith == 'CONECT':
-            break
-        elif startswith == 'ENDMDL':
-            if model is not None:
-                break
-            elif onlycoords:
-                atomgroup.addCoordset(coordinates)
-                coordinates = np.zeros((acount, 3), dtype=np.float64)
-                nmodel += 1
-                acount = 0
-            else:
-                atomgroup = prody.AtomGroup('')
-                atomgroup.setCoordinates(coordinates[:acount])
-                atomgroup.setAtomNames(atomnames[:acount])
-                atomgroup.setResidueNames(resnames[:acount])
-                atomgroup.setResidueNumbers(resnums[:acount])
-                atomgroup.setChainIdentifiers(chainids[:acount])
-                atomgroup.setTempFactors(bfactors[:acount])
-                atomgroup.setOccupancies(occupancies[:acount])
-                atomgroup.setHeteroFlags(hetero[:acount])
-                atomgroup.setAltLocIndicators(altlocs[:acount])
-                atomgroup.setSegmentNames(segnames[:acount])
-                atomgroup.setElementSymbols(elements[:acount])
-                atomgroup.setInsertionCodes(icodes[:acount])
-                if is_scndry:
-                    atomgroup.setSecondaryStrs(secondary[:acount])
-                if is_anisou:
-                    atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
-                if is_siguij:
-                    atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
-                
-                onlycoords = True
-                coordinates = np.zeros((acount, 3), dtype=np.float64)
-                nmodel += 1
-                acount = 0
-            
-        elif startswith =='SIGUIJ':
-            is_siguij = True
-            try:
-                index = acount - 1
-                siguij[index, 0] = float(line[28:35])
-                siguij[index, 1] = float(line[35:42])
-                siguij[index, 2] = float(line[43:49])
-                siguij[index, 3] = float(line[49:56])
-                siguij[index, 4] = float(line[56:63])
-                siguij[index, 5] = float(line[63:70])
-            except:
-                LOGGER.warning('failed to parse standard deviations of '
-                    'anisotropic temperature factors at line {0:d}'.format(i))
-        elif startswith =='SIGATM':
-            pass
-    
-    if onlycoords:
-        if acount == atomgroup.getNumOfAtoms():
-            atomgroup.addCoordset(coordinates)
-    else:            
-        atomgroup = prody.AtomGroup('')
-        atomgroup.setCoordinates(coordinates[:acount])
-        atomgroup.setCoordinates(coordinates[:acount])
-        atomgroup.setAtomNames(atomnames[:acount])
-        atomgroup.setResidueNames(resnames[:acount])
-        atomgroup.setResidueNumbers(resnums[:acount])
-        atomgroup.setChainIdentifiers(chainids[:acount])
-        atomgroup.setTempFactors(bfactors[:acount])
-        atomgroup.setOccupancies(occupancies[:acount])
-        atomgroup.setHeteroFlags(hetero[:acount])
-        atomgroup.setAltLocIndicators(altlocs[:acount])
-        atomgroup.setSegmentNames(segnames[:acount])
-        atomgroup.setElementSymbols(elements[:acount])
-        atomgroup.setInsertionCodes(icodes[:acount])
-        if is_scndry:
-            atomgroup.setSecondaryStrs(secondary[:acount])
-        if is_anisou:
-            atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
-        if is_siguij:
-            atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
-
-    if altloc and altloc_torf:
-        altloc_keys = altloc.keys()
-        altloc_keys.sort()
-        indices = {}
-        for key in altloc_keys:
-            xyz = atomgroup.getCoordinates()
-            success = 0
-            lines = altloc[key]
-            for line, i in lines:
-                aan = line[12:16].strip()
-                arn = line[17:21].strip()
-                ach = line[21]
-                ari = int(line[22:26].split()[0])
-                rn, ids, ans = indices.get((ach, ari), (None, None, None))
-                if ids is None:
-                    ids = indices.get(ach, None)
-                    if ids is None:
-                        ids = (chainids == ach).nonzero()[0]
-                    ids = ids[resnums[ids] == ari]
-                    rn = resnames[ids[0]]
-                    ans = atomnames[ids]
-                    indices[(ach, ari)] = (rn, ids, ans)
-                if rn != arn:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue names do not match (expected {2:s}, parsed {3:s})'.format(key, i+1, rn, arn))
-                    continue
-                index = ids[(ans == aan).nonzero()[0]]
-                if len(index) != 1:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not identify matching atom ({2:s} not found in the residue)'.format(key, i+1, aan))
-                    continue
-                try:
-                    xyz[index[0], 0] = float(line[30:38])
-                    xyz[index[0], 1] = float(line[38:46])
-                    xyz[index[0], 2] = float(line[46:54])
-                except:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not read coordinates'.format(key, i+1))
-                    continue
-                success += 1
-            LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were parsed successfully.'.format(success, len(lines), key))
-            LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup.getName()))
-            atomgroup.addCoordset(xyz)
-                
-    return atomgroup
 
 class PDBlastRecord(object):
 

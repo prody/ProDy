@@ -6,59 +6,68 @@
 Tutorial
 *******************************************************************************
 
-ProDy can be used in two ways:
+ProDy can be used:
 
-  * by writing scripts for automated tasks
+  * as a command line program via :ref:`scripts`
+  * as a part of another Python software/package
   * interactively in a Python interpreter
   
 First part of the tutorial shows how to use one of the scripts that is 
 distributed with ProDy. Following parts assume user is in an interactive
-Python shell, but should be useful for those who may want to write their own
-scripts for automatizing certain analysis tasks. 
+Python shell. This should be useful for those who may want to write their 
+own Python programs. 
 
 Upon completion of the tutorial, user is referred to :ref:`examples` section 
-that gives more specific and comprehensive examples. Also, :ref:`howtos` section 
-that elaborates on important features of ProDy is recommended for further 
-reading.
+that gives more specific and comprehensive usage examples, and also to 
+:ref:`howtos` section that elaborates on important features of ProDy.
 
-Using ProDy scripts
+Command line usage
 ===============================================================================
 
-ProDy scripts come with source distribution which can be downloaded from 
+ProDy scripts come with source distribution, which can be downloaded from 
 http://pypi.python.org/pypi/ProDy/ (tar.gz file). Latest versions of these 
-scripts can also be downloaded from https://github.com/abakan/ProDy/tree/master/scripts/.
+scripts can also be obtained from https://github.com/abakan/ProDy/tree/master/scripts/.
 
-:ref:`scripts` section shows the help text that comes with these scripts.
+:ref:`scripts` section shows detailed usage information.
 
 Using these scripts is straight forward (on linux). Let's assume you are
-in the same folder as ANM script (also using a linux machine). 
-Running the following command will perform calculations for p38 MAP kinase 
-structure, and will write eigenvalues/vectors in plain text and NMD formats::
+in the same folder as the ANM script. Running the following command will 
+perform ANM calculations for p38 MAP kinase structure, and will write 
+eigenvalues/vectors in plain text and NMD formats::
 
   ./anm 1p38
   
-In this example, default parameters are used (``cutoff=15.`` and ``gamma=1.``).
-Also, all alpha carbons of the protein structure 1p38 are used.
+In this example, default parameters (``cutoff=15.`` and ``gamma=1.``).
+and all alpha carbons of the protein structure 1p38 are used.
 
-In the following case, cutoff distance is changed to 14 angstroms, 
+In the following, cutoff distance is changed to 14 angstroms, 
 alpha carbons of residues with numbers smaller than 340 are used, 
-and output files are prefixed with "p38anm"::
+and output files are prefixed with "p38_anm"::
 
   ./anm -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
 
 Output file :file:`p38_anm.nmd` file can be visualized using |nmwiz|. 
 
-Using ProDy interactively
+Interactive usage
 ===============================================================================
 
-In the rest of the tutorial, it is assumed that you are typing commands in an 
-interaction Python session. If you are using Python IDE, try using 
-`IPython <http://ipython.scipy.org/>`_ that comes fancy coloring and handy features.
+In the rest of the tutorial, it is assumed that user is typing commands in a 
+Python interpreter window. For such interactive sessions, 
+`IPython <http://ipython.scipy.org/>`_ is recommended. 
+It offers a nice coloring scheme, and handy features, such as tab completion.
 
-
-Import all functions and classes from ProDy as follows:
+We start with importing all functions and classes from ProDy into the
+current namespace as follows:
 
 >>> from prody import *
+
+.. note::
+   Python commands in this page can easily be copied into a Python file using
+   "Get Code Snippets" bar on the right hand side. Clicking on :guilabel:`Get Code`
+   will show only Python code snippets in a message window, which can be copied 
+   from there into a file. Click on text, press :kbd:`Ctrl+A`, :kbd:`Ctrl+C`,
+   then :kbd:`Esc` to have the text in your clipboard.
+
 
 Parse a PDB file
 -------------------------------------------------------------------------------
@@ -88,7 +97,7 @@ and press *Enter*.
 There are more ways to access ProteinDataBank (http://www.pdb.org/) content.
 See :ref:`parsepdb`, :ref:`fetchpdb`, and :ref:`blastpdb` examples.
 
-List of functions for accessing protein data can also be found in :ref:`prodb`
+List of functions for accessing protein data can also be found in :mod:`prody.proteins`
 
 Select subset of atoms
 -------------------------------------------------------------------------------
@@ -137,7 +146,7 @@ Let's try:
 >>> prot.select('not backbone and not water')
 <Selection: "not backbone and not water" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
 
-This has now worked as "sidecain" did.
+This has now worked as ``sidechain`` did.
 
 **Select amino acids by type/name**:
 
@@ -211,7 +220,7 @@ Perform ANM calculations
 Let's perform an ANM analysis for chain A alpha carbon atoms. ANM instances
 are instantiated using a name:
 
->>> anm = ANM('p38 ANM analysis')
+>>> anm = ANM('p38')
 
 Hessian matrix can be built for any set of atoms. In this case, we will 
 use selection that contains alpha carbon atoms. 
@@ -230,7 +239,7 @@ Individual modes can be accessed by indexing ANM instance:
 
 >>> slowest_mode = anm[0]
 >>> print slowest_mode
-Mode 1 from p38 ANM analysis
+Mode 1 from ANM p38
 
 Note that indices in Python start from 0. 0th mode is the 1st non-zero mode,
 in this case.

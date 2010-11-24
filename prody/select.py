@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Structural Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
+# Copyright (C) 2010  Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -401,8 +401,6 @@ class Select(object):
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with ``True`` values for matching atoms.
         
-        .. versionadded:: 0.2.1
-        
         .. note:: The length of the boolean :class:`numpy.ndarray` will be
            equal to the number of atoms in *atoms* argument. 
         """
@@ -444,10 +442,7 @@ class Select(object):
         return torf
     
     def getIndices(self, atoms, selstr, **kwargs):
-        """Return indices of atoms matching *selstr*.
-        
-        .. versionadded:: 0.2.1
-        """
+        """Return indices of atoms matching *selstr*."""
         torf = self.getBoolArray(atoms, selstr, **kwargs)        
         if isinstance(atoms, prody.AtomGroup):
             indices = torf.nonzero()[0]
@@ -471,27 +466,24 @@ class Select(object):
         :class:`prody.atomic.AtomMap` instance is returned. Otherwise,
         :class:`prody.atomic.Selection` instances are returned.
 
-        .. versionchanged:: 0.2
-            If selection string does not match any atoms, ``None`` is returned.
-            
-        .. versionadded:: 0.2
-            :meth:`select` accepts arbitrary keyword arguments which enables 
-            identification of intermolecular contacts. See :ref:`contacts` for 
-            its details.
+        .. note:
+
+            * If selection string does not match any atoms, ``None`` is returned.
+            * :meth:`select` accepts arbitrary keyword arguments which enables 
+              identification of intermolecular contacts. See :ref:`contacts` for 
+              its details.
         
-        .. versionadded:: 0.2
-            :meth:`select` accepts a keyword argument that enables caching
-            atomic data and KDTree from previous select operation. It works
-            if *atoms* objects in two consecutive selections are the same.
+            * :meth:`select` accepts a keyword argument that enables caching
+              atomic data and KDTree from previous select operation. It works
+              if *atoms* objects in two consecutive selections are the same.
         
-        .. note:: A special case for making atom selections is passing an
-           :class:`prody.atomic.AtomMap` instance as *atoms* argument. Unmapped
-           atoms will not be included in the returned :class:`prody.atomic.AtomMap` 
-           instance. The order of atoms will be preserved.
+            * A special case for making atom selections is passing an
+              :class:`prody.atomic.AtomMap` instance as *atoms* argument. Unmapped
+              atoms will not be included in the returned :class:`prody.atomic.AtomMap` 
+              instance. The order of atoms will be preserved.
 
         .. warning:: ``cache=True`` should be used if attributes of *atoms* 
            object have not changed since the previous selection operation.
-
         """
         indices = self.getIndices(atoms, selstr, **kwargs)
         ag = self._ag
@@ -1243,11 +1235,7 @@ class Select(object):
 
 
 class Contacts(object):
-    
-    """A class for identification of intermolecular contacts.
-    
-    .. versionadded:: 0.2   
-    """
+    """A class for identification of intermolecular contacts."""
     
     def __init__(self, atoms):
         """
@@ -1276,16 +1264,11 @@ class Contacts(object):
         return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(str(self._atoms), self._acsi)
     
     def getActiveCoordsetIndex(self):
-        """Return active coordinate set index.
-        
-        .. versionadded:: 0.2.1
-        """
+        """Return active coordinate set index."""
         return self._acsi
     
     def setActiveCoordsetIndex(self, acsi):
         """Set active coordinate set index.
-        
-        .. versionadded:: 0.2.1
         
         .. note:: When active coordinate set index is changed, KDTree
            that is used for identifying contacts is rebuilt for this instance. 

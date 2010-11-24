@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Structural Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
+# Copyright (C) 2010  Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -200,10 +200,6 @@ def matchChains(atoms1, atoms2, **kwargs):
     atoms or backbone atoms will be paired. If set to *all*, all atoms
     common to matched residues will be returned.
     
-    
-    .. versionadded:: 0.2
-       The *pwalign* keyword.
-       
     This function tries to match chains based on residue numbers and types. 
     All chains in *atoms1* is compared to all *chains* in *atoms2*. 
     This works well for different structures of the same
@@ -441,9 +437,6 @@ def mapAtomsToChain(atoms, chain, **kwargs):
     AtomMap that keeps mapped atom indices contains dummy atoms in place of 
     unmapped atoms.
     
-    .. versionadded:: 0.2
-       The *pwalign* keyword.
-       
     This function tries to map *atoms* to *chain* based on residue
     numbers and types. Each individual chain in *atoms* is compared to
     target *chain*. This works well for different structures of the same

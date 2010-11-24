@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Structural Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
+# Copyright (C) 2010  Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -130,13 +130,10 @@ def wrapSetMethod(fn):
 class Atomic(object):
     """Base class for all atomic classes.
     
-    .. versionadded:: 0.2
-    
     Derived classes are:
         
       * :class:`AtomGroup`
-      * :class:`AtomPointer`
-    """
+      * :class:`AtomPointer`"""
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
         return self._acsi
@@ -496,8 +493,6 @@ class AtomGroup(Atomic):
 class AtomPointer(Atomic):
     """Base class for classes pointing to atom(s) in :class:`AtomGroup` instances.
     
-    .. versionadded:: 0.2
-    
     Derived classes are:
         
       * :class:`Atom`
@@ -507,9 +502,7 @@ class AtomPointer(Atomic):
     
     def __add__(self, other):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are
-        preserved.
-        
-        .. versionadded:: 0.2.1"""
+        preserved."""
         if not isinstance(other, AtomPointer):
             raise TypeError('an AtomPointer instance cannot be added to a {0:s} instance'.format(type(other)))
         ag = self._ag
@@ -819,6 +812,16 @@ class Chain(AtomSubset):
     <Residue: GLU 4 from Chain A from 1p38 (9 atoms; 1 coordinate sets, active set index: 0)>
     >>> print chA[3] # Residue 3 does not exist in chain A
     None
+    
+    Iterating over a chain yields residue instances:
+        
+    >>> for res in chA: print res
+    GLU 4
+    ARG 5
+    PRO 6
+    THR 7
+    ...
+        
     """    
     __slots__ = AtomSubset.__slots__ + ['_seq', '_dict']
     def __init__(self, atomgroup, indices, acsi=None):
@@ -835,6 +838,9 @@ class Chain(AtomSubset):
     def __str__(self):
         return ('Chain {0:s}').format(self.getIdentifier())
 
+    def __iter__(self):
+        return self.iterResidues()
+    
     def __getitem__(self, number):
         """Returns the residue with given number, if it exists. Assumes
         the insertion code is an empty string."""
@@ -869,7 +875,7 @@ class Chain(AtomSubset):
             return self._seq
         CAs = self.select('name CA').select('protein')
         if len(CAs) > 0:
-            self._seq = prody.compare._getSequence(CAs.residue_names)
+            self._seq = prody.compare._getSequence(CAs.getResidueNames())
         else:
             self._seq = ''
         return self._seq
