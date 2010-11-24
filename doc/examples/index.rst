@@ -14,6 +14,7 @@ Access Protein Data
    proteins/fetchpdb
    proteins/parsepdb
    proteins/blastpdb
+   proteins/biomolt
    
 Compare Protein Chains
 ===============================================================================
@@ -23,7 +24,7 @@ Compare Protein Chains
    
    proteins/deformation
 
-More on AtomGroup's 
+More on AtomGroups 
 ===============================================================================
 
 .. toctree::
@@ -35,10 +36,18 @@ Dynamics
 ===============================================================================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    dynamics/anm_p38
-   dynamics/pca_xray_anm_p38
-   dynamics/pca_nmr_anm_ubi
+   dynamics/pca
    proteins/deformation
-   dynamics/eda_md
+   dynamics/nmops
+
+More on Selections 
+===============================================================================
+
+.. toctree::
+   :maxdepth: 1
+   
+   select/contacts
+   select/operations

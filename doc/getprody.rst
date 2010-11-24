@@ -16,17 +16,19 @@ Dependencies
 
 **Required for all functionality:**
 
-* `Python 2.6 <http://python.org/>`_ (for Windows, please choose 32 bit option)
+* `Python <http://python.org/>`_ (for Windows, please choose 32 bit option)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
 
-With NumPy, you can use the PDB parser and the powerful atom selector. For
-dynamics analysis, you need to have the following as well.
+With only NumPy installed, you can use the PDB parser and the powerful atom 
+selector. For dynamics analysis and complete features of atom selector, 
+you need to have the following as well.
 
-.. note:: ProDy works with Python 2.7, and there is a NumPy installer for
-   that version of Python. SciPy does not have an installer for
-   that version, so if you intend to use ProDy for ANM/GNM/PCA calculations,
-   using Python 2.6 will be easier to get all required packages.   
-
+.. note:: A note on Python version. What you are planning to do with ProDy
+   may restrict you to certain versions of Python. ProDy works with Python 
+   2.6 and 2.7, and there is a NumPy installer for these versions. 
+   SciPy does not have an installer for Python 2.7, so if you intend to use 
+   ProDy for ANM/GNM/PCA calculations, using Python 2.6 will be easier to 
+   get all required packages.   
 
 **Required for certain functionality:**
 

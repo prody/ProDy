@@ -21,9 +21,15 @@ construction of a covariance matrix for PC analysis.
 
 ProDy implements flexible classes to enable a forgiving analysis of an X-ray 
 ensemble. That is, despite missing residues in some structures most of a protein 
-can be analyzed. An example script is provided for p38 MAP kinase [AB09]_.
+can be analyzed. An example is provided for p38 MAP kinase [AB09]_.
 
-.. seealso:: :ref:`egp38`
+.. toctree::
+   :maxdepth: 2
+
+   p38_PCA_ANM/p38_PCA_ANM_I
+   p38_PCA_ANM/p38_PCA_ANM_II
+   p38_PCA_ANM/p38_PCA_ANM_III
+   p38_PCA_ANM/p38_PCA_ANM_IV
 
 
 NMR models
@@ -32,8 +38,10 @@ NMR models
 Analysis of NMR models is fairly easier, as it requires parsing a single 
 structure. An example is provided for Ubiquitin [AB09]_.
 
-.. seealso:: :ref:`egubi`
+.. toctree::
+   :maxdepth: 2
 
+   pca_nmr_anm_ubi
 
 
 MD snapshots
@@ -44,13 +52,15 @@ same way. Replacing the PDB file in the above example with a file that
 contains snaphots from a simulation will do the trick. However, if a large
 number of frames is to be analyzed, the following example should be followed.
 
-.. seealso:: :ref:`egeda`
+.. toctree::
+   :maxdepth: 2
+
+   eda_md
+
 
 Functions and Plotting
 ===============================================================================
 
 ProDy comes with several functions to compare PCA/ENM models or to plot data
-from such models. Interested user should see the following page:
-
-  * :mod:`prody.dynamics`
+from such models. These functions are listed in :ref:`dynamics`.
 

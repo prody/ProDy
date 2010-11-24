@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Structural Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan <ahb12@pitt.edu>
+# Copyright (C) 2010  Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,10 @@ Classes
 Functions
 ---------
 
+    * :func:`saveEnsemble`
+    * :func:`loadEnsemble`
     * :func:`getSumOfWeights`
+    * :func:`showSumOfWeights`
 
 """
 
@@ -43,7 +46,8 @@ import numpy as np
 from prody import ProDyLogger as LOGGER
 from prody import measure
 
-__all__ = ['Ensemble', 'Conformation', 'getSumOfWeights', 'showSumOfWeights']
+__all__ = ['Ensemble', 'Conformation', 'saveEnsemble', 'loadEnsemble', 
+           'getSumOfWeights', 'showSumOfWeights']
         
 class EnsembleError(Exception):
     pass
@@ -66,6 +70,7 @@ class Ensemble(object):
         self._weights = None
         self._coords = None         # reference
         self._n_atoms = None
+        self._n_confs = 0
         self._transformations = []    # from last superimposition
         
     def __getitem__(self, index):
@@ -75,6 +80,11 @@ class Ensemble(object):
         elif isinstance(index, slice):
             ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._name, index.indices(len(self))))
+            ens.setCoordinates(self.getCoordinates())
+            ens.addCoordset(self._confs[index].copy())
+            return ens
+        elif isinstance(index, (list, np.ndarray)):
+            ens = Ensemble('{0:s} slice'.format(self._name))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self._confs[index].copy())
             return ens
@@ -89,7 +99,7 @@ class Ensemble(object):
     #    return None
     
     def __len__(self):
-        return len(self._ensemble)
+        return self._n_confs
         
     def __iter__(self):
         return self._ensemble.__iter__()
@@ -231,6 +241,7 @@ class Ensemble(object):
                 
             
         if ag is None:
+            self._n_confs += n_confs
             self._ensemble += [None] * n_confs
             self._transformations += [None] * n_confs
         else:
@@ -239,6 +250,7 @@ class Ensemble(object):
                 name +=  ' ' + str(ag.getActiveCoordsetIndex())
             self._ensemble.append(Conformation(self, len(self._ensemble), name))
             self._transformations.append(None)
+            self._n_confs += 1
         
 
     def getCoordsets(self, indices=None):
@@ -280,6 +292,7 @@ class Ensemble(object):
             index = [index]
         else:
             index = list(index)
+        self._n_confs -= len(index)
         index.sort(reverse=True)
         for i in index:
             conf = self._ensemble.pop(i)
@@ -287,7 +300,7 @@ class Ensemble(object):
                 conf._index = None
                 conf._ensemble = None
             self._transformations.pop(i)
-    
+
     def getNumOfCoordsets(self):
         """Return number of coordinate sets."""
         return len(self._ensemble)
@@ -438,15 +451,57 @@ class Ensemble(object):
         return rmsd
 
 
-class Conformation(object):
+def saveEnsemble(ensemble, filename=None):
+    """Save *ensemble* model data as :file:`filename.ensemble.npz`. 
+    
+    If *filename* is ``None``, name of the *ensemble* will be used as 
+    the filename, i.e. ensemble.getName(). 
+    
+    Extension is :file:`.ensemble.npz`.
+    
+    Upon successful completion of saving, filename is returned.
+    
+    This function makes use of :func:`numpy.savez` function.
+    """
+    if not isinstance(ensemble, Ensemble):
+        raise TypeError('invalid type for ensemble, {0:s}'.format(type(ensemble)))
+    if len(ensemble) == 0:
+        raise ValueError('ensemble instance does not contain data')
+    
+    dict_ = ensemble.__dict__
+    attr_list = ['_name', '_confs', '_weights', '_coords', '_n_atoms', '_n_confs']
+    if filename is None:
+        filename = ensemble.getName().replace(' ', '_')
+    attr_dict = {}
+    for attr in attr_list:
+        value = dict_[attr]
+        if value is not None:
+            attr_dict[attr] = value
+    filename += '.ensemble.npz'
+    np.savez(filename, **attr_dict)
+    return filename
 
+def loadEnsemble(filename):
+    """Return ensemble instance after loading it from file (*filename*).
+    
+    .. seealso: :func:`saveEnsemble`"""
+    attr_dict = np.load(filename)
+    ensemble = Ensemble(str(attr_dict['_name']))
+    dict_ = ensemble.__dict__ 
+    for attr in attr_dict.files:
+        if attr == '_name': 
+            continue
+        elif attr in ('_n_atoms', '_n_confs'):
+            dict_[attr] = int(attr_dict[attr])
+        else:
+            dict_[attr] = attr_dict[attr]
+    ensemble._ensemble = [None] * len(ensemble)
+    return ensemble
+
+class Conformation(object):
     """A class to provide methods on a conformation in a an ensemble.
     
-    Instances of this class do not keep coordinate and weights data.
-    
-    
-    """
-    
+    Instances of this class do not keep coordinate and weights data."""
     __slots__ = ['_ensemble', '_index', '_name']
 
     def __init__(self, ensemble, index, name):
