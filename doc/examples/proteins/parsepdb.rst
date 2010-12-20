@@ -15,6 +15,8 @@ Coordinate data
 
 # You can parse PDB files by passing a filename (gzipped files are handled):
 
+>>> fetchPDB('1p38') # Download PDB file with given identifier
+'1p38.pdb.gz'
 >>> atoms = parsePDB('1p38.pdb.gz')
 >>> atoms
 <AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
@@ -33,7 +35,7 @@ Such info messages can be turned of using the function :func:`~prody.ProDySetVer
 
 >>> ProDySetVerbosity('warning')
 
-PDB files can be parser by passing only an identifier. A PDB file will be 
+PDB files can be parsed by passing only an identifier. A PDB file will be 
 downloaded if necessary (see also :ref:`fetchpdb`).
 
 >>> atoms = parsePDB('1mkp')
@@ -41,6 +43,8 @@ downloaded if necessary (see also :ref:`fetchpdb`).
 <AtomGroup: 1mkp (1183 atoms; 1 coordinate sets, active set index: 0)>
 
 Parser method returns an :class:`~prody.atomic.AtomGroup` instance.
+
+:more: See our report on :ref:`pdbparser-performance`.
 
 
 Header data
@@ -61,3 +65,6 @@ was parsed.
 ['reference', 'classification', 'compounds', 'resolution', 'title', 
 'source', 'experiment', 'authors', 'identifier', 'deposition_date']
 
+>>> import os
+>>> os.remove('1p38.pdb.gz')
+>>> os.remove('1mkp.pdb.gz')

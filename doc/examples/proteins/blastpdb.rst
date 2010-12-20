@@ -80,7 +80,7 @@ function.
 ['./1mkp.pdb.gz', './1zzw.pdb.gz', './2g6z.pdb.gz', './2hxp.pdb.gz', 
 './3ezz.pdb.gz', './1m3g.pdb.gz', './2oud.pdb.gz']
 
-Let's delete these files
+Let's delete these files:
 
 >>> import os
 >>> for fn in filenames:

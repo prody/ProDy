@@ -4,8 +4,9 @@
 Scripts
 *******************************************************************************
 
-There are three stand-alone scripts distributed with ProDy in the 
-:file:`scripts` folder. Alternatively, they can be obtained from 
+There are three ProDy scripts distributed in the :file:`scripts` folder in 
+:file:`ProDy-0.x.y.tar.gz`. Note that Windows installer does not contain these 
+scripts. Alternatively, you can obtain them from 
 https://github.com/abakan/ProDy/tree/master/scripts/.  
 These scripts are written by Lidio Meireles.
 
