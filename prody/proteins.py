@@ -52,7 +52,6 @@ import numpy as np
 
 import prody
 from prody import ProDyLogger as LOGGER
-import prody
 from prody.atomic import *
 
 
@@ -200,7 +199,7 @@ def fetchPDB(pdb, folder='.', fetcher=None):
     """Fetch PDB files using default PDB fetcher class.
     
     If *fetcher* is ``None``, default fetcher will be used. Default fetcher 
-    (:data:`prody.proteins.DEFAULT_PDBFetcher`) is :class:`RCSB_PDBFetcher`.
+    (:data:`~prody.proteins.DEFAULT_PDBFetcher`) is :class:`RCSB_PDBFetcher`.
     
     """
     if fetcher is None:
@@ -209,8 +208,8 @@ def fetchPDB(pdb, folder='.', fetcher=None):
     else:
         return fetcher.fetch(pdb, folder)
 
-def parsePDB(pdb, model=None, header=False, chains=None, subset=None, 
-             altlocs=True, name=None):
+def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
+             altloc=True, name=None):
     """Similar to :func:`parsePDBStream`, but downloads pdb files if needed.
     
     PDB files are downloaded using :func:`fetchPDB` function.
@@ -233,12 +232,12 @@ def parsePDB(pdb, model=None, header=False, chains=None, subset=None,
     else:
         pdb = open(pdb)
     name = name.lower()
-    result = parsePDBStream(pdb, model, header, chains, subset, altlocs, name)
+    result = parsePDBStream(pdb, model, header, chain, subset, altloc, name)
     return result
     
-def parsePDBStream(stream, model=None, header=False, chains=None, subset=None, 
-                   altlocs=True, name=None):
-    """Return an :class:`prody.atomic.AtomGroup` and/or 
+def parsePDBStream(stream, model=None, header=False, chain=None, subset=None, 
+                   altloc=True, name=None):
+    """Return an :class:`~prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
     :arg stream: Anything that implements the method readlines() 
@@ -250,21 +249,21 @@ def parsePDBStream(stream, model=None, header=False, chains=None, subset=None,
     :arg header: If ``True`` PDB header content will be parsed and returned.
     :type header: bool
 
-    :arg chains: Chain identifiers for parsing specific chains, e.g. 
-        ``chains='A'``, ``chains='B'``, ``chains='DE'``.
-    :type chains: str
+    :arg chain: Chain identifiers for parsing specific chains, e.g. 
+        ``chain='A'``, ``chain='B'``, ``chain='DE'``.
+    :type chain: str
 
     :arg subset: A predefined keyword to parse subset of atoms.
         Available keywords are ``"calpha"`` (``"ca"``) or ``"backbone"`` (``"bb"``), 
         or ``None`` (read all atoms).
     :type subset: str
 
-    :arg altlocs: If ``True`` all alternate locations will be parsed and 
+    :arg altloc: If ``True`` all alternate locations will be parsed and 
          each will be appended as distict coordinate set.
          If a location indicator is passed, such as ``'A'`` or ``'B'``, 
          only indicated alternate locations will be parsed as the single 
          coordinate set of the AtomGroup. Default is ``True``.
-    :type altlocs: str
+    :type altloc: str
 
     :arg name: Name of the AtomGroup instance. When ``None`` is passed,
         AtomGroup is named after the PDB filename.  
@@ -272,12 +271,6 @@ def parsePDBStream(stream, model=None, header=False, chains=None, subset=None,
 
     If *model* equals to ``0`` and *header* is ``True``, return header 
     dictionary only.
-    
-    .. versionchanged:: 0.3
-         Which alternate locations to parse can be indicated using *altlocs* 
-         argument.
-         Which chains to parse can be indicated using *chains* argument.
-
     """
     if model is not None:
         if not isinstance(model, int):
@@ -297,7 +290,7 @@ def parsePDBStream(stream, model=None, header=False, chains=None, subset=None,
     
     if model != 0:
         start = time.time()
-        ag = _getAtomGroup(lines, split, model, chains, subset, altlocs)
+        ag = _getAtomGroup(lines, split, model, chain, subset, altloc)
         if name is None:
             ag.setName('unknown')
         else:
@@ -312,13 +305,12 @@ def parsePDBStream(stream, model=None, header=False, chains=None, subset=None,
     else:
         return hd
 
-def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
+def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
     
     :arg lines: Lines from a PDB file.
     :arg split: Starting index for lines related to coordinate data.
     """
-    
     asize = len(lines) - split
     alength = 5000
     coordinates = np.zeros((asize, 3), dtype=np.float64)
@@ -349,7 +341,7 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
         only_subset = True
     else:    
         only_subset = False
-    if isinstance(chains, str):
+    if isinstance(chain, str):
         only_chains = True
     else:
         only_chains = False
@@ -380,9 +372,8 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
     is_scndry = False
     altloc = defaultdict(list)
     n_atoms = 0
-    i = start - 1
+    i = start
     while i < stop:
-        i += 1
         line = lines[i]
         startswith = line[0:6]
         
@@ -390,20 +381,23 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
             atomname = line[12:16].strip()
             if only_subset:
                 if not atomname in subset: 
+                    i += 1
                     continue
             chid = line[21]
             if only_chains:
-                if not chid in chains:
+                if not chid in chain:
+                    i += 1
                     continue
             alt = line[16]
             if alt not in which_altlocs:
                 altloc[alt].append((line, i))
+                i += 1
                 continue
             try:
                 coordinates[acount, 0] = float(line[30:38])
                 coordinates[acount, 1] = float(line[38:46])
                 coordinates[acount, 2] = float(line[46:54])
-            except:
+            except Exception:
                 if acount >= n_atoms:
                     LOGGER.warning('Discarding model {0:d}, which contains '
                                    'more atoms than the previous.'.format(nmodel+1))
@@ -417,6 +411,7 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
                                          'line {0:d}.'.format(i+1))
             if onlycoords:
                 acount += 1
+                i += 1
                 continue
             
             altlocs[acount] = alt 
@@ -434,7 +429,7 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
                                .format(i))
             try:
                 bfactors[acount] = float(line[60:66])
-            except :
+            except:
                 LOGGER.warning('failed to parse beta-factor at line {0:d}'
                                .format(i))
             
@@ -477,9 +472,11 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
                 icodes = np.concatenate(
                     (icodes, np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
         elif startswith == 'END   ' or startswith == 'CONECT':
+            i += 1
             break
         elif startswith == 'ENDMDL':
             if model is not None:
+                i += 1
                 break
             elif onlycoords:
                 if acount < n_atoms:
@@ -516,6 +513,9 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
                 n_atoms = acount 
                 acount = 0
                 coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                if altloc and altloc_torf:
+                    _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
+                    altloc = defaultdict(list)
         elif startswith == 'ANISOU':
             is_anisou = True
             try:
@@ -544,6 +544,7 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
                     'anisotropic temperature factors at line {0:d}'.format(i))
         elif startswith =='SIGATM':
             pass
+        i += 1
     if onlycoords:
         if acount == atomgroup.getNumOfAtoms():
             atomgroup.addCoordset(coordinates)
@@ -570,58 +571,61 @@ def _getAtomGroup(lines, split, model, chains, subset, altloc_torf):
             atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
 
     if altloc and altloc_torf:
-        altloc_keys = altloc.keys()
-        altloc_keys.sort()
-        indices = {}
-        for key in altloc_keys:
-            xyz = atomgroup.getCoordinates()
-            success = 0
-            lines = altloc[key]
-            for line, i in lines:
-                #-->
-                #try:
-                aan = line[12:16].strip()
-                arn = line[17:21].strip()
-                ach = line[21]
-                ari = int(line[22:26].split()[0])
-                rn, ids, ans = indices.get((ach, ari), (None, None, None))
-                if ids is None:
-                    ids = indices.get(ach, None)
-                    if ids is None:
-                        ids = (chainids == ach).nonzero()[0]
-                        indices[ach] = ids
-                    ids = ids[resnums[ids] == ari]
-                    if len(ids) == 0:
-                        LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue does not exist as altloc A'.format(key, i+1))
-                        continue
-                    rn = resnames[ids[0]]
-                    ans = atomnames[ids]
-                    indices[(ach, ari)] = (rn, ids, ans)
-                if rn != arn:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue names do not match (expected {2:s}, parsed {3:s})'.format(key, i+1, rn, arn))
-                    continue
-                index = ids[(ans == aan).nonzero()[0]]
-                if len(index) != 1:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not identify matching atom ({2:s} not found in the residue)'.format(key, i+1, aan))
-                    continue
-                try:
-                    xyz[index[0], 0] = float(line[30:38])
-                    xyz[index[0], 1] = float(line[38:46])
-                    xyz[index[0], 2] = float(line[46:54])
-                except:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not read coordinates'.format(key, i+1))
-                    continue
-                success += 1
-                #except Exception as exception:
-                #    print i, line
-                #    print exception
-                #-->
-            LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were parsed successfully.'.format(success, len(lines), key))
-            if success > 0:
-                LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup.getName()))
-                atomgroup.addCoordset(xyz)
+        _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
                 
     return atomgroup
+    
+def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
+    altloc_keys = altloc.keys()
+    altloc_keys.sort()
+    indices = {}
+    for key in altloc_keys:
+        xyz = atomgroup.getCoordinates()
+        success = 0
+        lines = altloc[key]
+        for line, i in lines:
+            #-->
+            #try:
+            aan = line[12:16].strip()
+            arn = line[17:21].strip()
+            ach = line[21]
+            ari = int(line[22:26].split()[0])
+            rn, ids, ans = indices.get((ach, ari), (None, None, None))
+            if ids is None:
+                ids = indices.get(ach, None)
+                if ids is None:
+                    ids = (chainids == ach).nonzero()[0]
+                    indices[ach] = ids
+                ids = ids[resnums[ids] == ari]
+                if len(ids) == 0:
+                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue does not exist as altloc A'.format(key, i+1))
+                    continue
+                rn = resnames[ids[0]]
+                ans = atomnames[ids]
+                indices[(ach, ari)] = (rn, ids, ans)
+            if rn != arn:
+                LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue names do not match (expected {2:s}, parsed {3:s})'.format(key, i+1, rn, arn))
+                continue
+            index = ids[(ans == aan).nonzero()[0]]
+            if len(index) != 1:
+                LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not identify matching atom ({2:s} not found in the residue)'.format(key, i+1, aan))
+                continue
+            try:
+                xyz[index[0], 0] = float(line[30:38])
+                xyz[index[0], 1] = float(line[38:46])
+                xyz[index[0], 2] = float(line[46:54])
+            except:
+                LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not read coordinates'.format(key, i+1))
+                continue
+            success += 1
+            #except Exception as exception:
+            #    print i, line
+            #    print exception
+            #-->
+        LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were parsed successfully.'.format(success, len(lines), key))
+        if success > 0:
+            LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup.getName()))
+            atomgroup.addCoordset(xyz)
     
 def _getHeaderDict(lines):
     """Return header data in a dictionary."""
@@ -947,12 +951,17 @@ def blastPDB(sequence, filename=None, **kwargs):
     record = prody.NCBIXML.parse(results).next()
     return PDBlastRecord(sequence, record)
 
-def writePDBStream(stream, atoms, models=None, sort=False):
+def writePDBStream(stream, atoms, model=None, sort=False):
     """Write *atoms* in PDB format to a *stream*.
     
     :arg stream: anything that implements the method write() (e.g. file, buffer, stdout)
-    :arg atoms: :class:`AtomGroup`, :class:`Selection`, :class:`Chain`, or :class:`Residue` 
-    :arg models: model index (int|list)
+    
+    :arg atoms: Atomic data container.
+    :type atoms: :class:`~prody.atomic.Atomic` 
+    
+    :arg model: Model index or list of model indices.
+    ;type model: int, list
+        
     :arg sort: if True, atoms will be sorted Chain, ResidueNumber, AtomName (not working yet).
     
     If *models* = ``None``, all coordinate sets will be outputted. Model indices
@@ -967,12 +976,12 @@ def writePDBStream(stream, atoms, models=None, sort=False):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
                                 atoms.getActiveCoordsetIndex(), 'index ' + str(atoms.getIndex()))
 
-    if models is None:
-        models = range(atoms.getNumOfCoordsets())
+    if model is None:
+        model = range(atoms.getNumOfCoordsets())
+    elif isinstance(model, int):
+        model = np.array([model]) -1
     elif isinstance(models, int):
-        models = np.array([models]) -1
-    elif isinstance(models, int):
-        models = np.array(models) -1
+        model = np.array(model) -1
     else:
         raise TypeError('models must be an integer or a list of integers')
 
@@ -981,6 +990,12 @@ def writePDBStream(stream, atoms, models=None, sort=False):
     atomnames = atoms.getAtomNames()
     if atomnames is None:
         raise RuntimeError('atom names are not set')
+    for i, an in enumerate(atomnames):
+        lenan = len(an)
+        if lenan < 4:
+            atomnames[i] = ' ' + an
+        elif lenan > 4:
+            atomnames[i] = an[:4]
     resnames = atoms.getResidueNames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
@@ -1007,36 +1022,45 @@ def writePDBStream(stream, atoms, models=None, sort=False):
     elements = atoms.getElementSymbols()
     if elements is None:
         elements = np.zeros(n_atoms, '|S1')
-    #altlocs = atoms.getAlternateLocationIndicators()
-    #if altlocs is None:
-    #    elements = np.zeros(n_atoms, '|S1')
+    altlocs = atoms.getAltLocIndicators()
+    if altlocs is None:
+        altlocs = np.zeros(n_atoms, '|S1')
+    segments = atoms.getSegmentNames()
+    if segments is None:
+        segments = np.zeros(n_atoms, '|S6')
     
-    acsi = atoms.getActiveCoordsetIndex()    
-    for m in models:
-        if len(models) > 1:
+    acsi = atoms.getActiveCoordsetIndex()
+    multi = False
+    if len(model) > 1:
+        multi = True
+    line = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
+            '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
+            '{8:8.3f}{9:8.3f}{10:8.3f}' +
+            '{11:6.2f}{12:6.2f}      ' +
+            '{13:4s}{14:2s}\n')
+    for m in model:
+        if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
         atoms.setActiveCoordsetIndex(m)
         coords = atoms.getCoordinates()
         for i, xyz in enumerate(coords):
-            stream.write(
-                ('{0:6s}{1:5d}{2:2s}{3:3s}{4:1s}{5:4s}{6:1s}{7:4d}' +
-                 '{8:1s}{9:3s}{10:8.3f}{11:8.3f}{12:8.3f}{13:6.2f}{14:6.2f}' +
-                 '{15:6s}{16:4s}{17:2s}\n').format(hetero[i], i+1, '  ', 
-                  atomnames[i].ljust(3), ' ', resnames[i].ljust(4), 
-                  chainids[i], resnums[i], icodes[i], '   ', xyz[0], xyz[1], xyz[2], 
-                  occupancies[i], bfactors[i], '      ', '    ',  
-                  elements[i].rjust(2)))
-        if len(models) > 1:
+            stream.write(line.format(hetero[i], i+1, atomnames[i], altlocs[i], 
+                                     resnames[i], chainids[i], resnums[i], icodes[i], 
+                                     xyz[0], xyz[1], xyz[2], 
+                                     occupancies[i], bfactors[i],  
+                                     segments[i], elements[i].rjust(2)))
+        if multi:
             stream.write('ENDMDL\n')
+            altlocs = np.zeros(n_atoms, '|S1')
     atoms.setActiveCoordsetIndex(acsi)
     
-def writePDB(filename, atoms, models=None, sort=None):
+def writePDB(filename, atoms, model=None, sort=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
     Returns *filename* is file is succesfully written.
     """
     out = open(filename, 'w')
-    writePDBStream(out, atoms, models, sort)
+    writePDBStream(out, atoms, model, sort)
     out.close()
     return filename
 
@@ -1057,9 +1081,9 @@ def assignSecondaryStructure(header, atoms):
     """Assign secondary structure to alpha carbons in *atoms* from *header* 
     dictionary.
 
-    *header* must be a dictionary parsed using the :meth:`prody.parsePDB`.
-    *atoms* may be an instance of :class:`prody.AtomGroup`, 
-    :class:`prody.Selection`, :class:`prody.Chain` or :class:`prody.Residue`. 
+    *header* must be a dictionary parsed using the :func:`parsePDB`.
+    *atoms* may be an instance of :class:`~prody.atomic.AtomGroup`, 
+    :class:`~prody.atomic.Selection`, :class:`~prody.atomic.Chain` or :class:`~prody.atomic.Residue`. 
 
     The Dictionary of Protein Secondary Structure, in short DSSP, type 
     single letter codes assignments are used:     

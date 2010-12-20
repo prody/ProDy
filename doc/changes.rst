@@ -9,17 +9,19 @@ Release 0.5
 
 **New Features**:
 
-  * :class:`atomic.AtomPointer` base class for classes pointing to
-    atoms in an :class:`atomic.AtomGroup`.
-  * :class:`atomic.AtomPointer` instances (Selection, Residue, etc.)
-    can be added. See :ref:`selops` for examples.
-  * :meth:`select.Select.getIndices` and :meth:`select.Select.getBoolArray` 
-    methods to expand the usage of :class:`select.Select`.
-  * :meth:`dynamics.sliceVector` and :meth:`dynamics.sliceMode` functions.
-  * :meth:`dynamics.saveModel` and :meth:`dynamics.loadModel` functions
+  * :class:`~atomic.AtomPointer` base class for classes pointing to
+    atoms in an :class:`~atomic.AtomGroup`.
+  * :class:`~atomic.AtomPointer` instances (Selection, Residue, etc.)
+    can be added. See :ref:`selection-operations` for examples.
+  * :meth:`~select.Select.getIndices` and :meth:`~select.Select.getBoolArray` 
+    methods to expand the usage of :class:`~select.Select`.
+  * :meth:`~dynamics.sliceVector` and :meth:`~dynamics.sliceMode` functions.
+  * :meth:`~dynamics.saveModel` and :meth:`~dynamics.loadModel` functions
     for saving and loading NMA data.
-  * :func:`proteins.parsePDBStream` can now parse specific chains or
+  * :func:`~proteins.parsePDBStream` can now parse specific chains or
     alternate locations from a PDB file.
+  * :func:`~measure.alignCoordsets` is implemented to superimpose
+    coordinate sets of an :class:`~atomic.AtomGroup` instance.
 
 **Bugfixes**:
 
@@ -33,6 +35,9 @@ Release 0.5
     instances.
   * :class:`dynamics.Vector` instantiation requires an *array* only. *name* 
     is an optional argument.
+  * Functions starting with ``get`` and performing a calculations are renamed to
+    start with ``calc``, e.g. :func:`measure.getRMSD` is renamed to
+    :func:`~prody.measure.calcRMSD`
 
 Release 0.2
 ===============================================================================

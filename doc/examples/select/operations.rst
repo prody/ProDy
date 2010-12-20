@@ -1,6 +1,6 @@
 .. currentmodule:: prody.select
 
-.. _selops:
+.. _selection-operations:
 
 *******************************************************************************
 Operations on Selections 

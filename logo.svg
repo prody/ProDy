@@ -16,7 +16,7 @@
    version="1.1"
    inkscape:version="0.47 r22583"
    sodipodi:docname="logo.svg"
-   inkscape:export-filename="/home/abakan/code/prody/logo.png"
+   inkscape:export-filename="/home/abakan/code/ProDy/logo.png"
    inkscape:export-xdpi="83.449997"
    inkscape:export-ydpi="83.449997">
   <defs
@@ -57,14 +57,14 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="4.382508"
-     inkscape:cx="60.630421"
-     inkscape:cy="388.63594"
+     inkscape:zoom="1.095627"
+     inkscape:cx="242.05818"
+     inkscape:cy="323.25021"
      inkscape:current-layer="layer1"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1139"
+     inkscape:window-width="1280"
+     inkscape:window-height="739"
      inkscape:window-x="0"
      inkscape:window-y="21"
      inkscape:window-maximized="1" />
@@ -76,7 +76,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -101,14 +101,16 @@
     <text
        xml:space="preserve"
        style="font-size:24px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#803300;fill-opacity:1;stroke:none;font-family:Purisa;-inkscape-font-specification:Purisa Bold"
-       x="116.1805"
+       x="126.22041"
        y="135.55566"
        id="text3659"
        sodipodi:linespacing="100%"><tspan
          sodipodi:role="line"
-         x="116.1805"
+         x="126.22041"
          y="135.55566"
-         id="tspan3663">Protein Structural Dynamics Analysis in Python</tspan></text>
+         id="tspan3663"><tspan
+   style="font-weight:bold;-inkscape-font-specification:AlArabiya Bold;font-style:normal;font-size:28"
+   id="tspan2820">Pro</tspan>tein Dynamics Analysis in Python</tspan></text>
     <image
        y="0.31582549"
        x="0.30078804"

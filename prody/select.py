@@ -1,4 +1,4 @@
-# ProDy: A Python Package for Protein Structural Dynamics Analysis
+# ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010  Ahmet Bakan
 # 
@@ -305,7 +305,7 @@ class Select(object):
     
     Definitions of single word keywords, such as :term:`protein`, 
     :term:`backbone`, :term:`polar`, etc., may be altered using functions in 
-    :mod:`prody.select` module. 
+    :mod:`~prody.select` module. 
     
     This class makes a great use of |pyparsing| module.
 
@@ -369,6 +369,7 @@ class Select(object):
         self._coordinates = None
         self._kdtree = None
         self._kwargs  = None
+        self._selstr2indices = False
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
         
@@ -454,7 +455,7 @@ class Select(object):
         """Return a subset of atoms matching *selstr* as a :class:`Selection`.
         
         :arg atoms: atoms to select from which    
-        :type atoms: :class:`prody.atomic.Atomic`
+        :type atoms: :class:`~prody.atomic.Atomic`
         
         :arg selstr: selection string
         :type selstr: str
@@ -462,9 +463,9 @@ class Select(object):
         :keyword cache: cache atomic data and KDTree, default is ``False``
         :type cache: bool
         
-        If type of *atoms* is :class:`prody.atomic.AtomMap`, an 
-        :class:`prody.atomic.AtomMap` instance is returned. Otherwise,
-        :class:`prody.atomic.Selection` instances are returned.
+        If type of *atoms* is :class:`~prody.atomic.AtomMap`, an 
+        :class:`~prody.atomic.AtomMap` instance is returned. Otherwise,
+        :class:`~prody.atomic.Selection` instances are returned.
 
         .. note:
 
@@ -478,13 +479,14 @@ class Select(object):
               if *atoms* objects in two consecutive selections are the same.
         
             * A special case for making atom selections is passing an
-              :class:`prody.atomic.AtomMap` instance as *atoms* argument. Unmapped
-              atoms will not be included in the returned :class:`prody.atomic.AtomMap` 
+              :class:`~prody.atomic.AtomMap` instance as *atoms* argument. Unmapped
+              atoms will not be included in the returned :class:`~prody.atomic.AtomMap` 
               instance. The order of atoms will be preserved.
 
         .. warning:: ``cache=True`` should be used if attributes of *atoms* 
            object have not changed since the previous selection operation.
         """
+        self._selstr2indices = False
         indices = self.getIndices(atoms, selstr, **kwargs)
         ag = self._ag
         if not kwargs.get('cache', False):
@@ -500,7 +502,9 @@ class Select(object):
                                  atoms.getActiveCoordsetIndex())
         else:
             
-            if isinstance(atoms, prody.AtomPointer):
+            if self._selstr2indices:
+                selstr = 'index {0:s}'.format(prody.getIntAsStr(indices))
+            elif isinstance(atoms, prody.AtomPointer):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, atoms.getSelectionString())
             
             return prody.Selection(ag, indices, selstr, atoms.getActiveCoordsetIndex())
@@ -717,6 +721,7 @@ class Select(object):
                 if DEBUG: print '_kwargs', which
                 which = self._kwargs[which]
                 exclude=False
+                self._selstr2indices = True
             if isinstance(which, np.ndarray):
                 if which.ndim == 1 and len(which) == 3:
                     which = [which]
@@ -730,9 +735,9 @@ class Select(object):
                 try:
                     coordinates = which.getCoordinates()
                 except:
-                    raise SelectionError('{0:s} must have a getCoordinates() method'.format(kw))
+                    raise SelectionError('{0:s} must have a getCoordinates() method.'.format(kw))
                 if not isinstance(coordinates, np.ndarray):
-                    raise SelectionError('{0:s}.getCoordinates() method must return a numpy.ndarray instance'.format(kw))
+                    raise SelectionError('{0:s}.getCoordinates() method must return a numpy.ndarray instance.'.format(kw))
                 for xyz in coordinates:
                     search(xyz, within)
                     append(get_indices())
@@ -1241,7 +1246,7 @@ class Contacts(object):
         """
         
         :arg atoms: atoms for which contacts will be identified
-        :type atoms: :class:`prody.atomic.AtomGroup` or  :class:`prody.atomic.AtomSubset`
+        :type atoms: :class:`~prody.atomic.AtomGroup` or  :class:`~prody.atomic.AtomSubset`
         
         """
         if not isinstance(atoms, (AtomGroup, AtomSubset)):                
@@ -1287,7 +1292,7 @@ class Contacts(object):
         :arg within: distance
         :type within: float
         :arg what: a point or contacting atoms 
-        :type what: :class:`numpy.ndarray` or :class:`prody.atomic.Atomic`
+        :type what: :class:`numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
         """
         if isinstance(what, np.ndarray):

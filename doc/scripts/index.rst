@@ -9,14 +9,17 @@ There are three stand-alone scripts distributed with ProDy in the
 https://github.com/abakan/ProDy/tree/master/scripts/.  
 These scripts are written by Lidio Meireles.
 
-:file:`anm`
+.. _scripts-anm:
+
+:file:`anm.py`
 ===============================================================================
 
 This script can be used to perform ANM calculations and output 
-eigenvalues/eigenvectors in plain text and NMD formats. NMD files can be 
+eigenvalues/eigenvectors in plain text and NMD formats, i.e. running ``python gnm.py 1p38``
+will perform calculations for PDB structure 1p38. Resulting NMD files can be 
 visualized using |nmwiz|.
- 
-Running :command:`anm -h` (or :command:`python anm -h`) prints::
+
+Running ``python anm.py -h`` (or :command:`python anm -h`) prints::
 
   Usage: anm.py [options] <pdb>
 
@@ -37,13 +40,16 @@ Running :command:`anm -h` (or :command:`python anm -h`) prints::
     --silent              omit verbose information (False)
     -e, --examples        show usage examples
 
-:file:`gnm`
+.. _scripts-gnm:
+
+:file:`gnm.py`
 ===============================================================================
 
 This script can be used to perform GNM calculations and output 
-eigenvalues/eigenvectors in plain text format.
+eigenvalues/eigenvectors in plain text format, i.e. running ``python gnm.py 1p38``
+will perform calculations for PDB structure 1p38. 
  
-Running :command:`gnm -h` prints::
+Running ``python gnm.py -h`` prints::
 
   Usage: gnm.py [options] <pdb>
 
@@ -64,13 +70,16 @@ Running :command:`gnm -h` prints::
     --silent              omit verbose information (False)
     -e, --examples        show usage examples
 
+.. _scripts-pdbselect:
 
-:file:`pdbselect`
+:file:`pdbselect.py`
 ===============================================================================
 
-This script can be used to extract a selection of atoms from a PDB file.
+This script can be used to extract a selection of atoms from a PDB file, i.e. 
+running ``python pdbselect.py 1p38 selected.pdb "protein and name CA"``
+will write alpha carbon atoms in :file:`selected.pdb` file.
  
-Running :command:`pdbselect -h` prints::
+Running ``python pdbselect.py -h`` prints::
 
   ProDy - PDBSelect
   usage: pdbselect.py <input> <output> <selection>

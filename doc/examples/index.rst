@@ -5,7 +5,7 @@ Examples
 *******************************************************************************
 
 
-Access Protein Data
+Download, parse, and blast search ProteinDataBank
 ===============================================================================
 
 .. toctree::
@@ -15,8 +15,9 @@ Access Protein Data
    proteins/parsepdb
    proteins/blastpdb
    proteins/biomolt
+   proteins/alignment
    
-Compare Protein Chains
+Compare protein chains
 ===============================================================================
    
 .. toctree::
@@ -24,7 +25,7 @@ Compare Protein Chains
    
    proteins/deformation
 
-More on AtomGroups 
+More on atomGroups 
 ===============================================================================
 
 .. toctree::
@@ -32,18 +33,18 @@ More on AtomGroups
    
    atomic/water
 
-Dynamics
+Dynamics analysis
 ===============================================================================
 
 .. toctree::
    :maxdepth: 2
 
-   dynamics/anm_p38
-   dynamics/pca
+   dynamics/enm/index
+   dynamics/pca/index
    proteins/deformation
    dynamics/nmops
 
-More on Selections 
+Atom Selections and Intermolecular Contacts 
 ===============================================================================
 
 .. toctree::

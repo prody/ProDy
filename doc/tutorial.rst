@@ -73,14 +73,14 @@ Parse a PDB file
 -------------------------------------------------------------------------------
 
 Let's start with reading the contents of a PDB file. ProDy offers a fast PDB 
-file parser (:func:`prody.proteins.parsePDB`). For this function to work, 
+file parser (:func:`~prody.proteins.parsePDB`). For this function to work, 
 PDB file does not need to exist on your machine, so long as you have internet 
 connection. ProDy will fetch the PDB file if a valid identifier is provided.
 
 >>> prot = parsePDB('1p38')
 
 1p38 is an unliganded structure of p38 MAP kinase. :file:`1p38.pdb.gz` has been 
-downloaded, and coordinates were parsed into an :class:`prody.atomic.AtomGroup`
+downloaded, and coordinates were parsed into an :class:`~prody.atomic.AtomGroup`
 instance.
 
 .. note::
@@ -102,7 +102,7 @@ List of functions for accessing protein data can also be found in :mod:`prody.pr
 Select subset of atoms
 -------------------------------------------------------------------------------
 
-ProDy :class:`prody.atomic.AtomGroup` instances offer powerful atom
+ProDy :class:`~prody.atomic.AtomGroup` instances offer powerful atom
 selection capabilities that are comparable to that of 
 `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_. Full list of selection keywords 
 are given in section :ref:`selections`. Here, only a few examples are shown:
@@ -169,13 +169,13 @@ Or, we could use residue names expilicitly:
 <Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
 
 .. seealso::
-   For more information, tips and tricks see :ref:`selections` and :ref:`selops`.
+   For more information see :ref:`selections` and :ref:`selections-operations`.
 
 Hierarchical view of atoms
 -------------------------------------------------------------------------------
 
-:class:`prody.atomic.AtomGroup` instances has a flat view of atoms in PDB
-files, but it is possible to get a hierarchical view (:class:`prody.atomic.HierView`) 
+:class:`~prody.atomic.AtomGroup` instances has a flat view of atoms in PDB
+files, but it is possible to get a hierarchical view (:class:`~prody.atomic.HierView`) 
 of them:
 
 >>> hv = prot.getHierView()
@@ -195,7 +195,7 @@ THR 7
 Write a PDB file
 -------------------------------------------------------------------------------
 
-PDB files can be written using :func:`prody.proteins.writePDB` function.
+PDB files can be written using :func:`~prody.proteins.writePDB` function.
 This function accepts objects containing or referring to atomic data.
 
 Writing a selection:
@@ -227,13 +227,13 @@ use selection that contains alpha carbon atoms.
 
 >>> anm.buildHessian(calphas)
 
-Normal modes are calculated by calling :meth:`prody.dynamics.ANM.calcModes`. 
+Normal modes are calculated by calling :meth:`~prody.dynamics.ANM.calcModes`. 
 This will calculate 20 modes by default.
 
 >>> anm.calcModes()
 
-This omits modes with zero eigenvalues. For moreinformation on ANM methods 
-see :func:`prody.dynamics.ANM`.
+This omits modes with zero eigenvalues. For more information on ANM methods 
+see :class:`~prody.dynamics.ANM`.
 
 Individual modes can be accessed by indexing ANM instance:
 
@@ -241,11 +241,11 @@ Individual modes can be accessed by indexing ANM instance:
 >>> print slowest_mode
 Mode 1 from ANM p38
 
-Note that indices in Python start from 0. 0th mode is the 1st non-zero mode,
-in this case.
+Note that indices in Python start from zero (0). 
+0th mode is the 1st non-zero mode, in this case.
 
-The following function (:func:`prody.dynamics.writeNMD`) writes ANM results 
-in NMD format. NMD files can be viewed using |vmd| plugin |nmwiz|. 
+The following function (:func:`~prody.dynamics.writeNMD`) writes ANM results 
+in NMD format. NMD files can be viewed using |vmd| plugin NMWiz. 
 
 >>> writeNMD('p38anm.nmd', anm[:6], calphas) 
 'p38anm.nmd'
