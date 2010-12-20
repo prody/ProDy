@@ -116,6 +116,8 @@ specific order.
 '1p38_water_protein.pdb'
 
 In the resulting file, water atoms will preceed protein atoms.
- 
-  
+
+>>> import os
+>>> os.remove('1p38.pdb.gz')
+>>> os.remove('1p38_water_protein.pdb')
 

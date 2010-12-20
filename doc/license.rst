@@ -7,7 +7,7 @@ License
 ProDy
 ===============================================================================
 
-ProDy: A Python Package for Protein Structural Dynamics Analysis
+ProDy: A Python Package for Protein Dynamics Analysis
 
 Copyright (C) 2010  Ahmet Bakan <ahb12 at pitt dot edu>
 

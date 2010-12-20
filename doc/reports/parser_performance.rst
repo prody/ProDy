@@ -3,7 +3,7 @@
 PDB Parser Performance
 ===============================================================================
 
-*Date: 23 Nov 2010*
+*Date: 20 Dec 2010*
 
 Performance of ProDy pdb parser :func:`~prody.proteins.parsePDB` is compared to 
 those of :class:`Bio.PDB.PDBParser.PDBParser` and :class:`MMTK.PDB.PDBConfiguration` 
@@ -14,17 +14,24 @@ List of PDB identifiers was obtained from http://bioinfo.tg.fh-giessen.de/pdbsel
 
 
 .. csv-table:: Results from parsing PDB select set of 4701 proteins.
-   :header: "", "ProDy all", "ProDy Ca", "ProDy Ca model 1", "Bio.PDB", "MMTK"
+   :header: "", "ProDy HV", "ProDy All", "ProDy Ca", "ProDy m1", "Bio.PDB", "MMTK"
 
-   "*Total*", 11.16 m, 3.27 m, 2.23 m, 52.28 m, 155.6 m
-   "*Per file*", 0.142 s, 0.042 s, 0.028 s, 0.667 s, 1.986 s
+   "*Total*", 18.13 m, 11.16 m, 3.27 m, 2.23 m, 52.28 m, 155.6 m
+   "*Per file*", 0.232 s, 0.142 s, 0.042 s, 0.028 s, 0.667 s, 1.986 s
    
 Evaluation was made using a desktop machine with Intel(R) Xeon(TM) CPU at 3.20GHz.
-ProDy was timed for parsing all atoms, Ca’s, and Ca’s from model 1. 
+ProDy was timed for parsing all atoms and generating a hiearchical view (HV), 
+parsing all atoms (All), Ca’s (Ca), and Ca’s from model 1 (m1). 
 Note that by default Bio.PDB parser evaluates all models, and MMTK parser
-evaluates only the first model.  
+evaluates only the first model.
  
-ProDy PDB parser was 4.9 times faster than Bio.PDB parser on average. 
+ProDy PDB parser was 2.8 to 24 times faster than Bio.PDB parser on average. 
+Note that Biopython and MMTK parsers perform additonal tasks when coordinates
+are parsed, i.e. building a hierarchical view containing chains and residues.
+ProDy parser evaluates coordinate lines and generates a plain view of atoms
+to increase the speed of parsing action. A hiearchical view is generated
+only when needed.  
+
 
 The following code was used for evaluation::
 
@@ -39,7 +46,7 @@ The following code was used for evaluation::
   def getCAcoords_ProDy(pdb):
       return pdb.select('name CA').getCoordinates()
 
-  def timeProDy(subset=None, model=None):
+  def timeProDy(subset=None, model=None, hv=False):
       pdbfiles = glob('pdb_select/*pdb')
       fout = open('timer_failures_ProDy.txt', 'w')
       ProDySetVerbosity('critical')
@@ -48,7 +55,8 @@ The following code was used for evaluation::
       for pdb in pdbfiles:
           try:
               structure = parsePDB(pdb, model=model, subset=subset)
-              hv = structure.getHierView()
+              if hv:
+                temp = structure.getHierView()
               caxyz = getCAcoords_ProDy(structure)
           except:
               failures += 1

@@ -41,7 +41,7 @@ Feature Index
 **Generate conformations along normal modes:**
 
   * Sample random conformations along a set of modes (:func:`~dynamics.sampleModes`)
-  * Generate evenly spaced conformations along a single mode (:func:`~dynamics.animateMode`)
+  * Generate evenly spaced conformations along a single mode (:func:`~dynamics.traverseMode`)
 
 **Compare experimental and theoretical models:**
   

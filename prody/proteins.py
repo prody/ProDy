@@ -1,4 +1,4 @@
-# ProDy: A Python Package for Protein Structural Dynamics Analysis
+# ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010  Ahmet Bakan
 # 
@@ -147,9 +147,10 @@ class RCSB_PDBFetcher(PDBFetcher):
                        os.path.join(folder, pdbid.upper() + '.pdb'),
                        os.path.join(folder, pdbid.upper() + '.pdb.gz')]: 
                 if os.path.isfile(fn):
+                    fn = os.path.relpath(fn)
                     filenames.append(fn)
                     LOGGER.debug('{0:s} ({1:s}) is found in the target directory.'
-                                 .format(pdbid, os.path.relpath(fn)))
+                                 .format(pdbid, fn))
                     exists += 1
                     break
             if len(filenames) == i+1:
@@ -960,7 +961,7 @@ def writePDBStream(stream, atoms, model=None, sort=False):
     :type atoms: :class:`~prody.atomic.Atomic` 
     
     :arg model: Model index or list of model indices.
-    ;type model: int, list
+    :type model: int, list
         
     :arg sort: if True, atoms will be sorted Chain, ResidueNumber, AtomName (not working yet).
     

@@ -23,13 +23,6 @@ With only NumPy installed, you can use the PDB parser and the powerful atom
 selector. For dynamics analysis and complete features of atom selector, 
 you need to have the following as well.
 
-.. note:: A note on Python version. What you are planning to do with ProDy
-   may restrict you to certain versions of Python. ProDy works with Python 
-   2.6 and 2.7, and there is a NumPy installer for these versions. 
-   SciPy does not have an installer for Python 2.7, so if you intend to use 
-   ProDy for ANM/GNM/PCA calculations, using Python 2.6 will be easier to 
-   get all required packages.   
-
 **Required for certain functionality:**
 
 * `Scipy 0.7+ <http://www.scipy.org/SciPy>`_ for NMA calculations.
@@ -37,6 +30,13 @@ you need to have the following as well.
   sequence alignment, and proximity based atom selections.
 * `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting normal mode 
   data.
+
+.. note:: A note on Python version. What you are planning to do with ProDy
+   may restrict you to certain versions of Python. ProDy works with Python 
+   2.6 and 2.7, and there is a NumPy installer for these versions. 
+   SciPy does not have an installer for Python 2.7, so if you intend to use 
+   ProDy for ANM/GNM/PCA calculations, using Python 2.6 will be easier to 
+   get all required packages.   
 
 Complementary Software
 ===============================================================================
@@ -85,12 +85,8 @@ then add a line to your .bashrc (or alike) script as follows
 
 **Windows**
 
-Download :file:`ProDy-0.x.y.linux-x86_64.exe` and run it to install ProDy.
+Download :file:`ProDy-0.x.y.Windows.exe` and run it to install ProDy.
 
-Installer might give some errors that start with the message "Could not create 
-...". This happens because the installer was prepared in Linux. It should
-not affect the installation. You can try the commands in :ref:`tutorial` to 
-make sure that ProDy was correctly installed. 
 
 Source Code
 ===============================================================================

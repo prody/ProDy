@@ -19,7 +19,7 @@ own Python programs.
 
 Upon completion of the tutorial, user is referred to :ref:`examples` section 
 that gives more specific and comprehensive usage examples, and also to 
-:ref:`howtos` section that elaborates on important features of ProDy.
+:ref:`reference` section for documentation of all ProDy classes and functions.
 
 Command line usage
 ===============================================================================
@@ -28,14 +28,14 @@ ProDy scripts come with source distribution, which can be downloaded from
 http://pypi.python.org/pypi/ProDy/ (tar.gz file). Latest versions of these 
 scripts can also be obtained from https://github.com/abakan/ProDy/tree/master/scripts/.
 
-:ref:`scripts` section shows detailed usage information.
+:ref:`scripts` section shows more detailed information.
 
 Using these scripts is straight forward (on linux). Let's assume you are
 in the same folder as the ANM script. Running the following command will 
 perform ANM calculations for p38 MAP kinase structure, and will write 
 eigenvalues/vectors in plain text and NMD formats::
 
-  ./anm 1p38
+  ./python anm.py 1p38
   
 In this example, default parameters (``cutoff=15.`` and ``gamma=1.``).
 and all alpha carbons of the protein structure 1p38 are used.
@@ -44,7 +44,7 @@ In the following, cutoff distance is changed to 14 angstroms,
 alpha carbons of residues with numbers smaller than 340 are used, 
 and output files are prefixed with "p38_anm"::
 
-  ./anm -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
+  ./python anm.py -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
 
 Output file :file:`p38_anm.nmd` file can be visualized using |nmwiz|. 
 
@@ -63,10 +63,11 @@ current namespace as follows:
 
 .. note::
    Python commands in this page can easily be copied into a Python file using
-   "Get Code Snippets" bar on the right hand side. Clicking on :guilabel:`Get Code`
-   will show only Python code snippets in a message window, which can be copied 
-   from there into a file. Click on text, press :kbd:`Ctrl+A`, :kbd:`Ctrl+C`,
-   then :kbd:`Esc` to have the text in your clipboard.
+   "Code Snippets" bar on the right hand side of the page. 
+   Clicking on :guilabel:`Show Code Snippets` will show only Python code 
+   snippets in a popup window. The code in the new page can be directly copied 
+   into a file. Click on text, press :kbd:`Ctrl+A` and then :kbd:`Ctrl+C`
+   to have the text in your clipboard.
 
 
 Parse a PDB file
@@ -113,9 +114,12 @@ are given in section :ref:`selections`. Here, only a few examples are shown:
 >>> only_protein
 <Selection: "protein" from 1p38 (2833 atoms; 1 coordinate sets, active set index: 0)>
 
-This shows that 2833 of 2962 atoms are protein atoms.
+This shows that 2833 of 2962 atoms are protein atoms. We selected them
+using :term:`protein` keyword.
 
 **Select atoms by name**:
+
+We can select side-chain atoms as follows:
 
 >>> side_chain_atoms = prot.select('protein and not name N CA C O')
 >>> print side_chain_atoms
@@ -123,7 +127,8 @@ Selection "protein and not name N CA C O" from 1p38
 >>> len(side_chain_atoms)
 1429
 
-Same selection could also be made using ``sidechain`` or ``not backbone`` keywords:
+Same selection could also be made using :term:`sidechain` keyword or :term:`backbone` keyword
+preceeded by *not*:
 
 >>> prot.select('sidechain')
 <Selection: "sidechain" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
@@ -131,7 +136,7 @@ Same selection could also be made using ``sidechain`` or ``not backbone`` keywor
 >>> prot.select('not backbone')
 <Selection: "not backbone" from 1p38 (1558 atoms; 1 coordinate sets, active set index: 0)>
 
-Oops, ``not backbone`` did not select the same number of atoms. Let's try to
+Oops, *not* :term:`backbone` did not select the same number of atoms. Let's try to
 see why:
 
 >>> print set(prot.select('not backbone').getResidueNames())
@@ -146,9 +151,19 @@ Let's try:
 >>> prot.select('not backbone and not water')
 <Selection: "not backbone and not water" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
 
-This has now worked as ``sidechain`` did.
+We also used :term:`water` term. This has now worked as :term:`sidechain` did.
+This was to show that it is possible to select same set of atoms in a number 
+of different ways. 
 
 **Select amino acids by type/name**:
+
+Let's say we want to select charged residues. We can use :term:`resname`
+keyword followed by 3-letter residue names:  
+
+>>> prot.select('resname ARG LYS HIS ASP GLU')
+<Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
+
+Or, we can use predefined keywords :term:`acidic` and :term:`basic`.
 
 >>> charged = prot.select('acidic or basic')
 >>> print charged
@@ -158,18 +173,16 @@ Selection "acidic or basic" from 1p38
 >>> set(charged.getResidueNames())
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
-Same selection could also be made using ``charged`` keyword:
+Same selection could also be made using :term:`charged` keyword:
 
 >>> prot.select('charged')
 <Selection: "charged" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
 
-Or, we could use residue names expilicitly:
-
->>> prot.select('resname ARG LYS HIS ASP GLU')
-<Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
-
 .. seealso::
-   For more information see :ref:`selections` and :ref:`selections-operations`.
+   To see all of what you can do with atom selections, 
+   go to :ref:`selections`. Also see :ref:`selections-operations` and 
+   :ref:`contacts` for more advanced examples.
+
 
 Hierarchical view of atoms
 -------------------------------------------------------------------------------
@@ -213,7 +226,6 @@ Write a chain:
 As you might have noticed, this function returns the file name after it is
 successfully written.
 
-
 Perform ANM calculations
 -------------------------------------------------------------------------------
 
@@ -249,3 +261,22 @@ in NMD format. NMD files can be viewed using |vmd| plugin NMWiz.
 
 >>> writeNMD('p38anm.nmd', anm[:6], calphas) 
 'p38anm.nmd'
+
+More examples and information
+-----------------------------
+
+For more information see one of:
+
+  * :ref:`examples`
+  * :ref:`features`
+  * :ref:`reference`
+
+Files generated or downloaded in this tutorial can be deleted as follows:
+
+>>> import os
+>>> os.remove('1p38.pdb.gz')
+>>> os.remove('1p38_calphas.pdb')
+>>> os.remove('1p38_chain_A.pdb')
+
+
+
