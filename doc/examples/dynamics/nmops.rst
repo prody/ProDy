@@ -23,17 +23,17 @@ Let's get started by getting ANM models for two related protein structures:
 >>> ch_one = match[0]
 >>> ch_two = match[1]
 
->>> ch_two, t = superimpose(ch_two, ch_one) # minimizes RMSD by moving ch_two onto ch_one
+>>> ch_two, t = superpose(ch_two, ch_one) # minimizes RMSD by moving ch_two onto ch_one
 >>> # t is transformation, which is already applied to ch_two, so we don't use it
->>> rmsd = getRMSD(ch_one, ch_two)
+>>> rmsd = calcRMSD(ch_one, ch_two)
 >>> print '{0:.2f}'.format(rmsd) # We are just printing rmsd with some formatting
 0.90
 
 
 **Get ANM models for each chain**
 
->>> anm_one = getANM(ch_one)
->>> anm_two = getANM(ch_two)
+>>> anm_one = calcANM(ch_one)
+>>> anm_two = calcANM(ch_two)
 
 >>> print anm_one[0]
 Mode 1 from ANM 1p38
@@ -127,7 +127,7 @@ Approximate a deformation vector
 
 Let's get the deformation vector between *ch_one* and *ch_two*:
 
->>> defvec = getDeformVector(ch_one, ch_two)
+>>> defvec = calcDeformVector(ch_one, ch_two)
 >>> defvec_magnitude = abs(defvec)
 >>> print '{0:.2f}'.format(defvec_magnitude)
 16.69
@@ -147,7 +147,7 @@ Let's deform 1r39 chain along this approximate deformation vector and see
 how RMSD changes:
 
 >>> ch_two.setCoordinates(ch_two.getCoordinates() - approximate_defvec.getArrayNx3())
->>> rmsd = getRMSD(ch_one, ch_two)
+>>> rmsd = calcRMSD(ch_one, ch_two)
 >>> print '{0:.2f}'.format(rmsd)
 0.82
 

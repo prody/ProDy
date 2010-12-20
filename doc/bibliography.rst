@@ -18,6 +18,10 @@ Bibliography
    changes induced upon inhibitor binding. *Proc Natl Acad Sci U S A.* 
    **2009** 106(34):14349-54.
 
+.. [AB11] Bakan A, Bahar I. Computational generation of inhibitor-bound 
+    conformers of p38 MAP kinase and comparison with experiments. *Pacific 
+    Symposium on Biocomputing* **2011** 16 181-192.
+
 .. [ARA01] Atilgan AR, Durrell SR, Jernigan RL, Demirel MC, Keskin O, Bahar I. 
    Anisotropy of fluctuation dynamics of proteins with an elastic network model.
    *Biophys. J.* **2001** 80:505-515.

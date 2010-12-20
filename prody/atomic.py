@@ -307,7 +307,7 @@ class AtomGroup(Atomic):
     
     def getCoordinates(self): 
         """Return coordinates from active coordinate set."""
-        if self._coordinates is None:
+        if self._coordinates is None or self._n_coordsets == 0:
             return None
         return self._coordinates[self._acsi].copy()
     
@@ -403,7 +403,7 @@ class AtomGroup(Atomic):
         returns all coordinate sets. 
         
         """
-        if self._coordinates is None:
+        if self._coordinates is None or self._n_coordsets == 0:
             return None
         if indices is None:
             indices = slice(None)
@@ -499,7 +499,16 @@ class AtomPointer(Atomic):
       * :class:`AtomSubset`
       * :class:`AtomMap`
     """
-    
+    def __init__(self, atomgroup, acsi=None):
+        if not isinstance(atomgroup, AtomGroup):
+            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
+                            .format(type(atomgroup)))
+        self._ag = atomgroup
+        if acsi is None:
+            self._acsi = atomgroup.getActiveCoordsetIndex()
+        else: 
+            self._acsi = int(acsi)
+
     def __add__(self, other):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are
         preserved."""
@@ -551,6 +560,10 @@ class AtomPointer(Atomic):
         if index < 0:
             index += self._ag._n_coordsets
         self._acsi = index
+        
+    def copy(self):
+        """Make a copy of atoms."""
+        return self._ag.copy(self)
 
 class AtomMeta(type):
     def __init__(cls, name, bases, dict):
@@ -583,15 +596,8 @@ class Atom(AtomPointer):
     __slots__ = ('_ag', '_index', '_acsi')
     
     def __init__(self, atomgroup, index, acsi=None):
-        if not isinstance(atomgroup, AtomGroup):
-            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
-                            .format(type(atomgroup)))
-        self._ag = atomgroup
+        AtomPointer.__init__(self, atomgroup, acsi)
         self._index = int(index)
-        if acsi is None:
-            self._acsi = atomgroup.getActiveCoordsetIndex()
-        else: 
-            self._acsi = int(acsi)
         
     def __repr__(self):
         return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
@@ -615,19 +621,23 @@ class Atom(AtomPointer):
     
     def getCoordinates(self):
         """Return a copy of coordinates of the atom from the active coordinate set."""
+        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+            return None
         return self._ag._coordinates[self._acsi, self._index].copy()
     
     def setCoordinates(self, coordinates):
         """Set coordinates of the atom in the active coordinate set."""
         self._ag._coordinates[self._acsi, self._index] = coordinates
         
-    def getCoordsets(self, indices):
+    def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices.
         
         *indices* may be an integer or a list of integers.
         """
-        if self._ag._coordinates is None:
-            raise AttributeError('coordinates are not set')
+        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+            return None
+        if indices is None:
+            indices = slice(None)
         try: 
             return self._ag._coordinates[indices, self._index].copy()
         except IndexError:
@@ -686,19 +696,12 @@ class AtomSubset(AtomPointer):
         :arg acsi: active coordinate set index
         :type acsi: integer
         """
-        if not isinstance(atomgroup, AtomGroup):
-            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
-                            .format(type(atomgroup)))
-        self._ag = atomgroup
+        AtomPointer.__init__(self, atomgroup, acsi)
         if not isinstance(indices, np.ndarray):
             indices = np.array(indices, np.int64)
         elif not indices.dtype == np.int64:
             indices = indices.astype(np.int64)
         self._indices = np.unique(indices)
-        if acsi is None:
-            self._acsi = atomgroup.getActiveCoordsetIndex()
-        else:
-            self._acsi = int(acsi)
     
     def __iter__(self):
         """Iterate over atoms."""
@@ -771,7 +774,7 @@ class AtomSubset(AtomPointer):
 
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
-        if self._ag._coordinates is None:
+        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         return self._ag._coordinates[self._acsi, self._indices].copy()
     
@@ -779,12 +782,12 @@ class AtomSubset(AtomPointer):
         """Set coordinates in the active coordinate set."""
         self._ag._coordinates[self._acsi, self._indices] = coordinates
         
-    def getCoordsets(self, indices):
+    def getCoordsets(self, indices=None):
         """Return coordinate sets at given *indices*.
         
         *indices* may be an integer or a list of integers.
         """
-        if self._ag._coordinates is None:
+        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         if indices is None:
             indices = slice(None)
@@ -1044,10 +1047,7 @@ class AtomMap(AtomPointer):
         atoms (including unmapped dummy atoms) are determined from the 
         sum of lengths of *mapping* and *unmapped* arrays.         
         """
-        if not isinstance(atomgroup, AtomGroup):
-            raise TypeError('atomgroup must be AtomGroup, not {0:s}'
-                            .format(type(atomgroup)))
-        self._ag = atomgroup
+        AtomPointer.__init__(self, atomgroup, acsi)
         
         if not isinstance(indices, np.ndarray):
             self._indices = np.array(indices, np.int64)
@@ -1071,10 +1071,6 @@ class AtomMap(AtomPointer):
             self._unmapped = unmapped
         
         self._name = str(name)
-        if acsi is None:
-            self._acsi = atomgroup.getActiveCoordsetIndex()
-        else:
-            self._acsi = int(acsi)
         self._len = len(self._unmapped) + len(self._mapping)
         
     def __repr__(self):
@@ -1137,6 +1133,8 @@ class AtomMap(AtomPointer):
 
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
+        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+            return None
         coordinates = np.zeros((self._len, 3), np.float64)
         coordinates[self._mapping] = self._ag._coordinates[self._acsi, self._indices] 
         return coordinates
@@ -1145,13 +1143,15 @@ class AtomMap(AtomPointer):
         """Set coordinates in the active coordinate set."""
         self._ag._coordinates[self._acsi, self._indices] = coordinates
     
-    def getCoordsets(self, indices):
+    def getCoordsets(self, indices=None):
         """Return coordinate sets at given indices.
         
         *indices* may be an integer or a list of integers.
         """
-        if self._ag._coordinates is None:
+        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
+        if indices is None:
+            indices = slice(None)
         try: 
             return self._ag._coordinates[indices, self._indices].copy()
         except IndexError:
@@ -1262,6 +1262,9 @@ class HierView(object):
     def __iter__(self):
         """Iterate over chains."""
         return self.iterChains()
+    
+    def __len__(self):
+        return len(self._chains)
     
     def __getitem__(self, chid):
         return self._chains.get(chid, None)

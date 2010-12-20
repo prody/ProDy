@@ -1,24 +1,34 @@
-**SYNOPSIS**
+SYNOPSIS
+--------
 
-ProDy is a Python package designed for protein structural dynamics analysis. 
-New features and functions are constantly being added to ProDy. 
-The following are the main features that are present and working fine:
+ProDy is a Python package designed and developed for analyzing protein 
+structural dynamics by Ahmet Bakan in Bahar lab. New functional features 
+are continually being added to ProDy. The following are the main features 
+that have been suffessfully implemented to date:
 
-Protein structure analysis:
-  * a fast PDB file parser
-  * a powerful atom selector and intermolecular contact finder
-  * functions for matching and comparing polypeptide chains
-Normal mode analysis (NMA):
-  * elastic network models (Anisotropic/Gaussian network models)
-  * PCA of X-ray structures, NMR models, MD snapshots
-  * functions for comparative NMA, i.e. calculate/plot overlaps
+**Examination and analysis of structural variabilitys observed in experiments:**
 
-**DOCUMENTATION**
+  * Efficient parsing of PDB files
+  * Powerful selection of atoms and interactions
+  * Matching, superposing, and comparing multiple structures/chains
+  * Principal component analysis (PCA) of ensembles of X-ray structures
+  * PCA of NMR models
+
+**Prediction and analysis of protein dynamics using theory and simulation:**
+
+  * Normal Mode Analysis using the Anisotropic network models (ANM)
+  * Gaussian network models (GNM) analysis
+  * Essential dynamics analysis (EDA) of MD snapshots
+  * Comparative analysis and visualization of dynamics
+
+DOCUMENTATION
+-------------
 
 * http://www.csb.pitt.edu/People/abakan/software/ProDy 
 * http://www.csb.pitt.edu/People/abakan/software/ProDy/ProDy.pdf
 
-**LICENSE**
+LICENSE
+-------
   
 ProDy is distributed under GNU General Public License version 3. 
 See LICENSE.txt for more details. 
@@ -28,29 +38,35 @@ in ProDy releases. Pyparsing is developed by Paul T. McGuire
 and is distributed under MIT license 
 (http://www.opensource.org/licenses/mit-license.php).
 
-**DOWNLOADS**
+DOWNLOADS
+---------
   
 * http://pypi.python.org/pypi/ProDy/  
 
-**INSTALLATION**
+INSTALLATION
+------------
 
 * http://www.csb.pitt.edu/People/abakan/software/ProDy/getprody.html
 * INSTALL.txt
 
-**CHANGES**
+CHANGES
+-------
 
 * http://www.csb.pitt.edu/People/abakan/software/ProDy/changes.html
 * CHANGES.txt
 
-**SOURCE**
+SOURCE
+------
 
 * http://github.com/abakan/ProDy
 
-**EMAILING LIST**
+EMAILING LIST
+-------------
 
 * http://groups.google.com/group/prody-dev
 
-**REPORT ISSUES**
+REPORT ISSUES
+-------------
 
 * https://github.com/abakan/ProDy/issues
   

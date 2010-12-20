@@ -26,13 +26,14 @@ Classes
 Functions
 ---------
     
+  * :func:`alignCoordsets`
   * :func:`applyTransformation`
-  * :func:`getDeformVector`
-  * :func:`getDistance`
-  * :func:`getRadiusOfGyration`
-  * :func:`getRMSD`
-  * :func:`getTransformation`
-  * :func:`superimpose` 
+  * :func:`calcDeformVector`
+  * :func:`calcDistance`
+  * :func:`calcRadiusOfGyration`
+  * :func:`calcRMSD`
+  * :func:`calcTransformation`
+  * :func:`superpose` 
 
 """
 
@@ -41,10 +42,12 @@ __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
 import prody as pd
 import numpy as np
+from prody import ProDyLogger as LOGGER
 
-__all__ = ['Transformation', 'applyTransformation', 'getDeformVector',
-           'getDistance', 'getRadiusOfGyration', 'getRMSD', 'getTransformation',
-           'superimpose']
+
+__all__ = ['Transformation', 'applyTransformation', 'alignCoordsets', 
+           'calcDeformVector', 'calcDistance', 'calcRadiusOfGyration', 
+           'calcRMSD', 'calcTransformation', 'superpose']
            
 class Transformation(object):
     
@@ -120,7 +123,7 @@ class Transformation(object):
         return applyTransformation(self, atoms)
     
 
-def getTransformation(mobile, target, weights=None):
+def calcTransformation(mobile, target, weights=None):
     """Returns a :class:`Transformation` instance which, when applied to the 
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and 
     *target*.
@@ -154,10 +157,10 @@ def getTransformation(mobile, target, weights=None):
     if mob.shape[1] != 3:
         raise ValueError('reference and target must be 3-d coordinate arrays')
         
-    t = _getTransformation(mob, tar, weights)
+    t = _calcTransformation(mob, tar, weights)
     return t
 
-def _getTransformation(mob, tar, weights=None):
+def _calcTransformation(mob, tar, weights=None):
     if pd.la is None: pd.importScipyLinalg()
     n_atoms = mob.shape[0]
     
@@ -226,7 +229,7 @@ def applyTransformation(transformation, coordinates):
     else:
         return transformed
 
-def getDeformVector(from_atoms, to_atoms):
+def calcDeformVector(from_atoms, to_atoms):
     """Returns deformation :class:`prody.dynamics.Vector` from *from_atoms* 
     to *atoms_to*."""
     
@@ -236,16 +239,19 @@ def getDeformVector(from_atoms, to_atoms):
     array = (to_atoms.getCoordinates() - from_atoms.getCoordinates()).flatten()
     return pd.Vector(array, name)
 
-def getRMSD(reference, target, weights=None):
+def calcRMSD(reference, target=None, weights=None):
     """Returns Root-Mean-Square-Deviations between reference and target coordinates."""
     if not isinstance(reference, np.ndarray): 
         try:
             ref = reference.getCoordinates()
+            if target is None:
+                target = reference.getCoordsets()
         except AttributeError:
             raise TypeError('reference is not an array of coordinates '
                             'and do not contain a coordinate set')
     else:
         ref = reference
+        
     if not isinstance(target, np.ndarray): 
         try:
             tar = target.getCoordinates()
@@ -257,9 +263,9 @@ def getRMSD(reference, target, weights=None):
     
     if ref.shape != tar.shape[-2:]:
         raise ValueError('reference and target coordinate arrays must have same shape')
-    return _getRMSD(ref, tar, weights)
+    return _calcRMSD(ref, tar, weights)
     
-def _getRMSD(ref, tar, weights=None):
+def _calcRMSD(ref, tar, weights=None):
     n_atoms = ref.shape[0]
     if weights is None:
         weights = 1
@@ -275,13 +281,13 @@ def _getRMSD(ref, tar, weights=None):
     else:
         return np.sqrt(((ref-tar) ** 2).sum(2).sum(1) / weights_sum)
     
-def superimpose(mobile, target, weights=None):
-    """Superimpose *mobile* onto *target* to minimize the RMSD distance."""
-    t = getTransformation(mobile, target, weights)
+def superpose(mobile, target, weights=None):
+    """Superpose *mobile* onto *target* to minimize the RMSD distance."""
+    t = calcTransformation(mobile, target, weights)
     result = applyTransformation(t, mobile)
     return (result, t) 
 
-def getDistance(one, two):
+def calcDistance(one, two):
     """Return the Euclidean distance between *one* and *two*.
     
     Arguments may be :class:`Atom` instances or NumPy arrays. Shape 
@@ -300,13 +306,52 @@ def getDistance(one, two):
     
     return np.sqrt(np.power(one - two, 2).sum(axis=-1))
     
-def getAngle():
+def alignCoordsets(atoms, selstr='calpha', weights=None):
+    """Superpose coordinate sets onto the active coordinate set.
+    
+    Atoms matching *selstr* will be used for calculation of transformation 
+    matrix. Transformation matrix will be applied to all atoms in *atoms*,
+    or its :class:`~prody.atomics.AtomGroup` if *atoms* is an 
+    :class:`~prody.atomics.AtomPointer`.
+    
+    By default, alpha carbon atoms are used to calculate the transformations.
+    
+    Optionally, atomic *weights* can be passed for weighted superposition.    
+    """
+    if not isinstance(atoms, pd.Atomic):
+        raise TypeError('atoms must have type Atomic, not {0:s}'.format(type(atoms)))
+    if not isinstance(selstr, str):
+        raise TypeError('selstr must have type str, not {0:s}'.format(type(selstr)))
+    n_coordsets = atoms.getNumOfCoordsets()
+    if n_coordsets < 2:
+        LOGGER.warning('{0:s} contains only one coordinate set, superposition not performed.'.format(str(atoms)))
+        return None
+    
+    acsi = atoms.getActiveCoordsetIndex()
+    if isinstance(atoms, pd.AtomGroup):
+        ag = atoms
+    else: 
+        ag = atoms.getAtomGroup()
+    agacsi = ag.getActiveCoordsetIndex()
+    tar = atoms.select(selstr)
+    mob = pd.AtomSubset(ag, tar.getIndices(), 0)
+    assert tar.getActiveCoordsetIndex() == acsi
+    for i in range(n_coordsets):
+        if i == acsi:
+            continue
+        mob.setActiveCoordsetIndex(i)
+        ag.setActiveCoordsetIndex(i)
+        calcTransformation(mob, tar, weights).apply(ag)
+    ag.setActiveCoordsetIndex(agacsi)
+
+    
+def calcAngle():
     pass
 
-def getDihedral():
+def calcDihedral():
     pass
 
-def getRadiusOfGyration(coords, weights=None):
+def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
     if isinstance(coords, (pd.AtomGroup, pd.AtomSubset, pd.AtomMap)):
         coords = coords.getCoordinates()

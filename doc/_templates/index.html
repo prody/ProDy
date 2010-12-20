@@ -17,28 +17,35 @@
   </div>
 
   <p>
-    ProDy is a Python package designed for protein structural dynamics analysis. 
-    New features and functions are constantly being added to ProDy.  
-    The following are the main features that are present and working fine:
+    ProDy is a Python package designed and developed for analyzing protein 
+    structural dynamics by <a href="http://www.ccbb.pitt.edu/People/abakan/">Ahmet Bakan</a> in 
+    <a href="http://www.ccbb.pitt.edu/Faculty/bahar/">Bahar lab</a>. 
+    New functional features are continually being added to ProDy.  
+    The following are the main features that have been suffessfully implemented to date:
   </p>
   <ul>
-    <li><b>Protein structure analysis:</b> 
+    <li> <b>Examination and analysis of structural variabilitys observed in experiments:</b>
       <ul>
-        <li> a <a href="{{ pathto("reports/parser_performance") }}">fast PDB file parser</a> </li>
-        <li> a <a href="{{ pathto("reference/usage/selections") }}">powerful atom selector</a> and <a href="{{ pathto("examples/select/contacts") }}">intermolecular contact finder</a> </li>
-        <li> functions for <a href="{{ pathto("reference/library/compare") }}">matching</a> and <a href="{{ pathto("reference/library/measure") }}">comparing</a> polypeptide chains </li>
-      </ul>    
+        <li> Efficient <a href="{{ pathto("examples/proteins/parsepdb") }}">parsing</a> of PDB files </li>
+        <li> powerful selection of <a href="{{ pathto("reference/usage/selections") }}">atoms</a> and <a href="{{ pathto("examples/select/contacts") }}">interactions</a> </li>
+        <li> <a href="{{ pathto("reference/library/compare") }}">matching, superposing, and comparing</a> multiple structures/chains </li>
+        <li> PCA of ensembles of <a href="{{ pathto("examples/dynamics/pca/pca_xray/index") }}">X-ray structures</a> </li>
+        <li> PCA of <a href="{{ pathto("examples/dynamics/pca/pca_nmr") }}">NMR models</a> </li>
+      </ul>
     </li>
-    <li><b>Normal Mode Analysis (NMA):</b> 
-      <ul>
-        <li> <a href="{{ pathto("reference/library/dynamics") }}">elastic network models (Anisotropic/Gaussian network models)</a> </li>
-        <li> <a href="{{ pathto("examples/dynamics/pca") }}">PCA of X-ray structures, NMR models, MD snapshots</a> </li>
-        <li> functions for <a href="{{ pathto("reference/library/dynamics") }}">comparative NMA, i.e. calculate/plot overlaps</a> </li>
+    <li> <b>Prediction and analysis of protein dynamics using theory and simulation:</b>
+      <ul> 
+        <li> Normal Mode Analysis using the <a href="{{ pathto("examples/dynamics/enm/anm") }}">Anisotropic network models</a> (ANM) </li>
+        <li> <a href="{{ pathto("examples/dynamics/enm/gnm") }}">Gaussian network models</a> (GNM) analysis </li>
+        <li> <a href="{{ pathto("examples/dynamics/pca/eda_md") }}">Essential dynamics analysis</a> (EDA) of MD snapshots </li>
+        <li> <a href="{{ pathto("reference/library/dynamics") }}">Comparative analysis</a> and visualization of dynamics </li>
       </ul>
     </li>
   </ul>
   
-  <p>See also our complementary software <a class="reference external" href="http://www.pitt.edu/~ahb12/software/NMWiz/">NMWiz</a>.</p>
+  <p>Click for a complete <a href="{{ pathto("features") }}">list of features with links to examples and documentation</a>.</p> 
+  
+  <p>See also our complementary software plugin <a class="reference external" href="http://www.pitt.edu/~ahb12/software/NMWiz/">NMWiz</a>.</p>
 
   <h2>Documentation</h2>
 
@@ -46,17 +53,21 @@
     <td width="50%">
       <p class="biglink"><a class="biglink" href="{{ pathto("tutorial") }}">Tutorial</a><br/>
          <span class="linkdescr">overview of basic tasks</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("reference/index") }}">Reference</a><br/>
-         <span class="linkdescr">classes and functions</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("reports") }}">Reports</a><br/>
-         <span class="linkdescr">development/performance notes</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
-         <span class="linkdescr">search the documentation</span></p>
-    </td><td width="50%" valign="top">
       <p class="biglink"><a class="biglink" href="{{ pathto("examples/index") }}">Examples</a><br/>
          <span class="linkdescr">usage examples</span></p>
       <p class="biglink"><a class="biglink" href="{{ pathto("scripts/index") }}">Scripts</a><br/>
          <span class="linkdescr">scripts for automated tasks</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("changes") }}">Changes</a><br/>
+         <span class="linkdescr">history of changes</span></p> 
+      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
+         <span class="linkdescr">search the documentation</span></p>
+    </td><td width="50%" valign="top">
+      <p class="biglink"><a class="biglink" href="{{ pathto("features") }}">Features</a><br/>
+         <span class="linkdescr">list of features with links to examples</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("reference/index") }}">Reference</a><br/>
+         <span class="linkdescr">classes and functions</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("reports") }}">Reports</a><br/>
+         <span class="linkdescr">development/performance notes</span></p> 
       <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Contents</a><br/>
          <span class="linkdescr">for a complete overview</span></p> 
       <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}">General Index</a><br/>

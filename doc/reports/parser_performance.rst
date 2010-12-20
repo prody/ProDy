@@ -1,25 +1,30 @@
-.. _pdbparser-performance-2:
+.. _pdbparser-performance:
 
-PDB Parser Performance 2
+PDB Parser Performance
 ===============================================================================
 
 *Date: 23 Nov 2010*
 
-Performance of ProDy pdb parser :func:`prody.proteins.parsePDB` is compared to 
-the :class:`Bio.PDB.PDBParser.PDBParser` using 4701 PDB structures. List of 
-identifiers for a non-redundant set of PDB structures is obtained from 
-http://bioinfo.tg.fh-giessen.de/pdbselect (:download:`pdb_select25`).
+Performance of ProDy pdb parser :func:`~prody.proteins.parsePDB` is compared to 
+those of :class:`Bio.PDB.PDBParser.PDBParser` and :class:`MMTK.PDB.PDBConfiguration` 
+using a non-redundant set of PDB structures. 
+
+List of PDB identifiers was obtained from http://bioinfo.tg.fh-giessen.de/pdbselect 
+(:download:`pdb_select25`). Dataset contained 4701 uncompressed files. 
 
 
 .. csv-table:: Results from parsing PDB select set of 4701 proteins.
-   :header: "Parser", "Total time", "Per file time", "Failures"
+   :header: "", "ProDy all", "ProDy Ca", "ProDy Ca model 1", "Bio.PDB", "MMTK"
 
-   "*ProDy*", 636.40 s, 0.135 s, 0
-   "*Bio.PDB*", 3125.89 s, 0.665 s, 0
+   "*Total*", 11.16 m, 3.27 m, 2.23 m, 52.28 m, 155.6 m
+   "*Per file*", 0.142 s, 0.042 s, 0.028 s, 0.667 s, 1.986 s
    
-ProDy PDB parser seems to be 4.9 times faster than Bio.PDB parser on average. 
-   
-Comparison was made using a desktop machine with Intel(R) Xeon(TM) CPU at 3.20GHz. 
+Evaluation was made using a desktop machine with Intel(R) Xeon(TM) CPU at 3.20GHz.
+ProDy was timed for parsing all atoms, Ca’s, and Ca’s from model 1. 
+Note that by default Bio.PDB parser evaluates all models, and MMTK parser
+evaluates only the first model.  
+ 
+ProDy PDB parser was 4.9 times faster than Bio.PDB parser on average. 
 
 The following code was used for evaluation::
 
@@ -27,8 +32,14 @@ The following code was used for evaluation::
   from glob import glob
   from prody import *
   from Bio.PDB import *
+  from MMTK.PDB import PDBConfiguration
+  from MMTK.Proteins import Protein
+  import numpy as np
 
-  def timeProDy():
+  def getCAcoords_ProDy(pdb):
+      return pdb.select('name CA').getCoordinates()
+
+  def timeProDy(subset=None, model=None):
       pdbfiles = glob('pdb_select/*pdb')
       fout = open('timer_failures_ProDy.txt', 'w')
       ProDySetVerbosity('critical')
@@ -36,24 +47,41 @@ The following code was used for evaluation::
       st = time()
       for pdb in pdbfiles:
           try:
-              pdb = parsePDB(pdb)
+              structure = parsePDB(pdb, model=model, subset=subset)
+              hv = structure.getHierView()
+              caxyz = getCAcoords_ProDy(structure)
           except:
               failures += 1
               fout.write(pdb + '\n')
       print 'ProDy - Time (s): {0:.2f}'.format(time() - st)
       print 'ProDy - Failures: {0:d}'.format(failures)
       fout.close()
+
+  def getCAcoords_BioPDB(pdb, model=0):
+      """Return alpha carbon coordinates from indicated model.
+      
+      Note that this function does not check whether a protein with name CA
+      is from an amino acid residue.
+      """
+      CAxyz = []
+      for chain in pdb[model]:
+          for residue in chain:
+              ca = residue.child_dict.get('CA', None)
+              if ca is not None:
+                  CAxyz.append(ca.coord)
+      return np.array(CAxyz)
       
   def timeBioPDB():
       pdbfiles = glob('pdb_select/*pdb')
-      fout = open('timer_failures_ProDy.txt', 'w')
+      fout = open('timer_failures_BioPDB.txt', 'w')
       parser = PDBParser()
       failures = 0
       st = time()
       for pdb in pdbfiles:
           f = open(pdb)
           try:
-              pdb = parser.get_structure('', f)
+              structure = parser.get_structure('', f)
+              caxyz = getCAcoords_BioPDB(structure)
           except:
               failures += 1
               fout.write(pdb + '\n')
@@ -62,14 +90,47 @@ The following code was used for evaluation::
       print 'Bio.PDB - Failures: {0:d}'.format(failures)
       fout.close()
 
+  def getCAcoords_MMTK(filename):
+      """Return alpha carbon coordinates.
+      
+      Note that this function does not check whether a protein with name CA
+      is from an amino acid residue.
+      """
+      pdb = PDBConfiguration(filename)
+      CAxyz = []
+      for res in pdb.residues:
+          try:
+              ca = res['CA']
+              CAxyz.append(ca.position)
+          except:
+              pass
+      return np.array(CAxyz)
+
+  def getCAcoords_MMTK_2(filename):
+      """Return alpha carbon coordinates.
+      This method was found to be slower, so is not reported."""
+      protein = Protein(filename, model='calpha')
+      return np.array([atom.position() for atom in protein.atoms])
+
+  def timeMMTK():
+      pdbfiles = glob('pdb_select/*pdb')
+      fout = open('timer_failures_MMTK.txt', 'w')
+      failures = 0
+      st = time()
+      for pdb in pdbfiles:
+          try:
+              caxyz = getCAcoords_MMTK(pdb)
+              #caxyz = getCAcoords_MMTK_2(pdb)
+          except:
+              failures += 1
+              fout.write(pdb + '\n')
+      print 'MMTK - Time (s): {0:.2f}'.format(time() - st)
+      print 'MMTK - Failures: {0:d}'.format(failures)
+      fout.close()
+
 
   if __name__ == '__main__':
       #timeProDy()
-      timeBioPDB()
-      
-Output was::
+      #timeBioPDB()
+      timeMMTK()
 
-  ProDy - Time (s): 636.40
-  ProDy - Failures: 0
-  Bio.PDB - Time (s): 3125.89
-  Bio.PDB - Failures: 0

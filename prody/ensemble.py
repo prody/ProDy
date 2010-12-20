@@ -325,18 +325,18 @@ class Ensemble(object):
         return self._getConformation(index)
         
         
-    def superimpose(self):
-        """Superimpose the ensemble onto the reference coordinates."""
+    def superpose(self):
+        """Superpose the ensemble onto the reference coordinates."""
         if self._confs is None or len(self._confs) == 0: 
             raise AttributeError('conformations are not set')
         LOGGER.info('Superimposing structures.')
         start = time.time()
-        self._superimpose()
+        self._superpose()
         LOGGER.info(('Superimposition is completed in {0:.2f} '
                            'seconds.').format((time.time() - start)))
         
-    def _superimpose(self):
-        """Superimpose conformations and return new coordinates.
+    def _superpose(self):
+        """Superpose conformations and return new coordinates.
         
         This functions saves transformations in self._tranformations."""
         
@@ -346,12 +346,12 @@ class Ensemble(object):
         transformations = self._transformations
         if weights is None:
             for i in xrange(len(self)):
-                conf, t = measure.superimpose(confs[i], coords)
+                conf, t = measure.superpose(confs[i], coords)
                 confs[i] = conf
                 transformations[i] = t
         else:         
             for i in xrange(len(self)):
-                conf, t = measure.superimpose(confs[i], coords, weights[i])
+                conf, t = measure.superpose(confs[i], coords, weights[i])
                 confs[i] = conf
                 transformations[i] = t
         
@@ -372,8 +372,8 @@ class Ensemble(object):
                                                  self._transformations[i][1], 
                                                  self.weights[i])
     
-    def iterimpose(self, rmsd=0.0001):
-        """Iteratively superimpose the ensemble until convergence.
+    def iterpose(self, rmsd=0.0001):
+        """Iteratively superpose the ensemble until convergence.
         
         Initially, all conformations are aligned with the reference 
         coordinates. Then mean coordinates are calculated, and are set
@@ -397,12 +397,12 @@ class Ensemble(object):
             weightsum = weights.sum(axis=0)
         length = len(self)
         while rmsdif > rmsd:
-            self._superimpose()
+            self._superpose()
             if weights is None:
                 newxyz = self._confs.sum(0) / length
             else:
                 newxyz = (self._confs * weights).sum(0) / weightsum
-            rmsdif = measure._getRMSD(self._coords, newxyz)
+            rmsdif = measure._calcRMSD(self._coords, newxyz)
             self._coords = newxyz
             step += 1
             LOGGER.info(('Step #{0:d}: RMSD difference = '
@@ -452,12 +452,13 @@ class Ensemble(object):
 
 
 def saveEnsemble(ensemble, filename=None):
-    """Save *ensemble* model data as :file:`filename.ensemble.npz`. 
+    """Save *ensemble* model data as :file:`filename.ens.npz`. 
     
     If *filename* is ``None``, name of the *ensemble* will be used as 
-    the filename, i.e. ensemble.getName(). 
+    the filename, after " " (blank spaces) in the name are replaced with "_" 
+    (underscores).  
     
-    Extension is :file:`.ensemble.npz`.
+    Extension is :file:`.ens.npz`.
     
     Upon successful completion of saving, filename is returned.
     
@@ -477,14 +478,17 @@ def saveEnsemble(ensemble, filename=None):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
-    filename += '.ensemble.npz'
+    filename += '.ens.npz'
     np.savez(filename, **attr_dict)
     return filename
 
 def loadEnsemble(filename):
     """Return ensemble instance after loading it from file (*filename*).
     
-    .. seealso: :func:`saveEnsemble`"""
+    .. seealso: :func:`saveEnsemble`
+    
+    This function makes use of :func:`numpy.load` function.
+    """
     attr_dict = np.load(filename)
     ensemble = Ensemble(str(attr_dict['_name']))
     dict_ = ensemble.__dict__ 
@@ -554,7 +558,7 @@ class Conformation(object):
 
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates."""
-        return measure._getRMSD(self._ensemble._coords,
+        return measure._calcRMSD(self._ensemble._coords,
                                  self._ensemble._confs[self._index], 
                                  self.getWeights())
     
@@ -573,7 +577,7 @@ def getSumOfWeights(ensemble):
     
     """
     
-    if not isinstance(ensemble, prody.Ensemble):
+    if not isinstance(ensemble, Ensemble):
         raise TypeError('ensemble must be an Ensemble instance')
     
     weights = ensemble.getWeights()
@@ -585,7 +589,7 @@ def getSumOfWeights(ensemble):
     
     
 def showSumOfWeights(ensemble, *args, **kwargs):
-    """Show sum of weights from an ensemble using :func:`matplotlib.pyplot.plot`.
+    """Show sum of weights from an ensemble using :func:`~matplotlib.pyplot.plot`.
     
     Weights are summed for each atom over conformations in the ensemble.
     Size of the plotted array will be equal to the number of atoms.
@@ -599,7 +603,7 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     
     """
     if pl is None: prody.importPyPlot()
-    if not isinstance(ensemble, prody.Ensemble):
+    if not isinstance(ensemble, Ensemble):
         raise TypeError('ensemble must be an Ensemble instance')
     
     weights = getSumOfWeights(ensemble)

@@ -12,3 +12,6 @@ prody/measure.py
 prody/proteins.py
 prody/pyparsing.py
 prody/select.py
+scripts/anm.py
+scripts/gnm.py
+scripts/pdbselect.py

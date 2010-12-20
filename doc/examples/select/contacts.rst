@@ -36,7 +36,7 @@ inhibitor.
 
 >>> contacts = protein.select('within 4 of inhibitor', inhibitor=inhibitor)
 >>> contacts
-<Selection: "within 4 of inhibitor" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "index 227 to 22...56 to 1356 1358" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
 
 We found that 50 protein atoms are contacting with the inhibitor.
 Now, let's try something more sophisticated. We select alpha carbons of
@@ -44,7 +44,7 @@ residues that have at least one atom interacting with the inhibitor:
 
 >>> contacts_ca = protein.select('calpha and (same residue as within 4 of inhibitor)', inhibitor=inhibitor)
 >>> contacts_ca
-<Selection: "calpha and (sam...4 of inhibitor)" from Copy of 1zz2 selection "protein" (20 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "index 225 to 22...51 to 1351 1359" from Copy of 1zz2 selection "protein" (20 atoms; 1 coordinate sets, active set index: 0)>
 
 This shows that, 20 residues have atoms interacting with the inhibitor.
 
@@ -69,7 +69,7 @@ recommended.
 <Selection: "index 226 227 2... 1358 1359 1362" from Copy of 1zz2 selection "protein" (93 atoms; 1 coordinate sets, active set index: 0)>
 
 This method is 20 times faster than the one in the previous part, but it is
-limited to selecting only contacting atoms (any selection arguments cannot be 
+limited to selecting only contacting atoms (other selection arguments cannot be 
 passed). Again, it should be noted that :class:`Contacts` does not update the 
-KDTree that it uses, so it is good if protein coordinates does not change 
+KDTree that it uses, so it should be used if protein coordinates does not change 
 between selections. 

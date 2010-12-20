@@ -39,9 +39,9 @@ Functions
     
 **Miscellaneous**:
     
-  ** :func:`getIntAsStr`
+  * :func:`getIntAsStr`
   
-  """
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
@@ -100,6 +100,7 @@ def getPairwiseMatchScore():
 def setPairwiseMatchScore(pairwise_match_score):
     """Set match score used to align sequences."""
     if isinstance(pairwise_match_score, (float, int)) and pairwise_match_score >= 0:
+        global PAIRWISE_MATCH_SCORE 
         PAIRWISE_MATCH_SCORE = pairwise_match_score
     else:
         raise TypeError('pairwise_match_score must be a positive number or zero')
@@ -111,6 +112,7 @@ def getPairwiseMismatchScore():
 def setPairwiseMismatchScore(pairwise_mismatch_score):
     """Set mismatch score used to align sequences."""
     if isinstance(pairwise_mismatch_score, (float, int)) and pairwise_mismatch_score >= 0:
+        global PAIRWISE_MISMATCH_SCORE
         PAIRWISE_MISMATCH_SCORE = pairwise_mismatch_score
     else:
         raise TypeError('pairwise_mismatch_score must be a positive number or zero')
@@ -122,6 +124,7 @@ def getPairwiseGapOpeningPenalty():
 def setPairwiseGapOpeningPenalty(pairwise_gap_opening_penalty):
     """Set gap opening penalty used for pairwise alignment."""
     if isinstance(pairwise_gap_opening_penalty, (float, int)) and pairwise_gap_opening_penalty <= 0:
+        global PAIRWISE_GAP_OPENING_PENALTY
         PAIRWISE_GAP_OPENING_PENALTY = pairwise_gap_opening_penalty
     else:
         raise TypeError('pairwise_gap_opening_penalty must be a negative number or zero')
@@ -133,6 +136,7 @@ def getPairwiseGapExtensionPenalty():
 def setPairwiseGapExtensionPenalty(pairwise_gap_extension_penalty):
     """Set gap extension penalty used for pairwise alignment"""
     if isinstance(pairwise_gap_extension_penalty, (float, int)) and pairwise_gap_extension_penalty <= 0:
+        global PAIRWISE_GAP_EXTENSION_PENALTY
         PAIRWISE_GAP_EXTENSION_PENALTY = pairwise_gap_extension_penalty
     else:
         raise TypeError('pairwise_gap_extension_penalty must be a negative number or zero')
@@ -144,6 +148,7 @@ def getPairwiseAlignmentMethod():
 def setPairwiseAlignmentMethod(method):
     """Set pairwise alignment method ("global" or "local")."""
     if method in ('local', 'global'):
+        global PAIRWISE_ALIGNMENT_METHOD
         PAIRWISE_ALIGNMENT_METHOD = method
     else:
         raise ValueError('method must be "local" or "global"')
@@ -189,12 +194,12 @@ def matchChains(atoms1, atoms2, **kwargs):
     This function returns a list of matches. Each match is a tuple
     that contains 4 items:
 
-      * Matched chain from *atoms1* as a :class:`prody.atomic.AtomMap` instance, 
-      * Matched chain from *atoms2* as a :class:`prody.atomic.AtomMap` instance,
+      * Matched chain from *atoms1* as a :class:`~prody.atomic.AtomMap` instance, 
+      * Matched chain from *atoms2* as a :class:`~prody.atomic.AtomMap` instance,
       * Percent sequence identitity of the match,
       * Percent sequence coverage of the match.
 
-    AtomMap can be used to calculate RMSD values and superimpose atom groups.
+    AtomMap can be used to calculate RMSD values and superpose atom groups.
     
     If *subset* is set to *calpha* or *backbone*, only alpha carbon
     atoms or backbone atoms will be paired. If set to *all*, all atoms
@@ -209,12 +214,12 @@ def matchChains(atoms1, atoms2, **kwargs):
     *pwalign* keyword. 
     
     :arg atoms1: atoms that will be mapped to the target *chain*
-    :type atoms1: :class:`prody.atomic.Chain`, :class:`prody.atomic.AtomGroup`, 
-                 or :class:`prody.atomic.Selection`
+    :type atoms1: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
+                 or :class:`~prody.atomic.Selection`
     
     :arg atoms2: chain to which atoms will be mapped
-    :type atoms2: :class:`prody.atomic.Chain`, :class:`prody.atomic.AtomGroup`, 
-                 or :class:`prody.atomic.Selection`
+    :type atoms2: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
+                 or :class:`~prody.atomic.Selection`
     
     :keyword subset: "calpha", "backbone", or "all", default is "calpha"  
     :type subset: string
@@ -240,18 +245,32 @@ def matchChains(atoms1, atoms2, **kwargs):
     pwalign = kwargs.get('pwalign', None)
     
     if isinstance(atoms1, prody.Chain):
-        chains1 = [atoms1]
+        simpch = SimpleChain()
+        simpch.buildFromChain(atoms1)
+        chains1 = [simpch]
         atoms1 = atoms1.getAtomGroup()
     else:
-        chains1 = list(atoms1.getHierView().iterChains())
+        chains1 = list()
+        for ch in atoms1.getHierView().iterChains():
+            simpch = SimpleChain()
+            simpch.buildFromChain(ch)
+            if len(simpch) > 0:
+                chains1.append(simpch)
         if not isinstance(atoms1, prody.AtomGroup):
             atoms1 = atoms1.getAtomGroup()
         LOGGER.debug('Checking {0:s}: {1:d} chains are identified'.format(str(atoms1), len(chains1)))
     if isinstance(atoms2, prody.Chain):
-        chains2 = [atoms2]
+        simpch = SimpleChain()
+        simpch.buildFromChain(atoms2)
+        chains2 = [simpch]
         atoms2 = atoms2.getAtomGroup()
     else:
-        chains2 = list(atoms2.getHierView().iterChains())
+        chains2 = list()
+        for ch in atoms2.getHierView().iterChains():
+            simpch = SimpleChain()
+            simpch.buildFromChain(ch)
+            if len(simpch) > 0:
+                chains2.append(simpch)
         if not isinstance(atoms2, prody.AtomGroup):
             atoms2 = atoms2.getAtomGroup()
         LOGGER.debug('Checking {0:s}: {1:d} chains are identified'.format(str(atoms2), len(chains2)))
@@ -259,12 +278,8 @@ def matchChains(atoms1, atoms2, **kwargs):
     matches = []
     unmatched = []
     LOGGER.debug('Trying to match chains based on residue numbers and identities:')
-    for ch1 in chains1:
-        simpch1 = SimpleChain()
-        simpch1.buildFromChain(ch1)
-        for ch2 in chains2:
-            simpch2 = SimpleChain()
-            simpch2.buildFromChain(ch2)
+    for simpch1 in chains1:
+        for simpch2 in chains2:
             LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} (len={3:d}):'
                         .format(simpch1.getName(), len(simpch1), simpch2.getName(), len(simpch2)))
             
@@ -323,7 +338,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                     try:
                         aid = ares.getAtomNames().tolist().index(bban)
                     except ValueError:
-                        contine
+                        continue
                     try:
                         bid = bres.getAtomNames().tolist().index(bban)
                         indices1.append(ares._indices[aid])
@@ -335,7 +350,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                 bans = bres.getAtomNames().tolist()
 
                 aids = ares.getIndices()
-                bids = bres.getIndices()
+                #bids = bres.getIndices()
                 
                 for j in xrange(len(aans)):
                     try:
@@ -349,13 +364,13 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices1 = np.array(indices1)
         indices2 = np.array(indices2)
         lengh = len(indices1)
-        match1 = prody.AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
-                               str(ch1) + ' -> ' + str(ch2),
-                               ch1._acsi)#'index ' + getIntAsStr(indices1), 
+        match1 = AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
+                               str(match1) + ' -> ' + str(match2),
+                               atoms1._acsi)#'index ' + getIntAsStr(indices1), 
                                  
-        match2 = prody.AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
-                               str(ch2) + ' -> ' + str(ch1),
-                               ch2._acsi)#'index ' + getIntAsStr(indices2), 
+        match2 = AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
+                               str(match2) + ' -> ' + str(match1),
+                               atoms2._acsi)#'index ' + getIntAsStr(indices2), 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
         
@@ -429,7 +444,7 @@ def mapAtomsToChain(atoms, chain, **kwargs):
     This function returns a list of mappings. Each mapping is a tuple
     that contains 4 items:
 
-      * Mapped chain as a :class:`prody.atomic.AtomMap` instance, 
+      * Mapped chain as a :class:`~prody.atomic.AtomMap` instance, 
       * *chain* as it is
       * Percent sequence identitity,
       * Percent sequence coverage)
@@ -446,11 +461,11 @@ def mapAtomsToChain(atoms, chain, **kwargs):
     *pwalign* keyword. 
     
     :arg atoms: atoms that will be mapped to the target *chain*
-    :type atoms: :class:`prody.atomic.Chain`, :class:`prody.atomic.AtomGroup`, 
-                 or :class:`prody.atomic.Selection`
+    :type atoms: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
+                 or :class:`~prody.atomic.Selection`
     
     :arg chain: chain to which atoms will be mapped
-    :type chain: :class:`prody.atomic.Chain`
+    :type chain: :class:`~prody.atomic.Chain`
     
     :keyword subset: "calpha", "backbone", or "all", , default is "calpha"  
     :type subset: string
@@ -575,15 +590,15 @@ def mapAtomsToChain(atoms, chain, **kwargs):
                 pass
             else:
                 pass
-        n_atoms = len(indices_target)   
-        atommap = prody.AtomMap(map_ag, 
+        #n_atoms = len(indices_target)   
+        atommap = AtomMap(map_ag, 
                           indices_chain,
                           indices_mapping,
                           indices_dummies,
                           simple_chain.getName() + ' -> ' + simple_target.getName(),
                           chain._acsi)
 
-        selection = prody.AtomMap(target_ag, 
+        selection = AtomMap(target_ag, 
                                     indices_target,
                                     np.arange(len(indices_target)),
                                     np.array([]),

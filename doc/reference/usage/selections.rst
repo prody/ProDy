@@ -12,7 +12,7 @@ uses of atom selections. ProDy selection engine also enables
 identifying intermolecular contacts. This section describes the keywords and 
 selection syntax.
 
-.. seealso:: :ref:`contacts` and :ref:`selops`
+.. seealso:: :ref:`contacts` and :ref:`selection-operations`
 
 .. _selkeys:
 
