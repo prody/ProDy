@@ -1045,7 +1045,7 @@ def writePDBStream(stream, atoms, model=None, sort=False):
         coords = atoms.getCoordinates()
         for i, xyz in enumerate(coords):
             stream.write(line.format(hetero[i], i+1, atomnames[i], altlocs[i], 
-                                     resnames[i], chainids[i], resnums[i], icodes[i], 
+                                     resnames[i], chainids[i], int(resnums[i]), icodes[i], 
                                      xyz[0], xyz[1], xyz[2], 
                                      occupancies[i], bfactors[i],  
                                      segments[i], elements[i].rjust(2)))

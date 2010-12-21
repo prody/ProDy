@@ -371,7 +371,7 @@ class Mode(VectorBase):
         <Mode: 1 from ANM cdk2_1hcl>
         """
         self._model = model
-        self._index = index
+        self._index = int(index)
         
     def __len__(self):
         return self._model._dof
@@ -2606,7 +2606,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showCrossProjection(p38_ensemble, p38_pca[0], -p38_anm[2])
+       showCrossProjection(p38_ensemble, p38_pca[0], p38_anm[2])
     
     .. plot::
        :context:

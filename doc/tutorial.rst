@@ -259,8 +259,8 @@ Note that indices in Python start from zero (0).
 The following function (:func:`~prody.dynamics.writeNMD`) writes ANM results 
 in NMD format. NMD files can be viewed using |vmd| plugin NMWiz. 
 
->>> writeNMD('p38anm.nmd', anm[:6], calphas) 
-'p38anm.nmd'
+>>> writeNMD('p38_anm.nmd', anm[:6], calphas) 
+'p38_anm.nmd'
 
 More examples and information
 -----------------------------
@@ -277,6 +277,4 @@ Files generated or downloaded in this tutorial can be deleted as follows:
 >>> os.remove('1p38.pdb.gz')
 >>> os.remove('1p38_calphas.pdb')
 >>> os.remove('1p38_chain_A.pdb')
-
-
-
+>>> os.remove('p38_anm.nmd')

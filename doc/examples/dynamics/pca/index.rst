@@ -10,6 +10,7 @@ ProDy can be used to perform principal component analysis of:
 
   * X-ray structures
   * NMR models
+  * Mixed datasets from Blast 
   * MD snapshots 
   
 X-ray structures
@@ -29,7 +30,6 @@ example will reproduce the results presented in [AB09]_.
    :maxdepth: 2
 
    pca_xray/index
-   pca_blast
 
 NMR models
 ===============================================================================
@@ -41,6 +41,17 @@ structure. An example is provided for Ubiquitin [AB09]_.
    :maxdepth: 2
 
    pca_nmr
+
+Mixed datasets
+===============================================================================
+
+Mixed structural datasets can be analyzed as well. Below example shows
+how to retrieve and analyze cytochrome c structures by a Blast searching. 
+
+.. toctree::
+   :maxdepth: 2
+   
+   pca_blast
 
 
 MD snapshots

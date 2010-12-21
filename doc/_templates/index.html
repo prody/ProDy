@@ -8,10 +8,10 @@
     <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">prody</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pdb</span> <span class="o">=</span> <span class="n">parsePDB</span><span class="p">(</span><span class="s">'1p38'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ca</span> <span class="o">=</span> <span class="n">pdb</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s">'calpha'</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span> <span class="o">=</span> <span class="n">ANM</span><span class="p">(</span><span class="s">'p38 MAPK ANM'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span> <span class="o">=</span> <span class="n">ANM</span><span class="p">(</span><span class="s">'p38_MAPK'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">buildHessian</span><span class="p">(</span><span class="n">ca</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38anm.nmd'</span><span class="p">,</span> <span class="n">anm</span><span class="p">[:</span><span class="mi">6</span><span class="p">],</span> <span class="n">ca</span><span class="p">)</span></pre></div>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38_anm.nmd'</span><span class="p">,</span> <span class="n">anm</span><span class="p">[:</span><span class="mi">6</span><span class="p">],</span> <span class="n">ca</span><span class="p">)</span></pre></div>
     </div>    
     <span class="linkdescr">Reads a p38 PDB structure, selects alpha carbons, and performs ANM calculations. Slowest 6 modes are written in NMD format.</span>
   </div>
@@ -31,6 +31,7 @@
         <li> <a href="{{ pathto("reference/library/compare") }}">Matching, superposing, and comparing</a> multiple structures/chains </li>
         <li> <a href="{{ pathto("examples/dynamics/pca/index") }}">Principal component analysis</a> (PCA) of <a href="{{ pathto("examples/dynamics/pca/pca_xray/index") }}">X-ray structures</a> </li>
         <li> PCA of <a href="{{ pathto("examples/dynamics/pca/pca_nmr") }}">NMR models</a> </li>
+        <li> PCA of mixed structural datasets <a href="{{ pathto("examples/dynamics/pca/pca_blast") }}">from Blast search</a> </li>
       </ul>
     </li>
     <li> <b>Prediction and analysis of protein dynamics using theory and simulation:</b>

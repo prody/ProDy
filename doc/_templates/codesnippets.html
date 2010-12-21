@@ -35,17 +35,21 @@ function showCodeSnippets() {
   var div = document.getElementsByTagName("div");
   for (var i = 0; i < div.length; i++) {
     if (div.item(i).className == "highlight-python") {
-      count += 1
-      pycode += "# Code snippet " + count + "\n" 
-      pycode += "-----------------\n"
       HTML = div.item(i).innerHTML;
       if (HTML.search('class="highlight"') > -1) {
+        count += 1
+        pycode += "# Code snippet " + count + "\n" 
+        if (count > 9) {
+          pycode += "#----------------\n"
+        } else {
+          pycode += "#---------------\n"
+        }
         cleanHTML = removeHTMLTags(HTML);
         if (cleanHTML.search('>>> ') > -1) {
           cleanHTML = cleanHTML.split('\n');
           for (var j = 0; j < cleanHTML.length; j++) {
             line = cleanHTML[j]
-            if (line.indexOf('>>> ') == 0) {
+            if (line.indexOf('>>> ') == 0 || line.indexOf('... ') == 0) {
               pycode += line.slice(4) + "\n"
               blankline = 0;
             } else if (line != "") {
@@ -77,7 +81,9 @@ function showCodeSnippets() {
   } else {
     prolog = "#!/usr/bin/env python\n"
     prolog += "'''This code was copied from ProDy documentation:\n"
-    prolog += "http://www.csb.pitt.edu/People/abakan/software/ProDy'''\n\n"
+    prolog += "http://www.csb.pitt.edu/People/abakan/software/ProDy\n\n"
+    prolog += "Title:" + this.title + "'''\n\n"
+    prolog += "URL:" + this.URL + "'''\n\n"
     prolog += "__author__ = 'Ahmet Bakan'\n"
     prolog += "__copyright__ = 'Copyright (C) 2010 Ahmet Bakan'\n\n"
     popupCode('<pre>' + prolog + pycode + '</pre>')
@@ -87,6 +93,7 @@ function showCodeSnippets() {
 function popupCode(code){ 
   popup = window.open(this.href, 'ProDyCode', 'width=500,height=300,scrollbars=yes');
   popup.document.body.innerHTML = code
+  
   return false;
 } 
 function showHelp() {
