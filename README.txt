@@ -1,3 +1,11 @@
+TUTORIAL, EXAMPLES, and DOCUMENTATION
+-------------------------------------
+
+http://www.csb.pitt.edu/People/abakan/software/ProDy 
+
+Also available in PDF format: 
+  http://www.csb.pitt.edu/People/abakan/software/ProDy/ProDy.pdf
+
 SYNOPSIS
 --------
 
@@ -20,12 +28,6 @@ that have been suffessfully implemented to date:
   * Gaussian network models (GNM) analysis
   * Essential dynamics analysis (EDA) of MD snapshots
   * Comparative analysis and visualization of dynamics
-
-DOCUMENTATION
--------------
-
-* http://www.csb.pitt.edu/People/abakan/software/ProDy 
-* http://www.csb.pitt.edu/People/abakan/software/ProDy/ProDy.pdf
 
 LICENSE
 -------
