@@ -82,8 +82,9 @@ function showCodeSnippets() {
     prolog = "#!/usr/bin/env python\n"
     prolog += "'''This code was copied from ProDy documentation:\n"
     prolog += "http://www.csb.pitt.edu/People/abakan/software/ProDy\n\n"
-    prolog += "Title:" + this.title + "'''\n\n"
-    prolog += "URL:" + this.URL + "'''\n\n"
+    prolog += "Title:" + document.title + "\n"
+    prolog += "URL:" + document.URL + "\n"
+    prolog += "'''\n\n"
     prolog += "__author__ = 'Ahmet Bakan'\n"
     prolog += "__copyright__ = 'Copyright (C) 2010 Ahmet Bakan'\n\n"
     popupCode('<pre>' + prolog + pycode + '</pre>')
