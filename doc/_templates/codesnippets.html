@@ -31,9 +31,13 @@ function removeHTMLTags(strInputCode){
 function showCodeSnippets() {
   pycode = "";
   blankline = 1;
+  count = 0
   var div = document.getElementsByTagName("div");
   for (var i = 0; i < div.length; i++) {
     if (div.item(i).className == "highlight-python") {
+      count += 1
+      pycode += "# Code snippet " + count + "\n" 
+      pycode += "-----------------\n"
       HTML = div.item(i).innerHTML;
       if (HTML.search('class="highlight"') > -1) {
         cleanHTML = removeHTMLTags(HTML);

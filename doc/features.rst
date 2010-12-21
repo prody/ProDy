@@ -36,6 +36,7 @@ Feature Index
    
   * :ref:`pca-xray`
   * :ref:`pca-nmr`
+  * :ref:`pca-blast`
   * :ref:`eda-md`
    
 **Generate conformations along normal modes:**
@@ -43,12 +44,33 @@ Feature Index
   * Sample random conformations along a set of modes (:func:`~dynamics.sampleModes`)
   * Generate evenly spaced conformations along a single mode (:func:`~dynamics.traverseMode`)
 
+**Analyze dynamics models:**
+  * Show ANM/GNM contact map (:func:`~dynamics.showContactMap`)
+  * Show cross-correlations (:func:`~dynamics.showCrossCorrelations`)
+  * Show fraction of variances (:func:`~dynamics.showFractOfVariances`)
+  * Show cumulative fraction of variances (:func:`~dynamics.showCumFractOfVariances`)
+  * Show projection onto normal modes (:func:`~dynamics.showProjection`)
+  * Show square-fluctuations (:func:`~dynamics.showSqFlucts`)
+  * Show mode shape (:func:`~dynamics.showMode`)
+
 **Compare experimental and theoretical models:**
   
   * Calculate overlap (:func:`~dynamics.calcOverlap`)
   * Calculate cumulative overlap (:func:`~dynamics.calcCumulativeOverlap`)
   * Calculate subspace overlap (:func:`~dynamics.calcSubspaceOverlap`)
   * Print overlap table (:func:`~dynamics.printOverlapTable`)
+  * Show overlap (:func:`~dynamics.showOverlap`)
+  * Show cumulative overlap (:func:`~dynamics.showCumulativeOverlap`)
+  * Show overlap table (:func:`~dynamics.showOverlapTable`)
+  * Project conformations onto modes from different models (:func:`~dynamics.showCrossProjection`)
+  * Show square fluctuations from two different models (:func:`~dynamics.showScaledSqFlucts`)
+  * Show square fluctuations from two different models (:func:`~dynamics.showNormedSqFlucts`)
+
+**Model reduction**:
+    
+  * Reduce an ANM, PCA, or GNM model to a subset of atoms (:func:`~dynamics.reduceModel`)
+  * Get a slice of a mode matching a selection of atoms (:func:`~dynamics.sliceMode`)
+  * Get a slice of a vector matching a selection of atoms (:func:`~dynamics.sliceVector`)
 
 **Write output files:**
   
@@ -63,3 +85,9 @@ Feature Index
   * Get path to VMD executable (:func:`~dynamics.getVMDpath`)
   * Set path to VMD executable (:func:`~dynamics.setVMDpath`)
   * Visualize normal modes in VMD (:func:`~dynamics.viewNMDinVMD`)
+
+**Save/load ProDy session data**:
+    
+  * Save/load ANM/GNM/PCA data (:func:`~dynamics.saveModel`, :func:`~dynamics.loadModel`)
+  * Save/load arbitrary vectors (:func:`~dynamics.saveVector`, :func:`~dynamics.loadVector`)
+  * Save/load ensembles (:func:`~ensemble.saveEnsemble`, :func:`~ensemble.loadEnsemble`)

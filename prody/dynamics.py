@@ -139,6 +139,7 @@ This is a preliminary part for examples shown in this section.
 >>> from prody import *
 >>> import matplotlib.pyplot as plt
 >>> import numpy as np
+>>> import os
 
 >>> # First let's parse a PDB structure of Cyclin-dependent kinase 2
 >>> cdk2 = parsePDB('1hcl')
@@ -167,6 +168,7 @@ demonstrate comparative analysis functions.
    from prody import *
    import matplotlib.pyplot as plt
    import numpy as np
+   import os
    
    plt.close('all')
    
@@ -449,7 +451,7 @@ class Mode(VectorBase):
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
         
-        >>> mode.getEigenvalue()
+        >>> mode.getEigenvalue() # doctest: +SKIP
         0.50192959268070148
         """
         return self._model._eigvals[self._index]
@@ -459,9 +461,9 @@ class Mode(VectorBase):
         
         If the model is not a PCA, inverse of the eigenvalue is returned.
         
-        >>> mode.getVariance()
+        >>> mode.getVariance() # doctest: +SKIP
         1.9923113013903169
-        >>> mode.getEigenvalue()**-1
+        >>> mode.getEigenvalue()**-1 # doctest: +SKIP
         1.9923113013903169
         """
         return self._model._vars[self._index]
@@ -474,7 +476,7 @@ class Mode(VectorBase):
         
         See :meth:`getVariance`
         
-        >>> mode.getFractOfVariance()
+        >>> mode.getFractOfVariance() # doctest: +SKIP
         0.15330741156510538
         """
         return self.getVariance() / self._model._trace
@@ -490,7 +492,7 @@ class Mode(VectorBase):
         If *masses* are provided, they will be incorporated in the calculation.
         Otherwise, atoms are assumed to have uniform masses.
         
-        >>> mode.getCollectivity()
+        >>> mode.getCollectivity() # doctest: +SKIP
         0.43143628650850246
         """
         if masses is not None:
@@ -506,7 +508,7 @@ class Mode(VectorBase):
     def getCovariance(self):
         """Return covariance matrix calculated for this mode instance.
         
-        >>> mode.getCovariance()
+        >>> mode.getCovariance() # doctest: +SKIP
         array([[  7.34877529e-03,   1.01769275e-03,   1.10359002e-03, ...,
                  -7.89960500e-04,   1.14870995e-03,   9.03430500e-04],
                [  1.01769275e-03,   1.40934850e-04,   1.52830305e-04, ...,
@@ -1624,7 +1626,13 @@ def calcProjection(ensemble, modes):
     """Return projection of conformational deviations onto given modes.
 
     For K conformations and M modes, a (K,M) matrix is returned.     
-                   
+    
+    >>> calcProjection(p38_ensemble, p38_pca[:3])
+    array([[ 11.4104979 ,   2.65096089,   1.11556184],
+           [  7.84594842,  -1.85640127,   1.59130996],
+           ...
+           [  5.51572309,  -5.10756938,  -5.98343901],
+           [  5.87457149,  -7.40788451,   2.20797633]])
     """
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
@@ -1650,6 +1658,8 @@ def calcOverlap(rows, cols):
     *rows* argument, and columns correspond to those passed as *cols* 
     argument.
     
+    >>> calcOverlap(p38_pca[0], p38_anm[2]) # doctest: +SKIP
+    -0.71366564906422636
     """
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
         raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0:s}'.format(type(rows)))
@@ -1669,7 +1679,15 @@ def printOverlapTable(rows, cols):
 
     This function may be used to take a quick look into mode correspondences 
     between two models.
-
+    
+    >>> # Compare top 3 PCs and slowest 3 ANM modes
+    >>> printOverlapTable(p38_pca[:3], p38_anm[:3]) # doctest: +SKIP   
+    Overlap Table
+                            ANM 1p38
+                        #1     #2     #3
+    PCA p38 xray #1   -0.39  +0.04  -0.71
+    PCA p38 xray #2   -0.78  -0.20  +0.22
+    PCA p38 xray #3   +0.05  -0.57  +0.06
     """
     print calcOverlapTable(rows, cols)
 
@@ -1680,7 +1698,6 @@ def writeOverlapTable(filename, rows, cols):
     and columns of the overlap table.
     
     See also :func:`printOverlapTable`.
-
     """
     out = open(filename, 'w')
     out.write(calcOverlapTable(rows, cols))
@@ -1807,8 +1824,6 @@ def reduceModel(model, atoms, selstr):
     For PCA:
        This function simply takes the sub-covariance matrix for the selected
        atoms.
-       
-    
     """
     if prody.la is None:
         prody.importScipyLinalg()
@@ -1872,7 +1887,10 @@ def writeModes(filename, modes, format='g', sep=' ', compressed=False):
     """Write *modes* (eigenvectors) into a plain text file with name *filename*.
     
     See also :func:`writeArray`.
-    
+        
+    >>> writeModes('p38_pca_modes_1-3.txt', p38_pca[:3])
+    'p38_pca_modes_1-3.txt'
+    >>> os.remove('p38_pca_modes_1-3.txt')
     """
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
@@ -1889,6 +1907,9 @@ def writeArray(filename, array, format='g', sep=' ', compressed=False):
     If array is written into a file, *filename* will be returned upon
     successful writing. 
      
+    >>> writeArray('p38_cross-correlations.txt', calcCrossCorrelations(p38_pca))
+    'p38_cross-correlations.txt'
+    >>> os.remove('p38_cross-correlations.txt')
     """
     if not array.ndim in (1, 2):
         raise ValueError('array must be 1- or 2-dimensional')
@@ -1971,6 +1992,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
      
     Note that if modes are from a :class:`PCA`, variances are used instead of 
     inverse eigenvalues, i.e. :math:`\sigma_i \sim \lambda^{-1}_i`.
+    
+    |more| See also :func:`showEllipsoid`.
     
     .. plot::
        :context:
@@ -2238,7 +2261,15 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     
     
 def calcSqFlucts(modes):
-    """Return sum of square-fluctuations for given set of normal *modes*."""
+    """Return sum of square-fluctuations for given set of normal *modes*.
+    
+    >>> calcSqFlucts(p38_pca)
+    array([  0.94163178,   0.97486815,   0.81056074,   0.59926465,
+             0.80505867,   0.93568339,   1.1634173 ,   1.39873827,
+             ...
+             0.13855481,   0.10944998,   0.09378239,   0.14173194,
+             0.17928521,   0.12930389,   0.21500264,   0.16070006,   0.21077809])
+    """
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -2266,6 +2297,20 @@ def calcCrossCorrelations(modes, n_cpu=1):
     :arg n_cpu: Number of CPUs to use. Default is 1. 
     :type n_cpu: int 
     
+    >>> calcCrossCorrelations(p38_anm)
+    array([[ 1.        ,  0.94782223,  0.8736113 , ...,  0.60437502,
+             0.55178945,  0.31997558],
+           [ 0.94782223,  1.        ,  0.96980278, ...,  0.51726959,
+             0.53243166,  0.31677069],
+           [ 0.8736113 ,  0.96980278,  1.        , ...,  0.32284386,
+             0.35342037,  0.14512422],
+           ..., 
+           [ 0.60437502,  0.51726959,  0.32284386, ...,  1.        ,
+             0.95600469,  0.86549921],
+           [ 0.55178945,  0.53243166,  0.35342037, ...,  0.95600469,
+             1.        ,  0.9528413 ],
+           [ 0.31997558,  0.31677069,  0.14512422, ...,  0.86549921,
+             0.9528413 ,  1.        ]])
     """
     if not isinstance(n_cpu, int):
         raise TypeError('n_cpu must be an integer')
@@ -2340,7 +2385,11 @@ def calcCumulativeOverlap(modes1, modes2):
     Returns a number of *modes1* contains a single :class:`Mode` or a 
     :class:`Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes 
-    in *modes1* with those in *modes2*."""
+    in *modes1* with those in *modes2*.
+    
+    >>> calcCumulativeOverlap(p38_pca[0], p38_anm) # doctest: +SKIP
+    0.89357715148440353
+    """
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
     return cumov
@@ -2352,6 +2401,12 @@ def calcCumulativeOverlapArray(modes1, modes2):
     corresponds to cumulative overlaps calculated for modes in *modes1* with
     those in *modes2*. Each value in a row corresponds to cumulative overlap
     calculated using upto that many number of modes from *modes2*.
+    
+    >>> calcCumulativeOverlapArray(p38_pca[0], p38_anm) # doctest: +SKIP
+    array([ 0.38956674,  0.39199772,  0.81423637,  0.81953805,  0.82296797,
+            0.83320235,  0.83947803,  0.85141434,  0.87426872,  0.88529856,
+            0.88647576,  0.88878561,  0.88882618,  0.88894772,  0.89121041,
+            0.89162571,  0.89276304,  0.89336947,  0.8934872 ,  0.89357715])
     """
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
@@ -2365,7 +2420,9 @@ def calcSubspaceOverlap(modes1, modes2):
     subspaces [AA99]_.
     
     This function returns a single number.
-        
+    
+    >>> calcSubspaceOverlap(p38_pca[:3], p38_anm[:3]) # doctest: +SKIP
+    0.75174192334469792
     """
     overlap = calcOverlap(modes1, modes2)
     if isinstance(modes1, Mode):
@@ -2382,7 +2439,21 @@ def calcCovariance(modes):
 def showFractOfVariances(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.bar`.
     
-    Note that mode indices are increased by 1.
+    Note that mode indices are incremented by 1.
+    
+    .. plot::
+       :context:
+       :include-source:
+        
+       plt.figure(figsize=(5,4))
+       showFractOfVariances(p38_pca) 
+       showCumFractOfVariances(p38_pca)
+      
+    .. plot::
+       :context:
+       :nofigs:
+        
+       plt.close('all')
     
     """
     if pl is None: prody.importPyPlot()
@@ -2404,8 +2475,8 @@ def showFractOfVariances(modes, *args, **kwargs):
 def showCumFractOfVariances(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.plot`.
     
-    Note that mode indices are increased by 1.
-    
+    Note that mode indices are incremented by 1.
+    See :func:`showFractOfVariances` for an example.
     """
     if pl is None: prody.importPyPlot()
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
@@ -2438,7 +2509,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         
       * 1 mode: :func:`~matplotlib.pyplot.hist`
       * 2 modes: :func:`~matplotlib.pyplot.plot`
-      * 3 modes: :meth:`~pl_toolkits.mplot3d.Axes3D.plot`
+      * 3 modes: :meth:`mpl_toolkits.mplot3d.Axes3D.plot`
       
     By default ``marker='o', ls='None'`` is passed to the plotting function to disable 
     lines in projections onto 2 or 3-d spaces.
@@ -2528,7 +2599,24 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
     :type scale: str
     
     By default ``marker='o', ls='None'`` is passed to the plotting function to disable 
-    lines."""
+    lines.
+    
+    .. plot::
+       :context:
+       :include-source:
+        
+       plt.figure(figsize=(5,4))
+       showCrossProjection(p38_ensemble, p38_pca[0], -p38_anm[2])
+    
+    .. plot::
+       :context:
+       :nofigs:
+
+       plt.close('all')
+       
+    |more| See :ref:`p38-xray-plotting` for a more elaborate example.
+       
+    """
     if pl is None: prody.importPyPlot()
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
@@ -2588,6 +2676,7 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         
        plt.figure(figsize=(5,4))
        showOverlapTable( p38_pca[:6], p38_anm[:6] )
+       plt.title('p38 PCA vs ANM')
 
     .. plot::
        :context:
@@ -2719,10 +2808,24 @@ def showSqFlucts(modes, *args, **kwargs):
     return show
 
 def showScaledSqFlucts(modes, *args, **kwargs):
-    """Show scaled square fluctuations using :func:`~matplotlib.pyplot.plt`.
+    """Show scaled square fluctuations using :func:`~matplotlib.pyplot.plot`.
     
     Modes or mode sets given as additional arguments will be scaled to have
     the same mean squared fluctuations as *modes*. 
+    
+    .. plot::
+       :context:
+       :include-source:
+       
+       plt.figure(figsize=(5,4))
+       showScaledSqFlucts(p38_pca[0], p38_anm[2])
+       plt.legend()
+
+    .. plot::
+       :context:
+       :nofigs:
+
+       plt.close('all')
     """
     if pl is None: prody.importPyPlot()
     sqf = calcSqFlucts(modes)
@@ -2739,11 +2842,25 @@ def showScaledSqFlucts(modes, *args, **kwargs):
         sqf = calcSqFlucts(modes)
         scalar = mean / sqf.mean()
         show.append(pl.plot(sqf * scalar, *args, label='{0:s} (x{1:.2f})'.format(str(modes), scalar), **kwargs))
-    pl.legend()
     return show
 
 def showNormedSqFlucts(modes, *args, **kwargs):
-    """Show normalized square fluctuations using :func:`~matplotlib.pyplot.plt`."""
+    """Show normalized square fluctuations using :func:`~matplotlib.pyplot.plot`.
+    
+    .. plot::
+       :context:
+       :include-source:
+       
+       plt.figure(figsize=(5,4))
+       showNormedSqFlucts(p38_pca[0], p38_anm[2])
+       plt.legend()
+
+    .. plot::
+       :context:
+       :nofigs:
+
+       plt.close('all')
+    """
     if pl is None: prody.importPyPlot()
     sqf = calcSqFlucts(modes)
     args = list(args)
@@ -2751,12 +2868,12 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     for arg in args:
         if isinstance(arg, (Mode, ModeSet, NMA)):
             modesarg.append(args.pop(0))
-    show = [pl.plot(sqf/(sqf**2).sum()**0.5, *args, **kwargs)]
+    show = [pl.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs)]    
     pl.xlabel('Indices')
     pl.ylabel('Square fluctuations')
     for modes in modesarg:
         sqf = calcSqFlucts(modes)
-        show.append(pl.plot(sqf/(sqf**2).sum()**0.5, *args, **kwargs))
+        show.append(pl.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs))
     return show
 
 def showContactMap(enm, *args, **kwargs):
@@ -2774,7 +2891,6 @@ def showContactMap(enm, *args, **kwargs):
        :nofigs:
         
        plt.close('all') 
-
     """
     if pl is None: prody.importPyPlot()
     if not isinstance(enm, GNMBase):
@@ -2809,7 +2925,6 @@ def showOverlap(mode, modes, *args, **kwargs):
        :nofigs:
         
        plt.close('all') 
-    
     """
     if pl is None: prody.importPyPlot()
     if not isinstance(mode, (Mode, Vector)):

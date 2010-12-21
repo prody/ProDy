@@ -1152,8 +1152,10 @@ class AtomMap(AtomPointer):
             return None
         if indices is None:
             indices = slice(None)
-        try: 
-            return self._ag._coordinates[indices, self._indices].copy()
+        try:
+            coordsets = np.zeros((self._ag._n_coordsets, len(self), 3))
+            coordsets[:, self._mapping] = self._ag._coordinates[indices, self._indices]  
+            return coordsets
         except IndexError:
             raise IndexError('indices may be an integer or a list of integers')
 

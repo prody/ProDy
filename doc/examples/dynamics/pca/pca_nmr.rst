@@ -26,7 +26,7 @@ We start with parsing only CA atoms:
  
 >>> ubi = parsePDB('2k39', subset='calpha')
 
-Weuse residues 1 to 70. 71 and above are disordered.
+We use residues 1 to 70. 71 and above are disordered.
 
 >>> ubi = ubi.copy('resnum < 71')
 

@@ -102,10 +102,12 @@ Now let's plot square fluctuations along PCA and ANM modes in the same plot:
    :include-source:
    
    plt.figure(figsize=(5,4))
-   showScaledSqFlucts(pca[0], anm[1])
+   showScaledSqFlucts(pca[0], anm[2])
+   plt.legend()
 
    plt.figure(figsize=(5,4))
-   showScaledSqFlucts(pca[1], anm[2])
+   showScaledSqFlucts(pca[1], anm[0])
+   plt.legend()
 
 .. plot::
    :context:
@@ -122,6 +124,7 @@ Alternatively, we could plot normalized square fluctuations:
    
    plt.figure(figsize=(5,4))
    showNormedSqFlucts(pca[0], anm[1])
+   plt.legend()
 
 .. plot::
    :context:
