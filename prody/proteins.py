@@ -214,7 +214,6 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
     """Similar to :func:`parsePDBStream`, but downloads pdb files if needed.
     
     PDB files are downloaded using :func:`fetchPDB` function.
-    
     """
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
@@ -1058,7 +1057,8 @@ def writePDBStream(stream, atoms, model=None, sort=False):
 def writePDB(filename, atoms, model=None, sort=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
-    Returns *filename* is file is succesfully written.
+    Returns *filename* is file is succesfully written. 
+    See :func:`writePDBStream` for more information.
     """
     out = open(filename, 'w')
     writePDBStream(out, atoms, model, sort)

@@ -29,6 +29,7 @@ example will reproduce the results presented in [AB09]_.
    :maxdepth: 2
 
    pca_xray/index
+   pca_blast
 
 NMR models
 ===============================================================================

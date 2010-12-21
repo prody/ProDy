@@ -198,7 +198,8 @@ def matchChains(atoms1, atoms2, **kwargs):
       * Matched chain from *atoms2* as a :class:`~prody.atomic.AtomMap` instance,
       * Percent sequence identitity of the match,
       * Percent sequence coverage of the match.
-
+    
+    List of matches are sorted in decreasing percent sequence identity order. 
     AtomMap can be used to calculate RMSD values and superpose atom groups.
     
     If *subset* is set to *calpha* or *backbone*, only alpha carbon
@@ -373,7 +374,10 @@ def matchChains(atoms1, atoms2, **kwargs):
                                atoms2._acsi)#'index ' + getIntAsStr(indices2), 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
-        
+    if len(matches) > 0:
+        def compare(m1, m2):
+            return cmp(m1[2], m2[2])
+        matches.sort(compare, reverse=True)
     return matches
 
 def _getTrivialMatch(ach, bch):
@@ -449,6 +453,7 @@ def mapAtomsToChain(atoms, chain, **kwargs):
       * Percent sequence identitity,
       * Percent sequence coverage)
          
+    Mappings are returned in decreasing percent sequence identity order.
     AtomMap that keeps mapped atom indices contains dummy atoms in place of 
     unmapped atoms.
     
@@ -540,6 +545,8 @@ def mapAtomsToChain(atoms, chain, **kwargs):
     if (not mappings and (pwalign is None or pwalign)) or pwalign: 
         LOGGER.debug('Trying to map atoms based on {0:s} sequence alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
         for simple_chain in unmapped:
+            LOGGER.debug('  Comparing {0:s} (len={2:d}) with {1:s}:'.format(
+                         simple_chain.getName(), simple_target.getName(), len(simple_chain)))
             result = _getAlignedMapping(simple_target, simple_chain)
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
@@ -553,9 +560,9 @@ def mapAtomsToChain(atoms, chain, **kwargs):
                     LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage.'
                                 .format(n_mapped, _seqid, _cover))
                     mappings.append((target_list, chain_list, _seqid, _cover))
-                else:
-                    LOGGER.debug('\tThese two chains do not match.')
-                    return None
+                #else:
+                #    LOGGER.debug('\tThese two chains do not match.')
+                #    return None
     
         
     for mi, result in enumerate(mappings):
@@ -606,7 +613,10 @@ def mapAtomsToChain(atoms, chain, **kwargs):
                                     target_chain._acsi)
                                     
         mappings[mi] = (atommap, selection, _seqid, _cover)
-
+    if len(mappings) > 0:
+        def compare(m1, m2):
+            return cmp(m1[2], m2[2])
+        mappings.sort(compare, reverse=True)
     return mappings
 
 

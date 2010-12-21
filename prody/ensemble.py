@@ -37,12 +37,8 @@ Functions
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
-
-import os.path
 import time
-
 import numpy as np
-
 from prody import ProDyLogger as LOGGER
 from prody import measure
 
@@ -167,18 +163,24 @@ class Ensemble(object):
         self._coords = coords
         
    
-    def addCoordset(self, coords, weights=None):
+    def addCoordset(self, coords, weights=None, allcoordsets=True):
         """Add a NumPy array or coordinates from atoms as a conformation.
         
-        AtomGroup, Chain, Residue, Selection, Atom, and AtomMap instances are 
-        acceptable as *coords* argument.
+        :class:`~prody.atomic.Atomic` instances are acceptable as *coords* 
+        argument. If *allcoordsets* is ``True``, all coordinate sets will be 
+        appended to the ensemble.
         
+        *weights* is an optional argument. If provided, its length must
+        match number of atoms.
         """
         ag = None
         if not isinstance(coords, np.ndarray):
             try:
                 ag = coords
-                coords = ag.getCoordinates()
+                if allcoordsets:
+                    coords = ag.getCoordsets()
+                else:
+                    coords = ag.getCoordinates()
             except AttributeError:
                 raise TypeError('coords must be an ndarray instance or '
                                 'must contain getCoordinates as an attribute')
@@ -221,11 +223,7 @@ class Ensemble(object):
                 weights = weights.reshape((1, n_atoms, 1))
             
             if n_confs > 1:
-                weights = np.tile(weights, (n_confs, n_atoms, 1))
-            
-            
-
-        
+                weights = np.tile(weights, (n_confs, 1, 1))
         if self._confs is None: 
             self._confs = coords
             self._weights = weights
@@ -237,21 +235,20 @@ class Ensemble(object):
                 if self._weights is not None:
                     self._weights = np.concatenate((self._weights, 
                                         np.ones(n_confs, n_atoms, 1)), axis=0)
-                
-                
-            
         if ag is None:
-            self._n_confs += n_confs
             self._ensemble += [None] * n_confs
-            self._transformations += [None] * n_confs
+            
         else:
             name = ag.getName()
-            if ag.getNumOfCoordsets() > 0:
-                name +=  ' ' + str(ag.getActiveCoordsetIndex())
-            self._ensemble.append(Conformation(self, len(self._ensemble), name))
-            self._transformations.append(None)
-            self._n_confs += 1
-        
+            if n_confs == 1:
+                if ag.getNumOfCoordsets() > 0:
+                    name +=  '_' + str(ag.getActiveCoordsetIndex())
+                self._ensemble.append(Conformation(self, len(self._ensemble), name))
+            else:                
+                for i in range(0, n_confs):
+                    self._ensemble.append(Conformation(self, len(self._ensemble), name + '_' + str(i)))
+        self._n_confs += n_confs
+        self._transformations += [None] * n_confs
 
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices.
