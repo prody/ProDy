@@ -941,7 +941,7 @@ class Residue(AtomSubset):
     
     def getNumber(self):
         """Return residue number."""
-        return self._ag._resnums[self._indices[0]]
+        return int(self._ag._resnums[self._indices[0]])
     
     def setNumber(self, number):
         """Set residue number."""

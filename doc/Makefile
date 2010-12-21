@@ -12,7 +12,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help upload clean both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
+.PHONY: help clean both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -35,9 +35,6 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/* $(BUILDDIR)/../../Documentation/*
-
-upload:
-    scp -r ../Documentation/* ahb12@unixs.cis.pitt.edu:/afs/pitt.edu/home/a/h/ahb12/public/html/software/ProDy
 
 both:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation

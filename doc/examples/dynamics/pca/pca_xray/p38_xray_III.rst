@@ -20,7 +20,7 @@ load saved data:
 
    pca = loadModel('p38_xray.pca.npz')
    anm = loadModel('1p38.anm.npz')
-   ensemble = loadEnsemble('p38_X-ray.ensemble.npz')
+   ensemble = loadEnsemble('p38_X-ray.ens.npz')
    ref_chain = parsePDB('p38_ref_chain.pdb')
    
    # We also import plotting library
