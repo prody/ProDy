@@ -157,7 +157,7 @@ demonstrate comparative analysis functions.
 
 >>> p38_pca = loadModel('p38_xray.pca.npz')
 >>> p38_anm = loadModel('1p38.anm.npz') 
->>> p38_ensemble = loadEnsemble('p38_X-ray.ensemble.npz')
+>>> p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
 >>> p38_structure = parsePDB('p38_ref_chain.pdb')
 
 
@@ -180,7 +180,7 @@ demonstrate comparative analysis functions.
 
    p38_pca = loadModel('p38_xray.pca.npz')
    p38_anm = loadModel('1p38.anm.npz') 
-   p38_ensemble = loadEnsemble('p38_X-ray.ensemble.npz')
+   p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
    p38_structure = parsePDB('p38_ref_chain.pdb')
    
 """
