@@ -10,7 +10,7 @@ Downloads
 ===============================================================================
 
 ProDy installation files can be obtained from 
-`Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
+`Python Package Index <http://pypi.python.org/pypi/ProDy#downloads>`_.
 
 Dependencies
 ===============================================================================

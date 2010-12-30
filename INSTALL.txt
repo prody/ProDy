@@ -6,10 +6,11 @@ ProDy is a Python package. Dependencies, which include a Python interpreter,
 need to be installed before you can use it. In addition, installing the 
 complementary/recommended software improves user's experience with ProDy.
 
-Download
+Downloads
 ===============================================================================
 
-ProDy is available on the `Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
+ProDy installation files can be obtained from 
+`Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
 
 Dependencies
 ===============================================================================
@@ -22,7 +23,7 @@ Dependencies
 
 **Required for certain functionality:**
 
-* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ required pairwise 
+* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ required for pairwise 
   sequence alignments and proximity based atom selections. Also, when 
   installed, Bio.KDTree is used in elastic network model calculations. It
   provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 

@@ -184,5 +184,3 @@ to plot data:
    :nofigs:
 
    plt.close('all')  
-   import os
-   os.remove('2k39.pdb.gz')

@@ -1020,7 +1020,7 @@ class GNM(GNMBase):
         start = time.time()
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         if KDTree:
-            kdtree = prody.KDTree(3)
+            kdtree = KDTree(3)
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
             for i, j in kdtree.all_get_indices():
@@ -1189,7 +1189,7 @@ class ANM(GNMBase):
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         hessian = np.zeros((dof, dof), 'd')
         if KDTree:
-            kdtree = prody.KDTree(3)
+            kdtree = KDTree(3)
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
             for i, k in kdtree.all_get_indices():

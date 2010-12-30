@@ -1233,7 +1233,7 @@ class Select(object):
         if not KDTree:
             raise ImportError('Bio.KDTree is required for distance based selections.')
         if self._kdtree is None:
-            kdtree = prody.KDTree(3)
+            kdtree = KDTree(3)
             kdtree.set_coords(self._getCoordinates())
             self._kdtree = kdtree
             return kdtree

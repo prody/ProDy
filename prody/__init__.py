@@ -58,7 +58,7 @@ def importPyPlot():
 
 def importBioKDTree():
     try:
-        from Bio.KDTree import KDTree as BioKDTree
+        from Bio.KDTree import KDTree
         dynamics.KDTree = KDTree
         select.KDTree = KDTree
     except ImportError:
