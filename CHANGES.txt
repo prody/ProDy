@@ -11,10 +11,11 @@ Release 0.5.1
 
 * Scipy linear algebra module is not a required anymore. 
   When available it replaces Numpy linear algebra package for greater flexiblity
-  and efficiency.
+  and efficiency. A warning message is printed when Scipy is not found.
 * Biopython KDTree module is not required for ENM calculations (specifically
-  for building Hessian or Kirchhoff matrices). When available it is used
-  to increase the performance.
+  for building Hessian (ANM) or Kirchoff (GNM) matrices). When available it 
+  is used to increase the performance. A warning message is printed when 
+  KDTree is not found.
 
 Release 0.5
 ===============================================================================
