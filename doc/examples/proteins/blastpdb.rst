@@ -56,11 +56,11 @@ to 90 by default
 
 >>> hits = blast_record.getHits(percent_identity=50)
 >>> print hits.keys()
-['2hxp', '1mkp']
+['2hxp', '3lj8', '1mkp']
 
 >>> hits = blast_record.getHits(percent_identity=40)
 >>> print hits.keys()
-['1mkp', '1zzw', '2g6z', '2hxp', '3ezz', '1m3g', '2oud']
+['3lj8', '1mkp', '1zzw', '2g6z', '2hxp', '3ezz', '1m3g', '2oud']
 
 This resulted in 7 hits, including structures of MKP-2, MKP-4, and MKP-5
 More information on a hit can be obtained as follows:

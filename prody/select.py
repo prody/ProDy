@@ -1229,8 +1229,9 @@ class Select(object):
         return self._coordinates
    
     def _getKDTree(self):
-        if prody.KDTree is None:
-            prody.importBioKDTree()
+        if KDTree is None: prody.importBioKDTree()
+        if not KDTree:
+            raise ImportError('Bio.KDTree is required for distance based selections.')
         if self._kdtree is None:
             kdtree = prody.KDTree(3)
             kdtree.set_coords(self._getCoordinates())
@@ -1259,8 +1260,9 @@ class Contacts(object):
         else:
             self._ag = atoms 
             self._indices = None
-        if KDTree is None:
-            prody.importBioKDTree()
+        if KDTree is None: prody.importBioKDTree()
+        if not KDTree:
+            raise ImportError('Bio.KDTree is required for distance based selections.')
         kdtree = KDTree(3)
         kdtree.set_coords(atoms.getCoordinates())
         self._kdtree = kdtree

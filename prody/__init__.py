@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010 Ahmet Bakan'
-__version__ = '0.5'
+__version__ = '0.5.1'
 
 import logging
 import logging.handlers
@@ -30,36 +30,41 @@ def importRE():
     global re
     re = RE
 
-la = None
-def importScipyLinalg():
+def importLA():
     try:
         import scipy.linalg as linalg
+        dynamics.scipyla = True
     except ImportError:
-        raise ImportError('SciPy is required for NMA/rmsd/superimposition calculations.')
-    global la
-    la = linalg
-
-pl = None
+        dynamics.scipyla = False
+        try:
+            import numpy.linalg as linalg
+            ProDyLogger.warning('scipy.linalg could not be imported, numpy.linalg is used instead.')
+        except:
+            raise ImportError('scipy.linalg or numpy.linalg is required for NMA/rmsd/superimposition calculations.')
+    dynamics.linalg = linalg
+    measure.linalg = linalg
+    
 def importPyPlot():
     try:
         import matplotlib.pyplot as pyplot
         from mpl_toolkits.mplot3d import Axes3D
+        dynamics.plt = pyplot
+        ensemble.plt = pyplot
+        dynamics.Axes3D = Axes3D 
     except ImportError:
-        raise ImportError('Matplotlib is required for plotting.')
-    global pl
-    pl = pyplot
-    dynamics.pl = pl
-    dynamics.Axes3D = Axes3D 
+        dynamics.plt = False
+        ensemble.plt = pyplot
+        ProDyLogger.warning('Matplotlib is required for plotting.')
 
-KDTree = None
 def importBioKDTree():
     try:
         from Bio.KDTree import KDTree as BioKDTree
+        dynamics.KDTree = KDTree
+        select.KDTree = KDTree
     except ImportError:
-        raise ImportError('BioPython is required for ENM calculations.')
-    global KDTree
-    KDTree = BioKDTree
-    select.KDTree = KDTree 
+        dynamics.KDTree = False
+        select.KDTree = False
+        ProDyLogger.warning('Bio.KDTree could not be imported.')
 
 NCBIWWW = None
 NCBIXML = None
@@ -73,15 +78,13 @@ def importBioBlast():
     NCBIWWW = ncbiwww
     NCBIXML = ncbixml
 
-PWALIGN = None
 def importBioPairwise2():
     try:
-        from Bio import pairwise2 
+        from Bio import pairwise2
+        compare.pairwise2 = pairwise2
     except ImportError:
-        raise ImportError('BioPython is required for pairwise alignments.')
-    global PWALIGN
-    PWALIGN = pairwise2
-
+        compare.pairwise2 = False
+        ProDyLogger.warning('BioPython is required for pairwise alignments.')
 
 _ProDySettings = {
     'loglevel': 'debug',
@@ -102,8 +105,6 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
 LOGGING_LEVELS.setdefault(logging.INFO)
 ProDySignature = '@>'
 
-ProDyLogger = None
-
 def _ProDyStartLogger(**kwargs):
     """Set a global logger for ProDy."""
     
@@ -119,10 +120,9 @@ def _ProDyStartLogger(**kwargs):
     console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
     console.setFormatter(logging.Formatter(ProDySignature + ' %(message)s'))
     logger.addHandler(console)
-    global ProDyLogger
-    ProDyLogger = logger
+    return logger
 
-_ProDyStartLogger()
+ProDyLogger = _ProDyStartLogger()
 
 def ProDyStartLogfile(filename, **kwargs):
     """Start a file to save ProDy logs.
@@ -142,7 +142,6 @@ def ProDyStartLogfile(filename, **kwargs):
 
     
     """
-    global ProDyLogger
     logger = ProDyLogger
     logfilename = filename
     if not logfilename.endswith('.log'):
@@ -171,7 +170,6 @@ def ProDyCloseLogfile(filename):
     filename = str(filename)
     if not filename.endswith('.log'):
         filename += '.log'
-    global ProDyLogger
     logger = ProDyLogger
     for index, handler in enumerate(logger.handlers):
         if isinstance(handler, logging.handlers.RotatingFileHandler):

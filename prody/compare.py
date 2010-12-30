@@ -47,6 +47,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
 import numpy as np
+pairwise2 = None
 
 import prody
 from prody import ProDyLogger as LOGGER
@@ -298,20 +299,21 @@ def matchChains(atoms1, atoms2, **kwargs):
 
 
     if (not matches and (pwalign is None or pwalign)) or pwalign: 
-        for simpch1, simpch2 in unmatched:
-            LOGGER.debug('Trying to match chains based on {0:s} sequence alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
-            match1, match2, nmatches = _getAlignedMatch(simpch1, simpch2)
-            _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-            _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
-            if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage.'
-                            .format(len(match1), _seqid, _cover))
-                matches.append((match1, match2, _seqid, _cover))
-            else:
-                LOGGER.debug('\tThese chains do not match.')
-
-                
-            
+        if pairwise2 is None: prody.importBioPairwise2()
+        if pairwise2:
+            for simpch1, simpch2 in unmatched:
+                LOGGER.debug('Trying to match chains based on {0:s} sequence alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
+                match1, match2, nmatches = _getAlignedMatch(simpch1, simpch2)
+                _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+                _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+                if _seqid >= seqid and _cover >= coverage:
+                    LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage.'
+                                .format(len(match1), _seqid, _cover))
+                    matches.append((match1, match2, _seqid, _cover))
+                else:
+                    LOGGER.debug('\tThese chains do not match.')
+        else:
+            LOGGER.warning('Pairwise alignment skipped (Biopython is not found).')
     for mi, result in enumerate(matches):
         match1, match2, _seqid, _cover = result
         
@@ -405,16 +407,17 @@ def _getAlignedMatch(ach, bch):
     """Return list of matching residues (match is based on sequence alignment).
     
     """
-    if prody.PWALIGN is None: prody.importBioPairwise2()
+    if pairwise2 is None: prody.importBioPairwise2()
+    if not pairwise2: return None
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = prody.PWALIGN.align.localms(ach.getSequence(), bch.getSequence(), 
+        alignment = pairwise2.align.localms(ach.getSequence(), bch.getSequence(), 
                                                 PAIRWISE_MATCH_SCORE, 
                                                 PAIRWISE_MISMATCH_SCORE,
                                                 PAIRWISE_GAP_OPENING_PENALTY, 
                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
                                                 one_alignment_only=1)
     else:
-        alignment = prody.PWALIGN.align.globalms(ach.getSequence(), bch.getSequence(), 
+        alignment = pairwise2.align.globalms(ach.getSequence(), bch.getSequence(), 
                                                  PAIRWISE_MATCH_SCORE, 
                                                  PAIRWISE_MISMATCH_SCORE,
                                                  PAIRWISE_GAP_OPENING_PENALTY, 
@@ -684,16 +687,17 @@ def _getTrivialMapping(target, chain):
     return target_list, chain_list, n_match, n_mapped
 
 def _getAlignedMapping(target, chain):
-    if prody.PWALIGN is None: prody.importBioPairwise2()
+    if pairwise2 is None: prody.importBioPairwise2()
+    if not pairwise2: return None
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = prody.PWALIGN.align.localms(target.getSequence(), chain.getSequence(), 
+        alignment = pairwise2.align.localms(target.getSequence(), chain.getSequence(), 
                                                 PAIRWISE_MATCH_SCORE, 
                                                 PAIRWISE_MISMATCH_SCORE,
                                                 PAIRWISE_GAP_OPENING_PENALTY, 
                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
                                                 one_alignment_only=1)
     else:
-        alignment = prody.PWALIGN.align.globalms(target.getSequence(), chain.getSequence(), 
+        alignment = pairwise2.align.globalms(target.getSequence(), chain.getSequence(), 
                                                  PAIRWISE_MATCH_SCORE,
                                                  PAIRWISE_MISMATCH_SCORE,
                                                  PAIRWISE_GAP_OPENING_PENALTY, 

@@ -40,8 +40,10 @@ Functions
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
-import prody as pd
 import numpy as np
+linalg = None
+
+import prody
 from prody import ProDyLogger as LOGGER
 
 
@@ -161,7 +163,8 @@ def calcTransformation(mobile, target, weights=None):
     return t
 
 def _calcTransformation(mob, tar, weights=None):
-    if pd.la is None: pd.importScipyLinalg()
+    if linalg is None: 
+        prody.importLA()
     n_atoms = mob.shape[0]
     
     if weights is None:
@@ -184,18 +187,17 @@ def _calcTransformation(mob, tar, weights=None):
     
 
     matrix = np.dot((tar * weights).T, (mob * weights)) / weights_dot
-    U, s, Vh = pd.la.svd(matrix)
+    U, s, Vh = linalg.svd(matrix)
     
-    U, s, Vh = pd.la.svd(matrix)
     Id = np.array([ [1, 0, 0], 
                     [0, 1, 0], 
-                    [0, 0, np.sign(pd.la.det(matrix))] ])
+                    [0, 0, np.sign(linalg.det(matrix))] ])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
     
     # optalign
     # http://www.pymolwiki.org/index.php/Kabsch
     #E0 = np.sum( np.sum(ref_centered * ref_centered,axis=0),axis=0) + np.sum( np.sum(tar_centered * tar_centered,axis=0),axis=0)
-    #reflect = float(str(float(pd.la.det(U) * pd.la.det(Vh))))
+    #reflect = float(str(float(linalg.det(U) * linalg.det(Vh))))
     #if reflect == -1.0:
     #    s[-1] = -s[-1]
     #    U[:,-1] = -U[:,-1]
@@ -237,7 +239,7 @@ def calcDeformVector(from_atoms, to_atoms):
     if len(name) > 30: 
         name = 'Deformation'
     array = (to_atoms.getCoordinates() - from_atoms.getCoordinates()).flatten()
-    return pd.Vector(array, name)
+    return prody.Vector(array, name)
 
 def calcRMSD(reference, target=None, weights=None):
     """Returns Root-Mean-Square-Deviations between reference and target coordinates."""
@@ -318,7 +320,7 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
     
     Optionally, atomic *weights* can be passed for weighted superposition.    
     """
-    if not isinstance(atoms, pd.Atomic):
+    if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must have type Atomic, not {0:s}'.format(type(atoms)))
     if not isinstance(selstr, str):
         raise TypeError('selstr must have type str, not {0:s}'.format(type(selstr)))
@@ -328,13 +330,13 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
         return None
     
     acsi = atoms.getActiveCoordsetIndex()
-    if isinstance(atoms, pd.AtomGroup):
+    if isinstance(atoms, prody.AtomGroup):
         ag = atoms
     else: 
         ag = atoms.getAtomGroup()
     agacsi = ag.getActiveCoordsetIndex()
     tar = atoms.select(selstr)
-    mob = pd.AtomSubset(ag, tar.getIndices(), 0)
+    mob = prody.AtomSubset(ag, tar.getIndices(), 0)
     assert tar.getActiveCoordsetIndex() == acsi
     for i in range(n_coordsets):
         if i == acsi:
@@ -353,7 +355,7 @@ def calcDihedral():
 
 def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
-    if isinstance(coords, (pd.AtomGroup, pd.AtomSubset, pd.AtomMap)):
+    if isinstance(coords, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
         coords = coords.getCoordinates()
     if not isinstance(coords, np.ndarray):
         raise TypeError('coords must be a array or atomic')

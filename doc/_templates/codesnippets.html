@@ -80,10 +80,9 @@ function showCodeSnippets() {
     alert("This page does not contain any code snippets.");
   } else {
     prolog = "#!/usr/bin/env python\n"
-    prolog += "'''This code was copied from ProDy documentation:\n"
-    prolog += "http://www.csb.pitt.edu/People/abakan/software/ProDy\n\n"
-    prolog += "Title:" + document.title + "\n"
-    prolog += "URL:" + document.URL + "\n"
+    prolog += "'''This code was copied from ProDy documentation.\n"
+    prolog += "Title: " + document.title + "\n"
+    prolog += "URL: " + document.URL + "\n"
     prolog += "'''\n\n"
     prolog += "__author__ = 'Ahmet Bakan'\n"
     prolog += "__copyright__ = 'Copyright (C) 2010 Ahmet Bakan'\n\n"
