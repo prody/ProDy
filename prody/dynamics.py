@@ -194,7 +194,10 @@ import os
 import gzip
 
 import numpy as np
-pl = None
+linalg = None
+scipyla = None
+plt = None
+KDTree = None
 
 import prody
 from .atomic import *
@@ -986,11 +989,13 @@ class GNM(GNMBase):
         :arg gamma: spring constant
         :type gamma: float, default is 1.0
         
-        *masses* is not used yet.
-
-        """
-        if prody.KDTree is None:
+        When available, this method uses Bio.KDTree.
+        
+        *masses* is not used yet.        """
+        if KDTree is None: 
             prody.importBioKDTree()
+            if not KDTree:
+                LOGGER.debug('Using a slower method for building Kirchhoff matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoordinates()
@@ -1012,18 +1017,34 @@ class GNM(GNMBase):
         cutoff = float(cutoff)
         gamma = float(gamma)
         n_atoms = coords.shape[0]
-        kdtree = prody.KDTree(3)
         start = time.time()
-        kdtree.set_coords(coords) 
-        kdtree.all_search(cutoff)
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
-        for i, j in kdtree.all_get_indices():
-            kirchhoff[i, j] = -gamma
-            kirchhoff[j, i] = -gamma
-            kirchhoff[i, i] += gamma
-            kirchhoff[j, j] += gamma
-        LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
-                         .format(time.time()-start))
+        if KDTree:
+            kdtree = prody.KDTree(3)
+            kdtree.set_coords(coords) 
+            kdtree.all_search(cutoff)
+            for i, j in kdtree.all_get_indices():
+                kirchhoff[i, j] = -gamma
+                kirchhoff[j, i] = -gamma
+                kirchhoff[i, i] += gamma
+                kirchhoff[j, j] += gamma
+        else:
+            cutoff2 = cutoff * cutoff
+            for i in range(n_atoms):
+                res_i3 = i*3
+                res_i33 = res_i3+3
+                xyz_i = coords[i, :]
+                for j in range(i+1, n_atoms):
+                    i2j = coords[j, :] - xyz_i
+                    i2j2 = np.dot(i2j, i2j)
+                    if i2j2 > cutoff2:
+                        continue             
+                    kirchhoff[i, j] = -gamma
+                    kirchhoff[j, i] = -gamma
+                    kirchhoff[i, i] += gamma
+                    kirchhoff[j, j] += gamma
+            
+        LOGGER.debug('Kirchhoff was built in {0:.2f}s.'.format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._cutoff = cutoff
         self._gamma = gamma
@@ -1047,23 +1068,31 @@ class GNM(GNMBase):
         :type turbo: bool, default is ``True``
         
         """
-        if prody.la is None:
-            prody.importScipyLinalg()
-        
         if self._kirchhoff is None:
             raise RuntimeError('Kirchhoff matrix is not set')
-            
+        if linalg is None:
+            prody.importLA()
         start = time.time()
         shift = 0
-        if n_modes is None:
-            eigvals = None
-            n_modes = self._dof 
-        else: 
-            n_modes = int(n_modes)
-            eigvals = (0, n_modes + shift)
-        if eigvals: 
-            turbo = False
-        values, vectors = prody.la.eigh(self._kirchhoff, turbo=turbo, eigvals=eigvals)
+        if scipyla:
+            if n_modes is None:
+                eigvals = None
+                n_modes = self._dof 
+            else: 
+                n_modes = int(n_modes)
+                eigvals = (0, n_modes + shift)
+            if eigvals: 
+                turbo = False
+            values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, eigvals=eigvals)
+        else:
+            values, vectors = linalg.eigh(self._kirchhoff)
+        n_zeros = sum(values < ZERO)
+        if n_zeros < 1: 
+            LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
+            shift = n_zeros - 1
+        elif n_zeros > 1: 
+            LOGGER.warning('More than 6 zero eigenvalues are calculated.')
+            shift = n_zeros - 1
         if zeros:
             shift = -1
         self._eigvals = values[1+shift:]
@@ -1126,11 +1155,14 @@ class ANM(GNMBase):
         :arg gamma: spring constant
         :type gamma: float, default is 1.0
         
-        *masses* is not used yet.
-                        
+        When available, this method uses Bio.KDTree.
+        
+        *masses* is not used yet.                       
         """
-        if prody.KDTree is None:
+        if KDTree is None: 
             prody.importBioKDTree()
+            if not KDTree:
+                LOGGER.debug('Using a slower method for building Hessian matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoordinates()
@@ -1153,37 +1185,57 @@ class ANM(GNMBase):
         gamma = float(gamma)
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
-        kdtree = prody.KDTree(3)
         start = time.time()
-        kdtree.set_coords(coords) 
-        kdtree.all_search(cutoff)
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         hessian = np.zeros((dof, dof), 'd')
-
-        for i, k in kdtree.all_get_indices():
-            if k > i: 
-                j = i
-                i = k
-            else:
-                j = k
-            i2j = coords[j] - coords[i]
-            dist2 = np.dot(i2j, i2j)
-            super_element = np.outer(i2j, i2j) / dist2 * gamma 
-            res_i3 = i*3
-            res_i33 = res_i3+3
-            res_j3 = j*3
-            res_j33 = res_j3+3
-            hessian[res_i3:res_i33, res_j3:res_j33] = -super_element
-            hessian[res_j3:res_j33, res_i3:res_i33] = -super_element
-            hessian[res_i3:res_i33, res_i3:res_i33] += super_element
-            hessian[res_j3:res_j33, res_j3:res_j33] += super_element
-            kirchhoff[i, j] = -gamma
-            kirchhoff[j, i] = -gamma
-            kirchhoff[i, i] += gamma
-            kirchhoff[j, j] += gamma
-
-        LOGGER.info('Hessian was built in {0:.2f}s.'
-                         .format(time.time()-start))
+        if KDTree:
+            kdtree = prody.KDTree(3)
+            kdtree.set_coords(coords) 
+            kdtree.all_search(cutoff)
+            for i, k in kdtree.all_get_indices():
+                if k > i: 
+                    j = i
+                    i = k
+                else:
+                    j = k
+                i2j = coords[j] - coords[i]
+                dist2 = np.dot(i2j, i2j)
+                super_element = np.outer(i2j, i2j) / dist2 * gamma 
+                res_i3 = i*3
+                res_i33 = res_i3+3
+                res_j3 = j*3
+                res_j33 = res_j3+3
+                hessian[res_i3:res_i33, res_j3:res_j33] = -super_element
+                hessian[res_j3:res_j33, res_i3:res_i33] = -super_element
+                hessian[res_i3:res_i33, res_i3:res_i33] += super_element
+                hessian[res_j3:res_j33, res_j3:res_j33] += super_element
+                kirchhoff[i, j] = -gamma
+                kirchhoff[j, i] = -gamma
+                kirchhoff[i, i] += gamma
+                kirchhoff[j, j] += gamma
+        else:
+            cutoff2 = cutoff * cutoff 
+            for i in range(n_atoms):
+                res_i3 = i*3
+                res_i33 = res_i3+3
+                xyz_i = coords[i, :]
+                for j in range(i+1, n_atoms):
+                    i2j = coords[j, :] - xyz_i
+                    i2j2 = np.dot(i2j, i2j)
+                    if i2j2 > cutoff2:
+                        continue             
+                    res_j3 = j*3
+                    res_j33 = res_j3+3
+                    super_element = -np.outer(i2j, i2j) / i2j2 * gamma
+                    hessian[res_i3:res_i33, res_j3:res_j33] = super_element 
+                    hessian[res_j3:res_j33, res_i3:res_i33] = super_element
+                    hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
+                    hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
+                    kirchhoff[i, j] = -gamma
+                    kirchhoff[j, i] = -gamma
+                    kirchhoff[i, i] += gamma
+                    kirchhoff[j, j] += gamma
+        LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._hessian = hessian
         self._gamma = gamma
@@ -1208,30 +1260,32 @@ class ANM(GNMBase):
         :type turbo: bool, default is ``True``
         
         """
-        if prody.la is None:
-            prody.importScipyLinalg()
-
         if self._hessian is None:
             raise RuntimeError('Hessian matrix is not set')
+        if linalg is None:
+            prody.importLA()
             
         start = time.time()
         shift = 5
-        if n_modes is None:
-            eigvals = None
-            n_modes = self._dof 
-        else: 
-            n_modes = int(n_modes)
-            eigvals = (0, n_modes + shift)
-        if eigvals: 
-            turbo = False
-        values, vectors = prody.la.eigh(self._hessian, turbo=turbo, eigvals=eigvals)
+        if scipyla:
+            if n_modes is None:
+                eigvals = None
+                n_modes = self._dof 
+            else: 
+                n_modes = int(n_modes)
+                eigvals = (0, n_modes + shift)
+            if eigvals: 
+                turbo = False
+            values, vectors = linalg.eigh(self._hessian, turbo=turbo, eigvals=eigvals)
+        else:
+            values, vectors = linalg.eigh(self._hessian)
         n_zeros = sum(values < ZERO)
         if n_zeros < 6: 
             LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
-            shif = n_zeros - 1
+            shift = n_zeros - 1
         elif n_zeros > 6: 
             LOGGER.warning('More than 6 zero eigenvalues are calculated.')
-            shif = n_zeros - 1
+            shift = n_zeros - 1
         if zeros:
             shift = -1
         self._eigvals = values[1+shift:]
@@ -1286,7 +1340,6 @@ class PCA(NMABase):
         weights from that method will be used. 
         
         """
-        pass
         start = time.time()
         n_atoms = coordsets.getNumOfAtoms()
         dof = n_atoms * 3
@@ -1322,7 +1375,7 @@ class PCA(NMABase):
                     .format(time.time()-start))
         
     def calcModes(self, n_modes=20, turbo=True):
-        """Calculate essential modes.
+        """Calculate principal (or essential) modes.
 
         This method uses :func:`scipy.linalg.eigh` function to diagonalize
         covariance matrix.
@@ -1335,18 +1388,20 @@ class PCA(NMABase):
         :type turbo: bool, default is ``True``
         
         """
-        if prody.la is None:
-            prody.importScipyLinalg()
+        if linalg is None:
+            prody.importLA()
 
         start = time.time()
         dof = self._dof
-        if n_modes: 
-            eigvals = (dof - n_modes, dof - 1)
-        else: 
-            eigvals = None
-            n_modes = dof
-        values, vectors = prody.la.eigh(self._cov, turbo=turbo, 
-                                  eigvals=eigvals)
+        if scipyla:        
+            if n_modes: 
+                eigvals = (dof - n_modes, dof - 1)
+            else: 
+                eigvals = None
+                n_modes = dof
+            values, vectors = linalg.eigh(self._cov, turbo=turbo, eigvals=eigvals)
+        else:
+            values, vectors = linalg.eigh(self._cov)
         # Order by descending SV
         revert = range(len(values)-1, -1, -1)
         values = values[revert]
@@ -1357,7 +1412,7 @@ class PCA(NMABase):
         self._vars = self._eigvals
         self._n_modes = len(self._eigvals)
         self._modes = [None] * self._n_modes
-        LOGGER.debug('{0:d} essential modes were calculated in {1:.2f}s.'
+        LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                          .format(self._n_modes, time.time()-start))
 
 EDA = PCA
@@ -1825,8 +1880,8 @@ def reduceModel(model, atoms, selstr):
        This function simply takes the sub-covariance matrix for the selected
        atoms.
     """
-    if prody.la is None:
-        prody.importScipyLinalg()
+    if linalg is None:
+        prody.importLA()
 
     #LOGGER.warning('Implementation of this function is not finalized. Use it with caution.')
     if not isinstance(model, NMABase):
@@ -1868,7 +1923,7 @@ def reduceModel(model, atoms, selstr):
     so = matrix[system,:][:,other]
     os = matrix[other,:][:,system]
     oo = matrix[other,:][:,other]
-    matrix = ss - np.dot(so, np.dot(prody.la.inv(oo), os))
+    matrix = ss - np.dot(so, np.dot(linalg.inv(oo), os))
     
     if isinstance(model, GNM):
         gnm = GNM(model.getName()+' reduced')
@@ -2107,7 +2162,8 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
        plt.close('all')
 
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(modes, (NMABase, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -2149,7 +2205,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         y = xyz[:,1].reshape((100,100))
         z = xyz[:,2].reshape((100,100))
 
-    cf = pl.gcf()
+    cf = plt.gcf()
     show = None
     for child in cf.get_children():
         if isinstance(child, Axes3D):
@@ -2456,20 +2512,21 @@ def showFractOfVariances(modes, *args, **kwargs):
        plt.close('all')
     
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(modes, (ModeSet, NMABase)):
         raise TypeError('modes must be NMABase, or ModeSet, not {0:s}'.format(type(modes)))
     
     fracts = [(mode.getIndex(), mode.getFractOfVariance()) for mode in modes]
     fracts = np.array(fracts)
-    show = pl.bar(fracts[:,0]+0.5, fracts[:,1], *args, **kwargs)
-    axis = list(pl.axis())
+    show = plt.bar(fracts[:,0]+0.5, fracts[:,1], *args, **kwargs)
+    axis = list(plt.axis())
     axis[0] = 0.5
     axis[2] = 0
     axis[3] = 1
-    pl.axis(axis)
-    pl.xlabel('Mode index')
-    pl.ylabel('Fraction of variance')
+    plt.axis(axis)
+    plt.xlabel('Mode index')
+    plt.ylabel('Fraction of variance')
     return show
 
 def showCumFractOfVariances(modes, *args, **kwargs):
@@ -2478,7 +2535,8 @@ def showCumFractOfVariances(modes, *args, **kwargs):
     Note that mode indices are incremented by 1.
     See :func:`showFractOfVariances` for an example.
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMABase, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -2490,14 +2548,14 @@ def showCumFractOfVariances(modes, *args, **kwargs):
     else:
         indices = np.arange(len(modes)) + 0.5
     fracts = np.array([mode.getFractOfVariance() for mode in modes]).cumsum()
-    show = pl.plot(indices, fracts, *args, **kwargs)
-    axis = list(pl.axis())
+    show = plt.plot(indices, fracts, *args, **kwargs)
+    axis = list(plt.axis())
     axis[0] = 0.5
     axis[2] = 0
     axis[3] = 1
-    pl.axis(axis)
-    pl.xlabel('Mode index')
-    pl.ylabel('Fraction of variance')
+    plt.axis(axis)
+    plt.xlabel('Mode index')
+    plt.ylabel('Fraction of variance')
     return show
 
 def showProjection(ensemble, modes, *args, **kwargs):
@@ -2537,7 +2595,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         
        plt.close('all')
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
@@ -2546,19 +2605,19 @@ def showProjection(ensemble, modes, *args, **kwargs):
         raise Exception('modes must be 3-dimensional')
     if isinstance(modes, Mode):
         projection = calcProjection(ensemble, modes)
-        show = pl.hist(projection.flatten(), *args, **kwargs)
-        pl.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
-        pl.ylabel('Number of conformations')
+        show = plt.hist(projection.flatten(), *args, **kwargs)
+        plt.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
+        plt.ylabel('Number of conformations')
     elif len(modes) == 2:
         if 'ls' not in kwargs:
             kwargs['ls'] = 'None'
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
         projection = calcProjection(ensemble, modes)
-        show = pl.plot(projection[:,0], projection[:,1], *args, **kwargs)
+        show = plt.plot(projection[:,0], projection[:,1], *args, **kwargs)
         modes = [m for m in modes]
-        pl.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
-        pl.ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
+        plt.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
+        plt.ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
     elif len(modes) == 3:
         if 'ls' not in kwargs:
             kwargs['ls'] = 'None'
@@ -2566,7 +2625,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['marker'] = 'o'
         projection = calcProjection(ensemble, modes)
         modes = [m for m in modes]
-        cf = pl.gcf()
+        cf = plt.gcf()
         show = None
         for child in cf.get_children():
             if isinstance(child, Axes3D):
@@ -2617,7 +2676,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
     |more| See :ref:`p38-xray-plotting` for a more elaborate example.
        
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
     if not isinstance(mode_x, Mode):
@@ -2656,9 +2716,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
         kwargs['ls'] = 'None'
     if 'marker' not in kwargs:
         kwargs['marker'] = 'o'
-    show = pl.plot(xcoords, ycoords, *args, **kwargs)
-    pl.xlabel('{0:s} coordinate'.format(mode_x))
-    pl.ylabel('{0:s} coordinate'.format(mode_y))
+    show = plt.plot(xcoords, ycoords, *args, **kwargs)
+    plt.xlabel('{0:s} coordinate'.format(mode_x))
+    plt.ylabel('{0:s} coordinate'.format(mode_y))
     return show
 
 def showOverlapTable(rows, cols, *args, **kwargs):
@@ -2684,7 +2744,8 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         
        plt.close('all') 
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(rows, (NMABase, ModeSet)):
         raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'.format(type(rows)))
     if not isinstance(rows, (NMABase, ModeSet)):
@@ -2698,10 +2759,10 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     X = cols.getIndices()+0.5#np.arange(modes2.indices[0]+0.5, len(modes2)+1.5)
     axis = (X[0], X[-1], Y[0], Y[-1])
     X, Y = np.meshgrid(X, Y)
-    show = pl.pcolor(X, Y, overlap, cmap=pl.cm.jet, *args, **kwargs), pl.colorbar()
-    pl.xlabel(str(cols))
-    pl.ylabel(str(rows))
-    pl.axis(axis)
+    show = plt.pcolor(X, Y, overlap, cmap=plt.cm.jet, *args, **kwargs), plt.colorbar()
+    plt.xlabel(str(cols))
+    plt.ylabel(str(rows))
+    plt.axis(axis)
     return show
 
 def showCrossCorrelations(modes, *args, **kwargs):
@@ -2728,7 +2789,8 @@ def showCrossCorrelations(modes, *args, **kwargs):
        plt.close('all')
     
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     arange = np.arange(modes.getNumOfAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
@@ -2737,12 +2799,11 @@ def showCrossCorrelations(modes, *args, **kwargs):
         kwargs['interpolation'] = 'bilinear'
     if not kwargs.has_key('origin'):
         kwargs['origin'] = 'lower'
-    show = pl.imshow(cross_correlations, *args, **kwargs), pl.colorbar()
-    pl.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
-    pl.title('Cross-correlations for {0:s}'
-             .format(str(modes))) 
-    pl.xlabel('Indices')
-    pl.ylabel('Indices')
+    show = plt.imshow(cross_correlations, *args, **kwargs), plt.colorbar()
+    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    plt.title('Cross-correlations for {0:s}'.format(str(modes))) 
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
     return show
 
 def showMode(mode, *args, **kwargs):
@@ -2764,18 +2825,19 @@ def showMode(mode, *args, **kwargs):
        plt.close('all')
        
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode, not {0:s}'.format(type(modes)))
     if mode.is3d():
         a3d = mode.getArrayNx3()
-        show = pl.plot(a3d[:, 0], *args, label='x-component', **kwargs)
-        pl.plot(a3d[:, 1], *args, label='y-component', **kwargs)
-        pl.plot(a3d[:, 2], *args, label='z-component', **kwargs)
+        show = plt.plot(a3d[:, 0], *args, label='x-component', **kwargs)
+        plt.plot(a3d[:, 1], *args, label='y-component', **kwargs)
+        plt.plot(a3d[:, 2], *args, label='z-component', **kwargs)
     else:
-        show = pl.plot(mode.getArray(), *args, **kwargs)
-    pl.title(str(mode))
-    pl.xlabel('Indices')
+        show = plt.plot(mode.getArray(), *args, **kwargs)
+    plt.title(str(mode))
+    plt.xlabel('Indices')
     return show
 
 def showSqFlucts(modes, *args, **kwargs):
@@ -2797,14 +2859,15 @@ def showSqFlucts(modes, *args, **kwargs):
        plt.close('all')
     
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes) 
-    show = pl.plot(sqf, *args, **kwargs)
-    pl.xlabel('Indices')
-    pl.ylabel('Square fluctuations')
-    pl.title(str(modes.getModel()))
+    show = plt.plot(sqf, *args, **kwargs)
+    plt.xlabel('Indices')
+    plt.ylabel('Square fluctuations')
+    plt.title(str(modes.getModel()))
     return show
 
 def showScaledSqFlucts(modes, *args, **kwargs):
@@ -2827,7 +2890,8 @@ def showScaledSqFlucts(modes, *args, **kwargs):
 
        plt.close('all')
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     sqf = calcSqFlucts(modes)
     mean = sqf.mean()
     args = list(args)
@@ -2835,13 +2899,13 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     for arg in args:
         if isinstance(arg, (Mode, ModeSet, NMA)):
             modesarg.append(args.pop(0))
-    show = [pl.plot(sqf, *args, label=str(modes), **kwargs)]
-    pl.xlabel('Indices')
-    pl.ylabel('Square fluctuations')
+    show = [plt.plot(sqf, *args, label=str(modes), **kwargs)]
+    plt.xlabel('Indices')
+    plt.ylabel('Square fluctuations')
     for modes in modesarg:
         sqf = calcSqFlucts(modes)
         scalar = mean / sqf.mean()
-        show.append(pl.plot(sqf * scalar, *args, label='{0:s} (x{1:.2f})'.format(str(modes), scalar), **kwargs))
+        show.append(plt.plot(sqf * scalar, *args, label='{0:s} (x{1:.2f})'.format(str(modes), scalar), **kwargs))
     return show
 
 def showNormedSqFlucts(modes, *args, **kwargs):
@@ -2861,19 +2925,20 @@ def showNormedSqFlucts(modes, *args, **kwargs):
 
        plt.close('all')
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
     for arg in args:
         if isinstance(arg, (Mode, ModeSet, NMA)):
             modesarg.append(args.pop(0))
-    show = [pl.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs)]    
-    pl.xlabel('Indices')
-    pl.ylabel('Square fluctuations')
+    show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs)]    
+    plt.xlabel('Indices')
+    plt.ylabel('Square fluctuations')
     for modes in modesarg:
         sqf = calcSqFlucts(modes)
-        show.append(pl.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs))
+        show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs))
     return show
 
 def showContactMap(enm, *args, **kwargs):
@@ -2892,17 +2957,18 @@ def showContactMap(enm, *args, **kwargs):
         
        plt.close('all') 
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(enm, GNMBase):
         raise TypeError('model argument must be an ENM instance')
     kirchhoff = enm.getKirchhoff()
     if kirchhoff is None:
         LOGGER.warning('kirchhoff matrix is not set')
         return None
-    show = pl.spy(kirchhoff, *args, **kwargs)
-    pl.title('{0:s} contact map'.format(enm.getName())) 
-    pl.xlabel('Residue index')
-    pl.ylabel('Residue index')
+    show = plt.spy(kirchhoff, *args, **kwargs)
+    plt.title('{0:s} contact map'.format(enm.getName())) 
+    plt.xlabel('Residue index')
+    plt.ylabel('Residue index')
     return show
 
 def showOverlap(mode, modes, *args, **kwargs):
@@ -2926,7 +2992,8 @@ def showOverlap(mode, modes, *args, **kwargs):
         
        plt.close('all') 
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be Mode or Vector, not {0:s}'.format(type(mode)))
     if not isinstance(modes, (NMABase, ModeSet)):
@@ -2936,10 +3003,10 @@ def showOverlap(mode, modes, *args, **kwargs):
         arange = np.arange(0.5, len(modes)+0.5)
     else:
         arange = modes.getIndices() + 0.5
-    show = pl.bar(arange, overlap, *args, **kwargs)
-    pl.title('Overlap with {0:s}'.format(str(mode)))
-    pl.xlabel('{0:s} mode index'.format(modes))
-    pl.ylabel('Overlap')
+    show = plt.bar(arange, overlap, *args, **kwargs)
+    plt.title('Overlap with {0:s}'.format(str(mode)))
+    plt.xlabel('{0:s} mode index'.format(modes))
+    plt.ylabel('Overlap')
     return show
     
 def showCumulativeOverlap(mode, modes, *args, **kwargs):
@@ -2964,7 +3031,8 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
         
        plt.close('all')     
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'.format(type(mode)))
     if not isinstance(modes, (NMABase, ModeSet)):
@@ -2974,10 +3042,10 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
         arange = np.arange(0.5, len(modes)+0.5)
     else:
         arange = modes.getIndices() + 0.5
-    show = pl.plot(arange, cumov, *args, **kwargs)
-    pl.title('Cumulative overlap with {0:s}'.format(str(mode)))
-    pl.xlabel('{0:s} mode index'.format(modes))
-    pl.ylabel('Cumulative overlap')
-    pl.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
+    show = plt.plot(arange, cumov, *args, **kwargs)
+    plt.title('Cumulative overlap with {0:s}'.format(str(mode)))
+    plt.xlabel('{0:s} mode index'.format(modes))
+    plt.ylabel('Cumulative overlap')
+    plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
     return show
     

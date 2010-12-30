@@ -599,21 +599,18 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     start from 0 and increase by 1 for each atom. 
     
     """
-    if pl is None: prody.importPyPlot()
+    if plt is None: prody.importPyPlot()
+    if not plt: return None
     if not isinstance(ensemble, Ensemble):
         raise TypeError('ensemble must be an Ensemble instance')
-    
     weights = getSumOfWeights(ensemble)
-    
     if weights is None:
         return None
-    
-    show = pl.plot(weights, *args, **kwargs)
-    
-    axis = list(pl.axis())
+    show = plt.plot(weights, *args, **kwargs)
+    axis = list(plt.axis())
     axis[2] = 0
     axis[3] += 1
-    pl.axis(axis)
-    pl.xlabel('Atom index')
-    pl.ylabel('Sum of weights')
+    plt.axis(axis)
+    plt.xlabel('Atom index')
+    plt.ylabel('Sum of weights')
     return show

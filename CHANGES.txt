@@ -4,6 +4,18 @@
 Changes
 *******************************************************************************
 
+Release 0.5.1
+===============================================================================
+
+**Changes in dependencies**:
+
+* Scipy linear algebra module is not a required anymore. 
+  When available it replaces Numpy linear algebra package for greater flexiblity
+  and efficiency.
+* Biopython KDTree module is not required for ENM calculations (specifically
+  for building Hessian or Kirchhoff matrices). When available it is used
+  to increase the performance.
+
 Release 0.5
 ===============================================================================
 
@@ -31,12 +43,12 @@ Release 0.5
 
 **Changes**:
 
-  * Iterating over a :class:`atomic.Chain` instance yields :class:`atomic.Residue` 
+  * Iterating over a :class:`~atomic.Chain` instance yields :class:`atomic.Residue` 
     instances.
-  * :class:`dynamics.Vector` instantiation requires an *array* only. *name* 
+  * :class:`~dynamics.Vector` instantiation requires an *array* only. *name* 
     is an optional argument.
   * Functions starting with ``get`` and performing a calculations are renamed to
-    start with ``calc``, e.g. :func:`measure.getRMSD` is renamed to
+    start with ``calc``, e.g. :func:`getRMSD` is renamed to
     :func:`~prody.measure.calcRMSD`
 
 Release 0.2
@@ -48,21 +60,21 @@ Release 0.2
   * Single word keywords *not* followed by "and" logical operator are not 
     accepted, e.g. "protein within 5 of water" will raise an SelectionError, 
     use "protein and within 5 of water" instead.
-  * :func:`compare.findMatchingChains` is renamed to 
-    :func:`compare.matchChains`.
-  * :func:`dynamics.showOverlapMatrix` is renamed to 
-    :func:`dynamics.showOverlapTable`.
+  * :func:`findMatchingChains` is renamed to 
+    :func:`~compare.matchChains`.
+  * :func:`showOverlapMatrix` is renamed to 
+    :func:`~dynamics.showOverlapTable`.
   * Modules are reorganized.
 
 **New Features**:
 
-  * :class:`atomic.Atomic` for easy type checking.
-  * :class:`select.Contacts` for faster intermolecular contact 
+  * :class:`~atomic.Atomic` for easy type checking.
+  * :class:`~select.Contacts` for faster intermolecular contact 
     identification.
-  * :class:`select.Select` can identify intermolecular contacts. See
+  * :class:`~select.Select` can identify intermolecular contacts. See
     :ref:`contacts` for an examples and details.
-  * :func:`dynamics.getCumulativeOverlapArray`.
-  * :func:`dynamics.sampleModes` implemented for sampling conformations 
+  * :func:`~dynamics.getCumulativeOverlapArray`.
+  * :func:`~dynamics.sampleModes` implemented for sampling conformations 
     along normal modes.
 
 **Improvements**:
@@ -74,7 +86,7 @@ Release 0.2
   * :class:`select.Select` can cache data optionally. This results
     in speeds up from 2 to 50 folds depending on number of atoms and selection
     operations.
-  * Implementation of :func:`dynamics.showProjection` is completed.
+  * Implementation of :func:`~dynamics.showProjection` is completed.
 
 Release 0.1.2
 ===============================================================================

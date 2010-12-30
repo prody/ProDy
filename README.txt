@@ -24,8 +24,8 @@ that have been suffessfully implemented to date:
 
 **Prediction and analysis of protein dynamics using theory and simulation:**
 
-  * Normal Mode Analysis using the Anisotropic network models (ANM)
-  * Gaussian network models (GNM) analysis
+  * Normal Mode Analysis using the Anisotropic network model (ANM)
+  * Gaussian network model (GNM) analysis
   * Essential dynamics analysis (EDA) of MD snapshots
   * Comparative analysis and visualization of dynamics
 

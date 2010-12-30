@@ -6,37 +6,33 @@ ProDy is a Python package. Dependencies, which include a Python interpreter,
 need to be installed before you can use it. In addition, installing the 
 complementary/recommended software improves user's experience with ProDy.
 
-Download
+Downloads
 ===============================================================================
 
-ProDy is available on the `Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
+ProDy installation files can be obtained from 
+`Python Package Index <http://pypi.python.org/pypi/ProDy>`_.
 
 Dependencies
 ===============================================================================
 
 **Required for all functionality:**
 
-* `Python <http://python.org/>`_ (for Windows, please choose 32 bit option)
+* `Python <http://python.org/>`_ (for Windows, prefer 32 bit option for 
+  compatibility with other required packages)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
-
-With only NumPy installed, you can use the PDB parser and the powerful atom 
-selector. For dynamics analysis and complete features of atom selector, 
-you need to have the following as well.
 
 **Required for certain functionality:**
 
-* `Scipy 0.7+ <http://www.scipy.org/SciPy>`_ for NMA calculations.
-* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ for ENM calculations, 
-  sequence alignment, and proximity based atom selections.
-* `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting normal mode 
-  data.
-
-.. note:: A note on Python version. What you are planning to do with ProDy
-   may restrict you to certain versions of Python. ProDy works with Python 
-   2.6 and 2.7, and there is a NumPy installer for these versions. 
-   SciPy does not have an installer for Python 2.7, so if you intend to use 
-   ProDy for ANM/GNM/PCA calculations, using Python 2.6 will be easier to 
-   get all required packages.   
+* `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ required for pairwise 
+  sequence alignments and proximity based atom selections. Also, when 
+  installed, Bio.KDTree is used in elastic network model calculations. It
+  provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 
+  matrices for large systems.
+* `Matplotlib <http://matplotlib.sourceforge.net/>`_ required for using ProDy 
+  plotting functions.
+* `Scipy 0.7+ <http://www.scipy.org/SciPy>`_, when installed, replaces
+  linear algebra module of Numpy. Scipy linear algebra module is more flexible
+  and can be faster depending on the situation.
 
 Complementary Software
 ===============================================================================
