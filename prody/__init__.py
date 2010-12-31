@@ -38,9 +38,9 @@ def importLA():
         dynamics.scipyla = False
         try:
             import numpy.linalg as linalg
-            ProDyLogger.warning('scipy.linalg could not be imported, numpy.linalg is used instead.')
+            ProDyLogger.warning('scipy.linalg is not found, numpy.linalg is used instead.')
         except:
-            raise ImportError('scipy.linalg or numpy.linalg is required for NMA/rmsd/superimposition calculations.')
+            raise ImportError('scipy.linalg or numpy.linalg is required for NMA calculations and superpositioning.')
     dynamics.linalg = linalg
     measure.linalg = linalg
     
@@ -53,7 +53,7 @@ def importPyPlot():
         dynamics.Axes3D = Axes3D 
     except ImportError:
         dynamics.plt = False
-        ensemble.plt = pyplot
+        ensemble.plt = False
         ProDyLogger.warning('Matplotlib is required for plotting.')
 
 def importBioKDTree():
@@ -64,7 +64,7 @@ def importBioKDTree():
     except ImportError:
         dynamics.KDTree = False
         select.KDTree = False
-        ProDyLogger.warning('Bio.KDTree could not be imported.')
+        ProDyLogger.warning('Bio.KDTree is not be found.')
 
 NCBIWWW = None
 NCBIXML = None

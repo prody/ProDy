@@ -995,7 +995,7 @@ class GNM(GNMBase):
         if KDTree is None: 
             prody.importBioKDTree()
             if not KDTree:
-                LOGGER.debug('Using a slower method for building Kirchhoff matrix.')
+                LOGGER.debug('Using a slower method for building the Kirchhoff matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoordinates()
@@ -1088,10 +1088,10 @@ class GNM(GNMBase):
             values, vectors = linalg.eigh(self._kirchhoff)
         n_zeros = sum(values < ZERO)
         if n_zeros < 1: 
-            LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
+            LOGGER.warning('Less than 1 zero eigenvalues are calculated.')
             shift = n_zeros - 1
         elif n_zeros > 1: 
-            LOGGER.warning('More than 6 zero eigenvalues are calculated.')
+            LOGGER.warning('More than 1 zero eigenvalues are calculated.')
             shift = n_zeros - 1
         if zeros:
             shift = -1
@@ -1162,7 +1162,7 @@ class ANM(GNMBase):
         if KDTree is None: 
             prody.importBioKDTree()
             if not KDTree:
-                LOGGER.debug('Using a slower method for building Hessian matrix.')
+                LOGGER.debug('Using a slower method for building the Hessian matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoordinates()
