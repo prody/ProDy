@@ -159,33 +159,36 @@ class RCSB_PDBFetcher(PDBFetcher):
             download = True
         if download:
             from ftplib import FTP
-        
-            ftp = FTP('ftp.wwpdb.org')
-            ftp.login('')
-            for i, pdbid in enumerate(identifiers):
-                if pdbid != filenames[i]:
-                    continue
-                filename = os.path.join(folder, pdbid + '.pdb.gz')
-                pdbfile = open(filename, 'w+b')
-                try:
-                    ftp.cwd('/pub/pdb/data/structures/divided/pdb/{0:s}'
-                            .format(pdbid[1:3]))
-                    ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
-                                   pdbfile.write)
-                except:
-                    pdbfile.close()
-                    os.remove(filename)
-                    LOGGER.debug('{0:s} download failed.'.format(pdbid))
-                    failure += 1
-                    filenames[i] = None 
-                else:
-                    pdbfile.close()
-                    filename = os.path.relpath(filename)
-                    LOGGER.debug('{0:s} downloaded ({1:s})'.format(pdbid, 
-                                                                   filename))
-                    success += 1
-                    filenames[i] = filename
-            ftp.quit()
+            try:
+                ftp = FTP('ftp.wwpdb.org')
+            except Exception as error:
+                raise type(error)('FTP connection problem. Possible reason, no internet connectivity.')
+            else:
+                ftp.login('')
+                for i, pdbid in enumerate(identifiers):
+                    if pdbid != filenames[i]:
+                        continue
+                    filename = os.path.join(folder, pdbid + '.pdb.gz')
+                    pdbfile = open(filename, 'w+b')
+                    try:
+                        ftp.cwd('/pub/pdb/data/structures/divided/pdb/{0:s}'
+                                .format(pdbid[1:3]))
+                        ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
+                                       pdbfile.write)
+                    except Exception as error:
+                        pdbfile.close()
+                        os.remove(filename)
+                        LOGGER.debug('{0:s} download failed ({1:s})'.format(pdbid, str(error)))
+                        failure += 1
+                        filenames[i] = None 
+                    else:
+                        pdbfile.close()
+                        filename = os.path.relpath(filename)
+                        LOGGER.debug('{0:s} downloaded ({1:s})'.format(pdbid, 
+                                                                       filename))
+                        success += 1
+                        filenames[i] = filename
+                ftp.quit()
         if len(identifiers) == 1:
             return filenames[0]    
         else:

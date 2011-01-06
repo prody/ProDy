@@ -43,7 +43,7 @@ and is distributed under MIT license
 DOWNLOADS
 ---------
   
-* http://pypi.python.org/pypi/ProDy/  
+* http://pypi.python.org/pypi/ProDy/#downloads
 
 INSTALLATION
 ------------
