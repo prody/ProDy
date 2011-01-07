@@ -1410,7 +1410,7 @@ class PCA(NMABase):
             else:
                 n_modes = int(n_modes)
                 if n_modes >= self._dof:
-                    n_modes = self._dof - 6
+                    n_modes = self._dof - 1
                 eigvals = (dof - n_modes, dof - 1)
             values, vectors = linalg.eigh(self._cov, turbo=turbo, eigvals=eigvals)
         else:
