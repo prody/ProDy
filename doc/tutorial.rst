@@ -6,6 +6,12 @@
 Tutorial
 *******************************************************************************
 
+ProDy is a Python package. Python is a modern, easy to learn and read, 
+interpreted, extensible, and multi-platform programming language [BS07]_. User
+with scientific interests is referred to `A Primer on Python for Life Science Researchers 
+<http://www.ploscompbiol.org/article/info%3Adoi%2F10.1371%2Fjournal.pcbi.0030199>`_
+for an introduction to scientific usage of Python.
+
 ProDy can be used:
 
   * as a command line program via :ref:`scripts`
@@ -15,7 +21,7 @@ ProDy can be used:
 First part of the tutorial shows how to use one of the scripts that is 
 distributed with ProDy. Following parts assume user is in an interactive
 Python shell. This should be useful for those who may want to write their 
-own Python programs. 
+own scripts. 
 
 Upon completion of the tutorial, user is referred to :ref:`examples` section 
 that gives more specific and comprehensive usage examples, and also to 
@@ -56,8 +62,15 @@ Python interpreter window. For such interactive sessions,
 `IPython <http://ipython.scipy.org/>`_ is recommended. 
 It offers a nice coloring scheme, and handy features, such as tab completion.
 
-We start with importing all functions and classes from ProDy into the
-current namespace as follows:
+This page and others in the :ref:`examples` section contain code snippets.
+These snippets can be retrieved using the "Show Code Snippets" button
+on the right hand sidebar:
+
+.. image:: _static/codesnippets.png
+   :align: center
+    
+This being said, we start with importing all functions and classes from 
+ProDy into the current namespace as follows:
 
 >>> from prody import *
 
