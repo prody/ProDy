@@ -1086,8 +1086,10 @@ class GNM(GNMBase):
             else:
                 n_modes = int(n_modes)
                 if n_modes >= self._dof:
-                    n_modes = self._dof - 1
-                eigvals = (0, n_modes + shift)
+                    eigvals = None
+                    n_modes = self._dof
+                else: 
+                    eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
             values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, eigvals=eigvals)
@@ -1282,8 +1284,10 @@ class ANM(GNMBase):
             else: 
                 n_modes = int(n_modes)
                 if n_modes >= self._dof:
-                    n_modes = self._dof - 6
-                eigvals = (0, n_modes + shift)
+                    eigvals = None
+                    n_modes = self._dof 
+                else:
+                    eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
             values, vectors = linalg.eigh(self._hessian, turbo=turbo, eigvals=eigvals)
@@ -1410,8 +1414,10 @@ class PCA(NMABase):
             else:
                 n_modes = int(n_modes)
                 if n_modes >= self._dof:
-                    n_modes = self._dof - 1
-                eigvals = (dof - n_modes, dof - 1)
+                    eigvals = None
+                    n_modes = dof
+                else:
+                    eigvals = (dof - n_modes, dof - 1)
             values, vectors = linalg.eigh(self._cov, turbo=turbo, eigvals=eigvals)
         else:
             values, vectors = linalg.eigh(self._cov)
