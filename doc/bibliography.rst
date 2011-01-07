@@ -27,8 +27,11 @@ Bibliography
    *Biophys. J.* **2001** 80:505-515.
 
 .. [BR95] Bruschweiler R. Collective protein dynamics and nuclear 
-   spin relaxation. *J. Chem. Phys* **1995** 102:3396-3403.
-   
+   spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
+
+.. [BS07] Bassi S.  A primer on Python for life science researchers. 
+   *PLoS Comput Biol* *2007* 3(11): e199. doi:10.1371/journal.pcbi.0030199   
+
 .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal 
    fluctuations in protein using a single parameter harmonic potential.
    *Folding & Design* **1997** 2:173-181.

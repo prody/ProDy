@@ -714,18 +714,22 @@ class NMABase(object):
     
     def getEigenvalues(self):
         """Return eigenvalues."""
+        if self._eigvals is None: return None
         return self._eigvals.copy()
 
     def getEigenvectors(self):
         """Return eigenvectors."""
+        if self._array is None: return None
         return self._array.copy()
     
     def getVariances(self):
         """Return variances (~inverse eigenvalues)."""
+        if self._vars is None: return None
         return self._vars.copy()
 
     def getArray(self):
         """Return eigenvectors."""
+        if self._array is None: return None
         return self._array.copy()
         
     def getCovariance(self):
@@ -962,6 +966,7 @@ class GNMBase(NMABase):
 
     def getKirchhoff(self):
         """Return Kirchhoff matrix."""
+        if self._kirchhoff is None: return None
         return self._kirchhoff.copy()    
 
 class GNM(GNMBase):
@@ -1078,8 +1083,10 @@ class GNM(GNMBase):
             if n_modes is None:
                 eigvals = None
                 n_modes = self._dof 
-            else: 
+            else:
                 n_modes = int(n_modes)
+                if n_modes >= self._dof:
+                    n_modes = self._dof - 1
                 eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
@@ -1131,6 +1138,7 @@ class ANM(GNMBase):
         
     def getHessian(self):
         """Return a copy of Hessian matrix."""
+        if self._hessian is None: return None
         return self._hessian.copy()
     
     def setHessian(self, hessian):
@@ -1273,6 +1281,8 @@ class ANM(GNMBase):
                 n_modes = self._dof 
             else: 
                 n_modes = int(n_modes)
+                if n_modes >= self._dof:
+                    n_modes = self._dof - 6
                 eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
@@ -1394,11 +1404,14 @@ class PCA(NMABase):
         start = time.time()
         dof = self._dof
         if scipyla:        
-            if n_modes: 
-                eigvals = (dof - n_modes, dof - 1)
-            else: 
+            if n_modes is None:
                 eigvals = None
                 n_modes = dof
+            else:
+                n_modes = int(n_modes)
+                if n_modes >= self._dof:
+                    n_modes = self._dof - 6
+                eigvals = (dof - n_modes, dof - 1)
             values, vectors = linalg.eigh(self._cov, turbo=turbo, eigvals=eigvals)
         else:
             values, vectors = linalg.eigh(self._cov)
@@ -2080,7 +2093,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
             raise TypeError('{0:s} is not correct type for atoms'.format(type(modes)))
         if atoms.getNumOfAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
-        initial = [atoms.getCoordinates()]
+        initial = atoms.getCoordinates()
 
     rmsd = float(rmsd)
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
