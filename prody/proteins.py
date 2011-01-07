@@ -162,7 +162,7 @@ class RCSB_PDBFetcher(PDBFetcher):
             try:
                 ftp = FTP('ftp.wwpdb.org')
             except Exception as error:
-                raise type(error)('FTP connection problem. Possible reason, no internet connectivity.')
+                raise type(error)('FTP connection problem occurred. A potential reason is that there is no internet connectivity.')
             else:
                 ftp.login('')
                 for i, pdbid in enumerate(identifiers):
@@ -178,7 +178,10 @@ class RCSB_PDBFetcher(PDBFetcher):
                     except Exception as error:
                         pdbfile.close()
                         os.remove(filename)
-                        LOGGER.debug('{0:s} download failed ({1:s})'.format(pdbid, str(error)))
+                        if 'pdb{0:s}.ent.gz'.format(pdbid) in ftp.nlst():
+                            LOGGER.debug('{0:s} download failed ({1:s}). It is possible that you don\'t have rights to download .gz files in your current network.'.format(pdbid, str(error)))
+                        else:
+                            LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.gz does not exist on ftp.wwpdb.org.'.format(pdbid))
                         failure += 1
                         filenames[i] = None 
                     else:
