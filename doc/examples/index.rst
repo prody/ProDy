@@ -5,7 +5,7 @@ Examples
 *******************************************************************************
 
 
-Download, parse, and blast search ProteinDataBank
+Access and manipulate PDB data 
 ===============================================================================
 
 .. toctree::
@@ -14,6 +14,7 @@ Download, parse, and blast search ProteinDataBank
    proteins/fetchpdb
    proteins/parsepdb
    proteins/blastpdb
+   proteins/writepdb
    proteins/biomolt
    proteins/alignment
    

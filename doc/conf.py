@@ -62,7 +62,7 @@ def getRevisionNumber():
     logs = logfile.read()
     logfile.close()
     return str(logs.count('Author:'))
-version = '0.5.1'
+version = '0.5.2'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -252,6 +252,8 @@ intersphinx_mapping = {'http://matplotlib.sourceforge.net/': None,
                        }
 
 rst_epilog = """
+
+.. |pdf| image:: /_static/pdf.png
 
 .. |nmwiz| replace:: NMWiz (http://www.csb.pitt.edu/People/abakan/software/NMWiz/)
 

@@ -4,6 +4,25 @@
 Changes
 *******************************************************************************
 
+Release 0.5.2
+===============================================================================
+
+**Bugfixes**:
+  
+  * An important fix in :func:`~dynamics.sampleModes` function was made
+    (Thanks to Alberto Perez for finding the bug and suggesting a solution). 
+    
+**Improvements**:
+  
+  * Improvements in :meth:`dynamics.ANM.calcModes`, :meth:`dynamics.GNM.calcModes`, 
+    and :meth:`dynamics.PCA.calcModes` methods prevent Numpy/Scipy throwing an
+    exception when more than available modes are requested by the user.
+  * Improvements in :func:`proteins.blastPDB` enable ProDy throw an 
+    exception when no internet connection is found, and warn user when
+    downloads fail due to restriction in network regulations (Thanks to Serkan
+    Apaydin for helping identify these improvements).
+  * New example :ref:`writepdb`.
+
 Release 0.5.1
 ===============================================================================
 
