@@ -13,15 +13,16 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38_anm.nmd'</span><span class="p">,</span> <span class="n">anm</span><span class="p">[:</span><span class="mi">6</span><span class="p">],</span> <span class="n">ca</span><span class="p">)</span></pre></div>
     </div>    
-    <span class="linkdescr">Reads a p38 PDB structure, selects alpha carbons, and performs ANM calculations. Slowest 6 modes are written in NMD format.</span>
+    <span class="linkdescr">Reads a p38 PDB structure, selects alpha carbons, and performs ANM calculations. Slowest 6 modes are written in NMD format for visualization using NMWiz and VMD.</span>
   </div>
 
   <p>
-    ProDy is a Python package for analyzing protein structural dynamics,
-    designed and developed by <a href="http://www.ccbb.pitt.edu/People/abakan/">Ahmet Bakan</a> 
-    in <a href="http://www.ccbb.pitt.edu/Faculty/bahar/">Bahar lab</a>. 
+    ProDy is a free and open-source Python package for analyzing protein structural dynamics.
+    It is designed and developed by <a href="http://www.ccbb.pitt.edu/People/abakan/">Ahmet Bakan</a> 
+    in <a href="http://www.ccbb.pitt.edu/Faculty/bahar/">Bahar lab</a> at the 
+    <a href="http://www.pitt.edu">University of Pittsburgh</a>. 
     New functional features are continually being added to ProDy.  
-    The following are the main features that have been suffessfully implemented to date:
+    The following are the main features that have been successfully implemented to date:
   </p>
   <ul>
     <li> <b>Examination and analysis of structural variability observed in experiments:</b>
@@ -43,10 +44,22 @@
       </ul>
     </li>
   </ul>
-  
+
   <p>For a list of features with links to examples see <a href="{{ pathto("features") }}">Feature Index</a>.</p> 
+
+  <div class="admonition note"> 
+    <p class="first admonition-title">Featured Publication</p> 
+    <p class="last">
+    
+    <div class="line"><a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf"><img alt="pdf" src="_images/pdf.png" /></a> 
+    <a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/#Multiscale">Computational Generation of Inhibitor-Bound Conformers of P38 MAP
+    Kinase and Comparison with Experiments</a></div> 
+    <div class="line">Bakan A, Bahar I. <strong>2011</strong> <em>Pacific Symposium on Biocomputing</em> 16:181-192.</div> 
+    <i>See all in <a href="{{ pathto("publications") }}">Publications</a></i>.
+    </p> 
+  </div> 
   
-  <p>See also our complementary software plugin <a class="reference external" href="http://www.pitt.edu/~ahb12/software/NMWiz/">NMWiz</a>.</p>
+  <p>See also our complementary software plug-in <a class="reference external" href="http://www.pitt.edu/~ahb12/software/NMWiz/">NMWiz</a>.</p>
 
   <h2>Documentation</h2>
 
@@ -58,6 +71,8 @@
          <span class="linkdescr">usage examples</span></p>
       <p class="biglink"><a class="biglink" href="{{ pathto("scripts/index") }}">Scripts</a><br/>
          <span class="linkdescr">scripts for automated tasks</span></p>
+      <p class="biglink"><a class="biglink" href="{{ pathto("publications") }}">Publications</a><br/>
+         <span class="linkdescr">list of publications using ProDy</span></p> 
       <p class="biglink"><a class="biglink" href="{{ pathto("changes") }}">Changes</a><br/>
          <span class="linkdescr">history of changes</span></p> 
       <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
@@ -69,6 +84,8 @@
          <span class="linkdescr">classes and functions</span></p>
       <p class="biglink"><a class="biglink" href="{{ pathto("reports") }}">Reports</a><br/>
          <span class="linkdescr">development/performance notes</span></p> 
+      <p class="biglink"><a class="biglink" href="{{ pathto("bibliography") }}">Bibliography</a><br/>
+         <span class="linkdescr">list of cited articles</span></p> 
       <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Contents</a><br/>
          <span class="linkdescr">for a complete overview</span></p> 
       <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}">General Index</a><br/>

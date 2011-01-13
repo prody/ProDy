@@ -4,7 +4,7 @@ readme.close()
 
 from distutils.core import setup
 setup(name='ProDy',
-      version='0.5.1',
+      version='0.5.2',
       author='Ahmet Bakan',
       author_email='ahb12 at pitt dot edu',
       description='A Python Package for Protein Dynamics Analysis',
@@ -28,5 +28,5 @@ setup(name='ProDy',
                'Topic :: Scientific/Engineering :: Chemistry',
                ],
       requires=['NumPy', ],
-      provides=['ProDy(0.5.1)']
+      provides=['ProDy(0.5.2)']
       )

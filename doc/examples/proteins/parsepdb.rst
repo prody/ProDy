@@ -6,14 +6,16 @@
 Parse PDB data
 *******************************************************************************
 
-PDB files can be parsed using :func:`parsePDB` function. 
+PDB files can be parsed using :func:`parsePDB` function.
+
+|more| See also :ref:`pdbparser-performance`.
 
 >>> from prody import *
  
 Coordinate data
 ===============================================================================
 
-# You can parse PDB files by passing a filename (gzipped files are handled):
+You can parse PDB files by passing a filename (gzipped files are handled):
 
 >>> fetchPDB('1p38') # Download PDB file with given identifier
 '1p38.pdb.gz'

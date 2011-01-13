@@ -25,6 +25,7 @@ Contents
    todo
    license
    credits
+   publications
    bibliography
 
 Indices and tables
