@@ -22,7 +22,6 @@ Using ProDy
      <http://www.pnas.org/content/106/34/14349.long>`_
    | Bakan A, Bahar I 
    | **2009** *Proc Natl Acad Sci U S A* 106(34):14349-14354 
-     doi:10.1073/pnas.0904214106
 
    __ http://www.pnas.org/content/106/34/14349.full.pdf
 

@@ -3,9 +3,6 @@ TUTORIAL, EXAMPLES, and DOCUMENTATION
 
 http://www.csb.pitt.edu/People/abakan/software/ProDy 
 
-Also available in PDF format: 
-  http://www.csb.pitt.edu/People/abakan/software/ProDy/ProDy.pdf
-
 SYNOPSIS
 --------
 
