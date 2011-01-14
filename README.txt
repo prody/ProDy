@@ -9,10 +9,10 @@ Also available in PDF format:
 SYNOPSIS
 --------
 
-ProDy is a Python package for analyzing protein structural dynamics, 
-designed and developed by Ahmet Bakan in Bahar lab. New functional features 
-are continually being added to ProDy. The following are the main features 
-that have been suffessfully implemented to date:
+ProDy is a free and open-source Python package for analyzing protein structural dynamics. 
+It is designed and developed by Ahmet Bakan in Bahar lab at University of Pittsburgh. 
+New functional features are continually being added to ProDy. 
+The following are the main features that have been successfully implemented to date:
 
 **Examination and analysis of structural variability observed in experiments:**
 
