@@ -643,7 +643,7 @@ class NMABase(object):
         if isinstance(index, int):
             return self.getMode(index)
         elif isinstance(index, slice):
-            modes = self._modes[index]
+            #modes = self._modes[index]
             return ModeSet(self, np.arange(*index.indices(len(self))))
         else:        
             raise IndexError('indices may be an integer or a slice')
@@ -1036,8 +1036,6 @@ class GNM(GNMBase):
         else:
             cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
-                res_i3 = i*3
-                res_i33 = res_i3+3
                 xyz_i = coords[i, :]
                 for j in range(i+1, n_atoms):
                     i2j = coords[j, :] - xyz_i
@@ -1355,21 +1353,31 @@ class PCA(NMABase):
         
         """
         start = time.time()
+        try:
+            coordinates = coordsets.getCoordinates()
+        except:
+            raise Exception('coordsets argument must have getCoordinates method')
+        else:
+            if coordinates is None:
+                raise Exception('coordinates of {0:s} is not set'.format(str(coordsets)))
         n_atoms = coordsets.getNumOfAtoms()
         dof = n_atoms * 3
-        coordinates = coordsets.getCoordinates()
+
         try:
-            acsi = coordsets.getActiveCoordsetIndex()
-            indices = range(coordsets.getNumOfCoordsets())
-            indices.pop(acsi)
-            conformations = coordsets.getCoordsets(indices)
-        except:
             conformations = coordsets.getCoordsets()
+        except:
+            raise Exception('conformations argument must have getCoordsets method')
+        else:
+            if coordinates is None or len(coordinates) == 0:
+                raise Exception('{0:s} does not contain any conformations'.format(str(coordsets)))
+            elif len(coordinates) < 3:
+                raise Exception('{0:s} must contain more than two conformations'.format(str(coordsets)))
+        
         n_confs = conformations.shape[0]
         if weights is None:
             try:
                 weights = coordsets.getWeights()
-            except:
+            except AttributeError:
                 pass
         if weights is None:
             d_xyz = (conformations - coordinates)
@@ -1559,6 +1567,7 @@ def setVMDpath(path):
     """Set the path to VMD executable."""
     if not path.startswith('vmd') and not os.path.isfile(path):
         LOGGER.warning('{0:s} may not be a valid path for VMD executable.')
+    global VMDPATH 
     VMDPATH = path
 
 def writeNMD(filename, modes, atoms):

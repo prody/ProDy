@@ -132,6 +132,8 @@ class Ensemble(object):
 
     def getCoordinates(self):
         """Return reference coordinates of the ensemble."""
+        if self._coords is None:
+            return None
         return self._coords.copy()
 
     def setCoordinates(self, coords):
@@ -259,10 +261,10 @@ class Ensemble(object):
         For reference coordinates, use getCoordinates method.
         
         """
-        if indices is None:
-            indices = slice(None)
         if self._confs is None:
             return None
+        if indices is None:
+            indices = slice(None)
 
         coords = self._confs[indices].copy()
         if self._weights is not None and self._weights.ndim == 3:
@@ -324,8 +326,10 @@ class Ensemble(object):
         
     def superpose(self):
         """Superpose the ensemble onto the reference coordinates."""
+        if self._coords is None:
+            raise AttributeError('coordinates are not set, use setCoordinates() method')
         if self._confs is None or len(self._confs) == 0: 
-            raise AttributeError('conformations are not set')
+            raise AttributeError('conformations are not set, use addCoordset() method')
         LOGGER.info('Superimposing structures.')
         start = time.time()
         self._superpose()
@@ -383,8 +387,10 @@ class Ensemble(object):
         :type cutoff: float, default is 0.0001
             
         """
+        if self._coords is None:
+            raise AttributeError('coordinates are not set, use setCoordinates() method')
         if self._confs is None or len(self._confs) == 0: 
-            raise AttributeError('conformations are not set')
+            raise AttributeError('conformations are not set, use addCoordset() method')
         LOGGER.info('Starting iterative superimposition')
         start = time.time()
         rmsdif = 1
@@ -533,6 +539,8 @@ class Conformation(object):
 
     def getCoordinates(self):
         """Return coordinate set for this conformation."""
+        if self._ensemble._confs is None:
+            return None
         if self._ensemble._weights is None:
             return self._ensemble._confs[self._index].copy()
         else:
