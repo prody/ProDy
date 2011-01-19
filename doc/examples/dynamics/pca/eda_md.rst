@@ -12,10 +12,10 @@ dynamics trajector.
 Following ProDy classes and functions are used in the example:
 
 Classes:
-  * :class:`PCA` (aliased as :class:`EDA`)
-  * :class:`prody.ensemble.Ensemble`
+  * :class:`EDA`
+  * :class:`~prody.ensemble.Ensemble`
 Functions:
-  * :func:`prody.proteins.parsePDB`
+  * :func:`~prody.proteins.parsePDB`
 
 Also required:
 
@@ -40,7 +40,7 @@ Also required:
   universe = MDAnalysis.Universe('protein.psf', 'protein.dcd')
 
   # Select atoms of interest
-  calpha = universe.selectAtoms('name CA')
+  universe_ca = universe.selectAtoms('name CA')
 
   # Get coordinates of CA atoms
   ca_coords = universe.dcd.timeseries(universe_ca, format='fac')
