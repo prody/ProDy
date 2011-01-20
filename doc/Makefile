@@ -55,6 +55,9 @@ html:
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 
+spelling:
+	$(SPHINXBUILD) -b spelling $(ALLSPHINXOPTS) $(BUILDDIR)/spelling
+
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo

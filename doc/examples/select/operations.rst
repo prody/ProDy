@@ -101,7 +101,7 @@ Addition
 
 .. versionadded:: 0.2.1
 
-Final operation defined on :class:`Selection` object (also on other 
+Another operation defined on :class:`Selection` object (also on other 
 :class:`AtomPointer` derived classes) is addition. 
 
 This may be useful if you want to get atoms in an :class:`AtomGroup` in a 
@@ -117,7 +117,38 @@ specific order.
 
 In the resulting file, water atoms will preceed protein atoms.
 
+
+Membership
+===============================================================================
+
+.. versionadded:: 0.5.3
+
+Selections also allow membership test operation:
+
+>>> backbone = prot.select('protein') 
+>>> calpha = prot.select('calpha')
+
+Is ``calpha`` a member of ``backbone``?
+
+>>> calpha in backbone
+True
+
+Or, is water in protein selection?
+
+>>> water in protein
+False
+
+More:
+
+>>> protein in prot
+True
+>>> backbone in prot
+True
+>>> prot in prot
+True
+>>> calpha in calpha
+True
+
 >>> import os
 >>> os.remove('1p38.pdb.gz')
 >>> os.remove('1p38_water_protein.pdb')
-

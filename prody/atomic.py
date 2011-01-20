@@ -134,6 +134,18 @@ class Atomic(object):
         
       * :class:`AtomGroup`
       * :class:`AtomPointer`"""
+    
+    def __contains__(self, item):
+        if isinstance(item, Atomic):
+            if isinstance(item, AtomGroup) and self == item: 
+                return True
+            elif isinstance(self, AtomGroup) and self == item.getAtomGroup():
+                return True
+            elif len(item) <= len(self):
+                if set(item.getIndices()).issubset(set(self.getIndices())):
+                    return True
+        return False        
+      
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
         return self._acsi
