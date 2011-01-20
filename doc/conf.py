@@ -31,7 +31,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.intersphin
               'sphinx.ext.inheritance_diagram', 'sphinx.ext.graphviz',
               'matplotlib.sphinxext.plot_directive',
               'matplotlib.sphinxext.only_directives',
-              'matplotlib.sphinxext.mathmpl']
+              'matplotlib.sphinxext.mathmpl',
+              'sphinxcontrib.spelling']
               
                #'sphinx.ext.pngmath',
 
