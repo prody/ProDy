@@ -275,6 +275,34 @@ in NMD format. NMD files can be viewed using |vmd| plugin NMWiz.
 >>> writeNMD('p38_anm.nmd', anm[:6], calphas) 
 'p38_anm.nmd'
 
+Getting Help
+-------------------------------------------------------------------------------
+
+Finally, you might have noticed that ProDy is fully documented. 
+In an interactive session help on functions, classes, and class methods can be 
+obtained as follows:
+
+
+>>> help(anm.buildHessian)
+buildHessian(self, coords, cutoff=15.0, gamma=1.0, masses=None) unbound prody.dynamics.ANM method
+    Build Hessian matrix for given coordinate set.
+<BLANKLINE>
+    :arg coords: a coordinate set or anything with getCoordinates method
+<BLANKLINE>
+    :arg cutoff: cutoff distance (A) for pairwise interactions
+    :type cutoff: float, default is 15.0
+<BLANKLINE>
+    :arg gamma: spring constant
+    :type gamma: float, default is 1.0
+...
+
+You might need to type ``q`` to quit from help.
+
+If you are using interactive Python shell (IPython), you can also get help
+as follows::
+  
+  prot ?
+
 More examples and information
 -----------------------------
 

@@ -1,0 +1,51 @@
+<script type="text/javascript">
+fsUnit = 'px';
+defaultFS = '12';
+function incrFontSize(incr) {
+  if (document.body.style.fontSize == "") {
+    document.body.style.fontSize = defaultFS + fsUnit;
+  }
+  document.body.style.fontSize = (parseFloat(document.body.style.fontSize) + incr ) + fsUnit;
+  var exdate = new Date();
+  exdate.setDate(exdate.getDate() + 365);
+  document.cookie= "SphinxFontSize" + "=" + escape(parseFloat(document.body.style.fontSize)) + ";expires=" + exdate.toUTCString();
+  document.getElementById("bodyFontSize").innerHTML = document.body.style.fontSize
+}
+
+function setFontSize(fs) {
+  document.body.style.fontSize = fs + fsu; 
+  var exdate = new Date();
+  exdate.setDate(exdate.getDate() + 365);
+  document.cookie= "ProDyDocFontSize" + "=" + escape(fs) + ";expires=" + exdate.toUTCString();
+}
+
+function getFontSize() {
+  if (document.cookie.length > 0) {
+    c_name = "SphinxFontSize"
+    var c_start = document.cookie.indexOf(c_name + "=");
+    if (c_start != -1) {
+      c_start = c_start + c_name.length + 1;
+      var c_end = document.cookie.indexOf(";", c_start);
+      if (c_end == -1) c_end = document.cookie.length;
+      return unescape(document.cookie.substring(c_start, c_end));
+      }
+    }
+  return "";
+}
+
+function checkFontSize() {
+  var fs = getFontSize('SphinxFontSize');
+  if (fs != null && fs != "") {
+    document.body.style.fontSize = fs + fsUnit;
+  }
+  document.getElementById("bodyFontSize").innerHTML = document.body.style.fontSize
+}
+</script>
+<div style="font-size: 12px"> 
+Font size: <span id="bodyFontSize"></span> 
+<img src="{{ pathto("_static/plus.png", 1) }}" onclick="incrFontSize(+1)">  
+<img src="{{ pathto("_static/minus.png", 1) }}" onclick="incrFontSize(-1)">
+</div>
+<script type="text/javascript">
+checkFontSize()
+</script>
