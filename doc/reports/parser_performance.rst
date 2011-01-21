@@ -6,7 +6,7 @@ PDB Parser Performance
 *Date: 20 Dec 2010*
 
 Performance of ProDy PDB parser :func:`~prody.proteins.parsePDB` is compared to 
-those of Biopython (:class:`Bio.PDB.PDBParser.PDBParser`) and and MMTK (:class:`MMTK.PDB.PDBConfiguration`)
+those of Biopython (:class:`Bio.PDB.PDBParser.PDBParser`) and MMTK (:class:`MMTK.PDB.PDBConfiguration`)
 PDB parsers using a non-redundant set of PDB structures. 
 
 List of PDB identifiers was obtained from http://bioinfo.tg.fh-giessen.de/pdbselect 
