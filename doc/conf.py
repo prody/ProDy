@@ -148,7 +148,7 @@ html_last_updated_fmt = '%b %d, %Y'
 html_index = 'index.html'
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {'index': ['fontsize.html', 'indexsidebar.html', 'searchbox.html'], 'search': [], '**': ['fontsize.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'sourcelink.html', 'searchbox.html']}
+html_sidebars = {'index': ['fontsize.html', 'getprody.html', 'googlegroup.html', 'searchbox.html'], 'search': [], '**': ['fontsize.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'sourcelink.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to

@@ -1,10 +1,10 @@
 .. currentmodule:: prody
 
 *******************************************************************************
-Changes
+Changes in ProDy
 *******************************************************************************
 
-Release 0.5.3
+Release 0.5.3 (in development)
 ===============================================================================
 
 **New Features**:
@@ -12,7 +12,7 @@ Release 0.5.3
   * Membership test operation is defined for all :mod:`~prody.atomic` classes.
     See :ref:`selection-operations`.
 
-Release 0.5.2
+Release 0.5.2 (Jan 12, 2011)
 ===============================================================================
 
 **Bugfixes**:
@@ -31,7 +31,7 @@ Release 0.5.2
     Apaydin for helping identify these improvements).
   * New example :ref:`writepdb`.
 
-Release 0.5.1
+Release 0.5.1 (Dec 31, 2010)
 ===============================================================================
 
 **Changes in dependencies**:
@@ -44,7 +44,7 @@ Release 0.5.1
   is used to increase the performance. A warning message is printed when 
   KDTree is not found.
 
-Release 0.5
+Release 0.5 (Dec 21, 2010)
 ===============================================================================
 
 **New Features**:
@@ -79,7 +79,7 @@ Release 0.5
     start with ``calc``, e.g. :func:`getRMSD` is renamed to
     :func:`~prody.measure.calcRMSD`
 
-Release 0.2
+Release 0.2 (Nov 16, 2010)
 ===============================================================================
 
 **Important Changes**:
@@ -116,17 +116,22 @@ Release 0.2
     operations.
   * Implementation of :func:`~dynamics.showProjection` is completed.
 
-Release 0.1.2
+Release 0.1.2 (Nov 9, 2010)
 ===============================================================================
 
 * Important bugfixes and improvements in NMA helper and plotting functions.
 * Documentation updates and improvements.
 
 
-Release 0.1.1
+Release 0.1.1 (Nov 8, 2010)
 ===============================================================================
 
 * Important bugfixes and improvements in chain comparison functions.
 * Bugfixes.
 * Source clean up.
 * Documentation improvements.
+
+Release 0.1 (Nov 7, 2010)
+===============================================================================
+
+* First release.
