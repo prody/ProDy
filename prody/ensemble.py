@@ -71,6 +71,7 @@ class Ensemble(object):
         
     def __getitem__(self, index):
         """Return a conformation at given index."""
+        
         if isinstance(index, int):
             return self._getConformation(index) 
         elif isinstance(index, slice):
@@ -132,6 +133,7 @@ class Ensemble(object):
 
     def getCoordinates(self):
         """Return reference coordinates of the ensemble."""
+        
         if self._coords is None:
             return None
         return self._coords.copy()
@@ -174,7 +176,9 @@ class Ensemble(object):
         
         *weights* is an optional argument. If provided, its length must
         match number of atoms.
+        
         """
+        
         ag = None
         if not isinstance(coords, np.ndarray):
             try:
@@ -259,8 +263,9 @@ class Ensemble(object):
         returns all coordinate sets. 
     
         For reference coordinates, use getCoordinates method.
-        
+
         """
+        
         if self._confs is None:
             return None
         if indices is None:
@@ -276,6 +281,7 @@ class Ensemble(object):
     
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
+        
         length = len(self._ensemble)
         which = np.ones(length, np.bool)
         which[index] = False
@@ -310,10 +316,12 @@ class Ensemble(object):
         Reference coordinates are not included.
         
         """
+        
         for i in xrange(self._confs.shape[0]):
             yield self._confs[i].copy()
     
     def getWeights(self):
+        """Return weights."""
         if self._weights is None:
             return None
         else:
@@ -326,10 +334,13 @@ class Ensemble(object):
         
     def superpose(self):
         """Superpose the ensemble onto the reference coordinates."""
+        
         if self._coords is None:
-            raise AttributeError('coordinates are not set, use setCoordinates() method')
+            raise AttributeError('coordinates are not set, '
+                                 'use setCoordinates() method to set it.')
         if self._confs is None or len(self._confs) == 0: 
-            raise AttributeError('conformations are not set, use addCoordset() method')
+            raise AttributeError('conformations are not set, '
+                                 'use addCoordset() method to set it.')
         LOGGER.info('Superimposing structures.')
         start = time.time()
         self._superpose()
@@ -339,11 +350,16 @@ class Ensemble(object):
     def _superpose(self):
         """Superpose conformations and return new coordinates.
         
-        This functions saves transformations in self._tranformations."""
+        This functions saves transformations in self._tranformations.
         
+        """
+
         weights = self._weights
         coords = self._coords
         confs = self._confs
+        if not isinstance(self._transformations, list) or \
+            len(self._transformations) != self._n_confs:
+                self._transformations = [None] * self._n_confs
         transformations = self._transformations
         if weights is None:
             for i in xrange(len(self)):
@@ -364,6 +380,7 @@ class Ensemble(object):
         atoms to apply the transformations calculated for the core atoms.
         
         """
+        
         if self._transformations.count(None) > 0:
             raise EnsembleError('A transformation for each '
                                     'conformation is not calculated.')
@@ -387,10 +404,13 @@ class Ensemble(object):
         :type cutoff: float, default is 0.0001
             
         """
+        
         if self._coords is None:
-            raise AttributeError('coordinates are not set, use setCoordinates() method')
+            raise AttributeError('coordinates are not set, '
+                                 'use setCoordinates() method to set it.')
         if self._confs is None or len(self._confs) == 0: 
-            raise AttributeError('conformations are not set, use addCoordset() method')
+            raise AttributeError('conformations are not set, '
+                                 'use addCoordset() method to set it.')
         LOGGER.info('Starting iterative superimposition')
         start = time.time()
         rmsdif = 1
@@ -415,6 +435,7 @@ class Ensemble(object):
         
     def getMSF(self):
         """Calculate and return Mean-Square-Fluctuations."""
+        
         if self.conformations is None: 
             return
         
@@ -426,9 +447,8 @@ class Ensemble(object):
         return msf
             
     def getDeviations(self):
-        """Return deviations from reference coordinates.
+        """Return deviations from reference coordinates."""
         
-        """
         if not isinstance(self._confs, np.ndarray):
             LOGGER.warning('Conformations are not set.')
             return None
@@ -440,6 +460,7 @@ class Ensemble(object):
         
     def getRMSDs(self):
         """Calculate and return Root Mean Square Deviations."""
+        
         if self._confs is None: 
             return None
         weights = self._weights
@@ -466,7 +487,9 @@ def saveEnsemble(ensemble, filename=None):
     Upon successful completion of saving, filename is returned.
     
     This function makes use of :func:`numpy.savez` function.
+    
     """
+    
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0:s}'.format(type(ensemble)))
     if len(ensemble) == 0:
@@ -491,7 +514,9 @@ def loadEnsemble(filename):
     .. seealso: :func:`saveEnsemble`
     
     This function makes use of :func:`numpy.load` function.
+    
     """
+    
     attr_dict = np.load(filename)
     ensemble = Ensemble(str(attr_dict['_name']))
     dict_ = ensemble.__dict__ 
@@ -506,9 +531,13 @@ def loadEnsemble(filename):
     return ensemble
 
 class Conformation(object):
+    
     """A class to provide methods on a conformation in a an ensemble.
     
-    Instances of this class do not keep coordinate and weights data."""
+    Instances of this class do not keep coordinate and weights data.
+    
+    """
+    
     __slots__ = ['_ensemble', '_index', '_name']
 
     def __init__(self, ensemble, index, name):
@@ -594,7 +623,7 @@ def getSumOfWeights(ensemble):
     
     
 def showSumOfWeights(ensemble, *args, **kwargs):
-    """Show sum of weights from an ensemble using :func:`~matplotlib.pyplot.plot`.
+    """Show sum of weights for an ensemble using :func:`~matplotlib.pyplot.plot`.
     
     Weights are summed for each atom over conformations in the ensemble.
     Size of the plotted array will be equal to the number of atoms.
@@ -607,6 +636,7 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     start from 0 and increase by 1 for each atom. 
     
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(ensemble, Ensemble):
