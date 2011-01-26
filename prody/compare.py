@@ -22,7 +22,7 @@ Functions
 **Compare chains**:
 
   * :func:`matchChains`
-  * :func:`mapAtomsToChain`
+  * :func:`mapOntoChain`
         
 **Adjust settings**:
         
@@ -55,7 +55,7 @@ from prody import ProDyLogger as LOGGER
 from . import AtomMap, select
 
 __all__ = ['matchChains',
-           'mapAtomsToChain',
+           'mapOntoChain',
            'getPairwiseMatchScore', 'setPairwiseMatchScore',
            'getPairwiseMismatchScore', 'setPairwiseMismatchScore',
            'getPairwiseGapOpeningPenalty', 'setPairwiseGapOpeningPenalty',
@@ -445,8 +445,8 @@ def _getAlignedMatch(ach, bch):
                     match += 1
     return amatch, bmatch, match
 
-def mapAtomsToChain(atoms, chain, **kwargs):
-    """Map *atoms* to a *chain*. 
+def mapOntoChain(atoms, chain, **kwargs):
+    """Map *atoms* onto *chain*. 
     
     This function returns a list of mappings. Each mapping is a tuple
     that contains 4 items:
