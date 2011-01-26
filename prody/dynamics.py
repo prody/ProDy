@@ -93,6 +93,7 @@ argument. These are noted in function documentations.
   * :func:`calcCumulativeOverlap`
   * :func:`calcCumulativeOverlapArray`
   * :func:`calcSubspaceOverlap`
+  * :func:`calcCovarianceOverlap`
   * :func:`printOverlapTable`
   
 **Sampling**:
@@ -221,8 +222,9 @@ __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'getVMDpath', 'setVMDpath', 'viewNMDinVMD', 
            
-           'calcOverlap', 'calcCumulativeOverlap', 'calcCumulativeOverlapArray', 
-           'calcSubspaceOverlap', 'printOverlapTable',
+           'calcOverlap', 'calcCumulativeOverlap', 
+           'calcCumulativeOverlapArray', 'calcSubspaceOverlap', 
+           'calcCovarianceOverlap', 'printOverlapTable',
            
            'sampleModes', 'traverseMode',
             
@@ -230,8 +232,9 @@ __all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
             
            'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
            'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
-           'showOverlap', 'showOverlapTable', 'showProjection', 'showCrossProjection',
-           'showEllipsoid', 'showSqFlucts', 'showScaledSqFlucts', 'showNormedSqFlucts',
+           'showOverlap', 'showOverlapTable', 'showProjection', 
+           'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
+           'showScaledSqFlucts', 'showNormedSqFlucts',
            ]
 
 VMDPATH = '/usr/local/bin/vmd'
@@ -350,6 +353,7 @@ class VectorBase(object):
         
     def getArrayNx3(self):
         """Return array with shape (N, 3)."""
+        
         if self.is3d():
             return self.getArray().reshape((len(self)/3, 3))
         else:
@@ -359,6 +363,7 @@ class Mode(VectorBase):
     """A class to provide access to and operations on mode data.
         
     """
+    
     __slots__ = ['_model', '_index']
     
     def __init__(self, model, index):
@@ -372,7 +377,9 @@ class Mode(VectorBase):
         >>> mode = cdk2_anm[0]
         >>> mode
         <Mode: 1 from ANM cdk2_1hcl>
+        
         """
+        
         self._model = model
         self._index = int(index)
         
@@ -390,7 +397,9 @@ class Mode(VectorBase):
         
         >>> print mode.is3d()
         True
+        
         """
+        
         return self._model._is3d
     
     def getNumOfAtoms(self):
@@ -398,7 +407,9 @@ class Mode(VectorBase):
         
         >>> mode.getNumOfAtoms()
         294
+        
         """
+        
         return self._model._n_atoms
     
     def getNumOfDegOfFreedom(self):
@@ -406,7 +417,9 @@ class Mode(VectorBase):
         
         >>> mode.getNumOfDegOfFreedom()
         882
+        
         """
+        
         return self._model._dof
     
     def getName(self):
@@ -414,7 +427,9 @@ class Mode(VectorBase):
         
         >>> mode.getName()
         'Mode 1 from ANM cdk2_1hcl'
+        
         """
+        
         return str(self)
     
     def getIndex(self):
@@ -422,7 +437,9 @@ class Mode(VectorBase):
         
         >>> mode.getIndex() # Note that this returns 0, i.e. anm[0]
         0
+        
         """
+        
         return self._index
     
     def getModel(self):
@@ -430,7 +447,9 @@ class Mode(VectorBase):
         
         >>> mode.getModel()
         <ANM: cdk2_1hcl (20 modes, 294 nodes)>
+        
         """
+        
         return self._model
     
     def getArray(self):
@@ -446,17 +465,21 @@ class Mode(VectorBase):
                  2.40309445e-02,  -7.74481996e-03,  -6.85740998e-03,
                  2.17636226e-02,  -8.72281427e-03,  -1.29909447e-02,
                  6.52858846e-03,  -9.49345509e-03,  -7.46635551e-03])
+        
         """
+        
         return self._model._array[:, self._index].copy()
-    getEigenvector = getArray
     
+    getEigenvector = getArray
     
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
         
         >>> mode.getEigenvalue() # doctest: +SKIP
         0.50192959268070148
+        
         """
+        
         return self._model._eigvals[self._index]
     
     def getVariance(self):
@@ -468,7 +491,9 @@ class Mode(VectorBase):
         1.9923113013903169
         >>> mode.getEigenvalue()**-1 # doctest: +SKIP
         1.9923113013903169
+        
         """
+        
         return self._model._vars[self._index]
 
     def getFractOfVariance(self):
@@ -481,7 +506,9 @@ class Mode(VectorBase):
         
         >>> mode.getFractOfVariance() # doctest: +SKIP
         0.15330741156510538
+        
         """
+        
         return self.getVariance() / self._model._trace
     
     def getCollectivity(self, masses=None):
@@ -497,7 +524,9 @@ class Mode(VectorBase):
         
         >>> mode.getCollectivity() # doctest: +SKIP
         0.43143628650850246
+        
         """
+        
         if masses is not None:
             if len(masses) != self._model._n_atoms: 
                 raise ValueError('length of massesmust be equal to number of atoms')
@@ -525,7 +554,9 @@ class Mode(VectorBase):
                  -1.23481186e-04,   1.79558430e-04,   1.41218035e-04],
                [  9.03430500e-04,   1.25111279e-04,   1.35671162e-04, ...,
                  -9.71147411e-05,   1.41218035e-04,   1.11064312e-04]])
+                 
         """
+        
         array = self.getArray()
         return np.outer(array, array) * self.getVariance()
     
@@ -541,7 +572,9 @@ class Mode(VectorBase):
                  ...
                  2.32777245e-03,   1.86683818e-03,   2.27626659e-03,
                  1.36372235e-03,   1.43149042e-03,   3.75539965e-04])
+                 
         """
+        
         if self.is3d():
             return (self.getArrayNx3()**2).sum(axis=1) * self.getVariance()
         else:
@@ -549,6 +582,7 @@ class Mode(VectorBase):
 
 
 class Vector(VectorBase):
+    
     """A class to provide operations on a modified mode array.
     
     This class holds only mode array (i.e. eigenvector) data, and has no
@@ -558,10 +592,12 @@ class Vector(VectorBase):
     :class:`Mode` instances results in a :class:`Vector` instance. 
     
     """
+    
     __slots__ = ['_name', '_array', '_is3d']
     
     def __init__(self, array, name='Unknown', is_3d=True):
         """Instantiate with a name, an array, and a 3d flag."""
+        
         if not isinstance(array, np.ndarray) or array.ndim != 1:
             raise TypeError('array must be a 1-dimentional numpy.ndarray')
         if not isinstance(is_3d, bool):
@@ -584,18 +620,22 @@ class Vector(VectorBase):
     
     def getName(self):
         """Get the descriptive name for the vector instance."""
+        
         return self._name
     
     def setName(self, name):
         """Set the descriptive name for the vector instance."""
+        
         self._name = str(name) 
     
     def getArray(self):
         """Normal mode array"""
+        
         return self._array.copy()
     
     def getNormed(self):
         """Return mode after normalizing it."""
+        
         return Vector(self._array/(self._array**2).sum()**0.5, 
                       '({0:s})/||{0:s}||'.format(self._name), self._is3d)
 
@@ -607,13 +647,16 @@ class Vector(VectorBase):
         """Return number of atoms.
         
         For a 3-dimentional vector, returns length of the vector divided by 3.
+        
         """
+        
         if self._is3d: 
             return len(self._array)/3
         else:
             return len(self._array)
 
 class NMABase(object):
+    
     """Base class for Normal Mode Analysis Calculaations.
     
     Derived classes are:
@@ -621,9 +664,12 @@ class NMABase(object):
         * :class:`GNMBase`
         * :class:`NMA`
         * :class:`PCA`
+        
     """
+    
     def __init__(self, name):
         """Initialize a Normal Mode analysis with a given name."""
+        
         self._name = str(name)
         self._modes = []
         self._n_modes = 0
@@ -659,7 +705,6 @@ class NMABase(object):
     def __str__(self):
         return 'NMA {0:s}'.format(self._name)
 
-
     def _reset(self):
         self._n_modes = 0        
         self._cov = None
@@ -679,27 +724,33 @@ class NMABase(object):
     
     def getNumOfAtoms(self):
         """Return number of modes."""
+        
         return self._n_atoms
     
     def getNumOfModes(self):
         """Return number of modes in the instance (not necessarily maximum 
         number of possible modes)."""
+        
         return self._n_modes
     
     def getNumOfDegOfFreedom(self):
         """Return number of degrees of freedom."""
+        
         return self._dof
         
     def getName(self):
         """Return name."""
+        
         return self._name
     
     def setName(self, name):
         """Set name."""
+        
         self._name = str(name)
     
     def getMode(self, index):
         """Return mode at given index."""
+        
         mode = self._modes[index]
         if mode is None:
             mode = Mode(self, index)
@@ -708,42 +759,55 @@ class NMABase(object):
 
     def getModes(self):
         """Return all modes in a list."""
+        
         getMode = self.getMode
         return [getMode(i) for i in range(len(self))]
 
     
     def getEigenvalues(self):
         """Return eigenvalues."""
+        
         if self._eigvals is None: return None
         return self._eigvals.copy()
 
     def getEigenvectors(self):
         """Return eigenvectors."""
+        
         if self._array is None: return None
         return self._array.copy()
     
     def getVariances(self):
         """Return variances (~inverse eigenvalues)."""
+        
         if self._vars is None: return None
         return self._vars.copy()
 
     def getArray(self):
         """Return eigenvectors."""
+        
         if self._array is None: return None
         return self._array.copy()
         
     def getCovariance(self):
-        """Return covariance matrix, if needed after calculating it using available modes."""
+        """Return covariance matrix.
+        
+        If covariance matrix is not set or calculated yet, it will be 
+        calculated using available modes and then returned.
+        
+        """
+        
         if self._cov is None:
             if self._array is None:
                 return None
-            self._cov = np.dot(self._array,np.dot(np.diag(self._vars), self._array.T))
+            self._cov = np.dot(self._array, np.dot(np.diag(self._vars), 
+                                                   self._array.T))
         return self._cov
         
     def calcModes(self):
         pass
         
 class NMA(NMABase):
+    
     """A class for analysis of externally calculated Hessian matrices and 
     normal modes.
     
@@ -774,13 +838,15 @@ class ModeSet(object):
     >>> modes = cdk2_anm[:3]
     >>> modes
     <ModeSet: 1 to 3 from cdk2_1hcl (3 modes)>
+    
     """
     
     __slots__ = ['_model', '_indices', '_slice']
     
     def __init__(self, model, indices):
         if not isinstance(model, NMABase):
-            raise TypeError('model must be an NMA, not {0:s}'.format(type(model)))
+            raise TypeError('model must be an NMA, not {0:s}'
+                            .format(type(model)))
         self._model = model
         self._indices = np.array(indices, np.int64)
         self._slice = prody.getIntAsStr(indices+1, sep=' to ')
@@ -804,6 +870,7 @@ class ModeSet(object):
         
         >>> modes.is3d()
         True
+        
         """
         return self._model._is3d
     
@@ -812,6 +879,7 @@ class ModeSet(object):
         
         >>> modes.getNumOfAtoms()
         294
+        
         """
         return self._model._n_atoms
     
@@ -821,7 +889,9 @@ class ModeSet(object):
         
         >>> modes.getNumOfModes()
         3
+        
         """
+        
         return len(self._indices)
     
     def getNumOfDegOfFreedom(self):
@@ -829,15 +899,20 @@ class ModeSet(object):
         
         >>> modes.getNumOfDegOfFreedom()
         882
+        
         """
+        
         return self._model._dof
         
     def getModes(self):
         """Return all modes in the subset in a list.
         
-        >>> modes.getModes()
-        [<Mode: 1 from ANM cdk2_1hcl>, <Mode: 2 from ANM cdk2_1hcl>, <Mode: 3 from ANM cdk2_1hcl>]
+        >>> modes.getModes() # doctest: +SKIP
+        [<Mode: 1 from ANM cdk2_1hcl>, <Mode: 2 from ANM cdk2_1hcl>, 
+        <Mode: 3 from ANM cdk2_1hcl>]
+        
         """
+        
         getMode = self._model.getMode
         return [getMode(i) for i in self._indices]
     
@@ -846,7 +921,9 @@ class ModeSet(object):
         
         >>> modes.getName()
         'Modes 1 to 3 from ANM cdk2_1hcl'
+        
         """
+        
         return str(self)
     
     def getModel(self):
@@ -854,7 +931,9 @@ class ModeSet(object):
         
         >>> modes.getModel()
         <ANM: cdk2_1hcl (20 modes, 294 nodes)>
+        
         """
+        
         return self._model
     
     def getIndices(self):
@@ -862,7 +941,9 @@ class ModeSet(object):
         
         >>> modes.getIndices()
         array([0, 1, 2])
+        
         """
+        
         return self._indices
     
     def getEigenvalues(self):
@@ -870,7 +951,9 @@ class ModeSet(object):
         
         >>> modes.getEigenvalues()
         array([ 0.50192959,  0.63339708,  0.74119293])
+        
         """
+        
         return self._model._eigvals[self._indices].copy()
 
     def getEigenvectors(self):
@@ -884,7 +967,9 @@ class ModeSet(object):
                [ 0.00652859, -0.03727421, -0.11962175],
                [-0.00949346, -0.00743206, -0.02354374],
                [-0.00746636,  0.025803  ,  0.01264865]])
+               
         """
+        
         return self._model._array[:, self._indices].copy()
     
     def getVariances(self):
@@ -894,7 +979,9 @@ class ModeSet(object):
         array([ 1.9923113 ,  1.57878846,  1.34917639])
         >>> modes.getEigenvalues()**-1
         array([ 1.9923113 ,  1.57878846,  1.34917639])
+        
         """
+        
         return self._model._vars[self._indices].copy()
 
     def getArray(self):
@@ -908,7 +995,9 @@ class ModeSet(object):
                [ 0.00652859, -0.03727421, -0.11962175],
                [-0.00949346, -0.00743206, -0.02354374],
                [-0.00746636,  0.025803  ,  0.01264865]])
+               
         """
+        
         return self._model._array[:, self._indices].copy()
         
     def getCovariance(self):
@@ -928,11 +1017,12 @@ class ModeSet(object):
                  0.00101462, -0.00056333],
                [ 0.00588272,  0.00281408, -0.00153348, ..., -0.00365695,
                 -0.00056333,  0.00137807]])
+                
         """
+        
         array = self.getArray()
         return np.dot(array, np.dot(np.diag(self.getVariances()), array.T))
    
-    
 
 class GNMBase(NMABase):
     """Class for Gaussian Network Model analysis of proteins."""
@@ -958,22 +1048,30 @@ class GNMBase(NMABase):
     
     def getCutoff(self):
         """Return cutoff distance."""
+        
         return self._cutoff
     
     def getGamma(self):
         """Return spring constant."""
+        
         return self._gamma
 
     def getKirchhoff(self):
         """Return Kirchhoff matrix."""
+        
         if self._kirchhoff is None: return None
         return self._kirchhoff.copy()    
 
 class GNM(GNMBase):
-    """A class for Gaussian Network Model (GNM) analysis of proteins ([IB97]_, [TH97]_)."""
+    
+    """A class for Gaussian Network Model (GNM) analysis of proteins 
+    ([IB97]_, [TH97]_).
+    
+    """
     
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
+        
         if not isinstance(kirchhoff, np.ndarray):
             raise TypeError('kirchhoff must be an ndarray')
         elif not (kirchhoff.ndim == 2 and kirchhoff.shape[0] == kirchhoff.shape[1]):
@@ -996,11 +1094,15 @@ class GNM(GNMBase):
         
         When available, this method uses Bio.KDTree.
         
-        *masses* is not used yet.        """
+        *masses* is not used yet.        
+        
+        """
+        
         if KDTree is None: 
             prody.importBioKDTree()
             if not KDTree:
-                LOGGER.debug('Using a slower method for building the Kirchhoff matrix.')
+                LOGGER.debug('Using a slower method for building the '
+                             'Kirchhoff matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoordinates()
@@ -1047,7 +1149,8 @@ class GNM(GNMBase):
                     kirchhoff[i, i] += gamma
                     kirchhoff[j, j] += gamma
             
-        LOGGER.debug('Kirchhoff was built in {0:.2f}s.'.format(time.time()-start))
+        LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
+                     .format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._cutoff = cutoff
         self._gamma = gamma
@@ -1090,7 +1193,8 @@ class GNM(GNMBase):
                     eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
-            values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, eigvals=eigvals)
+            values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, 
+                                          eigvals=eigvals)
         else:
             values, vectors = linalg.eigh(self._kirchhoff)
         n_zeros = sum(values < ZERO)
@@ -1114,7 +1218,10 @@ class GNM(GNMBase):
 
 class ANM(GNMBase):
 
-    """Class for Anisotropic Network Model (ANM) analysis of proteins ([PD00]_, [ARA01]_)"""
+    """Class for Anisotropic Network Model (ANM) analysis of proteins 
+    ([PD00]_, [ARA01]_)
+    
+    """
 
     def __init__(self, name):
         GNMBase.__init__(self, name)
@@ -1138,11 +1245,13 @@ class ANM(GNMBase):
         
     def getHessian(self):
         """Return a copy of Hessian matrix."""
+        
         if self._hessian is None: return None
         return self._hessian.copy()
     
     def setHessian(self, hessian):
         """Set Hessian matrix."""
+        
         if not isinstance(hessian, np.ndarray):
             raise TypeError('hessian must be an ndarray')
         elif not (hessian.ndim == 2 and hessian.shape[0] == hessian.shape[1]):
@@ -1165,12 +1274,15 @@ class ANM(GNMBase):
         
         When available, this method uses Bio.KDTree.
         
-        *masses* is not used yet.                       
+        *masses* is not used yet.    
+                           
         """
+        
         if KDTree is None: 
             prody.importBioKDTree()
             if not KDTree:
-                LOGGER.debug('Using a slower method for building the Hessian matrix.')
+                LOGGER.debug('Using a slower method for building the '
+                             'Hessian matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoordinates()
@@ -1268,6 +1380,7 @@ class ANM(GNMBase):
         :type turbo: bool, default is ``True``
         
         """
+        
         if self._hessian is None:
             raise RuntimeError('Hessian matrix is not set')
         if linalg is None:
@@ -1288,7 +1401,8 @@ class ANM(GNMBase):
                     eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
-            values, vectors = linalg.eigh(self._hessian, turbo=turbo, eigvals=eigvals)
+            values, vectors = linalg.eigh(self._hessian, turbo=turbo, 
+                                          eigvals=eigvals)
         else:
             values, vectors = linalg.eigh(self._hessian)
         n_zeros = sum(values < ZERO)
@@ -1310,6 +1424,7 @@ class ANM(GNMBase):
                           ''.format(self._n_modes, time.time()-start))
 
 class PCA(NMABase):
+    
     """A class for Principal Component Analysis (PCA) of conformational ensembles 
     (also known as Essential Dynamics Analysis (EDA) in [AA93]_)."""
 
@@ -1325,6 +1440,7 @@ class PCA(NMABase):
     
     def setCovariance(self, covariance):
         """Set covariance matrix."""
+        
         if not isinstance(covariance, np.ndarray):
             raise TypeError('covariance must be an ndarray')
         elif not (covariance.ndim == 2 and covariance.shape[0] == covariance.shape[1]):
@@ -1334,7 +1450,6 @@ class PCA(NMABase):
         self._dof = covariance.shape[0]
         self._n_atoms = self._dof / 3
         self._trace = self._cov.trace()
-    
 
     def buildCovariance(self, coordsets, weights=None):
         """Build a weighted covariance matrix for coodsets.
@@ -1348,30 +1463,36 @@ class PCA(NMABase):
         :class:`~prody.ensemble.Ensemble` and :class:`~prody.atomic.Atomic`
         instances are acceptable.
         
-        If *weights* is ``None``, but *coordsets* has :meth:`getWeights` method,
-        weights from that method will be used. 
+        If *weights* is ``None``, but *coordsets* has :meth:`getWeights` 
+        method, weights from that method will be used. 
         
         """
+        
         start = time.time()
         try:
             coordinates = coordsets.getCoordinates()
         except:
-            raise Exception('coordsets argument must have getCoordinates method')
+            raise Exception('coordsets argument must have '
+                            'getCoordinates method')
         else:
             if coordinates is None:
-                raise Exception('coordinates of {0:s} is not set'.format(str(coordsets)))
+                raise Exception('coordinates of {0:s} is not set'
+                                .format(str(coordsets)))
         n_atoms = coordsets.getNumOfAtoms()
         dof = n_atoms * 3
 
         try:
             conformations = coordsets.getCoordsets()
         except:
-            raise Exception('conformations argument must have getCoordsets method')
+            raise Exception('conformations argument must have '
+                            'getCoordsets method')
         else:
             if coordinates is None or len(coordinates) == 0:
-                raise Exception('{0:s} does not contain any conformations'.format(str(coordsets)))
+                raise Exception('{0:s} does not contain any conformations'
+                                .format(str(coordsets)))
             elif len(coordinates) < 3:
-                raise Exception('{0:s} must contain more than two conformations'.format(str(coordsets)))
+                raise Exception('{0:s} must contain more than two '
+                                'conformations'.format(str(coordsets)))
         
         n_confs = conformations.shape[0]
         if weights is None:
@@ -1410,6 +1531,7 @@ class PCA(NMABase):
         :type turbo: bool, default is ``True``
         
         """
+        
         if linalg is None:
             prody.importLA()
 
@@ -1426,7 +1548,8 @@ class PCA(NMABase):
                     n_modes = dof
                 else:
                     eigvals = (dof - n_modes, dof - 1)
-            values, vectors = linalg.eigh(self._cov, turbo=turbo, eigvals=eigvals)
+            values, vectors = linalg.eigh(self._cov, turbo=turbo, 
+                                          eigvals=eigvals)
         else:
             values, vectors = linalg.eigh(self._cov)
         # Order by descending SV
@@ -1462,6 +1585,7 @@ def saveModel(nma, filename=None, matrices=False):
     Upon successful completion of saving, filename is returned.
     
     This function makes use of :func:`numpy.savez` function.
+    
     """
     if not isinstance(nma, NMABase):
         raise TypeError('invalid type for nma, {0:s}'.format(type(nma)))
@@ -1508,7 +1632,9 @@ def loadModel(filename):
     .. seealso: :func:`saveModel`
     
     This function makes use of :func:`numpy.load` function.
+    
     """
+    
     attr_dict = np.load(filename)
     type_ = attr_dict['type']
     if type_ == 'ANM':
@@ -1538,7 +1664,9 @@ def saveVector(vector, filename):
     Upon successful completion of saving, filename is returned.
     
     This function makes use of :func:`numpy.savez` function.
+    
     """
+    
     if not isinstance(vector, Vector):
         raise TypeError('invalid type for vector, {0:s}'.format(type(vector)))
     attr_dict = {}
@@ -1555,12 +1683,16 @@ def loadVector(filename):
     .. seealso: :func:`saveVector`
     
     This function makes use of :func:`numpy.load` function.
+    
     """
+    
     attr_dict = np.load(filename)
-    return Vector(attr_dict['array'], str(attr_dict['name']), bool(attr_dict['is3d']))
+    return Vector(attr_dict['array'], str(attr_dict['name']), 
+                  bool(attr_dict['is3d']))
 
 def getVMDpath():
     """Return path to the VMD executable."""
+    
     return VMDPATH
 
 def setVMDpath(path):
@@ -1586,8 +1718,10 @@ def writeNMD(filename, modes, atoms):
           as the scaling factor of the vector.
         
     """
+    
     if not isinstance(modes, (NMABase, ModeSet, Mode, Vector)):
-        raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
+                        'not {0:s}'.format(type(modes)))
     if modes.getNumOfAtoms() != atoms.getNumOfAtoms():
         raise Exception('number of atoms do not match')
     out = open(filename, 'w')
@@ -1605,9 +1739,11 @@ def writeNMD(filename, modes, atoms):
     try:
         coords = atoms.getCoordinates()
     except:
-        raise RuntimeError('coordinates could not be retrived from atoms instance')
+        raise RuntimeError('coordinates could not be retrived '
+                           'from atoms instance')
     if coords is None:
-        raise RuntimeError('coordinates could not be retrived from atoms instance')
+        raise RuntimeError('coordinates could not be retrived '
+                           'from atoms instance')
     
     try:
         data = atoms.getAtomNames()
@@ -1634,28 +1770,36 @@ def writeNMD(filename, modes, atoms):
     except:
         pass
     
-    out.write('coordinates {0:s}\n'.format(' '.join(['{0:.3f}'.format(x) for x in coords.flatten()])))
+    out.write('coordinates {0:s}\n'.format(
+                    ' '.join(['{0:.3f}'.format(x) for x in coords.flatten()])))
     
     count = 0
     if isinstance(modes, Vector):
-        out.write('mode 1 {0:.2f} {1:s}\n'.format(abs(modes), ' '.join(['{0:.3f}'.format(x) for x in modes.getNormed().getArray()])))
+        out.write('mode 1 {0:.2f} {1:s}\n'.format(abs(modes), ' '.join(
+                ['{0:.3f}'.format(x) for x in modes.getNormed().getArray()])))
         count += 1
     else:
         for mode in modes:
             if mode.getEigenvalue() < ZERO:
                 continue
-            out.write('mode {0:d} {1:.2f} {2:s}\n'.format(mode.getIndex()+1, mode.getVariance()**0.5, ' '.join(['{0:.3f}'.format(x) for x in mode.getArray()])))
+            out.write('mode {0:d} {1:.2f} {2:s}\n'.format(
+                       mode.getIndex()+1, mode.getVariance()**0.5, 
+                       ' '.join(
+                            ['{0:.3f}'.format(x) for x in mode.getArray()])))
             count += 1
     if count == 0:
-        LOGGER.warning('No normal mode data was written. Given modes might have 0 eigenvalues.')
+        LOGGER.warning('No normal mode data was written. '
+                       'Given modes might have 0 eigenvalues.')
     out.close() 
     return filename  
 
 def viewNMDinVMD(filename):
     """Start VMD in the current Python session and load NMD data."""
+    
     os.system('{0:s} -e {1:s}'.format(VMDPATH, os.path.abspath(filename)))
     
-def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
+def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
+            zeros=False):
     """Return an ANM instance for given PDB identifier or atom data.
     
     By default only alpha carbons are considered, but selection string
@@ -1664,6 +1808,7 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False)
     *pdb* can be :class:`~prody.atomic.Atomic` instance.  
     
     """
+    
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
         name = ag.getName()
@@ -1674,7 +1819,8 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False)
         else: 
             name = ag.getAtomGroup().getName()
     else:
-        raise TypeError('pdb must be an atom container, not {0:s}'.format(type(pdb)))
+        raise TypeError('pdb must be an atom container, not {0:s}'
+                        .format(type(pdb)))
     anm = ANM(name)
     anm.buildHessian(ag.select(selstr), cutoff, gamma)
     anm.calcModes(n_modes)
@@ -1699,7 +1845,8 @@ def calcGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
         else: 
             name = ag.getAtomGroup().getName()
     else:
-        raise TypeError('pdb must be an atom container, not {0:s}'.format(type(pdb)))
+        raise TypeError('pdb must be an atom container, not {0:s}'
+                        .format(type(pdb)))
     gnm = GNM(name)
     gnm.buildKirchhoff(ag.select(selstr), cutoff, gamma)
     gnm.calcModes(n_modes)
@@ -1718,9 +1865,11 @@ def calcProjection(ensemble, modes):
            [  5.87457149,  -7.40788451,   2.20797633]])
     """
     if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
+        raise TypeError('ensemble must be an Ensemble, not {0:s}'
+                        .format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
-        raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
+        raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'
+                        .format(type(modes)))
     if not modes.is3d(): 
         raise ValueError('modes must be 3-dimensional')
     if ensemble.getNumOfAtoms() != modes.getNumOfAtoms():
@@ -1735,7 +1884,8 @@ def calcProjection(ensemble, modes):
 
 
 def calcOverlap(rows, cols):
-    """Return overlap (or correlation) between two sets of modes (*rows* and *cols*).
+    """Return overlap (or correlation) between two sets of modes 
+    (*rows* and *cols*).
     
     Returns a matrix whose rows correspond to modes passed as 
     *rows* argument, and columns correspond to those passed as *cols* 
@@ -1745,12 +1895,15 @@ def calcOverlap(rows, cols):
     -0.71366564906422636
     """
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
-        raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0:s}'.format(type(rows)))
+        raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0:s}'
+                        .format(type(rows)))
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
-        raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0:s}'.format(type(cols)))
+        raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0:s}'
+                        .format(type(cols)))
     
     if rows.getNumOfDegOfFreedom() != cols.getNumOfDegOfFreedom(): 
-        raise ValueError('number of defrees of freedom of rows and cols must be the same')
+        raise ValueError('number of defrees of freedom of rows and '
+                         'cols must be the same')
         
     return np.dot(rows.getArray().T, cols.getArray())
 
@@ -1775,7 +1928,8 @@ def printOverlapTable(rows, cols):
     print calcOverlapTable(rows, cols)
 
 def writeOverlapTable(filename, rows, cols):
-    """Write table of overlaps (correlations) between two sets of modes to a file.
+    """Write table of overlaps (correlations) between two sets of modes to a 
+    file.
 
     *rows* and *cols* are sets of normal modes, and correspond to rows
     and columns of the overlap table.
@@ -1850,13 +2004,18 @@ def sliceVector(vector, atoms, selstr):
     :returns: :class:`Vector`
     """
     if not isinstance(vector, VectorBase):
-        raise TypeError('vector must be a VectorBase instance, not {0:s}'.format(type(vector)))
+        raise TypeError('vector must be a VectorBase instance, not {0:s}'
+                        .format(type(vector)))
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance, not {0:s}'.format(type(atoms)))
+        raise TypeError('atoms must be an Atomic instance, not {0:s}'
+                        .format(type(atoms)))
     if atoms.getNumOfAtoms() != vector.getNumOfAtoms(): 
-        raise ValueError('number of atoms in *vector* and *atoms* must be equal')
-    return Vector(vector.getArrayNx3()[SELECT.getBoolArray(atoms, selstr), :].flatten(),
-                  '{0:s} slice "{1:s}"'.format(str(vector), selstr), vector.is3d())
+        raise ValueError('number of atoms in *vector* and *atoms* must be '
+                         'equal')
+    return Vector(vector.getArrayNx3()[
+                    SELECT.getBoolArray(atoms, selstr), :].flatten(),
+                    '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
+                    vector.is3d())
 
 def sliceMode(mode, atoms, selstr):
     """Return a slice of *mode* matching *atoms* specified by *selstr*.
@@ -1880,18 +2039,24 @@ def sliceMode(mode, atoms, selstr):
     :returns: :class:`Vector`
     """
     if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance, not {0:s}'.format(type(mode)))
+        raise TypeError('mode must be a Mode instance, not {0:s}'
+                        .format(type(mode)))
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance, not {0:s}'.format(type(atoms)))
+        raise TypeError('atoms must be an Atomic instance, not {0:s}'
+                        .format(type(atoms)))
     if atoms.getNumOfAtoms() != mode.getNumOfAtoms(): 
         raise ValueError('number of atoms in *mode* and *atoms* must be equal')
-    return Vector(mode.getArrayNx3()[SELECT.getBoolArray(atoms, selstr), :].flatten() * mode.getVariance()**0.5,
-                  '{0:s} slice "{1:s}"'.format(str(mode), selstr), mode.is3d())
+    return Vector(mode.getArrayNx3()[
+                    SELECT.getBoolArray(atoms, selstr), :
+                    ].flatten() * mode.getVariance()**0.5,
+                    '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
+                    mode.is3d())
     
 def reduceModel(model, atoms, selstr):
     """Returns reduced NMA model.
     
-    Reduces a :class:`NMA` model to a subset of *atoms* matching a selection *selstr*.
+    Reduces a :class:`NMA` model to a subset of *atoms* matching a selection 
+    *selstr*.
     
     This function behaves depending on the type of the model.
     
@@ -1911,7 +2076,6 @@ def reduceModel(model, atoms, selstr):
     if linalg is None:
         prody.importLA()
 
-    #LOGGER.warning('Implementation of this function is not finalized. Use it with caution.')
     if not isinstance(model, NMABase):
         raise TypeError('model must be an NMA instance, not {0:s}'.format(type(model)))
     if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
@@ -1937,7 +2101,8 @@ def reduceModel(model, atoms, selstr):
         LOGGER.warning('selection has 0 atoms')
         return None
     if len(atoms) == n_sel:
-        LOGGER.warning('selection results in same number of atoms, model is not reduced')
+        LOGGER.warning('selection results in same number of atoms, '
+                       'model is not reduced')
         return None
 
     if model.is3d():
@@ -1976,7 +2141,8 @@ def writeModes(filename, modes, format='g', sep=' ', compressed=False):
     >>> os.remove('p38_pca_modes_1-3.txt')
     """
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
+                        .format(type(modes)))
     return writeArray(filename, modes.getArray(), format=format, sep=sep)
     
 def writeArray(filename, array, format='g', sep=' ', compressed=False):
@@ -2023,7 +2189,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     Otherwise, sampling is around the 0 coordinate set.
     
     :arg modes: Modes along which sampling will be performed.
-    :type modes: :class:`Mode`, :class:`ModeSet`, :class:`PCA`, :class:`ANM` or :class:`NMA`   
+    :type modes: :class:`Mode`, :class:`ModeSet`, :class:`PCA`, :class:`ANM` 
+                 or :class:`NMA`   
     
     :arg atoms: Atoms whose active coordinate set will be used as the initial 
         conformation.
@@ -2105,7 +2272,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     initial = None
     if atoms is not None:
         if not isinstance(atoms, (Atomic)):
-            raise TypeError('{0:s} is not correct type for atoms'.format(type(modes)))
+            raise TypeError('{0:s} is not correct type for atoms'
+                            .format(type(modes)))
         if atoms.getNumOfAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
         initial = atoms.getCoordinates()
@@ -2278,7 +2446,8 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     
     For given normal mode :math:`u_i`, its eigenvalue
     :math:`\lambda_i`, number of steps :math:`n`, and maximum :math:`RMSD`  
-    conformations :math:`[R_{-n} R_{-n+1} ... R_{-1} R_0 R_1 ... R_n]` are generated.
+    conformations :math:`[R_{-n} R_{-n+1} ... R_{-1} R_0 R_1 ... R_n]` are 
+    generated.
     
     :math:`R_0` is the active coordinate set of *atoms*. 
     :math:`R_k = R_0 + sk\lambda_iu_i`, where :math:`s` is found using
@@ -2290,7 +2459,8 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
        :context:
        :include-source:
         
-       trajectory = traverseMode( cdk2_anm[0], cdk2.select('calpha'), n_steps=8, rmsd=1.4 )
+       trajectory = traverseMode( cdk2_anm[0], cdk2.select('calpha'), 
+                                  n_steps=8, rmsd=1.4 )
        rmsd = calcRMSD(trajectory)
        plt.figure(figsize=(5,4))
        plt.plot(rmsd, '-o')
@@ -2350,10 +2520,13 @@ def calcSqFlucts(modes):
     >>> calcSqFlucts(p38_pca)
     array([  0.94163178,   0.97486815,   0.81056074,   0.59926465,
              0.80505867,   0.93568339,   1.1634173 ,   1.39873827,
-             ...
+             ...,
              0.13855481,   0.10944998,   0.09378239,   0.14173194,
-             0.17928521,   0.12930389,   0.21500264,   0.16070006,   0.21077809])
+             0.17928521,   0.12930389,   0.21500264,   0.16070006,   
+             0.21077809])
+             
     """
+    
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -2395,7 +2568,9 @@ def calcCrossCorrelations(modes, n_cpu=1):
              1.        ,  0.9528413 ],
            [ 0.31997558,  0.31677069,  0.14512422, ...,  0.86549921,
              0.9528413 ,  1.        ]])
+
     """
+    
     if not isinstance(n_cpu, int):
         raise TypeError('n_cpu must be an integer')
     elif n_cpu < 1:
@@ -2453,6 +2628,7 @@ def calcCrossCorrelations(modes, n_cpu=1):
 
 def _crossCorrelations(queue, n_atoms, array, variances, indices):
     """Calculate covariance-matrix for a subset of modes."""
+    
     n_modes = len(indices)
     arvar = (array[:, indices] * variances[indices]).T.reshape((n_modes,
                                                                 n_atoms, 3))
@@ -2473,7 +2649,9 @@ def calcCumulativeOverlap(modes1, modes2):
     
     >>> calcCumulativeOverlap(p38_pca[0], p38_anm) # doctest: +SKIP
     0.89357715148440353
+    
     """
+    
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
     return cumov
@@ -2491,7 +2669,9 @@ def calcCumulativeOverlapArray(modes1, modes2):
             0.83320235,  0.83947803,  0.85141434,  0.87426872,  0.88529856,
             0.88647576,  0.88878561,  0.88882618,  0.88894772,  0.89121041,
             0.89162571,  0.89276304,  0.89336947,  0.8934872 ,  0.89357715])
+    
     """
+    
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
     return cumov
@@ -2516,8 +2696,40 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
+
+def calcCovarianceOverlap(modelA, modelB):
+    """Return overlap between covariances of *modelA* and *modelB*.
+    
+    Overlap between covariances are calculated using normal modes 
+    (eigenvectors), hence modes in both models must have been calculated.
+    
+    This function implements equation 11 in [BH02]_.
+    
+    """
+    if not modelA.is3d() or not modelB.is3d(): 
+        raise TypeError('both models must be 3-dimensional') 
+    if len(modelA) == 0 or len(modelB) == 0:  
+        raise TypeError('modes must be calculated for both models, '
+                        'try calcModes method')
+    if modelA.getNumOfAtoms() != modelB.getNumOfAtoms(): 
+        raise ValueError('modelA and modelB must have same number of atoms')
+    arrayA = modelA.getArray()
+    varA = modelA.getVariances()
+    arrayB = modelB.getArray()
+    varB = modelB.getVariances()
+    
+    dotAB = np.dot(arrayA.T, arrayB)**2
+    outerAB = np.outer(varA**0.5, varB**0.5)
+    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(outerAB * dotAB))
+    if diff < ZERO:
+        diff = 0
+    else:
+        diff = diff ** 0.5
+    return 1 - diff / np.sqrt(varA.sum() + varB.sum())
+
 def calcCovariance(modes):
     """Calculate covariance matrix from given modes and return it."""
+    
     return modes.getCovariance()
 
 def showFractOfVariances(modes, *args, **kwargs):
@@ -2540,6 +2752,7 @@ def showFractOfVariances(modes, *args, **kwargs):
        plt.close('all')
     
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(modes, (ModeSet, NMABase)):
@@ -2562,7 +2775,9 @@ def showCumFractOfVariances(modes, *args, **kwargs):
     
     Note that mode indices are incremented by 1.
     See :func:`showFractOfVariances` for an example.
+    
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
@@ -2597,8 +2812,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
       * 2 modes: :func:`~matplotlib.pyplot.plot`
       * 3 modes: :meth:`mpl_toolkits.mplot3d.Axes3D.plot`
       
-    By default ``marker='o', ls='None'`` is passed to the plotting function to disable 
-    lines in projections onto 2 or 3-d spaces.
+    By default ``marker='o', ls='None'`` is passed to the plotting function 
+    to disable lines in projections onto 2 or 3-d spaces.
     
     .. plot::
        :context:
@@ -2622,13 +2837,17 @@ def showProjection(ensemble, modes, *args, **kwargs):
        :nofigs:
         
        plt.close('all')
+       
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
+        raise TypeError('ensemble must be an Ensemble, not {0:s}'
+                        .format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
+                        .format(type(modes)))
     if not modes.is3d(): 
         raise Exception('modes must be 3-dimensional')
     if isinstance(modes, Mode):
@@ -2661,16 +2880,19 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 break 
         if show is None:
             show = Axes3D(cf)
-        show.plot(projection[:, 0], projection[:, 1], projection[:, 2], *args, **kwargs)
+        show.plot(projection[:, 0], projection[:, 1], projection[:, 2], 
+                  *args, **kwargs)
         show.set_xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
         show.set_ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
         show.set_zlabel('Mode {0:d} coordinate'.format(modes[2].getIndex()+1))
     else:
-        raise ValueError('Projection onto upto 3 modes can be shown. You have given {0:d} mode.'.format(len(modes)))
+        raise ValueError('Projection onto upto 3 modes can be shown. '
+                         'You have given {0:d} mode.'.format(len(modes)))
     
     return show
 
-def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args, **kwargs):
+def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
+                        *args, **kwargs):
     """Show projection of conformational deviations using :func:`~matplotlib.pyplot.plot`.
     
     This function is differs from :func:`showProjection` by accepting modes
@@ -2682,11 +2904,12 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
     :type mode_x: :class:`Mode`
     :arg mode_y: Projection onto this mode will be shown along y-axis.
     :type mode_y: :class:`Mode`
-    :arg scale: Scale width of the projection onto one of modes. ``x`` and ``y`` are accepted.
+    :arg scale: Scale width of the projection onto one of modes. 
+                ``x`` and ``y`` are accepted.
     :type scale: str
     
-    By default ``marker='o', ls='None'`` is passed to the plotting function to disable 
-    lines.
+    By default ``marker='o', ls='None'`` is passed to the plotting function 
+    to disable lines.
     
     .. plot::
        :context:
@@ -2707,13 +2930,16 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble, not {0:s}'.format(type(ensemble)))
+        raise TypeError('ensemble must be an Ensemble, not {0:s}'
+                        .format(type(ensemble)))
     if not isinstance(mode_x, Mode):
-        raise TypeError('mode_x must be a Mode instance, not {0:s}'.format(type(mode_x)))
+        raise TypeError('mode_x must be a Mode instance, not {0:s}'
+                        .format(type(mode_x)))
     if not mode_x.is3d():
         raise Exception('mode_x must be 3-dimensional')
     if not isinstance(mode_y, Mode):
-        raise TypeError('mode_y must be a Mode instance, not {0:s}'.format(type(mode_y)))
+        raise TypeError('mode_y must be a Mode instance, not {0:s}'
+                        .format(type(mode_y)))
     if not mode_y.is3d():
         raise Exception('mode_y must be 3-dimensional')
     
@@ -2730,16 +2956,18 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, *args
             scalar = ((ymax - ymin) / (xmax - xmin)) 
             scalar = scalar * np.sign(calcOverlap(mode_x, mode_y))
             if scale == 'x':
-                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'.format(mode_x, scalar))
+                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
+                            .format(mode_x, scalar))
             else:
-                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'.format(mode_y, scalar))
+                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
+                            .format(mode_y, scalar))
         if scale.lower() == 'x':
             xcoords = xcoords * scalar  
         elif scale.lower() == 'y': 
             ycoords = ycoords / scalar
     else:
-        LOGGER.warning('{0:s} is not a valid value for scale argument. Only "x" or "y" are accepted.'
-                       .format(str(scale)))
+        LOGGER.warning('{0:s} is not a valid value for scale argument. '
+                       'Only "x" or "y" are accepted.'.format(str(scale)))
     if 'ls' not in kwargs:
         kwargs['ls'] = 'None'
     if 'marker' not in kwargs:
@@ -2771,13 +2999,16 @@ def showOverlapTable(rows, cols, *args, **kwargs):
        :nofigs:
         
        plt.close('all') 
+       
     """
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(rows, (NMABase, ModeSet)):
-        raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'.format(type(rows)))
+        raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'
+                        .format(type(rows)))
     if not isinstance(rows, (NMABase, ModeSet)):
-        raise TypeError('cols must be an NMA model or a ModeSet, not {0:s}'.format(type(cols)))
+        raise TypeError('cols must be an NMA model or a ModeSet, not {0:s}'
+                        .format(type(cols)))
     overlap = abs(calcOverlap(rows, cols))
     if isinstance(rows, NMABase):
         rows = rows[:]
@@ -2817,6 +3048,7 @@ def showCrossCorrelations(modes, *args, **kwargs):
        plt.close('all')
     
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     arange = np.arange(modes.getNumOfAtoms())
@@ -2853,6 +3085,7 @@ def showMode(mode, *args, **kwargs):
        plt.close('all')
        
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(mode, Mode):
@@ -2887,6 +3120,7 @@ def showSqFlucts(modes, *args, **kwargs):
        plt.close('all')
     
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     sqf = calcSqFlucts(modes)
@@ -2917,7 +3151,9 @@ def showScaledSqFlucts(modes, *args, **kwargs):
        :nofigs:
 
        plt.close('all')
+       
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     sqf = calcSqFlucts(modes)
@@ -2933,7 +3169,9 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     for modes in modesarg:
         sqf = calcSqFlucts(modes)
         scalar = mean / sqf.mean()
-        show.append(plt.plot(sqf * scalar, *args, label='{0:s} (x{1:.2f})'.format(str(modes), scalar), **kwargs))
+        show.append(plt.plot(sqf * scalar, *args, 
+                           label='{0:s} (x{1:.2f})'.format(str(modes), scalar), 
+                           **kwargs))
     return show
 
 def showNormedSqFlucts(modes, *args, **kwargs):
@@ -2952,7 +3190,9 @@ def showNormedSqFlucts(modes, *args, **kwargs):
        :nofigs:
 
        plt.close('all')
+       
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     sqf = calcSqFlucts(modes)
@@ -2961,12 +3201,14 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     for arg in args:
         if isinstance(arg, (Mode, ModeSet, NMA)):
             modesarg.append(args.pop(0))
-    show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs)]    
+    show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
+                        label='{0:s}'.format(str(modes)), **kwargs)]    
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     for modes in modesarg:
         sqf = calcSqFlucts(modes)
-        show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args, label='{0:s}'.format(str(modes)), **kwargs))
+        show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
+                    label='{0:s}'.format(str(modes)), **kwargs))
     return show
 
 def showContactMap(enm, *args, **kwargs):
@@ -2984,7 +3226,9 @@ def showContactMap(enm, *args, **kwargs):
        :nofigs:
         
        plt.close('all') 
+       
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(enm, GNMBase):
@@ -3019,13 +3263,17 @@ def showOverlap(mode, modes, *args, **kwargs):
        :nofigs:
         
        plt.close('all') 
+       
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0:s}'.format(type(mode)))
+        raise TypeError('mode must be Mode or Vector, not {0:s}'
+                        .format(type(mode)))
     if not isinstance(modes, (NMABase, ModeSet)):
-        raise TypeError('modes must be NMA or ModeSet, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMA or ModeSet, not {0:s}'
+                        .format(type(modes)))
     overlap = abs(calcOverlap(mode, modes))
     if isinstance(modes, NMABase):
         arange = np.arange(0.5, len(modes)+0.5)
@@ -3057,14 +3305,18 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')     
+       plt.close('all')  
+          
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'.format(type(mode)))
+        raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'
+                        .format(type(mode)))
     if not isinstance(modes, (NMABase, ModeSet)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
+                        .format(type(modes)))
     cumov = (calcOverlap(mode, modes) ** 2).cumsum() ** 0.5
     if isinstance(modes, NMABase):
         arange = np.arange(0.5, len(modes)+0.5)
