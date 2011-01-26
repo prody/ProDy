@@ -7,15 +7,15 @@ import xmlrpclib
 
 package_name = 'ProDy'
 
-proxy = xmlrpclib.Server('http://pypi.python.org/pypi')
+pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
 # Write statistics in a CSV file
 rst = open('reports/pypi_downloads.csv', 'w')
 rst.write('Release;Date;Downloads;\n')
-
-releases = proxy.package_releases(package_name, True)
+show_hidden = True
+releases = pypi.package_releases(package_name, show_hidden)
 downloads_total = 0
 for release in releases:
-    urls = proxy.release_urls(package_name, release)
+    urls = pypi.release_urls(package_name, release)
     downloads = 0
     for url in urls:
         downloads += url['downloads']
