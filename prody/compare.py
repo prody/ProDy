@@ -531,7 +531,8 @@ def mapAtomsToChain(atoms, chain, **kwargs):
         target_list, chain_list, n_match, n_mapped = _getTrivialMapping(simple_target, simple_chain)
         if n_mapped > 0:
             _seqid = n_match * 100 / n_mapped
-            _cover = n_mapped * 100 / len(simple_target)
+            #_cover = n_mapped * 100 / len(simple_target)
+            _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
         else:
             _seqid = 0
             _cover = 0
@@ -555,7 +556,8 @@ def mapAtomsToChain(atoms, chain, **kwargs):
                 target_list, chain_list, n_match, n_mapped = result
                 if n_mapped > 0:
                     _seqid = n_match * 100 / n_mapped
-                    _cover = n_mapped * 100 / len(simple_target)
+                    #_cover = n_mapped * 100 / len(simple_target)
+                    _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
                 else:
                     _seqid = 0
                     _cover = 0
