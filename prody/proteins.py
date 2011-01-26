@@ -830,7 +830,7 @@ class PDBlastRecord(object):
                     pdb_id = item.split()[0].split('|')[3].encode('utf-8')
                     pdb_id = pdb_id.lower()
                     # if pdb_id is extracted, but a better alignment exists
-                    if (not pdb_hits.has_key(pdb_id) or 
+                    if (pdb_id not in pdb_hits or 
                         p_identity > pdb_hits[pdb_id]['percent_identity']):
                         hit = {}
                         hit['pdb_id'] = pdb_id
@@ -875,7 +875,7 @@ class PDBlastRecord(object):
                 title = item[item.find(' ')+1:].encode('utf-8').strip()
                 pdb_id = item.split()[0].split('|')[3].encode('utf-8')
                 pdb_id = pdb_id.lower()
-                if (not pdb_hits.has_key(pdb_id) or 
+                if (pdb_id not in pdb_hits or 
                     p_identity > pdb_hits[pdb_id]['percent_identity']):
                     hit = {}
                     hit['pdb_id'] = pdb_id
@@ -922,9 +922,9 @@ def blastPDB(sequence, filename=None, **kwargs):
     elif not sequence:
         raise ValueError('sequence cannot be an empty string')
 
-    if not kwargs.has_key('hitlist_size'):
+    if 'hitlist_size' not in kwargs:
         kwargs['hitlist_size'] = 250
-    if not kwargs.has_key('expect'):
+    if 'expect' not in kwargs:
         kwargs['expect'] = 1e-10
 
     sequence = ''.join(sequence.split())
@@ -1181,7 +1181,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         keys = biomt.keys()
     else:
         biomol = str(biomol)
-        if biomt.has_key(biomol):
+        if biomol in biomt:
             keys = [biomol]
         else:
             LOGGER.warning('Transformations for biomolecule {0:s} was not '
