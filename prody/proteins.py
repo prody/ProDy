@@ -46,6 +46,7 @@ import gzip
 import os.path
 import time
 import os
+from glob import glob
 from collections import defaultdict
 
 import numpy as np
@@ -80,6 +81,8 @@ def _makePath(path):
                 if not os.path.isdir(dirname): 
                     os.mkdir(dirname)
             except OSError:
+                raise OSError('{0:s} could not be created, please '
+                              'specify another path'.format(path))
                 return os.getcwd()
     return os.path.join(os.getcwd(), path)
 
@@ -123,13 +126,20 @@ class RCSB_PDBFetcher(PDBFetcher):
         if folder != '.':
             folder = _makePath(folder)
         if not os.access(folder, os.W_OK):
-            raise EnvironmentError('You cannot write into current folder, please cd into a folder that you have write access.')
+            raise IOError('permission to write in {0:s} is denied, please '
+                          'specify another folder'.format(folder))
         
         filenames = []
         exists = 0
         success = 0
         failure = 0
         download = False
+
+        pdbfnmap = {}
+        for pdbfn in glob(os.path.join(folder, '*.pdb*')): 
+            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+        for pdbfn in glob(os.path.join(folder, '*.PDB*')): 
+            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
 
         for i, pdbid in enumerate(identifiers):
             pdbid = pdbid.strip().lower()
@@ -139,21 +149,16 @@ class RCSB_PDBFetcher(PDBFetcher):
                 failure += 1 
                 continue
             identifiers[i] = pdbid
-            # This search is not as fast as it can be
-            #   and is not comprehensive
-            # How about regular expressions?
-            for fn in [os.path.join(folder, pdbid + '.pdb'),
-                       os.path.join(folder, pdbid + '.pdb.gz'),
-                       os.path.join(folder, pdbid.upper() + '.pdb'),
-                       os.path.join(folder, pdbid.upper() + '.pdb.gz')]: 
-                if os.path.isfile(fn):
-                    fn = os.path.relpath(fn)
-                    filenames.append(fn)
-                    LOGGER.debug('{0:s} ({1:s}) is found in the target directory.'
-                                 .format(pdbid, fn))
-                    exists += 1
-                    break
-            if len(filenames) == i+1:
+            try:
+                fn = pdbfnmap[pdbid]
+            except KeyError:
+                pass
+            else:
+                fn = os.path.relpath(fn)
+                filenames.append(fn)
+                LOGGER.debug('{0:s} ({1:s}) is found in the target directory.'
+                             .format(pdbid, fn))
+                exists += 1
                 continue
             filenames.append(pdbid)
             download = True
@@ -162,7 +167,8 @@ class RCSB_PDBFetcher(PDBFetcher):
             try:
                 ftp = FTP('ftp.wwpdb.org')
             except Exception as error:
-                raise type(error)('FTP connection problem occurred. A potential reason is that there is no internet connectivity.')
+                raise type(error)('FTP connection problem, potential reason: '
+                                  'no internet connectivity')
             else:
                 ftp.login('')
                 for i, pdbid in enumerate(identifiers):
@@ -179,16 +185,22 @@ class RCSB_PDBFetcher(PDBFetcher):
                         pdbfile.close()
                         os.remove(filename)
                         if 'pdb{0:s}.ent.gz'.format(pdbid) in ftp.nlst():
-                            LOGGER.debug('{0:s} download failed ({1:s}). It is possible that you don\'t have rights to download .gz files in your current network.'.format(pdbid, str(error)))
+                            LOGGER.debug('{0:s} download failed ({1:s}). It '
+                                         'is possible that you don\'t have '
+                                         'rights to download .gz files in the '
+                                         'current network.'.format(pdbid, 
+                                         str(error)))
                         else:
-                            LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.gz does not exist on ftp.wwpdb.org.'.format(pdbid))
+                            LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.'
+                                         'gz does not exist on ftp.wwpdb.org.'
+                                         .format(pdbid))
                         failure += 1
                         filenames[i] = None 
                     else:
                         pdbfile.close()
                         filename = os.path.relpath(filename)
-                        LOGGER.debug('{0:s} downloaded ({1:s})'.format(pdbid, 
-                                                                       filename))
+                        LOGGER.debug('{0:s} downloaded ({1:s})'
+                                     .format(pdbid, filename))
                         success += 1
                         filenames[i] = filename
                 ftp.quit()
