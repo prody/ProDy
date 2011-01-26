@@ -31,6 +31,7 @@ Functions
     * :func:`loadEnsemble`
     * :func:`getSumOfWeights`
     * :func:`showSumOfWeights`
+    * :func:`trimEnsemble`
 
 """
 
@@ -39,14 +40,17 @@ __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
 import time
 import numpy as np
+import prody
 from prody import ProDyLogger as LOGGER
 from prody import measure
 
 __all__ = ['Ensemble', 'Conformation', 'saveEnsemble', 'loadEnsemble', 
-           'getSumOfWeights', 'showSumOfWeights']
+           'getSumOfWeights', 'showSumOfWeights', 'trimEnsemble']
         
 class EnsembleError(Exception):
     pass
+
+plt = None
 
 class Ensemble(object):
     
@@ -600,8 +604,70 @@ class Conformation(object):
         """Return the transformation from the last superimposition."""
         return self._ensemble._transformations[self._index].copy()
     
+def trimEnsemble(ensemble, **kwargs):
+    """Return an ensemble obtained by trimming given *ensemble*.
+    
+    This function helps selecting atoms in an ensemble based on one of the 
+    following criteria, and returns them in a new :class:`Ensemble` instance.
+        
+    **Occupancy**
+    
+    If weights in the ensemble correspond to atomic occupancies, then this 
+    option may be used to select atoms with average occupancy values higher
+    than the argument *occupancy*. Function will calculate average occupancy 
+    by dividing the sum of weights for each atom to the number of conformations
+    in the ensemble.
+    
+    :arg occupancy: average occupancy for selection atoms in an ensemble, 
+                    must be 0 < *occupancy* <= 1
+    :type occupancy: float
+    
+    **Atom selection**
+    
+    Will be implemented.
+    
+    """
+    
+    if not isinstance(ensemble, Ensemble):
+        raise TypeError('trimEnsemble() argument must be an Ensemble instance')
+    if ensemble.getNumOfConfs() == 0 and ensemble.getNumOfAtoms() == 0:
+        raise ValueError('coordinates or conformations must be set for '
+                         'ensemble')
+    
+    if 'occupancy' in kwargs:
+        occupancy = float(kwargs['occupancy'])
+        assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
+                                   '{0:s}'.format(repr(occupancy)))
+        n_confs = ensemble.getNumOfConfs()
+        assert n_confs > 0, 'ensemble does not contain anyconformations'
+        weights = getSumOfWeights(ensemble)
+        assert weights is not None, 'weights must be set for ensemble'
+        weights = weights.flatten()
+        mean_weights = weights / n_confs
+        
+        torf = mean_weights >= occupancy
+        
+    else:
+        return None
+    
+    trimmed = Ensemble(ensemble.getName())
+    coords = ensemble.getCoordinates()
+    if coords is not None:
+        trimmed.setCoordinates( coords[torf] )
+    confs = ensemble.getCoordsets()
+    if confs is not None:
+        weights = ensemble.getWeights()
+        if weights is None:
+            if weights.ndim == 1:
+                trimmed.addCoordset( confs[:, torf], weights[torf] )
+            else:
+                trimmed.addCoordset( confs[:, torf], weights[:, torf] )
+        else:
+            trimmed.addCoordset( confs[:, torf] )
+    return trimmed
+
 def getSumOfWeights(ensemble):
-    """Returns sum of weights from an ensemble.
+    """Return sum of weights from an ensemble.
     
     Weights are summed for each atom over conformations in the ensemble.
     Size of the plotted array will be equal to the number of atoms.
