@@ -148,7 +148,7 @@ html_last_updated_fmt = '%b %d, %Y'
 html_index = 'index.html'
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {'index': ['fontsize.html', 'getprody.html', 'googlegroup.html', 'searchbox.html'], 'search': [], '**': ['fontsize.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'sourcelink.html', 'searchbox.html']}
+html_sidebars = {'index': ['getprody.html', 'googlegroup.html', 'searchbox.html'], 'search': [], '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'sourcelink.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -256,6 +256,10 @@ rst_epilog = """
 
 .. |pdf| image:: /_static/pdf.png
 
+.. |more| image:: /_static/more.png
+
+.. |example| image:: /_static/example.png
+
 .. |nmwiz| replace:: NMWiz (http://www.csb.pitt.edu/People/abakan/software/NMWiz/)
 
 .. |vmd| replace:: VMD (http://www.ks.uiuc.edu/Research/vmd/)
@@ -264,7 +268,7 @@ rst_epilog = """
 
 .. |pyparsing| replace:: pyparsing (http://pyparsing.wikispaces.com/)
 
-.. |more| image:: /_static/more.png
+.. |matplotlib| replace:: matplotlib (http://matplotlib.sourceforge.net)
 
 .. |docrelease| replace:: Documentation release r{0:s}
 
