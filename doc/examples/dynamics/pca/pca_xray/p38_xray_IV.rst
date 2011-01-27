@@ -38,5 +38,3 @@ VMD and NMWiz plugin installed::
     getVMDpath()
     
     viewNMDinVMD( '1p38_pca.nmd' )
-
-|more| This example continues in :ref:`p38-xray-sampling`

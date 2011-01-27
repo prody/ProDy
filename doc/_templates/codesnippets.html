@@ -31,19 +31,22 @@ function removeHTMLTags(strInputCode){
 function showCodeSnippets() {
   pycode = "";
   blankline = 1;
-  count = 0
+  count = 0;
+  comments = document.getElementById("commentlines").checked;
   var div = document.getElementsByTagName("div");
   for (var i = 0; i < div.length; i++) {
     if (div.item(i).className == "highlight-python") {
       HTML = div.item(i).innerHTML;
       if (HTML.search('class="highlight"') > -1) {
         count += 1
-        pycode += "# Code snippet " + count + "\n" 
-        if (count > 9) {
-          pycode += "#----------------\n"
-        } else {
-          pycode += "#---------------\n"
-        }
+        //if (comments) {
+        //pycode += "# Code snippet " + count + "\n" 
+        //if (count > 9) {
+        //  pycode += "#----------------\n"
+        //} else {
+        //  pycode += "#---------------\n"
+        //}
+        //}
         cleanHTML = removeHTMLTags(HTML);
         if (cleanHTML.search('>>> ') > -1) {
           cleanHTML = cleanHTML.split('\n');
@@ -53,8 +56,10 @@ function showCodeSnippets() {
               pycode += line.slice(4) + "\n"
               blankline = 0;
             } else if (line != "") {
-              pycode += "# " + line + "\n";
-              blankline = 0;
+              if (comments) {
+                pycode += "# " + line + "\n";
+                blankline = 0;
+              }
             } else if (blankline == 0) {
               pycode += "\n";
               blankline = 1;
@@ -80,8 +85,9 @@ function showCodeSnippets() {
     alert("This page does not contain any code snippets.");
   } else {
     prolog = "#!/usr/bin/env python\n"
+    prolog += "# -*- coding: utf-8 -*-\n"
     prolog += "'''This code was copied from ProDy documentation.\n"
-    prolog += "Title: " + document.title + "\n"
+    prolog += "Title: " + document.title.replace('\xe2', '-') + "\n"
     prolog += "URL: " + document.URL + "\n"
     prolog += "'''\n\n"
     prolog += "__author__ = 'Ahmet Bakan'\n"
@@ -108,9 +114,10 @@ function showHelp() {
   alert(helpText)
 }
 </script>
-<p> 
+<p>
 <input type="button" onclick="showCodeSnippets()" value="Show code snippets" /> 
-<input type="button" onclick="showHelp()" value="Help" />
+<input type="button" onclick="showHelp()" value="Help" /> </br>
+Include output lines? <input type="checkbox" name="commentlines" id="commentlines" value="Yes"/> 
 </br>
 </p>
 

@@ -36,7 +36,7 @@ scripts can also be obtained from https://github.com/abakan/ProDy/tree/master/sc
 
 :ref:`scripts` section shows more detailed information.
 
-Using these scripts is straight forward (on linux). Let's assume you are
+Using these scripts is straight forward (on Linux). Let's assume you are
 in the same folder as the ANM script. Running the following command will 
 perform ANM calculations for p38 MAP kinase structure, and will write 
 eigenvalues/vectors in plain text and NMD formats::
@@ -93,7 +93,7 @@ connection. ProDy will fetch the PDB file if a valid identifier is provided.
 
 >>> prot = parsePDB('1p38')
 
-1p38 is an unliganded structure of p38 MAP kinase. :file:`1p38.pdb.gz` has been 
+1p38 is an unbound structure of p38 MAP kinase. :file:`1p38.pdb.gz` has been 
 downloaded, and coordinates were parsed into an :class:`~prody.atomic.AtomGroup`
 instance.
 
@@ -141,7 +141,7 @@ Selection "protein and not name N CA C O" from 1p38
 1429
 
 Same selection could also be made using :term:`sidechain` keyword or :term:`backbone` keyword
-preceeded by *not*:
+preceded by *not*:
 
 >>> prot.select('sidechain')
 <Selection: "sidechain" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
@@ -193,7 +193,7 @@ Same selection could also be made using :term:`charged` keyword:
 
 .. seealso::
    To see all of what you can do with atom selections, 
-   go to :ref:`selections`. Also see :ref:`selections-operations` and 
+   go to :ref:`selections`. Also see :ref:`selection-operations` and 
    :ref:`contacts` for more advanced examples.
 
 
@@ -283,7 +283,7 @@ In an interactive session help on functions, classes, and class methods can be
 obtained as follows:
 
 
->>> help(anm.buildHessian)
+>>> help(anm.buildHessian) # doctest: +SKIP
 buildHessian(self, coords, cutoff=15.0, gamma=1.0, masses=None) unbound prody.dynamics.ANM method
     Build Hessian matrix for given coordinate set.
 <BLANKLINE>
@@ -311,11 +311,3 @@ For more information see one of:
   * :ref:`examples`
   * :ref:`features`
   * :ref:`reference`
-
-Files generated or downloaded in this tutorial can be deleted as follows:
-
->>> import os
->>> os.remove('1p38.pdb.gz')
->>> os.remove('1p38_calphas.pdb')
->>> os.remove('1p38_chain_A.pdb')
->>> os.remove('p38_anm.nmd')

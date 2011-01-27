@@ -148,7 +148,3 @@ True
 True
 >>> calpha in calpha
 True
-
->>> import os
->>> os.remove('1p38.pdb.gz')
->>> os.remove('1p38_water_protein.pdb')

@@ -30,6 +30,11 @@ body {
     min-width: 740px;
 }
 
+
+img {
+    vertical-align: middle;
+}
+
 div.document {
     background-color: white;
     text-align: left;
