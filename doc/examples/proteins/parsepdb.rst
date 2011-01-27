@@ -17,7 +17,7 @@ Coordinate data
 
 You can parse PDB files by passing a filename (gzipped files are handled):
 
->>> fetchPDB('1p38') # Download PDB file with given identifier
+>>> fetchPDB('1p38') # doctest: +SKIP
 '1p38.pdb.gz'
 >>> atoms = parsePDB('1p38.pdb.gz')
 >>> atoms
@@ -67,6 +67,3 @@ was parsed.
 ['reference', 'classification', 'compounds', 'resolution', 'title', 
 'source', 'experiment', 'authors', 'identifier', 'deposition_date']
 
->>> import os
->>> os.remove('1p38.pdb.gz')
->>> os.remove('1mkp.pdb.gz')

@@ -26,6 +26,10 @@ Bibliography
    Anisotropy of fluctuation dynamics of proteins with an elastic network model.
    *Biophys. J.* **2001** 80:505-515.
 
+.. [BH02] Hess B.
+   Convergence of sampling in protein simulations.
+   *Phys Rev E* **2002** 65(3):031910.
+
 .. [BR95] Bruschweiler R. Collective protein dynamics and nuclear 
    spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 

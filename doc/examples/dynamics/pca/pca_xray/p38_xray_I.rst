@@ -166,7 +166,7 @@ if you want to use it in another session or at a later time.
   saveEnsemble(ensemble)
   writePDB('p38_ref_chain.pdb', ref_chain)
 
-We used :func:`saveModel` to save calculated data. In :ref:`p38-II`, we will
-used :func:`loadModel` to load them.
+We used :func:`saveModel` to save calculated data. In :ref:`p38-xray-analysis`, 
+we will used :func:`loadModel` to load them.
 
 |more| This example continues in :ref:`p38-xray-analysis` 

@@ -78,9 +78,3 @@ PCA ubi PCA #1   -0.19  -0.30  +0.22  -0.62
 PCA ubi PCA #2   +0.09  -0.72  -0.16  +0.16
 PCA ubi PCA #3   +0.31  -0.06  -0.23  -0.00
 PCA ubi PCA #4   +0.11  +0.02  +0.16  -0.31
-
-Finally, we do some cleaing:
-
->>> import os
->>> os.remove('ubi_pca.nmd')
->>> os.remove('2k39.pdb.gz')

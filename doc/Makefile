@@ -6,6 +6,8 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
+DOCTESTDIR    = doctest
+DOCDIR        = ../Documentation
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -34,12 +36,14 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf $(BUILDDIR)/* $(BUILDDIR)/../../Documentation/*
+	-rm -rf $(BUILDDIR)/* $(DOCDIR)/*
 
 both:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees .. ../$(DOCDIR); \
+	cd ..
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/../../Documentation."
+	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
@@ -49,9 +53,11 @@ both:
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/../../Documentation
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees .. ../$(DOCDIR); \
+	cd ..
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/../../Documentation."
+	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 
@@ -143,6 +149,8 @@ linkcheck:
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
 
 doctest:
-	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. ..; \
+	cd ..
 	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(BUILDDIR)/doctest/output.txt."
+	      "results in $(DOCTEST)."

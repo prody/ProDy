@@ -134,27 +134,13 @@ to the Matplotlib functions.
 Examples
 --------
 
-This is a preliminary part for examples shown in this section.
-
+Results from the example :ref:`p38-xray-calculations` will be used to
+illustrate class methods and functions in the module.
+  
 
 >>> from prody import *
 >>> import matplotlib.pyplot as plt
 >>> import numpy as np
->>> import os
-
->>> # First let's parse a PDB structure of Cyclin-dependent kinase 2
->>> cdk2 = parsePDB('1hcl')
->>> # Step 1: Instantiate an ANM instance
->>> cdk2_anm = ANM('cdk2_1hcl')
->>> # Step 2: Build Hessian matrix for selected atoms 
->>> cdk2_anm.buildHessian( cdk2.select('calpha') ) # 294 alpha carbons are passed
->>> # Step 3: Calculate modes, using default parameters
->>> cdk2_anm.calcModes() # by default 20 modes will be calculated
->>> cdk2_anm 
-<ANM: cdk2_1hcl (20 modes, 294 nodes)>
-
-Following are from :ref:`p38-xray-calculations`, and will be used to
-demonstrate comparative analysis functions. 
 
 >>> p38_pca = loadModel('p38_xray.pca.npz')
 >>> p38_anm = loadModel('1p38.anm.npz') 
@@ -169,16 +155,9 @@ demonstrate comparative analysis functions.
    from prody import *
    import matplotlib.pyplot as plt
    import numpy as np
-   import os
    
    plt.close('all')
    
-   cdk2 = parsePDB('1hcl')
-   cdk2_anm = ANM('cdk2_1hcl')
-   cdk2_anm.buildHessian( cdk2.select('calpha') )
-   cdk2_anm.calcModes()
-
-
    p38_pca = loadModel('p38_xray.pca.npz')
    p38_anm = loadModel('1p38.anm.npz') 
    p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
@@ -206,7 +185,7 @@ from .ensemble import *
 from prody import ProDyLogger as LOGGER
 from prody import ProDyAtomSelect as SELECT
 
-__all__ = ['ANM', 'GNM', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
+__all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
            
            'NMABase', 'GNMBase', 'VectorBase',
            
@@ -374,9 +353,9 @@ class Mode(VectorBase):
         :arg index: index of the mode 
         :type index: int
         
-        >>> mode = cdk2_anm[0]
+        >>> mode = p38_anm[0]
         >>> mode
-        <Mode: 1 from ANM cdk2_1hcl>
+        <Mode: 1 from ANM 1p38>
         
         """
         
@@ -406,7 +385,7 @@ class Mode(VectorBase):
         """Return number of atoms.
         
         >>> mode.getNumOfAtoms()
-        294
+        321
         
         """
         
@@ -416,7 +395,7 @@ class Mode(VectorBase):
         """Return number of degrees of freedom.
         
         >>> mode.getNumOfDegOfFreedom()
-        882
+        963
         
         """
         
@@ -426,7 +405,7 @@ class Mode(VectorBase):
         """A descriptive name for the mode instance.
         
         >>> mode.getName()
-        'Mode 1 from ANM cdk2_1hcl'
+        'Mode 1 from ANM 1p38'
         
         """
         
@@ -446,7 +425,7 @@ class Mode(VectorBase):
         """Return the model that the mode belongs to.
         
         >>> mode.getModel()
-        <ANM: cdk2_1hcl (20 modes, 294 nodes)>
+        <ANM: 1p38 (20 modes, 321 nodes)>
         
         """
         
@@ -456,16 +435,13 @@ class Mode(VectorBase):
         """Return the normal mode array (eigenvector).
         
         >>> mode.getArray() # doctest: +SKIP
-        array([ -6.07335804e-02,  -8.41067011e-03,  -9.12056373e-03,
-                -1.03352547e-01,   9.21216689e-04,  -2.41896444e-02,
-                -1.02868623e-01,   2.57252944e-02,  -3.77778634e-02,
-                -1.02059320e-01,  -4.99044459e-04,  -2.25037521e-02,
-                 ....
-                 3.26339508e-02,  -7.98732544e-03,  -3.70856447e-03,
-                 2.40309445e-02,  -7.74481996e-03,  -6.85740998e-03,
-                 2.17636226e-02,  -8.72281427e-03,  -1.29909447e-02,
-                 6.52858846e-03,  -9.49345509e-03,  -7.46635551e-03])
-        
+        array([ -2.17154375e-02,   5.19952720e-02,  -5.45241061e-02,
+                -2.10540040e-02,   5.74771315e-02,  -5.74002951e-02,
+                -3.27903774e-02,   7.57414975e-02,  -5.86200994e-02,
+                 ...,
+                 9.90919829e-03,  -8.97774222e-03,  -3.05413370e-02,
+                 9.46978952e-03,  -8.34108970e-03,  -2.94414502e-02,
+                 1.14453479e-02,  -1.91394533e-02,  -2.43839818e-02])        
         """
         
         return self._model._array[:, self._index].copy()
@@ -475,8 +451,8 @@ class Mode(VectorBase):
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
         
-        >>> mode.getEigenvalue() # doctest: +SKIP
-        0.50192959268070148
+        >>> mode.getEigenvalue()
+        0.10652815070679021
         
         """
         
@@ -488,9 +464,9 @@ class Mode(VectorBase):
         If the model is not a PCA, inverse of the eigenvalue is returned.
         
         >>> mode.getVariance() # doctest: +SKIP
-        1.9923113013903169
+        9.3871900841723619
         >>> mode.getEigenvalue()**-1 # doctest: +SKIP
-        1.9923113013903169
+        9.3871900841723619
         
         """
         
@@ -504,8 +480,8 @@ class Mode(VectorBase):
         
         See :meth:`getVariance`
         
-        >>> mode.getFractOfVariance() # doctest: +SKIP
-        0.15330741156510538
+        >>> mode.getFractOfVariance()
+        0.32090162902353198
         
         """
         
@@ -523,7 +499,7 @@ class Mode(VectorBase):
         Otherwise, atoms are assumed to have uniform masses.
         
         >>> mode.getCollectivity() # doctest: +SKIP
-        0.43143628650850246
+        0.64762987283788642
         
         """
         
@@ -541,19 +517,19 @@ class Mode(VectorBase):
         """Return covariance matrix calculated for this mode instance.
         
         >>> mode.getCovariance() # doctest: +SKIP
-        array([[  7.34877529e-03,   1.01769275e-03,   1.10359002e-03, ...,
-                 -7.89960500e-04,   1.14870995e-03,   9.03430500e-04],
-               [  1.01769275e-03,   1.40934850e-04,   1.52830305e-04, ...,
-                 -1.09397423e-04,   1.59078724e-04,   1.25111279e-04],
-               [  1.10359002e-03,   1.52830305e-04,   1.65729784e-04, ...,
-                 -1.18630995e-04,   1.72505593e-04,   1.35671162e-04],
+        array([[ 0.00442663, -0.01059908,  0.01111457, ..., -0.0023331 ,
+                 0.00390152,  0.0049706 ],
+               [-0.01059908,  0.02537835, -0.02661264, ...,  0.00558635,
+                -0.00934177, -0.01190157],
+               [ 0.01111457, -0.02661264,  0.02790697, ..., -0.00585805,
+                 0.00979611,  0.01248041],
                ..., 
-               [ -7.89960500e-04,  -1.09397423e-04,  -1.18630995e-04, ...,
-                  8.49172232e-05,  -1.23481186e-04,  -9.71147411e-05],
-               [  1.14870995e-03,   1.59078724e-04,   1.72505593e-04, ...,
-                 -1.23481186e-04,   1.79558430e-04,   1.41218035e-04],
-               [  9.03430500e-04,   1.25111279e-04,   1.35671162e-04, ...,
-                 -9.71147411e-05,   1.41218035e-04,   1.11064312e-04]])
+               [-0.0023331 ,  0.00558635, -0.00585805, ...,  0.00122968,
+                -0.00205634, -0.00261981],
+               [ 0.00390152, -0.00934177,  0.00979611, ..., -0.00205634,
+                 0.0034387 ,  0.00438096],
+               [ 0.0049706 , -0.01190157,  0.01248041, ..., -0.00261981,
+                 0.00438096,  0.00558142]])
                  
         """
         
@@ -567,12 +543,12 @@ class Mode(VectorBase):
         array with the variance (:meth:`getVariance`) along the mode.
         
         >>> mode.getSqFlucts() # doctest: +SKIP
-        array([  7.65543992e-03,   2.24488389e-02,   2.52444001e-02,
-                 2.17615637e-02,   3.60212802e-02,   2.70340666e-02,
+        array([  5.77119441e-02,   6.61016413e-02,   9.62027339e-02,
+                 8.11873159e-02,   1.02183864e-01,   1.12300137e-01,
                  ...
-                 2.32777245e-03,   1.86683818e-03,   2.27626659e-03,
-                 1.36372235e-03,   1.43149042e-03,   3.75539965e-04])
-                 
+                 6.55654114e-03,   6.14363088e-03,   3.52230202e-03,
+                 1.04344751e-02,   9.63172338e-03,   1.02498093e-02])                 
+
         """
         
         if self.is3d():
@@ -835,9 +811,9 @@ class ModeSet(object):
     ModeSet's contain a reference to the model and a list of mode indices.
     Methods common to NMA models are also defined for mode sets.
     
-    >>> modes = cdk2_anm[:3]
+    >>> modes = p38_anm[:3]
     >>> modes
-    <ModeSet: 1 to 3 from cdk2_1hcl (3 modes)>
+    <ModeSet: 1 to 3 from 1p38 (3 modes)>
     
     """
     
@@ -878,7 +854,7 @@ class ModeSet(object):
         """Return number of nodes.
         
         >>> modes.getNumOfAtoms()
-        294
+        321
         
         """
         return self._model._n_atoms
@@ -898,7 +874,7 @@ class ModeSet(object):
         """Return number of degrees of freedom.
         
         >>> modes.getNumOfDegOfFreedom()
-        882
+        963
         
         """
         
@@ -908,8 +884,8 @@ class ModeSet(object):
         """Return all modes in the subset in a list.
         
         >>> modes.getModes() # doctest: +SKIP
-        [<Mode: 1 from ANM cdk2_1hcl>, <Mode: 2 from ANM cdk2_1hcl>, 
-        <Mode: 3 from ANM cdk2_1hcl>]
+        [<Mode: 1 from ANM 1p38>, <Mode: 2 from ANM 1p38>, 
+        <Mode: 3 from ANM 1p38>]
         
         """
         
@@ -920,7 +896,7 @@ class ModeSet(object):
         """Return name.
         
         >>> modes.getName()
-        'Modes 1 to 3 from ANM cdk2_1hcl'
+        'Modes 1 to 3 from ANM 1p38'
         
         """
         
@@ -930,7 +906,7 @@ class ModeSet(object):
         """Return the model that the modes belongs to.
         
         >>> modes.getModel()
-        <ANM: cdk2_1hcl (20 modes, 294 nodes)>
+        <ANM: 1p38 (20 modes, 321 nodes)>
         
         """
         
@@ -949,8 +925,8 @@ class ModeSet(object):
     def getEigenvalues(self):
         """Return eigenvalues.
         
-        >>> modes.getEigenvalues()
-        array([ 0.50192959,  0.63339708,  0.74119293])
+        >>> modes.getEigenvalues() # doctest: +SKIP
+        array([ 0.10652815,  0.1557703 ,  0.33017013])
         
         """
         
@@ -959,14 +935,14 @@ class ModeSet(object):
     def getEigenvectors(self):
         """Return eigenvectors.
         
-        >>> modes.getEigenvectors()
-        array([[-0.06073358,  0.08408354,  0.09105849],
-               [-0.00841067,  0.06913276, -0.00746136],
-               [-0.00912056, -0.06069708,  0.0470834 ],
+        >>> modes.getEigenvectors() # doctest: +SKIP
+        array([[-0.02171544, -0.04111048, -0.03200268],
+               [ 0.05199527, -0.06430818, -0.01006391],
+               [-0.05452411, -0.01514202, -0.05723971],
                ..., 
-               [ 0.00652859, -0.03727421, -0.11962175],
-               [-0.00949346, -0.00743206, -0.02354374],
-               [-0.00746636,  0.025803  ,  0.01264865]])
+               [ 0.01144535, -0.04767575,  0.02667254],
+               [-0.01913945, -0.0217476 , -0.00341831],
+               [-0.02438398, -0.01942338,  0.00499727]])
                
         """
         
@@ -975,10 +951,10 @@ class ModeSet(object):
     def getVariances(self):
         """Return variances (~inverse eigenvalues).
         
-        >>> modes.getVariances()
-        array([ 1.9923113 ,  1.57878846,  1.34917639])
-        >>> modes.getEigenvalues()**-1
-        array([ 1.9923113 ,  1.57878846,  1.34917639])
+        >>> modes.getVariances() # doctest: +SKIP
+        array([ 9.38719008,  6.41970913,  3.02874162])
+        >>> modes.getEigenvalues()**-1 # doctest: +SKIP
+        array([ 9.38719008,  6.41970913,  3.02874162])
         
         """
         
@@ -987,14 +963,14 @@ class ModeSet(object):
     def getArray(self):
         """Return eigenvectors.
         
-        >>> modes.getArray()
-        array([[-0.06073358,  0.08408354,  0.09105849],
-               [-0.00841067,  0.06913276, -0.00746136],
-               [-0.00912056, -0.06069708,  0.0470834 ],
+        >>> modes.getArray() # doctest: +SKIP
+        array([[-0.02171544, -0.04111048, -0.03200268],
+               [ 0.05199527, -0.06430818, -0.01006391],
+               [-0.05452411, -0.01514202, -0.05723971],
                ..., 
-               [ 0.00652859, -0.03727421, -0.11962175],
-               [-0.00949346, -0.00743206, -0.02354374],
-               [-0.00746636,  0.025803  ,  0.01264865]])
+               [ 0.01144535, -0.04767575,  0.02667254],
+               [-0.01913945, -0.0217476 , -0.00341831],
+               [-0.02438398, -0.01942338,  0.00499727]])
                
         """
         
@@ -1003,20 +979,20 @@ class ModeSet(object):
     def getCovariance(self):
         """Return covariance matrix calculated for modes in the set.
         
-        >>> modes.getCovariance()
-        array([[ 0.02969777,  0.00927842, -0.00116957, ..., -0.02043412,
-                -0.00273034,  0.00588272],
-               [ 0.00927842,  0.00776161, -0.00694599, ..., -0.00297353,
-                -0.00041509,  0.00281408],
-               [-0.00116957, -0.00694599,  0.00897312, ..., -0.00414555,
-                -0.00061088, -0.00153348],
+        >>> modes.getCovariance() # doctest: +SKIP
+        array([[ 0.01837834,  0.00734844,  0.02065894, ...,  0.00766404,
+                 0.00997241,  0.00961239],
+               [ 0.00734844,  0.05223408, -0.01861669, ...,  0.0244558 ,
+                -0.0002593 , -0.00403514],
+               [ 0.02065894, -0.01861669,  0.03930221, ..., -0.00584768,
+                 0.01250275,  0.01350216],
                ..., 
-               [-0.02043412, -0.00297353, -0.00414555, ...,  0.02158429,
-                 0.00411363, -0.00365695],
-               [-0.00273034, -0.00041509, -0.00061088, ...,  0.00411363,
-                 0.00101462, -0.00056333],
-               [ 0.00588272,  0.00281408, -0.00153348, ..., -0.00365695,
-                -0.00056333,  0.00137807]])
+               [ 0.00766404,  0.0244558 , -0.00584768, ...,  0.01797626,
+                 0.00432368,  0.0037287 ],
+               [ 0.00997241, -0.0002593 ,  0.01250275, ...,  0.00432368,
+                 0.00651035,  0.00704099],
+               [ 0.00961239, -0.00403514,  0.01350216, ...,  0.0037287 ,
+                 0.00704099,  0.00807901]])
                 
         """
         
@@ -1066,6 +1042,8 @@ class GNM(GNMBase):
     
     """A class for Gaussian Network Model (GNM) analysis of proteins 
     ([IB97]_, [TH97]_).
+    
+    |example| See example :ref:`gnm`.
     
     """
     
@@ -1220,6 +1198,8 @@ class ANM(GNMBase):
 
     """Class for Anisotropic Network Model (ANM) analysis of proteins 
     ([PD00]_, [ARA01]_)
+    
+    |example| See example :ref:`anm`.
     
     """
 
@@ -1426,7 +1406,12 @@ class ANM(GNMBase):
 class PCA(NMABase):
     
     """A class for Principal Component Analysis (PCA) of conformational ensembles 
-    (also known as Essential Dynamics Analysis (EDA) in [AA93]_)."""
+    (also known as Essential Dynamics Analysis (EDA) in [AA93]_).
+    
+    
+    |example| See examples in :ref:`pca`.
+    
+    """
 
     def __init__(self, name):
         NMABase.__init__(self, name)
@@ -2138,8 +2123,9 @@ def writeModes(filename, modes, format='g', sep=' ', compressed=False):
         
     >>> writeModes('p38_pca_modes_1-3.txt', p38_pca[:3])
     'p38_pca_modes_1-3.txt'
-    >>> os.remove('p38_pca_modes_1-3.txt')
+
     """
+    
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
@@ -2158,8 +2144,9 @@ def writeArray(filename, array, format='g', sep=' ', compressed=False):
      
     >>> writeArray('p38_cross-correlations.txt', calcCrossCorrelations(p38_pca))
     'p38_cross-correlations.txt'
-    >>> os.remove('p38_cross-correlations.txt')
+    
     """
+    
     if not array.ndim in (1, 2):
         raise ValueError('array must be 1- or 2-dimensional')
     if array.ndim == 2:
@@ -2459,7 +2446,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
        :context:
        :include-source:
         
-       trajectory = traverseMode( cdk2_anm[0], cdk2.select('calpha'), 
+       trajectory = traverseMode( p38_anm[0], p38_structure.select('calpha'), 
                                   n_steps=8, rmsd=1.4 )
        rmsd = calcRMSD(trajectory)
        plt.figure(figsize=(5,4))
@@ -2517,11 +2504,10 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
 def calcSqFlucts(modes):
     """Return sum of square-fluctuations for given set of normal *modes*.
     
-    >>> calcSqFlucts(p38_pca)
+    >>> calcSqFlucts(p38_pca) # doctest: +SKIP 
     array([  0.94163178,   0.97486815,   0.81056074,   0.59926465,
              0.80505867,   0.93568339,   1.1634173 ,   1.39873827,
              ...,
-             0.13855481,   0.10944998,   0.09378239,   0.14173194,
              0.17928521,   0.12930389,   0.21500264,   0.16070006,   
              0.21077809])
              
@@ -2924,7 +2910,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
 
        plt.close('all')
        
-    |more| See :ref:`p38-xray-plotting` for a more elaborate example.
+    |example| See :ref:`p38-xray-plotting` for a more elaborate example.
        
     """
     if plt is None: prody.importPyPlot()
@@ -3039,7 +3025,7 @@ def showCrossCorrelations(modes, *args, **kwargs):
         
        plt.figure(figsize=(6,5))
        # Show cross-correlations for ANM modes 1-3
-       showCrossCorrelations( cdk2_anm[:3] )
+       showCrossCorrelations( p38_anm[:3] )
        
     .. plot::
        :context:
@@ -3074,7 +3060,7 @@ def showMode(mode, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(6,4))
-       showMode( cdk2_anm[0] )
+       showMode( p38_anm[0] )
        plt.grid()
        plt.legend(loc='lower right')
        
@@ -3109,8 +3095,8 @@ def showSqFlucts(modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(6,4))
-       showSqFlucts( cdk2_anm[0] )
-       showSqFlucts( cdk2_anm[1] )
+       showSqFlucts( p38_anm[0] )
+       showSqFlucts( p38_anm[1] )
        plt.legend()
        
     .. plot::
@@ -3218,8 +3204,10 @@ def showContactMap(enm, *args, **kwargs):
        :context:
        :include-source:
         
+       p38_gnm = GNM('p38')
+       p38_gnm.buildKirchhoff( p38_structure )
        plt.figure(figsize=(4,4))
-       showContactMap( cdk2_anm )
+       showContactMap( p38_gnm )
 
     .. plot::
        :context:

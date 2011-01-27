@@ -106,9 +106,3 @@ We can do this for a set of ANM modes (slowest 6) as follows
 [-0.422463159673 -0.135595183602 0.489432673122 0.0312043675943
  -0.17064639491 -0.095208459294]
 
-
-Let's do some cleaning:
-
->>> import os
->>> os.remove('1zz2.pdb.gz')
->>> os.remove('1p38.pdb.gz')

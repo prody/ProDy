@@ -152,9 +152,3 @@ how RMSD changes:
 0.82
 
 RMSD decreases from 0.89 A to 0.82 A.
-
-We delete the downloaded files as follows:
-
->>> import os
->>> os.remove('1r39.pdb.gz') 
->>> os.remove('1p38.pdb.gz')

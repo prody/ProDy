@@ -3,7 +3,11 @@
 *******************************************************************************
 Reference
 *******************************************************************************
-
+This section documents ProDy classes and functions. It can be useful
+for developers and users. Each module page provides a lists of classes
+and functions contained in the respective module. Their documentation
+gives usage examples or describes the arguments and parameters passed by
+the user.   
 
 Usage reference
 ===============================================================================

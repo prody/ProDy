@@ -1,31 +1,30 @@
 .. currentmodule:: prody.dynamics
 
-.. _pca-blast:
+.. _pca-dimer:
 
 *******************************************************************************
-PCA from a Blast search
+PCA of a protein dimer (HIV-RT) dataset 
 *******************************************************************************
 
 Synopsis
 ===============================================================================
 
-This example shows how to perform PCA of structural dataset obtained by blast
-searching PDB. The protein of interest is Cytochrome C (*cyt C*). 
-Dataset will contain structures sharing 44% or more 
-sequence identity with human *cyt C*, i.e. its homologs and/or orthologs.
+This example shows how to perform PCA of structural dataset for a dimeric
+protein. The protein of interest is HIV reverse transcriptase (RT). 
+Dataset will be obtained by blast searching PDB.
 
 User Inputs
 -------------------------------------------------------------------------------
  
 * Amino acid sequence of the protein
 * A reference PDB structure
-* List of PDB files to be excluded from the analysis 
+* List of PDB files to be excluded from the analysis, if any 
 
 Parameters
 -------------------------------------------------------------------------------
 
 * Percent sequence identity used for selecting blast hits (PDB structures)
-* Selection of the *cyt C* chains and residues to be considered in analysis
+* Selection of the RT chains and residues to be considered in analysis
 
 How to Use
 -------------------------------------------------------------------------------
@@ -43,7 +42,7 @@ Notes
 * This example needs internet connectivity for blast searching PDB and 
   retrieving files from PDB FTP server.
 
-* Also note that this example will attempt to download over 80 structure
+* Also note that this example will attempt to download well over 100 structure 
   files, which make take several minutes depending on connection speed.  
 
 * For plotting results, |matplotlib| library is required.
@@ -55,28 +54,28 @@ ProDy Code
 Imports
 -------------------------------------------------------------------------------
 
-Import ProDy and matplotlib into the current namespace.
+Import ProDy into the current namespace.
 
 >>> from prody import *
->>> from matplotlib import pyplot as plt
 
 Definitions
 -------------------------------------------------------------------------------
 
 >>> # Name of the protein (a name without a white space is preferred) 
->>> name = 'CytC'
+>>> name = 'HIV-RT'
 
 >>> # Amino acid sequence of the protein
->>> sequence = '''GDVEKGKKIFVQKCAQCHTVEKGGKHKTGPNLHGLFGRKTGQAPGFTYTDANKNKGITWKEETL
-... MEYLENPKKYIPGTKMIFAGIKKKTEREDLIAYLKKATNE'''
+>>> sequence = '''PISPIETVPVKLKPGMDGPKVKQWPLTEEKIKALVEICTEMEKEGKISKIGPENPYNTPVFAIKKKDSTKWRKLVDFREL
+... NKRTQDFWEVQLGIPHPAGLKKNKSVTVLDVGDAYFSVPLDEDFRKYTAFTIPSINNETPGIRYQYNVLPQGWKGSPAIF
+... QSSMTKILEPFKKQNPDIVIYQYMDDLYVGSDLEIGQHRTKIEELRQHLLRWGLTTPDKKHQKEPPFLWMGYELHPDKWT
+... VQPIVLPEKDSWTVNDIQKLVGKLNWASQIYPGIKVRQLSKLLRGTKALTEVIPLTEEAELELAENREILKEPVHGVYYD
+... PSKDLIAEIQKQGQGQWTYQIYQEPFKNLKTGKYARMRGAHTNDVKQLTEAVQKITTESIVIWGKTPKFKLPIQKETWET
+... WWTEYWQATWIPEWEFVNTPPLVKLWYQLEKEPIVGAETFYVDGAANRETKLGKAGYVTNKGRQKVVPLTNTTNQKTELQ
+... AIYLALQDSGLEVNIVTDSQYALGIIQAQPDKSESELVNQIIEQLIKKEKVYLAWVPAHKGIGGNEQVDKLVSAGIRKIL'''
 
 >>> # Reference PDB file   
 >>> ref_pdb = '1hrc'
 
->>> # Optionally, a list of PDB files to be excluded from analysis can be provided
->>> # In this case dimeric Cyt C structures are excluded from the analysis
->>> # If all PDB hits will be used, provide an empty list
->>> exclude = ['3nbt', '3nbs']
 
 Parameters
 -------------------------------------------------------------------------------
@@ -97,11 +96,6 @@ Step 1: Blast and download
 >>> blast_record = blastPDB(sequence)
 >>> pdb_hits = blast_record.getHits(sequence_identity).keys()
 >>> pdb_files = fetchPDB(pdb_hits, folder='pdbfiles')
-
-Let's check number of downloaded files:
-
->>> len(pdb_files)
-80
 
 Step 2: Set reference
 -------------------------------------------------------------------------------
@@ -127,24 +121,14 @@ Step 3: Prepare ensemble
 ...         continue
 ...     
 ...     # Parse the current PDB file   
-...     structure = parsePDB(pdb_file, subset='calpha', altloc='A')
+...     current_structure = parsePDB(pdb_file, subset='calpha', model=1)
 ...     # Map current PDB file to the reference chain
-...     mappings = mapOntoChain(structure, reference_chain, seqid=sequence_identity)
-...     if len(mappings) == 0:
-...         print 'Failed to map', pdb_hit
-...         continue  
-...     atommap = mappings[0][0]
-...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())
-Failed to map 2bgv
-Failed to map 1cih
+...     current_mapping = mapOntoChain(current_structure, reference_chain, seqid=sequence_identity)
+...     current_atommap = current_mapping[0][0]
+...     ensemble.addCoordset(current_atommap, weights=current_atommap.getMappedFlags()) 
 >>> ensemble.iterpose()
 >>> saveEnsemble(ensemble)
 'CytC.ens.npz'
-
-Let's check how many conformations are extracted from PDB files:
-
->>> len(ensemble)
-346
 
 Write aligned conformations into a PDB file as follows:
 
@@ -172,46 +156,23 @@ Once the ensemble is ready, performing PCA is 3 easy steps:
 >>> # Calculate modes
 >>> pca.calcModes()
    
-The calculated data can be saved as a compressed file using :func:`saveModel`
-function:
-
->>> saveModel(pca)
-'CytC.pca.npz'
+The calculated data can be saved as a compressed file using saveModel 
 
 Step 5: Plot data and results
 -------------------------------------------------------------------------------
 
-.. plot::
-   :context:
-   :nofigs:
-   
-   from prody import *
-   from matplotlib import pyplot as plt
-   ensemble = loadEnsemble('CytC.ens.npz')
-   pca = loadModel('CytC.pca.npz')
-
 Let's plot RMSD to the average structure:
 
-
-.. plot::
-   :context:
-   :include-source:
-
-   rmsd = calcRMSD(ensemble)
-
-   plt.figure(figsize=(5,4))
-   plt.plot( rmsd )
-   plt.xlabel('Conformation index')
-   plt.ylabel('RMSD (A)')
+>>> plt.figure(figsize=(5,4))
+>>> plt.plot(calcRMSD(ensemble))
+>>> plt.xlabel('Conformation index')
+>>> plt.ylabel('RMSD (A)')
 
 Let's show a projection of the ensemble onto PC1 and PC2:
 
-.. plot::
-   :context:
-   :include-source:
+>>> plt.figure(figsize=(5,4))
+>>> showProjection(ensemble, pca[:2])
 
-   plt.figure(figsize=(5,4))
-   showProjection(ensemble, pca[:2])
 
 See Also
 ===============================================================================

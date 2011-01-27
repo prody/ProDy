@@ -28,9 +28,4 @@ Chain A
 Chain B
 
 You can use :class:`prody.atomic.AtomGroup` instance *dimer* in anywhere you can use
-*monomer*. 
-
-Let's do some cleaning:
-
->>> import os
->>> os.remove('3enl.pdb.gz')
+*monomer*.

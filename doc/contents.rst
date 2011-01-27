@@ -20,7 +20,7 @@ Contents
    examples/index
    scripts/index
    reference/index
-   reports
+   reports/index
    changes
    todo
    license

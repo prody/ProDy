@@ -54,6 +54,18 @@ how to retrieve and analyze cytochrome c structures by a Blast searching.
    pca_blast
 
 
+Protein Dimer
+===============================================================================
+
+Above examples deal with protein monomers. It is also possible to analyze
+dimer structures.   
+
+.. toctree::
+   :maxdepth: 2
+   
+   pca_dimer
+
+
 MD snapshots
 ===============================================================================
 
