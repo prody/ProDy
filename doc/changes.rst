@@ -4,13 +4,29 @@
 Changes in ProDy
 *******************************************************************************
 
-Release 0.5.3 (in development)
+Release 0.6 (in development)
 ===============================================================================
+
+**Improvements**:
+
+  * A few bugs in ensemble and dynamics classes are fixed.
+  * Improvements in :class:`~proteins.RCSB_PDBFetcher` allow it not to miss a 
+    PDB file if it exists in the target folder.
 
 **New Features**:
 
   * Membership test operation is defined for all :mod:`~prody.atomic` classes.
     See :ref:`selection-operations`.
+  * The method in [BH02]_ to calculate overlap between covariance matrices is 
+    implemented as :func:`~dynamics.calcCovarianceOverlap` function.
+  * A method to trim :class:`~ensemble.Ensemble` instances is implemented: 
+    :func:`~ensemble.trimEnsemble`
+
+**Changes**:
+
+  * :func:`getSumOfWeights` is renamed as :func:`~ensemble.calcSumOfWeights`.
+  * :func:`mapAtomsToChain` is renamed as :func:`~compare.mapOntoChain`.
+
 
 Release 0.5.2 (Jan 12, 2011)
 ===============================================================================
