@@ -184,6 +184,7 @@ from .atomic import *
 from .ensemble import *
 from prody import ProDyLogger as LOGGER
 from prody import ProDyAtomSelect as SELECT
+from prody import ProDyException
 
 __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
            
@@ -502,13 +503,17 @@ class Mode(VectorBase):
         0.64762987283788642
         
         """
-        
+        is3d = self.is3d()
         if masses is not None:
             if len(masses) != self._model._n_atoms: 
                 raise ValueError('length of massesmust be equal to number of atoms')
-            u2in = (self.getArrayNx3() ** 2 / masses).sum(1)
+            if is3d:
+                u2in = (self.getArrayNx3() ** 2 / masses).sum(1)
         else:
-            u2in = (self.getArrayNx3() ** 2 ).sum(1)
+            if is3d:
+                u2in = (self.getArrayNx3() ** 2 ).sum(1)
+            else:
+                u2in = (self.getArrayNx3() ** 2 )
         u2in = u2in / u2in.sum()
         coll = np.exp(-(u2in * np.log(u2in)).sum()) / self._model._n_atoms
         return coll
@@ -662,6 +667,9 @@ class NMABase(object):
         return self._n_modes
         
     def __getitem__(self, index):
+        if self._n_modes == 0:
+            raise ProDyException('{0:s} modes are not calculated, try '
+                                 'calcModes() method'.format(str(self)))
         if isinstance(index, int):
             return self.getMode(index)
         elif isinstance(index, slice):
@@ -726,7 +734,14 @@ class NMABase(object):
     
     def getMode(self, index):
         """Return mode at given index."""
-        
+        if self._n_modes == 0:
+            raise ProDyException('{0:s} modes are not calculated, try '
+                                 'calcModes() method'.format(str(self)))
+        if index >= self._n_modes or index < -self._n_modes:
+            raise IndexError('{0:s} contains {1:d} modes, try 0 <= index < '
+                             '{1:d}'.format(str(self), self._n_modes))
+        if index < 0:
+            index += self._n_modes
         mode = self._modes[index]
         if mode is None:
             mode = Mode(self, index)
@@ -1153,7 +1168,8 @@ class GNM(GNMBase):
         
         """
         if self._kirchhoff is None:
-            raise RuntimeError('Kirchhoff matrix is not set')
+            raise ProDyException('Kirchhoff matrix is not set, try one of '
+                                 'buildKirchhoff() or setKirchhoff() methods')
         if linalg is None:
             prody.importLA()
         start = time.time()
@@ -1362,7 +1378,7 @@ class ANM(GNMBase):
         """
         
         if self._hessian is None:
-            raise RuntimeError('Hessian matrix is not set')
+            raise ProDyException('Hessian matrix is not set')
         if linalg is None:
             prody.importLA()
             
@@ -1724,11 +1740,11 @@ def writeNMD(filename, modes, atoms):
     try:
         coords = atoms.getCoordinates()
     except:
-        raise RuntimeError('coordinates could not be retrived '
-                           'from atoms instance')
+        raise ProDyException('coordinates could not be retrived '
+                             'from atoms instance')
     if coords is None:
-        raise RuntimeError('coordinates could not be retrived '
-                           'from atoms instance')
+        raise ProDyException('coordinates could not be retrived '
+                             'from atoms instance')
     
     try:
         data = atoms.getAtomNames()
