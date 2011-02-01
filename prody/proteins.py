@@ -227,40 +227,7 @@ def fetchPDB(pdb, folder='.', fetcher=None):
     else:
         return fetcher.fetch(pdb, folder)
 
-def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
-             altloc=True, name=None):
-    """Similar to :func:`parsePDBStream`, but downloads pdb files if needed.
-    
-    PDB files are downloaded using :func:`fetchPDB` function.
-    """
-    if not os.path.isfile(pdb):
-        if len(pdb) == 4 and pdb.isalnum():
-            download = RCSB_PDBFetcher.fetch(pdb)
-            if not download:
-                raise PDBParserError('PDB file for {0:s} could not be '
-                                   'downloaded.'.format(pdb))
-            pdb = download
-        else:
-            raise PDBParserError('{0:s} is not a valid filename or a valid '
-                               'PDB identifier.'.format(pdb))
-    name, temp = os.path.splitext(os.path.split(pdb)[1])
-    if temp == '.gz':
-        name, temp = os.path.splitext(name)
-        pdb = gzip.open(pdb)
-    else:
-        pdb = open(pdb)
-    name = name.lower()
-    result = parsePDBStream(pdb, model, header, chain, subset, altloc, name)
-    return result
-    
-def parsePDBStream(stream, model=None, header=False, chain=None, subset=None, 
-                   altloc=True, name=None):
-    """Return an :class:`~prody.atomic.AtomGroup` and/or 
-    dictionary containing header data parsed from a stream of PDB lines. 
-    
-    :arg stream: Anything that implements the method readlines() 
-        (e.g. :class:`file`, buffer, stdin).
-
+_parsePDBdoc = """
     :arg model: model index (int or list) or None (read all models)
     :type model: int
 
@@ -288,7 +255,49 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
     :type name: str
 
     If *model* equals to ``0`` and *header* is ``True``, return header 
-    dictionary only.
+    dictionary only."""
+
+def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
+             altloc=True, name=None):
+    """Return an :class:`~prody.atomic.AtomGroup` and/or 
+    dictionary containing header data parsed from a stream of PDB lines. 
+    
+    This function extends :func:`parsePDBStream`.
+    
+    :arg pdb: A valid PDB identifier or filename.  
+        If needed, PDB files are downloaded using :func:`fetchPDB()` function.  
+        
+    """
+    if not os.path.isfile(pdb):
+        if len(pdb) == 4 and pdb.isalnum():
+            download = RCSB_PDBFetcher.fetch(pdb)
+            if not download:
+                raise PDBParserError('PDB file for {0:s} could not be '
+                                   'downloaded.'.format(pdb))
+            pdb = download
+        else:
+            raise PDBParserError('{0:s} is not a valid filename or a valid '
+                               'PDB identifier.'.format(pdb))
+    name, temp = os.path.splitext(os.path.split(pdb)[1])
+    if temp == '.gz':
+        name, temp = os.path.splitext(name)
+        pdb = gzip.open(pdb)
+    else:
+        pdb = open(pdb)
+    name = name.lower()
+    result = parsePDBStream(pdb, model, header, chain, subset, altloc, name)
+    return result
+
+parsePDB.__doc__ += _parsePDBdoc
+    
+def parsePDBStream(stream, model=None, header=False, chain=None, subset=None, 
+                   altloc=True, name=None):
+    """Return an :class:`~prody.atomic.AtomGroup` and/or 
+    dictionary containing header data parsed from a stream of PDB lines. 
+    
+    :arg stream: Anything that implements the method readlines() 
+        (e.g. :class:`file`, buffer, stdin).
+
     """
     if model is not None:
         if not isinstance(model, int):
@@ -322,6 +331,8 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         return ag
     else:
         return hd
+
+parsePDBStream.__doc__ += _parsePDBdoc
 
 def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
