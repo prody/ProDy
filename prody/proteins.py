@@ -258,7 +258,7 @@ _parsePDBdoc = """
          only indicated alternate locations will be parsed as the single 
          coordinate set of the AtomGroup. If ``True`` all alternate locations 
          will be parsed and each will be appended as a distinct coordinate set.
-         Default is ``A``.
+         Default is ``"A"``.
     :type altloc: str
 
     :arg name: Name of the AtomGroup instance. When ``None`` is passed,
