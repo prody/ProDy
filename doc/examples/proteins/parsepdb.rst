@@ -3,19 +3,45 @@
 .. _parsepdb:
 
 *******************************************************************************
-Parse PDB data
+Parse PDB files
 *******************************************************************************
 
-PDB files can be parsed using :func:`parsePDB` function.
-
-|more| See also :ref:`pdbparser-performance`.
-
->>> from prody import *
- 
-Coordinate data
+Synopsis
 ===============================================================================
 
-You can parse PDB files by passing a filename (gzipped files are handled):
+ProDy offers a fast and flexible PDB parser, :func:`parsePDB`. 
+This example demonstrates flexible usage of this function.
+
+Parser allows extracting information on the subset of atoms or models 
+(in NMR structures), which may boost the performance when used. 
+
+|more| For performance benchmarks of ProDy PDB parser see 
+:ref:`pdbparser-performance`.
+
+This example shows how to use the flexible parsing options.
+
+User Input
+-------------------------------------------------------------------------------
+
+Three types of input are accepted from user:
+
+  * PDB file path, e.g. ``"../1MKP.pdb"``
+  * compressed (gzipped) PDB file path, e.g. ``"1p38.pdb.gz"`` 
+  * PDB identifier, e.g. ``"2k39"``
+ 
+ProDy Code
+===============================================================================
+
+We start by importing everything from the ProDy package:
+
+>>> from prody import *
+
+Parse a file
+-------------------------------------------------------------------------------
+
+You can parse PDB files by passing a filename (gzipped files are handled).
+We do so after downloading a PDB file (see :ref:`fetchpdb` for more 
+information): 
 
 >>> fetchPDB('1p38') # doctest: +SKIP
 '1p38.pdb.gz'
@@ -23,36 +49,106 @@ You can parse PDB files by passing a filename (gzipped files are handled):
 >>> atoms
 <AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
 
-PDBParser will tell you what was parsed and how long it took. The following 
-will be printed to the screen::
+Parser returns an :class:`~prody.atomic.AtomGroup` instance.
 
-  @> 1p38 (./1p38.pdb.gz) is found in the target directory.
-  @> PDBParser: 2962 atoms and 1 coordinate sets were parsed in 0.08s.
+Use an identifier
+-------------------------------------------------------------------------------
 
-This excludes the time spent on reading the file.
-The time to evaluate coordinate lines and build an atomgroup is measured.
-
-
-Such info messages can be turned of using the function :func:`~prody.ProDySetVerbosity`.
-
->>> ProDySetVerbosity('warning')
-
-PDB files can be parsed by passing only an identifier. A PDB file will be 
-downloaded if necessary (see also :ref:`fetchpdb`).
+PDB files can be parsed by passing simply an identifier. Parser will look for a
+PDB file matching given identifier in the current working directory. If not 
+found it will be automatically downloaded and saved in the 
+current working directory, before it is parsed.
 
 >>> atoms = parsePDB('1mkp')
 >>> atoms
 <AtomGroup: 1mkp (1183 atoms; 1 coordinate sets, active set index: 0)>
 
-Parser method returns an :class:`~prody.atomic.AtomGroup` instance.
 
-:more: See our report on :ref:`pdbparser-performance`.
+Subsets of atoms
+-------------------------------------------------------------------------------
 
+Parser can be used to parse backbone or carbon alpha atoms:
+
+>>> backbone = parsePDB('1mkp', subset='bb')
+>>> backbone
+<AtomGroup: 1mkp (616 atoms; 1 coordinate sets, active set index: 0)>
+>>> calpha = parsePDB('1mkp', subset='ca')
+>>> calpha
+<AtomGroup: 1mkp (144 atoms; 1 coordinate sets, active set index: 0)>
+
+
+Specific chains
+-------------------------------------------------------------------------------
+
+Parser can be used to parse a specific chain from a PDB file:
+
+>>> chA = parsePDB('3mkb', chain='A')
+>>> chA
+<AtomGroup: 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+>>> chC = parsePDB('3mkb', chain='C')
+>>> chC
+<AtomGroup: 3mkb (1189 atoms; 1 coordinate sets, active set index: 0)>
+
+Multiple chains can also be parsed in the same way:
+
+>>> chAC = parsePDB('3mkb', chain='AC')
+>>> chAC
+<AtomGroup: 3mkb (2387 atoms; 1 coordinate sets, active set index: 0)>
+
+Specific models
+-------------------------------------------------------------------------------
+
+Parser can be used to parse a specific model from a file:
+
+>>> model1 = parsePDB('2k39', model=10)
+>>> model1
+<AtomGroup: 2k39 (1231 atoms; 1 coordinate sets, active set index: 0)>
+
+Alternate locations
+-------------------------------------------------------------------------------
+
+When a PDB file contains alternate locations for some of the atoms, by default
+alternate locations with indicator ``A`` are parsed. 
+
+>>> altlocA = parsePDB('1ejg')
+>>> altlocA
+<AtomGroup: 1ejg (637 atoms; 1 coordinate sets, active set index: 0)>
+
+Specific alternate locations can be parsed as follows:
+
+>>> altlocB = parsePDB('1ejg', altloc='B')
+>>> altlocB
+<AtomGroup: 1ejg (634 atoms; 1 coordinate sets, active set index: 0)>
+
+Note that in this case number of atoms are different between the two atom 
+groups. This is due to the in residue types of atoms with alternate locations.
+
+Also, all alternate locations can be parsed as follows:
+
+>>> all_altlocs = parsePDB('1ejg', altloc=True)
+>>> all_altlocs
+<AtomGroup: 1ejg (637 atoms; 3 coordinate sets, active set index: 0)>
+
+Note that this time parser returned three coordinate sets. One for each 
+alternate location indicator found in this file (A, B, C). When parsing
+multiple alternate locations, parser will expect for the same residue type
+for each atom with an alternate location. If residue names differ, a warning
+message will be printed.
+
+Composite arguments
+-------------------------------------------------------------------------------
+
+Parser can be used to parse coordinates from a specific model for a subset of 
+atoms of a specific chain:
+
+>>> composite = parsePDB('2k39', model=10, chain='A', subset='ca')
+>>> composite
+<AtomGroup: 2k39 (76 atoms; 1 coordinate sets, active set index: 0)>
 
 Header data
-===============================================================================
+-------------------------------------------------------------------------------
 
-If you also need header data from the PDB file, type in as follows:
+PDB parser can be used to extract header data from PDB files: as follows:
 
 >>> atoms, header = parsePDB('1mkp', header=True)
 
@@ -64,6 +160,20 @@ was parsed.
 >>> header['resolution']
 '2.35 ANGSTROMS'
 >>> print header.keys() # doctest: +SKIP
-['reference', 'classification', 'compounds', 'resolution', 'title', 
-'source', 'experiment', 'authors', 'identifier', 'deposition_date']
+['biomolecular_transformations', 'reference', 'classification', 'compounds', 
+'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
+'identifier', 'deposition_date']
 
+It is also possible to parse only header data by passing `model=0` as an 
+argument:
+
+>>> header = parsePDB('1mkp', header=True, model=0)
+>>> print header.keys() # doctest: +SKIP
+['biomolecular_transformations', 'reference', 'classification', 'compounds', 
+'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
+'identifier', 'deposition_date']
+
+
+|questions|
+
+|suggestions|

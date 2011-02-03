@@ -235,7 +235,7 @@ def applyTransformation(transformation, coordinates):
         return transformed
 
 def calcDeformVector(from_atoms, to_atoms):
-    """Returns deformation :class:`prody.dynamics.Vector` from *from_atoms* 
+    """Returns deformation :class:`~prody.dynamics.Vector` from *from_atoms* 
     to *atoms_to*."""
     
     name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
@@ -445,9 +445,12 @@ def calcADPAxes(atoms):
         element[0,2] = element[2,0] = anisou[4]
         element[1,2] = element[2,1] = anisou[5]
         vals, vecs = linalg.eigh(element)
+        # If negative eigenvalues are found (when ADP matrix is not positive 
+        # definite) set them to 0   
         vals[ vals < 0 ] = 0
         vals = vals**0.5
         axes[i*3:(i+1)*3,:] = vals * vecs
+    # Resort the columns before returning array
     return axes[:, [2,1,0]]
         
    

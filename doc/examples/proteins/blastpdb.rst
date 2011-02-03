@@ -3,14 +3,35 @@
 .. _blastpdb:
 
 *******************************************************************************
-Blast search PDB content
+Blast search PDB
 *******************************************************************************
 
-This example shows how to search for PDB structures matching an amino acid
-sequence using :func:`blastPDB` function. :func:`blastPDB` is a utility 
-function which can be used to check if structures matching a sequence exists 
-in PDB or to access a set of related structures for ensemble analysis (i.e. 
-:ref:`pca`). 
+Synopsis
+===============================================================================
+
+This examples demonstrates how to use Protein Data Bank blast search function, 
+:func:`blastPDB`. 
+
+:func:`blastPDB` is a utility function which can be used to check if 
+structures matching a sequence exists in PDB or to access a set of related 
+structures for ensemble analysis (i.e. ref:`pca`). 
+
+User Input
+-------------------------------------------------------------------------------
+
+Protein amino acid sequence is the only import from the user, e.g. 
+``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPIS...
+YDIVKMKKSNISPNFNFMGQLLDFERTL``
+
+ProDy Code
+===============================================================================
+
+We start by importing everything from the ProDy package:
+
+>>> from prody import *
+
+Perform search
+-------------------------------------------------------------------------------
 
 Let's search for structures similar to that of MKP-3, using its sequence
 
@@ -23,11 +44,10 @@ Let's search for structures similar to that of MKP-3, using its sequence
 :func:`blastPDB` function returns a :class:`PDBlastRecord`. Let's retrieve 
 hits from this record:
 
->>> hits = blast_record.getHits()
->>> print hits.keys()
-['1mkp']
+Best match
+-------------------------------------------------------------------------------
 
-If we wanted to get the best hit, we would use :meth:`PDBlastRecord.getBest` method:
+To get the best match, :meth:`PDBlastRecord.getBest` method can be used:
 
 >>> best = blast_record.getBest()
 >>> print best # doctest: +SKIP
@@ -51,6 +71,13 @@ If we wanted to get the best hit, we would use :meth:`PDBlastRecord.getBest` met
 'align_length': 144, 
 'bits': 298.13}
 
+PDB hits
+-------------------------------------------------------------------------------
+
+>>> hits = blast_record.getHits()
+>>> print hits.keys()
+['1mkp']
+
 This results in only MKP-3 itself, since percent_identity argument was set 
 to 90 by default
 
@@ -72,6 +99,9 @@ More information on a hit can be obtained as follows:
 >>> print hits['1zzw']['identities']
 68
 
+Download hits
+-------------------------------------------------------------------------------
+
 PDB hits can be downloaded using :func:`fetchPDB` 
 function.
 
@@ -80,4 +110,9 @@ function.
 ['./1mkp.pdb.gz', './1zzw.pdb.gz', './2g6z.pdb.gz', './2hxp.pdb.gz', 
 './3ezz.pdb.gz', './1m3g.pdb.gz', './2oud.pdb.gz']
 
+
+
+|questions|
+
+|suggestions|
 

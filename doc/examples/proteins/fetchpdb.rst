@@ -6,11 +6,29 @@
 Fetch PDB files
 *******************************************************************************
 
-Quick access to PDB structures is essential especially when working in
-an interactive (ProDy) session. This example shows how to fetch PDB structures 
-with their PDB identifiers using :func:`fetchPDB` function.  
+Synopsis
+===============================================================================
+
+This examples demonstrates how to use the flexible PDB fetcher, 
+:func:`fetchPDB`. 
+
+User Input
+-------------------------------------------------------------------------------
+
+Valid inputs are:
+
+  * PDB identifier, e.g ``"2k39"``
+  * list of PDB identifiers, e.g. ``["2k39", "1mkp", "1etc"]`` 
+  
+ProDy Code
+===============================================================================
+
+We start by importing everything from the ProDy package:
 
 >>> from prody import *
+
+Single file
+-------------------------------------------------------------------------------
 
 The function will return a filename if the download is succesfull.
  
@@ -18,15 +36,22 @@ The function will return a filename if the download is succesfull.
 >>> print filename # doctest: +SKIP
 1p38.pdb.gz
 
+Multiple files
+-------------------------------------------------------------------------------
 
-This function also accepts a list of PDB identifiers.
+This function also accepts a list of PDB identifiers:
 
->>> filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='.')
+>>> filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='temp')
 >>> print filenames # doctest: +SKIP
 ['1p38.pdb.gz', '1r39.pdb.gz', None]
 
 For failed downloads, ``None`` will be returned (or the list will contain 
 ``None`` item).
+
+
+Also note that in this case we passed a folder name. Files are saved in 
+this folder, after it is made if did not exist. 
+
 
 ProDy will give you a report of download results and return you a list of 
 filenames. The report will be printed on the screen, which in this case would 
@@ -37,8 +62,7 @@ be::
   @> 1r39 downloaded (./1r39.pdb.gz)
   @> PDB download completed (1 found, 1 downloaded, 1 failed).
 
-Such info messages can be turned of using the function 
-:func:`~prody.ProDySetVerbosity`.
+|questions|
 
->>> ProDySetVerbosity('warning')
+|suggestions|
 
