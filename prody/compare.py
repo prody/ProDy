@@ -368,11 +368,11 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices2 = np.array(indices2)
         lengh = len(indices1)
         match1 = AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
-                               str(match1) + ' -> ' + str(match2),
+                               str(atoms1) + ' -> ' + str(atoms2),
                                atoms1._acsi)#'index ' + getIntAsStr(indices1), 
                                  
         match2 = AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
-                               str(match2) + ' -> ' + str(match1),
+                               str(atoms2) + ' -> ' + str(atoms1),
                                atoms2._acsi)#'index ' + getIntAsStr(indices2), 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
