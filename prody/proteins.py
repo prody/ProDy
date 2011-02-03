@@ -36,6 +36,15 @@ Functions
   * :func:`parsePDBStream`
   * :func:`writePDB`
   * :func:`writePDBStream`
+   
+   
+.. doctest::
+    :hide:
+        
+    >>> import numpy as np
+    >>> allmodels = parsePDB('2k39', subset='ca')
+    >>> model10 = parsePDB('2k39', subset='ca', model=10)
+    >>> np.all(allmodels.getCoordsets(9) == model10.getCoordinates())
     
 """
 
@@ -228,41 +237,47 @@ def fetchPDB(pdb, folder='.', fetcher=None):
         return fetcher.fetch(pdb, folder)
 
 _parsePDBdoc = """
-    :arg model: model index (int or list) or None (read all models)
-    :type model: int
+    :arg model: model index or None (read all models), 
+        e.g. ``model=10``
+    :type model: int, list
 
     :arg header: If ``True`` PDB header content will be parsed and returned.
     :type header: bool
 
     :arg chain: Chain identifiers for parsing specific chains, e.g. 
-        ``chain='A'``, ``chain='B'``, ``chain='DE'``.
+        ``chain='A'``, ``chain='B'``, ``chain='DE'``. By default all chains
+        are parsed.        
     :type chain: str
 
     :arg subset: A predefined keyword to parse subset of atoms.
-        Available keywords are ``"calpha"`` (``"ca"``) or ``"backbone"`` (``"bb"``), 
-        or ``None`` (read all atoms).
+        Valid keywords are ``"calpha"`` (``"ca"``) or ``"backbone"`` 
+        (``"bb"``), or ``None`` (read all atoms), e.g. ``subset='bb'``
     :type subset: str
 
-    :arg altloc: If ``True`` all alternate locations will be parsed and 
-         each will be appended as distict coordinate set.
-         If a location indicator is passed, such as ``'A'`` or ``'B'``, 
+    :arg altloc: If a location indicator is passed, such as ``'A'`` or ``'B'``, 
          only indicated alternate locations will be parsed as the single 
-         coordinate set of the AtomGroup. Default is ``True``.
+         coordinate set of the AtomGroup. If ``True`` all alternate locations 
+         will be parsed and each will be appended as a distinct coordinate set.
+         Default is ``A``.
     :type altloc: str
 
     :arg name: Name of the AtomGroup instance. When ``None`` is passed,
         AtomGroup is named after the PDB filename.  
     :type name: str
 
-    If *model* equals to ``0`` and *header* is ``True``, return header 
+    If ``model=0`` and ``header=True``, return header 
     dictionary only."""
+    
+_PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
 
 def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
-             altloc=True, name=None):
+             altloc='A', name=None):
     """Return an :class:`~prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
     This function extends :func:`parsePDBStream`.
+    
+    |example| See :ref:`parsepdb` for a detailed example.
     
     :arg pdb: A valid PDB identifier or filename.  
         If needed, PDB files are downloaded using :func:`fetchPDB()` function.  
@@ -291,7 +306,7 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
 parsePDB.__doc__ += _parsePDBdoc
     
 def parsePDBStream(stream, model=None, header=False, chain=None, subset=None, 
-                   altloc=True, name=None):
+                   altloc='A', name=None):
     """Return an :class:`~prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
@@ -300,12 +315,17 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
 
     """
     if model is not None:
-        if not isinstance(model, int):
-            raise PDBParserError('model must be an integer')
-        elif model < 0:
-            raise PDBParserError('model must be greater than 0')
-    elif subset is not None and not isinstance(subset, str):
-        raise PDBParserError('model must be a string')
+        if isinstance(model, int):
+            if model < 0:
+                raise PDBParserError('model must be greater than 0')
+        else:
+            raise TypeError('model must be an integer, {0:s} is invalid'
+                            .format(str(model)))
+    if subset is not None: 
+        if not isinstance(subset, str):
+            raise TypeError('subset must be a string')
+        elif subset not in _PDBSubsets:
+            raise ValueError('"{0:s}" is not a valid subset'.format(subset))
 
     lines = stream.readlines()
 
@@ -376,8 +396,9 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         only_chains = False
     start = split
     stop = len(lines)
+    nmodel = 0
     if model is not None and model != 1:
-        nmodel = 0
+
         for i in range(split, len(lines)):
             if lines[i][:5] == 'MODEL':
                 nmodel += 1
@@ -395,7 +416,6 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         which_altlocs = ' A'
         
     acount = 0
-    nmodel = 0
     is_anisou = False
     is_siguij = False
     is_scndry = False
@@ -429,7 +449,8 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
             except Exception:
                 if acount >= n_atoms:
                     LOGGER.warning('Discarding model {0:d}, which contains '
-                                   'more atoms than the previous.'.format(nmodel+1))
+                                   'more atoms than first model does.'
+                                   .format(nmodel+1))
                     acount = 0
                     nmodel += 1
                     coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
@@ -509,8 +530,9 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                 break
             elif onlycoords:
                 if acount < n_atoms:
-                    LOGGER.warning('Discarding model {0:d}, which contains {1:d} '
-                                   'fewer atoms.'.format(nmodel+1, n_atoms-acount))
+                    LOGGER.warning('Discarding model {0:d}, which contains '
+                                   '{1:d} fewer atoms than the first model '
+                                   'does.'.format(nmodel+1, n_atoms-acount))
                 else:
                     atomgroup.addCoordset(coordinates)
                 nmodel += 1
