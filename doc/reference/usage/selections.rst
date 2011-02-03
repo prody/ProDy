@@ -6,13 +6,14 @@
 Atom Selections
 *******************************************************************************
 
-ProDy offers a powerful atom selector which works quite the same way |vmd| 
-does. There are small differences which should not affect most practical 
-uses of atom selections. ProDy selection engine also enables
-identifying intermolecular contacts. This section describes the keywords and 
-selection syntax.
+ProDy offers a powerful atom selector. The keywords, selection grammar,
+and capabilities of the selector are quite to that of |vmd|. 
+Small differences should not affect most practical uses of atom selections. 
+ProDy selection engine also enables identifying intermolecular contacts. 
+This section describes the keywords and selection syntax.
 
-.. seealso:: :ref:`contacts` and :ref:`selection-operations`
+|more| See :ref:`contacts` and :ref:`selection-operations` for more usage
+examples.
 
 .. _selkeys:
 
@@ -32,8 +33,8 @@ Single words
 * :term:`small`, :term:`medium`, :term:`large`
 
 **Examples**:
-  * "noh protein" selects non-hydrogen protein atoms
-  * "charged and cyclic" selects histidine residues 
+  * ``"noh protein"`` selects non-hydrogen protein atoms
+  * ``"charged and cyclic"`` selects histidine residues 
 
 .. note::
    Definitions of these keywords can be obtained and changed using 
@@ -49,8 +50,8 @@ Keywords followed by characters or words
 * :term:`chain`, :term:`segment`
 
 **Examples**:
-  * "name CA" selects atoms with name CA
-  * "protein name CA and chain A" selects alpha carbons of chain A 
+  * ``"name CA"`` selects atoms with name CA
+  * ``"protein name CA and chain A"`` selects alpha carbons of chain A 
 
 
 Keywords followed by integers and/or number ranges
@@ -60,9 +61,9 @@ Keywords followed by integers and/or number ranges
 * :term:`resnum`, :term:`resid`
 
 **Examples**:
-  * "index 10" selects 11th atom
-  * "serial 10" selects 10th atom
-  * "resnum 1 to 10" selects residues with residue numbers from 1 to 10 
+  * ``"index 10"`` selects 11th atom
+  * ``"serial 10"`` selects 10th atom
+  * ``"resnum 1 to 10"`` selects residues with residue numbers from 1 to 10 
 
 Keywords followed by floating point numbers and/or number ranges
 -------------------------------------------------------------------------------
@@ -73,8 +74,9 @@ Keywords followed by floating point numbers and/or number ranges
 
 **Examples**:
 
-* "x 0 to 20" selects atoms with x coordinates greater or equal to 0 and lesser or equal to 20
-* "occupancy 1" selects atoms with occupancy values equal to 1 
+  * ``"x 0 to 20"`` selects atoms with x coordinates greater or 
+    equal to 0 and lesser or equal to 20
+  * ``"occupancy 1"`` selects atoms with occupancy values equal to 1 
 
 Operations, Functions and Comparisons
 -------------------------------------------------------------------------------
@@ -129,8 +131,10 @@ Comparisons
    !=, "not equal"
 
 **Examples**
-  * "sqrt(x**2 + y**2 + z**2) < 10" selects atoms within 10 angstrom of the origin
-  * "resnum <= 100" selects atoms with residue numbers less than or equal to 100  
+  * ``"sqrt(x**2 + y**2 + z**2) < 10"`` selects atoms within 10 angstrom of the 
+    origin
+  * ``"resnum <= 100"`` selects atoms with residue numbers less than or equal 
+    to 100  
 
 .. _keydefs:
 
@@ -140,7 +144,8 @@ Keyword Definitions
 .. glossary:: 
     
     acidic
-        Amino acid residues with acidic sidechains. Residue names include ASP and GLU.
+        Amino acid residues with acidic sidechains. 
+        Residue names include ASP and GLU.
         This definition can be changed using :func:`setAcidicResidueNames` 
         method.
     
@@ -148,7 +153,8 @@ Keyword Definitions
         Non-:term:`cyclic` :term:`protein` residues.
     
     aliphatic
-        Amino acid residues with aliphatic sidechains. Residue names include ALA, GLY, ILE, LEU, and VAL.
+        Amino acid residues with aliphatic sidechains. 
+        Residue names include ALA, GLY, ILE, LEU, and VAL.
         This definition can be changed using :func:`setAliphaticResidueNames` 
         method.
 
@@ -159,7 +165,8 @@ Keyword Definitions
         Alternative location identifier.
 
     aromatic
-        Amino acid residues with aromatic sidechains. Residue names include HIS, PHE, TRP, TYR.
+        Amino acid residues with aromatic sidechains. 
+        Residue names include HIS, PHE, TRP, TYR.
         This definition can be changed using :func:`setAromaticResidueNames` 
         method.
 
@@ -170,7 +177,8 @@ Keyword Definitions
         method.
 
     basic
-        Amino acid residues with basic sidechains. Residue names include ASP and GLU.
+        Amino acid residues with basic sidechains. 
+        Residue names include ASP and GLU.
         This definition can be changed using :func:`setBasicResidueNames` 
         method.
     
@@ -184,7 +192,8 @@ Keyword Definitions
         Poly-peptide/nucleotide/etc. chain identifier. "_" means atoms no chain
         identifier or a whitespace.
         
-        e.g. "chain A B _" selects atoms whose chain identifiers are A, B, or a whitespace 
+        e.g. ``"chain A B _"`` selects atoms whose chain identifiers are A, B, 
+        or a whitespace 
         
     charge
         Atomic partial charges.
@@ -284,12 +293,14 @@ Keyword Definitions
         
         Examples:
             
-            * "resnum 5" selects residue 5 (all insertion codes)
-            * "resnum 5A" selects residue 5 with insertion code A
-            * "resnum 5\_" selects residue 5 with no insertion code
-            * "resnum 5 10 to 15" selects residues 5, 10, 11, 12, 13, 14, and 15
-            * "resnum 5 10:15" selects residues 5, 10, 11, 12, 13, and 14 (: works as it does in Python slicing operations)
-            * "resnum 1:10:2" selects residues 1, 3, 5, 7, and 9
+            * ``"resnum 5"`` selects residue 5 (all insertion codes)
+            * ``"resnum 5A"`` selects residue 5 with insertion code A
+            * ``"resnum 5\_"`` selects residue 5 with no insertion code
+            * ``"resnum 5 10 to 15"`` selects residues 5, 10, 11, 12, 13, 
+              14, and 15
+            * ``"resnum 5 10:15"`` selects residues 5, 10, 11, 12, 13, and 14 
+              (:, colon, works as it does in Python slicing operations)
+            * ``"resnum 1:10:2"`` selects residues 1, 3, 5, 7, and 9
             
             
     

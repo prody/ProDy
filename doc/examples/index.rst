@@ -5,7 +5,7 @@ Examples
 *******************************************************************************
 
 
-Access and manipulate PDB data 
+Access PDB Data 
 ===============================================================================
 
 .. toctree::
@@ -13,12 +13,21 @@ Access and manipulate PDB data
 
    proteins/fetchpdb
    proteins/parsepdb
-   proteins/blastpdb
    proteins/writepdb
-   proteins/biomolt
-   proteins/alignment
+   proteins/blastpdb
    
-Compare protein chains
+Protein Structure 
+===============================================================================
+
+.. toctree::
+   :maxdepth: 1
+
+   
+   proteins/alignment
+   proteins/biomolt
+   atomic/hierview
+   
+Compare Protein Chains
 ===============================================================================
    
 .. toctree::
@@ -26,7 +35,7 @@ Compare protein chains
    
    proteins/deformation
 
-More on atomGroups 
+More on :class:`AtomGroup` 
 ===============================================================================
 
 .. toctree::
@@ -34,7 +43,7 @@ More on atomGroups
    
    atomic/water
 
-Dynamics analysis
+Dynamics Analysis
 ===============================================================================
 
 .. toctree::
@@ -45,7 +54,7 @@ Dynamics analysis
    proteins/deformation
    dynamics/nmops
 
-Atom Selections and Intermolecular Contacts 
+Selections and Contacts 
 ===============================================================================
 
 .. toctree::

@@ -17,6 +17,12 @@ Release 0.6 (in development)
 
   * Membership test operation is defined for all :mod:`~prody.atomic` classes.
     See :ref:`selection-operations`.
+  * Equality and non-equality tests are implemented for classes derived from 
+    :class:`~atomic.AtomPointer`.
+  * Two functions are implemented for dealing with anisotropic temperature 
+    factors: :func:`~measure.calcADPAxes` and :func:`~measure.buildADPMatrix`.
+  * :meth:`~dynamics.NMA.setEigens` method is implemented for analyzing
+    normal modes calculated using external software. 
   * The method in [BH02]_ to calculate overlap between covariance matrices is 
     implemented as :func:`~dynamics.calcCovarianceOverlap` function.
   * A method to trim :class:`~ensemble.Ensemble` instances is implemented: 
@@ -24,6 +30,9 @@ Release 0.6 (in development)
 
 **Changes**:
 
+  * Change in default behavior of :func:`~proteins.parsePDB` function. When
+    alternate locations exist, those indicated by A are parsed. For parsing
+    all alternate locations user needs to pass ``altloc=True`` argument.    
   * :func:`getSumOfWeights` is renamed as :func:`~ensemble.calcSumOfWeights`.
   * :func:`mapAtomsToChain` is renamed as :func:`~compare.mapOntoChain`.
 

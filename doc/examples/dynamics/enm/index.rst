@@ -3,7 +3,7 @@
 .. _enm:
 
 *******************************************************************************
-Elastic Network Models
+ENM examples
 *******************************************************************************
 
 ProDy can be used to perform elastic network model analysis of proteins. 
@@ -11,7 +11,7 @@ ProDy can be used to perform elastic network model analysis of proteins.
 implemented. Following examples show how to use them: 
 
 .. toctree::
+   :glob:
    :maxdepth: 2
 
-   anm
-   gnm
+   *

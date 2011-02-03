@@ -3,7 +3,7 @@
 .. _pca:
 
 *******************************************************************************
-Principal Component Analysis
+PCA examples
 *******************************************************************************
 
 ProDy can be used to perform principal component analysis of:

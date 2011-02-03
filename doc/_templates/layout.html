@@ -70,9 +70,9 @@ function checkFontSize() {
 {% endblock %}
 
 {% block rootrellink %}
-        <li><img src="{{ pathto("_static/text-14.png", 1) }}" onclick="changeFontSize(0)" style="vertical-align: middle;">
-            <img src="{{ pathto("_static/plus.png", 1) }}" onclick="changeFontSize(+1)" style="vertical-align: middle;"> 
-            <img src="{{ pathto("_static/minus.png", 1) }}" onclick="changeFontSize(-1)" style="vertical-align: middle;">
+        <li><img src="{{ pathto("_static/text-14.png", 1) }}" onclick="changeFontSize(0)" style="vertical-align: middle;" alt="Default text size">
+            <img src="{{ pathto("_static/plus.png", 1) }}" onclick="changeFontSize(+1)" style="vertical-align: middle;" alt="Increase text size"> 
+            <img src="{{ pathto("_static/minus.png", 1) }}" onclick="changeFontSize(-1)" style="vertical-align: middle;" alt="Decrease text size">
         </li>
         <li>&nbsp;<a href="{{ pathto('index') }}">Home</a>|&nbsp;</li>
         <li><a href="{{ pathto('contents') }}">Contents</a> &raquo;</li>

@@ -60,6 +60,6 @@ i.e. ``""``.
 AtomMaps are used by functions that compare protein chains.
 
 .. seealso::
-   :ref:`pca_xray` example makes use of AtomMaps.
+   :ref:`pca-xray` and :ref:`pca-dimer` examples make use of AtomMaps.
    
 
