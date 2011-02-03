@@ -804,17 +804,56 @@ class NMA(NMABase):
     
     """
     
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        NMABase.__init__(self, name)
     
-    def setHessian(self, hessian):
-        pass
-    
-    def calcModes(self, n_modes):
-        pass
-    
-    def setEigens(self, vectors, values):
-        pass
+    def setEigens(self, vectors, values=None):
+        """Set eigenvectors and eigenvalues.
+        
+        :arg vectors: eigenvectors
+        :type vectors: numpy.ndarray
+        
+        :arg values: Eigenvalues. When ``None`` is passed (default value), 
+            all eigenvalues will be set to ``1``.
+        :type values: numpy.ndarray
+        
+        For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
+        and values must have shape ``(M,)``.
+        
+        
+         
+        """
+        if not isinstance(vectors, np.ndarray):
+            raise TypeError('vectors must be a numpy.ndarray, not {0:s}'
+                            .format(type(vectors)))
+        elif vectors.ndim != 2:
+            raise ValueError('vectors must be a 2-dimensional array')
+        else:
+            dof = vectors.shape[0]
+            n_atoms = dof / 3 
+            if self._n_atoms > 0 and n_atoms != self._n_atoms:
+                    raise ValueError('vectors do not have the right shape, '
+                                 'which is (M,{0:d})'.format(n_atoms*3))
+            n_modes = vectors.shape[1]
+        if values is not None:
+            if isinstance(vectors, np.ndarray):
+                raise TypeError('values must be a numpy.ndarray, not {0:s}'
+                                .format(type(vectors)))
+            elif values.ndim != 2:
+                raise ValueError('values must be a 1-dimensional array')
+            else:
+                if values.shape[0] != vectors.shape[1]:
+                    raise ValueError('number of vectors and values do not match')
+        else:
+            values = np.ones(n_modes)
+            
+        self._array = vectors
+        self._eigvals = values
+        self._dof = dof
+        self._n_atoms = n_atoms
+        self._n_modes = n_modes
+        self._modes = [None] * n_modes
+        self._vars = 1 / values
 
 
 class ModeSet(object):

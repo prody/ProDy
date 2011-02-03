@@ -398,15 +398,27 @@ def calcRadiusOfGyration(coords, weights=None):
     return (d2sum / wsum) ** 0.5
             
 def calcADPAxes(atoms):
-    """Return a Nx3 array containing principal axes defining anisotropic 
+    """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
     >>> calphas = protein.select('calpha')
-    >>> atfaxes, atfvars = calcATFAxes( calphas )
+    >>> adp_axes = calcADPAxes( calphas )
+    >>> adp_axes.shape
+    (138, 3)
+    
+    These can be written in NMD format as follows:
+        
+    >>> nma = NMA('ADPs')
+    >>> nma.setEigens(adp_axes)
+    >>> nma
+    <NMA: ADPs (3 modes, 46 atoms)>
+    >>> writeNMD( 'adp_axes.nmd', nma, calphas )
+    'adp_axes.nmd'
     
     """
+    
     if linalg is None: 
         prody.importLA()
     if not isinstance(atoms, prody.Atomic):
@@ -439,9 +451,10 @@ def buildADPMatrix(atoms):
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
     >>> calphas = protein.select('calpha')
-    >>> atf_matrix = buildATFMatrix( calphas )
+    >>> adp_matrix = buildADPMatrix( calphas )
     
     """
+    
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
     anisous = atoms.getAnisoTempFactors()
