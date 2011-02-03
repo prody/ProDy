@@ -28,6 +28,8 @@ Functions
     
   * :func:`alignCoordsets`
   * :func:`applyTransformation`
+  * :func:`buildADPMatrix`
+  * :func:`calcADPAxes`
   * :func:`calcDeformVector`
   * :func:`calcDistance`
   * :func:`calcRadiusOfGyration`
@@ -47,7 +49,8 @@ import prody
 from prody import ProDyLogger as LOGGER
 
 
-__all__ = ['Transformation', 'applyTransformation', 'alignCoordsets', 
+__all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
+           'buildADPMatrix', 'calcADPAxes', 
            'calcDeformVector', 'calcDistance', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 'superpose']
            
@@ -394,5 +397,71 @@ def calcRadiusOfGyration(coords, weights=None):
         d2sum = np.array(rgyr)
     return (d2sum / wsum) ** 0.5
             
-            
+def calcADPAxes(atoms):
+    """Return a Nx3 array containing principal axes defining anisotropic 
+    displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
+    >>> from prody import *
+    >>> protein = parsePDB('1ejg')  
+    >>> calphas = protein.select('calpha')
+    >>> atfaxes, atfvars = calcATFAxes( calphas )
+    
+    """
+    if linalg is None: 
+        prody.importLA()
+    if not isinstance(atoms, prody.Atomic):
+        raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
+    anisous = atoms.getAnisoTempFactors()
+    if anisous is None:
+        raise ValueError('anisotropic temperature factors are not set')
+    n_atoms = atoms.getNumOfAtoms()
+
+    axes = np.zeros((n_atoms*3, 3))    
+    
+    for i in range(n_atoms):
+        anisou = anisous[i]
+        element = np.zeros((3,3))
+        element[0,0] = anisou[0]
+        element[1,1] = anisou[1]
+        element[2,2] = anisou[2]
+        element[0,1] = element[1,0] = anisou[3]
+        element[0,2] = element[2,0] = anisou[4]
+        element[1,2] = element[2,1] = anisou[5]
+        vals, vecs = linalg.eigh(element)
+        axes[i*3:(i+1)*3,:] = vals * vecs
+    return axes
+        
+   
+def buildADPMatrix(atoms):
+    """Return a 3Nx3N symmetric matrix containing anisotropic displacement
+    parameters (ADPs) along the diagonal as 3x3 super elements.
+    
+    >>> from prody import *
+    >>> protein = parsePDB('1ejg')  
+    >>> calphas = protein.select('calpha')
+    >>> atf_matrix = buildATFMatrix( calphas )
+    
+    """
+    if not isinstance(atoms, prody.Atomic):
+        raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
+    anisous = atoms.getAnisoTempFactors()
+    if anisous is None:
+        raise ValueError('anisotropic temperature factors are not set')
+    n_atoms = atoms.getNumOfAtoms()
+    n_dof = n_atoms * 3
+    adp = np.zeros((n_dof, n_dof))
+    
+    for i in range(n_atoms):
+        anisou = anisous[i]
+        element = np.zeros((3,3))
+        element[0,0] = anisou[0]
+        element[1,1] = anisou[1]
+        element[2,2] = anisou[2]
+        element[0,1] = element[1,0] = anisou[3]
+        element[0,2] = element[2,0] = anisou[4]
+        element[1,2] = element[2,1] = anisou[5]
+        adp[i*3:(i+1)*3, i*3:(i+1)*3] = element
+    return adp
+        
+    
+

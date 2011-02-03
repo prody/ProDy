@@ -36,6 +36,7 @@ Functions
   * :func:`parsePDBStream`
   * :func:`writePDB`
   * :func:`writePDBStream`
+  
    
    
 .. doctest::
@@ -45,6 +46,7 @@ Functions
     >>> allmodels = parsePDB('2k39', subset='ca')
     >>> model10 = parsePDB('2k39', subset='ca', model=10)
     >>> np.all(allmodels.getCoordsets(9) == model10.getCoordinates())
+    True
     
 """
 
@@ -1271,3 +1273,4 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
             return biomols
     else:
         return None
+
