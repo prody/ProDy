@@ -401,6 +401,10 @@ def calcADPAxes(atoms):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
+    3Nx3 axis contains N times 3x3 matrices, one for each given atom. Columns
+    of these 3x3 matrices are the principal axes which are weighted by
+    square root of their eigenvalues.
+    
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
     >>> calphas = protein.select('calpha')
@@ -440,7 +444,7 @@ def calcADPAxes(atoms):
         element[0,2] = element[2,0] = anisou[4]
         element[1,2] = element[2,1] = anisou[5]
         vals, vecs = linalg.eigh(element)
-        axes[i*3:(i+1)*3,:] = vals * vecs
+        axes[i*3:(i+1)*3,:] = vals**0.5 * vecs
     return axes
         
    
