@@ -529,6 +529,9 @@ class AtomPointer(Atomic):
                 np.all(self_indices == other_indices):
                     return True
         return False
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __add__(self, other):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are
