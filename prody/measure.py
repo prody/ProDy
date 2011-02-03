@@ -403,7 +403,8 @@ def calcADPAxes(atoms):
     
     3Nx3 axis contains N times 3x3 matrices, one for each given atom. Columns
     of these 3x3 matrices are the principal axes which are weighted by
-    square root of their eigenvalues.
+    square root of their eigenvalues. The first columns correspond to largest
+    principal axes.
     
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
@@ -444,8 +445,10 @@ def calcADPAxes(atoms):
         element[0,2] = element[2,0] = anisou[4]
         element[1,2] = element[2,1] = anisou[5]
         vals, vecs = linalg.eigh(element)
-        axes[i*3:(i+1)*3,:] = vals**0.5 * vecs
-    return axes
+        vals[ vals < 0 ] = 0
+        vals = vals**0.5
+        axes[i*3:(i+1)*3,:] = vals * vecs
+    return axes[:, [2,1,0]]
         
    
 def buildADPMatrix(atoms):
