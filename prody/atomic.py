@@ -521,6 +521,16 @@ class AtomPointer(Atomic):
         else: 
             self._acsi = int(acsi)
 
+    def __eq__(self, other):
+        if not isinstance(other, AtomPointer):
+            return False
+        
+        if len(self._indices) == len(other._indices) and \
+            np.all(self._indices == other._indices):
+                return True
+        else:
+            return False
+
     def __add__(self, other):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are
         preserved."""
