@@ -136,6 +136,7 @@ class Atomic(object):
       * :class:`AtomPointer`"""
     
     def __contains__(self, item):
+        """.. versionadded:: 0.6"""
         if isinstance(item, Atomic):
             if isinstance(item, AtomGroup) and self == item: 
                 return True
@@ -145,6 +146,32 @@ class Atomic(object):
                 if set(item.getIndices()).issubset(set(self.getIndices())):
                     return True
         return False        
+      
+    def __eq__(self, other):
+        """.. versionadded:: 0.6"""
+        if isinstance(other, Atomic):
+            if isinstance(self, AtomPointer) and isinstance(other, AtomPointer):
+                self_indices = self._indices
+                other_indices = other.getIndices()
+                if len(self_indices) == len(other_indices) and \
+                    np.all(self_indices == other_indices):
+                        return True
+            elif isinstance(self, AtomGroup) and isinstance(other, AtomGroup):
+                return self.__hash__() == other.__hash__()
+            else:
+                if len(other) == len(self):
+                    if isinstance(self, AtomGroup):
+                        indices = other.getIndices()
+                    else:
+                        indices = self.getIndices()
+                    if indices[0] == 0 and \
+                        np.all(indices[1:] - indices[:-1] == 1):
+                        return True
+        return False
+    
+    def __ne__(self, other):
+        """.. versionadded:: 0.6"""
+        return not self.__eq__(other)
       
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
@@ -520,18 +547,6 @@ class AtomPointer(Atomic):
             self._acsi = atomgroup.getActiveCoordsetIndex()
         else: 
             self._acsi = int(acsi)
-
-    def __eq__(self, other):
-        if isinstance(other, AtomPointer):
-            self_indices = self._indices
-            other_indices = other.getIndices()
-            if len(self_indices) == len(other_indices) and \
-                np.all(self_indices == other_indices):
-                    return True
-        return False
-    
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
     def __add__(self, other):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are

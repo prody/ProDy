@@ -24,6 +24,9 @@ import logging.handlers
 import os
 import os.path
 
+
+    
+
 re = None
 def importRE():
     import re as RE
@@ -59,12 +62,13 @@ def importPyPlot():
 def importBioKDTree():
     try:
         from Bio.KDTree import KDTree
-        dynamics.KDTree = KDTree
-        select.KDTree = KDTree
     except ImportError:
         dynamics.KDTree = False
         select.KDTree = False
-        ProDyLogger.warning('Bio.KDTree is not be found.')
+        ProDyLogger.warning('Bio.KDTree is not found.')
+    else:
+        dynamics.KDTree = KDTree
+        select.KDTree = KDTree
 
 NCBIWWW = None
 NCBIXML = None
@@ -72,8 +76,8 @@ def importBioBlast():
     try:
         from Bio.Blast import NCBIWWW as ncbiwww 
         from Bio.Blast import NCBIXML as ncbixml 
-    except ImportError:
-        raise ImportError('BioPython is required for Blast searching PDB.org.')
+    except ImportError as err:
+        raise ImportError('BioPython is required for Blast searching PDB.org.\n' + str(err))
     global NCBIWWW, NCBIXML
     NCBIWWW = ncbiwww
     NCBIXML = ncbixml
@@ -124,7 +128,7 @@ def _ProDyStartLogger(**kwargs):
 
 ProDyLogger = _ProDyStartLogger()
 
-def ProDyStartLogfile(filename, **kwargs):
+def startLogfile(filename, **kwargs):
     """Start a file to save ProDy logs.
     
     :keyword filename: name of the logfile
@@ -165,7 +169,7 @@ def ProDyStartLogfile(filename, **kwargs):
             logger.info('Logfile "{0:s}" has been started.'.format(filename))
 
 
-def ProDyCloseLogfile(filename):
+def closeLogfile(filename):
     """Close logfile with *filename*."""
     filename = str(filename)
     if not filename.endswith('.log'):
@@ -180,7 +184,7 @@ def ProDyCloseLogfile(filename):
                 return
     logger.warning('Logfile "{0:s}" was not found.'.format(filename))
 
-def ProDySetVerbosity(level):
+def changeVerbosity(level):
     """Set ProDy console verbosity *level*.
     
     By default, console verbosity *level* is debug. This function accepts
@@ -193,7 +197,12 @@ def ProDySetVerbosity(level):
     info     Only brief information will be printed or written.
     warning  Only warning information will be printed or written.
     none     ProDy will not log any messages.
-    ======== ===========    
+    ======== ===========
+    
+    >>> from prody import *
+    >>> changeVerbosity('none')
+    >>> changeVerbosity('debug')
+    
     """
     lvl = LOGGING_LEVELS.get(level, None)
     if lvl is None: 
@@ -201,14 +210,36 @@ def ProDySetVerbosity(level):
     else:
         ProDyLogger.handlers[0].level = lvl 
 
-
+def checkUpdates():
+    """Check latest ProDy release and compare with the installed one.
+    
+    .. versionadded:: 0.6
+    
+    User is informed whether or not latest version is installed.
+    
+    """
+    
+    import xmlrpclib
+    pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
+    releases = pypi.package_releases('ProDy')
+    if releases[0] == __version__:
+        ProDyLogger.info('You are using the latest ProDy release ({0:s}).'
+                         .format(__version__))
+    else:
+        ProDyLogger.info('ProDy {0:s} has been released. '
+                         'You are using release {1:s}.'.format(releases[0],
+                                                               __version__))
 
 try:
     import numpy as np
 except ImportError, err:
     raise ImportError('numpy not found, it is a required package')
 
-__all__ = ['ProDyStartLogfile', 'ProDyCloseLogfile', 'ProDySetVerbosity']
+class ProDyException(Exception):
+    pass
+
+__all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
+           'checkUpdates']
 
 from . import atomic 
 from atomic import *

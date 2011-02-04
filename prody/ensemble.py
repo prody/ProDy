@@ -29,7 +29,7 @@ Functions
 
     * :func:`saveEnsemble`
     * :func:`loadEnsemble`
-    * :func:`getSumOfWeights`
+    * :func:`calcSumOfWeights`
     * :func:`showSumOfWeights`
     * :func:`trimEnsemble`
 
@@ -45,7 +45,7 @@ from prody import ProDyLogger as LOGGER
 from prody import measure
 
 __all__ = ['Ensemble', 'Conformation', 'saveEnsemble', 'loadEnsemble', 
-           'getSumOfWeights', 'showSumOfWeights', 'trimEnsemble']
+           'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble']
         
 class EnsembleError(Exception):
     pass
@@ -54,7 +54,11 @@ plt = None
 
 class Ensemble(object):
     
-    """A class for ensemble analysis.
+    """A class for ensemble analysis. This class enables handling coordinates
+    for heterogeneous structural datasets. 
+    
+    |example| See usage usage in :ref:`pca-xray`, :ref:`pca-dimer`, and 
+    :ref:`pca-blast`.
     
     Indexing returns a :class:`Conformation` instance, whereas slicing returns 
     an :class:`Ensemble` instance that contains subset of conformations.
@@ -607,6 +611,8 @@ class Conformation(object):
 def trimEnsemble(ensemble, **kwargs):
     """Return an ensemble obtained by trimming given *ensemble*.
     
+    .. versionadded:: 0.6
+    
     This function helps selecting atoms in an ensemble based on one of the 
     following criteria, and returns them in a new :class:`Ensemble` instance.
         
@@ -666,7 +672,7 @@ def trimEnsemble(ensemble, **kwargs):
             trimmed.addCoordset( confs[:, torf] )
     return trimmed
 
-def getSumOfWeights(ensemble):
+def calcSumOfWeights(ensemble):
     """Return sum of weights from an ensemble.
     
     Weights are summed for each atom over conformations in the ensemble.
@@ -696,6 +702,7 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     
     When analyzing an ensemble of X-ray structures, this function can be used 
     to see how many times a residue is resolved.
+    
     """
     """
     *indices*, if given, will be used as X values. Otherwise, X axis will
@@ -707,7 +714,7 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     if not plt: return None
     if not isinstance(ensemble, Ensemble):
         raise TypeError('ensemble must be an Ensemble instance')
-    weights = getSumOfWeights(ensemble)
+    weights = calcSumOfWeights(ensemble)
     if weights is None:
         return None
     show = plt.plot(weights, *args, **kwargs)

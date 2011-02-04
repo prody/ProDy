@@ -810,6 +810,8 @@ class NMA(NMABase):
     def setEigens(self, vectors, values=None):
         """Set eigenvectors and eigenvalues.
         
+        .. versionadded:: 0.6
+        
         :arg vectors: eigenvectors
         :type vectors: numpy.ndarray
         
@@ -2740,6 +2742,8 @@ def calcSubspaceOverlap(modes1, modes2):
 
 def calcCovarianceOverlap(modelA, modelB):
     """Return overlap between covariances of *modelA* and *modelB*.
+    
+    .. versionadded:: 0.6
     
     Overlap between covariances are calculated using normal modes 
     (eigenvectors), hence modes in both models must have been calculated.

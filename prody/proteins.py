@@ -42,6 +42,7 @@ Functions
 .. doctest::
     :hide:
         
+    >>> from prody import *
     >>> import numpy as np
     >>> allmodels = parsePDB('2k39', subset='ca')
     >>> model10 = parsePDB('2k39', subset='ca', model=10)
@@ -268,7 +269,13 @@ _parsePDBdoc = """
     :type name: str
 
     If ``model=0`` and ``header=True``, return header 
-    dictionary only."""
+    dictionary only.
+    
+    .. versionchanged:: 0.6
+       Default behavior for parsing alternate locations have changed. 
+       Alternate locations indicated by ``A`` are parsed.
+    
+    """
     
 _PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
 
