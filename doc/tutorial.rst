@@ -6,6 +6,19 @@
 Tutorial
 *******************************************************************************
 
+..
+    Parser will print what was parsed and how long it took to the screen::
+
+      @> 1p38 (./1p38.pdb.gz) is found in the target directory.
+      @> PDBParser: 2962 atoms and 1 coordinate sets were parsed in 0.08s.
+
+    The time printed on the console includes the time that it takes to evaluate 
+    coordinate lines and build an :class:`~prody.atomic.AtomGroup` instance and 
+    excludes reading the time spend on reading the file from disk.
+
+    If you do not want any logs printed on the screen, you can use 
+    :func:`~prody.ProDySetVerbosity` for setting verbosity level.
+
 ProDy is a Python package. Python is a modern, easy to learn and read, 
 interpreted, extensible, and multi-platform programming language [BS07]_. User
 with scientific interests is referred to `A Primer on Python for Life Science Researchers 
