@@ -235,9 +235,8 @@ class Ensemble(object):
                                      '{0:s}'.format(np.float64))
             if weights.ndim == 1:
                 weights = weights.reshape((1, n_atoms, 1))
-            
-            if n_confs > 1:
-                weights = np.tile(weights, (n_confs, 1, 1))
+                if n_confs > 1:
+                    weights = np.tile(weights, (n_confs, 1, 1))
         if self._confs is None: 
             self._confs = coords
             self._weights = weights
