@@ -646,7 +646,7 @@ def trimEnsemble(ensemble, **kwargs):
                                    '{0:s}'.format(repr(occupancy)))
         n_confs = ensemble.getNumOfConfs()
         assert n_confs > 0, 'ensemble does not contain anyconformations'
-        weights = getSumOfWeights(ensemble)
+        weights = calcSumOfWeights(ensemble)
         assert weights is not None, 'weights must be set for ensemble'
         weights = weights.flatten()
         mean_weights = weights / n_confs
