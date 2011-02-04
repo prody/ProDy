@@ -38,7 +38,7 @@ Analysis of NMR models is fairly easier, as it requires parsing a single
 structure. An example is provided for Ubiquitin [AB09]_.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    pca_nmr
 
@@ -49,19 +49,19 @@ Mixed structural datasets can be analyzed as well. Below example shows
 how to retrieve and analyze cytochrome c structures by a Blast searching. 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    
    pca_blast
 
 
-Protein Dimer
+Multimeric proteins
 ===============================================================================
 
-Above examples deal with protein monomers. It is also possible to analyze
-dimer structures.   
+Previous examples dealt with monomeric proteins. It is also possible to analyze
+multimeric structures.   
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    
    pca_dimer
 
@@ -75,7 +75,7 @@ contains snaphots from a simulation will do the trick. However, if a large
 number of frames is to be analyzed, the following example should be followed.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    eda_md
 

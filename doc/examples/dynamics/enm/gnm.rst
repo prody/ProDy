@@ -12,7 +12,7 @@ Synopsis
 This example shows how to perform GNM calculations using an X-ray structure 
 of ubiquitin.  
 
-User Input
+User input
 -------------------------------------------------------------------------------
 
 A PDB file or identifier.
@@ -68,7 +68,7 @@ method:
 
 We can get a copy of the Kirchhoff matrix using :meth:`GNM.getKirchhoff` method:
 
->>> gnm.getKirchhoff()
+>>> gnm.getKirchhoff() # doctest: +SKIP
 array([[ 11.,  -1.,  -1., ...,   0.,   0.,   0.],
        [ -1.,  15.,  -1., ...,   0.,   0.,   0.],
        [ -1.,  -1.,  20., ...,   0.,   0.,   0.],

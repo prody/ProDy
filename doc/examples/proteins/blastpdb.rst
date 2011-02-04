@@ -16,7 +16,7 @@ This examples demonstrates how to use Protein Data Bank blast search function,
 structures matching a sequence exists in PDB or to access a set of related 
 structures for ensemble analysis (i.e. ref:`pca`). 
 
-User Input
+User input
 -------------------------------------------------------------------------------
 
 Protein amino acid sequence is the only import from the user, e.g. 

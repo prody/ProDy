@@ -12,7 +12,7 @@ Synopsis
 This examples demonstrates how to use the flexible PDB fetcher, 
 :func:`fetchPDB`. 
 
-User Input
+User input
 -------------------------------------------------------------------------------
 
 Valid inputs are:

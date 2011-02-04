@@ -12,7 +12,7 @@ Synopsis
 This example shows how to calculate the deformation vector describing the 
 change between two structures of a protein. 
 
-User Input
+User input
 -------------------------------------------------------------------------------
 
 Two structures for the same protein.

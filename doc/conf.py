@@ -11,7 +11,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys, os, os.path, time
+
+if (time.time() - os.path.getmtime('_static/pypi_downloads.csv')) / 3600 > 12:
+    execfile('pypi.py')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -148,7 +151,25 @@ html_last_updated_fmt = '%b %d, %Y'
 html_index = 'index.html'
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {'index': ['getprody.html', 'googlegroup.html', 'searchbox.html'], 'search': [], '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'sourcelink.html', 'searchbox.html']}
+generic_sidebars = ['localtoc.html', 'relations.html', 'searchbox.html', 'sourcelink.html']
+html_sidebars = {
+    'index': ['getprody.html', 'googlegroup.html', 'searchbox.html'], 
+    'genindex': ['searchbox.html'],  
+    'py-modindex': ['searchbox.html'],  
+    'search': [],
+    'bibliography': generic_sidebars,
+    'changes': generic_sidebars,
+    'contents': generic_sidebars,
+    'credits': generic_sidebars,
+    'features': generic_sidebars,
+    'getprody': generic_sidebars,
+    'license': generic_sidebars,
+    'publications': generic_sidebars,
+    'examples/index': generic_sidebars,
+    'reference/index': generic_sidebars,
+    'reports/index': generic_sidebars,
+    'todo': generic_sidebars,
+    '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html', 'sourcelink.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -271,5 +292,14 @@ rst_epilog = """
 .. |matplotlib| replace:: matplotlib (http://matplotlib.sourceforge.net)
 
 .. |docrelease| replace:: Documentation release r{0:s}
+
+.. |pypi| replace:: Python Package Index (http://pypi.python.org/pypi/ProDy)
+
+.. |questions| replace:: Questions? Join our Google Group: 
+   http://groups.google.com/group/prody-dev
+    
+.. |suggestions| replace:: Suggestions, feature requests, or
+   problems? Submit them to the GitHub issue tracker: 
+   https://github.com/abakan/ProDy/issues
 
 """.format(getRevisionNumber())

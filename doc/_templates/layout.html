@@ -41,9 +41,9 @@ function getFontSize() {
       c_start = c_start + c_name.length + 1;
       var c_end = document.cookie.indexOf(";", c_start);
       if (c_end == -1) c_end = document.cookie.length;
-      return unescape(document.cookie.substring(c_start, c_end));
-      }
+        return unescape(document.cookie.substring(c_start, c_end));
     }
+  }
   return "";
 }
 
@@ -79,6 +79,7 @@ function checkFontSize() {
 {% endblock %}
 
 {% block header %}
+<script type="text/javascript">checkFontSize()</script>
 <div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
 <img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" />
 </div>

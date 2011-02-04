@@ -12,18 +12,15 @@ This module defines functions for aiding interaction ProDy experience.
 Functions
 ---------
 
-  * Start/close log files:
-  
-    * :func:`ProDyStartLogfile`
-    * :func:`ProDyCloseLogfile`
-
-  * Set ProDy console verbosity level:
-
-    * :func:`ProDySetVerbosity`
-
+  * :func:`changeVerbosity`
+  * :func:`checkUpdates`
+  * :func:`closeLogfile`
+  * :func:`startLogfile`
     
-.. autofunction:: ProDyStartLogfile
+.. autofunction:: changeVerbosity
 
-.. autofunction:: ProDyCloseLogfile
+.. autofunction:: checkUpdates
 
-.. autofunction:: ProDySetVerbosity
+.. autofunction:: closeLogfile
+
+.. autofunction:: startLogfile

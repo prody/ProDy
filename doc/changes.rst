@@ -15,10 +15,8 @@ Release 0.6 (in development)
 
 **New Features**:
 
-  * Membership test operation is defined for all :mod:`~prody.atomic` classes.
-    See :ref:`selection-operations`.
-  * Equality and non-equality tests are implemented for classes derived from 
-    :class:`~atomic.AtomPointer`.
+  * Membership, equality, and non-equality test operation are defined for all 
+    :mod:`~prody.atomic` classes. See :ref:`selection-operations`.
   * Two functions are implemented for dealing with anisotropic temperature 
     factors: :func:`~measure.calcADPAxes` and :func:`~measure.buildADPMatrix`.
   * :meth:`~dynamics.NMA.setEigens` method is implemented for analyzing

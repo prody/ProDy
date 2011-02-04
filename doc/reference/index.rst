@@ -13,10 +13,10 @@ Usage reference
 ===============================================================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+   :glob:
 
-   usage/atommaps
-   usage/selections
+   usage/*
 
 Library reference
 ===============================================================================
