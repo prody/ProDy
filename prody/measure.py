@@ -401,10 +401,16 @@ def calcADPAxes(atoms):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
+    .. versionadded:: 0.6
+    
     3Nx3 axis contains N times 3x3 matrices, one for each given atom. Columns
     of these 3x3 matrices are the principal axes which are weighted by
     square root of their eigenvalues. The first columns correspond to largest
     principal axes.
+    
+    The direction of the principal axes for an atom is determined based on the 
+    correlation of the axes vector with the principal axes vector of the 
+    previous atom.  
     
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
@@ -434,10 +440,24 @@ def calcADPAxes(atoms):
     n_atoms = atoms.getNumOfAtoms()
 
     axes = np.zeros((n_atoms*3, 3))    
-    
-    for i in range(n_atoms):
+
+    anisou = anisous[0]
+    element = np.zeros((3,3))
+    element[0,0] = anisou[0]
+    element[1,1] = anisou[1]
+    element[2,2] = anisou[2]
+    element[0,1] = element[1,0] = anisou[3]
+    element[0,2] = element[2,0] = anisou[4]
+    element[1,2] = element[2,1] = anisou[5]
+    vals, vecs = linalg.eigh(element)
+    # If negative eigenvalues are found (when ADP matrix is not positive 
+    # definite) set them to 0   
+    vals[ vals < 0 ] = 0
+    vals = vals**0.5
+    axes[0:3,:] = vals * vecs
+
+    for i in range(1, n_atoms):
         anisou = anisous[i]
-        element = np.zeros((3,3))
         element[0,0] = anisou[0]
         element[1,1] = anisou[1]
         element[2,2] = anisou[2]
@@ -449,6 +469,9 @@ def calcADPAxes(atoms):
         # definite) set them to 0   
         vals[ vals < 0 ] = 0
         vals = vals**0.5
+        # Make sure the direction that correlates with the previous atom
+        # is selected 
+        vals = vals * np.sign((vecs * axes[(i-1)*3:(i)*3,:]).sum(0))
         axes[i*3:(i+1)*3,:] = vals * vecs
     # Resort the columns before returning array
     return axes[:, [2,1,0]]
@@ -457,6 +480,8 @@ def calcADPAxes(atoms):
 def buildADPMatrix(atoms):
     """Return a 3Nx3N symmetric matrix containing anisotropic displacement
     parameters (ADPs) along the diagonal as 3x3 super elements.
+    
+    .. versionadded:: 0.6
     
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
