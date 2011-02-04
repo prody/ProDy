@@ -12,7 +12,7 @@ Synopsis
 This example shows how to perform ANM calculations, and retrieve
 normal mode data.  
 
-User Input
+User input
 -------------------------------------------------------------------------------
 
 A PDB file or identifier.

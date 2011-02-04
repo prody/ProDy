@@ -6,21 +6,55 @@
 Intermolecular Contacts
 *******************************************************************************
 
-Composite Contact Selections
+Synopsis
 ===============================================================================
 
-ProDy selection engine has a powerful feature that enables identifying 
-intermolecular contacts very easily. To show this we will identify protein atoms
-interacting with an inhibitor.  
+This examples shows how to identify intermolecular contacts, e.g. protein
+atoms interacting with a bound inhibitor.
 
-Let's start with loading ProDy and parse a PDB file that contains a bound ligand.
+User Input
+-------------------------------------------------------------------------------
+
+A PDB file that contains a protein-ligand complex or two PDB files containing
+protein and ligand separately. 
+
+ProDy Code
+===============================================================================
+
+We start by importing everything from the ProDy package:
 
 >>> from prody import *
+
+Simple contact selections
+-------------------------------------------------------------------------------
+
+ProDy selection engine has a powerful feature that enables identifying 
+intermolecular contacts very easily. We will see this by identifying protein 
+atoms interacting with an inhibitor.
+
+We start with parsing a PDB file that contains a protein and a bound ligand.
+
 >>> pdb = parsePDB('1zz2')
 
 ``1zz2`` contains an inhibitor bound p38 MAP kinase structure. Residue name of 
-inhibitor is ``B11``. We will make copies of inhibitor and protein. These
-copies will imitate atom groups that are parsed from separate files.
+inhibitor is ``B11``. We will make copies of inhibitor and protein. 
+
+Protein atoms interacting with the inhibitor can simply be identified as 
+follows:
+
+>>> contacts = pdb.select('protein and within 4 of resname B11')
+>>> contacts
+<Selection: "protein and wit... of resname B11" from 1zz2 (50 atoms; 1 coordinate sets, active set index: 0)>
+
+Contacts between different atom groups
+-------------------------------------------------------------------------------
+
+``'protein and within 4 of resname B11'`` is interpreted as select protein
+atoms that are within 4 A of residue whose name is B11. This selects
+protein atoms that within 4 A of the inhibitor. 
+
+In some cases, the protein and the ligand may be in separate files. 
+We will imitate this case bu making copies of protein and ligand.
 
 >>> inhibitor = pdb.copy('resname B11')
 >>> inhibitor
@@ -39,6 +73,10 @@ inhibitor.
 <Selection: "index 227 to 22...56 to 1356 1358" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
 
 We found that 50 protein atoms are contacting with the inhibitor.
+
+Composite contact selections
+-------------------------------------------------------------------------------
+
 Now, let's try something more sophisticated. We select alpha carbons of
 residues that have at least one atom interacting with the inhibitor:
 
@@ -46,7 +84,14 @@ residues that have at least one atom interacting with the inhibitor:
 >>> contacts_ca
 <Selection: "index 225 to 22...51 to 1351 1359" from Copy of 1zz2 selection "protein" (20 atoms; 1 coordinate sets, active set index: 0)>
 
+In this case, ``'calpha and (same residue as within 4 of inhibitor)'`` is 
+interpreted as select alpha carbon atoms of residues that have at least
+one atom within 4 A of any inhibitor atom.
+
 This shows that, 20 residues have atoms interacting with the inhibitor.
+
+Spherical atom selections
+-------------------------------------------------------------------------------
 
 Similarly, one can give arbitrary coordinate arrays for identifying atoms
 in a spherical region. Let's find backbone atoms within 5 angstroms of point 
@@ -56,8 +101,8 @@ in a spherical region. Let's find backbone atoms within 5 angstroms of point
 >>> sel = protein.select('backbone and within 5 of somepoint', somepoint=np.array((25, 73, 13)))
 
 
-Faster Contact Selections
-===============================================================================
+Fast contact selections
+-------------------------------------------------------------------------------
 
 For repeated and faster contact identification :class:`Contacts` class is
 recommended.

@@ -103,8 +103,8 @@ Addition
 
 .. versionadded:: 0.2.1
 
-Another operation defined on :class:`Selection` object (also on other 
-:class:`AtomPointer` derived classes) is addition. 
+Another operation defined on :class:`Select` object (also on other 
+:class:`~prody.atomic.AtomPointer` derived classes) is addition. 
 
 This may be useful if you want to get atoms in an :class:`AtomGroup` in a 
 specific order.
@@ -123,14 +123,14 @@ In the resulting file, water atoms will preceed protein atoms.
 Membership
 ===============================================================================
 
-.. versionadded:: 0.5.3
+.. versionadded:: 0.6
 
 Selections also allow membership test operation:
 
 >>> backbone = prot.select('protein') 
 >>> calpha = prot.select('calpha')
 
-Is ``calpha`` a member of ``backbone``?
+Is ``calpha`` a subset of ``backbone``?
 
 >>> calpha in backbone
 True
@@ -149,4 +149,21 @@ True
 >>> prot in prot
 True
 >>> calpha in calpha
+True
+
+Equality
+===============================================================================
+
+.. versionadded:: 0.6
+
+Finally, you can check equality of selections. Comparison will return
+``True`` if both selections refer to the same atoms.
+
+>>> calpha = prot.select('protein and name CA') 
+>>> calpha2 = prot.select('calpha')
+>>> calpha == calpha2
+True
+
+>>> all = prot.select('all')
+>>> prot == all
 True

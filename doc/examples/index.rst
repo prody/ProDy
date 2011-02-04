@@ -26,7 +26,8 @@ Protein Structure
    proteins/alignment
    proteins/biomolt
    atomic/hierview
-   
+   select/contacts
+      
 Compare Protein Chains
 ===============================================================================
    
@@ -53,12 +54,3 @@ Dynamics Analysis
    dynamics/pca/index
    proteins/deformation
    dynamics/nmops
-
-Selections and Contacts 
-===============================================================================
-
-.. toctree::
-   :maxdepth: 1
-   
-   select/contacts
-   select/operations

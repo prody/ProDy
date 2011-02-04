@@ -14,7 +14,7 @@ searching PDB. The protein of interest is Cytochrome C (*cyt C*).
 Dataset will contain structures sharing 44% or more 
 sequence identity with human *cyt C*, i.e. its homologs and/or orthologs.
 
-User Inputs
+User input
 -------------------------------------------------------------------------------
  
 * Amino acid sequence of the protein
@@ -30,7 +30,7 @@ Parameters
 How to Use
 -------------------------------------------------------------------------------
 
-This example can be user in the following ways:
+This example can be used in the following ways:
 
   * in an interactive Python session (start a Python interpreter and insert
     code lines one by one).
@@ -127,7 +127,7 @@ Step 3: Prepare ensemble
 ...         continue
 ...     
 ...     # Parse the current PDB file   
-...     structure = parsePDB(pdb_file, subset='calpha', altloc='A')
+...     structure = parsePDB(pdb_file, subset='calpha')
 ...     # Map current PDB file to the reference chain
 ...     mappings = mapOntoChain(structure, reference_chain, seqid=sequence_identity)
 ...     if len(mappings) == 0:
@@ -218,3 +218,7 @@ See Also
    
 User is referred to other examples in :ref:`pca` for illustration of 
 comparative analysis of theoretical and computational data.
+
+|questions|
+
+|suggestions|

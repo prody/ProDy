@@ -10,8 +10,8 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ca</span> <span class="o">=</span> <span class="n">pdb</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s">'calpha'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span> <span class="o">=</span> <span class="n">ANM</span><span class="p">(</span><span class="s">'p38_MAPK'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">buildHessian</span><span class="p">(</span><span class="n">ca</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38_anm.nmd'</span><span class="p">,</span> <span class="n">anm</span><span class="p">[:</span><span class="mi">6</span><span class="p">],</span> <span class="n">ca</span><span class="p">)</span></pre></div>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">(</span><span class="n">6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38_anm.nmd'</span><span class="p">,</span> <span class="n">anm</span>,</span> <span class="n">ca</span><span class="p">)</span></pre></div>
     </div>    
     <span class="linkdescr">Reads a p38 PDB structure, selects alpha carbons, and performs ANM calculations. Slowest 6 modes are written in NMD format for visualization using NMWiz and VMD.</span>
   </div>
@@ -124,11 +124,8 @@
   </p>
 
   <h2>Get ProDy</h2>
-  <p><b>Installation</b> instructions and requirements can be found at  
+  <p><b>Downloads and Installation</b> instructions can be found at  
     <a href="{{ pathto("getprody") }}">Getting ProDy</a>.
-  </p>
-  <p><b>Downloads</b> can be found in at Python Package Index:
-    <a href="http://pypi.python.org/pypi/ProDy#downloads" target="_blank">http://pypi.python.org/pypi/ProDy</a>.
   </p>
   <p><b>Source code</b> can be found in at github repository:
     <a href="http://github.com/abakan/ProDy" target="_blank">http://github.com/abakan/ProDy</a>.

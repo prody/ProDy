@@ -20,7 +20,7 @@ Parser allows extracting information on the subset of atoms or models
 
 This example shows how to use the flexible parsing options.
 
-User Input
+User input
 -------------------------------------------------------------------------------
 
 Three types of input are accepted from user:

@@ -9,10 +9,9 @@ Constructing an :class:`AtomGroup`
 Synopsis
 ===============================================================================
 
-This example shows how to construct an :class:`AtomGroup` 
-instance from scratch. It is particularly useful for those who intend to design 
-a molecular data file parser that returns parsed data in an :class:`AtomGroup`
-instance.
+This example shows how to construct an :class:`AtomGroup` instance from scratch. 
+It is particularly useful for those who intend to design a molecular data file 
+parser that returns parsed data in an :class:`AtomGroup` instance.
 
 
 ProDy Code
