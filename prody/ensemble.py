@@ -663,7 +663,7 @@ def trimEnsemble(ensemble, **kwargs):
     confs = ensemble.getCoordsets()
     if confs is not None:
         weights = ensemble.getWeights()
-        if weights is None:
+        if weights is not None:
             if weights.ndim == 1:
                 trimmed.addCoordset( confs[:, torf], weights[torf] )
             else:
