@@ -309,6 +309,7 @@ class AtomGroup(Atomic):
         return self._n_atoms
     
     def __add__(self, other):
+        """.. versionadded:: 0.5"""
         if not isinstance(other, AtomGroup):
             raise TypeError('type mismatch')
         if self == other:
@@ -537,6 +538,7 @@ class AtomPointer(Atomic):
       * :class:`Atom`
       * :class:`AtomSubset`
       * :class:`AtomMap`
+      
     """
     def __init__(self, atomgroup, acsi=None):
         if not isinstance(atomgroup, AtomGroup):
@@ -550,7 +552,11 @@ class AtomPointer(Atomic):
 
     def __add__(self, other):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are
-        preserved."""
+        preserved.
+        
+        .. versionadded:: 0.5
+        
+        """
         if not isinstance(other, AtomPointer):
             raise TypeError('an AtomPointer instance cannot be added to a {0:s} instance'.format(type(other)))
         ag = self._ag
