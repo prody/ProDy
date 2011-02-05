@@ -314,6 +314,8 @@ def calcDistance(one, two):
 def alignCoordsets(atoms, selstr='calpha', weights=None):
     """Superpose coordinate sets onto the active coordinate set.
     
+    .. versionadded:: 0.5
+    
     Atoms matching *selstr* will be used for calculation of transformation 
     matrix. Transformation matrix will be applied to all atoms in *atoms*,
     or its :class:`~prody.atomics.AtomGroup` if *atoms* is an 
@@ -321,7 +323,8 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
     
     By default, alpha carbon atoms are used to calculate the transformations.
     
-    Optionally, atomic *weights* can be passed for weighted superposition.    
+    Optionally, atomic *weights* can be passed for weighted superposition.
+        
     """
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must have type Atomic, not {0:s}'.format(type(atoms)))

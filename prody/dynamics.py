@@ -1612,6 +1612,8 @@ EDA = PCA
 def saveModel(nma, filename=None, matrices=False):
     """Save *nma* model data as :file:`filename.nma.npz`. 
     
+    .. versionadded:: 0.5
+    
     By default, eigenvalues, eigenvectors, variances, trace of covariance 
     matrix, and name of the model will be saved. If *matrices* is ``True``,
     covariance, Hessian or Kirchhoff matrices are saved too, whichever are 
@@ -1670,6 +1672,8 @@ def saveModel(nma, filename=None, matrices=False):
 
 def loadModel(filename):
     """Return NMA instance after loading it from file (*filename*).
+    
+    .. versionadded:: 0.5
     
     .. seealso: :func:`saveModel`
     
@@ -2032,6 +2036,8 @@ def calcOverlapTable(rows, cols):
 def sliceVector(vector, atoms, selstr):
     """Return a slice of *vector* matching *atoms* specified by *selstr*.
     
+    .. versionadded:: 0.5
+    
     Note that retuned :class:`Vector` instance is not normalized.
     
     :arg vector: vector instance to be sliced
@@ -2061,6 +2067,8 @@ def sliceVector(vector, atoms, selstr):
 
 def sliceMode(mode, atoms, selstr):
     """Return a slice of *mode* matching *atoms* specified by *selstr*.
+    
+    .. versionadded:: 0.5
     
     This works sligtly difference from :func:`sliceVector`. Mode array 
     (eigenvector) is multiplied by square-root of the variance along the mode.

@@ -402,8 +402,11 @@ class Select(object):
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with ``True`` values for matching atoms.
         
+        .. versionadded:: 0.5
+        
         .. note:: The length of the boolean :class:`numpy.ndarray` will be
-           equal to the number of atoms in *atoms* argument. 
+           equal to the number of atoms in *atoms* argument.
+            
         """
         
         if not isinstance(atoms, prody.Atomic):
@@ -443,7 +446,11 @@ class Select(object):
         return torf
     
     def getIndices(self, atoms, selstr, **kwargs):
-        """Return indices of atoms matching *selstr*."""
+        """Return indices of atoms matching *selstr*.
+        
+        .. versionadded:: 0.5
+        
+        """
         torf = self.getBoolArray(atoms, selstr, **kwargs)        
         if isinstance(atoms, prody.AtomGroup):
             indices = torf.nonzero()[0]
