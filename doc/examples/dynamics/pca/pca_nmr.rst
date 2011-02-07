@@ -13,10 +13,30 @@ This example shows how to perform PCA of an NMR structure with multiple models.
 The protein of interest is Ubiquitin, and example will repeat the calculations 
 for ubiquitin that was published in [AB09]_.
 
-User input
+Input
 -------------------------------------------------------------------------------
 
-A PDB identifier for an NMR structure.
+A set of NMR models from a PDB file. Specifying a PDB identifier for an
+NMR structure is also sufficient.
+
+Output
+-------------------------------------------------------------------------------
+
+A :class:`PCA` instance that stores covariance matrix and principal modes
+that describes the dominant changes in the dataset. :class:`PCA` instance
+and principal modes (:class:`Mode`) can be used as input to functions in 
+:mod:`~prody.dynamics` module for further analysis.
+
+
+Notes
+-------------------------------------------------------------------------------
+
+Note that this example is slightly different from that in the :ref:`Tutorial`.
+This example uses the :class:`~prody.ensemble.Ensemble` class which has 
+a method for performing iterative superpositon.
+
+Also, note that this example applies to any PDB file that contains multiple 
+models. 
   
 ProDy Code
 ===============================================================================
@@ -25,7 +45,7 @@ We start by importing everything from the ProDy package:
 
 >>> from prody import *
 
-Prepare protein
+Prepare ensemble
 -------------------------------------------------------------------------------
 
 We parse only CA atoms using :func:`~prody.proteins.parsePDB` 
@@ -38,14 +58,15 @@ them skews the results.
 
 >>> ubi = ubi.copy('resnum < 71')
 
+>>> ensemble = Ensemble('Ubiquitin NMR ensemble')
+>>> ensemble.setCoordinates( ubi.getCoordinates() )
+	
+Then, we add all of the coordinate sets to the ensemble, and perform an
+iterative superposition: 
+	
+>>> ensemble.addCoordset( ubi.getCoordsets() ) 
+>>> ensemble.iterpose()
 
-Align models
--------------------------------------------------------------------------------
-
-We use :func:`~prody.measure.alignCoordsets` function to superimpose all
-models onto the first one.
-
->>> alignCoordsets(ubi)
 
 PCA calculations
 -------------------------------------------------------------------------------
@@ -53,25 +74,15 @@ PCA calculations
 Performing :class:`PCA` is only three lines of code:
 
 >>> pca = PCA('Ubiquitin')
->>> pca.buildCovariance(ubi)
+>>> pca.buildCovariance(ensemble)
 >>> pca.calcModes()
 >>> pca
 <PCA: Ubiquitin (20 modes, 70 atoms)>
 
-.. note::
-   Note than in this PCA example we did not use :class:`~prody.ensemble.Ensemble`
-   class. This is because the models in an NMR structure file contains 
-   coordinates of all atoms, which makes :class:`~prody.ensemble.Ensemble`
-   not so useful. In PCA calculations for heterogeneous structural datasets, 
-   on the other hand, we deal with structures with missing residues. In that
-   case :class:`~prody.ensemble.Ensemble` class becomes handy to assemble
-   the coordinate data and perform structural alignment despite missing atoms.
-   
-
 Write NMD file
 -------------------------------------------------------------------------------
 
-Write principal modes into an NMD file for NMWiz using :func:`writeNMD` 
+Write principal modes into an :term:`NMD` file for NMWiz using :func:`writeNMD` 
 function:
 
 >>> writeNMD('ubi_pca.nmd', pca[:3], ubi)
@@ -83,10 +94,11 @@ Let's print fraction of variance for top raking 4 PCs (listed in the Table S3):
 
 >>> for mode in pca[:4]:
 ...     print mode.getFractOfVariance() # doctest: +SKIP
-0.299016803492
-0.0959780950608
-0.0647918823066
-0.058247703612
+0.133691677009
+0.0942276000043
+0.0833640062736
+0.0654647139302
+
 
 
 Compare with ANM results
@@ -103,12 +115,22 @@ Then, we perform ANM calculations using :func:`calcANM` for the active coordset:
 We calculate overlaps between ANM and PCA modes (presented in Table 1).
 :func:`printOverlapTable` function is handy to print a formatted overlap table:
 
->>> printOverlapTable(pca[:4], anm[:4]) # doctest: +SKIP
+>>> printOverlapTable(pca[:4], anm[:4])
 Overlap Table
                          ANM Ubiquitin
                      #1     #2     #3     #4
-PCA Ubiquitin #1   +0.02  -0.16  -0.12  -0.10
-PCA Ubiquitin #2   +0.19  +0.35  -0.20  +0.63
-PCA Ubiquitin #3   -0.20  +0.65  +0.24  -0.26
-PCA Ubiquitin #4   -0.27  -0.16  +0.14  +0.21
+PCA Ubiquitin #1   -0.19  -0.30  +0.22  -0.62
+PCA Ubiquitin #2   +0.09  -0.72  -0.16  +0.16
+PCA Ubiquitin #3   +0.31  -0.06  -0.23  -0.00
+PCA Ubiquitin #4   +0.11  +0.02  +0.16  -0.31
+<BLANKLINE>
 
+See Also
+===============================================================================
+   
+User is referred to other examples in :ref:`pca-xray` for illustration of 
+comparative analysis of theoretical and computational data.
+
+|questions|
+
+|suggestions|

@@ -13,6 +13,17 @@ This example shows how to construct an :class:`AtomGroup` instance from scratch.
 It is particularly useful for those who intend to design a molecular data file 
 parser that returns parsed data in an :class:`AtomGroup` instance.
 
+Input
+-------------------------------------------------------------------------------
+
+Atomic data, such as coordinates, atom names, residue names, etc.
+
+
+Output
+-------------------------------------------------------------------------------
+
+Output is an :class:`~prody.atomic.AtomGroup` instance that stores atomic data
+and can be used as input to functions and classes for dynamics analysis.
 
 ProDy Code
 ===============================================================================

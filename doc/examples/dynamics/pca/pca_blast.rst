@@ -14,19 +14,22 @@ searching PDB. The protein of interest is Cytochrome C (*cyt C*).
 Dataset will contain structures sharing 44% or more 
 sequence identity with human *cyt C*, i.e. its homologs and/or orthologs.
 
-User input
+Input
 -------------------------------------------------------------------------------
  
 * Amino acid sequence of the protein
 * A reference PDB structure
-* List of PDB files to be excluded from the analysis 
-
-Parameters
--------------------------------------------------------------------------------
-
+* Optionally, a list of PDB files to be excluded from the analysis 
 * Percent sequence identity used for selecting blast hits (PDB structures)
 * Selection of the *cyt C* chains and residues to be considered in analysis
 
+Output
+-------------------------------------------------------------------------------
+
+A :class:`PCA` instance that stores covariance matrix and principal modes
+that describes the dominant changes in the dataset. :class:`PCA` instance
+and principal modes (:class:`Mode`) can be used as input to functions in 
+:mod:`~prody.dynamics` module for further analysis.
  
 ProDy Code
 ===============================================================================
@@ -195,7 +198,7 @@ Let's show a projection of the ensemble onto PC1 and PC2:
 See Also
 ===============================================================================
    
-User is referred to other examples in :ref:`pca` for illustration of 
+User is referred to other examples in :ref:`pca-xray` for illustration of 
 comparative analysis of theoretical and computational data.
 
 |questions|

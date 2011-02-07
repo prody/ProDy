@@ -13,6 +13,18 @@ Some PDB files contain coordinates for monomer from a functional/biological
 multimer. ProDy offers functions to build the structure of the multimer
 using the header data from the PDB file.
 
+Input
+-------------------------------------------------------------------------------
+
+A PDB file that contains the coordinates for a monomer of biological multimeric 
+protein.
+
+Output
+-------------------------------------------------------------------------------
+
+An :class:`~prody.atomic.AtomGroup` instance that contains the multimer 
+coordinates.
+
 ProDy Code
 ===============================================================================
 
@@ -36,7 +48,8 @@ to coordinates.
 Build multimer
 -------------------------------------------------------------------------------
 
-Let's get the dimer coordinates:
+Let's get the dimer coordinates using :func:`applyBiomolecularTransformations`
+function:
 
 >>> dimer = applyBiomolecularTransformations(header, monomer)
 >>> dimer

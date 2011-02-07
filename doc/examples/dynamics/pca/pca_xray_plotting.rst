@@ -1,15 +1,31 @@
 .. currentmodule:: prody.dynamics
 
-.. _p38-xray-plotting:
+.. _pca-xray-plotting:
 
 *******************************************************************************
-p38 X-ray Ensemble - Part III: Plotting
+PCA of an X-ray ensemble: Plotting
 *******************************************************************************
 
-|more| Continued from :ref:`p38-xray-analysis`.
+Synopsis
+===============================================================================
 
-If you have left your session in the previous part, you will need to
-load saved data:
+This example is continued from :ref:`pca-xray-analysis`. The aim of this part 
+is to make the plots that was presented in our paper [AB09]_.
+
+Input
+-------------------------------------------------------------------------------
+
+PCA and ANM data calculated in :ref:`pca-xray-calculations`.
+
+Output
+-------------------------------------------------------------------------------
+
+ProDy Code
+===============================================================================
+
+
+We start by importing everything from the ProDy package and the matplotlib 
+library:
 
 .. plot::
    :context:
@@ -17,18 +33,25 @@ load saved data:
    :include-source:
    
    from prody import *
+   import matplotlib.pyplot as plt
 
+
+Then we load data saved in :ref:`pca-xray-calculations`:
+
+.. plot::
+   :context:
+   :nofigs:
+   :include-source:
+   
    pca = loadModel('p38_xray.pca.npz')
    anm = loadModel('1p38.anm.npz')
    ensemble = loadEnsemble('p38_X-ray.ens.npz')
    ref_chain = parsePDB('p38_ref_chain.pdb')
    
-   # We also import plotting library
-   import matplotlib.pyplot as plt
  
  
 PCA - ANM overlap  
-===============================================================================
+-------------------------------------------------------------------------------
 
 In previous page, we compared PCA and ANM modes to get some numbers. In this
 case, we will use plotting functions to make similar comparisons:
@@ -76,7 +99,7 @@ Let's also plot the cumulative overlap in the same figure:
    plt.close('all')  
 
 Square fluctuations  
-===============================================================================
+-------------------------------------------------------------------------------
 
 .. plot::
    :context:
@@ -134,7 +157,7 @@ Alternatively, we could plot normalized square fluctuations:
 
 
 Projections  
-===============================================================================
+-------------------------------------------------------------------------------
 
 Now we will project the ensemble onto PC 1 and 2 using :func:`showProjection`:
 
@@ -196,7 +219,7 @@ It is possible to show the legend for this plot, but the figure gets crowded:
    plt.close('all')
 
 Cross-projections
-===============================================================================
+-------------------------------------------------------------------------------
 
 Finally, we will make a cross-projection plot using :func:`showCrossProjection`.
 We will pass scale='y' argument, which will scale the width of the projection
@@ -239,4 +262,13 @@ This is going to print 0.95 for PC 1 and ANM mode 2 pair.
 
    plt.close('all')
 
-|more| This example continues in :ref:`p38-xray-visualization`.
+See Also
+===============================================================================
+
+This example is continued in :ref:`pca-xray-visualization`.
+
+|more| See a list of all plotting functions in :ref:`dynamics`.
+
+|questions|
+
+|suggestions|

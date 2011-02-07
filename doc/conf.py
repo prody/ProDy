@@ -158,6 +158,7 @@ html_sidebars = {
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
+    'tutorial': ['localtoc.html', 'codesnippets.html', 'searchbox.html'],
     'bibliography': generic_sidebars,
     'changes': generic_sidebars,
     'contents': generic_sidebars,
@@ -286,7 +287,7 @@ rst_epilog = """
 
 .. |vmd| replace:: VMD (http://www.ks.uiuc.edu/Research/vmd/)
 
-.. |mdanalysis| replace:: MDAnalysis (http://code.google.com/p/mdanalysis/)
+.. |mdanalysis| replace:: http://code.google.com/p/mdanalysis/
 
 .. |pyparsing| replace:: pyparsing (http://pyparsing.wikispaces.com/)
 

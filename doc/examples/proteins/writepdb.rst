@@ -13,6 +13,16 @@ PDB files can be written using :func:`writePDB` function. This
 example shows how to write PDB files for :class:`~prody.atomic.AtomGroup` 
 instances and subsets of atoms. 
 
+Input
+-------------------------------------------------------------------------------
+
+A ProDy class instance that contains or points to atomic data is accepted
+as input. 
+ 
+Output
+-------------------------------------------------------------------------------
+ 
+A PDB file.
 
 ProDy Code
 ===============================================================================

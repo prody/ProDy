@@ -12,13 +12,19 @@ Synopsis
 This examples demonstrates how to use the flexible PDB fetcher, 
 :func:`fetchPDB`. 
 
-User input
+Input
 -------------------------------------------------------------------------------
 
 Valid inputs are:
 
   * PDB identifier, e.g ``"2k39"``
   * list of PDB identifiers, e.g. ``["2k39", "1mkp", "1etc"]`` 
+  
+Output
+-------------------------------------------------------------------------------
+
+Compressed PDB files (:file:`pdb.gz`) saved in the current working directory 
+or a target folder.
   
 ProDy Code
 ===============================================================================

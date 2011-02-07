@@ -20,14 +20,17 @@ User input
  
 * Amino acid sequence of the protein
 * A reference PDB structure
-* List of PDB files to be excluded from the analysis, if any 
-
-Parameters
--------------------------------------------------------------------------------
-
+* Optionally, a list of PDB files to be excluded from the analysis 
 * Percent sequence identity used for selecting blast hits (PDB structures)
 * Selection of the RT chains and residues to be considered in analysis
 
+Output
+-------------------------------------------------------------------------------
+
+A :class:`PCA` instance that stores covariance matrix and principal modes
+that describes the dominant changes in the dataset. :class:`PCA` instance
+and principal modes (:class:`Mode`) can be used as input to functions in 
+:mod:`~prody.dynamics` module for further analysis.
 
 ProDy Code
 ===============================================================================
@@ -244,7 +247,7 @@ Only some of the ProDy plotting functions are shown here. A complete list
 can be found in :ref:`dynamics` module. 
 
    
-|more| See also other examples in :ref:`pca` for illustration of 
+|more| See also other examples in :ref:`pca-xray` for illustration of 
 comparative analysis of theoretical and computational data.
 
 |questions|

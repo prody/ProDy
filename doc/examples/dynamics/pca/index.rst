@@ -10,7 +10,7 @@ ProDy can be used to perform principal component analysis of:
 
   * X-ray structures
   * NMR models
-  * Mixed datasets from Blast 
+  * Mixed datasets
   * MD snapshots 
   
 X-ray structures
@@ -29,8 +29,8 @@ example will reproduce the results presented in [AB09]_.
 .. toctree::
    :maxdepth: 2
 
-   pca_xray/index
-
+   pca_xray
+   
 NMR models
 ===============================================================================
 

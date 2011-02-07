@@ -12,11 +12,17 @@ Synopsis
 This example shows how to calculate the deformation vector describing the 
 change between two structures of a protein. 
 
-User input
+Input
 -------------------------------------------------------------------------------
 
 Two structures for the same protein.
 
+Output
+-------------------------------------------------------------------------------
+
+A :class:`~prody.dynamics.Vector` instance that contains the deformation vector
+describing the change in protein structure. This object instance can be used 
+conveniently to compare deformation with normal modes.
 
 ProDy Code
 ===============================================================================
@@ -86,7 +92,7 @@ This is the percentage of matched residues with respect to the longer chain.
 is the number of atoms in the returned atom maps. 
 
 
-Calculate RMSD and superpose
+RMSD and superpose
 -------------------------------------------------------------------------------
 
 We calculate the RMSD using :func:`~prody.measure.calcRMSD` function: 

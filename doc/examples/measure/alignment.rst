@@ -1,4 +1,4 @@
-.. currentmodule:: prody.proteins
+.. currentmodule:: prody.measure
 
 .. _aligncoordsets:
 
@@ -11,12 +11,18 @@ Synopsis
 
 :class:`~prody.atomic.AtomGroup` instances can store multiple coordinate sets,
 i.e. multiple models from an NMR structure. This example shows how to align
-such coordinate sets. 
+such coordinate sets using :func:`alignCoordsets` function. 
 
-User input
+Input
 -------------------------------------------------------------------------------
 
 A PDB file that contains multiple NMR models.
+
+Output
+-------------------------------------------------------------------------------
+
+Output is a :class:`~prody.atomic.AtomGroup` instance whose coordinate
+sets are superposed on the the active coordinate set selected by the user.
 
 ProDy Code
 ===============================================================================
@@ -45,8 +51,6 @@ Calculate RMSD
 This function calculates RMSDs with respect to the active coordinate set,
 which is the first model in this case.
 
-
-
 Align coordsets
 -------------------------------------------------------------------------------
 
@@ -65,6 +69,15 @@ set).
 >>> rmsds = calcRMSD( pdb )
 >>> rmsds.mean() # doctest: +SKIP
 3.27689121518
+
+Write aligned coordinates
+-------------------------------------------------------------------------------
+
+Using :func:`~prody.proteins.writePDB` function, we can write the aligned
+coordinate sets in PDB format: 
+
+>>> writePDB('1joy_aligned.pdb', pdb)
+'1joy_aligned.pdb'
 
 |questions|
 
