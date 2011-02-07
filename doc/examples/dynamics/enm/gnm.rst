@@ -12,11 +12,19 @@ Synopsis
 This example shows how to perform GNM calculations using an X-ray structure 
 of ubiquitin.  
 
-User input
+Input
 -------------------------------------------------------------------------------
 
-A PDB file or identifier.
+Protein structure data in PDB file format or specified by as PDB identifier.
 
+Output
+-------------------------------------------------------------------------------
+
+A :class:`GNM` instance that stores Kirchhoff matrix and normal mode data 
+describing intrinsic dynamics of the protein structure.
+:class:`GNM` instances and individual normal modes (:class:`Mode`) can be
+used as input to functions in :mod:`~prody.dynamics` module for further 
+analysis.
 
 ProDy Code
 ===============================================================================
@@ -255,7 +263,7 @@ to plot data:
    :context:
    :include-source:
    
-   plt.figure(figsize=(7,4))
+   plt.figure(figsize=(5,4))
    showSqFlucts(gnm[0])
    
 .. plot::
@@ -263,3 +271,7 @@ to plot data:
    :nofigs:
 
    plt.close('all')  
+
+|questions|
+
+|suggestions|

@@ -35,6 +35,7 @@ ProDy documentation is organized in three main sections:
   and class methods on the screen. You might need to type ``q`` to quit from 
   help. Also, if you are using interactive Python shell (IPython), you can 
   get help as follows::
+  
     prot ?
 
 
@@ -272,7 +273,7 @@ PCA calculations
 ===============================================================================
 
 We show how to perform principal component analysis (:class:`~dynamics.PCA`) 
-of a set of NMR models for ubiquitin (PDB ID: 2k39) []_.
+of a set of NMR models for ubiquitin (PDB ID: 2k39).
 
 Parse and align the coordinate data:
 

@@ -10,17 +10,14 @@ Synopsis
 ===============================================================================
 
 ProDy offers a fast and flexible PDB parser, :func:`parsePDB`. 
-This example demonstrates flexible usage of this function.
-
-Parser allows extracting information on the subset of atoms or models 
-(in NMR structures), which may boost the performance when used. 
+Parser can be used to read well defined subsets of atoms, specific chains or 
+models (in NMR structures) to boost the performance. This example shows how to 
+use the flexible parsing options. 
 
 |more| For performance benchmarks of ProDy PDB parser see 
 :ref:`pdbparser-performance`.
 
-This example shows how to use the flexible parsing options.
-
-User input
+Input
 -------------------------------------------------------------------------------
 
 Three types of input are accepted from user:
@@ -28,6 +25,12 @@ Three types of input are accepted from user:
   * PDB file path, e.g. ``"../1MKP.pdb"``
   * compressed (gzipped) PDB file path, e.g. ``"1p38.pdb.gz"`` 
   * PDB identifier, e.g. ``"2k39"``
+ 
+Output
+-------------------------------------------------------------------------------
+ 
+Output is an :class:`~prody.atomic.AtomGroup` instance that stores atomic data
+and can be used as input to functions and classes for dynamics analysis.  
  
 ProDy Code
 ===============================================================================
@@ -51,8 +54,8 @@ information):
 
 Parser returns an :class:`~prody.atomic.AtomGroup` instance.
 
-Also note that parser the time it took to parse the file will be printed on
-the screen. This time includes the time that it takes to evaluate 
+Also note that the time it took to parse the file is printed on
+the screen. This includes the time that it takes to evaluate 
 coordinate lines and build an :class:`~prody.atomic.AtomGroup` instance and 
 excludes the time spent on reading the file from disk.
 
@@ -72,7 +75,7 @@ current working directory, before it is parsed.
 Subsets of atoms
 -------------------------------------------------------------------------------
 
-Parser can be used to parse backbone or carbon alpha atoms:
+Parser can be used to parse backbone or alpha carbon atoms:
 
 >>> backbone = parsePDB('1mkp', subset='bb')
 >>> backbone
@@ -126,7 +129,8 @@ Specific alternate locations can be parsed as follows:
 <AtomGroup: 1ejg (634 atoms; 1 coordinate sets, active set index: 0)>
 
 Note that in this case number of atoms are different between the two atom 
-groups. This is due to the in residue types of atoms with alternate locations.
+groups. This is because the residue types of atoms with alternate locations
+are different.
 
 Also, all alternate locations can be parsed as follows:
 
@@ -153,7 +157,7 @@ atoms of a specific chain:
 Header data
 -------------------------------------------------------------------------------
 
-PDB parser can be used to extract header data from PDB files: as follows:
+PDB parser can be used to extract header data from PDB files as follows:
 
 >>> atoms, header = parsePDB('1mkp', header=True)
 

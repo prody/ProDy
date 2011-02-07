@@ -1,6 +1,6 @@
 .. currentmodule:: prody.dynamics
 
-.. _nmops:
+.. _normalmode-operations:
 
 *******************************************************************************
 Normal Mode Operations

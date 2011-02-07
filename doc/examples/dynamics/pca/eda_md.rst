@@ -6,46 +6,57 @@
 EDA of MD Trajectories
 *******************************************************************************
 
-This example shows how to perform essential dynamics analysis of a molecular
-dynamics trajector.
+Synopsis
+===============================================================================
 
-Following ProDy classes and functions are used in the example:
+This example shows how to perform essential dynamics analysis of molecular
+dynamics trajectories.
 
-Classes:
-  * :class:`EDA`
-  * :class:`~prody.ensemble.Ensemble`
-Functions:
-  * :func:`~prody.proteins.parsePDB`
+Input
+-------------------------------------------------------------------------------
 
-Also required:
-
-  * PSF, PDB, and DCD files from a simulation
-  * MDAnalysis Python package is required for parsing coordinates from DCD
-    trajectory files.
+User needs to provide :term:`PDB`, :term:`PSF`, and :term:`DCD` files from a 
+simulation.
    
-.. note::
-   |mdanalysis| is a very useful Python package for analyzing MD trajectories.
-   It can be used to parse trajectories in several different file formats. 
-   For more information interested user should consult the wiki pages of the 
-   code.
+Output
+-------------------------------------------------------------------------------
 
-::
+A :class:`EDA` instance that stores covariance matrix and principal modes
+that describes the essential dynamics of the system observed in the simulation. 
+:class:`EDA` instance and principal modes (:class:`Mode`) can be used as input 
+to functions in :mod:`~prody.dynamics` module for further analysis.
+
+Notes
+-------------------------------------------------------------------------------
+
+MDAnalysis Python package is required for parsing coordinates from DCD
+trajectory files. It can be used to parse trajectories in several other file 
+formats as well. For more information interested user should consult the wiki 
+pages of the package. See |mdanalysis| for more information.
+
+
+ProDy Code
+===============================================================================
+
+We start by importing everything from ProDy and MDAnalysis packages::
   
   from prody import *
-
-  # Import MDAnalysis
   import MDAnalysis
 
-  # Instantiate a Universe for the simulated system
-  universe = MDAnalysis.Universe('protein.psf', 'protein.dcd')
+Prepare ensemble
+-------------------------------------------------------------------------------
 
+Instantiate a Universe for the simulated system::
+
+  universe = MDAnalysis.Universe('protein.psf', 'protein.dcd')
   # Select atoms of interest
   universe_ca = universe.selectAtoms('name CA')
-
   # Get coordinates of CA atoms
   ca_coords = universe.dcd.timeseries(universe_ca, format='fac')
 
-  # Instantiate an emseble
+
+Instantiate a ProDy :class:`~prody.ensemble.Ensemble`::
+
   ensemble = Ensemble('MD snapshots')
   # Add all coordinate sets to ensemble
   ensemble.addCoordset(ca_coords)
@@ -54,19 +65,42 @@ Also required:
   # Perform iterative sueprimposition
   ensemble.iterpose()
 
-  # Instantiate EDA and perform calculations
+EDA calculations
+-------------------------------------------------------------------------------
+
+Instantiate :class:`EDA` and perform calculations::
+
   eda = EDA('EDA')
   eda.buildCovariance(ensemble)
   eda.calcModes()
 
 
+Write NMD file
+-------------------------------------------------------------------------------
 
-  # Write essential modes into an NMD file for NMWiz
-  # for this we will need to parse the protein structure as well
+We can write essential modes into an :term:`NMD` file for NMWiz.
+For this we will need to parse the protein structure as well::
+
   prot = parsePDB('protein.pdb')
   prot_ca = prot.select('calpha')
   writeNMD('md_eda.nmd', eda[:3], prot_ca)
 
-  # Let's print fraction of variance for top raking 4 essential modes
+Print data
+-------------------------------------------------------------------------------
+
+Let's print fraction of variance for top raking 4 essential modes::
+
   for mode in eda[:4]:
       print mode.getFractOfVariance()
+
+
+See Also
+===============================================================================
+   
+User is referred to other examples in :ref:`pca-xray` for illustration of 
+comparative analysis of theoretical and computational data.
+
+
+|questions|
+
+|suggestions|

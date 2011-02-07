@@ -12,11 +12,19 @@ Synopsis
 This examples shows how to identify intermolecular contacts, e.g. protein
 atoms interacting with a bound inhibitor.
 
-User Input
+Input
 -------------------------------------------------------------------------------
 
 A PDB file that contains a protein-ligand complex or two PDB files containing
-protein and ligand separately. 
+protein and ligand separately.
+
+Output
+-------------------------------------------------------------------------------
+
+Output is a :class:`~prody.atomic.Selection` instance that points to atoms
+matching the contact criteria given by the user. 
+:class:`~prody.atomic.Selection` instances can be used as input to other
+functions for further analysis.
 
 ProDy Code
 ===============================================================================
@@ -37,24 +45,22 @@ We start with parsing a PDB file that contains a protein and a bound ligand.
 >>> pdb = parsePDB('1zz2')
 
 ``1zz2`` contains an inhibitor bound p38 MAP kinase structure. Residue name of 
-inhibitor is ``B11``. We will make copies of inhibitor and protein. 
-
-Protein atoms interacting with the inhibitor can simply be identified as 
-follows:
+inhibitor is ``B11``. Protein atoms interacting with the inhibitor can simply 
+be identified as follows:
 
 >>> contacts = pdb.select('protein and within 4 of resname B11')
 >>> contacts
 <Selection: "protein and wit... of resname B11" from 1zz2 (50 atoms; 1 coordinate sets, active set index: 0)>
 
-Contacts between different atom groups
--------------------------------------------------------------------------------
-
 ``'protein and within 4 of resname B11'`` is interpreted as select protein
 atoms that are within 4 A of residue whose name is B11. This selects
 protein atoms that within 4 A of the inhibitor. 
 
+Contacts between different atom groups
+-------------------------------------------------------------------------------
+
 In some cases, the protein and the ligand may be in separate files. 
-We will imitate this case bu making copies of protein and ligand.
+We will imitate this case by making copies of protein and ligand.
 
 >>> inhibitor = pdb.copy('resname B11')
 >>> inhibitor
@@ -65,14 +71,18 @@ We will imitate this case bu making copies of protein and ligand.
 
 We see that inhibitor molecule contains 33 atoms.
 
-Now, let's say that we want protein atoms that are within 4 angstrom of the 
-inhibitor.
+Now we have two different atom groups, and we want protein atoms that are 
+within 4 angstrom of the inhibitor.
 
 >>> contacts = protein.select('within 4 of inhibitor', inhibitor=inhibitor)
 >>> contacts
 <Selection: "index 227 to 22...56 to 1356 1358" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
 
 We found that 50 protein atoms are contacting with the inhibitor.
+In this case, we passed the atom group *inhibitor* as a keyword argument 
+to the selection function. Note that the keyword must match that is used 
+in the selection string. 
+
 
 Composite contact selections
 -------------------------------------------------------------------------------
@@ -93,9 +103,9 @@ This shows that, 20 residues have atoms interacting with the inhibitor.
 Spherical atom selections
 -------------------------------------------------------------------------------
 
-Similarly, one can give arbitrary coordinate arrays for identifying atoms
-in a spherical region. Let's find backbone atoms within 5 angstroms of point 
-(25, 73, 13):
+Similarly, one can give arbitrary coordinate arrays as keyword arguments to 
+identify atoms in a spherical region. Let's find backbone atoms within 5 
+angstroms of point (25, 73, 13):
 
 >>> import numpy as np # We will need to pass a Numpy array
 >>> sel = protein.select('backbone and within 5 of somepoint', somepoint=np.array((25, 73, 13)))
@@ -110,8 +120,8 @@ recommended.
 >>> # We pass the protein as argument
 >>> protein_contacts = Contacts(protein)
 >>> # The following corresponds to "within 5 of inhibitor"
->>> protein_contacts.select(5, inhibitor)
-<Selection: "index 226 227 2... 1358 1359 1362" from Copy of 1zz2 selection "protein" (93 atoms; 1 coordinate sets, active set index: 0)>
+>>> protein_contacts.select(4, inhibitor)
+<Selection: "index 227 230 2... 1354 1356 1358" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
 
 This method is 20 times faster than the one in the previous part, but it is
 limited to selecting only contacting atoms (other selection arguments cannot be 

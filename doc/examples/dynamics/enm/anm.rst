@@ -12,10 +12,20 @@ Synopsis
 This example shows how to perform ANM calculations, and retrieve
 normal mode data.  
 
-User input
+Input
 -------------------------------------------------------------------------------
 
-A PDB file or identifier.
+Protein structure data in PDB file format or specified by as PDB identifier.
+
+Output
+-------------------------------------------------------------------------------
+
+An :class:`ANM` instance that stores Hessian and Kirchhoff matrices and 
+normal mode data describing intrinsic dynamics of the protein structure. 
+:class:`ANM` instances and individual normal modes 
+(:class:`Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
+module for further analysis.
+
 
 ProDy Code
 ===============================================================================

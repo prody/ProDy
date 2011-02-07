@@ -86,6 +86,7 @@ Optional Software
     installed, Bio.KDTree is used in elastic network model calculations. It
     provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 
     matrices for large systems.
+
 Recommended Software
 ===============================================================================
 
