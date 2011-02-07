@@ -3,7 +3,7 @@
 .. _pca-xray-calculations:
 
 *******************************************************************************
-PCA of an X-ray ensemble: Calculations
+PCA of X-ray structures: Calculations
 *******************************************************************************
 
 Synopsis

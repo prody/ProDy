@@ -23,7 +23,7 @@ Feature Index
   * Anisotropic Network Model (:class:`~dynamics.ANM`)
  
     * :ref:`anm`
-    * :ref:`p38-xray-calculations`
+    * :ref:`pca-xray-calculations`
     * :ref:`pca-nmr`
     * :ref:`scripts-anm`
     
