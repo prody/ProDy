@@ -39,24 +39,6 @@ Required Software
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
 * `Biopython 1.54+ <http://biopython.org/>`_
 
-
-Optional Software
-===============================================================================
-
-* `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required for plotting 
-  data.
-* `Scipy 0.7+ <http://www.scipy.org/SciPy>`_, when installed, replaces
-  linear algebra module of Numpy. Scipy linear algebra module is more flexible
-  and can be faster depending on the situation.
-
-..
-  * `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ required for 
-    pairwise 
-    sequence alignments and proximity based atom selections. Also, when 
-    installed, Bio.KDTree is used in elastic network model calculations. It
-    provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 
-    matrices for large systems.
-
 Installation Instructions
 ===============================================================================
 
@@ -86,23 +68,38 @@ Windows
 
 Download :file:`ProDy-0.x.y.Windows.exe` and run it to install ProDy.
 
-
-Source Code
+Optional Software
 ===============================================================================
 
-The source code can be found at http://github.com/abakan/ProDy.
-
+* `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required for plotting 
+  data.
+* `Scipy 0.7+ <http://www.scipy.org/SciPy>`_, when installed, replaces
+  linear algebra module of Numpy. Scipy linear algebra module is more flexible
+  and can be faster depending on the situation.
+* `NMWiz <http://code.google.com/p/nmwiz/>`_ for visualizing normal mode data 
+  in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
+  
+..
+  * `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ required for 
+    pairwise 
+    sequence alignments and proximity based atom selections. Also, when 
+    installed, Bio.KDTree is used in elastic network model calculations. It
+    provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 
+    matrices for large systems.
 Recommended Software
 ===============================================================================
 
-* `NMWiz <http://code.google.com/p/nmwiz/>`_ for visualizing normal mode data 
-  in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
+
 * `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular 
   dynamics trajectories.
 * `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
   colorful interactive ProDy sessions on Windows.
 
+Source Code
+===============================================================================
+
+The source code can be found at http://github.com/abakan/ProDy.
 
 .. Comes with ProDy
    ===============================================================================
@@ -111,3 +108,4 @@ Recommended Software
      selection grammer.
    * `Biopython <http://biopython.org/>`_ KDTree, pairwise2, and Blast modules
      are included in ProDy packages.
+
