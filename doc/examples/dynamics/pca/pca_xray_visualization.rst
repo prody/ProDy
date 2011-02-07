@@ -3,7 +3,7 @@
 .. _pca-xray-visualization:
 
 *******************************************************************************
-PCA of an X-ray ensemble - Part IV: Visualization
+PCA of X-ray structures: Visualization
 *******************************************************************************
 
 Synopsis
@@ -59,10 +59,13 @@ are saved as follows using :func:`writeNMD` functions:
 
 It is also possible to load VMD to visualize normal mode data 
 from within an interactive Python session. For this to work, you need
-VMD and NMWiz plugin installed. Check if VMD path is correct:
+VMD and NMWiz plugin installed. Check if VMD path is correct using :func:`getVMDpath`:
     
 >>> getVMDpath()
-'vmd' 
+'/usr/local/bin/vmd' 
+
+If this is not the correct path to your VMD executable you can change it 
+using :func:`setVMDpath`.
     
 ::
 

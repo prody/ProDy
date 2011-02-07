@@ -134,7 +134,7 @@ to the Matplotlib functions.
 Examples
 --------
 
-Results from the example :ref:`p38-xray-calculations` will be used to
+Results from the example :ref:`pca-xray-calculations` will be used to
 illustrate class methods and functions in the module.
   
 
@@ -452,7 +452,7 @@ class Mode(VectorBase):
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
         
-        >>> mode.getEigenvalue()
+        >>> mode.getEigenvalue() # doctest: +SKIP
         0.10652815070679021
         
         """
@@ -481,7 +481,7 @@ class Mode(VectorBase):
         
         See :meth:`getVariance`
         
-        >>> mode.getFractOfVariance()
+        >>> mode.getFractOfVariance() # doctest: +SKIP
         0.32090162902353198
         
         """
@@ -1903,12 +1903,12 @@ def calcProjection(ensemble, modes):
 
     For K conformations and M modes, a (K,M) matrix is returned.     
     
-    >>> calcProjection(p38_ensemble, p38_pca[:3])
-    array([[ 11.4104979 ,   2.65096089,   1.11556184],
-           [  7.84594842,  -1.85640127,   1.59130996],
+    >>> calcProjection(p38_ensemble, p38_pca[:3]) # doctest: +SKIP
+    array([[ 11.41 ,   2.651,   1.116],
+           [  7.846,  -1.856,   1.591],
            ...
-           [  5.51572309,  -5.10756938,  -5.98343901],
-           [  5.87457149,  -7.40788451,   2.20797633]])
+           [  5.516,  -5.108,  -5.983],
+           [  5.875,  -7.408,   2.208]])
     """
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'
@@ -2605,20 +2605,14 @@ def calcCrossCorrelations(modes, n_cpu=1):
     :arg n_cpu: Number of CPUs to use. Default is 1. 
     :type n_cpu: int 
     
-    >>> calcCrossCorrelations(p38_anm)
-    array([[ 1.        ,  0.94782223,  0.8736113 , ...,  0.60437502,
-             0.55178945,  0.31997558],
-           [ 0.94782223,  1.        ,  0.96980278, ...,  0.51726959,
-             0.53243166,  0.31677069],
-           [ 0.8736113 ,  0.96980278,  1.        , ...,  0.32284386,
-             0.35342037,  0.14512422],
+    >>> calcCrossCorrelations(p38_anm) # doctest: +SKIP
+    array([[ 1.   ,  0.948,  0.874, ...,  0.604,  0.552,  0.32 ],
+           [ 0.948,  1.   ,  0.97 , ...,  0.517,  0.532,  0.317],
+           [ 0.874,  0.97 ,  1.   , ...,  0.323,  0.353,  0.145],
            ..., 
-           [ 0.60437502,  0.51726959,  0.32284386, ...,  1.        ,
-             0.95600469,  0.86549921],
-           [ 0.55178945,  0.53243166,  0.35342037, ...,  0.95600469,
-             1.        ,  0.9528413 ],
-           [ 0.31997558,  0.31677069,  0.14512422, ...,  0.86549921,
-             0.9528413 ,  1.        ]])
+           [ 0.604,  0.517,  0.323, ...,  1.   ,  0.956,  0.865],
+           [ 0.552,  0.532,  0.353, ...,  0.956,  1.   ,  0.953],
+           [ 0.32 ,  0.317,  0.145, ...,  0.865,  0.953,  1.   ]])
 
     """
     
@@ -2977,7 +2971,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
 
        plt.close('all')
        
-    |example| See :ref:`p38-xray-plotting` for a more elaborate example.
+    |example| See :ref:`pca-xray-plotting` for a more elaborate example.
        
     """
     if plt is None: prody.importPyPlot()
