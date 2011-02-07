@@ -1,3 +1,5 @@
+.. _changes:
+
 .. currentmodule:: prody
 
 *******************************************************************************
@@ -130,11 +132,11 @@ Release 0.2 (Nov 16, 2010)
 
 **Improvements**:
 
-  * :mod:`prody.compare` functions are improved. Now they perform sequence
+  * :mod:`~prody.compare` functions are improved. Now they perform sequence
     alignment if simple residue number/identity based matchin does not work,
     or if user passes ``pwalign=True`` argument. This impacts the speed 
     of X-ray ensemble analysis.
-  * :class:`select.Select` can cache data optionally. This results
+  * :class:`~select.Select` can cache data optionally. This results
     in speeds up from 2 to 50 folds depending on number of atoms and selection
     operations.
   * Implementation of :func:`~dynamics.showProjection` is completed.

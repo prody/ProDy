@@ -27,27 +27,6 @@ Parameters
 * Percent sequence identity used for selecting blast hits (PDB structures)
 * Selection of the *cyt C* chains and residues to be considered in analysis
 
-How to Use
--------------------------------------------------------------------------------
-
-This example can be used in the following ways:
-
-  * in an interactive Python session (start a Python interpreter and insert
-    code lines one by one).
-  * in an Python script to perform calculations all at once (copy the code
-    into a Python file and run it). 
-
-Notes
--------------------------------------------------------------------------------
-
-* This example needs internet connectivity for blast searching PDB and 
-  retrieving files from PDB FTP server.
-
-* Also note that this example will attempt to download over 80 structure
-  files, which make take several minutes depending on connection speed.  
-
-* For plotting results, |matplotlib| library is required.
-
  
 ProDy Code
 ===============================================================================

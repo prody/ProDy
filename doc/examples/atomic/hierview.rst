@@ -1,9 +1,9 @@
-.. currentmodule:: prody.proteins
+.. currentmodule:: prody.atomic
 
 .. _hierview:
 
 *******************************************************************************
-Hierarchical views
+Hierarchical Views
 *******************************************************************************
 
 Synopsis

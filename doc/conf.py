@@ -151,9 +151,10 @@ html_last_updated_fmt = '%b %d, %Y'
 html_index = 'index.html'
 
 # Custom sidebar templates, maps document names to template names.
-generic_sidebars = ['localtoc.html', 'relations.html', 'searchbox.html', 'sourcelink.html']
+# 'sourcelink.html'
+generic_sidebars = ['localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['getprody.html', 'googlegroup.html', 'searchbox.html'], 
+    'index': ['getprody.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
@@ -169,7 +170,7 @@ html_sidebars = {
     'reference/index': generic_sidebars,
     'reports/index': generic_sidebars,
     'todo': generic_sidebars,
-    '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html', 'sourcelink.html']}
+    '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
