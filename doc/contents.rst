@@ -21,6 +21,7 @@ Contents
    scripts/index
    reference/index
    reports/index
+   glossary
    changes
    todo
    license

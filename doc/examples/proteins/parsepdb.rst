@@ -51,6 +51,11 @@ information):
 
 Parser returns an :class:`~prody.atomic.AtomGroup` instance.
 
+Also note that parser the time it took to parse the file will be printed on
+the screen. This time includes the time that it takes to evaluate 
+coordinate lines and build an :class:`~prody.atomic.AtomGroup` instance and 
+excludes the time spent on reading the file from disk.
+
 Use an identifier
 -------------------------------------------------------------------------------
 

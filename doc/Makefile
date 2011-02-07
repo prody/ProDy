@@ -46,7 +46,9 @@ both:
 	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex .. ../$(DOCDIR); \
+	cd ..
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation

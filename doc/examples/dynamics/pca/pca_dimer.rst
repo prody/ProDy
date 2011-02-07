@@ -28,28 +28,7 @@ Parameters
 * Percent sequence identity used for selecting blast hits (PDB structures)
 * Selection of the RT chains and residues to be considered in analysis
 
-How to Use
--------------------------------------------------------------------------------
 
-This example can be user in the following ways:
-
-  * in an interactive Python session (start a Python interpreter and insert
-    code lines one by one).
-  * in an Python script to perform calculations all at once (copy the code
-    into a Python file and run it). 
-
-Notes
--------------------------------------------------------------------------------
-
-* This example needs internet connectivity for blast searching PDB and 
-  retrieving files from PDB FTP server.
-
-* Also note that this example will attempt to download well over 100 structure 
-  files, which make take several minutes depending on connection speed.  
-
-* For plotting results, |matplotlib| library is required.
-
- 
 ProDy Code
 ===============================================================================
 
@@ -114,7 +93,7 @@ Step 2: Set reference
 >>> reference_chains
 [<Chain: A from 1dlo (556 atoms; 1 coordinate sets, active set index: 0)>, <Chain: B from 1dlo (415 atoms; 1 coordinate sets, active set index: 0)>]
  
-Chain A is the p53 domain, and chain B is the p38 domain of HIV-RT.
+Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
  
 Step 3: Prepare ensemble
 -------------------------------------------------------------------------------
@@ -184,31 +163,13 @@ This is a heterogeneous dataset, i.e. many structures had missing residues.
 We want to make sure that we include residues in PCA analysis if they
 are resolved in more than 94% of the time.
 
-We can show this by using :func:`~prody.ensemble.showSumOfWeights` function:
+We can find out this using :func:`~prody.ensemble.calcSumOfWeights` function:
 
-.. plot::
-   :context:
-   :nofigs:
-   
-   from prody import *
-   ensemble = loadEnsemble('HIV-RT.ens.npz')
+>>> calcSumOfWeights(ensemble).min() / len(ensemble) # doctest: +SKIP
+0.24503311258278146
 
-.. plot::
-   :context:
-   :include-source:
-   
-   from matplotlib import pyplot as plt
-   plt.figure(figsize=(5,4))
-   showSumOfWeights(ensemble)
 
-.. plot::
-   :context:
-   :nofigs:
-   
-   plt.close('all')
-
-This shows that some residues were resolved only in around 40 structures,
-which about 30% of the dataset.
+This shows that some residues were resolved in only 24% of the dataset.
 We trim the ensemble to contain residues resolved in more than 94% of the 
 ensemble:
 
@@ -216,7 +177,9 @@ ensemble:
 
 After trimmin, another round of iterative superposition may be useful:
 
->>> ensemble.iterpose() 
+>>> ensemble.iterpose()
+>>> saveEnsemble(ensemble)
+'HIV-RT.ens.npz'
 
 Step 4: Perform PCA
 -------------------------------------------------------------------------------
@@ -235,22 +198,25 @@ The calculated data can be saved as a compressed file using :func:`saveModel`
 Step 5: Plot data and results
 -------------------------------------------------------------------------------
 
-Let's plot RMSD to the average structure:
-
 .. plot::
    :context:
    :nofigs:
    
-   plt.close('all')
+   from prody import *
+   ensemble = loadEnsemble('HIV-RT.ens.npz')
    pca = loadModel('HIV-RT.pca.npz')
+
+Let's plot RMSD to the average structure:
 
 .. plot::
    :context:
    :include-source:
    
+   from matplotlib import pyplot as plt
+   
    plt.figure(figsize=(5,4))
    plt.plot(calcRMSD(ensemble))
-   plt.xlabel('Conformation index')
+   plt.xlabel('Conformation')
    plt.ylabel('RMSD (A)')
 
 Let's show a projection of the ensemble onto PC1 and PC2:
@@ -267,14 +233,18 @@ Let's show a projection of the ensemble onto PC1 and PC2:
 
    plt.figure(figsize=(5,4))
    showProjection(ensemble, pca[:2])
+   
+.. plot::
+   :context:
+   :nofigs:
 
+   plt.close('all')
+   
 Only some of the ProDy plotting functions are shown here. A complete list
 can be found in :ref:`dynamics` module. 
 
-See Also
-===============================================================================
    
-User is referred to other examples in :ref:`pca` for illustration of 
+|more| See also other examples in :ref:`pca` for illustration of 
 comparative analysis of theoretical and computational data.
 
 |questions|
