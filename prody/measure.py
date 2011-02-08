@@ -400,11 +400,25 @@ def calcRadiusOfGyration(coords, weights=None):
         d2sum = np.array(rgyr)
     return (d2sum / wsum) ** 0.5
             
-def calcADPAxes(atoms):
+def calcADPAxes(atoms, **kwargs):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
     .. versionadded:: 0.6
+    
+    :arg atoms: a ProDy object for handling atomic data
+    :type atoms: prody.atomic.Atomic
+    :kwarg ratio: If the ratio of the largest principal axes to the smallest
+        principal axes is smaller than given value, the axes will be set to
+        zero. 
+    :type ratio: float
+    :kwarg fract: If fraction of anisotropic displacement explained by the 
+        first axes is less than given value, they will be set to zero. Values
+        larger than 0.33 and smaller than 1.0 are accepted. 
+    :type fract: float
+    
+    Keyword arguments *ratio* and *fract* can be used to set principal axes
+    for atoms showing relatively lower degree of anisotropy.
     
     3Nx3 axis contains N times 3x3 matrices, one for each given atom. Columns
     of these 3x3 matrices are the principal axes which are weighted by
@@ -443,7 +457,8 @@ def calcADPAxes(atoms):
     n_atoms = atoms.getNumOfAtoms()
 
     axes = np.zeros((n_atoms*3, 3))    
-
+    variances = np.zeros((n_atoms, 3))
+    stddevs = np.zeros((n_atoms, 3))
     anisou = anisous[0]
     element = np.zeros((3,3))
     element[0,0] = anisou[0]
@@ -456,7 +471,9 @@ def calcADPAxes(atoms):
     # If negative eigenvalues are found (when ADP matrix is not positive 
     # definite) set them to 0   
     vals[ vals < 0 ] = 0
+    variances[0] = vals
     vals = vals**0.5
+    stddevs[0] = vals
     axes[0:3,:] = vals * vecs
 
     for i in range(1, n_atoms):
@@ -471,13 +488,31 @@ def calcADPAxes(atoms):
         # If negative eigenvalues are found (when ADP matrix is not positive 
         # definite) set them to 0   
         vals[ vals < 0 ] = 0
+        variances[i] = vals
         vals = vals**0.5
+        stddevs[i] = vals
         # Make sure the direction that correlates with the previous atom
         # is selected 
         vals = vals * np.sign((vecs * axes[(i-1)*3:(i)*3,:]).sum(0))
         axes[i*3:(i+1)*3,:] = vals * vecs
     # Resort the columns before returning array
-    return axes[:, [2,1,0]]
+    axes = axes[:, [2,1,0]]
+    torf = None
+    if 'fract' in kwargs:
+        fract = float(kwargs['fract'])
+        assert 0.33 < fract < 1.0, 'fract must be > 0.33 and < 1.0'
+        variances = variances[:, [2,1,0]]
+        torf = variances[:,0] / variances.sum(1) > fract
+    elif 'ratio' in kwargs:  
+        ratio = float(kwargs['ratio'])
+        assert ratio > 1.0, 'ratio must be > 1.0'
+        stddevs = stddevs[:, [2,1,0]]
+        stddevs[ stddevs[:,2].flatten() == 0, 2 ] = 0.00000001
+        torf = stddevs[:,0] / stddevs[:,2] > ratio
+    if torf is not None:
+        torf =np.tile(torf.reshape((n_atoms,1)), (1,3)).reshape((n_atoms*3, 1))
+        axes = axes * torf
+    return axes
         
    
 def buildADPMatrix(atoms):
