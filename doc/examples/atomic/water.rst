@@ -28,7 +28,7 @@ and can be used as input to functions and classes for dynamics analysis.
 ProDy Code
 ===============================================================================
 
-We start by importing everything from the ProDy package:
+We start by importing everything from the ProDy package and the NumPy package:
 
 >>> from prody import *
 >>> import numpy as np
@@ -232,3 +232,7 @@ Finally, it's is possible to change the name of *wtrs* from
 >>> wtrs.setName('2Waters')
 >>> wtrs
 <AtomGroup: 2Waters (6 atoms; 2 coordinate sets, active set index: 0)>
+
+|questions|
+
+|suggestions|

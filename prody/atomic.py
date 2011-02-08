@@ -877,10 +877,13 @@ class Chain(AtomSubset):
         self._seq = None
         self._dict = dict()
         
+    def __len__(self):
+        return len(self._dict)
+    
     def __repr__(self):
         return ('<Chain: {0:s} from {1:s} ({2:d} atoms; '
                 '{3:d} coordinate sets, active set index: {4:d})>').format(
-                self.getIdentifier(), self._ag.getName(), len(self), 
+                self.getIdentifier(), self._ag.getName(), self.getNumOfAtoms(), 
                 self._ag.getNumOfCoordsets(), self._acsi)
 
     def __str__(self):

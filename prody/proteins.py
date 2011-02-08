@@ -368,7 +368,9 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
     
     :arg lines: Lines from a PDB file.
     :arg split: Starting index for lines related to coordinate data.
+    
     """
+    
     asize = len(lines) - split
     alength = 5000
     coordinates = np.zeros((asize, 3), dtype=np.float64)
@@ -418,11 +420,15 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         if nmodel != model:
             raise PDBParserError('model {0:d} is not found'.format(model))
     if isinstance(altloc_torf, str): 
-        LOGGER.info('Parsing alternate locations {0:s}.'.format(altloc_torf))
-        which_altlocs = ' ' + ''.join(altloc_torf.split())
+        if altloc_torf.strip() != 'A':
+            LOGGER.info('Parsing alternate locations {0:s}.'.format(altloc_torf))
+            which_altlocs = ' ' + ''.join(altloc_torf.split())
+        else:
+            which_altlocs = ' A'
         altloc_torf = False
     else:
         which_altlocs = ' A'
+        altloc_torf = True
         
     acount = 0
     is_anisou = False

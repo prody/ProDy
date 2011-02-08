@@ -65,7 +65,7 @@ structures currently available in the PDB using the
 ... LFPGTDHIDQLKLILRLVGTPGAELLKKISSESARNYIQSLAQMPKMNFANVFIGANPLAVDLLEKMLVLDSDKRITAAQ
 ... ALAHAYFAQYHDPDDEPVADPYDQSFESRDLLIDEWKSLTYDEVISFVPPPLDQEEMES''' 
 >>> # blast_record = blastPDB('''p38_sequence''')
->>> # pdbids = blast_record.getHits()
+>>> # pdbids = blast_record.getHits() # uncomment this and previous line to update PDB list
 
 We use the same dataset in this example to reproduce the same results.
 After we set the list of PDB identifiers, we fetched them using 
@@ -124,7 +124,8 @@ Set the reference coordinates:
 
 >>> ensemble.setCoordinates(ref_chain) 
       
-  # For each PDB file we find matching chain and add it to the ensemble
+For each PDB file we find matching chain and add it to the ensemble:
+
 >>> for pdbfile in pdbfiles:
 ...     # Parse next PDB file. (only alpha carbons, since it's faster)
 ...     structure = parsePDB(pdbfile, subset='calpha')
