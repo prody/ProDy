@@ -408,16 +408,18 @@ def calcADPAxes(atoms, **kwargs):
     
     :arg atoms: a ProDy object for handling atomic data
     :type atoms: prody.atomic.Atomic
-    :kwarg ratio: If the ratio of the largest principal axes to the smallest
-        principal axes is smaller than given value, the axes will be set to
-        zero. 
-    :type ratio: float
-    :kwarg fract: If fraction of anisotropic displacement explained by the 
-        first axes is less than given value, they will be set to zero. Values
+    :kwarg fract: For an atom, if the fraction of anisotropic displacement 
+        explained by its largest axis is less than given value, 
+        all axes for that atom will be set to zero. Values
         larger than 0.33 and smaller than 1.0 are accepted. 
     :type fract: float
+    :kwarg ratio: For an atom, if the ratio of the largest principal axis to 
+        the smallest principal axis is smaller than given value, 
+        all principal axes for that atom will be set to zero. Values
+        greater than 1 are accepted.  
+    :type ratio: float
     
-    Keyword arguments *ratio* and *fract* can be used to set principal axes
+    Keyword arguments *fract* or *ratio* can be used to set principal axes
     for atoms showing relatively lower degree of anisotropy.
     
     3Nx3 axis contains N times 3x3 matrices, one for each given atom. Columns
