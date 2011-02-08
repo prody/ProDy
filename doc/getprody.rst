@@ -59,14 +59,14 @@ You may need root access for the last step.
 If you don't have root access, you can edit ``PYTHONPATH`` system variable to 
 recognize the path to this package.
   
-e.g. move :file:`pypdb` directory to a folder like :file:`/home/username/mypackages/`
+e.g. move :file:`prody` directory to a folder like :file:`/home/username/mypackages/`
 then add a line to your .bashrc (or alike) script as follows
 ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
 
 Windows
 -------------------------------------------------------------------------------
 
-Download :file:`ProDy-0.x.y.Windows.exe` and run it to install ProDy.
+Download :file:`ProDy-0.x.y.win32.exe` and run it to install ProDy.
 
 Optional Software
 ===============================================================================

@@ -131,7 +131,7 @@ All atomic data can be accessed using ``get`` methods:
 
 >>> print prot.getResidueNames()
 ['GLU' 'GLU' 'GLU' ..., 'HOH' 'HOH' 'HOH']
->>> print prot.getCoordinates()
+>>> print prot.getCoordinates() # doctest: +SKIP
 [[ 28.492   3.212  23.465]
  [ 27.552   4.354  23.629]
  [ 26.545   4.432  22.489]
@@ -201,8 +201,8 @@ set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
 Here is a more sophisticated composite selection:
 
->>> print protein.getCoordinates().mean(0)
-[  1.00515178  17.53326297  40.05209319]
+>>> print protein.getCoordinates().mean(0) # doctest: +SKIP
+[  1.005  17.533  40.052]
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
 
