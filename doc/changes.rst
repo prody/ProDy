@@ -9,22 +9,16 @@ Changes
 Release 0.6 (in development)
 ===============================================================================
 
-**Improvements**:
-
-  * A few bugs in ensemble and dynamics classes are fixed.
-  * Improvements in :class:`~proteins.RCSB_PDBFetcher` allow it not to miss a 
-    PDB file if it exists in the target folder.
-  * :func:`~dynamics.writeNMD` is fixed to output B-factors (Thanks to 
-    Dan Holloway for pointing it out).
-
 **New Features**:
 
   * Membership, equality, and non-equality test operation are defined for all 
     :mod:`~prody.atomic` classes. See :ref:`selection-operations`.
   * Two functions are implemented for dealing with anisotropic temperature 
     factors: :func:`~measure.calcADPAxes` and :func:`~measure.buildADPMatrix`.
-  * :meth:`~dynamics.NMA.setEigens` method is implemented for analyzing
-    normal modes calculated using external software.
+  * :meth:`~dynamics.NMA.setEigens` and :meth:`~dynamics.NMA.addEigenspair` 
+    methods are implemented to assist analysis of normal modes calculated using 
+    external software.
+  * :func:`~dynamics.parseNMD` is implemented for parsing NMD files.
   * :func:`~dynamics.parseArray` is implementing for reading numeric data,
     particularly normal mode data calculated using other software for analysis
     using ProDy. 
@@ -41,6 +35,13 @@ Release 0.6 (in development)
   * :func:`getSumOfWeights` is renamed as :func:`~ensemble.calcSumOfWeights`.
   * :func:`mapAtomsToChain` is renamed as :func:`~compare.mapOntoChain`.
 
+**Improvements**:
+
+  * A few bugs in ensemble and dynamics classes are fixed.
+  * Improvements in :class:`~proteins.RCSB_PDBFetcher` allow it not to miss a 
+    PDB file if it exists in the target folder.
+  * :func:`~dynamics.writeNMD` is fixed to output B-factors (Thanks to 
+    Dan Holloway for pointing it out).
 
 Release 0.5.2 (Jan 12, 2011)
 ===============================================================================
