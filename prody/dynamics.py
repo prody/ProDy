@@ -67,9 +67,10 @@ argument. These are noted in function documentations.
   * :func:`calcSqFlucts`  
   * :func:`calcProjection`
 
-**Write\parse data**:
+**Parse/write data**:
 
   * :func:`parseArray`
+  * :func:`parseNMD`
   * :func:`writeArray`
   * :func:`writeModes`
   * :func:`writeNMD`
@@ -196,7 +197,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'calcProjection',  
            
-           'parseArray', 
+           'parseArray', 'parseNMD',
            
            'writeArray', 'writeModes', 'writeNMD', 'writeOverlapTable',
            
@@ -809,6 +810,58 @@ class NMA(NMABase):
     def __init__(self, name):
         NMABase.__init__(self, name)
     
+    def addEigenpair(self, eigenvector, eigenvalue=None):
+        """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
+        
+        .. versionadded:: 0.6
+        
+        If *eigenvalue* is not given, it will be set to 1.
+        
+        """
+        vector = eigenvector
+        value = eigenvalue
+        if not isinstance(vector, np.ndarray):
+            raise TypeError('eigenvector must be a Numpy ndarray, not {0:s}'
+                            .format(type(vector)))
+        if vector.ndim > 2:
+            raise ValueError('eigenvector must be 1- or 2-dimensional array, '
+                            'not {0:d}-d'.format(type(vector.ndim)))
+        elif vector.ndim == 2 and vector.shape[0] >= vector.shape[1]:
+            raise ValueError('eigenvectors must correspond to columns')
+        else:
+            vector = vector.reshape((vector.shape[0], 1))
+        
+        if value is None:
+            if vector.ndim == 1:
+                value = np.ones(1)
+            else:
+                value = np.ones(vector.shape[2])
+        elif isinstance(value, (int, float)):
+            value = np.array([value])
+        elif isinstance(value, np.ndarray):
+            if value.ndim > 1:
+                raise ValueError('eigenvalue must be a 1-d array')
+            elif value.shape[0] != vector.shape[0]:
+                raise ValueError('number of eigenvectors and eigenvalues '
+                                 'must match')
+        
+        if self._array is None:
+            self._array = vector
+            self._eigenvals = value
+            self._dof = vector.shape[0]
+            self._n_atoms = self._dof / 3
+            self._n_modes = vector.shape[1]
+            self._modes = [None] * self._n_modes
+        else:
+            if vector.shape[0] != self._array.shape[0]: 
+                raise ValueError('shape of vector do not match shape of ' 
+                                 'existing vectors')
+            self._array = np.concatenate((self._array, vector), 1)
+            self._eigenvals = np.concatenate((self._eigenvals, value))
+            self._n_modes += vector.shape[1]            
+            self._modes += [None] * vector.shape[1]
+        self._vars = 1 / self._eigenvals
+    
     def setEigens(self, vectors, values=None):
         """Set eigenvectors and eigenvalues.
         
@@ -825,8 +878,8 @@ class NMA(NMABase):
         and values must have shape ``(M,)``.
         
         
-         
         """
+        
         if not isinstance(vectors, np.ndarray):
             raise TypeError('vectors must be a numpy.ndarray, not {0:s}'
                             .format(type(vectors)))
@@ -1749,6 +1802,78 @@ def setVMDpath(path):
         LOGGER.warning('{0:s} may not be a valid path for VMD executable.')
     global VMDPATH 
     VMDPATH = path
+
+def parseNMD(filename):
+    """Returns normal mode and atomic data parsed from an NMD file.
+    
+    .. versionadded:: 0.6
+    
+    Normal mode data is returned in an :class:`NMA` instance. Atomic
+    data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
+    
+    """
+    atomic = dict()
+    modes = []
+    nmd = open(filename)
+    for line in nmd:
+        split = line.find(' ')
+        if line[:split] == 'mode':
+            modes.append(line[split:].strip())
+        elif line[:split] in ('coordinates', 'atomnames', 'resnames', 
+                              'resnums', 'resids', 'chainids', 'bfactors',
+                              'name'):
+            atomic[line[:split]] = line[split:].strip()
+    nmd.close()
+    
+    name = atomic.pop('name', os.path.splitext(os.path.split(filename)[1])[0])
+    coords = atomic.pop('coordinates', None)
+    dof = None
+    if coords is not None:
+        coords = np.fromstring( coords, dtype=np.float64, sep=' ')
+        dof = coords.shape[0]
+        ag = None
+        n_atoms = dof / 3
+        coords = coords.reshape((n_atoms, 3))
+        ag = AtomGroup(name)
+        ag.setCoordinates(coords)
+        data = atomic.pop('atomnames', None)
+        if data is not None:
+            ag.setAtomNames(data.split())
+        data = atomic.pop('resnames', None)
+        if data is not None:
+            ag.setResidueNames(data.split())
+        data = atomic.pop('chainids', None)
+        if data is not None:
+            ag.setChainIdentifiers(data.split())
+        data = atomic.pop('resnums', None)
+        if data is not None:
+            ag.setResidueNumbers(np.fromstring(data, np.int64, sep=' '))
+        data = atomic.pop('resids', None)
+        if data is not None:
+            ag.setResidueNumbers(np.fromstring(data, np.int64, sep=' '))
+        data = atomic.pop('bfactors', None)
+        if data is not None:
+            ag.setTempFactors(np.fromstring(data, np.float64, sep=' '))
+    nma = NMA(name)
+    for mode in modes:
+        
+        items = mode.split()
+        diff = len(items) - dof
+        mode = np.array(items[diff:]).astype(np.float64)
+        if len(mode) != dof:
+            pass
+        if diff == 1 and not items[0].isdigit():
+            value = float(items[0])
+        else:
+            if not items[0].isdigit():
+                value = float(items[0])
+            elif not items[1].isdigit():
+                value = float(items[1])
+            else:
+                value = 1.0
+        nma.addEigenpair(mode, value)
+    return nma, ag
+    
 
 def writeNMD(filename, modes, atoms):
     """Writes an NMD file for given *modes* and includes applicable data from 
