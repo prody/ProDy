@@ -186,7 +186,8 @@ So it is to perform :class:`ANM` calculations::
 Save your work
 -------------------------------------------------------------------------------
 
-Now, we will save calculated data and use it in the next part of the example.
+It is possible to save calculated data in a ProDy internal format
+to use it in a later session or to share it with others.
 
 If you are in an interactive Python session, and wish to continue without
 leaving your session, you do not need to save the data. Saving data is useful

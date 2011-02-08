@@ -113,7 +113,7 @@ text files for analysis using external software. The function is to use is
 It is also possible to write arbitrary arrays:
   
 >>> overlap = calcOverlap(pca[:3], anm[:3])
->>> writeArray( 'p38_PCA_ANM_overlap.txt', abs(overlap), format='.2f')
+>>> writeArray( 'p38_PCA_ANM_overlap.txt', abs(overlap), format='%.2f')
 'p38_PCA_ANM_overlap.txt'
 
 See Also
