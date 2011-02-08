@@ -67,8 +67,9 @@ argument. These are noted in function documentations.
   * :func:`calcSqFlucts`  
   * :func:`calcProjection`
 
-**Write data**:
+**Write\parse data**:
 
+  * :func:`parseArray`
   * :func:`writeArray`
   * :func:`writeModes`
   * :func:`writeNMD`
@@ -171,7 +172,6 @@ __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 import os.path
 import time
 import os
-import gzip
 
 import numpy as np
 linalg = None
@@ -195,6 +195,8 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'calcCovariance', 'calcCrossCorrelations', 'calcSqFlucts',
            
            'calcProjection',  
+           
+           'parseArray', 
            
            'writeArray', 'writeModes', 'writeNMD', 'writeOverlapTable',
            
@@ -1816,6 +1818,13 @@ def writeNMD(filename, modes, atoms):
     except:
         pass
     
+    try:
+        data = atoms.getTempFactors()
+        if data is not None:
+            out.write('bfactors {0:s}\n'.format(' '.join(['{0:.3f}'.format(x) for x in data.flatten()])))
+    except:
+        pass
+    
     out.write('coordinates {0:s}\n'.format(
                     ' '.join(['{0:.3f}'.format(x) for x in coords.flatten()])))
     
@@ -2196,43 +2205,58 @@ def writeModes(filename, modes, format='g', sep=' ', compressed=False):
                         .format(type(modes)))
     return writeArray(filename, modes.getArray(), format=format, sep=sep)
     
-def writeArray(filename, array, format='g', sep=' ', compressed=False):
+def writeArray(filename, array, format='%.18e', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
     
-    If *filename* is ``None``, output will be returned as a formatted string. 
-    Default *format* argument is "g", which writes enough many significant 
-    digits automatically.  Default seperator (*sep*) argument is white 
-    space " ". Optionally, a gzip *compressed* file may be outputted.
+    .. versionchanged:: 0.6
+       A compresed file is not outputted.
+       
+    This function is using :func:`numpy.savetxt` to write the file, after 
+    making some type and value checks.
     
-    If array is written into a file, *filename* will be returned upon
-    successful writing. 
+    Default *format* argument is ``"%.18e"``.
+    Default *delimiter* argument is white space, ``" "``.
+    
+    *filename* will be returned upon successful writing. 
      
     >>> writeArray('p38_cross-correlations.txt', calcCrossCorrelations(p38_pca))
     'p38_cross-correlations.txt'
     
     """
-    
-    if not array.ndim in (1, 2):
-        raise ValueError('array must be 1- or 2-dimensional')
-    if array.ndim == 2:
-        length = array.shape[1]
-        line = '{' + '0[{0:d}]:{1:s}'.format(0, format) + '}'
-    else:
-        length = 1
-        line = '{' + '0:{0:s}'.format(format) + '}'
-    for j in range(1, length):
-        line += sep + '{' + '0[{0:d}]:{1:s}'.format(j, format) + '}' 
-    line += '\n'
-    output = ''
-    for row in array:
-        output += line.format(row)
-    if compressed:
-        out = gzip.open(filename + '.gz', 'w')
-    else:
-        out = open(filename, 'w')
-    out.write(output)
-    out.close()
+    if not isinstance(array, np.ndarray):
+        raise TypeError('array must be a Numpy ndarray, not {0:s}'
+                        .format(type(array)))
+    elif not array.ndim in (1, 2):
+        raise ValueError('array must be a 1 or 2-dimensional Numpy ndarray, '
+                         'not {0:d}-d'.format(type(array.ndim)))
+    np.savetxt(filename, array, format, delimiter)
     return filename
+
+def parseArray(filename, delimiter=' ', dtype=np.float64, skiprows=0, 
+               usecols=None):
+    """Parse array data from a file.
+    
+    .. versionadded:: 0.6
+    
+    This function is using :func:`numpy.loadtxt` to parse the file.
+    
+    Each row in the text file must have the same number of values.
+    
+    Default *delimiter* argument is white space, ``" "``.
+    Default data type (*dtype*) is :class:`numpy.float64`.
+    Skip the first *skiprows* lines, default is 0. 
+    *usecols* selects the columns to read, with 0 being the first. 
+    For example, usecols = (1,4,5) will extract the 2nd, 5th and 6th columns. 
+    The default, None, results in all columns being read.
+    
+    Compressed (:file:`.gz` or :file:`.bz2`) files are handled.
+    
+    """
+
+    array = np.loadtxt(filename, dtype=dtype, delimiter=delimiter, 
+                       skiprows=skiprows, usecols=usecols)
+    return array
+        
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     """Return an ensemble of randomly sampled conformations along given *modes*.
