@@ -165,7 +165,7 @@ This enables getting a :class:`list` of residues simply as follows:
 All methods defined for :class:`AtomGroup` class are also defined for 
 :class:`Chain` (and also :class:`Residue`) class:
 
->>> print chA.getCoordinates()
+>>> print chA.getCoordinates() # doctest: +SKIP
 [[ -2.139  17.026 -13.287]
  [ -1.769  15.572 -13.111]
  [ -0.296  15.257 -13.467]
