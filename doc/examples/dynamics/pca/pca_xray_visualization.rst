@@ -21,6 +21,8 @@ PCA and ANM data calculated in :ref:`pca-xray-calculations`.
 Output
 -------------------------------------------------------------------------------
 
+Qualitative molecular graphics comparing experimental and theoretical modes.
+
 Notes
 -------------------------------------------------------------------------------
 

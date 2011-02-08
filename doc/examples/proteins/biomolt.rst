@@ -16,8 +16,9 @@ using the header data from the PDB file.
 Input
 -------------------------------------------------------------------------------
 
-A PDB file that contains the coordinates for a monomer of biological multimeric 
-protein.
+A PDB file that contains the coordinates for a monomer of a biological 
+multimeric protein and the transformations in the header section to
+generate the multimer coordinates.
 
 Output
 -------------------------------------------------------------------------------

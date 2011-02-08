@@ -16,7 +16,7 @@ such coordinate sets using :func:`alignCoordsets` function.
 Input
 -------------------------------------------------------------------------------
 
-A PDB file that contains multiple NMR models.
+Multiple structures/models of the same protein in a single PDB file.
 
 Output
 -------------------------------------------------------------------------------

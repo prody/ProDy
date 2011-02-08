@@ -21,7 +21,7 @@ PCA and ANM data calculated in :ref:`pca-xray-calculations`.
 Output
 -------------------------------------------------------------------------------
 
-Numeric data 
+Quantitative comparison of experimental and theoretical data.
 
 ProDy Code
 ===============================================================================

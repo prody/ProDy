@@ -21,7 +21,7 @@ Input
 * A reference PDB structure
 * Optionally, a list of PDB files to be excluded from the analysis 
 * Percent sequence identity used for selecting blast hits (PDB structures)
-* Selection of the *cyt C* chains and residues to be considered in analysis
+* Selection of the protein chains and residues to be considered in analysis
 
 Output
 -------------------------------------------------------------------------------

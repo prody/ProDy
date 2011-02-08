@@ -14,6 +14,8 @@ Release 0.6 (in development)
   * A few bugs in ensemble and dynamics classes are fixed.
   * Improvements in :class:`~proteins.RCSB_PDBFetcher` allow it not to miss a 
     PDB file if it exists in the target folder.
+  * :func:`~dynamics.writeNMD` is fixed to output B-factors (Thanks to 
+    Dan Holloway for pointing it out).
 
 **New Features**:
 
@@ -22,7 +24,10 @@ Release 0.6 (in development)
   * Two functions are implemented for dealing with anisotropic temperature 
     factors: :func:`~measure.calcADPAxes` and :func:`~measure.buildADPMatrix`.
   * :meth:`~dynamics.NMA.setEigens` method is implemented for analyzing
-    normal modes calculated using external software. 
+    normal modes calculated using external software.
+  * :func:`~dynamics.parseArray` is implementing for reading numeric data,
+    particularly normal mode data calculated using other software for analysis
+    using ProDy. 
   * The method in [BH02]_ to calculate overlap between covariance matrices is 
     implemented as :func:`~dynamics.calcCovarianceOverlap` function.
   * A method to trim :class:`~ensemble.Ensemble` instances is implemented: 

@@ -15,8 +15,8 @@ atoms interacting with a bound inhibitor.
 Input
 -------------------------------------------------------------------------------
 
-A PDB file that contains a protein-ligand complex or two PDB files containing
-protein and ligand separately.
+Structure of a protein-ligand complex in PDB format. Two PDB files containing
+protein and ligand separately are also accepted.
 
 Output
 -------------------------------------------------------------------------------

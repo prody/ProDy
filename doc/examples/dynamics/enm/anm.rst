@@ -15,7 +15,7 @@ normal mode data.
 Input
 -------------------------------------------------------------------------------
 
-Protein structure data in PDB file format or specified by as PDB identifier.
+Protein structure data in PDB file format or specified by a PDB identifier.
 
 Output
 -------------------------------------------------------------------------------

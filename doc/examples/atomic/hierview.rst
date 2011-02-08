@@ -10,18 +10,19 @@ Synopsis
 ===============================================================================
 
 This example shows how to get a hierarchical view (:class:`HierView`) of atoms 
-in a Protein Data Bank structure.
+in a Protein Data Bank structure. A :class:`HierView` instance contains
+chains which contains residues which contains atoms.
 
 Input
 -------------------------------------------------------------------------------
 
-A protein structure file or PDB identifier.
+A protein structure file in PDB format or a PDB identifier.
 
 Output
 -------------------------------------------------------------------------------
 
-A data structure with a hierarchical view of the contents of a protein structure.
-
+A data structure with a hierarchical view of the contents of a protein 
+structure. 
 
 ProDy Code
 ===============================================================================

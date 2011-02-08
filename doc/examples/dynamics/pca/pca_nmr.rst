@@ -16,8 +16,8 @@ for ubiquitin that was published in [AB09]_.
 Input
 -------------------------------------------------------------------------------
 
-A set of NMR models from a PDB file. Specifying a PDB identifier for an
-NMR structure is also sufficient.
+Multiple coordinate sets for a protein in PDB file format. Specifying a PDB 
+identifier for an NMR structure is sufficient.  
 
 Output
 -------------------------------------------------------------------------------

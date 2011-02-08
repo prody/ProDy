@@ -19,7 +19,7 @@ structures for ensemble analysis (i.e. ref:`pca`).
 Input
 -------------------------------------------------------------------------------
 
-Protein amino acid sequence is the only import from the user, e.g. 
+Amino acid sequence of a protein, e.g. 
 ``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPIS...
 YDIVKMKKSNISPNFNFMGQLLDFERTL``
 
