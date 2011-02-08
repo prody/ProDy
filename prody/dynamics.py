@@ -70,6 +70,7 @@ argument. These are noted in function documentations.
 **Parse/write data**:
 
   * :func:`parseArray`
+  * :func:`parseModes`
   * :func:`parseNMD`
   * :func:`writeArray`
   * :func:`writeModes`
@@ -197,7 +198,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'calcProjection',  
            
-           'parseArray', 'parseNMD',
+           'parseArray', 'parseModes', 'parseNMD',
            
            'writeArray', 'writeModes', 'writeNMD', 'writeOverlapTable',
            
@@ -893,10 +894,10 @@ class NMA(NMABase):
                                  'which is (M,{0:d})'.format(n_atoms*3))
             n_modes = vectors.shape[1]
         if values is not None:
-            if isinstance(vectors, np.ndarray):
+            if not isinstance(vectors, np.ndarray):
                 raise TypeError('values must be a numpy.ndarray, not {0:s}'
                                 .format(type(vectors)))
-            elif values.ndim != 2:
+            elif values.ndim != 1:
                 raise ValueError('values must be a 1-dimensional array')
             else:
                 if values.shape[0] != vectors.shape[1]:
@@ -2315,8 +2316,11 @@ def reduceModel(model, atoms, selstr):
         eda.setCovariance(matrix)
         return eda
 
-def writeModes(filename, modes, format='g', sep=' ', compressed=False):
+def writeModes(filename, modes, format='%.18e', delimiter=' '):
     """Write *modes* (eigenvectors) into a plain text file with name *filename*.
+    
+    .. versionchanged:: 0.6
+       A compresed file is not outputted.
     
     See also :func:`writeArray`.
         
@@ -2328,7 +2332,80 @@ def writeModes(filename, modes, format='g', sep=' ', compressed=False):
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
-    return writeArray(filename, modes.getArray(), format=format, sep=sep)
+    return writeArray(filename, modes.getArray(), format=format, delimiter=delimiter)
+
+def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0, 
+               nm_usecols=None, ev_delimiter=None, ev_skiprows=0, ev_usecols=None, 
+               ev_usevalues=None):
+    """Return :class:`NMA` instance with normal modes parsed from *normalmodes*.
+    
+    .. versionadded:: 0.6
+    
+    In normal mode file *normalmodes*, columns must correspond to  
+    modes (eigenvectors).
+
+    Optionally, *eigenvalues* can be parsed from a separate file. If 
+    eigenvalues are not provided, they will all be set to 1.
+    
+    
+    :arg normalmodes: File or filename that contains normal modes. 
+        If the filename extension is :file:`.gz` or :file:`.bz2`, the file is 
+        first decompressed.
+    :type normalmodes: str or file
+    
+    :arg eigenvalues: Optional, file or filename that contains eigenvalues. 
+        If the filename extension is :file:`.gz` or :file:`.bz2`, 
+        the file is first decompressed.
+    :type eigenvalues: str or file
+
+    :arg nm_delimiter: The string used to separate values in *normalmodes*. 
+        By default, this is any whitespace.
+    :type nm_delimiter: str
+
+    :arg nm_skiprows: Skip the first *skiprows* lines in *normalmodes*. 
+        Default is ``0``.
+    :type nm_skiprows: 0
+
+    :arg nm_usecols: Which columns to read from *normalmodes*, with 0 being the 
+        first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and 
+        6th columns. The default, ``None``, results in all columns being read.
+    :type nm_usecols: list
+
+    :arg ev_delimiter: The string used to separate values in *eigenvalues*. 
+        By default, this is any whitespace.
+    :type ev_delimiter: str
+
+    :arg ev_skiprows: Skip the first *skiprows* lines in *eigenvalues*. 
+        Default is ``0``.
+    :type ev_skiprows: 0
+
+    :arg ev_usecols: Which columns to read from *eigenvalues*, with 0 being the 
+        first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and 
+        6th columns. The default, ``None``, results in all columns being read.
+    :type ev_usecols: list
+
+    :arg ev_usevalues: Which columns to use after the eigenvalue column is
+        parsed from *eigenvalues*, with 0 being the first. 
+        This can be used if *eigenvalues* contains more values than the
+        number of modes in *normalmodes*.
+    :type ev_usevalues: list
+    
+    See :func:`parseArray` for details of parsing arrays from files.
+    
+    """
+    
+    modes = parseArray(normalmodes, delimiter=nm_delimiter, 
+                       skiprows=nm_skiprows, usecols=nm_usecols)
+    if eigenvalues is not None:
+        values = parseArray(eigenvalues, delimiter=ev_delimiter, 
+                            skiprows=ev_skiprows, usecols=ev_usecols)
+        values = values.flatten()
+        if ev_usevalues is not None:
+            values = values[ev_usevalues]
+    nma = NMA(os.path.splitext(os.path.split(normalmodes)[1])[0])
+    nma.setEigens(modes, values)
+    return nma
+    
     
 def writeArray(filename, array, format='%.18e', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
@@ -2357,8 +2434,8 @@ def writeArray(filename, array, format='%.18e', delimiter=' '):
     np.savetxt(filename, array, format, delimiter)
     return filename
 
-def parseArray(filename, delimiter=' ', dtype=np.float64, skiprows=0, 
-               usecols=None):
+def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
+               dtype=np.float64, ):
     """Parse array data from a file.
     
     .. versionadded:: 0.6
@@ -2367,14 +2444,25 @@ def parseArray(filename, delimiter=' ', dtype=np.float64, skiprows=0,
     
     Each row in the text file must have the same number of values.
     
-    Default *delimiter* argument is white space, ``" "``.
-    Default data type (*dtype*) is :class:`numpy.float64`.
-    Skip the first *skiprows* lines, default is 0. 
-    *usecols* selects the columns to read, with 0 being the first. 
-    For example, usecols = (1,4,5) will extract the 2nd, 5th and 6th columns. 
-    The default, None, results in all columns being read.
+    :arg filename: File or filename to read. If the filename extension is 
+        :file:`.gz` or :file:`.bz2`, the file is first decompressed.
+    :type filename: str or file
     
-    Compressed (:file:`.gz` or :file:`.bz2`) files are handled.
+    :arg delimiter: The string used to separate values. By default, 
+        this is any whitespace.
+    :type delimiter: str
+    
+    :arg skiprows: Skip the first *skiprows* lines, default is ``0``.
+    :type skiprows: int
+     
+    :arg usecols: Which columns to read, with 0 being the first. For example, 
+        ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns. 
+        The default, ``None``, results in all columns being read.
+    :type usecols: list
+    
+    :arg dtype: Data-type of the resulting array, default is 
+        :class:`numpy.float64`. 
+    :type dtype: :class:`numpy.dtype`.
     
     """
 
