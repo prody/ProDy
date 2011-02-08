@@ -15,7 +15,8 @@ change between two structures of a protein.
 Input
 -------------------------------------------------------------------------------
 
-Two structures for the same protein.
+Two structures of the same protein in PDB format. PDB identifiers are also
+sufficient.
 
 Output
 -------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ In this part, we perform the calculations, using the same p38 MAPK dataset.
 
 Input
 -------------------------------------------------------------------------------
+
 A set of structures of the same protein. Specifying a list of PDB identifiers 
 is sufficient.
 

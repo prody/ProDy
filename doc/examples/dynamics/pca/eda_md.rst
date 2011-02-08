@@ -10,13 +10,19 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform essential dynamics analysis of molecular
-dynamics trajectories.
+dynamics (MD) trajectories.
 
 Input
 -------------------------------------------------------------------------------
 
-User needs to provide :term:`PDB`, :term:`PSF`, and :term:`DCD` files from a 
-simulation.
+
+User needs to provide coordinate sets from an MD trajectory as a 
+:class:`numpy.ndarray`. 
+
+In this example, we show how to extract coordinate sets
+from a trajectory in :term:`DCD` file format using MDAnalysis package.
+In this case, user needs to provide  :term:`PDB`, :term:`PSF`, and :term:`DCD` 
+files from a completed simulation, but other formats will also do.  
    
 Output
 -------------------------------------------------------------------------------

@@ -54,14 +54,6 @@ Protein Structure
    proteins/biomolt
    measure/deformation
 
-More on :class:`~atomic.AtomGroup` 
-===============================================================================
-
-.. toctree::
-   :maxdepth: 1
-   
-   atomic/water
-
 Dynamics Analysis
 ===============================================================================
 
@@ -71,3 +63,12 @@ Dynamics Analysis
 
    dynamics/enm/index
    dynamics/pca/index
+
+More on :class:`~atomic.AtomGroup` 
+===============================================================================
+
+.. toctree::
+   :maxdepth: 1
+   
+   atomic/water
+

@@ -17,7 +17,7 @@ Input
 -------------------------------------------------------------------------------
 
 A ProDy class instance that contains or points to atomic data is accepted
-as input. 
+as input, e.g. :class:`~prody.atomic.AtomGroup` or :class:`~prody.atomic.Chain`
  
 Output
 -------------------------------------------------------------------------------
