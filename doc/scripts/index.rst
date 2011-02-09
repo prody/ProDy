@@ -4,11 +4,30 @@
 Scripts
 *******************************************************************************
 
-There are three ProDy scripts distributed in the :file:`scripts` folder in 
-:file:`ProDy-0.x.y.tar.gz`. Note that Windows installer does not contain these 
-scripts. Alternatively, you can obtain them from 
-https://github.com/abakan/ProDy/tree/master/scripts/.  
-These scripts are written by Lidio Meireles.
+Command line usage
+===============================================================================
+
+ProDy scripts come with source distribution (:file:`tar.gz` file in 
+:ref:`getprody`). Latest versions of these scripts can also be obtained from 
+https://github.com/abakan/ProDy/tree/master/scripts/.
+
+Using these scripts is straight forward (on Linux). Let's assume you are
+in the same folder as the :file:`anm.py` script. Running the following 
+command will perform ANM calculations for p38 MAP kinase structure, and will 
+write eigenvalues/vectors in plain text and :term:`NMD` formats::
+
+  ./python anm.py 1p38
+  
+In this example, default parameters (``cutoff=15.`` and ``gamma=1.``)
+and all alpha carbons of the protein structure 1p38 are used.
+
+In the following, cutoff distance is changed to 14 angstroms, 
+alpha carbons of residues with numbers smaller than 340 are used, 
+and output files are prefixed with "p38_anm"::
+
+  ./python anm.py -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
+
+Output file :file:`p38_anm.nmd` file can be visualized using |nmwiz|. 
 
 .. _scripts-anm:
 

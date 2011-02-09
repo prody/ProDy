@@ -170,6 +170,7 @@ html_sidebars = {
     'examples/index': generic_sidebars,
     'reference/index': generic_sidebars,
     'reports/index': generic_sidebars,
+    'scripts/index': generic_sidebars,
     'todo': generic_sidebars,
     '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
@@ -296,6 +297,8 @@ rst_epilog = """
 .. |docrelease| replace:: Documentation release r{0:s}
 
 .. |pypi| replace:: Python Package Index (http://pypi.python.org/pypi/ProDy)
+
+.. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
 .. |questions| replace:: Questions? Join our Google Group: 
    http://groups.google.com/group/prody-dev
