@@ -36,7 +36,7 @@ We start by importing everything from the ProDy package:
 Single file
 -------------------------------------------------------------------------------
 
-The function will return a filename if the download is succesfull.
+The function will return a filename if the download is successful.
  
 >>> filename = fetchPDB('1p38')
 >>> print filename # doctest: +SKIP
@@ -56,10 +56,10 @@ For failed downloads, ``None`` will be returned (or the list will contain
 
 
 Also note that in this case we passed a folder name. Files are saved in 
-this folder, after it is made if did not exist. 
+this folder, after it is created if it did not exist. 
 
 
-ProDy will give you a report of download results and return you a list of 
+ProDy will give you a report of download results and return a list of 
 filenames. The report will be printed on the screen, which in this case would 
 be::
 

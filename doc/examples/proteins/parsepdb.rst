@@ -62,10 +62,10 @@ excludes the time spent on reading the file from disk.
 Use an identifier
 -------------------------------------------------------------------------------
 
-PDB files can be parsed by passing simply an identifier. Parser will look for a
-PDB file matching given identifier in the current working directory. If not 
-found it will be automatically downloaded and saved in the 
-current working directory, before it is parsed.
+PDB files can be parsed by passing simply an identifier. arser will look for a 
+PDB file that matches the given identifier in the current working directory. 
+If a matching file is not found, ProDy will downloaded it from PDB FTP server 
+automatically and saved it in the current working directory.
 
 >>> atoms = parsePDB('1mkp')
 >>> atoms

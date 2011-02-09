@@ -8,6 +8,15 @@ Using ProDy
 ===============================================================================
 
 #. | |pdf|__
+     `The intrinsic dynamics of enzymes plays a dominant role in determining the 
+     structural changes induced upon inhibitor binding 
+     <http://www.pnas.org/content/106/34/14349.long>`_
+   | Bakan A, Bahar I 
+   | **2009** *Proc Natl Acad Sci U S A* 106(34):14349-14354 
+
+   __ http://www.pnas.org/content/106/34/14349.full.pdf
+
+#. | |pdf|__
      `Computational Generation of Inhibitor-Bound Conformers of P38 MAP 
      Kinase and Comparison with Experiments 
      <http://psb.stanford.edu/psb-online/proceedings/psb11/#Multiscale>`_
@@ -16,14 +25,6 @@ Using ProDy
 
    __ http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf
 
-#. | |pdf|__
-     `The intrinsic dynamics of enzymes plays a dominant role in determining the 
-     structural changes induced upon inhibitor binding 
-     <http://www.pnas.org/content/106/34/14349.long>`_
-   | Bakan A, Bahar I 
-   | **2009** *Proc Natl Acad Sci U S A* 106(34):14349-14354 
-
-   __ http://www.pnas.org/content/106/34/14349.full.pdf
 
 
 Servers

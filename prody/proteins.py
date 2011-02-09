@@ -862,8 +862,8 @@ class PDBlastRecord(object):
         entry is also a dictionary that contains information on the blast hit
         and alignment. 
 
-        :arg percent_identity: PDB hits with percent identity equivalent or 
-          better than this value will be returned.
+        :arg percent_identity: PDB hits with percent sequence identity equal 
+            to or higher than this value will be returned.
         :type percent_identity: float, default is 90.0
         :arg percent_coverage: PDB hits with percent coverage of the query 
           sequence equivalent or better will be returned.
@@ -1123,9 +1123,11 @@ def writePDBStream(stream, atoms, model=None, sort=False):
 def writePDB(filename, atoms, model=None, sort=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
-    Returns *filename* is file is succesfully written. 
+    Returns *filename* if file is succesfully written. 
     See :func:`writePDBStream` for more information.
+    
     """
+    
     out = open(filename, 'w')
     writePDBStream(out, atoms, model, sort)
     out.close()

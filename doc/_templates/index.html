@@ -18,12 +18,27 @@
 
   <p>
     ProDy is a free and open-source Python package for analyzing protein structural dynamics.
+    It allows for quantitative analysis of heterogeneous experimental structural 
+    datasets and comparison with theoretically predicted conformational dynamics.
     It is designed and developed by <a href="http://www.ccbb.pitt.edu/People/abakan/" target="_blank">Ahmet Bakan</a> 
     in <a href="http://www.ccbb.pitt.edu/Faculty/bahar/" target="_blank">Bahar lab</a> at the 
     <a href="http://www.pitt.edu" target="_blank">University of Pittsburgh</a>. 
   </p>
-
-  </p>To learn more about ProDy you may start from the <a href="{{ pathto("tutorial") }}">Tutorial</a>,
+  <p> 
+    <b><em>What is the input to ProDy?</em></b></br>
+    The input to ProDy functions and classes is the set of atomic coordinates of 
+    the query protein in PDB file format, or simply the PDB id or the sequence 
+    of the protein. Fast and flexible ProDy parsers are used to retrieve the 
+    corresponding dataset of PDB files from the PDB FTP server and extract 
+    their coordinate data and other relevant information.
+  </p>
+  <p><b><em>What is the output?</em></b></br>
+    ProDy outputs dominant patterns in structural variability extracted by principal 
+    component analysis (PCA) of the experimental datasets and normal modes
+    describing the intrinsic dynamics of proteins predicted by normal mode analysis 
+    (NMA) based on elastic network models (ENMs).
+  </p>
+  <p>To learn more about ProDy you may start from the <a href="{{ pathto("tutorial") }}">Tutorial</a>,
       or from one of the following examples:
   </p>
   <ul>
@@ -53,10 +68,10 @@
     <p class="last">
       <ul>
         <li>
-        <div class="line"><a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf" target="_blank"><img alt="pdf" src="_images/pdf.png" /></a> 
-        <a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/#Multiscale" target="_blank">Computational Generation of Inhibitor-Bound Conformers of P38 MAP
-        Kinase and Comparison with Experiments</a></div> 
-        <div class="line">Bakan A, Bahar I. <strong>2011</strong> <em>Pacific Symposium on Biocomputing</em> 16:181-192.</div> 
+        <div class="line"><a class="reference external" href="http://www.pnas.org/content/106/34/14349.full.pdf" target="_blank"><img alt="pdf" src="_images/pdf.png" /></a> 
+        <a class="reference external" href="http://www.pnas.org/content/106/34/14349.long" target="_blank">The intrinsic dynamics of enzymes plays a dominant role in 
+          determining the structural changes induced upon inhibitor binding</a></div> 
+        <div class="line">Bakan A, Bahar I. <strong>2009</strong> <em>Proc Natl Acad Sci U S A</em> 106(34):14349-14354.</div> 
         </li>
         <li>
           <i>See all in <a href="{{ pathto("publications") }}">Publications</a></i>.

@@ -1,28 +1,27 @@
+.. _changes:
+
 .. currentmodule:: prody
 
 *******************************************************************************
-Changes in ProDy
+Changes
 *******************************************************************************
 
 Release 0.6 (in development)
 ===============================================================================
 
-**Improvements**:
-
-  * A few bugs in ensemble and dynamics classes are fixed.
-  * Improvements in :class:`~proteins.RCSB_PDBFetcher` allow it not to miss a 
-    PDB file if it exists in the target folder.
-
 **New Features**:
 
-  * Membership test operation is defined for all :mod:`~prody.atomic` classes.
-    See :ref:`selection-operations`.
-  * Equality and non-equality tests are implemented for classes derived from 
-    :class:`~atomic.AtomPointer`.
+  * Membership, equality, and non-equality test operation are defined for all 
+    :mod:`~prody.atomic` classes. See :ref:`selection-operations`.
   * Two functions are implemented for dealing with anisotropic temperature 
     factors: :func:`~measure.calcADPAxes` and :func:`~measure.buildADPMatrix`.
-  * :meth:`~dynamics.NMA.setEigens` method is implemented for analyzing
-    normal modes calculated using external software. 
+  * :meth:`~dynamics.NMA.setEigens` and :meth:`~dynamics.NMA.addEigenspair` 
+    methods are implemented to assist analysis of normal modes calculated using 
+    external software.
+  * :func:`~dynamics.parseNMD` is implemented for parsing NMD files.
+  * :func:`~dynamics.parseArray` is implementing for reading numeric data,
+    particularly normal mode data calculated using other software for analysis
+    using ProDy. 
   * The method in [BH02]_ to calculate overlap between covariance matrices is 
     implemented as :func:`~dynamics.calcCovarianceOverlap` function.
   * A method to trim :class:`~ensemble.Ensemble` instances is implemented: 
@@ -36,6 +35,13 @@ Release 0.6 (in development)
   * :func:`getSumOfWeights` is renamed as :func:`~ensemble.calcSumOfWeights`.
   * :func:`mapAtomsToChain` is renamed as :func:`~compare.mapOntoChain`.
 
+**Improvements**:
+
+  * A few bugs in ensemble and dynamics classes are fixed.
+  * Improvements in :class:`~proteins.RCSB_PDBFetcher` allow it not to miss a 
+    PDB file if it exists in the target folder.
+  * :func:`~dynamics.writeNMD` is fixed to output B-factors (Thanks to 
+    Dan Holloway for pointing it out).
 
 Release 0.5.2 (Jan 12, 2011)
 ===============================================================================
@@ -132,11 +138,11 @@ Release 0.2 (Nov 16, 2010)
 
 **Improvements**:
 
-  * :mod:`prody.compare` functions are improved. Now they perform sequence
+  * :mod:`~prody.compare` functions are improved. Now they perform sequence
     alignment if simple residue number/identity based matchin does not work,
     or if user passes ``pwalign=True`` argument. This impacts the speed 
     of X-ray ensemble analysis.
-  * :class:`select.Select` can cache data optionally. This results
+  * :class:`~select.Select` can cache data optionally. This results
     in speeds up from 2 to 50 folds depending on number of atoms and selection
     operations.
   * Implementation of :func:`~dynamics.showProjection` is completed.
