@@ -1252,8 +1252,9 @@ class GNM(GNMBase):
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.
 
-        This method uses :func:`scipy.linalg.eigh` function to diagonalize
-        Kirchhoff matrix.
+        This method uses :func:`scipy.linalg.eigh` function to diagonalize 
+        Kirchhoff matrix. When Scipy is not found, :func:`numpy.linalg.eigh` 
+        is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
@@ -1345,8 +1346,14 @@ class ANM(GNMBase):
         return self._hessian.copy()
     
     def setHessian(self, hessian):
-        """Set Hessian matrix."""
+        """Set Hessian matrix.
         
+        A symmetric matrix is expected, i.e. not a lower- or upper-triangular
+        matrix.
+        
+        """
+        
+        self._tril = False
         if not isinstance(hessian, np.ndarray):
             raise TypeError('hessian must be an ndarray')
         elif not (hessian.ndim == 2 and hessian.shape[0] == hessian.shape[1]):
@@ -1398,7 +1405,12 @@ class ANM(GNMBase):
                                  '{0:s}'.format(np.float64))
         
         cutoff = float(cutoff)
-        gamma = float(gamma)
+        if isinstance(gamma, Gamma):
+            getGamma = gamma.getGamma
+        else:
+            g = float(gamma)
+            getGamma = lambda i, j, dist2: g / dist2 
+         
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
         start = time.time()
@@ -1416,19 +1428,20 @@ class ANM(GNMBase):
                     j = k
                 i2j = coords[j] - coords[i]
                 dist2 = np.dot(i2j, i2j)
-                super_element = np.outer(i2j, i2j) / dist2 * gamma 
+                gamma = getGamma(i, j, dist2)
+                super_element = - np.outer(i2j, i2j) * gamma  
                 res_i3 = i*3
                 res_i33 = res_i3+3
                 res_j3 = j*3
                 res_j33 = res_j3+3
-                hessian[res_i3:res_i33, res_j3:res_j33] = -super_element
-                hessian[res_j3:res_j33, res_i3:res_i33] = -super_element
-                hessian[res_i3:res_i33, res_i3:res_i33] += super_element
-                hessian[res_j3:res_j33, res_j3:res_j33] += super_element
-                kirchhoff[i, j] = -gamma
-                kirchhoff[j, i] = -gamma
-                kirchhoff[i, i] += gamma
-                kirchhoff[j, j] += gamma
+                hessian[res_i3:res_i33, res_j3:res_j33] = super_element
+                hessian[res_j3:res_j33, res_i3:res_i33] = super_element
+                hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
+                hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
+                kirchhoff[i, j] = 1
+                kirchhoff[j, i] = 1
+                kirchhoff[i, i] += 1
+                kirchhoff[j, j] += 1
         else:
             cutoff2 = cutoff * cutoff 
             for i in range(n_atoms):
@@ -1437,20 +1450,21 @@ class ANM(GNMBase):
                 xyz_i = coords[i, :]
                 for j in range(i+1, n_atoms):
                     i2j = coords[j, :] - xyz_i
-                    i2j2 = np.dot(i2j, i2j)
-                    if i2j2 > cutoff2:
+                    dist2 = np.dot(i2j, i2j)
+                    if dist2 > cutoff2:
                         continue             
+                    gamma = getGamma(i, j, dist2)
                     res_j3 = j*3
                     res_j33 = res_j3+3
-                    super_element = -np.outer(i2j, i2j) / i2j2 * gamma
+                    super_element = -np.outer(i2j, i2j) * gamma 
                     hessian[res_i3:res_i33, res_j3:res_j33] = super_element 
                     hessian[res_j3:res_j33, res_i3:res_i33] = super_element
                     hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
                     hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
-                    kirchhoff[i, j] = -gamma
-                    kirchhoff[j, i] = -gamma
-                    kirchhoff[i, i] += gamma
-                    kirchhoff[j, j] += gamma
+                    kirchhoff[i, j] -= 1
+                    kirchhoff[j, i] -= 1
+                    kirchhoff[i, i] += 1
+                    kirchhoff[j, j] += 1
         LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._hessian = hessian
@@ -1462,8 +1476,9 @@ class ANM(GNMBase):
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.
 
-        This method uses :func:`scipy.linalg.eigh` function to diagonalize
-        Hessian matrix.
+        This method uses :func:`scipy.linalg.eigh` function to diagonalize 
+        Hessian matrix. When Scipy is not found, :func:`numpy.linalg.eigh` 
+        is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
@@ -1622,7 +1637,8 @@ class PCA(NMABase):
         """Calculate principal (or essential) modes.
 
         This method uses :func:`scipy.linalg.eigh` function to diagonalize
-        covariance matrix.
+        covariance matrix. When Scipy is not found, :func:`numpy.linalg.eigh` 
+        is used.
         
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
@@ -1667,6 +1683,17 @@ class PCA(NMABase):
                          .format(self._n_modes, time.time()-start))
 
 EDA = PCA
+
+class Gamma(object):
+    
+    """Base class for defining custom force constants."""
+    
+    
+    def __init__(self):
+        pass
+    
+    def getGamma(self):
+        pass
 
 def saveModel(nma, filename=None, matrices=False):
     """Save *nma* model data as :file:`filename.nma.npz`. 
