@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010  Ahmet Bakan
@@ -1176,11 +1177,12 @@ class GNM(GNMBase):
         
         :arg coords: a coordinate set or anything with getCoordinates method
         
-        :arg cutoff: cutoff distance (A) for pairwise interactions.
-        :type cutoff: float, default is 10.0
+        :arg cutoff: Cutoff distance (Å) for pairwise interactionsm
+            default is 10.0 Å
+        :type cutoff: float
         
-        :arg gamma: spring constant
-        :type gamma: float, default is 1.0
+        :arg gamma: Spring constant, default is 1.0.
+        :type gamma: float
         
         When available, this method uses Bio.KDTree.
         
@@ -1359,11 +1361,12 @@ class ANM(GNMBase):
         
         :arg coords: a coordinate set or anything with getCoordinates method
         
-        :arg cutoff: cutoff distance (A) for pairwise interactions
-        :type cutoff: float, default is 15.0
+        :arg cutoff: Cutoff distance (Å) for pairwise interactions,
+            default is 15.0 Å. 
+        :type cutoff: float
         
-        :arg gamma: spring constant
-        :type gamma: float, default is 1.0
+        :arg gamma: Spring constant, default is 1.0
+        :type gamma: float
         
         When available, this method uses Bio.KDTree.
         
