@@ -19,10 +19,10 @@ write eigenvalues/vectors in plain text and :term:`NMD` formats::
   ./python anm.py 1p38
   
 In this example, default parameters (``cutoff=15.`` and ``gamma=1.``)
-and all alpha carbons of the protein structure 1p38 are used.
+and all Cα atoms of the protein structure 1p38 are used.
 
-In the following, cutoff distance is changed to 14 angstroms, 
-alpha carbons of residues with numbers smaller than 340 are used, 
+In the following, cutoff distance is changed to 14 Å, 
+Cα atoms of residues with numbers smaller than 340 are used, 
 and output files are prefixed with "p38_anm"::
 
   ./python anm.py -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
@@ -97,7 +97,7 @@ Running ``python gnm.py -h`` prints::
 
 This script can be used to extract a selection of atoms from a PDB file, i.e. 
 running ``python pdbselect.py 1p38 selected.pdb "protein and name CA"``
-will write alpha carbon atoms in :file:`selected.pdb` file.
+will write Cα atoms in :file:`selected.pdb` file.
  
 Running ``python pdbselect.py -h`` prints::
 

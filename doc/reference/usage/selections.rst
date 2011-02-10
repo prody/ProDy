@@ -51,7 +51,7 @@ Keywords followed by characters or words
 
 **Examples**:
   * ``"name CA"`` selects atoms with name CA
-  * ``"protein name CA and chain A"`` selects alpha carbons of chain A 
+  * ``"protein name CA and chain A"`` selects Cα atoms of chain A 
 
 
 Keywords followed by integers and/or number ranges
@@ -131,7 +131,7 @@ Comparisons
    !=, "not equal"
 
 **Examples**
-  * ``"sqrt(x**2 + y**2 + z**2) < 10"`` selects atoms within 10 angstrom of the 
+  * ``"sqrt(x**2 + y**2 + z**2) < 10"`` selects atoms within 10 Å of the 
     origin
   * ``"resnum <= 100"`` selects atoms with residue numbers less than or equal 
     to 100  
@@ -186,7 +186,7 @@ Keyword Definitions
         Atomic temperature (B/beta) factors.
     
    calpha
-        Alpha carbon atoms of :term:`protein` residues.
+        Cα atoms of :term:`protein` residues. Equivalent to ``name CA and protein``.
     
    chain
         Poly-peptide/nucleotide/etc. chain identifier. "_" means atoms no chain

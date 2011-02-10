@@ -3,12 +3,13 @@
 {% block extrahead %}
 {{ super() }}
 {%- if not embedded %}
-<meta http-equiv="expires" content="0">
+
 <style type="text/css">
   table.right { float: right; margin-left: 20px; }
   table.right td { border: 1px solid #ccc; }
 </style>
 {%- endif %}
+<meta http-equiv="expires" content="-1">
 <script type="text/javascript">
 fsUnit = 'px';
 defaultFS = '12';
@@ -23,7 +24,7 @@ function changeFontSize(incr) {
   }
   var exdate = new Date();
   exdate.setDate(exdate.getDate() + 365);
-  document.cookie= "SphinxFontSize" + "=" + escape(parseFloat(document.body.style.fontSize)) + ";expires=" + exdate.toUTCString();
+  document.cookie= "ProDyDocFontSize" + "=" + escape(parseFloat(document.body.style.fontSize)) + ";expires=" + exdate.toUTCString();
 }
 
 function setFontSize(fs) {
@@ -35,7 +36,7 @@ function setFontSize(fs) {
 
 function getFontSize() {
   if (document.cookie.length > 0) {
-    c_name = "SphinxFontSize"
+    c_name = "ProDyDocFontSize"
     var c_start = document.cookie.indexOf(c_name + "=");
     if (c_start != -1) {
       c_start = c_start + c_name.length + 1;
@@ -70,11 +71,13 @@ function checkFontSize() {
 {% endblock %}
 
 {% block rootrellink %}
-        <li><img src="{{ pathto("_static/text-14.png", 1) }}" onclick="changeFontSize(0)" style="vertical-align: middle;" alt="Default text size">
-            <img src="{{ pathto("_static/plus.png", 1) }}" onclick="changeFontSize(+1)" style="vertical-align: middle;" alt="Increase text size"> 
-            <img src="{{ pathto("_static/minus.png", 1) }}" onclick="changeFontSize(-1)" style="vertical-align: middle;" alt="Decrease text size">
+        <li><a href="#">
+            <img src="{{ pathto("_static/text-14.png", 1) }}" onclick="changeFontSize(0)" alt="Default text size">
+            <img src="{{ pathto("_static/plus.png", 1) }}" onclick="changeFontSize(+1)" alt="Increase text size"> 
+            <img src="{{ pathto("_static/minus.png", 1) }}" onclick="changeFontSize(-1)" alt="Decrease text size">
+            </a>
         </li>
-        <li>&nbsp;<a href="{{ pathto('index') }}">Home</a>|&nbsp;</li>
+        <li><a href="{{ pathto('index') }}">Home</a>|&nbsp;</li>
         <li><a href="{{ pathto('contents') }}">Contents</a> &raquo;</li>
 {% endblock %}
 

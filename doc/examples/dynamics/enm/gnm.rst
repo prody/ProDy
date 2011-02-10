@@ -47,7 +47,7 @@ the current working directory, it will be downloaded.
 <AtomGroup: 1aar (1218 atoms; 1 coordinate sets, active set index: 0)>
 
 This file contains 2 chains, and a flexible C-terminal (residues 71-76).
-We only want to use alpha carbon atoms of first 70 residues from chain A, 
+We only want to use Cα atoms of first 70 residues from chain A, 
 so we select them:
 
 >>> calphas = ubi.select('calpha and chain A and resnum < 71')

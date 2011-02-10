@@ -55,11 +55,11 @@ Align coordsets
 -------------------------------------------------------------------------------
 
 We will superpose all models onto the first model in the file using
-based on alpha carbon atom positions:
+based on Cα atom positions:
    
 >>> alignCoordsets( pdb, selstr='calpha')
 
-``selstr='calpha'`` argument selects alpha carbon atoms. To use all backbone
+``selstr='calpha'`` argument selects Cα atoms. To use all backbone
 atoms, ``selstr='backbone'`` can be passed as argument. See :ref:`selections`
 for more information on making selections.
 

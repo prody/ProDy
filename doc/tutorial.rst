@@ -207,8 +207,8 @@ Here is a more sophisticated composite selection:
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
 
 In this case, we first calculated the geometric center of the protein atoms.
-Then, we selected carbon alpha and beta atoms of residues that have at least 
-one atom within 10 angstrom away from the geometric center.
+Then, we selected Cα and Cβ atoms of residues that have at least 
+one atom within 10 Å away from the geometric center.
 
 More examples
 -------------------------------------------------------------------------------
@@ -436,5 +436,3 @@ following ways:
 |questions|
 
 |suggestions|
-
-

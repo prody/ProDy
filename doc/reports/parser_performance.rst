@@ -76,7 +76,7 @@ The following code was used for evaluation::
       fout.close()
 
   def getCAcoords_BioPDB(pdb, model=0):
-      """Return alpha carbon coordinates from indicated model.
+      """Return Cα coordinates from indicated model.
       
       Note that this function does not check whether a protein with name CA
       is from an amino acid residue.
@@ -109,7 +109,7 @@ The following code was used for evaluation::
       fout.close()
 
   def getCAcoords_MMTK(filename):
-      """Return alpha carbon coordinates.
+      """Return Cα coordinates.
       
       Note that this function does not check whether a protein with name CA
       is from an amino acid residue.
@@ -125,7 +125,7 @@ The following code was used for evaluation::
       return np.array(CAxyz)
 
   def getCAcoords_MMTK_2(filename):
-      """Return alpha carbon coordinates.
+      """Return Cα coordinates.
       This method was found to be slower, so is not reported."""
       protein = Protein(filename, model='calpha')
       return np.array([atom.position() for atom in protein.atoms])
