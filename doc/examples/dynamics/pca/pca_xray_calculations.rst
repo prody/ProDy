@@ -96,7 +96,7 @@ Select chain A from the reference structure
 
 We used :func:`~prody.proteins.parsePDB` function to parse a PDB file.
 This returned a :class:`~prody.atomic.AtomGroup` instance. We made a copy
-of alpha carbons of select residues for analysis.   
+of Cα atoms of select residues for analysis.   
 
 |more| See :ref:`selections` on making selections.
 

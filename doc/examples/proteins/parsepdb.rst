@@ -75,7 +75,7 @@ automatically and saved it in the current working directory.
 Subsets of atoms
 -------------------------------------------------------------------------------
 
-Parser can be used to parse backbone or alpha carbon atoms:
+Parser can be used to parse backbone or Cα atoms:
 
 >>> backbone = parsePDB('1mkp', subset='bb')
 >>> backbone

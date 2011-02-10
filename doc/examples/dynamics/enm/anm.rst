@@ -45,7 +45,7 @@ downloaded.
 >>> p38
 <AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
 
-We want to use only alpha carbon atoms, so we select them:
+We want to use only Cα atoms, so we select them:
 
 >>> calphas = p38.select('protein and name CA')
 >>> calphas
@@ -72,7 +72,7 @@ We instantiate an :class:`ANM` instance:
 
 >>> anm = ANM('p38 ANM analysis')
 
-Then, build the Hessian matrix by passing selected atoms (351 alpha carbons)
+Then, build the Hessian matrix by passing selected atoms (351 Cα's)
 to :meth:`ANM.buildHessian` method:
 
 >>> anm.buildHessian(calphas)
