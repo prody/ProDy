@@ -12,10 +12,10 @@ ProDy can be used:
 * as a command line program via :ref:`scripts`,
 * or as a toolkit for developing new software.
 
-For those who are new to Python, `A Primer on Python for Life Science Researchers 
+Users who are new to Python are referred to `A Primer on Python for Life Science Researchers 
 <http://www.ploscompbiol.org/article/info%3Adoi%2F10.1371%2Fjournal.pcbi.0030199>`_
 or the more comprehensive `The Python Tutorial 
-<http://docs.python.org/tutorial/>`_ is recommended.
+<http://docs.python.org/tutorial/>`_.
 
 ProDy documentation is organized in three main sections:
 
@@ -25,25 +25,25 @@ ProDy documentation is organized in three main sections:
   applied to other cases after small modifications.
 * :ref:`reference` section describes all ProDy classes and functions. 
   
-  In interactive Python sessions, reference documentation can be accessed 
-  using built-in Python :func:`help` function: 
+  In interactive Python sessions, the reference documentation can be accessed 
+  using the built-in Python function :func:`help`: 
 
   >>> help(parsePDB) # doctest: +SKIP
 
-  This function can be used to print the description of functions, classes, 
-  and class methods on the screen. You might need to type ``q`` to quit from 
-  help. Also, if you are using interactive Python shell (IPython), you can 
+  This function prints the description of functions, classes, 
+  and class methods to the screen. You might need to type ``q`` to quit from 
+  help. If you are using interactive Python shell (IPython), you can also 
   get help as follows::
   
     prot ?
 
 
-Finally, this page and others in the :ref:`examples` and :ref:`reference` 
-sections contain ProDy code snippets. These snippets can be retrieved using 
-the :guilabel:`Show Code Snippets` button on the right hand side panel. ProDy code 
-will be displayed in a popup window. The code in the new page can be directly 
-copied into a file. Click on the text, press :kbd:`Ctrl+A` and then 
-:kbd:`Ctrl+C` to have the text in your clipboard. 
+Finally, the Tutorial, :ref:`examples` and :ref:`reference` 
+pages contain ProDy code snippets. These snippets can be retrieved using 
+the :guilabel:`Show Code Snippets` button on the right hand side panel. 
+ProDy code will be displayed in a popup window. The code in the new page can 
+be directly copied into a file. Click on the text, press :kbd:`Ctrl+A` and then 
+:kbd:`Ctrl+C` to have the text in your clipboard.
 
 .. image:: /_static/codesnippets.png
    :align: center
@@ -95,14 +95,14 @@ consistent manner.
 
 For best interactive usage experience, we strongly recommend 
 that you use `IPython <http://ipython.scipy.org/>`_ or a similar 
-interactive shell instead of the standard Python shell. IPython, for example,
-offers handy features, such as tab completion, and convenient
-integration of Numpy and Matplotlib (see http://matplotlib.sourceforge.net),
-in addition to a nice coloring scheme.
+interactive shell instead of the standard Python shell. The IPython shell, 
+for example, provides user-friendly features, such as dynamic introspection
+and help, and also optionally convenient integration of Numpy and Matplotlib
+(see http://matplotlib.sourceforge.net).
 
-In the rest of this tutorial, we assume that commands are typed in a 
-Python shell. We start with importing all functions and classes from 
-ProDy into the current namespace as follows:
+In the rest of this tutorial, it is assumed that the user is typing commands 
+in a Python shell. To begin the Tutorial, import all the functions and classes 
+from ProDy into the current namespace as follows:
 
 >>> from prody import *
 
@@ -111,23 +111,25 @@ Parse a PDB file
 
 Let's start with reading the contents of a PDB file. ProDy offers a fast PDB 
 file parser function :func:`~proteins.parsePDB` (:ref:`pdbparser-performance`). 
-It is sufficient to pass a PDB identifier to get all atomic data from a file.
-The parser will seek the PDB file in the current working directory, and if
-it is not found it will download it from the PDB FTP server automatically.
+It is sufficient to pass a PDB identifier to read the file. The parser will 
+seek a PDB file that matches given identifier in the current working directory, 
+and if it is not found it will download it from the PDB FTP server automatically.
 
 >>> prot = parsePDB('1p38')
 
-1p38 is an unbound structure of p38 MAP kinase. :file:`1p38.pdb.gz` has been 
-downloaded, and coordinates were parsed into an :class:`~prody.atomic.AtomGroup`
-instance.
+The above example parses the coordinates and atomic data from the PDB file 1p38 
+which contains an unbound structure of p38 MAP kinase. :file:`1p38.pdb.gz` is 
+downloaded, and coordinates and atomic data are returned in an 
+:class:`~atomic.AtomGroup` instance.
 
-To get some information on the :class:`~prody.atomic.AtomGroup` instance, you 
-can type variable name and hit :kbd:`enter` key.
+To get information on the :class:`~prody.atomic.AtomGroup` instance, 
+type the variable name and hit :kbd:`enter` key:
 
 >>> prot
 <AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
 
-All atomic data can be accessed using ``get`` methods:
+This shows that atom group object contains 2962 atoms. 
+All atomic data from this object can be retrieved using ``get`` methods:
 
 >>> print prot.getResidueNames()
 ['GLU' 'GLU' 'GLU' ..., 'HOH' 'HOH' 'HOH']
@@ -139,44 +141,50 @@ All atomic data can be accessed using ``get`` methods:
  [ 18.872   8.33   36.716]
  [-22.062  21.632  42.029]
  [  1.323  30.027  65.103]]
+ 
+The list of methods for getting and setting atomic data is listed in
+:class:`~atomic.AtomGroup` reference documentation. 
 
 More examples
 -------------------------------------------------------------------------------
 
 :func:`~proteins.parsePDB` function is very flexible and can be extremely
-efficient depending on what you want to extract from a PDB file. You can
-parse specific chains, alternate locations, subsets of atoms, or models
+efficient depending on what you want to extract from a PDB file. It can be used
+to parse specific chains, alternate locations, subsets of atoms, or models
 from a file. A detailed usage example can be found in :ref:`parsepdb`.
 
-There are more ways to access Protein Data Bank (http://www.pdb.org/) 
-content via ProDy. See the :ref:`fetchpdb` for downloading and :ref:`blastpdb` 
-for blast searching PDB files.
-
-Descriptions of all functions for accessing and handling protein data can be 
-found in :mod:`~prody.proteins` module reference documentation.
+All functions for accessing and handling protein data are 
+described in :mod:`~prody.proteins` module reference documentation.
+:ref:`fetchpdb` and :ref:`blastpdb` examples show how other ways to 
+access the Protein Data Bank (|pdb|) content.
 
 
 Select atoms
 ===============================================================================
 
-ProDy :class:`~atomic.AtomGroup` objects have a plain view of
+ProDy :class:`~atomic.AtomGroup` instances have a plain view of
 atoms, but offer a powerful atom selector. You can get well defined subsets of 
 atoms by passing simple keywords as arguments or make sophisticated selections
 using composite arguments. Selection keywords and grammar is very much similar
 to that of `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_. Let's see some 
 examples here:
 
-Select protein atoms:
+*Select protein atoms*:
 
 >>> protein = prot.select('protein')
 >>> protein
 <Selection: "protein" from 1p38 (2833 atoms; 1 coordinate sets, active set index: 0)>
 
 Using :term:`protein` keyword we selected 2833 atoms out of 2962 atoms. 
-:meth:`~prody.atomic.Atomic.select` method returned a :class:`~atomic.Selection` 
-instance.
+:meth:`~atomic.Atomic.select` method returned a :class:`~atomic.Selection` 
+instance. Note that all ``get`` and ``set`` methods defined for
+:class:`~atomic.AtomGroup` instances are also defined for 
+:class:`~atomic.Selection` instances:
 
-Select atoms by :term:`name`:
+>>> print protein.getResidueNames()
+['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
+
+*Select atoms by :term:`name`*:
 
 >>> backbone = prot.select('protein and not name N CA C O')
 >>> backbone
@@ -184,9 +192,9 @@ Select atoms by :term:`name`:
 >>> len(backbone)
 1429
 
-We could also use :term:`backbone` to make the same selection. 
+We can also use :term:`backbone` to make the same selection. 
 
-Select amino acids by type/name (:term:`resname`):
+*Select amino acids by type/name (:term:`resname`)*:
 
 >>> prot.select('resname ARG LYS HIS ASP GLU')
 <Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
@@ -199,7 +207,7 @@ Or, we can use predefined keywords :term:`acidic` and :term:`basic`.
 >>> set(charged.getResidueNames())
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
-Here is a more sophisticated composite selection:
+*A composite selection*:
 
 >>> print protein.getCoordinates().mean(0) # doctest: +SKIP
 [  1.005  17.533  40.052]
@@ -385,8 +393,9 @@ or obtain same files for another protein from the ANM server.
 ...                  eigenvalues='oanm.eigvals', 
 ...                  nm_usecols=range(1,21), 
 ...                  ev_usecols=[1], ev_usevalues=range(6,26))
+>>> nma
+<NMA: oanm (20 modes, 351 atoms)>
 >>> nma.setName('1p38 ANM')
-<NMA: oanm (20 modes, 144 atoms)>
 >>> slowmode = nma[0]
 >>> slowmode.getEigenvalue() # doctest: +SKIP
 0.1788

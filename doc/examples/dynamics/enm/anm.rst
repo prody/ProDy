@@ -170,8 +170,7 @@ array([ 0.039,  0.009,  0.058, ...,  0.046,  0.042,  0.08 ])
 Write NMD file
 -------------------------------------------------------------------------------
 
-ANM results in NMD format can be visualized using |nmwiz|. NMWiz is
-a |vmd| plugin.
+ANM results in NMD format can be visualized using NMWiz VMD plugin |nmwiz|.
 
 
 >>> # write slowest 3 ANM modes into an NMD file

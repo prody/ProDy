@@ -1,23 +1,25 @@
 TUTORIAL, EXAMPLES, and DOCUMENTATION
 -------------------------------------
 
-http://www.csb.pitt.edu/People/abakan/software/ProDy 
+http://www.csb.pitt.edu/ProDy 
 
 SYNOPSIS
 --------
 
-ProDy is a free and open-source Python package for analyzing protein structural dynamics. 
-It is designed and developed by Ahmet Bakan in Bahar lab at University of Pittsburgh. 
-New functional features are continually being added to ProDy. 
-The following are the main features that have been successfully implemented to date:
+ProDy is a free and open-source Python package for analyzing protein structural 
+dynamics. It allows for quantitative analysis of heterogeneous experimental 
+structural datasets and comparison with theoretically predicted conformational 
+dynamics. It is designed and developed by Ahmet Bakan in the Bahar lab at the 
+University of Pittsburgh.
+
+The following are some of the main features:
 
 **Examination and analysis of structural variability observed in experiments:**
 
-  * Efficient parsing of PDB files
-  * Powerful selection of atoms and interactions
+  * Fast and flexible parsing of PDB files
+  * Powerful atom selections and contact identification
   * Matching, superposing, and comparing multiple structures/chains
-  * Principal component analysis (PCA) of X-ray structures
-  * PCA of NMR models
+  * PCA of X-ray structures, NMR models and mixed structural datasets from Blast search
 
 **Prediction and analysis of protein dynamics using theory and simulation:**
 
@@ -37,21 +39,16 @@ in ProDy releases. Pyparsing is developed by Paul T. McGuire
 and is distributed under MIT license 
 (http://www.opensource.org/licenses/mit-license.php).
 
-DOWNLOADS
----------
+DOWNLOADS & INSTALLATION
+------------------------
   
-* http://pypi.python.org/pypi/ProDy/#downloads
-
-INSTALLATION
-------------
-
-* http://www.csb.pitt.edu/People/abakan/software/ProDy/getprody.html
+* http://www.csb.pitt.edu/ProDy/getprody.html
 * INSTALL.txt
 
 CHANGES
 -------
 
-* http://www.csb.pitt.edu/People/abakan/software/ProDy/changes.html
+* http://www.csb.pitt.edu/ProDy/changes.html
 * CHANGES.txt
 
 SOURCE

@@ -43,7 +43,7 @@ def main():
 $> anm 1p38
 Fetch pdb 1p38 and run ANM using default parameters.
     
-$> anm 1p38 --select "protein and name CA and chain A'
+$> anm 1p38 --select "protein and name CA and chain A"
 Fetch pdb 1p38 and run ANM using default parameters on all CA atoms of protein chain A.
 """
     

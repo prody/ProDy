@@ -6,9 +6,9 @@
 PCA of X-ray structures
 *******************************************************************************
 
-This is the longest example that compares experimental structural data
-analyzed using Principal Component Analysis (PCA) and theoretical data
-predicted using Anisotropic Network Model (ANM). It is split into the following parts:
+This example compares experimental structural data analyzed using Principal 
+Component Analysis (PCA) with the theoretical data predicted by Anisotropic 
+Network Model (ANM):
 
 .. toctree::
    :maxdepth: 1

@@ -5,15 +5,16 @@ PDB Parser Performance
 
 *Date: 20 Dec 2010*
 
-Performance of ProDy PDB parser :func:`~prody.proteins.parsePDB` is compared to 
-those of Biopython (:class:`Bio.PDB.PDBParser.PDBParser`) and MMTK 
-(:class:`MMTK.PDB.PDBConfiguration`) PDB parsers. 
+We tested the performance of the ProDy PDB parser :func:`~prody.proteins.parsePDB` 
+by comparing it with the PDB parsers of Biopython 
+(:class:`Bio.PDB.PDBParser.PDBParser`) and MMTK 
+(:class:`MMTK.PDB.PDBConfiguration`). 
 
 Dataset
 -------------------------------------------------------------------------------
-A non-redundant set of PDB structures were used. List of PDB identifiers was 
+A non-redundant set of PDB structures was used. A list of PDB identifiers was 
 obtained from http://bioinfo.tg.fh-giessen.de/pdbselect 
-(:download:`pdb_select25`). Dataset contained 4701 uncompressed files. 
+(:download:`pdb_select25`). The dataset contained 4701 uncompressed files. 
 
 Results
 -------------------------------------------------------------------------------
@@ -24,16 +25,16 @@ Results
    "*Total*", 18.13 m, 11.16 m, 3.27 m, 2.23 m, 52.28 m, 155.6 m
    "*Per file*", 0.232 s, 0.142 s, 0.042 s, 0.028 s, 0.667 s, 1.986 s
    
-Evaluation was made using a desktop machine with Intel(R) Xeon(TM) CPU at 3.20GHz.
-ProDy was timed for parsing all atoms and generating a hiearchical view (HV), 
-parsing all atoms (All), Ca’s (Ca), and Ca’s from model 1 (m1). 
-Note that by default Bio.PDB parser evaluates all models, and MMTK parser
-evaluates only the first model.
+The analysis was carried out using a desktop machine with Intel(R) Xeon(TM) CPU 
+at 3.20GHz. ProDy was timed for (*i*) parsing all atoms and generating a 
+hierarchical view (HV), parsing (*ii*) all atoms (All), (*iii*) Ca’s (Ca), and 
+(*iv*) Ca’s from model 1 (m1). Note that by default Bio.PDB parser evaluates 
+all models, and MMTK parser evaluates only the first model.
  
 Discussion
 -------------------------------------------------------------------------------
 
-ProDy PDB parser was 2.8 to 24 times faster than Bio.PDB parser on average. 
+The ProDy PDB parser was 2.8 to 24 times faster than Bio.PDB parser on average. 
 Note that Biopython and MMTK parsers perform additonal tasks when coordinates
 are parsed, i.e. building a hierarchical view containing chains and residues.
 ProDy parser evaluates coordinate lines and generates a plain view of atoms
