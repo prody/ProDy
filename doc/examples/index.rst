@@ -19,16 +19,11 @@ Examples in this section can be used in the following ways:
 Notes
 -------------------------------------------------------------------------------
 
-* Some examples need internet connectivity for blast searching PDB and 
+* Some examples need internet connectivity for blast searching the PDB and 
   retrieving files from the PDB FTP server.
 
 * Some examples attempt to download well over 100 structure 
-  files, which make take several minutes depending on connection speed.  
-
-* For plotting results, |matplotlib| library is required.
-
- 
-
+  files, which may take several minutes depending on connection speed.  
 
 Access PDB Data 
 ===============================================================================

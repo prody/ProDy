@@ -13,30 +13,31 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">(</span><span class="n">6</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38_anm.nmd'</span><span class="p">,</span> <span class="n">anm</span>,</span> <span class="n">ca</span><span class="p">)</span></pre></div>
     </div>    
-    <span class="linkdescr">Reads a p38 PDB structure, selects Cα atoms, and performs ANM calculations. Slowest 6 modes are written in NMD format for visualization using NMWiz and VMD.</span>
+    <span class="linkdescr">Reads a p38 PDB structure, selects Cα atoms, and performs ANM calculations. Slow modes are written in NMD format for visualization using NMWiz and VMD.</span>
   </div>
 
   <p>
     ProDy is a free and open-source Python package for analyzing protein structural dynamics.
     It allows for quantitative analysis of heterogeneous experimental structural 
     datasets and comparison with theoretically predicted conformational dynamics.
-    It is designed and developed by <a href="http://www.ccbb.pitt.edu/People/abakan/" target="_blank">Ahmet Bakan</a> 
-    in <a href="http://www.ccbb.pitt.edu/Faculty/bahar/" target="_blank">Bahar lab</a> at the 
-    <a href="http://www.pitt.edu" target="_blank">University of Pittsburgh</a>. 
+    It is designed and developed by 
+    <a href="http://www.ccbb.pitt.edu/People/abakan/" target="_blank">Ahmet Bakan</a> 
+    in the <a href="http://www.ccbb.pitt.edu/Faculty/bahar/" target="_blank">Bahar lab</a> 
+    at the <a href="http://www.pitt.edu" target="_blank">University of Pittsburgh</a>. 
   </p>
   <p> 
-    <b><em>What is the input to ProDy?</em></b></br>
-    The input to ProDy functions and classes is the set of atomic coordinates of 
+    <b><em>What is the input for ProDy?</em></b></br>
+    The input for ProDy functions and classes is the atomic coordinates of 
     the query protein in PDB file format, or simply the PDB id or the sequence 
     of the protein. Fast and flexible ProDy parsers are used to retrieve the 
     corresponding dataset of PDB files from the PDB FTP server and extract 
     their coordinate data and other relevant information.
   </p>
   <p><b><em>What is the output?</em></b></br>
-    ProDy outputs dominant patterns in structural variability extracted by principal 
-    component analysis (PCA) of the experimental datasets and normal modes
-    describing the intrinsic dynamics of proteins predicted by normal mode analysis 
-    (NMA) based on elastic network models (ENMs).
+    ProDy outputs the dominant patterns in structural variability extracted by 
+    principal component analysis (PCA) of the experimental datasets, and the 
+    normal modes describing the intrinsic dynamics of proteins predicted by 
+    normal mode analysis (NMA) based on elastic network models (ENMs).
   </p>
   <p>To learn more about ProDy you may start from the <a href="{{ pathto("tutorial") }}">Tutorial</a>,
       or from one of the following examples:
@@ -47,10 +48,11 @@
         <li> <a href="{{ pathto("reports/parser_performance") }}">Fast</a> and <a href="{{ pathto("examples/proteins/parsepdb") }}">flexible parsing</a> of PDB files </li>
         <li> Powerful <a href="{{ pathto("reference/usage/selections") }}">atom selections</a> and <a href="{{ pathto("examples/select/contacts") }}">contact identification</a> </li>
         <li> <a href="{{ pathto("examples/index") }}">Matching, superposing, and comparing</a> multiple structures/chains </li>
-        <li> <a href="{{ pathto("examples/dynamics/pca/pca_xray") }}">Principal component analysis</a> (PCA) of <a href="{{ pathto("examples/dynamics/pca/pca_xray/index") }}">X-ray structures</a> </li>
-        <li> PCA of <a href="{{ pathto("examples/dynamics/pca/pca_nmr") }}">NMR models</a> and mixed structural datasets <a href="{{ pathto("examples/dynamics/pca/pca_blast") }}">from Blast search</a> </li>
+        <li> <a href="{{ pathto("examples/dynamics/pca/pca_xray") }}">PCA</a> of <a href="{{ pathto("examples/dynamics/pca/pca_xray/index") }}">X-ray structures</a>, 
+        <a href="{{ pathto("examples/dynamics/pca/pca_nmr") }}">NMR models</a> and mixed structural datasets <a href="{{ pathto("examples/dynamics/pca/pca_blast") }}">from Blast search</a> </li>
       </ul>
     </li>
+    <br>
     <li> <b>Prediction and analysis of protein dynamics using theory and simulation:</b>
       <ul> 
         <li> Normal Mode Analysis using the <a href="{{ pathto("examples/dynamics/enm/anm") }}">Anisotropic network model</a> (ANM) </li>
@@ -74,7 +76,7 @@
         <div class="line">Bakan A, Bahar I. <strong>2009</strong> <em>Proc Natl Acad Sci U S A</em> 106(34):14349-14354.</div> 
         </li>
         <li>
-          <i>See all in <a href="{{ pathto("publications") }}">Publications</a></i>.
+          <i>See more entries in <a href="{{ pathto("publications") }}">Publications</a></i>.
         </li>
       </ul> 
     </p> 
@@ -121,8 +123,5 @@
   <p><b>Downloads and Installation</b> instructions can be found at  
     <a href="{{ pathto("getprody") }}">Getting ProDy</a>.
   </p>
-  <p><b>Source code</b> can be found in at github repository:
-    <a href="http://github.com/abakan/ProDy" target="_blank">http://github.com/abakan/ProDy</a>.
-  </p>
-
+  
 {% endblock %}

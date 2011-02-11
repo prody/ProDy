@@ -1405,10 +1405,13 @@ class ANM(GNMBase):
                                  '{0:s}'.format(np.float64))
         
         cutoff = float(cutoff)
+        self._cutoff = cutoff
         if isinstance(gamma, Gamma):
+            self._gamma = gamma
             getGamma = gamma.getGamma
         else:
             g = float(gamma)
+            self._gamma = gamma
             getGamma = lambda i, j, dist2: g / dist2 
          
         n_atoms = coords.shape[0]
@@ -1468,8 +1471,6 @@ class ANM(GNMBase):
         LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._hessian = hessian
-        self._gamma = gamma
-        self._cutoff = cutoff
         self._n_atoms = n_atoms
         self._dof = dof
 

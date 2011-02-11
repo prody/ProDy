@@ -3,14 +3,14 @@
 .. _selections:
 
 *******************************************************************************
-Atom Selections Reference
+Atom Selections
 *******************************************************************************
 
 ProDy offers a powerful atom selector. The keywords, selection grammar,
-and capabilities of the selector are quite to that of |vmd|. 
+and capabilities of the selector are similar to those found in VMD (|vmd|). 
 Small differences should not affect most practical uses of atom selections. 
-ProDy selection engine also enables identifying intermolecular contacts. 
-This section describes the keywords and selection syntax.
+ProDy selection engine also enables the identification of intermolecular 
+contacts. This section describes the keywords and selection syntax.
 
 |more| See :ref:`contacts` and :ref:`selection-operations` for more usage
 examples.
@@ -20,7 +20,7 @@ examples.
 Selection Keywords
 ===============================================================================
 
-Single words
+Keywords
 -------------------------------------------------------------------------------
 
 * :term:`all`, :term:`none`
@@ -37,10 +37,10 @@ Single words
   * ``"charged and cyclic"`` selects histidine residues 
 
 .. note::
-   Definitions of these keywords can be obtained and changed using 
-   corresponding get and set functions. These functions are mentioned in the
-   definition of the keyword in this page and are also listed in 
-   :mod:`prody.select` page.
+   Definitions of keywords can be obtained and changed using the corresponding 
+   ``get`` and ``set`` functions. These functions are noted in the definition 
+   of the keyword on this page and are also listed in the:mod:`~prody.select` 
+   module documentation.
 
 Keywords followed by characters or words
 -------------------------------------------------------------------------------
@@ -61,8 +61,8 @@ Keywords followed by integers and/or number ranges
 * :term:`resnum`, :term:`resid`
 
 **Examples**:
-  * ``"index 10"`` selects 11th atom
-  * ``"serial 10"`` selects 10th atom
+  * ``"index 10"`` selects the 11th atom
+  * ``"serial 10"`` selects the 10th atom
   * ``"resnum 1 to 10"`` selects residues with residue numbers from 1 to 10 
 
 Keywords followed by floating point numbers and/or number ranges
@@ -89,7 +89,7 @@ Operations
    x ** y or x ^ y, "x to the power y"
    x * y, "x times y"
    x / y, "x divided by y"
-   x // y, "x divided by y (floor devision)"
+   x // y, "x divided by y (floor division)"
    x % y, "x modulo y"
    x + y, "x plus y" 
    x - y, "x minus y"
@@ -189,8 +189,8 @@ Keyword Definitions
         Cα atoms of :term:`protein` residues. Equivalent to ``name CA and protein``.
     
    chain
-        Poly-peptide/nucleotide/etc. chain identifier. "_" means atoms no chain
-        identifier or a whitespace.
+        Protein/nucleotide/etc. chain identifier. "_" means atoms with 
+        no chain identifier or a whitespace as the identifier.
         
         e.g. ``"chain A B _"`` selects atoms whose chain identifiers are A, B, 
         or a whitespace 
@@ -216,7 +216,7 @@ Keyword Definitions
    hydrogen
         Atoms with name matching the regular expression "[0-9]?H.*".
         This regular expression may be changed using 
-        :func:`setHydrogenRegex`. See :mod:`re` module
+        :func:`setHydrogenRegex`. See the :mod:`re` module
         for more details on regular expressions.
         
    hydrophobic
@@ -252,7 +252,7 @@ Keyword Definitions
    nucleic
         Group of atoms whose residue names match one of GUA, ADE, CYT, THY, URA,
         DA, DC, DG, or DT.
-        List of residue names in this definition can be chagned using
+        The list of residue names in this definition can be changed using
         :func:`setNucleicResidueNames` method.
 
    occupancy
@@ -287,8 +287,8 @@ Keyword Definitions
         e.g. resname ALA ARG ASN
     
    resnum
-        Residue number. If there are multiple residues with same number but 
-        distinguished with insertion codes, insertion code can be appended
+        Residue number. If there are multiple residues with the same number but 
+        distinguished with insertion codes, the insertion code can be appended
         to the residue number. "_" stands for empty insertion code.
         
         Examples:
@@ -306,7 +306,7 @@ Keyword Definitions
     
    sidechain
         Non-:term:`backbone` :term:`protein` atoms. Note that this
-        defition includes backbone amide hydrogen.
+        definition includes backbone amide hydrogen.
 
    segment
         Group of atoms with same segment identifiers (segids).

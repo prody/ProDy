@@ -66,7 +66,7 @@ def getRevisionNumber():
     logs = logfile.read()
     logfile.close()
     return str(logs.count('Author:'))
-version = '0.5.2'
+version = '0.5.3'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -154,11 +154,11 @@ html_index = 'index.html'
 # 'sourcelink.html'
 generic_sidebars = ['localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['getprody.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
+    'index': ['slideshow.html', 'newrelease.html', 'getprody.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
-    'tutorial': ['localtoc.html', 'codesnippets.html', 'searchbox.html'],
+    'tutorial': ['newrelease.html', 'localtoc.html', 'codesnippets.html', 'searchbox.html'],
     'bibliography': generic_sidebars,
     'changes': generic_sidebars,
     'contents': generic_sidebars,
@@ -172,7 +172,7 @@ html_sidebars = {
     'reports/index': generic_sidebars,
     'scripts/index': generic_sidebars,
     'todo': generic_sidebars,
-    '**': ['localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
+    '**': ['newrelease.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -284,9 +284,11 @@ rst_epilog = """
 
 .. |example| image:: /_static/example.png
 
-.. |nmwiz| replace:: NMWiz (http://www.csb.pitt.edu/People/abakan/software/NMWiz/)
+.. |nmwiz| replace:: http://www.csb.pitt.edu/NMWiz/
 
-.. |vmd| replace:: VMD (http://www.ks.uiuc.edu/Research/vmd/)
+.. |vmd| replace:: http://www.ks.uiuc.edu/Research/vmd/
+
+.. |pdb| replace:: http://www.pdb.org/
 
 .. |mdanalysis| replace:: http://code.google.com/p/mdanalysis/
 

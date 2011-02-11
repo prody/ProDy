@@ -29,7 +29,7 @@ Notes
 To make a comparative visual analysis of PCA and ANM modes
 that were calculated in the previous parts, NMWiz needs to be installed.
 NMWiz is a VMD plugin designed to complement ProDy.
-You can get it from |nmwiz| 
+You can get it from |nmwiz|. 
 
 
 ProDy Code

@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.6 (in development)
+Release 0.5.3 (Feb 11, 2011)
 ===============================================================================
 
 **New Features**:
@@ -26,6 +26,7 @@ Release 0.6 (in development)
     implemented as :func:`~dynamics.calcCovarianceOverlap` function.
   * A method to trim :class:`~ensemble.Ensemble` instances is implemented: 
     :func:`~ensemble.trimEnsemble`
+  * :func:`checkUpdates` to check for ProDy updates is implemented.
 
 **Changes**:
 
@@ -34,6 +35,9 @@ Release 0.6 (in development)
     all alternate locations user needs to pass ``altloc=True`` argument.    
   * :func:`getSumOfWeights` is renamed as :func:`~ensemble.calcSumOfWeights`.
   * :func:`mapAtomsToChain` is renamed as :func:`~compare.mapOntoChain`.
+  * :func:`ProDyStartLogFile` is renamed as :func:`startLogfile`.
+  * :func:`ProDyCloseLogFile` is renamed as :func:`closeLogfile`.
+  * :func:`ProDySetVerbosity` is renamed as :func:`changeVerbosity`.
 
 **Improvements**:
 
