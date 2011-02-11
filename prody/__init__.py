@@ -270,6 +270,14 @@ from . import ensemble
 from .ensemble import *
 __all__ += ensemble.__all__
 
+try:
+    from . import future
+except ImportError:
+    pass
+else:
+    from .future import *
+    __all__ += future.__all__
+
 import prody
 
 __all__.append('prody')
