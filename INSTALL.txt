@@ -26,7 +26,7 @@ Download a suitable ProDy installation file from here
    :delim: ;
    :widths: 40, 20, 20, 10, 10
 
-See :ref:`pypi-statistics`.
+For details of ProDy releases see :ref:`changes` and :ref:`pypi-statistics`.
 
 Required Software
 ===============================================================================
