@@ -13,7 +13,7 @@ This example shows how to perform PCA of structural dataset for a dimeric
 protein. The protein of interest is HIV reverse transcriptase (RT). 
 Dataset will be obtained by blast searching PDB.
 
-.. versionadded:: 0.6
+.. versionadded:: 0.5.3
 
 User input
 -------------------------------------------------------------------------------

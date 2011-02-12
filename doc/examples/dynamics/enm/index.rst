@@ -14,4 +14,6 @@ implemented. Following examples show how to use them:
    :glob:
    :maxdepth: 2
 
-   *
+   anm
+   gnm
+   gamma

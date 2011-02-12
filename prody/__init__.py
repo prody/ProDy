@@ -213,7 +213,7 @@ def changeVerbosity(level):
 def checkUpdates():
     """Check latest ProDy release and compare with the installed one.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     User is informed whether or not latest version is installed.
     

@@ -404,7 +404,7 @@ def calcADPAxes(atoms, **kwargs):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     :arg atoms: a ProDy object for handling atomic data
     :type atoms: prody.atomic.Atomic
@@ -521,7 +521,7 @@ def buildADPMatrix(atoms):
     """Return a 3Nx3N symmetric matrix containing anisotropic displacement
     parameters (ADPs) along the diagonal as 3x3 super elements.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  

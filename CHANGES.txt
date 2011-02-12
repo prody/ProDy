@@ -6,6 +6,21 @@
 Changes
 *******************************************************************************
 
+Release 0.5.3 (in development)
+===============================================================================
+
+**New Features**:
+  
+  * :class:`~dynamics.Gamma` class is implemented for facilitating use of  
+    force constants based on atom type, residue type, or property. An
+    example derived class is :class:`~dynamics.GammaVariableCutoff`.
+
+**Improvements**:
+
+  * :meth:`~dynamics.ANM.buildHessian` and :meth:`~dynamics.GNM.buildKirchhoff`
+    classes are improved to accept :class:`~dynamics.Gamma` instances
+    or other custom function as *gamma* argument. See also :ref:`gamma`.
+
 Release 0.5.3 (Feb 11, 2011)
 ===============================================================================
 
@@ -15,10 +30,11 @@ Release 0.5.3 (Feb 11, 2011)
     :mod:`~prody.atomic` classes. See :ref:`selection-operations`.
   * Two functions are implemented for dealing with anisotropic temperature 
     factors: :func:`~measure.calcADPAxes` and :func:`~measure.buildADPMatrix`.
-  * :meth:`~dynamics.NMA.setEigens` and :meth:`~dynamics.NMA.addEigenspair` 
+  * :meth:`~dynamics.NMA.setEigens` and :meth:`~dynamics.NMA.addEigenpair` 
     methods are implemented to assist analysis of normal modes calculated using 
     external software.
   * :func:`~dynamics.parseNMD` is implemented for parsing NMD files.
+  * :func:`~dynamics.parseModes` is implemented for parsing normal mode data.
   * :func:`~dynamics.parseArray` is implementing for reading numeric data,
     particularly normal mode data calculated using other software for analysis
     using ProDy. 
