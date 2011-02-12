@@ -15,7 +15,7 @@ contacts. This section describes the keywords and selection syntax.
 |more| See :ref:`contacts` and :ref:`selection-operations` for more usage
 examples.
 
-.. _selkeys:
+.. _selection-keywords:
 
 Selection Keywords
 ===============================================================================

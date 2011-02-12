@@ -136,7 +136,7 @@ class Atomic(object):
       * :class:`AtomPointer`"""
     
     def __contains__(self, item):
-        """.. versionadded:: 0.6"""
+        """.. versionadded:: 0.5.3"""
         if isinstance(item, Atomic):
             if isinstance(item, AtomGroup) and self == item: 
                 return True
@@ -148,7 +148,7 @@ class Atomic(object):
         return False        
       
     def __eq__(self, other):
-        """.. versionadded:: 0.6"""
+        """.. versionadded:: 0.5.3"""
         if isinstance(other, Atomic):
             if isinstance(self, AtomPointer) and isinstance(other, AtomPointer):
                 self_indices = self._indices
@@ -170,7 +170,7 @@ class Atomic(object):
         return False
     
     def __ne__(self, other):
-        """.. versionadded:: 0.6"""
+        """.. versionadded:: 0.5.3"""
         return not self.__eq__(other)
       
     def getActiveCoordsetIndex(self):

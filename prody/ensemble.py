@@ -610,7 +610,7 @@ class Conformation(object):
 def trimEnsemble(ensemble, **kwargs):
     """Return an ensemble obtained by trimming given *ensemble*.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     This function helps selecting atoms in an ensemble based on one of the 
     following criteria, and returns them in a new :class:`Ensemble` instance.

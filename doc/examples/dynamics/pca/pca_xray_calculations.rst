@@ -10,8 +10,8 @@ Synopsis
 ===============================================================================
 
 This is the first part of a lengthy ProDy example. The aim is to repeat the 
-calculations for p38 MAP kinase (MAPK) that was published in [AB09]_. 
-In this part, we perform the calculations, using the same p38 MAPK dataset.
+calculations for p38 MAP kinase (MAPK) that were published in [AB09]_. 
+In this part, we perform the calculations using the same p38 MAPK dataset.
 
 Input
 -------------------------------------------------------------------------------
@@ -22,10 +22,10 @@ is sufficient.
 Output
 -------------------------------------------------------------------------------
 
-A :class:`PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`PCA` instance
-and principal modes (:class:`Mode`) can be used as input to functions in 
-:mod:`~prody.dynamics` module for further analysis.
+A :class:`PCA` instance that stores the covariance matrix and principal modes
+describing the dominant changes in the dataset. The :class:`PCA` instance
+and principal modes (:class:`Mode`) can be used as input for the functions in 
+:mod:`~prody.dynamics` module.
 
 
 ProDy Code
@@ -51,12 +51,12 @@ include in our analysis.
 ...           '3L8X', '3CTQ', '3D7Z', '3D83', '2ONL']
 
 
-Note that we used a list of identifiers which that is different from what we 
-have listed in supporting material of our paper [AB09]_. 
-Since the paper was published, Protein Data Bank has refined some
-structures. The changes in identifiers are reflected to the dataset above.
+Note that we used a list of identifiers that are different from what was 
+listed in the supporting material of our paper [AB09]_. 
+Since the paper was published, the Protein Data Bank has refined some
+structures. The changes in identifiers are reflected in the dataset above.
   
-Also note that, it is possible to update this list to contain all p38
+Also note that, it is possible to update this list to include all of the p38
 structures currently available in the PDB using the 
 :func:`~prody.proteins.blastPDB` function as follows: 
  
@@ -68,21 +68,21 @@ structures currently available in the PDB using the
 >>> # blast_record = blastPDB('''p38_sequence''')
 >>> # pdbids = blast_record.getHits() # uncomment this and previous line to update PDB list
 
-We use the same dataset in this example to reproduce the same results.
-After we set the list of PDB identifiers, we fetched them using 
-:func:`~prody.proteins.fetchPDB` function. ``pdbfiles`` variable 
-contains the list of fetched PDB filenames.
+We use the same dataset in the below example to reproduce the same results.
+After we listed the PDB identifiers, we obtained them using 
+:func:`~prody.proteins.fetchPDB` function as follows:
  
 >>> pdbfiles = fetchPDB(pdbids, folder='pdbfiles')
   
+``pdbfiles`` variable contains the list of filenames of obtained PDB structures.
 
 Set reference chain
 -------------------------------------------------------------------------------
 
-The next step is setting one of these p38 structures as the reference
-structure. We will use 1p38 chain A. Note that we won't use
-all resolved residues in this structure. We are going to select residues
-that are resolved at least in 90% of the dataset. 
+The next step is setting one of the p38 structures as the reference
+structure. We use 1p38 chain A. Note that we won't use
+all of the resolved residues in this structure. We select only those residues
+which are resolved in at least 90% of the dataset. 
 
 >>> ref_structure = parsePDB('pdbfiles/1p38.pdb.gz')
 >>> ref_structure = ref_structure.copy('resnum 5 to 31 36 to 114 122 to 169 185 to 351 and calpha')
@@ -94,11 +94,11 @@ Select chain A from the reference structure
 >>> ref_chain
 <Chain: A from p38 reference (321 atoms; 1 coordinate sets, active set index: 0)>
 
-We used :func:`~prody.proteins.parsePDB` function to parse a PDB file.
-This returned a :class:`~prody.atomic.AtomGroup` instance. We made a copy
-of Cα atoms of select residues for analysis.   
+We use the :func:`~prody.proteins.parsePDB` function to parse a PDB file.
+This returns a :class:`~prody.atomic.AtomGroup` instance. We make a copy
+of α-carbon atoms of select residues for analysis.   
 
-|more| See :ref:`selections` on making selections.
+|more| See :ref:`selections` for making selections.
 
 Prepare ensemble
 -------------------------------------------------------------------------------
@@ -108,10 +108,10 @@ have different sets of unresolved residues. Hence, it is not straightforward
 to analyzed them as it would be for NMR models (see :ref:`pca-nmr`). 
 
 ProDy has special functions and classes for facilitating efficient analysis
-of PDB X-ray data. In this example we use :func:`~prody.compare.mapOntoChain` 
+of the PDB X-ray data. In this example we use :func:`~prody.compare.mapOntoChain` 
 function which returns an :class:`~prody.atomic.AtomMap` instance.
 
-|more| See :ref:`atommaps` for more details on how they work.   
+|more| See :ref:`atommaps` for more details.   
 
 Start a logfile to save screen output: 
 
@@ -125,7 +125,7 @@ Set the reference coordinates:
 
 >>> ensemble.setCoordinates(ref_chain) 
       
-For each PDB file we find matching chain and add it to the ensemble:
+For each PDB file, we find the matching chain and add it to the ensemble:
 
 >>> for pdbfile in pdbfiles:
 ...     # Parse next PDB file. (only alpha carbons, since it's faster)
@@ -142,17 +142,18 @@ Perform an iterative superimposition:
 
 >>> ensemble.iterpose()
 
-Close the logfile (contents of the file shows how chains were paired/mapped):
+Close the logfile (file content shows how chains were paired/mapped):
 
 >>> closeLogfile('p38_pca')
 
 Save coordinates
 -------------------------------------------------------------------------------
 
-We used :class:`~prody.ensemble.Ensemble` to store coordinates of the X-ray 
-structures. Its instances do not store any other atomic data. So, if we want
-to write aligned coordinates into a file, we need to pass coordinates
-to an :class:`~prody.atomic.AtomGroup` instance:
+We use :class:`~prody.ensemble.Ensemble` to store coordinates of the X-ray 
+structures. The :class:`~prody.ensemble.Ensemble` instances do not store any 
+other atomic data. If we want to write aligned coordinates into a file, we 
+need to pass the coordinates to an :class:`~prody.atomic.AtomGroup` instance.
+Then we use :func:`~prody.proteins.writePDB` function to save coordinates:
 
 >>> xray_coords = ref_structure.copy()
 >>> xray_coords.delCoordset(0) # Delete existing coordinate set
@@ -160,24 +161,21 @@ to an :class:`~prody.atomic.AtomGroup` instance:
 >>> writePDB('p38_xray_coors.pdb', xray_coords)
 'p38_xray_coors.pdb'
 
-We used :func:`~prody.proteins.writePDB` function to save coordinates.
 
 PCA calculations
 -------------------------------------------------------------------------------
 
-Now we have the coordinates ready, it is straightforward to perform :class:`PCA`
-calculations:: 
+Once the coordinate data is prepared, it is straightforward to perform the 
+:class:`PCA` calculations:: 
 
 >>> pca = PCA('p38 xray')           # Instantiate a PCA instance
 >>> pca.buildCovariance(ensemble)   # Build covariance for the ensemble
 >>> pca.calcModes()                 # Calculate modes (20 of the by default)
 
-.. _p38-xray-calculations-anm:
-
 ANM calculations
 -------------------------------------------------------------------------------
 
-So it is to perform :class:`ANM` calculations:: 
+To perform :class:`ANM` calculations:: 
 
 >>> anm = ANM('1p38')             # Instantiate a ANM instance
 >>> anm.buildHessian(ref_chain)   # Build Hessian for the reference chain  
@@ -186,8 +184,8 @@ So it is to perform :class:`ANM` calculations::
 Save your work
 -------------------------------------------------------------------------------
 
-It is possible to save calculated data in a ProDy internal format
-to use it in a later session or to share it with others.
+Calculated data can be saved in a ProDy internal format
+to use in a later session or to share it with others.
 
 If you are in an interactive Python session, and wish to continue without
 leaving your session, you do not need to save the data. Saving data is useful
@@ -203,10 +201,10 @@ to share it with others.
 >>> writePDB('p38_ref_chain.pdb', ref_chain)
 'p38_ref_chain.pdb'
 
-We used :func:`saveModel` and :func:`~prody.ensemble.saveEnsemble` 
-to save calculated data. In :ref:`pca-xray-analysis`, 
-we will used :func:`loadModel` and :func:`~prody.ensemble.loadEnsemble` 
-to load them.
+We use the :func:`saveModel` and :func:`~prody.ensemble.saveEnsemble` 
+functions to save calculated data. In :ref:`pca-xray-analysis`, 
+we will use the :func:`loadModel` and :func:`~prody.ensemble.loadEnsemble` 
+functions to load the data.
 
 See Also
 ===============================================================================

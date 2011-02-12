@@ -125,7 +125,7 @@ In the resulting file, the :term:`water` atoms will precedes the
 Membership
 ===============================================================================
 
-.. versionadded:: 0.6
+.. versionadded:: 0.5.3
 
 Selections also allows membership test operations:
 
@@ -156,7 +156,7 @@ True
 Equality
 ===============================================================================
 
-.. versionadded:: 0.6
+.. versionadded:: 0.5.3
 
 You can also check the equality of selections. Comparison will return
 ``True`` if both selections refer to the same atoms.
