@@ -27,6 +27,7 @@ Classes
   * :class:`Mode`
   * :class:`ModeSet`
   * :class:`Vector`
+  * :class:`GammaVariableCutoff`
   
 Base Classes
 ------------
@@ -34,6 +35,7 @@ Base Classes
   * :class:`NMABase`
   * :class:`GNMBase`
   * :class:`VectorBase`
+  * :class:`Gamma` 
 
 Inheritance Diagram
 -------------------
@@ -46,7 +48,7 @@ Functions
 
 Many of the functions documented in this page accepts a *modes* argument (may 
 also appear in different names). One of the following may be accepted as this 
-agument:
+argument:
 
   * an NMA model, which may be an instance of one of :class:`ANM`, 
     :class:`GNM`, :class:`NMA`, :class:`PCA`.
@@ -175,6 +177,7 @@ __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 import os.path
 import time
 import os
+from types import FunctionType
 
 import numpy as np
 linalg = None
@@ -191,7 +194,9 @@ from prody import ProDyException
 
 __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
            
-           'NMABase', 'GNMBase', 'VectorBase',
+           'NMABase', 'GNMBase', 'VectorBase', 
+           
+           'Gamma', 'GammaVariableCutoff',
            
            'calcANM', 'calcGNM', 
            
@@ -236,8 +241,8 @@ class VectorBase(object):
         * Absolute value (abs(mode)) returns mode length
         * Additive inverse (-mode) 
         * Mode addition (mode1 + mode2)
-        * Mode substraction (mode1 - mode2)
-        * Scalar mulitplication (x*mode or mode*x)
+        * Mode subtraction (mode1 - mode2)
+        * Scalar multiplication (x*mode or mode*x)
         * Division by a scalar (mode/x)
         * Dot product (mode1*mode2)
         * Power (mode**x)
@@ -643,7 +648,7 @@ class Vector(VectorBase):
 
 class NMABase(object):
     
-    """Base class for Normal Mode Analysis Calculaations.
+    """Base class for Normal Mode Analysis calculations.
     
     Derived classes are:
         
@@ -815,7 +820,7 @@ class NMA(NMABase):
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
         
-        .. versionadded:: 0.6
+        .. versionadded:: 0.5.3
         
         If *eigenvalue* is not given, it will be set to 1.
         
@@ -867,7 +872,7 @@ class NMA(NMABase):
     def setEigens(self, vectors, values=None):
         """Set eigenvectors and eigenvalues.
         
-        .. versionadded:: 0.6
+        .. versionadded:: 0.5.3
         
         :arg vectors: eigenvectors
         :type vectors: numpy.ndarray
@@ -1172,22 +1177,23 @@ class GNM(GNMBase):
         self._n_atoms = kirchhoff.shape[0]
         self._dof = kirchhoff.shape[0]
     
-    def buildKirchhoff(self, coords, cutoff=10., gamma=1., masses=None):
+    def buildKirchhoff(self, coords, cutoff=10., gamma=1.):
         """Build Kirchhoff matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
+        :type coords: :class:`~numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
-        :arg cutoff: Cutoff distance (Å) for pairwise interactionsm
+        :arg cutoff: Cutoff distance (Å) for pairwise interactions
             default is 10.0 Å
         :type cutoff: float
         
         :arg gamma: Spring constant, default is 1.0.
         :type gamma: float
         
-        When available, this method uses Bio.KDTree.
-        
-        *masses* is not used yet.        
-        
+        .. versionchanged:: 0.6
+            Instances of :class:`Gamma` classes and custom functions are
+            accepted as *gamma* argument.        
+
         """
         
         if KDTree is None: 
@@ -1214,7 +1220,16 @@ class GNM(GNMBase):
                                  '{0:s}'.format(np.float64))
                                  
         cutoff = float(cutoff)
-        gamma = float(gamma)
+        self._cutoff = cutoff
+        if isinstance(gamma, Gamma):
+            self._gamma = gamma
+            gamma = gamma.gamma
+        elif isinstance(gamma, FunctionType):
+            self._gamma = gamma
+        else:
+            g = float(gamma)
+            self._gamma = g
+            gamma = lambda dist2, i, j: g 
         n_atoms = coords.shape[0]
         start = time.time()
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
@@ -1222,24 +1237,29 @@ class GNM(GNMBase):
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
+            radii = kdtree.all_get_radii()
+            r = 0
             for i, j in kdtree.all_get_indices():
-                kirchhoff[i, j] = -gamma
-                kirchhoff[j, i] = -gamma
-                kirchhoff[i, i] += gamma
-                kirchhoff[j, j] += gamma
+                g = gamma(radii[r]**2, i, j)
+                kirchhoff[i, j] = -g
+                kirchhoff[j, i] = -g
+                kirchhoff[i, i] += g
+                kirchhoff[j, j] += g
+                r += 1
         else:
             cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
                 xyz_i = coords[i, :]
                 for j in range(i+1, n_atoms):
                     i2j = coords[j, :] - xyz_i
-                    i2j2 = np.dot(i2j, i2j)
-                    if i2j2 > cutoff2:
+                    dist2 = np.dot(i2j, i2j)
+                    if dist2 > cutoff2:
                         continue             
-                    kirchhoff[i, j] = -gamma
-                    kirchhoff[j, i] = -gamma
-                    kirchhoff[i, i] += gamma
-                    kirchhoff[j, j] += gamma
+                    g = gamma(dist2, i, j)
+                    kirchhoff[i, j] = -g
+                    kirchhoff[j, i] = -g
+                    kirchhoff[i, i] += g
+                    kirchhoff[j, j] += g
             
         LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
                      .format(time.time()-start))
@@ -1363,21 +1383,24 @@ class ANM(GNMBase):
         self._dof = hessian.shape[0]
         self._n_atoms = self._dof / 3 
 
-    def buildHessian(self, coords, cutoff=15., gamma=1., masses=None):
+    def buildHessian(self, coords, cutoff=15., gamma=1.):
         """Build Hessian matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
+        :type coords: :class:`~numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
         :arg cutoff: Cutoff distance (Å) for pairwise interactions,
             default is 15.0 Å. 
         :type cutoff: float
         
-        :arg gamma: Spring constant, default is 1.0
-        :type gamma: float
+        :arg gamma: Spring constant, default is 1.0. 
+        :type gamma: float, :class:`Gamma`
         
-        When available, this method uses Bio.KDTree.
+        When available, this method makes use of Bio.KDTree.
         
-        *masses* is not used yet.    
+        .. versionchanged:: 0.6
+            Instances of :class:`Gamma` classes and custom functions are
+            accepted as *gamma* argument.        
                            
         """
         
@@ -1408,11 +1431,13 @@ class ANM(GNMBase):
         self._cutoff = cutoff
         if isinstance(gamma, Gamma):
             self._gamma = gamma
-            getGamma = gamma.getGamma
+            gamma = gamma.gamma
+        elif isinstance(gamma, FunctionType):
+            self._gamma = gamma
         else:
             g = float(gamma)
-            self._gamma = gamma
-            getGamma = lambda i, j, dist2: g / dist2 
+            self._gamma = g
+            gamma = lambda dist2, i, j: g 
          
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
@@ -1423,16 +1448,16 @@ class ANM(GNMBase):
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
-            for i, k in kdtree.all_get_indices():
-                if k > i: 
-                    j = i
-                    i = k
-                else:
-                    j = k
+            for i, j in kdtree.all_get_indices():
+                #if k < i:
+                #    j = i
+                #    i = k
+                #else:
+                #    j = k
                 i2j = coords[j] - coords[i]
                 dist2 = np.dot(i2j, i2j)
-                gamma = getGamma(i, j, dist2)
-                super_element = - np.outer(i2j, i2j) * gamma  
+                g = gamma(dist2, i, j)
+                super_element = np.outer(i2j, i2j) * (- g / dist2)  
                 res_i3 = i*3
                 res_i33 = res_i3+3
                 res_j3 = j*3
@@ -1441,10 +1466,10 @@ class ANM(GNMBase):
                 hessian[res_j3:res_j33, res_i3:res_i33] = super_element
                 hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
                 hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
-                kirchhoff[i, j] = 1
-                kirchhoff[j, i] = 1
-                kirchhoff[i, i] += 1
-                kirchhoff[j, j] += 1
+                kirchhoff[i, j] = -g
+                kirchhoff[j, i] = -g
+                kirchhoff[i, i] += g
+                kirchhoff[j, j] += g
         else:
             cutoff2 = cutoff * cutoff 
             for i in range(n_atoms):
@@ -1456,18 +1481,18 @@ class ANM(GNMBase):
                     dist2 = np.dot(i2j, i2j)
                     if dist2 > cutoff2:
                         continue             
-                    gamma = getGamma(i, j, dist2)
+                    g = gamma(dist2, i, j)
                     res_j3 = j*3
                     res_j33 = res_j3+3
-                    super_element = -np.outer(i2j, i2j) * gamma 
+                    super_element = np.outer(i2j, i2j) * (- g / dist2) 
                     hessian[res_i3:res_i33, res_j3:res_j33] = super_element 
                     hessian[res_j3:res_j33, res_i3:res_i33] = super_element
                     hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
                     hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
-                    kirchhoff[i, j] -= 1
-                    kirchhoff[j, i] -= 1
-                    kirchhoff[i, i] += 1
-                    kirchhoff[j, j] += 1
+                    kirchhoff[i, j] = -g
+                    kirchhoff[j, i] = -g
+                    kirchhoff[i, i] += g
+                    kirchhoff[j, j] += g
         LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._hessian = hessian
@@ -1687,14 +1712,141 @@ EDA = PCA
 
 class Gamma(object):
     
-    """Base class for defining custom force constants."""
+    """Base class for facilitating use of atom type, residue type, or residue
+    property dependent force constants (γ).
+    
+    Derived classes:
+        
+      * :class:`GammaVariableCutoff`
+    
+    """
     
     
     def __init__(self):
         pass
     
-    def getGamma(self):
+    def gamma(self, dist2, i, j):
+        """Return force constant.
+        
+        For efficiency purposes square of the distance between interacting
+        atom/residue (node) pairs is passed to this function. In addition, 
+        node indices are passed.
+        
+        """
+        
         pass
+    
+class GammaVariableCutoff(Gamma):
+    
+    """Facilitate setting the cutoff distance based on user defined 
+    atom/residue (node) radii.
+    
+    Half of the cutoff distance can be thought of as the radius of a node. 
+    This class enables setting different radii for different node types.
+    
+    
+    **Example**:
+    
+    Let's think of a protein-DNA complex for which we want to use different
+    radius for different residue types. Let's say, for protein Cα atoms we
+    want to set the radius to 7.5 Å, and for nucleic acid phosphate atoms to 
+    10 Å. We use the HhaI-DNA complex structure :file:`1mht`.
+
+    >>> hhai = parsePDB('1mht')
+    >>> ca_p = hhai.select('(protein and name CA) or (nucleic and name P)')
+    >>> print ca_p.getAtomNames()
+    ['P' 'P' 'P' ..., 'CA' 'CA' 'CA']
+    
+    We set the radii of atoms: 
+     
+    >>> variableCutoff = GammaVariableCutoff(ca_p.getAtomNames(), gamma=1, default_radius=7.5, debug=True, P=10)
+    >>> print variableCutoff.getRadii()
+    [ 10.   10.   10.   ...,   7.5   7.5   7.5]
+    
+    The above shows that for phosphate atoms radii is set to 10 Å, because
+    we passed the ``P=10`` argument. As for Cα atoms, the default 7.5 Å
+    is set as the radius (``default_radius=7.5``). Note we also passed
+    ``debug=True`` argument for demonstration purposes. This argument 
+    allows printing debugging information on the screen.
+    
+    We build :class:`ANM` Hessian matrix as follows:  
+        
+    >>> anm = ANM('HhaI-DNA')
+    >>> anm.buildHessian(ca_p, gamma=variableCutoff, cutoff=20)
+    CA_275 -- P_7 effective cutoff: 17.5 distance: 19.5948930081 gamma: 0
+    CA_275 -- CA_110 effective cutoff: 15.0 distance: 13.5699586587 gamma: 1.0
+    P_20 -- P_6 effective cutoff: 20.0 distance: 18.150633763 gamma: 1.0
+    CA_275 -- P_6 effective cutoff: 17.5 distance: 18.7748343268 gamma: 0
+    CA_275 -- CA_109 effective cutoff: 15.0 distance: 10.5352334573 gamma: 1.0
+    ...
+    
+    Note that we set passed ``cutoff=20.0`` to the :meth:`ANM.buildHessian` 
+    method. This is equal to the largest possible cutoff distance (between two
+    phosphate atoms) for this system, and ensures that all of the potential 
+    interactions are evaluated. 
+    
+    For pairs of atoms for which the actual distance is larger than the 
+    effective cutoff, the :meth:`GammaVariableCutoff.gamma` method returns 
+    ``0``. This annuls the interaction between those atom pairs.
+    
+    """
+    
+    def __init__(self, identifiers, gamma=1., default_radius=7.5, debug=False, 
+                 **kwargs):
+        """Set the radii of atoms.
+        
+        :arg identifiers: List of atom names or types, or residue names.
+        :type identifiers: list or :class:`numpy.ndarray`
+        
+        :arg gamma: Uniform force constant value. Default is 1.0.
+        
+        :arg default_radius: Default radius for atoms whose radii is not set
+            as a keyword argument. Default is 7.5
+        :value default_radius: float
+        
+        :arg debug: Print debugging information. Default is ``False``.
+        :type debug: bool
+        
+        Keywords in keyword arguments must match those in *atom_identifiers*.
+        Values of keyword arguments must be :class:`float`.  
+        
+        """
+        
+        self._identifiers = identifiers
+        radii = np.ones(len(identifiers)) * default_radius
+        
+        for i, identifier in enumerate(identifiers): 
+            radii[i] = kwargs.get(identifier, default_radius)
+        self._radii = radii
+        self._gamma = float(gamma)
+        self._debug = bool(debug)
+    
+    def getRadii(self):
+        """Return a copy of radii array."""
+        
+        return self._radii.copy()
+
+    def getGamma(self):
+        """Return the uniform force constant value."""
+        
+        return self._gamma_constant
+
+    def gamma(self, dist2, i, j):
+        """Return force constant."""
+        
+        cutoff = (self._radii[i] + self._radii[j])
+        cutoff2 = cutoff ** 2
+        
+        if dist2 < cutoff2: 
+            gamma = self._gamma
+        else:
+            gamma = 0
+        if self._debug:
+            print self._identifiers[i]+'_'+str(i), '--', \
+                  self._identifiers[j]+'_'+str(j), \
+                  'effective cutoff:', cutoff, 'distance:', dist2**0.5, \
+                  'gamma:', gamma    
+        return gamma
 
 def saveModel(nma, filename=None, matrices=False):
     """Save *nma* model data as :file:`filename.nma.npz`. 
@@ -1838,7 +1990,7 @@ def setVMDpath(path):
 def parseNMD(filename):
     """Returns normal mode and atomic data parsed from an NMD file.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     Normal mode data is returned in an :class:`NMA` instance. Atomic
     data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
@@ -2350,8 +2502,8 @@ def reduceModel(model, atoms, selstr):
 def writeModes(filename, modes, format='%.18e', delimiter=' '):
     """Write *modes* (eigenvectors) into a plain text file with name *filename*.
     
-    .. versionchanged:: 0.6
-       A compresed file is not outputted.
+    .. versionchanged:: 0.5.3
+       A compressed file is not outputted.
     
     See also :func:`writeArray`.
         
@@ -2370,7 +2522,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0,
                ev_usevalues=None):
     """Return :class:`NMA` instance with normal modes parsed from *normalmodes*.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     In normal mode file *normalmodes*, columns must correspond to  
     modes (eigenvectors).
@@ -2441,8 +2593,8 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0,
 def writeArray(filename, array, format='%.18e', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
     
-    .. versionchanged:: 0.6
-       A compresed file is not outputted.
+    .. versionchanged:: 0.5.3
+       A compressed file is not outputted.
        
     This function is using :func:`numpy.savetxt` to write the file, after 
     making some type and value checks.
@@ -2469,7 +2621,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
                dtype=np.float64, ):
     """Parse array data from a file.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     This function is using :func:`numpy.loadtxt` to parse the file.
     
@@ -2669,7 +2821,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
        # Let's compare this with that of ANM modes 18-20
        showEllipsoid(p38_anm[17:], p38_pca[:3], color='red')
        # This ANM subspace appears as a tiny volume at the center
-       # since faster ANM modes does not correspong to top ranking PCA modes
+       # since faster ANM modes does not correspond to top ranking PCA modes
        
     .. plot::
        :context:
@@ -3013,7 +3165,7 @@ def calcSubspaceOverlap(modes1, modes2):
 def calcCovarianceOverlap(modelA, modelB):
     """Return overlap between covariances of *modelA* and *modelB*.
     
-    .. versionadded:: 0.6
+    .. versionadded:: 0.5.3
     
     Overlap between covariances are calculated using normal modes 
     (eigenvectors), hence modes in both models must have been calculated.
