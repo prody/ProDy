@@ -78,17 +78,8 @@ Fetch pdb 1p38 and run GNM using default parameters on all CA atoms of protein c
     eigenvaluesfn = "{0:s}_evalues.csv".format(prefix)
     eigenvectorsfn = "{0:s}_evectors.csv".format(prefix)
     
-    #writeModes(eigenvectorsfn,gnm.getEigenvectors())
-    #TypeError: modes must be NMA, ModeSet, or Mode, not <type 'numpy.ndarray'>
-    
-    #writeModes(eigenvectorsfn,gnm.getModes())
-    #TypeError: modes must be NMA, ModeSet, or Mode, not <type 'list'>
-    
-    #writeModes(eigenvectorsfn,gnm.getArray())
-    #TypeError: modes must be NMA, ModeSet, or Mode, not <type 'numpy.ndarray'>
-    
-    writeArray(eigenvectorsfn, gnm.getArray(), sep=',')
-    writeArray(eigenvaluesfn, gnm.getEigenvalues(), sep=',')
+    writeArray(eigenvectorsfn, gnm.getArray(), delimiter=',')
+    writeArray(eigenvaluesfn, gnm.getEigenvalues(), delimiter=',')
     
 if __name__ == '__main__':
     main()

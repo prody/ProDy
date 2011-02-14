@@ -1,0 +1,9 @@
+Usage: fetchpdb.py 1p38 1r39...
+
+Download pdb files 1p38 and 1r39 from RCSB PDB.
+
+
+Options:
+  -h, --help     show this help message and exit
+  --folder=PATH  destination folder (.)
+  --list=FILE    file with pdb identifiers

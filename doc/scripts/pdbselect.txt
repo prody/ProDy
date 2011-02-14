@@ -1,0 +1,2 @@
+ProDy v0.5.3 - PDBSelect
+usage: ../../scripts/pdbselect.py <input> <output> <selection>

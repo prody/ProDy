@@ -1,0 +1,3 @@
+Usage: ../../scripts/biomolecule.py <pdb>
+
+Generate biomolecular transformation recorded on pdb header.

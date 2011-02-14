@@ -1,0 +1,18 @@
+Usage: gnm.py [options] <pdb>
+
+ProDy v0.5.3 - Gaussian Network Model
+
+Options:
+  -h, --help            show this help message and exit
+  -n INT, --nmodes=INT  number of non-zero eigenvalues/vectors to calculate
+                        (20)
+  -c FLOAT, --cutoff=FLOAT
+                        cutoff distance (10.0)
+  -g FLOAT, --gamma=FLOAT
+                        spring constant (1.0)
+  -p STRING, --prefix=STRING
+                        prefix for output files (gnm)
+  -s STRING, --select=STRING
+                        selection string (protein and name CA)
+  --silent              omit verbose information (False)
+  -e, --examples        show usage examples
