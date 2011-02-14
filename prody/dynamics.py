@@ -1146,8 +1146,10 @@ class GNMBase(NMABase):
         return self._cutoff
     
     def getGamma(self):
-        """Return spring constant."""
+        """Return spring constant (or the gamma function or :class:`Gamma`
+        instance).
         
+        """
         return self._gamma
 
     def getKirchhoff(self):
@@ -1264,8 +1266,6 @@ class GNM(GNMBase):
         LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
                      .format(time.time()-start))
         self._kirchhoff = kirchhoff
-        self._cutoff = cutoff
-        self._gamma = gamma
         self._n_atoms = n_atoms
         self._dof = n_atoms
         
@@ -1754,13 +1754,13 @@ class GammaVariableCutoff(Gamma):
 
     >>> hhai = parsePDB('1mht')
     >>> ca_p = hhai.select('(protein and name CA) or (nucleic and name P)')
-    >>> print ca_p.getAtomNames()
+    >>> print ca_p.getAtomNames() # doctest: +SKIP
     ['P' 'P' 'P' ..., 'CA' 'CA' 'CA']
     
     We set the radii of atoms: 
      
     >>> variableCutoff = GammaVariableCutoff(ca_p.getAtomNames(), gamma=1, default_radius=7.5, debug=True, P=10)
-    >>> print variableCutoff.getRadii()
+    >>> print variableCutoff.getRadii() # doctest: +SKIP
     [ 10.   10.   10.   ...,   7.5   7.5   7.5]
     
     The above shows that for phosphate atoms radii is set to 10 Å, because
@@ -1772,7 +1772,7 @@ class GammaVariableCutoff(Gamma):
     We build :class:`ANM` Hessian matrix as follows:  
         
     >>> anm = ANM('HhaI-DNA')
-    >>> anm.buildHessian(ca_p, gamma=variableCutoff, cutoff=20)
+    >>> anm.buildHessian(ca_p, gamma=variableCutoff, cutoff=20) # doctest: +SKIP
     CA_275 -- P_7 effective cutoff: 17.5 distance: 19.5948930081 gamma: 0
     CA_275 -- CA_110 effective cutoff: 15.0 distance: 13.5699586587 gamma: 1.0
     P_20 -- P_6 effective cutoff: 20.0 distance: 18.150633763 gamma: 1.0
