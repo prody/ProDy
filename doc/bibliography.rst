@@ -19,8 +19,8 @@ Bibliography
    **2009** 106(34):14349-54.
 
 .. [AB11] Bakan A, Bahar I. Computational generation of inhibitor-bound 
-    conformers of p38 MAP kinase and comparison with experiments. *Pacific 
-    Symposium on Biocomputing* **2011** 16 181-192.
+   conformers of p38 MAP kinase and comparison with experiments. *Pacific 
+   Symposium on Biocomputing* **2011** 16 181-192.
 
 .. [ARA01] Atilgan AR, Durrell SR, Jernigan RL, Demirel MC, Keskin O, Bahar I. 
    Anisotropy of fluctuation dynamics of proteins with an elastic network model.
@@ -41,7 +41,11 @@ Bibliography
    *Folding & Design* **1997** 2:173-181.
    
 .. [KH00] Konrad H, Andrei-Jose P, Serge D, Marie-Claire BF, Gerald RK.
-    Harmonicity in slow protein dynamics. *Chem Phys* **2000** 261:25-37.
+   Harmonicity in slow protein dynamics. *Chem Phys* **2000** 261:25-37.
+
+.. [LT10] Lezon TR, Bahar I. Using entropy maximization to understand the 
+   determinants of structural dynamics beyond native contact topology.
+   *PLoS Comput Biol* **2010** 6(6):e1000816.
 
 .. [PD00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted by 
    molecular dynamics simulations and analytical approaches: Application to 
