@@ -1215,21 +1215,32 @@ def assignSecondaryStructure(header, atoms):
             
             
 def applyBiomolecularTransformations(header, atoms, biomol=None):
-    """Returns *atoms* after applying biomolecular transformations from *header* 
+    """Return *atoms* after applying biomolecular transformations from *header*
     dictionary.
     
     Some PDB files contain transformations for more than 1 biomolecules. A 
     specific set of transformations can be choosen using *biomol* argument.
     Transformation sets are identified by integer numbers, e.g. 1, 2, ...
     
+    If multiple biomolecular transformations are provided in the *header*
+    dictionary, biomolecules will be returned as 
+    :class`~prody.atomic.AtomGroup` instances in a class:`list`.  
+
+    If the resulting biomolecule has more than 26 chains, the molecular 
+    assembly will be split into multiple :class`~prody.atomic.AtomGroup`
+    instances each containing at most 26 chains. These 
+    :class`~prody.atomic.AtomGroup` instances will be returned in a tuple.
+   
     """
+
     if not isinstance(header, dict):
         raise TypeError('header must be a dictionary')
     biomt = header.get('biomolecular_transformations', {})
     if len(biomt) == 0:
         LOGGER.warning('header does not contain biomolecular transformations')
         return None
-    chids = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') 
+    c_max = 26
+    chids = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'*20) 
     if isinstance(atoms, prody.AtomGroup):
         ag = atoms
     else:
@@ -1251,7 +1262,8 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         ags = []
         mt = biomt[i]
         if (len(mt) - 1) % 3 != 0:
-            LOGGER.warning('Biomolecular {0:s} transformations were not applied'.format(i))
+            LOGGER.warning('Biomolecular transformations {0:s} were not '
+                           'applied'.format(i))
             continue
         for times in range((len(mt) - 1)/ 3):
             for chid in mt[0]:
@@ -1272,11 +1284,30 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
                 newag = t.apply(newag)
                 ags.append(newag)
         if ags:
-            newag = ags.pop(0)
-            while ags:
-                newag += ags.pop(0)
-            newag.setName('{0:s} biomolecule {1:s}'.format(ag.getName(), i))
-            biomols.append(newag)
+            if len(ags) <= c_max:
+                ags_ = [ags]
+            else:
+                ags_ = []
+                for j in range(len(ags)/c_max + 1):
+                    ags_.append(ags[j*c_max: (j+1)*c_max])
+            parts = []
+            for k, ags in enumerate(ags_):
+                if not ags:
+                    continue
+                newag = ags.pop(0)
+                while ags:
+                    newag += ags.pop(0)
+                if len(ags_):
+                    newag.setName('{0:s} biomolecule {1:s} part {2:d}'
+                                  .format(ag.getName(), i, k+1))
+                else:
+                    newag.setName('{0:s} biomolecule {1:s}'
+                                  .format(ag.getName(), i))
+                parts.append(newag)
+            if len(parts) == 1:
+                biomols.append(newag)
+            else:
+                biomols.append(tuple(parts))
     if biomols:
         if len(biomols) == 1:
             return biomols[0]
