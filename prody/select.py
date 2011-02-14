@@ -164,7 +164,8 @@ BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O'))
 PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
         'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
         'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP'))
-WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))#, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
+                          #, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
+WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))
 NUCLEIC_RESIDUE_NAMES = set(('GUA', 'ADE', 'CYT', 'THY', 'URA', 
                            'DA', 'DC', 'DG', 'DT'))
 HYDROGEN_REGEX = '[0-9]?H.*'
@@ -224,7 +225,8 @@ def getAliphaticResidueNames():
 def setAliphaticResidueNames(aliphatic_residue_names):
     """Set :term:`aliphatic` residue names."""
     if not isinstance(aliphatic_residue_names, (list, tuple, set)):
-        raise TypeError('aliphatic_residue_names must be a list, tuple, or set')
+        raise TypeError('aliphatic_residue_names must be a list, tuple, or ' 
+                        'set')
     ALIPHATIC_RESIDUE_NAMES = set(aliphatic_residue_names)
 
 def getAromaticResidueNames():
@@ -321,15 +323,20 @@ class Select(object):
                        pp.Optional( E + INTEGER )
                        )
     
-    NOT_READY = ('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
-                'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 'purine', 'pyrimidine')
-    KEYWORDS_BOOLEAN = ('all', 'none', 'protein', 'nucleic', 'hetero', 'water',
-                        'backbone', 'sidechain', 'calpha', 'acidic', 'basic', 'polar', 'charged',
-                        'neutral', 'aliphatic', 'hydrophobic', 'aromatic', 'cyclic', 'acyclic', 
-                        'noh', 'hydrogen', 'large', 'medium', 'small')
-    KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 'radius', 'charge'))
+    NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
+                 'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 
+                 'purine', 'pyrimidine'))
+    KEYWORDS_BOOLEAN = set(('all', 'none', 'protein', 'nucleic', 'hetero', 
+                            'water', 'backbone', 'sidechain', 'calpha', 
+                            'acidic', 'basic', 'polar', 'charged', 'neutral', 
+                            'aliphatic', 'hydrophobic', 'aromatic', 'cyclic', 
+                            'acyclic', 'noh', 'hydrogen', 'large', 'medium', 
+                            'small'))
+    KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
+                          'radius', 'charge'))
     KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
-    KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 'segment'))
+    KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
+                           'segment'))
     KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
     KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
 
@@ -411,9 +418,11 @@ class Select(object):
         """
         
         if not isinstance(atoms, prody.Atomic):
-            raise TypeError('atoms must be an atom container, not {0:s}'.format(type(atoms)))
+            raise TypeError('atoms must be an atom container, not {0:s}'
+                            .format(type(atoms)))
         elif not isinstance(selstr, str):
-            raise TypeError('selstr must be a string, not a {0:s}'.format(type(selstr)))
+            raise TypeError('selstr must be a string, not a {0:s}'
+                            .format(type(selstr)))
         if self._atoms is not None and atoms != self._atoms:
             self._reset
             
@@ -437,11 +446,14 @@ class Select(object):
             print '_select', selstr
         torf = self._parseSelStr()[0]
         if not isinstance(torf, np.ndarray):
-            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
+            raise SelectionError('{0:s} is not a valid selection string.'
+                                 .format(selstr))
         elif torf.dtype != np.bool:
             if DEBUG:
-                print '_select torf.dtype', torf.dtype, isinstance(torf.dtype, np.bool)
-            raise SelectionError('{0:s} is not a valid selection string.'.format(selstr))
+                print '_select torf.dtype', torf.dtype, isinstance(torf.dtype, 
+                                                                   np.bool)
+            raise SelectionError('{0:s} is not a valid selection string.'
+                                 .format(selstr))
         if DEBUG:
             print '_select', torf
         return torf
@@ -477,19 +489,22 @@ class Select(object):
 
         .. note:
 
-            * If selection string does not match any atoms, ``None`` is returned.
+            * If selection string does not match any atoms, ``None`` is 
+              returned.
+              
             * :meth:`select` accepts arbitrary keyword arguments which enables 
-              identification of intermolecular contacts. See :ref:`contacts` for 
-              its details.
+              identification of intermolecular contacts. See :ref:`contacts` 
+              for its details.
         
             * :meth:`select` accepts a keyword argument that enables caching
               atomic data and KDTree from previous select operation. It works
               if *atoms* objects in two consecutive selections are the same.
         
             * A special case for making atom selections is passing an
-              :class:`~prody.atomic.AtomMap` instance as *atoms* argument. Unmapped
-              atoms will not be included in the returned :class:`~prody.atomic.AtomMap` 
-              instance. The order of atoms will be preserved.
+              :class:`~prody.atomic.AtomMap` instance as *atoms* argument. 
+              Unmapped atoms will not be included in the returned 
+              :class:`~prody.atomic.AtomMap` instance. The order of atoms 
+              will be preserved.
 
         .. warning:: ``cache=True`` should be used if attributes of *atoms* 
            object have not changed since the previous selection operation.
@@ -513,9 +528,11 @@ class Select(object):
             if self._selstr2indices:
                 selstr = 'index {0:s}'.format(prody.getIntAsStr(indices))
             elif isinstance(atoms, prody.AtomPointer):
-                selstr = '({0:s}) and ({1:s})'.format(selstr, atoms.getSelectionString())
+                selstr = '({0:s}) and ({1:s})'.format(selstr, 
+                                                    atoms.getSelectionString())
             
-            return prody.Selection(ag, indices, selstr, atoms.getActiveCoordsetIndex())
+            return prody.Selection(ag, indices, selstr, 
+                                                atoms.getActiveCoordsetIndex())
         
     def _getStdSelStr(self):
         selstr = ' ' + self._selstr + ' '
@@ -550,7 +567,8 @@ class Select(object):
         if DEBUG: print '_parseSelStr', selstr
         start = time.time()
         try: 
-            tokens = self._tokenizer.parseString(selstr, parseAll=True).asList()
+            tokens = self._tokenizer.parseString(selstr, 
+                                                parseAll=True).asList()
             if DEBUG: print '_parseSelStr', tokens
             return tokens
         except pp.ParseException, err:
@@ -594,7 +612,8 @@ class Select(object):
                 try:
                     return float(keyword)
                 except ValueError:
-                    raise SelectionError('"{0:s}" is not a valid keyword or a number.'.format(keyword))
+                    raise SelectionError('"{0:s}" is not a valid keyword or a '
+                                         'number.'.format(keyword))
         elif Select.isAlnumKeyword(keyword):
             return self._evalAlnum(keyword, token[1:])
         elif Select.isFloatKeyword(keyword):
@@ -612,12 +631,14 @@ class Select(object):
         elif keyword == 'same':
             return self._sameas([' '.join(token[:3])] + token[3:])
         elif Select.isBooleanKeyword(keyword):
-            raise SelectionError('Single word keywords must be followed with and operator.')            
+            raise SelectionError('Single word keywords must be followed with '
+                                 'and operator.')            
             return self._and([token])
         #for item in token[1:]:
         #    if Select.isKeyword(item):
         #        raise SelectionError('"{0:s}" in "{1:s}" is not understood. Please report this if you think there is a bug.'.format(item, ' '.join(token)))
-        raise SelectionError('{0:s} understood. Please report this if you think there is a bug.'.format(' '.join(token)))
+        raise SelectionError('{0:s} understood. Please report this if you '
+                             'think there is a bug.'.format(' '.join(token)))
 
     def _or(self, tokens):
         if DEBUG: print '_or', tokens
@@ -641,7 +662,8 @@ class Select(object):
                 if self._evalonly is None: 
                     self._evalonly = np.invert(zero).nonzero()[0]
                 else:        
-                    self._evalonly = self._evalonly[np.invert(zero[self._evalonly]).nonzero()[0]]
+                    self._evalonly = self._evalonly[np.invert(zero[
+                                                self._evalonly]).nonzero()[0]]
             else:
                 torf = self._evaluate(token)
                 if self._evalonly is None:
@@ -674,7 +696,8 @@ class Select(object):
                 if self._evalonly is None: 
                     self._evalonly = zero.nonzero()[0]
                 else:        
-                    self._evalonly = self._evalonly[zero[self._evalonly].nonzero()[0]]
+                    self._evalonly = self._evalonly[zero[self._evalonly
+                                                                ].nonzero()[0]]
             else:
                 torf = self._evaluate(token)
                 if self._evalonly is None:
@@ -734,7 +757,8 @@ class Select(object):
                 if which.ndim == 1 and len(which) == 3:
                     which = [which]
                 elif not (which.ndim == 2 and which.shape[1] == 3):
-                    raise SelectionError('{0:s} must be a coordinate array, shape (N, 3) or (3,)'.format(kw))
+                    raise SelectionError('{0:s} must be a coordinate array, '
+                                         'shape (N, 3) or (3,)'.format(kw))
                 for xyz in which:
                     if DEBUG: print 'xyz', xyz
                     search(xyz, within)
@@ -743,9 +767,12 @@ class Select(object):
                 try:
                     coordinates = which.getCoordinates()
                 except:
-                    raise SelectionError('{0:s} must have a getCoordinates() method.'.format(kw))
+                    raise SelectionError('{0:s} must have a getCoordinates() '
+                                         'method.'.format(kw))
                 if not isinstance(coordinates, np.ndarray):
-                    raise SelectionError('{0:s}.getCoordinates() method must return a numpy.ndarray instance.'.format(kw))
+                    raise SelectionError('{0:s}.getCoordinates() method must '
+                                         'return a numpy.ndarray instance.'
+                                         .format(kw))
                 for xyz in coordinates:
                     search(xyz, within)
                     append(get_indices())
@@ -799,7 +826,8 @@ class Select(object):
             elif Select.isBooleanKeyword(token[-1]):
                 return self._and([[token[-1], '&&&', self._comp([token[:-1]])] ])
             else:
-                raise SelectionError('{0:s} is not a valid selection string.'.format(' '.join(token)))
+                raise SelectionError('{0:s} is not a valid selection string.'
+                                     .format(' '.join(token)))
         comp = token[1]
         left = self._getnum(token[0])
         if DEBUG: print '_comp', left
@@ -821,7 +849,8 @@ class Select(object):
         elif comp == '!=':
             return left != right
         else:
-            raise SelectionError('Unknown error in "{0:s}".'.format(' '.join(token)))
+            raise SelectionError('Unknown error in "{0:s}".'
+                                 .format(' '.join(token)))
 
     def _pow(self, token):
         if DEBUG: print '_pow', token
@@ -881,7 +910,8 @@ class Select(object):
             try:
                 num = float(token)
             except ValueError:
-                raise SelectionError('"{0:s}" must be a number or a valid keyword'.format(token))
+                raise SelectionError('"{0:s}" must be a number or a valid '
+                                     'keyword'.format(token))
             else:
                 return num
 
@@ -968,7 +998,7 @@ class Select(object):
         elif keyword == 'basic':
             residue_names = BASIC_RESIDUE_NAMES 
         elif keyword == 'charged':
-            residue_names = ACIDIC_RESIDUE_NAMES + BASIC_RESIDUE_NAMES
+            residue_names = ACIDIC_RESIDUE_NAMES.union(BASIC_RESIDUE_NAMES)
         elif keyword == 'aliphatic':
             residue_names = ALIPHATIC_RESIDUE_NAMES
         elif keyword == 'aromatic':
@@ -981,9 +1011,9 @@ class Select(object):
             residue_names = CYCLIC_RESIDUE_NAMES  
         elif keyword == 'large':
             residue_names = tuple(set(PROTEIN_RESIDUE_NAMES).difference( 
-                    set(SMALL_RESIDUE_NAMES + MEDIUM_RESIDUE_NAMES)))
+                    set(SMALL_RESIDUE_NAMES.union(MEDIUM_RESIDUE_NAMES))))
         elif keyword == 'neutral':
-            residue_names = ACIDIC_RESIDUE_NAMES + BASIC_RESIDUE_NAMES
+            residue_names = ACIDIC_RESIDUE_NAMES.union(BASIC_RESIDUE_NAMES)
             invert = True
         elif keyword == 'acyclic':
             residue_names = CYCLIC_RESIDUE_NAMES
@@ -993,14 +1023,15 @@ class Select(object):
         elif keyword == 'nucleic':
             residue_names = NUCLEIC_RESIDUE_NAMES
         elif keyword == 'hetero':
-            residue_names = NUCLEIC_RESIDUE_NAMES + PROTEIN_RESIDUE_NAMES
+            residue_names = NUCLEIC_RESIDUE_NAMES.union(PROTEIN_RESIDUE_NAMES)
             invert = True
         elif keyword == 'sidechain':
             atom_names = BACKBONE_ATOM_NAMES
             residue_names = PROTEIN_RESIDUE_NAMES
             atom_names_not = True
         else:
-            raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
+            raise SelectionError('"{0:s}" is not a valid keyword.'
+                                 .format(keyword))
             
         resnames = self._getAtomicData('resname')
         #print len(resnames), resnames
@@ -1091,7 +1122,9 @@ class Select(object):
                         if fr <= data[i] < to:
                             torf[i] = True
                 else:
-                    raise SelectionError('"{0:s}" is not valid for keywords expecting floating values.'.format(':'.join(item)))
+                    raise SelectionError('"{0:s}" is not valid for keywords '
+                                         'expecting floating values.'
+                                         .format(':'.join(item)))
             else:
                 torf[data == item] = True
         return torf
@@ -1152,14 +1185,16 @@ class Select(object):
         
         for item in self._numrange(token):
             if isinstance(item, str):
-                raise SelectionError('"index/serial {0:s}" is not understood.'.format(item))
+                raise SelectionError('"index/serial {0:s}" is not understood.'
+                                     .format(item))
             elif isinstance(item, tuple):
                 if len(item) == 2:
                     torf[item[0]-add:item[1]-add] = True
                 else:
                     torf[item[0]-add:item[1]-add:item[2]-add] = True
             elif isinstance(item, list):
-                torf[int(np.ceil(item[0]-add)):int(np.floor(item[1]-add))+1] = True
+                torf[int(np.ceil(item[0]-add)):int(
+                                    np.floor(item[1]-add))+1] = True
             else:
                 try:
                     torf[int(item)-add] = True
@@ -1174,39 +1209,50 @@ class Select(object):
         tknstr = ' '.join(token)
         while '  ' in tknstr:
             tknstr = tknstr.replace('  ', ' ')
-        tknstr = tknstr.replace(' to ', 'to').replace('to ', 'to').replace(' to', 'to')
-        tknstr = tknstr.replace(' : ', ':').replace(': ', ':').replace(' :', ':')
+        tknstr = tknstr.replace(' to ', 'to').replace(
+                                            'to ', 'to').replace(' to', 'to')
+        tknstr = tknstr.replace(' : ', ':').replace(
+                                            ': ', ':').replace(' :', ':')
         token = []
         for item in tknstr.split():
             if 'to' in item:
                 items = item.split('to')
                 if len(items) != 2:
-                    raise SelectionError('"{0:s}" is not understood.'.format(' to '.join(items)))
+                    raise SelectionError('"{0:s}" is not understood.'
+                                         .format(' to '.join(items)))
                 try:
                     token.append( [float(items[0]), float(items[1])] )
                 except:
-                    raise SelectionError('"{0:s}" is not understood, "to" must be surrounded by numbers.'.format(' to '.join(items)))
+                    raise SelectionError('"{0:s}" is not understood, "to" '
+                                         'must be surrounded by numbers.'
+                                         .format(' to '.join(items)))
             elif ':' in item:
                 items = item.split(':')
                 if not len(items) in (2, 3):
-                    raise SelectionError('"{0:s}" is not understood.'.format(':'.join(items)))
+                    raise SelectionError('"{0:s}" is not understood.'
+                                         .format(':'.join(items)))
                 try:
                     if len(items) == 2:
                         token.append( (int(items[0]), int(items[1])) )
                     else:
-                        token.append( (int(items[0]), int(items[1]), int(items[2])) )
+                        token.append( (int(items[0]), int(items[1]), 
+                                       int(items[2])) )
                 except:
-                    raise SelectionError('"{0:s}" is not understood, ":" must be surrounded by integers.'.format(':'.join(items)))
+                    raise SelectionError('"{0:s}" is not understood, ":" must '
+                                         'be surrounded by integers.'
+                                         .format(':'.join(items)))
             elif '.' in item:
                 try:
                     token.append( float(item) )
                 except:
-                    raise SelectionError('"{0:s}" is not understood.'.format(item))
+                    raise SelectionError('"{0:s}" is not understood.'
+                                         .format(item))
             elif item.isdigit():
                 try:
                     token.append( int(item) )
                 except:
-                    raise SelectionError('"{0:s}" is not understood.'.format(item))
+                    raise SelectionError('"{0:s}" is not understood.'
+                                         .format(item))
             else:
                 token.append( item )
         if DEBUG: print '_numrange', token            
@@ -1215,7 +1261,8 @@ class Select(object):
     def _getAtomicData(self, keyword):
         field = ATOMIC_DATA_FIELDS.get(keyword, None)
         if field is None:
-            raise SelectionError('"{0:s}" is not a valid keyword.'.format(keyword))
+            raise SelectionError('"{0:s}" is not a valid keyword.'
+                                 .format(keyword))
         __dict__ = self.__dict__
         var = '_'+field.var
         data = __dict__[var]
@@ -1239,7 +1286,8 @@ class Select(object):
     def _getKDTree(self):
         if KDTree is None: prody.importBioKDTree()
         if not KDTree:
-            raise ImportError('Bio.KDTree is required for distance based selections.')
+            raise ImportError('Bio.KDTree is required for distance based '
+                              'selections.')
         if self._kdtree is None:
             kdtree = KDTree(3)
             kdtree.set_coords(self._getCoordinates())
@@ -1255,11 +1303,13 @@ class Contacts(object):
         """
         
         :arg atoms: atoms for which contacts will be identified
-        :type atoms: :class:`~prody.atomic.AtomGroup` or  :class:`~prody.atomic.AtomSubset`
+        :type atoms: :class:`~prody.atomic.AtomGroup` or 
+            :class:`~prody.atomic.AtomSubset`
         
         """
         if not isinstance(atoms, (AtomGroup, AtomSubset)):                
-            raise TypeError('{0:s} is not a valid type for atoms'.format(type(atoms)))
+            raise TypeError('{0:s} is not a valid type for atoms'
+                            .format(type(atoms)))
         self._atoms = atoms
         self._acsi = atoms.getActiveCoordsetIndex()
         if not isinstance(atoms, AtomGroup):
@@ -1270,13 +1320,15 @@ class Contacts(object):
             self._indices = None
         if KDTree is None: prody.importBioKDTree()
         if not KDTree:
-            raise ImportError('Bio.KDTree is required for distance based selections.')
+            raise ImportError('Bio.KDTree is required for distance based '
+                              'selections.')
         kdtree = KDTree(3)
         kdtree.set_coords(atoms.getCoordinates())
         self._kdtree = kdtree
 
     def __repr__(self):
-        return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(str(self._atoms), self._acsi)
+        return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(
+                                                str(self._atoms), self._acsi)
     
     def getActiveCoordsetIndex(self):
         """Return active coordinate set index."""
@@ -1309,14 +1361,17 @@ class Contacts(object):
             if what.ndim == 1 and len(what) == 3:
                 what = [what]
             elif not (what.ndim == 2 and what.shape[1] == 3):
-                raise SelectionError('*what* must be a coordinate array, shape (N, 3) or (3,).')
+                raise SelectionError('*what* must be a coordinate array, '
+                                     'shape (N, 3) or (3,).')
         else:
             try:
                 what = what.getCoordinates()
             except:
-                raise SelectionError('*what* must have a getCoordinates() method.')
+                raise SelectionError('*what* must have a getCoordinates() '
+                                     'method.')
             if not isinstance(what, np.ndarray):
-                raise SelectionError('what.getCoordinates() method must return a numpy.ndarray instance.')
+                raise SelectionError('what.getCoordinates() method must '
+                                     'return a numpy.ndarray instance.')
         kdtree = self._kdtree
         search = kdtree.search
         get_indices = kdtree.get_indices
@@ -1330,5 +1385,6 @@ class Contacts(object):
         indices = np.unique(np.concatenate(indices))
         if len(indices) != 0:
             return Selection(self._ag, np.array(indices), 
-                'index {0:s}'.format(' '.join(np.array(indices, '|S'))), self._acsi)
+                'index {0:s}'.format(' '.join(np.array(indices, '|S'))), 
+                                     self._acsi)
         return None

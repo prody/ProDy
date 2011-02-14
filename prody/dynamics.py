@@ -27,6 +27,7 @@ Classes
   * :class:`Mode`
   * :class:`ModeSet`
   * :class:`Vector`
+  * :class:`GammaStructureBased`
   * :class:`GammaVariableCutoff`
   
 Base Classes
@@ -196,7 +197,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'NMABase', 'GNMBase', 'VectorBase', 
            
-           'Gamma', 'GammaVariableCutoff',
+           'Gamma', 'GammaStructureBased', 'GammaVariableCutoff',
            
            'calcANM', 'calcGNM', 
            
@@ -1717,7 +1718,8 @@ class Gamma(object):
     
     Derived classes:
         
-      * :class:`GammaVariableCutoff`
+    * :class:`GammaStructureBased`
+    * :class:`GammaVariableCutoff`
     
     """
     
@@ -1735,6 +1737,162 @@ class Gamma(object):
         """
         
         pass
+    
+    
+class GammaStructureBased(Gamma):
+    
+    """Facilitate setting the spring constant based on the secondary structure 
+    and connectivity of the residues.
+    
+    
+    A recent systematic study [LT10] of a large set of NMR-structures analyzed 
+    using a method based on entropy maximization showed that taking into 
+    consideration properties such as sequential separation between 
+    contacting residues and the secondary structure types of the interacting 
+    residues provides refinement in the ENM description of proteins.
+    
+    This class determines pairs of connected residues or pairs of proximal 
+    residues in a helix or a sheet, and assigns them a larger user defined 
+    spring constant value.
+    
+     DSSP single letter abbreviations are recognized: 
+       * **H**: α-helix
+       * **G**: 3-10-helix
+       * **I**: π-helix
+       * **E**: extended part of a sheet
+    
+    **Helices**: 
+        Residue (or Cα atoms) pairs must be in the same helical segment, 
+        must be at most 7 Å apart, and must be separated by at most 
+        3 (3-10-helix), 4 (α-helix), or 5 (π-helix) residues.
+        
+    **Sheet**:  
+        Cα atom pairs must be in different β-strands and must be at most 
+        6 Å apart.
+        
+    **Connected**:
+        Cα atoms must be at most 7 Å apart.
+        
+    Note that this class does not take into account insertion codes.        
+    
+    **Example**:
+
+    Let's parse coordinates and header data from a PDB file, and then
+    assign secondary structure to the atoms. 
+        
+    >>> from prody import *
+    >>> ubi, header = parsePDB('1aar', chain='A', subset='calpha', header=True)
+    >>> assignSecondaryStructure(header, ubi)
+
+    In the above we parsed only the atoms needed for this calculation, i.e.
+    Cα atoms from chain A. 
+    
+    We build the Hessian matrix using structure based force constants as 
+    follows;
+    
+    >>> gamma = GammaStructureBased(ubi)
+    >>> anm = ANM('')
+    >>> anm.buildHessian(ubi, gamma=gamma)
+    
+    We can obtain the force constants assigned to residue pairs from the 
+    Kirchhoff matrix as follows: 
+    
+    >>> k = anm.getKirchhoff()
+    >>> k[0,1] # a pair of connected residues
+    -10.0
+    >>> k[0,16] # a pair of residues from a sheet
+    -6.0
+    
+    """
+    
+    def __init__(self, atoms, gamma=1.0, helix=6.0, sheet=6.0, connected=10.0):
+        """Setup the parameters.
+        
+        
+        :arg atoms: A set of atoms with chain identifiers, residue numbers,
+            and secondary structure assignments are set.
+        :type atoms: :class:`~prody.atomic.Atomic`
+
+        :arg gamma: Force constant in arbitrary units. Default is 1.0.
+        :type gamma: float
+            
+        :arg helix: Force constant factor for residues hydrogen bonded in 
+            α-helices, 3,10-helices, and π-helices. Default is 6.0, i.e.
+            ``6.0`*gamma``.
+        :type helix: float
+
+        :arg sheet: Force constant factor for residue pairs forming a hydrogen 
+            bond in a β-sheet. Default is 6.0, i.e. ``6.0`*gamma``.
+        :type sheet: float
+            
+        :arg connected: Force constant factor for residue pairs that are
+            connected. Default is 10.0, i.e. ``10.0`*gamma``.
+        :type connected: float
+        
+        """
+        
+        if not isinstance(atoms, prody.Atomic):
+            raise TypeError('atoms must be an Atomic instance')
+        n_atoms = atoms.getNumOfAtoms()
+        sstr = atoms.getSecondaryStrs()
+        assert sstr is not None, 'secondary structure assignments must be set'
+        chid = atoms.getChainIdentifiers()
+        assert chid is not None, 'chain identifiers must be set'
+        rnum = atoms.getResidueNumbers()
+        assert rnum is not None, 'residue numbers must be set'
+        
+        ssid = np.zeros(n_atoms)
+        for i in range(1, n_atoms):
+            if (sstr[i-1] == sstr[i] and chid[i-1] == chid[i] and
+               rnum[i]-rnum[i-1] == 1): 
+                ssid[i] = ssid[i-1]
+            else:
+                ssid[i] = ssid[i-1] + 1
+        self._sstr = sstr
+        self._chid = chid
+        self._rnum = rnum
+        self._ssid = ssid
+        gamma = float(gamma)
+        self._helix = gamma * float(helix)
+        self._sheet = gamma * float(sheet)
+        self._connected = gamma * float(connected)
+        self._gamma = gamma
+    
+    def getSecondaryStr():
+        """Return a copy of secondary structure assignments."""
+        
+        return self._sstr.copy()    
+    
+    def getChainIdentifiers():
+        """Return a copy of chain identifiers."""
+        
+        return self._chid.socopypy()    
+
+    def getResidueNumbers():
+        """Return a copy of residue numbers."""
+        
+        return self._rnum.copy()    
+
+
+    def gamma(self, dist2, i, j):
+        """Return force constant."""
+        
+        if dist2 <= 16:
+            return self._connected
+        sstr = self._sstr
+        ssid = self._ssid
+        rnum = self._rnum
+        if ssid[i] == ssid[j]:
+            i_j = abs(rnum[j] - rnum[i])
+            if ((i_j <= 4 and sstr[i] == 'H') or 
+                (i_j <= 3 and sstr[i] == 'G') or 
+                (i_j <= 5 and sstr[i] == 'I')) and dist2 <= 49: 
+                return self._helix
+        elif sstr[i] == sstr[j] == 'E' and dist2 <= 36:
+            return self._sheet
+        
+        return self._gamma
+    
     
 class GammaVariableCutoff(Gamma):
     
@@ -1799,6 +1957,7 @@ class GammaVariableCutoff(Gamma):
         :type identifiers: list or :class:`numpy.ndarray`
         
         :arg gamma: Uniform force constant value. Default is 1.0.
+        :type gamma: float
         
         :arg default_radius: Default radius for atoms whose radii is not set
             as a keyword argument. Default is 7.5
@@ -1847,6 +2006,7 @@ class GammaVariableCutoff(Gamma):
                   'effective cutoff:', cutoff, 'distance:', dist2**0.5, \
                   'gamma:', gamma    
         return gamma
+
 
 def saveModel(nma, filename=None, matrices=False):
     """Save *nma* model data as :file:`filename.nma.npz`. 
