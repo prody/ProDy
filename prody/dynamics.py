@@ -1783,6 +1783,7 @@ class GammaStructureBased(Gamma):
     >>> from prody import *
     >>> ubi, header = parsePDB('1aar', chain='A', subset='calpha', header=True)
     >>> assignSecondaryStructure(header, ubi)
+    <AtomGroup: 1aar (76 atoms; 1 coordinate sets, active set index: 0)>
 
     In the above we parsed only the atoms needed for this calculation, i.e.
     Cα atoms from chain A. 

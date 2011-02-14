@@ -46,6 +46,7 @@ both:
 	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
+	cp -f license.rst ../LICENSE.txt
 	cd $(DOCTESTDIR); \
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex .. ../$(DOCDIR); \
 	cd ..
@@ -62,7 +63,8 @@ html:
 	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
-
+	cp -f license.rst ../LICENSE.txt
+	
 spelling:
 	$(SPHINXBUILD) -b spelling $(ALLSPHINXOPTS) $(BUILDDIR)/spelling
 
