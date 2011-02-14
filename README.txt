@@ -31,13 +31,17 @@ The following are some of the main features:
 LICENSE
 -------
   
-ProDy is distributed under GNU General Public License version 3. 
+ProDy is available under GNU General Public License version 3. 
 See LICENSE.txt for more details. 
 
-Pyparsing (http://pyparsing.wikispaces.com/) code is contained 
-in ProDy releases. Pyparsing is developed by Paul T. McGuire 
-and is distributed under MIT license 
-(http://www.opensource.org/licenses/mit-license.php).
+`Biopython <http://biopython.org/>`_ Blast and KDTree packages and pairwise2 
+module are distributed with the ProDy package. Biopython is developed by The 
+Biopython Consortium and is available under the `Biopython license 
+<http://www.biopython.org/DIST/LICENSE>`_.
+
+The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with 
+the ProDy package. Pyparsing is developed by Paul T. McGuire and is available 
+under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_.
 
 DOWNLOADS & INSTALLATION
 ------------------------
