@@ -27,7 +27,8 @@ Classes
 Functions
 ---------
 
-Below functions can be used to learn and change the definitions of :ref:`selkeys`.
+Below functions can be used to learn and change the definitions of 
+:ref:`selection-keywords`.
 
   * Learn keyword definitions:
     
@@ -159,22 +160,22 @@ mapField2Var = {}
 for field in ATOMIC_DATA_FIELDS.values():
     mapField2Var[field.name] = field.var
 
-BACKBONE_ATOM_NAMES = ('CA', 'N', 'C', 'O') 
-PROTEIN_RESIDUE_NAMES = ('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
+BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O')) 
+PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
         'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
-        'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP')
-WATER_RESIDUE_NAMES = ('HOH', 'WAT', 'TIP3', 'H2O')#, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
-NUCLEIC_RESIDUE_NAMES = ('GUA', 'ADE', 'CYT', 'THY', 'URA', 
-                           'DA', 'DC', 'DG', 'DT')
+        'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP'))
+WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))#, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
+NUCLEIC_RESIDUE_NAMES = set(('GUA', 'ADE', 'CYT', 'THY', 'URA', 
+                           'DA', 'DC', 'DG', 'DT'))
 HYDROGEN_REGEX = '[0-9]?H.*'
-ACIDIC_RESIDUE_NAMES = ('ASP', 'GLU')
-BASIC_RESIDUE_NAMES = ('LYS', 'ARG', 'HIS', 'HSP')
-ALIPHATIC_RESIDUE_NAMES = ('ALA', 'GLY', 'ILE', 'LEU', 'VAL')
-AROMATIC_RESIDUE_NAMES = ('HIS', 'PHE', 'TRP', 'TYR')
-SMALL_RESIDUE_NAMES = ('ALA', 'GLY', 'SER')
-MEDIUM_RESIDUE_NAMES = ('VAL', 'THR', 'ASP', 'ASN', 'PRO', 'CYS')
-HYDROPHOBIC_RESIDUE_NAMES = ()
-CYCLIC_RESIDUE_NAMES = ('HIS', 'PHE', 'PRO', 'TRP', 'TYR')
+ACIDIC_RESIDUE_NAMES = set(('ASP', 'GLU'))
+BASIC_RESIDUE_NAMES = set(('LYS', 'ARG', 'HIS', 'HSP'))
+ALIPHATIC_RESIDUE_NAMES = set(('ALA', 'GLY', 'ILE', 'LEU', 'VAL'))
+AROMATIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'TRP', 'TYR'))
+SMALL_RESIDUE_NAMES = set(('ALA', 'GLY', 'SER'))
+MEDIUM_RESIDUE_NAMES = set(('VAL', 'THR', 'ASP', 'ASN', 'PRO', 'CYS'))
+HYDROPHOBIC_RESIDUE_NAMES = set(())
+CYCLIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'PRO', 'TRP', 'TYR'))
 
 def getBackboneAtomNames():
     """Return protein :term:`backbone` atom names."""
@@ -182,9 +183,9 @@ def getBackboneAtomNames():
 
 def setBackboneAtomNames(backbone_atom_names):
     """Set protein :term:`backbone` atom names."""
-    if not isinstance(backbone_atom_names, (list, tuple)):
-        raise TypeError('backbone_atom_names must be a list or a tuple')
-    BACKBONE_ATOM_NAMES = tuple(backbone_atom_names)
+    if not isinstance(backbone_atom_names, (list, tuple, set)):
+        raise TypeError('backbone_atom_names must be a list, tuple, or set')
+    BACKBONE_ATOM_NAMES = set(backbone_atom_names)
 
 def getProteinResidueNames():
     """Return :term:`protein` residue names."""
@@ -192,9 +193,9 @@ def getProteinResidueNames():
 
 def setProteinResidueNames(protein_residue_names):
     """Set :term:`protein` residue names."""
-    if not isinstance(protein_residue_names, (list, tuple)):
-        raise TypeError('protein_residue_names must be a list or a tuple')
-    PROTEIN_RESIDUE_NAMES = tuple(protein_residue_names)
+    if not isinstance(protein_residue_names, (list, tuple, set)):
+        raise TypeError('protein_residue_names must be a list, tuple, or set')
+    PROTEIN_RESIDUE_NAMES = set(protein_residue_names)
 
 def getAcidicResidueNames():
     """Return :term:`acidic` residue names."""
@@ -202,9 +203,9 @@ def getAcidicResidueNames():
 
 def setAcidicResidueNames(acidic_residue_names):
     """Set :term:`acidic` residue names."""
-    if not isinstance(acidic_residue_names, (list, tuple)):
-        raise TypeError('acidic_residue_names must be a list or a tuple')
-    ACIDIC_RESIDUE_NAMES = tuple(acidic_residue_names)
+    if not isinstance(acidic_residue_names, (list, tuple, set)):
+        raise TypeError('acidic_residue_names must be a list, tuple, or set')
+    ACIDIC_RESIDUE_NAMES = set(acidic_residue_names)
     
 def getBasicResidueNames():
     """Return :term:`basic` residue names."""
@@ -212,9 +213,9 @@ def getBasicResidueNames():
 
 def setBasicResidueNames(basic_residue_names):
     """Set :term:`basic` residue names."""
-    if not isinstance(basic_residue_names, (list, tuple)):
-        raise TypeError('basic_residue_names must be a list or a tuple')
-    BASIC_RESIDUE_NAMES = tuple(basic_residue_names)
+    if not isinstance(basic_residue_names, (list, tuple, set)):
+        raise TypeError('basic_residue_names must be a list, tuple, or set')
+    BASIC_RESIDUE_NAMES = set(basic_residue_names)
 
 def getAliphaticResidueNames():
     """Return :term:`aliphatic` residue names."""
@@ -222,9 +223,9 @@ def getAliphaticResidueNames():
 
 def setAliphaticResidueNames(aliphatic_residue_names):
     """Set :term:`aliphatic` residue names."""
-    if not isinstance(aliphatic_residue_names, (list, tuple)):
-        raise TypeError('aliphatic_residue_names must be a list or a tuple')
-    ALIPHATIC_RESIDUE_NAMES = tuple(aliphatic_residue_names)
+    if not isinstance(aliphatic_residue_names, (list, tuple, set)):
+        raise TypeError('aliphatic_residue_names must be a list, tuple, or set')
+    ALIPHATIC_RESIDUE_NAMES = set(aliphatic_residue_names)
 
 def getAromaticResidueNames():
     """Return :term:`aromatic` residue names."""
@@ -232,9 +233,9 @@ def getAromaticResidueNames():
 
 def setAromaticResidueNames(aromatic_residue_names):
     """Set :term:`aromatic` residue names."""
-    if not isinstance(aromatic_residue_names, (list, tuple)):
-        raise TypeError('aromatic_residue_names must be a list or a tuple')
-    AROMATIC_RESIDUE_NAMES = tuple(aromatic_residue_names)
+    if not isinstance(aromatic_residue_names, (list, tuple, set)):
+        raise TypeError('aromatic_residue_names must be a list, tuple, or set')
+    AROMATIC_RESIDUE_NAMES = set(aromatic_residue_names)
 
 def getSmallResidueNames():
     """Return :term:`small` residue names."""
@@ -242,9 +243,9 @@ def getSmallResidueNames():
 
 def setSmallResidueNames(small_residue_names):
     """Set :term:`small` residue names."""
-    if not isinstance(small_residue_names, (list, tuple)):
-        raise TypeError('small_residue_names must be a list or a tuple')
-    SMALL_RESIDUE_NAMES = tuple(small_residue_names)
+    if not isinstance(small_residue_names, (list, tuple, set)):
+        raise TypeError('small_residue_names must be a list, tuple, or set')
+    SMALL_RESIDUE_NAMES = set(small_residue_names)
 
 def getMediumResidueNames():
     """Return :term:`medium` residue names."""
@@ -252,9 +253,9 @@ def getMediumResidueNames():
 
 def setMediumResidueNames(medium_residue_names):
     """Set :term:`medium` residue names."""
-    if not isinstance(medium_residue_names, (list, tuple)):
-        raise TypeError('medium_residue_names must be a list or a tuple')
-    MEDIUM_RESIDUE_NAMES = tuple(medium_residue_names)
+    if not isinstance(medium_residue_names, (list, tuple, set)):
+        raise TypeError('medium_residue_names must be a list, tuple, or set')
+    MEDIUM_RESIDUE_NAMES = set(medium_residue_names)
 
 def getCyclicResidueNames():
     """Return :term:`cyclic` residue names."""
@@ -262,9 +263,9 @@ def getCyclicResidueNames():
 
 def setCyclicResidueNames(cyclic_residue_names):
     """Set :term:`cyclic` residue names."""
-    if not isinstance(cyclic_residue_names, (list, tuple)):
-        raise TypeError('cyclic_residue_names must be a list or a tuple')
-    CYCLIC_RESIDUE_NAMES = tuple(cyclic_residue_names)
+    if not isinstance(cyclic_residue_names, (list, tuple, set)):
+        raise TypeError('cyclic_residue_names must be a list, tuple, or set')
+    CYCLIC_RESIDUE_NAMES = set(cyclic_residue_names)
 
 def getWaterResidueNames():
     """Return :term:`water` residue names."""
@@ -272,9 +273,9 @@ def getWaterResidueNames():
 
 def setWaterResidueNames(water_residue_names):
     """Set :term:`water` residue names."""
-    if not isinstance(water_residue_names, (list, tuple)):
-        raise TypeError('water_residue_names must be a list or a tuple')
-    WATER_RESIDUE_NAMES = tuple(water_residue_names)
+    if not isinstance(water_residue_names, (list, tuple, set)):
+        raise TypeError('water_residue_names must be a list, tuple, or set')
+    WATER_RESIDUE_NAMES = set(water_residue_names)
 
 def getNucleicResidueNames():
     """Return :term:`nucleic` residue names."""
@@ -282,9 +283,9 @@ def getNucleicResidueNames():
 
 def setNucleicResidueNames(nucleic_residue_names):
     """Set :term:`nucleic` residue names."""
-    if not isinstance(water_residue_names, (list, tuple)):
-        raise TypeError('nucleic_residue_names must be a list or a tuple')
-    NUCLEIC_RESIDUE_NAMES = tuple(nucleic_residue_names)
+    if not isinstance(water_residue_names, (list, tuple, set)):
+        raise TypeError('nucleic_residue_names must be a list, tuple, or set')
+    NUCLEIC_RESIDUE_NAMES = set(nucleic_residue_names)
 
 def getHydrogenRegex():
     """Return regular expression to match :term:`hydrogen` atom names."""
@@ -326,11 +327,11 @@ class Select(object):
                         'backbone', 'sidechain', 'calpha', 'acidic', 'basic', 'polar', 'charged',
                         'neutral', 'aliphatic', 'hydrophobic', 'aromatic', 'cyclic', 'acyclic', 
                         'noh', 'hydrogen', 'large', 'medium', 'small')
-    KEYWORDS_FLOAT = ('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 'radius', 'charge')
-    KEYWORDS_INTEGER = ('serial', 'index', 'resnum', 'resid')
-    KEYWORDS_STRING = ('name', 'type', 'resname', 'chain', 'element', 'segment')
-    KEYWORDS_NUMERIC = KEYWORDS_FLOAT + KEYWORDS_INTEGER    
-    KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC + KEYWORDS_STRING 
+    KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 'radius', 'charge'))
+    KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
+    KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 'segment'))
+    KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
+    KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
 
     def isFloatKeyword(keyword):
         return keyword in Select.KEYWORDS_FLOAT
