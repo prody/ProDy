@@ -292,13 +292,15 @@ rst_epilog = """
 
 .. |mdanalysis| replace:: http://code.google.com/p/mdanalysis/
 
-.. |pyparsing| replace:: pyparsing (http://pyparsing.wikispaces.com/)
+.. |pyparsing| replace:: http://pyparsing.wikispaces.com/
 
-.. |matplotlib| replace:: matplotlib (http://matplotlib.sourceforge.net)
+.. |matplotlib| replace:: http://matplotlib.sourceforge.net
 
 .. |docrelease| replace:: Documentation release r{0:s}
 
-.. |pypi| replace:: Python Package Index (http://pypi.python.org/pypi/ProDy)
+.. |biopython| replace:: http://biopython.org/
+
+.. |pypi| replace:: http://pypi.python.org/pypi/ProDy
 
 .. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 

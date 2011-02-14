@@ -23,8 +23,7 @@ Output
 A :class:`GNM` instance that stores Kirchhoff matrix and normal mode data 
 describing intrinsic dynamics of the protein structure.
 :class:`GNM` instances and individual normal modes (:class:`Mode`) can be
-used as input to functions in :mod:`~prody.dynamics` module for further 
-analysis.
+used as input to functions in :mod:`~prody.dynamics` module.
 
 ProDy Code
 ===============================================================================

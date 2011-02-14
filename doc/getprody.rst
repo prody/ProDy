@@ -34,7 +34,6 @@ Required Software
 * `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, the 32 bit option 
   is preferred for compatibility)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
-* `Biopython 1.54+ <http://biopython.org/>`_
 
 Installation Instructions
 ===============================================================================
@@ -72,7 +71,7 @@ Recommended Software
   in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
 * `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting 
   data.
-* `Scipy 0.7+ <http://www.scipy.org/SciPy>`_, when installed, replaces
+* `Scipy <http://www.scipy.org/SciPy>`_, when installed, replaces
   linear algebra module of Numpy. The Scipy linear algebra module is more 
   flexible and can be faster depending on the situation.
 * `MDAnalysis <http://code.google.com/p/mdanalysis/>`_ for analyzing molecular 
@@ -89,16 +88,21 @@ Recommended Software
     provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 
     matrices for large systems.
 
+
+Included in ProDy Package
+===============================================================================
+The following software is included in the ProDy installation packages:
+
+* `Pyparsing <http://pyparsing.wikispaces.com/>`_ is used to define the 
+  atom selection grammar. 
+
+* `Biopython <http://biopython.org/>`_ KDTree, pairwise2, and Blast modules
+  are included in ProDy packages.
+
+
+
 Source Code
 ===============================================================================
 
 The source code can be found at http://github.com/abakan/ProDy.
-
-.. Comes with ProDy
-   ===============================================================================
-   The following software is included in ProDy packages:
-   * `Pyparsing <http://pyparsing.wikispaces.com/>`_ is used for the atom
-     selection grammer.
-   * `Biopython <http://biopython.org/>`_ KDTree, pairwise2, and Blast modules
-     are included in ProDy packages.
 

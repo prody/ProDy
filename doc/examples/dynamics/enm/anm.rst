@@ -24,7 +24,7 @@ An :class:`ANM` instance that stores Hessian and Kirchhoff matrices and
 normal mode data describing intrinsic dynamics of the protein structure. 
 :class:`ANM` instances and individual normal modes 
 (:class:`Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
-module for further analysis.
+module.
 
 
 ProDy Code

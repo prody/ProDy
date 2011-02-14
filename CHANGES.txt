@@ -6,11 +6,11 @@
 Changes
 *******************************************************************************
 
-Release 0.5.3 (in development)
+Release 0.6 (in development)
 ===============================================================================
 
 **New Features**:
-  
+
   * :class:`~dynamics.Gamma` class is implemented for facilitating use of  
     force constants based on atom type, residue type, or property. An
     example derived class is :class:`~dynamics.GammaVariableCutoff`.
@@ -20,6 +20,12 @@ Release 0.5.3 (in development)
   * :meth:`~dynamics.ANM.buildHessian` and :meth:`~dynamics.GNM.buildKirchhoff`
     classes are improved to accept :class:`~dynamics.Gamma` instances
     or other custom function as *gamma* argument. See also :ref:`gamma`.
+  * Performance of :class:`~select.Select` is optimized (Thanks to
+    Paul McGuire for advising several improvements).  
+    
+**Changes**:
+ 
+  * :class:`PDBlastRecord` is renamed as :class:`~proteins.PDBBlastRecord`. 
 
 Release 0.5.3 (Feb 11, 2011)
 ===============================================================================
