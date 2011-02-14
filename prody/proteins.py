@@ -23,7 +23,7 @@ Classes
 
   * :class:`PDBFetcher`
   * :class:`RCSB_PDBFetcher`
-  * :class:`PDBlastRecord`
+  * :class:`PDBBlastRecord`
 
 Functions
 ---------
@@ -63,12 +63,14 @@ from collections import defaultdict
 
 import numpy as np
 
+BioBlast = None
+
 import prody
 from prody import ProDyLogger as LOGGER
 from prody.atomic import *
 
 
-__all__ = ['PDBlastRecord', 'PDBFetcher', 'RCSB_PDBFetcher', 
+__all__ = ['PDBBlastRecord', 'PDBFetcher', 'RCSB_PDBFetcher', 
            'assignSecondaryStructure',
            'applyBiomolecularTransformations',
            'blastPDB', 
@@ -824,7 +826,7 @@ def _getHeaderDict(lines):
         header['sheet'] = sheet
     return header, i
 
-class PDBlastRecord(object):
+class PDBBlastRecord(object):
 
     """A class to store results from ProteinDataBank blast search."""
     
@@ -969,14 +971,15 @@ def blastPDB(sequence, filename=None, **kwargs):
     This method uses :meth:`qdblast` function in :mod:`NCBIWWW` module of 
     Biopython. It will use *blastp* program and search *pdb* database.
     Results are parsed using :meth:`NCBIXML.parse` and passed to a
-    :class:`PDBlastRecord`
+    :class:`PDBBlastRecord`
     
     User can adjust *hitlist_size* (default is 250) and *expect* (default is 
     1e-10) parameter values. 
 
+    Optinally, results can be save in XML format by passing a *filename*.
 
     """
-    if prody.NCBIWWW is None: prody.importBioBlast()
+    if BioBlast is None: prody.importBioBlast()
     if not isinstance(sequence, str):
         raise TypeError('sequence must be a string')
     elif not sequence:
@@ -991,31 +994,24 @@ def blastPDB(sequence, filename=None, **kwargs):
     LOGGER.info('Blasting ProteinDataBank for "{0:s}...{1:s}"'
                 .format(sequence[:10], sequence[-10:]))
     start = time.time()
-    results = prody.NCBIWWW.qblast('blastp', 'pdb', sequence, format_type='XML', **kwargs)
+    results = BioBlast.qblast('blastp', 'pdb', sequence, format_type='XML', **kwargs)
 
     LOGGER.info('Blast search completed in {0:.2f}s.'
                 .format(time.time()-start))
                 
     
-    if isinstance(filename, str):
+    if filename is not None:
+        filename = str(filename)
         if not filename.lower().endswith('.xml'):
-                filename += '.xml'
-        else: 
-            raise TypeError('filename must be a string')
-        
-        if compressed: 
-            filename += '.gz'
-            out = gzip.open(filename, 'w')
-        else: 
-            out = open(filename, 'w')
+                filename += '.xml'        
+        out = open(filename, 'w')
         for line in self._results:
             out.write(line)
         out.close()
         LOGGER.info('Results are saved as {0:s}.'.format(filename))    
-    
-    results.reset()
-    record = prody.NCBIXML.parse(results).next()
-    return PDBlastRecord(sequence, record)
+        results.reset()
+    record = BioBlast.parse(results).next()
+    return PDBBlastRecord(sequence, record)
 
 def writePDBStream(stream, atoms, model=None, sort=False):
     """Write *atoms* in PDB format to a *stream*.
