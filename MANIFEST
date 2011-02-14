@@ -28,4 +28,5 @@ scripts/biomolecule.py
 scripts/blastpdb.py
 scripts/fetchpdb.py
 scripts/gnm.py
+scripts/pca.py
 scripts/pdbselect.py

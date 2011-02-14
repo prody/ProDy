@@ -1,0 +1,14 @@
+Usage: pca.py [options] <pdb>
+
+ProDy v0.5.3 - Principal component Analysis
+
+Options:
+  -h, --help            show this help message and exit
+  -n INT, --nmodes=INT  number of eigenvalue and principal mode pairs to
+                        calculate (20)
+  -p STRING, --prefix=STRING
+                        prefix for output files (pca)
+  -s STRING, --select=STRING
+                        selection string (protein and name CA)
+  --silent              omit verbose information (False)
+  -e, --examples        show usage examples

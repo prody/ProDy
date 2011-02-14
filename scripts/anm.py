@@ -79,8 +79,8 @@ Fetch pdb 1p38 and run ANM using default parameters on all CA atoms of protein c
     eigenvectorsfn = "{0:s}_evectors.csv".format(prefix)
     nmdfile = "{0:s}.nmd".format(prefix)
         
-    writeArray(eigenvectorsfn, anm.getArray(), sep=',')
-    writeArray(eigenvaluesfn, anm.getEigenvalues(), sep=',')
+    writeArray(eigenvectorsfn, anm.getArray(), delimiter=',')
+    writeArray(eigenvaluesfn, anm.getEigenvalues(), delimiter=',')
     writeNMD(nmdfile, anm, pdbselect)
     
     

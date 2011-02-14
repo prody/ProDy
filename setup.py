@@ -68,7 +68,7 @@ setup(
     packages=PACKAGES,
     ext_modules=EXTENSIONS,
     license='GPLv3',
-    keywords=('protein, dynamics, elastic network model, gaussian network model, '
+    keywords=('protein, dynamics, elastic network model, Gaussian network model, '
               'anisotropic network model, essential dynamics analysis, '
               'principal component analysis, ProteinDataBank, PDB, GNM, ANM, PCA'),
     classifiers=[

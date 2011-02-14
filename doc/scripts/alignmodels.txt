@@ -1,0 +1,3 @@
+Usage: ../../scripts/alignmodels.py <pdb> <selection-string> <out-file> 
+
+Align coordinate sets (e.g. multiple NMR models) based on selected atoms.

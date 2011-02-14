@@ -31,34 +31,19 @@ The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|).
 
 .. _scripts-anm:
 
+
 :file:`anm.py`
 ===============================================================================
 
 This script is used to perform ANM calculations and output the 
 eigenvalues/eigenvectors in plain text and NMD formats, i.e. running 
-``python gnm.py 1p38`` will perform calculations for PDB structure 1p38. 
+:command:`python anm.py 1p38` will perform calculations for PDB structure 1p38. 
 The resulting NMD files can be visualized using NMWiz.
 
-Running ``python anm.py -h`` (or :command:`python anm -h`) displays::
+Running :command:`python anm.py -h` displays:
 
-  Usage: anm.py [options] <pdb>
+.. literalinclude:: anm.txt
 
-  ProDy - Anisotropic Network Model
-
-  Options:
-    -h, --help            show this help message and exit
-    -n INT, --nmodes=INT  number of non-zero eigenvalues/vectors to calculate
-                          (20)
-    -c FLOAT, --cutoff=FLOAT
-                          cutoff distance (15.0)
-    -g FLOAT, --gamma=FLOAT
-                          spring constant (1.0)
-    -p STRING, --prefix=STRING
-                          prefix for output files (anm)
-    -s STRING, --select=STRING
-                          selection string (protein and name CA)
-    --silent              omit verbose information (False)
-    -e, --examples        show usage examples
 
 .. _scripts-gnm:
 
@@ -66,29 +51,75 @@ Running ``python anm.py -h`` (or :command:`python anm -h`) displays::
 ===============================================================================
 
 This script is used to perform GNM calculations and output the 
-eigenvalues/eigenvectors in plain text format, i.e. running ``python gnm.py 1p38``
-will perform calculations for PDB structure 1p38. 
+eigenvalues/eigenvectors in plain text format, i.e. running 
+:command:`python gnm.py 1p38` will perform calculations for PDB structure 1p38. 
  
-Running ``python gnm.py -h`` displays::
+Running :command:`python gnm.py -h` displays:
 
-  Usage: gnm.py [options] <pdb>
+.. literalinclude:: gnm.txt
 
-  ProDy - Gaussian Network Model
 
-  Options:
-    -h, --help            show this help message and exit
-    -n INT, --nmodes=INT  number of non-zero eigenvalues/vectors to calculate
-                          (20)
-    -c FLOAT, --cutoff=FLOAT
-                          cutoff distance (10.0)
-    -g FLOAT, --gamma=FLOAT
-                          spring constant (1.0)
-    -p STRING, --prefix=STRING
-                          prefix for output files (gnm)
-    -s STRING, --select=STRING
-                          selection string (protein and name CA)
-    --silent              omit verbose information (False)
-    -e, --examples        show usage examples
+:file:`pca.py`
+===============================================================================
+
+This script is used to perform PCA calculations and output the 
+eigenvalues/eigenvectors in plain text and NMD formats, i.e. running 
+``python pca.py 2k39`` will perform calculations for NMR models in structure 
+2k39. The resulting NMD files can be visualized using NMWiz.
+
+Running :command:`python pca.py -h` displays:
+
+.. literalinclude:: pca.txt
+
+
+.. _scripts-alignmodels:
+
+:file:`alignmodels.py`
+===============================================================================
+
+This script can be used to align models in a PDB file.
+
+Running :command:`python alignmodels.py -h` displays:
+
+.. literalinclude:: alignmodels.txt
+
+
+.. _scripts-biomolecule:
+
+:file:`biomolecule.py`
+===============================================================================
+ 
+This script can be used to generate biomolecule structure using
+the transformation in header section of the PDB file.
+ 
+Running :command:`python biomolecule.py -h` displays:
+
+.. literalinclude:: biomolecule.txt
+
+
+.. _scripts-blastpdb:
+
+:file:`blastpdb.py`
+===============================================================================
+
+This script can be used to download PDB files matching a user given sequence.
+
+Running :command:`python blastpdb.py -h` displays:
+
+.. literalinclude:: blastpdb.txt
+
+
+.. _scripts-fetchpdb:
+
+:file:`fetchpdb.py`
+===============================================================================
+
+This script can be used to download PDB for given identifiers.
+ 
+Running :command:`python fetchpdb.py -h` displays:
+
+.. literalinclude:: fetchpdb.txt
+
 
 .. _scripts-pdbselect:
 
@@ -99,7 +130,6 @@ This script is used to extract a selection of atoms from a PDB file, i.e.
 running ``python pdbselect.py 1p38 selected.pdb "protein and name CA"``
 will write Cα atoms in :file:`selected.pdb` file.
  
-Running ``python pdbselect.py -h`` displays::
+Running :command:`python pdbselect.py -h` displays:
 
-  ProDy - PDBSelect
-  usage: pdbselect.py <input> <output> <selection>
+.. literalinclude:: pdbselect.txt

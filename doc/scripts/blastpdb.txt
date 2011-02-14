@@ -1,0 +1,11 @@
+Usage: blastpdb.py <sequence.fasta> <identity>
+
+Blast sequence and return pdb hits with given identity threshold [0-100].
+
+
+Options:
+  -h, --help            show this help message and exit
+  --folder=PATH         if given, download pdb files to the folder
+  --hitlist_size=INT    max hit list size (250)
+  -e FLOAT, --expect=FLOAT
+                        Blast e-score threshold (1e-10)
