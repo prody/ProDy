@@ -30,9 +30,9 @@ for release in releases:
         downloads,
         '#' + '=' * int(round(downloads / 10.)) + '>'))
     
-downloads_average = int(round((downloads_total * 1.0 / len(releases))))
-stats.write('Average; ;{0:d};{1:s}\n'.format(
-    downloads_average, '#' + '=' * int(round(downloads_average / 10.)) + '>'))
+#downloads_average = int(round((downloads_total * 1.0 / len(releases))))
+#stats.write('Average; ;{0:d};{1:s}\n'.format(
+#    downloads_average, '#' + '=' * int(round(downloads_average / 10.)) + '>'))
 stats.write('Total; ;{0:d};\n'.format(downloads_total))
 stats.close()
 
