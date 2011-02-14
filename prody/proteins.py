@@ -397,9 +397,9 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
     if subset is not None:
         subset = subset.lower()
         if subset in ('calpha', 'ca'):
-            subset = ('CA',)
+            subset = set(('CA',))
         elif subset in ('backbone', 'bb'):
-            subset = ('CA', 'C', 'N', 'O')
+            subset = set(('CA', 'C', 'N', 'O'))
         only_subset = True
     else:    
         only_subset = False
