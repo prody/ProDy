@@ -1,0 +1,82 @@
+<script type="text/javascript">
+
+var ss_image = new Array();
+var ss_title = new Array();
+var ss_caption = new Array();
+var ss_linktext = new Array();
+var ss_linkhref = new Array();
+var ss_linktarget = new Array();
+ss_index = 0
+ss_image[ss_index] = "{{ pathto("_static/gallery/p38_network.png", 1) }}";
+ss_title[ss_index] = "p38 MAPK Network Model";
+ss_caption[ss_index] = "p38 MAP Kinase network representation is generated using NMWiz VMD plugin.";
+ss_linktext[ss_index] = "Get NMWiz.";
+ss_linkhref[ss_index] = "http://www.csb.pitt.edu/NMWiz/getnmwiz.html";
+ss_linktarget[ss_index] = "_blank";
+ss_index = 1
+ss_image[ss_index] = "{{ pathto("_static/gallery/p38_mode_1.png", 1) }}";
+ss_title[ss_index] = "p38 MAPK ANM mode 1";
+ss_caption[ss_index] = "NMWiz VMD plugin was used to draw normal modes and generate publication quality images.";
+ss_linktext[ss_index] = "Get NMWiz.";
+ss_linkhref[ss_index] = "http://www.csb.pitt.edu/NMWiz/getnmwiz.html";
+ss_linktarget[ss_index] = "_blank";
+ss_index = 2
+ss_image[ss_index] = "{{ pathto("_static/gallery/p38_msf.png", 1) }}";
+ss_title[ss_index] = "Intrinsic Dynamics and Binding";
+ss_caption[ss_index] = "Comparative analysis of heterogenous structural datasets and theorerical models show that the intrinsic dynamics of enzymes plays a dominant role in determining the structural changes induced upon inhibitor binding.";
+ss_linktext[ss_index] = "Read more.";
+ss_linkhref[ss_index] = "http://www.pnas.org/content/106/34/14349.long";
+ss_linktarget[ss_index] = "_blank";
+
+ss_which = Math.floor(Math.random()*ss_image.length)
+function changeSlide() {
+  element = document.getElementById("slideShowTitle")
+  element.innerHTML = ss_title[ss_which]
+  element = document.getElementById("slideShowCaption")
+  element.innerHTML = ss_caption[ss_which]
+  element = document.getElementById("slideShowLink")
+  element.innerHTML = ss_linktext[ss_which]
+  element.href = ss_linkhref[ss_which]
+  element.target = ss_linktarget[ss_which]
+  element = document.getElementById("slideShowImage")
+  element.src = ss_image[ss_which]
+}
+function prevSlide() {
+  ss_which = ss_which - 1; 
+  if (ss_which < 0) {
+    ss_which = ss_image.length - 1
+  }; 
+  changeSlide();
+}
+function nextSlide() {
+  ss_which = (ss_which + 1) % ss_image.length; 
+  changeSlide();
+}
+</script>
+
+<table>
+  <tr>
+    <td width="16" style="padding: 0 0 0 0; vertical-align: top">
+      <a href="#"><img src="{{ pathto("_static/go-previous.png", 1) }}" onclick="prevSlide()"></a>
+    </td>
+    <td width="100%" style="padding: 0 0 0 0; text-align: center; font-size: 95%; font-weight: bold;">
+      <span id="slideShowTitle">p38 MAPK Network Model</span>
+    </td>
+    <td width="16" style="padding: 0 0 0 0; vertical-align: top">
+      <a href="#"><img src="{{ pathto("_static/go-next.png", 1) }}" onclick="nextSlide()"></a>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding: 0 0 0 0; text-align: center;">
+      <img id="slideShowImage" src="{{ pathto("_static/gallery/p38_network.png", 1) }}">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding: 0 5px 0 5px; font-size: 90%; font-style: italic;">
+      <span id="slideShowCaption">p38 MAP Kinase network representation is generated using NMWiz VMD plugin.</span>
+      <a id="slideShowLink" target="_blank" href="http://www.csb.pitt.edu/NMWiz/getnmwiz.html">Get NMWiz</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">changeSlide(ss_which)</script>
