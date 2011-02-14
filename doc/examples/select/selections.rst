@@ -23,6 +23,9 @@ ProDy Code
 
 We can select side-chain atoms as follows:
 
+>>> from prody import *
+>>> prot = parsePDB('1p38')
+
 >>> side_chain_atoms = prot.select('protein and not name N CA C O')
 >>> print side_chain_atoms
 Selection "protein and not name N CA C O" from 1p38

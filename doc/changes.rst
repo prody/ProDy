@@ -13,7 +13,8 @@ Release 0.6 (in development)
 
   * :class:`~dynamics.Gamma` class is implemented for facilitating use of  
     force constants based on atom type, residue type, or property. An
-    example derived class is :class:`~dynamics.GammaVariableCutoff`.
+    example derived classes are :class:`~dynamics.GammaStructureBased` and 
+    :class:`~dynamics.GammaVariableCutoff`.
 
 **Improvements**:
 
@@ -21,11 +22,17 @@ Release 0.6 (in development)
     classes are improved to accept :class:`~dynamics.Gamma` instances
     or other custom function as *gamma* argument. See also :ref:`gamma`.
   * Performance of :class:`~select.Select` is optimized (Thanks to
-    Paul McGuire for advising several improvements).  
-    
+    Paul McGuire for advising several improvements).
+  * :func:`~proteins.applyBiomolecularTransformations` function is improved
+    to handle large biomolecular assemblies.  
+  
 **Changes**:
  
   * :class:`PDBlastRecord` is renamed as :class:`~proteins.PDBBlastRecord`. 
+
+**Bugfixes**:
+    
+  * A bug in :func:`~proteins.assignSecondaryStructure` function is fixed.
 
 Release 0.5.3 (Feb 11, 2011)
 ===============================================================================
