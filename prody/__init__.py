@@ -70,19 +70,14 @@ def importBioKDTree():
         dynamics.KDTree = KDTree
         select.KDTree = KDTree
 
-NCBIWWW = None
-NCBIXML = None
 def importBioBlast():
-    try:
-        from Bio.Blast import NCBIWWW as ncbiwww 
-        from Bio.Blast import NCBIXML as ncbixml 
-    except ImportError as err:
-        raise ImportError('BioPython is required for Blast searching PDB.org.\n' + str(err))
-    global NCBIWWW, NCBIXML
-    NCBIWWW = ncbiwww
-    NCBIXML = ncbixml
+    import bioblast
+    proteins.BioBlast = bioblast
 
 def importBioPairwise2():
+    import pairwise2
+    compare.pairwise2 = pairwise2
+    return
     try:
         from Bio import pairwise2
         compare.pairwise2 = pairwise2
@@ -269,14 +264,6 @@ __all__ += dynamics.__all__
 from . import ensemble
 from .ensemble import *
 __all__ += ensemble.__all__
-
-try:
-    from . import future
-except ImportError:
-    pass
-else:
-    from .future import *
-    __all__ += future.__all__
 
 import prody
 
