@@ -1183,13 +1183,13 @@ def assignSecondaryStructure(header, atoms):
     if len(helix) == 0 and len(sheet) == 0:
         LOGGER.warning('header does not contain secondary structure data')
         return None
-    ssa = atoms.getSecondaryStructureAssignments()
+    ssa = atoms.getSecondaryStrs()
     if ssa is None:
         if isinstance(atoms, prody.AtomGroup):
             ag = atoms
         else:
             ag = atoms.getAtomGroup()
-        ag.setSecondaryStructureAssignments(np.zeros(ag.getNumOfAtoms(), ATOMIC_DATA_FIELDS['secondary'].dtype))
+        ag.setSecondaryStrs(np.zeros(ag.getNumOfAtoms(), ATOMIC_DATA_FIELDS['secondary'].dtype))
             
     hierview = atoms.getHierView()
     count = 0
@@ -1200,7 +1200,7 @@ def assignSecondaryStructure(header, atoms):
         atom = res.getAtom('CA')
         if atom is not None:
             count += 1
-            atom.setSecondaryStructureAssignment(mapHelix[value[0]])
+            atom.setSecondaryStr(mapHelix[value[0]])
     for key, res in sheet.iteritems():
         res = hierview.getResidue(*key)
         if res is None:
@@ -1208,7 +1208,7 @@ def assignSecondaryStructure(header, atoms):
         atom = res.getAtom('CA')
         if atom is not None:
             count += 1
-            atom.setSecondaryStructureAssignment('E')
+            atom.setSecondaryStr('E')
     LOGGER.info('Secondary structures were assigned to {0:d} residues.'.format(count))
     return atoms
             
