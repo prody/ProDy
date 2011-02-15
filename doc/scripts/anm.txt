@@ -1,18 +1,21 @@
 Usage: anm.py [options] <pdb>
 
-ProDy v0.5.3 - Anisotropic Network Model
+ProDy v0.6 - Anisotropic Network Model
 
 Options:
   -h, --help            show this help message and exit
-  -n INT, --nmodes=INT  number of non-zero eigenvalues/vectors to calculate
-                        (20)
+  -n INT, --nmodes=INT  number of non-zero eigenvalues/vectors to calculate,
+                        default is 20
   -c FLOAT, --cutoff=FLOAT
-                        cutoff distance (15.0)
+                        cutoff distance, default is 15.0 A
   -g FLOAT, --gamma=FLOAT
-                        spring constant (1.0)
+                        spring constant, default is 1.0
   -p STRING, --prefix=STRING
-                        prefix for output files (anm)
+                        prefix for output files, default is pdb_anm
   -s STRING, --select=STRING
-                        selection string (protein and name CA)
-  --silent              omit verbose information (False)
+                        selection string, default is "calpha"
+  --silent              omit verbose information, default is False
   -e, --examples        show usage examples
+
+Error: <pdb> missing
+

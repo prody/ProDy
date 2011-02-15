@@ -1771,7 +1771,7 @@ class GammaStructureBased(Gamma):
         6 Å apart.
         
     **Connected**:
-        Cα atoms must be at most 7 Å apart.
+        Cα atoms must be at most 4 Å apart.
         
     Note that this class does not take into account insertion codes.        
     

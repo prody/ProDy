@@ -111,6 +111,9 @@ class PDBFetcher(object):
         pass
 
 
+_pdb_extensions = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ent.gz'])
+
+
 class RCSB_PDBFetcher(PDBFetcher):
     """A class to fetch PDB files from FTP server of RCSB."""
     
@@ -151,9 +154,12 @@ class RCSB_PDBFetcher(PDBFetcher):
 
         pdbfnmap = {}
         for pdbfn in glob(os.path.join(folder, '*.pdb*')): 
-            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-        for pdbfn in glob(os.path.join(folder, '*.PDB*')): 
-            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+            if os.path.splitext(pdbfn)[1] in _pdb_extensions:
+                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+        for pdbfn in glob(os.path.join(folder, '*.PDB*')):
+            if os.path.splitext(pdbfn)[1] in _pdb_extensions:
+                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+            
 
         for i, pdbid in enumerate(identifiers):
             pdbid = pdbid.strip().lower()
@@ -1297,7 +1303,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
                 newag = ags.pop(0)
                 while ags:
                     newag += ags.pop(0)
-                if len(ags_):
+                if len(ags_) > 1:
                     newag.setName('{0:s} biomolecule {1:s} part {2:d}'
                                   .format(ag.getName(), i, k+1))
                 else:

@@ -17,7 +17,7 @@ Otfried Schwarzkopf). Author: Thomas Hamelryck.
 from numpy import sum, sqrt, dtype, array
 from numpy.random import random
 
-from Bio.KDTree import _CKDTree 
+from prody.KDTree import _CKDTree 
 
 def _dist(p, q):
     diff=p-q

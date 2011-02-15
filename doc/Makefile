@@ -14,7 +14,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
+.PHONY: help clean both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest testdist
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -158,3 +158,12 @@ doctest:
 	cd ..
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(DOCTEST)."
+	      
+testdist:
+	mv ../prody ../prody_
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. ..; \
+	cd ..
+	@echo "Testing of doctests in the sources finished, look at the " \
+	      "results in $(DOCTEST)."
+	mv ../prody_ ../prody

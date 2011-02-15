@@ -17,15 +17,12 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010 Ahmet Bakan'
-__version__ = '0.5.3'
+__version__ = '0.6'
 
 import logging
 import logging.handlers
 import os
 import os.path
-
-
-    
 
 re = None
 def importRE():
@@ -61,11 +58,19 @@ def importPyPlot():
 
 def importBioKDTree():
     try:
-        from Bio.KDTree import KDTree
+        from prody.KDTree import KDTree
     except ImportError:
-        dynamics.KDTree = False
-        select.KDTree = False
-        ProDyLogger.warning('Bio.KDTree is not found.')
+        try:
+            from Bio.KDTree import KDTree
+        except ImportError:
+            dynamics.KDTree = False
+            select.KDTree = False
+            ProDyLogger.warning('KDTree module could not be imported. '
+                                'Reinstalling ProDy or installing BioPython '
+                                'can resolve the problem.')
+        else:
+            dynamics.KDTree = KDTree
+            select.KDTree = KDTree
     else:
         dynamics.KDTree = KDTree
         select.KDTree = KDTree
@@ -75,16 +80,21 @@ def importBioBlast():
     proteins.BioBlast = bioblast
 
 def importBioPairwise2():
-    import pairwise2
-    compare.pairwise2 = pairwise2
-    return
     try:
-        from Bio import pairwise2
-        compare.pairwise2 = pairwise2
+        import pairwise2
     except ImportError:
-        compare.pairwise2 = False
-        ProDyLogger.warning('BioPython is required for pairwise alignments.')
-
+        try:
+            from Bio import pairwise2
+        except ImportError:
+            compare.pairwise2 = False
+            ProDyLogger.warning('pairwise2 module could not be imported. '
+                                'Reinstalling ProDy or installing BioPython '
+                                'can resolve the problem.')
+        else:
+            compare.pairwise2 = pairwise2
+    else:
+        compare.pairwise2 = pairwise2
+        
 _ProDySettings = {
     'loglevel': 'debug',
     'local_pdb_folder': None}
@@ -104,7 +114,7 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
 LOGGING_LEVELS.setdefault(logging.INFO)
 ProDySignature = '@>'
 
-def _ProDyStartLogger(**kwargs):
+def _startLogger(**kwargs):
     """Set a global logger for ProDy."""
     
     name = '.prody'
@@ -121,7 +131,7 @@ def _ProDyStartLogger(**kwargs):
     logger.addHandler(console)
     return logger
 
-ProDyLogger = _ProDyStartLogger()
+ProDyLogger = _startLogger()
 
 def startLogfile(filename, **kwargs):
     """Start a file to save ProDy logs.
@@ -268,7 +278,3 @@ __all__ += ensemble.__all__
 import prody
 
 __all__.append('prody')
-
-
-def ProDySetLocalPDBFolder(path):
-    pass

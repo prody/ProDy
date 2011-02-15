@@ -127,8 +127,8 @@ Running :command:`python fetchpdb.py -h` displays:
 ===============================================================================
 
 This script is used to extract a selection of atoms from a PDB file, i.e. 
-running ``python pdbselect.py 1p38 selected.pdb "protein and name CA"``
-will write Cα atoms in :file:`selected.pdb` file.
+running :command:`python pdbselect.py 1p38 "protein and name CA"`
+will write Cα atoms in :file:`1p38_selected.pdb` file.
  
 Running :command:`python pdbselect.py -h` displays:
 

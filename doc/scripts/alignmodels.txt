@@ -1,3 +1,15 @@
-Usage: ../../scripts/alignmodels.py <pdb> <selection-string> <out-file> 
+Usage: ../../scripts/alignmodels.py [options] <pdb>  
 
-Align coordinate sets (e.g. multiple NMR models) based on selected atoms.
+ProDy v0.6 - Align Models
+
+Options:
+  -h, --help            show this help message and exit
+  -p STRING, --prefix=STRING
+                        prefix for output files, default is pdb_aligned
+  -s STRING, --select=STRING
+                        selection string, default is "calpha"
+  --silent              omit verbose information, default is False
+  -e, --examples        show usage examples
+
+Error: <pdb> missing
+
