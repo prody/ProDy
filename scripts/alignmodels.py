@@ -16,26 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-__author__ = 'Lidio Meireles'
-__copyright__ = 'Copyright (C) 2010 Lidio Meireles, Ahmet Bakan'
+__author__ = 'Ahmet Bakan, Lidio Meireles'
+__copyright__ = 'Copyright (C) 2010  Ahmet Bakan, Lidio Meireles'
 
 import sys
-from prody import *
-        
-def main():
-    
-    if len(sys.argv) != 4:
-        print 'Usage: %s <pdb> <selection-string> <out-file> \n\nAlign coordinate sets (e.g. multiple NMR models) based on selected atoms.'%(sys.argv[0])
-        sys.exit(-1)
-        
-    pdbfn,selstr,outfn = sys.argv[1:4]
-        
-    pdb = parsePDB(pdbfn)
-    alignCoordsets(pdb,selstr=selstr)
-    rmsds = calcRMSD(pdb)
-    print 'min rmsd: %0.2f max rmsd:%0.2f mean rmsd:%0.2f'%(rmsds.min(), rmsds.max(), rmsds.mean())
-    print 'writing file',outfn
-    writePDB(outfn,pdb)
-    
+from prody.routines import alignmodels
+
 if __name__ == '__main__':
-    main()
+    alignmodels()

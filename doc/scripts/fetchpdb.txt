@@ -1,9 +1,10 @@
-Usage: fetchpdb.py 1p38 1r39...
+Usage: ../../scripts/fetchpdb.py [options] <sequence.fasta>  
 
-Download pdb files 1p38 and 1r39 from RCSB PDB.
-
+ProDy v0.6 - Fetch PDB
 
 Options:
-  -h, --help     show this help message and exit
-  --folder=PATH  destination folder (.)
-  --list=FILE    file with pdb identifiers
+  -h, --help            show this help message and exit
+  -f PATH, --folder=PATH
+                        if given, download PDB files to the folder
+  --silent              omit verbose information, default is False
+  --list=FILE           file that contains PDB identifiers

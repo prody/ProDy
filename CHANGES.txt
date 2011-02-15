@@ -24,7 +24,9 @@ Release 0.6 (in development)
   * Performance of :class:`~select.Select` is optimized (Thanks to
     Paul McGuire for advising several improvements).
   * :func:`~proteins.applyBiomolecularTransformations` function is improved
-    to handle large biomolecular assemblies.  
+    to handle large biomolecular assemblies.
+  * Performance optimizations in :func:`~proteins.parsePDB` and other 
+    functions.
   
 **Changes**:
  
@@ -33,6 +35,7 @@ Release 0.6 (in development)
 **Bugfixes**:
     
   * A bug in :func:`~proteins.assignSecondaryStructure` function is fixed.
+  * Bugfixes in :ref:`scripts-anm` and :ref:`scripts-gnm`.
 
 Release 0.5.3 (Feb 11, 2011)
 ===============================================================================

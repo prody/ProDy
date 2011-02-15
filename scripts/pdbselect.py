@@ -16,23 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-__author__ = 'Lidio Meireles'
-__copyright__ = 'Copyright (C) 2010 Lidio Meireles, Ahmet Bakan'
+__author__ = 'Ahmet Bakan, Lidio Meireles'
+__copyright__ = 'Copyright (C) 2010  Ahmet Bakan, Lidio Meireles'
 
 import sys
-from prody import *
-    
-def main():
-    if len(sys.argv) != 4:
-        usage = "ProDy v{0:s} - PDBSelect\nusage: {1:s} <input> <output> <selection>".format(prody.__version__, sys.argv[0])
-        print usage
-        sys.exit(-1)
-        
-    pdbfn, out, selection = sys.argv[1:4]
-    
-    pdb = parsePDB(pdbfn)
-    pdbselect = pdb.select(selection)
-    writePDB(out,pdbselect)
-    
+from prody.routines import pdbselect
+
 if __name__ == '__main__':
-    main()
+    pdbselect()

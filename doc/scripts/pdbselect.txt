@@ -1,2 +1,9 @@
-ProDy v0.5.3 - PDBSelect
-usage: ../../scripts/pdbselect.py <input> <output> <selection>
+Usage: ../../scripts/pdbselect.py [options] <pdb> <selection>  
+
+ProDy v0.6 - PDB select
+
+Options:
+  -h, --help            show this help message and exit
+  -p STRING, --prefix=STRING
+                        prefix for output files, default is pdb_selected
+  --silent              omit verbose information, default is False

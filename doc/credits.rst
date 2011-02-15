@@ -1,9 +1,8 @@
 .. _credits:
 
 *******************************************************************************
-Credits
+Acknowledgements
 *******************************************************************************
 
-Lidio Meireles wrote anm, gnm, and pdbselect scripts and helped planning design
-and organization of ProDy modules and classes.
-
+Lidio Meireles contributed development of ProDy :ref:`scripts` and provided
+useful comments on the design and organization of ProDy modules and classes.

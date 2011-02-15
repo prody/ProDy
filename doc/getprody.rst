@@ -28,17 +28,21 @@ Download a suitable ProDy installation file from here
 
 For details of ProDy releases see :ref:`changes` and :ref:`pypi-statistics`.
 
+Windows installers are compiled using `MinGW <http://www.mingw.org/>`_.
+
+
 Required Software
 ===============================================================================
 
 * `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, the 32 bit option 
-  is preferred for compatibility)
+  is required for compatibility)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
 
 Installation Instructions
 ===============================================================================
 
-After installing the required packages, you will need to do one of the following:
+After installing the required packages, you will need to do one of the 
+following:
 
 Linux
 -------------------------------------------------------------------------------
@@ -48,6 +52,7 @@ Download :file:`ProDy-0.x.y.tar.gz`. Extract tarball contents and run
 
     tar -xzf ProDy-0.x.y.tar.gz
     cd ProDy-0.x.y
+    python setup.py build
     python setup.py install
 
 You may need root access for the last step.
@@ -55,14 +60,16 @@ You may need root access for the last step.
 If you don't have root access, you can edit ``PYTHONPATH`` system variable to 
 specify the path to this package:
   
-#. Move :file:`prody` directory to a folder like :file:`/home/username/mypackages/`
+#. Move :file:`prody` directory to a folder like 
+   :file:`/home/username/mypackages/`
 #. Add a line to your :file:`.bashrc` (or alike) script as follows
    ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
 
 Windows
 -------------------------------------------------------------------------------
 
-Download :file:`ProDy-0.x.y.win32.exe` and run to install ProDy.
+Download :file:`ProDy-0.x.y.win32-py2.z.exe` and run to install ProDy.
+
 
 Recommended Software
 ===============================================================================
@@ -79,26 +86,18 @@ Recommended Software
 * `IPython <http://ipython.scipy.org/>`_ for interactive ProDy sessions.
 * `PyReadline <http://ipython.scipy.org/moin/PyReadline/Intro>`_ for 
   colorful interactive ProDy sessions on Windows.
-  
-..
-  * `Biopython 1.54+ <http://biopython.org/wiki/Main_Page>`_ required for 
-    pairwise 
-    sequence alignments and proximity based atom selections. Also, when 
-    installed, Bio.KDTree is used in elastic network model calculations. It
-    provides significant speed up when building Hessian (ANM) or Kirchoff (GNM) 
-    matrices for large systems.
 
 
 Included in ProDy Package
 ===============================================================================
 The following software is included in the ProDy installation packages:
 
-* `Pyparsing <http://pyparsing.wikispaces.com/>`_ is used to define the 
-  atom selection grammar. 
+* `Pyparsing <http://pyparsing.wikispaces.com/>`_ (v1.5.5) is used to define 
+  the atom selection grammar.
 
 * `Biopython <http://biopython.org/>`_ KDTree, pairwise2, and Blast modules
-  are included in ProDy packages.
-
+  (from v1.56) are used for distance based selection, sequence alignment, and 
+  searching PDB, respectively. 
 
 
 Source Code

@@ -34,5 +34,6 @@ Library reference
    library/ensemble
    library/measure
    library/proteins
+   library/routines
    library/select
 
