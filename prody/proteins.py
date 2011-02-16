@@ -849,7 +849,7 @@ class PDBBlastRecord(object):
         self._record = blast_record
         
     def getSequence(self):    
-        """Return the sequence that was used in the search."""
+        """Return the query sequence that was used in the search."""
         return self._sequence
         
     def printSummary(self):
@@ -972,7 +972,12 @@ class PDBBlastRecord(object):
 def blastPDB(sequence, filename=None, **kwargs):
     """Blast search ProteinDataBank for a given sequence and return results.
         
-    Sequence must be a protein sequence in one letter amino acid code.
+    :arg sequence: Single-letter code amino acid sequence of the protein.
+    :type sequence: str, :class:`Bio.SeqRecord.SeqRecord`, or 
+        :class:`Bio.Seq.Seq` 
+    
+    :arg filename: Provide a *filename* to save the results in XML format. 
+    :type filename: str
     
     This method uses :meth:`qdblast` function in :mod:`NCBIWWW` module of 
     Biopython. It will use *blastp* program and search *pdb* database.
@@ -982,13 +987,19 @@ def blastPDB(sequence, filename=None, **kwargs):
     User can adjust *hitlist_size* (default is 250) and *expect* (default is 
     1e-10) parameter values. 
 
-    Optinally, results can be save in XML format by passing a *filename*.
-
     """
     if BioBlast is None: prody.importBioBlast()
     if not isinstance(sequence, str):
-        raise TypeError('sequence must be a string')
-    elif not sequence:
+        try:
+            sequence = sequence.data
+        except AttributeError:    
+            try:
+                sequence = sequence.seq.data
+            except AttributeError:    
+                pass
+        if not isinstance(sequence, str):
+            raise TypeError('sequence must be a string or a Biopython object')
+    if not sequence:
         raise ValueError('sequence cannot be an empty string')
 
     if 'hitlist_size' not in kwargs:
