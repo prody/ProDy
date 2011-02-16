@@ -168,13 +168,19 @@ PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN',
 WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))
 NUCLEIC_RESIDUE_NAMES = set(('GUA', 'ADE', 'CYT', 'THY', 'URA', 
                            'DA', 'DC', 'DG', 'DT'))
+
+NON_HETERO_RESIDUE_NAMES = set.union(PROTEIN_RESIDUE_NAMES, 
+                                     NUCLEIC_RESIDUE_NAMES)
 HYDROGEN_REGEX = '[0-9]?H.*'
 ACIDIC_RESIDUE_NAMES = set(('ASP', 'GLU'))
 BASIC_RESIDUE_NAMES = set(('LYS', 'ARG', 'HIS', 'HSP'))
+CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
 ALIPHATIC_RESIDUE_NAMES = set(('ALA', 'GLY', 'ILE', 'LEU', 'VAL'))
 AROMATIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'TRP', 'TYR'))
 SMALL_RESIDUE_NAMES = set(('ALA', 'GLY', 'SER'))
 MEDIUM_RESIDUE_NAMES = set(('VAL', 'THR', 'ASP', 'ASN', 'PRO', 'CYS'))
+LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
+                        set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
 HYDROPHOBIC_RESIDUE_NAMES = set(())
 CYCLIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'PRO', 'TRP', 'TYR'))
 
@@ -186,7 +192,9 @@ def setBackboneAtomNames(backbone_atom_names):
     """Set protein :term:`backbone` atom names."""
     if not isinstance(backbone_atom_names, (list, tuple, set)):
         raise TypeError('backbone_atom_names must be a list, tuple, or set')
+    global BACKBONE_ATOM_NAMES
     BACKBONE_ATOM_NAMES = set(backbone_atom_names)
+    _buildKeywordMap()
 
 def getProteinResidueNames():
     """Return :term:`protein` residue names."""
@@ -196,8 +204,12 @@ def setProteinResidueNames(protein_residue_names):
     """Set :term:`protein` residue names."""
     if not isinstance(protein_residue_names, (list, tuple, set)):
         raise TypeError('protein_residue_names must be a list, tuple, or set')
+    global PROTEIN_RESIDUE_NAMES, NON_HETERO_RESIDUE_NAMES
     PROTEIN_RESIDUE_NAMES = set(protein_residue_names)
-
+    NON_HETERO_RESIDUE_NAMES = set.union(PROTEIN_RESIDUE_NAMES, 
+                                         NUCLEIC_RESIDUE_NAMES)
+    _buildKeywordMap()
+    
 def getAcidicResidueNames():
     """Return :term:`acidic` residue names."""
     return list(ACIDIC_RESIDUE_NAMES)
@@ -206,7 +218,10 @@ def setAcidicResidueNames(acidic_residue_names):
     """Set :term:`acidic` residue names."""
     if not isinstance(acidic_residue_names, (list, tuple, set)):
         raise TypeError('acidic_residue_names must be a list, tuple, or set')
+    global ACIDIC_RESIDUE_NAMES, CHARGED_RESIDUE_NAMES
     ACIDIC_RESIDUE_NAMES = set(acidic_residue_names)
+    CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
+    _buildKeywordMap()
     
 def getBasicResidueNames():
     """Return :term:`basic` residue names."""
@@ -216,7 +231,14 @@ def setBasicResidueNames(basic_residue_names):
     """Set :term:`basic` residue names."""
     if not isinstance(basic_residue_names, (list, tuple, set)):
         raise TypeError('basic_residue_names must be a list, tuple, or set')
+    global BASIC_RESIDUE_NAMES, CHARGED_RESIDUE_NAMES
     BASIC_RESIDUE_NAMES = set(basic_residue_names)
+    CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
+    _buildKeywordMap()
+
+def getChargedResidueNames():
+    """Return :term:`charged` residue names."""
+    return list(CHARGED_RESIDUE_NAMES)
 
 def getAliphaticResidueNames():
     """Return :term:`aliphatic` residue names."""
@@ -227,7 +249,9 @@ def setAliphaticResidueNames(aliphatic_residue_names):
     if not isinstance(aliphatic_residue_names, (list, tuple, set)):
         raise TypeError('aliphatic_residue_names must be a list, tuple, or ' 
                         'set')
+    global ALIPHATIC_RESIDUE_NAMES
     ALIPHATIC_RESIDUE_NAMES = set(aliphatic_residue_names)
+    _buildKeywordMap()
 
 def getAromaticResidueNames():
     """Return :term:`aromatic` residue names."""
@@ -237,7 +261,9 @@ def setAromaticResidueNames(aromatic_residue_names):
     """Set :term:`aromatic` residue names."""
     if not isinstance(aromatic_residue_names, (list, tuple, set)):
         raise TypeError('aromatic_residue_names must be a list, tuple, or set')
+    global AROMATIC_RESIDUE_NAMES
     AROMATIC_RESIDUE_NAMES = set(aromatic_residue_names)
+    _buildKeywordMap()
 
 def getSmallResidueNames():
     """Return :term:`small` residue names."""
@@ -247,7 +273,11 @@ def setSmallResidueNames(small_residue_names):
     """Set :term:`small` residue names."""
     if not isinstance(small_residue_names, (list, tuple, set)):
         raise TypeError('small_residue_names must be a list, tuple, or set')
+    global SMALL_RESIDUE_NAMES, LARGE_RESIDUE_NAMES
     SMALL_RESIDUE_NAMES = set(small_residue_names)
+    LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
+                        set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
+    _buildKeywordMap()
 
 def getMediumResidueNames():
     """Return :term:`medium` residue names."""
@@ -257,7 +287,11 @@ def setMediumResidueNames(medium_residue_names):
     """Set :term:`medium` residue names."""
     if not isinstance(medium_residue_names, (list, tuple, set)):
         raise TypeError('medium_residue_names must be a list, tuple, or set')
+    global MEDIUM_RESIDUE_NAMES, LARGE_RESIDUE_NAMES
     MEDIUM_RESIDUE_NAMES = set(medium_residue_names)
+    LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
+                        set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
+    _buildKeywordMap()
 
 def getCyclicResidueNames():
     """Return :term:`cyclic` residue names."""
@@ -267,7 +301,9 @@ def setCyclicResidueNames(cyclic_residue_names):
     """Set :term:`cyclic` residue names."""
     if not isinstance(cyclic_residue_names, (list, tuple, set)):
         raise TypeError('cyclic_residue_names must be a list, tuple, or set')
+    global CYCLIC_RESIDUE_NAMES
     CYCLIC_RESIDUE_NAMES = set(cyclic_residue_names)
+    _buildKeywordMap()
 
 def getWaterResidueNames():
     """Return :term:`water` residue names."""
@@ -277,7 +313,9 @@ def setWaterResidueNames(water_residue_names):
     """Set :term:`water` residue names."""
     if not isinstance(water_residue_names, (list, tuple, set)):
         raise TypeError('water_residue_names must be a list, tuple, or set')
+    global WATER_RESIDUE_NAMES
     WATER_RESIDUE_NAMES = set(water_residue_names)
+    _buildKeywordMap()
 
 def getNucleicResidueNames():
     """Return :term:`nucleic` residue names."""
@@ -287,7 +325,11 @@ def setNucleicResidueNames(nucleic_residue_names):
     """Set :term:`nucleic` residue names."""
     if not isinstance(water_residue_names, (list, tuple, set)):
         raise TypeError('nucleic_residue_names must be a list, tuple, or set')
+    global NUCLEIC_RESIDUE_NAMES, NON_HETERO_RESIDUE_NAMES
     NUCLEIC_RESIDUE_NAMES = set(nucleic_residue_names)
+    NON_HETERO_RESIDUE_NAMES = set.union(PROTEIN_RESIDUE_NAMES, 
+                                         NUCLEIC_RESIDUE_NAMES)
+    _buildKeywordMap()
 
 def getHydrogenRegex():
     """Return regular expression to match :term:`hydrogen` atom names."""
@@ -297,10 +339,74 @@ def setHydrogenRegex(hydrogen_regex):
     """Set regular expression to match :term:`hydrogen` atom names."""
     if not isinstance(hydrogen_regex, (str)):
         raise TypeError('hydrogen_regex must be a string')
+    global HYDROGEN_REGEX
     HYDROGEN_REGEX = hydrogen_regex
 
 class SelectionError(Exception):    
     pass
+    
+FUNCTION_MAP = {
+    'sqrt'  : np.sqrt,
+    'sq'    : lambda num: np.power(num, 2),
+    'abs'   : np.abs,
+    'floor' : np.floor,
+    'ceil'  : np.ceil,
+    'sin'   : np.sin,
+    'cos'   : np.cos,
+    'tan'   : np.tan,
+    'asin'  : np.arcsin,
+    'acos'  : np.arccos,
+    'atan'  : np.arctan,
+    'sinh'  : np.sinh,
+    'cosh'  : np.cosh,
+    'tahn'  : np.tanh,
+    'exp'   : np.exp,
+    'log'   : np.log,
+    'log10' : np.log10,
+}
+    
+BINARY_OPERATOR_MAP = {
+    '+'  : lambda a, b: a + b,
+    '-'  : lambda a, b: a - b,
+    '*'  : lambda a, b: a * b,
+    '/'  : lambda a, b: a / b,
+    '%'  : lambda a, b: a % b,
+    '>'  : lambda a, b: a > b,
+    '<'  : lambda a, b: a < b,
+    '>=' : lambda a, b: a >= b,
+    '<=' : lambda a, b: a <= b,
+    '='  : lambda a, b: a == b,
+    '==' : lambda a, b: a == b,
+    '!=' : lambda a, b: a != b,
+}
+
+KEYWORD_MAP = None
+def _buildKeywordMap():
+    global KEYWORD_MAP
+    KEYWORD_MAP = {
+        #'keyword' : (residue_names, atom_names, invert, atom_names_not),
+        'calpha'  : (PROTEIN_RESIDUE_NAMES, set(('CA')), False, False),
+        'protein'  : (PROTEIN_RESIDUE_NAMES, None, False, False),
+        'backbone' : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
+        'acidic'   : (ACIDIC_RESIDUE_NAMES, None, False, False),
+        'basic'    : (BASIC_RESIDUE_NAMES, None, False, False),
+        'charged'  : (CHARGED_RESIDUE_NAMES, None, False, False),
+        'aliphatic': (ALIPHATIC_RESIDUE_NAMES, None, False, False),
+        'aromatic' : (AROMATIC_RESIDUE_NAMES, None, False, False),
+        'small'    : (SMALL_RESIDUE_NAMES, None, False, False),
+        'medium'   : (MEDIUM_RESIDUE_NAMES, None, False, False),
+        'cyclic'   : (CYCLIC_RESIDUE_NAMES, None, False, False),
+        'large'    : (LARGE_RESIDUE_NAMES, None, False, False),
+        'neutral'  : (CHARGED_RESIDUE_NAMES, None, True, False),
+        'acyclic'  : (CYCLIC_RESIDUE_NAMES, None, True, False),
+        'water'    : (WATER_RESIDUE_NAMES, None, False, False),
+        'waters'   : (WATER_RESIDUE_NAMES, None, False, False),
+        'nucleic'  : (NUCLEIC_RESIDUE_NAMES, None, False, False),
+        'hetero'   : (NON_HETERO_RESIDUE_NAMES, None, True, False), 
+        'sidechain': (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
+    }
+_buildKeywordMap()
+
     
 class Select(object):
 
@@ -318,11 +424,11 @@ class Select(object):
     NUMBER = pp.Word(pp.nums) 
     INTEGER = pp.Combine( pp.Optional(PLUSORMINUS) + NUMBER )
     E = pp.CaselessLiteral('E')
-    FLOAT = pp.Combine(INTEGER + 
-                       pp.Optional(pp.Literal('.') + pp.Optional(NUMBER)) +
-                       pp.Optional( E + INTEGER )
-                       )
-    
+    #FLOAT = pp.Combine(INTEGER + 
+    #                   pp.Optional(pp.Literal('.') + pp.Optional(NUMBER)) +
+    #                   pp.Optional( E + INTEGER )
+    #                   )
+    FLOAT = pp.Regex(r'[+-]?\d+(\.\d*)?([Ee][+-]?\d+)?')
     NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
                  'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 
                  'purine', 'pyrimidine'))
@@ -424,7 +530,7 @@ class Select(object):
             raise TypeError('selstr must be a string, not a {0:s}'
                             .format(type(selstr)))
         if self._atoms is not None and atoms != self._atoms:
-            self._reset
+            self._reset()
             
         self._selstr = selstr
         if isinstance(atoms, prody.AtomGroup): 
@@ -444,7 +550,7 @@ class Select(object):
         self._kwargs = kwargs
         if DEBUG:
             print '_select', selstr
-        torf = self._parseSelStr()[0]
+        torf = self._parseSelStr()
         if not isinstance(torf, np.ndarray):
             raise SelectionError('{0:s} is not a valid selection string.'
                                  .format(selstr))
@@ -494,7 +600,7 @@ class Select(object):
               
             * :meth:`select` accepts arbitrary keyword arguments which enables 
               identification of intermolecular contacts. See :ref:`contacts` 
-              for its details.
+              for details.
         
             * :meth:`select` accepts a keyword argument that enables caching
               atomic data and KDTree from previous select operation. It works
@@ -507,8 +613,10 @@ class Select(object):
               will be preserved.
 
         .. warning:: ``cache=True`` should be used if attributes of *atoms* 
-           object have not changed since the previous selection operation.
+           object have not changed since the previous selection.
+           
         """
+        
         self._selstr2indices = False
         indices = self.getIndices(atoms, selstr, **kwargs)
         ag = self._ag
@@ -563,14 +671,17 @@ class Select(object):
         return selstr.strip()
 
     def _parseSelStr(self):
+        selstr = self._selstr.strip() 
+        if len(selstr.split()) == 1:
+            return self._evalBoolean(selstr)
         selstr = self._getStdSelStr()
         if DEBUG: print '_parseSelStr', selstr
-        start = time.time()
+        #start = time.time()
         try: 
             tokens = self._tokenizer.parseString(selstr, 
                                                 parseAll=True).asList()
             if DEBUG: print '_parseSelStr', tokens
-            return tokens
+            return tokens[0]
         except pp.ParseException, err:
             print 'Parse Failure'
             print self._selstr #err.line
@@ -816,7 +927,8 @@ class Select(object):
             segnames = self._getAtomicData('segment')
             torf = self._evalAlnum('segment', list(np.unique(segnames[which]))) 
         return torf
-
+     
+     
     def _comp(self, token):
         if DEBUG: print '_comp', token
         token = token[0]
@@ -833,22 +945,10 @@ class Select(object):
         if DEBUG: print '_comp', left
         right = self._getnum(token[2])
         if DEBUG: print '_comp', right
-        
-        if comp == '>':
-            return left > right
-        elif comp == '<':
-            return left < right
-        elif comp == '<=':
-            return left <= right
-        elif comp == '>=':
-            return left >= right
-        elif comp == '==':
-            return left == right
-        elif comp == '=':
-            return left == right
-        elif comp == '!=':
-            return left != right
-        else:
+
+        try:
+            return BINARY_OPERATOR_MAP[comp](left, right)
+        except KeyError:
             raise SelectionError('Unknown error in "{0:s}".'
                                  .format(' '.join(token)))
 
@@ -860,17 +960,11 @@ class Select(object):
     def _add(self, token):
         if DEBUG: print '_add', token
         items = token[0]
-        left = self._getnum(items[0])
-        i = 1
-        while i < len(items):
-            op = items[i]
-            i += 1
-            right = self._getnum(items[i])
-            i += 1
-            if op == '+':
-                left = left + right
-            else:
-                left = left - right
+        left = self._getnum(items.pop(0))
+        while items:
+            op = items.pop(0)
+            right = self._getnum(items.pop(0))
+            left = BINARY_OPERATOR_MAP[op](left, right)
         if DEBUG: print '_add total', left
         return left
  
@@ -884,19 +978,14 @@ class Select(object):
             i += 1
             right = self._getnum(items[i])
             i += 1
-            if op == '*':
-                left = left * right
-            elif op == '/':
-                if right == 0.0:
-                    raise ZeroDivisionError(' '.join(items))
-                left = left / right
-            else:
-                left = left % right
+            if op == '/' and right == 0.0: 
+                raise ZeroDivisionError(' '.join(items))
+            left = BINARY_OPERATOR_MAP[op](left, right)
         return left
     
     def _getnum(self, token):
         if DEBUG: print '_getnum', token
-        if isinstance(token, np.ndarray):
+        if isinstance(token, (np.ndarray, float)):
             return token
         elif Select.isFloatKeyword(token):
             return self._evalFloat(token)
@@ -926,42 +1015,7 @@ class Select(object):
     def _func(self, token):
         token = token[0]
         if DEBUG: print '_func', token
-        fun = token[0]
-        num = token[1] 
-        if fun == 'sqrt':
-            return np.sqrt(num)
-        elif fun == 'sq':
-            return np.power(num, 2)
-        elif fun == 'abs':
-            return np.abs(num)
-        elif fun == 'floor':
-            return np.floor(num)
-        elif fun == 'ceil':
-            return np.ceil(num)
-        elif fun == 'sin':
-            return np.sin(num)
-        elif fun == 'cos':
-            return np.cos(num)
-        elif fun == 'tan':
-            return np.tan(num)
-        elif fun == 'atan':
-            return np.arctan(num)
-        elif fun == 'asin':
-            return np.arcsin(num)
-        elif fun == 'acos':
-            return np.arccos(num)
-        elif fun == 'sinh':
-            return np.sinh(num)
-        elif fun == 'cosh':
-            return np.cosh(num)
-        elif fun == 'tanh':
-            return np.tanh(num)
-        elif fun == 'exp':
-            return np.exp(num)
-        elif fun == 'log':
-            return np.log(num)
-        elif fun == 'log10':
-            return np.log10(num)
+        return FUNCTION_MAP[token[0]](token[1])
 
     def _evalBoolean(self, keyword):
         if DEBUG: print '_evalBoolean', keyword
@@ -982,54 +1036,9 @@ class Select(object):
         elif keyword == 'hydrogen':
             return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"r'])])
             
-        
-        atom_names = None
-        atom_names_not = False
-        residue_names = None
-        invert = False
-        
-        if keyword == 'protein':
-            residue_names = PROTEIN_RESIDUE_NAMES
-        elif keyword == 'backbone':
-            atom_names = BACKBONE_ATOM_NAMES
-            residue_names = PROTEIN_RESIDUE_NAMES
-        elif keyword == 'acidic':
-            residue_names = ACIDIC_RESIDUE_NAMES
-        elif keyword == 'basic':
-            residue_names = BASIC_RESIDUE_NAMES 
-        elif keyword == 'charged':
-            residue_names = ACIDIC_RESIDUE_NAMES.union(BASIC_RESIDUE_NAMES)
-        elif keyword == 'aliphatic':
-            residue_names = ALIPHATIC_RESIDUE_NAMES
-        elif keyword == 'aromatic':
-            residue_names = AROMATIC_RESIDUE_NAMES
-        elif keyword == 'small':
-            residue_names = SMALL_RESIDUE_NAMES
-        elif keyword == 'medium':
-            residue_names = MEDIUM_RESIDUE_NAMES
-        elif keyword == 'cyclic':
-            residue_names = CYCLIC_RESIDUE_NAMES  
-        elif keyword == 'large':
-            residue_names = tuple(set(PROTEIN_RESIDUE_NAMES).difference( 
-                    set(SMALL_RESIDUE_NAMES.union(MEDIUM_RESIDUE_NAMES))))
-        elif keyword == 'neutral':
-            residue_names = ACIDIC_RESIDUE_NAMES.union(BASIC_RESIDUE_NAMES)
-            invert = True
-        elif keyword == 'acyclic':
-            residue_names = CYCLIC_RESIDUE_NAMES
-            invert = True
-        elif keyword in ('water', 'waters'):
-            residue_names = WATER_RESIDUE_NAMES
-        elif keyword == 'nucleic':
-            residue_names = NUCLEIC_RESIDUE_NAMES
-        elif keyword == 'hetero':
-            residue_names = NUCLEIC_RESIDUE_NAMES.union(PROTEIN_RESIDUE_NAMES)
-            invert = True
-        elif keyword == 'sidechain':
-            atom_names = BACKBONE_ATOM_NAMES
-            residue_names = PROTEIN_RESIDUE_NAMES
-            atom_names_not = True
-        else:
+        try:
+            residue_names, atom_names, invert, atom_names_not = KEYWORD_MAP[keyword]
+        except KeyError:
             raise SelectionError('"{0:s}" is not a valid keyword.'
                                  .format(keyword))
             
@@ -1353,7 +1362,7 @@ class Contacts(object):
         
         :arg within: distance
         :type within: float
-        :arg what: a point or contacting atoms 
+        :arg what: a point in 3-d space or a set of atoms 
         :type what: :class:`numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
         """
