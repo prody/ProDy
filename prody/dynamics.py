@@ -1745,7 +1745,7 @@ class GammaStructureBased(Gamma):
     and connectivity of the residues.
     
     
-    A recent systematic study [LT10] of a large set of NMR-structures analyzed 
+    A recent systematic study [LT10]_ of a large set of NMR-structures analyzed 
     using a method based on entropy maximization showed that taking into 
     consideration properties such as sequential separation between 
     contacting residues and the secondary structure types of the interacting 
