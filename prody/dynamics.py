@@ -70,6 +70,7 @@ argument. These are noted in function documentations.
   * :func:`calcCrossCorrelations`
   * :func:`calcSqFlucts`  
   * :func:`calcProjection`
+  * :func:`calcTempFactors`
 
 **Parse/write data**:
 
@@ -202,6 +203,8 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'calcANM', 'calcGNM', 
            
            'calcCovariance', 'calcCrossCorrelations', 'calcSqFlucts',
+           
+           'calcTempFactors',
            
            'calcProjection',  
            
@@ -591,7 +594,7 @@ class Vector(VectorBase):
         """Instantiate with a name, an array, and a 3d flag."""
         
         if not isinstance(array, np.ndarray) or array.ndim != 1:
-            raise TypeError('array must be a 1-dimentional numpy.ndarray')
+            raise TypeError('array must be a 1-dimensional numpy.ndarray')
         if not isinstance(is_3d, bool):
             raise TypeError('is_3d must be a boolean')
         self._name = str(name)
@@ -638,7 +641,7 @@ class Vector(VectorBase):
     def getNumOfAtoms(self):
         """Return number of atoms.
         
-        For a 3-dimentional vector, returns length of the vector divided by 3.
+        For a 3-dimensional vector, returns length of the vector divided by 3.
         
         """
         
@@ -678,6 +681,12 @@ class NMABase(object):
         return self._n_modes
         
     def __getitem__(self, index):
+        """
+        .. versionchanged:: 0.6
+           A list or tuple of integers can be used for indexing. 
+        
+        """
+        
         if self._n_modes == 0:
             raise ProDyException('{0:s} modes are not calculated, try '
                                  'calcModes() method'.format(str(self)))
@@ -686,8 +695,14 @@ class NMABase(object):
         elif isinstance(index, slice):
             #modes = self._modes[index]
             return ModeSet(self, np.arange(*index.indices(len(self))))
+        elif isinstance(index, (list, tuple)):
+            for i in index:
+                assert isinstance(i, int), 'all indices must be integers'
+            if len(index) == 1:
+                return self.getMode(index[0])
+            return ModeSet(self, index)
         else:        
-            raise IndexError('indices may be an integer or a slice')
+            raise IndexError('indices may be an integer, slice, list, or tuple')
         
     def __iter__(self):
         for i in xrange(self._n_modes):
@@ -714,7 +729,14 @@ class NMABase(object):
         
         self._is3d = True
     
+    def getModel(self):
+        """Return self."""
+        
+        return self
+    
     def is3d(self):
+        """Return ``True`` is model is 3-dimensional."""
+        
         return self._is3d
     
     def getNumOfAtoms(self):
@@ -944,7 +966,6 @@ class ModeSet(object):
                             .format(type(model)))
         self._model = model
         self._indices = np.array(indices, np.int64)
-        self._slice = prody.getIntAsStr(indices+1, sep=' to ')
         
     def __len__(self):
         return len(self._indices)
@@ -954,11 +975,11 @@ class ModeSet(object):
             yield self._model.getMode(i)
     
     def __repr__(self):
-        return '<ModeSet: {0:s} from {1:s} ({2:d} modes)>'.format(self._slice,
-                self._model._name, len(self))
+        return '<ModeSet: {0:d} modes from {1:s} >'.format(len(self),
+                                                       str(self._model))
 
     def __str__(self):
-        return 'Modes {0:s} from {1:s}'.format(self._slice, str(self._model))
+        return '{0:s} modes from {1:s}'.format(self._slice, str(self._model))
     
     def is3d(self):
         """Return True if mode instance is from a 3-dimensional model.
@@ -2751,7 +2772,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0,
     return nma
     
     
-def writeArray(filename, array, format='%.18e', delimiter=' '):
+def writeArray(filename, array, format='%d', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
     
     .. versionchanged:: 0.5.3
@@ -2760,7 +2781,7 @@ def writeArray(filename, array, format='%.18e', delimiter=' '):
     This function is using :func:`numpy.savetxt` to write the file, after 
     making some type and value checks.
     
-    Default *format* argument is ``"%.18e"``.
+    Default *format* argument is ``"%d"``.
     Default *delimiter* argument is white space, ``" "``.
     
     *filename* will be returned upon successful writing. 
@@ -2899,7 +2920,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
     if not modes.is3d():
-        raise ValueError('modes must be from a 3-dimentional model')
+        raise ValueError('modes must be from a 3-dimensional model')
     n_confs = int(n_confs)
     n_atoms = modes.getNumOfAtoms()
     initial = None
@@ -2997,7 +3018,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
     if not modes.is3d():
-        raise ValueError('modes must be from a 3-dimentional model')
+        raise ValueError('modes must be from a 3-dimensional model')
     if len(modes) != 3:
         raise ValueError('length of modes is not equal to 3')
     if onto is not None:
@@ -3005,7 +3026,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             raise TypeError('onto must be a NMA or ModeSet instance, '
                             'not {0:s}'.format(type(onto)))
         if not onto.is3d():
-            raise ValueError('onto must be from a 3-dimentional model')
+            raise ValueError('onto must be from a 3-dimensional model')
         if len(onto) != 3:
             raise ValueError('length of onto is not equal to 3')
         if onto.getNumOfAtoms() != modes.getNumOfAtoms():
@@ -3110,7 +3131,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
         raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0:s}'.format(type(mode)))
     if not mode.is3d():
-        raise ValueError('mode must be from a 3-dimentional model.')
+        raise ValueError('mode must be from a 3-dimensional model.')
     n_atoms = mode.getNumOfAtoms()
     initial = None
     if atoms is not None:
@@ -3356,10 +3377,24 @@ def calcCovarianceOverlap(modelA, modelB):
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
 def calcCovariance(modes):
-    """Calculate covariance matrix from given modes and return it."""
+    """Return covariance matrix calculated for given *modes*."""
     
     return modes.getCovariance()
 
+def calcTempFactors(modes, atoms):
+    """Return temperature (β) factors calculated using *modes* from a 
+    :class:`ANM` or :class:`GNM` instance scaled according to the experimental 
+    β factors from *atoms*."""
+    
+    model = modes.getModel()
+    if not isinstance(model, GNMBase):
+        raise TypeError('modes must come from GNM or ANM')
+    if model.getNumOfAtoms() != atoms.getNumOfAtoms():
+        raise ValueError('modes and atoms must have same number of modes')
+    sqf = calcSqFlucts(modes)
+    return sqf / ((sqf**2).sum()**0.5) * (
+                                        (atoms.getTempFactors()**2).sum()**0.5)
+    
 def showFractOfVariances(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.bar`.
     
@@ -3478,7 +3513,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
                         .format(type(modes)))
     if not modes.is3d(): 
         raise Exception('modes must be 3-dimensional')
-    if isinstance(modes, Mode):
+    if isinstance(modes, Mode) or (isinstance(modes, (ModeSet, NMABase)) and 
+                                   len(modes)==1):
+        if not isinstance(modes, Mode):
+            modes = modes[0]
         projection = calcProjection(ensemble, modes)
         show = plt.hist(projection.flatten(), *args, **kwargs)
         plt.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
@@ -3757,7 +3795,7 @@ def showSqFlucts(modes, *args, **kwargs):
     show = plt.plot(sqf, *args, **kwargs)
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
-    plt.title(str(modes.getModel()))
+    plt.title(str(modes))
     return show
 
 def showScaledSqFlucts(modes, *args, **kwargs):
