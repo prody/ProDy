@@ -67,8 +67,19 @@ class Ensemble(object):
     """
 
     def __init__(self, name):
-        """Instantiate with a name."""
+        """Instantiate with a name.
+        
+        .. versionchanged:: 0.6
+           At instantiation, :class:`~prody.atomic.Atomic` instances are 
+           accepted as *name* argument. All coordinate sets from *name* will be
+           added to the ensemble automatically. 
+          
+        :arg name: A name (:class:`str`) or an :class:`~prody.atomic.Atomic`
+            instance.
+        
+        """
         self._name = str(name)
+        
         self._ensemble = []
         self._confs = None       # coordinate data
         self._weights = None
@@ -76,6 +87,10 @@ class Ensemble(object):
         self._n_atoms = None
         self._n_confs = 0
         self._transformations = []    # from last superimposition
+        
+        if isinstance(name, prody.Atomic):
+            self.setCoordinates(name.getCoordinates())
+            self.addCoordset(name.getCoordsets())
         
     def __getitem__(self, index):
         """Return a conformation at given index."""
