@@ -1,10 +1,13 @@
-Usage: ../../scripts/fetchpdb.py [options] <sequence.fasta>  
+Usage: ../scripts/fetchpdb.py [options] PDB PDB2 PDB3 ...  
 
 ProDy v0.6 - Fetch PDB
 
+Download PDB files specified by their identifiers.
+
+
 Options:
   -h, --help            show this help message and exit
-  -f PATH, --folder=PATH
-                        if given, download PDB files to the folder
   --silent              omit verbose information, default is False
-  --list=FILE           file that contains PDB identifiers
+  -f PATH, --folder=PATH
+                        target folder for saving downloaded PDB files
+  -l FILE, --list=FILE  file that contains PDB identifiers

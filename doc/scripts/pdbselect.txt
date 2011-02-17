@@ -1,9 +1,12 @@
-Usage: ../../scripts/pdbselect.py [options] <pdb> <selection>  
+Usage: ../scripts/pdbselect.py [options] PDB SELECTION  
 
-ProDy v0.6 - PDB select
+ProDy v0.6 - PDB Select
+
+Select atoms specified by SELECTION from PDB and write them in a file.
+
 
 Options:
   -h, --help            show this help message and exit
-  -p STRING, --prefix=STRING
-                        prefix for output files, default is pdb_selected
   --silent              omit verbose information, default is False
+  -p STRING, --prefix=STRING
+                        prefix for output files, default is "PDB_selected"

@@ -1,6 +1,5 @@
 INSTALL.txt
 LICENSE.txt
-LICENSE_GPLv3.txt
 README.txt
 CHANGES.txt
 setup.py
@@ -15,6 +14,7 @@ prody/measure.py
 prody/pairwise2.py
 prody/proteins.py
 prody/pyparsing.py
+prody/routines.py
 prody/select.py
 prody/KDTree/__init__.py
 prody/KDTree/KDTree.c

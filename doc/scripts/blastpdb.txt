@@ -1,17 +1,16 @@
-Usage: ../../scripts/blastpdb.py [options] <sequence.fasta>  
-
+Usage: ../scripts/blastpdb.py [options] SEQUENCE
+    
 ProDy v0.6 - Blast PDB
+
+SEQUENCE can be a sequence string or a file in fasta format.  
+
 
 Options:
   -h, --help            show this help message and exit
-  -b INT, --biomol=INT  selection string, default is "none"
+  --silent              omit verbose information, default is False
   -f PATH, --folder=PATH
                         if given, download PDB files to the folder
   -i FLOAT, --identity=FLOAT
                         percent sequence identity, default is 90.0%
   -c FLOAT, --coverage=FLOAT
                         percent coverage, default is 90.0%
-  --silent              omit verbose information, default is False
-
-Error: <sequence.fasta> missing
-

@@ -16,18 +16,18 @@ Contents
 
    getprody 
    tutorial
-   features
    examples/index
-   scripts/index
    reference/index
-   reports/index
-   glossary
-   changes
-   todo
-   license
-   credits
+   scripts/index
+   features
    publications
+   reports/index
+   credits
    bibliography
+   changes
+   license
+   glossary
+   todo
 
 Indices and tables
 ==================

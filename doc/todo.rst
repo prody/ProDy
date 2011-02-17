@@ -13,14 +13,10 @@ Minor Changes
 * Build Hessian and Kirchhoff as lower triangular matrices.
   For ANM, this saves 0.3s in a 1.5s calculation.
 
-* parsePDB can parse selected chain or selected altloc.
 
 Major Changes
 ===============================================================================
 
-* ANM/GNM
-  - Enable using masses
- 
 * Multithreading
   - Ensemble superimposition
   - PCA calculate covariance
@@ -35,3 +31,4 @@ Done
 
 * Implement NMA sampling methods
 
+* parsePDB can parse selected chain or selected altloc.
