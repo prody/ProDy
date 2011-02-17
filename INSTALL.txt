@@ -28,7 +28,7 @@ Download a suitable ProDy installation file from here
 
 For details of ProDy releases see :ref:`changes` and :ref:`pypi-statistics`.
 
-Windows installers are compiled using `MinGW <http://www.mingw.org/>`_.
+Windows installers are built using `MinGW <http://www.mingw.org/>`_.
 
 
 Required Software
@@ -47,7 +47,7 @@ following:
 Linux
 -------------------------------------------------------------------------------
 
-Download :file:`ProDy-0.x.y.tar.gz`. Extract tarball contents and run 
+Download :file:`ProDy-0.{x}.{y}.tar.gz`. Extract tarball contents and run 
 :file:`setup.py` as follows::
 
     tar -xzf ProDy-0.x.y.tar.gz
@@ -57,18 +57,18 @@ Download :file:`ProDy-0.x.y.tar.gz`. Extract tarball contents and run
 
 You may need root access for the last step.
   
-If you don't have root access, you can edit ``PYTHONPATH`` system variable to 
-specify the path to this package:
+If you don't have root access, you can edit :envvar:`PYTHONPATH` system 
+variable to specify the path to this package:
   
-#. Move :file:`prody` directory to a folder like 
-   :file:`/home/username/mypackages/`
-#. Add a line to your :file:`.bashrc` (or alike) script as follows
+#. Move :file:`prody` directory from :file:`build/lib.linux-x86_{bb}-2.{z}` (or 
+   similar) to a folder like :file:`/home/username/mypackages/`
+#. Add a line to your :file:`.bashrc` (or similar) script as follows
    ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
 
 Windows
 -------------------------------------------------------------------------------
 
-Download :file:`ProDy-0.x.y.win32-py2.z.exe` and run to install ProDy.
+Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
 
 Recommended Software
@@ -92,12 +92,15 @@ Included in ProDy Package
 ===============================================================================
 The following software is included in the ProDy installation packages:
 
-* `Pyparsing <http://pyparsing.wikispaces.com/>`_ (v1.5.5) is used to define 
-  the atom selection grammar.
+* `Pyparsing 1.5.5 <http://pyparsing.wikispaces.com/>`_ 
 
-* `Biopython <http://biopython.org/>`_ KDTree, pairwise2, and Blast modules
-  (from v1.56) are used for distance based selection, sequence alignment, and 
-  searching PDB, respectively. 
+  Pyparsing is used to define the atom selection grammar.
+
+* `Biopython 1.56 <http://biopython.org/>`_ - Blast and KDTree packages,
+  and pairwise2 module
+   
+  Blast, KDTree, and pairwise2 components are used for blast searching PDB, 
+  distance based selection, and pairwise sequence alignment, respectively. 
 
 
 Source Code

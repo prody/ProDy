@@ -15,27 +15,46 @@ Release 0.6 (in development)
     force constants based on atom type, residue type, or property. An
     example derived classes are :class:`~dynamics.GammaStructureBased` and 
     :class:`~dynamics.GammaVariableCutoff`.
+  * :func:`~dynamics.calcTempFactors` function is implemented to 
+    calculate theoretical temperature factors.
+  * 5 new :ref:`scripts` are implemented, and existing scripts are improved to
+    output figures.
+  * :meth:`~dynamics.NMABase.getModel` method is implemented to 
+    make function development easier.
 
 **Improvements**:
 
   * :meth:`~dynamics.ANM.buildHessian` and :meth:`~dynamics.GNM.buildKirchhoff`
     classes are improved to accept :class:`~dynamics.Gamma` instances
     or other custom function as *gamma* argument. See also :ref:`gamma`.
-  * Performance of :class:`~select.Select` is optimized (Thanks to
-    Paul McGuire for advising several improvements).
+  * :class:`~select.Select` class is changed to treat single word keywords
+    differently, e.g. :term:`backbone` or :term:`protein`. 
+    They are interpreted 10 times faster and in use achieve much higher 
+    speed-ups when compared to composite selections. For example, using the 
+    keyword :term:`calpha` instead of the ``name CA and protein``,
+    which returns the same selection, works >20 times faster. 
+  * Optimizations in :class:`~select.Select` class to increase 
+    performance (Thanks to Paul McGuire for providing several Pythonic tips
+    and Pyparsing specific advice).
   * :func:`~proteins.applyBiomolecularTransformations` function is improved
     to handle large biomolecular assemblies.
   * Performance optimizations in :func:`~proteins.parsePDB` and other 
     functions.
+  * :class:`~ensemble.Ensemble` class accepts :class:`atomic.Atomic` 
+    instances and automatically adds coordinate sets to the ensemble. 
   
 **Changes**:
  
   * :class:`PDBlastRecord` is renamed as :class:`~proteins.PDBBlastRecord`. 
+  * :class:`~dynamics.NMABase` instances can be index using a list or tuple of 
+    integers, e.g. ``anm[1,3,5]``.
 
 **Bugfixes**:
     
   * A bug in :func:`~proteins.assignSecondaryStructure` function is fixed.
   * Bugfixes in :ref:`scripts-anm` and :ref:`scripts-gnm`.
+  * Bugfixes in :func:`~dynamics.showSqFlucts` and 
+    :func:`~dynamics.showProjection` functions.
 
 Release 0.5.3 (Feb 11, 2011)
 ===============================================================================

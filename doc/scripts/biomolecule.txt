@@ -1,14 +1,10 @@
-Usage: ../../scripts/biomolecule.py [options] <pdb>  
+Usage: ../scripts/biomolecule.py [options] PDB  
 
 ProDy v0.6 - Generate Biomolecule Coordinates
 
 Options:
   -h, --help            show this help message and exit
-  -p STRING, --prefix=STRING
-                        prefix for output files, default is pdb_biomol_
-  -b INT, --biomol=INT  selection string, default is "none"
   --silent              omit verbose information, default is False
-  -e, --examples        show usage examples
-
-Error: <pdb> missing
-
+  -p STRING, --prefix=STRING
+                        prefix for output files, default is PDB_biomol_
+  -b INT, --biomol=INT  index of the biomolecule, default is "none"

@@ -13,20 +13,22 @@ This examples demonstrates how to use Protein Data Bank blast search function,
 :func:`blastPDB`. 
 
 :func:`blastPDB` is a utility function which can be used to check if 
-structures matching a sequence exists in PDB or to access a set of related 
+structures matching a sequence exists in PDB or to identify a set of related 
 structures for ensemble analysis (i.e. ref:`pca`). 
 
 Input
 -------------------------------------------------------------------------------
 
 Amino acid sequence of a protein, e.g. 
-``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPIS...
-YDIVKMKKSNISPNFNFMGQLLDFERTL``
+``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLF...YDIVKMKKSNISPNFNFMGQLLDFERTL``
+
+The :func:`blastPDB` function accepts sequence as a Python :class:`str`
+or Biopython :class:`Bio.SeqRecord.SeqRecord` or :class:`Bio.Seq.Seq` objects. 
 
 Output
 -------------------------------------------------------------------------------
  
-Output is an :class:`PDBlastRecord` instance that stores PDB hits and returns
+Output is an :class:`PDBBlastRecord` instance that stores PDB hits and returns
 to the user those sharing sequence identity above a user specified value. 
 
 ProDy Code
@@ -47,13 +49,13 @@ Let's search for structures similar to that of MKP-3, using its sequence
 ... DHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDA
 ... YDIVKMKKSNISPNFNFMGQLLDFERTL''')
 
-:func:`blastPDB` function returns a :class:`PDBlastRecord`. Let's retrieve 
+:func:`blastPDB` function returns a :class:`PDBBlastRecord`. Let's retrieve 
 hits from this record:
 
 Best match
 -------------------------------------------------------------------------------
 
-To get the best match, :meth:`PDBlastRecord.getBest` method can be used:
+To get the best match, :meth:`PDBBlastRecord.getBest` method can be used:
 
 >>> best = blast_record.getBest()
 >>> print best # doctest: +SKIP
