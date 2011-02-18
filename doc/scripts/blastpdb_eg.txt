@@ -1,0 +1,10 @@
+Usage Examples:
+
+Blast search PDB for the first sequence in a fasta file:
+    
+  $ blastpdb.py seq.fasta -i 70
+
+Blast search PDB for the sequence argument:
+
+  $ blastpdb.py MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
+

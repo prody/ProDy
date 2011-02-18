@@ -958,7 +958,7 @@ class ModeSet(object):
     
     """
     
-    __slots__ = ['_model', '_indices', '_slice']
+    __slots__ = ['_model', '_indices']
     
     def __init__(self, model, indices):
         if not isinstance(model, NMABase):
@@ -979,7 +979,8 @@ class ModeSet(object):
                                                        str(self._model))
 
     def __str__(self):
-        return '{0:s} modes from {1:s}'.format(self._slice, str(self._model))
+        return '{0:d} modes from {1:s}'.format(len(self._indices), 
+                                               str(self._model))
     
     def is3d(self):
         """Return True if mode instance is from a 3-dimensional model.

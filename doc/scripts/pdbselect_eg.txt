@@ -1,0 +1,6 @@
+Usage Examples:
+
+Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
+        
+  $ pdbselect.py 2bfu "chain A and calpha"
+

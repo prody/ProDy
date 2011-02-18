@@ -1,0 +1,6 @@
+Usage Examples:
+
+Fetch PDB files for given identifiers:
+    
+  $ fetchpdb.py 1mkp 1p38
+

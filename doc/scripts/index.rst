@@ -41,14 +41,22 @@ The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|).
 :file:`anm.py`
 ===============================================================================
 
-This script is used to perform ANM calculations and output the 
-eigenvalues/eigenvectors in plain text and NMD formats, i.e. running 
-:command:`anm.py 1p38` will perform calculations for PDB structure 1p38. 
-The resulting NMD files can be visualized using NMWiz.
+Perform ANM calculations and output the results in plain text, NMD, and 
+graphical formats.
+
+Usage:
+-------------------------------------------------------------------------------
 
 Running :command:`anm.py -h` displays:
 
 .. literalinclude:: anm.txt
+
+Examples:
+-------------------------------------------------------------------------------
+
+Running :command:`anm.py --examples` displays:
+
+.. literalinclude:: anm_eg.txt
 
 
 .. _scripts-gnm:
@@ -56,26 +64,45 @@ Running :command:`anm.py -h` displays:
 :file:`gnm.py`
 ===============================================================================
 
-This script is used to perform GNM calculations and output the 
-eigenvalues/eigenvectors in plain text format, i.e. running 
-:command:`gnm.py 1p38` will perform calculations for PDB structure 1p38. 
+Perform GNM calculations and output the results in plain text and graphical 
+formats. 
  
+ 
+Usage:
+-------------------------------------------------------------------------------
+
 Running :command:`gnm.py -h` displays:
 
 .. literalinclude:: gnm.txt
+
+Examples:
+-------------------------------------------------------------------------------
+
+Running :command:`gnm.py --examples` displays:
+
+.. literalinclude:: gnm_eg.txt
+
 
 
 :file:`pca.py`
 ===============================================================================
 
-This script is used to perform PCA calculations and output the 
-eigenvalues/eigenvectors in plain text and NMD formats, i.e. running 
-``pca.py 2k39`` will perform calculations for NMR models in structure 
-2k39. The resulting NMD files can be visualized using NMWiz.
+Perform PCA calculations and output the results in plain text, NMD formats,
+and graphical formats.
+
+Usage:
+-------------------------------------------------------------------------------
 
 Running :command:`pca.py -h` displays:
 
 .. literalinclude:: pca.txt
+
+Examples:
+-------------------------------------------------------------------------------
+
+Running :command:`pca.py --examples` displays:
+
+.. literalinclude:: pca_eg.txt
 
 
 .. _scripts-alignmodels:
@@ -83,11 +110,21 @@ Running :command:`pca.py -h` displays:
 :file:`alignmodels.py`
 ===============================================================================
 
-This script can be used to align models in a PDB file.
+Align models in a PDB file.
+
+Usage:
+-------------------------------------------------------------------------------
 
 Running :command:`alignmodels.py -h` displays:
 
 .. literalinclude:: alignmodels.txt
+
+Examples:
+-------------------------------------------------------------------------------
+
+Running :command:`alignmodels.py --examples` displays:
+
+.. literalinclude:: alignmodels_eg.txt
 
 
 .. _scripts-biomolecule:
@@ -95,47 +132,83 @@ Running :command:`alignmodels.py -h` displays:
 :file:`biomolecule.py`
 ===============================================================================
  
-This script can be used to generate biomolecule structure using
-the transformation in header section of the PDB file.
+Generate biomolecule structure using the transformation from the header 
+section of the PDB file.
+ 
+Usage:
+-------------------------------------------------------------------------------
  
 Running :command:`biomolecule.py -h` displays:
 
 .. literalinclude:: biomolecule.txt
 
+Examples:
+-------------------------------------------------------------------------------
+ 
+Running :command:`biomolecule.py --examples` displays:
+
+.. literalinclude:: biomolecule_eg.txt
 
 .. _scripts-blastpdb:
 
 :file:`blastpdb.py`
 ===============================================================================
 
-This script can be used to download PDB files matching a user given sequence.
+Search Protein Data Bank for structures matching a user given sequence.
+
+
+Usage:
+-------------------------------------------------------------------------------
 
 Running :command:`blastpdb.py -h` displays:
 
 .. literalinclude:: blastpdb.txt
 
+Examples:
+-------------------------------------------------------------------------------
+
+Running :command:`blastpdb.py --examples` displays:
+
+.. literalinclude:: blastpdb_eg.txt
 
 .. _scripts-fetchpdb:
 
 :file:`fetchpdb.py`
 ===============================================================================
 
-This script can be used to download PDB for given identifiers.
+Download PDB for given identifiers.
  
+Usage:
+-------------------------------------------------------------------------------
+
 Running :command:`fetchpdb.py -h` displays:
 
 .. literalinclude:: fetchpdb.txt
 
+Examples:
+-------------------------------------------------------------------------------
+
+Running :command:`fetchpdb.py --examples` displays:
+
+.. literalinclude:: fetchpdb_eg.txt
 
 .. _scripts-pdbselect:
 
 :file:`pdbselect.py`
 ===============================================================================
 
-This script is used to extract a selection of atoms from a PDB file, i.e. 
-running :command:`pdbselect.py 1p38 "protein and name CA"`
-will write Cα atoms in :file:`1p38_selected.pdb` file.
+Extract a selection of atoms from a PDB file.
+ 
+Usage:
+-------------------------------------------------------------------------------
  
 Running :command:`pdbselect.py -h` displays:
 
 .. literalinclude:: pdbselect.txt
+
+Examples:
+-------------------------------------------------------------------------------
+ 
+Running :command:`pdbselect.py --examples` displays:
+
+.. literalinclude:: pdbselect_eg.txt

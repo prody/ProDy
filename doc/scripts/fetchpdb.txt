@@ -7,7 +7,7 @@ Download PDB files specified by their identifiers.
 
 Options:
   -h, --help            show this help message and exit
-  --silent              omit verbose information, default is False
-  -f PATH, --folder=PATH
-                        target folder for saving downloaded PDB files
-  -l FILE, --list=FILE  file that contains PDB identifiers
+  --examples            show usage examples and exit
+  --quiet               don't print status messages to stdout
+  -d PATH, --dir=PATH   target directory saving downloaded PDB files
+  -f FILE, --file=FILE  file that contains PDB identifiers

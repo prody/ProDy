@@ -1,0 +1,13 @@
+Usage Examples:
+
+Fetch PDB 1p38, run ANM calculations using default parameters, and write 
+NMD file:
+    
+  $ anm.py 1p38
+    
+Fetch PDB 1aar, run ANM calculations using default parameters for chain A 
+carbon alpha atoms with residue numbers less than 70, and save all of the
+graphical output files:
+
+  $ anm.py 1aar -s "calpha and chain A and resnum < 70" -A
+
