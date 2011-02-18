@@ -44,6 +44,9 @@ DEFAULT_NUMBER_FORMAT = '%12g'
 DEFAULT_DELIMITER = ' '
 
 def addOptions(parser):
+    parser.add_option('', '--examples', dest='examples', action='store_true', 
+                      default=False, 
+                      help='show usage examples and exit')
     parser.add_option('', '--quiet', dest='silent', action='store_true', 
                       default=False, 
                       help='don\'t print status messages to stdout')
@@ -177,14 +180,15 @@ Fetch PDB 1aar, run ANM calculations using default parameters for chain A
 carbon alpha atoms with residue numbers less than 70, and save all of the
 graphical output files:
 
-  $ anm.py 1aar -s "calpha and chain A and resnum < 70" -f
+  $ anm.py 1aar -s "calpha and chain A and resnum < 70" -A
 """
     
     opt, args = parser.parse_args()
-
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
     if len(args) < 1:
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: PDB missing\n"
         sys.exit(-1)
     if opt.silent:
@@ -193,13 +197,17 @@ graphical output files:
     pdb = args[0]
     prefix = opt.prefix
     cutoff, gamma = opt.cutoff, opt.gamma, 
-    nmodes, select, model = opt.nmodes, opt.select, opt.model
+    nmodes, selstr, model = opt.nmodes, opt.select, opt.model
     
     pdb = parsePDB(pdb, model=model)
     if prefix == '_anm':
         prefix = pdb.getName() + '_anm'
 
-    select = pdb.select(select)
+    select = pdb.select(selstr)
+    if select is None:
+        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                       .format(selstr))
+        sys.exit(-1)
     LOGGER.info('{0:d} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
@@ -353,13 +361,14 @@ Fetch PDB 1aar, run GNM calculations with cutoff distance 7 angstrom for
 chain A carbon alpha atoms with residue numbers less than 70, and 
 save all of the graphical output files:
 
-  $ gnm.py 1aar -c 7 -s "calpha and chain A and resnum < 70" -f
+  $ gnm.py 1aar -c 7 -s "calpha and chain A and resnum < 70" -A
 """
     opt, args = parser.parse_args()
-    
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
     if len(args) < 1:
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: PDB missing\n"
         sys.exit(-1)
     if opt.silent:
@@ -369,13 +378,17 @@ save all of the graphical output files:
     prefix = opt.prefix
 
     cutoff, gamma = opt.cutoff, opt.gamma, 
-    nmodes, select, model = opt.nmodes, opt.select, opt.model
+    nmodes, selstr, model = opt.nmodes, opt.select, opt.model
     
     pdb = parsePDB(pdb, model=model)
     if prefix == '_gnm':
         prefix = pdb.getName() + '_gnm'
 
-    select = pdb.select(select)
+    select = pdb.select(selstr)
+    if select is None:
+        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                       .format(selstr))
+        sys.exit(-1)
     LOGGER.info('{0:d} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
@@ -513,7 +526,7 @@ server will be downloaded.""".format(prody.__version__)
                      default='', metavar='STRING',
                      help=('save projections onto specified subspaces, e.g. '
                            '"1,2" for projections onto PCs 1 and 2; '
-                           '"1,2 1,3" for projections onto PCs 1,2 and 1, 3;'
+                           '"1,2 1,3" for projections onto PCs 1,2 and 1, 3; '
                            '"1 1,2,3" for projections onto PCs 1 and 1, 2, 3'))
     parser.add_option_group(group)
     
@@ -529,13 +542,15 @@ Fetch pdb 2k39, perform PCA calculations, and output NMD file:
 Fetch pdb 2k39 and perform calculations for backbone of residues up to 71,
 and save all output and figure files:
 
-    $ pca.py 2k39 --select "backbone and resnum < 71" -a -f
+    $ pca.py 2k39 --select "backbone and resnum < 71" -a -A
 """
     
     opt, args = parser.parse_args()
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
     if len(args) != 1:
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: PDB missing\n"
         sys.exit(-1)
     if opt.silent:
@@ -543,12 +558,16 @@ and save all output and figure files:
         
     pdb = args[0]
     prefix = opt.prefix
-    nmodes, select = opt.nmodes, opt.select
+    nmodes, selstr = opt.nmodes, opt.select
     
     pdb = parsePDB(pdb)
     if prefix == '_pca':
         prefix = pdb.getName() + '_pca'
-    select = pdb.select(select)
+    select = pdb.select(selstr)
+    if select is None:
+        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                       .format(selstr))
+        sys.exit(-1)
     LOGGER.info('{0:d} atoms will be used for PCA calculations.'
                 .format(len(select)))
     ensemble = Ensemble(select)
@@ -662,19 +681,27 @@ than 71:
 """
         
     opt, args = parser.parse_args()
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
     if len(args) != 1:
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: PDB missing\n"
         sys.exit(-1)
     if opt.silent:
         changeVerbosity('warning')
         
     pdb = args[0]
-    select, prefix, model = opt.select, opt.prefix, opt.model
+    selstr, prefix, model = opt.select, opt.prefix, opt.model
     pdb = parsePDB(pdb)
     if prefix == '':
         prefix = pdb.getName() + '_aligned'
+    pdbselect = pdb.select(selstr)
+    if pdbselect is None:
+        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                       .format(selstr))
+        sys.exit(-1)
+
     pdb.setActiveCoordsetIndex(model-1)
     alignCoordsets(pdb, selstr=select)
     prody.ProDyLogger.info('{0:d} atoms will be used for alignment.'
@@ -710,7 +737,7 @@ Fetch pdb 2bfu and generate the biomolecular assembly:
     opt, args = parser.parse_args()
     
     if opt.examples:
-        print usage_examples
+        print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
     if len(args) != 1:
         parser.print_help()
@@ -767,25 +794,31 @@ SEQUENCE can be a sequence string or a file in fasta format.
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
-    parser.add_option('-f', '--folder', dest='folder', type='string',
+    parser.add_option('-c', '--coverage', dest='coverage', type='float', 
+                      default=90.0, metavar='FLOAT', 
+                      help='percent coverage, default is %default%')
+    parser.add_option('-d', '--dir', dest='folder', type='string',
                       default='', metavar='PATH', 
                       help=('if given, download PDB files to the folder'))
     parser.add_option('-i', '--identity', dest='identity', type='float', 
                       default=90.0, metavar='FLOAT', 
                       help='percent sequence identity, default is %default%')
-    parser.add_option('-c', '--coverage', dest='coverage', type='float', 
-                      default=90.0, metavar='FLOAT', 
-                      help='percent coverage, default is %default%')
     usage_examples="""
-Fetch PDB files for given identifiers:
+Blast search PDB for the first sequence in a fasta file:
     
+  $ blastpdb.py seq.fasta -i 70
+
+Blast search PDB for the sequence argument:
+
   $ blastpdb.py MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
 """
         
     opt, args = parser.parse_args()
-    if len(args) != 1:
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
+    if len(args) < 1:
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: SEQUENCE missing\n"
         sys.exit(-1)
     if opt.silent:
@@ -843,10 +876,10 @@ Download PDB files specified by their identifiers.
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
-    parser.add_option('-f', '--folder', dest='folder', type='string',
+    parser.add_option('-d', '--dir', dest='folder', type='string',
                       default='.', metavar='PATH', 
-                      help=('target folder for saving downloaded PDB files'))
-    parser.add_option('-l', '--list', dest="listfn", type='string', 
+                      help=('target directory saving downloaded PDB files'))
+    parser.add_option('-f', '--file', dest="listfn", type='string', 
                       default='', metavar='FILE', 
                       help='file that contains PDB identifiers')
     usage_examples="""
@@ -856,9 +889,11 @@ Fetch PDB files for given identifiers:
 """
     
     opt, args = parser.parse_args()
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
     if len(args) == 0 and opt.listfn == '':
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: PDB missing\n"
         sys.exit(-1)    
     if opt.silent:
@@ -900,10 +935,11 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
 """
     
     opt, args = parser.parse_args()
-    
+    if opt.examples:
+        print 'Usage Examples:\n', usage_examples
+        sys.exit(-1)
     if len(args) != 2:
         parser.print_help()
-        print '\nUsage Examples:\n', usage_examples
         print "\nError: PDB or SELECTION missing\n"
         sys.exit(-1)
     if opt.silent:
@@ -915,6 +951,10 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
     if prefix == '':
         prefix = pdb.getName() + '_selected'
     pdbselect = pdb.select(args[1])
+    if pdbselect is None:
+        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                       .format(args[1]))
+        sys.exit(-1)
     LOGGER.info('Writing ' + prefix + '.pdb')
     writePDB(prefix + '.pdb', pdbselect)
     

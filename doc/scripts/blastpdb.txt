@@ -7,10 +7,10 @@ SEQUENCE can be a sequence string or a file in fasta format.
 
 Options:
   -h, --help            show this help message and exit
-  --silent              omit verbose information, default is False
-  -f PATH, --folder=PATH
-                        if given, download PDB files to the folder
-  -i FLOAT, --identity=FLOAT
-                        percent sequence identity, default is 90.0%
+  --examples            show usage examples and exit
+  --quiet               don't print status messages to stdout
   -c FLOAT, --coverage=FLOAT
                         percent coverage, default is 90.0%
+  -d PATH, --dir=PATH   if given, download PDB files to the folder
+  -i FLOAT, --identity=FLOAT
+                        percent sequence identity, default is 90.0%
