@@ -701,11 +701,10 @@ than 71:
         LOGGER.warning('Selection "{0:s}" do not match any atoms.'
                        .format(selstr))
         sys.exit(-1)
-
-    pdb.setActiveCoordsetIndex(model-1)
-    alignCoordsets(pdb, selstr=select)
     prody.ProDyLogger.info('{0:d} atoms will be used for alignment.'
-                           .format(len(pdb.select(select))))
+                           .format(len(pdbselect)))
+    pdb.setActiveCoordsetIndex(model-1)
+    alignCoordsets(pdb, selstr=selstr)
     rmsd = calcRMSD(pdb)
     LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'
           .format(rmsd.max(), rmsd.mean()))
@@ -830,7 +829,7 @@ Blast search PDB for the sequence argument:
         seq = readFirstSequenceFasta(seqfn)
     if not seq.isalpha() or not seq.isupper():
         parser.print_help()
-        print "\nError: {0:s} is not a valid sequence\n".format(seq)
+        print "\nError: {0:s} is not a valid sequence or a file\n".format(seq)
         sys.exit(-1)
         
     
@@ -931,7 +930,7 @@ Select atoms specified by SELECTION from PDB and write them in a file.
     usage_examples="""
 Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
         
-  $ pdbselect.py 2bfu "chain A and calpha"
+  $ pdbselect.py 2bfu "backbone"
 """
     
     opt, args = parser.parse_args()
