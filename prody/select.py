@@ -386,8 +386,10 @@ def _buildKeywordMap():
     KEYWORD_MAP = {
         #'keyword' : (residue_names, atom_names, invert, atom_names_not),
         'calpha'  : (PROTEIN_RESIDUE_NAMES, set(('CA')), False, False),
+        'ca'  : (PROTEIN_RESIDUE_NAMES, set(('CA')), False, False),
         'protein'  : (PROTEIN_RESIDUE_NAMES, None, False, False),
         'backbone' : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
+        'bb' : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
         'acidic'   : (ACIDIC_RESIDUE_NAMES, None, False, False),
         'basic'    : (BASIC_RESIDUE_NAMES, None, False, False),
         'charged'  : (CHARGED_RESIDUE_NAMES, None, False, False),
@@ -404,6 +406,7 @@ def _buildKeywordMap():
         'nucleic'  : (NUCLEIC_RESIDUE_NAMES, None, False, False),
         'hetero'   : (NON_HETERO_RESIDUE_NAMES, None, True, False), 
         'sidechain': (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
+        'sc': (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
     }
 _buildKeywordMap()
 
@@ -433,7 +436,8 @@ class Select(object):
                  'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 
                  'purine', 'pyrimidine'))
     KEYWORDS_BOOLEAN = set(('all', 'none', 'protein', 'nucleic', 'hetero', 
-                            'water', 'backbone', 'sidechain', 'calpha', 
+                            'water', 'backbone', 'bb', 'sidechain', 'sc',
+                            'calpha', 'ca',
                             'acidic', 'basic', 'polar', 'charged', 'neutral', 
                             'aliphatic', 'hydrophobic', 'aromatic', 'cyclic', 
                             'acyclic', 'noh', 'hydrogen', 'large', 'medium', 
@@ -1025,7 +1029,7 @@ class Select(object):
         else:        
             n_atoms = len(self._evalonly)
         
-        if keyword == 'calpha':
+        if keyword == 'ca' or keyword == 'calpha':
             return self._and([['name', 'CA', '&&&', 'protein']])
         elif keyword == 'noh':
             return self._not([['!!!', 'name', (['"', HYDROGEN_REGEX,'"r'])]])
