@@ -3756,7 +3756,8 @@ def showMode(mode, *args, **kwargs):
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode, not {0:s}'.format(type(modes)))
+        raise TypeError('mode must be a Mode instance, '
+                        'not {0:s}'.format(type(mode)))
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = plt.plot(a3d[:, 0], *args, label='x-component', **kwargs)
