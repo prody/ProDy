@@ -137,6 +137,7 @@ to the Matplotlib functions.
   * :func:`showSqFlucts`
   * :func:`showScaledSqFlucts`
   * :func:`showNormedSqFlucts`
+  * :func:`resetTicks`
     
 
 Examples
@@ -228,7 +229,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
            'showOverlap', 'showOverlapTable', 'showProjection', 
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
-           'showScaledSqFlucts', 'showNormedSqFlucts',
+           'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks'
            ]
 
 VMDPATH = '/usr/local/bin/vmd'
@@ -2347,12 +2348,15 @@ def viewNMDinVMD(filename):
     
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
             zeros=False):
-    """Return an ANM instance for given PDB identifier or atom data.
+    """Return an :class:`ANM` instance and atoms used for the calculations.
     
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
     
-    *pdb* can be :class:`~prody.atomic.Atomic` instance.  
+    *pdb* can be :class:`~prody.atomic.Atomic` instance.
+    
+    .. versionchanged:: 0.6
+       Returns also the :class:`~prody.atomic.Selection` instance.
     
     """
     
@@ -2369,17 +2373,21 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
         raise TypeError('pdb must be an atom container, not {0:s}'
                         .format(type(pdb)))
     anm = ANM(name)
-    anm.buildHessian(ag.select(selstr), cutoff, gamma)
+    sel = ag.select(selstr)
+    anm.buildHessian(sel, cutoff, gamma)
     anm.calcModes(n_modes)
-    return anm
+    return anm, sel 
 
 def calcGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
-    """Return an GNM instance for given PDB identifier or atom data.
+    """Return a :class:`GNM` instance and atoms used for the calculations.
     
     By default only alpha carbons are considered, but selection string
     helps selecting a subset of it.
     
     *pdb* can be :class:`~prody.atomic.Atomic` instance.  
+    
+    .. versionchanged:: 0.6
+       Returns also the :class:`~prody.atomic.Selection` instance.
     
     """
     if isinstance(pdb, str):
@@ -2395,9 +2403,10 @@ def calcGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
         raise TypeError('pdb must be an atom container, not {0:s}'
                         .format(type(pdb)))
     gnm = GNM(name)
-    gnm.buildKirchhoff(ag.select(selstr), cutoff, gamma)
+    sel = ag.select(selstr)
+    gnm.buildKirchhoff(sel, cutoff, gamma)
     gnm.calcModes(n_modes)
-    return gnm
+    return gnm, sel
 
 def calcProjection(ensemble, modes):
     """Return projection of conformational deviations onto given modes.
@@ -3998,4 +4007,35 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
     plt.ylabel('Cumulative overlap')
     plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
     return show
+    
+def resetTicks(x, y=None):
+    """Reset X (and Y) axis ticks using values in given *array*.
+    
+    Ticks in the current figure should not be fractional values for this 
+    function to work as expected. 
+    
+    """
+    
+    if x is not None:
+        try:    
+            xticks = plt.xticks()[0]
+            xlist = list(xticks.astype(np.int32))
+            if xlist[-1] > len(x):
+                xlist.pop()
+            if xlist:
+                xlist = list(x[xlist]) 
+                plt.xticks(xticks, xlist + [''] * (len(xticks) - len(xlist)))
+        except:
+            LOGGER.warning('xticks could not be reset.')
+    if y is not None:
+        try:    
+            yticks = plt.yticks()[0]
+            ylist = list(yticks.astype(np.int32))
+            if ylist[-1] > len(y):
+                ylist.pop()
+            if ylist:
+                ylist = list(y[ylist]) 
+                plt.yticks(yticks, ylist + [''] * (len(yticks) - len(ylist)))
+        except:
+            LOGGER.warning('xticks could not be reset.')
     

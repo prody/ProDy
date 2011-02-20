@@ -25,7 +25,8 @@ Keywords
 
 * :term:`all`, :term:`none`
 * :term:`protein`, :term:`nucleic`, :term:`water`, :term:`hetero`
-* :term:`calpha`, :term:`backbone`, :term:`sidechain`
+* :term:`calpha`, :term:`ca`, :term:`backbone`, :term:`bb`, 
+  :term:`sidechain`, :term:`sc` 
 * :term:`hydrogen`, :term:`noh`
 * :term:`acidic`, :term:`basic`, :term:`charged`, :term:`polar`
 * :term:`neutral`, :term:`aliphatic`, :term:`hydrophobic`
@@ -176,6 +177,10 @@ Keyword Definitions
         be changed using :func:`setBackboneAtomNames` 
         method.
 
+   bb
+        Same as :term:`backbone`.
+
+   
    basic
         Amino acid residues with basic sidechains. 
         Residue names include ASP and GLU.
@@ -184,9 +189,13 @@ Keyword Definitions
     
    beta
         Atomic temperature (B/beta) factors.
-    
+
    calpha
-        Cα atoms of :term:`protein` residues. Equivalent to ``name CA and protein``.
+        Cα atoms of :term:`protein` residues. Equivalent to 
+        ``name CA and protein``.
+    
+   ca
+        Same as :term:`calpha`.
     
    chain
         Protein/nucleotide/etc. chain identifier. "_" means atoms with 
@@ -302,11 +311,12 @@ Keyword Definitions
               (:, colon, works as it does in Python slicing operations)
             * ``"resnum 1:10:2"`` selects residues 1, 3, 5, 7, and 9
             
-            
-    
    sidechain
         Non-:term:`backbone` :term:`protein` atoms. Note that this
         definition includes backbone amide hydrogen.
+
+   sc
+        Same as :term:`sidechain`.
 
    segment
         Group of atoms with same segment identifiers (segids).
