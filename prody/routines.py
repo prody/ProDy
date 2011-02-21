@@ -128,7 +128,7 @@ downloaded.""".format(prody.__version__)
  
     parser = OptionParser(usage=usage)
     addOptions(parser)
-    
+
     group = OptionGroup(parser, 'Parameters')
     group.add_option('-c', '--cutoff', dest='cutoff', type='float', 
                      default=15.0, metavar='FLOAT', 
@@ -146,7 +146,7 @@ downloaded.""".format(prody.__version__)
     addOutput(group)
     group.add_option('-b', '--beta-factors', dest='beta', action='store_true', 
                      default=False, help='write B-factors')
-    group.add_option('-l', '--hessian', dest='hessian', action='store_true', 
+    group.add_option('-o', '--hessian', dest='hessian', action='store_true', 
                      default=False, help='write Hessian matrix')
     group.add_option('-k', '--kirchhoff', dest='kirchhoff', action='store_true', 
                      default=False, help='write Kirchhoff matrix')
@@ -219,17 +219,13 @@ graphical output files:
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
-    eigen, sqflucts, ccorr, covar = \
-        opt.eigen, opt.sqflucts, opt.ccorr, opt.covar
-    beta, hessian, kirchhoff = opt.beta, opt.hessian, opt.kirchhoff 
 
-    if outall or eigen:
+    if outall or opt.eigen:
         writeArray(prefix + '_evectors'+ext, anm.getArray(), 
             delimiter=delim, format=format)
         writeArray(prefix + '_evalues'+ext, anm.getEigenvalues(), 
             delimiter=delim, format=format)
-    
-    if outall or beta:
+    if outall or opt.beta:
         fout = open(prefix + '_beta.txt', 'w')
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
@@ -239,21 +235,23 @@ graphical output files:
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
-    if outall or covar:
+    if outall or opt.covar:
         writeArray(prefix + '_covariance'+ext, anm.getCovariance(), 
             delimiter=delim, format=format)
-    if outall or ccorr:
+    if outall or opt.ccorr:
         writeArray(prefix + '_cross-correlations'+ext, 
             calcCrossCorrelations(anm), delimiter=delim, format=format)
-    if outall or hessian:
+    if outall or opt.hessian:
         writeArray(prefix + '_hessian'+ext, anm.getHessian(), 
             delimiter=delim, format=format)
-    if outall or kirchhoff:
+    if outall or opt.kirchhoff:
         writeArray(prefix + '_kirchhoff'+ext, anm.getKirchhoff(), 
             delimiter=delim, format=format)
-    if outall or sqflucts:
+    if outall or opt.sqflucts:
         writeArray(prefix + '_sqflucts'+ext, calcSqFlucts(anm), 
             delimiter=delim, format=format)
+    #if outall or opt.npz:
+    #    saveModel(anm)
           
     figall, cc, sf, bf, cm = opt.figures, opt.cc, opt.sf, opt.bf, opt.cm
 
@@ -342,7 +340,7 @@ downloaded.""".format(prody.__version__)
     group.add_option('-K', '--contact-map', dest='cm', action='store_true', 
                      default=False, 
                      help='save contact map (Kirchhoff matrix)')    
-    group.add_option('-M', '--mode-figure', dest='modes', type='string', 
+    group.add_option('-M', '--mode-shape-figure', dest='modes', type='string', 
                      default='', metavar='STRING',
                      help=('save mode shape figures for specified modes, '
                            'e.g. "1-3 5" for modes 1, 2, 3 and 5'))
@@ -404,12 +402,7 @@ save all of the graphical output files:
     writeArray(prefix + '_evalues'+ext, gnm.getEigenvalues(), 
         delimiter=delim, format=format)
     
-    beta, sqflucts = opt.beta, opt.sqflucts
-    ccorr, covar = opt.ccorr, opt.covar
-    kirchhoff = opt.kirchhoff 
-
-    
-    if outall or beta:
+    if outall or opt.beta:
         fout = open(prefix + '_beta.txt', 'w')
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
@@ -419,19 +412,22 @@ save all of the graphical output files:
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
-    if outall or covar:
+    if outall or opt.covar:
         writeArray(prefix + '_covariance'+ext, gnm.getCovariance(), 
             delimiter=delim, format=format)
-    if outall or ccorr:
+    if outall or opt.ccorr:
         writeArray(prefix + '_cross-correlations'+ext, 
                    calcCrossCorrelations(gnm), 
                    delimiter=delim, format=format)
-    if outall or kirchhoff:
+    if outall or opt.kirchhoff:
         writeArray(prefix + '_kirchhoff'+ext, gnm.getKirchhoff(), 
             delimiter=delim, format=format)
-    if outall or sqflucts:
+    if outall or opt.sqflucts:
         writeArray(prefix + '_sqfluct'+ext, calcSqFlucts(gnm), 
             delimiter=delim, format=format)
+    #if outall or opt.npz:
+    #    saveModel(gnm)
+
           
     figall, cc, sf, bf, cm, modes = \
         opt.figures, opt.cc, opt.sf, opt.bf, opt.cm, opt.modes
@@ -473,17 +469,24 @@ save all of the graphical output files:
                 plt.title(pdb.getName() + ' B-factors')
                 plt.savefig(prefix + '_bf.'+format, dpi=dpi, format=format)
             if modes: 
-                modes = modes.split('-')
-                try:
-                    if len(modes) == 1:
-                        modes = gnm(int(modes[0])-1)
-                    else: 
-                        modes = gnm[int(modes[0])-1:int(modes[1])]
-                except:
-                    LOGGER.warning('An error occured, and mode shapes were'
-                                   'not plotted. See help: gnm.py -h')
-                else:
-                    for mode in modes:
+                indices = []
+                items = modes.split()
+                items = sum([item.split(',') for item in items], [])
+                for item in items:
+                    try:
+                        item = item.split('-')
+                        if len(item) == 1:
+                            indices.append(int(item[0])-1)
+                        elif len(item) == 2:
+                            indices.extend(range(int(item[0])-1, int(item[1])))
+                    except:
+                        pass
+                for index in indices:
+                    try:
+                        mode = gnm[index]
+                    except: 
+                        pass
+                    else:
                         plt.figure(figsize=(width, height))
                         showMode(mode)
                         plt.grid()
@@ -581,32 +584,30 @@ and save all output and figure files:
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
-    eigen, sqflucts, proj = opt.eigen, opt.sqflucts, opt.proj
-    ccorr, covar = opt.ccorr, opt.covar
-    
-    if outall or eigen:
+    if outall or opt.eigen:
         writeArray(prefix + '_evectors'+ext, pca.getArray(), 
             delimiter=delim, format=format)
         writeArray(prefix + '_evalues'+ext, pca.getEigenvalues(), 
             delimiter=delim, format=format)
-    
-    if outall or covar:
+    if outall or opt.covar:
         writeArray(prefix + '_covariance'+ext, pca.getCovariance(), 
             delimiter=delim, format=format)
-    if outall or ccorr:
+    if outall or opt.ccorr:
         writeArray(prefix + '_cross-correlations'+ext, 
                    calcCrossCorrelations(pca), 
                    delimiter=delim, format=format)
-    if outall or sqflucts:
+    if outall or opt.sqflucts:
         writeArray(prefix + '_sqfluct'+ext, calcSqFlucts(pca), 
             delimiter=delim, format=format)
-    if outall or proj:
+    if outall or opt.proj:
         writeArray(prefix + '_proj'+ext, calcProjection(ensemble, pca), 
                    delimiter=delim, format=format)
+    #if outall or opt.npz:
+    #    saveModel(gnm)
           
     figall, cc, sf, sp = opt.figures, opt.cc, opt.sf, opt.sp
 
-    if figall or cc or sf: 
+    if figall or cc or sf or sp: 
         format = format.lower()
         try:
             import matplotlib.pyplot as plt
@@ -629,21 +630,29 @@ and save all output and figure files:
                 plt.savefig(prefix + '_sf.'+format, dpi=dpi, format=format)
         
             if figall or sp:
-                subsps = sp.split()
-                for j, ss in enumerate(subsps):
+                indices = []
+                for item in sp.split():
                     try:
-                        ss = ss.split(',')
-                        modes = [int(i)-1 for i in ss]
+                        if '-' in item:
+                            item = item.split('-')
+                            if len(item) == 2:
+                                indices.append(range(int(item[0])-1, 
+                                               int(item[1])))
+                        elif ',' in item:
+                            indices.append([int(i)-1 for i in item.split(',')])
+                        else:
+                            indices.append(int(item)-1)
                     except:
-                        LOGGER.warning(ss + ' is not understood')
-                    else:
-                        if 1 <= len(modes) <= 3:
-                            plt.figure(figsize=(width, height))
-                            showProjection(ensemble, pca[modes])
-                            plt.savefig(prefix + '_proj_' + '_'.join(ss) + 
-                                '.' + format, dpi=dpi, format=format)
-                            plt.close('all')
-                    
+                        pass
+                for index in indices:
+                        plt.figure(figsize=(width, height))
+                        showProjection(ensemble, pca[index])
+                        if isinstance(index, int):
+                            index = [index]
+                        index = [str(i+1) for i in index]
+                        plt.savefig(prefix + '_proj_' + '_'.join(index) + 
+                            '.' + format, dpi=dpi, format=format)
+                        plt.close('all')                    
     
 def alignmodels():
     """Align models in a PDB file based on command line arguments."""
