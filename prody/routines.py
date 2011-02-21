@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan
+# Copyright (C) 2010-2011 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 """This module contains functions which are used as command line programs."""
 
 __author__ = 'Ahmet Bakan, Lidio Meireles'
-__copyright__ = 'Copyright (C) 2010  Ahmet Bakan, Lidio Meireles'
+__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan, Lidio Meireles'
 
 import sys
 import os.path
@@ -50,6 +50,9 @@ def addOptions(parser):
     parser.add_option('', '--quiet', dest='silent', action='store_true', 
                       default=False, 
                       help='don\'t print status messages to stdout')
+    parser.add_option('', '--version', dest='version', action='store_true', 
+                      default=False, 
+                      help='print ProDy version and exit')
 
 def addParameters(parser):
     parser.add_option('-n', '--number-of-modes', dest='nmodes', type='int', 
@@ -187,6 +190,9 @@ graphical output files:
 """
     
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print('Usage Examples:\n' + usage_examples)
         sys.exit(-1)
@@ -375,6 +381,9 @@ save all of the graphical output files:
   $ gnm.py 1aar -c 7 -s "calpha and chain A and resnum < 70" -A
 """
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -573,6 +582,9 @@ and save all output and figure files:
 """
     
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -721,6 +733,9 @@ than 71:
 """
         
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -774,7 +789,9 @@ Fetch pdb 2bfu and generate the biomolecular assembly:
 """
         
     opt, args = parser.parse_args()
-    
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -853,6 +870,9 @@ Blast search PDB for the sequence argument:
 """
         
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -928,6 +948,9 @@ Fetch PDB files for given identifiers:
 """
     
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -974,6 +997,9 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
 """
     
     opt, args = parser.parse_args()
+    if opt.version:
+        print("ProDy " + prody.__version__)
+        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
