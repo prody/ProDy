@@ -544,10 +544,11 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                     (siguij, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
                 icodes = np.concatenate(
                     (icodes, np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
-        elif startswith == 'END   ' or startswith == 'CONECT':
-            i += 1
-            break
-        elif startswith == 'ENDMDL':
+        #elif startswith == 'END   ' or startswith == 'CONECT':
+        #    i += 1
+        #    break
+        elif startswith == 'ENDMDL' or startswith == 'CONECT' or \
+             startswith[:3] == 'END':
             if model is not None:
                 i += 1
                 break
