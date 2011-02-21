@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan
+# Copyright (C) 2010-2011 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ Functions
 """
 
 __author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import numpy as np
 pairwise2 = None

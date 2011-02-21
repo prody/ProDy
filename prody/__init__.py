@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan
+# Copyright (C) 2010-2011 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,13 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 __author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010 Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 __version__ = '0.6'
 
 import logging
 import logging.handlers
 import os
 import os.path
+import cPickle
 
 re = None
 def importRE():
@@ -94,11 +95,31 @@ def importBioPairwise2():
             compare.pairwise2 = pairwise2
     else:
         compare.pairwise2 = pairwise2
-        
-_ProDySettings = {
-    'loglevel': 'debug',
-    'local_pdb_folder': None}
 
+_ProDySettings = None 
+
+def _loadProDySettings():
+    global _ProDySettings
+    fn = os.path.join(os.path.expanduser('~'), '.prody')
+    _ProDySettings = None
+    if isfile(fn):
+        inf = open(fn)
+        _ProDySettings = cPickle.load(inf)
+        inf.close()
+        if not isinstance(_ProDySettings, dict):
+            _ProDySettings = None
+    
+    if _ProDySettings is None:
+        _ProDySettings = {
+        'loglevel': 'debug',
+        'local_pdb_folder': None,
+        'vmd': ''}
+
+def _saveProDySettings():
+    fn = os.path.join(os.path.expanduser('~'), '.prody')
+    out = open(fn, 'w')
+    cPickle.dump(_ProDySettings, out)
+    out.close()
 
 def ProDyPrintSettings():
     print _ProDySettings

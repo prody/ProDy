@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan
+# Copyright (C) 2010-2011 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -175,7 +175,7 @@ illustrate class methods and functions in the module.
 """
 
 __author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import os.path
 import time
@@ -232,7 +232,6 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks'
            ]
 
-VMDPATH = '/usr/local/bin/vmd'
 ZERO = 1e-8
 
 class VectorBase(object):
@@ -2166,14 +2165,17 @@ def loadVector(filename):
 def getVMDpath():
     """Return path to the VMD executable."""
     
-    return VMDPATH
+    return prody._ProDySettings['vmd']
 
 def setVMDpath(path):
     """Set the path to VMD executable."""
-    if not path.startswith('vmd') and not os.path.isfile(path):
-        LOGGER.warning('{0:s} may not be a valid path for VMD executable.')
-    global VMDPATH 
-    VMDPATH = path
+    
+    if not os.path.isfile(path):
+        LOGGER.warning('{0:s} is not a file.')
+        return
+    prody._ProDySettings['vmd'] = path
+    
+    
 
 def parseNMD(filename):
     """Returns normal mode and atomic data parsed from an NMD file.
@@ -2184,6 +2186,7 @@ def parseNMD(filename):
     data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
     
     """
+    
     atomic = dict()
     modes = []
     nmd = open(filename)
@@ -2348,7 +2351,8 @@ def writeNMD(filename, modes, atoms):
 def viewNMDinVMD(filename):
     """Start VMD in the current Python session and load NMD data."""
     
-    os.system('{0:s} -e {1:s}'.format(VMDPATH, os.path.abspath(filename)))
+    os.system('{0:s} -e {1:s}'.format(prody._ProDySettings['vmd'], 
+                                      os.path.abspath(filename)))
     
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
             zeros=False):
