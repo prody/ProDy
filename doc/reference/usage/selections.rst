@@ -34,7 +34,7 @@ Keywords
 * :term:`small`, :term:`medium`, :term:`large`
 
 **Examples**:
-  * ``"noh protein"`` selects non-hydrogen protein atoms
+  * ``"noh and protein"`` selects non-hydrogen protein atoms
   * ``"charged and cyclic"`` selects histidine residues 
 
 .. note::
@@ -257,7 +257,11 @@ Keyword Definitions
     
    none
         None of the atoms in the molecule.
+
+   not
+        Negates a keyword or a composite selection.
     
+   
    nucleic
         Group of atoms whose residue names match one of GUA, ADE, CYT, THY, URA,
         DA, DC, DG, or DT.

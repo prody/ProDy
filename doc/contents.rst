@@ -18,6 +18,7 @@ Contents
    tutorial
    examples/index
    reference/index
+   plugins/index
    scripts/index
    features
    publications

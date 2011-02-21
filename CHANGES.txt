@@ -11,6 +11,8 @@ Release 0.6 (in development)
 
 **New Features**:
 
+  * :ref:`nmwiz` is distributed with ProDy source. If VMD is already installed,
+    ProDy installer trys to locate the VMD plug-ins folder and install NMWiz.
   * :class:`~dynamics.Gamma` class is implemented for facilitating use of  
     force constants based on atom type, residue type, or property. An
     example derived classes are :class:`~dynamics.GammaStructureBased` and 
@@ -61,6 +63,17 @@ Release 0.6 (in development)
   * Bugfixes in :ref:`scripts-anm` and :ref:`scripts-gnm`.
   * Bugfixes in :func:`~dynamics.showSqFlucts` and 
     :func:`~dynamics.showProjection` functions.
+    
+NMWiz
+-------------------------------------------------------------------------------
+
+  * NMWiz can be used as a graphical interface to ProDy. ANM or PCA 
+    calculations can be performed for molecules that are loaded in VMD.
+  * User can set default color for arrow graphics and paths to
+    ANM and PCA scripts.
+  * Optionally, NMWiz can preserve the current view in VMD display window when
+    loading a new dataset. Check the box in the NMWiz GUI main window.
+  * A bug that prevented selecting residues from plot window is fixed.
 
 Release 0.5.3 (Feb 11, 2011)
 ===============================================================================
@@ -207,6 +220,43 @@ Release 0.2 (Nov 16, 2010)
     in speeds up from 2 to 50 folds depending on number of atoms and selection
     operations.
   * Implementation of :func:`~dynamics.showProjection` is completed.
+  
+NMWiz
+-------------------------------------------------------------------------------
+
+**Release 0.2.3**
+
+  * For each mode a molecule for drawing arrows and a molecule for showing 
+    animation is formed in VMD on demand. NMWiz remembers a color associated 
+    with a mode.
+  * Deselecting a residue by clicking on a plot is possible.
+  * A bug causing incorrect parsing of NMD files from ANM server is fixed.
+
+
+**Release 0.2.2**
+
+  * Selection string option allows user to show a subset of arrows matching 
+    a VMD selection string. Optionally, this selection string may affect
+    protein and animation representations.
+  * A bug that caused problems when over plotting modes is removed.
+  * A bug affecting line width changes in plots is removed.
+  * Selected residue representations are colored according to the color of the
+    plot.
+
+**Release 0.2.1**
+
+  * Usability improvements.
+  * Loading the same data file more than once is prevented.
+  * If a GUI window for a dataset is closed, it can be reloaded from the main
+    window.
+  * A dataset and GUI can be deleted from the VMD session via the main window.
+
+**Release 0.2**
+
+  * Instant documentation is improved.
+  * Problem with clearing selections is fixed.
+  * Plotting options frame is populated.
+  * Multiple modes can be plotted on the same canvas.
 
 Release 0.1.2 (Nov 9, 2010)
 ===============================================================================
