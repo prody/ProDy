@@ -3,7 +3,7 @@
 .. _normalmode-operations:
 
 *******************************************************************************
-Normal Mode Operations
+Normal Mode Algebra 
 *******************************************************************************
 
 In this example we will compare modes from two ANMs for the same protein, 
@@ -32,8 +32,8 @@ Let's get started by getting ANM models for two related protein structures:
 
 **Get ANM models for each chain**
 
->>> anm_one = calcANM(ch_one)
->>> anm_two = calcANM(ch_two)
+>>> anm_one, ch_one = calcANM(ch_one)
+>>> anm_two, ch_two = calcANM(ch_two)
 
 >>> print anm_one[0]
 Mode 1 from ANM 1p38

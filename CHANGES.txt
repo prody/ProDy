@@ -21,6 +21,8 @@ Release 0.6 (in development)
     output figures.
   * :meth:`~dynamics.NMABase.getModel` method is implemented to 
     make function development easier.
+  * :func:`~dynamics.resetTicks` function is implemented to change X and/or Y
+    axis ticks in plots when there are discontinuities in the plotted data. 
 
 **Improvements**:
 
@@ -48,8 +50,10 @@ Release 0.6 (in development)
   * :class:`PDBlastRecord` is renamed as :class:`~proteins.PDBBlastRecord`. 
   * :class:`~dynamics.NMABase` instances can be index using a list or tuple of 
     integers, e.g. ``anm[1,3,5]``.
-  * :term:`ca`,:term:`bb`, and :term:`sc` keywords are defined as short-hands 
+  * :term:`ca`, :term:`bb`, and :term:`sc` keywords are defined as short-hands 
     for :term:`calpha`, :term:`backbone`, and :term:`sidechain`, respectively.
+  * Behavior of :func:`~dynamics.calcANM` and :func:`~dynamics.calcGNM` 
+    functions have changed. They return the atoms used for calculation as well.
 
 **Bugfixes**:
     

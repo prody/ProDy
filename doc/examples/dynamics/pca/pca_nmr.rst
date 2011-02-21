@@ -109,7 +109,7 @@ to the mean structure (note that indices start from 0 in Python).
 Then, we perform ANM calculations using :func:`calcANM` for the active coordset:
 
 >>> ubi.setActiveCoordsetIndex(78)
->>> anm = calcANM(ubi)
+>>> anm, temp = calcANM(ubi)
 >>> anm.setName('Ubiquitin')
 
 We calculate overlaps between ANM and PCA modes (presented in Table 1).

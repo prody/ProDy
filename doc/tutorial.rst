@@ -305,7 +305,8 @@ of a set of NMR models for ubiquitin (PDB ID: 2k39).
 Parse and align the coordinate data:
 
 >>> ubi = parsePDB('2k39', subset='calpha')
->>> ubi_ensemble = Ensemble(ubi.select('resnum < 71'))
+>>> ubi_selection = ubi.select('resnum < 71')
+>>> ubi_ensemble = Ensemble(ubi_selection)
 >>> ubi_ensemble.iterpose()
 
 Perform the PCA:
@@ -323,7 +324,7 @@ Print the fraction of variance for top raking 4 PCs:
 0.0647918823066
 0.058247703612
 
->>> writeNMD('ubi_pca.nmd', pca[:3], ubi)
+>>> writeNMD('ubi_pca.nmd', pca[:3], ubi_selection)
 'ubi_pca.nmd'
 
 This was a short example for an easy case. :ref:`pca` section
@@ -337,13 +338,12 @@ performed in two ways:
 
 The shorter way, which may be suitable for interactive sessions:
 
->>> anm = calcANM(ubi, selstr='calpha')
+>>> anm, atoms = calcANM(ubi_selection, selstr='calpha')
 
 The longer and more controlled way:
 
->>> calphas = ubi.select('calpha') # select alpha carbons
 >>> anm = ANM('ubi') # instantiate ANM object
->>> anm.buildHessian(calphas) # build Hessian matrix for selected atoms 
+>>> anm.buildHessian(ubi_selection) # build Hessian matrix for selected atoms 
 >>> anm.calcModes() # calculate normal modes
 
 :ref:`anm` provides a more detailed discussion of ANM calculations. 
@@ -367,7 +367,7 @@ Note that indices in Python start from zero (0).
 The :func:`~dynamics.writeNMD` function writes ANM results 
 in NMD format. NMD files can be viewed using the VMD plugin NMWiz. 
 
->>> writeNMD('p38_anm.nmd', anm[:6], calphas) 
+>>> writeNMD('p38_anm.nmd', anm[:6], ubi_selection) 
 'p38_anm.nmd'
 
 For more information on elastic network model calculations see
