@@ -1,7 +1,7 @@
 # NMWiz: Normal Mode Visualization, Animation, and Plotting
 # 
 # University of Illinois Open Source License
-# Copyright 2010 Ahmet Bakan
+# Copyright 2010-2011 Ahmet Bakan
 # All rights reserved.
 # 
 # Developed by:		
@@ -36,7 +36,7 @@
 # OTHER DEALINGS WITH THE SOFTWARE.
 
 package require exectool 1.2
-package provide nmwiz 0.2.3
+package provide nmwiz 0.6
 
 # 2-D plotting tool
 #
@@ -1586,7 +1586,7 @@ namespace eval ::nmwiz:: {
   
   variable license "NMWiz: Normal Mode Visualization, Animation, and Plotting 
 University of Illinois Open Source License
-Copyright 2010 Ahmet Bakan,
+Copyright 2010-2011 Ahmet Bakan,
 All rights reserved.
 
 Developed by:

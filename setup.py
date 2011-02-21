@@ -9,6 +9,8 @@ from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.install import install
 
+PY3K = sys.version_info[0] > 2
+
 readme = open('README.txt')
 long_description = ''.join(readme.readlines())
 readme.close()
@@ -60,9 +62,14 @@ if os.name != 'java' and sys.version_info[0] == 2:
 
 SCRIPTS = glob.glob('scripts/*py')
 
+# Start NMWiz installer
+
 def getVMDDIR():
     if sys.platform == 'win32': 
-        import _winreg
+        if PY3K:
+            import winreg as _winreg
+        else:
+            import _winreg
         for vmdversion in ('1.8.7',): 
             try:
                 key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
@@ -106,9 +113,9 @@ def installNMWiz(vmddir):
     nmwizdir = os.path.join(plugindir, nmwiz)
     if not os.path.isdir(nmwizdir):
         os.mkdir(nmwizdir)
-    print('Copying NMWiz files to ' + nmwizdir)
+    print('installing NMWiz into ' + plugindir)
     for fn in ('nmwiz.tcl', 'pkgIndex.tcl'):
-        print(os.path.join(nmwiz, fn) + ' -> ' + os.path.join(nmwizdir, fn))
+        print('copying ' + os.path.join(nmwiz, fn) + ' -> ' + os.path.join(nmwizdir, fn))
         shutil.copy(os.path.join(nmwiz, fn), os.path.join(nmwizdir, fn))
     loadplugins = os.path.join(vmddir, 'scripts', 'vmd', 'loadplugins.tcl') 
     tcl = open(loadplugins)
@@ -124,10 +131,29 @@ def installNMWiz(vmddir):
             newlines.append('  vmd_install_extension nmwiz   nmwiz_tk   "Analysis/Normal Mode Wizard"\n')
     tcl.close()
     if update:
+        print('updating ' + loadplugins)
         tcl = open(loadplugins, 'w')
         for line in newlines:        
             tcl.write(line)
         tcl.close()
+    else:
+        print('skipping update of ' + loadplugins)
+    
+def removeNMWiz(vmddir):
+    """Remove older versions of NMWiz from $VMDDIR/plugins/noarch/tcl folder."""
+    plugindir = os.path.join(vmddir, 'plugins', 'noarch', 'tcl')
+    nmwiz = 'nmwiz' + __version__[:3]
+    for nmwizdir in glob.glob(os.path.join(plugindir, 'nmwiz*')): 
+        if nmwiz in nmwizdir: 
+            continue
+        print('removing previous NMWiz release from ' + nmwizdir)
+        for nmwizfile in glob.glob(os.path.join(nmwizdir, '*')):
+            print('removing ' + nmwizfile) 
+            os.remove(nmwizfile)
+        print('removing ' + nmwizdir)
+        os.rmdir(nmwizdir)
+
+# End NMWiz installer
 
 def updateVMDpath(vmdpath):
     """Update VMD path in ProDy settings file (.prody)."""
@@ -159,12 +185,18 @@ class installProDy(install):
         """Try installing NMWiz and then continue normal installation."""
         vmddir = getVMDDIR()
         if vmddir is not None:
-            installNMWiz(vmddir)
-            updateVMDpath(os.path.join(vmddir, 'vmd.exe'))
+            try:
+                installNMWiz(vmddir)
+            except:
+                print('NMWiz could not be installed. User might not have '
+                      'rights to write in the VMD path {0:s}.'
+                      .format(vmddir))
+            else:
+                removeNMWiz(vmddir)
         else:
             print('NMWiz could not be installed, VMD could not be located.')
-
-        
+        if vmddir is not None:
+            updateVMDpath(os.path.join(vmddir, 'vmd.exe'))
         install.run(self)
 
 setup(
