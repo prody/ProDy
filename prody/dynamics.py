@@ -955,7 +955,7 @@ class ModeSet(object):
     
     >>> modes = p38_anm[:3]
     >>> modes
-    <ModeSet: 1 to 3 from 1p38 (3 modes)>
+    <ModeSet: 3 modes from ANM 1p38>
     
     """
     
@@ -976,7 +976,7 @@ class ModeSet(object):
             yield self._model.getMode(i)
     
     def __repr__(self):
-        return '<ModeSet: {0:d} modes from {1:s} >'.format(len(self),
+        return '<ModeSet: {0:d} modes from {1:s}>'.format(len(self),
                                                        str(self._model))
 
     def __str__(self):
@@ -1038,7 +1038,7 @@ class ModeSet(object):
         """Return name.
         
         >>> modes.getName()
-        'Modes 1 to 3 from ANM 1p38'
+        '3 modes from ANM 1p38'
         
         """
         
@@ -1246,6 +1246,7 @@ class GNM(GNMBase):
                                  '{0:s}'.format(np.float64))
                                  
         cutoff = float(cutoff)
+        assert cutoff > 0, 'cutoff distance must be greater than 0'
         self._cutoff = cutoff
         if isinstance(gamma, Gamma):
             self._gamma = gamma
@@ -1254,6 +1255,7 @@ class GNM(GNMBase):
             self._gamma = gamma
         else:
             g = float(gamma)
+            assert g > 0, 'force constant (gamma) must be greater than 0'
             self._gamma = g
             gamma = lambda dist2, i, j: g 
         n_atoms = coords.shape[0]
@@ -1452,6 +1454,7 @@ class ANM(GNMBase):
                                  '{0:s}'.format(np.float64))
         
         cutoff = float(cutoff)
+        assert cutoff > 0, 'cutoff distance must be greater than 0'
         self._cutoff = cutoff
         if isinstance(gamma, Gamma):
             self._gamma = gamma
@@ -1460,6 +1463,7 @@ class ANM(GNMBase):
             self._gamma = gamma
         else:
             g = float(gamma)
+            assert g > 0, 'force constant (gamma) must be greater than 0'
             self._gamma = g
             gamma = lambda dist2, i, j: g 
          
@@ -2458,7 +2462,7 @@ def calcOverlap(rows, cols):
                         .format(type(cols)))
     
     if rows.getNumOfDegOfFreedom() != cols.getNumOfDegOfFreedom(): 
-        raise ValueError('number of defrees of freedom of rows and '
+        raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
         
     return np.dot(rows.getArray().T, cols.getArray())

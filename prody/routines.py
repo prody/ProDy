@@ -63,6 +63,9 @@ def addParameters(parser):
 def addOutput(parser):
     parser.add_option('-a', '--all-output', dest='all', action='store_true', 
                       default=False, help='write all outputs')
+    parser.add_option('-o', '--output-dir', dest='outdir', type='string', 
+                      default='.', metavar='PATH', 
+                      help='output directory, default is "%default"')
     parser.add_option('-e', '--eigenvs', dest='eigen', action='store_true', 
                       default=False, help='write eigenvectors/values')
     parser.add_option('-r', '--cross-correlations', dest='ccorr', 
@@ -146,7 +149,7 @@ downloaded.""".format(prody.__version__)
     addOutput(group)
     group.add_option('-b', '--beta-factors', dest='beta', action='store_true', 
                      default=False, help='write B-factors')
-    group.add_option('-o', '--hessian', dest='hessian', action='store_true', 
+    group.add_option('-l', '--hessian', dest='hessian', action='store_true', 
                      default=False, help='write Hessian matrix')
     group.add_option('-k', '--kirchhoff', dest='kirchhoff', action='store_true', 
                      default=False, help='write Kirchhoff matrix')
@@ -185,15 +188,19 @@ graphical output files:
     
     opt, args = parser.parse_args()
     if opt.examples:
-        print 'Usage Examples:\n', usage_examples
+        print('Usage Examples:\n' + usage_examples)
         sys.exit(-1)
     if len(args) < 1:
         parser.print_help()
-        print "\nError: PDB missing\n"
+        print('\nError: PDB missing\n')
+        sys.exit(-1)
+    outdir = opt.outdir
+    if not os.path.isdir(outdir):
+        print('Error: {0:s} is not a valid path'.format(outdir))
         sys.exit(-1)
     if opt.silent:
         changeVerbosity('warning')
-                
+    
     pdb = args[0]
     prefix = opt.prefix
     cutoff, gamma = opt.cutoff, opt.gamma, 
@@ -215,18 +222,18 @@ graphical output files:
     anm.buildHessian(select, cutoff, gamma)
     anm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
-    writeNMD(prefix + '.nmd', anm, select)
+    writeNMD(os.path.join(outdir, prefix + '.nmd'), anm, select)
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
 
     if outall or opt.eigen:
-        writeArray(prefix + '_evectors'+ext, anm.getArray(), 
-            delimiter=delim, format=format)
-        writeArray(prefix + '_evalues'+ext, anm.getEigenvalues(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+            anm.getArray(), delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+            anm.getEigenvalues(), delimiter=delim, format=format)
     if outall or opt.beta:
-        fout = open(prefix + '_beta.txt', 'w')
+        fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChainIdentifiers(),
@@ -236,20 +243,20 @@ graphical output files:
                        .format(data))
         fout.close()
     if outall or opt.covar:
-        writeArray(prefix + '_covariance'+ext, anm.getCovariance(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+            anm.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
-        writeArray(prefix + '_cross-correlations'+ext, 
+        writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
             calcCrossCorrelations(anm), delimiter=delim, format=format)
     if outall or opt.hessian:
-        writeArray(prefix + '_hessian'+ext, anm.getHessian(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_hessian'+ext), 
+            anm.getHessian(), delimiter=delim, format=format)
     if outall or opt.kirchhoff:
-        writeArray(prefix + '_kirchhoff'+ext, anm.getKirchhoff(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
+            anm.getKirchhoff(), delimiter=delim, format=format)
     if outall or opt.sqflucts:
-        writeArray(prefix + '_sqflucts'+ext, calcSqFlucts(anm), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_sqflucts'+ext), 
+            calcSqFlucts(anm), delimiter=delim, format=format)
     #if outall or opt.npz:
     #    saveModel(anm)
           
@@ -269,17 +276,21 @@ graphical output files:
             if figall or cc:
                 plt.figure(figsize=(width, height))
                 showCrossCorrelations(anm)
-                plt.savefig(prefix + '_cc.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
+                    dpi=dpi, format=format)
                 plt.close('all')
             if figall or cm:
                 plt.figure(figsize=(width, height))
                 showContactMap(anm)
-                plt.savefig(prefix + '_cm.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_cm.'+format), 
+                    dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
                 showSqFlucts(anm)
-                plt.savefig(prefix + '_sf.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
+                    dpi=dpi, format=format)
+                plt.close('all')
             if figall or bf:
                 plt.figure(figsize=(width, height))
                 bexp = select.getTempFactors()
@@ -291,7 +302,9 @@ graphical output files:
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
                 plt.title(pdb.getName() + ' B-factors')
-                plt.savefig(prefix + '_bf.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_bf.'+format), 
+                    dpi=dpi, format=format)
+                plt.close('all')
 
 def gnm():
     """Perform GNM calculations based on command line arguments."""
@@ -369,6 +382,10 @@ save all of the graphical output files:
         parser.print_help()
         print "\nError: PDB missing\n"
         sys.exit(-1)
+    outdir = opt.outdir
+    if not os.path.isdir(outdir):
+        print('Error: {0:s} is not a valid path'.format(outdir))
+        sys.exit(-1)
     if opt.silent:
         changeVerbosity('warning')
         
@@ -397,13 +414,13 @@ save all of the graphical output files:
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     
-    writeArray(prefix + '_evectors'+ext, gnm.getArray(), 
+    writeArray(os.path.join(outdir, prefix + '_evectors'+ext), gnm.getArray(), 
         delimiter=delim, format=format)
-    writeArray(prefix + '_evalues'+ext, gnm.getEigenvalues(), 
-        delimiter=delim, format=format)
+    writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+        gnm.getEigenvalues(), delimiter=delim, format=format)
     
     if outall or opt.beta:
-        fout = open(prefix + '_beta.txt', 'w')
+        fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChainIdentifiers(),
@@ -413,18 +430,18 @@ save all of the graphical output files:
                        .format(data))
         fout.close()
     if outall or opt.covar:
-        writeArray(prefix + '_covariance'+ext, gnm.getCovariance(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+            gnm.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
-        writeArray(prefix + '_cross-correlations'+ext, 
+        writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
                    calcCrossCorrelations(gnm), 
                    delimiter=delim, format=format)
     if outall or opt.kirchhoff:
-        writeArray(prefix + '_kirchhoff'+ext, gnm.getKirchhoff(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
+            gnm.getKirchhoff(), delimiter=delim, format=format)
     if outall or opt.sqflucts:
-        writeArray(prefix + '_sqfluct'+ext, calcSqFlucts(gnm), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
+            calcSqFlucts(gnm), delimiter=delim, format=format)
     #if outall or opt.npz:
     #    saveModel(gnm)
 
@@ -445,17 +462,21 @@ save all of the graphical output files:
             if figall or cc:
                 plt.figure(figsize=(width, height))
                 showCrossCorrelations(gnm)
-                plt.savefig(prefix + '_cc.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
+                    dpi=dpi, format=format)
                 plt.close('all')
             if figall or cm:
                 plt.figure(figsize=(width, height))
                 showContactMap(gnm)
-                plt.savefig(prefix + '_cm.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_cm.'+format), 
+                    dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
                 showSqFlucts(gnm)
-                plt.savefig(prefix + '_sf.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
+                    dpi=dpi, format=format)
+                plt.close('all')
             if figall or bf:
                 plt.figure(figsize=(width, height))
                 bexp = select.getTempFactors()
@@ -467,7 +488,9 @@ save all of the graphical output files:
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
                 plt.title(pdb.getName() + ' B-factors')
-                plt.savefig(prefix + '_bf.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_bf.'+format), 
+                    dpi=dpi, format=format)
+                plt.close('all')
             if modes: 
                 indices = []
                 items = modes.split()
@@ -490,9 +513,10 @@ save all of the graphical output files:
                         plt.figure(figsize=(width, height))
                         showMode(mode)
                         plt.grid()
-                        plt.savefig(prefix + '_mode_'+str(mode.getIndex()+1)+
-                                    '.'+format, dpi=dpi, format=format)
-                        
+                        plt.savefig(os.path.join(outdir, prefix + '_mode_' + 
+                            str(mode.getIndex()+1) + '.' + format), 
+                            dpi=dpi, format=format)
+                        plt.close('all')
 
 
 def pca():
@@ -556,6 +580,10 @@ and save all output and figure files:
         parser.print_help()
         print "\nError: PDB missing\n"
         sys.exit(-1)
+    outdir = opt.outdir
+    if not os.path.isdir(outdir):
+        print('Error: {0:s} is not a valid path'.format(outdir))
+        sys.exit(-1)
     if opt.silent:
         changeVerbosity('warning')
         
@@ -580,28 +608,28 @@ and save all output and figure files:
     pca.calcModes(nmodes)
     
     LOGGER.info('Writing numerical output.')
-    writeNMD(prefix + '.nmd', pca, select)
+    writeNMD(os.path.join(outdir, prefix + '.nmd'), pca, select)
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     if outall or opt.eigen:
-        writeArray(prefix + '_evectors'+ext, pca.getArray(), 
-            delimiter=delim, format=format)
-        writeArray(prefix + '_evalues'+ext, pca.getEigenvalues(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+            pca.getArray(), delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+            pca.getEigenvalues(), delimiter=delim, format=format)
     if outall or opt.covar:
-        writeArray(prefix + '_covariance'+ext, pca.getCovariance(), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+            pca.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
-        writeArray(prefix + '_cross-correlations'+ext, 
+        writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
                    calcCrossCorrelations(pca), 
                    delimiter=delim, format=format)
     if outall or opt.sqflucts:
-        writeArray(prefix + '_sqfluct'+ext, calcSqFlucts(pca), 
-            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
+            calcSqFlucts(pca), delimiter=delim, format=format)
     if outall or opt.proj:
-        writeArray(prefix + '_proj'+ext, calcProjection(ensemble, pca), 
-                   delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_proj'+ext), 
+            calcProjection(ensemble, pca), delimiter=delim, format=format)
     #if outall or opt.npz:
     #    saveModel(gnm)
           
@@ -622,13 +650,15 @@ and save all output and figure files:
             if figall or cc:
                 plt.figure(figsize=(width, height))
                 showCrossCorrelations(pca)
-                plt.savefig(prefix + '_cc.'+format, dpi=dpi, format=format)
+                plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
+                    dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
                 showSqFlucts(pca)
-                plt.savefig(prefix + '_sf.'+format, dpi=dpi, format=format)
-        
+                plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
+                    dpi=dpi, format=format)
+                plt.close('all')                    
             if figall or sp:
                 indices = []
                 for item in sp.split():
@@ -650,8 +680,9 @@ and save all output and figure files:
                         if isinstance(index, int):
                             index = [index]
                         index = [str(i+1) for i in index]
-                        plt.savefig(prefix + '_proj_' + '_'.join(index) + 
-                            '.' + format, dpi=dpi, format=format)
+                        plt.savefig(os.path.join(outdir, prefix + '_proj_' + 
+                            '_'.join(index) + '.' + format),
+                            dpi=dpi, format=format)
                         plt.close('all')                    
     
 def alignmodels():
