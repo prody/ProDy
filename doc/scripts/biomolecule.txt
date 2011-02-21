@@ -6,6 +6,7 @@ Options:
   -h, --help            show this help message and exit
   --examples            show usage examples and exit
   --quiet               don't print status messages to stdout
+  --version             print ProDy version and exit
   -p STRING, --prefix=STRING
                         prefix for output files, default is PDB_biomol_
   -b INT, --biomol=INT  index of the biomolecule, default is "none"

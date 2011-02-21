@@ -10,6 +10,7 @@ Options:
   -h, --help            show this help message and exit
   --examples            show usage examples and exit
   --quiet               don't print status messages to stdout
+  --version             print ProDy version and exit
 
   Parameters:
     -c FLOAT, --cutoff=FLOAT
@@ -26,6 +27,8 @@ Options:
 
   Output:
     -a, --all-output    write all outputs
+    -o PATH, --output-dir=PATH
+                        output directory, default is "."
     -e, --eigenvs       write eigenvectors/values
     -r, --cross-correlations
                         write cross-correlations
@@ -54,7 +57,7 @@ Options:
     -B, --beta-factors-figure
                         save beta-factors
     -K, --contact-map   save contact map (Kirchhoff matrix)
-    -M STRING, --mode-figure=STRING
+    -M STRING, --mode-shape-figure=STRING
                         save mode shape figures for specified modes, e.g. "1-3
                         5" for modes 1, 2, 3 and 5
 

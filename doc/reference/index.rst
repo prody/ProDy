@@ -20,6 +20,7 @@ Usage reference
    usage/selection-operations
    usage/normalmode-operations
    usage/atommaps
+   usage/nmdformat
 
 Library reference
 ===============================================================================

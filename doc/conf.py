@@ -172,6 +172,9 @@ html_sidebars = {
     'reports/index': generic_sidebars,
     'scripts/index': generic_sidebars,
     'todo': generic_sidebars,
+    'plugins/index': ['slideshow.html'] + generic_sidebars,
+    'plugins/install': ['slideshow.html'] + generic_sidebars,
+    'plugins/nmwiz': ['slideshow.html'] + generic_sidebars,
     '**': ['newrelease.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
