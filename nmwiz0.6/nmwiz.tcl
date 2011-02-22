@@ -4038,4 +4038,4 @@ proc nmwiz_load {filename} {
   ::nmwiz::load_nmd $filename
 } 
 
-nmwiz_tk
+#nmwiz_tk
