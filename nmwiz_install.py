@@ -22,6 +22,7 @@ import os.path
 import sys
 import shutil
 import glob
+from types import StringType, UnicodeType
 
 PY3K = sys.version_info[0] > 2
 
@@ -63,8 +64,9 @@ def getVMDpaths():
             vmdfile.close()
         except:
             pass
-    if isinstance(vmdbin, str) and isinstance(vmddir, str) and \
-       os.path.isfile(vmdbin) and os.path.isdir(vmddir): 
+    if isinstance(vmdbin, (StringType, UnicodeType)) and \
+       isinstance(vmddir, (StringType, UnicodeType)) and \
+       os.path.isfile(vmdbin) and os.path.isdir(vmddir):  
         return vmdbin, vmddir
     return None, None
 
