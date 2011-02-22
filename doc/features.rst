@@ -38,6 +38,7 @@ Feature Index
   * :ref:`pca-nmr`
   * :ref:`pca-blast`
   * :ref:`eda-md`
+  * :ref:`scripts-pca`
    
 **Generate conformations along normal modes:**
 
@@ -80,11 +81,18 @@ Feature Index
   * Write normal mode eigenvectors (:func:`~dynamics.writeModes`)
   * Write overlap table (:func:`~dynamics.writeOverlapTable`)
   
+**Read input files:**
+  
+  * Parse PDB files (:func:`~proteins.parsePDB`)
+  * Parse NMD files (:func:`~dynamics.parseNMD`)
+  * Parse arrays from file (:func:`~dynamics.parseArray`)
+  * Parse normal mode data (:func:`~dynamics.parseModes`)
+  
 **Visualization**:
   
   * Get path to VMD executable (:func:`~dynamics.getVMDpath`)
   * Set path to VMD executable (:func:`~dynamics.setVMDpath`)
-  * Visualize normal modes in VMD (:func:`~dynamics.viewNMDinVMD`)
+  * Visualize NMD file in VMD (:func:`~dynamics.viewNMDinVMD`)
 
 **Save/load ProDy session data**:
     

@@ -83,6 +83,7 @@ Running :command:`gnm.py --examples` displays:
 .. literalinclude:: gnm_eg.txt
 
 
+.. _scripts-pca:
 
 :file:`pca.py`
 ===============================================================================

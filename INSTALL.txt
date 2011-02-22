@@ -18,7 +18,7 @@ follow the instructions.
 Download Files
 ===============================================================================
 
-Download a suitable ProDy installation file from here
+Download a suitable ProDy installation file from here:
 
 .. csv-table::
    :file: _static/pypi_downloads.csv
@@ -37,6 +37,10 @@ Required Software
 * `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, the 32 bit option 
   is required for compatibility)
 * `Numpy 1.3+ <http://numpy.scipy.org/>`_
+
+In addition, `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required
+for using plotting functions. ProDy and :ref:`scripts` can be operated without
+this package.   
 
 Installation Instructions
 ===============================================================================
@@ -67,7 +71,7 @@ variable to specify the path to this package:
 #. Add a line to your :file:`.bashrc` (or similar) script as follows
    ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
 
-In this case you will need to install :nmwiz: separately.
+In this case you will need to install :ref:`nmwiz` separately.
 
 Windows
 -------------------------------------------------------------------------------
@@ -80,8 +84,6 @@ Windows installers do not install :ref:`nmwiz`. Please follow the steps in
 Recommended Software
 ===============================================================================
 
-* `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting 
-  data.
 * `Scipy <http://www.scipy.org/SciPy>`_, when installed, replaces
   linear algebra module of Numpy. The Scipy linear algebra module is more 
   flexible and can be faster depending on the situation.
