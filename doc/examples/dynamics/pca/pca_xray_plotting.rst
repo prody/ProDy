@@ -224,7 +224,7 @@ Cross-projections
 -------------------------------------------------------------------------------
 
 Finally, we will make a cross-projection plot using :func:`showCrossProjection`.
-We will pass scale='y' argument, which will scale the width of the projection
+We will pass ``scale='y'`` argument, which will scale the width of the projection
 along ANM mode:
 
 
@@ -234,13 +234,13 @@ along ANM mode:
 
    plt.figure(figsize=(5,4))
    for lbl, clr in color_assignments:
-       showCrossProjection(ensemble[color_array == clr], pca[0], anm[2], scale='y', scalar=-0.78, color=clr, label=lbl)
+       showCrossProjection(ensemble[color_array == clr], pca[0], anm[2], scale="y", scalar=-0.78, color=clr, label=lbl)
    plt.plot([-25, 25], [-25, 25], 'k')
    plt.axis([-25, 25, -25, 25])
 
    plt.figure(figsize=(5,4))
    for lbl, clr in color_assignments:
-       showCrossProjection(ensemble[color_array == clr], pca[1], anm[0], scale='y', scalar=-0.94, color=clr, label=lbl)
+       showCrossProjection(ensemble[color_array == clr], pca[1], anm[0], scale="y", scalar=-0.94, color=clr, label=lbl)
    plt.plot([-15, 15], [-15, 15], 'k')
    plt.axis([-15, 15, -15, 15])
 

@@ -221,6 +221,7 @@ Let's plot RMSD to the average structure:
    plt.plot(calcRMSD(ensemble))
    plt.xlabel('Conformation')
    plt.ylabel('RMSD (A)')
+   plt.title(ensemble)
 
 Let's show a projection of the ensemble onto PC1 and PC2:
 
@@ -236,6 +237,7 @@ Let's show a projection of the ensemble onto PC1 and PC2:
 
    plt.figure(figsize=(5,4))
    showProjection(ensemble, pca[:2])
+   plt.title(ensemble)
    
 .. plot::
    :context:
