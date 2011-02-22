@@ -36,8 +36,8 @@ Example Input
 
 Examples :term:`nmd` files (*right click* and select *save as* option):
 
-  * :download:`p38 MAP kinase <p38_MAPK_1p38_anm_modes.nmd>`
-  * :download:`p38 modes with zero coordinates <xyzeros.nmd>` 
+  * :download:`p38 MAP kinase </_downloads/p38_MAPK_1p38_anm_modes.nmd>`
+  * :download:`p38 modes with zero coordinates </_downloads/xyzeros.nmd>` 
     that was used to make :download:`NMWiz logo </_static/nm.png>`.
 
 
@@ -46,10 +46,9 @@ NMWiz GUIs
 
 This section describes NMWiz Interfaces briefly. Help on functionality can be
 obtained by simply clicking on the question marks (:guilabel:`?`) on the 
-graphical user interface.
-
-..
-  :download:`Tutorial <NMWiz_tutorial.pdf>`
+graphical user interface. In addition, a tutorial that was developed for an 
+earlier version of the plug-in can be obtained from here:
+:download:`Tutorial </_downloads/NMWiz_tutorial.pdf>`. 
 
 Main
 -------------------------------------------------------------------------------
@@ -83,11 +82,9 @@ At startup, various options are hidden from user.
 Arrow size, animation length, graphics quality etc. can be 
 adjusted using option frames after they are switched on.
 
-**Active Mode and Color**
-
-The top panel enables choosing the active mode and its display. 
-Initially, when the active mode is changed, previously drawn mode arrows
-will be undisplayed. This behavior and other graphics options can be 
+*Active Mode and Color*: The top panel enables choosing the active mode and 
+color. When the active mode is changed, previously drawn mode arrows will 
+be undisplayed. This behavior and other graphics options can be
 changed from the "Arrow Graphics Option" panel.
 
 .. image:: /_static/NMWiz-GUI.png
