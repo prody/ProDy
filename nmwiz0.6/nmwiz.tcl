@@ -1689,14 +1689,16 @@ orange3"
   switch [vmdinfo arch] {
     WIN64 -
     WIN32 {
-      variable pybin [::ExecTool::find python.exe]
+      variable pybin "[::ExecTool::find python.exe]"
+      variable pyANM ""
+      variable pyPCA ""
     }
     default {
-      variable pybin [::ExecTool::find python]
+      variable pybin "[::ExecTool::find python]"
+      variable pyANM "[::ExecTool::find anm.py]"
+      variable pyPCA "[::ExecTool::find pca.py]"
     }
   }
-  variable pyANM "[::ExecTool::find anm.py]"
-  variable pyPCA "[::ExecTool::find pca.py]"
   variable outputdir [pwd]
   variable defaultColor "purple"
   variable settings [dict create anm $pyANM pca $pyPCA color $defaultColor outputdir $outputdir pybin $pybin]
@@ -1769,9 +1771,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
       
     grid [button $wf.anmHelp -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "ProDy ANM script, anm.py. If the folder that contains ProDy\
-scripts is included in your environment variable PATH, keep this as anm.py, otherwise\
-specify the path to the script, e.g. C:\\python27\\Scripts\\anm.py"}] \
+          -message "Full path to ProDy ANM script (anm.py), e.g. C:\\python27\\Scripts\\anm.py"}] \
       -row 3 -column 0 -sticky w
     grid [label $wf.anmLabel -text "ANM script:"] \
       -row 3 -column 1 -sticky w
@@ -1780,7 +1780,7 @@ specify the path to the script, e.g. C:\\python27\\Scripts\\anm.py"}] \
     grid [button $wf.anmBrowse -text "Browse" -pady 2 \
         -command {
       set tempfile [tk_getOpenFile \
-        -filetypes {{"Py files" { .py }} {"All files" *}}]
+        -filetypes {{"ANM Script" { anm.py }}}]
         if {![string equal $tempfile ""]} {set ::nmwiz::pyANM $tempfile}
         ::nmwiz::saveSettings
         }] \
@@ -1788,9 +1788,7 @@ specify the path to the script, e.g. C:\\python27\\Scripts\\anm.py"}] \
 
     grid [button $wf.pcaHelp -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "ProDy PCA script, pca.py. If the folder that contains ProDy \
-scripts is included in your environment variable PATH, keep this as pca.py, otherwise \
-specify the path to the script, e.g. C:\\python27\\Scripts\\pca.py"}] \
+          -message "Full path to the ProDy PCA script (pca.py) e.g. C:\\python27\\Scripts\\pca.py"}] \
       -row 5 -column 0 -sticky w
     grid [label $wf.pcaLabel -text "PCA script:"] \
       -row 5 -column 1 -sticky w
@@ -1799,7 +1797,7 @@ specify the path to the script, e.g. C:\\python27\\Scripts\\pca.py"}] \
     grid [button $wf.pcaBrowse -text "Browse" -pady 2 \
         -command {
       set tempfile [tk_getOpenFile \
-        -filetypes {{"Py files" { .py }} {"All files" *}}]
+        -filetypes {{"PCA Script" { pca.py }}}]
         if {![string equal $tempfile ""]} {set ::nmwiz::pyPCA $tempfile}
         ::nmwiz::saveSettings
         }] \
@@ -1807,7 +1805,7 @@ specify the path to the script, e.g. C:\\python27\\Scripts\\pca.py"}] \
 
     grid [button $wf.clrHelp -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the default color for arrow graphics."}] \
+          -message "The default color for arrow graphics."}] \
       -row 7 -column 0 -sticky w
     grid [label $wf.scriptLabel -text "Default color:"] \
       -row 7 -column 1 -sticky w
@@ -1855,7 +1853,7 @@ specify the path to the script, e.g. C:\\python27\\Scripts\\pca.py"}] \
       return 
     }    
     set prodyGUI [toplevel .nmwizprody]
-    wm title $prodyGUI "NMWiz - ANM ProDy Interface"
+    wm title $prodyGUI "NMWiz - ProDy Interface"
     wm resizable $prodyGUI 0 0
     
     # Main frame (molecule and selection)

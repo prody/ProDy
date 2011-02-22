@@ -2171,9 +2171,10 @@ def setVMDpath(path):
     """Set the path to VMD executable."""
     
     if not os.path.isfile(path):
-        LOGGER.warning('{0:s} is not a file.')
+        LOGGER.warning('{0:s} is not a file.'.format(path))
         return
     prody._ProDySettings['vmd'] = path
+    prody._saveProDySettings()
     
     
 

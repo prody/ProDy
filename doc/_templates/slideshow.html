@@ -22,7 +22,7 @@ ss_linkhref[ss_index] = "{{ pathto("_static/gallery/p38_mode_1.png", 1) }}";
 ss_linktarget[ss_index] = "_blank";
 ss_index = 2
 ss_image[ss_index] = "{{ pathto("_static/gallery/p38_modes_123_sm.png", 1) }}";
-ss_title[ss_index] = "NMWiz: flexible and simple";
+ss_title[ss_index] = "NMWiz: simple and flexible";
 ss_caption[ss_index] = "NMWiz VMD plug-in provides a simple and flexible interface for preparing cool depictions of normal modes.";
 ss_linktext[ss_index] = "See larger image.";
 ss_linkhref[ss_index] = "{{ pathto("_static/gallery/p38_modes_123.png", 1) }}";
@@ -37,10 +37,31 @@ ss_linktarget[ss_index] = "_blank";
 ss_index = 4
 ss_image[ss_index] = "{{ pathto("_static/gallery/p38_msf.png", 1) }}";
 ss_title[ss_index] = "Intrinsic Dynamics and Binding";
-ss_caption[ss_index] = "Comparative analysis of heterogeneous structural datasets and theoretical models show that the intrinsic dynamics of enzymes plays a dominant role in determining the structural changes induced upon inhibitor binding.";
+ss_caption[ss_index] = "Analysis of heterogeneous structural datasets and comparisons with theory show that the intrinsic dynamics of enzymes plays a dominant role in determining the bound form.";
 ss_linktext[ss_index] = "Read more.";
 ss_linkhref[ss_index] = "http://www.pnas.org/content/106/34/14349.long";
 ss_linktarget[ss_index] = "_blank";
+ss_index = 5
+ss_image[ss_index] = "{{ pathto("_static/gallery/cross-projection.png", 1) }}";
+ss_title[ss_index] = "Cross-projection of data";
+ss_caption[ss_index] = "Compare experimental PCA modes and theoretical ANM modes by cross-projecting the data.";
+ss_linktext[ss_index] = "See the example.";
+ss_linkhref[ss_index] = "{{ pathto("examples/dynamics/pca/pca_xray_plotting") }}";
+ss_linktarget[ss_index] = "_self";
+ss_index = 6
+ss_image[ss_index] = "{{ pathto("_static/gallery/overlap-table.png", 1) }}";
+ss_title[ss_index] = "Compare experiment and theory";
+ss_caption[ss_index] = "Compare experimental PCA modes and theoretical ANM modes by generating overlap table figures.";
+ss_linktext[ss_index] = "See the example.";
+ss_linkhref[ss_index] = "{{ pathto("examples/dynamics/pca/pca_xray_plotting") }}";
+ss_linktarget[ss_index] = "_self";
+ss_index = 7
+ss_image[ss_index] = "{{ pathto("_static/gallery/nmwiz.png", 1) }}";
+ss_title[ss_index] = "NMWiz for visual analysis";
+ss_caption[ss_index] = "Depict normal modes with arrows and animate motions using NMWiz VMD plug-in.";
+ss_linktext[ss_index] = "Get NMWiz.";
+ss_linkhref[ss_index] = "{{ pathto("plugins/getnmwiz") }}";
+ss_linktarget[ss_index] = "_self";
 
 ss_which = Math.floor(Math.random()*ss_image.length)
 function changeSlide() {
@@ -73,7 +94,7 @@ function nextSlide() {
     <td width="16" style="padding: 0 0 0 0; vertical-align: top">
       <a href="#"><img src="{{ pathto("_static/go-previous.png", 1) }}" onclick="prevSlide()"></a>
     </td>
-    <td width="100%" style="padding: 0 0 0 0; text-align: center; font-size: 95%; font-weight: bold;">
+    <td width="188" style="padding: 0 0 0 0; text-align: center; font-size: 95%; font-weight: bold;">
       <span id="slideShowTitle">p38 MAPK Network Model</span>
     </td>
     <td width="16" style="padding: 0 0 0 0; vertical-align: top">

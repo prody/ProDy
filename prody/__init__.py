@@ -99,28 +99,28 @@ def importBioPairwise2():
 _ProDySettings = None 
 
 def _loadProDySettings():
-    global _ProDySettings
     fn = os.path.join(os.path.expanduser('~'), '.prody')
-    _ProDySettings = None
-    if isfile(fn):
+    settings = None
+    if os.path.isfile(fn):
         inf = open(fn)
-        _ProDySettings = cPickle.load(inf)
+        settings = cPickle.load(inf)
         inf.close()
-        if not isinstance(_ProDySettings, dict):
-            _ProDySettings = None
-    
-    if _ProDySettings is None:
-        _ProDySettings = {
+        if not isinstance(settings, dict):
+            settings = None
+    if settings is None:
+        settings = {
         'loglevel': 'debug',
         'local_pdb_folder': None,
         'vmd': ''}
+    global _ProDySettings
+    _ProDySettings = settings
 
 def _saveProDySettings():
     fn = os.path.join(os.path.expanduser('~'), '.prody')
     out = open(fn, 'w')
     cPickle.dump(_ProDySettings, out)
     out.close()
-
+_loadProDySettings()
 def ProDyPrintSettings():
     print _ProDySettings
 

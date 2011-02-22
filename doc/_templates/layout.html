@@ -88,4 +88,10 @@ function checkFontSize() {
 <img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" id="logo" />
 </a>
 </div>
+<script type="text/javascript">
+if (document.URL.search("\/plugins\/") > -1) {
+  element = document.getElementById("logo");
+  logo.src = "{{ pathto("_static/nmwiz.png", 1) }}";
+}
+</script>
 {% endblock %}

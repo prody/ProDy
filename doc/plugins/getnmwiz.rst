@@ -1,33 +1,35 @@
 .. _getnmwiz:
 
 *******************************************************************************
-Plug-in Installation
+NMWiz Installation
 *******************************************************************************
 
-NMWiz is a plugin written in `TCL <http://tcl.tk/>`_. To be able to use it, 
+NMWiz is written in `TCL <http://tcl.tk/>`_. To be able to use it, 
 you need to have VMD version 1.8.7 or higher installed on your computer.
-
-If you have VMD installed when installing ProDy, ProDy will try to install
-NMWiz. Alternatively, you can follow these instructions to install it yourself.
 
 See |vmd| for obtaining VMD.
 
 Downloads
 ===============================================================================
 
-Plug-in installation file: `NMWiz 0.6 <http://pypi/NMWiz/NMWiz0.6.tar.gz>`_
-
+Plug-in files:
+ 
+  * Windows: `NMWiz-0.6.zip <http://pypi.python.org/packages/source/P/ProDy/NMWiz-0.6.zip>`_
+  * Linux: `NMWiz-0.6.tar.gz <http://pypi.python.org/packages/source/P/ProDy/NMWiz-0.6.tar.gz>`_
 
 
 Installation
 ===============================================================================
 
+Manual Installation
+-------------------------------------------------------------------------------
+
 Following instructions apply to all computer architectures and operating 
-systems that VMD runs on, but may require root access.
+systems that VMD runs on, but may require root (or administrator) access.
 
-#. Extract tarball (:file:`NMWiz0.x.y.tar.gz`) contents.
+#. Extract tarball/zip (:file:`NMWiz-0.{x}.tar.gz`) contents.
 
-#. Copy :file:`nmwiz0.x` folder into VMD plugin directory 
+#. Copy :file:`nmwiz0.{x}` folder into VMD plug-ins directory 
    (:file:`$VMDDIR/plugins/noarch/tcl/`).
 
 #. Insert the following line to :file:`$VMDDIR/scripts/vmd/loadplugins.tcl` 
@@ -35,7 +37,6 @@ systems that VMD runs on, but may require root access.
 
     vmd_install_extension nmwiz nmwiz_tk "Analysis/Normal Mode Wizard"
 
-  
 
 If you are not sure where VMD directory is located, run :program:`vmd`, and 
 type the following command line in the VMD console::
@@ -46,7 +47,18 @@ Once you perform these steps, NMWiz GUI will show up in
 :menuselection:`Extensions --> Analysis` menu of VMD main window. 
 It is also possible to make it appear in another :menuselection:`Extensions` 
 submenu by replacing *Analysis* in step 3 with another submenu name.
+
+Using Installer Script
+-------------------------------------------------------------------------------
+
+Alternatively, you can use :file:`install_nmwiz.py` script. This script
+will locate VMD plug-ins directory, copy the files, remove older versions if 
+found, and update the :file:`loadplugins.tcl` file. Again, this script
+also requires write access to the VMD folders. On Linux, following command
+should work:: 
  
+  $ sudo python install_nmwiz.py
+  
 Updates
 ===============================================================================
 

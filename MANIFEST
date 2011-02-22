@@ -3,6 +3,7 @@ LICENSE.txt
 README.txt
 CHANGES.txt
 setup.py
+install_nmwiz.py
 prody/__init__.py
 prody/atomic.py
 prody/bioblast.py

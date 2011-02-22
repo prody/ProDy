@@ -1,12 +1,13 @@
-.. _plug-ins:
+.. _nmwiz:
 
 *******************************************************************************
-Plug-ins
+NMWiz
 *******************************************************************************
 
 Normal Mode Wizard (NMWiz) is a `VMD <www.ks.uiuc.edu/Research/vmd/>`_ 
 plug-in designed for visual and comparative analysis of normal mode data, 
-i.e. modes from principal component, essential dynamics, or normal mode analysis. 
+i.e. modes from principal component, essential dynamics, or normal mode 
+analysis. 
 
 NMWiz can be used for:
 
@@ -14,22 +15,127 @@ NMWiz can be used for:
   * generating alternate conformations along a normal mode (animation)
   * plotting squared-fluctuations (allows labeling and highlighting residues)
   * comparative analysis of normal modes from different sources/methods
-  * preparing publication quality images of normal modes with the power of 
+  * preparing publication quality images of normal modes with the power of VMD
   
-NMWiz makes adjusting the representation of normal modes and the protein 
-as easy as it should be. See some examples on the side panel.
+See examples figures on the side panel. 
+For **downloads** and **installation** instructions see :ref:`getnmwiz`.
 
-NMWiz recognizes Normal Mode Data format (.nmd).  NMD files can be 
+
+Input for NMWiz
+===============================================================================
+
+NMWiz recognizes :ref:`nmd-format` (:file:`.nmd`). NMD files can be 
 generated using ProDy or obtained from the 
 `ANM server <http:/www.csb.pitt.edu/ANM/>`_.  Alternatively, you can prepare 
 your results in NMD format for analysis with NMWiz. NMD is a simple plain text 
-format and can even be prepared easily using text editor. See 
+format and can be easily prepared using a text editor. See 
 :ref:`nmd-format` for details.
 
+Example Input
+===============================================================================
 
-For **downloads** and **installation** instructions see :ref:`getnmwiz`.
+Examples :term:`nmd` files (*right click* and select *save as* option):
 
-See :ref:`nmwiz` for usage description.
+  * :download:`p38 MAP kinase <p38_MAPK_1p38_anm_modes.nmd>`
+  * :download:`p38 modes with zero coordinates <xyzeros.nmd>` 
+    that was used to make :download:`NMWiz logo </_static/nm.png>`.
+
+
+NMWiz GUIs
+===============================================================================
+
+This section describes NMWiz Interfaces briefly. Help on functionality can be
+obtained by simply clicking on the question marks (:guilabel:`?`) on the 
+graphical user interface.
+
+..
+  :download:`Tutorial <NMWiz_tutorial.pdf>`
+
+Main
+-------------------------------------------------------------------------------
+
+*NMWiz - Main* enables loading :term:`nmd` files and submitting
+ProDy and ANM server jobs. Settings and online documentation (at ProDy website)
+can also be accessed from this window.
+
+.. image:: /_static/NMWiz-Main.png
+
+Additionally, for each loaded nmd file two buttons will appear in the main 
+window. :guilabel:`Show GUI` button recovers a closed interface for a dataset.
+:guilabel:`Remove` button completely removes the dataset from
+the VMD session.
+
+.. note::
+   
+   NMWiz does not allow for loading the same file twice. To get around this, 
+   file may be renamed or the dataset may be removed from from the session.
+
+
+NMWiz
+-------------------------------------------------------------------------------
+
+This interface is generated for all datasets loaded into NMWiz. These 
+interfaces are independent of each other, hence allows comparative 
+analysis of distinct data sets.
+
+NMWiz interfaces allow visualizing, animating, and plotting modes. 
+At startup, various options are hidden from user. 
+Arrow size, animation length, graphics quality etc. can be 
+adjusted using option frames after they are switched on.
+
+**Active Mode and Color**
+
+The top panel enables choosing the active mode and its display. 
+Initially, when the active mode is changed, previously drawn mode arrows
+will be undisplayed. This behavior and other graphics options can be 
+changed from the "Arrow Graphics Option" panel.
+
+.. image:: /_static/NMWiz-GUI.png
+
+
+Mobility Plots
+-------------------------------------------------------------------------------
+
+User can plot squared-fluctuations along the active normal mode by clicking on
+the :guilabel:`Plot` button. Plots will be generated using a modified version of 
+`MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plug-in.
+Clicking on the plot will label and highlight the residue (or atom) in the VMD
+display.
+
+.. image:: /_static/NMWiz-Plot.png
+
+
+Settings
+-------------------------------------------------------------------------------
+
+This windows allows users to specify the path to ProDy scripts and select
+the default color for displaying arrows.  
+
+.. image:: /_static/NMWiz-Settings.png
+
+
+ProDy Jobs
+-------------------------------------------------------------------------------
+
+This windows allows users to submit ProDy ANM and PCA jobs for proteins
+loaded in VMD. The results will be automatically loaded into the session.
+
+.. image:: /_static/NMWiz-ProDy.png
+
+
+ANM Server
+-------------------------------------------------------------------------------
+
+ANM jobs can also be submitted to ANM server using this interface (Linux only). 
+User needs to provide PDB and chain identifiers. Cutoff and distance weight 
+parameters can also be adjusted by the user.
+
+.. image:: /_static/NMWiz-ANMServer.png
+
+After ANM Server completes calculations, the user needs to download normal
+mode data in an NMD file (see *download files* link in results page) 
+and load it into VMD.
+
 
 .. toctree::
    :glob:
