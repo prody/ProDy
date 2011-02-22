@@ -13,6 +13,7 @@ Contents
 
 .. toctree::
    :maxdepth: 3
+   :glob:
 
    getprody 
    tutorial
@@ -23,6 +24,7 @@ Contents
    features
    publications
    reports/index
+   devel/*
    credits
    bibliography
    changes

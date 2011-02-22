@@ -21,6 +21,10 @@ See examples figures on the side panel.
 For **downloads** and **installation** instructions see :ref:`getnmwiz`.
 
 
+.. contents:: NMWiz User Guide
+   :local:
+   :backlinks: none
+
 Input for NMWiz
 ===============================================================================
 
@@ -115,7 +119,8 @@ ProDy Interface
 -------------------------------------------------------------------------------
 
 Below interface allows users to submit ProDy ANM and PCA jobs for proteins
-loaded in VMD. The results will be automatically loaded into the session.
+loaded in VMD. Upon completion of the calculations, NMWiz automatically
+loads the results.
 
 .. image:: /_static/NMWiz-ProDy.png
 
