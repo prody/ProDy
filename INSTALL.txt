@@ -50,13 +50,15 @@ Linux
 Download :file:`ProDy-0.{x}.{y}.tar.gz`. Extract tarball contents and run 
 :file:`setup.py` as follows::
 
-    tar -xzf ProDy-0.x.y.tar.gz
-    cd ProDy-0.x.y
-    python setup.py build
-    python setup.py install
+    $ tar -xzf ProDy-0.x.y.tar.gz
+    $ cd ProDy-0.x.y
+    $ python setup.py build
+    $ python setup.py install
 
-You may need root access for the last step.
+You may need root access for the last step. Following these steps will
+also install :ref:`nmwiz`, if VMD is installed on your machine. 
   
+
 If you don't have root access, you can edit :envvar:`PYTHONPATH` system 
 variable to specify the path to this package:
   
@@ -65,17 +67,19 @@ variable to specify the path to this package:
 #. Add a line to your :file:`.bashrc` (or similar) script as follows
    ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
 
+In this case you will need to install :nmwiz: separately.
+
 Windows
 -------------------------------------------------------------------------------
 
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
+Windows installers do not install :ref:`nmwiz`. Please follow the steps in
+:ref:`getnmwiz`.
 
 Recommended Software
 ===============================================================================
 
-* `NMWiz <http://code.google.com/p/nmwiz/>`_ for visualizing normal mode data 
-  in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
 * `Matplotlib <http://matplotlib.sourceforge.net/>`_ for plotting 
   data.
 * `Scipy <http://www.scipy.org/SciPy>`_, when installed, replaces

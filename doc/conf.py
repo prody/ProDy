@@ -53,7 +53,7 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'ProDy'
-copyright = u'2010, Ahmet Bakan'
+copyright = u'2010-2011, Ahmet Bakan'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -173,8 +173,7 @@ html_sidebars = {
     'scripts/index': generic_sidebars,
     'todo': generic_sidebars,
     'plugins/index': ['slideshow.html'] + generic_sidebars,
-    'plugins/install': ['slideshow.html'] + generic_sidebars,
-    'plugins/nmwiz': ['slideshow.html'] + generic_sidebars,
+    'plugins/getnmwiz': ['slideshow.html'] + generic_sidebars,
     '**': ['newrelease.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 

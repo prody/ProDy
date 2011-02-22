@@ -30,7 +30,7 @@ NMWiz
 ===============================================================================
 
 NMWiz is available under the `University of Illinois/NCSA Open Source License 
-<http://otm.illinois.edu/uiuc_openSource`_::
+<http://otm.illinois.edu/uiuc_openSource>`_::
 
   NMWiz: Normal Mode Visualization, Animation, and Plotting
 
