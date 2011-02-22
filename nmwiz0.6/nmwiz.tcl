@@ -2180,18 +2180,19 @@ Index of the very first frame is 0."}] \
         -message "$::nmwiz::outputdir is not a valid directory."
       return 
     }
+    if {$::nmwiz::pybin == "" || $::nmwiz::pybin == {}} {
+      variable ::nmwiz::pyPCA "[::ExecTool::find -interactive python.exe]"
+      ::nmwiz::saveSettings
+    }
     if {$::nmwiz::prodyScript == "ANM"} {
       ::nmwiz::prodySubmitANMjob
     } else {
       ::nmwiz::prodySubmitPCAjob
     }
-    if {$::nmwiz::pybin == "" || $::nmwiz::pybin == {}} {
-      variable ::nmwiz::pyPCA "[::ExecTool::find -interactive python.exe]"
-      ::nmwiz::saveSettings
-    }
   }
   proc prodySubmitANMjob {} {
-    if {$::nmwiz::pyANM == "" || $::nmwiz::pyANM == {} || $::nmwiz::pyANM == "{}"} {
+    if {$::nmwiz::pyANM == "" || $::nmwiz::pyANM == {} || $::nmwiz::pyANM == "{}" ||
+        ![file exists $::nmwiz::pyANM]} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Please specify the path to the ANM Script (anm.py) script."
       ::nmwiz::initSettingsGUI
@@ -2241,7 +2242,8 @@ Index of the very first frame is 0."}] \
     }
   }  
   proc prodySubmitPCAjob {} {
-    if {$::nmwiz::pyPCA == "" || $::nmwiz::pyPCA == {} || $::nmwiz::pyPCA == "{}"} {
+    if {$::nmwiz::pyPCA == "" || $::nmwiz::pyPCA == {} || $::nmwiz::pyPCA == "{}" ||
+        ![file exists $::nmwiz::pyPCA]} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Please specify the path to the PCA Script (pca.py) script."
       ::nmwiz::initSettingsGUI

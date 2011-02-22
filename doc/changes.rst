@@ -11,6 +11,10 @@ Release 0.6 (in development)
 
 **New Features**:
 
+  * Biopython module pairwise2 and packages KDTree and Blast are incorporated
+    in ProDy package to make installation easier. Only NumPy needs to be 
+    installed before ProDy can be used. For plotting, Matplotlib is still 
+    required.
   * :ref:`nmwiz` is distributed with ProDy source. On Linux, if VMD is 
     installed, ProDy installer locates VMD plug-ins folder and installs NMWiz.
     On Windows, user needs to follow a separate set of instructions (see
