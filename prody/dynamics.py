@@ -3578,7 +3578,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
 def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
                         *args, **kwargs):
-    """Show projection of conformational deviations using :func:`~matplotlib.pyplot.plot`.
+    """Show projection of conformational deviations using 
+    :func:`~matplotlib.pyplot.plot`.
     
     This function is differs from :func:`showProjection` by accepting modes
     from two different models.
@@ -3630,7 +3631,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     
     xcoords = calcProjection(ensemble, mode_x) 
     ycoords = calcProjection(ensemble, mode_y)
-    if scale is not None and isinstance(scale, str) and scale.lower() in ('x', 'y'):
+    if isinstance(scale, str) and str(scale).lower() in ('x', 'y'):
         if scalar is not None:
             scalar = float(scalar)
         else:
@@ -3650,7 +3651,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
             xcoords = xcoords * scalar  
         elif scale.lower() == 'y': 
             ycoords = ycoords / scalar
-    else:
+    elif scale is not None:
         LOGGER.warning('{0:s} is not a valid value for scale argument. '
                        'Only "x" or "y" are accepted.'.format(str(scale)))
     if 'ls' not in kwargs:
@@ -3710,7 +3711,8 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     return show
 
 def showCrossCorrelations(modes, *args, **kwargs):
-    """Show cross-correlations for given modes using :func:`~matplotlib.pyplot.imshow`.
+    """Show cross-correlations for given modes using 
+    :func:`~matplotlib.pyplot.imshow`.
     
     See also :func:`getCrossCorrelations`. 
     
@@ -3861,7 +3863,8 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     return show
 
 def showNormedSqFlucts(modes, *args, **kwargs):
-    """Show normalized square fluctuations using :func:`~matplotlib.pyplot.plot`.
+    """Show normalized square fluctuations using 
+    :func:`~matplotlib.pyplot.plot`.
     
     .. plot::
        :context:

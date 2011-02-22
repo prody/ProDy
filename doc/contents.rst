@@ -24,7 +24,7 @@ Contents
    features
    publications
    reports/index
-   devel/*
+   devel/index
    credits
    bibliography
    changes

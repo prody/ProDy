@@ -30,6 +30,12 @@ How to Make a New Release
 
      $ make copytxt
 
+#. Make sure the :file:`README.txt` file is up to date.
+
+#. Make sure the :file:`MANIFEST` file is up to date.
+
+#. Make sure the :file:`setup.py` file is up to date.
+
 #. Generate the source distributions::
 
      $ cd ..
@@ -67,12 +73,9 @@ How to Make a New Release
    * :file:`doc/plugins/getnmwiz.rst`.
 
 
-#. Generate HTML documentation::
+#. Generate HTML and PDF documentation::
 
      $ make html
-  
-#. Generate PDF documentation::
-
      $ make latexpdf
   
 
