@@ -73,7 +73,7 @@ the VMD session.
 NMWiz
 -------------------------------------------------------------------------------
 
-This interface is generated for all datasets loaded into NMWiz. These 
+Below interface is generated for all datasets loaded into NMWiz. These 
 interfaces are independent of each other, hence allows comparative 
 analysis of distinct data sets.
 
@@ -105,16 +105,16 @@ display.
 Settings
 -------------------------------------------------------------------------------
 
-This windows allows users to specify the path to ProDy scripts and select
+Below window allows users to specify the path to ProDy scripts and select
 the default color for displaying arrows.  
 
 .. image:: /_static/NMWiz-Settings.png
 
 
-ProDy Jobs
+ProDy Interface
 -------------------------------------------------------------------------------
 
-This windows allows users to submit ProDy ANM and PCA jobs for proteins
+Below interface allows users to submit ProDy ANM and PCA jobs for proteins
 loaded in VMD. The results will be automatically loaded into the session.
 
 .. image:: /_static/NMWiz-ProDy.png
@@ -123,9 +123,9 @@ loaded in VMD. The results will be automatically loaded into the session.
 ANM Server
 -------------------------------------------------------------------------------
 
-ANM jobs can also be submitted to ANM server using this interface (Linux only). 
-User needs to provide PDB and chain identifiers. Cutoff and distance weight 
-parameters can also be adjusted by the user.
+Finally, ANM jobs can be submitted to ANM server using the below interface 
+(Linux only). User needs to provide PDB and chain identifiers. Cutoff and 
+distance weight parameters can also be adjusted by the user.
 
 .. image:: /_static/NMWiz-ANMServer.png
 

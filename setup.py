@@ -64,7 +64,10 @@ SCRIPTS = glob.glob('scripts/*py')
 
 # Start NMWiz installer
 
-def getVMDDIR():
+def getVMDpaths():
+    """Return VMDDIR, if bin=True, return path to the executable."""
+    vmdbin = None
+    vmddir = None
     if sys.platform == 'win32': 
         if PY3K:
             import winreg as _winreg
@@ -75,8 +78,7 @@ def getVMDDIR():
                 key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
                     'Software\\University of Illinois\\VMD\\' + vmdversion)
                 vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
-                if os.path.isdir(vmddir):
-                    return vmddir
+                vmdbin = os.path.join(vmddir, 'vmd.exe') 
             except:    
                 pass
             try:
@@ -84,27 +86,26 @@ def getVMDDIR():
                     'Software\\WOW6432node\\University of Illinois\\VMD\\' + 
                     vmdversion)
                 vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
-                if os.path.isdir(vmddir):
-                    return vmddir
+                vmdbin = os.path.join(vmddir, 'vmd.exe') 
             except:    
                 pass
     else:
         try:
             pipe = os.popen('which vmd')
             vmdbin = pipe.next().strip()
-            vmdbin = open(vmdbin)
-            for line in vmdbin:
+            vmdfile = open(vmdbin)
+            for line in vmdfile:
                 if 'defaultvmddir' in line:
                     exec(line.strip())
                     vmddir = defaultvmddir
                     break
-            vmdbin.close()
+            vmdfile.close()
         except:
             pass
-        else:
-            if os.path.isdir(vmddir):
-                return vmddir
-    return None
+    if isinstance(vmdbin, str) and isinstance(vmddir, str) and \
+       os.path.isfile(vmdbin) and os.path.isdir(vmddir): 
+        return vmdbin, vmddir
+    return None, None
 
 def installNMWiz(vmddir):
     """Copy NMWiz plug-in files to $VMDDIR/plugins/noarch/tcl folder."""
@@ -183,7 +184,7 @@ class installProDy(install):
     
     def run(self):
         """Try installing NMWiz and then continue normal installation."""
-        vmddir = getVMDDIR()
+        vmdbin, vmddir = getVMDpaths()
         if vmddir is not None:
             try:
                 installNMWiz(vmddir)
@@ -196,7 +197,7 @@ class installProDy(install):
         else:
             print('NMWiz could not be installed, VMD could not be located.')
         if vmddir is not None:
-            updateVMDpath(os.path.join(vmddir, 'vmd.exe'))
+            updateVMDpath(vmdbin)
         install.run(self)
 
 setup(
