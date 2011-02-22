@@ -5,8 +5,8 @@ NMWiz Usage
 *******************************************************************************
 
 This section describes NMWiz Interfaces briefly. Help on functionality can be
-obtained by simply clicking on the question marks (**?**) on the graphical 
-user interface.
+obtained by simply clicking on the question marks (:guilabel:`?`) on the 
+graphical user interface.
 
 Examples
 ===============================================================================
@@ -25,8 +25,8 @@ Tutorial:
 Main
 ===============================================================================
 
-NMWiz Main enables loading data from a :ref:`nmdformat` file or retreiving data 
-from `ANM server <http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi>`_. 
+NMWiz Main enables loading data from a :ref:`nmd-format` file or retreiving 
+data from `ANM server <http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi>`_. 
 License information and documentation (at NMWiz website)
 can also be accessed from the :guilabel:`Main` window.
 

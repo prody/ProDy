@@ -17,7 +17,7 @@ Glossary
      containing NMD. It is a plain-text file format recognized 
      by the Normal Mode Wizard (NMWiz), a VMD plug-in for visualizing NMD.
      For a description of this file format see: 
-     http://www.csb.pitt.edu/People/abakan/software/NMWiz/nmdformat.html
+     :ref:`nmd-format`
      
    PDB 
      A PDB file contains atomic data including, e.g. coordinates, and

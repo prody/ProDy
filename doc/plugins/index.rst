@@ -24,7 +24,7 @@ generated using ProDy or obtained from the
 `ANM server <http:/www.csb.pitt.edu/ANM/>`_.  Alternatively, you can prepare 
 your results in NMD format for analysis with NMWiz. NMD is a simple plain text 
 format and can even be prepared easily using text editor. See 
-:ref:`nmdformat` for details.
+:ref:`nmd-format` for details.
 
 
 For **downloads** and **installation** instructions see :ref:`getnmwiz`.

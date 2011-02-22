@@ -547,8 +547,11 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
-        elif startswith == 'ENDMDL' or startswith == 'CONECT' or \
-             startswith[:3] == 'END':
+        elif startswith == 'ENDMDL' or startswith[:3] == 'END':
+            if acount == 0:
+                # If there is no atom record between ENDMDL and END skip to next
+                i += 1
+                continue
             if model is not None:
                 i += 1
                 break
