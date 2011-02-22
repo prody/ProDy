@@ -35,6 +35,12 @@ img {
     vertical-align: middle;
 }
 
+ul {
+    margin-bottom: 0.20em;
+    margin-top: 0.20em;
+
+}
+
 div.document {
     background-color: white;
     text-align: left;

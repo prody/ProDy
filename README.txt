@@ -25,6 +25,7 @@ The following are some of the main features:
 
   * Normal Mode Analysis using the Anisotropic network model (ANM)
   * Gaussian network model (GNM) analysis
+  * Distance and property dependent force constant functions
   * Essential dynamics analysis (EDA) of MD snapshots
   * Comparative analysis and visualization of dynamics
 

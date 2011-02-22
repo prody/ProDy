@@ -14,8 +14,8 @@ Downloads
 
 Plug-in files:
  
-  * Windows: `NMWiz-0.6.zip <http://pypi.python.org/packages/source/P/ProDy/NMWiz-0.6.zip>`_
-  * Linux: `NMWiz-0.6.tar.gz <http://pypi.python.org/packages/source/P/ProDy/NMWiz-0.6.tar.gz>`_
+  * Windows: `NMWiz-0.6.zip <https://github.com/downloads/abakan/ProDy/NMWiz-0.6.zip>`_
+  * Linux: `NMWiz-0.6.tar.gz <https://github.com/downloads/abakan/ProDy/NMWiz-0.6.tar.gz>`_
 
 
 Installation
