@@ -2164,8 +2164,10 @@ def loadVector(filename):
 
 def getVMDpath():
     """Return path to the VMD executable."""
-    
-    return prody._ProDySettings['vmd']
+    path = prody._ProDySettings.get('vmd')
+    if path is None:
+        LOGGER.warning('VMD path is not set.')
+    return path
 
 def setVMDpath(path):
     """Set the path to VMD executable."""

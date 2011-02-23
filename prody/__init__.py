@@ -110,8 +110,7 @@ def _loadProDySettings():
     if settings is None:
         settings = {
         'loglevel': 'debug',
-        'local_pdb_folder': None,
-        'vmd': ''}
+        }
     global _ProDySettings
     _ProDySettings = settings
 
