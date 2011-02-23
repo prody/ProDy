@@ -22,7 +22,7 @@ Classes
 -------
 
   * :class:`PDBFetcher`
-  * :class:`RCSB_PDBFetcher`
+  * :class:`WWPDB_PDBFetcher`
   * :class:`PDBBlastRecord`
 
 Functions
@@ -30,12 +30,15 @@ Functions
 
   * :func:`applyBiomolecularTransformations`
   * :func:`assignSecondaryStructure`
-  * :func:`fetchPDB` 
   * :func:`blastPDB`
+  * :func:`fetchPDB`
+  * :func:`getWWPDBFTPServer`
+  * :func:`setWWPDBFTPServer` 
   * :func:`parsePDB`
   * :func:`parsePDBStream`
   * :func:`writePDB`
   * :func:`writePDBStream`
+
   
    
    
@@ -70,11 +73,11 @@ from prody import ProDyLogger as LOGGER
 from prody.atomic import *
 
 
-__all__ = ['PDBBlastRecord', 'PDBFetcher', 'RCSB_PDBFetcher', 
+__all__ = ['PDBBlastRecord', 'PDBFetcher', 'WWPDB_PDBFetcher', 
            'assignSecondaryStructure',
            'applyBiomolecularTransformations',
            'blastPDB', 
-           'fetchPDB',
+           'fetchPDB', 'getWWPDBFTPServer', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 
            'writePDBStream', 'writePDB',
            ]
@@ -112,16 +115,68 @@ class PDBFetcher(object):
 
 
 _pdb_extensions = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ent.gz'])
+_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', 
+    '/pub/pdb/data/structures/divided/pdb/')
+_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', 
+    '/pub/databases/rcsb/pdb-/data/structures/divided/pdb/')
+_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', 
+    '/pub/pdb/data/structures/divided/pdb/')
+WWPDB_FTP_SERVERS = {
+    'rcsb'   : _WWPDB_RCSB,
+    'usa'    : _WWPDB_RCSB,
+    'us'     : _WWPDB_RCSB,
+    'pdbe'   : _WWPDB_PDBe,
+    'euro'   : _WWPDB_PDBe,
+    'europe' : _WWPDB_PDBe,
+    'eu'     : _WWPDB_PDBe,
+    'pdbj'   : _WWPDB_PDBj,
+    'japan'  : _WWPDB_PDBj,
+    'jp'     : _WWPDB_PDBj,
+}
 
+def setWWPDBFTPServer(key):
+    """Set the PDB FTP server used for downloading PDB structures when needed.
+    
+    Use one of the following keywords for setting a different server.
+    
+    +---------------------------+-----------------------------+
+    | WWPDB FTP server          | Keywords (case insensitive) |
+    +---------------------------+-----------------------------+
+    | RCSB PDB (USA) (default)  | RCSB, USA, US               |
+    +---------------------------+-----------------------------+
+    | PDBe (Europe)             | PDBe, Europe, Euro, EU      |
+    +---------------------------+-----------------------------+
+    | PDBj (Japan)              | PDBj, Japan, Jp             |
+    +---------------------------+-----------------------------+
+    
+    """
+    
+    server = WWPDB_FTP_SERVERS.get(key.lower())
+    if server is not None:
+        prody._ProDySettings['wwpdb_ftp'] = server
+        prody._saveProDySettings()
 
-class RCSB_PDBFetcher(PDBFetcher):
-    """A class to fetch PDB files from FTP server of RCSB."""
+def getWWPDBFTPServer():
+    """Return a tuple containing name, host, and path of the currently 
+    set WWPDB FTP server."""
+    
+    server = prody._ProDySettings.get('wwpdb_ftp')
+    if server is None:
+        LOGGER.warning('A WWPDB FTP server is not set. '
+                       'Default FTP server RCSB PDB is returned.')
+        return _WWPDB_RCSB
+    else:
+        return server
+
+class WWPDB_PDBFetcher(PDBFetcher):
+    """A class to fetch PDB files from selected FTP server of RCSB."""
     
     @staticmethod
     def fetch(pdb, folder='.'):
-        """Fetch pdb file(s) from RCSB PDB - ftp.wwpdb.org.
+        """Fetch pdb file(s) from WWPDB FTP servers.
         
-        Downloads PDB files by establishing an FTP connection to *ftp.wwpdb.org*.
+        Downloads PDB files by establishing an FTP connection to the selected  
+        WWPDB FTP server (see :func:`setWWPDBFTPServer`).
 
         Downloaded files will be saved in *folder*. FTP server provides 
         gunzipped PDB files. If *folder* already contains a PDB file 
@@ -184,8 +239,10 @@ class RCSB_PDBFetcher(PDBFetcher):
             download = True
         if download:
             from ftplib import FTP
+            ftp_name, ftp_host, ftp_path = getWWPDBFTPServer()
+            LOGGER.debug('Connecting WWPDB FTP server {0:s}.'.format(ftp_name))
             try:
-                ftp = FTP('ftp.wwpdb.org')
+                ftp = FTP(ftp_host)
             except Exception as error:
                 raise type(error)('FTP connection problem, potential reason: '
                                   'no internet connectivity')
@@ -197,8 +254,7 @@ class RCSB_PDBFetcher(PDBFetcher):
                     filename = os.path.join(folder, pdbid + '.pdb.gz')
                     pdbfile = open(filename, 'w+b')
                     try:
-                        ftp.cwd('/pub/pdb/data/structures/divided/pdb/{0:s}'
-                                .format(pdbid[1:3]))
+                        ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
                         ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
                                        pdbfile.write)
                     except Exception as error:
@@ -232,13 +288,13 @@ class RCSB_PDBFetcher(PDBFetcher):
                         .format(success, failure, exists))
             return filenames
  
-DEFAULT_PDBFetcher = RCSB_PDBFetcher
+DEFAULT_PDBFetcher = WWPDB_PDBFetcher
  
 def fetchPDB(pdb, folder='.', fetcher=None):
     """Fetch PDB files using default PDB fetcher class.
     
     If *fetcher* is ``None``, default fetcher will be used. Default fetcher 
-    (:data:`~prody.proteins.DEFAULT_PDBFetcher`) is :class:`RCSB_PDBFetcher`.
+    is :class:`WWPDB_PDBFetcher`.
     
     """
     if fetcher is None:
@@ -302,11 +358,11 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
     """
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
-            download = RCSB_PDBFetcher.fetch(pdb)
-            if not download:
+            filename = fetchPDB(pdb)
+            if filename is None:
                 raise PDBParserError('PDB file for {0:s} could not be '
                                    'downloaded.'.format(pdb))
-            pdb = download
+            pdb = filename
         else:
             raise PDBParserError('{0:s} is not a valid filename or a valid '
                                'PDB identifier.'.format(pdb))

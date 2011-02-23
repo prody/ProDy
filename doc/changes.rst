@@ -6,6 +6,19 @@
 Changes
 *******************************************************************************
 
+In development
+===============================================================================
+
+**New Features**:
+
+  * :func:`setWWPDBFTPServer` and :func:`getWWPDBFTPServer` functions allow
+    user to change or learn the WWPDB FTP server that ProDy uses to download
+    PDB files. User can change the default server to one in Europe or Japan.   
+
+**Changes**:
+
+  * :class:`RCSB_PDBFetcher` is renamed as :class:`~protein.WWPDB_PDBFetcher`.
+
 Release 0.6 (Feb 22, 2011)
 ===============================================================================
 
