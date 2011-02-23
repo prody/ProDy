@@ -118,7 +118,7 @@ _pdb_extensions = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ent.gz'])
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', 
     '/pub/pdb/data/structures/divided/pdb/')
 _WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', 
-    '/pub/databases/rcsb/pdb-/data/structures/divided/pdb/')
+    '/pub/databases/rcsb/pdb/data/structures/divided/pdb/')
 _WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', 
     '/pub/pdb/data/structures/divided/pdb/')
 WWPDB_FTP_SERVERS = {
