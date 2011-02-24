@@ -6,18 +6,23 @@
 Changes
 *******************************************************************************
 
-In development
+Release 0.7 (In development)
 ===============================================================================
 
 **New Features**:
 
-  * :func:`setWWPDBFTPServer` and :func:`getWWPDBFTPServer` functions allow
-    user to change or learn the WWPDB FTP server that ProDy uses to download
-    PDB files. User can change the default server to one in Europe or Japan.   
+  * :func:`~proteins.setWWPDBFTPServer` and :func:`~proteins.getWWPDBFTPServer` 
+    functions allow user to change or learn the WWPDB FTP server that ProDy 
+    uses to download PDB files. Default server is RCSB PDB in USA. 
+    User can change the default server to one in Europe or Japan.
+  * :func:`~compare.mapOntoChain` function is improved to map backbone or 
+    all atoms.
 
 **Changes**:
 
-  * :class:`RCSB_PDBFetcher` is renamed as :class:`~protein.WWPDB_PDBFetcher`.
+  * :class:`RCSB_PDBFetcher` is renamed as :class:`~proteins.WWPDB_PDBFetcher`.
+  * :func:`~compare.mapOntoChain` and :func:`~compare.matchChains` functions
+    accept ``"ca"`` and ``"bb"`` as *subset* arguments. 
 
 Release 0.6 (Feb 22, 2011)
 ===============================================================================

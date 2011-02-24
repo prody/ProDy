@@ -137,11 +137,13 @@ WWPDB_FTP_SERVERS = {
 def setWWPDBFTPServer(key):
     """Set the PDB FTP server used for downloading PDB structures when needed.
     
+    .. versionadded:: 0.7
+    
     Use one of the following keywords for setting a different server.
     
     +---------------------------+-----------------------------+
-    | WWPDB FTP server          | Keywords (case insensitive) |
-    +---------------------------+-----------------------------+
+    | WWPDB FTP server          | *Key* (case insensitive)    |
+    +===========================+=============================+
     | RCSB PDB (USA) (default)  | RCSB, USA, US               |
     +---------------------------+-----------------------------+
     | PDBe (Europe)             | PDBe, Europe, Euro, EU      |
@@ -158,18 +160,28 @@ def setWWPDBFTPServer(key):
 
 def getWWPDBFTPServer():
     """Return a tuple containing name, host, and path of the currently 
-    set WWPDB FTP server."""
+    set WWPDB FTP server.
+    
+    .. versionadded:: 0.7
+    
+    """
     
     server = prody._ProDySettings.get('wwpdb_ftp')
     if server is None:
-        LOGGER.warning('A WWPDB FTP server is not set. '
-                       'Default FTP server RCSB PDB is returned.')
+        LOGGER.warning('A WWPDB FTP server is not set by the user. '
+                       'Default FTP server RCSB PDB is returned. Use '
+                       'setWWPDBFTPServer function for choosing a server '
+                       'physically close to your location.')
         return _WWPDB_RCSB
     else:
         return server
 
 class WWPDB_PDBFetcher(PDBFetcher):
-    """A class to fetch PDB files from selected FTP server of RCSB."""
+    """A class to fetch PDB files from selected FTP server of RCSB.
+    
+    .. versionchanged:: 0.7
+    
+    """
     
     @staticmethod
     def fetch(pdb, folder='.'):
@@ -288,8 +300,6 @@ class WWPDB_PDBFetcher(PDBFetcher):
                         .format(success, failure, exists))
             return filenames
  
-DEFAULT_PDBFetcher = WWPDB_PDBFetcher
- 
 def fetchPDB(pdb, folder='.', fetcher=None):
     """Fetch PDB files using default PDB fetcher class.
     
@@ -298,8 +308,7 @@ def fetchPDB(pdb, folder='.', fetcher=None):
     
     """
     if fetcher is None:
-        global DEFAULT_PDBFetcher
-        return DEFAULT_PDBFetcher.fetch(pdb, folder)
+        return WWPDB_PDBFetcher.fetch(pdb, folder)
     else:
         return fetcher.fetch(pdb, folder)
 
