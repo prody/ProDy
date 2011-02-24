@@ -89,70 +89,92 @@ _a2aaa = {
 def _getSequence(resnames):
     """Return sequence of 1-letter codes for a given list of 3-letter amino acid 
     codes."""
+    
     sequence = ''
     for rn in resnames:
         sequence += _aaa2a.get(rn, 'X')
     return sequence
 
+
 def getPairwiseMatchScore():
     """Return match score used to align sequences."""
+    
     return PAIRWISE_MATCH_SCORE
+
 
 def setPairwiseMatchScore(pairwise_match_score):
     """Set match score used to align sequences."""
+    
     if isinstance(pairwise_match_score, (float, int)) and pairwise_match_score >= 0:
         global PAIRWISE_MATCH_SCORE 
         PAIRWISE_MATCH_SCORE = pairwise_match_score
     else:
         raise TypeError('pairwise_match_score must be a positive number or zero')
 
+
 def getPairwiseMismatchScore():
     """Return mismatch score used to align sequences."""
+    
     return PAIRWISE_MISMATCH_SCORE
+
 
 def setPairwiseMismatchScore(pairwise_mismatch_score):
     """Set mismatch score used to align sequences."""
+    
     if isinstance(pairwise_mismatch_score, (float, int)) and pairwise_mismatch_score >= 0:
         global PAIRWISE_MISMATCH_SCORE
         PAIRWISE_MISMATCH_SCORE = pairwise_mismatch_score
     else:
         raise TypeError('pairwise_mismatch_score must be a positive number or zero')
 
+
 def getPairwiseGapOpeningPenalty():
     """Return gap opening penalty used for pairwise alignment."""
+    
     return PAIRWISE_GAP_OPENING_PENALTY
+
 
 def setPairwiseGapOpeningPenalty(pairwise_gap_opening_penalty):
     """Set gap opening penalty used for pairwise alignment."""
+    
     if isinstance(pairwise_gap_opening_penalty, (float, int)) and pairwise_gap_opening_penalty <= 0:
         global PAIRWISE_GAP_OPENING_PENALTY
         PAIRWISE_GAP_OPENING_PENALTY = pairwise_gap_opening_penalty
     else:
         raise TypeError('pairwise_gap_opening_penalty must be a negative number or zero')
 
+
 def getPairwiseGapExtensionPenalty():
     """Return gap extension penalty used for pairwise alignment"""
+    
     return PAIRWISE_GAP_EXTENSION_PENALTY
+
 
 def setPairwiseGapExtensionPenalty(pairwise_gap_extension_penalty):
     """Set gap extension penalty used for pairwise alignment"""
+    
     if isinstance(pairwise_gap_extension_penalty, (float, int)) and pairwise_gap_extension_penalty <= 0:
         global PAIRWISE_GAP_EXTENSION_PENALTY
         PAIRWISE_GAP_EXTENSION_PENALTY = pairwise_gap_extension_penalty
     else:
         raise TypeError('pairwise_gap_extension_penalty must be a negative number or zero')
 
+
 def getPairwiseAlignmentMethod():
     """Return pairwise alignment method."""
+    
     return PAIRWISE_ALIGNMENT_METHOD
+
 
 def setPairwiseAlignmentMethod(method):
     """Set pairwise alignment method ("global" or "local")."""
+    
     if method in ('local', 'global'):
         global PAIRWISE_ALIGNMENT_METHOD
         PAIRWISE_ALIGNMENT_METHOD = method
     else:
         raise ValueError('method must be "local" or "global"')
+
 
 def getIntAsStr(lint, sep=' ', rng=' to '):
     """Return a structured string for a given list of ordered integers.
@@ -167,6 +189,7 @@ def getIntAsStr(lint, sep=' ', rng=' to '):
         [1, 2, 3, 4, 10, 15, 16, 17] -> "1-4,10,15-17"
     
     """
+    
     strint = ''
     i = -1
     for j in lint:
@@ -186,6 +209,7 @@ def getIntAsStr(lint, sep=' ', rng=' to '):
     elif diff > 1 and k != j: 
         strint += rng + str(i) + sep + str(j)
     return strint
+
 
 def matchChains(atoms1, atoms2, **kwargs):
     """Returns pairs of polypeptide chains sharing sequence identity.
@@ -223,7 +247,8 @@ def matchChains(atoms1, atoms2, **kwargs):
     :type atoms2: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
                  or :class:`~prody.atomic.Selection`
     
-    :keyword subset: "calpha", "backbone", or "all", default is "calpha"  
+    :keyword subset: "calpha" (or "ca"), "backbone" (or "bb"), or "all", 
+        default is "calpha"
     :type subset: string
     
     :keyword seqid: percent sequence identity, default is 90.
@@ -235,13 +260,20 @@ def matchChains(atoms1, atoms2, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
     
+    .. versionchanged:: 0.7
+       ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
+    
     """
+    
     if not isinstance(atoms1, (prody.AtomGroup, prody.Chain, prody.Selection)):
         raise TypeError('atoms1 must be an AtomGroup, Chain, or Selection')
     if not isinstance(atoms2, (prody.AtomGroup, prody.Chain, prody.Selection)):
         raise TypeError('atoms2 must be an AtomGroup, Chain, or Selection')
     
-    subset = kwargs.get('subset', 'calpha') 
+    subset = kwargs.get('subset', 'calpha')
+    if subset not in _SUBSETS:
+        raise ValueError('{0:s} is not a valid subset argument'
+            .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
     coverage  = kwargs.get('coverage', 90.)
     pwalign = kwargs.get('pwalign', None)
@@ -314,6 +346,12 @@ def matchChains(atoms1, atoms2, **kwargs):
                     LOGGER.debug('\tThese chains do not match.')
         else:
             LOGGER.warning('Pairwise alignment skipped (Biopython is not found).')
+    
+    if subset == 'calpha':
+        subset = 'ca' 
+    elif subset == 'backbone':
+        subset = 'bb' 
+        
     for mi, result in enumerate(matches):
         match1, match2, _seqid, _cover = result
         
@@ -324,7 +362,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             ares = match1[i]
             bres = match2[i]
 
-            if subset == 'calpha':
+            if subset == 'ca':
                 try:
                     aid = ares.getAtomNames().tolist().index('CA')
                 except ValueError:
@@ -336,7 +374,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                         indices2.append(bres._indices[bid])
                 except ValueError:
                     pass
-            elif subset == 'backbone':
+            elif subset == 'bb':
                 for bban in select.BACKBONE_ATOM_NAMES:
                     try:
                         aid = ares.getAtomNames().tolist().index(bban)
@@ -445,6 +483,8 @@ def _getAlignedMatch(ach, bch):
                     match += 1
     return amatch, bmatch, match
 
+_SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
+
 def mapOntoChain(atoms, chain, **kwargs):
     """Map *atoms* onto *chain*. 
     
@@ -475,7 +515,8 @@ def mapOntoChain(atoms, chain, **kwargs):
     :arg chain: chain to which atoms will be mapped
     :type chain: :class:`~prody.atomic.Chain`
     
-    :keyword subset: "calpha", "backbone", or "all", , default is "calpha"  
+    :keyword subset: "calpha" (or "ca"), "backbone" (or "bb"), or "all", 
+        default is "calpha"  
     :type subset: string
     
     :keyword seqid: percent sequence identity, default is 90.
@@ -487,6 +528,10 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
     
+    .. versionchanged:: 0.7
+       Mapping can be performed for backbone or all atoms.
+       ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
+    
     """
     target_chain = chain
     if not isinstance(atoms, (prody.AtomGroup, prody.Chain, prody.Selection)):
@@ -494,7 +539,10 @@ def mapOntoChain(atoms, chain, **kwargs):
     if not isinstance(target_chain, prody.Chain):
         raise TypeError('target_chain must be Chain instance')
         
-    subset = kwargs.get('subset', 'calpha') 
+    subset = str(kwargs.get('subset', 'calpha')).lower()
+    if subset not in _SUBSETS:
+        raise ValueError('{0:s} is not a valid subset argument'
+            .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
     coverage  = kwargs.get('coverage', 90.) 
     pwalign = kwargs.get('pwalign', None)
@@ -510,6 +558,10 @@ def mapOntoChain(atoms, chain, **kwargs):
         chains = list(atoms.getHierView().iterChains())
         LOGGER.debug('Evaluating "{0:s}": {1:d} chains are identified'
                      .format(str(atoms), len(chains)))
+    
+    if subset != 'all':
+        target_chain = target_chain.select(subset
+                                ).getHierView()[target_chain.getIdentifier()]
     
     mappings = []
     unmapped = []
@@ -569,7 +621,6 @@ def mapOntoChain(atoms, chain, **kwargs):
                 #    LOGGER.debug('\tThese two chains do not match.')
                 #    return None
     
-        
     for mi, result in enumerate(mappings):
         residues_target, residues_chain, _seqid, _cover = result
         indices_target = []
@@ -581,27 +632,19 @@ def mapOntoChain(atoms, chain, **kwargs):
             res_tar = residues_target[i]
             res_chn = residues_chain[i]
             
-            if subset == 'calpha':
-                try:
-                    ca_tar = res_tar.getAtom('CA')
-                    if res_chn is not None:
-                        try:
-                            ca = res_chn.getAtom('CA')
-                            indices_chain.append(ca.getIndex())
-                            indices_mapping.append(counter)
-                        except KeyError:
-                            indices_dummies.append(counter)
-                            pass
-                    else:
+            for atom_tar in res_tar:
+                indices_target.append(atom_tar.getIndex())
+                if res_chn is not None:
+                    try:
+                        atom_chn = res_chn.getAtom(atom_tar.getName())
+                        indices_chain.append(atom_chn.getIndex())
+                        indices_mapping.append(counter)
+                    except KeyError:
                         indices_dummies.append(counter)
-                    indices_target.append(ca_tar.getIndex())
-                    counter += 1
-                except KeyError:
-                    pass
-            elif subset == 'backbone':
-                pass
-            else:
-                pass
+                        pass
+                else:
+                    indices_dummies.append(counter)
+                counter += 1
         #n_atoms = len(indices_target)   
         atommap = AtomMap(map_ag, 
                           indices_chain,

@@ -6,6 +6,20 @@
 Changes
 *******************************************************************************
 
+In development
+===============================================================================
+
+**New Features**:
+
+  * :func:`~proteins.setWWPDBFTPServer` and :func:`~proteins.getWWPDBFTPServer` 
+    functions allow user to change or learn the WWPDB FTP server that ProDy 
+    uses to download PDB files. Default server is RCSB PDB in USA. 
+    User can change the default server to one in Europe or Japan.   
+
+**Changes**:
+
+  * :class:`RCSB_PDBFetcher` is renamed as :class:`~proteins.WWPDB_PDBFetcher`.
+
 Release 0.6 (Feb 22, 2011)
 ===============================================================================
 
