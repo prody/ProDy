@@ -24,6 +24,9 @@ import logging.handlers
 import os
 import os.path
 import cPickle
+import sys
+
+_PY3K = sys.version_info[0] > 2
 
 re = None
 def importRE():
@@ -294,6 +297,10 @@ __all__ += dynamics.__all__
 from . import ensemble
 from .ensemble import *
 __all__ += ensemble.__all__
+
+from . import volume
+from .volume import *
+__all__ += volume.__all__
 
 import prody
 
