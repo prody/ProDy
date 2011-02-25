@@ -30,11 +30,11 @@ How to Make a New Release
 
      $ make copytxt
 
-#. Make sure the :file:`README.txt` file is up to date.
-
-#. Make sure the :file:`MANIFEST` file is up to date.
-
-#. Make sure the :file:`setup.py` file is up to date.
+#. Make sure the following files are  file is up to date.
+    
+   * :file:`README.txt`
+   * :file:`MANIFEST`
+   * :file:`setup.py`
 
 #. Generate the source distributions::
 
