@@ -44,14 +44,14 @@ The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|).
 Perform ANM calculations and output the results in plain text, NMD, and 
 graphical formats.
 
-Usage:
+Usage
 -------------------------------------------------------------------------------
 
 Running :command:`anm.py -h` displays:
 
 .. literalinclude:: anm.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
 
 Running :command:`anm.py --examples` displays:
@@ -68,14 +68,14 @@ Perform GNM calculations and output the results in plain text and graphical
 formats. 
  
  
-Usage:
+Usage
 -------------------------------------------------------------------------------
 
 Running :command:`gnm.py -h` displays:
 
 .. literalinclude:: gnm.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
 
 Running :command:`gnm.py --examples` displays:
@@ -91,14 +91,14 @@ Running :command:`gnm.py --examples` displays:
 Perform PCA calculations and output the results in plain text, NMD formats,
 and graphical formats.
 
-Usage:
+Usage
 -------------------------------------------------------------------------------
 
 Running :command:`pca.py -h` displays:
 
 .. literalinclude:: pca.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
 
 Running :command:`pca.py --examples` displays:
@@ -113,14 +113,14 @@ Running :command:`pca.py --examples` displays:
 
 Align models in a PDB file.
 
-Usage:
+Usage
 -------------------------------------------------------------------------------
 
 Running :command:`alignmodels.py -h` displays:
 
 .. literalinclude:: alignmodels.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
 
 Running :command:`alignmodels.py --examples` displays:
@@ -136,14 +136,14 @@ Running :command:`alignmodels.py --examples` displays:
 Generate biomolecule structure using the transformation from the header 
 section of the PDB file.
  
-Usage:
+Usage
 -------------------------------------------------------------------------------
  
 Running :command:`biomolecule.py -h` displays:
 
 .. literalinclude:: biomolecule.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
  
 Running :command:`biomolecule.py --examples` displays:
@@ -158,14 +158,14 @@ Running :command:`biomolecule.py --examples` displays:
 Search Protein Data Bank for structures matching a user given sequence.
 
 
-Usage:
+Usage
 -------------------------------------------------------------------------------
 
 Running :command:`blastpdb.py -h` displays:
 
 .. literalinclude:: blastpdb.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
 
 Running :command:`blastpdb.py --examples` displays:
@@ -179,14 +179,14 @@ Running :command:`blastpdb.py --examples` displays:
 
 Download PDB for given identifiers.
  
-Usage:
+Usage
 -------------------------------------------------------------------------------
 
 Running :command:`fetchpdb.py -h` displays:
 
 .. literalinclude:: fetchpdb.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
 
 Running :command:`fetchpdb.py --examples` displays:
@@ -199,15 +199,15 @@ Running :command:`fetchpdb.py --examples` displays:
 ===============================================================================
 
 Extract a selection of atoms from a PDB file.
- 
-Usage:
+
+Usage
 -------------------------------------------------------------------------------
  
 Running :command:`pdbselect.py -h` displays:
 
 .. literalinclude:: pdbselect.txt
 
-Examples:
+Examples
 -------------------------------------------------------------------------------
  
 Running :command:`pdbselect.py --examples` displays:

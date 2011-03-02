@@ -15,14 +15,30 @@ Release 0.7 (In development)
     functions allow user to change or learn the WWPDB FTP server that ProDy 
     uses to download PDB files. Default server is RCSB PDB in USA. 
     User can change the default server to one in Europe or Japan.
+  * :func:`~proteins.setPDBMirrorPath` and :func:`~proteins.getPDBMirrorPath` 
+    functions allow user to specify or learn the path to a local PDB mirror.
+    When specified, a local PDB mirror is preferred for accessing PDB files,
+    over downloading them from FTP servers.
   * :func:`~compare.mapOntoChain` function is improved to map backbone or 
     all atoms.
+
+**Improvements**:
+
+  * :class:`~proteins.WWPDB_PDBFetcher` can download PDB files from different
+    WWPDB FTP servers.
+  * :class:`~proteins.WWPDB_PDBFetcher` can also local PDB mirrors for
+    accessing PDB files.
 
 **Changes**:
 
   * :class:`RCSB_PDBFetcher` is renamed as :class:`~proteins.WWPDB_PDBFetcher`.
   * :func:`~compare.mapOntoChain` and :func:`~compare.matchChains` functions
     accept ``"ca"`` and ``"bb"`` as *subset* arguments. 
+
+**Bugfixes**:
+
+  * A bug in :class:`~proteins.WWPDB_PDBFetcher` that threw exceptions when
+    non-string items passed in a list is fixed.
 
 Release 0.6 (Feb 22, 2011)
 ===============================================================================
