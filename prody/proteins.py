@@ -32,7 +32,9 @@ Functions
   * :func:`assignSecondaryStructure`
   * :func:`blastPDB`
   * :func:`fetchPDB`
+  * :func:`getPDBMirrorPath`
   * :func:`getWWPDBFTPServer`
+  * :func:`setPDBMirrorPath`
   * :func:`setWWPDBFTPServer` 
   * :func:`parsePDB`
   * :func:`parsePDBStream`
@@ -76,8 +78,9 @@ from prody.atomic import *
 __all__ = ['PDBBlastRecord', 'PDBFetcher', 'WWPDB_PDBFetcher', 
            'assignSecondaryStructure',
            'applyBiomolecularTransformations',
-           'blastPDB', 
-           'fetchPDB', 'getWWPDBFTPServer', 'setWWPDBFTPServer',
+           'blastPDB', 'fetchPDB', 
+           'getPDBMirrorPath', 'getWWPDBFTPServer', 
+           'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 
            'writePDBStream', 'writePDB',
            ]
@@ -134,6 +137,33 @@ WWPDB_FTP_SERVERS = {
     'jp'     : _WWPDB_PDBj,
 }
 
+def getPDBMirrorPath():
+    """Set the path to a local PDB mirror.
+    
+    .. versionadded:: 0.7
+    
+    """
+
+    return prody._ProDySettings.get('pdb_mirror_path')
+
+
+def setPDBMirrorPath(path):
+    """Return the path to a local PDB mirror.
+    
+    .. versionadded:: 0.7
+    
+    Returns ``None`` if a PDB local mirror path is not set.
+    
+    """
+    
+    path = str(path)
+    if os.path.isdir(path):
+        prody._ProDySettings['pdb_mirror_path'] = path
+        prody._saveProDySettings()
+    else:
+        LOGGER.warning('{0:s} is not a valid path.')
+
+
 def setWWPDBFTPServer(key):
     """Set the PDB FTP server used for downloading PDB structures when needed.
     
@@ -157,6 +187,8 @@ def setWWPDBFTPServer(key):
     if server is not None:
         prody._ProDySettings['wwpdb_ftp'] = server
         prody._saveProDySettings()
+    else:
+        LOGGER.warning('{0:s} is not a valid key.')
 
 def getWWPDBFTPServer():
     """Return a tuple containing name, host, and path of the currently 
@@ -180,22 +212,30 @@ class WWPDB_PDBFetcher(PDBFetcher):
     """A class to fetch PDB files from selected FTP server of RCSB.
     
     .. versionchanged:: 0.7
+       First tries to locate the PDB file in a local PDB mirror, if set by the 
+       user. Then downloads PDB files from user-set WWPDB FTP server. 
     
     """
     
     @staticmethod
     def fetch(pdb, folder='.'):
-        """Fetch pdb file(s) from WWPDB FTP servers.
-        
-        Downloads PDB files by establishing an FTP connection to the selected  
-        WWPDB FTP server (see :func:`setWWPDBFTPServer`).
+        """Return the path(s) to PDB file(s) for specified identifier(s).
 
-        Downloaded files will be saved in *folder*. FTP server provides 
-        gunzipped PDB files. If *folder* already contains a PDB file 
-        matching an identifier, a file will not be downloaded, but will be 
-        contained in the returned list.
-        
         *pdb* may be a list of PDB identifiers or an identifier string.
+        
+        If *folder* already contains a PDB file matching given identifier, a 
+        file will not be downloaded and the path to the existing file
+        will be returned.
+        
+        If a file matching the given PDB identifier is not found in *folder*,
+        the PDB file will be sought in the local PDB mirror, if a local
+        mirror is set by the user.
+        
+        Finally, if PDB file is not found in *folder* or local mirror,
+        it will be downloaded from the user-selected WWPDB FTP server.
+        User can set one of the WWPDB FTP servers using 
+        :func:`setWWPDBFTPServer`. Downloaded files will be saved in *folder*. 
+        FTP servers provides gunzipped PDB files. 
             
         """
         
@@ -226,11 +266,16 @@ class WWPDB_PDBFetcher(PDBFetcher):
         for pdbfn in glob(os.path.join(folder, '*.PDB*')):
             if os.path.splitext(pdbfn)[1] in _pdb_extensions:
                 pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-            
-
+                    
+        mirror_path = getPDBMirrorPath()
         for i, pdbid in enumerate(identifiers):
+            if not isinstance(pdbid, str):
+                LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
+                filenames.append(None)
+                failure += 1 
+                continue
             pdbid = pdbid.strip().lower()
-            if not (isinstance(pdbid, str) and len(pdbid) == 4 and pdbid.isalnum()):
+            if not (len(pdbid) == 4 and pdbid.isalnum()):
                 LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
                 filenames.append(None)
                 failure += 1 
@@ -243,10 +288,20 @@ class WWPDB_PDBFetcher(PDBFetcher):
             else:
                 fn = os.path.relpath(fn)
                 filenames.append(fn)
-                LOGGER.debug('{0:s} ({1:s}) is found in the target directory.'
+                LOGGER.debug('{0:s} ({1:s}) is found in the working directory.'
                              .format(pdbid, fn))
                 exists += 1
                 continue
+            if mirror_path is not None:
+                fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
+                        pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
+                if os.path.isfile(fn):
+                    filenames.append(fn)
+                    LOGGER.debug('{0:s} ({1:s}...{2:s}) is found in the local '
+                                'mirror.'.format(pdbid, 
+                                fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
+                    exists += 1
+                    continue
             filenames.append(pdbid)
             download = True
         if download:
