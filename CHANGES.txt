@@ -37,7 +37,7 @@ Release 0.7 (In development)
 
 **Bugfixes**:
 
-  * A bug in :class:`~proteins.WWPDB_PDBFetcher` that threw exceptions when
+  * A bug in :class:`~proteins.WWPDB_PDBFetcher` causing exceptions when
     non-string items passed in a list is fixed.
 
 Release 0.6 (Feb 22, 2011)

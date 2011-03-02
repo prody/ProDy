@@ -38,7 +38,7 @@ The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|).
 .. _scripts-anm:
 
 
-:file:`anm.py`
+anm.py
 ===============================================================================
 
 Perform ANM calculations and output the results in plain text, NMD, and 
@@ -61,7 +61,7 @@ Running :command:`anm.py --examples` displays:
 
 .. _scripts-gnm:
 
-:file:`gnm.py`
+gnm.py
 ===============================================================================
 
 Perform GNM calculations and output the results in plain text and graphical 
@@ -85,7 +85,7 @@ Running :command:`gnm.py --examples` displays:
 
 .. _scripts-pca:
 
-:file:`pca.py`
+pca.py
 ===============================================================================
 
 Perform PCA calculations and output the results in plain text, NMD formats,
@@ -108,7 +108,7 @@ Running :command:`pca.py --examples` displays:
 
 .. _scripts-alignmodels:
 
-:file:`alignmodels.py`
+alignmodels.py
 ===============================================================================
 
 Align models in a PDB file.
@@ -130,7 +130,7 @@ Running :command:`alignmodels.py --examples` displays:
 
 .. _scripts-biomolecule:
 
-:file:`biomolecule.py`
+biomolecule.py
 ===============================================================================
  
 Generate biomolecule structure using the transformation from the header 
@@ -152,7 +152,7 @@ Running :command:`biomolecule.py --examples` displays:
 
 .. _scripts-blastpdb:
 
-:file:`blastpdb.py`
+blastpdb.py
 ===============================================================================
 
 Search Protein Data Bank for structures matching a user given sequence.
@@ -174,7 +174,7 @@ Running :command:`blastpdb.py --examples` displays:
 
 .. _scripts-fetchpdb:
 
-:file:`fetchpdb.py`
+fetchpdb.py
 ===============================================================================
 
 Download PDB for given identifiers.
@@ -195,7 +195,7 @@ Running :command:`fetchpdb.py --examples` displays:
 
 .. _scripts-pdbselect:
 
-:file:`pdbselect.py`
+pdbselect.py
 ===============================================================================
 
 Extract a selection of atoms from a PDB file.
