@@ -79,7 +79,7 @@ Parser can be used to parse backbone or Cα atoms:
 
 >>> backbone = parsePDB('1mkp', subset='bb')
 >>> backbone
-<AtomGroup: 1mkp (616 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1mkp (576 atoms; 1 coordinate sets, active set index: 0)>
 >>> calpha = parsePDB('1mkp', subset='ca')
 >>> calpha
 <AtomGroup: 1mkp (144 atoms; 1 coordinate sets, active set index: 0)>

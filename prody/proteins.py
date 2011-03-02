@@ -432,15 +432,15 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
             raise PDBParserError('{0:s} is not a valid filename or a valid '
                                'PDB identifier.'.format(pdb))
     
+    if name is None:
+        fn, ext = os.path.splitext(os.path.split(pdb)[1])
+        if ext == '.gz':
+            fn, ext = os.path.splitext(fn)
+        name = fn.lower()
     if pdb.endswith('.gz'):
         pdb = gzip.open(pdb)
     else:
         pdb = open(pdb)
-    if name is None:
-        fn, ext = os.path.splitext(os.path.split(pdb)[1])
-        if ext == '.gz':
-            fn, ext = os.path.splitext(name)
-        name = name.lower()
     result = parsePDBStream(pdb, model, header, chain, subset, altloc, name)
     pdb.close()
     return result
