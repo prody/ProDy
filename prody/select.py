@@ -163,7 +163,8 @@ for field in ATOMIC_DATA_FIELDS.values():
 BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O')) 
 PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
         'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
-        'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP'))
+        'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
+        'GLX', 'ASX', 'SEC', 'PYL', 'XLE'))
                           #, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
 WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))
 NUCLEIC_RESIDUE_NAMES = set(('GUA', 'ADE', 'CYT', 'THY', 'URA', 

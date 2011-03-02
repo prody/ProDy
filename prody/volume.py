@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines class and methods and for calculating comparing coordinate 
-data and measuring quantities.
+"""This module defines classes and methods for parsing volumetric data.
 
-.. versionadded:: 0.7
+.. versionadded:: 0.6.1
 
 Classes
 -------
@@ -53,7 +52,7 @@ class Volume(object):
     
     """
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     """
     
@@ -197,7 +196,7 @@ class Volume(object):
 def parseDX(filename):
     """Parse volume data from OpenDX files.
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     """
 
@@ -254,7 +253,7 @@ def parseDX(filename):
 def writeDX(filename, volume):
     """Write volume data in Open DX format.
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     """
     

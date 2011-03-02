@@ -140,7 +140,7 @@ WWPDB_FTP_SERVERS = {
 def getPDBMirrorPath():
     """Set the path to a local PDB mirror.
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     """
 
@@ -150,7 +150,7 @@ def getPDBMirrorPath():
 def setPDBMirrorPath(path):
     """Return the path to a local PDB mirror.
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     Returns ``None`` if a PDB local mirror path is not set.
     
@@ -161,13 +161,13 @@ def setPDBMirrorPath(path):
         prody._ProDySettings['pdb_mirror_path'] = path
         prody._saveProDySettings()
     else:
-        LOGGER.warning('{0:s} is not a valid path.')
+        LOGGER.warning('{0:s} is not a valid path.'.format(path))
 
 
 def setWWPDBFTPServer(key):
     """Set the PDB FTP server used for downloading PDB structures when needed.
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     Use one of the following keywords for setting a different server.
     
@@ -188,13 +188,13 @@ def setWWPDBFTPServer(key):
         prody._ProDySettings['wwpdb_ftp'] = server
         prody._saveProDySettings()
     else:
-        LOGGER.warning('{0:s} is not a valid key.')
+        LOGGER.warning('{0:s} is not a valid key.'.format(key))
 
 def getWWPDBFTPServer():
     """Return a tuple containing name, host, and path of the currently 
     set WWPDB FTP server.
     
-    .. versionadded:: 0.7
+    .. versionadded:: 0.6.1
     
     """
     
@@ -211,9 +211,9 @@ def getWWPDBFTPServer():
 class WWPDB_PDBFetcher(PDBFetcher):
     """A class to fetch PDB files from selected FTP server of RCSB.
     
-    .. versionchanged:: 0.7
+    .. versionchanged:: 0.6.1
        First tries to locate the PDB file in a local PDB mirror, if set by the 
-       user. Then downloads PDB files from user-set WWPDB FTP server. 
+       user. Then downloads PDB files from the user-set WWPDB FTP server. 
     
     """
     
@@ -422,6 +422,7 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
     """
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
+            name = pdb.lower()
             filename = fetchPDB(pdb)
             if filename is None:
                 raise PDBParserError('PDB file for {0:s} could not be '
@@ -430,14 +431,18 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
         else:
             raise PDBParserError('{0:s} is not a valid filename or a valid '
                                'PDB identifier.'.format(pdb))
-    name, temp = os.path.splitext(os.path.split(pdb)[1])
-    if temp == '.gz':
-        name, temp = os.path.splitext(name)
+    
+    if pdb.endswith('.gz'):
         pdb = gzip.open(pdb)
     else:
         pdb = open(pdb)
-    name = name.lower()
+    if name is None:
+        fn, ext = os.path.splitext(os.path.split(pdb)[1])
+        if ext == '.gz':
+            fn, ext = os.path.splitext(name)
+        name = name.lower()
     result = parsePDBStream(pdb, model, header, chain, subset, altloc, name)
+    pdb.close()
     return result
 
 parsePDB.__doc__ += _parsePDBdoc
@@ -527,7 +532,8 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         elif subset in ('backbone', 'bb'):
             subset = set(('CA', 'C', 'N', 'O'))
         only_subset = True
-    else:    
+        protein_resnames = set(prody.getProteinResidueNames())
+    else:
         only_subset = False
     if isinstance(chain, str):
         only_chains = True
@@ -571,8 +577,9 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         
         if startswith == 'ATOM  ' or startswith == 'HETATM':
             atomname = line[12:16].strip()
+            resname = line[17:21].strip()
             if only_subset:
-                if not atomname in subset: 
+                if not (atomname in subset and resname in protein_resnames): 
                     i += 1
                     continue
             chid = line[21]
@@ -611,7 +618,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
             atomnames[acount] = atomname
             
             # resname = line[17:21], but some are 4 chars long
-            resnames[acount] = line[17:21].strip()
+            resnames[acount] = resname
             chainids[acount] = chid
             resnums[acount] = int(line[22:26].split()[0])
             icodes[acount] = line[26].strip()
