@@ -277,7 +277,7 @@ Keyword Definitions
    protein
         Group of atoms whose residue names match 3-letter standard and 
         some non-standard amino acid abbreviations. List of residue names
-        in the default definition is:
+        in the standard definition is:
         ALA, ARG, ASN, ASP, CYS, GLN, GLU, GLY, HIS, ILE, 
         LEU, LYS, MET, PHE, PRO, SER, THR, TRP, TYR, VAL, 
         or HSD, HSE, HSP.

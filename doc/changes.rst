@@ -33,7 +33,9 @@ Release 0.6.1 (Mar 2, 2011)
 
   * :class:`RCSB_PDBFetcher` is renamed as :class:`~proteins.WWPDB_PDBFetcher`.
   * :func:`~compare.mapOntoChain` and :func:`~compare.matchChains` functions
-    accept ``"ca"`` and ``"bb"`` as *subset* arguments. 
+    accept ``"ca"`` and ``"bb"`` as *subset* arguments.
+  * Definition of selection keyword :term:`protein` is updated to include
+    some non-standard amino acid abbreviations. 
 
 **Bugfixes**:
 
