@@ -282,6 +282,11 @@ Keyword Definitions
         LEU, LYS, MET, PHE, PRO, SER, THR, TRP, TYR, VAL, 
         or HSD, HSE, HSP.
         
+        .. versionchanged:: 0.6.1
+           ASX (asparagine or aspartic acid), GLX (lutamine or glutamic acid),
+           XLE (leucine or isoleucine), SEC (selenocysteine), and PYL
+           (pyrrolysine) has been added to the standard definition.
+           
         Note that this list of residue names can be changed using
         :func:`setProteinResidueNames` method.
         

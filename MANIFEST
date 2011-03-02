@@ -18,6 +18,7 @@ prody/proteins.py
 prody/pyparsing.py
 prody/routines.py
 prody/select.py
+prody/volume.py
 prody/KDTree/__init__.py
 prody/KDTree/KDTree.c
 prody/KDTree/KDTree.h

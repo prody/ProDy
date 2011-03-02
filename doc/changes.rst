@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.7 (In development)
+Release 0.6.1 (Mar 2, 2011)
 ===============================================================================
 
 **New Features**:
@@ -26,7 +26,7 @@ Release 0.7 (In development)
 
   * :class:`~proteins.WWPDB_PDBFetcher` can download PDB files from different
     WWPDB FTP servers.
-  * :class:`~proteins.WWPDB_PDBFetcher` can also local PDB mirrors for
+  * :class:`~proteins.WWPDB_PDBFetcher` can also use local PDB mirrors for
     accessing PDB files.
 
 **Changes**:
@@ -39,6 +39,10 @@ Release 0.7 (In development)
 
   * A bug in :class:`~proteins.WWPDB_PDBFetcher` causing exceptions when
     non-string items passed in a list is fixed.
+  * An important bug in :func:`~proteins.parsePDB` is fixed. When parsing
+    backbone or Cα atoms, residue names were not checked and this caused
+    parsing water atoms with name ``"O"`` or calcium ions with name ``"CA"``.
+    
 
 Release 0.6 (Feb 22, 2011)
 ===============================================================================
