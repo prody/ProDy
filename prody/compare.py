@@ -78,7 +78,8 @@ NONE_A = '_'
 _aaa2a = {
 'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q', 'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 
 'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V',
-'HSD': 'H', 'HSP': 'H', 'HSE': 'H'
+'HSD': 'H', 'HSP': 'H', 'HSE': 'H',
+'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J'
 }
 
 _a2aaa = {
@@ -260,7 +261,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
     
-    .. versionchanged:: 0.7
+    .. versionchanged:: 0.6.1
        ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
     
     """
@@ -528,7 +529,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
     
-    .. versionchanged:: 0.7
+    .. versionchanged:: 0.6.1
        Mapping can be performed for backbone or all atoms.
        ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
     

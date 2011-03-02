@@ -190,7 +190,7 @@ def startLogfile(filename, **kwargs):
         logfile.setFormatter(logging.Formatter('%(message)s'))
         logger.addHandler(logfile)
         if rollover:
-            logger.info('Backing up existing logfile "{0:s}" and starting a new one.'
+            logger.info('Saving existing logfile "{0:s}" and starting a new one.'
                          .format(filename))
             logfile.doRollover()
         else:
