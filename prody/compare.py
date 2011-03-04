@@ -87,7 +87,7 @@ _a2aaa = {
 'L': 'LEU', 'K': 'LYS', 'M': 'MET', 'F': 'PHE', 'P': 'PRO', 'S': 'SER', 'T': 'THR', 'W': 'TRP', 'Y': 'TYR', 'V': 'VAL'
 }
 
-def _getSequence(resnames):
+def getSequence(resnames):
     """Return sequence of 1-letter codes for a given list of 3-letter amino acid 
     codes."""
     
@@ -211,58 +211,207 @@ def getIntAsStr(lint, sep=' ', rng=' to '):
         strint += rng + str(i) + sep + str(j)
     return strint
 
+class SimpleResidue(object):
+    
+    __slots__ = ['_res', '_name', '_num', '_inc']
+    
+    def __init__(self, number, name, insertioncode='', residue=None):
+        self._num = number
+        self._name = name
+        self._inc = insertioncode
+        self._res = residue
+        
+    def __repr__(self):
+        return '<SimpleResidue: {0:s}{1:d}>'.format(self._name, self._num)
+        
+    def getResidue(self):
+        return self._res
+    
+    def getNumber(self):
+        return self._num
+    
+    def getInsertionCode(self):
+        return self._inc
+
+    def getName(self):
+        return self._name
+
+
+class SimpleChain(object):
+    
+    """An internal class used to compare two polypeptide chains.
+
+
+    SimpleChain instances can be indexed using residue numbers. If a residue
+    with given number is not found in the chain, ``None`` is returned.    
+    
+    """
+    
+    __slots__ = ['_list', '_seq', '_name', '_dict', '_gaps']
+    
+    def __init__(self, chain=None, allow_gaps=False):
+        """Initialize SimpleChain with a chain id and a sequence (available).
+        
+        :arg chain: chain instance or single-letter amino acid sequence  
+        :type chain: :class:`~prody.atomic.Chain` or str
+        
+        :arg allow_gaps: allow gaps in the sequence of simple chain instance, 
+            default is False  
+        :type allow_gaps: bool
+        
+        """
+        
+        self._dict = dict()
+        self._list = list()
+        self._seq = ''
+        self._name = None
+        self._gaps = allow_gaps
+        if isinstance(chain, prody.Chain): 
+            self.buildFromChain(chain)
+        elif isinstance(chain, str):
+            self.buildFromSequence(chain)
+    def __len__(self):
+        return len(self._list)
+    
+    def __iter__(self):
+        return self._list.__iter__()
+    
+    def __repr__(self):
+        return '<SimpleChain: {0:s} with {1:d} residues>'.format(
+                    self._name, len(self._list))
+
+    def __str__(self):
+        return '{0:s} with {1:d} residues'.format( self._name, len(self._list))
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            self._dict.get((index, ''))
+        return self._dict.get(index)
+    
+    def getSequence(self):
+        return self._seq
+    
+    def getName(self):
+        return self._name
+    
+    def buildFromSequence(self, sequence, resnums=None):        
+        """Build from amino acid sequence.
+        
+        "-" or "." are acceptable amino acid types and are treated as gaps.
+
+        :arg sequence: sequence of single letter amino acid codes 
+        :type sequence: str
+        :arg resnums: residue numbers corresponding the sequence
+        :type resnums: a list of numbers, or a string representation of numbers
+        
+        Examples of *resnums* are:
+            
+            * 1:200 250:300
+            
+        """
+        assert isinstance(sequence, str), 'sequence must be string'
+        assert sequence.isalpha(), 'sequence must be all alpha'
+
+        if resnums is None:
+            resnums = range(1, len(sequence)+1)
+        resid = 0
+        gaps = self._gaps
+        for i, aa in enumerate(sequence):
+            if gaps and aa in GAPCHARS:
+                self._seq += NONE_A
+            else:
+                resid = resnums[i]
+                simpres = SimpleResidue(resid, aa)
+                self._list.append(simpres)
+                self._dict[resid] = simpres 
+                self._seq += aa
+    
+    def buildFromChain(self, chain):
+        """Build from a :class:`prody.atomic.Chain`."""
+        
+        assert isinstance(chain, prody.Chain), 'chain must be a Chain instance'
+        gaps = self._gaps
+        residues = list(chain.iterResidues())
+        temp = residues[0].getNumber()-1
+        protein_resnames = set(prody.getProteinResidueNames())
+        for res in chain:
+            if not res.getName() in protein_resnames:
+                continue
+            resid = res.getNumber()
+            incod = res.getInsertionCode()
+            aa = _aaa2a.get(res.getName(), 'X')
+            simpres = SimpleResidue(resid, aa, incod, res)
+            if gaps:
+                diff = resid - temp - 1
+                if diff > 0:
+                    self._seq += NONE_A * diff
+                temp = resid
+            self._seq += aa
+            self._list.append(simpres)
+            self._dict[(resid, incod)] = simpres
+        self._name = 'Chain {0:s} from {1:s}'.format(chain.getIdentifier(),
+                                             chain.getAtomGroup().getName())
+
+
+_SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
 
 def matchChains(atoms1, atoms2, **kwargs):
-    """Returns pairs of polypeptide chains sharing sequence identity.
+    """Returns pairs of chains matched based on sequence similarity.
     
-    Makes an all-to-all comparison of chains in *atoms1* and *atoms2*.
+    Makes an all-to-all comparison of chains in *atoms1* and *atoms2*. Chains
+    are obtained from hierarchical views (:class:`~prody.atomic.HierView`) of 
+    atom groups.  
     
     This function returns a list of matches. Each match is a tuple
     that contains 4 items:
 
-      * Matched chain from *atoms1* as a :class:`~prody.atomic.AtomMap` instance, 
-      * Matched chain from *atoms2* as a :class:`~prody.atomic.AtomMap` instance,
-      * Percent sequence identitity of the match,
-      * Percent sequence coverage of the match.
+      * Matching chain from *atoms1* as a :class:`~prody.atomic.AtomMap` 
+        instance, 
+      * Matching chain from *atoms2* as a :class:`~prody.atomic.AtomMap` 
+        instance,
+      * Percent sequence identity of the match,
+      * Percent sequence overlap of the match.
     
     List of matches are sorted in decreasing percent sequence identity order. 
-    AtomMap can be used to calculate RMSD values and superpose atom groups.
+    AtomMap instances can be used to calculate RMSD values and superpose atom 
+    groups.
     
-    If *subset* is set to *calpha* or *backbone*, only alpha carbon
-    atoms or backbone atoms will be paired. If set to *all*, all atoms
-    common to matched residues will be returned.
+    :arg atoms1: atoms that contain a chain
+    :type atoms1: :class:`~prody.atomic.Chain`, 
+        :class:`~prody.atomic.AtomGroup`, or :class:`~prody.atomic.Selection`
     
-    This function tries to match chains based on residue numbers and types. 
-    All chains in *atoms1* is compared to all *chains* in *atoms2*. 
-    This works well for different structures of the same
-    protein. When it fails, :mod:`Bio.pairwise2` is used for sequence
-    alignment, and matching is based on the sequence alignment.
-    User can control, whether sequence alignment is performed or not with
-    *pwalign* keyword. 
+    :arg atoms2: atoms that contain a chain
+    :type atoms2: :class:`~prody.atomic.Chain`, 
+        :class:`~prody.atomic.AtomGroup`, or :class:`~prody.atomic.Selection`
     
-    :arg atoms1: atoms that will be mapped to the target *chain*
-    :type atoms1: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
-                 or :class:`~prody.atomic.Selection`
-    
-    :arg atoms2: chain to which atoms will be mapped
-    :type atoms2: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
-                 or :class:`~prody.atomic.Selection`
-    
-    :keyword subset: "calpha" (or "ca"), "backbone" (or "bb"), or "all", 
-        default is "calpha"
+    :keyword subset: ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``), 
+        or ``"all"``, default is ``"calpha"``
     :type subset: string
     
     :keyword seqid: percent sequence identity, default is 90.
     :type seqid: float
 
-    :keyword coverage: percent coverage, default is 90.
-    :type coverage: float
+    :keyword overlap: percent overlap, default is 90.
+    :type overlap: float
 
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
+
+    If *subset* is set to *calpha* or *backbone*, only alpha carbon
+    atoms or backbone atoms will be paired. If set to *all*, all atoms
+    common to matched residues will be returned.
     
     .. versionchanged:: 0.6.1
-       ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
+       ``"ca"`` and and ``"bb"`` are accepted as *subset* argument. 
+    
+    This function tries to match chains based on residue numbers and names. 
+    All chains in *atoms1* is compared to all chains in *atoms2*. 
+    This works well for different structures of the same
+    protein. When it fails, :mod:`Bio.pairwise2` is used for pairwise sequence
+    alignment, and matching is performed based on the sequence alignment.
+    User can control, whether sequence alignment is performed or not with
+    *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is 
+    enforced.
     
     """
     
@@ -274,56 +423,64 @@ def matchChains(atoms1, atoms2, **kwargs):
     subset = kwargs.get('subset', 'calpha')
     if subset not in _SUBSETS:
         raise ValueError('{0:s} is not a valid subset argument'
-            .format(str(subset)))
+                         .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
-    coverage  = kwargs.get('coverage', 90.)
+    assert isinstance(seqid, float), 'seqid must be float'
+    coverage = kwargs.get('overlap')
+    if coverage is None:
+        coverage = kwargs.get('coverage', 90.)
+    assert isinstance(coverage, float), 'overlap must be float'
     pwalign = kwargs.get('pwalign', None)
     
     if isinstance(atoms1, prody.Chain):
-        simpch = SimpleChain()
-        simpch.buildFromChain(atoms1)
-        chains1 = [simpch]
+        chains1 = [atoms1]
         atoms1 = atoms1.getAtomGroup()
     else:
-        chains1 = list()
-        for ch in atoms1.getHierView().iterChains():
-            simpch = SimpleChain()
-            simpch.buildFromChain(ch)
-            if len(simpch) > 0:
-                chains1.append(simpch)
+        chains1 = list(atoms1.getHierView().iterChains())
         if not isinstance(atoms1, prody.AtomGroup):
             atoms1 = atoms1.getAtomGroup()
-        LOGGER.debug('Checking {0:s}: {1:d} chains are identified'.format(str(atoms1), len(chains1)))
+    chains = list()
+    for ch in chains1:
+        simpch = SimpleChain(ch)
+        if len(simpch) > 0:
+            chains.append(simpch)
+    chains1 = chains
+    if not isinstance(atoms1, prody.Chain):
+        LOGGER.debug('Checking {0:s}: {1:d} chains are identified'
+                     .format(str(atoms1), len(chains1)))
+        
     if isinstance(atoms2, prody.Chain):
-        simpch = SimpleChain()
-        simpch.buildFromChain(atoms2)
-        chains2 = [simpch]
+        chains2 = [atoms2]
         atoms2 = atoms2.getAtomGroup()
     else:
-        chains2 = list()
-        for ch in atoms2.getHierView().iterChains():
-            simpch = SimpleChain()
-            simpch.buildFromChain(ch)
-            if len(simpch) > 0:
-                chains2.append(simpch)
+        chains2 = list(atoms2.getHierView().iterChains())
         if not isinstance(atoms2, prody.AtomGroup):
             atoms2 = atoms2.getAtomGroup()
-        LOGGER.debug('Checking {0:s}: {1:d} chains are identified'.format(str(atoms2), len(chains2)))
-    
+    chains = list()
+    for ch in chains2:
+        simpch = SimpleChain(ch)
+        if len(simpch) > 0:
+            chains.append(simpch)
+    chains2 = chains
+    if not isinstance(atoms2, prody.Chain):
+        LOGGER.debug('Checking {0:s}: {1:d} chains are identified'
+                     .format(str(atoms2), len(chains2)))
+
     matches = []
     unmatched = []
     LOGGER.debug('Trying to match chains based on residue numbers and identities:')
     for simpch1 in chains1:
         for simpch2 in chains2:
             LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} (len={3:d}):'
-                        .format(simpch1.getName(), len(simpch1), simpch2.getName(), len(simpch2)))
+                         .format(simpch1.getName(), len(simpch1), 
+                                 simpch2.getName(), len(simpch2)))
             
-            match1, match2, nmatches = _getTrivialMatch(simpch1, simpch2)
+            match1, match2, nmatches = getTrivialMatch(simpch1, simpch2)
             _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
             _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
 
             if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage.'
+                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% overlap.'
                             .format(len(match1), _seqid, _cover))
                 matches.append((match1, match2, _seqid, _cover))
             else:
@@ -331,28 +488,36 @@ def matchChains(atoms1, atoms2, **kwargs):
                 unmatched.append((simpch1, simpch2))
 
 
-    if (not matches and (pwalign is None or pwalign)) or pwalign: 
+    if pwalign or (not matches and (pwalign is None or pwalign)): 
         if pairwise2 is None: prody.importBioPairwise2()
         if pairwise2:
+            LOGGER.debug('Trying to match chains based on {0:s} sequence '
+                         'alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
             for simpch1, simpch2 in unmatched:
-                LOGGER.debug('Trying to match chains based on {0:s} sequence alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
-                match1, match2, nmatches = _getAlignedMatch(simpch1, simpch2)
+                LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} '
+                             '(len={3:d}):'
+                             .format(simpch1.getName(), len(simpch1), 
+                                     simpch2.getName(), len(simpch2)))
+                match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
                 _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
                 _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
                 if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage.'
-                                .format(len(match1), _seqid, _cover))
+                    LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% '
+                                 'sequence identity and {2:.0f}% overlap.'
+                                 .format(len(match1), _seqid, _cover))
                     matches.append((match1, match2, _seqid, _cover))
                 else:
-                    LOGGER.debug('\tThese chains do not match.')
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                 'cover={1:.0f}%).'
+                                 .format(_seqid, _cover))
         else:
-            LOGGER.warning('Pairwise alignment skipped (Biopython is not found).')
-    
+            LOGGER.warning('Pairwise alignment could not be performed.')
+    if not matches:
+        return None
     if subset == 'calpha':
         subset = 'ca' 
     elif subset == 'backbone':
-        subset = 'bb' 
-        
+        subset = 'bb'
     for mi, result in enumerate(matches):
         match1, match2, _seqid, _cover = result
         
@@ -401,8 +566,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                         indices2.append(bid)
                     except ValueError:
                         pass
-                
-                
+
         indices1 = np.array(indices1)
         indices2 = np.array(indices2)
         lengh = len(indices1)
@@ -421,8 +585,8 @@ def matchChains(atoms1, atoms2, **kwargs):
         matches.sort(compare, reverse=True)
     return matches
 
-def _getTrivialMatch(ach, bch):
-    """Return lists of matching residues (match is based on residue number).
+def getTrivialMatch(ach, bch):
+    """Return lists of matching residues (match based on residue number).
     
     """
     #if not isinstance(ach, SimpleChain):
@@ -433,7 +597,7 @@ def _getTrivialMatch(ach, bch):
     bmatch = []
     match = 0.0
     for ares in ach:
-        bres = bch[ares.getNumber()]
+        bres = bch[(ares.getNumber(), ares.getInsertionCode())]
         if bres is not None:
             if ares.getName() == bres.getName():
                 match += 1
@@ -442,10 +606,11 @@ def _getTrivialMatch(ach, bch):
     
     return amatch, bmatch, match
     
-def _getAlignedMatch(ach, bch):
+def getAlignedMatch(ach, bch):
     """Return list of matching residues (match is based on sequence alignment).
     
     """
+    
     if pairwise2 is None: prody.importBioPairwise2()
     if not pairwise2: return None
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
@@ -484,30 +649,20 @@ def _getAlignedMatch(ach, bch):
                     match += 1
     return amatch, bmatch, match
 
-_SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
-
 def mapOntoChain(atoms, chain, **kwargs):
     """Map *atoms* onto *chain*. 
     
     This function returns a list of mappings. Each mapping is a tuple
     that contains 4 items:
 
-      * Mapped chain as a :class:`~prody.atomic.AtomMap` instance, 
-      * *chain* as it is
+      * Mapped chain as an :class:`~prody.atomic.AtomMap` instance, 
+      * *chain* as an :class:`~prody.atomic.AtomMap` instance,
       * Percent sequence identitity,
-      * Percent sequence coverage)
+      * Percent sequence overlap
          
     Mappings are returned in decreasing percent sequence identity order.
     AtomMap that keeps mapped atom indices contains dummy atoms in place of 
     unmapped atoms.
-    
-    This function tries to map *atoms* to *chain* based on residue
-    numbers and types. Each individual chain in *atoms* is compared to
-    target *chain*. This works well for different structures of the same
-    protein. When it fails, :mod:`Bio.pairwise2` is used for sequence
-    alignment, and mapping is performed based on the sequence alignment.
-    User can control, whether sequence alignment is performed or not with
-    *pwalign* keyword. 
     
     :arg atoms: atoms that will be mapped to the target *chain*
     :type atoms: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
@@ -523,8 +678,8 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword seqid: percent sequence identity, default is 90.
     :type seqid: float
 
-    :keyword coverage: percent coverage, default is 90.
-    :type coverage: float
+    :keyword overlap: percent overlap, default is 90.
+    :type overlap: float
 
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
@@ -532,20 +687,33 @@ def mapOntoChain(atoms, chain, **kwargs):
     .. versionchanged:: 0.6.1
        Mapping can be performed for backbone or all atoms.
        ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
+
+    This function tries to map *atoms* to *chain* based on residue
+    numbers and types. Each individual chain in *atoms* is compared to
+    target *chain*. This works well for different structures of the same
+    protein. When it fails, :mod:`Bio.pairwise2` is used for sequence
+    alignment, and mapping is performed based on the sequence alignment.
+    User can control, whether sequence alignment is performed or not with
+    *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is 
+    enforced.
     
     """
+    
     target_chain = chain
     if not isinstance(atoms, (prody.AtomGroup, prody.Chain, prody.Selection)):
-        raise TypeError('atoms must be an AtomGroup, a Chain, or a Selection instance')
+        raise TypeError('atoms must be an AtomGroup, a Chain, or a '
+                        'Selection instance')
     if not isinstance(target_chain, prody.Chain):
-        raise TypeError('target_chain must be Chain instance')
+        raise TypeError('chain must be Chain instance')
         
     subset = str(kwargs.get('subset', 'calpha')).lower()
     if subset not in _SUBSETS:
         raise ValueError('{0:s} is not a valid subset argument'
-            .format(str(subset)))
+                         .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
-    coverage  = kwargs.get('coverage', 90.) 
+    coverage = kwargs.get('overlap')
+    if coverage is None:
+        coverage = kwargs.get('coverage', 90.)
     pwalign = kwargs.get('pwalign', None)
     
     if isinstance(atoms, prody.Chain):
@@ -566,61 +734,68 @@ def mapOntoChain(atoms, chain, **kwargs):
     
     mappings = []
     unmapped = []
-    target_ag = target_chain._ag
-    simple_target = SimpleChain(True)
-    simple_target.buildFromChain(target_chain)
-    LOGGER.debug('Trying to map atoms based on residue numbers and identities:')
+    target_ag = target_chain.getAtomGroup()
+    simple_target = SimpleChain(target_chain, True)
+    LOGGER.debug('Trying to map atoms based on residue numbers and '
+                 'identities:')
     for chain in chains:
         simple_chain = SimpleChain(True)
         simple_chain.buildFromChain(chain)
         if len(simple_chain) == 0:
-            LOGGER.debug('  Skipping {0:s}, which does not contain any amino acid residues.'
-                         .format(simple_chain))
+            LOGGER.debug('  Skipping {0:s}, which does not contain any amino '
+                         'acid residues.'.format(simple_chain))
             continue
+        LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
+                     .format(simple_chain.getName(), len(simple_chain), 
+                             simple_target.getName()))
         
-        LOGGER.debug('  Comparing {0:s} (len={2:d}) with {1:s}:'.format(
-                     simple_chain.getName(), simple_target.getName(), len(simple_chain)))
-        
-        target_list, chain_list, n_match, n_mapped = _getTrivialMapping(simple_target, simple_chain)
+        target_list, chain_list, n_match, n_mapped = getTrivialMapping(
+                                                simple_target, simple_chain)
         if n_mapped > 0:
             _seqid = n_match * 100 / n_mapped
-            #_cover = n_mapped * 100 / len(simple_target)
             _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
         else:
             _seqid = 0
             _cover = 0
         
         if _seqid >= seqid and _cover >= coverage:
-            LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}% sequence identity '
-                         'and {2:.0f}% coverage.'.format(n_mapped, _seqid, _cover))
+            LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}% '
+                         'sequence identity and {2:.0f}% overlap.'
+                         .format(n_mapped, _seqid, _cover))
             mappings.append((target_list, chain_list, _seqid, _cover))
         else:
-            LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'.format(_seqid, _cover))
+            LOGGER.debug('\tFailed to match chains based on residue numbers '
+                         '(seqid={0:.0f}%, cover={1:.0f}%).'
+                        .format(_seqid, _cover))
             unmapped.append(simple_chain)
 
 
-    if (not mappings and (pwalign is None or pwalign)) or pwalign: 
-        LOGGER.debug('Trying to map atoms based on {0:s} sequence alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
+    if pwalign or (not mappings and (pwalign is None or pwalign)): 
+        LOGGER.debug('Trying to map atoms based on {0:s} sequence alignment:'
+                     .format(PAIRWISE_ALIGNMENT_METHOD))
         for simple_chain in unmapped:
-            LOGGER.debug('  Comparing {0:s} (len={2:d}) with {1:s}:'.format(
-                         simple_chain.getName(), simple_target.getName(), len(simple_chain)))
-            result = _getAlignedMapping(simple_target, simple_chain)
+            LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
+                         .format(simple_chain.getName(), len(simple_chain), 
+                                 simple_target.getName()))
+            result = getAlignedMapping(simple_target, simple_chain)
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
                 if n_mapped > 0:
                     _seqid = n_match * 100 / n_mapped
-                    #_cover = n_mapped * 100 / len(simple_target)
-                    _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
+                    _cover = n_mapped * 100 / max(len(simple_target), 
+                                                  len(simple_chain))
                 else:
                     _seqid = 0
                     _cover = 0
                 if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage.'
-                                .format(n_mapped, _seqid, _cover))
+                    LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}%'
+                                 ' sequence identity and {2:.0f}% overlap.'
+                                 .format(n_mapped, _seqid, _cover))
                     mappings.append((target_list, chain_list, _seqid, _cover))
-                #else:
-                #    LOGGER.debug('\tThese two chains do not match.')
-                #    return None
+                else:
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                 'cover={1:.0f}%).'
+                                 .format(_seqid, _cover))
     
     for mi, result in enumerate(mappings):
         residues_target, residues_chain, _seqid, _cover = result
@@ -651,14 +826,16 @@ def mapOntoChain(atoms, chain, **kwargs):
                           indices_chain,
                           indices_mapping,
                           indices_dummies,
-                          simple_chain.getName() + ' -> ' + simple_target.getName(),
+                          simple_chain.getName() + ' -> ' + 
+                                                    simple_target.getName(),
                           chain._acsi)
 
         selection = AtomMap(target_ag, 
                                     indices_target,
                                     np.arange(len(indices_target)),
                                     np.array([]),
-                                    simple_target.getName() + ' -> ' + simple_chain.getName(),
+                                    simple_target.getName() + ' -> ' + 
+                                                    simple_chain.getName(),
                                     target_chain._acsi)
                                     
         mappings[mi] = (atommap, selection, _seqid, _cover)
@@ -668,50 +845,9 @@ def mapOntoChain(atoms, chain, **kwargs):
         mappings.sort(compare, reverse=True)
     return mappings
 
-
-def _getMapping(target, chain, seqid, coverage):
+def getTrivialMapping(target, chain):
+    """Return lists of matching residues (map based on residue number)."""
     
-
-    target_list, chain_list, n_match, n_mapped = _getTrivialMapping(target, chain)
-    if n_mapped > 0:
-        _seqid = n_match * 100 / n_mapped
-        _cover = n_mapped * 100 / len(target)
-    else:
-        _seqid = 0
-        _cover = 0
-    
-    if _seqid >= seqid and _cover >= coverage:
-        LOGGER.debug('\t{0:d} residues match with {1:.0f}% sequence identity '
-                     'and {2:.0f}% coverage based on residue numbers.'
-                    .format(n_mapped, _seqid, _cover))
-    else:
-        LOGGER.debug('\tFailed to match chains based on residue numbers (seqid={0:.0f}%, cover={1:.0f}%).'
-                     .format(_seqid, _cover))
-        result = _getAlignedMapping(target, chain)
-        if result is not None:
-            target_list, chain_list, n_match, n_mapped = result
-            if n_mapped > 0:
-                _seqid = n_match * 100 / n_mapped
-                _cover = n_mapped * 100 / len(target)
-            else:
-                _seqid = 0
-                _cover = 0
-            if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% coverage based on {3:s} alignment using Bio.pairwise2.'
-                            .format(n_mapped, _seqid, _cover, PAIRWISE_ALIGNMENT_METHOD))
-        
-    
-    
-    if _seqid < seqid or _cover < coverage:
-        LOGGER.debug('\tThese two chains do not match.')
-        return None
-    else:
-        return target_list, chain_list, _seqid, _cover
-
-def _getTrivialMapping(target, chain):
-    """Return lists of matching residues (match is based on residue number).
-    
-    """
     target_list = []
     chain_list = []
     n_match = 0
@@ -721,7 +857,8 @@ def _getTrivialMapping(target, chain):
     for target_residue in target:
         append(target_residue.getResidue())
 
-        chain_residue = chain_dict_get(target_residue.getNumber(), None)
+        chain_residue = chain_dict_get((target_residue.getNumber(), 
+                                        target_residue.getInsertionCode()))
         if chain_residue is None:
             chain_list.append(chain_residue)
         else:
@@ -732,23 +869,25 @@ def _getTrivialMapping(target, chain):
             
     return target_list, chain_list, n_match, n_mapped
 
-def _getAlignedMapping(target, chain):
+def getAlignedMapping(target, chain):
     if pairwise2 is None: prody.importBioPairwise2()
     if not pairwise2: return None
     if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = pairwise2.align.localms(target.getSequence(), chain.getSequence(), 
-                                                PAIRWISE_MATCH_SCORE, 
-                                                PAIRWISE_MISMATCH_SCORE,
-                                                PAIRWISE_GAP_OPENING_PENALTY, 
-                                                PAIRWISE_GAP_EXTENSION_PENALTY,
-                                                one_alignment_only=1)
+        alignment = pairwise2.align.localms(target.getSequence(), 
+                                            chain.getSequence(), 
+                                            PAIRWISE_MATCH_SCORE, 
+                                            PAIRWISE_MISMATCH_SCORE,
+                                            PAIRWISE_GAP_OPENING_PENALTY, 
+                                            PAIRWISE_GAP_EXTENSION_PENALTY,
+                                            one_alignment_only=1)
     else:
-        alignment = pairwise2.align.globalms(target.getSequence(), chain.getSequence(), 
-                                                 PAIRWISE_MATCH_SCORE,
-                                                 PAIRWISE_MISMATCH_SCORE,
-                                                 PAIRWISE_GAP_OPENING_PENALTY, 
-                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
-                                                 one_alignment_only=1)
+        alignment = pairwise2.align.globalms(target.getSequence(), 
+                                             chain.getSequence(), 
+                                             PAIRWISE_MATCH_SCORE,
+                                             PAIRWISE_MISMATCH_SCORE,
+                                             PAIRWISE_GAP_OPENING_PENALTY, 
+                                             PAIRWISE_GAP_EXTENSION_PENALTY,
+                                             one_alignment_only=1)
                
     this = alignment[0][0]
     that = alignment[0][1]
@@ -776,138 +915,3 @@ def _getAlignedMapping(target, chain):
         elif b not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
                 bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
-
-class SimpleResidue(object):
-    
-    __slots__ = ['_res', '_name', '_num']
-    
-    def __init__(self, number, name, residue=None):
-        self._num = number
-        self._name = name
-        self._res = residue
-        
-    def __repr__(self):
-        return '<SimpleResidue: {0:s}{1:d}>'.format(self._name, self._num)
-        
-    def getResidue(self):
-        return self._res
-    
-    def getNumber(self):
-        return self._num
-    
-    def getName(self):
-        return self._name
-
-
-class SimpleChain(object):
-    
-    """An internal class used to compare two polypeptide chains.
-
-
-    SimpleChain instances can be indexed using residue numbers. If a residue
-    with given number is not found in the chain, ``None`` is returned.    
-    
-    """
-    
-    __slots__ = ['_list', '_seq', '_name', '_dict', '_gaps']
-    
-    def __init__(self, allow_gaps=False):
-        """Initialize SimpleChain with a chain id and a sequence (available).
-        
-        :arg allow_gaps: allow gaps in the sequence of simple chain instance  
-        :type allow_gaps: bool, default is False
-        
-        """
-        self._dict = dict()
-        self._list = list()
-        self._seq = ''
-        self._name = None
-        self._gaps = allow_gaps
-
-    def __len__(self):
-        return len(self._list)
-    
-    def __iter__(self):
-        return self._list.__iter__()
-    
-    def __repr__(self):
-        return '<SimpleChain: {0:s} with {1:d} residues>'.format(
-                    self._name, len(self._list))
-
-    def __str__(self):
-        return '{0:s} with {1:d} residues'.format( self._name, len(self._list))
-
-    def __getitem__(self, index):
-        try:
-            return self._dict[index]
-        except KeyError:
-            return None
-    
-    def getSequence(self):
-        return self._seq
-    
-    def getName(self):
-        return self._name
-    
-    def buildFromSequence(self, sequence, resnums=None):        
-        """Build from amino acid sequence.
-        
-        "-" or "." are acceptable amino acid types and are treated as gaps.
-
-        :arg sequence: sequence of single letter amino acid codes 
-        :type sequence: str
-        :arg resnums: residue numbers corresponding the sequence
-        :type resnums: a list of numbers, or a string representation of numbers
-        
-        Examples of *resnums* are:
-            
-            * 1:200 250:300
-            
-        """
-        if not isinstance(sequence, str):
-            raise TypeError('sequence must be string')
-        self._dict = dict()
-        self._list = list()
-        self._seq = ''
-
-        sqlen = len(sequence) - sum([sequence.count(gap) for gap in GAPCHARS])
-        
-        if resnums is None:
-            resnums = range(1, sqlen+1)
-        resid = 0
-        for i, aa in enumerate(sequence):
-            if self._gaps and aa in GAPCHARS:
-                self._sequence += NONE_A
-            else:
-                resid = resnums[i]
-                simpres = SimpleResidue(resid, aa)
-                self._list.append(simpres)
-                self._dict[resid] = simpres 
-                self._sequence += aa
-    
-    def buildFromChain(self, chain):
-        """Build from a :class:`prody.atomic.Chain`."""
-        if not isinstance(chain, prody.Chain):
-            raise TypeError('chain must be a Chain instance')
-        self._dict = dict()
-        self._list = list()
-        self._seq = ''
-
-        temp = 0
-        for res in chain.iterResidues():
-            if res.getAtom('CA') is None:
-                continue
-            resid = res.getNumber()
-            aa = _aaa2a.get(res.getName(), 'X')
-            simpres = SimpleResidue(resid, aa, res)
-            if self._gaps:
-                diff = resid - temp - 1
-                if diff > 0:
-                    self._seq += NONE_A * diff
-                temp = resid
-            self._seq += aa
-            self._list.append(simpres)
-            self._dict[resid] = simpres
-        self._name = 'Chain {0:s} from {1:s}'.format(chain.getIdentifier(),
-                                                     chain._ag.getName())
-
