@@ -926,7 +926,7 @@ class Chain(AtomSubset):
             return self._seq
         CAs = self.select('name CA').select('protein')
         if len(CAs) > 0:
-            self._seq = prody.compare._getSequence(CAs.getResidueNames())
+            self._seq = prody.compare.getSequence(CAs.getResidueNames())
         else:
             self._seq = ''
         return self._seq
