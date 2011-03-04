@@ -156,6 +156,15 @@ def _startLogger(**kwargs):
 
 ProDyLogger = _startLogger()
 
+def log(text):
+    """Log *text* using ProDy logger at log level info.
+    
+    .. versionadded:: 0.6.2
+    
+    """
+    
+    ProDyLogger.info(text)
+
 def startLogfile(filename, **kwargs):
     """Start a file to save ProDy logs.
     
@@ -267,7 +276,7 @@ class ProDyException(Exception):
     pass
 
 __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
-           'checkUpdates']
+           'checkUpdates', 'log']
 
 from . import atomic 
 from atomic import *
