@@ -1641,11 +1641,11 @@ class PCA(NMABase):
         try:
             coordinates = coordsets.getCoordinates()
         except:
-            raise Exception('coordsets argument must have '
+            raise TypeError('coordsets argument must have '
                             'getCoordinates method')
         else:
             if coordinates is None:
-                raise Exception('coordinates of {0:s} is not set'
+                raise ValueError('coordinates of {0:s} is not set'
                                 .format(str(coordsets)))
         n_atoms = coordsets.getNumOfAtoms()
         dof = n_atoms * 3
@@ -1653,15 +1653,15 @@ class PCA(NMABase):
         try:
             conformations = coordsets.getCoordsets()
         except:
-            raise Exception('conformations argument must have '
+            raise TypeError('coordsets argument must have '
                             'getCoordsets method')
         else:
-            if coordinates is None or len(coordinates) == 0:
-                raise Exception('{0:s} does not contain any conformations'
-                                .format(str(coordsets)))
-            elif len(coordinates) < 3:
-                raise Exception('{0:s} must contain more than two '
-                                'conformations'.format(str(coordsets)))
+            if conformations is None or len(conformations) == 0:
+                raise ValueError('{0:s} does not contain any conformations'
+                                 .format(str(coordsets)))
+            elif len(conformations) < 3:
+                raise ValueError('{0:s} must contain more than two '
+                                 'conformations'.format(str(coordsets)))
         
         n_confs = conformations.shape[0]
         if weights is None:
@@ -1742,6 +1742,8 @@ class Gamma(object):
     """Base class for facilitating use of atom type, residue type, or residue
     property dependent force constants (γ).
     
+    .. versionadded:: 0.6    
+        
     Derived classes:
         
     * :class:`GammaStructureBased`
@@ -1770,7 +1772,8 @@ class GammaStructureBased(Gamma):
     """Facilitate setting the spring constant based on the secondary structure 
     and connectivity of the residues.
     
-    
+    .. versionadded:: 0.6    
+        
     A recent systematic study [LT10]_ of a large set of NMR-structures analyzed 
     using a method based on entropy maximization showed that taking into 
     consideration properties such as sequential separation between 
@@ -1787,17 +1790,17 @@ class GammaStructureBased(Gamma):
        * **I**: π-helix
        * **E**: extended part of a sheet
     
-    **Helices**: 
-        Residue (or Cα atoms) pairs must be in the same helical segment, 
-        must be at most 7 Å apart, and must be separated by at most 
+    *helix*: 
+        Applies to residue (or Cα atom) pairs that are in the same helical 
+        segment, at most 7 Å apart, and separated by at most 
         3 (3-10-helix), 4 (α-helix), or 5 (π-helix) residues.
         
-    **Sheet**:  
-        Cα atom pairs must be in different β-strands and must be at most 
+    *sheet*:  
+        Applies to Cα atom pairs that are in different β-strands and at most 
         6 Å apart.
         
-    **Connected**:
-        Cα atoms must be at most 4 Å apart.
+    *connected*:
+        Applies to Cα atoms that are at most 4 Å apart.
         
     Note that this class does not take into account insertion codes.        
     
@@ -1867,6 +1870,14 @@ class GammaStructureBased(Gamma):
         assert chid is not None, 'chain identifiers must be set'
         rnum = atoms.getResidueNumbers()
         assert rnum is not None, 'residue numbers must be set'
+        gamma = float(gamma)
+        assert gamma > 0, 'gamma must be greater than 0'
+        helix = float(helix)
+        assert helix > 0, 'helix must be greater than 0'
+        sheet = float(sheet)
+        assert sheet > 0, 'sheet must be greater than 0'
+        connected = float(connected)
+        assert connected > 0, 'connected must be greater than 0'
         
         ssid = np.zeros(n_atoms)
         for i in range(1, n_atoms):
@@ -1879,11 +1890,10 @@ class GammaStructureBased(Gamma):
         self._chid = chid
         self._rnum = rnum
         self._ssid = ssid
-        gamma = float(gamma)
-        self._helix = gamma * float(helix)
-        self._sheet = gamma * float(sheet)
-        self._connected = gamma * float(connected)
         self._gamma = gamma
+        self._helix = gamma * helix
+        self._sheet = gamma * sheet
+        self._connected = gamma * connected
     
     def getSecondaryStr():
         """Return a copy of secondary structure assignments."""
@@ -1926,9 +1936,10 @@ class GammaVariableCutoff(Gamma):
     """Facilitate setting the cutoff distance based on user defined 
     atom/residue (node) radii.
     
+    .. versionadded:: 0.6    
+        
     Half of the cutoff distance can be thought of as the radius of a node. 
     This class enables setting different radii for different node types.
-    
     
     **Example**:
     
