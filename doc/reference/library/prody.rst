@@ -14,13 +14,16 @@ Functions
 
   * :func:`changeVerbosity`
   * :func:`checkUpdates`
-  * :func:`closeLogfile`
   * :func:`startLogfile`
+  * :func:`closeLogfile`
+  * :func:`log`
     
 .. autofunction:: changeVerbosity
 
 .. autofunction:: checkUpdates
 
+.. autofunction:: startLogfile
+
 .. autofunction:: closeLogfile
 
-.. autofunction:: startLogfile
+.. autofunction:: log

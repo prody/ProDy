@@ -413,18 +413,18 @@ Normal mode data from other NMA, EDA, or PCA programs can be parsed using
 
 In this case, we will parse ANM modes for p38 MAP Kinase calculated using 
 `ANM server <http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi>`_ 
-as the external software. We will use :download:`oanm.eigvals <doctest/oanm.eigvals>` 
-and :download:`oanm.slwevs <doctest/oanm.slwevs>` files from the ANM server. 
+as the external software. We will use :download:`oanm.eigvals <doctest/oanm_eigvals.txt>` 
+and :download:`oanm.slwevs <doctest/oanm_slwevs.txt>` files from the ANM server. 
 
 You can either download these files to your current working directory from here
-or obtain same files for another protein from the ANM server.
+or obtain them for another protein from the ANM server.
 
->>> nma = parseModes(normalmodes='oanm.slwevs', 
-...                  eigenvalues='oanm.eigvals', 
+>>> nma = parseModes(normalmodes='oanm_slwevs.txt', 
+...                  eigenvalues='oanm_eigvals.txt', 
 ...                  nm_usecols=range(1,21), 
 ...                  ev_usecols=[1], ev_usevalues=range(6,26))
 >>> nma
-<NMA: oanm (20 modes, 351 atoms)>
+<NMA: oanm_slwevs (20 modes, 351 atoms)>
 >>> nma.setName('1p38 ANM')
 >>> slowmode = nma[0]
 >>> slowmode.getEigenvalue() # doctest: +SKIP
@@ -435,7 +435,7 @@ or obtain same files for another protein from the ANM server.
    :nofigs:
    
    from prody import *
-   nma = parseModes(normalmodes='oanm.slwevs', eigenvalues='oanm.eigvals', 
+   nma = parseModes(normalmodes='oanm_slwevs.txt', eigenvalues='oanm_eigvals.txt', 
                   nm_usecols=range(1,21), ev_usecols=[1], ev_usevalues=range(6,26))
    nma.setName('1p38 ANM')
    slowmode = nma[0]

@@ -6,6 +6,23 @@
 Changes
 *******************************************************************************
 
+In development
+===============================================================================
+
+**New Features**:
+
+  * :func:`log` is implemented for enabling users to make log entries.
+
+**Improvements**:
+
+  * :mod:`~prody.compare` functions are improved to handle insertion codes.
+
+**Bugfixes**:
+
+  * A bug in :class:`~dynamics.PCA` allowed calculating covariance matrix
+    for less than 3 coordinate sets is fixed.
+    
+
 Release 0.6.1 (Mar 2, 2011)
 ===============================================================================
 
