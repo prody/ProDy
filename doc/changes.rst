@@ -15,7 +15,7 @@ In development
 
 **Improvements**:
 
-  * :mod:`compare` functions are improved to handle insertion codes.
+  * :mod:`~prody.compare` functions are improved to handle insertion codes.
 
 **Bugfixes**:
 
