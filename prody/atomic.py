@@ -58,12 +58,15 @@ __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset',
            'Residue', 'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS']
 
 class Field(object):
-    __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', '_meth', '_meth_pl')
-    def __init__(self, name, var, dtype, doc, meth, doc_pl=None, meth_pl=None):
+    __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', 
+                 '_meth', '_meth_pl', '_ndim')
+    def __init__(self, name, var, dtype, doc, meth, 
+                 doc_pl=None, meth_pl=None, ndim=1):
         self._name = name
         self._var = var
         self._dtype = dtype
         self._doc = doc
+        self._ndim = ndim
         if doc_pl is None:
             self._doc_pl = doc + 's'
         else:
@@ -76,30 +79,41 @@ class Field(object):
         
     def name(self):
         return self._name
-    name = property(name, doc='Atomic data field name.')
+    name = property(name, 
+        doc='Atomic data field name.')
     def var(self):
         return self._var
-    var = property(var, doc='Atomic data variable name.')
+    var = property(var, 
+        doc='Atomic data variable name.')
     def dtype(self):
         return self._dtype
-    dtype = property(dtype, doc='Atomic data type (NumPy types).')
+    dtype = property(dtype, 
+        doc='Atomic data type (NumPy types).')
     def doc(self):
         return self._doc
-    doc = property(doc, doc='Atomic data field name to be used in documentation.')
+    doc = property(doc, 
+        doc='Atomic data field name to be used in documentation.')
     def doc_pl(self):
         return self._doc_pl
-    doc_pl = property(doc_pl, doc='Atomic data field name in plural form to be used in documentation.')
+    doc_pl = property(doc_pl, 
+        doc='Atomic data field name in plural form to be used in documentation.')
     def meth(self):
         return self._meth
-    meth = property(meth, doc='Atomic data field name to be used in get/set methods.')
+    meth = property(meth, 
+        doc='Atomic data field name to be used in get/set methods.')
     def meth_pl(self):
         return self._meth_pl
-    meth_pl = property(meth_pl, doc='Atomic data field name in plural form to be used in get/set methods.')
+    meth_pl = property(meth_pl, 
+        doc='Atomic data field name in plural form.')
+    def ndim(self):
+        return self._ndim
+    ndim = property(ndim, 
+        doc='Dimensionality of the NumPy array storing atomic data.')
 
 ATOMIC_DATA_FIELDS = {
     'name':      Field('name',      'names',       '|S6',      'atom name',                      'AtomName'),
     'altloc':    Field('altloc',    'altlocs',     '|S1',      'alternate location indicator',   'AltLocIndicator'),
-    'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor'),
+    'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor', ndim=2),
     'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier'),
     'element':   Field('element',   'elements',    '|S2',      'element symbol',                 'ElementSymbol'),
     'hetero':    Field('hetero',    'hetero',      np.bool,    'hetero flag',                    'HeteroFlag'),
@@ -109,7 +123,7 @@ ATOMIC_DATA_FIELDS = {
     'secondary': Field('secondary', 'secondary',   '|S1',      'secondary structure assignment', 'SecondaryStr'),
     'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
     'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
-                                                                                                 'AnisoStdDev'),
+                                                                                                 'AnisoStdDev', ndim=2),
     'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
     'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode'),
     'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
@@ -197,7 +211,8 @@ class AtomGroupMeta(type):
             getData.__doc__ = 'Return a copy of {0:s}.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
             
-            def setData(self, array, var=field.var, dtype=field.dtype):
+            def setData(self, array, var=field.var, dtype=field.dtype, 
+                        ndim=field.ndim):
                 if self._n_atoms == 0:
                     self._n_atoms = len(array)
                 elif len(array) != self._n_atoms:
@@ -207,6 +222,9 @@ class AtomGroupMeta(type):
                     array = np.array(array, dtype)
                 elif not isinstance(array, np.ndarray):
                     raise TypeError('array must be a NumPy array or a list')
+                elif array.ndim != ndim:
+                        raise ValueError('array must be {0:d} dimensional'
+                                         .format(ndim))
                 elif array.dtype != dtype:
                     try:
                         array.astype(dtype)
