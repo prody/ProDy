@@ -579,7 +579,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                                atoms2._acsi)#'index ' + getIntAsStr(indices2), 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
-    if len(matches) > 0:
+    if len(matches) > 1:
         def compare(m1, m2):
             return cmp(m1[2], m2[2])
         matches.sort(compare, reverse=True)
@@ -811,13 +811,12 @@ def mapOntoChain(atoms, chain, **kwargs):
             for atom_tar in res_tar:
                 indices_target.append(atom_tar.getIndex())
                 if res_chn is not None:
-                    try:
-                        atom_chn = res_chn.getAtom(atom_tar.getName())
+                    atom_chn = res_chn.getAtom(atom_tar.getName())
+                    if atom_chn is not None:
                         indices_chain.append(atom_chn.getIndex())
                         indices_mapping.append(counter)
-                    except KeyError:
+                    else:
                         indices_dummies.append(counter)
-                        pass
                 else:
                     indices_dummies.append(counter)
                 counter += 1
@@ -839,7 +838,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                                     target_chain._acsi)
                                     
         mappings[mi] = (atommap, selection, _seqid, _cover)
-    if len(mappings) > 0:
+    if len(mappings) > 1:
         def compare(m1, m2):
             return cmp(m1[2], m2[2])
         mappings.sort(compare, reverse=True)
