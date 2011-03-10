@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010-2011 Ahmet Bakan
@@ -37,10 +38,6 @@ Functions
   * :func:`getPairwiseGapExtensionPenalty`
   * :func:`setPairwiseGapExtensionPenalty`
     
-**Miscellaneous**:
-    
-  * :func:`getIntAsStr`
-  
 """
 
 __author__ = 'Ahmet Bakan'
@@ -482,11 +479,11 @@ def matchChains(atoms1, atoms2, **kwargs):
             if _seqid >= seqid and _cover >= coverage:
                 LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% overlap.'
                             .format(len(match1), _seqid, _cover))
-                matches.append((match1, match2, _seqid, _cover))
+                matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
             else:
                 LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, cover={1:.0f}%).'.format(_seqid, _cover))
                 unmatched.append((simpch1, simpch2))
-
+            
 
     if pwalign or (not matches and (pwalign is None or pwalign)): 
         if pairwise2 is None: prody.importBioPairwise2()
@@ -505,7 +502,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                     LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% '
                                  'sequence identity and {2:.0f}% overlap.'
                                  .format(len(match1), _seqid, _cover))
-                    matches.append((match1, match2, _seqid, _cover))
+                    matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
                 else:
                     LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
                                  'cover={1:.0f}%).'
@@ -519,7 +516,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     elif subset == 'backbone':
         subset = 'bb'
     for mi, result in enumerate(matches):
-        match1, match2, _seqid, _cover = result
+        match1, match2, _seqid, _cover, simpch1, simpch2 = result
         
         indices1 = []
         indices2 = []
@@ -541,7 +538,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                 except ValueError:
                     pass
             elif subset == 'bb':
-                for bban in select.BACKBONE_ATOM_NAMES:
+                for bban in ('N', 'CA', 'C', 'O'):
                     try:
                         aid = ares.getAtomNames().tolist().index(bban)
                     except ValueError:
@@ -571,12 +568,12 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices2 = np.array(indices2)
         lengh = len(indices1)
         match1 = AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
-                               str(atoms1) + ' -> ' + str(atoms2),
-                               atoms1._acsi)#'index ' + getIntAsStr(indices1), 
+                               simpch1.getName() + ' -> ' + simpch2.getName(),
+                               atoms1._acsi) 
                                  
         match2 = AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
-                               str(atoms2) + ' -> ' + str(atoms1),
-                               atoms2._acsi)#'index ' + getIntAsStr(indices2), 
+                               simpch2.getName() + ' -> ' + simpch1.getName(),
+                               atoms2._acsi) 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
