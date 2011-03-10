@@ -70,9 +70,9 @@ We can get information on matched subset of atoms by entering the variable
 name:
 
 >>> ref_chain
-<AtomMap: AtomGroup 1p38 -> AtomGroup 1zz2 (from 1p38; 337 atoms; 337 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: Chain A from 1p38 -> Chain A from 1zz2 (from 1p38; 337 atoms; 337 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
 >>> mob_chain
-<AtomMap: AtomGroup 1zz2 -> AtomGroup 1p38 (from 1zz2; 337 atoms; 337 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: Chain A from 1zz2 -> Chain A from 1p38 (from 1zz2; 337 atoms; 337 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
 
 Both :class:`~prody.atomic.AtomMap` instances refer to same number of atoms, 
 and their name suggests how they were retrieved.

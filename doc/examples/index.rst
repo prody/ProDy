@@ -47,6 +47,7 @@ Protein Structure
    atomic/hierview
    measure/alignment
    proteins/biomolt
+   compare/compare
    measure/deformation
 
 Dynamics Analysis
