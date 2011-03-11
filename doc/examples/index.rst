@@ -59,6 +59,7 @@ Dynamics Analysis
 
    dynamics/enm/index
    dynamics/pca/index
+   dynamics/generate_conformers
 
 More on :class:`~atomic.AtomGroup` 
 ===============================================================================
