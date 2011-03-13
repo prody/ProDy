@@ -422,7 +422,19 @@ class AtomGroup(Atomic):
                                                     self._acsi)
     
     def addCoordset(self, coords):
-        """Add a coordinate set to the atom group."""
+        """Add a coordinate set to the atom group.
+        
+        .. versionchanged:: 0.6.2
+            :class:`~prody.ensemble.Ensemble` and :class:`Atomic` instances are 
+            accepted as *coords* argument.
+        
+        """
+        
+        if isinstance(coords, (prody.ensemble.Ensemble, Atomic)):
+            if self._n_atoms != coords.getNumOfAtoms(): 
+                raise ValueError('coords must have same number of atoms')
+            coords = coords.getCoordsets()
+
         if self._coordinates is None:
             self.setCoordinates(coords)
         if not isinstance(coords, np.ndarray):
@@ -911,8 +923,19 @@ class Chain(AtomSubset):
         return self.iterResidues()
     
     def __getitem__(self, number):
-        """Returns the residue with given number, if it exists. Assumes
-        the insertion code is an empty string."""
+        """Returns the residue with given number, if it exists
+        
+        .. versionchanged:: 6.2
+           Tuples composed of chain identifier, residue number, and residue
+           insertion code is accepted.
+        
+        """
+        
+        if isinstance(number, tuple): 
+            if len(number) == 2:
+                return self.getResidue(number[0], number[1]) 
+            else:
+                return self.getResidue(number[0])
         return self.getResidue(number)
     
     def getResidue(self, number, insertcode=''):
@@ -1096,6 +1119,7 @@ class AtomMap(AtomPointer):
     indices of unmapped atoms.
     
     """
+    
     __metaclass__ = AtomMapMeta
     __slots__ = ['_ag', '_indices', '_acsi', '_name', '_mapping', '_unmapped', '_len']
     
@@ -1258,16 +1282,36 @@ class HierView(object):
     __slots__ = ['_atoms', '_chains']
 
     def __init__(self, atoms):
+        if not isinstance(atoms, Atomic):
+            raise TypeError('atoms must be an atomic instance')
         self._atoms = atoms
         self._chains = dict()
-        self.build()
+        self.update()
+
+    def getAtoms(self):
+        """Return atoms for which the hierarchical view is built.
+        
+        .. versionadded:: 0.6.2
+        
+        """
+        
+        return self._atoms
     
     def build(self):
-        """Build hierarchical view of atoms.
+        """Calls :meth:`update` method. This method will is deprecated and 
+        will be removed in the future."""
+        LOGGER.warning('HierView.build() method is deprecated. '
+                       'Use HierView.update() method instead.')
+        self.update()
+    
+    def update(self):
+        """Rebuild hierarchical view of atoms.
         
         This method is called at instantiation, but can be used to rebuild
         the hierarchical view when attributes of atoms change.
+        
         """
+        
         acsi = self._atoms.getActiveCoordsetIndex()
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
@@ -1335,7 +1379,23 @@ class HierView(object):
         return len(self._chains)
     
     def __getitem__(self, chid):
-        return self._chains.get(chid, None)
+        """
+        
+        .. versionchanged:: 6.2
+           Tuples composed of chain identifier, residue number, and residue
+           insertion code is accepted.
+        
+        """
+        
+        if isinstance(chid, str):
+            return self._chains.get(chid, None)
+        elif isinstance(chid, tuple):
+            ch = self._chains.get(chid[0], None)
+            if ch is not None:
+                if len(chid) == 2:
+                    return ch[chid[1]]
+                else:
+                    return ch[chid[1:]]
 
     def iterResidues(self):
         """Iterate over residues."""
