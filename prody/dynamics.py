@@ -24,6 +24,7 @@ Classes
   * :class:`GNM`
   * :class:`PCA`
   * :class:`EDA`
+  * :class:`NMA`
   * :class:`Mode`
   * :class:`ModeSet`
   * :class:`Vector`
@@ -109,8 +110,9 @@ argument. These are noted in function documentations.
   * :func:`sampleModes`
   * :func:`traverseMode`
 
-**Model reduction**:
-    
+**Model extrapolation/reduction**:
+  
+  * :func:`extrapolateModel`  
   * :func:`reduceModel`
   * :func:`sliceVector`
   * :func:`sliceMode`
@@ -223,7 +225,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'sampleModes', 'traverseMode',
             
-           'reduceModel', 'sliceVector', 'sliceMode',
+           'extrapolateModel', 'reduceModel', 'sliceVector', 'sliceMode',
             
            'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
            'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
@@ -2564,6 +2566,57 @@ def calcOverlapTable(rows, cols):
             line += (minplus+'{0:-.2f}').format(abs(overlap[i, j])).center(7)
         table += line.rstrip() + '\n'
     return table
+
+def extrapolateModel(enm, nodes, atoms):
+    """Extrapolate *enm* built for *nodes* to *atoms*.
+    
+    .. version added:: 0.6.2
+    
+    This function is designed for extrapolating an NMA model built at coarse 
+    grained level to all atom level. For each atom in *nodes* argument
+    *atoms* argument must contain a corresponding residue.
+    
+    Note that modes in the extrapolated model will not be normalized.
+    
+    For a usage example see :ref:`extrapolate`.
+    
+    """
+    
+    if not isinstance(enm, NMABase):
+        raise TypeError('enm must be an NMABase instance')
+    if not isinstance(nodes, Atomic):
+        raise TypeError('nodes must be an Atomic instance')
+    if enm.getNumOfAtoms() != nodes.getNumOfAtoms():
+        raise ValueError('enm and nodes must have same number of atoms')
+    
+    if isinstance(atoms, Atomic):
+        is3d = enm.is3d()            
+        atom_indices = []
+        indices = []
+        hierview = atoms.getHierView()
+        for i, node in enumerate(nodes):
+            res = hierview[node.getChainIdentifier(), node.getResidueNumber(), 
+                           node.getInsertionCode()]
+            if res is None:
+                raise ValueError('hierview must contain a residue for all atoms')
+            atom_indices.append(res.getIndices())
+            if is3d:
+                indices.append(range(i*3, (i+1)*3) * len(res))
+            else:
+                indices.append([i] * len(res))
+        atom_indices = np.concatenate(atom_indices)
+        indices = np.concatenate(indices)
+        
+        array = enm.getArray()[indices,:]
+        extra = NMA('Extrapolated ' + str(enm))
+        extra.setEigens(array, enm.getEigenvalues())
+        atommap = AtomMap(atoms.getAtomGroup(), atom_indices, 
+                          np.arange(len(atom_indices)), np.array([]),
+                          str(atoms), atoms.getActiveCoordsetIndex())
+        return extra, atommap
+    else:
+        raise TypeError('atoms must be an Atomic instance')
+    
 
 def sliceVector(vector, atoms, selstr):
     """Return a slice of *vector* matching *atoms* specified by *selstr*.
