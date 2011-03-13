@@ -83,7 +83,7 @@ Step 1: Blast and download
 Let's check number of downloaded files:
 
 >>> len(pdb_files)
-80
+81
 
 Step 2: Set reference
 -------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ Failed to map 1cih
 Let's check how many conformations are extracted from PDB files:
 
 >>> len(ensemble)
-346
+347
 
 Write aligned conformations into a PDB file as follows:
 

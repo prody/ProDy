@@ -60,6 +60,7 @@ Dynamics Analysis
    dynamics/enm/index
    dynamics/pca/index
    dynamics/generate_conformers
+   dynamics/extrapolate
 
 More on :class:`~atomic.AtomGroup` 
 ===============================================================================

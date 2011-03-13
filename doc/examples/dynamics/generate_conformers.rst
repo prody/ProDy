@@ -1,9 +1,9 @@
 .. currentmodule:: prody.dynamics
 
-.. _generate-conformers
+.. _generate-conformers:
 
 *******************************************************************************
-Compare chains
+Generate conformers along normal modes
 *******************************************************************************
 
 Synopsis
@@ -68,7 +68,7 @@ follows:
 
 >>> p38traj = p38ca.copy()
 >>> p38traj.delCoordset(0)
->>> p38traj.addCoordset( trajectory.getCoordsets() )
+>>> p38traj.addCoordset( trajectory )
 >>> writePDB('p38_mode1_trajectory.pdb', p38traj)
 'p38_mode1_trajectory.pdb'
 
@@ -94,6 +94,11 @@ The newly generated Cα ensemble can be written in PDB format as follows:
 
 >>> p38ens = p38ca.copy()
 >>> p38ens.delCoordset(0)
->>> p38ens.addCoordset( ensemble.getCoordsets() )
+>>> p38ens.addCoordset( ensemble )
 >>> writePDB('p38_mode123_ensemble.pdb', p38ens)
 'p38_mode123_ensemble.pdb'
+
+
+|questions|
+
+|suggestions|
