@@ -81,6 +81,18 @@ The length of the *hv* variable gives the number of chains in the structure:
 >>> hv.getNumOfChains()
 4
 
+It is also possible to get a :class:`Residue` by directly indexing the
+:class:`HierView` instance:
+
+>>> hv['A', 100]
+<Residue: MET 100 from Chain A from 3mkb (8 atoms; 1 coordinate sets, active set index: 0)>
+
+Insertion codes can also be passed:
+
+>>> hv['A', 100, 'B']
+
+But this does not return anything, since residue 100B does not exist.
+
 *Iterations*
 
 One can iterate over :class:`HierView` instances to get chains:
@@ -132,7 +144,12 @@ Indexing a :class:`Chain` instance returns a :class:`Residue` instance.
 
 >>> chA[1]
 <Residue: ALA 1 from Chain A from 3mkb (5 atoms; 1 coordinate sets, active set index: 0)>
->>> chA[1000] 
+
+If a residue does not exist, ``None`` is returned:
+
+>>> chA[1000]
+>>> chA[1, 'A'] # Residue 1 with insertion code A also does not exist  
+
 
 
 If residue with given integer number does not exist, ``None`` is returned. 
@@ -292,7 +309,7 @@ match the current state of the atom group:
 >>> chA
 <Chain: X from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
 >>> hv['X'] # returns None, since hierarchical view is not updated
->>> hv.build() # this updates hierarchical view
+>>> hv.update() # this updates hierarchical view
 >>> hv['X']
 <Chain: X from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
 

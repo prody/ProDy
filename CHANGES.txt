@@ -6,16 +6,28 @@
 Changes
 *******************************************************************************
 
-In development
+Release 0.6.2 (in development)
 ===============================================================================
 
 **New Features**:
 
+  * :func:`~dynamics.extrapolateModel` function is implemented for 
+    extrapolating a coarse-grained model to an all atom model. See the 
+    usage example ref:`extrapolate`.
   * :func:`log` is implemented for enabling users to make log entries.
+
 
 **Improvements**:
 
   * :mod:`~prody.compare` functions are improved to handle insertion codes.
+  * :class:`~atomic.HierView` allows for indexing using chain identifier
+    and residue numbers. See usage example :ref:`hierview`
+  * :class:`~atomic.Chain` allows for indexing using residue number and
+    insertion code. See usage example :ref:`hierview`.
+  * :meth:`~atomic.AtomGroup.addCoordset` function accepts 
+    :class:`~atomic.Atomic` and :class:`~ensemble.Ensemble` instances
+    as *coords* argument.
+  * New method :meth:`~atomic.HierView.getAtoms` is implemented.
 
 **Bugfixes**:
 

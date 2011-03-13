@@ -1,6 +1,6 @@
 .. currentmodule:: prody.compare
 
-.. _compare-chains
+.. _compare-chains:
 
 *******************************************************************************
 Compare chains

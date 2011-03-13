@@ -30,7 +30,6 @@ Contents
    changes
    license
    glossary
-   todo
 
 Indices and tables
 ==================
