@@ -172,6 +172,29 @@ Once the coordinate data is prepared, it is straightforward to perform the
 >>> pca.buildCovariance(ensemble)   # Build covariance for the ensemble
 >>> pca.calcModes()                 # Calculate modes (20 of the by default)
 
+**Approximate method**
+
+.. versionadded:: 0.6.2
+
+In the following we are using singular value decomposition for faster 
+and more memory efficient calculation principal modes:
+
+>>> svd = PCA('p38 svd')
+>>> svd.performSVD(ensemble)
+
+The resulting eigenvalues and eigenvectors may show small differences due to
+missing atoms in the datasets:
+
+>>> '%.3f' % abs(svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
+'0.403'
+>>> '%.3f' % abs(calcOverlap(pca, svd).diagonal()[:20]).min()
+'0.947'
+
+Note that building and diagonalizing the covariance matrix is the preferred
+method for heterogeneous ensembles. For homogeneous ensembles, such
+as NMR models or MD trajectories, SVD method may be preferred over covariance
+method.
+
 ANM calculations
 -------------------------------------------------------------------------------
 

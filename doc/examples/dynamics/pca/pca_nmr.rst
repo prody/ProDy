@@ -79,6 +79,21 @@ Performing :class:`PCA` is only three lines of code:
 >>> pca
 <PCA: Ubiquitin (20 modes, 70 atoms)>
 
+
+**Faster method**
+
+Principal modes can be calculated faster using singular value decomposition:
+
+>>> svd = PCA('Ubiquitin')
+>>> svd.performSVD(ensemble)
+
+For heterogeneous NMR datasets, both methods yields identical results:
+
+>>> '%.3f' % abs(svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
+'0.000'
+>>> '%.3f' % abs(calcOverlap(pca, svd).diagonal()[:20]).min()
+'1.000'
+
 Write NMD file
 -------------------------------------------------------------------------------
 
