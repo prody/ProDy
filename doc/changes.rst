@@ -32,6 +32,8 @@ Release 0.6.2 (in development)
   * New method :meth:`~atomic.HierView.getAtoms` is implemented.
   * :class:`~atomic.AtomGroup` set functions check the correctness of 
     dimension of data arrays to prevent runtime problems.
+  * :file:`pca.py` script is updated to use the faster PCA method
+    that uses SVD.
 
 **Bugfixes**:
 

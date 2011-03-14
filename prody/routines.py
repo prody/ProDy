@@ -616,11 +616,12 @@ and save all output and figure files:
     ensemble = Ensemble(select)
     ensemble.iterpose()
     pca = PCA(pdb.getName())
-    pca.buildCovariance(ensemble)
-    pca.calcModes(nmodes)
+    pca.performSVD(ensemble)
+    #pca.buildCovariance(ensemble)
+    #pca.calcModes(nmodes)
     
     LOGGER.info('Writing numerical output.')
-    writeNMD(os.path.join(outdir, prefix + '.nmd'), pca, select)
+    writeNMD(os.path.join(outdir, prefix + '.nmd'), pca[:nmodes], select)
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
