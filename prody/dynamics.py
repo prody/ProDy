@@ -1315,8 +1315,7 @@ class GNM(GNMBase):
         
         """
         if self._kirchhoff is None:
-            raise ProDyException('Kirchhoff matrix is not set, try one of '
-                                 'buildKirchhoff() or setKirchhoff() methods')
+            raise ProDyException('Kirchhoff matrix is not built or set')
         if linalg is None:
             prody.importLA()
         start = time.time()
@@ -1548,7 +1547,7 @@ class ANM(GNMBase):
         """
         
         if self._hessian is None:
-            raise ProDyException('Hessian matrix is not set')
+            raise ProDyException('Hessian matrix is not built or set')
         if linalg is None:
             prody.importLA()
             
@@ -1625,57 +1624,43 @@ class PCA(NMABase):
     def buildCovariance(self, coordsets, weights=None):
         """Build a weighted covariance matrix for coodsets.
         
-        *coordsets* must have the following methods: 
-            * ``getCoordinates``
-            * ``getCoordsets``
-            * ``getNumOfCoordsets``
-            * ``getNumOfAtoms``
+        *coordsets* argument must be a :class:`~prody.atomic.Atomic` or a 
+        :class:`~prody.ensemble.Ensemble` instance. 
         
-        :class:`~prody.ensemble.Ensemble` and :class:`~prody.atomic.Atomic`
-        instances are acceptable.
-        
-        If *weights* is ``None``, but *coordsets* has :meth:`getWeights` 
+        If *weights* is ``None``, but *coordsets* has a :meth:`getWeights` 
         method, weights from that method will be used. 
         
         """
         
         start = time.time()
-        try:
-            coordinates = coordsets.getCoordinates()
-        except:
-            raise TypeError('coordsets argument must have '
-                            'getCoordinates method')
-        else:
-            if coordinates is None:
-                raise ValueError('coordinates of {0:s} is not set'
-                                .format(str(coordsets)))
-        n_atoms = coordsets.getNumOfAtoms()
-        dof = n_atoms * 3
-
-        try:
-            conformations = coordsets.getCoordsets()
-        except:
-            raise TypeError('coordsets argument must have '
-                            'getCoordsets method')
-        else:
-            if conformations is None or len(conformations) == 0:
-                raise ValueError('{0:s} does not contain any conformations'
-                                 .format(str(coordsets)))
-            elif len(conformations) < 3:
-                raise ValueError('{0:s} must contain more than two '
-                                 'conformations'.format(str(coordsets)))
         
-        n_confs = conformations.shape[0]
+        if not isinstance(coordsets, (prody.Ensemble, prody.Atomic)):
+            raise TypeError('coordsets must be an Ensemble or Atomic instance')
+        n_atoms = coordsets.getNumOfAtoms()
+        n_confs = coordsets.getNumOfCoordsets()
+        if n_confs < 3:
+            raise ValueError('coordsets must have more than 3 coordinate sets')
+        if n_atoms < 3:
+            raise ValueError('coordsets must have more than 3 atoms')
+
+        if isinstance(coordsets, prody.Atomic):
+            coordsets = prody.Ensemble(coordsets)
+        dof = n_atoms * 3
         if weights is None:
             try:
                 weights = coordsets.getWeights()
             except AttributeError:
                 pass
         if weights is None:
-            d_xyz = (conformations - coordinates)
-            d_xyz = d_xyz.reshape((n_confs, dof))
-            self._cov = np.dot(d_xyz.T, d_xyz) / n_confs
+            #d_xyz = (conformations - coordinates)
+            #d_xyz = d_xyz.reshape((n_confs, dof))
+            #self._cov = np.dot(d_xyz.T, d_xyz) / n_confs
+            self._cov = np.cov(
+                            coordsets.getCoordsets().reshape((n_confs, dof)).T,
+                            bias=1)
         else:
+            conformations = coordsets.getCoordsets()
+            coordinates = coordsets.getCoordinates()
             d_xyz = ((conformations - coordinates) * weights)
             d_xyz = d_xyz / (weights + (weights == 0)) 
             d_xyz = d_xyz.reshape((n_confs, dof))
@@ -1706,7 +1691,8 @@ class PCA(NMABase):
         
         if linalg is None:
             prody.importLA()
-
+        if self._cov is None:
+            raise ProDyException('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
         if scipyla:        
@@ -1732,10 +1718,58 @@ class PCA(NMABase):
         self._eigvals = values[which]
         self._array = vectors[:, which]
         self._vars = self._eigvals
+        self._trace = self._vars.sum()
+        self._n_modes = len(self._eigvals)
+        self._modes = [None] * self._n_modes
+        LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
+                     .format(self._n_modes, time.time()-start))
+
+    def performSVD(self, coordsets):
+        """Calculate principal modes using singular value decomposition (SVD).
+        
+        *coordsets* argument must be a :class:`~prody.atomic.Atomic` or a 
+        :class:`~prody.ensemble.Ensemble` instance. 
+        
+        This method is currently at an experimental stage.
+        
+        """
+
+        if linalg is None:
+            prody.importLA()
+
+        start = time.time()
+
+        if not isinstance(coordsets, (prody.Ensemble, prody.Atomic)):
+            raise TypeError('coordsets must be an Ensemble or Atomic instance')
+        n_atoms = coordsets.getNumOfAtoms()
+        n_confs = coordsets.getNumOfCoordsets()
+        if n_confs < 3:
+            raise ValueError('coordsets must have more than 3 coordinate sets')
+        if n_atoms < 3:
+            raise ValueError('coordsets must have more than 3 atoms')
+        if isinstance(coordsets, prody.Ensemble):
+            deviations = coordsets.getDeviations()
+        elif isinstance(coordsets, prody.Atomic):
+            deviations = coordsets.getCoordsets() - coordsets.getCoordinates()
+
+        if isinstance(coordsets, prody.Atomic):
+            coordsets = prody.Ensemble(coordsets)
+        dof = n_atoms * 3        
+        deviations = deviations.reshape((n_confs, dof)).T
+
+        vectors, values, self._temp = linalg.svd(deviations, full_matrices=False)
+        values = (values ** 2) / n_confs
+        self._dof = dof
+        self._n_atoms = n_atoms
+        which = values > 1e-18
+        self._eigvals = values[which]
+        self._array = vectors[:, which]
+        self._vars = self._eigvals
         self._n_modes = len(self._eigvals)
         self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                          .format(self._n_modes, time.time()-start))
+        
 
 EDA = PCA
 
@@ -2473,7 +2507,9 @@ def calcOverlap(rows, cols):
     
     >>> calcOverlap(p38_pca[0], p38_anm[2]) # doctest: +SKIP
     -0.71366564906422636
+    
     """
+    
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
         raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0:s}'
                         .format(type(rows)))
