@@ -11,6 +11,8 @@ Release 0.6.2 (in development)
 
 **New Features**:
 
+  * :meth:`~dynamics.PCA.performSVD` function is implemented for faster
+    and more memory efficient principal compoment analysis.
   * :func:`~dynamics.extrapolateModel` function is implemented for 
     extrapolating a coarse-grained model to an all atom model. See the 
     usage example :ref:`extrapolate`.

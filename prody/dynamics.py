@@ -1732,8 +1732,13 @@ class PCA(NMABase):
         
         .. versionadded:: 0.6.2
         
-        Note that this is a considerably faster way of performing PCA 
-        calculations compared to eigenvalue decomposition of covariance matrix.
+        This is a considerably faster way of performing PCA calculations 
+        compared to eigenvalue decomposition of covariance matrix, but is
+        an approximate method when heterogeneous datasets are analyzed. 
+        Covariance method should be preferred over this one for analysis
+        of ensembles with missing atomic data. See :ref:`pca-xray-calculations`
+        examples for comparison of results from SVD and covariance methods.
+        
         
         """
 
