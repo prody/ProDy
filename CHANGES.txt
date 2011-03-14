@@ -13,7 +13,7 @@ Release 0.6.2 (in development)
 
   * :func:`~dynamics.extrapolateModel` function is implemented for 
     extrapolating a coarse-grained model to an all atom model. See the 
-    usage example ref:`extrapolate`.
+    usage example :ref:`extrapolate`.
   * :func:`log` is implemented for enabling users to make log entries.
 
 
@@ -28,11 +28,16 @@ Release 0.6.2 (in development)
     :class:`~atomic.Atomic` and :class:`~ensemble.Ensemble` instances
     as *coords* argument.
   * New method :meth:`~atomic.HierView.getAtoms` is implemented.
+  * :class:`~atomic.AtomGroup` set functions check the correctness of 
+    dimension of data arrays to prevent runtime problems.
 
 **Bugfixes**:
 
   * A bug in :class:`~dynamics.PCA` allowed calculating covariance matrix
     for less than 3 coordinate sets is fixed.
+  * A but in :func:`~compare.mapOntoChain` function that caused problems
+    when mapping all atoms is fixed.
+    
     
 
 Release 0.6.1 (Mar 2, 2011)
