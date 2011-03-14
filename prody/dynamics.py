@@ -1730,7 +1730,10 @@ class PCA(NMABase):
         *coordsets* argument must be a :class:`~prody.atomic.Atomic` or a 
         :class:`~prody.ensemble.Ensemble` instance. 
         
-        This method is currently at an experimental stage.
+        .. versionadded:: 0.6.2
+        
+        Note that this is a considerably faster way of performing PCA 
+        calculations compared to eigenvalue decomposition of covariance matrix.
         
         """
 
@@ -1765,6 +1768,7 @@ class PCA(NMABase):
         self._eigvals = values[which]
         self._array = vectors[:, which]
         self._vars = self._eigvals
+        self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
         self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
