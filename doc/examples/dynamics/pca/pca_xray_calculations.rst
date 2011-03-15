@@ -138,6 +138,11 @@ For each PDB file, we find the matching chain and add it to the ensemble:
 ...     # so we pass weights (1 for mapped atoms, 0 for unmapped atoms)
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())    
 
+>>> ensemble
+<Ensemble: p38 X-ray (75 conformations, 321 atoms)>
+>>> len(ensemble) == len(pdbfiles)
+True
+
 Perform an iterative superimposition:
 
 >>> ensemble.iterpose()
@@ -177,23 +182,22 @@ Once the coordinate data is prepared, it is straightforward to perform the
 .. versionadded:: 0.6.2
 
 In the following we are using singular value decomposition for faster 
-and more memory efficient calculation principal modes:
+and more memory efficient calculation of principal modes:
 
->>> svd = PCA('p38 svd')
->>> svd.performSVD(ensemble)
+>>> pca_svd = PCA('p38 svd')
+>>> pca_svd.performSVD(ensemble)
 
 The resulting eigenvalues and eigenvectors may show small differences due to
 missing atoms in the datasets:
 
->>> '%.3f' % abs(svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
+>>> '%.3f' % abs(pca_svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
 '0.403'
->>> '%.3f' % abs(calcOverlap(pca, svd).diagonal()[:20]).min()
-'0.947'
+>>> '%.3f' % abs(calcOverlap(pca, pca_svd).diagonal()[:20]).min()
+'0.998'
 
 Note that building and diagonalizing the covariance matrix is the preferred
-method for heterogeneous ensembles. For homogeneous ensembles, such
-as NMR models or MD trajectories, SVD method may be preferred over covariance
-method.
+method for heterogeneous ensembles. For NMR models or MD trajectories SVD 
+method may be preferred over covariance method.
 
 ANM calculations
 -------------------------------------------------------------------------------

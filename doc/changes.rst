@@ -16,7 +16,7 @@ Release 0.6.2 (in development)
   * :func:`~dynamics.extrapolateModel` function is implemented for 
     extrapolating a coarse-grained model to an all atom model. See the 
     usage example :ref:`extrapolate`.
-  * :func:`log` is implemented for enabling users to make log entries.
+  * :func:`plog` is implemented for enabling users to make log entries.
 
 
 **Improvements**:

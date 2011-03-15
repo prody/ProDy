@@ -16,7 +16,7 @@ Functions
   * :func:`checkUpdates`
   * :func:`startLogfile`
   * :func:`closeLogfile`
-  * :func:`log`
+  * :func:`plog`
     
 .. autofunction:: changeVerbosity
 
@@ -26,4 +26,4 @@ Functions
 
 .. autofunction:: closeLogfile
 
-.. autofunction:: log
+.. autofunction:: plog

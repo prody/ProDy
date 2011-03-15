@@ -156,7 +156,7 @@ def _startLogger(**kwargs):
 
 ProDyLogger = _startLogger()
 
-def log(text):
+def plog(text):
     """Log *text* using ProDy logger at log level info.
     
     .. versionadded:: 0.6.2
@@ -238,7 +238,9 @@ def changeVerbosity(level):
     
     >>> from prody import *
     >>> changeVerbosity('none')
+    >>> plog('test')
     >>> changeVerbosity('debug')
+    >>> plog('test')
     
     """
     lvl = LOGGING_LEVELS.get(level, None)
@@ -276,7 +278,7 @@ class ProDyException(Exception):
     pass
 
 __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
-           'checkUpdates', 'log']
+           'checkUpdates', 'plog']
 
 from . import atomic 
 from atomic import *

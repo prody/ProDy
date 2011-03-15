@@ -40,12 +40,12 @@ Example Input
 
 Examples :term:`nmd` files (*right click* and select *save as* option):
 
-  * :download:`p38 MAP kinase </_downloads/p38_MAPK_1p38_anm_modes.nmd>`
-  * :download:`p38 modes with zero coordinates </_downloads/xyzeros.nmd>` 
+  * :download:`p38 MAP kinase </_downloads/p38_MAPK_1p38_anm_modes.nmd.zip>`
+  * :download:`p38 modes with zero coordinates </_downloads/xyzeros.nmd.zip>` 
     that was used to make :download:`NMWiz logo </_static/nm.png>`.
 
 
-NMWiz GUIs
+NMWiz GUI
 ===============================================================================
 
 This section describes NMWiz Interfaces briefly. Help on functionality can be
@@ -54,12 +54,13 @@ graphical user interface. In addition, a tutorial that was developed for an
 earlier version of the plug-in can be obtained from here:
 :download:`Tutorial </_downloads/NMWiz_tutorial.pdf>`. 
 
+Main Window
+-------------------------------------------------------------------------------
+
+|
+
 +---------------------------------------------------------------------------------------+----------------------------------------+
-|                                                                                       |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| **Main window**                                                                       | .. image:: /_static/NMWiz-Main.png     |
-|                                                                                       |                                        |
-| *NMWiz - Main* enables loading :term:`nmd` files and submitting                       |                                        |
+| *NMWiz - Main* enables loading :term:`nmd` files and submitting                       | .. image:: /_static/NMWiz-Main.png     |
 | ProDy and ANM server jobs. Settings and online documentation (at ProDy website)       |                                        |
 | can also be accessed from this window.                                                |                                        |
 |                                                                                       |                                        |
@@ -70,9 +71,14 @@ earlier version of the plug-in can be obtained from here:
 | Note that NMWiz does not allow for loading the same file twice. To get around this,   |                                        |
 | file may be renamed or the dataset may be removed from from the session.              |                                        |
 +---------------------------------------------------------------------------------------+----------------------------------------+
-| **NMWiz**                                                                             | .. image:: /_static/NMWiz-GUI.png      |
-|                                                                                       |                                        |
-| NMWiz interface is generated for all datasets loaded into NMWiz. These                |                                        |
+
+NMWiz Window
+-------------------------------------------------------------------------------
+
+|
+
++---------------------------------------------------------------------------------------+----------------------------------------+
+| NMWiz interface is generated for all datasets loaded into NMWiz. These                | .. image:: /_static/NMWiz-GUI.png      |
 | interfaces are independent of each other, hence allows comparative                    |                                        |
 | analysis of distinct data sets.                                                       |                                        |
 |                                                                                       |                                        |
@@ -86,28 +92,48 @@ earlier version of the plug-in can be obtained from here:
 | be undisplayed. This behavior and other graphics options can be                       |                                        |
 | changed from the "Arrow Graphics Option" panel.                                       |                                        |
 +---------------------------------------------------------------------------------------+----------------------------------------+
-| **Mobility Plots**                                                                    | .. image:: /_static/NMWiz-Plot.png     |
-|                                                                                       |    :scale: 50 %                        |
-| User can plot squared-fluctuations along the active normal mode by clicking on        |                                        |
-| the :guilabel:`Plot` button. Plots will be generated using a modified version of      |                                        | 
+
+Plot Window
+-------------------------------------------------------------------------------
+
+|
+
++---------------------------------------------------------------------------------------+----------------------------------------+
+| User can plot squared-fluctuations along the active normal mode by clicking on        | .. image:: /_static/NMWiz-Plot.png     |
+| the :guilabel:`Plot` button. Plots will be generated using a modified version of      |    :scale: 50 %                        |
 | `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plug-in.        |                                        |
 | Clicking on the plot will label and highlight the residue (or atom) in the VMD        |                                        |
 | display.                                                                              |                                        |
 +---------------------------------------------------------------------------------------+----------------------------------------+
-| **Settings**                                                                          | .. image:: /_static/NMWiz-Settings.png |
-|                                                                                       |                                        |
-| Settings window allows users to specify the path to ProDy scripts and select          |                                        |
+
+Settings Window
+-------------------------------------------------------------------------------
+
+|
+
++---------------------------------------------------------------------------------------+----------------------------------------+
+| Settings window allows users to specify the path to ProDy scripts and select          | .. image:: /_static/NMWiz-Settings.png |
 | the default color for displaying arrows.                                              |                                        |
 +---------------------------------------------------------------------------------------+----------------------------------------+
-| **ProDy Interface**                                                                   | .. image:: /_static/NMWiz-ProDy.png    |
-|                                                                                       |                                        |
-| ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins            |                                        |
+
+ProDy Interface
+-------------------------------------------------------------------------------
+
+|
+
++---------------------------------------------------------------------------------------+----------------------------------------+
+| ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins            | .. image:: /_static/NMWiz-ProDy.png    |
 | loaded in VMD. Upon completion of the calculations, NMWiz automatically               |                                        |
 | loads the results.                                                                    |                                        |
 +---------------------------------------------------------------------------------------+----------------------------------------+
-| **ANM Server**                                                                        |.. image:: /_static/NMWiz-ANMServer.png |
-|                                                                                       |                                        |
-| Finally, ANM jobs can be submitted to ANM server using this interface                 |                                        |
+
+ANM Server Interface
+-------------------------------------------------------------------------------
+
+|
+
++---------------------------------------------------------------------------------------+----------------------------------------+
+| Finally, ANM jobs can be submitted to ANM server using this interface                 | .. image:: /_static/NMWiz-ANMServer.png|
 | (Linux only). User needs to provide PDB and chain identifiers. Cutoff and             |                                        |
 | distance weight parameters can also be adjusted by the user.                          |                                        |
 |                                                                                       |                                        |
