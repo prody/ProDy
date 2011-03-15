@@ -71,7 +71,7 @@ Mode 1 from ANM 1p38  collectivity = 0.65
 Mode 2 from ANM 1p38  collectivity = 0.55
 Mode 3 from ANM 1p38  collectivity = 0.68
 
-This show that top PCA modes and slow ANM modes are highly collective.
+This shows that top PCA modes and slow ANM modes are highly collective.
 
 PCA - ANM overlap  
 -------------------------------------------------------------------------------

@@ -11,10 +11,12 @@ Release 0.6.2 (in development)
 
 **New Features**:
 
+  * :meth:`~dynamics.PCA.performSVD` function is implemented for faster
+    and more memory efficient principal compoment analysis.
   * :func:`~dynamics.extrapolateModel` function is implemented for 
     extrapolating a coarse-grained model to an all atom model. See the 
     usage example :ref:`extrapolate`.
-  * :func:`log` is implemented for enabling users to make log entries.
+  * :func:`plog` is implemented for enabling users to make log entries.
 
 
 **Improvements**:
@@ -30,6 +32,8 @@ Release 0.6.2 (in development)
   * New method :meth:`~atomic.HierView.getAtoms` is implemented.
   * :class:`~atomic.AtomGroup` set functions check the correctness of 
     dimension of data arrays to prevent runtime problems.
+  * :file:`pca.py` script is updated to use the faster PCA method
+    that uses SVD.
 
 **Bugfixes**:
 
