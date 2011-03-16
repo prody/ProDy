@@ -1040,8 +1040,7 @@ class Select(object):
             return np.zeros(n_atoms, np.bool)
         elif keyword == 'hydrogen':
             return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"r'])])
-        elif keyword == 'sidechain' or keyword == 'sc':
-            return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"r'])])
+
         try:
             residue_names, atom_names, invert, atom_names_not = KEYWORD_MAP[keyword]
         except KeyError:
