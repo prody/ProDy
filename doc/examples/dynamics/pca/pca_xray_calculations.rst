@@ -171,7 +171,7 @@ PCA calculations
 -------------------------------------------------------------------------------
 
 Once the coordinate data is prepared, it is straightforward to perform the 
-:class:`PCA` calculations:: 
+:class:`PCA` calculations:
 
 >>> pca = PCA('p38 xray')           # Instantiate a PCA instance
 >>> pca.buildCovariance(ensemble)   # Build covariance for the ensemble
@@ -202,7 +202,7 @@ method may be preferred over covariance method.
 ANM calculations
 -------------------------------------------------------------------------------
 
-To perform :class:`ANM` calculations:: 
+To perform :class:`ANM` calculations:
 
 >>> anm = ANM('1p38')             # Instantiate a ANM instance
 >>> anm.buildHessian(ref_chain)   # Build Hessian for the reference chain  

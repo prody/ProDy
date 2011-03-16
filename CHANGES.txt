@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.6.2 (in development)
+Release 0.6.2 (Mar 16, 2011)
 ===============================================================================
 
 **New Features**:
@@ -17,7 +17,6 @@ Release 0.6.2 (in development)
     extrapolating a coarse-grained model to an all atom model. See the 
     usage example :ref:`extrapolate`.
   * :func:`plog` is implemented for enabling users to make log entries.
-
 
 **Improvements**:
 
@@ -34,6 +33,12 @@ Release 0.6.2 (in development)
     dimension of data arrays to prevent runtime problems.
   * :file:`pca.py` script is updated to use the faster PCA method
     that uses SVD.
+
+**Changes**:
+
+  * :term:`backbone` definition now includes the backbone hydrogen atom 
+    (Thanks to Nahren Mascarenhas for pointing to this discrepancy in the
+    keyword definition). 
 
 **Bugfixes**:
 
