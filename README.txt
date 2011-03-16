@@ -9,7 +9,7 @@ SYNOPSIS
 ProDy is a free and open-source Python package for analyzing protein structural 
 dynamics. It allows for quantitative analysis of heterogeneous experimental 
 structural datasets and comparison with theoretically predicted conformational 
-dynamics. It is designed and developed by Ahmet Bakan in the Bahar lab at the 
+dynamics. It is designed and developed by Ahmet Bakan in Bahar lab at the 
 University of Pittsburgh.
 
 The following are some of the main features:
