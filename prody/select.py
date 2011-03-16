@@ -160,7 +160,7 @@ mapField2Var = {}
 for field in ATOMIC_DATA_FIELDS.values():
     mapField2Var[field.name] = field.var
 
-BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O')) 
+BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 'H')) 
 PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
         'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
         'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
@@ -1040,7 +1040,8 @@ class Select(object):
             return np.zeros(n_atoms, np.bool)
         elif keyword == 'hydrogen':
             return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"r'])])
-            
+        elif keyword == 'sidechain' or keyword == 'sc':
+            return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"r'])])
         try:
             residue_names, atom_names, invert, atom_names_not = KEYWORD_MAP[keyword]
         except KeyError:

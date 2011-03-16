@@ -172,10 +172,13 @@ Keyword Definitions
         method.
 
    backbone
-        Group of :term:`protein` atoms whose names match one of CA, N, C, or O.
+        Group of :term:`protein` atoms whose names match one of CA, N, C, O, H.
         Note that this definition contains only non-hydrogen atoms, but may
         be changed using :func:`setBackboneAtomNames` 
         method.
+        
+        .. versionchanged:: 0.6.2
+           H is added to the list of backbone atoms.
 
    bb
         Same as :term:`backbone`.
