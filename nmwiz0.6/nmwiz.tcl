@@ -1460,7 +1460,7 @@ proc ::nmwiz_MultiPlot::init_plot {args} {
          variable nmwizns
          variable fillcolor
          #set coords [format "%8g %8g" [expr ($x-$xplotmin)/$scalex+$xmin] [expr ($y-$yplotmin)/$scaley+$ymin]]
-         ${nmwizns}::Select_residue [::tcl::mathfunc::int [expr ($x-$xplotmin)/$scalex+$xmin]] $clr  
+         ${nmwizns}::selectAtom [::tcl::mathfunc::int [expr ($x-$xplotmin)/$scalex+$xmin]] $clr  
          #puts $coords
       }
 
@@ -2678,7 +2678,7 @@ Index of the very first frame is 0."}] \
         }
       }
 
-      proc Select_residue {resid color} {
+      proc selectAtom {resid color} {
 
         variable plotrids
         set which [lsearch $plotrids $resid]
@@ -2706,7 +2706,7 @@ Index of the very first frame is 0."}] \
           mol showrep $selid $which on
           mol modstyle $which $selid VDW $selectscale $resolution
           mol modmaterial $which $selid $material
-          mol modselect $which $selid "residue $which"
+          mol modselect $which $selid "index $which"
           mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
         }
       }
