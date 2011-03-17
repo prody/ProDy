@@ -1580,6 +1580,16 @@ proc nmwiz_multiplot { args } {
 
 #::nmwiz_MultiPlot::init_plot
 
+# List of NMWiz functions
+#   ::nmwiz::initGUI                 make main window
+#   ::nmwiz::loadNMD                 load NMD file
+
+#   ::nmguiX::deleteMolecules        delete molecules storing coordinates/graphics/animations/selection
+#   ::nmguiX::prepareSelmol          prepare the molecule where selections are displayed
+#   ::nmguiX::getPDBLines            return PDB files for the molecule
+#   ::nmguiX::clearSelection         turn selection representation of and clear labels
+
+
 namespace eval ::nmwiz:: {
   namespace export nmwizgui
   namespace export initialize
@@ -1597,11 +1607,11 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimers.
 Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimers in the documentation and/or other materials provided with the distribution.
 Neither the names of Theoretical and Computational Biophysics Group, University of Illinois at Urbana-Champaign, nor the names of its contributors may be used to endorse or promote products derived from this Software without specific prior written permission.
-THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR\ 
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR\ 
-OTHER DEALINGS WITH THE SOFTWARE.\
-\n\n\
-NMWiz makes use of a modified version of VMD plugin MultiPlot, which is also distributed under UIUC Open Source License.\
+THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS WITH THE SOFTWARE.
+
+NMWiz makes use of a modified version of VMD plugin MultiPlot, which is also distributed under UIUC Open Source License.
 "
   
   variable guicount -1
@@ -1624,15 +1634,17 @@ NMWiz makes use of a modified version of VMD plugin MultiPlot, which is also dis
     }
   }
   
-  proc init_gui {} {
+  # Called by nmwiz_tk function
+  # Makes the Main Window
+  proc initGUI {} {
     variable w
     variable platform  
-    # If already initialized, just turn on
     if [winfo exists .nmwizgui] {
       wm deiconify .nmwizgui
       raise .nmwizgui
       return 
     }
+    ::nmwiz::loadSettings
     set w [toplevel .nmwizgui]
     wm title $w "NMWiz 0.6 - Main"
     wm resizable $w 0 0
@@ -1642,7 +1654,7 @@ NMWiz makes use of a modified version of VMD plugin MultiPlot, which is also dis
     grid [button $wmf.loadnmd -width 20 -pady 2 -text "Load NMD file" -command {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
-        if {![string equal $tempfile ""]} {::nmwiz::load_nmd $tempfile}}] \
+        if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
       -row 5 -column 0 -columnspan 2
 
     grid [button $wmf.prody -width 20 -pady 2 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
@@ -1734,7 +1746,7 @@ orange3"
       variable ::nmwiz::pybin "[dict get $::nmwiz::settings pybin]"
     }
   }
-  loadSettings
+  
 
   proc initSettingsGUI {} {
     variable settingsGUI
@@ -2235,7 +2247,7 @@ Index of the very first frame is 0."}] \
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy ANM calculation is finished and results are being loaded."
-      ::nmwiz::load_nmd "$prefix.nmd" 
+      ::nmwiz::loadNMD "$prefix.nmd" 
     }  else {
       tk_messageBox -type ok -title "ERROR" \
         -message "An error occured."
@@ -2297,7 +2309,7 @@ Index of the very first frame is 0."}] \
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy PCA calculation is finished and results are being loaded."
-      ::nmwiz::load_nmd "$prefix.nmd" 
+      ::nmwiz::loadNMD "$prefix.nmd" 
     }  else {
       tk_messageBox -type ok -title "ERROR" \
         -message "An error occured."
@@ -2430,7 +2442,7 @@ Index of the very first frame is 0."}] \
   
   }
   
-  proc load_nmd {fn} {
+  proc loadNMD {fn} {
     variable filename $fn
     puts "NMWiz: Parsing file $filename"
     # Parse the file, and make sure coordinates are stored in the file
@@ -2440,7 +2452,7 @@ Index of the very first frame is 0."}] \
     
     if {[lsearch $openfiles $filename] > -1} {
       tk_messageBox -type ok -title "WARNING" \
-        -message "Content of this file is already loaded in NMWiz."
+        -message "[lindex [file split $filename] end] is loaded in NMWiz."
       return
     }
     
@@ -2451,7 +2463,9 @@ Index of the very first frame is 0."}] \
       if {[lindex $nmdline 0] == "coordinates"} {
         if {[expr [llength $nmdline] % 3] != 1} {
           tk_messageBox -type ok -title "ERROR" \
-            -message "Length of the coordinate array in $filename must be a multiple of 3. An array of length [llength $coordinates] is provided."
+            -message "Length of the coordinate array in $filename must be a\
+                      multiple of 3. An array of length\
+                      [llength $coordinates] is provided."
           return
         }
         set coordinates 1
@@ -2460,7 +2474,8 @@ Index of the very first frame is 0."}] \
     }
     if {$coordinates == 0} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Coordinates were not found in the input file."
+        -message "Coordinate data was not found in the input file.\
+                  NMD files must contain system coordinate data."
       return
     }
     variable guicount
@@ -2468,7 +2483,6 @@ Index of the very first frame is 0."}] \
     set ns "::nmgui$guicount"
     
     namespace eval $ns {
-      puts "DEBUG: evaluating namespace"
       variable tempfn ".[string range [namespace current] 2 end].pdb"
       variable w
       variable name
@@ -2534,19 +2548,23 @@ Index of the very first frame is 0."}] \
       variable plothandles [list]
       
       #vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-      proc Close_mols {} {
+      proc deleteMolecules {} {
         variable molid
-        variable arrid
-        variable animid
+        variable animidlist
         variable selid
+        variable arridlist
         if {[lsearch [molinfo list] $molid] > -1} {
           mol delete $molid
         }
-        if {[lsearch [molinfo list] $arrid] > -1} {
-          mol delete $arrid
+        foreach arrid $arridlist {
+          if {[lsearch [molinfo list] $arrid] > -1} {
+            mol delete $arrid
+          }
         }
-        if {[lsearch [molinfo list] $animid] > -1} {
-          mol delete $animid
+        foreach animid $animidlist {
+          if {[lsearch [molinfo list] $animid] > -1} {
+            mol delete $animid
+          }
         }
         if {[lsearch [molinfo list] $selid] > -1} {
           mol delete $selid
@@ -2601,9 +2619,8 @@ Index of the very first frame is 0."}] \
         #-dash [subst $${ns}::dash] \
       }
       
-      proc Prepare_selmol {} {
+      proc prepareSelmol {} {
         variable selid
-        variable tempfn
         variable molid
         # make sure selmol exists
         if {$selid == -1 || [lsearch [molinfo list] $selid] == -1} {
@@ -2619,8 +2636,9 @@ Index of the very first frame is 0."}] \
           set currentview [molinfo $molid get {rotate_matrix center_matrix scale_matrix global_matrix}]
 
           variable coordinates
+          variable tempfn
           set outfile [open [file join $::nmwiz::tmpdir $tempfn] w]
-          foreach line [[namespace current]::Get_pdb_lines $coordinates] {
+          foreach line [[namespace current]::getPDBLines $coordinates] {
             puts $outfile $line
           } 
           close $outfile
@@ -2632,12 +2650,10 @@ Index of the very first frame is 0."}] \
         }
         
         variable resids
-        
         if {[molinfo $selid get numreps] != [llength $resids]} {
           for {set i [molinfo $selid get numreps]} {$i >= 0} {incr i -1} {
             mol delrep $i $selid
           }
-          
           for {set i 0} {$i < [llength $resids]} {incr i} {
             mol addrep $selid
             mol modstyle $i $selid VDW
@@ -2647,14 +2663,19 @@ Index of the very first frame is 0."}] \
         mol top $molid
       }
 
-      proc Clear_selection {} {
+      proc clearSelection {} {
         variable selid
         if {$selid > -1 && [lsearch [molinfo list] $selid] > -1} {
-          for {set i [molinfo $selid get numreps]} {$i >= 0} {incr i -1} {
-            mol molrep $i $selid off
+          for {set i [expr [molinfo $selid get numreps] - 1]} {$i >= 0} {incr i -1} {
+            mol showrep $selid $i off
           }
         }
-        label delete Atoms all
+        set labels [label list Atoms]
+        for {set i [expr [llength $labels] - 1]} {$i >= 0} {incr i -1} {
+          if {[lindex [lindex [lindex $labels $i] 0] 0] == $selid} {
+            label delete Atoms $i
+          }
+        }
       }
 
       proc Select_residue {resid color} {
@@ -2662,7 +2683,7 @@ Index of the very first frame is 0."}] \
         variable plotrids
         set which [lsearch $plotrids $resid]
         if {$which == -1} {return 0}
-        [namespace current]::Prepare_selmol
+        [namespace current]::prepareSelmol
         
         variable selid
         variable selection
@@ -2913,7 +2934,7 @@ Index of the very first frame is 0."}] \
         lset arridlist $whichmode $arrid
       }
 
-      proc Get_pdb_lines {coords} {
+      proc getPDBLines {coords} {
         variable atomnames
         variable resnames
         variable chainids
@@ -2925,10 +2946,8 @@ Index of the very first frame is 0."}] \
           incr i
           lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f" \
                                $i  $an $rn  $ci $ri $x $y $z 1.0 $b]
-        
         }
         return $pdblines
-        
       }
 
       proc Locate_coordinates {} {
@@ -2989,7 +3008,7 @@ Index of the very first frame is 0."}] \
         # so that VMD sets bonds correctly
         
         puts $outfile "MODEL      0"
-        foreach line [[namespace current]::Get_pdb_lines $coordinates] {
+        foreach line [[namespace current]::getPDBLines $coordinates] {
           puts $outfile $line
         } 
         puts $outfile "ENDMDL"
@@ -2998,7 +3017,7 @@ Index of the very first frame is 0."}] \
         set mode [vecscale $mode [expr  -2.0 / $nframes]]
         for {set i 0} {$i <= $nframes} {incr i} {
           puts $outfile [format "MODEL %6d" [expr $i + 1]]
-          foreach line [[namespace current]::Get_pdb_lines $coords] {
+          foreach line [[namespace current]::getPDBLines $coords] {
             puts $outfile $line
           } 
           puts $outfile "ENDMDL"
@@ -3057,7 +3076,7 @@ Index of the very first frame is 0."}] \
         }
         
         set outfile [open [file join $::nmwiz::tmpdir $tempfn] w]
-        foreach line [[namespace current]::Get_pdb_lines $coordinates] {
+        foreach line [[namespace current]::getPDBLines $coordinates] {
           puts $outfile $line
         } 
         close $outfile
@@ -3531,7 +3550,7 @@ of the eigenvalue corresponding to this mode."}] \
             -command "${ns}::Plot ${ns}"] \
           -row 8 -column 2
         grid [button $wda.plot_clear -width 4 -pady 1 -text "Clear" \
-            -command "${ns}::Clear_selection"] \
+            -command "${ns}::clearSelection"] \
           -row 8 -column 3
         grid [button $wda.plot_showhide -width 4 -pady 1 -text "Hide" \
             -command "if {\$${ns}::selid > -1 && \[lsearch \[molinfo list] \$${ns}::selid] > -1} {if {\[molinfo \$${ns}::selid get displayed]} {mol off \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Show} else {mol on \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Hide}}"] \
@@ -4003,7 +4022,7 @@ protein and animation representations."}] \
         -command "${ns}::nmwizgui" ] \
       -row 0 -column 0
     grid [button $wgf.website -width 8 -pady 2 -text "Remove" \
-        -command "lset ::nmwiz::openfiles $guicount NONE; pack forget $wgf; ${ns}::Close_mols; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+        -command "lset ::nmwiz::openfiles $guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
       -row 0 -column 1
 
     pack $wgf -side top -fill x -expand 1
@@ -4031,13 +4050,13 @@ proc viewModePorcupine {mode direction molname} {
 }
 
 proc nmwiz_tk {} {
-  ::nmwiz::init_gui
+  ::nmwiz::initGUI
   return $::nmwiz::w
 }
 
 proc nmwiz_load {filename} {
   nmwiz_tk
-  ::nmwiz::load_nmd $filename
+  ::nmwiz::loadNMD $filename
 } 
 
 #nmwiz_tk
