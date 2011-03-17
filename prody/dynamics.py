@@ -1161,9 +1161,10 @@ class GNMBase(NMABase):
         return 'GNM {0:s}'.format(self._name)
     
     def _reset(self):
-        NMA._reset(self)
+        NMABase._reset(self)
         self._cutoff = None
         self._gamma = None
+        self._kirchhoff = None
     
     def getCutoff(self):
         """Return cutoff distance."""
@@ -1383,7 +1384,6 @@ class ANM(GNMBase):
 
     def _reset(self):
         GNMBase._reset(self)
-        self._kirchhoff = None
         
     def getHessian(self):
         """Return a copy of Hessian matrix."""
@@ -1399,7 +1399,6 @@ class ANM(GNMBase):
         
         """
         
-        self._tril = False
         if not isinstance(hessian, np.ndarray):
             raise TypeError('hessian must be an ndarray')
         elif not (hessian.ndim == 2 and hessian.shape[0] == hessian.shape[1]):
