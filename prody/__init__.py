@@ -42,9 +42,8 @@ def importLA():
         dynamics.scipyla = False
         try:
             import numpy.linalg as linalg
-            ProDyLogger.warning('scipy.linalg is not found, numpy.linalg is used instead.')
         except:
-            raise ImportError('scipy.linalg or numpy.linalg is required for NMA calculations and superpositioning.')
+            raise ImportError('scipy.linalg or numpy.linalg is required for NMA calculations and aligning structures.')
     dynamics.linalg = linalg
     measure.linalg = linalg
     
