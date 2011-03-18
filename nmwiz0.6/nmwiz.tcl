@@ -2768,12 +2768,12 @@ Index of the very first frame is 0."}] \
           set i [string first "." $prefix]
           set prefix [string replace $prefix $i $i "_"]
         }
-        puts "DEBUG: prefix"
-        #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        puts "DEBUG: drawlength $lengths"
-        variable drawlength [lindex $lengths 0]
-        variable drawlengthstr [format "%.1f" [lindex $lengths 0]]
-        variable activemode [lindex $indices 0]
+
+        variable numofmodes [llength $modes] 
+        variable activeindex 0
+        variable drawlength [lindex $lengths $activeindex]
+        variable drawlengthstr [format "%.1f" [lindex $lengths $activeindex]]
+        variable activemode [lindex $indices $activeindex]
         variable betalist
         foreach atnm $atomnames {
           lappend betalist 0
@@ -3369,7 +3369,31 @@ Index of the very first frame is 0."}] \
         lset colorlist [lsearch $indices $activemode] $color
       }
       
-      proc Change_mode {} {
+      proc prevMode {} {
+        variable activeindex
+        if {$activeindex > 0} {
+          set activeindex [expr $activeindex - 1];
+          variable activemode
+          variable indices
+          set activemode [lindex $indices $activeindex];
+          [namespace current]::changeMode;
+        }
+      }
+      
+      proc nextMode {} {
+        variable activeindex
+        variable numofmodes
+        if {$activeindex < [expr $numofmodes - 1]} {
+          set activeindex [expr $activeindex + 1];
+          variable activemode
+          variable indices
+          set activemode [lindex $indices $activeindex];
+          [namespace current]::changeMode;
+        }
+      }
+
+      
+      proc changeMode {} {
         variable w
         variable activemode
         variable indices
@@ -3379,6 +3403,11 @@ Index of the very first frame is 0."}] \
         variable animidlist
         variable color
         variable colorlist
+        variable drawlengthstr
+        variable lengths
+        variable activeindex 
+        set activeindex [lsearch $indices $activemode]
+        set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]]; 
         
         variable overwrite
         if {$overwrite} {
@@ -3451,8 +3480,10 @@ or make an animation. The selected color effects both arrow graphics and plots."
         foreach index $indices length $lengths {
           $wam.active.list.menu add radiobutton -label $index \
               -variable ${ns}::activemode \
-              -command "set ${ns}::drawlengthstr \[format \"%.1f\" \[lindex \$${ns}::lengths \[lsearch \$${ns}::indices \$${ns}::activemode]]]; ${ns}::Change_mode;"
+              -command "${ns}::changeMode;"
         }
+        button $wam.active.prev -text "<=" -padx 0 -pady 0 -command "${ns}::prevMode"
+        button $wam.active.next -text "=>" -padx 0 -pady 0 -command "${ns}::nextMode"
         
         tk_optionMenu $wam.active.color ${ns}::color "blue"
         $wam.active.color.menu delete 0
@@ -3464,7 +3495,7 @@ or make an animation. The selected color effects both arrow graphics and plots."
               -variable ${ns}::color \
               -command "${ns}::Change_color; ${ns}::Auto_update; "
         }
-        pack $wam.active.help $wam.active.label $wam.active.list $wam.active.color -side left -anchor w -fill x
+        pack $wam.active.help $wam.active.label $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
         
         #blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3
         
