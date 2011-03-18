@@ -3689,8 +3689,10 @@ Index of the very first frame is 0."}] \
           grid [button $wam.active_help -text "?" -padx 0 -pady 0 -command {
             tk_messageBox -type ok -title "HELP" \
               -message "Select the active mode based on which you want to color\
-                        the protein. The selected color effects both arrow\
-                        graphics and plots."}] \
+                        the protein.\nProtein coloring method can also be selected\
+                        by the user. Eigenvector option colors the protein based\
+                        on the shape of the mode. This option also effects the\
+                        mode plots."}] \
               -row 0 -column 0 -sticky w
         }
         grid [label $wam.active_label -text "Active mode"] \
@@ -4224,7 +4226,28 @@ protein and animation representations."}] \
         grid [checkbutton $wpo.overplot_check -text "" \
             -variable ${ns}::overplot] \
           -row 0 -column 2 -sticky w
-
+  
+        if {$ndim == 1} {        
+          grid [button $wpo.plotcolor_help -text "?" -padx 0 -pady 0 \
+              -command {tk_messageBox -type ok -title "HELP" \
+                -message "Color of the line."}] \
+            -row 0 -column 4 -sticky w
+          grid [label $wpo.plotcolor_label -text "Line color:"] \
+            -row 0 -column 5 -sticky w
+            
+          grid [frame $wpo.pcf] \
+            -row 0 -column 6 -sticky w
+          tk_optionMenu $wpo.pcf.color ${ns}::color "blue"
+            $wpo.pcf.color.menu delete 0
+            foreach acolor "blue red gray orange yellow tan green white pink \
+          cyan purple black yellow2 yellow3 green2 green3 \
+          cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
+          orange3" {
+              $wpo.pcf.color.menu add radiobutton -label $acolor \
+                  -variable ${ns}::color
+            }
+          pack $wpo.pcf.color -side left -anchor w -fill x
+        }
         grid [button $wpo.plotwidth_help -text "?" -padx 0 -pady 0 \
             -command {tk_messageBox -type ok -title "HELP" \
               -message "Width of the plot in pixels."}] \
