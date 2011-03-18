@@ -2815,14 +2815,18 @@ Index of the very first frame is 0."}] \
         for {set i 0} {$i < [llength $modes]} {incr i} {
           lappend arridlist -1
           lappend animidlist -1
-          lappend colorlist [lindex $::nmwiz::nmwizColors [expr $i % [llength $::nmwiz::nmwizColors]]]
+          lappend colorlist [lindex $::nmwiz::nmwizColors [expr $i + $::nmwiz::guicount % [llength $::nmwiz::nmwizColors]]]
           lappend hide_shorter_list $hide_shorter 
           lappend cylinder_radius_list $cylinder_radius
           lappend cone_radius_list $cone_radius
           lappend cone_height_list $cone_height
           lappend resolution_list $resolution
         }
-        lset colorlist 0 $::nmwiz::defaultColor
+        if {$::nmwiz::guicount == 0} {
+          lset colorlist 0 $::nmwiz::defaultColor  
+        }
+        variable color [lindex $colorlist 0]
+        
       }
       
       #vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
