@@ -6,6 +6,28 @@
 Changes
 *******************************************************************************
 
+Release 0.7.0 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`~dynamics.deform` function is implemented for deforming coordinate 
+    sets along a normal mode or linear combination of multiple modes. 
+
+**Bug Fixes**:
+
+  * Default selection for :func:`~dynamics.calcGNM` function is set to
+    "calpha".
+
+NMWiz
+-------------------------------------------------------------------------------
+
+  
+  * Plotting :guilabel:`Clear` button clears only atom labels that are 
+    associated with the dataset.
+  * Removing a dataset removes all associated molecule objects.
+  * Selected atom representations are turned on based on atom index. 
+
 Release 0.6.2 (Mar 16, 2011)
 ===============================================================================
 
@@ -40,11 +62,11 @@ Release 0.6.2 (Mar 16, 2011)
     (Thanks to Nahren Mascarenhas for pointing to this discrepancy in the
     keyword definition). 
 
-**Bugfixes**:
+**Bug Fixes**:
 
   * A bug in :class:`~dynamics.PCA` allowed calculating covariance matrix
     for less than 3 coordinate sets is fixed.
-  * A but in :func:`~compare.mapOntoChain` function that caused problems
+  * A bug in :func:`~compare.mapOntoChain` function that caused problems
     when mapping all atoms is fixed.
     
     
@@ -80,7 +102,7 @@ Release 0.6.1 (Mar 2, 2011)
   * Definition of selection keyword :term:`protein` is updated to include
     some non-standard amino acid abbreviations. 
 
-**Bugfixes**:
+**Bug Fixes**:
 
   * A bug in :class:`~proteins.WWPDB_PDBFetcher` causing exceptions when
     non-string items passed in a list is fixed.
@@ -146,11 +168,11 @@ Release 0.6 (Feb 22, 2011)
   * Behavior of :func:`~dynamics.calcANM` and :func:`~dynamics.calcGNM` 
     functions have changed. They return the atoms used for calculation as well.
 
-**Bugfixes**:
+**Bug Fixes**:
     
   * A bug in :func:`~proteins.assignSecondaryStructure` function is fixed.
-  * Bugfixes in :ref:`scripts-anm` and :ref:`scripts-gnm`.
-  * Bugfixes in :func:`~dynamics.showSqFlucts` and 
+  * Bug fixes in :ref:`scripts-anm` and :ref:`scripts-gnm`.
+  * Bug fixes in :func:`~dynamics.showSqFlucts` and 
     :func:`~dynamics.showProjection` functions.
     
 NMWiz
@@ -209,7 +231,7 @@ Release 0.5.3 (Feb 11, 2011)
 Release 0.5.2 (Jan 12, 2011)
 ===============================================================================
 
-**Bugfixes**:
+**Bug Fixes**:
   
   * An important fix in :func:`~dynamics.sampleModes` function was made
     (Thanks to Alberto Perez for finding the bug and suggesting a solution). 
@@ -257,7 +279,7 @@ Release 0.5 (Dec 21, 2010)
   * :func:`~measure.alignCoordsets` is implemented to superimpose
     coordinate sets of an :class:`~atomic.AtomGroup` instance.
 
-**Bugfixes**:
+**Bug Fixes**:
 
   * A bug in :func:`proteins.parsePDBStream` that caused unidentified errors 
     when a model in a multiple model file did not have the same number of 
@@ -350,15 +372,15 @@ NMWiz
 Release 0.1.2 (Nov 9, 2010)
 ===============================================================================
 
-* Important bugfixes and improvements in NMA helper and plotting functions.
+* Important bug fixes and improvements in NMA helper and plotting functions.
 * Documentation updates and improvements.
 
 
 Release 0.1.1 (Nov 8, 2010)
 ===============================================================================
 
-* Important bugfixes and improvements in chain comparison functions.
-* Bugfixes.
+* Important bug fixes and improvements in chain comparison functions.
+* Bug fixes.
 * Source clean up.
 * Documentation improvements.
 
