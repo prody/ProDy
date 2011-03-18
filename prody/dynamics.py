@@ -107,6 +107,7 @@ argument. These are noted in function documentations.
   
 **Sampling**:
 
+  * :func:`deform`
   * :func:`sampleModes`
   * :func:`traverseMode`
 
@@ -223,7 +224,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'calcCumulativeOverlapArray', 'calcSubspaceOverlap', 
            'calcCovarianceOverlap', 'printOverlapTable',
            
-           'sampleModes', 'traverseMode',
+           'deform', 'sampleModes', 'traverseMode',
             
            'extrapolateModel', 'reduceModel', 'sliceVector', 'sliceMode',
             
@@ -2443,7 +2444,7 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     anm.calcModes(n_modes)
     return anm, sel 
 
-def calcGNM(pdb, selstr='all', cutoff=15., gamma=1., n_modes=20, zeros=False):
+def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
     """Return a :class:`GNM` instance and atoms used for the calculations.
     
     By default only alpha carbons are considered, but selection string
@@ -2981,7 +2982,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     :arg n_confs: Number of conformations to generate. Default is 1000.
     :type n_steps: int 
     
-    :arg rmsd: The maximum RMSD that the conformations will have with 
+    :arg rmsd: The average RMSD that the conformations will have with 
         respect to the initial conformation. Default is 1.0 A.
     :type rmsd: float 
     
@@ -3264,7 +3265,8 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     initial = None
     if atoms is not None:
         if not isinstance(atoms, Atomic):
-            raise TypeError('{0:s} is not correct type for atoms'.format(type(modes)))
+            raise TypeError('{0:s} is not correct type for atoms'
+                            .format(type(atoms)))
         if atoms.getNumOfAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
         initial = atoms.getCoordinates()
@@ -3294,7 +3296,39 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     ensemble.setCoordinates(initial)    
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
+  
+def deform(atoms, mode, rmsd=None):  
+    """Generated a new coordinate set for *atoms* along the *mode*.
     
+    .. versionadded:: 0.7
+    
+    New coordinate set will be appended to *atoms*. If *rmsd* is provided,
+    *mode* will be scaled to have given RMSD distance to the active coordinate
+    set. 
+    
+    """
+
+    if not isinstance(atoms, AtomGroup):
+        raise TypeError('atoms must be an AtomGroup, not {0:s}'
+                        .format(type(atoms)))
+    if not isinstance(mode, VectorBase):
+        raise TypeError('mode must be a Mode or Vector instance, '
+                        'not {0:s}'.format(type(mode)))
+    if not mode.is3d():
+        raise ValueError('mode must be from a 3-dimensional model.')
+    if atoms.getNumOfAtoms() != mode.getNumOfAtoms():
+        raise ValueError('number of atoms do not match')
+    
+    array = mode.getArrayNx3()
+    
+    if rmsd is not None:
+        rmsd = float(rmsd)
+        # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
+        scalar = (atoms.getNumOfAtoms() * rmsd**2 / (array**2).sum())**0.5
+        LOGGER.info('Mode is scaled by {0:g}.'.format(scalar))
+        atoms.addCoordset( atoms.getCoordinates() + array * scalar)
+    else:     
+        atoms.addCoordset( atoms.getCoordinates() + array)
     
 def calcSqFlucts(modes):
     """Return sum of square-fluctuations for given set of normal *modes*.
