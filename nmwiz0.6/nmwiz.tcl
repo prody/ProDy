@@ -1666,6 +1666,22 @@ namespace eval ::nmwiz:: {
 
     #pack $wmf.options -side top -fill x -expand 1
     pack $wmf -side top -fill x -expand 1
+
+    if {$::nmwiz::guicount > -1} {    
+      for {set i 0} {$i <= $::nmwiz::guicount} {incr i} {
+        set ns "::nmgui$i"
+        if {[namespace exists $ns]} {      
+          set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
+          grid [button $wgf.name -width 8 -pady 2 -text "Show GUI" \
+              -command "${ns}::nmwizgui" ] \
+            -row 0 -column 0
+          grid [button $wgf.website -width 8 -pady 2 -text "Remove" \
+              -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+            -row 0 -column 1
+          pack $wgf -side top -fill x -expand 1
+        }
+      }
+    }
   }
   
   
@@ -2589,9 +2605,13 @@ Index of the very first frame is 0."}] \
     puts "DEBUG: $ns"
     ${ns}::initialize $coordinates $modes $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
     ${ns}::nmwizgui
+    ::nmwiz::appendGUIcontrols $ns
+    
+  }
+  
+  proc appendGUIcontrols {ns} {
     
     set w .nmwizgui
-    
     set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
     
     grid [button $wgf.name -width 8 -pady 2 -text "Show GUI" \
