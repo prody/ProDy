@@ -2936,11 +2936,16 @@ Index of the very first frame is 0."}] \
         variable cone_radius
         variable cone_height
         variable resolution
-        
+        set shift 0
         for {set i 0} {$i < [llength $modes]} {incr i} {
           lappend arridlist -1
           lappend animidlist -1
-          lappend colorlist [lindex $::nmwiz::nmwizColors [expr $i + $::nmwiz::guicount % [llength $::nmwiz::nmwizColors]]]
+          set curcolor [lindex $::nmwiz::nmwizColors [expr ($i + $shift + $::nmwiz::guicount) % [llength $::nmwiz::nmwizColors]]]
+          if {$curcolor == $::nmwiz::defaultColor} {
+            incr shift 
+            set curcolor [lindex $::nmwiz::nmwizColors [expr ($i + $shift + $::nmwiz::guicount) % [llength $::nmwiz::nmwizColors]]]
+          }
+          lappend colorlist $curcolor
           lappend hide_shorter_list $hide_shorter 
           lappend cylinder_radius_list $cylinder_radius
           lappend cone_radius_list $cone_radius
