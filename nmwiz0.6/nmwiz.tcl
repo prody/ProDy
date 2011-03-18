@@ -2473,6 +2473,9 @@ Index of the very first frame is 0."}] \
     set bfactors ""
     set chainids ""
     set modes [list]
+    set modelength 0
+    set modecounter 0
+    set dof 0
     foreach nmdline $nmdlist {
       switch -exact [lindex $nmdline 0] {
         name {
@@ -2520,24 +2523,40 @@ Index of the very first frame is 0."}] \
           }      
         }
         mode {
+          incr modecounter
           set l [expr [llength $nmdline] - 1]
-          if {$l >= [llength $coordinates]} {
-            if {$n_dims == 0} {
+          if {$n_dims == 0} {
+            set modelength $l
+            if {$l >= [llength $coordinates]} {
+              set diff [expr $l - [llength $coordinates]] 
+              if {$diff > 2} {
+                tk_messageBox -type ok -title "ERROR" \
+                  -message "First mode line is not formatted correctly."
+                return
+              }
+              set dof [llength $coordinates]
               set n_dims 3
               puts "NMWiz INFO: File contains a 3D model."
-            } elseif {$n_dims != 3} {
-              tk_messageBox -type ok -title "ERROR" \
-                -message "All modes must have the same dimensions."
-              return
+            } else {
+              set diff [expr $l - $n_atoms]
+              if {$diff > 2} {
+                tk_messageBox -type ok -title "ERROR" \
+                  -message "First mode line is not formatted correctly."
+                return
+              }
+              set dof $n_atoms
+              set n_dims 3
+              puts "NMWiz INFO: File contains a 1D model."
             }
-            switch -exact [expr $l - [llength $coordinates]] {
+          }
+          if {$modelength > 0 && $l != $modelength} {
+            puts "NMWiz WARNING: Mode line $modecounter does not have the same length as the first mode line."
+          } else {
+            switch -exact [expr $l - $dof] {
               0 {
                 lappend modes [lrange $nmdline 1 end]
                 lappend indices [llength $modes]
                 lappend lengths 1
-                lappend arridlist -1
-                lappend animidlist -1
-                lappend colorlist $::nmwiz::defaultColor
               }
               1 {
                 lappend modes [lrange $nmdline 2 end]
@@ -2548,9 +2567,6 @@ Index of the very first frame is 0."}] \
                   lappend lengths [lindex $nmdline 1]
                   lappend indices [llength $modes]
                 }
-                lappend arridlist -1
-                lappend animidlist -1
-                lappend colorlist $::nmwiz::defaultColor
               }
               2 {
                 lappend modes [lrange $nmdline 3 end]
@@ -2561,27 +2577,12 @@ Index of the very first frame is 0."}] \
                   lappend indices [lindex $nmdline 2]
                   lappend lengths [lindex $nmdline 1]
                 }
-                lappend arridlist -1
-                lappend animidlist -1
-                lappend colorlist $::nmwiz::defaultColor
               } 
               default {
                 puts "NMWiz WARNING: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
               }
-            }
-          } else {
-            if {$n_dims == 0} {
-              set n_dims 1
-              puts "NMWiz INFO: File contains a 1D model."
-            } elseif {$n_dims != 1} {
-              tk_messageBox -type ok -title "ERROR" \
-                -message "All modes must have the same dimensions."
-              return
-            }
-              tk_messageBox -type ok -title "ERROR" \
-                -message "1D models are not handled yet."
-              return
-          } 
+            } 
+          }
         }
         default {
           puts "NMWiz WARNING: Unrecognized line starting with \"[lindex $nmdline 0]\""
@@ -2648,7 +2649,9 @@ Index of the very first frame is 0."}] \
       variable colorlist [list]
       variable materials on
       variable material "HardPlastic"
+      variable material_protein "HardPlastic"
       variable resolution 10
+      variable resolution_protein 10
       
       variable selstr "all"
       variable selrep 0
@@ -2656,6 +2659,12 @@ Index of the very first frame is 0."}] \
       variable autoupdate 1
       variable autoanimate 0
       
+      variable hide_shorter_list [list] 
+      variable cylinder_radius_list [list]
+      variable cone_radius_list [list]
+      variable cone_height_list [list]
+      variable resolution_list [list]
+
       variable hide_shorter 0.0 
       variable cylinder_radius 0.4
       variable cone_radius 0.6
@@ -2959,7 +2968,7 @@ Index of the very first frame is 0."}] \
       }
 
 
-      proc Protein_representation {targetid} {
+      proc updateProtRep {targetid} {
         variable molid
 
         if {[lsearch [molinfo list] $targetid] == -1} {
@@ -2975,8 +2984,8 @@ Index of the very first frame is 0."}] \
         variable tuberadius
         variable bondradius
         variable cutoffdistance
-        variable resolution
-        variable material
+        variable resolution_protein
+        variable material_protein
         variable betamin
         variable betamax
         variable spherescale
@@ -3006,11 +3015,11 @@ Index of the very first frame is 0."}] \
         
         if {$showproteinas == "Network"} {
           mol addrep $targetid
-          mol modstyle 0 $targetid VDW $spherescale $resolution
-          mol modmaterial 0 $targetid $material
+          mol modstyle 0 $targetid VDW $spherescale $resolution_protein
+          mol modmaterial 0 $targetid $material_protein
           mol addrep $targetid
-          mol modstyle 1 $targetid DynamicBonds $cutoffdistance $bondradius $resolution
-          mol modmaterial 1 $targetid $material
+          mol modstyle 1 $targetid DynamicBonds $cutoffdistance $bondradius $resolution_protein
+          mol modmaterial 1 $targetid $material_protein
           if {$proteincolor == "Mobility"} {
             mol modcolor 0 $targetid Beta
             mol scaleminmax $targetid 0 $betamin $betamax 
@@ -3036,8 +3045,8 @@ Index of the very first frame is 0."}] \
           }
         } else {
           mol addrep $targetid
-          mol modstyle 0 $targetid Tube $tuberadius $resolution
-          mol modmaterial 0 $targetid $material
+          mol modstyle 0 $targetid Tube $tuberadius $resolution_protein
+          mol modmaterial 0 $targetid $material_protein
           if {$selrep} {
             mol modselect 0 $targetid $selstr
           }
@@ -3101,7 +3110,7 @@ Index of the very first frame is 0."}] \
         [namespace current]::Draw_arrows
       }
       
-      proc Auto_update {} {
+      proc autoUpdate {} {
         variable autoupdate
         if {$autoupdate} {
           variable overwrite
@@ -3287,7 +3296,7 @@ Index of the very first frame is 0."}] \
         #mol modstyle 0 $animid Tube 0.3
         #mol modcolor 0 $animid Beta
         #mol scaleminmax $animid 0 $betamin $betamax
-        [namespace current]::Protein_representation $animid 
+        [namespace current]::updateProtRep $animid 
         $w.draw_arrows.animbuttons_label configure -text "Animation ($animid):"
         mol rename $animid "$title mode $activemode animation"
         foreach id [molinfo list] {
@@ -3336,7 +3345,7 @@ Index of the very first frame is 0."}] \
         $w.draw_arrows.protbuttons_label configure -text "Protein ($molid):"
         mol rename $molid "$title coordinates"
         [namespace current]::Beta_msf
-        [namespace current]::Protein_representation $molid
+        [namespace current]::updateProtRep $molid
 
         if {[molinfo num] > 0 && $::nmwiz::preserview} {
           foreach id [molinfo list] {
@@ -3493,7 +3502,7 @@ or make an animation. The selected color effects both arrow graphics and plots."
       orange3" {
           $wam.active.color.menu add radiobutton -label $acolor \
               -variable ${ns}::color \
-              -command "${ns}::Change_color; ${ns}::Auto_update; "
+              -command "${ns}::Change_color; ${ns}::autoUpdate; "
         }
         pack $wam.active.help $wam.active.label $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
         
@@ -3519,15 +3528,15 @@ of the eigenvalue corresponding to this mode."}] \
         button $wam.scale_frame.negate -text "+/-" -padx 0 -pady 0 -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::Draw_action"  
         entry $wam.scale_frame.entry -width 4 -textvariable ${ns}::scalearrows
         button $wam.scale_frame.decr5 -text "-5" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::Auto_update"
+          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
         button $wam.scale_frame.decr1 -text "-1" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 1]; ${ns}::Auto_update"
+          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 1]; ${ns}::autoUpdate"
         button $wam.scale_frame.one -text "1" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows 1; ${ns}::Auto_update"
+          "set ${ns}::scalearrows 1; ${ns}::autoUpdate"
         button $wam.scale_frame.incr1 -text "+1" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 1]; ${ns}::Auto_update"
+          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 1]; ${ns}::autoUpdate"
         button $wam.scale_frame.incr5 -text "+5" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 5]; ${ns}::Auto_update"
+          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 5]; ${ns}::autoUpdate"
         pack $wam.scale_frame.length $wam.scale_frame.angstrom \
           $wam.scale_frame.product \
           $wam.scale_frame.negate \
@@ -3617,7 +3626,7 @@ of the eigenvalue corresponding to this mode."}] \
               -message "Molecule id of the molecular system is shown in parentheses.\n\nUpdate : Update protein representation\nFocus : reset view to focus on the molecular system\nHide : hide/show the molecular system\nOptions : change molecular system representation\n"}] \
           -row 9 -column 1 -sticky w
         grid [button $wda.prt_update -width 4 -pady 1 -text "Update" \
-            -command "${ns}::Protein_representation \$${ns}::molid"] \
+            -command "${ns}::updateProtRep \$${ns}::molid"] \
           -row 9 -column 2
         grid [button $wda.protbuttons_focus -width 4 -pady 1 -text "Focus" \
             -command "mol top \$${ns}::molid; display resetview"] \
@@ -3663,9 +3672,9 @@ of the eigenvalue corresponding to this mode."}] \
           -row 9 -column 2 -sticky w
         entry $wgo.hide_frame.entry -width 4 -textvariable ${ns}::hide_shorter
         button $wgo.hide_frame.decr -text "-0.5" -padx 0 -pady 0 \
-          -command "set ${ns}::hide_shorter \[::tcl::mathfunc::abs \[expr \$${ns}::hide_shorter - 0.5]]; ${ns}::Auto_update"
+          -command "set ${ns}::hide_shorter \[::tcl::mathfunc::abs \[expr \$${ns}::hide_shorter - 0.5]]; ${ns}::autoUpdate"
         button $wgo.hide_frame.incr -text "+0.5" -padx 0 -pady 0 \
-          -command "set ${ns}::hide_shorter \[::tcl::mathfunc::abs \[expr \$${ns}::hide_shorter + 0.5]]; ${ns}::Auto_update"
+          -command "set ${ns}::hide_shorter \[::tcl::mathfunc::abs \[expr \$${ns}::hide_shorter + 0.5]]; ${ns}::autoUpdate"
         label $wgo.hide_frame.angstrom -text "A"
         pack $wgo.hide_frame.entry $wgo.hide_frame.decr $wgo.hide_frame.incr \
           $wgo.hide_frame.angstrom -side left -anchor w -fill x
@@ -3680,9 +3689,9 @@ of the eigenvalue corresponding to this mode."}] \
           -row 10 -column 2 -sticky w
         entry $wgo.cylinder_frame.entry -width 4 -textvariable ${ns}::cylinder_radius
         button $wgo.cylinder_frame.decr -text "-0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::cylinder_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cylinder_radius - 0.1]]; ${ns}::Auto_update"
+          -command "set ${ns}::cylinder_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cylinder_radius - 0.1]]; ${ns}::autoUpdate"
         button $wgo.cylinder_frame.incr -text "+0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::cylinder_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cylinder_radius + 0.1]]; ${ns}::Auto_update"
+          -command "set ${ns}::cylinder_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cylinder_radius + 0.1]]; ${ns}::autoUpdate"
         label $wgo.cylinder_frame.angstrom -text "A"
         pack $wgo.cylinder_frame.entry $wgo.cylinder_frame.decr \
           $wgo.cylinder_frame.incr $wgo.cylinder_frame.angstrom \
@@ -3699,9 +3708,9 @@ this value should be larger than arrow cylinder radius."}] \
           -row 11 -column 2 -sticky w
         entry $wgo.coner_frame.entry -width 4 -textvariable ${ns}::cone_radius
         button $wgo.coner_frame.decr -text "-0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::cone_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cone_radius - 0.1]]; ${ns}::Auto_update"
+          -command "set ${ns}::cone_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cone_radius - 0.1]]; ${ns}::autoUpdate"
         button $wgo.coner_frame.incr -text "+0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::cone_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cone_radius + 0.1]]; ${ns}::Auto_update"
+          -command "set ${ns}::cone_radius \[::tcl::mathfunc::abs \[expr \$${ns}::cone_radius + 0.1]]; ${ns}::autoUpdate"
         label $wgo.coner_frame.angstrom -text "A"
         pack $wgo.coner_frame.entry $wgo.coner_frame.decr $wgo.coner_frame.incr \
           $wgo.coner_frame.angstrom -side left -anchor w -fill x
@@ -3716,12 +3725,29 @@ this value should be larger than arrow cylinder radius."}] \
           -row 12 -column 2 -sticky w
         entry $wgo.coneh_frame.entry -width 4 -textvariable ${ns}::cone_height
         button $wgo.coneh_frame.decr -text "-0.2" -padx 0 -pady 0 \
-          -command "set ${ns}::cone_height \[::tcl::mathfunc::abs \[expr \$${ns}::cone_height - 0.2]]; ${ns}::Auto_update"
+          -command "set ${ns}::cone_height \[::tcl::mathfunc::abs \[expr \$${ns}::cone_height - 0.2]]; ${ns}::autoUpdate"
         button $wgo.coneh_frame.incr -text "+0.2" -padx 0 -pady 0 \
-          -command "set ${ns}::cone_height \[::tcl::mathfunc::abs \[expr \$${ns}::cone_height + 0.2]]; ${ns}::Auto_update"
+          -command "set ${ns}::cone_height \[::tcl::mathfunc::abs \[expr \$${ns}::cone_height + 0.2]]; ${ns}::autoUpdate"
         label $wgo.coneh_frame.angstrom -text "A"
         pack $wgo.coneh_frame.entry $wgo.coneh_frame.decr $wgo.coneh_frame.incr \
           $wgo.coneh_frame.angstrom -side left -anchor w -fill x
+
+        grid [button $wgo.material_help -text "?" -padx 0 -pady 0 \
+            -command {tk_messageBox -type ok -title "HELP" \
+              -message "The material used for drawing the arrows."}] \
+          -row 20 -column 0 -sticky w
+        grid [label $wgo.material_label -text "Graphics material:"] \
+          -row 20 -column 1 -sticky w
+        grid [frame $wgo.material_frame] \
+          -row 20 -column 2 -sticky w
+        tk_optionMenu $wgo.material_frame.list ${ns}::material "Opaque"
+        $wgo.material_frame.list.menu delete 0
+        foreach mtrl "Opaque Transparent BrushedMetal Diffuse Ghost Glass1 Glass2 Glass3 Glossy HardPlastic MetallicPastel Steel Translucent Edgy EdgyShiny EdgyGlass Goodsell AOShiny AOChalky AOEdgy" {
+          $wgo.material_frame.list.menu add radiobutton -label $mtrl \
+              -variable ${ns}::material \
+              -command "${ns}::autoUpdate"    
+        }
+        pack $wgo.material_frame.list -side left -anchor w -fill x
 
         grid [button $wgo.resolution_help -text "?" -padx 0 -pady 0 \
             -command {tk_messageBox -type ok -title "HELP" \
@@ -3736,7 +3762,7 @@ this value should be larger than arrow cylinder radius."}] \
         foreach resol "6 10 15 20 25 30 35 40 45 50" {
           $wgo.resolution_frame.list.menu add radiobutton -label $resol \
               -variable ${ns}::resolution \
-              -command "${ns}::Protein_representation \$${ns}::molid; ${ns}::Auto_update"  
+              -command "${ns}::updateProtRep \$${ns}::molid; ${ns}::autoUpdate"  
         } 
         pack $wgo.resolution_frame.list -side left -anchor w -fill x
 
@@ -3750,7 +3776,7 @@ protein and animation representations."}] \
         grid [label $wpgo.selstr_label -text "Show selected atoms:"] \
           -row 0 -column 1 -sticky w
         grid [checkbutton $wpgo.selstr_check -text "" \
-            -variable ${ns}::selrep -command "${ns}::Protein_representation \$${ns}::molid"] \
+            -variable ${ns}::selrep -command "${ns}::updateProtRep \$${ns}::molid"] \
           -row 0 -column 2 -sticky w
         
         grid [button $wpgo.protas_help -text "?" -padx 0 -pady 0 \
@@ -3763,8 +3789,8 @@ protein and animation representations."}] \
           -row 13 -column 2 -sticky w
         tk_optionMenu $wpgo.protas_frame.list ${ns}::showproteinas "Backbone"
         $wpgo.protas_frame.list.menu delete 0
-        $wpgo.protas_frame.list.menu add radiobutton -label "Backbone" -variable ${ns}::showproteinas -command "${ns}::Protein_representation \$${ns}::molid"
-        $wpgo.protas_frame.list.menu add radiobutton -label "Network" -variable ${ns}::showproteinas -command "${ns}::Protein_representation \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Backbone" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Network" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.protas_frame.list -side left -anchor w -fill x
 
         grid [button $wpgo.procolor_help -text "?" -padx 0 -pady 0 \
@@ -3777,12 +3803,12 @@ protein and animation representations."}] \
           -row 14 -column 2 -sticky w
         tk_optionMenu $wpgo.procolor_frame.list ${ns}::proteincolor "Mobility"
         $wpgo.procolor_frame.list.menu delete 0
-        $wpgo.procolor_frame.list.menu add radiobutton -label "Mobility" -variable ${ns}::proteincolor -command "${ns}::Protein_representation \$${ns}::molid"
-        $wpgo.procolor_frame.list.menu add radiobutton -label "Bfactors" -variable ${ns}::proteincolor -command "${ns}::Protein_representation \$${ns}::molid"
+        $wpgo.procolor_frame.list.menu add radiobutton -label "Mobility" -variable ${ns}::proteincolor -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.procolor_frame.list.menu add radiobutton -label "Bfactors" -variable ${ns}::proteincolor -command "${ns}::updateProtRep \$${ns}::molid"
         foreach acolor "Index Chain ResName ResType" {
           $wpgo.procolor_frame.list.menu add radiobutton -label $acolor \
               -variable ${ns}::proteincolor \
-              -command "${ns}::Protein_representation \$${ns}::molid"
+              -command "${ns}::updateProtRep \$${ns}::molid"
         }
         pack $wpgo.procolor_frame.list -side left -anchor w -fill x
 
@@ -3797,9 +3823,9 @@ protein and animation representations."}] \
           -row 16 -column 2 -sticky w
         entry $wpgo.cutoffdistance_frame.entry -width 4 -textvariable ${ns}::cutoffdistance
         button $wpgo.cutoffdistance_frame.decr -text "-1.0" -padx 0 -pady 0 \
-          -command "set ${ns}::cutoffdistance \[::tcl::mathfunc::abs \[expr \$${ns}::cutoffdistance - 1.0]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::cutoffdistance \[::tcl::mathfunc::abs \[expr \$${ns}::cutoffdistance - 1.0]]; ${ns}::updateProtRep \$${ns}::molid"
         button $wpgo.cutoffdistance_frame.incr -text "+1.0" -padx 0 -pady 0 \
-          -command "set ${ns}::cutoffdistance \[::tcl::mathfunc::abs \[expr \$${ns}::cutoffdistance + 1.0]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::cutoffdistance \[::tcl::mathfunc::abs \[expr \$${ns}::cutoffdistance + 1.0]]; ${ns}::updateProtRep \$${ns}::molid"
         label $wpgo.cutoffdistance_frame.angstrom -text "A"
         pack $wpgo.cutoffdistance_frame.entry $wpgo.cutoffdistance_frame.decr $wpgo.cutoffdistance_frame.incr \
           $wpgo.cutoffdistance_frame.angstrom -side left -anchor w -fill x
@@ -3814,9 +3840,9 @@ protein and animation representations."}] \
           -row 17 -column 2 -sticky w
         entry $wpgo.nodescale_frame.entry -width 4 -textvariable ${ns}::spherescale
         button $wpgo.nodescale_frame.decr -text "-0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::spherescale \[::tcl::mathfunc::abs \[expr \$${ns}::spherescale - 0.1]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::spherescale \[::tcl::mathfunc::abs \[expr \$${ns}::spherescale - 0.1]]; ${ns}::updateProtRep \$${ns}::molid"
         button $wpgo.nodescale_frame.incr -text "+0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::spherescale \[::tcl::mathfunc::abs \[expr \$${ns}::spherescale + 0.1]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::spherescale \[::tcl::mathfunc::abs \[expr \$${ns}::spherescale + 0.1]]; ${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.nodescale_frame.entry $wpgo.nodescale_frame.decr $wpgo.nodescale_frame.incr \
           -side left -anchor w -fill x
           
@@ -3830,9 +3856,9 @@ protein and animation representations."}] \
           -row 18 -column 2 -sticky w
         entry $wpgo.bondradius_frame.entry -width 4 -textvariable ${ns}::bondradius
         button $wpgo.bondradius_frame.decr -text "-0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::bondradius \[::tcl::mathfunc::abs \[expr \$${ns}::bondradius - 0.1]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::bondradius \[::tcl::mathfunc::abs \[expr \$${ns}::bondradius - 0.1]]; ${ns}::updateProtRep \$${ns}::molid"
         button $wpgo.bondradius_frame.incr -text "+0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::bondradius \[::tcl::mathfunc::abs \[expr \$${ns}::bondradius + 0.1]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::bondradius \[::tcl::mathfunc::abs \[expr \$${ns}::bondradius + 0.1]]; ${ns}::updateProtRep \$${ns}::molid"
         label $wpgo.bondradius_frame.angstrom -text "A"
         pack $wpgo.bondradius_frame.entry $wpgo.bondradius_frame.decr $wpgo.bondradius_frame.incr \
           $wpgo.bondradius_frame.angstrom -side left -anchor w -fill x
@@ -3848,9 +3874,9 @@ protein and animation representations."}] \
           -row 19 -column 2 -sticky w
         entry $wpgo.tuberadius_frame.entry -width 4 -textvariable ${ns}::tuberadius
         button $wpgo.tuberadius_frame.decr -text "-0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::tuberadius \[::tcl::mathfunc::abs \[expr \$${ns}::tuberadius - 0.1]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::tuberadius \[::tcl::mathfunc::abs \[expr \$${ns}::tuberadius - 0.1]]; ${ns}::updateProtRep \$${ns}::molid"
         button $wpgo.tuberadius_frame.incr -text "+0.1" -padx 0 -pady 0 \
-          -command "set ${ns}::tuberadius \[::tcl::mathfunc::abs \[expr \$${ns}::tuberadius + 0.1]]; ${ns}::Protein_representation \$${ns}::molid"
+          -command "set ${ns}::tuberadius \[::tcl::mathfunc::abs \[expr \$${ns}::tuberadius + 0.1]]; ${ns}::updateProtRep \$${ns}::molid"
         label $wpgo.tuberadius_frame.angstrom -text "A"
         pack $wpgo.tuberadius_frame.entry $wpgo.tuberadius_frame.decr $wpgo.tuberadius_frame.incr \
           $wpgo.tuberadius_frame.angstrom -side left -anchor w -fill x
@@ -3864,12 +3890,12 @@ protein and animation representations."}] \
           -row 20 -column 1 -sticky w
         grid [frame $wpgo.material_frame] \
           -row 20 -column 2 -sticky w
-        tk_optionMenu $wpgo.material_frame.list ${ns}::material "Opaque"
+        tk_optionMenu $wpgo.material_frame.list ${ns}::material_protein "Opaque"
         $wpgo.material_frame.list.menu delete 0
         foreach mtrl "Opaque Transparent BrushedMetal Diffuse Ghost Glass1 Glass2 Glass3 Glossy HardPlastic MetallicPastel Steel Translucent Edgy EdgyShiny EdgyGlass Goodsell AOShiny AOChalky AOEdgy" {
           $wpgo.material_frame.list.menu add radiobutton -label $mtrl \
               -variable ${ns}::material \
-              -command "${ns}::Protein_representation \$${ns}::molid; ${ns}::Auto_update"    
+              -command "${ns}::updateProtRep \$${ns}::molid"    
         }
         pack $wpgo.material_frame.list -side left -anchor w -fill x
 
@@ -3881,12 +3907,12 @@ protein and animation representations."}] \
           -row 21 -column 1 -sticky w
         grid [frame $wpgo.resolution_frame] \
           -row 21 -column 2 -sticky w
-        tk_optionMenu $wpgo.resolution_frame.list ${ns}::resolution 6 
+        tk_optionMenu $wpgo.resolution_frame.list ${ns}::resolution_protein 6 
         $wpgo.resolution_frame.list.menu delete 0
         foreach resol "6 10 15 20 25 30 35 40 45 50" {
           $wpgo.resolution_frame.list.menu add radiobutton -label $resol \
               -variable ${ns}::resolution \
-              -command "${ns}::Protein_representation \$${ns}::molid; ${ns}::Auto_update"  
+              -command "${ns}::updateProtRep \$${ns}::molid"  
         } 
         pack $wpgo.resolution_frame.list -side left -anchor w -fill x
 

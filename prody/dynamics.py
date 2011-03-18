@@ -3298,13 +3298,14 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     return ensemble
   
 def deform(atoms, mode, rmsd=None):  
-    """Generated a new coordinate set for *atoms* along the *mode*.
+    """Generate a new coordinate set for *atoms* along the *mode*.
     
     .. versionadded:: 0.7
     
+    *atoms* must be a :class:`~prody.atomic.AtomGroup` instance.
     New coordinate set will be appended to *atoms*. If *rmsd* is provided,
-    *mode* will be scaled to have given RMSD distance to the active coordinate
-    set.
+    *mode* will be scaled to generate a coordinate set with given RMSD distance
+    to the active coordinate set.
     
     Below example shows how to deform a structure along a normal mode
     or linear combinations of normal modes:
