@@ -2545,7 +2545,7 @@ Index of the very first frame is 0."}] \
                 return
               }
               set dof $n_atoms
-              set n_dims 3
+              set n_dims 1
               puts "NMWiz INFO: File contains a 1D model."
             }
           }
@@ -2603,7 +2603,7 @@ Index of the very first frame is 0."}] \
     }
 
     set ns [::nmwiz::makeNMWizGUI]
-    ${ns}::initialize $coordinates $modes $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
+    ${ns}::initialize $coordinates $modes $n_dims $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
     ${ns}::nmwizgui
     ::nmwiz::appendGUIcontrols $ns
     
@@ -2651,6 +2651,10 @@ Index of the very first frame is 0."}] \
       variable material_protein "HardPlastic"
       variable resolution 10
       variable resolution_protein 10
+      variable ndim 3
+      
+      #GNM option
+      variable msformode "Mobility"
       
       variable selstr "all"
       variable selrep 0
@@ -2704,12 +2708,13 @@ Index of the very first frame is 0."}] \
       variable marker "circle"
       variable plothandles [list]
       
-      proc initialize {xyz m t l i an rn ri ci bf} {
+      proc initialize {xyz m d t l i an rn ri ci bf} {
         variable arridlist
         variable animidlist
         variable colorlist
         variable coordinates $xyz
         variable modes $m
+        variable ndim $d
         variable title $t
         variable lengths $l
         variable indices $i
@@ -2990,7 +2995,7 @@ Index of the very first frame is 0."}] \
 
         if {[lsearch [molinfo list] $targetid] == -1} {
           if {$targetid == $molid} {
-            [namespace current]::Load_coordinates
+            [namespace current]::loadCoordinates
           } else {
             return 0
           }
@@ -3093,21 +3098,38 @@ Index of the very first frame is 0."}] \
         variable animid
         variable material
         variable selstr
+        variable ndim
 
         set length [lindex $lengths [lsearch $indices $activemode]]
         set mode [lindex $modes [lsearch $indices $activemode]]
-        set mode [vecscale [expr $length * $length] [vecmul $mode $mode]]
+        variable msformode
+        if {$msformode == "Mobility"} {
+          set mode [vecscale [expr $length * $length] [vecmul $mode $mode]]  
+        } else {
+          set mode [vecscale $length $mode]
+        }
+        
 
         set index 0
         variable betalist {}
         variable betamin 10000
         variable betamax -10000
-        foreach {mx my mz} $mode {
-          set beta [expr $mx + $my + $mz]
-          lappend betalist $beta
-          if {$beta < $betamin} {set betamin $beta}
-          if {$beta > $betamax} {set betamax $beta}
-          incr index
+        if {$ndim == 3} {
+          foreach {mx my mz} $mode {
+            set beta [expr $mx + $my + $mz]
+            lappend betalist $beta
+            if {$beta < $betamin} {set betamin $beta}
+            if {$beta > $betamax} {set betamax $beta}
+            incr index
+          }
+        } else {
+          foreach mx $mode {
+            set beta [expr $mx]
+            lappend betalist $beta
+            if {$beta < $betamin} {set betamin $beta}
+            if {$beta > $betamax} {set betamax $beta}
+            incr index
+          }
         }
         [atomselect $molid "all"] set beta $betalist 
         #mol scaleminmax $molid 0 [::tcl::mathfunc::min $betalist] [::tcl::mathfunc::max $betalist]
@@ -3164,7 +3186,7 @@ Index of the very first frame is 0."}] \
         set whichmode [lsearch $indices $activemode] 
 
         if {[lsearch [molinfo list] $molid] == -1} {
-          [namespace current]::Load_coordinates
+          [namespace current]::loadCoordinates
         }
 
         if {[lsearch [molinfo list] $arrid] == -1} {
@@ -3237,7 +3259,7 @@ Index of the very first frame is 0."}] \
         if {![string equal $tempfile ""]} { 
           set pdbfile $tempfile 
         }
-        [namespace current]::Load_coordinates
+        [namespace current]::loadCoordinates
       }
 
 
@@ -3338,7 +3360,7 @@ Index of the very first frame is 0."}] \
       }
 
 
-      proc Load_coordinates {} {
+      proc loadCoordinates {} {
         variable molid
         variable coordinates
         variable title
@@ -3430,71 +3452,77 @@ Index of the very first frame is 0."}] \
         variable drawlengthstr
         variable lengths
         variable activeindex 
-        
-        variable hide_shorter_list 
-        variable cylinder_radius_list
-        variable cone_radius_list
-        variable cone_height_list
-        variable resolution_list
-        
-        variable hide_shorter 
-        variable cylinder_radius
-        variable cone_radius
-        variable cone_height
-        variable resolution
-        
-        lset hide_shorter_list $activeindex $hide_shorter  
-        lset cylinder_radius_list $activeindex $cylinder_radius
-        lset cone_radius_list $activeindex $cone_radius
-        lset cone_height_list $activeindex $cone_height
-        lset resolution_list $activeindex $resolution
-
+        variable ndim
+        set inactiveindex $activeindex 
         set activeindex [lsearch $indices $activemode]
-        set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]];
-        
-        set hide_shorter [lindex $hide_shorter_list $activeindex]
-        set cylinder_radius [lindex $cylinder_radius_list $activeindex]
-        set cone_radius [lindex $cone_radius_list $activeindex]
-        set cone_height [lindex $cone_height_list $activeindex]
-        set resolution [lindex $resolution_list $activeindex]
+        if {$ndim == 3} {
+          variable hide_shorter_list 
+          variable cylinder_radius_list
+          variable cone_radius_list
+          variable cone_height_list
+          variable resolution_list
+          
+          variable hide_shorter 
+          variable cylinder_radius
+          variable cone_radius
+          variable cone_height
+          variable resolution
+          
+          lset hide_shorter_list $inactiveindex $hide_shorter  
+          lset cylinder_radius_list $inactiveindex $cylinder_radius
+          lset cone_radius_list $inactiveindex $cone_radius
+          lset cone_height_list $inactiveindex $cone_height
+          lset resolution_list $inactiveindex $resolution
 
-        variable overwrite
-        if {$overwrite} {
+          set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]];
+          
+          set hide_shorter [lindex $hide_shorter_list $activeindex]
+          set cylinder_radius [lindex $cylinder_radius_list $activeindex]
+          set cone_radius [lindex $cone_radius_list $activeindex]
+          set cone_height [lindex $cone_height_list $activeindex]
+          set resolution [lindex $resolution_list $activeindex]
+
+      
+          variable overwrite
+          if {$overwrite} {
+            if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
+              mol off $arrid
+            }
+          }
+          if {$animid > -1 && [lsearch [molinfo list] $animid] > -1} {
+            mol off $animid
+          }
+          
+          set which [lsearch $indices $activemode]
+          set arrid [lindex $arridlist $which]      
+          set animid [lindex $animidlist $which]
+
+          
+          set color [lindex $colorlist $which]
+
           if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
-            mol off $arrid
+            mol on $arrid
+            [namespace current]::Beta_msf
+          } else {
+            [namespace current]::Draw_action
           }
-        }
-        if {$animid > -1 && [lsearch [molinfo list] $animid] > -1} {
-          mol off $animid
-        }
-        
-        set which [lsearch $indices $activemode]
-        set arrid [lindex $arridlist $which]      
-        set animid [lindex $animidlist $which]
+          
+          $w.draw_arrows.arrowbuttons_showhide configure -text Hide
 
-        
-        set color [lindex $colorlist $which]
-
-        if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
-          mol on $arrid
-          [namespace current]::Beta_msf
-        } else {
-          [namespace current]::Draw_action
-        }
-        
-        $w.draw_arrows.arrowbuttons_showhide configure -text Hide
-
-        if {$animid > -1 && [lsearch [molinfo list] $animid] > -1} {
-          mol on $animid
-          mol top $animid
-        } else {
-          variable autoanimate  
-          if {$autoanimate} {
-            [namespace current]::Animate
+          if {$animid > -1 && [lsearch [molinfo list] $animid] > -1} {
+            mol on $animid
+            mol top $animid
+          } else {
+            variable autoanimate  
+            if {$autoanimate} {
+              [namespace current]::Animate
+            }
           }
+          $w.draw_arrows.animbuttons_showhide configure -text Hide
+          $w.draw_arrows.animbuttons_stop configure -text Play
+        } else {
+          [namespace current]::Beta_msf          
         }
-        $w.draw_arrows.animbuttons_showhide configure -text Hide
-        $w.draw_arrows.animbuttons_stop configure -text Play
       }
       
       #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3510,18 +3538,33 @@ Index of the very first frame is 0."}] \
         }
         set w [toplevel .[string range $ns 2 end]]
         variable title
+
         wm title $w "NMWiz - $title"
         wm resizable $w 0 0
         set wam [labelframe $w.active_mode -text "$title" -bd 2] 
 
-        grid [frame $wam.active] \
-          -row 0 -column 0 -columnspan 3
-        label $wam.active.label -text "Active mode"
+        variable ndim
+        if {$ndim == 3} {
+          grid [button $wam.active_help -text "?" -padx 0 -pady 0 -command {
+            tk_messageBox -type ok -title "HELP" \
+              -message "Select the active mode for which you want to draw arrows\
+                        or make an animation. The selected color effects both arrow\
+                        graphics and plots."}] \
+              -row 0 -column 0 -sticky w
+        } else {
+          grid [button $wam.active_help -text "?" -padx 0 -pady 0 -command {
+            tk_messageBox -type ok -title "HELP" \
+              -message "Select the active mode based on which you want to color\
+                        the protein. The selected color effects both arrow\
+                        graphics and plots."}] \
+              -row 0 -column 0 -sticky w
+        }
+        grid [label $wam.active_label -text "Active mode"] \
+            -row 0 -column 1 -sticky w
 
-        button $wam.active.help -text "?" -padx 0 -pady 0 -command {
-          tk_messageBox -type ok -title "HELP" \
-            -message "Select the active mode for which you want to draw arrows\
-or make an animation. The selected color effects both arrow graphics and plots."}
+        grid [frame $wam.active] \
+            -row 0 -column 2 -sticky w
+
         tk_optionMenu $wam.active.list ${ns}::activemode 0
         $wam.active.list.menu delete 0
         variable indices
@@ -3531,112 +3574,132 @@ or make an animation. The selected color effects both arrow graphics and plots."
               -variable ${ns}::activemode \
               -command "${ns}::changeMode;"
         }
-        button $wam.active.prev -text "<=" -padx 0 -pady 0 -command "${ns}::prevMode"
-        button $wam.active.next -text "=>" -padx 0 -pady 0 -command "${ns}::nextMode"
         
-        tk_optionMenu $wam.active.color ${ns}::color "blue"
-        $wam.active.color.menu delete 0
-        foreach acolor "blue red gray orange yellow tan green white pink \
-      cyan purple black yellow2 yellow3 green2 green3 \
-      cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
-      orange3" {
-          $wam.active.color.menu add radiobutton -label $acolor \
-              -variable ${ns}::color \
-              -command "${ns}::Change_color; ${ns}::autoUpdate; "
+        button $wam.active.prev -text "<=" -padx 1 -pady 1 -command "${ns}::prevMode"
+        
+        button $wam.active.next -text "=>" -padx 1 -pady 1 -command "${ns}::nextMode"
+        
+        variable ndim
+        if {$ndim == 3} {
+          tk_optionMenu $wam.active.color ${ns}::color "blue"
+          $wam.active.color.menu delete 0
+          foreach acolor "blue red gray orange yellow tan green white pink \
+        cyan purple black yellow2 yellow3 green2 green3 \
+        cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
+        orange3" {
+            $wam.active.color.menu add radiobutton -label $acolor \
+                -variable ${ns}::color \
+                -command "${ns}::Change_color; ${ns}::autoUpdate; "
+          }
+          pack $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
+        } else {
+          tk_optionMenu $wam.active.color ${ns}::msformode "Mobility"
+          $wam.active.color.menu delete 0
+          foreach acolor "Mobility Eigenvector" {
+            $wam.active.color.menu add radiobutton -label $acolor \
+                -variable ${ns}::msformode \
+                -command "${ns}::Beta_msf;"
+          }
+          pack $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
         }
-        pack $wam.active.help $wam.active.label $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
+        
+        
         
         #blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3
-        
-        grid [button $wam.scale_help -text "?" -padx 0 -pady 0 -command {
-          tk_messageBox -type ok -title "HELP"\
-            -message "Mode will be multiplied with the scalar value and the length\
-of the mode (shown in the first box). If these modes are from a PCA, the\
-length of the mode is the standard deviation along the principal mode. If the\
-modes are from a NMA, the length of the mode is the square-root of the inverse\
-of the eigenvalue corresponding to this mode."}] \
-          -row 2 -column 0 -sticky w
-        grid [label $wam.scale_label -text "Scale by:"] \
-          -row 2 -column 1 -sticky w
-        grid [frame $wam.scale_frame] \
-          -row 2 -column 2 -sticky w
-        entry $wam.scale_frame.length -width 5 \
-          -textvariable ${ns}::drawlengthstr \
-          -state disabled -disabledbackground white -disabledforeground black
-        label $wam.scale_frame.angstrom -text "A"
-        label $wam.scale_frame.product -text "x"
-        button $wam.scale_frame.negate -text "+/-" -padx 0 -pady 0 -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::Draw_action"  
-        entry $wam.scale_frame.entry -width 4 -textvariable ${ns}::scalearrows
-        button $wam.scale_frame.decr5 -text "-5" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
-        button $wam.scale_frame.decr1 -text "-1" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 1]; ${ns}::autoUpdate"
-        button $wam.scale_frame.one -text "1" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows 1; ${ns}::autoUpdate"
-        button $wam.scale_frame.incr1 -text "+1" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 1]; ${ns}::autoUpdate"
-        button $wam.scale_frame.incr5 -text "+5" -padx 0 -pady 0 -command \
-          "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 5]; ${ns}::autoUpdate"
-        pack $wam.scale_frame.length $wam.scale_frame.angstrom \
-          $wam.scale_frame.product \
-          $wam.scale_frame.negate \
-          $wam.scale_frame.entry \
-          $wam.scale_frame.decr5 $wam.scale_frame.decr1 \
-          $wam.scale_frame.one \
-          $wam.scale_frame.incr1 $wam.scale_frame.incr5 \
-          -side left -anchor w -fill x
+
+        if {$ndim == 3} {
+          grid [button $wam.scale_help -text "?" -padx 0 -pady 0 -command {
+            tk_messageBox -type ok -title "HELP"\
+              -message "Mode will be multiplied with the scalar value and the length\
+  of the mode (shown in the first box). If these modes are from a PCA, the\
+  length of the mode is the standard deviation along the principal mode. If the\
+  modes are from a NMA, the length of the mode is the square-root of the inverse\
+  of the eigenvalue corresponding to this mode."}] \
+            -row 2 -column 0 -sticky w
+          grid [label $wam.scale_label -text "Scale by:"] \
+            -row 2 -column 1 -sticky w
+          grid [frame $wam.scale_frame] \
+            -row 2 -column 2 -sticky w
+          entry $wam.scale_frame.length -width 5 \
+            -textvariable ${ns}::drawlengthstr \
+            -state disabled -disabledbackground white -disabledforeground black
+          label $wam.scale_frame.angstrom -text "A"
+          label $wam.scale_frame.product -text "x"
+          button $wam.scale_frame.negate -text "+/-" -padx 0 -pady 0 -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::Draw_action"  
+          entry $wam.scale_frame.entry -width 4 -textvariable ${ns}::scalearrows
+          button $wam.scale_frame.decr5 -text "-5" -padx 0 -pady 0 -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
+          button $wam.scale_frame.decr1 -text "-1" -padx 0 -pady 0 -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 1]; ${ns}::autoUpdate"
+          button $wam.scale_frame.one -text "1" -padx 0 -pady 0 -command \
+            "set ${ns}::scalearrows 1; ${ns}::autoUpdate"
+          button $wam.scale_frame.incr1 -text "+1" -padx 0 -pady 0 -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 1]; ${ns}::autoUpdate"
+          button $wam.scale_frame.incr5 -text "+5" -padx 0 -pady 0 -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 5]; ${ns}::autoUpdate"
+          pack $wam.scale_frame.length $wam.scale_frame.angstrom \
+            $wam.scale_frame.product \
+            $wam.scale_frame.negate \
+            $wam.scale_frame.entry \
+            $wam.scale_frame.decr5 $wam.scale_frame.decr1 \
+            $wam.scale_frame.one \
+            $wam.scale_frame.incr1 $wam.scale_frame.incr5 \
+            -side left -anchor w -fill x
+          
+
+          grid [button $wam.selstr_help -text "?" -padx 0 -pady 0 -command {
+            tk_messageBox -type ok -title "HELP" \
+              -message "Atoms and arrows for them in the selection string will be displayed."}] \
+            -row 3 -column 0 -sticky w
+          grid [label $wam.selstr_label -text "Selection:"] \
+            -row 3 -column 1 -sticky w
+          grid [entry $wam.selstr_entry \
+            -textvariable ${ns}::selstr] \
+            -row 3 -column 2 -sticky we
+        }
         pack $wam -side top -ipadx 10 -ipady 5 -fill x -expand 1
-
-        grid [button $wam.selstr_help -text "?" -padx 0 -pady 0 -command {
-          tk_messageBox -type ok -title "HELP" \
-            -message "Atoms and arrows for them in the selection string will be displayed."}] \
-          -row 3 -column 0 -sticky w
-        grid [label $wam.selstr_label -text "Selection:"] \
-          -row 3 -column 1 -sticky w
-        grid [entry $wam.selstr_entry \
-          -textvariable ${ns}::selstr] \
-          -row 3 -column 2 -sticky we
-
 
         set wda [labelframe $w.draw_arrows -text "Actions" -bd 2]
         
-        grid [label $wda.arrowbuttons_label -text "Arrows:"] \
-          -row 5 -column 0 -sticky w
-        grid [button $wda.ab_help -text "?" -padx 0 -pady 0 \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Molecule id for the current arrow graphics is shown in parentheses.\n\nDraw : draw/redraw arrows for the active mode\nClean : remove most recently drawn arrows\nHide : hide/show most recently drawn arrows\nOptions : change arrow properties and drawing options"}] \
-          -row 5 -column 1 -sticky w
-        grid [button $wda.arrowbuttons_draw -width 4 -pady 1 -text "Draw" \
-            -command ${ns}::Draw_arrows] \
-          -row 5 -column 2
-        grid [button $wda.arrowbuttons_clean -width 4 -pady 1 -text "Clean" \
-            -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
-          -row 5 -column 3
-        grid [button $wda.arrowbuttons_showhide -width 4 -pady 1 -text "Hide" \
-            -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
-          -row 5 -column 4
-        grid [button $wda.arrowbuttons_options -width 5 -pady 1 -text "Options" \
-            -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options; set ${ns}::arropt 0; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief raised} else {pack \$${ns}::w.graphics_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::arropt 1; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief sunken}"] \
-          -row 5 -column 5
+        if {$ndim == 3} {
+          grid [label $wda.arrowbuttons_label -text "Arrows:"] \
+            -row 5 -column 0 -sticky w
+          grid [button $wda.ab_help -text "?" -padx 0 -pady 0 \
+              -command {tk_messageBox -type ok -title "HELP" \
+                -message "Molecule id for the current arrow graphics is shown in parentheses.\n\nDraw : draw/redraw arrows for the active mode\nClean : remove most recently drawn arrows\nHide : hide/show most recently drawn arrows\nOptions : change arrow properties and drawing options"}] \
+            -row 5 -column 1 -sticky w
+          grid [button $wda.arrowbuttons_draw -width 4 -pady 1 -text "Draw" \
+              -command ${ns}::Draw_arrows] \
+            -row 5 -column 2
+          grid [button $wda.arrowbuttons_clean -width 4 -pady 1 -text "Clean" \
+              -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
+            -row 5 -column 3
+          grid [button $wda.arrowbuttons_showhide -width 4 -pady 1 -text "Hide" \
+              -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
+            -row 5 -column 4
+          grid [button $wda.arrowbuttons_options -width 5 -pady 1 -text "Options" \
+              -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options; set ${ns}::arropt 0; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief raised} else {pack \$${ns}::w.graphics_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::arropt 1; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief sunken}"] \
+            -row 5 -column 5
 
-        grid [label $wda.animbuttons_label -text "Animation:"] \
-          -row 6 -column 0 -sticky w
-        grid [button $wda.anb_help -text "?" -padx 0 -pady 0 \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Molecule id for the most recent animation is shown in parentheses.\n\nMake : animate fluctuations along the active mode\nPlay : play/pause the animation\nHide : hide/show the animation\nOptions : change animation options"}] \
-          -row 6 -column 1 -sticky w
-        grid [button $wda.animbuttons_animate -width 4 -pady 1 -text "Make" \
-            -command ${ns}::Animate] \
-          -row 6 -column 2
-        grid [button $wda.animbuttons_stop -width 4 -pady 1 -text "Play" \
-            -command "if {\$${ns}::animid == -1} {${ns}::Animate} else {if {\$${ns}::stopped} {mol top \$${ns}::animid; animate forward; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Pause; set ${ns}::stopped 0} else {animate pause; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Play; set ${ns}::stopped 1}}"] \
-          -row 6 -column 3
-        grid [button $wda.animbuttons_showhide -width 4 -pady 1 -text "Hide" \
-            -command "if {\$${ns}::animid > -1 && \[lsearch \[molinfo list] \$${ns}::animid] > -1} {if {\[molinfo \$${ns}::animid get displayed]} {animate pause; mol off \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Show} else {mol on \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Hide; animate forward}}"] \
-          -row 6 -column 4
-        grid [button $wda.animbuttons_options -width 5 -pady 1 -text "Options" \
-            -command "if {\$${ns}::anmopt} {pack forget \$${ns}::w.animation_options; set ${ns}::anmopt 0; \$${ns}::w.draw_arrows.animbuttons_options configure -relief raised} else {pack \$${ns}::w.animation_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::anmopt 1; \$${ns}::w.draw_arrows.animbuttons_options configure -relief sunken}"] \
-          -row 6 -column 5
+          grid [label $wda.animbuttons_label -text "Animation:"] \
+            -row 6 -column 0 -sticky w
+          grid [button $wda.anb_help -text "?" -padx 0 -pady 0 \
+              -command {tk_messageBox -type ok -title "HELP" \
+                -message "Molecule id for the most recent animation is shown in parentheses.\n\nMake : animate fluctuations along the active mode\nPlay : play/pause the animation\nHide : hide/show the animation\nOptions : change animation options"}] \
+            -row 6 -column 1 -sticky w
+          grid [button $wda.animbuttons_animate -width 4 -pady 1 -text "Make" \
+              -command ${ns}::Animate] \
+            -row 6 -column 2
+          grid [button $wda.animbuttons_stop -width 4 -pady 1 -text "Play" \
+              -command "if {\$${ns}::animid == -1} {${ns}::Animate} else {if {\$${ns}::stopped} {mol top \$${ns}::animid; animate forward; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Pause; set ${ns}::stopped 0} else {animate pause; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Play; set ${ns}::stopped 1}}"] \
+            -row 6 -column 3
+          grid [button $wda.animbuttons_showhide -width 4 -pady 1 -text "Hide" \
+              -command "if {\$${ns}::animid > -1 && \[lsearch \[molinfo list] \$${ns}::animid] > -1} {if {\[molinfo \$${ns}::animid get displayed]} {animate pause; mol off \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Show} else {mol on \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Hide; animate forward}}"] \
+            -row 6 -column 4
+          grid [button $wda.animbuttons_options -width 5 -pady 1 -text "Options" \
+              -command "if {\$${ns}::anmopt} {pack forget \$${ns}::w.animation_options; set ${ns}::anmopt 0; \$${ns}::w.draw_arrows.animbuttons_options configure -relief raised} else {pack \$${ns}::w.animation_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::anmopt 1; \$${ns}::w.draw_arrows.animbuttons_options configure -relief sunken}"] \
+            -row 6 -column 5
+        }
 
         grid [label $wda.plot_label -text "Plotting:"] \
           -row 8 -column 0 -sticky w
@@ -3802,7 +3865,7 @@ this value should be larger than arrow cylinder radius."}] \
         foreach resol "6 10 15 20 25 30 35 40 45 50" {
           $wgo.resolution_frame.list.menu add radiobutton -label $resol \
               -variable ${ns}::resolution \
-              -command "${ns}::updateProtRep \$${ns}::molid; ${ns}::autoUpdate"  
+              -command "${ns}::autoUpdate"  
         } 
         pack $wgo.resolution_frame.list -side left -anchor w -fill x
 
@@ -3816,7 +3879,7 @@ protein and animation representations."}] \
         grid [label $wpgo.selstr_label -text "Show selected atoms:"] \
           -row 0 -column 1 -sticky w
         grid [checkbutton $wpgo.selstr_check -text "" \
-            -variable ${ns}::selrep -command "${ns}::updateProtRep \$${ns}::molid"] \
+            -variable ${ns}::selrep -command "${ns}::autoUpdate"] \
           -row 0 -column 2 -sticky w
         
         grid [button $wpgo.protas_help -text "?" -padx 0 -pady 0 \
@@ -3924,7 +3987,7 @@ protein and animation representations."}] \
 
         grid [button $wpgo.material_help -text "?" -padx 0 -pady 0 \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "The material used for drawing arrow and protein graphics."}] \
+              -message "The material used for drawing protein graphics."}] \
           -row 20 -column 0 -sticky w
         grid [label $wpgo.material_label -text "Graphics material:"] \
           -row 20 -column 1 -sticky w
@@ -3934,14 +3997,14 @@ protein and animation representations."}] \
         $wpgo.material_frame.list.menu delete 0
         foreach mtrl "Opaque Transparent BrushedMetal Diffuse Ghost Glass1 Glass2 Glass3 Glossy HardPlastic MetallicPastel Steel Translucent Edgy EdgyShiny EdgyGlass Goodsell AOShiny AOChalky AOEdgy" {
           $wpgo.material_frame.list.menu add radiobutton -label $mtrl \
-              -variable ${ns}::material \
+              -variable ${ns}::material_protein \
               -command "${ns}::updateProtRep \$${ns}::molid"    
         }
         pack $wpgo.material_frame.list -side left -anchor w -fill x
 
         grid [button $wpgo.resolution_help -text "?" -padx 0 -pady 0 \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "The quality of arrow and protein graphics."}] \
+              -message "The quality of protein graphics."}] \
           -row 21 -column 0 -sticky w
         grid [label $wpgo.resolution_label -text "Graphics resolution:"] \
           -row 21 -column 1 -sticky w
@@ -3951,7 +4014,7 @@ protein and animation representations."}] \
         $wpgo.resolution_frame.list.menu delete 0
         foreach resol "6 10 15 20 25 30 35 40 45 50" {
           $wpgo.resolution_frame.list.menu add radiobutton -label $resol \
-              -variable ${ns}::resolution \
+              -variable ${ns}::resolution_protein \
               -command "${ns}::updateProtRep \$${ns}::molid"  
         } 
         pack $wpgo.resolution_frame.list -side left -anchor w -fill x
@@ -4116,8 +4179,10 @@ protein and animation representations."}] \
         #pack $wpo.dash_frame.list -side left -anchor w -fill x  
           
         
-        ${ns}::Load_coordinates
-        ${ns}::Draw_arrows
+        ${ns}::loadCoordinates
+        if {$ndim == 3} {
+          ${ns}::Draw_arrows
+        }
 
         return $w
       }
