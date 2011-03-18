@@ -2603,7 +2603,6 @@ Index of the very first frame is 0."}] \
     }
 
     set ns [::nmwiz::makeNMWizGUI]
-    puts "DEBUG: $ns"
     ${ns}::initialize $coordinates $modes $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
     ${ns}::nmwizgui
     ::nmwiz::appendGUIcontrols $ns
@@ -2795,10 +2794,28 @@ Index of the very first frame is 0."}] \
         variable arridlist
         variable animidlist
         variable colorlist
+        
+        variable hide_shorter_list 
+        variable cylinder_radius_list
+        variable cone_radius_list
+        variable cone_height_list
+        variable resolution_list
+        
+        variable hide_shorter 
+        variable cylinder_radius
+        variable cone_radius
+        variable cone_height
+        variable resolution
+        
         for {set i 0} {$i < [llength $modes]} {incr i} {
           lappend arridlist -1
           lappend animidlist -1
           lappend colorlist [lindex $::nmwiz::nmwizColors [expr $i % [llength $::nmwiz::nmwizColors]]]
+          lappend hide_shorter_list $hide_shorter 
+          lappend cylinder_radius_list $cylinder_radius
+          lappend cone_radius_list $cone_radius
+          lappend cone_height_list $cone_height
+          lappend resolution_list $resolution
         }
         lset colorlist 0 $::nmwiz::defaultColor
       }
@@ -3381,10 +3398,9 @@ Index of the very first frame is 0."}] \
       proc prevMode {} {
         variable activeindex
         if {$activeindex > 0} {
-          set activeindex [expr $activeindex - 1];
           variable activemode
           variable indices
-          set activemode [lindex $indices $activeindex];
+          set activemode [lindex $indices [expr $activeindex - 1]];
           [namespace current]::changeMode;
         }
       }
@@ -3393,10 +3409,9 @@ Index of the very first frame is 0."}] \
         variable activeindex
         variable numofmodes
         if {$activeindex < [expr $numofmodes - 1]} {
-          set activeindex [expr $activeindex + 1];
           variable activemode
           variable indices
-          set activemode [lindex $indices $activeindex];
+          set activemode [lindex $indices [expr $activeindex + 1]];
           [namespace current]::changeMode;
         }
       }
@@ -3415,9 +3430,34 @@ Index of the very first frame is 0."}] \
         variable drawlengthstr
         variable lengths
         variable activeindex 
-        set activeindex [lsearch $indices $activemode]
-        set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]]; 
         
+        variable hide_shorter_list 
+        variable cylinder_radius_list
+        variable cone_radius_list
+        variable cone_height_list
+        variable resolution_list
+        
+        variable hide_shorter 
+        variable cylinder_radius
+        variable cone_radius
+        variable cone_height
+        variable resolution
+        
+        lset hide_shorter_list $activeindex $hide_shorter  
+        lset cylinder_radius_list $activeindex $cylinder_radius
+        lset cone_radius_list $activeindex $cone_radius
+        lset cone_height_list $activeindex $cone_height
+        lset resolution_list $activeindex $resolution
+
+        set activeindex [lsearch $indices $activemode]
+        set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]];
+        
+        set hide_shorter [lindex $hide_shorter_list $activeindex]
+        set cylinder_radius [lindex $cylinder_radius_list $activeindex]
+        set cone_radius [lindex $cone_radius_list $activeindex]
+        set cone_height [lindex $cone_height_list $activeindex]
+        set resolution [lindex $resolution_list $activeindex]
+
         variable overwrite
         if {$overwrite} {
           if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
