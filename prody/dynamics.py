@@ -3304,7 +3304,18 @@ def deform(atoms, mode, rmsd=None):
     
     New coordinate set will be appended to *atoms*. If *rmsd* is provided,
     *mode* will be scaled to have given RMSD distance to the active coordinate
-    set. 
+    set.
+    
+    Below example shows how to deform a structure along a normal mode
+    or linear combinations of normal modes:
+    
+    >>> deform(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5)
+    >>> deform(p38_structure, -p38_pca[1] * p38_pca[1].getVariance()**0.5)
+    >>> deform(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 + 
+    ...                       p38_pca[1] * p38_pca[1].getVariance()**0.5)
+    >>> deform(p38_structure, p38_pca[0], rmsd=1.0)
+    >>> calcRMSD(p38_structure)
+    array([ 0.   ,  0.41 ,  0.308,  0.513,  1.   ])
     
     """
 
