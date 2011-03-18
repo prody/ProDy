@@ -319,8 +319,8 @@ def gnm():
 
 ProDy v{0:s} - Gaussian Network Model
 
-Perform GNM calculations for given PDB structure and output eigenvalues and
-eigenvectors. If an identifier is passed, file from the PDB FTP server will be 
+Perform GNM calculations for given PDB structure and output results in NMD 
+format. If an identifier is passed, file from the PDB FTP server will be 
 downloaded.""".format(prody.__version__)
  
     parser = OptionParser(usage=usage)
@@ -420,13 +420,15 @@ save all of the graphical output files:
     gnm.buildKirchhoff(select, cutoff, gamma)
     gnm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
+    writeNMD(os.path.join(outdir, prefix + '.nmd'), gnm, select)
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     
-    writeArray(os.path.join(outdir, prefix + '_evectors'+ext), gnm.getArray(), 
-        delimiter=delim, format=format)
-    writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-        gnm.getEigenvalues(), delimiter=delim, format=format)
+    if outall or opt.eigen:
+        writeArray(os.path.join(outdir, prefix + '_evectors'+ext), gnm.getArray(), 
+            delimiter=delim, format=format)
+        writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+            gnm.getEigenvalues(), delimiter=delim, format=format)
     
     if outall or opt.beta:
         fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
