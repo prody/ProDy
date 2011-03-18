@@ -1593,32 +1593,11 @@ proc nmwiz_multiplot { args } {
 namespace eval ::nmwiz:: {
   namespace export nmwizgui
   namespace export initialize
-  
-  variable license "NMWiz: Normal Mode Visualization, Animation, and Plotting 
-University of Illinois Open Source License
-Copyright 2010-2011 Ahmet Bakan,
-All rights reserved.
 
-Developed by:
-Ahmet Bakan
-http://www.csb.pitt.edu/People/abakan/
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the Software), to deal with the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimers.
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimers in the documentation and/or other materials provided with the distribution.
-Neither the names of Theoretical and Computational Biophysics Group, University of Illinois at Urbana-Champaign, nor the names of its contributors may be used to endorse or promote products derived from this Software without specific prior written permission.
-THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
-OTHER DEALINGS WITH THE SOFTWARE.
-
-NMWiz makes use of a modified version of VMD plugin MultiPlot, which is also distributed under UIUC Open Source License.
-"
-  
   variable guicount -1
   variable tmpdir
   variable titles [list]
   variable plothandles [list] 
-  variable openfiles [list]
   #variable namespaces [list]
   #variable nmwizguis [list]
   variable platform $tcl_platform(platform) 
@@ -1671,10 +1650,6 @@ NMWiz makes use of a modified version of VMD plugin MultiPlot, which is also dis
     grid [button $wmf.website -width 8 -pady 2 -text "Website" \
         -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
       -row 8 -column 1 -sticky we
-    #grid [button $wmf.license -pady 2 -text "License" \
-    #    -command {tk_messageBox -type ok -title "NMWiz License" \
-    #      -message $::nmwiz::license} ] \
-    #  -row 8 -column 2 -sticky we
     
     grid [frame $wmf.options] -row 10 -column 0 -columnspan 2
     
@@ -2446,19 +2421,13 @@ Index of the very first frame is 0."}] \
     variable filename $fn
     puts "NMWiz: Parsing file $filename"
     # Parse the file, and make sure coordinates are stored in the file
-    variable openfiles
     #variable namespaces
     #variable nmwizguis
     
-    if {[lsearch $openfiles $filename] > -1} {
-      tk_messageBox -type ok -title "WARNING" \
-        -message "[lindex [file split $filename] end] is loaded in NMWiz."
-      return
-    }
-    
     set nmdfile [open $filename]
-    variable nmdlist [list]
+    set nmdlist [list]
     set coordinates 0 
+    set n_dims 0
     while {[gets $nmdfile nmdline] != -1} { 
       if {[lindex $nmdline 0] == "coordinates"} {
         if {[expr [llength $nmdline] % 3] != 1} {
@@ -2468,7 +2437,8 @@ Index of the very first frame is 0."}] \
                       [llength $coordinates] is provided."
           return
         }
-        set coordinates 1
+        set coordinates [lrange $nmdline 1 end]
+        set n_atoms [expr [llength $coordinates] / 3]
       }
       lappend nmdlist $nmdline
     }
@@ -2478,6 +2448,165 @@ Index of the very first frame is 0."}] \
                   NMD files must contain system coordinate data."
       return
     }
+    
+    # Evaluate each line
+    set title ""
+    set atomnames ""
+    set resnames ""
+    set resids ""
+    set bfactors ""
+    set chainids ""
+    set modes [list]
+    foreach nmdline $nmdlist {
+      switch -exact [lindex $nmdline 0] {
+        name {
+          set title [lrange $nmdline 1 end]
+          if {[lsearch $::nmwiz::titles $title] > -1} {
+            set title "$title ($::nmwiz::guicount)"
+          }
+          lappend ::nmwiz::titles $title
+        }
+        coordinates {
+        }
+        atomnames {
+          if {[llength $nmdline] != [expr $n_atoms + 1]} {
+            puts "NMWiz WARNING: Length of atomnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          } else {
+            set atomnames [lrange $nmdline 1 end]
+          }
+        }
+        resnames {
+          if {[llength $nmdline] != [expr $n_atoms + 1]} {
+            puts "NMWiz WARNING: Length of resnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          } else {
+            set resnames [lrange $nmdline 1 end]
+          }
+        }
+        chainids {
+          if {[llength $nmdline] != [expr $n_atoms + 1]} {
+            puts "NMWiz WARNING: Length of chainids array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          } else {
+            set chainids [lrange $nmdline 1 end]
+          }
+        }
+        resids {
+          if {[llength $nmdline] != [expr $n_atoms + 1]} {
+            puts "NMWiz WARNING: Length of resids array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          } else {
+            set resids [lrange $nmdline 1 end]
+          }
+        }
+        bfactors {
+          if {[llength $nmdline] != [expr $n_atoms + 1]} {
+            puts "NMWiz WARNING: Length of bfactors array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          } else {
+            set bfactors [lrange $nmdline 1 end]
+          }      
+        }
+        mode {
+          set l [expr [llength $nmdline] - 1]
+          if {$l >= [llength $coordinates]} {
+            if {$n_dims == 0} {
+              set n_dims 3
+              puts "NMWiz INFO: File contains a 3D model."
+            } elseif {$n_dims != 3} {
+              tk_messageBox -type ok -title "ERROR" \
+                -message "All modes must have the same dimensions."
+              return
+            }
+            switch -exact [expr $l - [llength $coordinates]] {
+              0 {
+                lappend modes [lrange $nmdline 1 end]
+                lappend indices [llength $modes]
+                lappend lengths 1
+                lappend arridlist -1
+                lappend animidlist -1
+                lappend colorlist $::nmwiz::defaultColor
+              }
+              1 {
+                lappend modes [lrange $nmdline 2 end]
+                if {[string is integer [lindex $nmdline 1]]} {
+                  lappend indices [lindex $nmdline 1]
+                  lappend lengths 1
+                } else {
+                  lappend lengths [lindex $nmdline 1]
+                  lappend indices [llength $modes]
+                }
+                lappend arridlist -1
+                lappend animidlist -1
+                lappend colorlist $::nmwiz::defaultColor
+              }
+              2 {
+                lappend modes [lrange $nmdline 3 end]
+                if {[string is integer [lindex $nmdline 1]]} {
+                  lappend indices [lindex $nmdline 1]
+                  lappend lengths [lindex $nmdline 2]
+                } else {
+                  lappend indices [lindex $nmdline 2]
+                  lappend lengths [lindex $nmdline 1]
+                }
+                lappend arridlist -1
+                lappend animidlist -1
+                lappend colorlist $::nmwiz::defaultColor
+              } 
+              default {
+                puts "NMWiz WARNING: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
+              }
+            }
+          } else {
+            if {$n_dims == 0} {
+              set n_dims 1
+              puts "NMWiz INFO: File contains a 1D model."
+            } elseif {$n_dims != 1} {
+              tk_messageBox -type ok -title "ERROR" \
+                -message "All modes must have the same dimensions."
+              return
+            }
+              tk_messageBox -type ok -title "ERROR" \
+                -message "1D models are not handled yet."
+              return
+          } 
+        }
+        default {
+          puts "NMWiz WARNING: Unrecognized line starting with \"[lindex $nmdline 0]\""
+        }
+      }
+      
+    } 
+    
+    if {[llength $modes] == 0} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Mode data was not found in the input file."
+      return
+    }
+
+    if {$title == ""} {
+      set title "Untitled ($::nmwiz::guicount)"
+      puts "NMWiz INFO: Dataset is named as \"$title\"."
+    }
+
+    set ns [::nmwiz::makeNMWizGUI]
+    puts "DEBUG: $ns"
+    ${ns}::initialize $coordinates $modes $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
+    ${ns}::nmwizgui
+    
+    set w .nmwizgui
+    
+    set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
+    
+    grid [button $wgf.name -width 8 -pady 2 -text "Show GUI" \
+        -command "${ns}::nmwizgui" ] \
+      -row 0 -column 0
+    grid [button $wgf.website -width 8 -pady 2 -text "Remove" \
+        -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+      -row 0 -column 1
+
+    pack $wgf -side top -fill x -expand 1
+    
+  }
+  
+  proc makeNMWizGUI {} {
+
     variable guicount
     incr guicount
     set ns "::nmgui$guicount"
@@ -2546,6 +2675,104 @@ Index of the very first frame is 0."}] \
       variable lornol "lines"
       variable marker "circle"
       variable plothandles [list]
+      
+      proc initialize {xyz m t l i an rn ri ci bf} {
+        variable arridlist
+        variable animidlist
+        variable colorlist
+        variable coordinates $xyz
+        variable modes $m
+        variable title $t
+        variable lengths $l
+        variable indices $i
+        variable atomnames $an
+        variable resnames $rn
+        variable chainids $ci
+        variable resids $ri
+        variable bfactors $bf
+        variable plotrids [list]
+        variable bfactormin
+        variable bfactormax
+        variable n_dims 0
+        variable n_atoms [expr [llength $coordinates] / 3]
+        
+
+        if {$atomnames == ""} {
+          set atomnames [string repeat "CA " $n_atoms]
+          puts "NMWiz INFO: All atom names are set as \"CA\"."
+        }
+        if {$resnames == ""} {
+          set resnames [string repeat "GLY " $n_atoms]
+          puts "NMWiz INFO: All residue names are named set as \"GLY\"."
+        }
+        if {$chainids == ""} {
+          set chainids [string repeat "A " $n_atoms]
+          puts "NMWiz INFO: All chain identifiers are set as \"A\"."
+        }
+        if {[llength $resids] == 0} {
+          for {set i 1} {$i <= $n_atoms} {incr i} {lappend resids $i}
+          puts "NMWiz INFO: Residues are numbered starting from 1."
+        }
+
+        foreach i [lrange $resids 0 end-1] j [lrange $resids 1 end] {
+          if {$i >= $j} {
+            for {set i 1} {$i <= $n_atoms} {incr i} {lappend plotrids $i}
+            break
+          }
+        }
+        if {[llength $plotrids] == 0} {
+          set plotrids $ri
+          puts "NMWiz INFO: Residue numbers will be used for plotting."
+        }
+
+        if {[llength $bfactors] == 0} {
+          puts "NMWiz INFO: Experimental bfactors were not found in the data file."
+          for {set i 1} {$i <= $n_atoms} {incr i} {lappend bfactors 0.0}
+          set bfactormin 0.0
+          set bfactormax 0.0
+        } else {
+          set bfactormin [lindex $bfactors 0]
+          set bfactormax [lindex $bfactors 0]
+          foreach i $bfactors {
+            if {$i < $bfactormin} {set bfactormin $i}
+            if {$i > $bfactormax} {set bfactormax $i}
+          }
+        }
+        
+        variable prefix $title
+        while {[string first " " $prefix] > -1} {
+          set i [string first " " $prefix]
+          set prefix [string replace $prefix $i $i "_"]
+        }
+        while {[string first "." $prefix] > -1} {
+          set i [string first "." $prefix]
+          set prefix [string replace $prefix $i $i "_"]
+        }
+        puts "DEBUG: prefix"
+        #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        puts "DEBUG: drawlength $lengths"
+        variable drawlength [lindex $lengths 0]
+        variable drawlengthstr [format "%.1f" [lindex $lengths 0]]
+        variable activemode [lindex $indices 0]
+        variable betalist
+        foreach atnm $atomnames {
+          lappend betalist 0
+        } 
+        variable scalearrows 
+        if {[lindex $lengths 0] < 60.0} {
+          set scalearrows [::tcl::mathfunc::int [expr 60.0 / [lindex $lengths 0]] ]
+        }
+        
+        variable arridlist
+        variable animidlist
+        variable colorlist
+        for {set i 0} {$i < [llength $modes]} {incr i} {
+          lappend arridlist -1
+          lappend animidlist -1
+          lappend colorlist [lindex $::nmwiz::nmwizColors [expr $i % [llength $::nmwiz::nmwizColors]]]
+        }
+        lset colorlist 0 $::nmwiz::defaultColor
+      }
       
       #vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
       proc deleteMolecules {} {
@@ -3174,235 +3401,6 @@ Index of the very first frame is 0."}] \
       
       #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       
-      proc initialize {} {
-        set nmdlist $::nmwiz::nmdlist
-        set filename $::nmwiz::filename
-        variable arridlist
-        variable animidlist
-        variable colorlist
-        variable coordinates ""
-        variable atomnames ""
-        variable resnames ""
-        variable chainids ""
-        variable resids [list]
-        variable plotrids [list]
-        variable bfactors [list]
-        variable bfactormin
-        variable bfactormax
-        variable modes [list]
-        variable lengths [list]
-        variable indices [list]
-        variable title ""
-        variable n_dims 0
-        variable n_atoms
-        
-        foreach nmdline $nmdlist {
-          switch -exact [lindex $nmdline 0] {
-            coordinates {
-              set coordinates [lrange $nmdline 1 end]
-              set n_atoms [expr [llength $coordinates] / 3]
-            }
-          }
-        }     
-
-        
-        # Evaluate each line
-        foreach nmdline $nmdlist {
-          switch -exact [lindex $nmdline 0] {
-            name {
-              variable title [lrange $nmdline 1 end]
-              if {[lsearch $::nmwiz::titles $title] > -1 && [lsearch $::nmwiz::openfiles $filename] > -1} {
-                set title "$title ($::nmwiz::guicount)"
-              }
-              lappend ::nmwiz::titles $title
-              puts $::nmwiz::titles
-            }
-            coordinates {
-            }
-            atomnames {
-              if {[llength $nmdline] != [expr $n_atoms + 1]} {
-                puts "NMWiz WARNING: Length of atomnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
-              } else {
-                set atomnames [lrange $nmdline 1 end]
-              }
-            }
-            resnames {
-              if {[llength $nmdline] != [expr $n_atoms + 1]} {
-                puts "NMWiz WARNING: Length of resnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
-              } else {
-                set resnames [lrange $nmdline 1 end]
-              }
-            }
-            chainids {
-              if {[llength $nmdline] != [expr $n_atoms + 1]} {
-                puts "NMWiz WARNING: Length of chainids array must be $n_atoms, not [expr [llength $nmdline] -1]."
-              } else {
-                set chainids [lrange $nmdline 1 end]
-              }
-            }
-            resids {
-              if {[llength $nmdline] != [expr $n_atoms + 1]} {
-                puts "NMWiz WARNING: Length of resids array must be $n_atoms, not [expr [llength $nmdline] -1]."
-              } else {
-                set resids [lrange $nmdline 1 end]
-              }
-            }
-            bfactors {
-              if {[llength $nmdline] != [expr $n_atoms + 1]} {
-                puts "NMWiz WARNING: Length of bfactors array must be $n_atoms, not [expr [llength $nmdline] -1]."
-              } else {
-                set bfactors [lrange $nmdline 1 end]
-              }      
-            }
-            mode {
-              set l [expr [llength $nmdline] - 1]
-              if {$l >= [llength $coordinates]} {
-                if {$n_dims == 0} {
-                  set n_dims 3
-                  puts "NMWiz INFO: File contains a 3D model."
-                } elseif {$n_dims != 3} {
-                  tk_messageBox -type ok -title "ERROR" \
-                    -message "All modes must have the same dimensions."
-                  return
-                }
-                switch -exact [expr $l - [llength $coordinates]] {
-                  0 {
-                    lappend modes [lrange $nmdline 1 end]
-                    lappend indices [llength $modes]
-                    lappend lengths 1
-                    lappend arridlist -1
-                    lappend animidlist -1
-                    lappend colorlist $::nmwiz::defaultColor
-                  }
-                  1 {
-                    lappend modes [lrange $nmdline 2 end]
-                    if {[string is integer [lindex $nmdline 1]]} {
-                      lappend indices [lindex $nmdline 1]
-                      lappend lengths 1
-                    } else {
-                      lappend lengths [lindex $nmdline 1]
-                      lappend indices [llength $modes]
-                    }
-                    lappend arridlist -1
-                    lappend animidlist -1
-                    lappend colorlist $::nmwiz::defaultColor
-                  }
-                  2 {
-                    lappend modes [lrange $nmdline 3 end]
-                    if {[string is integer [lindex $nmdline 1]]} {
-                      lappend indices [lindex $nmdline 1]
-                      lappend lengths [lindex $nmdline 2]
-                    } else {
-                      lappend indices [lindex $nmdline 2]
-                      lappend lengths [lindex $nmdline 1]
-                    }
-                    lappend arridlist -1
-                    lappend animidlist -1
-                    lappend colorlist $::nmwiz::defaultColor
-                  } 
-                  default {
-                    puts "NMWiz WARNING: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
-                  }
-                }
-              } else {
-                if {$n_dims == 0} {
-                  set n_dims 1
-                  puts "NMWiz INFO: File contains a 1D model."
-                } elseif {$n_dims != 1} {
-                  tk_messageBox -type ok -title "ERROR" \
-                    -message "All modes must have the same dimensions."
-                  return
-                }
-                  tk_messageBox -type ok -title "ERROR" \
-                    -message "1D models are not handled yet."
-                  return
-              } 
-            }
-            default {
-              puts "NMWiz WARNING: Unrecognized line \"[lindex $nmdline 0]\""
-            }
-          }
-          
-        } 
-        
-        if {[llength $modes] == 0} {
-          tk_messageBox -type ok -title "ERROR" \
-            -message "Mode data was NOT found in the input file."
-          return
-        }
-        
-        
-        if {$title == ""} {
-          set title "Untitled ($::nmwiz::guicount)"
-          puts "NMWiz INFO: Dataset is named as \"$title\"."
-        }
-        if {$atomnames == ""} {
-          set atomnames [string repeat "CA " $n_atoms]
-          puts "NMWiz INFO: Atoms are named as \"CA\"."
-        }
-        if {$resnames == ""} {
-          set resnames [string repeat "GLY " $n_atoms]
-          puts "NMWiz INFO: Residues are named as \"GLY\"."
-        }
-        if {$chainids == ""} {
-          set chainids [string repeat "A " $n_atoms]
-          puts "NMWiz INFO: Chains are named as \"A\"."
-        }
-        if {[llength $resids] == 0} {
-          for {set i 1} {$i <= $n_atoms} {incr i} {lappend resids $i}
-          puts "NMWiz INFO: Residues are numbered starting from 1."
-        }
-        foreach i [lrange $resids 0 end-1] j [lrange $resids 1 end] {
-          if {$i >= $j} {
-            for {set i 1} {$i <= $n_atoms} {incr i} {lappend plotrids $i}
-            puts "NMWiz INFO: Residue numbers will NOT be used for plotting."
-            break
-          }
-        }
-        if {[llength $plotrids] == 0} {
-          set plotrids $resids
-          puts "NMWiz INFO: Residue numbers will be used for plotting."
-        }
-        if {[llength $bfactors] == 0} {
-          puts "NMWiz INFO: Experimental bfactors were not found in the data file."
-          for {set i 1} {$i <= $n_atoms} {incr i} {lappend bfactors 0.0}
-          set bfactormin 0.0
-          set bfactormax 0.0
-        } else {
-          set bfactormin [lindex $bfactors 0]
-          set bfactormax [lindex $bfactors 0]
-          foreach i $bfactors {
-            if {$i < $bfactormin} {set bfactormin $i}
-            if {$i > $bfactormax} {set bfactormax $i}
-          }
-        }
-        
-        variable prefix $title
-        while {[string first " " $prefix] > -1} {
-          set i [string first " " $prefix]
-          set prefix [string replace $prefix $i $i "_"]
-        }
-        while {[string first "." $prefix] > -1} {
-          set i [string first "." $prefix]
-          set prefix [string replace $prefix $i $i "_"]
-        }
-        
-
-        #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        variable drawlength [lindex $lengths 0]
-        variable drawlengthstr [format "%.1f" [lindex $lengths 0]]
-        variable activemode [lindex $indices 0]
-        
-        variable betalist
-        foreach atnm $atomnames {
-          lappend betalist 0
-        } 
-        variable scalearrows 
-        if {[lindex $lengths 0] < 60.0} {
-          set scalearrows [::tcl::mathfunc::int [expr 60.0 / [lindex $lengths 0]] ]
-        }
-      }
-      initialize
       
       proc nmwizgui {} {
         variable w
@@ -4006,27 +4004,12 @@ protein and animation representations."}] \
 
         return $w
       }
-      nmwizgui
 
     }
 
-    lappend openfiles $filename
     #lappend namespaces $ns
     #lappend nmwizguis [string range $ns 2 end]
-    
-    set w .nmwizgui
-    
-    set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
-    
-    grid [button $wgf.name -width 8 -pady 2 -text "Show GUI" \
-        -command "${ns}::nmwizgui" ] \
-      -row 0 -column 0
-    grid [button $wgf.website -width 8 -pady 2 -text "Remove" \
-        -command "lset ::nmwiz::openfiles $guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
-      -row 0 -column 1
-
-    pack $wgf -side top -fill x -expand 1
-    
+    return $ns
   }
 }
 # Porcupine

@@ -3056,7 +3056,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     if atoms is not None:
         if not isinstance(atoms, (Atomic)):
             raise TypeError('{0:s} is not correct type for atoms'
-                            .format(type(modes)))
+                            .format(type(atoms)))
         if atoms.getNumOfAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
         initial = atoms.getCoordinates()
