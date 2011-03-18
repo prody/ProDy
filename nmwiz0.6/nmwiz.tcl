@@ -1695,19 +1695,22 @@ orange3"
       variable pybin "[::ExecTool::find python.exe]"
       variable pyANM ""
       variable pyPCA ""
+      variable pyGNM ""
     }
     default {
       variable pybin "[::ExecTool::find python]"
       variable pyANM "[::ExecTool::find anm.py]"
       variable pyPCA "[::ExecTool::find pca.py]"
+      variable pyGNM "[::ExecTool::find gnm.py]"
     }
   }
   variable outputdir [pwd]
   variable defaultColor "purple"
-  variable settings [dict create anm $pyANM pca $pyPCA color $defaultColor outputdir $outputdir pybin $pybin]
+  variable settings [dict create anm $pyANM gnm $pyGNM pca $pyPCA color $defaultColor outputdir $outputdir pybin $pybin]
   proc saveSettings {} {
     puts "Saving NMWiz settings"
     dict set ::nmwiz::settings anm $::nmwiz::pyANM
+    dict set ::nmwiz::settings gnm $::nmwiz::pyGNM
     dict set ::nmwiz::settings pca $::nmwiz::pyPCA
     dict set ::nmwiz::settings color $::nmwiz::defaultColor
     dict set ::nmwiz::settings outputdir $::nmwiz::outputdir
@@ -1731,6 +1734,7 @@ orange3"
         }
       }
       variable ::nmwiz::pyANM "[dict get $::nmwiz::settings anm]"
+      variable ::nmwiz::pyGNM "[dict get $::nmwiz::settings gnm]"
       variable ::nmwiz::pyPCA "[dict get $::nmwiz::settings pca]"
       variable ::nmwiz::defaultColor [dict get $::nmwiz::settings color]
       variable ::nmwiz::outputdir "[dict get $::nmwiz::settings outputdir]"
@@ -1788,6 +1792,23 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
         ::nmwiz::saveSettings
         }] \
       -row 3 -column 3 -sticky ew
+      
+    grid [button $wf.gnmHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Full path to ProDy GNM script (gnm.py), e.g. C:\\python27\\Scripts\\gnm.py"}] \
+      -row 4 -column 0 -sticky w
+    grid [label $wf.gnmLabel -text "GNM script:"] \
+      -row 4 -column 1 -sticky w
+    grid [entry $wf.gnmEntry -width 20 -textvariable ::nmwiz::pyGNM] \
+      -row 4 -column 2 -sticky ew
+    grid [button $wf.gnmBrowse -text "Browse" -pady 2 \
+        -command {
+      set tempfile [tk_getOpenFile \
+        -filetypes {{"GNM Script" { gnm.py }}}]
+        if {![string equal $tempfile ""]} {set ::nmwiz::pyGNM $tempfile}
+        ::nmwiz::saveSettings
+        }] \
+      -row 4 -column 3 -sticky ew
 
     grid [button $wf.pcaHelp -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
@@ -1842,6 +1863,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
   variable prodyTask ""
   variable prodyFrame 0
   variable prodyCutoff 15
+  variable prodyGNMCutoff 10
   variable prodyGamma 1
   variable prodyNModes 10
   variable prodyFirstFrame 0
@@ -1919,7 +1941,7 @@ selection."}] \
       -row 7 -column 2 -sticky ew
     tk_optionMenu $wf.scriptFrame.list ::nmwiz::prodyTask "ANM calculation" 
     $wf.scriptFrame.list.menu delete 0 last
-    foreach script "ANM PCA" {
+    foreach script "ANM GNM PCA" {
       $wf.scriptFrame.list.menu add radiobutton -label "$script calculation" \
           -variable ::nmwiz::prodyTask \
           -command "set ::nmwiz::prodyScript $script; ::nmwiz::prodyChangeTask; ::nmwiz::prodyUpdatePrefix"
@@ -2010,7 +2032,7 @@ in the calculations. Index of the very first frame is 0,"}] \
       -row 10 -column 1 -sticky w
     grid [entry $wf.gammaEntry -width 4 -textvariable ::nmwiz::prodyGamma] \
       -row 10 -column 2 -sticky w    
-    pack $wf -side top -fill x -expand 1
+
     
     grid [button $wf.modesHelp -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
@@ -2021,6 +2043,47 @@ in the calculations. Index of the very first frame is 0,"}] \
     grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
       -row 12 -column 2 -sticky w   
     pack $wf -side top -fill x -expand 1
+    
+    # GNM frame
+    set wf [labelframe $prodyGUI.gnmFrame -text "GNM Settings" -bd 2]
+    grid [button $wf.frameHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter index of the frame for the selected molecule to be used\
+in the calculations. Index of the very first frame is 0,"}] \
+      -row 6 -column 0 -sticky w
+    grid [label $wf.frameLabel -text "Frame number:"] \
+      -row 6 -column 1 -sticky w
+    grid [entry $wf.frameEntry -width 4 -textvariable ::nmwiz::prodyFrame] \
+      -row 6 -column 2 -sticky w
+
+    grid [button $wf.cutoffHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter cutoff distance for interactions between selected atoms."}] \
+      -row 8 -column 0 -sticky w
+    grid [label $wf.cutoffLabel -text "Cutoff distance:"] \
+      -row 8 -column 1 -sticky w
+    grid [entry $wf.cutoffEntry -width 4 -textvariable ::nmwiz::prodyGNMCutoff] \
+      -row 8 -column 2 -sticky w
+
+    grid [button $wf.gammaHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter the force constant value."}] \
+      -row 10 -column 0 -sticky w
+    grid [label $wf.gammaLabel -text "Force constant:"] \
+      -row 10 -column 1 -sticky w
+    grid [entry $wf.gammaEntry -width 4 -textvariable ::nmwiz::prodyGamma] \
+      -row 10 -column 2 -sticky w    
+
+    
+    grid [button $wf.modesHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter the number of non-zero eigenvalues/vectors to calculate."}] \
+      -row 12 -column 0 -sticky w
+    grid [label $wf.modesLabel -text "Number of modes:"] \
+      -row 12 -column 1 -sticky w
+    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
+      -row 12 -column 2 -sticky w   
+
     
     # PCA frame
     set wf [labelframe $prodyGUI.pcaFrame -text "PCA Settings" -bd 2]
@@ -2083,6 +2146,7 @@ Index of the very first frame is 0."}] \
     set wf $prodyGUI.mainFrame
     $wf.molFrame.list.menu delete 0 last
     set counter 0
+    variable prodyMolid -1
     foreach id [molinfo list] {
       if {[molinfo $id get numatoms] > 0 && [molinfo $id get numframes] > 0} {
         if {$counter == 0} {
@@ -2155,12 +2219,20 @@ Index of the very first frame is 0."}] \
     variable prodyGUI
     variable prodyScript
     if {$prodyScript == "ANM"} {
+      pack forget $prodyGUI.gnmFrame
       pack forget $prodyGUI.pcaFrame
       pack forget $prodyGUI.submitFrame
       pack $prodyGUI.anmFrame -side top -fill x -expand 1
       pack $prodyGUI.submitFrame -side top -fill x -expand 1
+    } elseif {$prodyScript == "GNM"} {
+      pack forget $prodyGUI.pcaFrame
+      pack forget $prodyGUI.anmFrame
+      pack forget $prodyGUI.submitFrame
+      pack $prodyGUI.gnmFrame -side top -fill x -expand 1
+      pack $prodyGUI.submitFrame -side top -fill x -expand 1
     } else {
       pack forget $prodyGUI.anmFrame
+      pack forget $prodyGUI.gnmFrame
       pack forget $prodyGUI.submitFrame
       pack $prodyGUI.pcaFrame -side top -fill x -expand 1
       pack $prodyGUI.submitFrame -side top -fill x -expand 1
@@ -2189,6 +2261,8 @@ Index of the very first frame is 0."}] \
     }
     if {$::nmwiz::prodyScript == "ANM"} {
       ::nmwiz::prodySubmitANMjob
+    } elseif {$::nmwiz::prodyScript == "GNM"} {
+      ::nmwiz::prodySubmitGNMjob
     } else {
       ::nmwiz::prodySubmitPCAjob
     }
@@ -2238,6 +2312,57 @@ Index of the very first frame is 0."}] \
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy ANM calculation is finished and results are being loaded."
+      ::nmwiz::loadNMD "$prefix.nmd" 
+    }  else {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "An error occured."
+    }
+  }  
+  proc prodySubmitGNMjob {} {
+    if {$::nmwiz::pyGNM == "" || $::nmwiz::pyGNM == {} || $::nmwiz::pyGNM == "{}" ||
+        ![file exists $::nmwiz::pyGNM]} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Please specify the path to the GNM Script (gnm.py) script."
+      ::nmwiz::initSettingsGUI
+      return
+    }
+    if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
+        $::nmwiz::prodyFrame < [molinfo $::nmwiz::prodyMolid get numframes])} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Frame number must be a number and must be in the valid range."
+      return 
+    }
+    if {!([string is double $::nmwiz::prodyGNMCutoff] && $::nmwiz::prodyGNMCutoff > 0)} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Cutoff distance must be a number and must be greater than 0."
+      return 
+    }
+    if {!([string is double $::nmwiz::prodyGamma] && $::nmwiz::prodyGamma > 0)} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Force constant must be a number and must be greater than 0."
+      return 
+    }
+    set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.pdb]
+    set sel [atomselect $::nmwiz::prodyMolid $::nmwiz::prodySelstr]
+    $sel frame $::nmwiz::prodyFrame
+    $sel writepdb $pdbfn
+    $sel delete
+    
+    set allnum ""
+    if {$::nmwiz::prodyAllnum} {
+      set allnum "-a"
+    } 
+    set allfig ""
+    if {$::nmwiz::prodyAllfig} {
+      set allfig "-A"
+    }    
+    set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
+    puts "Executing: $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
+    set status [exec $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
+
+    if {$status != -1} {
+      tk_messageBox -type ok -title "INFO" \
+        -message "ProDy GNM calculation is finished and results are being loaded."
       ::nmwiz::loadNMD "$prefix.nmd" 
     }  else {
       tk_messageBox -type ok -title "ERROR" \
@@ -3092,7 +3217,7 @@ Index of the very first frame is 0."}] \
         }
       }
 
-      proc Beta_msf {} {
+      proc calcMSF {} {
         variable molid
         variable activemode
         variable indices
@@ -3142,7 +3267,7 @@ Index of the very first frame is 0."}] \
         
       }
 
-      proc Draw_action {} {
+      proc drawAction {} {
         variable overwrite
         variable arrid
         variable arrids
@@ -3150,7 +3275,7 @@ Index of the very first frame is 0."}] \
           set arrid [mol new]
           lappend arrids $arrid
         }
-        [namespace current]::Draw_arrows
+        [namespace current]::drawArrows
       }
       
       proc autoUpdate {} {
@@ -3159,11 +3284,11 @@ Index of the very first frame is 0."}] \
           variable overwrite
           variable arrid
           variable arrids
-          [namespace current]::Draw_arrows
+          [namespace current]::drawArrows
         }
       }
 
-      proc Draw_arrows {} {
+      proc drawArrows {} {
         variable color
         variable material
         variable resolution
@@ -3226,7 +3351,7 @@ Index of the very first frame is 0."}] \
         foreach id [molinfo list] {
           molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
         }
-        [namespace current]::Beta_msf
+        [namespace current]::calcMSF
         $w.draw_arrows.arrowbuttons_label configure -text "Arrows ($arrid):"
         
         variable arridlist
@@ -3249,7 +3374,7 @@ Index of the very first frame is 0."}] \
         return $pdblines
       }
 
-      proc Locate_coordinates {} {
+      proc locateCoordinates {} {
         variable pdbfile
         variable molid
         if {$molid > -1} {
@@ -3387,7 +3512,7 @@ Index of the very first frame is 0."}] \
 
         $w.draw_arrows.protbuttons_label configure -text "Protein ($molid):"
         mol rename $molid "$title coordinates"
-        [namespace current]::Beta_msf
+        [namespace current]::calcMSF
         [namespace current]::updateProtRep $molid
 
         if {[molinfo num] > 0 && $::nmwiz::preserview} {
@@ -3397,7 +3522,7 @@ Index of the very first frame is 0."}] \
         }
       }
 
-      proc Check_coordinates {} {
+      proc checkCoordinates {} {
         variable molid
         variable modes
         variable coordinates
@@ -3406,14 +3531,14 @@ Index of the very first frame is 0."}] \
           set molid -1
           if {"ok" == [tk_messageBox -type okcancel -title "ERROR" \
               -message "[[atomselect $molid all] num] atoms are loaded. Coordinate data file must contain [llength [lindex $modes 0]] atoms. Please locate the correct file."]} {
-            [namespace current]::Locate_coordinates
+            [namespace current]::locateCoordinates
           } 
         } else {
           set coordinates [[atomselect $molid all] get {x y z}]
         }
       }
       
-      proc Change_color {} {
+      proc changeColor {} {
         variable color
         variable colorlist
         variable indices
@@ -3506,9 +3631,9 @@ Index of the very first frame is 0."}] \
 
           if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
             mol on $arrid
-            [namespace current]::Beta_msf
+            [namespace current]::calcMSF
           } else {
-            [namespace current]::Draw_action
+            [namespace current]::drawAction
           }
           
           $w.draw_arrows.arrowbuttons_showhide configure -text Hide
@@ -3525,7 +3650,7 @@ Index of the very first frame is 0."}] \
           $w.draw_arrows.animbuttons_showhide configure -text Hide
           $w.draw_arrows.animbuttons_stop configure -text Play
         } else {
-          [namespace current]::Beta_msf          
+          [namespace current]::calcMSF          
         }
       }
       
@@ -3593,7 +3718,7 @@ Index of the very first frame is 0."}] \
         orange3" {
             $wam.active.color.menu add radiobutton -label $acolor \
                 -variable ${ns}::color \
-                -command "${ns}::Change_color; ${ns}::autoUpdate; "
+                -command "${ns}::changeColor; ${ns}::autoUpdate; "
           }
           pack $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
         } else {
@@ -3602,7 +3727,7 @@ Index of the very first frame is 0."}] \
           foreach acolor "Mobility Eigenvector" {
             $wam.active.color.menu add radiobutton -label $acolor \
                 -variable ${ns}::msformode \
-                -command "${ns}::Beta_msf;"
+                -command "${ns}::calcMSF;"
           }
           pack $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
         }
@@ -3629,7 +3754,7 @@ Index of the very first frame is 0."}] \
             -state disabled -disabledbackground white -disabledforeground black
           label $wam.scale_frame.angstrom -text "A"
           label $wam.scale_frame.product -text "x"
-          button $wam.scale_frame.negate -text "+/-" -padx 0 -pady 0 -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::Draw_action"  
+          button $wam.scale_frame.negate -text "+/-" -padx 0 -pady 0 -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::drawAction"  
           entry $wam.scale_frame.entry -width 4 -textvariable ${ns}::scalearrows
           button $wam.scale_frame.decr5 -text "-5" -padx 0 -pady 0 -command \
             "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
@@ -3673,7 +3798,7 @@ Index of the very first frame is 0."}] \
                 -message "Molecule id for the current arrow graphics is shown in parentheses.\n\nDraw : draw/redraw arrows for the active mode\nClean : remove most recently drawn arrows\nHide : hide/show most recently drawn arrows\nOptions : change arrow properties and drawing options"}] \
             -row 5 -column 1 -sticky w
           grid [button $wda.arrowbuttons_draw -width 4 -pady 1 -text "Draw" \
-              -command ${ns}::Draw_arrows] \
+              -command ${ns}::drawArrows] \
             -row 5 -column 2
           grid [button $wda.arrowbuttons_clean -width 4 -pady 1 -text "Clean" \
               -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
@@ -4185,7 +4310,7 @@ protein and animation representations."}] \
         
         ${ns}::loadCoordinates
         if {$ndim == 3} {
-          ${ns}::Draw_arrows
+          ${ns}::drawArrows
         }
 
         return $w
@@ -4197,25 +4322,6 @@ protein and animation representations."}] \
     #lappend nmwizguis [string range $ns 2 end]
     return $ns
   }
-}
-# Porcupine
-set porcupine_cone_radius 0.5
-
-proc viewModePorcupine {mode direction molname} {
-    global refxyz mode_hide_shorter mode_scale_by 
-    global mode_materials mode_material mode_color mode_resolution
-    global porcupine_cone_radius
-    set molid [mol new]
-    graphics $molid color $mode_color
-    graphics $molid materials $mode_materials
-    graphics $molid material $mode_material
-    foreach xyz $refxyz v $mode {
-        set v [vecscale [expr $direction * $mode_scale_by] $v]
-        if {$mode_hide_shorter < [veclength $v]} {
-            graphics $molid cone $xyz [vecadd $xyz $v] radius $porcupine_cone_radius resolution $mode_resolution
-        }
-    }
-    mol rename $molid $molname
 }
 
 proc nmwiz_tk {} {
