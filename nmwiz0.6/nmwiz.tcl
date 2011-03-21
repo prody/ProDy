@@ -1896,7 +1896,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
   variable fromolMolecule
   variable fromolMolid -1
   variable fromolNFrames 0
-  variable fromolSelstr "name CA"
+  variable fromolSelstr "all"
   variable fromolSelAtoms 0
   variable fromolFrame 0
   variable fromolFirstFrame 1
@@ -2396,7 +2396,7 @@ Index of the very first frame is 0."}] \
         set first [string first $char $name]
       }
     }
-    foreach char {" "} { 
+    foreach char {" " "."} { 
       set first [string first $char $name] 
       while {$first > -1} {
         set name [string replace $name $first $first "_"] 
@@ -2820,10 +2820,6 @@ Index of the very first frame is 0."}] \
       switch -exact [lindex $nmdline 0] {
         name {
           set title [lrange $nmdline 1 end]
-          if {[lsearch $::nmwiz::titles $title] > -1} {
-            set title "$title ($::nmwiz::guicount)"
-          }
-          lappend ::nmwiz::titles $title
         }
         coordinates {
         }
@@ -2948,6 +2944,54 @@ Index of the very first frame is 0."}] \
     ::nmwiz::appendGUIcontrols $ns
     
   }
+
+  proc fromMolecule {} {  
+    variable fromolMolecule
+    variable fromolMolid
+    variable fromolSelstr
+    variable fromolFrame
+    variable fromolFirstFrame
+    variable fromolLastFrame
+    set lastframe $fromolLastFrame
+    if {$lastframe == "end"} {
+      set lastframe [expr [molinfo $fromolMolid get numframes] - 1]
+    }
+    if {$fromolFrame >= $fromolFirstFrame && $fromolFrame <= $lastframe} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Coordinate frame cannot be one of mode frames."
+      return
+    }
+    set title $fromolMolecule
+    set n_dims 3
+    set sel [atomselect $fromolMolid $fromolSelstr frame $fromolFrame]
+    set coordinates [concat {*}[$sel get {x y z}]]
+    puts $coordinates
+    set modes [list]
+    set lengths [list]
+    set indices [list]
+    for {set i $fromolFirstFrame} {$i <= $lastframe} {incr i} {
+      $sel frame $i
+      set m [concat {*}[$sel get {x y z}]]
+      set length [veclength $m]
+      lappend lengths $length  
+      lappend modes [vecscale $m [expr 1 / $length]]
+      lappend indices $i
+    }
+    $sel frame $fromolFrame
+    set atomnames [$sel get name]
+    set resnames [$sel get resname]
+    set resids [$sel get resid]
+    set chainids [$sel get chain]
+    set bfactors [$sel get beta]
+    
+    $sel delete
+    
+    set ns [::nmwiz::makeNMWizGUI]
+    ${ns}::initialize $coordinates $modes $n_dims $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
+    ${ns}::nmwizgui
+    ::nmwiz::appendGUIcontrols $ns
+    
+  }
   
   proc appendGUIcontrols {ns} {
     
@@ -3002,6 +3046,7 @@ Index of the very first frame is 0."}] \
       variable autoupdate 1
       variable autoanimate 0
       
+      variable scalearrows_list [list]
       variable hide_shorter_list [list] 
       variable cylinder_radius_list [list]
       variable cone_radius_list [list]
@@ -3068,6 +3113,12 @@ Index of the very first frame is 0."}] \
         variable bfactormax
         variable n_dims 0
         variable n_atoms [expr [llength $coordinates] / 3]
+        
+        if {[lsearch $::nmwiz::titles $title] > -1} {
+          set title "$title ($::nmwiz::guicount)"
+        }
+        lappend ::nmwiz::titles $title
+
         
         if {$atomnames == ""} {
           set atomnames [string repeat "CA " $n_atoms]
@@ -3138,10 +3189,17 @@ Index of the very first frame is 0."}] \
         foreach atnm $atomnames {
           lappend betalist 0
         } 
-        variable scalearrows 
-        if {[lindex $lengths 0] < 60.0} {
-          set scalearrows [::tcl::mathfunc::int [expr 60.0 / [lindex $lengths 0]] ]
+        variable scalearrows_list
+        foreach l $lengths {
+            if {$l < 1} {
+              lappend scalearrows_list [::tcl::mathfunc::int [expr $n_atoms / $l] ]  
+            } else {
+              lappend scalearrows_list 1
+            }
         }
+        variable scalearrows
+        set scalearrows [lindex $scalearrows_list 0]
+         
         
         variable arridlist
         variable animidlist
@@ -3813,18 +3871,21 @@ Index of the very first frame is 0."}] \
         set inactiveindex $activeindex 
         set activeindex [lsearch $indices $activemode]
         if {$ndim == 3} {
+          variable scalearrows_list
           variable hide_shorter_list 
           variable cylinder_radius_list
           variable cone_radius_list
           variable cone_height_list
           variable resolution_list
           
+          variable scalearrows
           variable hide_shorter 
           variable cylinder_radius
           variable cone_radius
           variable cone_height
           variable resolution
           
+          lset scalearrows_list $inactiveindex $scalearrows
           lset hide_shorter_list $inactiveindex $hide_shorter  
           lset cylinder_radius_list $inactiveindex $cylinder_radius
           lset cone_radius_list $inactiveindex $cone_radius
@@ -3833,6 +3894,7 @@ Index of the very first frame is 0."}] \
 
           set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]];
           
+          set scalearrows [lindex $scalearrows_list $activeindex]
           set hide_shorter [lindex $hide_shorter_list $activeindex]
           set cylinder_radius [lindex $cylinder_radius_list $activeindex]
           set cone_radius [lindex $cone_radius_list $activeindex]
