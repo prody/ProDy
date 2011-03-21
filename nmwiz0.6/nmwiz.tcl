@@ -1630,39 +1630,62 @@ namespace eval ::nmwiz:: {
 
     set wmf [frame $w.mainframe -bd 2]
     
+    grid [button $wmf.helpnmd -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Load files in NMD format using this button."}] \
+      -row 3 -column 0 -sticky w
     grid [button $wmf.loadnmd -width 20 -pady 2 -text "Load NMD file" -command {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
         if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
-      -row 5 -column 0 -columnspan 2
+      -row 3 -column 1 -columnspan 2
 
-    grid [button $wmf.prody -width 20 -pady 2 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
-      -row 6 -column 0 -columnspan 2
+    grid [button $wmf.helpfromol -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Obtain normal mode data from a molecule loaded into VMD. \
+                    Molecule must have more than one frames loaded. First frame\
+                    should be the coordinate frame followed by frames containing\
+                    normal mode data."}] \
+      -row 5 -column 0 -sticky w
+    grid [button $wmf.prody -width 20 -pady 2 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
+      -row 5 -column 1 -columnspan 2
+
+    grid [button $wmf.helpprody -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Open the GUI for ANM/PCA/GNM calculations using ProDy."}] \
+      -row 6 -column 0 -sticky w
+    grid [button $wmf.fromol -width 20 -pady 2 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
+      -row 6 -column 1 -columnspan 2
    
     if {$platform != "windows"} {
+      grid [button $wmf.helpanmserver -text "?" -padx 0 -pady 0 \
+          -command {tk_messageBox -type ok -title "HELP" \
+            -message "Open the GUI for online ANM calculations."}] \
+        -row 7 -column 0 -sticky w
       grid [button $wmf.retrieve -width 20 -pady 2 -text "ANM Server Interface" -command ::nmwiz::init_anm_interface] \
-        -row 7 -column 0 -columnspan 2
+        -row 7 -column 1 -columnspan 2
     }
 
+    grid [button $wmf.helpsettings -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Change and save NMWiz settings and preferences."}] \
+      -row 8 -column 0 -sticky w
     grid [button $wmf.settings -width 8 -pady 2 -text "Settings" \
         -command ::nmwiz::initSettingsGUI] \
-      -row 8 -column 0 -sticky we
+      -row 8 -column 1 -sticky we
     grid [button $wmf.website -width 8 -pady 2 -text "Website" \
         -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
-      -row 8 -column 1 -sticky we
+      -row 8 -column 2 -sticky we
     
-    grid [frame $wmf.options] -row 10 -column 0 -columnspan 2
-    
-    
-    grid [button $wmf.options.pcv_help -text "?" -padx 0 -pady 0 \
+    grid [button $wmf.pcv_help -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "If checked, loading a new dataset will not change the current view."}] \
-      -row 0 -column 0 -sticky w
-    grid [label $wmf.options.pcv_label -text "Preserve current view:"] \
-      -row 0 -column 1
-    grid [checkbutton $wmf.options.preserview -text "" \
+      -row 10 -column 0 -sticky w
+    grid [label $wmf.pcv_label -text "Preserve view:"] \
+      -row 10 -column 1 -sticky w
+    grid [checkbutton $wmf.preserview -text "" \
         -variable ::nmwiz::preserview] \
-      -row 0 -column 2
+      -row 10 -column 2 -sticky w
 
     #pack $wmf.options -side top -fill x -expand 1
     pack $wmf -side top -fill x -expand 1
@@ -1869,6 +1892,116 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
   variable prodyFirstFrame 0
   variable prodySkipFrame 0 
   variable prodyLastFrame end
+
+  variable fromolMolecule
+  variable fromolMolid -1
+  variable fromolNFrames 0
+  variable fromolSelstr "name CA"
+  variable fromolSelAtoms 0
+  variable fromolFrame 0
+  variable fromolFirstFrame 1
+  variable fromolLastFrame end
+
+
+  proc initFromMolecule {} {
+    variable fromolGUI
+    # If already initialized, just turn on
+    if [winfo exists .nmwizfromol] {
+      wm deiconify .nmwizfromol
+      raise .nmwizfromol
+      return 
+    }    
+    set fromolGUI [toplevel .nmwizfromol]
+    wm title $fromolGUI "NMWiz - From Molecule"
+    wm resizable $fromolGUI 0 0
+
+    # Main frame (molecule and selection)
+    set wmf [labelframe $fromolGUI.mainFrame -text "Atom Selection" -bd 2]
+    grid [button $wmf.molHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Select a molecule to be used in calculations."}] \
+      -row 2 -column 0 -sticky w
+    grid [label $wmf.molLabel -text "Molecule:"] \
+      -row 2 -column 1 -sticky w
+    grid [frame $wmf.molFrame] \
+      -row 2 -column 2 -sticky ew
+    tk_optionMenu $wmf.molFrame.list ::nmwiz::fromolMolecule "" 
+    grid [button $wmf.molUpdate -text "Update" -pady 2 \
+        -command ::nmwiz::fromolUpdateMolList] \
+      -row 2 -column 3 -sticky ew
+      
+    grid [button $wmf.molinfoHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Shows number of atoms and frames for the selected molecule."}] \
+      -row 3 -column 0 -sticky w
+    grid [label $wmf.molinfoLbl -text "Information:"] \
+      -row 3 -column 1 -sticky w
+    grid [label $wmf.molinfoLabel -text ""] \
+      -row 3 -column 2 -columnspan 2 -sticky w
+    
+    grid [button $wmf.selstr -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Atom selection string. Click Select to update your\
+                    selection."}] \
+      -row 5 -column 0 -sticky w
+    grid [label $wmf.selstrLabel -text "Selection:"] \
+      -row 5 -column 1 -sticky w
+    grid [entry $wmf.selstrEntry -width 20 -textvariable ::nmwiz::fromolSelstr] \
+      -row 5 -column 2 -sticky ew
+    grid [button $wmf.selUpdate -text "Select" -pady 2 \
+        -command ::nmwiz::fromolUpdateSelection] \
+      -row 5 -column 3 -sticky ew
+      
+    grid [button $wmf.selinfoHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Shows number of selected atoms."}] \
+      -row 6 -column 0 -sticky w
+    grid [label $wmf.selinfoLbl -text "Information:"] \
+      -row 6 -column 1 -sticky w
+    grid [label $wmf.selinfoLabel -text ""] \
+      -row 6 -column 2 -columnspan 2 -sticky w
+
+    grid [button $wmf.frameHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter index of the frame that contains coordinate data."}] \
+      -row 7 -column 0 -sticky w
+    grid [label $wmf.frameLabel -text "Coordinate frame:"] \
+      -row 7 -column 1 -sticky w
+    grid [entry $wmf.frameEntry -width 4 -textvariable ::nmwiz::fromolFrame] \
+      -row 7 -column 2 -sticky w
+    
+    grid [button $wmf.firstHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter the index of the first frame that contains mode data.\
+                   Index of the very first frame is 0."}] \
+      -row 8 -column 0 -sticky w
+    grid [label $wmf.firstLabel -text "First mode frame:"] \
+      -row 8 -column 1 -sticky w
+    grid [entry $wmf.firstEntry -width 4 -textvariable ::nmwiz::fromolFirstFrame] \
+      -row 8 -column 2 -sticky w
+    
+    grid [button $wmf.lastHelp -text "?" -padx 0 -pady 0 \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "Enter the index of the last frame that contains mode data.\
+                   \"end\" can be used as the index of the very last frame."}] \
+      -row 10 -column 0 -sticky w
+    grid [label $wmf.lastLabel -text "Last mode frame:"] \
+      -row 10 -column 1 -sticky w
+    grid [entry $wmf.lastEntry -width 4 -textvariable ::nmwiz::fromolLastFrame] \
+      -row 10 -column 2 -sticky w
+      
+    grid [button $wmf.prodySubmit -text "Get mode data from molecule" -pady 2 \
+        -command ::nmwiz::fromMolecule] \
+      -row 12 -column 0 -columnspan 4 -sticky we
+      
+    pack $wmf -side top -fill x -expand 1
+    ::nmwiz::fromolUpdateMolList
+    ::nmwiz::fromolUpdateMolinfo
+    
+
+  
+  }
+
   proc initProdyGUI {} {
     variable prodyGUI
     # If already initialized, just turn on
@@ -2049,7 +2182,7 @@ in the calculations. Index of the very first frame is 0,"}] \
     grid [button $wf.frameHelp -text "?" -padx 0 -pady 0 \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Enter index of the frame for the selected molecule to be used\
-in the calculations. Index of the very first frame is 0,"}] \
+in the calculations."}] \
       -row 6 -column 0 -sticky w
     grid [label $wf.frameLabel -text "Frame number:"] \
       -row 6 -column 1 -sticky w
@@ -2165,10 +2298,44 @@ Index of the very first frame is 0."}] \
       ::nmwiz::prodyUpdateMolinfo
     }
   }
+
+  proc fromolUpdateMolList {} {
+    variable fromolGUI
+    set wf $fromolGUI.mainFrame
+    $wf.molFrame.list.menu delete 0 last
+    set counter 0
+    variable fromolMolid -1
+    foreach id [molinfo list] {
+      if {[molinfo $id get numatoms] > 0 && [molinfo $id get numframes] > 1} {
+        if {$counter == 0} {
+          variable fromolMolid $id
+        }
+        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id]" \
+            -variable ::nmwiz::fromolMolecule \
+            -command "set ::nmwiz::fromolMolid $id; ::nmwiz::fromolUpdateMolinfo"
+        incr counter  
+      }
+    }
+    pack $wf.molFrame.list -side left -anchor w -fill x
+    variable fromolMolid
+    if {$fromolMolid > -1} {
+      variable fromolMolecule "[::nmwiz::cleanMolName $fromolMolid]"
+      ::nmwiz::fromolUpdateMolinfo
+    }
+  }
+
   
   proc prodyCheckMolecule {} {
     if {[lsearch [molinfo list] $::nmwiz::prodyMolid] == -1} {
       ::nmwiz::prodyUpdateMolList
+      return 0
+    } 
+    return 1
+  }
+  
+  proc fromolCheckMolecule {} {
+    if {[lsearch [molinfo list] $::nmwiz::fromolMolid] == -1} {
+      ::nmwiz::fromolUpdateMolList
       return 0
     } 
     return 1
@@ -2185,6 +2352,20 @@ Index of the very first frame is 0."}] \
     } else {
       set ::nmwiz::prodyNFrames 0
       .nmwizprody.mainFrame.molinfoLabel configure \
+        -text "Load a molecule and click Update."
+    }
+  }
+  
+  proc fromolUpdateMolinfo {} {
+    if {$::nmwiz::fromolMolid > -1} {
+      ::nmwiz::fromolCheckMolecule
+      set ::nmwiz::fromolNFrames [molinfo $::nmwiz::fromolMolid get numframes]
+      .nmwizfromol.mainFrame.molinfoLabel configure \
+        -text "[molinfo $::nmwiz::fromolMolid get numatoms] atoms, $::nmwiz::fromolNFrames frames"
+      ::nmwiz::fromolUpdateSelection
+    } else {
+      set ::nmwiz::fromolNFrames 0
+      .nmwizfromol.mainFrame.molinfoLabel configure \
         -text "Load a molecule and click Update."
     }
   }
@@ -2235,6 +2416,18 @@ Index of the very first frame is 0."}] \
     variable prodyGUI
     $prodyGUI.mainFrame.selinfoLabel configure \
       -text "$prodySelAtoms atoms are selected"
+  }
+  
+  proc fromolUpdateSelection {} {
+    ::nmwiz::fromolCheckMolecule
+    variable fromolMolid
+    variable fromolSelstr
+    set sel [atomselect $fromolMolid $fromolSelstr]
+    variable fromolSelAtoms [$sel num]
+    $sel delete
+    variable fromolGUI
+    $fromolGUI.mainFrame.selinfoLabel configure \
+      -text "$fromolSelAtoms atoms are selected"
   }
   
   proc prodyChangeTask {} {
@@ -2816,8 +3009,8 @@ Index of the very first frame is 0."}] \
       variable resolution_list [list]
 
       variable hide_shorter 0.0 
-      variable cylinder_radius 0.4
-      variable cone_radius 0.6
+      variable cylinder_radius 0.3
+      variable cone_radius 0.5
       variable cone_height 1.0
       
       variable showproteinas "Tube"
@@ -2876,10 +3069,17 @@ Index of the very first frame is 0."}] \
         variable n_dims 0
         variable n_atoms [expr [llength $coordinates] / 3]
         
-
         if {$atomnames == ""} {
           set atomnames [string repeat "CA " $n_atoms]
           puts "NMWiz INFO: All atom names are set as \"CA\"."
+        } else {
+          variable showproteinas
+          foreach an $atomnames {
+            if {$an != "CA"} {
+              set showproteinas "Licorice"
+              break
+            }
+          }
         }
         if {$resnames == ""} {
           set resnames [string repeat "GLY " $n_atoms]
