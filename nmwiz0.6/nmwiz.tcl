@@ -1638,48 +1638,49 @@ namespace eval ::nmwiz:: {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
         if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
-      -row 3 -column 1 -columnspan 2
+      -row 3 -column 1 -columnspan 2 -sticky we
 
     grid [button $wmf.helpfromol -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Obtain normal mode data from a molecule loaded into VMD. \
-                    Molecule must have more than one frames loaded. First frame\
-                    should be the coordinate frame followed by frames containing\
-                    normal mode data."}] \
+          -message "Use this interface for obtaining normal mode data from a \
+                    molecule loaded into VMD.\
+                    Molecule must have more than one frames. Coordinate frame\
+                    should be followed by the frames containing normal mode data.\
+                    See website for more information."}] \
       -row 5 -column 0 -sticky w
     grid [button $wmf.prody -width 20 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
-      -row 5 -column 1 -columnspan 2
+      -row 5 -column 1 -columnspan 2 -sticky we
 
     grid [button $wmf.helpprody -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Open the GUI for ANM/PCA/GNM calculations using ProDy."}] \
+          -message "Open the interface for performing ANM/PCA/GNM calculations using ProDy."}] \
       -row 6 -column 0 -sticky w
     grid [button $wmf.fromol -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
-      -row 6 -column 1 -columnspan 2
+      -row 6 -column 1 -columnspan 2 -sticky we
    
     if {$platform != "windows"} {
       grid [button $wmf.helpanmserver -text "?" \
           -command {tk_messageBox -type ok -title "HELP" \
-            -message "Open the GUI for online ANM calculations."}] \
+            -message "Open the interface for submitting online ANM calculations."}] \
         -row 7 -column 0 -sticky w
       grid [button $wmf.retrieve -width 20 -text "ANM Server Interface" -command ::nmwiz::init_anm_interface] \
-        -row 7 -column 1 -columnspan 2
+        -row 7 -column 1 -columnspan 2 -sticky we
     }
 
     grid [button $wmf.helpsettings -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Change and save NMWiz settings and preferences."}] \
       -row 8 -column 0 -sticky w
-    grid [button $wmf.settings -width 8 -text "Settings" \
+    grid [button $wmf.settings -text "Settings" \
         -command ::nmwiz::initSettingsGUI] \
       -row 8 -column 1 -sticky we
-    grid [button $wmf.website -width 8 -text "Website" \
+    grid [button $wmf.website -text "Website" \
         -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
       -row 8 -column 2 -sticky we
     
     grid [button $wmf.pcv_help -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "If checked, loading a new dataset will not change the current view."}] \
+          -message "Check this to preserve the current view when loading a new dataset."}] \
       -row 10 -column 0 -sticky w
     grid [label $wmf.pcv_label -text "Preserve view:"] \
       -row 10 -column 1 -sticky w
@@ -1695,12 +1696,15 @@ namespace eval ::nmwiz:: {
         set ns "::nmgui$i"
         if {[namespace exists $ns]} {      
           set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
-          grid [button $wgf.name -width 8 -text "Show GUI" \
+          grid [button $wgf.show -text "Show GUI" \
               -command "${ns}::nmwizgui" ] \
-            -row 0 -column 0
-          grid [button $wgf.website -width 8 -text "Remove" \
+            -row 0 -column 0 -sticky we
+          grid [button $wgf.remove -text "Remove" \
               -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
-            -row 0 -column 1
+            -row 0 -column 1 -sticky we
+          grid [button $wgf.save -text "Save" \
+              -command "::nmwiz::writeNMD $ns"] \
+            -row 0 -column 2 -sticky we
           pack $wgf -side top -fill x -expand 1
         }
       }
@@ -2773,6 +2777,28 @@ Index of the very first frame is 0."}] \
   
   }
   
+  proc writeNMD {ns} {
+    
+    set tempfile [tk_getSaveFile -filetypes {{"NMD files" { .nmd .NMD }} {"All files" *}}]
+    
+    set fl [open $tempfile w]
+    puts $fl "nmwiz_load $tempfile"
+    puts $fl "name [subst $${ns}::title]"
+    puts $fl "atomnames [subst $${ns}::atomnames]"
+    puts $fl "resnames [subst $${ns}::resnames]"
+    puts $fl "resids [subst $${ns}::resids]"
+    puts $fl "chainids [subst $${ns}::chainids]"
+    puts $fl "bfactors [subst $${ns}::bfactors]"
+    puts $fl "coordinates [subst $${ns}::coordinates]"
+    set indices [subst $${ns}::indices] 
+    set lengths [subst $${ns}::lengths] 
+    set modes [subst $${ns}::modes]
+    for {set i 0} {$i < [llength $indices]} {incr i} {
+      puts $fl "mode [lindex $indices $i] [lindex $lengths $i] [lindex $modes $i]"
+    }
+    close $fl    
+  }
+  
   proc loadNMD {fn} {
     variable filename $fn
     puts "NMWiz: Parsing file $filename"
@@ -2998,12 +3024,15 @@ Index of the very first frame is 0."}] \
     set w .nmwizgui
     set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
     
-    grid [button $wgf.name -width 8 -text "Show GUI" \
+    grid [button $wgf.show -text "Show GUI" \
         -command "${ns}::nmwizgui" ] \
-      -row 0 -column 0
-    grid [button $wgf.website -width 8 -text "Remove" \
+      -row 0 -column 0 -sticky we
+    grid [button $wgf.remove -text "Remove" \
         -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
-      -row 0 -column 1
+      -row 0 -column 1 -sticky we
+    grid [button $wgf.save -text "Save" \
+        -command "::nmwiz::writeNMD $ns"] \
+      -row 0 -column 2 -sticky we
 
     pack $wgf -side top -fill x -expand 1
     
@@ -4111,16 +4140,16 @@ Index of the very first frame is 0."}] \
               -command {tk_messageBox -type ok -title "HELP" \
                 -message "Molecule id for the current arrow graphics is shown in parentheses.\n\nDraw : draw/redraw arrows for the active mode\nClean : remove most recently drawn arrows\nHide : hide/show most recently drawn arrows\nOptions : change arrow properties and drawing options"}] \
             -row 5 -column 1 -sticky w
-          grid [button $wda.arrowbuttons_draw -width 4 -text "Draw" \
+          grid [button $wda.arrowbuttons_draw -width 6 -text "Draw" \
               -command ${ns}::drawArrows] \
             -row 5 -column 2
-          grid [button $wda.arrowbuttons_clean -width 4 -text "Clean" \
+          grid [button $wda.arrowbuttons_clean -width 5 -text "Clean" \
               -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
             -row 5 -column 3
-          grid [button $wda.arrowbuttons_showhide -width 4 -text "Hide" \
+          grid [button $wda.arrowbuttons_showhide -width 5 -text "Hide" \
               -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
             -row 5 -column 4
-          grid [button $wda.arrowbuttons_options -width 5 -text "Options" \
+          grid [button $wda.arrowbuttons_options -width 6 -text "Options" \
               -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options; set ${ns}::arropt 0; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief raised} else {pack \$${ns}::w.graphics_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::arropt 1; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief sunken}"] \
             -row 5 -column 5
 
@@ -4130,16 +4159,16 @@ Index of the very first frame is 0."}] \
               -command {tk_messageBox -type ok -title "HELP" \
                 -message "Molecule id for the most recent animation is shown in parentheses.\n\nMake : animate fluctuations along the active mode\nPlay : play/pause the animation\nHide : hide/show the animation\nOptions : change animation options"}] \
             -row 6 -column 1 -sticky w
-          grid [button $wda.animbuttons_animate -width 4 -text "Make" \
+          grid [button $wda.animbuttons_animate -width 6 -text "Make" \
               -command ${ns}::Animate] \
             -row 6 -column 2
-          grid [button $wda.animbuttons_stop -width 4 -text "Play" \
+          grid [button $wda.animbuttons_stop -width 5 -text "Play" \
               -command "if {\$${ns}::animid == -1} {${ns}::Animate} else {if {\$${ns}::stopped} {mol top \$${ns}::animid; animate forward; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Pause; set ${ns}::stopped 0} else {animate pause; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Play; set ${ns}::stopped 1}}"] \
             -row 6 -column 3
-          grid [button $wda.animbuttons_showhide -width 4 -text "Hide" \
+          grid [button $wda.animbuttons_showhide -width 5 -text "Hide" \
               -command "if {\$${ns}::animid > -1 && \[lsearch \[molinfo list] \$${ns}::animid] > -1} {if {\[molinfo \$${ns}::animid get displayed]} {animate pause; mol off \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Show} else {mol on \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Hide; animate forward}}"] \
             -row 6 -column 4
-          grid [button $wda.animbuttons_options -width 5 -text "Options" \
+          grid [button $wda.animbuttons_options -width 6 -text "Options" \
               -command "if {\$${ns}::anmopt} {pack forget \$${ns}::w.animation_options; set ${ns}::anmopt 0; \$${ns}::w.draw_arrows.animbuttons_options configure -relief raised} else {pack \$${ns}::w.animation_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::anmopt 1; \$${ns}::w.draw_arrows.animbuttons_options configure -relief sunken}"] \
             -row 6 -column 5
         }
@@ -4150,16 +4179,16 @@ Index of the very first frame is 0."}] \
             -command {tk_messageBox -type ok -title "HELP" \
               -message "Molecule id for displaying selected residues is shown in parentheses.\n\nPlot : plot squared-fluctuations along the active mode\nClear : clear all selections\nHide : hide/show the selected residues\nOptions : change plotting options"}] \
           -row 8 -column 1 -sticky w
-        grid [button $wda.plot_plot -width 4 -text "Plot" \
+        grid [button $wda.plot_plot -width 6 -text "Plot" \
             -command "${ns}::Plot ${ns}"] \
           -row 8 -column 2
-        grid [button $wda.plot_clear -width 4 -text "Clear" \
+        grid [button $wda.plot_clear -width 5 -text "Clear" \
             -command "${ns}::clearSelection"] \
           -row 8 -column 3
-        grid [button $wda.plot_showhide -width 4 -text "Hide" \
+        grid [button $wda.plot_showhide -width 5 -text "Hide" \
             -command "if {\$${ns}::selid > -1 && \[lsearch \[molinfo list] \$${ns}::selid] > -1} {if {\[molinfo \$${ns}::selid get displayed]} {mol off \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Show} else {mol on \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Hide}}"] \
           -row 8 -column 4
-        grid [button $wda.plot_options -width 5 -text "Options" \
+        grid [button $wda.plot_options -width 6 -text "Options" \
             -command "if {\$${ns}::pltopt} {pack forget \$${ns}::w.plotting_options; set ${ns}::pltopt 0; \$${ns}::w.draw_arrows.plot_options configure -relief raised} else {pack \$${ns}::w.plotting_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::pltopt 1; \$${ns}::w.draw_arrows.plot_options configure -relief sunken}"] \
           -row 8 -column 5
          
@@ -4171,16 +4200,16 @@ Index of the very first frame is 0."}] \
             -command {tk_messageBox -type ok -title "HELP" \
               -message "Molecule id of the molecular system is shown in parentheses.\n\nUpdate : Update protein representation\nFocus : reset view to focus on the molecular system\nHide : hide/show the molecular system\nOptions : change molecular system representation\n"}] \
           -row 9 -column 1 -sticky w
-        grid [button $wda.prt_update -width 4 -text "Update" \
+        grid [button $wda.prt_update -width 6 -text "Update" \
             -command "${ns}::updateProtRep \$${ns}::molid"] \
           -row 9 -column 2
-        grid [button $wda.protbuttons_focus -width 4 -text "Focus" \
+        grid [button $wda.protbuttons_focus -width 5 -text "Focus" \
             -command "mol top \$${ns}::molid; display resetview"] \
           -row 9 -column 3  
-        grid [button $wda.protbuttons_showhide -width 4 -text "Hide" \
+        grid [button $wda.protbuttons_showhide -width 5 -text "Hide" \
             -command "if {\[molinfo \$${ns}::molid get displayed]} {mol off \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Show;} else {mol on \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Hide;}"] \
           -row 9 -column 4
-        grid [button $wda.protbuttons_repoptions -width 5 -text "Options" \
+        grid [button $wda.protbuttons_repoptions -width 6 -text "Options" \
             -command "if {\$${ns}::prtopt} {pack forget \$${ns}::w.prograph_options; set ${ns}::prtopt 0; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief raised} else {pack \$${ns}::w.prograph_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::prtopt 1; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief sunken}"] \
           -row 9 -column 5
 
