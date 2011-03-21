@@ -1975,8 +1975,8 @@ selection."}] \
       -row 9 -column 0 -sticky w
     grid [label $wf.filepLabel -text "File prefix:"] \
       -row 9 -column 1 -sticky w
-    grid [entry $wf.filepEntry -width 20 -textvariable ::nmwiz::prodyPrefix] \
-      -row 9 -column 2 -sticky w
+    grid [entry $wf.filepEntry -width 28 -textvariable ::nmwiz::prodyPrefix] \
+      -row 9 -column 2 -columnspan 2 -sticky we
 
 
     #grid [button $wf.numoutHelp -text "?" -padx 0 -pady 0 \
@@ -2152,7 +2152,7 @@ Index of the very first frame is 0."}] \
         if {$counter == 0} {
           variable prodyMolid $id
         }
-        $wf.molFrame.list.menu add radiobutton -label "[molinfo $id get name]" \
+        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id]" \
             -variable ::nmwiz::prodyMolecule \
             -command "set ::nmwiz::prodyMolid $id; ::nmwiz::prodyUpdateMolinfo"
         incr counter  
@@ -2161,7 +2161,7 @@ Index of the very first frame is 0."}] \
     pack $wf.molFrame.list -side left -anchor w -fill x
     variable prodyMolid
     if {$prodyMolid > -1} {
-      variable prodyMolecule "[molinfo $prodyMolid get name]"
+      variable prodyMolecule "[::nmwiz::cleanMolName $prodyMolid]"
       ::nmwiz::prodyUpdateMolinfo
     }
   }
@@ -2191,16 +2191,38 @@ Index of the very first frame is 0."}] \
   
   proc prodyUpdatePrefix {} {
     if {[::nmwiz::prodyCheckMolecule]} {
-      set prefix [molinfo $::nmwiz::prodyMolid get name]
+      set prefix [::nmwiz::cleanMolName $::nmwiz::prodyMolid]
+      
       if {[string range $prefix [expr [string length $prefix] - 4] end] == ".pdb"} {
         set prefix [string range $prefix 0 [expr [string length $prefix] - 5]]
       }
       if {$::nmwiz::prodyScript == "ANM"} {
         set ::nmwiz::prodyPrefix "$prefix\_anm"
+      } elseif {$::nmwiz::prodyScript == "GNM"} {
+        set ::nmwiz::prodyPrefix "$prefix\_gnm"
       } else {
         set ::nmwiz::prodyPrefix "$prefix\_pca"
       }
     }
+  }
+  
+  proc cleanMolName {molid} {
+    set name "[molinfo $molid get name]"
+    foreach char {"\}" "\{"} { 
+      set first [string first $char $name] 
+      while {$first > -1} {
+        set name [string replace $name $first $first ""] 
+        set first [string first $char $name]
+      }
+    }
+    foreach char {" "} { 
+      set first [string first $char $name] 
+      while {$first > -1} {
+        set name [string replace $name $first $first "_"] 
+        set first [string first $char $name]
+      }
+    }
+    return $name
   }
   
   proc prodyUpdateSelection {} {
@@ -2798,7 +2820,7 @@ Index of the very first frame is 0."}] \
       variable cone_radius 0.6
       variable cone_height 1.0
       
-      variable showproteinas "Backbone"
+      variable showproteinas "Tube"
       variable tuberadius 0.4
       variable bondradius 0.3   
       variable spherescale 0.6
@@ -3134,9 +3156,10 @@ Index of the very first frame is 0."}] \
             return 0
           }
         }
-        
-        
         variable showproteinas
+        if {$showproteinas == "Custom" && $targetid == $molid} {
+          return
+        }
         variable tuberadius
         variable bondradius
         variable cutoffdistance
@@ -3201,7 +3224,7 @@ Index of the very first frame is 0."}] \
           }
         } else {
           mol addrep $targetid
-          mol modstyle 0 $targetid Tube $tuberadius $resolution_protein
+          mol modstyle 0 $targetid $showproteinas $tuberadius $resolution_protein
           mol modmaterial 0 $targetid $material_protein
           if {$selrep} {
             mol modselect 0 $targetid $selstr
@@ -4020,16 +4043,24 @@ protein and animation representations."}] \
         
         grid [button $wpgo.protas_help -text "?" -padx 0 -pady 0 \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "Protein representation."}] \
+              -message "Select protein representation. For coarse-grained protein\
+              Tube option shows a trace of the protein chain. Licorice is ideal\
+              for atomic models of proteins.\n\n\
+              When Custom is selected NMWiz does not change the representation\
+              of the Protein (molecule id of the protein is given in parantheses).\
+              User can set a custom representation using VMD Main > Graphics >\
+              Representation... window."}] \
           -row 13 -column 0 -sticky w
         grid [label $wpgo.protas_label -text "Show protein as:"] \
           -row 13 -column 1 -sticky w
         grid [frame $wpgo.protas_frame] \
           -row 13 -column 2 -sticky w
-        tk_optionMenu $wpgo.protas_frame.list ${ns}::showproteinas "Backbone"
+        tk_optionMenu $wpgo.protas_frame.list ${ns}::showproteinas "Tube"
         $wpgo.protas_frame.list.menu delete 0
-        $wpgo.protas_frame.list.menu add radiobutton -label "Backbone" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Tube" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Licorice" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.protas_frame.list.menu add radiobutton -label "Network" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Custom" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.protas_frame.list -side left -anchor w -fill x
 
         grid [button $wpgo.procolor_help -text "?" -padx 0 -pady 0 \
@@ -4105,9 +4136,9 @@ protein and animation representations."}] \
 
         grid [button $wpgo.tuberadius_help -text "?" -padx 0 -pady 0 \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "Radius of the tube representation used to depict the protein backbone structure."}] \
+              -message "Radius for the tube/licorice representations."}] \
           -row 19 -column 0 -sticky w
-        grid [label $wpgo.tuberadius_label -text "Backbone tube radius:"] \
+        grid [label $wpgo.tuberadius_label -text "Tube/bond radius:"] \
           -row 19 -column 1 -sticky w
         grid [frame $wpgo.tuberadius_frame] \
           -row 19 -column 2 -sticky w
