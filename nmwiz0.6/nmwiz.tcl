@@ -2297,7 +2297,7 @@ orange3"
         if {$counter == 0} {
           variable prodyMolid $id
         }
-        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id]" \
+        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
             -variable ::nmwiz::prodyMolecule \
             -command "set ::nmwiz::prodyMolid $id; ::nmwiz::prodyUpdateMolinfo"
         incr counter  
@@ -2306,9 +2306,9 @@ orange3"
     pack $wf.molFrame.list -side left -anchor w -fill x
     variable prodyMolid
     if {$prodyMolid > -1} {
-      variable prodyMolecule "[::nmwiz::cleanMolName $prodyMolid]"
-      ::nmwiz::prodyUpdateMolinfo
+      variable prodyMolecule "[::nmwiz::cleanMolName $prodyMolid] ($prodyMolid)"
     }
+    ::nmwiz::prodyUpdateMolinfo
   }
 
   proc fromolUpdateMolList {} {
@@ -2322,7 +2322,7 @@ orange3"
         if {$counter == 0} {
           variable fromolMolid $id
         }
-        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id]" \
+        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
             -variable ::nmwiz::fromolMolecule \
             -command "set ::nmwiz::fromolMolid $id; ::nmwiz::fromolUpdateMolinfo"
         incr counter  
@@ -2331,31 +2331,32 @@ orange3"
     pack $wf.molFrame.list -side left -anchor w -fill x
     variable fromolMolid
     if {$fromolMolid > -1} {
-      variable fromolMolecule "[::nmwiz::cleanMolName $fromolMolid]"
-      ::nmwiz::fromolUpdateMolinfo
-    }
+      variable fromolMolecule "[::nmwiz::cleanMolName $fromolMolid] ($fromolMolid)"
+    } 
+    ::nmwiz::fromolUpdateMolinfo
   }
 
   
   proc prodyCheckMolecule {} {
-    if {[lsearch [molinfo list] $::nmwiz::prodyMolid] == -1} {
-      ::nmwiz::prodyUpdateMolList
-      return 0
+    if {[lsearch [molinfo list] $::nmwiz::prodyMolid] > -1 && [molinfo $::nmwiz::prodyMolid get numframes] > 0} {
+      return 1
     } 
-    return 1
+    ::nmwiz::prodyUpdateMolList
+    return 0
   }
   
   proc fromolCheckMolecule {} {
-    if {[lsearch [molinfo list] $::nmwiz::fromolMolid] == -1} {
-      ::nmwiz::fromolUpdateMolList
-      return 0
-    } 
-    return 1
+    if {[lsearch [molinfo list] $::nmwiz::fromolMolid] > -1 && [molinfo $::nmwiz::fromolMolid get numframes] > 1} {
+      return 1
+    }
+    ::nmwiz::fromolUpdateMolList
+    return 0
   }
   
   proc prodyUpdateMolinfo {} {
-    if {$::nmwiz::prodyMolid > -1} {
-      ::nmwiz::prodyCheckMolecule
+    variable prodyMolid
+    if {$prodyMolid > -1} {
+      variable prodyMolecule "[::nmwiz::cleanMolName $prodyMolid] ($prodyMolid)"
       set ::nmwiz::prodyNFrames [molinfo $::nmwiz::prodyMolid get numframes]
       .nmwizprody.mainFrame.molinfoLabel configure \
         -text "[molinfo $::nmwiz::prodyMolid get numatoms] atoms, $::nmwiz::prodyNFrames frames"
@@ -2363,22 +2364,30 @@ orange3"
       ::nmwiz::prodyUpdatePrefix
     } else {
       set ::nmwiz::prodyNFrames 0
+      variable fromolMolecule ""
       .nmwizprody.mainFrame.molinfoLabel configure \
+        -text "Load a molecule and click Update."
+      .nmwizprody.mainFrame.selinfoLabel configure \
         -text "Load a molecule and click Update."
     }
   }
   
   proc fromolUpdateMolinfo {} {
-    if {$::nmwiz::fromolMolid > -1} {
-      ::nmwiz::fromolCheckMolecule
+    variable fromolMolid
+    if {$fromolMolid > -1} {
+      variable fromolMolecule "[::nmwiz::cleanMolName $fromolMolid] ($fromolMolid)"
       set ::nmwiz::fromolNFrames [molinfo $::nmwiz::fromolMolid get numframes]
       .nmwizfromol.mainFrame.molinfoLabel configure \
         -text "[molinfo $::nmwiz::fromolMolid get numatoms] atoms, $::nmwiz::fromolNFrames frames"
       ::nmwiz::fromolUpdateSelection
     } else {
+      set ::nmwiz::fromolMolecule ""
       set ::nmwiz::fromolNFrames 0
       .nmwizfromol.mainFrame.molinfoLabel configure \
         -text "Load a molecule and click Update."
+      .nmwizfromol.mainFrame.selinfoLabel configure \
+        -text "Load a molecule and click Update."
+        
     }
   }
   
@@ -2433,13 +2442,19 @@ orange3"
   proc fromolUpdateSelection {} {
     ::nmwiz::fromolCheckMolecule
     variable fromolMolid
-    variable fromolSelstr
-    set sel [atomselect $fromolMolid $fromolSelstr]
-    variable fromolSelAtoms [$sel num]
-    $sel delete
     variable fromolGUI
-    $fromolGUI.mainFrame.selinfoLabel configure \
-      -text "$fromolSelAtoms atoms are selected"
+    if {$fromolMolid > -1} {
+      
+      variable fromolSelstr
+      set sel [atomselect $fromolMolid $fromolSelstr]
+      variable fromolSelAtoms [$sel num]
+      $sel delete
+      $fromolGUI.mainFrame.selinfoLabel configure \
+        -text "$fromolSelAtoms atoms are selected"
+    } else {
+      $fromolGUI.mainFrame.selinfoLabel configure \
+        -text "Load a molecule and click Update."
+    }
   }
   
   proc prodyChangeTask {} {
