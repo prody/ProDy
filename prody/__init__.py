@@ -155,14 +155,18 @@ def _startLogger(**kwargs):
 
 ProDyLogger = _startLogger()
 
-def plog(text):
+def plog(*text):
     """Log *text* using ProDy logger at log level info.
     
     .. versionadded:: 0.6.2
     
+    .. versionchanged:: 0.7
+       Multiple arguments are accepted. They will converted to string and
+       joined using a white space as delimiter. 
+    
     """
     
-    ProDyLogger.info(text)
+    ProDyLogger.info(' '.join([str(s) for s in text]))
 
 def startLogfile(filename, **kwargs):
     """Start a file to save ProDy logs.
