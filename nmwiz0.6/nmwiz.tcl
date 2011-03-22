@@ -1634,7 +1634,7 @@ namespace eval ::nmwiz:: {
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Load files in NMD format using this button."}] \
       -row 3 -column 0 -sticky w
-    grid [button $wmf.loadnmd -width 20 -text "Load NMD file" -command {
+    grid [button $wmf.loadnmd -width 20 -text "Load NMD File" -command {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
         if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
@@ -1653,7 +1653,7 @@ namespace eval ::nmwiz:: {
 
     grid [button $wmf.helpprody -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Open the interface for performing ANM/PCA/GNM calculations using ProDy."}] \
+          -message "Use the ProDy interface for performing ANM/PCA/GNM calculations."}] \
       -row 6 -column 0 -sticky w
     grid [button $wmf.fromol -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
       -row 6 -column 1 -columnspan 2 -sticky we
@@ -1661,7 +1661,7 @@ namespace eval ::nmwiz:: {
     if {$platform != "windows"} {
       grid [button $wmf.helpanmserver -text "?" \
           -command {tk_messageBox -type ok -title "HELP" \
-            -message "Open the interface for submitting online ANM calculations."}] \
+            -message "Use the the ANM server interface for submitting online ANM calculations."}] \
         -row 7 -column 0 -sticky w
       grid [button $wmf.retrieve -width 20 -text "ANM Server Interface" -command ::nmwiz::init_anm_interface] \
         -row 7 -column 1 -columnspan 2 -sticky we
@@ -1786,9 +1786,12 @@ orange3"
 
     grid [button $wf.pyHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Path to the Python executable. If the folder that contains \"python\" or \"python.exe\"\
-is included in your environment variable PATH, you may keep this as \"python\", otherwise\
-specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
+          -message "Specify the path to the Python executable. If the folder\
+                    that contains \"python\" or \"python.exe\"\
+                    is included in your environment variable PATH, you may\
+                    keep this as \"python\", otherwise\
+                    specify the path to the executable,\
+                    e.g. \"C:\\python27\\python.exe\""}] \
       -row 1 -column 0 -sticky w
     grid [label $wf.pyLabel -text "Python:"] \
       -row 1 -column 1 -sticky w
@@ -1805,7 +1808,8 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
       
     grid [button $wf.anmHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Full path to ProDy ANM script (anm.py), e.g. C:\\python27\\Scripts\\anm.py"}] \
+          -message "Full path to ProDy ANM script (anm.py),\
+                    e.g. C:\\python27\\Scripts\\anm.py"}] \
       -row 3 -column 0 -sticky w
     grid [label $wf.anmLabel -text "ANM script:"] \
       -row 3 -column 1 -sticky w
@@ -1822,7 +1826,8 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
       
     grid [button $wf.gnmHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Full path to ProDy GNM script (gnm.py), e.g. C:\\python27\\Scripts\\gnm.py"}] \
+          -message "Full path to ProDy GNM script (gnm.py),\
+                    e.g. C:\\python27\\Scripts\\gnm.py"}] \
       -row 4 -column 0 -sticky w
     grid [label $wf.gnmLabel -text "GNM script:"] \
       -row 4 -column 1 -sticky w
@@ -1839,7 +1844,8 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
 
     grid [button $wf.pcaHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Full path to the ProDy PCA script (pca.py) e.g. C:\\python27\\Scripts\\pca.py"}] \
+          -message "Full path to the ProDy PCA script (pca.py),\
+                    e.g. C:\\python27\\Scripts\\pca.py"}] \
       -row 5 -column 0 -sticky w
     grid [label $wf.pcaLabel -text "PCA script:"] \
       -row 5 -column 1 -sticky w
@@ -1923,7 +1929,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
     set wmf [labelframe $fromolGUI.mainFrame -text "Atom Selection" -bd 2]
     grid [button $wmf.molHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select a molecule to be used in calculations."}] \
+          -message "Select the molecule to be used in calculations."}] \
       -row 2 -column 0 -sticky w
     grid [label $wmf.molLabel -text "Molecule:"] \
       -row 2 -column 1 -sticky w
@@ -1936,7 +1942,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
       
     grid [button $wmf.molinfoHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows number of atoms and frames for the selected molecule."}] \
+          -message "Shows the number of atoms and frames for the selected molecule."}] \
       -row 3 -column 0 -sticky w
     grid [label $wmf.molinfoLbl -text "Information:"] \
       -row 3 -column 1 -sticky w
@@ -1945,8 +1951,8 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
     
     grid [button $wmf.selstr -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Atom selection string. Click Select to update your\
-                    selection."}] \
+          -message "Select the atoms to be used in calculations. Click \"Select\"\
+                    to update your selection."}] \
       -row 5 -column 0 -sticky w
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
@@ -1958,7 +1964,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
       
     grid [button $wmf.selinfoHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows number of selected atoms."}] \
+          -message "Shows the number of selected atoms."}] \
       -row 6 -column 0 -sticky w
     grid [label $wmf.selinfoLbl -text "Information:"] \
       -row 6 -column 1 -sticky w
@@ -1967,7 +1973,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
 
     grid [button $wmf.frameHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter index of the frame that contains coordinate data."}] \
+          -message "Enter the index of the frame that contains coordinate data."}] \
       -row 7 -column 0 -sticky w
     grid [label $wmf.frameLabel -text "Coordinate frame:"] \
       -row 7 -column 1 -sticky w
@@ -2022,7 +2028,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
     set wmf [labelframe $prodyGUI.mainFrame -text "Atom Selection" -bd 2]
     grid [button $wmf.molHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select a molecule to be used in calculations."}] \
+          -message "Select the molecule to be used in calculations."}] \
       -row 2 -column 0 -sticky w
     grid [label $wmf.molLabel -text "Molecule:"] \
       -row 2 -column 1 -sticky w
@@ -2036,7 +2042,7 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
     
     grid [button $wmf.molinfoHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows number of atoms and frames for the selected molecule."}] \
+          -message "Shows the number of atoms and frames for the selected molecule."}] \
       -row 3 -column 0 -sticky w
     grid [label $wmf.molinfoLbl -text "Information:"] \
       -row 3 -column 1 -sticky w
@@ -2045,8 +2051,8 @@ specify the path to the executable, e.g. \"C:\\python27\\python.exe\""}] \
     
     grid [button $wmf.selstr -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Atom selection string. Click Select to update your \
-selection."}] \
+          -message "Select the atoms to be used in calculations. Click \"Select\"\
+                    to update your selection."}] \
       -row 5 -column 0 -sticky w
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
@@ -2058,7 +2064,7 @@ selection."}] \
       
     grid [button $wmf.selinfoHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows number of selected atoms."}] \
+          -message "Shows the number of selected atoms."}] \
       -row 6 -column 0 -sticky w
     grid [label $wmf.selinfoLbl -text "Information:"] \
       -row 6 -column 1 -sticky w
@@ -2092,7 +2098,7 @@ selection."}] \
 
     grid [button $wf.outdHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select a directory for writing output files."}] \
+          -message "Select the directory for writing output files."}] \
       -row 8 -column 0 -sticky w
     grid [label $wf.outdLabel -text "Output dir:"] \
       -row 8 -column 1 -sticky w
@@ -2144,8 +2150,9 @@ selection."}] \
     set wf [labelframe $prodyGUI.anmFrame -text "ANM Settings" -bd 2]
     grid [button $wf.frameHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter index of the frame for the selected molecule to be used\
-in the calculations. Index of the very first frame is 0,"}] \
+          -message "Enter the index of the frame for the selected molecule\
+                    to be used in the calculations. Index of the very first\
+                    frame is 0,"}] \
       -row 6 -column 0 -sticky w
     grid [label $wf.frameLabel -text "Frame number:"] \
       -row 6 -column 1 -sticky w
@@ -2154,7 +2161,8 @@ in the calculations. Index of the very first frame is 0,"}] \
 
     grid [button $wf.cutoffHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter cutoff distance for interactions between selected atoms."}] \
+          -message "Enter the cutoff distance for interactions between\
+                    selected atoms."}] \
       -row 8 -column 0 -sticky w
     grid [label $wf.cutoffLabel -text "Cutoff distance:"] \
       -row 8 -column 1 -sticky w
@@ -2185,8 +2193,8 @@ in the calculations. Index of the very first frame is 0,"}] \
     set wf [labelframe $prodyGUI.gnmFrame -text "GNM Settings" -bd 2]
     grid [button $wf.frameHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter index of the frame for the selected molecule to be used\
-in the calculations."}] \
+          -message "Enter the index of the frame for the selected molecule to be used\
+                    in the calculations."}] \
       -row 6 -column 0 -sticky w
     grid [label $wf.frameLabel -text "Frame number:"] \
       -row 6 -column 1 -sticky w
@@ -2195,7 +2203,7 @@ in the calculations."}] \
 
     grid [button $wf.cutoffHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter cutoff distance for interactions between selected atoms."}] \
+          -message "Enter the cutoff distance for interactions between selected atoms."}] \
       -row 8 -column 0 -sticky w
     grid [label $wf.cutoffLabel -text "Cutoff distance:"] \
       -row 8 -column 1 -sticky w
@@ -2228,7 +2236,7 @@ in the calculations."}] \
     grid [button $wf.firstHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Enter the index of the first frame to be used in calculations.\
-Index of the very first frame is 0."}] \
+                    Index of the very first frame is 0."}] \
       -row 6 -column 0 -sticky w
     grid [label $wf.firstLabel -text "First frame:"] \
       -row 6 -column 1 -sticky w
@@ -2247,7 +2255,7 @@ Index of the very first frame is 0."}] \
     grid [button $wf.lastHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Enter the index of the last frame number to be used in calculations.\
-\"end\" can be used as the index of the very last frame."}] \
+                    \"end\" can be used as the index of the very last frame."}] \
       -row 10 -column 0 -sticky w
     grid [label $wf.lastLabel -text "Last frame:"] \
       -row 10 -column 1 -sticky w
@@ -2984,7 +2992,7 @@ Index of the very first frame is 0."}] \
     }
     if {$fromolFrame >= $fromolFirstFrame && $fromolFrame <= $lastframe} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Coordinate frame cannot be one of mode frames."
+        -message "Coordinate frame cannot be one of the mode frames."
       return
     }
     set title $fromolMolecule
@@ -4064,7 +4072,7 @@ Index of the very first frame is 0."}] \
   of the mode (shown in the first box). If these modes are from a PCA, the\
   length of the mode is the standard deviation along the principal mode. If the\
   modes are from a NMA, the length of the mode is the square-root of the inverse\
-  of the eigenvalue corresponding to this mode."}] \
+  of the eigenvalue of the mode."}] \
             -row 2 -column 0 -sticky w
           grid [label $wam.scale_label -text "Scale by:"] \
             -row 2 -column 1 -sticky w
@@ -4088,11 +4096,7 @@ Index of the very first frame is 0."}] \
 
           grid [button $wam.adjust_help -text "?" -command {
             tk_messageBox -type ok -title "HELP"\
-              -message "Mode will be multiplied with the scalar value and the length\
-  of the mode (shown in the first box). If these modes are from a PCA, the\
-  length of the mode is the standard deviation along the principal mode. If the\
-  modes are from a NMA, the length of the mode is the square-root of the inverse\
-  of the eigenvalue corresponding to this mode."}] \
+              -message "Adjust the length of arrows by changing the scalar value."}] \
             -row 3 -column 0 -sticky w
           grid [label $wam.adjust_label -text "Adjust length:"] \
             -row 3 -column 1 -sticky w
@@ -4116,7 +4120,9 @@ Index of the very first frame is 0."}] \
 
           grid [button $wam.selstr_help -text "?" -command {
             tk_messageBox -type ok -title "HELP" \
-              -message "Atoms and arrows for them in the selection string will be displayed."}] \
+              -message "Select the atoms for which you want to display arrows.\
+                        Optionally, selection can affect the protein representation\
+                        as well. See the Protein \"Options\" pane."}] \
             -row 4 -column 0 -sticky w
           grid [label $wam.selstr_label -text "Selection:"] \
             -row 4 -column 1 -sticky w
@@ -4138,7 +4144,11 @@ Index of the very first frame is 0."}] \
             -row 5 -column 0 -sticky w
           grid [button $wda.ab_help -text "?" \
               -command {tk_messageBox -type ok -title "HELP" \
-                -message "Molecule id for the current arrow graphics is shown in parentheses.\n\nDraw : draw/redraw arrows for the active mode\nClean : remove most recently drawn arrows\nHide : hide/show most recently drawn arrows\nOptions : change arrow properties and drawing options"}] \
+                -message "Molecule id for the arrow graphics of the active mode is shown in parentheses.\
+                          \n\nDraw : draw/redraw arrows for the active mode\
+                          \nClean : remove most recently drawn arrows\
+                          \nHide : hide/show most recently drawn arrows\
+                          \nOptions : change arrow properties and drawing options"}] \
             -row 5 -column 1 -sticky w
           grid [button $wda.arrowbuttons_draw -width 6 -text "Draw" \
               -command ${ns}::drawArrows] \
@@ -4147,17 +4157,25 @@ Index of the very first frame is 0."}] \
               -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
             -row 5 -column 3
           grid [button $wda.arrowbuttons_showhide -width 5 -text "Hide" \
-              -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid; \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
+              -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid;\
+                        \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid;\
+                        \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
             -row 5 -column 4
           grid [button $wda.arrowbuttons_options -width 6 -text "Options" \
-              -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options; set ${ns}::arropt 0; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief raised} else {pack \$${ns}::w.graphics_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::arropt 1; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief sunken}"] \
+              -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options;\
+                        set ${ns}::arropt 0; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief raised} else {pack \$${ns}::w.graphics_options -side top -ipadx 10 -ipady 5 -fill x -expand 1;\
+                        set ${ns}::arropt 1; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief sunken}"] \
             -row 5 -column 5
 
           grid [label $wda.animbuttons_label -text "Animation:"] \
             -row 6 -column 0 -sticky w
           grid [button $wda.anb_help -text "?" \
               -command {tk_messageBox -type ok -title "HELP" \
-                -message "Molecule id for the most recent animation is shown in parentheses.\n\nMake : animate fluctuations along the active mode\nPlay : play/pause the animation\nHide : hide/show the animation\nOptions : change animation options"}] \
+                -message "Molecule id for the most recent animation is shown in parentheses.\
+                          \n\nMake : animate fluctuations along the active mode\
+                          \nPlay : play/pause the animation\
+                          \nHide : hide/show the animation\
+                          \nOptions : change animation options"}] \
             -row 6 -column 1 -sticky w
           grid [button $wda.animbuttons_animate -width 6 -text "Make" \
               -command ${ns}::Animate] \
@@ -4177,7 +4195,11 @@ Index of the very first frame is 0."}] \
           -row 8 -column 0 -sticky w
         grid [button $wda.plt_help -text "?" \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "Molecule id for displaying selected residues is shown in parentheses.\n\nPlot : plot squared-fluctuations along the active mode\nClear : clear all selections\nHide : hide/show the selected residues\nOptions : change plotting options"}] \
+              -message "Molecule id for displaying selected residues is shown in parentheses.\
+                        \n\nPlot : plot squared-fluctuations along the active mode\
+                        \nClear : clear all selections and selected atom labels\
+                        \nHide : hide/show the selected residues\
+                        \nOptions : change plotting options"}] \
           -row 8 -column 1 -sticky w
         grid [button $wda.plot_plot -width 6 -text "Plot" \
             -command "${ns}::Plot ${ns}"] \
@@ -4198,7 +4220,11 @@ Index of the very first frame is 0."}] \
           -row 9 -column 0 -sticky w
         grid [button $wda.prt_help -text "?" \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "Molecule id of the molecular system is shown in parentheses.\n\nUpdate : Update protein representation\nFocus : reset view to focus on the molecular system\nHide : hide/show the molecular system\nOptions : change molecular system representation\n"}] \
+              -message "Molecule id of the molecular system is shown in parentheses.\
+                        \n\nUpdate : Update protein representation\
+                        \nFocus : reset view to focus on the molecular system\
+                        \nHide : hide/show the molecular system\
+                        \nOptions : change molecular system representation\n"}] \
           -row 9 -column 1 -sticky w
         grid [button $wda.prt_update -width 6 -text "Update" \
             -command "${ns}::updateProtRep \$${ns}::molid"] \
@@ -4326,7 +4352,7 @@ this value should be larger than arrow cylinder radius."}] \
 
         grid [button $wgo.resolution_help -text "?" \
             -command {tk_messageBox -type ok -title "HELP" \
-              -message "The quality of arrow and protein graphics."}] \
+              -message "The quality of arrow graphics."}] \
           -row 21 -column 0 -sticky w
         grid [label $wgo.resolution_label -text "Graphics resolution:"] \
           -row 21 -column 1 -sticky w
@@ -4358,9 +4384,9 @@ protein and animation representations."}] \
             -command {tk_messageBox -type ok -title "HELP" \
               -message "Select protein representation. For coarse-grained protein\
               Tube option shows a trace of the protein chain. Licorice is ideal\
-              for atomic models of proteins.\n\n\
-              When Custom is selected NMWiz does not change the representation\
-              of the Protein (molecule id of the protein is given in parantheses).\
+              for atomic models of proteins.\
+              \n\nWhen Custom is selected NMWiz does not change the representation\
+              of the Protein whose molecule id is given in parantheses).\
               User can set a custom representation using VMD Main > Graphics >\
               Representation... window."}] \
           -row 13 -column 0 -sticky w
@@ -4451,7 +4477,7 @@ protein and animation representations."}] \
             -command {tk_messageBox -type ok -title "HELP" \
               -message "Radius for the tube/licorice representations."}] \
           -row 19 -column 0 -sticky w
-        grid [label $wpgo.tuberadius_label -text "Tube/bond radius:"] \
+        grid [label $wpgo.tuberadius_label -text "Tube/licorice radius:"] \
           -row 19 -column 1 -sticky w
         grid [frame $wpgo.tuberadius_frame] \
           -row 19 -column 2 -sticky w

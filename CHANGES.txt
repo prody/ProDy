@@ -22,11 +22,26 @@ Release 0.7.0 (in development)
 NMWiz
 -------------------------------------------------------------------------------
 
-  
+**New Features**:
+
+  * NMWiz supports GNM data and can use ProDy for GNM calculations.
+  * NMWiz can gather normal mode data from molecules loaded into VMD.
+    This allows NMWiz to support all formats supported by VMD.
+  * User can write data loaded into NMWiz in NMD format.
+  * User can select Licorice representation for the protein if model is an
+    all atom mode.
+  * User can select Custom as the representation of the protein to prevent
+    NMWiz from chancing a user set representation.
+
+**Improvements**:
+
+  * NMWiz remembers all adjustments on arrow graphics for all modes.
   * Plotting :guilabel:`Clear` button clears only atom labels that are 
     associated with the dataset.
   * Removing a dataset removes all associated molecule objects.
   * Selected atom representations are turned on based on atom index. 
+  * Padding around interface button has been standardized to provide a uniform
+    experience between different platforms.
 
 Release 0.6.2 (Mar 16, 2011)
 ===============================================================================
