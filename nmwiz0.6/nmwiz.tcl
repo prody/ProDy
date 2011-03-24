@@ -3679,9 +3679,6 @@ orange3"
           set to  [expr $from + 2]
           set xyz [lrange $coordinates $from $to ] 
           set v [lrange $mode $from $to ] 
-          #puts "$xyz $v"
-          #set xyz "$x $y $z"
-          #set v "$mx $my $mz"
           if {$hide_shorter < [veclength $v]} {
             set temp [vecadd $xyz $v]
             graphics $arrid cylinder $xyz $temp radius $cylinder_radius resolution $resolution
@@ -3774,12 +3771,9 @@ orange3"
           mol addfile $animfn waitfor all $animid
         }
         mol delrep 0 $animid
-        #animate delete beg 0 end 0 skip 0 $animid
+        mol off $animid
 
         mol top $animid
-        #mol modstyle 0 $animid Tube 0.3
-        #mol modcolor 0 $animid Beta
-        #mol scaleminmax $animid 0 $betamin $betamax
         $w.draw_arrows.animbuttons_label configure -text "Animation ($animid):"
         mol rename $animid "$title mode $activemode animation"
         foreach id [molinfo list] {
@@ -3799,12 +3793,11 @@ orange3"
           animate dup frame [expr $i - 1] $animid
           $sel frame $i
           $sel lmoveby $mode
-          #set coords [vecadd $coords $mode]
-          #$sel set {x y z} [::nmwiz::array2xyz $coords]
+
         }
         $sel delete
         [namespace current]::updateProtRep $animid 
-
+        mol off $animid
         if {$autoplay} {
           animate speed 0.96
           animate style rock
