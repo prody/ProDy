@@ -3061,6 +3061,14 @@ orange3"
     
   }
   
+  proc array2xyz {arr} {
+    set coords [list]
+    foreach {x y z} $arr {
+      lappend coords "$x $y $z"
+    }
+    return $coords
+  }
+  
   proc makeNMWizGUI {} {
 
     variable guicount
@@ -3123,8 +3131,6 @@ orange3"
       variable betamin
       variable betamax
       
-      variable keepfiles 0
-      variable overanim 1
       variable overwrite 1
       variable autoplay 1
 
@@ -3732,7 +3738,6 @@ orange3"
 
       proc Animate {} {
         variable nframes
-        variable keepfiles
         variable activemode
         variable coordinates
         variable prefix
@@ -3740,7 +3745,6 @@ orange3"
         variable indices
         variable scalearrows
         variable modes
-        variable overanim
         variable animid
         variable title
         variable molid
@@ -3755,59 +3759,52 @@ orange3"
         puts [namespace current]
         set whichmode [lsearch $indices $activemode] 
         animate pause
-        if {$keepfiles} {
-          set animfn "$prefix\_mode_$activemode\_animation.pdb"
-        } else {
-          set animfn [file join $::nmwiz::tmpdir $tempfn]
-        }
+        set animfn [file join $::nmwiz::tmpdir $tempfn]
+        [namespace current]::loadCoordinates
+        variable molid
+        set sel [atomselect $molid "all"]
+        $sel writepdb $animfn
+        $sel delete
         
-        set outfile [open $animfn w]
-        
-        set length [lindex $lengths [lsearch $indices $activemode]]
-        set mode [vecscale [expr $length * [::tcl::mathfunc::abs $scalearrows]] [lindex $modes [lsearch $indices $activemode]]]
-        
-        # Write the initial coordinates as model 0
-        # so that VMD sets bonds correctly
-        
-        puts $outfile "MODEL      0"
-        foreach line [[namespace current]::getPDBLines $coordinates] {
-          puts $outfile $line
-        } 
-        puts $outfile "ENDMDL"
-        
-        set coords [vecadd $coordinates $mode]
-        set mode [vecscale $mode [expr  -2.0 / $nframes]]
-        for {set i 0} {$i <= $nframes} {incr i} {
-          puts $outfile [format "MODEL %6d" [expr $i + 1]]
-          foreach line [[namespace current]::getPDBLines $coords] {
-            puts $outfile $line
-          } 
-          puts $outfile "ENDMDL"
-          set coords [vecadd $coords $mode]
-        }
-        
-        close $outfile
         set currentview [molinfo $molid get {rotate_matrix center_matrix scale_matrix global_matrix}]
-
-        if {[lsearch [molinfo list] $animid] == -1 || !$overanim} {
+        if {[lsearch [molinfo list] $animid] == -1} {
           set animid [mol new $animfn]
         } else {
           animate delete beg 0 end -1 skip 0 $animid
           mol addfile $animfn waitfor all $animid
         }
-        
-        animate delete beg 0 end 0 skip 0 $animid
+        mol delrep 0 $animid
+        #animate delete beg 0 end 0 skip 0 $animid
 
         mol top $animid
         #mol modstyle 0 $animid Tube 0.3
         #mol modcolor 0 $animid Beta
         #mol scaleminmax $animid 0 $betamin $betamax
-        [namespace current]::updateProtRep $animid 
         $w.draw_arrows.animbuttons_label configure -text "Animation ($animid):"
         mol rename $animid "$title mode $activemode animation"
         foreach id [molinfo list] {
           molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
         }
+        for {set i 1} {$i <= $nframes} {incr i} {
+          
+        }
+
+        set length [lindex $lengths [lsearch $indices $activemode]]
+        set mode [vecscale [expr $length * [::tcl::mathfunc::abs $scalearrows]] [lindex $modes [lsearch $indices $activemode]]]
+        set coords [vecadd $coordinates $mode]
+        set mode [::nmwiz::array2xyz [vecscale $mode [expr  -2.0 / $nframes]]]
+        set sel [atomselect $animid "all"]
+        $sel set {x y z} [::nmwiz::array2xyz $coords]
+        for {set i 1} {$i <= $nframes} {incr i} {
+          animate dup frame [expr $i - 1] $animid
+          $sel frame $i
+          $sel lmoveby $mode
+          #set coords [vecadd $coords $mode]
+          #$sel set {x y z} [::nmwiz::array2xyz $coords]
+        }
+        $sel delete
+        [namespace current]::updateProtRep $animid 
+
         if {$autoplay} {
           animate speed 0.96
           animate style rock
@@ -4552,23 +4549,6 @@ protein and animation representations."}] \
             -variable ${ns}::autoanimate] \
           -row 0 -column 2 -sticky w
         
-        #grid [button $wao.overanim_help -text "?" \
-        #    -command {tk_messageBox -type ok -title "HELP" \
-        #      -message "If checked, animation will be loaded to the same molecule in VMD."}] \
-        #  -row 2 -column 0 -sticky w
-        #grid [label $wao.overanim_label -text "Overwrite animation:"] \
-        #  -row 2 -column 1 -sticky w
-        #grid [checkbutton $wao.overanim_check -text "" -variable ${ns}::overanim] \
-        #  -row 2 -column 2 -sticky w
-        
-        grid [button $wao.keepfiles_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, pdb file that contains coordinates used in the animation will be saved."}] \
-          -row 3 -column 0 -sticky w
-        grid [label $wao.keepfiles_label -text "Keep trajectory file:"] \
-          -row 3 -column 1 -sticky w
-        grid [checkbutton $wao.keepfiles_check -text "" -variable ${ns}::keepfiles] \
-          -row 3 -column 2 -sticky w
 
         grid [button $wao.autoplay_help -text "?" \
             -command {tk_messageBox -type ok -title "HELP" \
