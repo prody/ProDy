@@ -9,8 +9,8 @@ PCA from a Blast search
 Synopsis
 ===============================================================================
 
-This example shows how to perform PCA of structural dataset obtained by blast
-searching PDB. The protein of interest is Cytochrome C (*cyt C*). 
+This example shows how to perform PCA of a structural dataset obtained by blast
+searching PDB. The protein of interest is cytochrome C (*cyt C*). 
 Dataset will contain structures sharing 44% or more 
 sequence identity with human *cyt C*, i.e. its homologs and/or orthologs.
 
@@ -88,8 +88,12 @@ Let's check number of downloaded files:
 Step 2: Set reference
 -------------------------------------------------------------------------------
 
->>> # Parse reference structure
->>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb.gz', subset='calpha')
+We first parse the reference structure. Note that we parse only Cα atoms from
+chain A. The analysis will be performed for a single chain (monomeric) protein.
+For analysis of a dimeric protein see :ref:`pca-dimer`
+
+>>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb.gz', 
+...                                subset='calpha', chain=ref_chid)
 >>> # Get the reference chain from this structure
 >>> reference_hierview = reference_structure.getHierView() 
 >>> reference_chain = reference_hierview[ref_chid]
@@ -113,7 +117,7 @@ Step 3: Prepare ensemble
 ...     # Map current PDB file to the reference chain
 ...     mappings = mapOntoChain(structure, reference_chain, seqid=sequence_identity)
 ...     if len(mappings) == 0:
-...         print 'Failed to map', pdb_hit
+...         plog('Failed to map', pdb_hit)
 ...         continue  
 ...     atommap = mappings[0][0]
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())
@@ -128,13 +132,18 @@ Let's check how many conformations are extracted from PDB files:
 >>> len(ensemble)
 347
 
+Note that number of conformations are more than the number of PDB structures
+we evaluated. This is because some of the PDB files contained NMR structures
+with multiple models. Each model in NMR structures are added to the ensemble
+as individual conformations.
+
 Write aligned conformations into a PDB file as follows:
 
 >>> reference_structure.addCoordset(ensemble.getCoordsets())
 >>> writePDB(name+'.pdb', reference_structure)
 'CytC.pdb'
 
-This file can be used to visualize the aligned conformations in modeling 
+This file can be used to visualize the aligned conformations in a modeling 
 software.
 
 
