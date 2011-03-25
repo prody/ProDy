@@ -19,6 +19,11 @@ Release 0.7.0 (in development)
   * A new keyword argument for :func:`~measure.calcADPAxes` allows for
     comparing largest axis to the second largest one.
 
+**Changes**:
+
+  * When :func:`~ensemble.Ensemble` and :func:`~dynamics.NMA` classes are 
+    instantiated with an empty string, instances are called "Unnamed".
+
 **Bug Fixes**:
 
   * Default selection for :func:`~dynamics.calcGNM` function is set to
