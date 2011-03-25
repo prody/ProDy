@@ -3249,11 +3249,10 @@ orange3"
         } 
         variable scalearrows_list
         foreach l $lengths {
-            if {$l < 1} {
-              lappend scalearrows_list [::tcl::mathfunc::int [expr $n_atoms / $l] ]  
-            } else {
-              lappend scalearrows_list 1
-            }
+            if {$l < 1} { set l 1}
+            set l [::tcl::mathfunc::int [expr 0.2 * $n_atoms / $l / $l ] ]
+            if {$l < 1} {set l 1}
+            lappend scalearrows_list $l  
         }
         variable scalearrows
         set scalearrows [lindex $scalearrows_list 0]
@@ -4401,10 +4400,11 @@ protein and animation representations."}] \
           -row 13 -column 2 -sticky w
         tk_optionMenu $wpgo.protas_frame.list ${ns}::showproteinas "Tube"
         $wpgo.protas_frame.list.menu delete 0
-        $wpgo.protas_frame.list.menu add radiobutton -label "Tube" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Custom" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.protas_frame.list.menu add radiobutton -label "Licorice" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.protas_frame.list.menu add radiobutton -label "Network" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
-        $wpgo.protas_frame.list.menu add radiobutton -label "Custom" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Trace" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Tube" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.protas_frame.list -side left -anchor w -fill x
 
         grid [button $wpgo.procolor_help -text "?" \

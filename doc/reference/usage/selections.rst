@@ -226,7 +226,7 @@ Keyword Definitions
         Not :term:`protein` or :term:`nucleic`.
     
    hydrogen
-        Atoms with name matching the regular expression "[0-9]?H.*".
+        Atoms with :term:`name` matching the regular expression "[0-9]?H.*".
         This regular expression may be changed using 
         :func:`setHydrogenRegex`. See the :mod:`re` module
         for more details on regular expressions.
