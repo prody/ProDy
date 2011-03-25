@@ -3096,6 +3096,7 @@ orange3"
       variable resolution 10
       variable resolution_protein 10
       variable ndim 3
+      variable bothdirections 0
       
       #GNM option
       variable msformode "Mobility"
@@ -3654,7 +3655,7 @@ orange3"
         variable cylinder_radius
         variable cone_radius
         variable cone_height
-
+        
         set whichmode [lsearch $indices $activemode] 
 
         if {[lsearch [molinfo list] $molid] == -1} {
@@ -3673,6 +3674,8 @@ orange3"
         set length [lindex $lengths [lsearch $indices $activemode]]
         set mode [vecscale [expr $length * $scalearrows] [lindex $modes [lsearch $indices $activemode]]]
         
+        variable bothdirections
+  
         foreach index [[atomselect $molid $selstr] get index] {
           set from [expr $index * 3]
           set to  [expr $from + 2]
@@ -3683,6 +3686,14 @@ orange3"
             graphics $arrid cylinder $xyz $temp radius $cylinder_radius resolution $resolution
             set temp2 [vecadd $temp [vecscale $v [expr $cone_height / [veclength $v]]]]
             graphics $arrid cone $temp $temp2 radius $cone_radius resolution $resolution
+            
+            if {$bothdirections} {
+              set v [vecscale -1 $v]
+              set temp [vecadd $xyz $v]
+              graphics $arrid cylinder $xyz $temp radius $cylinder_radius resolution $resolution
+              set temp2 [vecadd $temp [vecscale $v [expr $cone_height / [veclength $v]]]]
+              graphics $arrid cone $temp $temp2 radius $cone_radius resolution $resolution
+            }
           }
         }
         mol rename $arrid "$title mode $activemode arrows"
@@ -4257,15 +4268,25 @@ orange3"
             -variable ${ns}::autoupdate] \
           -row 0 -column 2 -sticky w
 
+        grid [button $wgo.both_help -text "?" \
+            -command {tk_messageBox -type ok -title "HELP" \
+              -message "If checked, arrows will be drawn in both directions."}] \
+          -row 3 -column 0 -sticky w
+        grid [label $wgo.both_label -text "Both directions:"] \
+          -row 3 -column 1 -sticky w
+        grid [checkbutton $wgo.both_check -text "" \
+            -variable ${ns}::bothdirections] \
+          -row 3 -column 2 -sticky w
+
         grid [button $wgo.overwrite_help -text "?" \
             -command {tk_messageBox -type ok -title "HELP" \
               -message "If checked, when the active mode is changed, previously drawn mode will be hidden."}] \
-          -row 1 -column 0 -sticky w
+          -row 5 -column 0 -sticky w
         grid [label $wgo.overwrite_label -text "Auto hide inactive mode:"] \
-          -row 1 -column 1 -sticky w
+          -row 5 -column 1 -sticky w
         grid [checkbutton $wgo.overwrite_check -text "" \
             -variable ${ns}::overwrite] \
-          -row 1 -column 2 -sticky w
+          -row 5 -column 2 -sticky w
 
         grid [button $wgo.hide_help -text "?" \
             -command {tk_messageBox -type ok -title "HELP" \
