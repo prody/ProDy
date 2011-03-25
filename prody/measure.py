@@ -406,21 +406,37 @@ def calcADPAxes(atoms, **kwargs):
     
     .. versionadded:: 0.5.3
     
+    .. versionchanged:: 0.7
+       *ratio2* optional keyword argument is added.
+    
     :arg atoms: a ProDy object for handling atomic data
     :type atoms: prody.atomic.Atomic
+
     :kwarg fract: For an atom, if the fraction of anisotropic displacement 
         explained by its largest axis is less than given value, 
         all axes for that atom will be set to zero. Values
         larger than 0.33 and smaller than 1.0 are accepted. 
     :type fract: float
-    :kwarg ratio: For an atom, if the ratio of the largest principal axis to 
+
+    :kwarg ratio2: For an atom, if the ratio of the largest principal axis to 
+        the second-largest principal axis is smaller than given value, 
+        all principal axes for that atom will be set to zero. Values
+        greater than 1 are accepted.  
+    :type ratio2: float
+
+    :kwarg ratio3: For an atom, if the ratio of the largest principal axis to 
         the smallest principal axis is smaller than given value, 
         all principal axes for that atom will be set to zero. Values
         greater than 1 are accepted.  
+    :type ratio3: float
+
+    :kwarg ratio: Same as *ratio3*.  
     :type ratio: float
+
     
-    Keyword arguments *fract* or *ratio* can be used to set principal axes
-    for atoms showing relatively lower degree of anisotropy.
+    Keyword arguments *fract*, *ratio3*, or *ratio3* can be used to set 
+    principal axes to 0 for atoms showing relatively lower degree of 
+    anisotropy.
     
     3Nx3 axis contains N times 3x3 matrices, one for each given atom. Columns
     of these 3x3 matrices are the principal axes which are weighted by
@@ -505,12 +521,17 @@ def calcADPAxes(atoms, **kwargs):
         assert 0.33 < fract < 1.0, 'fract must be > 0.33 and < 1.0'
         variances = variances[:, [2,1,0]]
         torf = variances[:,0] / variances.sum(1) > fract
-    elif 'ratio' in kwargs:  
-        ratio = float(kwargs['ratio'])
+    elif 'ratio' in kwargs or 'ratio3' in kwargs or 'ratio2' in kwargs: 
+        if 'ratio2' in kwargs:
+            ratio = float(kwargs['ratio2'])
+            dim = 1
+        else:
+            ratio = float(kwargs.get('ratio', kwargs.get('ratio3')))
+            dim = 2
         assert ratio > 1.0, 'ratio must be > 1.0'
         stddevs = stddevs[:, [2,1,0]]
         stddevs[ stddevs[:,2].flatten() == 0, 2 ] = 0.00000001
-        torf = stddevs[:,0] / stddevs[:,2] > ratio
+        torf = stddevs[:,0] / stddevs[:,dim] > ratio
     if torf is not None:
         torf =np.tile(torf.reshape((n_atoms,1)), (1,3)).reshape((n_atoms*3, 1))
         axes = axes * torf
