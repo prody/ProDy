@@ -33,6 +33,7 @@ NMWiz
   * NMWiz can gather normal mode data from molecules loaded into VMD.
     This allows NMWiz to support all formats supported by VMD.
   * User can write data loaded into NMWiz in NMD format.
+  * An Arrow Graphics option allows the user to draw arrows in both directions.
   * User can select Licorice representation for the protein if model is an
     all atom mode.
   * User can select Custom as the representation of the protein to prevent
