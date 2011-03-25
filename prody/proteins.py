@@ -466,7 +466,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
     if subset is not None: 
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
-        elif subset not in _PDBSubsets:
+        elif subset.lower() not in _PDBSubsets:
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
 
     lines = stream.readlines()
