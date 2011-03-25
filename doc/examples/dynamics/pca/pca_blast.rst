@@ -121,8 +121,6 @@ Step 3: Prepare ensemble
 ...         continue  
 ...     atommap = mappings[0][0]
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())
-Failed to map 2bgv
-Failed to map 1cih
 >>> ensemble.iterpose()
 >>> saveEnsemble(ensemble)
 'CytC.ens.npz'
