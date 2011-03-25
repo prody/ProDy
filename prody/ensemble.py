@@ -73,12 +73,20 @@ class Ensemble(object):
            At instantiation, :class:`~prody.atomic.Atomic` instances are 
            accepted as *name* argument. All coordinate sets from *name* will be
            added to the ensemble automatically. 
+           
+        .. versionchanged:: 0.7
+           When an empty string is passed as *name* argument, Ensemble instance
+           is called "Unnamed". 
           
         :arg name: A name (:class:`str`) or an :class:`~prody.atomic.Atomic`
             instance.
         
         """
-        self._name = str(name)
+        
+        name = str(name)
+        if name == '':
+            name = 'Unnamed'
+        self._name = name 
         
         self._ensemble = []
         self._confs = None       # coordinate data

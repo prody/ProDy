@@ -666,9 +666,19 @@ class NMABase(object):
     """
     
     def __init__(self, name):
-        """Initialize a Normal Mode analysis with a given name."""
+        """Initialize a Normal Mode analysis with a given name.
         
-        self._name = str(name)
+        .. versionchanged:: 0.7
+           When an empty string is passed as *name* argument, NMA instance 
+           is called "Unnamed".
+        
+        """
+        
+        name = str(name)
+        if name == '':
+            name = 'Unnamed'
+        self._name = name 
+        
         self._modes = []
         self._n_modes = 0
         self._cov = None
