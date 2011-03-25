@@ -14,6 +14,11 @@ Release 0.7.0 (in development)
   * :func:`~dynamics.deform` function is implemented for deforming coordinate 
     sets along a normal mode or linear combination of multiple modes. 
 
+**Improvements**:
+
+  * A new keyword argument for :func:`~measure.calcADPAxes` allows for
+    comparing largest axis to the second largest one.
+
 **Bug Fixes**:
 
   * Default selection for :func:`~dynamics.calcGNM` function is set to
@@ -32,6 +37,7 @@ NMWiz
     all atom mode.
   * User can select Custom as the representation of the protein to prevent
     NMWiz from chancing a user set representation.
+  * Trace is added as a protein backbone representation option.
 
 **Improvements**:
 
