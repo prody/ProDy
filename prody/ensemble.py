@@ -83,10 +83,9 @@ class Ensemble(object):
         
         """
         
-        name = str(name)
-        if name == '':
-            name = 'Unnamed'
-        self._name = name 
+        self._name = str(name)
+        if self._name == '':
+            self._name = 'Unnamed'
         
         self._ensemble = []
         self._confs = None       # coordinate data
