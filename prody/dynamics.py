@@ -117,6 +117,7 @@ argument. These are noted in function documentations.
   * :func:`reduceModel`
   * :func:`sliceVector`
   * :func:`sliceMode`
+  * :func:`sliceModel`
 
 **Plotting Functions**:
 
@@ -226,7 +227,8 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'deform', 'sampleModes', 'traverseMode',
             
-           'extrapolateModel', 'reduceModel', 'sliceVector', 'sliceMode',
+           'extrapolateModel', 'reduceModel', 'sliceVector', 
+           'sliceMode', 'sliceModel',
             
            'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
            'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
@@ -852,6 +854,20 @@ class NMA(NMABase):
     
     def __init__(self, name):
         NMABase.__init__(self, name)
+        
+    def setNumOfDims(self, ndim):
+        """Set the dimensionality of the model. 
+        
+        1 and 3 are accepted as *ndim* argument. Dimensionality can be changed
+        before eigenvectors are set. 
+        
+        """
+
+        assert ndim in [1, 3], 'ndim must be 1 or 3'
+        assert self._array is None, 'eigenvectors are set'
+        self._is3d = True
+        if ndim == 1:
+            self._is3d = False
     
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
@@ -892,7 +908,10 @@ class NMA(NMABase):
             self._array = vector
             self._eigenvals = value
             self._dof = vector.shape[0]
-            self._n_atoms = self._dof / 3
+            if self._is3d:
+                self._n_atoms = self._dof / 3
+            else:
+                self._n_atoms = self._dof
             self._n_modes = vector.shape[1]
             self._modes = [None] * self._n_modes
         else:
@@ -930,7 +949,10 @@ class NMA(NMABase):
             raise ValueError('vectors must be a 2-dimensional array')
         else:
             dof = vectors.shape[0]
-            n_atoms = dof / 3 
+            if self._is3d:
+                n_atoms = dof / 3
+            else: 
+                n_atoms = dof
             if self._n_atoms > 0 and n_atoms != self._n_atoms:
                     raise ValueError('vectors do not have the right shape, '
                                  'which is (M,{0:d})'.format(n_atoms*3))
@@ -2677,7 +2699,10 @@ def sliceVector(vector, atoms, selstr):
     
     .. versionadded:: 0.5
     
-    Note that retuned :class:`Vector` instance is not normalized.
+    .. versionchanged:: 0.7
+       Returns the vector and the corresponding atom selection. 
+    
+    Note that returned :class:`Vector` instance is not normalized.
     
     :arg vector: vector instance to be sliced
     :type vector: :class:`VectorBase`
@@ -2688,8 +2713,10 @@ def sliceVector(vector, atoms, selstr):
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: :class:`Vector`
+    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)
+    
     """
+    
     if not isinstance(vector, VectorBase):
         raise TypeError('vector must be a VectorBase instance, not {0:s}'
                         .format(type(vector)))
@@ -2699,22 +2726,27 @@ def sliceVector(vector, atoms, selstr):
     if atoms.getNumOfAtoms() != vector.getNumOfAtoms(): 
         raise ValueError('number of atoms in *vector* and *atoms* must be '
                          'equal')
-    return Vector(vector.getArrayNx3()[
-                    SELECT.getBoolArray(atoms, selstr), :].flatten(),
-                    '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
-                    vector.is3d())
+    sel = atoms.select(selstr)
+    vec = Vector(vector.getArrayNx3()[
+                 sel.getIndices(), :].flatten(),
+                 '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
+                 vector.is3d())
+    return (vec, sel)
 
 def sliceMode(mode, atoms, selstr):
     """Return a slice of *mode* matching *atoms* specified by *selstr*.
     
     .. versionadded:: 0.5
     
-    This works sligtly difference from :func:`sliceVector`. Mode array 
+    .. versionchanged:: 0.7
+       Returns the vector and the corresponding atom selection. 
+    
+    This works slightly difference from :func:`sliceVector`. Mode array 
     (eigenvector) is multiplied by square-root of the variance along the mode.
     If mode is from an elastic network model, variance is defined as the 
     inverse of the eigenvalue.
     
-    Note that retuned :class:`Vector` instance is not normalized.
+    Note that returned :class:`Vector` instance is not normalized.
     
     :arg mode: mode instance to be sliced
     :type mode: :class:`Mode`
@@ -2725,8 +2757,10 @@ def sliceMode(mode, atoms, selstr):
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: :class:`Vector`
+    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)
+    
     """
+    
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, not {0:s}'
                         .format(type(mode)))
@@ -2735,11 +2769,56 @@ def sliceMode(mode, atoms, selstr):
                         .format(type(atoms)))
     if atoms.getNumOfAtoms() != mode.getNumOfAtoms(): 
         raise ValueError('number of atoms in *mode* and *atoms* must be equal')
-    return Vector(mode.getArrayNx3()[
-                    SELECT.getBoolArray(atoms, selstr), :
-                    ].flatten() * mode.getVariance()**0.5,
-                    '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
-                    mode.is3d())
+    sel = atoms.select(selstr)
+    vec = Vector(mode.getArrayNx3()[
+                 sel.getIndices(),:].flatten() * mode.getVariance()**0.5,
+                 '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
+                 mode.is3d()) 
+    return (vec, sel)
+
+def sliceModel(model, atoms, selstr):
+    """Return a slice of *model* matching *atoms* specified by *selstr*.
+    
+    .. versionadded:: 0.7
+
+    Note that sliced normal modes (eigenvectors) are not normalized.
+    
+    :arg mode: NMA model instance to be sliced
+    :type mode: :class:`NMABase`
+    
+    :arg atoms: atoms for which the *model* was built
+    :type atoms: :class:`~prody.atomic.Atomic`
+    
+    :arg selstr: selection string
+    :type selstr: str 
+    
+    :returns: (:class:`NMA`, :class:`~prody.atomic.Selection`)
+    
+    """
+    
+    if not isinstance(model, NMABase):
+        raise TypeError('mode must be a NMABase instance, not {0:s}'
+                        .format(type(model)))
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance, not {0:s}'
+                        .format(type(atoms)))
+    if atoms.getNumOfAtoms() != model.getNumOfAtoms(): 
+        raise ValueError('number of atoms in *model* and *atoms* must be '
+                         'equal')
+    
+    array = model.getArray()
+    sel = atoms.select(selstr)
+    which = sel.getIndices()
+    nma = NMA('{0:s} slice "{1:s}"'.format(str(model), selstr))
+    if model.is3d():
+        which = [which.reshape((len(which),1))*3]
+        which.append(which[0]+1)
+        which.append(which[0]+2)
+        which = np.concatenate(which, 1).flatten()
+    else:
+        nma.setNumOfDims(1)
+    nma.setEigens( array[which, :], model.getEigenvalues() )
+    return (nma, sel)
     
 def reduceModel(model, atoms, selstr):
     """Returns reduced NMA model.
@@ -2761,7 +2840,9 @@ def reduceModel(model, atoms, selstr):
     For PCA:
        This function simply takes the sub-covariance matrix for the selected
        atoms.
+       
     """
+    
     if linalg is None:
         prody.importLA()
 

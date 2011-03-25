@@ -14,6 +14,13 @@ Release 0.7.0 (in development)
   * :func:`~dynamics.deform` function is implemented for deforming coordinate 
     sets along a normal mode or linear combination of multiple modes. 
 
+  * :func:`~dynamics.sliceModel` function is implemented for slicing normal
+    mode data to be used with functions calculating atomic properties using
+    normal modes. 
+
+  * :meth:`~dynamics.NMA.setNumOfDims` method is defined for 
+    :class:`~dynamics.NMA` class to change the dimensionality of the model.
+
 **Improvements**:
 
   * A new keyword argument for :func:`~measure.calcADPAxes` allows for
@@ -23,6 +30,9 @@ Release 0.7.0 (in development)
 
   * When :func:`~ensemble.Ensemble` and :func:`~dynamics.NMA` classes are 
     instantiated with an empty string, instances are called "Unnamed".
+
+  * :func:`~dynamics.sliceMode` and :func:`~dynamics.sliceVector` functions 
+    return the atom selection in addition to the vector.
 
 **Bug Fixes**:
 
