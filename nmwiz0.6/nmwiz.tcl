@@ -3719,8 +3719,16 @@ orange3"
         set i 0
         foreach an $atomnames rn $resnames ci $chainids ri $resids {x y z} $coords b $betalist {
           incr i
-          lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f" \
-                               $i  $an $rn  $ci $ri $x $y $z 1.0 $b]
+          if {[string length $an] < 4} {
+            #lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f" \
+            #                     $i  $an $rn  $ci $ri $x $y $z 1.0 $b]
+            lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f" \
+                                 $i  $an [string range $rn 0 4] $ci $ri $x $y $z]
+          } else {
+            set an [string range $an 0 3]
+            lappend pdblines [format "ATOM  %5d %4s %-4s%1s%4d    %8.3f%8.3f%8.3f" \
+                                 $i  $an [string range $rn 0 4] $ci $ri $x $y $z]
+          }
         }
         return $pdblines
       }
