@@ -39,6 +39,7 @@ Below functions can be used to learn and change the definitions of
     * :func:`getHydrogenRegex`
     * :func:`getBasicResidueNames`
     * :func:`getAliphaticResidueNames`
+    * :func:`getHydrophobicResidueNames`
     * :func:`getCyclicResidueNames`
     * :func:`getSmallResidueNames`
     * :func:`getWaterResidueNames`
@@ -54,6 +55,7 @@ Below functions can be used to learn and change the definitions of
     * :func:`setHydrogenRegex`
     * :func:`setBasicResidueNames`
     * :func:`setAliphaticResidueNames`
+    * :func:`setHydrophobicResidueNames`
     * :func:`setCyclicResidueNames`
     * :func:`setSmallResidueNames`
     * :func:`setWaterResidueNames`
@@ -124,6 +126,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import time
+import re as RE
 
 import numpy as np
 from . import pyparsing as pp
@@ -143,6 +146,7 @@ __all__ = ['Select', 'Contacts',
            'getHydrogenRegex', 'setHydrogenRegex',
            'getBasicResidueNames', 'setBasicResidueNames',
            'getAliphaticResidueNames', 'setAliphaticResidueNames',
+           'getHydrophobicResidueNames', 'setHydrophobicResidueNames',
            'getCyclicResidueNames', 'setCyclicResidueNames',
            'getSmallResidueNames', 'setSmallResidueNames',
            'getWaterResidueNames', 'setWaterResidueNames',
@@ -165,6 +169,16 @@ PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN',
         'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
         'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
         'GLX', 'ASX', 'SEC', 'PYL', 'XLE'))
+
+# 21st and 22nd amino acids	    3-Letter	1-Letter
+# Selenocysteine	            Sec	        U
+# Pyrrolysine	                Pyl	        O
+
+# Ambiguous Amino Acids	                3-Letter	1-Letter
+# Asparagine or aspartic acid	        Asx	        B
+# Glutamine or glutamic acid	        Glx	        Z
+# Leucine or Isoleucine	                Xle	        J
+# Unspecified or unknown amino acid     Xaa         X
                           #, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
 WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))
 NUCLEIC_RESIDUE_NAMES = set(('GUA', 'ADE', 'CYT', 'THY', 'URA', 
@@ -176,14 +190,15 @@ HYDROGEN_REGEX = '[0-9]?H.*'
 ACIDIC_RESIDUE_NAMES = set(('ASP', 'GLU'))
 BASIC_RESIDUE_NAMES = set(('LYS', 'ARG', 'HIS', 'HSP'))
 CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
-ALIPHATIC_RESIDUE_NAMES = set(('ALA', 'GLY', 'ILE', 'LEU', 'VAL'))
-AROMATIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'TRP', 'TYR'))
+ALIPHATIC_RESIDUE_NAMES = set(('ALA', 'GLY', 'ILE', 'LEU', 'VAL', 'XLE'))
+AROMATIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'))
 SMALL_RESIDUE_NAMES = set(('ALA', 'GLY', 'SER'))
-MEDIUM_RESIDUE_NAMES = set(('VAL', 'THR', 'ASP', 'ASN', 'PRO', 'CYS'))
+MEDIUM_RESIDUE_NAMES = set(('VAL', 'THR', 'ASP', 'ASN', 'PRO', 'CYS', 'SEC'))
 LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
                         set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
-HYDROPHOBIC_RESIDUE_NAMES = set(())
-CYCLIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'PRO', 'TRP', 'TYR'))
+HYDROPHOBIC_RESIDUE_NAMES = set(('ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO',
+                                 'TRP', 'VAL', 'XLE'))
+CYCLIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'PRO', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'))
 
 def getBackboneAtomNames():
     """Return protein :term:`backbone` atom names."""
@@ -252,6 +267,19 @@ def setAliphaticResidueNames(aliphatic_residue_names):
                         'set')
     global ALIPHATIC_RESIDUE_NAMES
     ALIPHATIC_RESIDUE_NAMES = set(aliphatic_residue_names)
+    _buildKeywordMap()
+    
+def getHydrophobicResidueNames():
+    """Return :term:`hydrophobic` residue names."""
+    return list(HYDROPHOBIC_RESIDUE_NAMES)
+
+def setHydrophobicResidueNames(hydrophobic_residue_names):
+    """Set :term:`aliphatic` residue names."""
+    if not isinstance(hydrophobic_residue_names, (list, tuple, set)):
+        raise TypeError('hydrophobic_residue_names must be a list, tuple, or ' 
+                        'set')
+    global HYDROPHOBIC_RESIDUE_NAMES
+    HYDROPHOBIC_RESIDUE_NAMES = set(HYDROPHOBIC_residue_names)
     _buildKeywordMap()
 
 def getAromaticResidueNames():
@@ -381,37 +409,80 @@ BINARY_OPERATOR_MAP = {
     '!=' : lambda a, b: a != b,
 }
 
+COMPARISONS = set(('<', '>', '>=', '<=', '==', '=', '!='))
+
 KEYWORD_MAP = None
 def _buildKeywordMap():
     global KEYWORD_MAP
     KEYWORD_MAP = {
         #'keyword' : (residue_names, atom_names, invert, atom_names_not),
-        'calpha'  : (PROTEIN_RESIDUE_NAMES, set(('CA')), False, False),
-        'ca'  : (PROTEIN_RESIDUE_NAMES, set(('CA')), False, False),
-        'protein'  : (PROTEIN_RESIDUE_NAMES, None, False, False),
-        'backbone' : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
-        'bb' : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
-        'acidic'   : (ACIDIC_RESIDUE_NAMES, None, False, False),
-        'basic'    : (BASIC_RESIDUE_NAMES, None, False, False),
-        'charged'  : (CHARGED_RESIDUE_NAMES, None, False, False),
-        'aliphatic': (ALIPHATIC_RESIDUE_NAMES, None, False, False),
-        'aromatic' : (AROMATIC_RESIDUE_NAMES, None, False, False),
-        'small'    : (SMALL_RESIDUE_NAMES, None, False, False),
-        'medium'   : (MEDIUM_RESIDUE_NAMES, None, False, False),
-        'cyclic'   : (CYCLIC_RESIDUE_NAMES, None, False, False),
-        'large'    : (LARGE_RESIDUE_NAMES, None, False, False),
-        'neutral'  : (CHARGED_RESIDUE_NAMES, None, True, False),
-        'acyclic'  : (CYCLIC_RESIDUE_NAMES, None, True, False),
-        'water'    : (WATER_RESIDUE_NAMES, None, False, False),
-        'waters'   : (WATER_RESIDUE_NAMES, None, False, False),
-        'nucleic'  : (NUCLEIC_RESIDUE_NAMES, None, False, False),
-        'hetero'   : (NON_HETERO_RESIDUE_NAMES, None, True, False), 
-        'sidechain': (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
-        'sc': (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
+        'alpha'      : (PROTEIN_RESIDUE_NAMES, set(('CA',)), False, False),
+        'calpha'     : (PROTEIN_RESIDUE_NAMES, set(('CA',)), False, False),
+        'ca'         : (PROTEIN_RESIDUE_NAMES, set(('CA',)), False, False),
+        'protein'    : (PROTEIN_RESIDUE_NAMES, None, False, False),
+        'backbone'   : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
+        'bb'         : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
+        'acidic'     : (ACIDIC_RESIDUE_NAMES, None, False, False),
+        'basic'      : (BASIC_RESIDUE_NAMES, None, False, False),
+        'charged'    : (CHARGED_RESIDUE_NAMES, None, False, False),
+        'aliphatic'  : (ALIPHATIC_RESIDUE_NAMES, None, False, False),
+        'hydrophobic': (HYDROPHOBIC_RESIDUE_NAMES, None, False, False),
+        'polar'      : (HYDROPHOBIC_RESIDUE_NAMES, None, True, False),
+        'aromatic'   : (AROMATIC_RESIDUE_NAMES, None, False, False),
+        'small'      : (SMALL_RESIDUE_NAMES, None, False, False),
+        'medium'     : (MEDIUM_RESIDUE_NAMES, None, False, False),
+        'cyclic'     : (CYCLIC_RESIDUE_NAMES, None, False, False),
+        'large'      : (LARGE_RESIDUE_NAMES, None, False, False),
+        'neutral'    : (CHARGED_RESIDUE_NAMES, None, True, False),
+        'acyclic'    : (CYCLIC_RESIDUE_NAMES, None, True, False),
+        'water'      : (WATER_RESIDUE_NAMES, None, False, False),
+        'waters'     : (WATER_RESIDUE_NAMES, None, False, False),
+        'nucleic'    : (NUCLEIC_RESIDUE_NAMES, None, False, False),
+        'hetero'     : (NON_HETERO_RESIDUE_NAMES, None, True, False), 
+        'sidechain'  : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
+        'sc'         : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
+        
     }
 _buildKeywordMap()
 
+NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
+             'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 
+             'purine', 'pyrimidine'))
+KEYWORDS_BOOLEAN = set(['all', 'hydrogen', 'noh', 'none'] + KEYWORD_MAP.keys())
+KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
+                      'radius', 'charge'))
+KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
+KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
+                       'segment'))
+KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
+KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
+
+def isFloatKeyword(keyword):
+    return keyword in KEYWORDS_FLOAT
+
+def isNumericKeyword(keyword):
+    return keyword in KEYWORDS_NUMERIC
+
+def isAlnumKeyword(keyword):
+    return keyword in KEYWORDS_STRING
+
+def isValuePairedKeyword(keyword):
+    return keyword in KEYWORDS_VALUE_PAIRED
+
+def isBooleanKeyword(keyword):
+    return keyword in KEYWORDS_BOOLEAN
     
+def isKeyword(keyword):
+    return (isBooleanKeyword(keyword) or isValuePairedKeyword(keyword) or
+            isNumericKeyword(keyword))
+
+def isComparison(tokens):
+    for tkn in tokens:
+        if tkn in COMPARISONS:
+            return True
+    return False
+
+
 class Select(object):
 
     """Select subsets of atoms based on a selection string.
@@ -420,63 +491,10 @@ class Select(object):
     :term:`backbone`, :term:`polar`, etc., may be altered using functions in 
     :mod:`~prody.select` module. 
     
-    This class makes a great use of |pyparsing| module.
+    This class makes use of |pyparsing| module.
 
     """
-    # Numbers and ranges
-    PLUSORMINUS = pp.Literal('+') | pp.Literal('-')
-    NUMBER = pp.Word(pp.nums) 
-    INTEGER = pp.Combine( pp.Optional(PLUSORMINUS) + NUMBER )
-    E = pp.CaselessLiteral('E')
-    #FLOAT = pp.Combine(INTEGER + 
-    #                   pp.Optional(pp.Literal('.') + pp.Optional(NUMBER)) +
-    #                   pp.Optional( E + INTEGER )
-    #                   )
-    FLOAT = pp.Regex(r'[+-]?\d+(\.\d*)?([Ee][+-]?\d+)?')
-    NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
-                 'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 
-                 'purine', 'pyrimidine'))
-    KEYWORDS_BOOLEAN = set(('all', 'none', 'protein', 'nucleic', 'hetero', 
-                            'water', 'backbone', 'bb', 'sidechain', 'sc',
-                            'calpha', 'ca',
-                            'acidic', 'basic', 'polar', 'charged', 'neutral', 
-                            'aliphatic', 'hydrophobic', 'aromatic', 'cyclic', 
-                            'acyclic', 'noh', 'hydrogen', 'large', 'medium', 
-                            'small'))
-    KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
-                          'radius', 'charge'))
-    KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
-    KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
-                           'segment'))
-    KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
-    KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
 
-    def isFloatKeyword(keyword):
-        return keyword in Select.KEYWORDS_FLOAT
-    isFloatKeyword = staticmethod(isFloatKeyword)
-
-    def isNumericKeyword(keyword):
-        return keyword in Select.KEYWORDS_NUMERIC
-    isNumericKeyword = staticmethod(isNumericKeyword)
-
-    def isAlnumKeyword(keyword):
-        return keyword in Select.KEYWORDS_STRING
-    isAlnumKeyword = staticmethod(isAlnumKeyword)
-
-    def isValuePairedKeyword(keyword):
-        return keyword in Select.KEYWORDS_VALUE_PAIRED
-    isValuePairedKeyword = staticmethod(isValuePairedKeyword)
-
-    def isBooleanKeyword(keyword):
-        return keyword in Select.KEYWORDS_BOOLEAN
-    isBooleanKeyword = staticmethod(isBooleanKeyword)
-        
-    def isKeyword(keyword):
-        return (Select.isBooleanKeyword(keyword) or 
-                Select.isValuePairedKeyword(keyword) or
-                Select.isNumericKeyword(keyword))
-    isKeyword = staticmethod(isKeyword)
-    
     def __init__(self):
         self._ag = None
         self._atoms = None
@@ -489,34 +507,36 @@ class Select(object):
         self._kdtree = None
         self._kwargs  = None
         self._selstr2indices = False
+        self._n_andor = 0
+        self._n_not = 0
+        self._n_comp = 0
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
         
+        shortlist = pp.alphanums + '''`~@#$.:;_','''
+        longlist = pp.alphanums + '''`~!@#$%^&*()-_=+[{}]\|;:,<>./?() '''
+        
         self._tokenizer = pp.operatorPrecedence(
-             pp.OneOrMore(pp.Word(pp.alphanums+'.:_') | 
-             pp.Group(pp.oneOf('" \'') + pp.Word(pp.alphanums+'~!@#$%^&*_+`=:;,.<>?|') + pp.oneOf('" \' "r \'r'))),
-             [(pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
-              (pp.oneOf('sqrt pow sq abs floor ceil sin cos tan atan asin acos sinh cosh tanh exp log log10'), 1, pp.opAssoc.RIGHT, self._func),
+             pp.OneOrMore(pp.Word(shortlist) | 
+             pp.Group(pp.oneOf('" \'') + pp.Word(longlist) + 
+                      pp.oneOf('" \''))),
+             [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
+                        'asin acos sinh cosh tanh exp log log10'), 
+                        1, pp.opAssoc.RIGHT, self._func),
               (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
+              (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              (pp.Keyword('!!!'), 1, pp.opAssoc.RIGHT, self._not),
-              (pp.Regex('same [a-z]+ as') | pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 1, pp.opAssoc.RIGHT, self._special),
+              (pp.Keyword('!!!') | 
+               pp.Regex('same [a-z]+ as') | 
+               pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 
+                        1, pp.opAssoc.RIGHT, self._special),
               (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
               (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
             )
-        """
-        self._tokenizer = pp.operatorPrecedence(
-             pp.OneOrMore(pp.Word(pp.alphanums+'.:_') | 
-             pp.Group(pp.oneOf('" \'') + pp.Word(pp.alphanums+'~!@#$%^&*_+`=:;,.<>?|') + pp.oneOf('" \' "r \'r'))),
-             [(pp.Keyword('!!!'), 1, pp.opAssoc.RIGHT, self._not),
-              (pp.Regex('same [a-z]+ as') | pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 1, pp.opAssoc.RIGHT, self._special),
-              (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
-              (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
-            )
-        """
-        self._tokenizer.setParseAction(self._action)
+
+        self._tokenizer.setParseAction(self._defaultAction)
 
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with ``True`` values for matching atoms.
@@ -529,7 +549,7 @@ class Select(object):
         """
         
         if not isinstance(atoms, prody.Atomic):
-            raise TypeError('atoms must be an atom container, not {0:s}'
+            raise TypeError('atoms must be an Atomic instance, not {0:s}'
                             .format(type(atoms)))
         elif not isinstance(selstr, str):
             raise TypeError('selstr must be a string, not a {0:s}'
@@ -542,7 +562,7 @@ class Select(object):
             self._ag = atoms
             self._atoms = atoms
             self._indices = None
-            self._n_atoms = atoms._n_atoms
+            self._n_atoms = atoms.getNumOfAtoms()
         else:
             self._ag = atoms.getAtomGroup()
             self._indices = atoms.getIndices()
@@ -554,8 +574,8 @@ class Select(object):
             self._n_atoms = len(self._indices)
         self._kwargs = kwargs
         if DEBUG:
-            print '_select', selstr
-        torf = self._parseSelStr()
+            print 'getBoolArray', selstr
+        torf = self._evalSelstr()
         if not isinstance(torf, np.ndarray):
             raise SelectionError('{0:s} is not a valid selection string.'
                                  .format(selstr))
@@ -575,6 +595,7 @@ class Select(object):
         .. versionadded:: 0.5
         
         """
+        
         torf = self.getBoolArray(atoms, selstr, **kwargs)        
         if isinstance(atoms, prody.AtomGroup):
             indices = torf.nonzero()[0]
@@ -647,52 +668,6 @@ class Select(object):
             return prody.Selection(ag, indices, selstr, 
                                                 atoms.getActiveCoordsetIndex())
         
-    def _getStdSelStr(self):
-        selstr = ' ' + self._selstr + ' '
-        
-        while ')and(' in selstr:
-            selstr = selstr.replace(')and(', ')&&&(')
-        while ' and(' in selstr:
-            selstr = selstr.replace(' and(', ' &&&(')
-        while ')and ' in selstr:
-            selstr = selstr.replace(')and ', ')&&& ')
-        while ' and ' in selstr:
-            selstr = selstr.replace(' and ', ' &&& ')
-            
-        while ')or(' in selstr:
-            selstr = selstr.replace(')or(', ')||(')
-        while ' or(' in selstr:
-            selstr = selstr.replace(' or(', ' ||(')
-        while ')or ' in selstr:
-            selstr = selstr.replace(')or ', ')|| ')
-        while ' or ' in selstr:
-            selstr = selstr.replace(' or ', ' || ')
-            
-        while ' not(' in selstr:
-            selstr = selstr.replace(' not(', ' !!!(')
-        while ' not ' in selstr:
-            selstr = selstr.replace(' not ', ' !!! ')
-        
-        return selstr.strip()
-
-    def _parseSelStr(self):
-        selstr = self._selstr.strip() 
-        if len(selstr.split()) == 1:
-            return self._evalBoolean(selstr)
-        selstr = self._getStdSelStr()
-        if DEBUG: print '_parseSelStr', selstr
-        #start = time.time()
-        try: 
-            tokens = self._tokenizer.parseString(selstr, 
-                                                parseAll=True).asList()
-            if DEBUG: print '_parseSelStr', tokens
-            return tokens[0]
-        except pp.ParseException, err:
-            print 'Parse Failure'
-            print self._selstr #err.line
-            print " "*(err.column-1) + "^"
-            raise pp.ParseException(str(err))
-    
     def _reset(self):
         if DEBUG: print '_reset'
         self._ag = None
@@ -701,27 +676,95 @@ class Select(object):
         self._n_atoms = None
         self._selstr = None
         self._evalonly = None
-
         self._coordinates = None
         self._kdtree = None
+        self._n_andor = 0
+        self._n_not = 0
+        self._n_comp = 0
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
 
-    def _action(self, token):
-        if DEBUG: print '_action', token
-        if isinstance(token[0], np.ndarray):
+    def _standardizeSelectionString(self):
+        selstr = ' ' + self._selstr + ' '
+        andor = 0
+        while ')and(' in selstr:
+            selstr = selstr.replace(')and(', ')&&&(')
+            andor += 1
+        while ' and(' in selstr:
+            selstr = selstr.replace(' and(', ' &&&(')
+            andor += 1
+        while ')and ' in selstr:
+            selstr = selstr.replace(')and ', ')&&& ')
+            andor += 1
+        while ' and ' in selstr:
+            selstr = selstr.replace(' and ', ' &&& ')
+            andor += 1
+            
+        while ')or(' in selstr:
+            selstr = selstr.replace(')or(', ')||(')
+            andor += 1
+        while ' or(' in selstr:
+            selstr = selstr.replace(' or(', ' ||(')
+            andor += 1
+        while ')or ' in selstr:
+            selstr = selstr.replace(')or ', ')|| ')
+            andor += 1
+        while ' or ' in selstr:
+            selstr = selstr.replace(' or ', ' || ')
+            andor += 1
+        self._n_andor = andor
+        
+        comp = 0
+        if andor == 0: 
+            for item in selstr.split():
+                if item in COMPARISONS: 
+                    comp += 1
+        self._n_comp = comp
+        
+        n_not = 0
+        while ' not(' in selstr:
+            selstr = selstr.replace(' not(', ' !!!(')
+            n_not += 1
+        while ' not ' in selstr:
+            selstr = selstr.replace(' not ', ' !!! ')
+            n_not += 1
+        self._n_not = n_not
+        return selstr.strip()
+
+    def _evalSelstr(self):
+        selstr = self._selstr.strip() 
+        if len(selstr.split()) == 1:
+            return self._evalBoolean(selstr)
+        selstr = self._standardizeSelectionString()
+        if DEBUG: print '_evalSelstr', selstr
+
+        try: 
+            tokens = self._tokenizer.parseString(selstr, 
+                                                 parseAll=True).asList()
+            if DEBUG: print '_evalSelstr', tokens
+            return tokens[0]
+        except pp.ParseException, err:
+            print 'Parse Failure'
+            print self._selstr #err.line
+            print " "*(err.column-1) + "^"
+            raise pp.ParseException(str(err))
+    
+    def _defaultAction(self, token):
+        if DEBUG: print '_defaultAction', token
+        if isinstance(token[0], (np.ndarray, float)):
             return token[0]
         else:
             return self._evaluate(token)        
     
     def _evaluate(self, token):
         if DEBUG: print '_evaluate', token
+
         keyword = token[0]
         if len(token) == 1:
-            if Select.isBooleanKeyword(keyword):
+            if isBooleanKeyword(keyword):
                 return self._evalBoolean(keyword)
-            elif Select.isNumericKeyword(keyword):
-                return self._getnum(keyword)
+            elif isNumericKeyword(keyword):
+                return self._getNumArray(keyword)
             elif self._kwargs is not None and keyword in self._kwargs:
                 return keyword
             else:
@@ -730,9 +773,9 @@ class Select(object):
                 except ValueError:
                     raise SelectionError('"{0:s}" is not a valid keyword or a '
                                          'number.'.format(keyword))
-        elif Select.isAlnumKeyword(keyword):
+        elif isAlnumKeyword(keyword):
             return self._evalAlnum(keyword, token[1:])
-        elif Select.isFloatKeyword(keyword):
+        elif isFloatKeyword(keyword):
             return self._evalFloat(keyword, token[1:])
         elif keyword in ('resnum', 'resid'):
             return self._resnum(token[1:])
@@ -746,13 +789,10 @@ class Select(object):
             return self._within([' '.join(token[:3])] + token[3:], True)
         elif keyword == 'same':
             return self._sameas([' '.join(token[:3])] + token[3:])
-        elif Select.isBooleanKeyword(keyword):
+        elif isBooleanKeyword(keyword):
             raise SelectionError('Single word keywords must be followed with '
                                  'and operator.')            
             return self._and([token])
-        #for item in token[1:]:
-        #    if Select.isKeyword(item):
-        #        raise SelectionError('"{0:s}" in "{1:s}" is not understood. Please report this if you think there is a bug.'.format(item, ' '.join(token)))
         raise SelectionError('{0:s} understood. Please report this if you '
                              'think there is a bug.'.format(' '.join(token)))
 
@@ -786,7 +826,7 @@ class Select(object):
                     self._evalonly = np.invert(torf).nonzero()[0]
                 else:
                     self._evalonly = self._evalonly[np.invert(torf)]
-            if DEBUG: print '_or', self._evalonly
+            if DEBUG: print '_or evalonly', self._evalonly
         torf = np.ones(self._n_atoms, np.bool)
         torf[self._evalonly] = False
         self._evalonly = None
@@ -820,28 +860,30 @@ class Select(object):
                     self._evalonly = torf.nonzero()[0]
                 else:
                     self._evalonly = self._evalonly[torf]
-            if DEBUG: print '_and', self._evalonly
+            if DEBUG: print '_and evalonly', self._evalonly
         torf = np.zeros(self._n_atoms, np.bool)
         torf[self._evalonly] = True
         self._evalonly = None
         return torf
     
-    def _not(self, token):
-        if DEBUG: print '_not', token
-        if isinstance(token[0][1], np.ndarray):
-            torf = token[0][1]
-        else:
-            torf = self._evaluate(token[0][1:])
-        np.invert(torf, torf)
-        return torf
-    
     def _special(self, token):
         if DEBUG: print '_special', token
         token = token[0]
-        if token[0].startswith('same'):
+        if token[0] == '!!!':
+            return self._not(token)
+        elif token[0].startswith('same'):
             return self._sameas(token)
         else:
             return self._within(token, token[0].startswith('exwithin'))
+
+    def _not(self, token):
+        if DEBUG: print '_not', token
+        if isinstance(token[1], np.ndarray):
+            torf = token[1]
+        else:
+            torf = self._evaluate(token[1:])
+        np.invert(torf, torf)
+        return torf
     
     def _within(self, token, exclude):
         terms = token
@@ -933,23 +975,22 @@ class Select(object):
             torf = self._evalAlnum('segment', list(np.unique(segnames[which]))) 
         return torf
      
-     
     def _comp(self, token):
         if DEBUG: print '_comp', token
         token = token[0]
         if len(token) > 3:
-            if Select.isBooleanKeyword(token[0]):
-                return self._and([[token[0], '&&&', self._comp([token[1:]])] ])
-            elif Select.isBooleanKeyword(token[-1]):
-                return self._and([[token[-1], '&&&', self._comp([token[:-1]])] ])
+            if isBooleanKeyword(token[0]):
+                return self._and([[token.pop(0), '&&&', self._comp([token])]])
+            elif isBooleanKeyword(token[-1]):
+                return self._and([[token.pop(-1), '&&&', self._comp([token])]])
             else:
-                raise SelectionError('{0:s} is not a valid selection string.'
+                raise SelectionError('{0:s} is not valid'
                                      .format(' '.join(token)))
         comp = token[1]
-        left = self._getnum(token[0])
-        if DEBUG: print '_comp', left
-        right = self._getnum(token[2])
-        if DEBUG: print '_comp', right
+        left = self._getNumArray(token[0])
+        if DEBUG: print '_comp left', left
+        right = self._getNumArray(token[2])
+        if DEBUG: print '_comp right', right
 
         try:
             return BINARY_OPERATOR_MAP[comp](left, right)
@@ -960,39 +1001,38 @@ class Select(object):
     def _pow(self, token):
         if DEBUG: print '_pow', token
         items = token[0]
-        return self._getnum(items[0]) ** self._getnum(items[2])
+        return self._getNumArray(items[0]) ** self._getNumArray(items[2])
 
     def _add(self, token):
         if DEBUG: print '_add', token
         items = token[0]
-        left = self._getnum(items.pop(0))
+        left = self._getNumArray(items.pop(0))
         while items:
-            op = items.pop(0)
-            right = self._getnum(items.pop(0))
-            left = BINARY_OPERATOR_MAP[op](left, right)
+            left = BINARY_OPERATOR_MAP[items.pop(0)](
+                                        left, self._getNumArray(items.pop(0)))
         if DEBUG: print '_add total', left
         return left
  
     def _mul(self, token):
         if DEBUG: print '_mul', token
         items = token[0]
-        left = self._getnum(items[0])
+        left = self._getNumArray(items[0])
         i = 1
         while i < len(items):
             op = items[i]
             i += 1
-            right = self._getnum(items[i])
+            right = self._getNumArray(items[i])
             i += 1
             if op == '/' and right == 0.0: 
                 raise ZeroDivisionError(' '.join(items))
             left = BINARY_OPERATOR_MAP[op](left, right)
         return left
     
-    def _getnum(self, token):
-        if DEBUG: print '_getnum', token
+    def _getNumArray(self, token):
+        if DEBUG: print '_getNumArray', token
         if isinstance(token, (np.ndarray, float)):
             return token
-        elif Select.isFloatKeyword(token):
+        elif isFloatKeyword(token):
             return self._evalFloat(token)
         elif token in ('resnum', 'resid'):
             return self._resnum()
@@ -1002,24 +1042,24 @@ class Select(object):
             return self._index(None, 1)
         else:
             try:
-                num = float(token)
+                token = float(token)
             except ValueError:
                 raise SelectionError('"{0:s}" must be a number or a valid '
-                                     'keyword'.format(token))
+                                     'numeric keyword'.format(token))
             else:
-                return num
+                return token
 
-    def _sign(self, token):
-        token = token[0]
-        if DEBUG: print '_sign', token
-        num = self._getnum(token[1])
-        if token[0] == '-':
-            return -num
-        return num
+    def _sign(self, tokens):
+        if DEBUG: print '_sign', tokens
+        tokens = tokens[0]
+        token = self._getNumArray(tokens[1])
+        if tokens[0] == '-':
+            return -token
+        return token
 
     def _func(self, token):
-        token = token[0]
         if DEBUG: print '_func', token
+        token = token[0]
         return FUNCTION_MAP[token[0]](token[1])
 
     def _evalBoolean(self, keyword):
@@ -1030,16 +1070,14 @@ class Select(object):
         else:        
             n_atoms = len(self._evalonly)
         
-        if keyword == 'ca' or keyword == 'calpha':
-            return self._and([['name', 'CA', '&&&', 'protein']])
-        elif keyword == 'noh':
-            return self._not([['!!!', 'name', (['"', HYDROGEN_REGEX,'"r'])]])
+        if keyword == 'noh':
+            return self._not(['!!!', 'name', (['"', HYDROGEN_REGEX,'"'])])
         elif keyword == 'all':
             return np.ones(n_atoms, np.bool)
         elif keyword == 'none':
             return np.zeros(n_atoms, np.bool)
         elif keyword == 'hydrogen':
-            return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"r'])])
+            return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"'])])
 
         try:
             residue_names, atom_names, invert, atom_names_not = KEYWORD_MAP[keyword]
@@ -1047,32 +1085,20 @@ class Select(object):
             raise SelectionError('"{0:s}" is not a valid keyword.'
                                  .format(keyword))
             
-        resnames = self._getAtomicData('resname')
-        #print len(resnames), resnames
-        if self._evalonly is not None:
-            resnames = resnames[self._evalonly]
-        #print len(resnames), resnames
-        torf = np.zeros(n_atoms, np.bool)
-
         if atom_names is None:
-            for i in xrange(n_atoms):
-                torf[i] = (resnames[i] in residue_names)
+            torf = self._evalAlnum('resname', list(residue_names))
         else:
-            atomnames = self._getAtomicData('name')
-            if self._evalonly is not None:
-                atomnames = atomnames[self._evalonly]
             if atom_names_not:
-                for i in xrange(n_atoms):
-                    torf[i] = (not atomnames[i] in atom_names and
-                               resnames[i] in residue_names)                
+                torf = self._and([[self._not(['!!!', 'name'] + 
+                                   list(atom_names)), '&&&', 'resname'] + 
+                                   list(residue_names)])
             else:
-                for i in xrange(n_atoms):
-                    torf[i] = (atomnames[i] in atom_names and
-                               resnames[i] in residue_names)
+                torf = self._and([['name'] + list(atom_names) + 
+                                  ['&&&', 'resname'] + list(residue_names)])
             
         if invert:
             torf = np.invert(torf, torf)
-        #print torf, torf.sum()
+
         return torf
     
     def _evalAlnum(self, keyword, values):
@@ -1085,19 +1111,35 @@ class Select(object):
         if self._evalonly is not None:
             data = data[self._evalonly]
         n_atoms = len(data)
-        torf = np.zeros(n_atoms, np.bool)
         
+        regexps = []
+        strings = []
         for value in values:
-            if not isinstance(value, str):
-                if len(value[2]) == 1:
-                    value = value[1]
-                else:
-                    if prody.re is None: prody.importRE()
-                    value = prody.re.compile(value[1])
-                    for i in xrange(n_atoms):
-                        torf[i] = (value.match(data[i]) is not None)
-                    continue
-            torf[ data == value ] = True
+            if isinstance(value, str):
+                strings.append(value)
+            elif value[0] == value[2] == '"':
+                regexps.append('^' + value[1] + '$')
+            else:
+                strings.append(value[1])
+                
+        if len(strings) == 1:
+            torf = data == value
+        elif len(strings) > 4:
+            torf = np.zeros(n_atoms, np.bool)
+            strings = set(strings)
+            for i, datum in enumerate(data):        
+                torf[i] = datum in strings
+        elif strings: 
+            torf = [(data == value).reshape((n_atoms, 1)) for value in strings]
+            torf = np.concatenate(torf, 1).sum(1).astype(np.bool) 
+        else:
+            torf = np.zeros(n_atoms, np.bool)
+
+        for value in regexps:
+            value = RE.compile('^' + value + '$')
+            for i in xrange(n_atoms):
+                torf[i] = (value.match(data[i]) is not None)
+
         return torf
     
     def _evalFloat(self, keyword, values=None):
@@ -1119,26 +1161,19 @@ class Select(object):
         n_atoms = len(data)
         torf = np.zeros(n_atoms, np.bool)
 
-        for item in self._numrange(values):
+        for item in self._getNumRange(values):
             if isinstance(item, str):
                 pass
             elif isinstance(item, list):
-                fr = item[0] 
-                to = item[1]
-                for i in xrange(n_atoms):
-                    if fr <= data[i] <= to:
-                        torf[i] = True            
+                torf[(item[0] <= data) * (data <= item[1])] = True
             elif isinstance(item, tuple):
                 if len(item) == 2:
-                    fr = item[0] 
-                    to = item[1]
-                    for i in xrange(n_atoms):
-                        if fr <= data[i] < to:
-                            torf[i] = True
+                    torf[(item[0] <= data) * (data < item[1])] = True
                 else:
-                    raise SelectionError('"{0:s}" is not valid for keywords '
-                                         'expecting floating values.'
-                                         .format(':'.join(item)))
+                    raise SelectionError('"{0:s}" is not a valid range for '
+                                         'keywords expecting floating values, '
+                                         'such as {1:s}.'.format(':'.join(
+                                         [str(i) for i in item]), keyword))
             else:
                 torf[data == item] = True
         return torf
@@ -1157,7 +1192,7 @@ class Select(object):
             n_atoms = len(evalonly)
         torf = np.zeros(n_atoms, np.bool)
         
-        for item in self._numrange(token):
+        for item in self._getNumRange(token):
             if isinstance(item, str):
                 if icodes is None:
                     if self._evalonly is None:
@@ -1169,27 +1204,19 @@ class Select(object):
                     icode = ''
                 torf[(resids == int(item[:-1])) * (icodes == icode)] = True
             elif isinstance(item, list):
-                fr = item[0] 
-                to = item[1]
-                for i in xrange(n_atoms):
-                    if fr <= resids[i] <= to:
-                        torf[i] = True            
+                torf[(item[0] <= resids) * (resids <= item[1])] = True
             elif isinstance(item, tuple):
                 if len(item) == 2:
-                    fr = item[0] 
-                    to = item[1]
-                    for i in xrange(n_atoms):
-                        if fr <= resids[i] < to:
-                            torf[i] = True
+                    torf[(item[0] <= resids) * (resids < item[1])] = True
                 else:
-                    arange = range(item[0], item[1], item[2])
-                    for i in xrange(n_atoms):
-                            torf[i] = resids[i] in arange
+                    for i in range(item[0], item[1], item[2]):
+                        torf[resids == i] = True
             else:
                 torf[resids == item] = True
         return torf
     
     def _index(self, token=None, add=0):
+        if DEBUG: print '_index', token
         if token is None:
             if self._indices is not None:
                 return self._indices + add
@@ -1197,7 +1224,7 @@ class Select(object):
                 return np.arange(add, self._ag._n_atoms + add)
         torf = np.zeros(self._ag._n_atoms, np.bool)
         
-        for item in self._numrange(token):
+        for item in self._getNumRange(token):
             if isinstance(item, str):
                 raise SelectionError('"index/serial {0:s}" is not understood.'
                                      .format(item))
@@ -1214,12 +1241,14 @@ class Select(object):
                     torf[int(item)-add] = True
                 except IndexError:
                     pass
-
+        if self._evalonly is not None:
+            return torf[self._evalonly]
         if self._indices is not None:
             return torf[self._indices]
+        if DEBUG: print '_index return ', len(torf), torf
         return torf
 
-    def _numrange(self, token):
+    def _getNumRange(self, token):
         tknstr = ' '.join(token)
         while '  ' in tknstr:
             tknstr = tknstr.replace('  ', ' ')
@@ -1269,7 +1298,7 @@ class Select(object):
                                          .format(item))
             else:
                 token.append( item )
-        if DEBUG: print '_numrange', token            
+        if DEBUG: print '_getNumRange', token            
         return token
     
     def _getAtomicData(self, keyword):

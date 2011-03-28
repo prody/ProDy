@@ -25,6 +25,7 @@ ProDy Code
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
+>>> prody.select.DEBUG = False
 
 Using keywords
 -------------------------------------------------------------------------------
@@ -140,3 +141,86 @@ or changing the source code. See the following pages:
   * :ref:`selection-operations` for handy features of :class:`~atomic.Selection`
     objects
   * :ref:`contacts` for selecting interacting atoms
+
+
+.. doctest::
+    :hide:
+    
+    >>> # Testing the selection parser
+    >>> # All tricky selection strings should be contained here
+    >>> from prody import *
+    >>> import numpy as np
+    >>> c = parsePDB('1zz2')
+    >>> p = c.copy('protein')
+    >>> len(p)
+    2716
+    >>> len(set(p.getResidueNames()))
+    20
+    >>> i = c.copy('resname B11')
+    >>> len(i)
+    33
+    >>> len(c.select('(x < 5)'))
+    319
+    >>> len(c.select('(x <  sqrt(-(- sq(-(-5)))))'))
+    319
+    >>> len(c.select('(x < 5) and protein and within 10 of water'))
+    301
+    >>> len(c.select('backbone and within 5 of not protein'))
+    649
+    >>> len(c.select('backbone and within 5 of not index < 2716'))
+    649
+    >>> c.select('backbone and same residue as not index < 2716')
+    >>> len(c.select('backbone and same residue as within 5 of not protein'))
+    1052
+    >>> len(p.select('within 4 of inhibitor', inhibitor=i))
+    50
+    >>> len(c.select('protein and within 4 of resname B11', inhibitor=i))
+    50
+    >>> len(c.select('exwithin 4 of resname B11', inhibitor=i))
+    55
+    >>> len(p.select('calpha and (same residue as within 4 of inhibitor)', inhibitor=i))
+    20
+    >>> len(p.select('backbone and within 5 of somepoint', somepoint=np.array((25, 73, 13))))
+    18
+    >>> len(p.select('backbone and within 5 of index 1172'))
+    21
+    >>> len(p.select('backbone and not within 5 of index 1172'))
+    1326
+    >>> p.select('backbone and not within 5 of not index 1172')
+    >>> len(p.select('backbone and within 5 of not index 1172'))
+    1347
+    >>> len(p.select('backbone and sqrt((x - 25)**2 + (y - 74)**2 + (z - 13)**2) <= 5'))
+    12
+    >>> len(p.select('sqrt((x - 25)**2 + (y - 74)**2 + (z - 13)**2) <= 5'))
+    26
+    >>> a = c[1173]
+    >>> point = a.getCoordinates()
+    >>> len(p.select('within 5 of index 1173'))
+    29
+    >>> len(c.select('within 5 of index 1173'))
+    29
+    >>> len(p.select('within 5 of point', point=point))
+    29
+    >>> len(c.select('within 5 of point', point=point))
+    29
+    >>> len(c.select('sqrt((x - {0[0]:.3f})**2 + (y - {0[1]:.3f})**2 + (z - {0[2]:.3f})**2) <= 5'.format(point)))
+    29
+    >>> contacts = Contacts(p)
+    >>> print len(contacts.select(5, i)) == len(p.select('within 5 of inhibitor', inhibitor=i))
+    True
+    >>> print len(contacts.select(5, np.array((25, 73, 13)))) == len(p.select('within 5 of point', point=np.array((25, 73, 13))))
+    True
+    >>> len(p.select('ca'))
+    337
+    >>> len(p.select('name "(CA)"'))
+    337
+    >>> len(p.select('resname "[A-K].*"'))
+    1272
+    >>> len(p.select('not resname "[A-K].*"'))
+    1444
+    >>> len(p.select('name "(C|O).*"'))
+    2240
+    >>> len(p.select('not name "(C|O).*"'))
+    476
+    >>> len(p.select('x > -0.5 * -5'))
+    2540
