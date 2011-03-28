@@ -40,7 +40,7 @@ Keywords
 .. note::
    Definitions of keywords can be obtained and changed using the corresponding 
    ``get`` and ``set`` functions. These functions are noted in the definition 
-   of the keyword on this page and are also listed in the:mod:`~prody.select` 
+   of the keyword on this page and are also listed in the :mod:`~prody.select` 
    module documentation.
 
 Keywords followed by characters or words
@@ -148,34 +148,37 @@ Keyword Definitions
         Amino acid residues with acidic sidechains. 
         Residue names include ASP and GLU.
         This definition can be changed using :func:`setAcidicResidueNames` 
-        method.
+        function.
     
    acyclic
         Non-:term:`cyclic` :term:`protein` residues.
     
    aliphatic
         Amino acid residues with aliphatic sidechains. 
-        Residue names include ALA, GLY, ILE, LEU, and VAL.
+        Residue names include ALA, GLY, ILE, LEU, VAL, and XLE.
         This definition can be changed using :func:`setAliphaticResidueNames` 
-        method.
+        function.
 
    all
         All of the atoms in the molecule.
         
+   alpha
+        Same as :term:`calpha`.
+
    altloc
         Alternative location identifier.
 
    aromatic
         Amino acid residues with aromatic sidechains. 
-        Residue names include HIS, PHE, TRP, TYR.
+        Residue names include HIS, PHE, TRP, TYR, HSD, HSE, and HSP.
         This definition can be changed using :func:`setAromaticResidueNames` 
-        method.
+        function.
 
    backbone
         Group of :term:`protein` atoms whose names match one of CA, N, C, O, H.
         Note that this definition contains only non-hydrogen atoms, but may
         be changed using :func:`setBackboneAtomNames` 
-        method.
+        function.
         
         .. versionchanged:: 0.6.2
            H is added to the list of backbone atoms.
@@ -185,10 +188,10 @@ Keyword Definitions
 
    
    basic
-        Amino acid residues with basic sidechains. 
-        Residue names include ASP and GLU.
+        Amino acid residues with basic side-chains. 
+        Residue names include ARG, HIS, LYS, and HSP.
         This definition can be changed using :func:`setBasicResidueNames` 
-        method.
+        function.
     
    beta
         Atomic temperature (B/beta) factors.
@@ -215,9 +218,9 @@ Keyword Definitions
     
    cyclic
         Amino acid residues with cyclic sidechians. 
-        Residue names include HIS, PHE, PRO, TRP, TYR.
+        Residue names include HIS, PHE, PRO, TRP, TYR, HSD, HSE, HSP.
         This definition can be changed using :func:`setCyclicResidueNames` 
-        method.
+        function.
     
    element
         Chemical element symbols.
@@ -232,7 +235,10 @@ Keyword Definitions
         for more details on regular expressions.
         
    hydrophobic
-        Not :term:`charged` or :term:`polar`.
+        Amino acid residues with hydrophobic size sidechains. 
+        Residue names include ALA, ILE, LEU, MET, PHE, PRO, TRP, VAL, and XLE.
+        This definition can be changed using :func:`setHydrophobicResidueNames` 
+        function.
     
    index 
         Atom numbers starting at 0.
@@ -245,9 +251,9 @@ Keyword Definitions
     
    medium
         Amino acid residues with medium size sidechains. 
-        Residue names include VAL, THR, ASP, ASN, PRO, CYS.
+        Residue names include VAL, THR, ASP, ASN, PRO, CYS, SEC.
         This definition can be changed using :func:`setMediumResidueNames` 
-        method.
+        function.
         
    name
         Atom name.
@@ -269,13 +275,13 @@ Keyword Definitions
         Group of atoms whose residue names match one of GUA, ADE, CYT, THY, URA,
         DA, DC, DG, or DT.
         The list of residue names in this definition can be changed using
-        :func:`setNucleicResidueNames` method.
+        :func:`setNucleicResidueNames` function.
 
    occupancy
         Atomic occupancy values.
     
    polar
-        Amino acid residues with polar sidechains.
+        :term:`protein` residues that are not :term:`hydrophobic`.
         
    protein
         Group of atoms whose residue names match 3-letter standard and 
@@ -291,7 +297,7 @@ Keyword Definitions
            (pyrrolysine) has been added to the standard definition.
            
         Note that this list of residue names can be changed using
-        :func:`setProteinResidueNames` method.
+        :func:`setProteinResidueNames` function.
         
    radius
         Atomic radius.
@@ -337,9 +343,10 @@ Keyword Definitions
         Atom numbers starting at 1.
 
    small
-        Amino acid residues with small sidechains. Residue names include ALA, GLY, SER.
+        Amino acid residues with small sidechains. 
+        Residue names include ALA, GLY, and SER.
         This definition can be changed using :func:`setSmallResidueNames` 
-        method.
+        function.
         
    type
         Atom type (e.g. force field type).
@@ -347,7 +354,7 @@ Keyword Definitions
    water
         Group of atoms whose residue names match one of HOH, WAT, TIP3, or H2O. This
         list may be expanded using :func:`setWaterResidueNames` 
-        method.
+        function.
 
    x
         x component of coordinates.

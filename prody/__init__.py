@@ -28,12 +28,6 @@ import sys
 
 _PY3K = sys.version_info[0] > 2
 
-re = None
-def importRE():
-    import re as RE
-    global re
-    re = RE
-
 def importLA():
     try:
         import scipy.linalg as linalg
