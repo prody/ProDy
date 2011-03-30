@@ -844,37 +844,14 @@ class NMABase(object):
         
     def calcModes(self):
         pass
-        
-class NMA(NMABase):
-    
-    """A class for analysis of externally calculated Hessian matrices and 
-    normal modes.
-    
-    """
-    
-    def __init__(self, name):
-        NMABase.__init__(self, name)
-        
-    def setNumOfDims(self, ndim):
-        """Set the dimensionality of the model. 
-        
-        1 and 3 are accepted as *ndim* argument. Dimensionality can be changed
-        before eigenvectors are set. 
-        
-        """
-
-        assert ndim in [1, 3], 'ndim must be 1 or 3'
-        assert self._array is None, 'eigenvectors are set'
-        self._is3d = True
-        if ndim == 1:
-            self._is3d = False
     
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
         
         .. versionadded:: 0.5.3
         
-        If *eigenvalue* is not given, it will be set to 1.
+        If *eigenvalue* is not given, it will be set to 1. 
+        Variances are set as the inverse eigenvalues.
         
         """
         vector = eigenvector
@@ -922,6 +899,7 @@ class NMA(NMABase):
             self._eigenvals = np.concatenate((self._eigenvals, value))
             self._n_modes += vector.shape[1]            
             self._modes += [None] * vector.shape[1]
+        
         self._vars = 1 / self._eigenvals
     
     def setEigens(self, vectors, values=None):
@@ -939,6 +917,7 @@ class NMA(NMABase):
         For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
         and values must have shape ``(M,)``.
         
+        Variances are set as the inverse eigenvalues.
         
         """
         
@@ -976,8 +955,17 @@ class NMA(NMABase):
         self._n_modes = n_modes
         self._modes = [None] * n_modes
         self._vars = 1 / values
-
-
+        
+class NMA(NMABase):
+    
+    """A class for analysis of externally calculated Hessian matrices and 
+    normal modes.
+    
+    """
+    
+    def __init__(self, name):
+        NMABase.__init__(self, name)
+        
 class ModeSet(object):
     """A class for providing access to data for a subset of modes.
     
@@ -1810,6 +1798,41 @@ class PCA(NMABase):
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                          .format(self._n_modes, time.time()-start))
         
+    def addEigenpair(self, eigenvector, eigenvalue=None):
+        """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
+        
+        .. versionadded:: 0.7
+        
+        If *eigenvalue* is not given, it will be set to 1. 
+        Eigenvalue is also set as the variance.
+        
+        """
+
+        NMABase.setEigens(self, vectors, values)
+        self._vars = self._eigvals.copy()
+
+
+    def setEigens(self, vectors, values=None):
+        """Set eigenvectors and eigenvalues.
+        
+        .. versionadded:: 0.7
+        
+        :arg vectors: eigenvectors
+        :type vectors: numpy.ndarray
+        
+        :arg values: Eigenvalues. When ``None`` is passed (default value), 
+            all eigenvalues will be set to ``1``.
+        :type values: numpy.ndarray
+        
+        For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
+        and values must have shape ``(M,)``.
+        
+        Eigenvalues are also set as the variances.
+        
+        """
+        
+        NMABase.setEigens(self, vectors, values)
+        self._vars = self._eigvals.copy()
 
 EDA = PCA
 
@@ -2548,6 +2571,9 @@ def calcOverlap(rows, cols):
     >>> calcOverlap(p38_pca[0], p38_anm[2]) # doctest: +SKIP
     -0.71366564906422636
     
+    .. versionchanged:: 0.7
+       Both rows and columns are normalized prior to calculating overlap.       
+    
     """
     
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
@@ -2560,8 +2586,11 @@ def calcOverlap(rows, cols):
     if rows.getNumOfDegOfFreedom() != cols.getNumOfDegOfFreedom(): 
         raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
-        
-    return np.dot(rows.getArray().T, cols.getArray())
+    rows = rows.getArray()
+    rows *= 1 / (rows ** 2).sum(0) ** 0.5
+    cols = cols.getArray()
+    cols *= 1 / (cols ** 2).sum(0) ** 0.5
+    return np.dot(rows.T, cols)
 
 def printOverlapTable(rows, cols):
     """Print table of overlaps (correlations) between two sets of modes.
@@ -2809,7 +2838,7 @@ def sliceModel(model, atoms, selstr):
     array = model.getArray()
     sel = atoms.select(selstr)
     which = sel.getIndices()
-    nma = NMA('{0:s} slice "{1:s}"'.format(str(model), selstr))
+    nma = type(model)('{0:s} slice "{1:s}"'.format(model.getName(), selstr))
     if model.is3d():
         which = [which.reshape((len(which),1))*3]
         which.append(which[0]+1)
