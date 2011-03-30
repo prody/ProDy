@@ -115,9 +115,11 @@ def _saveProDySettings():
     out = open(fn, 'w')
     cPickle.dump(_ProDySettings, out)
     out.close()
+    
 _loadProDySettings()
-def ProDyPrintSettings():
-    print _ProDySettings
+
+#def ProDyPrintSettings():
+#    print _ProDySettings
 
 #ProDySettings = property(ProDySettings) 
 

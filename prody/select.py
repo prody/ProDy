@@ -169,7 +169,8 @@ __all__ = ['Select', 'Contacts',
            'getProteinResidueNames', 'setProteinResidueNames',
            'getKeywordResidueNames', 'setKeywordResidueNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
-           'getAtomNameRegex', 'setAtomNameRegex'
+           'getAtomNameRegex', 'setAtomNameRegex',
+           'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
            ]
 
 KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
@@ -210,7 +211,8 @@ KEYWORD_RESNAMES = {
     'small': ['ALA', 'GLY', 'SER'],
     'medium': ['VAL', 'THR', 'ASP', 'ASN', 'ASX', 'PRO', 'CYS', 'SEC'],
     
-    'water': ['HOH', 'WAT', 'TIP3', 'H2O'], #, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4'
+    'water': ['HOH', 'WAT', 'TIP3', 'H2O',
+              'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4'],
     'lipid': 'DLPE DMPC DPPC GPC LPPC PALM PC PGCL POPC POPE'.split(),
     'heme': 'HEM HEME'.split(),
     'ion': ('AL BA CA CAL CD CES CLA CL CO CS CU CU1 CUA HG IN IOD K MG MN3 '
@@ -523,14 +525,117 @@ some selection keywords:
     * :func:`setKeywordResidueNames`
     * :func:`setProteinResidueNames`
 
+Below functions are for manipulating selection macros:
+    
+  * :func:`defSelectionString`
+  * :func:`delSelectionString`
+  * :func:`getSelectionString` 
+  
+
 """
+
+n_atoms = 10
+ATOMGROUP = prody.AtomGroup('Test')
+ATOMGROUP.setCoordinates(np.random.random((n_atoms,3)))
+ATOMGROUP.setAtomNames(['CA']*n_atoms)
+ATOMGROUP.setResidueNames(['GLY']*n_atoms)
+ATOMGROUP.setResidueNumbers(np.arange(1,n_atoms+1))
+ATOMGROUP.setChainIdentifiers(['A']*n_atoms)
+ATOMGROUP.setAltLocIndicators([' ']*n_atoms)
+ATOMGROUP.setElementSymbols(['C']*n_atoms)
+ATOMGROUP.setHeteroFlags([False]*n_atoms)
+ATOMGROUP.setOccupancies([1]*n_atoms)
+ATOMGROUP.setSecondaryStrs(['H']*n_atoms)
+ATOMGROUP.setSegmentNames(['PDB']*n_atoms)
+ATOMGROUP.setAnisoTempFactors(np.random.random((n_atoms,6)))
+ATOMGROUP.setAnisoStdDevs(np.random.random((n_atoms,6)))
+ATOMGROUP.setInsertionCodes([' ']*n_atoms)
+ATOMGROUP.setAtomTypes(['CH2']*n_atoms)
+ATOMGROUP.setTempFactors([0]*n_atoms)
+ATOMGROUP.setCharges([0]*n_atoms)
+ATOMGROUP.setMasses([12]*n_atoms)
+ATOMGROUP.setRadii([1.4]*n_atoms)
+
+try:
+    MACROS = prody._ProDySettings['selection_macros']
+except KeyError:
+    MACROS = {}
+
+def defSelectionMacro(name, selstr):
+    """Define selection macro *selstr* with name *name*.
+    
+    .. versionadded:: 0.7
+    
+    Both *name* and *selstr* must be string. An existing keyword cannot be 
+    used as a macro name. If a macro with given *name* exists, it will be 
+    overwritten.
+    
+    """
+    
+    if not isinstance(name, str) or not isinstance(selstr, str):
+        raise TypeError('both name and selstr must be strings')
+    elif isKeyword(name):
+        raise ValueError('"{0:s}" is an existing keyword, cannot be used as a '
+                         'macro name'.format(name))
+    elif not (name.isalpha() and name.islower()):
+        raise ValueError('macro names must be all lower case letters, {0:s} '
+                         'is not a valid macro name'.format(name))
+    
+    LOGGER.info('Testing validity of selection string:')
+    try:
+        ATOMGROUP.select(selstr)
+    except:
+        LOGGER.warning('"{0:s}" is not a valid selection string, macro "{1:s}"'
+                    ' is not defined.'.format(selstr, name))
+    else:
+        LOGGER.info('Macro "{0:s}" is defined as "{1:s}".'
+                    .format(name, selstr))
+        MACROS[name] = selstr
+        prody._ProDySettings['selection_macros'] = MACROS
+        prody._saveProDySettings()
+
+def delSelectionMacro(name):
+    """Delete the macro *name*.
+    
+    .. versionadded:: 0.7
+    
+    """
+    
+    try:
+        MACROS.pop(name)
+    except:
+        LOGGER.warning('Macro "{0:s}" is not found.'.format(name))
+    else:
+        LOGGER.info('Macro "{0:s}" is deleted.'.format(name))
+        prody._ProDySettings['selection_macros'] = MACROS
+        prody._saveProDySettings()
+
+def getSelectionMacro(name=None):
+    """Return the definition of the macro *name*. 
+    
+    .. versionadded:: 0.7
+    
+    If *name* is not given, returns a copy of the selection macros dictionary.
+    
+    """
+    if name is None:        
+        return MACROS.copy()
+    try:
+        return MACROS[name]
+    except KeyError:
+        LOGGER.info('"{0:s}" is not a user defined macro name.'.format(name))
 
 mapField2Var = {}
 for field in ATOMIC_DATA_FIELDS.values():
     mapField2Var[field.name] = field.var
 
 def getKeywordResidueNames(keyword):
-    """Return residue names associated with a keyword."""
+    """Return residue names associated with a keyword.
+    
+    .. versionadded:: 0.7
+    
+    """
+    
     try:
         resnames = KEYWORD_RESNAMES[keyword]
         resnames.sort()
@@ -543,6 +648,16 @@ def getKeywordResidueNames(keyword):
             LOGGER.warning('{0:s} is not a keyword'.format(keyword))
 
 def setKeywordResidueNames(keyword, resnames):
+    """Change the list of residue names associated with a keyword.
+    
+    .. versionadded:: 0.7
+    
+    *keyword* must be a string, and *resnames* may be a list, tuple, or set of
+    strings. The existing list of residue names will be overwritten with the
+    given residue names.
+    
+    """
+    
     if not isinstance(keyword, str):
         raise TypeError('keyword must be a string')
     if not isinstance(resnames, (list, tuple, set)):
@@ -553,13 +668,20 @@ def setKeywordResidueNames(keyword, resnames):
                                         KEYWORD_RESNAMES_READONLY[keyword]))
         return
     if keyword in KEYWORD_RESNAMES:
+        for rn in resnames:
+            if not isinstance(rn, str):
+                raise TypeError('all items in resnames must be strings')
         KEYWORD_RESNAMES = list(set(resnames))
         _setReadonlyResidueNames()
     else:
         raise ValueError('{0:s} is not a valid keyword'.format(keyword))
 
 def getAtomNameRegex(name):
-    """Return regular expression used for selecting common elements."""
+    """Return regular expression used for selecting common elements.
+    
+    .. versionadded:: 0.7
+    
+    """
     
     try:
         return KEYWORD_NAME_REGEX[name]   
@@ -567,7 +689,11 @@ def getAtomNameRegex(name):
         LOGGER.warning('{0:s} is not a valid element'.format(keyword))
 
 def setAtomNameRegex(name, regex):
-    """Set regular expression used for selecting common elements."""
+    """Set regular expression used for selecting common elements.
+    
+    .. versionadded:: 0.7
+    
+    """
     
     if not name in KEYWORD_NAME_REGEX:
         raise ValueError('{0:s} is not a valid keyword'.format(name))
@@ -657,7 +783,6 @@ class Select(object):
         self._kdtree = None
         self._kwargs  = None
         self._selstr2indices = False
-        self._n_andor = 0
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
         
@@ -829,49 +954,35 @@ class Select(object):
         self._evalonly = None
         self._coordinates = None
         self._kdtree = None
-        self._n_andor = 0
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
 
     def _standardizeSelectionString(self):
         selstr = ' ' + self._selstr + ' '
-        andor = 0
-        while ')and(' in selstr:
-            selstr = selstr.replace(')and(', ')&&&(')
-            andor += 1
-        while ' and(' in selstr:
-            selstr = selstr.replace(' and(', ' &&&(')
-            andor += 1
-        while ')and ' in selstr:
-            selstr = selstr.replace(')and ', ')&&& ')
-            andor += 1
-        while ' and ' in selstr:
-            selstr = selstr.replace(' and ', ' &&& ')
-            andor += 1
+
+        selstr = selstr.replace(')and(', ')&&&(')
+        selstr = selstr.replace(' and(', ' &&&(')
+        selstr = selstr.replace(')and ', ')&&& ')
+        selstr = selstr.replace(' and ', ' &&& ')
             
-        while ')or(' in selstr:
-            selstr = selstr.replace(')or(', ')||(')
-            andor += 1
-        while ' or(' in selstr:
-            selstr = selstr.replace(' or(', ' ||(')
-            andor += 1
-        while ')or ' in selstr:
-            selstr = selstr.replace(')or ', ')|| ')
-            andor += 1
-        while ' or ' in selstr:
-            selstr = selstr.replace(' or ', ' || ')
-            andor += 1
-        self._n_andor = andor
+        selstr = selstr.replace(')or(', ')||(')
+        selstr = selstr.replace(' or(', ' ||(')
+        selstr = selstr.replace(')or ', ')|| ')
+        selstr = selstr.replace(' or ', ' || ')
         
-        while ' not(' in selstr:
-            selstr = selstr.replace(' not(', ' !!!(')
-        while ' not ' in selstr:
-            selstr = selstr.replace(' not ', ' !!! ')
+        selstr = selstr.replace(' not(', ' !!!(')
+        selstr = selstr.replace(' not ', ' !!! ')
+        
+        if MACROS:
+            for macro in MACROS.iterkeys():
+                selstr = selstr.replace(macro, '(' + MACROS[macro] + ')')
+        
         return selstr.strip()
 
     def _evalSelstr(self):
         selstr = self._selstr.strip() 
-        if len(selstr.split()) == 1 and '(' not in selstr and ')' not in selstr:
+        if len(selstr.split()) == 1 and '(' not in selstr and \
+           ')' not in selstr and selstr not in MACROS:
             return self._evalBoolean(selstr)
         selstr = self._standardizeSelectionString()
         if DEBUG: print '_evalSelstr', selstr
