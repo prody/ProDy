@@ -36,7 +36,7 @@
 # OTHER DEALINGS WITH THE SOFTWARE.
 
 package require exectool 1.2
-package provide nmwiz 0.6
+package provide nmwiz 0.7
 
 # 2-D plotting tool
 #
@@ -1625,7 +1625,7 @@ namespace eval ::nmwiz:: {
     }
     ::nmwiz::loadSettings
     set w [toplevel .nmwizgui]
-    wm title $w "NMWiz 0.6 - Main"
+    wm title $w "NMWiz 0.7 - Main"
     wm resizable $w 0 0
 
     set wmf [frame $w.mainframe -bd 2]
