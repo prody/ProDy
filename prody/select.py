@@ -449,6 +449,15 @@ tanh(x)  yperbolic tangent of x
   * ``"resnum <= 100"`` selects atoms with residue numbers less than or equal 
     to 100  
 
+
+Selection macros
+-------------------------------------------------------------------------------
+
+Finally, any valid selection string can be used to define selection macros
+using the :func:`defSelectionMacro` function. Macros are saved in ProDy
+configuration and loaded in later sessions automatically. 
+
+
 """
 
 FUNCTION_MAP = {
@@ -662,7 +671,8 @@ def setKeywordResidueNames(keyword, resnames):
     
     *keyword* must be a string, and *resnames* may be a list, tuple, or set of
     strings. The existing list of residue names will be overwritten with the
-    given residue names.
+    given residue names. Note that changes in keyword definitions are not 
+    saved permanently.
     
     >>> setKeywordResidueNames('acidic', ['ASP', 'GLU'])
     
@@ -704,6 +714,8 @@ def getAtomNameRegex(name):
 def setAtomNameRegex(name, regex):
     """Set regular expression used for selecting common elements.
     
+    Note that changes in keyword definitions are not saved permanently.
+    
     .. versionadded:: 0.7
     
     >>> setAtomNameRegex('nitrogen', 'N.*')
@@ -733,7 +745,11 @@ def getBackboneAtomNames():
     return bban 
 
 def setBackboneAtomNames(backbone_atom_names):
-    """Set protein backbone atom names."""
+    """Set protein backbone atom names.
+    
+    Note that changes in keyword definitions are not saved permanently.
+    
+    """
     
     if not isinstance(backbone_atom_names, (list, tuple, set)):
         raise TypeError('backbone_atom_names must be a list, tuple, or set')
@@ -747,7 +763,11 @@ def getProteinResidueNames():
     return KEYWORD_RESNAMES['protein']
 
 def setProteinResidueNames(resnames):
-    """Set list of protein residue names."""
+    """Set list of protein residue names.
+    
+    Note that changes in keyword definitions are not saved permanently.
+    
+    """
 
     setKeywordResidueNames('protein', resnames)
 
