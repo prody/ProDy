@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010-2011 Ahmet Bakan
@@ -15,110 +16,131 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for selecting subsets of atoms and identifying 
-contacts, and functions to learn and change definitions of selection keywords.
+"""
+Atom selections
+===============================================================================
+    
+ProDy offers a powerful atom selector. The keywords, selection grammar,
+and capabilities of the selector are similar to those found in VMD (|vmd|). 
+Small differences between the two should not affect most practical uses of 
+atom selections. ProDy selection engine also enables the identification of 
+intermolecular contacts. This section describes the keywords and selection 
+syntax.
 
-Classes
--------
+|more| See :ref:`contacts` and :ref:`selection-operations` for more usage
+examples.
 
-  * :class:`Select`
-  * :class:`Contacts`
+Getting interactive help
+-------------------------------------------------------------------------------
+
+The contents of this web page can be viewed in an interactive session as 
+follows:
+    
+>>> from prody import *
+>>> help(select)
+
+    
+Keywords with arguments
+-------------------------------------------------------------------------------
+
+Below is the list of keywords that can be used when paired with atomic
+attributes as arguments.
+
+============= ================ ===============================================
+Keyword       Arguments        Description
+============= ================ ===============================================
+name          string           atom name
+element       string           element symbol
+type [*]      string           atom type
+altloc [†‡]   string           one-character alternate location identifier
+resname       string           residue name
+chain [‡]     string           one-character chain identifier
+segment       string           segment name
+index         integer, range   atom number, starting at 0 
+serial        integer, range   atom number, starting at 1
+resnum [§]    integer, range   residue number
+resid [§]     integer, range   residue number
+x             float, range     x coordinate
+y             float, range     y coordinate
+z             float, range     z coordinate
+beta          float, range     β (temperature) factor
+occupancy     float, range     atomic occupancy value
+charge [*]    float, range     atomic charge
+mass [*]      float, range     atomic mass
+radius [*]    float, range     atomic radius
+============= ================ ===============================================
+
+**[*]** These atomic attributes are not set by the PDB parser when a PDB file 
+is parsed. Using them before they are set will raise selection error.
+
+**[‡]** Alternate locations are parsed as alternate coordinate sets. This
+keyword will work for alternate location specified by "A". For this to work
+alternate locations indicated by other letters, they must be parsed 
+specifically by passing the identifier to the :func:`~prody.proteins.parsePDB`.
+
+**[‡]** Atoms with unspecified alternate location/chain identifiers can be 
+selected using "_". This character is replaced with a whitespace.
+
+**[§]** If there are multiple residues with the same number but 
+distinguished with insertion codes, the insertion code can be appended
+to the residue number. "_" stands for empty insertion code. For example:
+    
+  * ``"resnum 5"`` selects residue 5 (all insertion codes)
+  * ``"resnum 5A"`` selects residue 5 with insertion code A
+  * ``"resnum 5_"`` selects residue 5 with no insertion code
+
+**Strings (with special characters)**
+
+Strings can be any combination of the following::
+
+  abcdefghijklmnopqrstuvwxyz
+  ABCDEFGHIJKLMNOPQRSTUVWXYZ
+  0123456789
+  ~@#$.:;_',
   
-Functions
----------
+For example ``"name C' N` O~ C$ C#"`` is a valid selection string. 
 
-Below functions can be used to learn and change the definitions of 
-:ref:`selection-keywords`.
+**Integers and floats**
 
-  * Learn keyword definitions:
+Numbers can be provided as integers or floats, and they will be converted to
+appropriate type. For example ``"resnum 10 11.0"`` will select residues
+with number 10 and 11, but ``"resnum 10.5"`` will not select anything.
+
+**Number ranges**
+
+Number ranges can be passed as follows:
     
-    * :func:`getAromaticResidueNames`
-    * :func:`getNucleicResidueNames`
-    * :func:`getBackboneAtomNames`
-    * :func:`getProteinResidueNames`
-    * :func:`getHydrogenRegex`
-    * :func:`getBasicResidueNames`
-    * :func:`getAliphaticResidueNames`
-    * :func:`getHydrophobicResidueNames`
-    * :func:`getCyclicResidueNames`
-    * :func:`getSmallResidueNames`
-    * :func:`getWaterResidueNames`
-    * :func:`getMediumResidueNames`
-    * :func:`getAcidicResidueNames`
+  * ``"resnum 5 10 to 15"`` selects residues 5, 10, 11, 12, 13, 14, and 15
+  * ``"resnum 5 10:15"`` selects residues 5, 10, 11, 12, 13, and 14 
+    (:, colon, works as it does in Python slicing operations)
+  * ``"resnum 1:10:2"`` selects residues 1, 3, 5, 7, and 9
+  * ``"x 1 to 10"`` selects atoms whose x coordinates are greater or equal to 1
+    or smaller or equal to 10  
+  * ``"x 1:10"`` selects atoms whose x coordinates are greater or equal to 1
+    or smaller or equal to 10
     
-  * Change keyword definitions:
-    
-    * :func:`setAromaticResidueNames`
-    * :func:`setNucleicResidueNames`
-    * :func:`setBackboneAtomNames`
-    * :func:`setProteinResidueNames`
-    * :func:`setHydrogenRegex`
-    * :func:`setBasicResidueNames`
-    * :func:`setAliphaticResidueNames`
-    * :func:`setHydrophobicResidueNames`
-    * :func:`setCyclicResidueNames`
-    * :func:`setSmallResidueNames`
-    * :func:`setWaterResidueNames`
-    * :func:`setMediumResidueNames`
-    * :func:`setAcidicResidueNames`
-    
-.. doctest::
-    :hide:
-    
-    >>> # Testing the selection parser
-    >>> # All tricky selection strings should be contained here
-    >>> from prody import *
-    >>> import numpy as np
-    >>> c = parsePDB('1zz2')
-    >>> p = c.copy('protein')
-    >>> len(p)
-    2716
-    >>> len(set(p.getResidueNames()))
-    20
-    >>> i = c.copy('resname B11')
-    >>> len(i)
-    33
-    >>> len(c.select('(x < 5) and protein and within 10 of water'))
-    301
-    >>> len(c.select('backbone and within 5 of not protein'))
-    649
-    >>> len(c.select('backbone and within 5 of not index < 2716'))
-    649
-    >>> c.select('backbone and same residue as not index < 2716')
-    >>> len(c.select('backbone and same residue as within 5 of not protein'))
-    1052
-    >>> len(p.select('within 4 of inhibitor', inhibitor=i))
-    50
-    >>> len(c.select('protein and within 4 of resname B11', inhibitor=i))
-    50
-    >>> len(c.select('exwithin 4 of resname B11', inhibitor=i))
-    55
-    >>> len(p.select('calpha and (same residue as within 4 of inhibitor)', inhibitor=i))
-    20
-    >>> len(p.select('backbone and within 5 of somepoint', somepoint=np.array((25, 73, 13))))
-    18
-    >>> len(p.select('backbone and sqrt((x - 25)**2 + (y - 74)**2 + (z - 13)**2) <= 5'))
-    12
-    >>> len(p.select('sqrt((x - 25)**2 + (y - 74)**2 + (z - 13)**2) <= 5'))
-    26
-    >>> a = c[1173]
-    >>> point = a.getCoordinates()
-    >>> len(p.select('within 5 of index 1173'))
-    29
-    >>> len(c.select('within 5 of index 1173'))
-    29
-    >>> len(p.select('within 5 of point', point=point))
-    29
-    >>> len(c.select('within 5 of point', point=point))
-    29
-    >>> len(c.select('sqrt((x - {0[0]:.3f})**2 + (y - {0[1]:.3f})**2 + (z - {0[2]:.3f})**2) <= 5'.format(point)))
-    29
-    >>> contacts = Contacts(p)
-    >>> print len(contacts.select(5, i)) == len(p.select('within 5 of inhibitor', inhibitor=i))
-    True
-    >>> print len(contacts.select(5, np.array((25, 73, 13)))) == len(p.select('within 5 of point', point=np.array((25, 73, 13))))
-    True
-    
+
+**More special characters (``)**
+
+Strings can include the following characters (including whitespace) as well 
+when they are surrounded by grave accent character (``)::
+  
+  ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"
+
+For example ``"name `CA*` `C *`"`` will work.
+
+**Regular expressions ("")**
+
+Strings surrounded by double quotes ("") will be treated as regular 
+expressions. The following character set can be used between double 
+quotes::
+  
+  ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'`
+
+For example ``'resname "A.."'`` will select residues whose names start with 
+letter A and are three-characters long.
+
+For more information on regular expressions see :mod:`re`. 
 
 """
 
@@ -139,36 +161,24 @@ from prody.atomic import *
 DEBUG = False
 
 __all__ = ['Select', 'Contacts',
-           'getAromaticResidueNames', 'setAromaticResidueNames',
-           'getNucleicResidueNames', 'setNucleicResidueNames',
-           'getBackboneAtomNames', 'setBackboneAtomNames',
            'getProteinResidueNames', 'setProteinResidueNames',
-           'getHydrogenRegex', 'setHydrogenRegex',
-           'getBasicResidueNames', 'setBasicResidueNames',
-           'getAliphaticResidueNames', 'setAliphaticResidueNames',
-           'getHydrophobicResidueNames', 'setHydrophobicResidueNames',
-           'getCyclicResidueNames', 'setCyclicResidueNames',
-           'getSmallResidueNames', 'setSmallResidueNames',
-           'getWaterResidueNames', 'setWaterResidueNames',
-           'getMediumResidueNames', 'setMediumResidueNames',
-           'getAcidicResidueNames', 'setAcidicResidueNames',
+           'getKeywordResidueNames', 'setKeywordResidueNames',
+           'getBackboneAtomNames', 'setBackboneAtomNames',
+           'getAtomNameRegex', 'setAtomNameRegex'
            ]
 
+NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
+             'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil'))
+             
+KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
+                       'segment', 'altloc'))
+KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
+KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
+                      'radius', 'charge'))
+KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
 
-""" TODO
-- make classmethods from methods not related to instances
-- evalonly in within and sameas 
-"""
+KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
 
-mapField2Var = {}
-for field in ATOMIC_DATA_FIELDS.values():
-    mapField2Var[field.name] = field.var
-
-BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 'H')) 
-PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
-        'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
-        'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
-        'GLX', 'ASX', 'SEC', 'PYL', 'XLE'))
 
 # 21st and 22nd amino acids	    3-Letter	1-Letter
 # Selenocysteine	            Sec	        U
@@ -179,201 +189,243 @@ PROTEIN_RESIDUE_NAMES = set(('ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN',
 # Glutamine or glutamic acid	        Glx	        Z
 # Leucine or Isoleucine	                Xle	        J
 # Unspecified or unknown amino acid     Xaa         X
-                          #, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4')
-WATER_RESIDUE_NAMES = set(('HOH', 'WAT', 'TIP3', 'H2O'))
-NUCLEIC_RESIDUE_NAMES = set(('GUA', 'ADE', 'CYT', 'THY', 'URA', 
-                           'DA', 'DC', 'DG', 'DT'))
 
-NON_HETERO_RESIDUE_NAMES = set.union(PROTEIN_RESIDUE_NAMES, 
-                                     NUCLEIC_RESIDUE_NAMES)
-HYDROGEN_REGEX = '[0-9]?H.*'
-ACIDIC_RESIDUE_NAMES = set(('ASP', 'GLU'))
-BASIC_RESIDUE_NAMES = set(('LYS', 'ARG', 'HIS', 'HSP'))
-CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
-ALIPHATIC_RESIDUE_NAMES = set(('ALA', 'GLY', 'ILE', 'LEU', 'VAL', 'XLE'))
-AROMATIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'))
-SMALL_RESIDUE_NAMES = set(('ALA', 'GLY', 'SER'))
-MEDIUM_RESIDUE_NAMES = set(('VAL', 'THR', 'ASP', 'ASN', 'PRO', 'CYS', 'SEC'))
-LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
-                        set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
-HYDROPHOBIC_RESIDUE_NAMES = set(('ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO',
-                                 'TRP', 'VAL', 'XLE'))
-CYCLIC_RESIDUE_NAMES = set(('HIS', 'PHE', 'PRO', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'))
+KEYWORD_RESNAMES = {
+    'protein': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
+                'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
+                'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
+                'GLX', 'ASX', 'SEC', 'PYL', 'XLE'],
+    'nucleic': ['GUA', 'ADE', 'CYT', 'THY', 'URA', 'DA', 'DC', 'DG', 'DT', 
+                'A', 'C', 'G', 'T', 'U'],
 
-def getBackboneAtomNames():
-    """Return protein :term:`backbone` atom names."""
-    return list(BACKBONE_ATOM_NAMES)
-
-def setBackboneAtomNames(backbone_atom_names):
-    """Set protein :term:`backbone` atom names."""
-    if not isinstance(backbone_atom_names, (list, tuple, set)):
-        raise TypeError('backbone_atom_names must be a list, tuple, or set')
-    global BACKBONE_ATOM_NAMES
-    BACKBONE_ATOM_NAMES = set(backbone_atom_names)
-    _buildKeywordMap()
-
-def getProteinResidueNames():
-    """Return :term:`protein` residue names."""
-    return list(PROTEIN_RESIDUE_NAMES)
-
-def setProteinResidueNames(protein_residue_names):
-    """Set :term:`protein` residue names."""
-    if not isinstance(protein_residue_names, (list, tuple, set)):
-        raise TypeError('protein_residue_names must be a list, tuple, or set')
-    global PROTEIN_RESIDUE_NAMES, NON_HETERO_RESIDUE_NAMES
-    PROTEIN_RESIDUE_NAMES = set(protein_residue_names)
-    NON_HETERO_RESIDUE_NAMES = set.union(PROTEIN_RESIDUE_NAMES, 
-                                         NUCLEIC_RESIDUE_NAMES)
-    _buildKeywordMap()
+    'acidic': ['ASP', 'GLU'],
+    'aliphatic': ['ALA', 'GLY', 'ILE', 'LEU', 'VAL', 'XLE'],
+    'aromatic': ['HIS', 'PHE', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'],
+    'basic': ['LYS', 'ARG', 'HIS', 'HSP', 'HSD'],
+    'buried': 'ALA LEU VAL ILE XLE PHE CYS MET TRP'.split(),
+    'cyclic': ['HIS', 'PHE', 'PRO', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'],
+    'hydrophobic': ['ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'VAL', 'XLE'],
+    'small': ['ALA', 'GLY', 'SER'],
+    'medium': ['VAL', 'THR', 'ASP', 'ASN', 'ASX', 'PRO', 'CYS', 'SEC'],
     
-def getAcidicResidueNames():
-    """Return :term:`acidic` residue names."""
-    return list(ACIDIC_RESIDUE_NAMES)
-
-def setAcidicResidueNames(acidic_residue_names):
-    """Set :term:`acidic` residue names."""
-    if not isinstance(acidic_residue_names, (list, tuple, set)):
-        raise TypeError('acidic_residue_names must be a list, tuple, or set')
-    global ACIDIC_RESIDUE_NAMES, CHARGED_RESIDUE_NAMES
-    ACIDIC_RESIDUE_NAMES = set(acidic_residue_names)
-    CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
-    _buildKeywordMap()
+    'water': ['HOH', 'WAT', 'TIP3', 'H2O'], #, 'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4'
+    'lipid': 'DLPE DMPC DPPC GPC LPPC PALM PC PGCL POPC POPE'.split(),
+    'heme': 'HEM HEME'.split(),
+    'ion': ('AL BA CA CAL CD CES CLA CL CO CS CU CU1 CUA HG IN IOD K MG MN3 '
+            'MO3 MO4 MO5 MO6 NA NAW OC7 PB POT PT RB SOD TB TL WO4 YB ZN ZN1 '
+            'ZN2').split(),
+    'sugar': ['AGLC'],
     
-def getBasicResidueNames():
-    """Return :term:`basic` residue names."""
-    return list(BASIC_RESIDUE_NAMES)
+    'at': 'ADE A THY T'.split(),
+    'cg': 'CYT C GUA G'.split(),
+    'purine': 'ADE A GUA G'.split(),
+    'pyrimidine': 'CYT C THY T URA U'.split(),
+}
 
-def setBasicResidueNames(basic_residue_names):
-    """Set :term:`basic` residue names."""
-    if not isinstance(basic_residue_names, (list, tuple, set)):
-        raise TypeError('basic_residue_names must be a list, tuple, or set')
-    global BASIC_RESIDUE_NAMES, CHARGED_RESIDUE_NAMES
-    BASIC_RESIDUE_NAMES = set(basic_residue_names)
-    CHARGED_RESIDUE_NAMES = set.union(ACIDIC_RESIDUE_NAMES, BASIC_RESIDUE_NAMES)
-    _buildKeywordMap()
+KEYWORD_RESNAMES_READONLY = {
+    'acyclic': 'protein and not cyclic',
+    'charged': 'acidic or basic',
+    'large': 'not (small or medium)',
+    'neutral': 'protein and not charged',
+    'polar': 'protein and not hydrophobic',
+    'surface': 'protein and not buried',
+}
 
-def getChargedResidueNames():
-    """Return :term:`charged` residue names."""
-    return list(CHARGED_RESIDUE_NAMES)
-
-def getAliphaticResidueNames():
-    """Return :term:`aliphatic` residue names."""
-    return list(ALIPHATIC_RESIDUE_NAMES)
-
-def setAliphaticResidueNames(aliphatic_residue_names):
-    """Set :term:`aliphatic` residue names."""
-    if not isinstance(aliphatic_residue_names, (list, tuple, set)):
-        raise TypeError('aliphatic_residue_names must be a list, tuple, or ' 
-                        'set')
-    global ALIPHATIC_RESIDUE_NAMES
-    ALIPHATIC_RESIDUE_NAMES = set(aliphatic_residue_names)
-    _buildKeywordMap()
+def _setReadonlyResidueNames():
+    protein = set(KEYWORD_RESNAMES['protein'])
+    KEYWORD_RESNAMES['acyclic'] = list(protein.difference(set(KEYWORD_RESNAMES['cyclic'])))
+    KEYWORD_RESNAMES['charged'] = list(set(KEYWORD_RESNAMES['acidic'] + KEYWORD_RESNAMES['basic']))
+    KEYWORD_RESNAMES['large'] = list(protein.difference(set(KEYWORD_RESNAMES['small'] + KEYWORD_RESNAMES['medium'])))
+    KEYWORD_RESNAMES['neutral'] = list(protein.difference(set(KEYWORD_RESNAMES['charged'])))
+    KEYWORD_RESNAMES['polar'] = list(protein.difference(set(KEYWORD_RESNAMES['hydrophobic'])))
+    KEYWORD_RESNAMES['surface'] = list(protein.difference(set(KEYWORD_RESNAMES['buried'])))
     
-def getHydrophobicResidueNames():
-    """Return :term:`hydrophobic` residue names."""
-    return list(HYDROPHOBIC_RESIDUE_NAMES)
+_setReadonlyResidueNames()
 
-def setHydrophobicResidueNames(hydrophobic_residue_names):
-    """Set :term:`aliphatic` residue names."""
-    if not isinstance(hydrophobic_residue_names, (list, tuple, set)):
-        raise TypeError('hydrophobic_residue_names must be a list, tuple, or ' 
-                        'set')
-    global HYDROPHOBIC_RESIDUE_NAMES
-    HYDROPHOBIC_RESIDUE_NAMES = set(HYDROPHOBIC_residue_names)
-    _buildKeywordMap()
+__doc__ += """
 
-def getAromaticResidueNames():
-    """Return :term:`aromatic` residue names."""
-    return list(AROMATIC_RESIDUE_NAMES)
+Keywords without arguments
+-------------------------------------------------------------------------------
 
-def setAromaticResidueNames(aromatic_residue_names):
-    """Set :term:`aromatic` residue names."""
-    if not isinstance(aromatic_residue_names, (list, tuple, set)):
-        raise TypeError('aromatic_residue_names must be a list, tuple, or set')
-    global AROMATIC_RESIDUE_NAMES
-    AROMATIC_RESIDUE_NAMES = set(aromatic_residue_names)
-    _buildKeywordMap()
+Below is the list of keywords defined based on residue type and/or property.
+These definitions can be retrieved or altered using :func:`getKeywordResidueNames` 
+and :func:`setKeywordResidueNames`, respectively.
 
-def getSmallResidueNames():
-    """Return :term:`small` residue names."""
-    return list(SMALL_RESIDUE_NAMES)
+============= =================================================================
+Keyword       Description
+============= =================================================================
+"""
+keys = KEYWORD_RESNAMES.keys()
+keys.sort()
+for key in keys:
+    if key in KEYWORD_RESNAMES_READONLY:
+        __doc__ += '{0:13s} resname {1:s}\n'.format(key + ' [#]', ' '.join(KEYWORD_RESNAMES[key]))
+    else:
+        __doc__ += '{0:13s} resname {1:s}\n'.format(key, ' '.join(KEYWORD_RESNAMES[key]))
 
-def setSmallResidueNames(small_residue_names):
-    """Set :term:`small` residue names."""
-    if not isinstance(small_residue_names, (list, tuple, set)):
-        raise TypeError('small_residue_names must be a list, tuple, or set')
-    global SMALL_RESIDUE_NAMES, LARGE_RESIDUE_NAMES
-    SMALL_RESIDUE_NAMES = set(small_residue_names)
-    LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
-                        set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
-    _buildKeywordMap()
+__doc__ += """============= =================================================================
 
-def getMediumResidueNames():
-    """Return :term:`medium` residue names."""
-    return list(MEDIUM_RESIDUE_NAMES)
-
-def setMediumResidueNames(medium_residue_names):
-    """Set :term:`medium` residue names."""
-    if not isinstance(medium_residue_names, (list, tuple, set)):
-        raise TypeError('medium_residue_names must be a list, tuple, or set')
-    global MEDIUM_RESIDUE_NAMES, LARGE_RESIDUE_NAMES
-    MEDIUM_RESIDUE_NAMES = set(medium_residue_names)
-    LARGE_RESIDUE_NAMES = PROTEIN_RESIDUE_NAMES.difference(
-                        set.union(MEDIUM_RESIDUE_NAMES, SMALL_RESIDUE_NAMES))
-    _buildKeywordMap()
-
-def getCyclicResidueNames():
-    """Return :term:`cyclic` residue names."""
-    return list(CYCLIC_RESIDUE_NAMES)
-
-def setCyclicResidueNames(cyclic_residue_names):
-    """Set :term:`cyclic` residue names."""
-    if not isinstance(cyclic_residue_names, (list, tuple, set)):
-        raise TypeError('cyclic_residue_names must be a list, tuple, or set')
-    global CYCLIC_RESIDUE_NAMES
-    CYCLIC_RESIDUE_NAMES = set(cyclic_residue_names)
-    _buildKeywordMap()
-
-def getWaterResidueNames():
-    """Return :term:`water` residue names."""
-    return list(WATER_RESIDUE_NAMES)
-
-def setWaterResidueNames(water_residue_names):
-    """Set :term:`water` residue names."""
-    if not isinstance(water_residue_names, (list, tuple, set)):
-        raise TypeError('water_residue_names must be a list, tuple, or set')
-    global WATER_RESIDUE_NAMES
-    WATER_RESIDUE_NAMES = set(water_residue_names)
-    _buildKeywordMap()
-
-def getNucleicResidueNames():
-    """Return :term:`nucleic` residue names."""
-    return list(NUCLEIC_RESIDUE_NAMES)
-
-def setNucleicResidueNames(nucleic_residue_names):
-    """Set :term:`nucleic` residue names."""
-    if not isinstance(water_residue_names, (list, tuple, set)):
-        raise TypeError('nucleic_residue_names must be a list, tuple, or set')
-    global NUCLEIC_RESIDUE_NAMES, NON_HETERO_RESIDUE_NAMES
-    NUCLEIC_RESIDUE_NAMES = set(nucleic_residue_names)
-    NON_HETERO_RESIDUE_NAMES = set.union(PROTEIN_RESIDUE_NAMES, 
-                                         NUCLEIC_RESIDUE_NAMES)
-    _buildKeywordMap()
-
-def getHydrogenRegex():
-    """Return regular expression to match :term:`hydrogen` atom names."""
-    return list(HYDROGEN_REGEX)
-
-def setHydrogenRegex(hydrogen_regex):
-    """Set regular expression to match :term:`hydrogen` atom names."""
-    if not isinstance(hydrogen_regex, (str)):
-        raise TypeError('hydrogen_regex must be a string')
-    global HYDROGEN_REGEX
-    HYDROGEN_REGEX = hydrogen_regex
-
-class SelectionError(Exception):    
-    pass
+**[#]** Definitions of these keywords cannot be changed directly, as they 
+are defined based on others as follows: 
     
+"""
+keys = KEYWORD_RESNAMES_READONLY.keys()
+keys.sort()
+for key in keys:
+    __doc__ += '  * "{0:s}" is "{1:s}"\n'.format(key, KEYWORD_RESNAMES_READONLY[key])
+
+__doc__ += """
+.. versionchanged:: 0.6.1
+   ASX (asparagine or aspartic acid), GLX (lutamine or glutamic acid),
+   XLE (leucine or isoleucine), SEC (selenocysteine), and PYL
+   (pyrrolysine) has been added to the standard definition of "protein" 
+   keyword. Note that this list of residue names can be changed using
+   :func:`setProteinResidueNames` function.
+
+The following are additional keywords whose definitions are more restricted:
+
+=============== ===============================================================
+Keyword         Description
+=============== ===============================================================
+all             all atoms
+none            nothing (returns ``None``)
+hetero          non-protein/nucleic atoms, same as ``"not (protein or nucleic)"``
+calpha (ca)     Cα atoms of protein residues, same as ``"name CA and protein"``
+backbone (bb)   backbone atoms of protein residues, same as ``"name CA C O N H and protein"``
+sidechain (sc)  side-chain atoms of protein residues, same as ``"not name CA C O N H and protein"``
+carbon          carbon atoms, same as ``'name "C.*" and not resname ion'``
+hydrogen        hydrogen atoms, same as ``'name "[1-9]?H.*"'``
+noh             non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
+nitrogen        nitrogen atoms, same as ``'name "N.*"'``
+oxygen          oxygen atoms, same as ``'name "O.*"'``
+sulfur          sulfur atoms, same as ``'name "S.*"'``
+=============== ===============================================================
+
+.. versionchanged:: 0.6.2
+   H is added to the list of backbone atoms.
+
+Among these list of backbone atom names can be changed using 
+:func:`setBackboneAtomNames`  and regular expressions for element types
+can be changed using :func:`setAtomNameRegex`.
+
+"""
+    
+KEYWORD_NAME_REGEX = {
+    'carbon': 'C.*',
+    'hydrogen': '[0-9]?H.*',
+    'nitrogen': 'N.*',
+    'oxygen': 'O.*',
+    'sulfur': 'S.*',
+}
+
+BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 'H')) 
+
+KEYWORD_MAP = {}
+def _buildKeywordMap():
+    global KEYWORD_MAP
+    
+    protein = KEYWORD_RESNAMES['protein']
+    #'keyword' : (residue_names, invert, atom_names, atom_names_not),
+    for keyword, resnames in KEYWORD_RESNAMES.iteritems():
+        KEYWORD_MAP[keyword] = (resnames, False, None, False)
+
+    KEYWORD_MAP['alpha'] = (protein, False, ['CA'], False)
+    KEYWORD_MAP['calpha'] = (protein, False, ['CA'], False)
+    KEYWORD_MAP['ca'] = (protein, False, ['CA'], False)
+    KEYWORD_MAP['backbone'] = (protein, False, BACKBONE_ATOM_NAMES, False)
+    KEYWORD_MAP['bb'] = (protein, False, BACKBONE_ATOM_NAMES, False)
+    KEYWORD_MAP['sidechain'] = (protein, False, BACKBONE_ATOM_NAMES, True)
+    KEYWORD_MAP['sc'] = (protein, False, BACKBONE_ATOM_NAMES, True)
+
+    KEYWORD_MAP['hetero'] = (protein + KEYWORD_RESNAMES['nucleic'], True, None, False) 
+
+    for name, regex in KEYWORD_NAME_REGEX.iteritems():
+        KEYWORD_MAP[name] = (None, False, [['"', regex, '"']], False)
+    
+    KEYWORD_MAP['carbon'] = (KEYWORD_RESNAMES['ion'], True, [['"', KEYWORD_NAME_REGEX['carbon'], '"']], False)
+    KEYWORD_MAP['noh'] = (None, False, [['"', KEYWORD_NAME_REGEX['hydrogen'], '"']], True)
+    
+_buildKeywordMap()
+KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys())
+
+__doc__ += """
+
+Numerical comparisons
+-------------------------------------------------------------------------------
+
+Following keywords can be used in numerical comparisons, as operands of 
+arithmetic operations or as arguments to functions:  
+ 
+ * index, serial   
+ * resnum, resid
+ * x, y, z
+ * beta, occupancy
+ * charge, mass, radius (these must be set by user before they can be used) 
+
+Numerical attributes of atoms can be used wit the following comparison 
+
+========== =================================
+Comparison Description
+========== =================================
+   <       less than
+   >       greater than
+   <=      less than or equal
+   >=      greater than or equal
+   ==      equal
+   =       equal
+   !=      not equal
+========== =================================
+
+Numerical attributes of atoms can be used as operands to the following 
+operators:
+
+========= ==================================
+Operation Description
+========= ==================================
+x ** y    x to the power y
+x ^ y     x to the power y
+x * y     x times y
+x / y     x divided by y
+x // y    x divided by y (floor division)
+x % y     x modulo y
+x + y     x plus y 
+x - y     x minus y
+========= ==================================
+   
+Numerical attributes of atoms can be used as arguments to the following 
+functions:
+   
+======== ===================================
+Function Description
+======== ===================================
+abs(x)   absolute value of x 
+acos(x)  arccos of x
+asin(x)  arcsin of x
+atan(x)  arctan of x
+ceil(x)  smallest integer not less than x
+cos(x)   cosine of x"
+cosh(x)  hyperbolic cosine of x
+floor(x) largest integer not greater than x 
+exp(x)   e to the power x
+log(x)   natural logarithm of x
+log10(x) base 10 logarithm of x
+sin(x)   sine of x
+sinh(x)  hyperbolic sine of x
+sq(x)    square of x
+sqrt(x)  square-root of x
+tan(x)   tangent of x
+tanh(x)  yperbolic tangent of x
+======== ===================================
+
+**Examples**
+  
+  * ``"sqrt(x**2 + y**2 + z**2) < 10"`` selects atoms within 10 Å of the 
+    origin
+  * ``"resnum <= 100"`` selects atoms with residue numbers less than or equal 
+    to 100  
+
+"""
+
 FUNCTION_MAP = {
     'sqrt'  : np.sqrt,
     'sq'    : lambda num: np.power(num, 2),
@@ -411,51 +463,126 @@ BINARY_OPERATOR_MAP = {
 
 COMPARISONS = set(('<', '>', '>=', '<=', '==', '=', '!='))
 
-KEYWORD_MAP = None
-def _buildKeywordMap():
-    global KEYWORD_MAP
-    KEYWORD_MAP = {
-        #'keyword' : (residue_names, atom_names, invert, atom_names_not),
-        'alpha'      : (PROTEIN_RESIDUE_NAMES, set(('CA',)), False, False),
-        'calpha'     : (PROTEIN_RESIDUE_NAMES, set(('CA',)), False, False),
-        'ca'         : (PROTEIN_RESIDUE_NAMES, set(('CA',)), False, False),
-        'protein'    : (PROTEIN_RESIDUE_NAMES, None, False, False),
-        'backbone'   : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
-        'bb'         : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, False),
-        'acidic'     : (ACIDIC_RESIDUE_NAMES, None, False, False),
-        'basic'      : (BASIC_RESIDUE_NAMES, None, False, False),
-        'charged'    : (CHARGED_RESIDUE_NAMES, None, False, False),
-        'aliphatic'  : (ALIPHATIC_RESIDUE_NAMES, None, False, False),
-        'hydrophobic': (HYDROPHOBIC_RESIDUE_NAMES, None, False, False),
-        'polar'      : (HYDROPHOBIC_RESIDUE_NAMES, None, True, False),
-        'aromatic'   : (AROMATIC_RESIDUE_NAMES, None, False, False),
-        'small'      : (SMALL_RESIDUE_NAMES, None, False, False),
-        'medium'     : (MEDIUM_RESIDUE_NAMES, None, False, False),
-        'cyclic'     : (CYCLIC_RESIDUE_NAMES, None, False, False),
-        'large'      : (LARGE_RESIDUE_NAMES, None, False, False),
-        'neutral'    : (CHARGED_RESIDUE_NAMES, None, True, False),
-        'acyclic'    : (CYCLIC_RESIDUE_NAMES, None, True, False),
-        'water'      : (WATER_RESIDUE_NAMES, None, False, False),
-        'waters'     : (WATER_RESIDUE_NAMES, None, False, False),
-        'nucleic'    : (NUCLEIC_RESIDUE_NAMES, None, False, False),
-        'hetero'     : (NON_HETERO_RESIDUE_NAMES, None, True, False), 
-        'sidechain'  : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
-        'sc'         : (PROTEIN_RESIDUE_NAMES, BACKBONE_ATOM_NAMES, False, True),
-        
-    }
-_buildKeywordMap()
 
-NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
-             'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil', 
-             'purine', 'pyrimidine'))
-KEYWORDS_BOOLEAN = set(['all', 'hydrogen', 'noh', 'none'] + KEYWORD_MAP.keys())
-KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
-                      'radius', 'charge'))
-KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
-KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
-                       'segment'))
-KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
-KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
+
+__doc__ += """
+
+:mod:`prody.select`
+===================
+
+
+This module defines classes for selecting subsets of atoms and identifying 
+contacts, and functions to learn and change definitions of selection keywords.
+
+Classes
+-------
+
+  * :class:`Select`
+  * :class:`Contacts`
+  
+Functions
+---------
+
+Below functions can be used to learn and change the definitions of 
+:ref:`selection-keywords`.
+
+  * Learn keyword definitions:
+    
+    * :func:`getAtomNameRegex`
+    * :func:`getBackboneAtomNames`
+    * :func:`getKeywordResidueNames` 
+    * :func:`getProteinResidueNames`
+    
+  * Change keyword definitions:
+    
+    * :func:`setAtomNameRegex`
+    * :func:`setBackboneAtomNames`
+    * :func:`setKeywordResidueNames`
+    * :func:`setProteinResidueNames`
+
+"""
+
+mapField2Var = {}
+for field in ATOMIC_DATA_FIELDS.values():
+    mapField2Var[field.name] = field.var
+
+def getKeywordResidueNames(keyword):
+    """Return residue names associated with a keyword."""
+    try:
+        resnames = KEYWORD_RESNAMES[keyword]
+        resnames.sort()
+        return resnames  
+    except KeyError:
+        if keyword in KEYWORD_RESNAMES_READONLY:
+            LOGGER.warning('{0:s} is defined as "{1:s}"'.format(keyword, 
+                                        KEYWORD_RESNAMES_READONLY[keyword]))
+        else:
+            LOGGER.warning('{0:s} is not a keyword'.format(keyword))
+
+def setKeywordResidueNames(keyword, resnames):
+    if not isinstance(keyword, str):
+        raise TypeError('keyword must be a string')
+    if not isinstance(resnames, (list, tuple, set)):
+        raise TypeError('resnames must be a list, set, or tuple')
+    if keyword in KEYWORD_RESNAMES_READONLY:
+        LOGGER.warning('{0:s} is defined as "{1:s}" and cannot be changed '
+                           'directly'.format(keyword, 
+                                        KEYWORD_RESNAMES_READONLY[keyword]))
+        return
+    if keyword in KEYWORD_RESNAMES:
+        KEYWORD_RESNAMES = list(set(resnames))
+        _setReadonlyResidueNames()
+    else:
+        raise ValueError('{0:s} is not a valid keyword'.format(keyword))
+
+def getAtomNameRegex(name):
+    """Return regular expression used for selecting common elements."""
+    
+    try:
+        return KEYWORD_NAME_REGEX[name]   
+    except KeyError:
+        LOGGER.warning('{0:s} is not a valid element'.format(keyword))
+
+def setAtomNameRegex(name, regex):
+    """Set regular expression used for selecting common elements."""
+    
+    if not name in KEYWORD_NAME_REGEX:
+        raise ValueError('{0:s} is not a valid keyword'.format(name))
+    try:
+        RE.compile(regex)
+    except:
+        raise ValueError('{0:s} is not a valid regular expression'
+                         .format(regex))
+    else:
+        KEYWORD_NAME_REGEX[name] = regex
+
+def getBackboneAtomNames():
+    """Return protein :term:`backbone` atom names."""
+    
+    return list(BACKBONE_ATOM_NAMES)
+
+def setBackboneAtomNames(backbone_atom_names):
+    """Set protein :term:`backbone` atom names."""
+    
+    if not isinstance(backbone_atom_names, (list, tuple, set)):
+        raise TypeError('backbone_atom_names must be a list, tuple, or set')
+    global BACKBONE_ATOM_NAMES
+    BACKBONE_ATOM_NAMES = set(backbone_atom_names)
+    _buildKeywordMap()
+
+def getProteinResidueNames():
+    """Return list of protein residue names."""
+    
+    return KEYWORD_RESNAMES['protein']
+
+def setProteinResidueNames(resnames):
+    """Set list of protein residue names."""
+
+    setKeywordResidueNames('protein', resnames)
+
+class SelectionError(Exception):    
+    pass
+
 
 def isFloatKeyword(keyword):
     return keyword in KEYWORDS_FLOAT
@@ -508,18 +635,19 @@ class Select(object):
         self._kwargs  = None
         self._selstr2indices = False
         self._n_andor = 0
-        self._n_not = 0
-        self._n_comp = 0
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
         
-        shortlist = pp.alphanums + '''`~@#$.:;_','''
-        longlist = pp.alphanums + '''`~!@#$%^&*()-_=+[{}]\|;:,<>./?() '''
+        shortlist = pp.alphanums + '''~@#$.:;_','''
+        longlist = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
         
         self._tokenizer = pp.operatorPrecedence(
              pp.OneOrMore(pp.Word(shortlist) | 
-             pp.Group(pp.oneOf('" \'') + pp.Word(longlist) + 
-                      pp.oneOf('" \''))),
+             pp.Group(pp.Literal('"') + pp.Word(longlist + '`') + 
+                      pp.Literal('"')) | 
+             pp.Group(pp.Literal('`') + pp.Word(longlist + '"') + 
+                      pp.Literal('`'))
+                      ),
              [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
                         'asin acos sinh cosh tanh exp log log10'), 
                         1, pp.opAssoc.RIGHT, self._func),
@@ -679,8 +807,6 @@ class Select(object):
         self._coordinates = None
         self._kdtree = None
         self._n_andor = 0
-        self._n_not = 0
-        self._n_comp = 0
         for var in mapField2Var.values():
             self.__dict__['_'+var] = None        
 
@@ -714,26 +840,15 @@ class Select(object):
             andor += 1
         self._n_andor = andor
         
-        comp = 0
-        if andor == 0: 
-            for item in selstr.split():
-                if item in COMPARISONS: 
-                    comp += 1
-        self._n_comp = comp
-        
-        n_not = 0
         while ' not(' in selstr:
             selstr = selstr.replace(' not(', ' !!!(')
-            n_not += 1
         while ' not ' in selstr:
             selstr = selstr.replace(' not ', ' !!! ')
-            n_not += 1
-        self._n_not = n_not
         return selstr.strip()
 
     def _evalSelstr(self):
         selstr = self._selstr.strip() 
-        if len(selstr.split()) == 1:
+        if len(selstr.split()) == 1 and '(' not in selstr and ')' not in selstr:
             return self._evalBoolean(selstr)
         selstr = self._standardizeSelectionString()
         if DEBUG: print '_evalSelstr', selstr
@@ -789,6 +904,8 @@ class Select(object):
             return self._within([' '.join(token[:3])] + token[3:], True)
         elif keyword == 'same':
             return self._sameas([' '.join(token[:3])] + token[3:])
+        elif keyword == '!!!':
+            return self._not(token)
         elif isBooleanKeyword(keyword):
             raise SelectionError('Single word keywords must be followed with '
                                  'and operator.')            
@@ -803,6 +920,8 @@ class Select(object):
         token = []
         while temp:
             tkn = temp.pop(0)
+            if isinstance(tkn, str) and isBooleanKeyword(tkn):
+                tkn = self._evalBoolean(tkn)
             if tkn == '||':
                 tokenlist.append(token)
                 token = []
@@ -839,6 +958,12 @@ class Select(object):
         token = []
         while temp:
             tkn = temp.pop(0)
+            if isinstance(tkn, str) and isBooleanKeyword(tkn):
+                tkn = self._evalBoolean(tkn, True)
+                if isinstance(tkn, list):
+                    tkn.extend(temp)
+                    temp = tkn
+                    continue
             if tkn == '&&&':
                 tokenlist.append(token)
                 token = []
@@ -1062,7 +1187,7 @@ class Select(object):
         token = token[0]
         return FUNCTION_MAP[token[0]](token[1])
 
-    def _evalBoolean(self, keyword):
+    def _evalBoolean(self, keyword, _and=False):
         if DEBUG: print '_evalBoolean', keyword
         
         if self._evalonly is None:
@@ -1070,40 +1195,43 @@ class Select(object):
         else:        
             n_atoms = len(self._evalonly)
         
-        if keyword == 'noh':
-            return self._not(['!!!', 'name', (['"', HYDROGEN_REGEX,'"'])])
-        elif keyword == 'all':
+        if keyword == 'all':
             return np.ones(n_atoms, np.bool)
         elif keyword == 'none':
             return np.zeros(n_atoms, np.bool)
-        elif keyword == 'hydrogen':
-            return self._evaluate(['name', (['"', HYDROGEN_REGEX,'"'])])
-
+    
         try:
-            residue_names, atom_names, invert, atom_names_not = KEYWORD_MAP[keyword]
+            residue_names, rn_invert, atom_names, an_invert = KEYWORD_MAP[keyword]
+            if DEBUG:
+                print '_evalBoolean', residue_names, rn_invert, atom_names, an_invert
         except KeyError:
             raise SelectionError('"{0:s}" is not a valid keyword.'
                                  .format(keyword))
-            
-        if atom_names is None:
-            torf = self._evalAlnum('resname', list(residue_names))
-        else:
-            if atom_names_not:
-                torf = self._and([[self._not(['!!!', 'name'] + 
-                                   list(atom_names)), '&&&', 'resname'] + 
-                                   list(residue_names)])
-            else:
-                torf = self._and([['name'] + list(atom_names) + 
-                                  ['&&&', 'resname'] + list(residue_names)])
-            
-        if invert:
-            torf = np.invert(torf, torf)
 
-        return torf
+        compound = []
+        if atom_names is not None:
+            if an_invert:
+                compound.append('!!!')
+            compound.append('name')
+            compound.extend(atom_names)
+            if residue_names is not None:
+                compound.append('&&&')
+        if residue_names is not None:
+            if rn_invert:
+                compound.append('!!!')
+            compound.append('resname')
+            compound.extend(residue_names)
+        if DEBUG:
+            print '_evalBoolean compound', compound
+        if _and:
+            return compound
+        else:
+            return self._and([compound])
     
     def _evalAlnum(self, keyword, values):
+        if DEBUG: print '_evalAlnum', keyword, values
         data = self._getAtomicData(keyword)
-        if keyword == 'chain':
+        if keyword in ('chain', 'altloc'):
             for i, value in enumerate(values):
                 if value == '_':
                     values[i] = ' '
@@ -1118,12 +1246,12 @@ class Select(object):
             if isinstance(value, str):
                 strings.append(value)
             elif value[0] == value[2] == '"':
-                regexps.append('^' + value[1] + '$')
+                regexps.append(value[1])
             else:
                 strings.append(value[1])
                 
         if len(strings) == 1:
-            torf = data == value
+            torf = data == strings[0]
         elif len(strings) > 4:
             torf = np.zeros(n_atoms, np.bool)
             strings = set(strings)
