@@ -16,7 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines classes and functions to fetch, parse, 
-and write PDB files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
+and write PDB files, and also to blast search 
+`ProteinDataBank <http://wwpdb.org>`_.
 
 Classes
 -------
@@ -555,7 +556,8 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
             raise PDBParserError('model {0:d} is not found'.format(model))
     if isinstance(altloc_torf, str): 
         if altloc_torf.strip() != 'A':
-            LOGGER.info('Parsing alternate locations {0:s}.'.format(altloc_torf))
+            LOGGER.info('Parsing alternate locations {0:s}.'
+                        .format(altloc_torf))
             which_altlocs = ' ' + ''.join(altloc_torf.split())
         else:
             which_altlocs = ' A'
@@ -643,34 +645,34 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                 alength += asize
                 coordinates = np.concatenate(
                     (coordinates, np.zeros((asize, 3), np.float64)))
-                atomnames = np.concatenate(
-                    (atomnames, np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
-                resnames = np.concatenate( 
-                    (resnames, np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
-                resnums = np.concatenate( 
-                    (resnums, np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
-                chainids = np.concatenate( 
-                    (chainids, np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
-                bfactors = np.concatenate( 
-                    (bfactors, np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
-                occupancies = np.concatenate( 
-                    (occupancies, np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
-                hetero = np.concatenate( 
-                    (hetero, np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
-                altlocs = np.concatenate( 
-                    (altlocs, np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
-                segnames = np.concatenate( 
-                    (segnames, np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
-                elements = np.concatenate(
-                    (elements, np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
-                secondary = np.concatenate(
-                    (secondary, np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
-                anisou = np.concatenate(
-                    (anisou, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
-                siguij = np.concatenate(
-                    (siguij, np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
-                icodes = np.concatenate(
-                    (icodes, np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
+                atomnames = np.concatenate((atomnames, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
+                resnames = np.concatenate((resnames, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
+                resnums = np.concatenate((resnums, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
+                chainids = np.concatenate((chainids, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
+                bfactors = np.concatenate((bfactors, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
+                occupancies = np.concatenate((occupancies, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
+                hetero = np.concatenate((hetero, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
+                altlocs = np.concatenate((altlocs, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
+                segnames = np.concatenate((segnames, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
+                elements = np.concatenate((elements, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
+                secondary = np.concatenate((secondary, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
+                anisou = np.concatenate((anisou, 
+                    np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
+                siguij = np.concatenate((siguij, 
+                    np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
+                icodes = np.concatenate((icodes, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
@@ -719,7 +721,8 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                 acount = 0
                 coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
                 if altloc and altloc_torf:
-                    _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
+                    _evalAltlocs(atomgroup, altloc, chainids, resnums, 
+                                 resnames, atomnames)
                     altloc = defaultdict(list)
         elif startswith == 'ANISOU':
             is_anisou = True
@@ -803,33 +806,46 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                     indices[ach] = ids
                 ids = ids[resnums[ids] == ari]
                 if len(ids) == 0:
-                    LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue does not exist as altloc A'.format(key, i+1))
+                    LOGGER.warning('failed to parse alternate location {0:s} '
+                                   'at line {1:d}, residue does not exist as '
+                                   'altloc A'.format(key, i+1))
                     continue
                 rn = resnames[ids[0]]
                 ans = atomnames[ids]
                 indices[(ach, ari)] = (rn, ids, ans)
             if rn != arn:
-                LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, residue names do not match (expected {2:s}, parsed {3:s})'.format(key, i+1, rn, arn))
+                LOGGER.warning('failed to parse alternate location {0:s} at '
+                               'line {1:d}, residue names do not match '
+                               '(expected {2:s}, parsed {3:s})'
+                               .format(key, i+1, rn, arn))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
-                LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not identify matching atom ({2:s} not found in the residue)'.format(key, i+1, aan))
+                LOGGER.warning('failed to parse alternate location {0:s} at '
+                               'line {1:d}, could not identify matching atom '
+                               '({2:s} not found in the residue)'
+                               .format(key, i+1, aan))
                 continue
             try:
                 xyz[index[0], 0] = float(line[30:38])
                 xyz[index[0], 1] = float(line[38:46])
                 xyz[index[0], 2] = float(line[46:54])
             except:
-                LOGGER.warning('failed to parse alternate location {0:s} at line {1:d}, could not read coordinates'.format(key, i+1))
+                LOGGER.warning('failed to parse alternate location {0:s} at '
+                               'line {1:d}, could not read coordinates'
+                               .format(key, i+1))
                 continue
             success += 1
             #except Exception as exception:
             #    print i, line
             #    print exception
             #-->
-        LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were parsed successfully.'.format(success, len(lines), key))
+        LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were '
+                    'parsed successfully.'.format(success, len(lines), key))
         if success > 0:
-            LOGGER.info('Alternate location {0:s} is appended as a coordinate set to the atom group.'.format(key, atomgroup.getName()))
+            LOGGER.info('Alternate location {0:s} is appended as a coordinate '
+                        'set to the atom group.'
+                        .format(key, atomgroup.getName()))
             atomgroup.addCoordset(xyz)
     
 def _getHeaderDict(lines):
@@ -1142,7 +1158,8 @@ def blastPDB(sequence, filename=None, **kwargs):
     LOGGER.info('Blasting ProteinDataBank for "{0:s}...{1:s}"'
                 .format(sequence[:10], sequence[-10:]))
     start = time.time()
-    results = BioBlast.qblast('blastp', 'pdb', sequence, format_type='XML', **kwargs)
+    results = BioBlast.qblast('blastp', 'pdb', sequence, format_type='XML', 
+                              **kwargs)
 
     LOGGER.info('Blast search completed in {0:.2f}s.'
                 .format(time.time()-start))
@@ -1164,7 +1181,8 @@ def blastPDB(sequence, filename=None, **kwargs):
 def writePDBStream(stream, atoms, model=None, sort=False):
     """Write *atoms* in PDB format to a *stream*.
     
-    :arg stream: anything that implements the method write() (e.g. file, buffer, stdout)
+    :arg stream: anything that implements the method write() 
+        (e.g. file, buffer, stdout)
     
     :arg atoms: Atomic data container.
     :type atoms: :class:`~prody.atomic.Atomic` 
@@ -1172,10 +1190,11 @@ def writePDBStream(stream, atoms, model=None, sort=False):
     :arg model: Model index or list of model indices.
     :type model: int, list
         
-    :arg sort: if True, atoms will be sorted Chain, ResidueNumber, AtomName (not working yet).
+    :arg sort: if True, atoms will be sorted Chain, ResidueNumber, 
+        AtomName (not working yet).
     
-    If *models* = ``None``, all coordinate sets will be outputted. Model indices
-    start from 1.
+    If *models* = ``None``, all coordinate sets will be outputted. Model 
+    indices start from 1.
     
     *atoms* instance must at least contain coordinates and atom names data.
     
@@ -1184,7 +1203,8 @@ def writePDBStream(stream, atoms, model=None, sort=False):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
-                                atoms.getActiveCoordsetIndex(), 'index ' + str(atoms.getIndex()))
+                                atoms.getActiveCoordsetIndex(), 
+                                'index ' + str(atoms.getIndex()))
 
     if model is None:
         model = range(atoms.getNumOfCoordsets())
@@ -1255,7 +1275,8 @@ def writePDBStream(stream, atoms, model=None, sort=False):
         coords = atoms.getCoordinates()
         for i, xyz in enumerate(coords):
             stream.write(line.format(hetero[i], i+1, atomnames[i], altlocs[i], 
-                                     resnames[i], chainids[i], int(resnums[i]), icodes[i], 
+                                     resnames[i], chainids[i], int(resnums[i]), 
+                                     icodes[i], 
                                      xyz[0], xyz[1], xyz[2], 
                                      occupancies[i], bfactors[i],  
                                      segments[i], elements[i].rjust(2)))
@@ -1291,12 +1312,12 @@ mapHelix = {
 }
 
 def assignSecondaryStructure(header, atoms):
-    """Assign secondary structure to alpha carbons in *atoms* from *header* 
-    dictionary.
+    """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
     *atoms* may be an instance of :class:`~prody.atomic.AtomGroup`, 
-    :class:`~prody.atomic.Selection`, :class:`~prody.atomic.Chain` or :class:`~prody.atomic.Residue`. 
+    :class:`~prody.atomic.Selection`, :class:`~prody.atomic.Chain` or 
+    :class:`~prody.atomic.Residue`. 
 
     The Dictionary of Protein Secondary Structure, in short DSSP, type 
     single letter codes assignments are used:     
@@ -1307,7 +1328,8 @@ def assignSecondaryStructure(header, atoms):
       * **T** = hydrogen bonded turn (3, 4 or 5 turn)
       * **E** = extended strand in parallel and/or anti-parallel 
         beta-sheet conformation. Min length 2 residues.
-      * **B** = residue in isolated beta-bridge (single pair beta-sheet hydrogen bond formation)
+      * **B** = residue in isolated beta-bridge (single pair beta-sheet 
+        hydrogen bond formation)
       * **S** = bend (the only non-hydrogen-bond based assignment).
     
     See http://en.wikipedia.org/wiki/Protein_secondary_structure#The_DSSP_code
@@ -1322,6 +1344,9 @@ def assignSecondaryStructure(header, atoms):
       * Left-handed gamma (8)
       * 2 - 7 ribbon/helix (9)
       * Polyproline (10)
+      
+    .. versionchanged:: 0.7
+       Secondary structures are assigned to all atoms in a residue.
     
     """
     if not isinstance(header, dict):
@@ -1337,7 +1362,8 @@ def assignSecondaryStructure(header, atoms):
             ag = atoms
         else:
             ag = atoms.getAtomGroup()
-        ag.setSecondaryStrs(np.zeros(ag.getNumOfAtoms(), ATOMIC_DATA_FIELDS['secondary'].dtype))
+        ag.setSecondaryStrs(np.zeros(ag.getNumOfAtoms(), 
+                            ATOMIC_DATA_FIELDS['secondary'].dtype))
             
     hierview = atoms.getHierView()
     count = 0
@@ -1345,19 +1371,16 @@ def assignSecondaryStructure(header, atoms):
         res = hierview.getResidue(*key)
         if res is None:
             continue
-        atom = res.getAtom('CA')
-        if atom is not None:
-            count += 1
-            atom.setSecondaryStr(mapHelix[value[0]])
+        res.setSecondaryStr(mapHelix[value[0]])
+        count += 1
     for key, res in sheet.iteritems():
         res = hierview.getResidue(*key)
         if res is None:
             continue
-        atom = res.getAtom('CA')
-        if atom is not None:
-            count += 1
-            atom.setSecondaryStr('E')
-    LOGGER.info('Secondary structures were assigned to {0:d} residues.'.format(count))
+        res.setSecondaryStr('E')
+        count += 1
+    LOGGER.info('Secondary structures were assigned to {0:d} residues.'
+                .format(count))
     return atoms
             
             
