@@ -173,8 +173,8 @@ Select atoms
 
 ProDy :class:`~atomic.AtomGroup` instances have a plain view of atoms, but 
 offer a powerful atom selection capability. You can get well defined subsets of 
-atoms by passing simple :ref:`selection-keywords` as arguments or make 
-sophisticated selections using composite arguments. Selection keywords and 
+atoms by passing simple :ref:`selections` as arguments or make 
+sophisticated selections using composite statements. Selection keywords and 
 grammar is very much similar to those found in 
 `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_. We show some examples here.
 
