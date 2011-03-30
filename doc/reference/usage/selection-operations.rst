@@ -54,7 +54,7 @@ Intersection
 ===============================================================================
 
 It is as easy to get the intersection of two selections. Let's find 
-:term:`charged` and :term:`medium` size residues in a protein:
+charged and medium size residues in a protein:
 
 >>> charged = prot.select('charged')
 >>> print charged
@@ -69,12 +69,12 @@ Selection "(medium) and (charged)" from 1p38
 >>> print medium_charged.getSelectionString()
 (medium) and (charged)
 
-Let's see which amino acids are considered :term:`charged` and :term:`medium`:
+Let's see which amino acids are considered charged and medium:
 
 >>> print set(medium_charged.getResidueNames())
 set(['ASP'])
 
-What about amino acids that are :term:`medium` or :term:`charged`:
+What about amino acids that are medium or charged:
 
 >>> print set((medium | charged).getResidueNames())
 set(['CYS', 'ASP', 'VAL', 'LYS', 'PRO', 'THR', 'GLU', 'HIS', 'ARG', 'ASN'])
@@ -96,8 +96,8 @@ Selection "not (protein) " from 1p38
 >>> print water
 Selection "water" from 1p38
 
-The above shows that 1p38 does not contain any non-:term:`water` 
-:term:`hetero` atoms.
+The above shows that 1p38 does not contain any non-water 
+hetero atoms.
 
 Addition
 ===============================================================================
@@ -118,8 +118,8 @@ specific order:
 >>> writePDB('1p38_water_protein.pdb', water_protein)
 '1p38_water_protein.pdb'
 
-In the resulting file, the :term:`water` atoms will precedes the 
-:term:`protein` atoms.
+In the resulting file, the water atoms will precedes the 
+protein atoms.
 
 
 Membership

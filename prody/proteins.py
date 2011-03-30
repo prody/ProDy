@@ -1331,6 +1331,8 @@ def assignSecondaryStructure(header, atoms):
       * **B** = residue in isolated beta-bridge (single pair beta-sheet 
         hydrogen bond formation)
       * **S** = bend (the only non-hydrogen-bond based assignment).
+      * **C** = residues not in one of above conformations.
+    
     
     See http://en.wikipedia.org/wiki/Protein_secondary_structure#The_DSSP_code
     for more details. 
@@ -1346,7 +1348,10 @@ def assignSecondaryStructure(header, atoms):
       * Polyproline (10)
       
     .. versionchanged:: 0.7
-       Secondary structures are assigned to all atoms in a residue.
+       Secondary structures are assigned to all atoms in a residue. Amino acid
+       residues without any secondary structure assignment in header section 
+       will be assigned coil (C) conformation.
+       
     
     """
     if not isinstance(header, dict):
@@ -1364,20 +1369,20 @@ def assignSecondaryStructure(header, atoms):
             ag = atoms.getAtomGroup()
         ag.setSecondaryStrs(np.zeros(ag.getNumOfAtoms(), 
                             ATOMIC_DATA_FIELDS['secondary'].dtype))
-            
+    atoms.select('protein').setSecondaryStrs('C')
     hierview = atoms.getHierView()
     count = 0
     for key, value in helix.iteritems():
         res = hierview.getResidue(*key)
         if res is None:
             continue
-        res.setSecondaryStr(mapHelix[value[0]])
+        res.setSecondaryStrs(mapHelix[value[0]])
         count += 1
     for key, res in sheet.iteritems():
         res = hierview.getResidue(*key)
         if res is None:
             continue
-        res.setSecondaryStr('E')
+        res.setSecondaryStrs('E')
         count += 1
     LOGGER.info('Secondary structures were assigned to {0:d} residues.'
                 .format(count))

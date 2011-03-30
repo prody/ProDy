@@ -16,7 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""
+""".. _selection:
+
 Atom selections
 ===============================================================================
     
@@ -37,7 +38,7 @@ The contents of this web page can be viewed in an interactive session as
 follows:
     
 >>> from prody import *
->>> help(select)
+>>> # help(select)
 
     
 Keywords with arguments
@@ -46,40 +47,44 @@ Keywords with arguments
 Below is the list of keywords that can be used when paired with atomic
 attributes as arguments.
 
-============= ================ ===============================================
-Keyword       Arguments        Description
-============= ================ ===============================================
-name          string           atom name
-element       string           element symbol
-type [*]      string           atom type
-altloc [†‡]   string           one-character alternate location identifier
-resname       string           residue name
-chain [‡]     string           one-character chain identifier
-segment       string           segment name
-index         integer, range   atom number, starting at 0 
-serial        integer, range   atom number, starting at 1
-resnum [§]    integer, range   residue number
-resid [§]     integer, range   residue number
-x             float, range     x coordinate
-y             float, range     y coordinate
-z             float, range     z coordinate
-beta          float, range     β (temperature) factor
-occupancy     float, range     atomic occupancy value
-charge [*]    float, range     atomic charge
-mass [*]      float, range     atomic mass
-radius [*]    float, range     atomic radius
-============= ================ ===============================================
+================ ================ =============================================
+Keyword          Arguments        Description
+================ ================ =============================================
+name             string           atom name
+element          string           element symbol
+type [*]         string           atom type
+altloc [†‡]      string           one-character alternate location identifier
+resname          string           residue name
+chain [‡]        string           one-character chain identifier
+segment          string           segment name
+secondary [*†]   string           one-character secondary structure identifier
+index            integer, range   atom number, starting at 0 
+serial           integer, range   atom number, starting at 1
+resnum [§]       integer, range   residue number
+resid [§]        integer, range   residue number
+x                float, range     x coordinate
+y                float, range     y coordinate
+z                float, range     z coordinate
+beta             float, range     β (temperature) factor
+occupancy        float, range     atomic occupancy value
+charge [*]       float, range     atomic charge
+mass [*]         float, range     atomic mass
+radius [*]       float, range     atomic radius
+================ ================ =============================================
 
 **[*]** These atomic attributes are not set by the PDB parser when a PDB file 
-is parsed. Using them before they are set will raise selection error.
+is parsed. Using them before they are set will raise selection error. 
+Secondary structure assignments can be made using 
+:func:`~prody.proteins.assignSecondaryStructure` function.
 
 **[‡]** Alternate locations are parsed as alternate coordinate sets. This
 keyword will work for alternate location specified by "A". For this to work
 alternate locations indicated by other letters, they must be parsed 
 specifically by passing the identifier to the :func:`~prody.proteins.parsePDB`.
 
-**[‡]** Atoms with unspecified alternate location/chain identifiers can be 
-selected using "_". This character is replaced with a whitespace.
+**[‡]** Atoms with unspecified alternate location/chain/secondary structure 
+identifiers can be selected using "_". This character is replaced with a 
+whitespace.
 
 **[§]** If there are multiple residues with the same number but 
 distinguished with insertion codes, the insertion code can be appended
@@ -167,11 +172,8 @@ __all__ = ['Select', 'Contacts',
            'getAtomNameRegex', 'setAtomNameRegex'
            ]
 
-NOT_READY = set(('helix', 'alpha_helix', 'helix_3_10', 'pi_helix',
-             'sheet', 'extended_beta', 'bridge_beta', 'turn', 'coil'))
-             
 KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
-                       'segment', 'altloc'))
+                       'segment', 'altloc', 'secondary'))
 KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
 KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
                       'radius', 'charge'))
@@ -299,6 +301,14 @@ noh             non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
 nitrogen        nitrogen atoms, same as ``'name "N.*"'``
 oxygen          oxygen atoms, same as ``'name "O.*"'``
 sulfur          sulfur atoms, same as ``'name "S.*"'``
+extended        residue in extended conformation, same as ``"secondary E"``
+helix           residue in α-helix conformation, same as ``"secondary H"``
+helix_3_10      residue in 3_10-helix conformation, same as ``"secondary G"``
+helix_pi        residue in π-helix conformation, same as ``"secondary I"``
+turn            residue in hydrogen bonded turn conformation, same as ``"secondary T"``
+bridge          residue in isolated beta-bridge conformation, same as ``"secondary B"``
+bend            residue in bend conformation, same as ``"secondary S"``
+coil            residue not in one of above conformations, same as ``"secondary C"``
 =============== ===============================================================
 
 .. versionchanged:: 0.6.2
@@ -309,6 +319,18 @@ Among these list of backbone atom names can be changed using
 can be changed using :func:`setAtomNameRegex`.
 
 """
+
+SECONDARY_STRUCTURE_MAP = {
+    'extended': 'E',
+    'helix': 'H',
+    'helix_pi': 'G',
+    'helix_3_10': 'I',
+    'turn': 'T',
+    'bridge': 'B',
+    'bend': 'S',
+    'coil': 'C',
+
+}
     
 KEYWORD_NAME_REGEX = {
     'carbon': 'C.*',
@@ -346,7 +368,8 @@ def _buildKeywordMap():
     KEYWORD_MAP['noh'] = (None, False, [['"', KEYWORD_NAME_REGEX['hydrogen'], '"']], True)
     
 _buildKeywordMap()
-KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys())
+KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys() + 
+                       SECONDARY_STRUCTURE_MAP.keys())
 
 __doc__ += """
 
@@ -484,7 +507,7 @@ Functions
 ---------
 
 Below functions can be used to learn and change the definitions of 
-:ref:`selection-keywords`.
+some selection keywords:
 
   * Learn keyword definitions:
     
@@ -557,12 +580,12 @@ def setAtomNameRegex(name, regex):
         KEYWORD_NAME_REGEX[name] = regex
 
 def getBackboneAtomNames():
-    """Return protein :term:`backbone` atom names."""
+    """Return protein backbone atom names."""
     
     return list(BACKBONE_ATOM_NAMES)
 
 def setBackboneAtomNames(backbone_atom_names):
-    """Set protein :term:`backbone` atom names."""
+    """Set protein backbone atom names."""
     
     if not isinstance(backbone_atom_names, (list, tuple, set)):
         raise TypeError('backbone_atom_names must be a list, tuple, or set')
@@ -614,8 +637,8 @@ class Select(object):
 
     """Select subsets of atoms based on a selection string.
     
-    Definitions of single word keywords, such as :term:`protein`, 
-    :term:`backbone`, :term:`polar`, etc., may be altered using functions in 
+    Definitions of single word keywords, such as protein, 
+    backbone, polar, etc., may be altered using functions in 
     :mod:`~prody.select` module. 
     
     This class makes use of |pyparsing| module.
@@ -1199,7 +1222,12 @@ class Select(object):
             return np.ones(n_atoms, np.bool)
         elif keyword == 'none':
             return np.zeros(n_atoms, np.bool)
-    
+        elif keyword in SECONDARY_STRUCTURE_MAP:
+            if _and:
+                return ['secondary', SECONDARY_STRUCTURE_MAP[keyword]]
+            else:
+                return self._evalAlnum('secondary', 
+                                       [SECONDARY_STRUCTURE_MAP[keyword]])
         try:
             residue_names, rn_invert, atom_names, an_invert = KEYWORD_MAP[keyword]
             if DEBUG:
