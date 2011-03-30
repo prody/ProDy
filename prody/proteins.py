@@ -530,7 +530,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         if subset in ('calpha', 'ca'):
             subset = set(('CA',))
         elif subset in ('backbone', 'bb'):
-            subset = set(('CA', 'C', 'N', 'O'))
+            subset = set(prody.getBackboneAtomNames())
         only_subset = True
         protein_resnames = set(prody.getProteinResidueNames())
     else:

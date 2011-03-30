@@ -279,36 +279,37 @@ __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
 
 from . import atomic 
 from atomic import *
-__all__ += atomic.__all__
+__all__.extend(atomic.__all__)
 
 from . import select
 from select import *
-__all__ += select.__all__
+__all__.extend(select.__all__)
+__all__.append('select')
 ProDyAtomSelect = Select()
 
 import proteins
 from proteins import *  
-__all__ += proteins.__all__
+__all__.extend(proteins.__all__)
 
 from . import measure
 from measure import *
-__all__ += measure.__all__
+__all__.extend(measure.__all__)
 
 from . import compare
 from compare import *
-__all__ += compare.__all__
+__all__.extend(compare.__all__)
 
 from . import dynamics
 from .dynamics import *
-__all__ += dynamics.__all__
+__all__.extend(dynamics.__all__)
 
 from . import ensemble
 from .ensemble import *
-__all__ += ensemble.__all__
+__all__.extend(ensemble.__all__)
 
 from . import volume
 from .volume import *
-__all__ += volume.__all__
+__all__.extend(volume.__all__)
 
 import prody
 
