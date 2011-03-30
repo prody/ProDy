@@ -53,7 +53,7 @@ so we select them:
 >>> calphas 
 <Selection: "calpha and chai...and resnum < 71" from 1aar (70 atoms; 1 coordinate sets, active set index: 0)>
 
-|more| See definition of :term:`calpha`, :term:`chain`, and other selection 
+|more| See definition of "calpha", "chain", and other selection 
 keywords.
 
 Note that, flexible design of classes allows users to select atoms other than 

@@ -11,6 +11,12 @@ Release 0.7.0 (in development)
 
 **New Features**:
 
+  * Regular expressions can be used in atom selections.
+  
+  * User can define selection macros using :func:`~select.defSelectionMacro`
+    function. Macros are saved in ProDy configuration and loaded in later
+    sessions. See :mod:`select` module for other supporting functions.
+  
   * :func:`~dynamics.deform` function is implemented for deforming coordinate 
     sets along a normal mode or linear combination of multiple modes. 
 
@@ -23,11 +29,21 @@ Release 0.7.0 (in development)
 
 **Improvements**:
 
+  * Atom selections using bare keyword arguments is optimized. New keyword
+    definitions are added. 
+  
   * A new keyword argument for :func:`~measure.calcADPAxes` allows for
     comparing largest axis to the second largest one.
 
 **Changes**:
 
+  * There are changes in function used to alter definitions of selection
+    keywords. See :mod:`select` for details.
+    
+  * :func:`~proteins.assignSecondaryStructure` function assigns SS identifiers
+    to all atoms in a residue. Residues with no SS information specified is
+    assigned coil conformation. 
+  
   * When :func:`~ensemble.Ensemble` and :func:`~dynamics.NMA` classes are 
     instantiated with an empty string, instances are called "Unnamed".
 
@@ -95,7 +111,7 @@ Release 0.6.2 (Mar 16, 2011)
 
 **Changes**:
 
-  * :term:`backbone` definition now includes the backbone hydrogen atom 
+  * "backbone" definition now includes the backbone hydrogen atom 
     (Thanks to Nahren Mascarenhas for pointing to this discrepancy in the
     keyword definition). 
 
@@ -136,7 +152,7 @@ Release 0.6.1 (Mar 2, 2011)
   * :class:`RCSB_PDBFetcher` is renamed as :class:`~proteins.WWPDB_PDBFetcher`.
   * :func:`~compare.mapOntoChain` and :func:`~compare.matchChains` functions
     accept ``"ca"`` and ``"bb"`` as *subset* arguments.
-  * Definition of selection keyword :term:`protein` is updated to include
+  * Definition of selection keyword "protein" is updated to include
     some non-standard amino acid abbreviations. 
 
 **Bug Fixes**:
@@ -180,10 +196,10 @@ Release 0.6 (Feb 22, 2011)
     classes are improved to accept :class:`~dynamics.Gamma` instances
     or other custom function as *gamma* argument. See also :ref:`gamma`.
   * :class:`~select.Select` class is changed to treat single word keywords
-    differently, e.g. :term:`backbone` or :term:`protein`. 
+    differently, e.g. "backbone" or "protein". 
     They are interpreted 10 times faster and in use achieve much higher 
     speed-ups when compared to composite selections. For example, using the 
-    keyword :term:`calpha` instead of the ``name CA and protein``,
+    keyword "calpha" instead of the ``name CA and protein``,
     which returns the same selection, works >20 times faster. 
   * Optimizations in :class:`~select.Select` class to increase 
     performance (Thanks to Paul McGuire for providing several Pythonic tips
@@ -200,8 +216,8 @@ Release 0.6 (Feb 22, 2011)
   * :class:`PDBlastRecord` is renamed as :class:`~proteins.PDBBlastRecord`. 
   * :class:`~dynamics.NMABase` instances can be index using a list or tuple of 
     integers, e.g. ``anm[1,3,5]``.
-  * :term:`ca`, :term:`bb`, and :term:`sc` keywords are defined as short-hands 
-    for :term:`calpha`, :term:`backbone`, and :term:`sidechain`, respectively.
+  * "ca", "bb", and "sc" keywords are defined as short-hands 
+    for "calpha", "backbone", and "sidechain", respectively.
   * Behavior of :func:`~dynamics.calcANM` and :func:`~dynamics.calcGNM` 
     functions have changed. They return the atoms used for calculation as well.
 

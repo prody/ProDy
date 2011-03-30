@@ -204,7 +204,7 @@ Finally, you can select atoms from a :class:`Chain` instance:
 '(backbone) and (chain A)'
 
 As you see, the selection string passed by the user is augmented with 
-:term:`chain` keyword and identifier automatically to provide internal
+"chain" keyword and identifier automatically to provide internal
 consistency:
 
 >>> structure.select( chA_backbone.getSelectionString() )
@@ -272,7 +272,7 @@ Finally, you can select atoms from a :class:`Residue` instance:
 '(backbone) and (chain A and resnum 1)'
 
 Again, the selection string is augmented with the chain identifier and 
-residue number (:term:`resnum`).
+residue number ("resnum").
 
 Atoms
 -------------------------------------------------------------------------------

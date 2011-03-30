@@ -184,7 +184,7 @@ grammar is very much similar to those found in
 >>> protein
 <Selection: "protein" from 1p38 (2833 atoms; 1 coordinate sets, active set index: 0)>
 
-Using the :term:`protein` keyword we selected 2833 atoms out of 2962 atoms. 
+Using the "protein" keyword we selected 2833 atoms out of 2962 atoms. 
 :meth:`~atomic.Atomic.select` method returned a :class:`~atomic.Selection` 
 instance. Note that all ``get`` and ``set`` methods defined for
 the :class:`~atomic.AtomGroup` class are also defined for 
@@ -193,9 +193,9 @@ the :class:`~atomic.AtomGroup` class are also defined for
 >>> print protein.getResidueNames()
 ['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
 
-*Select atoms by* :term:`name`:
+*Select atoms by* "name":
 
-We select backbone atoms by passing atom names following :term:`name` keyword:
+We select backbone atoms by passing atom names following "name" keyword:
 
 >>> backbone = prot.select('protein and name N CA C O')
 >>> backbone
@@ -203,17 +203,17 @@ We select backbone atoms by passing atom names following :term:`name` keyword:
 >>> len(backbone)
 1404
 
-We can also use :term:`backbone` to make the same selection. 
+We can also use "backbone" to make the same selection. 
 
 *Select amino acids by name/type*:
 
 We select acidic and basic residues by using residue names with 
-:term:`resname` keyword:
+"resname" keyword:
 
 >>> prot.select('resname ARG LYS HIS ASP GLU')
 <Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
 
-Alternatively, we can use predefined keywords :term:`acidic` and :term:`basic`.
+Alternatively, we can use predefined keywords "acidic" and "basic".
 
 >>> charged = prot.select('acidic or basic')
 >>> charged

@@ -1311,7 +1311,7 @@ mapHelix = {
 10: '' # Polyproline
 }
 
-def assignSecondaryStructure(header, atoms):
+def assignSecondaryStructure(header, atoms, coil=True):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
@@ -1349,8 +1349,9 @@ def assignSecondaryStructure(header, atoms):
       
     .. versionchanged:: 0.7
        Secondary structures are assigned to all atoms in a residue. Amino acid
-       residues without any secondary structure assignment in header section 
-       will be assigned coil (C) conformation.
+       residues without any secondary structure assignments in the header 
+       section will be assigned coil (C) conformation. This can be prevented
+       by passing ``coil=False`` argument.
        
     
     """
