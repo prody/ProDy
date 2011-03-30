@@ -1400,12 +1400,12 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
     
     If multiple biomolecular transformations are provided in the *header*
     dictionary, biomolecules will be returned as 
-    :class`~prody.atomic.AtomGroup` instances in a class:`list`.  
+    :class:`~prody.atomic.AtomGroup` instances in a :class:`list`.  
 
     If the resulting biomolecule has more than 26 chains, the molecular 
-    assembly will be split into multiple :class`~prody.atomic.AtomGroup`
+    assembly will be split into multiple :class:`~prody.atomic.AtomGroup`
     instances each containing at most 26 chains. These 
-    :class`~prody.atomic.AtomGroup` instances will be returned in a tuple.
+    :class:`~prody.atomic.AtomGroup` instances will be returned in a tuple.
    
     """
 
