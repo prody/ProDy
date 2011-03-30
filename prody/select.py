@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""".. _selection:
+""".. _selections:
 
 Atom selections
 ===============================================================================
@@ -527,9 +527,9 @@ some selection keywords:
 
 Below functions are for manipulating selection macros:
     
-  * :func:`defSelectionString`
-  * :func:`delSelectionString`
-  * :func:`getSelectionString` 
+  * :func:`defSelectionMacro`
+  * :func:`delSelectionMacro`
+  * :func:`getSelectionMacro` 
   
 
 """
@@ -570,6 +570,8 @@ def defSelectionMacro(name, selstr):
     used as a macro name. If a macro with given *name* exists, it will be 
     overwritten.
     
+    >>> defSelectionMacro('cbeta', 'name CB and protein')
+    
     """
     
     if not isinstance(name, str) or not isinstance(selstr, str):
@@ -599,6 +601,8 @@ def delSelectionMacro(name):
     
     .. versionadded:: 0.7
     
+    >>> delSelectionMacro('cbeta')
+    
     """
     
     try:
@@ -618,6 +622,7 @@ def getSelectionMacro(name=None):
     If *name* is not given, returns a copy of the selection macros dictionary.
     
     """
+    
     if name is None:        
         return MACROS.copy()
     try:
@@ -633,6 +638,9 @@ def getKeywordResidueNames(keyword):
     """Return residue names associated with a keyword.
     
     .. versionadded:: 0.7
+    
+    >>> getKeywordResidueNames('acidic')
+    ['ASP', 'GLU']
     
     """
     
@@ -656,6 +664,8 @@ def setKeywordResidueNames(keyword, resnames):
     strings. The existing list of residue names will be overwritten with the
     given residue names.
     
+    >>> setKeywordResidueNames('acidic', ['ASP', 'GLU'])
+    
     """
     
     if not isinstance(keyword, str):
@@ -671,7 +681,7 @@ def setKeywordResidueNames(keyword, resnames):
         for rn in resnames:
             if not isinstance(rn, str):
                 raise TypeError('all items in resnames must be strings')
-        KEYWORD_RESNAMES = list(set(resnames))
+        KEYWORD_RESNAMES[keyword] = list(set(resnames))
         _setReadonlyResidueNames()
     else:
         raise ValueError('{0:s} is not a valid keyword'.format(keyword))
@@ -680,6 +690,9 @@ def getAtomNameRegex(name):
     """Return regular expression used for selecting common elements.
     
     .. versionadded:: 0.7
+    
+    >>> getAtomNameRegex('nitrogen')
+    'N.*'
     
     """
     
@@ -692,6 +705,8 @@ def setAtomNameRegex(name, regex):
     """Set regular expression used for selecting common elements.
     
     .. versionadded:: 0.7
+    
+    >>> setAtomNameRegex('nitrogen', 'N.*')
     
     """
     
@@ -706,9 +721,16 @@ def setAtomNameRegex(name, regex):
         KEYWORD_NAME_REGEX[name] = regex
 
 def getBackboneAtomNames():
-    """Return protein backbone atom names."""
+    """Return protein backbone atom names.
     
-    return list(BACKBONE_ATOM_NAMES)
+    >>> getBackboneAtomNames()
+    ['C', 'CA', 'H', 'N', 'O']
+    
+    """
+    
+    bban = list(BACKBONE_ATOM_NAMES)
+    bban.sort()
+    return bban 
 
 def setBackboneAtomNames(backbone_atom_names):
     """Set protein backbone atom names."""
