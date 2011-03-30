@@ -2803,6 +2803,7 @@ orange3"
   proc writeNMD {ns} {
     
     set tempfile [tk_getSaveFile -filetypes {{"NMD files" { .nmd .NMD }} {"All files" *}}]
+    if {$tempfile == ""} {return}
     
     set fl [open $tempfile w]
     puts $fl "nmwiz_load $tempfile"
