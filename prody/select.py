@@ -16,11 +16,49 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""".. _selections:
+""" This module defines classes for selecting subsets of atoms and identifying 
+contacts, and functions to learn and change definitions of selection keywords.
+
+Classes
+-------
+
+  * :class:`Select`
+  * :class:`Contacts`
+  
+Functions
+---------
+
+Below functions can be used to learn and change the definitions of 
+some selection keywords:
+
+  * Learn keyword definitions:
+    
+    * :func:`getAtomNameRegex`
+    * :func:`getBackboneAtomNames`
+    * :func:`getKeywordResidueNames` 
+    * :func:`getProteinResidueNames`
+    
+  * Change keyword definitions:
+    
+    * :func:`setAtomNameRegex`
+    * :func:`setBackboneAtomNames`
+    * :func:`setKeywordResidueNames`
+    * :func:`setProteinResidueNames`
+
+Below functions are for manipulating selection macros:
+    
+  * :func:`defSelectionMacro`
+  * :func:`delSelectionMacro`
+  * :func:`getSelectionMacro` 
+  
+
+.. _selections:
+
 
 Atom selections
-===============================================================================
-    
+-------------------------------------------------------------------------------
+
+
 ProDy offers a powerful atom selector. The keywords, selection grammar,
 and capabilities of the selector are similar to those found in VMD (|vmd|). 
 Small differences between the two should not affect most practical uses of 
@@ -496,52 +534,6 @@ BINARY_OPERATOR_MAP = {
 }
 
 COMPARISONS = set(('<', '>', '>=', '<=', '==', '=', '!='))
-
-
-
-__doc__ += """
-
-:mod:`prody.select`
-===================
-
-
-This module defines classes for selecting subsets of atoms and identifying 
-contacts, and functions to learn and change definitions of selection keywords.
-
-Classes
--------
-
-  * :class:`Select`
-  * :class:`Contacts`
-  
-Functions
----------
-
-Below functions can be used to learn and change the definitions of 
-some selection keywords:
-
-  * Learn keyword definitions:
-    
-    * :func:`getAtomNameRegex`
-    * :func:`getBackboneAtomNames`
-    * :func:`getKeywordResidueNames` 
-    * :func:`getProteinResidueNames`
-    
-  * Change keyword definitions:
-    
-    * :func:`setAtomNameRegex`
-    * :func:`setBackboneAtomNames`
-    * :func:`setKeywordResidueNames`
-    * :func:`setProteinResidueNames`
-
-Below functions are for manipulating selection macros:
-    
-  * :func:`defSelectionMacro`
-  * :func:`delSelectionMacro`
-  * :func:`getSelectionMacro` 
-  
-
-"""
 
 n_atoms = 10
 ATOMGROUP = prody.AtomGroup('Test')

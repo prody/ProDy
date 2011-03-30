@@ -16,7 +16,6 @@ Usage reference
    :maxdepth: 1
    :glob:
 
-   usage/selections
    usage/selection-operations
    usage/normalmode-operations
    usage/atommaps
