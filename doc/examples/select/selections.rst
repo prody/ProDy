@@ -37,7 +37,7 @@ Using keywords
 Most of the time single word keywords may be enough for you to get the set
 of atoms that you want:
 
-For selecting :term:`protein` atoms:
+For selecting protein atoms:
 
 >>> protein = prot.select('protein')
 >>> protein
@@ -45,7 +45,7 @@ For selecting :term:`protein` atoms:
 
 The above shows, 2833 of 2962 atoms are protein atoms. 
 
-For selecting Cα atoms you can use :term:`calpha`:
+For selecting Cα atoms you can use calpha:
 
 >>> calpha = prot.select('calpha')
 >>> calpha 
@@ -53,7 +53,7 @@ For selecting Cα atoms you can use :term:`calpha`:
 
 The above shows that there are 351 amino acid residues.
 
-Or, for selecting :term:`backbone` atoms:
+Or, for selecting backbone atoms:
 
 >>> backbone = prot.select('backbone')
 >>> backbone
@@ -78,8 +78,8 @@ Selection "protein and not name N CA C O" from 1p38
 >>> len(side_chain_atoms)
 1429
 
-Same selection could also be made using :term:`sidechain` keyword or 
-:term:`backbone` keyword preceded by *not*:
+Same selection could also be made using sidechain keyword or 
+backbone keyword preceded by *not*:
 
 >>> prot.select('sidechain')
 <Selection: "sidechain" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
@@ -87,7 +87,7 @@ Same selection could also be made using :term:`sidechain` keyword or
 >>> prot.select('not backbone')
 <Selection: "not backbone" from 1p38 (1558 atoms; 1 coordinate sets, active set index: 0)>
 
-Oops, :term:`not` :term:`backbone` did not select the same number of atoms. 
+Oops, not backbone did not select the same number of atoms. 
 Let's try to see why:
 
 >>> print set(prot.select('not backbone').getResidueNames())
@@ -102,20 +102,20 @@ Let's try:
 >>> prot.select('not backbone and not water')
 <Selection: "not backbone and not water" from 1p38 (1429 atoms; 1 coordinate sets, active set index: 0)>
 
-We also used :term:`water` term. This has now worked as :term:`sidechain` did.
+We also used water keyword. This has now worked as sidechain did.
 This was to show that it is possible to select same set of atoms in a number 
 of different ways. 
 
 Select amino acids by type/name
 -------------------------------------------------------------------------------
 
-Let's say we want to select charged residues. We can use :term:`resname`
+Let's say we want to select charged residues. We can use resname
 keyword followed by 3-letter residue names:  
 
 >>> prot.select('resname ARG LYS HIS ASP GLU')
 <Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
 
-Or, we can use predefined keywords :term:`acidic` and :term:`basic`.
+Or, we can use predefined keywords acidic and basic.
 
 >>> charged = prot.select('acidic or basic')
 >>> print charged
@@ -125,7 +125,7 @@ Selection "acidic or basic" from 1p38
 >>> set(charged.getResidueNames())
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
-Same selection could also be made using :term:`charged` keyword:
+Same selection could also be made using charged keyword:
 
 >>> prot.select('charged')
 <Selection: "charged" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
