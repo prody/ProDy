@@ -74,7 +74,7 @@ def getVMDpaths():
             import winreg as _winreg
         else:
             import _winreg
-        for vmdversion in ('1.8.7',): 
+        for vmdversion in ('1.8.7', '1.9'): 
             try:
                 key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
                     'Software\\University of Illinois\\VMD\\' + vmdversion)

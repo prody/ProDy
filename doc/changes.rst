@@ -27,9 +27,6 @@ Release 0.7.0 (in development)
     mode data to be used with functions calculating atomic properties using
     normal modes. 
 
-  * :meth:`~dynamics.NMA.setNumOfDims` method is defined for 
-    :class:`~dynamics.NMA` class to change the dimensionality of the model.
-
 **Improvements**:
 
   * Atom selections using bare keyword arguments is optimized. New keyword
@@ -58,7 +55,7 @@ Release 0.7.0 (in development)
   * Default selection for :func:`~dynamics.calcGNM` function is set to
     "calpha".
 
-NMWiz
+:ref:`nmwiz`
 -------------------------------------------------------------------------------
 
 **New Features**:
@@ -231,7 +228,7 @@ Release 0.6 (Feb 22, 2011)
   * Bug fixes in :func:`~dynamics.showSqFlucts` and 
     :func:`~dynamics.showProjection` functions.
     
-NMWiz
+:ref:`nmwiz`
 -------------------------------------------------------------------------------
 
   * NMWiz can be used as a graphical interface to ProDy. ANM or PCA 
@@ -388,7 +385,7 @@ Release 0.2 (Nov 16, 2010)
     operations.
   * Implementation of :func:`~dynamics.showProjection` is completed.
   
-NMWiz
+:ref:`nmwiz`
 -------------------------------------------------------------------------------
 
 **Release 0.2.3**

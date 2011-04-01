@@ -89,7 +89,7 @@ Examples
 Example 1
 -------------------------------------------------------------------------------
 
-File: :download:`p38_MAPK_1p38_anm_modes.nmd </_downloads/p38_MAPK_1p38_anm_modes.nmd>`
+File: :download:`p38_MAPK_1p38_anm_modes.nmd </plugins/nmwiz/p38_MAPK_1p38_anm_modes.nmd>`
 
 This example contains normal modes from Anisotropic Network Model calculations
 for p38 MAP kinase (PDB identifier 1P38). This example
@@ -115,7 +115,7 @@ mode indices and square-root of inverse eigenvalues.
 Example 2 
 -------------------------------------------------------------------------------
 
-File: :download:`xyzeros.nmd </_downloads/xyzeros.nmd>`
+File: :download:`xyzeros.nmd </plugins/nmwiz/xyzeros.nmd>`
 
 This example contains minimal amount of data sufficient for visualizing modes.
 Mode data comes from *Example 1*. Coordinates are set to zero. NMWiz Logo on the 
