@@ -2761,9 +2761,15 @@ def sliceVector(vector, atoms, selstr):
     if atoms.getNumOfAtoms() != vector.getNumOfAtoms(): 
         raise ValueError('number of atoms in *vector* and *atoms* must be '
                          'equal')
-    sel = atoms.select(selstr)
+    if isinstance(atoms, AtomGroup):
+        sel = atoms.select(selstr)
+        which = sel.getIndices()
+    else:
+        which = SELECT.getIndices(atoms, selstr)
+        sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
+                        selstr, atoms.getActiveCoordsetIndex())
     vec = Vector(vector.getArrayNx3()[
-                 sel.getIndices(), :].flatten(),
+                 which, :].flatten(),
                  '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
                  vector.is3d())
     return (vec, sel)
@@ -2804,9 +2810,15 @@ def sliceMode(mode, atoms, selstr):
                         .format(type(atoms)))
     if atoms.getNumOfAtoms() != mode.getNumOfAtoms(): 
         raise ValueError('number of atoms in *mode* and *atoms* must be equal')
-    sel = atoms.select(selstr)
+    if isinstance(atoms, AtomGroup):
+        sel = atoms.select(selstr)
+        which = sel.getIndices()
+    else:
+        which = SELECT.getIndices(atoms, selstr)
+        sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
+                        selstr, atoms.getActiveCoordsetIndex())
     vec = Vector(mode.getArrayNx3()[
-                 sel.getIndices(),:].flatten() * mode.getVariance()**0.5,
+                 which,:].flatten() * mode.getVariance()**0.5,
                  '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
                  mode.is3d()) 
     return (vec, sel)
@@ -2842,8 +2854,14 @@ def sliceModel(model, atoms, selstr):
                          'equal')
     
     array = model.getArray()
-    sel = atoms.select(selstr)
-    which = sel.getIndices()
+    if isinstance(atoms, AtomGroup):
+        sel = atoms.select(selstr)
+        which = sel.getIndices()
+    else:
+        which = SELECT.getIndices(atoms, selstr)
+        sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
+                        selstr, atoms.getActiveCoordsetIndex())
+
     nma = type(model)('{0:s} slice "{1:s}"'.format(model.getName(), selstr))
     if model.is3d():
         which = [which.reshape((len(which),1))*3]
