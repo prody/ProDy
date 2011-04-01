@@ -17,3 +17,4 @@ implemented. Following examples show how to use them:
    anm
    gnm
    gamma
+   external_matrix

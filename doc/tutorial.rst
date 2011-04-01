@@ -232,6 +232,11 @@ that have at least one atom within 10 Å away from the geometric center.
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
 
+*Instant help on selections*
+
+Starting with version 0.7, you can get instant help on atom selections by
+typing ``help(select)``.
+
 More examples
 -------------------------------------------------------------------------------
 

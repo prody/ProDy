@@ -77,6 +77,7 @@ argument. These are noted in function documentations.
 
   * :func:`parseArray`
   * :func:`parseModes`
+  * :func:`parseSparseMatrix`
   * :func:`parseNMD`
   * :func:`writeArray`
   * :func:`writeModes`
@@ -215,7 +216,8 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'parseArray', 'parseModes', 'parseNMD',
            
-           'writeArray', 'writeModes', 'writeNMD', 'writeOverlapTable',
+           'writeArray', 'writeModes', 'parseSparseMatrix',
+           'writeNMD', 'writeOverlapTable',
            
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
            
@@ -883,7 +885,7 @@ class NMABase(object):
         
         if self._array is None:
             self._array = vector
-            self._eigenvals = value
+            self._eigvals = value
             self._dof = vector.shape[0]
             if self._is3d:
                 self._n_atoms = self._dof / 3
@@ -896,11 +898,11 @@ class NMABase(object):
                 raise ValueError('shape of vector do not match shape of ' 
                                  'existing vectors')
             self._array = np.concatenate((self._array, vector), 1)
-            self._eigenvals = np.concatenate((self._eigenvals, value))
+            self._eigvals = np.concatenate((self._eigvals, value))
             self._n_modes += vector.shape[1]            
             self._modes += [None] * vector.shape[1]
         
-        self._vars = 1 / self._eigenvals
+        self._vars = 1 / self._eigvals
     
     def setEigens(self, vectors, values=None):
         """Set eigenvectors and eigenvalues.
@@ -1808,7 +1810,7 @@ class PCA(NMABase):
         
         """
 
-        NMABase.setEigens(self, vectors, values)
+        NMABase.addEigenpair(self, eigenvector, eigenvalue)
         self._vars = self._eigvals.copy()
 
 
@@ -2290,15 +2292,19 @@ def setVMDpath(path):
     
     
 
-def parseNMD(filename):
+def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
     
     .. versionadded:: 0.5.3
+    
+    .. versionchanged:: 0.7
+       User can pass NMA type for the data, eg. :class:`ANM` or :class:`PCA`.
     
     Normal mode data is returned in an :class:`NMA` instance. Atomic
     data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
     
     """
+    assert not isinstance(type, NMABase), 'type must be NMA, ANM, GNM, or PCA'
     
     atomic = dict()
     modes = []
@@ -2342,7 +2348,7 @@ def parseNMD(filename):
         data = atomic.pop('bfactors', None)
         if data is not None:
             ag.setTempFactors(np.fromstring(data, np.float64, sep=' '))
-    nma = NMA(name)
+    nma = type(name)
     for mode in modes:
         
         items = mode.split()
@@ -2844,8 +2850,6 @@ def sliceModel(model, atoms, selstr):
         which.append(which[0]+1)
         which.append(which[0]+2)
         which = np.concatenate(which, 1).flatten()
-    else:
-        nma.setNumOfDims(1)
     nma.setEigens( array[which, :], model.getEigenvalues() )
     return (nma, sel)
     
@@ -3049,7 +3053,7 @@ def writeArray(filename, array, format='%d', delimiter=' '):
     return filename
 
 def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
-               dtype=np.float64, ):
+               dtype=np.float64):
     """Parse array data from a file.
     
     .. versionadded:: 0.5.3
@@ -3084,6 +3088,70 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
                        skiprows=skiprows, usecols=usecols)
     return array
         
+def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
+                      irow=0, icol=1, first=1):
+    """Parse sparse matrix data from a file.
+    
+    .. versionadded:: 0.7
+    
+    This function is using :func:`parseArray` to parse the file.
+    
+    Input must have the following format::
+        
+       1       1    9.958948135375977e+00
+       1       2   -3.788214445114136e+00
+       1       3    6.236155629158020e-01
+       1       4   -7.820609807968140e-01
+    
+    Each row in the text file must have the same number of values.
+    
+    :arg filename: File or filename to read. If the filename extension is 
+        :file:`.gz` or :file:`.bz2`, the file is first decompressed.
+    :type filename: str or file
+    
+    :arg symmetric: Set ``True`` if the file contains triangular part of a 
+        symmetric matrix, default is ``False``.
+    :type symmetric: bool
+    
+    :arg delimiter: The string used to separate values. By default, 
+        this is any whitespace.
+    :type delimiter: str
+    
+    :arg skiprows: Skip the first *skiprows* lines, default is ``0``.
+    :type skiprows: int
+    
+    :arg irow: Index of the column in data file corresponding to row indices,
+        default is ``0``. 
+    :type irow: int 
+        
+    :arg icol: Index of the column in data file corresponding to row indices,
+        default is ``0``. 
+    :type icol: int
+    
+    :arg first: First index in the data file (0 or 1), default is ``1``. 
+    :type first: int
+
+    Data-type of the resulting array, default is :class:`numpy.float64`. 
+
+    """
+    irow = int(irow)
+    icol = int(icol)
+    first = int(first)
+    assert 0 <= irow <= 2 and 0 <= icol <= 2, 'irow/icol may be 0, 1, or 2'
+    assert icol != irow, 'irow and icol must not be equal' 
+    idata = [0, 1, 2]
+    idata.pop(idata.index(irow))
+    idata.pop(idata.index(icol))
+    idata = idata[0]
+    sparse = parseArray(filename, delimiter, skiprows)
+    dof = sparse[:,[irow, icol]].max() 
+    matrix = np.zeros((dof,dof))
+    irow = (sparse[:,irow] - first).astype(np.int64)
+    icol = (sparse[:,icol] - first).astype(np.int64)
+    matrix[irow, icol] = sparse[:,idata]
+    if symmetric:
+        matrix[icol, irow] = sparse[:,idata]
+    return matrix
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     """Return an ensemble of randomly sampled conformations along given *modes*.

@@ -59,88 +59,114 @@ Main Window
 
 |
 
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| *NMWiz - Main* enables loading :term:`nmd` files and submitting                       | .. image:: /_static/NMWiz-Main.png     |
-| ProDy and ANM server jobs. Settings and online documentation (at ProDy website)       |                                        |
-| can also be accessed from this window.                                                |                                        |
-|                                                                                       |                                        |
-| Additionally, for each loaded nmd file two buttons will appear in the main            |                                        |
-| window. :guilabel:`Show GUI` button recovers a closed interface for a dataset.        |                                        |
-| :guilabel:`Remove` button completely removes the dataset from the VMD session.        |                                        |
-|                                                                                       |                                        |
-| Note that NMWiz does not allow for loading the same file twice. To get around this,   |                                        |
-| file may be renamed or the dataset may be removed from from the session.              |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
+========================= ====================================================================================================================================
+.. image:: nmwiz/main.png Main window enables loading :term:`nmd` files and submitting ProDy and ANM server jobs. 
+                          Settings and online documentation (at ProDy website) can also be accessed from this window.
+                                     
+                          Additionally, for each loaded nmd file two buttons will appear in the main window. 
+                          :guilabel:`Show GUI` button recovers a closed interface for a dataset.
+                          :guilabel:`Remove` button completely removes the dataset from the VMD session.
+                                     
+                          Note that NMWiz does not allow for loading the same file twice. To get around this, file may be renamed or the dataset 
+                          may be removed from from the session.
+========================= ====================================================================================================================================
+
+From Molecule Window
+-------------------------------------------------------------------------------
+
+|
+
+============================ ====================================================================================================================================
+.. image:: nmwiz/frommol.png Use this window to load data from a molecule which contains normal modes as frames. Following example files can be used to 
+                             
+                             |example| Lysozyme example contains 10 modes from all-atom NMA calculations (courtesy of Guang Hu). Coordinate data is in GRO format
+                             and mode data is in TRR format.
+                             
+                             * :download:`Lysozyme dataset <nmwiz/lysozyme.zip>`
+                             
+                             |example| Ubiquitin example contains 10 modes from all-atom PCA calculations for the structure 2K39. Both coordinate and mode data 
+                             are in PDB format.
+                             
+                             * :download:`Lysozyme dataset <nmwiz/ubiquitin.zip>`
+          
+                             |bulb| When loading data from a large molecular system, you can choose to get data for select atoms, e.g. 
+                             ``name CA and protein`` will obtain parts of normal modes matching carbon alpha atoms.    
+                             
+============================ ====================================================================================================================================
+
 
 NMWiz Window
 -------------------------------------------------------------------------------
 
 |
 
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| NMWiz interface is generated for all datasets loaded into NMWiz. These                | .. image:: /_static/NMWiz-GUI.png      |
-| interfaces are independent of each other, hence allows comparative                    |                                        |
-| analysis of distinct data sets.                                                       |                                        |
-|                                                                                       |                                        |
-| NMWiz interfaces allow visualizing, animating, and plotting modes.                    |                                        | 
-| At startup, various options are hidden from user.                                     |                                        |
-| Arrow size, animation length, graphics quality etc. can be                            |                                        |
-| adjusted using option frames after they are switched on.                              |                                        |
-|                                                                                       |                                        |
-| *Active Mode and Color*: The top panel enables choosing the active mode and           |                                        |
-| color. When the active mode is changed, previously drawn mode arrows will             |                                        |
-| be undisplayed. This behavior and other graphics options can be                       |                                        |
-| changed from the "Arrow Graphics Option" panel.                                       |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
+======================== ====================================================================================================================================
+.. image:: nmwiz/gui.png NMWiz interface is generated for all datasets loaded into NMWiz. These
+                         interfaces are independent of each other, hence allows comparative of distinct data sets.
+                                     
+                         NMWiz interfaces allow visualizing, animating, and plotting modes.
+                         At startup, various options are hidden from user.
+                         Arrow size, animation length, graphics quality etc. can be
+                         adjusted using option frames after they are switched on.
+                                     
+                         *Active Mode and Color*
+                         
+                         The top panel enables choosing the active mode and
+                         color. When the active mode is changed, previously drawn mode arrows will
+                         be undisplayed. This behavior and other graphics options can be
+                         changed from the "Arrow Graphics Option" panel.
+                         
+                         |bulb| Are you visualizing a large system? Keep the resolution low to draw arrows faster.
+                         
+                         |bulb| Are the arrow graphics too crowded? Draw arrows for a subset of residues that are evenly spaced, e.g try 
+                         the selection string ``residue % 4 == 0``, which will draw an arrow for every fourth residue.
+======================== ====================================================================================================================================
 
 Plot Window
 -------------------------------------------------------------------------------
 
 |
 
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| User can plot squared-fluctuations along the active normal mode by clicking on        | .. image:: /_static/NMWiz-Plot.png     |
-| the :guilabel:`Plot` button. Plots will be generated using a modified version of      |    :scale: 50 %                        |
-| `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plug-in.        |                                        |
-| Clicking on the plot will label and highlight the residue (or atom) in the VMD        |                                        |
-| display.                                                                              |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
+========================= ====================================================================================================================================
+.. image:: nmwiz/plot.png User can plot squared-fluctuations along the active normal mode by clicking on
+                          the :guilabel:`Plot` button. Plots will be generated using a modified version of
+                          `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plug-in.
+                          Clicking on the plot will label and highlight the residue (or atom) in the VMD
+                          display.
+========================= ====================================================================================================================================
 
 Settings Window
 -------------------------------------------------------------------------------
 
 |
 
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| Settings window allows users to specify the path to ProDy scripts and select          | .. image:: /_static/NMWiz-Settings.png |
-| the default color for displaying arrows.                                              |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
+============================= ====================================================================================================================================
+.. image:: nmwiz/settings.png Settings window allows users to specify the path to ProDy scripts and select the default color for displaying arrows.
+============================= ====================================================================================================================================
 
 ProDy Interface
 -------------------------------------------------------------------------------
 
 |
 
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins            | .. image:: /_static/NMWiz-ProDy.png    |
-| loaded in VMD. Upon completion of the calculations, NMWiz automatically               |                                        |
-| loads the results.                                                                    |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
+========================== ====================================================================================================================================
+.. image:: nmwiz/prody.png ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins 
+                           loaded in VMD. Upon completion of the calculations, NMWiz automatically loads the results.
+========================== ====================================================================================================================================
 
 ANM Server Interface
 -------------------------------------------------------------------------------
 
 |
 
-+---------------------------------------------------------------------------------------+----------------------------------------+
-| Finally, ANM jobs can be submitted to ANM server using this interface                 | .. image:: /_static/NMWiz-ANMServer.png|
-| (Linux only). User needs to provide PDB and chain identifiers. Cutoff and             |                                        |
-| distance weight parameters can also be adjusted by the user.                          |                                        |
-|                                                                                       |                                        |
-| After ANM Server completes calculations, the user needs to download normal            |                                        |
-| mode data in an NMD file (see *download files* link in results page)                  |                                        |
-| and load it into VMD.                                                                 |                                        |
-+---------------------------------------------------------------------------------------+----------------------------------------+
+============================== ====================================================================================================================================
+.. image:: nmwiz/anmserver.png Finally, ANM jobs can be submitted to ANM server using this interface
+                               (Linux only). User needs to provide PDB and chain identifiers. Cutoff and
+                               distance weight parameters can also be adjusted by the user.
+                               
+                               After ANM Server completes calculations, the user needs to download normal
+                               mode data in an NMD file (see *download files* link in results page) and load it into VMD.
+============================== ====================================================================================================================================
 
 .. toctree::
    :glob:
