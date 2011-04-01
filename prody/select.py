@@ -923,11 +923,7 @@ class Select(object):
         """
         
         torf = self.getBoolArray(atoms, selstr, **kwargs)        
-        if isinstance(atoms, prody.AtomGroup):
-            indices = torf.nonzero()[0]
-        else:
-            indices = self._indices[torf]
-        return indices
+        return torf.nonzero()[0]
         
     def select(self, atoms, selstr, **kwargs):
         """Return a subset of atoms matching *selstr* as a :class:`Selection`.
@@ -971,6 +967,8 @@ class Select(object):
         
         self._selstr2indices = False
         indices = self.getIndices(atoms, selstr, **kwargs)
+        if not isinstance(atoms, prody.AtomGroup):
+            indices = self._indices[indices]
         ag = self._ag
         if not kwargs.get('cache', False):
             self._reset()

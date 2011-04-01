@@ -54,7 +54,7 @@ so we select them:
 <Selection: "calpha and chai...and resnum < 71" from 1aar (70 atoms; 1 coordinate sets, active set index: 0)>
 
 |more| See definition of "calpha", "chain", and other selection 
-keywords.
+keywords in :ref:`selections`.
 
 Note that, flexible design of classes allows users to select atoms other than 
 alpha carbons to be used in GNM calculations.
@@ -270,6 +270,22 @@ to plot data:
    :nofigs:
 
    plt.close('all')  
+
+Reduce the model
+-------------------------------------------------------------------------------
+
+
+Slice the model
+-------------------------------------------------------------------------------
+
+If you want to use analysis and plotting functions such as :func:`showSqFlucts`
+for a subset of atoms, you can take a slice of the GNM model and pass
+it to the functions:
+
+>>> gnm_res1_40, calphas_res1_40 = sliceModel(gnm, calphas, 'resnum 1 to 40')
+>>> gnm_res1_40
+<GNM: Ubiquitin slice "resnum 1 to 40" (20 modes, 40 nodes)>
+
 
 |questions|
 

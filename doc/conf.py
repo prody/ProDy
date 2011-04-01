@@ -152,13 +152,13 @@ html_index = 'index.html'
 
 # Custom sidebar templates, maps document names to template names.
 # 'sourcelink.html'
-generic_sidebars = ['localtoc.html', 'relations.html', 'searchbox.html', 'howtocite.html']
+generic_sidebars = ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['slideshow.html', 'newrelease.html', 'getprody.html', 'howtocite.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
+    'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
     'genindex': ['searchbox.html', 'howtocite.html'],  
     'py-modindex': ['searchbox.html', 'howtocite.html'],  
     'search': [],
-    'tutorial': ['newrelease.html', 'localtoc.html', 'codesnippets.html', 'howtocite.html', 'searchbox.html'],
+    'tutorial': ['howtocite.html', 'newrelease.html', 'localtoc.html', 'codesnippets.html', 'searchbox.html'],
     'bibliography': generic_sidebars,
     'changes': generic_sidebars,
     'contents': generic_sidebars,
@@ -174,7 +174,7 @@ html_sidebars = {
     'todo': generic_sidebars,
     'plugins/index': ['slideshow.html'] + generic_sidebars,
     'plugins/getnmwiz': ['slideshow.html'] + generic_sidebars,
-    '**': ['newrelease.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'howtocite.html', 'searchbox.html']}
+    '**': ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
