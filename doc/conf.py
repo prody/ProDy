@@ -286,6 +286,8 @@ rst_epilog = """
 
 .. |example| image:: /_static/example.png
 
+.. |bulb| image:: /_static/bulb.png
+
 .. |nmwiz| replace:: http://www.csb.pitt.edu/NMWiz/
 
 .. |vmd| replace:: http://www.ks.uiuc.edu/Research/vmd/

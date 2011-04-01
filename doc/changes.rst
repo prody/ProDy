@@ -17,6 +17,9 @@ Release 0.7.0 (in development)
     function. Macros are saved in ProDy configuration and loaded in later
     sessions. See :mod:`select` module for other supporting functions.
   
+  * :func:`~dynamics.parseSparseMatrix` function is implemented for parsing
+    matrices in sparse format. See the usage example in :ref:`external-matrix`. 
+
   * :func:`~dynamics.deform` function is implemented for deforming coordinate 
     sets along a normal mode or linear combination of multiple modes. 
 
