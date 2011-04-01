@@ -67,8 +67,7 @@ Main Window
                           :guilabel:`Show GUI` button recovers a closed interface for a dataset.
                           :guilabel:`Remove` button completely removes the dataset from the VMD session.
                                      
-                          Note that NMWiz does not allow for loading the same file twice. To get around this, file may be renamed or the dataset 
-                          may be removed from from the session.
+                          |bulb| Normal mode data can be saved in NMD format from this window, which then can be parsed with ProDy for further analysis. 
 ========================= ====================================================================================================================================
 
 From Molecule Window
@@ -85,7 +84,7 @@ From Molecule Window
                              * :download:`Lysozyme dataset <nmwiz/lysozyme.zip>`
                              
                              |example| Ubiquitin example contains 10 modes from all-atom PCA calculations for the structure 2K39. Both coordinate and mode data 
-                             are in PDB format.
+                             are in PDB format. The zip archive also contains the same data in NMD format. 
                              
                              * :download:`Lysozyme dataset <nmwiz/ubiquitin.zip>`
           
