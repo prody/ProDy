@@ -35,13 +35,16 @@ your results in NMD format for analysis with NMWiz. NMD is a simple plain text
 format and can be easily prepared using a text editor. See 
 :ref:`nmd-format` for details.
 
+|new| NMWiz can retrieve coordinate and normal mode data from molecules
+loaded in VMD. See the :guilabel:`From Molecule` interface.
+
 Example Input
 ===============================================================================
 
 Examples :term:`nmd` files (*right click* and select *save as* option):
 
-  * :download:`p38 MAP kinase </_downloads/p38_MAPK_1p38_anm_modes.nmd.zip>`
-  * :download:`p38 modes with zero coordinates </_downloads/xyzeros.nmd.zip>` 
+  * :download:`p38 MAP kinase <nmwiz/p38_MAPK_1p38_anm_modes.nmd.zip>`
+  * :download:`p38 modes with zero coordinates <nmwiz/xyzeros.nmd.zip>` 
     that was used to make :download:`NMWiz logo </_static/nm.png>`.
 
 
@@ -52,7 +55,7 @@ This section describes NMWiz Interfaces briefly. Help on functionality can be
 obtained by simply clicking on the question marks (:guilabel:`?`) on the 
 graphical user interface. In addition, a tutorial that was developed for an 
 earlier version of the plug-in can be obtained from here:
-:download:`Tutorial </_downloads/NMWiz_tutorial.pdf>`. 
+:download:`Tutorial <nmwiz/NMWiz_tutorial.pdf>`. 
 
 Main Window
 -------------------------------------------------------------------------------
@@ -70,13 +73,16 @@ Main Window
                           |bulb| Normal mode data can be saved in NMD format from this window, which then can be parsed with ProDy for further analysis. 
 ========================= ====================================================================================================================================
 
+|
+
 From Molecule Window
 -------------------------------------------------------------------------------
 
 |
 
 ============================ ====================================================================================================================================
-.. image:: nmwiz/frommol.png Use this window to load data from a molecule which contains normal modes as frames. Following example files can be used to 
+.. image:: nmwiz/frommol.png |new| Use this interface to retrieve data from a molecule which contains normal modes as frames.
+                             In the following two examples mode data are provided in Gromacs TRR or PDB formats. 
                              
                              |example| Lysozyme example contains 10 modes from all-atom NMA calculations (courtesy of Guang Hu). Coordinate data is in GRO format
                              and mode data is in TRR format.
@@ -86,13 +92,14 @@ From Molecule Window
                              |example| Ubiquitin example contains 10 modes from all-atom PCA calculations for the structure 2K39. Both coordinate and mode data 
                              are in PDB format. The zip archive also contains the same data in NMD format. 
                              
-                             * :download:`Lysozyme dataset <nmwiz/ubiquitin.zip>`
+                             * :download:`Ubiquitin dataset <nmwiz/ubiquitin.zip>`
           
                              |bulb| When loading data from a large molecular system, you can choose to get data for select atoms, e.g. 
                              ``name CA and protein`` will obtain parts of normal modes matching carbon alpha atoms.    
                              
 ============================ ====================================================================================================================================
 
+|
 
 NMWiz Window
 -------------------------------------------------------------------------------
@@ -101,10 +108,10 @@ NMWiz Window
 
 ======================== ====================================================================================================================================
 .. image:: nmwiz/gui.png NMWiz interface is generated for all datasets loaded into NMWiz. These
-                         interfaces are independent of each other, hence allows comparative of distinct data sets.
+                         interfaces are independent of each other, hence allows comparison of different data sets.
                                      
                          NMWiz interfaces allow visualizing, animating, and plotting modes.
-                         At startup, various options are hidden from user.
+                         At startup, settings panels are hidden from user.
                          Arrow size, animation length, graphics quality etc. can be
                          adjusted using option frames after they are switched on.
                                      
@@ -121,6 +128,9 @@ NMWiz Window
                          the selection string ``residue % 4 == 0``, which will draw an arrow for every fourth residue.
 ======================== ====================================================================================================================================
 
+|
+
+
 Plot Window
 -------------------------------------------------------------------------------
 
@@ -130,7 +140,8 @@ Plot Window
 .. image:: nmwiz/plot.png User can plot squared-fluctuations along the active normal mode by clicking on
                           the :guilabel:`Plot` button. Plots will be generated using a modified version of
                           `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plug-in.
-                          Clicking on the plot will label and highlight the residue (or atom) in the VMD
+                          
+                          |bulb| Clicking on the plot will label and highlight the residue (or atom) in the VMD
                           display.
 ========================= ====================================================================================================================================
 
@@ -143,6 +154,8 @@ Settings Window
 .. image:: nmwiz/settings.png Settings window allows users to specify the path to ProDy scripts and select the default color for displaying arrows.
 ============================= ====================================================================================================================================
 
+|
+
 ProDy Interface
 -------------------------------------------------------------------------------
 
@@ -152,6 +165,8 @@ ProDy Interface
 .. image:: nmwiz/prody.png ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins 
                            loaded in VMD. Upon completion of the calculations, NMWiz automatically loads the results.
 ========================== ====================================================================================================================================
+
+|
 
 ANM Server Interface
 -------------------------------------------------------------------------------

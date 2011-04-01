@@ -143,6 +143,9 @@ Strings can be any combination of the following::
   
 For example ``"name C' N` O~ C$ C#"`` is a valid selection string. 
 
+.. versionchanged:: 0.7
+   Special characters are allowed.
+
 **Integers and floats**
 
 Numbers can be provided as integers or floats, and they will be converted to
@@ -163,20 +166,26 @@ Number ranges can be passed as follows:
     or smaller or equal to 10
     
 
-**More special characters (``)**
+|new| **More special characters (``)**
 
-Strings can include the following characters (including whitespace) as well 
-when they are surrounded by grave accent character (``)::
+.. versionadded:: 0.7
+   Strings can include the following characters (including whitespace) as well 
+   when they are surrounded by grave accent character (``):
+
+::
   
   ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"
 
 For example ``"name `CA*` `C *`"`` will work.
 
-**Regular expressions ("")**
+|new| **Regular expressions ("")**
 
-Strings surrounded by double quotes ("") will be treated as regular 
-expressions. The following character set can be used between double 
-quotes::
+.. versionadded:: 0.7
+   Strings surrounded by double quotes ("") will be treated as regular 
+   expressions. The following character set can be used between double 
+   quotes:
+
+::
   
   ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'`
 
@@ -354,6 +363,12 @@ coil            residue not in one of above conformations, same as ``"secondary 
 .. versionchanged:: 0.6.2
    H is added to the list of backbone atoms.
 
+.. versionadded:: 0.7 
+   |new| New keywords are define: ``lipid, heme, ion, buried, surface, at, 
+   cg, purine, pyrimidine, carbon, nitrogen, oxygen, sulfur, extended, helix, 
+   helix_pi, helix_3_10, turn, bridge, bend, coil`` 
+
+
 Among these list of backbone atom names can be changed using 
 :func:`setBackboneAtomNames`  and regular expressions for element types
 can be changed using :func:`setAtomNameRegex`.
@@ -488,12 +503,13 @@ tanh(x)  yperbolic tangent of x
     to 100  
 
 
-Selection macros
+|new| Selection macros
 -------------------------------------------------------------------------------
 
-Finally, any valid selection string can be used to define selection macros
-using the :func:`defSelectionMacro` function. Macros are saved in ProDy
-configuration and loaded in later sessions automatically. 
+.. versionadded:: 0.7
+   Finally, any valid selection string can be used to define selection macros
+   using the :func:`defSelectionMacro` function. Macros are saved in ProDy
+   configuration and loaded in later sessions automatically. 
 
 
 """
@@ -563,7 +579,7 @@ except KeyError:
     MACROS = {}
 
 def defSelectionMacro(name, selstr):
-    """Define selection macro *selstr* with name *name*.
+    """|new| Define selection macro *selstr* with name *name*.
     
     .. versionadded:: 0.7
     
@@ -598,7 +614,7 @@ def defSelectionMacro(name, selstr):
         prody._saveProDySettings()
 
 def delSelectionMacro(name):
-    """Delete the macro *name*.
+    """|new| Delete the macro *name*.
     
     .. versionadded:: 0.7
     
@@ -616,8 +632,8 @@ def delSelectionMacro(name):
         prody._saveProDySettings()
 
 def getSelectionMacro(name=None):
-    """Return the definition of the macro *name*. 
-    
+    """|new| Return the definition of the macro *name*. 
+        
     .. versionadded:: 0.7
     
     If *name* is not given, returns a copy of the selection macros dictionary.
@@ -689,7 +705,7 @@ def setKeywordResidueNames(keyword, resnames):
         raise ValueError('{0:s} is not a valid keyword'.format(keyword))
 
 def getAtomNameRegex(name):
-    """Return regular expression used for selecting common elements.
+    """|new| Return regular expression used for selecting common elements.
     
     .. versionadded:: 0.7
     
@@ -704,7 +720,7 @@ def getAtomNameRegex(name):
         LOGGER.warning('{0:s} is not a valid element'.format(keyword))
 
 def setAtomNameRegex(name, regex):
-    """Set regular expression used for selecting common elements.
+    """|new| Set regular expression used for selecting common elements.
     
     Note that changes in keyword definitions are not saved permanently.
     
