@@ -196,20 +196,6 @@ First make sure that the VMD path is correct
 This will show the slowest 3 modes in VMD using NMWiz. This concludes ANM
 example. Many of these apply to other NMA models, such as GNM and EDA instances.
 
-Reduce the model
--------------------------------------------------------------------------------
-
-Slice the model
--------------------------------------------------------------------------------
-
-If you want to use analysis and plotting functions such as :func:`showSqFlucts`
-for a subset of atoms, you can take a slice of the GNM model and pass
-it to the functions:
-
->>> anm_res1_300, calphas_res1_300 = sliceModel(anm, calphas, 'resnum 1 to 300')
->>> anm_res1_300
-<ANM: p38 ANM analysis slice "resnum 1 to 300" (20 modes, 297 nodes)>
-
 |questions|
 
 |suggestions|

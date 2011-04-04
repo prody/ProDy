@@ -53,3 +53,7 @@ Bibliography
 
 .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded proteins. 
    *Phys. Rev. Lett.* **1997** 79:3090-3093.
+
+.. [WZ05] Zheng W, Brooks BR. Probing the Local Dynamics of Nucleotide-Binding 
+   Pocket Coupled to the Global Dynamics: Myosin versus Kinesin.
+   *Biophysical Journal*  **2005** 89:167–178.

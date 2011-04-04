@@ -14,8 +14,8 @@ Downloads
 
 Plug-in files:
  
-  * Windows: `NMWiz-0.6.zip <https://github.com/downloads/abakan/ProDy/NMWiz-0.6.zip>`_
-  * Linux: `NMWiz-0.6.tar.gz <https://github.com/downloads/abakan/ProDy/NMWiz-0.6.tar.gz>`_
+  * Windows: :download:`NMWiz-0.6.zip <nmwiz/NMWiz-0.7.zip>`
+  * Linux: :download:`NMWiz-0.6.tar.gz <nmwiz/NMWiz-0.7.tar.gz>`
 
 
 Installation

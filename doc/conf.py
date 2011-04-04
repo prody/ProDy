@@ -155,8 +155,8 @@ html_index = 'index.html'
 generic_sidebars = ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
     'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
-    'genindex': ['searchbox.html', 'howtocite.html'],  
-    'py-modindex': ['searchbox.html', 'howtocite.html'],  
+    'genindex': ['searchbox.html'],  
+    'py-modindex': ['searchbox.html'],  
     'search': [],
     'tutorial': ['howtocite.html', 'newrelease.html', 'localtoc.html', 'codesnippets.html', 'searchbox.html'],
     'bibliography': generic_sidebars,
