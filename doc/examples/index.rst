@@ -61,6 +61,7 @@ Dynamics Analysis
    dynamics/pca/index
    dynamics/generate_conformers
    dynamics/extrapolate
+   dynamics/reduce_slice
 
 More on :class:`~atomic.AtomGroup` 
 ===============================================================================

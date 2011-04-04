@@ -33,5 +33,5 @@ scripts/fetchpdb.py
 scripts/gnm.py
 scripts/pca.py
 scripts/pdbselect.py
-nmwiz0.6/nmwiz.tcl
-nmwiz0.6/pkgIndex.tcl
+nmwiz0.7/nmwiz.tcl
+nmwiz0.7/pkgIndex.tcl

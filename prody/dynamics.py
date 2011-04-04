@@ -2872,25 +2872,30 @@ def sliceModel(model, atoms, selstr):
     return (nma, sel)
     
 def reduceModel(model, atoms, selstr):
-    """Returns reduced NMA model.
+    """Return reduced NMA model.
+    
+    .. versionchanged:: 0.7
+       Returns the reduced model and the corresponding atom selection. 
     
     Reduces a :class:`NMA` model to a subset of *atoms* matching a selection 
     *selstr*.
     
     This function behaves depending on the type of the model.
     
+    For ANM and GNM or other NMA models, this functions derives the force 
+    constant matrix for system of interest (specified by the *selstr*) from 
+    the force constant matrix for the *model* by assuming that for any given 
+    displacement of the system of interest, the other atoms move along in 
+    such a way as to minimize the potential energy. This is based on the
+    formulation in in [KH00]_.
+       
+    For PCA models, this function simply takes the sub-covariance matrix for 
+    the selected atoms.
+
     :arg model: dynamics model
     :type model: :class:`ANM`, :class:`GNM`, or :class:`PCA`
     :arg atoms: atoms that were used to build the model
     :arg selstr: a selection string specifying subset of atoms  
-
-    For ANM and GNM:    
-       This function implements the method in [KH00]_. Selected atoms 
-       constitute the system and the rest are the environment.
-    
-    For PCA:
-       This function simply takes the sub-covariance matrix for the selected
-       atoms.
        
     """
     
@@ -2933,7 +2938,7 @@ def reduceModel(model, atoms, selstr):
     if isinstance(model, PCA):
         eda = PCA(model.getName()+' reduced')
         eda.setCovariance(ss)
-        return eda
+        return eda, system
     so = matrix[system,:][:,other]
     os = matrix[other,:][:,system]
     oo = matrix[other,:][:,other]
@@ -2942,15 +2947,15 @@ def reduceModel(model, atoms, selstr):
     if isinstance(model, GNM):
         gnm = GNM(model.getName()+' reduced')
         gnm.setKirchhoff(matrix)
-        return gnm
+        return gnm, system
     elif isinstance(model, ANM):
         anm = ANM(model.getName()+' reduced')
         anm.setHessian(matrix)
-        return anm
+        return anm, system
     elif isinstance(model, PCA):
         eda = PCA(model.getName()+' reduced')
         eda.setCovariance(matrix)
-        return eda
+        return eda, system
 
 def writeModes(filename, modes, format='%.18e', delimiter=' '):
     """Write *modes* (eigenvectors) into a plain text file with name *filename*.

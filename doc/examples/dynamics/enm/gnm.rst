@@ -271,22 +271,6 @@ to plot data:
 
    plt.close('all')  
 
-Reduce the model
--------------------------------------------------------------------------------
-
-
-Slice the model
--------------------------------------------------------------------------------
-
-If you want to use analysis and plotting functions such as :func:`showSqFlucts`
-for a subset of atoms, you can take a slice of the GNM model and pass
-it to the functions:
-
->>> gnm_res1_40, calphas_res1_40 = sliceModel(gnm, calphas, 'resnum 1 to 40')
->>> gnm_res1_40
-<GNM: Ubiquitin slice "resnum 1 to 40" (20 modes, 40 nodes)>
-
-
 |questions|
 
 |suggestions|

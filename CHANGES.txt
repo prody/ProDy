@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.7.0 (in development)
+Release 0.7.0 (Apr 4, 2011)
 ===============================================================================
 
 **New Features**:
@@ -47,8 +47,9 @@ Release 0.7.0 (in development)
   * When :func:`~ensemble.Ensemble` and :func:`~dynamics.NMA` classes are 
     instantiated with an empty string, instances are called "Unnamed".
 
-  * :func:`~dynamics.sliceMode` and :func:`~dynamics.sliceVector` functions 
-    return the atom selection in addition to the vector.
+  * :func:`~dynamics.sliceMode`, :func:`~dynamics.sliceVector` and
+    :func:`~dynamics.reduceModel` functions return the atom selection 
+    in addition to the sliced vector/mode/model instance.
 
 **Bug Fixes**:
 
