@@ -48,6 +48,7 @@ Protein Structure
    measure/alignment
    proteins/biomolt
    compare/compare
+   compare/extract_ligands
    measure/deformation
 
 Dynamics Analysis
@@ -69,5 +70,5 @@ More on :class:`~atomic.AtomGroup`
 .. toctree::
    :maxdepth: 1
    
-   atomic/water
+   atomic/atomgroup
 

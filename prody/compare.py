@@ -23,6 +23,7 @@ Functions
 **Compare chains**:
 
   * :func:`matchChains`
+  * :func:`matchAlign`
   * :func:`mapOntoChain`
         
 **Adjust settings**:
@@ -52,6 +53,7 @@ from prody import ProDyLogger as LOGGER
 from . import AtomMap, select
 
 __all__ = ['matchChains',
+           'matchAlign',
            'mapOntoChain',
            'getPairwiseMatchScore', 'setPairwiseMatchScore',
            'getPairwiseMismatchScore', 'setPairwiseMismatchScore',
@@ -352,8 +354,38 @@ class SimpleChain(object):
 
 _SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
 
+def matchAlign(mobile, target, **kwargs):
+    """Superpose *mobile* onto *target* based on best matching pair of chains.
+    
+    .. versionadded:: 0.7.1
+
+    This function makes use of :func:`matchChains` for matching chains.
+  
+    This function returns a tuple that contains the following items:
+      
+      * *mobile* after it is superposed,
+      * Matching chain from *mobile* as a :class:`~prody.atomic.AtomMap` 
+        instance, 
+      * Matching chain from *target* as a :class:`~prody.atomic.AtomMap` 
+        instance,
+      * Percent sequence identity of the match,
+      * Percent sequence overlap of the match.
+     
+    """
+    
+    match = matchChains(mobile, target, **kwargs)
+    if not match:
+        return
+    match = match[0]
+    LOGGER.info('RMSD before alignment (A): {0:.2f}'
+                .format(prody.calcRMSD(match[0], match[1])))
+    prody.calcTransformation(match[0], match[1]).apply(mobile)
+    LOGGER.info('RMSD after alignment  (A): {0:.2f}'
+                .format(prody.calcRMSD(match[0], match[1])))
+    return (mobile,) + match
+
 def matchChains(atoms1, atoms2, **kwargs):
-    """Returns pairs of chains matched based on sequence similarity.
+    """Return pairs of chains matched based on sequence similarity.
     
     Makes an all-to-all comparison of chains in *atoms1* and *atoms2*. Chains
     are obtained from hierarchical views (:class:`~prody.atomic.HierView`) of 

@@ -364,7 +364,7 @@ coil            residue not in one of above conformations, same as ``"secondary 
    H is added to the list of backbone atoms.
 
 .. versionadded:: 0.7 
-   |new| New keywords are define: ``lipid, heme, ion, buried, surface, at, 
+   |new| New keywords are defined: ``lipid, heme, ion, buried, surface, at, 
    cg, purine, pyrimidine, carbon, nitrogen, oxygen, sulfur, extended, helix, 
    helix_pi, helix_3_10, turn, bridge, bend, coil`` 
 
@@ -1064,6 +1064,8 @@ class Select(object):
                 return self._getNumArray(keyword)
             elif self._kwargs is not None and keyword in self._kwargs:
                 return keyword
+            elif self._ag.isAttribute():
+                return self._evalAttribute(keyword)
             else:
                 try:
                     return float(keyword)
@@ -1088,12 +1090,15 @@ class Select(object):
             return self._sameas([' '.join(token[:3])] + token[3:])
         elif keyword == '!!!':
             return self._not(token)
+        elif self._ag.isAttribute(keyword):
+            return self._evalAttribute(keyword, token[1:])
         elif isBooleanKeyword(keyword):
             raise SelectionError('Single word keywords must be followed with '
                                  'and operator.')            
             return self._and([token])
-        raise SelectionError('{0:s} understood. Please report this if you '
-                             'think there is a bug.'.format(' '.join(token)))
+        raise SelectionError('{0:s} is not understood. Please report this if '
+                             'you think there is a bug.'
+                             .format(' '.join(token)))
 
     def _or(self, tokens):
         if DEBUG: print '_or', tokens
@@ -1347,6 +1352,13 @@ class Select(object):
             return self._index()    
         elif token == 'serial':
             return self._index(None, 1)
+        elif self._ag.isAttribute(token):
+            data = self._getAtomicData(token)
+            if data.dtype.type in (np.float64, np.int64):
+                return data
+            else:
+                raise SelectionError('attribute "{0:s}" is not a numeric type'
+                                     .format(token))
         else:
             try:
                 token = float(token)
@@ -1368,6 +1380,24 @@ class Select(object):
         if DEBUG: print '_func', token
         token = token[0]
         return FUNCTION_MAP[token[0]](token[1])
+
+    def _evalAttribute(self, keyword, values=None):
+        if values is None:
+            torf = self._atoms.getAttribute(keyword)
+            if isinstance(torf.dtype, np.bool):
+                return torf
+            else:
+                raise SelectionError('attribute {0:s} is not boolean'
+                                     .format(keyword))
+        else:
+            data = self._getAtomicData(keyword)
+            if data.dtype.type in (np.int64, np.float64):
+                return self._evalFloat(keyword, values)
+            elif data.dtype.type == np.string_:
+                return self._evalAlnum(keyword, values)
+            else:
+                raise SelectionError('type of attribute {0:s} is not valid'
+                                     .format(keyword))
 
     def _evalBoolean(self, keyword, _and=False):
         if DEBUG: print '_evalBoolean', keyword
@@ -1619,18 +1649,29 @@ class Select(object):
     def _getAtomicData(self, keyword):
         field = ATOMIC_DATA_FIELDS.get(keyword, None)
         if field is None:
-            raise SelectionError('"{0:s}" is not a valid keyword.'
-                                 .format(keyword))
-        __dict__ = self.__dict__
-        var = '_'+field.var
-        data = __dict__[var]
-        if data is None:
-            data = self._ag.__dict__[var] 
+            data = self._atoms.getAttribute(keyword)
             if data is None:
-                raise SelectionError('{0:s} are not set.'.format(field.doc_pl))
-            if self._indices is not None:
-                data = data[self._indices]
-            __dict__[var] = data 
+                raise SelectionError('"{0:s}" is not a valid keyword or '
+                                     'attribute.'.format(keyword))
+            elif data.ndim == 1:
+                if self._indices is None:                
+                    return data
+                else:
+                    return data[self._indices]
+            else:
+                raise SelectionError('attribute "{0:s}" is 1-dimensional data '
+                                     .format(keyword))                
+        else:
+            var = '_'+field.var
+            data = self.__dict__[var]
+            if data is None:
+                data = self._ag.__dict__[var] 
+                if data is None:
+                    raise SelectionError('{0:s} are not set.'
+                                         .format(field.doc_pl))
+                if self._indices is not None:
+                    data = data[self._indices]
+                self.__dict__[var] = data 
         return data
     
     def _getCoordinates(self):

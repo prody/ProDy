@@ -1282,7 +1282,7 @@ class GNM(GNMBase):
             g = float(gamma)
             assert g > 0, 'force constant (gamma) must be greater than 0'
             self._gamma = g
-            gamma = lambda dist2, i, j: g 
+            gamma = lambda dist2, i, j: g
         n_atoms = coords.shape[0]
         start = time.time()
         kirchhoff = np.zeros((n_atoms, n_atoms), 'd')

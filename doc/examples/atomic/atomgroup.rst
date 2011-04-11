@@ -1,6 +1,6 @@
 .. currentmodule:: prody.atomic
 
-.. _water:
+.. _atomgroup:
 
 *******************************************************************************
 Constructing an :class:`AtomGroup`

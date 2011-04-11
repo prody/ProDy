@@ -313,6 +313,11 @@ from . import volume
 from .volume import *
 __all__.extend(volume.__all__)
 
+from . import future
+from .future import *
+__all__.extend(future.__all__)
+
+
 import prody
 
 __all__.append('prody')
