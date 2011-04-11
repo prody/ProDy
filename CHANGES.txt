@@ -6,16 +6,35 @@
 Changes
 *******************************************************************************
 
+Release 0.7.1 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`~compare.matchAlign` is implemented for quick alignment of protein
+    structures. See :ref:`extract-ligands` usage example.
+  
+  * :meth:`~atomic.AtomGroup.setAttribute`, 
+    :meth:`~atomic.AtomGroup.getAttribute`,
+    :meth:`~atomic.AtomGroup.delAttribute`, and
+    :meth:`~atomic.AtomGroup.isAttribute` functions are implemented for
+    :class:`~atomic.AtomGroup` class to facilitate storing user provided 
+    atomic data.
+    
+
+
+
 Release 0.7.0 (Apr 4, 2011)
 ===============================================================================
 
 **New Features**:
 
-  * Regular expressions can be used in atom selections.
+  * Regular expressions can be used in atom selections. See 
+    :mod:`~prody.select` module for details.
   
   * User can define selection macros using :func:`~select.defSelectionMacro`
     function. Macros are saved in ProDy configuration and loaded in later
-    sessions. See :mod:`select` module for other supporting functions.
+    sessions. See :mod:`~prody.select` module for other related functions.
   
   * :func:`~dynamics.parseSparseMatrix` function is implemented for parsing
     matrices in sparse format. See the usage example in :ref:`external-matrix`. 
@@ -30,7 +49,8 @@ Release 0.7.0 (Apr 4, 2011)
 **Improvements**:
 
   * Atom selections using bare keyword arguments is optimized. New keyword
-    definitions are added. 
+    definitions are added. See :mod:`~prody.select` module for the complete 
+    list.
   
   * A new keyword argument for :func:`~measure.calcADPAxes` allows for
     comparing largest axis to the second largest one.
@@ -38,7 +58,7 @@ Release 0.7.0 (Apr 4, 2011)
 **Changes**:
 
   * There are changes in function used to alter definitions of selection
-    keywords. See :mod:`select` for details.
+    keywords. See :mod:`~prody.select` for details.
     
   * :func:`~proteins.assignSecondaryStructure` function assigns SS identifiers
     to all atoms in a residue. Residues with no SS information specified is

@@ -22,6 +22,7 @@ Contents
    plugins/index
    scripts/index
    features
+   howtocite
    publications
    reports/index
    devel/index

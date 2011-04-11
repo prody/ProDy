@@ -153,6 +153,31 @@ For example:
 The list of methods for getting and setting atomic data is provided in
 :class:`~atomic.AtomGroup` reference documentation. 
 
+*Indexing atom groups*:
+
+Individual :class:`~atomic.Atom` can be accessed by indexing atom group 
+instances:
+
+>>> atom = prot[0]
+>>> atom
+<Atom: N from 1p38 (index 0; 1 coordinate sets, active set index: 0)>
+
+Not that all ``get/set`` functions defined for :class:`~atomic.AtomGroup` 
+instances are also defined for :class:`~atomic.Atom` instances, using singular
+form of the function name.  
+
+>>> atom.getResidueName()
+'GLU'
+
+*Slicing atom groups*:
+
+It is also possible to get a slice of an atom group, for example we can get
+every other atom as follows:
+
+>>> prot[::2]
+<Selection: "index 0:2962:2" from 1p38 (1481 atoms; 1 coordinate sets, active set index: 0)>
+
+
 More examples
 -------------------------------------------------------------------------------
 
@@ -166,6 +191,10 @@ All of the functions for accessing and handling protein structural data are
 described in :mod:`~prody.proteins` module reference documentation.
 :ref:`fetchpdb` and :ref:`blastpdb` examples show other ways to 
 access the Protein Data Bank (|pdb|) content.
+
+:class:`~atomic.AtomGroup` instances can be build from scratch or 
+parsers for other file types (e.g. mol2) can be developed. The example in 
+:ref:`atomgroup` can be helpful to this aim.
 
 
 Select atoms
@@ -231,6 +260,17 @@ that have at least one atom within 10 Å away from the geometric center.
 [  1.005  17.533  40.052]
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
+
+*Operations on selections*
+
+:class:`~atomic.Selection` instances can be
+
+>>> ca = prot.select('name CA') 
+>>> cb = prot.select('name CB')
+>>> ca | cb
+<Selection: "(name CA) or (name CB)" from 1p38 (687 atoms; 1 coordinate sets, active set index: 0)>
+>>> ca & cb
+<Selection: "(name CA) and (name CB)" from 1p38 (0 atoms; 1 coordinate sets, active set index: 0)>
 
 *Instant help on selections*
 

@@ -92,15 +92,15 @@ class Field(object):
     def doc(self):
         return self._doc
     doc = property(doc, 
-        doc='Atomic data field name to be used in documentation.')
+        doc='Atomic data field name, used in documentation.')
     def doc_pl(self):
         return self._doc_pl
     doc_pl = property(doc_pl, 
-        doc='Atomic data field name in plural form to be used in documentation.')
+        doc='Atomic data field name in plural form, used in documentation.')
     def meth(self):
         return self._meth
     meth = property(meth, 
-        doc='Atomic data field name to be used in get/set methods.')
+        doc='Atomic data field name, used in get/set methods.')
     def meth_pl(self):
         return self._meth_pl
     meth_pl = property(meth_pl, 
@@ -251,9 +251,9 @@ class AtomGroup(Atomic):
 
     **Get and Set Methods** 
     
-    *getAttribute()* methods return copies of the data arrays. 
+    ``get()`` methods return copies of the data arrays. 
     
-    *setAttribute()* methods accepts data contained in :class:`list` or 
+    ``set()`` methods accepts data contained in :class:`list` or 
     :class:`numpy.ndarray` instances. The length of the list or array must 
     match the number of atoms in the atom group. Set method sets attributes of 
     all atoms at once.
@@ -263,8 +263,8 @@ class AtomGroup(Atomic):
     :meth:`setActiveCoordsetIndex()` method. :meth:`getCoordinates` returns
     coordinates from the active set.
     
-    To access and modify data associated with a subset of atoms in an atom group, 
-    :class:`Selection` instances may be used. A selection from an atom 
+    To access and modify data associated with a subset of atoms in an atom 
+    group, :class:`Selection` instances may be used. A selection from an atom 
     group has initially the same coordinate set as the active coordinate set.
     
     User can iterate over atoms and coordinate sets in an atom group. To 
@@ -281,13 +281,14 @@ class AtomGroup(Atomic):
         self._coordinates = None
         self._acsi = 0                  # Active Coordinate Set Index
         self._n_coordsets = 0
+        self._userdata = {}
         
         for field in ATOMIC_DATA_FIELDS.values():
             self.__dict__['_'+field.var] = None
 
     def __repr__(self):
-        return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, active '
-               'set index: {3:d})>').format(self._name, 
+        return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, active'
+               ' set index: {3:d})>').format(self._name, 
               self._n_atoms, self._n_coordsets, self._acsi)
         return ('<AtomGroup: {0:s}>').format(str(self))
         
@@ -336,13 +337,13 @@ class AtomGroup(Atomic):
         new = AtomGroup(self._name + ' + ' + other._name)
         n_coordsets = self._n_coordsets
         if n_coordsets != other._n_coordsets:
-            LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same number '
-                'of coordinate sets. First from both AtomGroups will be merged.'
-                .format(str(self._name), str(other._name), n_coordsets))
+            LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same number'
+              ' of coordinate sets. First from both AtomGroups will be merged.'
+              .format(str(self._name), str(other._name), n_coordsets))
             n_coordsets = 1
         coordset_range = range(n_coordsets)
         new.setCoordinates(np.concatenate((self._coordinates[coordset_range],
-                                        other._coordinates[coordset_range]), 1))
+                                    other._coordinates[coordset_range]), 1))
         for field in ATOMIC_DATA_FIELDS.values():
             var = '_' + field.var
             this = self.__dict__[var]
@@ -353,18 +354,22 @@ class AtomGroup(Atomic):
 
     def getName(self):
         """Return name of the atom group instance."""
+        
         return self._name
     
     def setName(self, name):
         """Set name of the atom group instance."""
+        
         self._name = str(name)
     
     def getNumOfAtoms(self):
         """Return number of atoms."""
+        
         return self._n_atoms
     
     def getCoordinates(self): 
         """Return coordinates from active coordinate set."""
+        
         if self._coordinates is None or self._n_coordsets == 0:
             return None
         return self._coordinates[self._acsi].copy()
@@ -381,7 +386,9 @@ class AtomGroup(Atomic):
         If the shape of the coordinates array is (n_atoms,3) or (1,n_atoms,3),
         the coordinate set will replace the coordinates of the currently active 
         coordinate set.
+        
         """
+        
         if not isinstance(coordinates, np.ndarray):
             raise TypeError('coordinates must be an ndarray instance')
 
@@ -406,7 +413,7 @@ class AtomGroup(Atomic):
         if self._coordinates is None:
             if coordinates.ndim == 2:
                 coordinates = coordinates.reshape(
-                                (1, coordinates.shape[0], coordinates.shape[1]))
+                            (1, coordinates.shape[0], coordinates.shape[1]))
             self._coordinates = coordinates
             self._n_coordsets = self._coordinates.shape[0]
             self._acsi = 0
@@ -442,7 +449,8 @@ class AtomGroup(Atomic):
         elif not coords.ndim in (2, 3):
             raise ValueError('coords must be a 2d or a 3d array')
         elif coords.shape[-2:] != self._coordinates.shape[1:]:
-            raise ValueError('shape of coords must be ([n_coordsets,] n_atoms, 3)')
+            raise ValueError('shape of coords must be ([n_coordsets,] '
+                             'n_atoms, 3)')
         elif coords.dtype != np.float64:
             try:
                 coords.astype(np.float64)
@@ -456,6 +464,7 @@ class AtomGroup(Atomic):
 
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
+        
         which = np.ones(self._n_coordsets, np.bool)
         which[index] = False
         if which.sum() == self._n_coordsets:
@@ -473,6 +482,7 @@ class AtomGroup(Atomic):
         returns all coordinate sets. 
         
         """
+        
         if self._coordinates is None or self._n_coordsets == 0:
             return None
         if indices is None:
@@ -483,20 +493,26 @@ class AtomGroup(Atomic):
         try: 
             return self._coordinates[indices].copy()
         except IndexError:
-            raise IndexError('indices must be an integer, a list of integers, or None')
+            raise IndexError('indices must be an integer, a list of integers, '
+                             'or None')
 
     def getNumOfCoordsets(self):
         """Return number of coordinate sets."""
+        
         return self._n_coordsets
     
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each 
-        coordinate set."""
+        coordinate set.
+        
+        """
+        
         for i in range(self._n_coordsets):
             yield self._coordinates[i].copy()
     
     def setActiveCoordsetIndex(self, index):
         """Set the index of the active coordinate set."""
+        
         if self._n_coordsets == 0:
             self._acsi = 0
         if not isinstance(index, int):
@@ -508,14 +524,17 @@ class AtomGroup(Atomic):
         self._acsi = index
 
     def copy(self, which=None):
-        """Return a copy of atoms indicated *which* as a new AtomGroup instance.
+        """Return a copy of atoms indicated *which* as a new AtomGroup 
+        instance.
         
         *which* may be:
             * ``None``, make a copy of the AtomGroup         else:
             * a Selection, Residue, Chain, or Atom instance
             * a list or an array of indices
             * a selection string
+        
         """
+        
         name = self._name
         if which is None:
             indices = None
@@ -532,7 +551,8 @@ class AtomGroup(Atomic):
             newmol = AtomGroup('Copy of {0:s} index {1:d}'.format(name, which))
         elif isinstance(which, str):
             indices = prody.ProDyAtomSelect.select(self, which).getIndices()
-            newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(name, which))
+            newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'
+                               .format(name, which))
         elif isinstance(which, (list, np.ndarray)):
             if isinstance(which, list):
                 indices = np.array(which)
@@ -558,10 +578,116 @@ class AtomGroup(Atomic):
     
     def getHierView(self):
         """Return a hierarchical view of the atom group."""
+        
         return HierView(self)
     
+    def setAttribute(self, name, data):
+        """Set a new attribute called *name* holding atomic *data*.
+        
+        .. versionadded:: 0.7.1
+        
+        *name* must:
+            
+            * start with a letter
+            * contain alphanumeric characters and underscore
+            * not be a selection keyword or one of the reserved names 
+              listed below
+        
+        *data* must be a :class:`list` or a :class:`numpy.ndarray`, its length 
+        must be equal to the number of atoms, and the type of data array must 
+        be one of the following:
+            
+            * :class:`numpy.bool_`
+            * :class:`numpy.float64`
+            * :class:`numpy.int64`
+            * :class:`numpy.string_`
+        
+        If a :class:`list` is given, its type must match one of the above 
+        after it is converted to an array.  
+        
+        If the dimension of the *data* array is 1, name can be used
+        as a selection string for making selections
+        
+        Note that, if an attribute with given *name* exists, it will be 
+        overwritten.
+
+        :arg name: name of the attribute
+        :type name: str
+        
+        :arg data: atomic data
+        :type data: :class:`numpy.ndarray`
+        
+        """
+        
+        if not isinstance(name, str):
+            raise TypeError('name must be a string')
+        elif name == '':
+            raise ValueError('name cannot be empty string')
+        elif not all([part.isalnum() for part in name.split('_')]):
+            raise ValueError('name may contain alphanumeric characters and '
+                             'underscore, {0:s} is not valid'.format(name))
+        elif not name[0].isalnum():
+            raise ValueError('name must start with a letter')
+            
+        if name in ATOMIC_DATA_FIELDS or prody.select.isKeyword(name):
+            raise ValueError('name cannot be a reserved name or a selection '
+                             'keyword, "{0:s}" is invalid'.format(name))
+        if isinstance(data, list):
+            data = np.array(data)
+        if not isinstance(data, np.ndarray):
+            raise TypeError('data must be a numpy.ndarray instance')
+        elif len(data) != self._n_atoms:
+            raise ValueError('length of data array must match number of atoms')
+        elif not data.dtype.type in (np.float64, np.int64, np.string_, np.bool_):
+            raise TypeError('type of data array must be float64, int64, or '
+                            'string_, {0:s} is not valid'.format(
+                            str(data.dtype.type)))
+            
+        self._userdata[name] = data
+    
+    invalid = ATOMIC_DATA_FIELDS.keys()
+    invalid.sort() 
+    setAttribute.__doc__ += """Name of the attribute cannot be one of the 
+        following reserved names:
+            
+          * {0:s}
+    """.format('\n          * '.join(invalid))
+    
+    def delAttribute(self, name):
+        """Delete the attribute with given *name* and return the stored data.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        if not isinstance(name, str):
+            raise TypeError('name must be a string')
+        return self._userdata.pop(name, None)
+    
+    def getAttribute(self, name):
+        """Return a copy of the attribute *name*, if it exists.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        data = self._userdata.get(name, None)
+        if data is not None:
+            return data.copy()
+        return None
+
+    def isAttribute(self, name):    
+        """Return ``True`` if *name* is a user set attribute.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        return name in self._userdata
+    
 class AtomPointer(Atomic):
-    """Base class for classes pointing to atom(s) in :class:`AtomGroup` instances.
+    """Base class for classes pointing to atom(s) in :class:`AtomGroup` 
+    instances.
     
     Derived classes are:
         
@@ -570,6 +696,7 @@ class AtomPointer(Atomic):
       * :class:`AtomMap`
       
     """
+    
     def __init__(self, atomgroup, acsi=None):
         if not isinstance(atomgroup, AtomGroup):
             raise TypeError('atomgroup must be AtomGroup, not {0:s}'
@@ -587,14 +714,18 @@ class AtomPointer(Atomic):
         .. versionadded:: 0.5
         
         """
+        
         if not isinstance(other, AtomPointer):
-            raise TypeError('an AtomPointer instance cannot be added to a {0:s} instance'.format(type(other)))
+            raise TypeError('an AtomPointer instance cannot be added to a '
+                            '{0:s} instance'.format(type(other)))
         ag = self._ag
         if ag != other._ag:
-            raise ValueError('AtomPointer instances must point to same AtomGroup instance')
+            raise ValueError('AtomPointer instances must point to same '
+                             'AtomGroup instance')
         acsi = self._acsi
         if self._acsi != other._acsi:
-            LOGGER.warning('Active coordinate set indices of operands are not the same. Result will have {0:d}'.format(acsi))
+            LOGGER.warning('Active coordinate set indices of operands are not '
+                           'the same. Result will have {0:d}'.format(acsi))
         
         name = '({0:s}) + ({1:s})'.format(str(self), str(other))
         indices = np.concatenate([self.getIndices(), other.getIndices()])
@@ -615,16 +746,29 @@ class AtomPointer(Atomic):
         return AtomMap(ag, indices, np.concatenate(mapping), 
                        np.concatenate(unmapped), name, acsi)
     
+    def isAttribute(self, name):    
+        """Return ``True`` if *name* is a user set attribute.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        return self._ag.isAttribute(name)
+
+    
     def getAtomGroup(self):
         """Return associated atom group."""
+        
         return self._ag
     
     def getNumOfCoordsets(self):
         """Return number of coordinate sets."""
+        
         return self._ag._n_coordsets
 
     def setActiveCoordsetIndex(self, index):
         """Set the index of the active coordinate set."""
+        
         if self._ag._coordinates is None:
             raise AttributeError('coordinates are not set')
         if not isinstance(index, int):
@@ -639,6 +783,7 @@ class AtomPointer(Atomic):
     def copy(self):
         """Make a copy of atoms."""
         return self._ag.copy(self)
+
 
 class AtomMeta(type):
     def __init__(cls, name, bases, dict):
@@ -655,7 +800,8 @@ class AtomMeta(type):
             def setData(self, value, var=field.var):
                 array = self._ag.__dict__['_'+var]
                 if array is None:
-                    raise AttributeError('attribute of the AtomGroup is not set')
+                    raise AttributeError('attribute of the AtomGroup is not '
+                                         'set')
                 array[self._index] = value
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth 
@@ -664,9 +810,14 @@ class AtomMeta(type):
         setattr(cls, 'getName', getattr(cls, 'getAtomName'))
         setattr(cls, 'setName', getattr(cls, 'setAtomName'))
 
+
 class Atom(AtomPointer):
+    
     """A class for accessing and manipulating attributes of an atom 
-    in a :class:`AtomGroup` instance."""
+    in a :class:`AtomGroup` instance.
+    
+    """
+    
     __metaclass__ = AtomMeta
     __slots__ = ('_ag', '_index', '_acsi')
     
@@ -681,34 +832,54 @@ class Atom(AtomPointer):
                 self._ag.getNumOfCoordsets(), self._acsi)
 
     def __str__(self):
-        return ('Atom {0:s} (index {1:d})').format(self.getAtomName(), self._index)
+        return ('Atom {0:s} (index {1:d})').format(self.getAtomName(), 
+                                                   self._index)
 
     def __len__(self):
         return 1
     
     def getIndex(self):
         """Return index of the atom."""
+        
         return self._index
+    
+    def getAttribute(self, name):
+        """Return the attribute *name*, if it exists.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        if self._ag.isAttribute(name):
+            return self._ag._userdata[name][self._index]
 
     def getIndices(self):
         """Return index of the atom in a :class:`numpy.ndarray`."""
+        
         return np.array([self._index])
     
     def getCoordinates(self):
-        """Return a copy of coordinates of the atom from the active coordinate set."""
+        """Return a copy of coordinates of the atom from the active coordinate 
+        set.
+        
+        """
+        
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         return self._ag._coordinates[self._acsi, self._index].copy()
     
     def setCoordinates(self, coordinates):
         """Set coordinates of the atom in the active coordinate set."""
+        
         self._ag._coordinates[self._acsi, self._index] = coordinates
         
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices.
         
         *indices* may be an integer or a list of integers.
+        
         """
+        
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         if indices is None:
@@ -720,11 +891,13 @@ class Atom(AtomPointer):
 
     def iterCoordsets(self):
         """Iterate over coordinate sets."""
+        
         for i in range(self._ag._n_coordsets):
             yield self._ag._coordinates[i, self._index].copy()
 
     def getSelectionString(self):
         """Return selection string that will select this atom."""
+        
         return 'index {0:d}'.format(self._index)
 
 
@@ -751,12 +924,14 @@ class AtomSubsetMeta(type):
             setattr(cls, 'set'+field.meth_pl, setData)
         
 class AtomSubset(AtomPointer):
+    
     """A class for manipulating subset of atomic data in an :class:`AtomGroup`.
     
     This class stores a reference to an :class:`AtomGroup` instance, a set of 
     atom indices, and active coordinate set index for the atom group.
     
     """
+    
     __metaclass__ = AtomSubsetMeta    
     __slots__ = ['_ag', '_indices', '_acsi']
     def __init__(self, atomgroup, indices, acsi=None):
@@ -770,7 +945,9 @@ class AtomSubset(AtomPointer):
         
         :arg acsi: active coordinate set index
         :type acsi: integer
+        
         """
+        
         AtomPointer.__init__(self, atomgroup, acsi)
         if not isinstance(indices, np.ndarray):
             indices = np.array(indices, np.int64)
@@ -837,31 +1014,47 @@ class AtomSubset(AtomPointer):
         indices = indices.intersection(other_indices)
         indices = np.unique(indices)
         return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
-               self.getSelectionString(), other.getSelectionString()), acsi)    
+               self.getSelectionString(), other.getSelectionString()), acsi)
+               
+    def getAttribute(self, name):
+        """Return a copy of the attribute *name*, if it exists.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        if self._ag.isAttribute(name):
+            return self._ag._userdata[name][self._indices].copy()
     
     def getIndices(self):
         """Return the indices of atoms."""
+        
         return self._indices.copy()
     
     def getNumOfAtoms(self):
         """Return number of atoms."""
+        
         return self._indices.__len__()
 
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
+        
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         return self._ag._coordinates[self._acsi, self._indices].copy()
     
     def setCoordinates(self, coordinates):
         """Set coordinates in the active coordinate set."""
+        
         self._ag._coordinates[self._acsi, self._indices] = coordinates
         
     def getCoordsets(self, indices=None):
         """Return coordinate sets at given *indices*.
         
         *indices* may be an integer or a list of integers.
+        
         """
+        
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         if indices is None:
@@ -872,15 +1065,21 @@ class AtomSubset(AtomPointer):
             raise IndexError('indices may be an integer or a list of integers')
 
     def iterCoordsets(self):
-        """Iterate over coordinate sets by returning a copy of each coordinate set."""
+        """Iterate over coordinate sets by returning a copy of each coordinate 
+        set.
+        
+        """
+        
         for i in range(self._ag._n_coordsets):
             yield self._ag._coordinates[i, self._indices].copy()
 
+
 class Chain(AtomSubset):
+    
     """Instances are generated by :class:`HierView` class.
     
-    Indexing a :class:`Chain` instance by residue number returns :class:`Residue` 
-    instances.
+    Indexing a :class:`Chain` instance by residue number returns 
+    :class:`Residue` instances.
     
     >>> from prody import *
     >>> pdb = parsePDB('1p38')
@@ -900,8 +1099,10 @@ class Chain(AtomSubset):
     THR 7
     ...
         
-    """    
+    """
+        
     __slots__ = AtomSubset.__slots__ + ['_seq', '_dict']
+    
     def __init__(self, atomgroup, indices, acsi=None):
         AtomSubset.__init__(self, atomgroup, indices, acsi)
         self._seq = None
@@ -923,7 +1124,7 @@ class Chain(AtomSubset):
         return self.iterResidues()
     
     def __getitem__(self, number):
-        """Returns the residue with given number, if it exists
+        """Returns the residue with given number, if it exists.
         
         .. versionchanged:: 6.2
            Tuples composed of chain identifier, residue number, and residue
@@ -940,10 +1141,12 @@ class Chain(AtomSubset):
     
     def getResidue(self, number, insertcode=''):
         """Return residue with given number."""
+        
         return self._dict.get((number, insertcode), None)
 
     def iterResidues(self):
         """Iterate residues in the chain."""
+        
         keys = self._dict.keys()
         keys.sort()
         for key in keys:
@@ -951,18 +1154,22 @@ class Chain(AtomSubset):
     
     def getNumOfResidues(self):
         """Return number of residues."""
+        
         return len(self._dict)
 
     def getIdentifier(self):
         """Return chain identifier."""
+        
         return self._ag._chids[self._indices[0]]
     
     def setIdentifier(self, identifier):
         """Set chain identifier."""
+        
         self.setChainIdentifiers(identifier)
     
     def getSequence(self):
         """Return sequence, if chain is a polypeptide."""
+        
         if self._seq:
             return self._seq
         CAs = self.select('name CA').select('protein')
@@ -974,6 +1181,7 @@ class Chain(AtomSubset):
 
     def getSelectionString(self):
         """Return selection string that selects this atom group."""
+        
         return 'chain {0:s}'.format(self.getIdentifier())
 
 
@@ -993,8 +1201,11 @@ class Residue(AtomSubset):
     <Atom: CB from 1p38 (index 4; 1 coordinate sets, active set index: 0)>
     >>> print res['H'] # X-ray structure 1p38 does not contain H atoms
     None
-    """ 
+    
+    """
+     
     __slots__ = AtomSubset.__slots__ + ['_chain']
+    
     def __init__(self, atomgroup, indices, chain, acsi=None):
         AtomSubset.__init__(self, atomgroup, indices, acsi)
         self._chain = chain
@@ -1002,9 +1213,11 @@ class Residue(AtomSubset):
     def __repr__(self):
         return ('<Residue: {0:s} {1:d}{2:s} from Chain {3:s} from {4:s} '
                 '({5:d} atoms; {6:d} coordinate sets, active set index: {7:d})>'
-                ).format(self.getName(), self.getNumber(), self.getInsertionCode(), 
-                self.getChain().getIdentifier(), self._ag.getName(),len(self), 
-                self._ag.getNumOfCoordsets(), self._acsi)
+                ).format(self.getName(), self.getNumber(), 
+                         self.getInsertionCode(), 
+                         self.getChain().getIdentifier(), 
+                         self._ag.getName(), len(self), 
+                         self._ag.getNumOfCoordsets(), self._acsi)
         
     def __str__(self):
         return '{0:s} {1:d}{2:s}'.format(self.getName(), self.getNumber(), 
@@ -1019,50 +1232,65 @@ class Residue(AtomSubset):
         Assumes that atom names in a residue are unique. If more than one atoms 
         with the given *name* exists, the one with the smaller index will be 
         returned.
+        
         """
+        
         nz = (self.getAtomNames() == name).nonzero()[0]
         if len(nz) > 0:
             return Atom(self._ag, self._indices[nz[0]], self._acsi)
     
     def getChain(self):
         """Return the chain that the residue belongs to."""
+        
         return self._chain
     
     def getNumber(self):
         """Return residue number."""
+        
         return int(self._ag._resnums[self._indices[0]])
     
     def setNumber(self, number):
         """Set residue number."""
+        
         self.setResidueNumbers(number)
     
     def getName(self):
         """Return residue name."""
+        
         return self._ag._resnames[self._indices[0]]
     
     def setName(self, name):
         """Set residue name."""
+        
         self.setResidueNames(name)
 
     def getInsertionCode(self):
         """Return residue insertion code."""
+        
         return self._ag._icodes[self._indices[0]]
         
     def setInsertionCode(self, icode):
         """Set residue insertion code."""
+        
         self.setInsertionCodes(icode)
     
     def getChainIdentifier(self):
+        """Return chain identifier."""
+        
         return self._chain.getIdentifier()
     
     def getSelectionString(self):
         """Return selection string that will select this residue."""
+        
         return 'chain {0:s} and resnum {1:d}{2:s}'.format(
           self.getChainIdentifier(), self.getNumber(), self.getInsertionCode())
 
+
 class Selection(AtomSubset):
     """A class for accessing and manipulating attributes of select of atoms 
-    in an :class:`AtomGroup` instance."""
+    in an :class:`AtomGroup` instance.
+    
+    """
     
     __slots__ = AtomSubset.__slots__ + ['_selstr']
     
@@ -1087,11 +1315,14 @@ class Selection(AtomSubset):
     
     def getSelectionString(self):
         """Return selection string that selects this atom subset."""
+        
         return self._selstr
 
     def getHierView(self):
         """Return a hierarchical view of the atom subset."""
+        
         return HierView(self)
+
 
 class AtomMapMeta(type):
     
@@ -1103,13 +1334,17 @@ class AtomMapMeta(type):
                 array = self._ag.__dict__[var]
                 if array is None:
                     return None
-                result = np.zeros(self._len, ATOMIC_DATA_FIELDS[name].dtype)
-                result[self._mapping] = self._ag.__dict__[var][self._indices]
+                data = self._ag.__dict__[var][self._indices]
+                result = np.zeros((self._len,) + data.shape[1:], 
+                                 ATOMIC_DATA_FIELDS[name].dtype)
+                result[self._mapping] = data
                 return result 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth_pl
-            getData.__doc__ = 'Return {0:s} of the atoms. Unmapped atoms will have 0/empty entries.'.format(field.doc_pl)
+            getData.__doc__ = 'Return {0:s} of the atoms. Unmapped atoms ' + \
+                              'will have 0/empty entries.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
+
 
 class AtomMap(AtomPointer):
     """A class for mapping atomic data.
@@ -1121,9 +1356,11 @@ class AtomMap(AtomPointer):
     """
     
     __metaclass__ = AtomMapMeta
-    __slots__ = ['_ag', '_indices', '_acsi', '_name', '_mapping', '_unmapped', '_len']
+    __slots__ = ['_ag', '_indices', '_acsi', '_name', '_mapping', '_unmapped', 
+                 '_len']
     
-    def __init__(self, atomgroup, indices, mapping, unmapped, name='Unnamed', acsi=None):
+    def __init__(self, atomgroup, indices, mapping, unmapped, name='Unnamed', 
+                 acsi=None):
         """Instantiate with an AtomMap with following arguments:        
         
         :arg atomgroup: the atomgroup instance from which atoms are mapped
@@ -1131,12 +1368,15 @@ class AtomMap(AtomPointer):
         :arg mapping: mapping of the atoms as a list of indices
         :arg unmapped: list of indices for unmapped atoms
         :arg name: name of the AtomMap instance
-        :arg acsi: active coordinate set index, if ``None`` defaults to that of *atomgrup*
+        :arg acsi: active coordinate set index, if ``None`` defaults to that 
+            of *atomgrup*
         
         Length of *mapping* must be equal to length of *indices*. Number of 
         atoms (including unmapped dummy atoms) are determined from the 
-        sum of lengths of *mapping* and *unmapped* arrays.         
+        sum of lengths of *mapping* and *unmapped* arrays.
+                 
         """
+        
         AtomPointer.__init__(self, atomgroup, acsi)
         
         if not isinstance(indices, np.ndarray):
@@ -1187,6 +1427,19 @@ class AtomMap(AtomPointer):
     
     def __len__(self):
         return self._len
+    
+    def getAttribute(self, name):
+        """Return a copy of the attribute *name*, if it exists.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        if self._ag.isAttribute(name):
+            data = self._ag._userdata[name][self._indices]
+            result = np.zeros((self._len,) + data.shape[1:], data.dtype)
+            result[self._mapping] = data
+            return result
 
     def getName(self):
         return self._name
@@ -1196,55 +1449,71 @@ class AtomMap(AtomPointer):
 
     def getNumOfAtoms(self):
         """Return number of mapped atoms."""
+        
         return self._len
 
     def getNumOfUnmapped(self):
         """Return number of unmapped atoms."""
+        
         return len(self._unmapped)
 
     def getNumOfMapped(self):
         """Return number of mapped atoms."""
+        
         return len(self._mapping)
 
     def getIndices(self):
         """Return indices of mapped atoms."""
+        
         return self._indices.copy()
 
     def getMapping(self):
         """Return mapping of indices."""
+        
         return self._mapping.copy()
 
     def iterCoordsets(self):
-        """Iterate over coordinate sets by returning a copy of each coordinate set."""
+        """Iterate over coordinate sets by returning a copy of each coordinate 
+        set.
+        
+        """
+        
         for i in range(self._ag._n_coordsets):
             coordinates = np.zeros((self._len, 3), np.float64)
-            coordinates[self._mapping] = self._ag._coordinates[i, self._indices] 
+            coordinates[self._mapping] = self._ag._coordinates[i, 
+                                                               self._indices] 
             yield coordinates
 
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
+        
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         coordinates = np.zeros((self._len, 3), np.float64)
-        coordinates[self._mapping] = self._ag._coordinates[self._acsi, self._indices] 
+        coordinates[self._mapping] = self._ag._coordinates[self._acsi, 
+                                                           self._indices] 
         return coordinates
     
     def setCoordinates(self, coordinates):
         """Set coordinates in the active coordinate set."""
+        
         self._ag._coordinates[self._acsi, self._indices] = coordinates
     
     def getCoordsets(self, indices=None):
         """Return coordinate sets at given indices.
         
         *indices* may be an integer or a list of integers.
+        
         """
+        
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
         if indices is None:
             indices = slice(None)
         try:
             coordsets = np.zeros((self._ag._n_coordsets, len(self), 3))
-            coordsets[:, self._mapping] = self._ag._coordinates[indices, self._indices]  
+            coordsets[:, self._mapping] = self._ag._coordinates[indices, 
+                                                                self._indices]  
             return coordsets
         except IndexError:
             raise IndexError('indices may be an integer or a list of integers')
@@ -1278,7 +1547,9 @@ class HierView(object):
     <Chain: A from 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
     >>> print hv['B'] # Chain B does not exist in 1p38
     None
+    
     """
+    
     __slots__ = ['_atoms', '_chains']
 
     def __init__(self, atoms):
@@ -1380,7 +1651,6 @@ class HierView(object):
     
     def __getitem__(self, chid):
         """
-        
         .. versionchanged:: 6.2
            Tuples composed of chain identifier, residue number, and residue
            insertion code is accepted.
@@ -1399,6 +1669,7 @@ class HierView(object):
 
     def iterResidues(self):
         """Iterate over residues."""
+        
         chids = self._chains.keys()
         chids.sort()
         for chid in chids:
@@ -1408,7 +1679,10 @@ class HierView(object):
                 
     def getResidue(self, chid, resnum, icode=''):
         """Return residue with number *resnum* and insertion code *icode* from 
-        the chain with identifier *chid*, if it exists."""
+        the chain with identifier *chid*, if it exists.
+        
+        """
+        
         ch = self._chains.get(chid, None)
         if ch is not None:
             return ch.getResidue(resnum, icode)
@@ -1416,10 +1690,12 @@ class HierView(object):
 
     def getNumOfResidues(self):
         """Returns number of residues."""
+        
         return sum([ch.getNumOfResidues() for ch in self._chains.itervalues()])    
 
     def iterChains(self):
         """Iterate over chains."""
+        
         chids = self._chains.keys()
         chids.sort()
         for chid in chids:
@@ -1427,8 +1703,10 @@ class HierView(object):
     
     def getChain(self, chid):
         """Return chain with identifier *chid*, if it exists."""
+        
         return self._chains.get(chid, None)
 
     def getNumOfChains(self):
         """Return number of chains."""
+        
         return len(self._chains)
