@@ -1178,12 +1178,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     record = BioBlast.parse(results).next()
     return PDBBlastRecord(sequence, record)
 
-def writePDBStream(stream, atoms, model=None, sort=False):
-    """Write *atoms* in PDB format to a *stream*.
-    
-    :arg stream: anything that implements the method write() 
-        (e.g. file, buffer, stdout)
-    
+_writePDBdoc = """
     :arg atoms: Atomic data container.
     :type atoms: :class:`~prody.atomic.Atomic` 
     
@@ -1199,6 +1194,15 @@ def writePDBStream(stream, atoms, model=None, sort=False):
     *atoms* instance must at least contain coordinates and atom names data.
     
     """
+
+def writePDBStream(stream, atoms, model=None, sort=False):
+    """Write *atoms* in PDB format to a *stream*.
+    
+    :arg stream: anything that implements the method write() 
+        (e.g. file, buffer, stdout)
+    
+    """
+    
     if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
@@ -1207,15 +1211,16 @@ def writePDBStream(stream, atoms, model=None, sort=False):
                                 'index ' + str(atoms.getIndex()))
 
     if model is None:
-        model = range(atoms.getNumOfCoordsets())
+        model = np.arange(atoms.getNumOfCoordsets())
     elif isinstance(model, int):
-        model = np.array([model]) -1
-    elif isinstance(models, int):
-        model = np.array(model) -1
+        model = np.array([model], np.int64) -1
+    elif isinstance(model, list):
+        model = np.array(model, np.int64) -1
     else:
-        raise TypeError('models must be an integer or a list of integers')
-
-
+        raise TypeError('model must be an integer or a list of integers')
+    if model.min() < 0 or model.max() >= atoms.getNumOfCoordsets():
+        raise ValueError('model index or indices is not valid')
+        
     n_atoms = atoms.getNumOfAtoms()
     atomnames = atoms.getAtomNames()
     if atomnames is None:
@@ -1284,19 +1289,22 @@ def writePDBStream(stream, atoms, model=None, sort=False):
             stream.write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, '|S1')
     atoms.setActiveCoordsetIndex(acsi)
+
+writePDBStream.__doc__ += _writePDBdoc
     
 def writePDB(filename, atoms, model=None, sort=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
     Returns *filename* if file is succesfully written. 
-    See :func:`writePDBStream` for more information.
-    
+   
     """
     
     out = open(filename, 'w')
     writePDBStream(out, atoms, model, sort)
     out.close()
     return filename
+
+writePDB.__doc__ += _writePDBdoc
 
 mapHelix = {
 1: 'H', # 4-turn helix (alpha helix)
@@ -1401,7 +1409,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
     
     If multiple biomolecular transformations are provided in the *header*
     dictionary, biomolecules will be returned as 
-    :class:`~prody.atomic.AtomGroup` instances in a :class:`list`.  
+    :class:`~prody.atomic.AtomGroup` instances in a :func:`list`.  
 
     If the resulting biomolecule has more than 26 chains, the molecular 
     assembly will be split into multiple :class:`~prody.atomic.AtomGroup`
