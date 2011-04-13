@@ -103,7 +103,7 @@ One can iterate over :class:`HierView` instances to get chains:
 ...
 <Chain: D from 3mkb (1196 atoms; 1 coordinate sets, active set index: 0)>
 
-It is also possible to get a :class:`list` of chains simply as follows:
+It is also possible to get a :func:`list` of chains simply as follows:
 
 >>> chains = list( hv )
 >>> chains # doctest: +SKIP
@@ -169,7 +169,7 @@ Iterating over a chain yields residues:
 Note that water atoms, each constituting a residue, are also part of a chain
 if they are labeled with that chain's identifier.
 
-This enables getting a :class:`list` of residues simply as follows:
+This enables getting a :func:`list` of residues simply as follows:
 
 >>> chA_residues = list(chA)
 >>> chA_residues # doctest: +SKIP
@@ -238,7 +238,7 @@ Iterating over a residue instance yields :class:`Atom` instances:
 ...
 <Atom: CB from 3mkb (index 4; 1 coordinate sets, active set index: 0)>
 
-This makes it easy to get a :class:`list` of atoms:
+This makes it easy to get a :func:`list` of atoms:
 
 >>> list( chA_res1 ) # doctest: +SKIP
 [<Atom: N from 3mkb (index 0; 1 coordinate sets, active set index: 0)>,

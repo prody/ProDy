@@ -251,9 +251,9 @@ class AtomGroup(Atomic):
 
     **Get and Set Methods** 
     
-    ``get()`` methods return copies of the data arrays. 
+    ``AtomGroup.get()`` methods return copies of the data arrays. 
     
-    ``set()`` methods accepts data contained in :class:`list` or 
+    ``AtomGroup.set()`` methods accepts data contained in :func:`list` or 
     :class:`numpy.ndarray` instances. The length of the list or array must 
     match the number of atoms in the atom group. Set method sets attributes of 
     all atoms at once.
@@ -593,7 +593,7 @@ class AtomGroup(Atomic):
             * not be a selection keyword or one of the reserved names 
               listed below
         
-        *data* must be a :class:`list` or a :class:`numpy.ndarray`, its length 
+        *data* must be a :func:`list` or a :class:`numpy.ndarray`, its length 
         must be equal to the number of atoms, and the type of data array must 
         be one of the following:
             
@@ -602,7 +602,7 @@ class AtomGroup(Atomic):
             * :class:`numpy.int64`
             * :class:`numpy.string_`
         
-        If a :class:`list` is given, its type must match one of the above 
+        If a :func:`list` is given, its type must match one of the above 
         after it is converted to an array.  
         
         If the dimension of the *data* array is 1, name can be used
