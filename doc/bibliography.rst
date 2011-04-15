@@ -34,7 +34,15 @@ Bibliography
    spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
 .. [BS07] Bassi S.  A primer on Python for life science researchers. 
-   *PLoS Comput Biol* *2007* 3(11): e199. doi:10.1371/journal.pcbi.0030199   
+   *PLoS Comput Biol* **2007** 3(11): e199. doi:10.1371/journal.pcbi.0030199   
+
+.. [CC06] Chennubhotla C, Bahar I. Markov propagation of allosteric effects in 
+   biomolecular systems: application to GroEL-GroES.  *Mol Syst Biol* **2006** 
+   2:36.
+
+.. [CC07] Chennubhotla C, Bahar I. Markov methods for hierarchical 
+   coarse-graining of large protein dynamics.  *J Comput Biol* **2007** 
+   14:765-76.
 
 .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal 
    fluctuations in protein using a single parameter harmonic potential.
