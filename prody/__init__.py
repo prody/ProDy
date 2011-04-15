@@ -37,9 +37,19 @@ def importLA():
         try:
             import numpy.linalg as linalg
         except:
-            raise ImportError('scipy.linalg or numpy.linalg is required for NMA calculations and aligning structures.')
+            raise ImportError('scipy.linalg or numpy.linalg is required for '
+                              'NMA calculations and aligning structures.')
     dynamics.linalg = linalg
     measure.linalg = linalg
+
+def importSparse():
+    try:
+        from scipy import sparse
+    except ImportError:    
+        raise ImportError('scipy.sparse is required, but could not be '
+                          'imported.')
+    dynamics.sparse = sparse
+    future.sparse = sparse
     
 def importPyPlot():
     try:

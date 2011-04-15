@@ -192,6 +192,7 @@ linalg = None
 scipyla = None
 plt = None
 KDTree = None
+sparse = None
 
 import prody
 from .atomic import *
