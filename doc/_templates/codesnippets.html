@@ -17,15 +17,13 @@ The JavaScript Source!! http://javascript.internet.com
 Created by: Robert Nyman | http://robertnyman.com/ */
 
 function removeHTMLTags(strInputCode){
-	/* 
-			This line is optional, it replaces escaped brackets with real ones, 
-			i.e. < is replaced with < and > is replaced with >
-	*/	
- 	strInputCode = strInputCode.replace(/&(lt|gt);/g, function (strMatch, p1){
+	return strInputCode.replace(/<\/?[^>]+(>|$)/g, "");
+}
+function replaceBrackets(strInputCode){
+ 	return strInputCode.replace(/&(lt|gt);/g, function (strMatch, p1){
 	 	return (p1 == "lt")? "<" : ">";
 	});
-	var strTagStrippedText = strInputCode.replace(/<\/?[^>]+(>|$)/g, "");
-	return strTagStrippedText;
+	
 }
 
 function showCodeSnippets() {
@@ -37,17 +35,9 @@ function showCodeSnippets() {
   for (var i = 0; i < div.length; i++) {
     if (div.item(i).className == "highlight-python") {
       HTML = div.item(i).innerHTML;
-      if (HTML.search('class="highlight"') > -1) {
+      if (HTML.search('class="highlight"') > -1 || HTML.search('class=highlight') > -1) {
         count += 1
-        //if (comments) {
-        //pycode += "# Code snippet " + count + "\n" 
-        //if (count > 9) {
-        //  pycode += "#----------------\n"
-        //} else {
-        //  pycode += "#---------------\n"
-        //}
-        //}
-        cleanHTML = removeHTMLTags(HTML);
+        cleanHTML = replaceBrackets(removeHTMLTags(HTML));
         if (cleanHTML.search('>>> ') > -1) {
           cleanHTML = cleanHTML.split('\n');
           for (var j = 0; j < cleanHTML.length; j++) {
@@ -96,17 +86,22 @@ function showCodeSnippets() {
     /*alert(prolog + pycode);*/
   }
 }
+
+var actualHTML;
+
+function showDocumentation() {
+  document.body.innerHTML = actualHTML
+}
 function popupCode(code){ 
-  popup = window.open(this.href, 'ProDyCode', 'width=500,height=300,scrollbars=yes');
-  popup.document.body.innerHTML = code
-  
-  return false;
-} 
+  actualHTML = document.body.innerHTML
+  document.body.innerHTML = "<input type=\"button\" onclick=\"showDocumentation()\" value=\"Show documentation\" /><pre style=\"text-align: left\">" + code + "</pre>"
+}
+ 
 function showHelp() {
   helpText  = "You can get Python code snippets from this page by clicking on "
-  helpText += "\"Show code snippets\" button. Code will appear in a popup window.\n\n"
+  helpText += "\"Show code snippets\" button. Code will appear in this window.\n\n"
   helpText += "To copy the code into your clipboard:\n"
-  helpText += " 1. Click somewhere on the text in the popup window.\n"
+  helpText += " 1. Click somewhere on the text.\n"
   helpText += " 2. Press \"Ctrl+A\" to select all of the Python code.\n"
   helpText += " 3. Press \"Ctrl+C\" to copy your selection into your clipboard.\n"
   helpText += " 4. Open a new file in your text editor and paste the code."
