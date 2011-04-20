@@ -19,44 +19,11 @@
 """ This module defines classes for selecting subsets of atoms and identifying 
 contacts, and functions to learn and change definitions of selection keywords.
 
-Classes
--------
-
-  * :class:`Select`
-  * :class:`Contacts`
-  
-Functions
----------
-
-Below functions can be used to learn and change the definitions of 
-some selection keywords:
-
-  * Learn keyword definitions:
-    
-    * :func:`getAtomNameRegex`
-    * :func:`getBackboneAtomNames`
-    * :func:`getKeywordResidueNames` 
-    * :func:`getProteinResidueNames`
-    
-  * Change keyword definitions:
-    
-    * :func:`setAtomNameRegex`
-    * :func:`setBackboneAtomNames`
-    * :func:`setKeywordResidueNames`
-    * :func:`setProteinResidueNames`
-
-Below functions are for manipulating selection macros:
-    
-  * :func:`defSelectionMacro`
-  * :func:`delSelectionMacro`
-  * :func:`getSelectionMacro` 
-  
-
 .. _selections:
 
 
 Atom selections
--------------------------------------------------------------------------------
+===============================================================================
 
 
 ProDy offers a powerful atom selector. The keywords, selection grammar,
@@ -511,6 +478,43 @@ tanh(x)  yperbolic tangent of x
    using the :func:`defSelectionMacro` function. Macros are saved in ProDy
    configuration and loaded in later sessions automatically. 
 
+
+
+:mod:`prody.select`
+===============================================================================
+
+Classes
+-------------------------------------------------------------------------------
+
+  * :class:`Select`
+  * :class:`Contacts`
+  
+Functions
+-------------------------------------------------------------------------------
+
+Below functions can be used to learn and change the definitions of 
+some selection keywords:
+
+  * Learn keyword definitions:
+    
+    * :func:`getAtomNameRegex`
+    * :func:`getBackboneAtomNames`
+    * :func:`getKeywordResidueNames` 
+    * :func:`getProteinResidueNames`
+    
+  * Change keyword definitions:
+    
+    * :func:`setAtomNameRegex`
+    * :func:`setBackboneAtomNames`
+    * :func:`setKeywordResidueNames`
+    * :func:`setProteinResidueNames`
+
+Below functions are for manipulating selection macros:
+    
+  * :func:`defSelectionMacro`
+  * :func:`delSelectionMacro`
+  * :func:`getSelectionMacro` 
+  
 
 """
 

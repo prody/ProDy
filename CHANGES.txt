@@ -11,6 +11,10 @@ Release 0.7.1 (in development)
 
 **New Features**:
 
+  * :class:`~atomic.Atomic` :meth:`__getattr__` method is overloaded to allow
+    making quick selections, e.g. ``pdb.protein`` (selects protein), 
+    ``pdb.calpha`` (selects Cα atoms), or ``pdb.cA`` (selects chain A)
+  
   * :func:`~compare.matchAlign` is implemented for quick alignment of protein
     structures. See :ref:`extract-ligands` usage example.
   

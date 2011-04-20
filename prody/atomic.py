@@ -151,6 +151,7 @@ class Atomic(object):
     
     def __contains__(self, item):
         """.. versionadded:: 0.5.3"""
+        
         if isinstance(item, Atomic):
             if isinstance(item, AtomGroup) and self == item: 
                 return True
@@ -163,6 +164,7 @@ class Atomic(object):
       
     def __eq__(self, other):
         """.. versionadded:: 0.5.3"""
+        
         if isinstance(other, Atomic):
             if isinstance(self, AtomPointer) and isinstance(other, AtomPointer):
                 self_indices = self._indices
@@ -185,21 +187,54 @@ class Atomic(object):
     
     def __ne__(self, other):
         """.. versionadded:: 0.5.3"""
+        
         return not self.__eq__(other)
       
     def __getattr__(self, name):
+        """.. versionadded:: 0.7.1"""
+        
         if prody.select.isBooleanKeyword(name):
             return self.select(name)
+        items = name[1:].split('_')
+        if items >= 1:
+            if name.startswith('c'):
+                return self.select('chain ' + ' '.join(items))
+            elif name.startswith('s'):
+                return self.select('segment ' + ' '.join(items))
+            elif name.startswith('a'):
+                return self.select('name ' + ' '.join(items))
+            elif name.startswith('r'):
+                resnames = []
+                resnums = []
+                for item in items:
+                    if item.isalpha():
+                        resnames.append(item)
+                    else:
+                        resnums.append(item)
+                selstr = ''
+                if resnames:
+                    selstr += 'resname ' + ' '.join(resnames) + ' or '
+                if resnums:
+                    selstr += 'resnum ' + ' '.join(resnums)
+                return self.select(selstr)
+    
+        raise AttributeError("'{0:s}' object has no attribute '{1:s}' and "
+                             "'{1:s}' is not a valid selection keyword"
+                             .format(self.__class__.__name__, name))
     
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
+        
         return self._acsi
     
     def select(self, selstr, **kwargs):
         """Return atoms matching the criteria in *selstr*.
         
         .. seealso:: :meth:`prody.select.Select.select()` for more usage 
-           details."""
+           details.
+           
+        """
+        
         return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
 
 class AtomGroupMeta(type):

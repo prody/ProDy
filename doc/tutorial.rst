@@ -63,9 +63,9 @@ ProDy documentation is organized in three main sections:
 * :ref:`reference` section describes all ProDy classes and functions. 
   
   In interactive Python sessions, the reference documentation can be accessed 
-  using the built-in Python function :func:`help`: 
+  using the built-in Python function :func:`help`:: 
 
-  >>> help(parsePDB) # doctest: +SKIP
+    help(parsePDB)
 
   This function prints the description of functions, classes, and class methods 
   to the screen. Note that you might need to type ``q`` to exit from 
@@ -78,9 +78,10 @@ ProDy documentation is organized in three main sections:
 Finally, the Tutorial, :ref:`examples` and :ref:`reference` 
 pages contain ProDy code snippets. These snippets can be retrieved using 
 the :guilabel:`Show Code Snippets` button on the right hand side panel. 
-ProDy code will be displayed in a popup window. The code in the new page can 
+ProDy code will be displayed in the same window. The code can 
 be directly copied into a file. Click on the text, press :kbd:`Ctrl+A` and then 
-:kbd:`Ctrl+C` to have the text in your clipboard.
+:kbd:`Ctrl+C` to have the text in your clipboard. To return to the 
+documentation click the :guilabel:`Show documentation` button at the top.
 
 .. image:: /_static/codesnippets.png
    :align: center
@@ -270,7 +271,6 @@ that have at least one atom within 10 Å away from the geometric center.
 >>> ca | cb
 <Selection: "(name CA) or (name CB)" from 1p38 (687 atoms; 1 coordinate sets, active set index: 0)>
 >>> ca & cb
-<Selection: "(name CA) and (name CB)" from 1p38 (0 atoms; 1 coordinate sets, active set index: 0)>
 
 *Instant help on selections*
 
