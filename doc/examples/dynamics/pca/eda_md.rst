@@ -49,6 +49,14 @@ We start by importing everything from ProDy and MDAnalysis packages::
   from prody import *
   import MDAnalysis
 
+.. note::
+   Note that MDAnalysis is also undergoing continuous development and 
+   object attributes and features may change when major releases are made. 
+   This example code is updated to reflect changes in MDAnalysis version 
+   0.7.0. If you are using an older version, please refer to its documentation 
+   to learn how to access MD trajectory data.
+   
+
 Prepare ensemble
 -------------------------------------------------------------------------------
 
@@ -58,7 +66,7 @@ Instantiate a Universe for the simulated system::
   # Select atoms of interest
   universe_ca = universe.selectAtoms('name CA')
   # Get coordinates of CA atoms
-  ca_coords = universe.dcd.timeseries(universe_ca, format='fac')
+  ca_coords = universe.trajectory.timeseries(universe_ca, format='fac')
 
 
 Instantiate a ProDy :class:`~prody.ensemble.Ensemble`::

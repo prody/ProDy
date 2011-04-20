@@ -187,6 +187,10 @@ class Atomic(object):
         """.. versionadded:: 0.5.3"""
         return not self.__eq__(other)
       
+    def __getattr__(self, name):
+        if prody.select.isBooleanKeyword(name):
+            return self.select(name)
+    
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
         return self._acsi
@@ -995,6 +999,13 @@ class AtomSubset(AtomPointer):
                 self.getSelectionString(), other.getSelectionString()), acsi)
 
     def __and__(self, other):
+        """
+        .. versionchanged:: 0.7.1
+           If intersection of selections does not contain any atoms, ``None``
+           is returned.
+        
+        """
+        
         if not isinstance(other, AtomSubset):
             raise TypeError('other must be an AtomSubset')
         if self._ag != other._ag:
@@ -1012,8 +1023,9 @@ class AtomSubset(AtomPointer):
         else:
             other_indices = set(other._indices)
         indices = indices.intersection(other_indices)
-        indices = np.unique(indices)
-        return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
+        if indices:
+            indices = np.unique(indices)
+            return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
                self.getSelectionString(), other.getSelectionString()), acsi)
                
     def getAttribute(self, name):
