@@ -192,7 +192,8 @@ linalg = None
 scipyla = None
 plt = None
 KDTree = None
-sparse = None
+scipy_sparse = None
+scipy_sparse_la = None
 
 import prody
 from .atomic import *
@@ -1229,7 +1230,7 @@ class GNM(GNMBase):
         self._n_atoms = kirchhoff.shape[0]
         self._dof = kirchhoff.shape[0]
     
-    def buildKirchhoff(self, coords, cutoff=10., gamma=1.):
+    def buildKirchhoff(self, coords, cutoff=10., gamma=1., sparse=False):
         """Build Kirchhoff matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
@@ -1286,7 +1287,11 @@ class GNM(GNMBase):
             gamma = lambda dist2, i, j: g
         n_atoms = coords.shape[0]
         start = time.time()
-        kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
+        if sparse:
+            prody.importScipySparse()
+            kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
+        else:
+            kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         if KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
@@ -1358,8 +1363,14 @@ class GNM(GNMBase):
                     eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
-            values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, 
-                                          eigvals=eigvals)
+            if isinstance(self._kirchhoff, np.ndarray):            
+                values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, 
+                                              eigvals=eigvals)
+            else:
+                prody.importScipySparseLA()
+                values, vectors = scipy_sparse_la.eigsh(self._kirchhoff, 
+                                                       k=n_modes + 1,
+                                                       which='SA')                
         else:
             values, vectors = linalg.eigh(self._kirchhoff)
         n_zeros = sum(values < ZERO)
