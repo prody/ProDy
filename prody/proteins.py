@@ -396,6 +396,10 @@ _parsePDBdoc = """
     :arg name: Name of the AtomGroup instance. When ``None`` is passed,
         AtomGroup is named after the PDB filename.  
     :type name: str
+    
+    :arg biomol: If ``True``, return biomolecule obtained by transforming the
+        coordinates using information from header section.
+    :type biomol: False
 
     If ``model=0`` and ``header=True``, return header 
     dictionary only.
@@ -404,12 +408,16 @@ _parsePDBdoc = """
        Default behavior for parsing alternate locations have changed. 
        Alternate locations indicated by ``A`` are parsed.
     
+    .. versionchanged:: 0.7.1
+       *name* is changed to a keyword argument. *biomol* keyword arguments
+       makes the parser return the biological molecule.
+    
     """
     
 _PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
 
 def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
-             altloc='A', name=None):
+             altloc='A', **kwargs):
     """Return an :class:`~prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
@@ -421,9 +429,13 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
         If needed, PDB files are downloaded using :func:`fetchPDB()` function.  
         
     """
+    
+    name = kwargs.get('name', None)
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
-            name = pdb.lower()
+            if name is None:
+                name = pdb.lower()
+                kwargs['name'] = name
             filename = fetchPDB(pdb)
             if filename is None:
                 raise PDBParserError('PDB file for {0:s} could not be '
@@ -432,24 +444,25 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
         else:
             raise PDBParserError('{0:s} is not a valid filename or a valid '
                                'PDB identifier.'.format(pdb))
-    
     if name is None:
         fn, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
             fn, ext = os.path.splitext(fn)
         name = fn.lower()
+        kwargs['name'] = name
     if pdb.endswith('.gz'):
         pdb = gzip.open(pdb)
     else:
         pdb = open(pdb)
-    result = parsePDBStream(pdb, model, header, chain, subset, altloc, name)
+    result = parsePDBStream(pdb, model, header, chain, subset, 
+                            altloc, **kwargs)
     pdb.close()
     return result
 
 parsePDB.__doc__ += _parsePDBdoc
     
 def parsePDBStream(stream, model=None, header=False, chain=None, subset=None, 
-                   altloc='A', name=None):
+                   altloc='A', **kwargs):
     """Return an :class:`~prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
@@ -457,6 +470,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         (e.g. :class:`file`, buffer, stdin).
 
     """
+    
     if model is not None:
         if isinstance(model, int):
             if model < 0:
@@ -471,13 +485,13 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
 
     lines = stream.readlines()
-
+    biomol = kwargs.get('biomol', False)
     split = 0
     hd = None
     ag = None
-    if header:
+    if header or biomol:
         hd, split = _getHeaderDict(lines)
-    
+    name = kwargs.get('name', None)
     if model != 0:
         start = time.time()
         ag = _getAtomGroup(lines, split, model, chain, subset, altloc)
@@ -488,7 +502,20 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
                     'parsed in {2:.2f}s.'.format(ag._n_atoms, ag._n_coordsets, 
                                                  time.time()-start))
-    if ag is not None and hd is not None:
+    if biomol:
+        try:
+            ag = applyBiomolecularTransformations(hd, ag)
+        except:
+            raise PDBParserError('biomolecule could not be generated, check'
+                                 'input file')
+        else:
+            if isinstance(ag, list):
+                LOGGER.info('Biomolecular transformations were applied, {0:d} '
+                            'biomolecule(s) are returned.'.format(len(ag)))
+            else:
+                LOGGER.info('Biomolecular transformations were applied to the '
+                            'coordinate data.')
+    if ag is not None and header:
         return ag, hd
     elif ag is not None:
         return ag
@@ -850,6 +877,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     
 def _getHeaderDict(lines):
     """Return header data in a dictionary."""
+    
     header = {}
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     helix = {}
@@ -1393,11 +1421,15 @@ def assignSecondaryStructure(header, atoms, coil=True):
                 .format(count))
     return atoms
             
-            
+
             
 def applyBiomolecularTransformations(header, atoms, biomol=None):
     """Return *atoms* after applying biomolecular transformations from *header*
     dictionary.
+    
+    .. versionchanged:: 0.7.1
+       Biomolecular transformations are applied to all coordinate sets in the
+       molecule.
     
     Some PDB files contain transformations for more than 1 biomolecules. A 
     specific set of transformations can be choosen using *biomol* argument.
@@ -1412,20 +1444,22 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
     instances each containing at most 26 chains. These 
     :class:`~prody.atomic.AtomGroup` instances will be returned in a tuple.
    
+    Note that atoms in biomolecules are ordered according to chain identifiers.
+   
     """
 
     if not isinstance(header, dict):
         raise TypeError('header must be a dictionary')
+    if not isinstance(atoms, prody.Atomic):
+        raise TypeError('atoms must be an Atomic instance')
     biomt = header.get('biomolecular_transformations', {})
     if len(biomt) == 0:
         LOGGER.warning('header does not contain biomolecular transformations')
         return None
     c_max = 26
     chids = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'*20) 
-    if isinstance(atoms, prody.AtomGroup):
-        ag = atoms
-    else:
-        ag = atoms.getAtomGroup()
+    if not isinstance(atoms, prody.AtomGroup):
+        atoms = atoms.copy()
     biomols = []
     if biomol is None: 
         keys = biomt.keys()
@@ -1442,29 +1476,39 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
     for i in keys: 
         ags = []
         mt = biomt[i]
+        # mt is a list, first item is list of chain identifiers
+        # following items are lines corresponding to transformation
+        # mt must have 3n + 1 lines
         if (len(mt) - 1) % 3 != 0:
             LOGGER.warning('Biomolecular transformations {0:s} were not '
                            'applied'.format(i))
             continue
         for times in range((len(mt) - 1)/ 3):
+            rotation = np.zeros((3,3))
+            translation = np.zeros(3)
+            line = np.fromstring(mt[times*3+1], sep=' ')
+            rotation[0,:] = line[:3]
+            translation[0] = line[3]
+            line = np.fromstring(mt[times*3+2], sep=' ')
+            rotation[1,:] = line[:3]
+            translation[1] = line[3]
+            line = np.fromstring(mt[times*3+3], sep=' ')
+            rotation[2,:] = line[:3]
+            translation[2] = line[3]
+            t = prody.Transformation(rotation, translation)
             for chid in mt[0]:
-                newag = ag.copy(atoms.select('chain ' + chid))
+                newag = atoms.copy('chain ' + chid)
+                if newag is None:
+                    continue
                 newag.select('all').setChainIdentifiers(chids.pop(0))
-                rotation = np.zeros((3,3))
-                translation = np.zeros(3)
-                line = np.fromstring(mt[times*3+1], sep=' ')
-                rotation[0,:] = line[:3]
-                translation[0] = line[3]
-                line = np.fromstring(mt[times*3+2], sep=' ')
-                rotation[1,:] = line[:3]
-                translation[1] = line[3]
-                line = np.fromstring(mt[times*3+3], sep=' ')
-                rotation[2,:] = line[:3]
-                translation[2] = line[3]
-                t = prody.Transformation(rotation, translation)
-                newag = t.apply(newag)
+                for acsi in range(newag.getNumOfCoordsets()):
+                    newag.setActiveCoordsetIndex(acsi)
+                    newag = t.apply(newag)
+                newag.setActiveCoordsetIndex(0)
                 ags.append(newag)
         if ags:
+            # Handles the case when there is more atom groups than the number
+            # of chain identifiers
             if len(ags) <= c_max:
                 ags_ = [ags]
             else:
@@ -1480,10 +1524,10 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
                     newag += ags.pop(0)
                 if len(ags_) > 1:
                     newag.setName('{0:s} biomolecule {1:s} part {2:d}'
-                                  .format(ag.getName(), i, k+1))
+                                  .format(atoms.getName(), i, k+1))
                 else:
                     newag.setName('{0:s} biomolecule {1:s}'
-                                  .format(ag.getName(), i))
+                                  .format(atoms.getName(), i))
                 parts.append(newag)
             if len(parts) == 1:
                 biomols.append(newag)
