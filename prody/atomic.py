@@ -199,40 +199,48 @@ class Atomic(object):
         
         return not self.__eq__(other)
       
-    def __getattributes__(self, name):
+    def __getattribute__(self, name):
         """.. versionadded:: 0.7.1"""
         
+        #LOGGER.warning('__getattribute__ is evaluated 1 ({0:s}).'.format(name))
         try:
-            return object.__getattribute__(self, name)
+            result = object.__getattribute__(self, name)
+            #LOGGER.warning('__getattribute__ is identified 1 ({0:s}).'.format(str(result)))
+            return result
         except AttributeError:
             pass
+        if not name.isalnum():
+            return
+        #LOGGER.warning('__getattribute__ is evaluated 2.')
         if prody.select.isBooleanKeyword(name):
             return self.select(name)
-        items = name[1:].split('_')
-
-        if len(items) > 1 or items[0] != '':
-            if name.startswith('c'):
-                result = self.select('chain ' + ' '.join(items))
-            elif name.startswith('s'):
-                result = self.select('segment ' + ' '.join(items))
-            elif name.startswith('a'):
-                result = self.select('name ' + ' '.join(items))
-            elif name.startswith('r'):
-                resnames = []
-                resnums = []
-                for item in items:
-                    if item.isalpha():
-                        resnames.append(item)
-                    else:
-                        resnums.append(item)
-                selstr = ''
-                if resnames:
-                    selstr += 'resname ' + ' '.join(resnames) + ' or '
-                if resnums:
-                    selstr += 'resnum ' + ' '.join(resnums)
-                result = self.select(selstr)
-        if result is not None:
-            return result
+        
+        if len(name) > 1: 
+            items = name[1:].split('_')
+            if items[0] != '':
+                if name.startswith('c'):
+                    return prody.ProDyAtomSelect.select(self, 
+                                                'chain ' + ' '.join(items))
+                elif name.startswith('s'):
+                    return prody.ProDyAtomSelect.select(self, 
+                                                'segment ' + ' '.join(items))
+                elif name.startswith('a'):
+                    return prody.ProDyAtomSelect.select(self, 
+                                                'name ' + ' '.join(items))
+                elif name.startswith('r'):
+                    resnames = []
+                    resnums = []
+                    for item in items:
+                        if item.isalpha():
+                            resnames.append(item)
+                        else:
+                            resnums.append(item)
+                    selstr = ''
+                    if resnames:
+                        selstr += 'resname ' + ' '.join(resnames) + ' or '
+                    if resnums:
+                        selstr += 'resnum ' + ' '.join(resnums)
+                    return prody.ProDyAtomSelect.select(self, selstr)
         raise AttributeError("'{0:s}' object has no attribute '{1:s}' and "
                              "'{1:s}' is not a valid selection keyword"
                              .format(self.__class__.__name__, name))

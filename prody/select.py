@@ -61,8 +61,8 @@ type [*]         string           atom type
 altloc [†‡]      string           one-character alternate location identifier
 resname          string           residue name
 chain [‡]        string           one-character chain identifier
-segment          string           segment name
-secondary [*†]   string           one-character secondary structure identifier
+segment [‡]      string           segment name
+secondary [*‡]   string           one-character secondary structure identifier
 index            integer, range   atom number, starting at 0 
 serial           integer, range   atom number, starting at 1
 resnum [§]       integer, range   residue number
@@ -82,14 +82,17 @@ is parsed. Using them before they are set will raise selection error.
 Secondary structure assignments can be made using 
 :func:`~prody.proteins.assignSecondaryStructure` function.
 
-**[‡]** Alternate locations are parsed as alternate coordinate sets. This
-keyword will work for alternate location specified by "A". For this to work
+**[†]** Alternate locations are parsed as alternate coordinate sets. This
+keyword will work for alternate location specified by "A". This to work for
 alternate locations indicated by other letters, they must be parsed 
 specifically by passing the identifier to the :func:`~prody.proteins.parsePDB`.
 
-**[‡]** Atoms with unspecified alternate location/chain/secondary structure 
-identifiers can be selected using "_". This character is replaced with a 
-whitespace.
+**[‡]** Atoms with unspecified alternate location/chain/segment/secondary 
+structure identifiers can be selected using "_". This character is replaced 
+with a whitespace.
+
+.. versionchanged:: 0.7.1 
+   *segment* keyword is added to the above list.
 
 **[§]** If there are multiple residues with the same number but 
 distinguished with insertion codes, the insertion code can be appended
@@ -812,6 +815,7 @@ def isComparison(tokens):
             return True
     return False
 
+_specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
 
 class Select(object):
 
@@ -1452,10 +1456,12 @@ class Select(object):
     def _evalAlnum(self, keyword, values):
         if DEBUG: print '_evalAlnum', keyword, values
         data = self._getAtomicData(keyword)
-        if keyword in ('chain', 'altloc'):
+        if keyword in _specialKeywords:
             for i, value in enumerate(values):
                 if value == '_':
                     values[i] = ' '
+                    values.append('')
+                    break
             
         if self._evalonly is not None:
             data = data[self._evalonly]
@@ -1463,7 +1469,7 @@ class Select(object):
         
         regexps = []
         strings = []
-        for value in values:
+        for value in set(values):
             if isinstance(value, str):
                 strings.append(value)
             elif value[0] == value[2] == '"':

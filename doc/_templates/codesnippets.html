@@ -94,10 +94,10 @@ function showDocumentation() {
 }
 function popupCode(code){ 
   actualHTML = document.body.innerHTML
-  code += "<input type=\"button\" onclick=\"showDocumentation()\" value=\"Show documentation\" />"
-  code += "<pre style=\"text-align: left\">" + code + "</pre>"
-  code += "<input type=\"button\" onclick=\"showDocumentation()\" value=\"Show documentation\" />"
-  document.body.innerHTML = code
+  innerHTML = "<input type=\"button\" onclick=\"showDocumentation()\" value=\"Show documentation\" />"
+  innerHTML += "<pre style=\"text-align: left\">" + code + "</pre>"
+  innerHTML += "<input type=\"button\" onclick=\"showDocumentation()\" value=\"Show documentation\" />"
+  document.body.innerHTML = innerHTML
 }
  
 function showHelp() {
