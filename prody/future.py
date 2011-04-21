@@ -25,7 +25,7 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import time
 
-sparse = None
+from scipy import sparse
 import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
@@ -50,41 +50,51 @@ class MarkovModel(object):
         self._affinity = None
         self._stationary = None
         self._transition = None
-        self._n_atoms = 0
-        self._n_residues = 0
-        self._n_levels = 0
+        self._n_nodes = 0
+        self._level = 0
+        self._lower = None
+        self._higher = None
     
     def __repr__(self):
-        return '<MarkovModel: {0:s} ({1:d} residues, {2:d} levels)>'.format(
-                self._name, self._n_residues, self._n_levels)
+        return '<MarkovModel: {0:s} ({1:d} nodes at level {2:d})>'.format(
+                self._name, self._n_nodes, self._level)
 
     def __str__(self):
         return 'MarkovModel {0:s}'.format(self._name)
     
-    def getNumOfHierLevels(self):
-        """Return number of levels in the hierarchical coarse graining."""
+    def getName(self):
+        """Return the name of the model."""
         
-        return self._n_levels
+        return self._name
     
-    def getNumOfAtoms(self):
-        """Return the number of atoms in the system for which model was built.
+    def getLevelNumber(self):
+        """Return the level number."""
         
-        """
-        
-        return self._n_atoms
+        return self._level
     
-    def getNumOfResidues(self):
-        """Return the number of residues in the system for which model was 
-        built.
+    def getLowerLevel(self):
+        """Return the model at the lower level in the hierarchy."""
         
-        """
+        return self._lower
+    
+    def getHigherLevel(self):
+        """Return the model at the higher level in the hierarchy."""
         
-        return self._n_residues
+        return self._higher
+
+    def getNumOfNodes(self):
+        """Return the number of nodes in the level."""
+        
+        return self._n_nodes
     
     
     def buildAffinityMatrix(self, atoms, cutoff=4):
         """Build the affinity matrix for given *atoms*.
 
+        Note that if you do not want to incorporate hydrogen and non-protein
+        atoms in calculations, make the selection ``"noh and protein"``.
+        
+    
         :arg atoms: atoms for which the affinity matrix will be calculated
         :type atoms: :class:`~prody.atomic.Atomic`
         
@@ -102,37 +112,41 @@ class MarkovModel(object):
         if prody.dynamics.KDTree is None:
             prody.importBioKDTree()
 
-        start = time.time()
-
+        
+        if not isinstance(atoms, prody.AtomGroup):
+            atoms = atoms.getAtomGroup().copy(atoms)
         n_atoms = atoms.getNumOfAtoms()
         hv = prody.HierView(atoms)
         n_res = hv.getNumOfResidues()
 
         rids = np.zeros(n_atoms, np.int64)
         rlen = np.zeros(n_res)
+        resmap = {}
         for i, res in enumerate(hv.iterResidues()):
             rids[ res.getIndices() ] = i
             rlen[ i ] = len(res)
-        
-        affinity = defaultdict(int)
+            res = (res.getChainIdentifier(), res.getNumber(), 
+                   res.getInsertionCode())
+            resmap[i] = res
+            resmap[res] = i
+            
+        self._resmap = resmap
+        start = time.time()
         kdtree = prody.dynamics.KDTree(3)
         kdtree.set_coords(atoms.getCoordinates())
         kdtree.all_search(cutoff)
         LOGGER.debug('KDTree was built in {0:.2f}s.'
                      .format(time.time()-start))
         start = time.time()
+        affinity = defaultdict(int)
         for i, j in kdtree.all_get_indices():
             i = rids[i] 
             j = rids[j]
             if i == j:
                 affinity[(i,j)] += 0.5
-                #affinity[i, j] += 0.5
             else:
                 affinity[(i,j)] += 1
-                #affinity[i, j] += 1
         
-        #affinity += affinity.T  
-        rlen = 1 / (rlen ** 0.5)
         length = len(affinity)
         i = np.zeros(length, np.int32) 
         j = np.zeros(length, np.int32)
@@ -143,18 +157,28 @@ class MarkovModel(object):
             j[k] = key[1]
             v[k] = value
             k += 1
-            
+        rlen = 1 / (rlen ** 0.5)
+        # = Nij * (1/Ni^0.5) * (1/Nj^0.5)    
         v = v * rlen[i] * rlen[j]  
-        from scipy import sparse
         affinity = sparse.coo_matrix((v, (i,j)), shape=(n_res, n_res))
         self._affinity = affinity + affinity.T 
-        self._stationary = None
-        self._n_atoms = n_atoms
-        self._n_residues = n_res
-        
         LOGGER.debug('Affinity matrix was built in {0:.2f}s.'
                      .format(time.time()-start))
+        self._stationary = None
+        self._n_nodes = n_res
     
+    def setAffinityMatrix(self, matrix):
+        """Set the affinity matrix."""
+        
+        shape = matrix.shape 
+        if shape[0] != shape[1]:# or not np.all(matrix == matrix.T):
+            raise ValueError('matrix must be a symmetric matrix')
+        if self._n_nodes != 0 and self._n_nodes != shape[0]:
+            raise ValueError('matrix shape must match number of nodes')
+        self._affinity = matrix
+        self._n_nodes = shape[0]
+
+
     def getAffinityMatrix(self):
         """Return a copy of the affinity matrix.
         
@@ -164,15 +188,15 @@ class MarkovModel(object):
         
         if self._affinity is not None:
             return self._affinity.copy()
-
+    
     def getStationaryDistribution(self):
         """Return a copy of the stationary distribution."""
         
         if self._affinity is None:
             return None
         elif self._stationary is None:  
-            d = self._affinity.sum(0)
-            self._stationary = d * (1 / d.sum())
+            d = np.array(self._affinity.sum(0)).flatten()
+            self._stationary = d * (1. / d.sum())
         return self._stationary.copy()
         
 
@@ -180,57 +204,133 @@ class MarkovModel(object):
     def buildTransitionMatrix(self):
         """Build Markov transition matrix from the affinity matrix."""
         
-        from scipy import sparse
         start = time.time()
         self._transition = np.dot(self._affinity, 
-                  sparse.lil_diags([1 / self._affinity.sum(0)], [0], [self._n_residues,self._n_residues]))
+                  sparse.lil_diags([1 / np.array(self._affinity.sum(0)
+                                    ).flatten()], [0], 
+                                   [self._n_nodes, self._n_nodes]))
         LOGGER.debug('Markov transition matrix was built in {0:.2f}s.'
                      .format(time.time()-start))
 
-    
+    def setTransitionMatrix(self, matrix):
+        """Set the Markov transition matrix."""
+        
+        shape = matrix.shape 
+        if shape[0] != shape[1]:
+            raise ValueError('matrix must be a square matrix')
+        if not np.all(matrix.sum(0).round(6) == 1):
+            raise ValueError('columns of the matrix must add up to 1 '
+                             '(sum is rounded to six significant digits)')
+        if self._n_nodes != 0 and self._n_nodes != shape[0]:
+            raise ValueError('matrix shape must match number of nodes')
+        self._transition = matrix
+        self._n_nodes = shape[0]
+
     def getTransitionMatrix(self):
         """Return a copy of the Markov transition matrix."""
         
         if self._transition is not None:
             return self._transition.copy()
     
-    def grainCoarser(self, beta=10):
+    def grainCoarser(self, power=4, symmetry=None):
+        """
         
-        assert isinstance(beta, int), 'beta must be an integer'
-        assert beta > 0, 'beta must be positive'
+        :arg power: the power to which Markov transition matrix is raised
+            before initial kernel is estimated 
+        :type power: int
+        :arg symmetry: symmetrically related chains, e.g. ``"ABC"``, 
+            ``["ABC", "DEF"]`` 
+        :type symmetry: str, list
         
-        transition = np.linalg.matrix_power(self._transition, beta) 
-        torf = np.ones(self._n_residues, np.bool)
+        """
+        
+        assert isinstance(power, int), 'power must be an integer'
+        assert power > 0, 'power must be positive'
+        # Power
+        start = time.time()
+        transition = np.linalg.matrix_power(self._transition, power) 
+        LOGGER.debug('Markov transition matrix was raised to the power {1:d} '
+                     'in {0:.2f}s.'.format(time.time()-start, power))
+        if symmetry is not None and self._resmap is not None:
+            resmap = self._resmap
+            if isinstance(symmetry, str):
+                symmetry = [symmetry]
+            symdict = {}
+            for i, chids in enumerate(symmetry):
+                if not isinstance(chids, str):
+                    raise TypeError('symmetry must be a string or a list of '
+                                    'strings')
+                chids = set(chids)
+                for chid in chids:
+                    symdict[chid] = chids 
+        n_res = self._n_nodes    
+        # Initialize
+        start = time.time()
+        torf = np.ones(n_res, np.bool)
         stationary = self.getStationaryDistribution()
-        kernels = []
-        whiches = [] 
-        #which = (stationary == stationary.max()).nonzeros()[0][0]        
-        #kernels = [transition[:, which]]
-        #torf[which] = False
-        #k = kernels[-1]
-        #torf[ k > k.max() / 2 ] = False
+        mu = stationary.copy()
+        columns = []
+        
         while np.any(torf):
-            stationary = stationary * torf
-            which = (stationary == stationary.max()).nonzero()[0][0]
-            whiches.append(which)
-            kernels.append(transition[:, which])
-            torf[which] = False
-            k = kernels[-1]
-            torf[ k > k.max() / 2 ] = False
-        return whiches
-        temp = zip(self.getStationaryDistribution(), 
-                   np.arange(self._n_residues))
-        temp.sort(reverse=True)
-        kernels = []
-        while temp:        
-            kernels.append(transition[:,temp[0][0]])
-            
-        delta = np.ones()
+            mu = mu * torf
+            which = (mu == mu.max()).nonzero()[0][0]
+            if symmetry:
+                chid, rnum, rins = resmap[which]
+                chids = symdict.get(chid, None)
+                if chids is not None:
+                    whiches = [resmap[(chid, rnum, rins)] for chid in chids]
+            else:
+                whiches = (which, )
+            for which in whiches:
+                columns.append(which)
+                torf[which] = False
+                k = transition[:, which].toarray().flatten()
+                torf[ k > k.max() / 2 ] = False
+        columns.sort()
+        length = len(columns)
+        kernel = transition[:, columns]
+        delta = np.ones(length) * (1. / length)
+        LOGGER.debug('Initial kernel matrix was built '
+                     'in {0:.2f}s.'.format(time.time()-start))
+        start = time.time()
+        delta_old = np.ones(length)
+        step = 0
+        while ((delta - delta_old) ** 2 ).sum() ** 0.5 > 0.000001:
+            # E-step
+            divisor = sparse.dia_matrix((1/(kernel * delta), 0), 
+                                        shape=(n_res, n_res))
+            ownership = divisor * kernel * sparse.dia_matrix((delta, 0), 
+                                                        shape=(length, length))
+            # M-step
+            delta_old = delta
+            delta = stationary * ownership
+            kernel = sparse.dia_matrix((stationary, 0), shape=(n_res, n_res)) * \
+                        ownership * sparse.dia_matrix((1 / delta, 0), 
+                                                        shape=(length, length))
+            step += 1
+        LOGGER.debug('Expectation maximization converged after {1:d} steps '
+                     'in {0:.2f}s.'.format(time.time()-start, step))
+        self._ownership = ownership 
+        self._kernel = kernel
+        self._delta = delta
+        
+        model = MarkovModel(self.getName())
+        delta_diag = sparse.dia_matrix((delta, 0), shape=(length, length))
+        transition = delta_diag * kernel.T * \
+            sparse.dia_matrix((1 / (kernel * delta), 0), shape=(n_res, n_res)) * \
+            kernel
+        
+        affinity = transition * delta_diag
+        self._lower = model
+        model._higher = self
+        model.setAffinityMatrix(affinity)
+        model.setTransitionMatrix(transition)
+        return model
         
 if __name__ == '__main__':
     
      #p = parsePDB('1aon')
      m = MarkovModel('')
      m.buildAffinityMatrix(p.select('protein'))
-     #m.buildTransitionMatrix()
-     #c = m.grainCoarser()
+     m.buildTransitionMatrix()
+     c = m.grainCoarser(power=8, symmetry=['ABCDEFG', 'HIJKLMN', 'OPQRSTU'])

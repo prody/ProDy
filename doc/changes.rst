@@ -11,10 +11,6 @@ Release 0.7.1 (in development)
 
 **New Features**:
 
-  * :class:`~atomic.Atomic` :meth:`__getattr__` method is overloaded to allow
-    making quick selections, e.g. ``pdb.protein`` (selects protein), 
-    ``pdb.calpha`` (selects Cα atoms), or ``pdb.cA`` (selects chain A)
-  
   * :func:`~compare.matchAlign` is implemented for quick alignment of protein
     structures. See :ref:`extract-ligands` usage example.
   
@@ -25,7 +21,10 @@ Release 0.7.1 (in development)
     :class:`~atomic.AtomGroup` class to facilitate storing user provided 
     atomic data.
     
+**Improvements**:
 
+  * :func:`~proteins.parsePDB` can optionally return biomolecule when 
+    ``biomol=True`` keyword argument is passed.
 
 
 Release 0.7.0 (Apr 4, 2011)
