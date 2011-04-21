@@ -199,7 +199,7 @@ class Atomic(object):
         
         return not self.__eq__(other)
       
-    def __getattribute__(self, name):
+    def __getattributes__(self, name):
         """.. versionadded:: 0.7.1"""
         
         try:
@@ -264,30 +264,51 @@ class AtomGroupMeta(type):
             getData.__name__ = field.meth_pl
             getData.__doc__ = 'Return a copy of {0:s}.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
-            
-            def setData(self, array, var=field.var, dtype=field.dtype, 
-                        ndim=field.ndim, hv=field.hv):
-                if self._n_atoms == 0:
-                    self._n_atoms = len(array)
-                elif len(array) != self._n_atoms:
-                    raise ValueError('length of array must match n_atoms')
-                    
-                if isinstance(array, list):
-                    array = np.array(array, dtype)
-                elif not isinstance(array, np.ndarray):
-                    raise TypeError('array must be a NumPy array or a list')
-                elif array.ndim != ndim:
-                        raise ValueError('array must be {0:d} dimensional'
-                                         .format(ndim))
-                elif array.dtype != dtype:
-                    try:
-                        array.astype(dtype)
-                    except ValueError:
-                        raise ValueError('array cannot be assigned type '
-                                         '{0:s}'.format(dtype))
-                self.__dict__['_'+var] = array
-                if hv:
-                    self.__dict__['_hvupdate'] = True
+            if field.hv:
+                def setData(self, array, var=field.var, dtype=field.dtype, 
+                            ndim=field.ndim):
+                    if self._n_atoms == 0:
+                        self._n_atoms = len(array)
+                    elif len(array) != self._n_atoms:
+                        raise ValueError('length of array must match n_atoms')
+                        
+                    if isinstance(array, list):
+                        array = np.array(array, dtype)
+                    elif not isinstance(array, np.ndarray):
+                        raise TypeError('array must be a NumPy array or a list')
+                    elif array.ndim != ndim:
+                            raise ValueError('array must be {0:d} dimensional'
+                                             .format(ndim))
+                    elif array.dtype != dtype:
+                        try:
+                            array.astype(dtype)
+                        except ValueError:
+                            raise ValueError('array cannot be assigned type '
+                                             '{0:s}'.format(dtype))
+                    self.__dict__['_'+var] = array
+                    self._hvupdate = True
+            else:
+                def setData(self, array, var=field.var, dtype=field.dtype, 
+                            ndim=field.ndim):
+                    if self._n_atoms == 0:
+                        self._n_atoms = len(array)
+                    elif len(array) != self._n_atoms:
+                        raise ValueError('length of array must match n_atoms')
+                        
+                    if isinstance(array, list):
+                        array = np.array(array, dtype)
+                    elif not isinstance(array, np.ndarray):
+                        raise TypeError('array must be a NumPy array or a list')
+                    elif array.ndim != ndim:
+                            raise ValueError('array must be {0:d} dimensional'
+                                             .format(ndim))
+                    elif array.dtype != dtype:
+                        try:
+                            array.astype(dtype)
+                        except ValueError:
+                            raise ValueError('array cannot be assigned type '
+                                             '{0:s}'.format(dtype))
+                    self.__dict__['_'+var] = array
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
             setData.__doc__ = 'Set {0:s}.'.format(field.doc_pl)  
@@ -870,12 +891,21 @@ class AtomMeta(type):
             getData.__name__ = field.meth
             getData.__doc__ = 'Return {0:s} of the atom.'.format(field.doc)
             setattr(cls, 'get'+field.meth, getData)
-            def setData(self, value, var=field.var):
-                array = self._ag.__dict__['_'+var]
-                if array is None:
-                    raise AttributeError('attribute of the AtomGroup is not '
-                                         'set')
-                array[self._index] = value
+            if field.hv:
+                def setData(self, value, var=field.var):
+                    array = self._ag.__dict__['_'+var]
+                    if array is None:
+                        raise AttributeError('attribute of the AtomGroup is not '
+                                             'set')
+                    array[self._index] = value
+                    self._ag._hvupdate = True
+            else:
+                def setData(self, value, var=field.var):
+                    array = self._ag.__dict__['_'+var]
+                    if array is None:
+                        raise AttributeError('attribute of the AtomGroup is not '
+                                             'set')
+                    array[self._index] = value
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth 
             setData.__doc__ = 'Set {0:s} of the atom.'.format(field.doc)  
@@ -986,11 +1016,20 @@ class AtomSubsetMeta(type):
             getData.__name__ = field.meth_pl
             getData.__doc__ = 'Return {0:s} of the atoms.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
-            def setData(self, value, var=field.var):
-                array = self._ag.__dict__['_'+var]
-                if array is None:
-                    raise AttributeError('attribute of the AtomGroup is not set')
-                array[self._indices] = value
+            if field.hv:
+                def setData(self, value, var=field.var):
+                    array = self._ag.__dict__['_'+var]
+                    if array is None:
+                        raise AttributeError('attribute of the AtomGroup is not set')
+                    array[self._indices] = value
+                    self._ag._hvupdate = True
+            else:
+                def setData(self, value, var=field.var):
+                    array = self._ag.__dict__['_'+var]
+                    if array is None:
+                        raise AttributeError('attribute of the AtomGroup is not set')
+                    array[self._indices] = value
+                    self._ag._hvupdate = True
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
             setData.__doc__ = 'Set {0:s} of the atoms.'.format(field.doc_pl)  
