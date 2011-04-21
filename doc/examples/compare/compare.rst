@@ -82,8 +82,8 @@ selections and apply it to unbound structure:
 
 >>> calcTransformation(unbound_ca, bound_ca).apply(unbound)
 <AtomGroup: 1dlo (7691 atoms; 1 coordinate sets, active set index: 0)>
->>> calcRMSD(bound_ca, unbound_ca)
-6.0020747465625366
+>>> round(calcRMSD(bound_ca, unbound_ca), 2)
+6.0
 
 By default, :func:`matchChains` function matches Cα atoms. 
 *subset* argument allows for matching larger numbers of atoms. 

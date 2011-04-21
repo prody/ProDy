@@ -42,15 +42,22 @@ def importLA():
     dynamics.linalg = linalg
     measure.linalg = linalg
 
-def importSparse():
+def importScipySparse():
     try:
         from scipy import sparse
     except ImportError:    
         raise ImportError('scipy.sparse is required, but could not be '
                           'imported.')
-    dynamics.sparse = sparse
-    future.sparse = sparse
+    dynamics.scipy_sparse = sparse
     
+def importScipySparseLA():
+    try:
+        from scipy.sparse import linalg
+    except ImportError:    
+        raise ImportError('scipy.sparse is required, but could not be '
+                          'imported.')
+    dynamics.scipy_sparse_la = linalg
+
 def importPyPlot():
     try:
         import matplotlib.pyplot as pyplot
