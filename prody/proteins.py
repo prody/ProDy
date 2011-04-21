@@ -401,6 +401,11 @@ _parsePDBdoc = """
         coordinates using information from header section.
     :type biomol: False
 
+    :arg secondary: If ``True``, parse the secondary structure information
+        from header section and assign data to atoms.
+    :type secondary: False
+
+
     If ``model=0`` and ``header=True``, return header 
     dictionary only.
     
@@ -409,8 +414,9 @@ _parsePDBdoc = """
        Alternate locations indicated by ``A`` are parsed.
     
     .. versionchanged:: 0.7.1
-       *name* is changed to a keyword argument. *biomol* keyword arguments
-       makes the parser return the biological molecule.
+       *name* is now a keyword argument. *biomol* and *secondary* keyword 
+       arguments makes the parser return the biological molecule and/or
+       assign secondary structure information.
     
     """
     
@@ -486,10 +492,11 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
 
     lines = stream.readlines()
     biomol = kwargs.get('biomol', False)
+    secondary = kwargs.get('secondary', False)
     split = 0
     hd = None
     ag = None
-    if header or biomol:
+    if header or biomol or secondary:
         hd, split = _getHeaderDict(lines)
     name = kwargs.get('name', None)
     if model != 0:
@@ -502,6 +509,12 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
                     'parsed in {2:.2f}s.'.format(ag._n_atoms, ag._n_coordsets, 
                                                  time.time()-start))
+    if secondary:
+        try:
+            ag = assignSecondaryStructure(hd, ag)
+        except:
+            raise PDBParserError('secondary structure assignments could not '
+                                 'be made, check input file')
     if biomol:
         try:
             ag = applyBiomolecularTransformations(hd, ag)
@@ -1456,8 +1469,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
     if len(biomt) == 0:
         LOGGER.warning('header does not contain biomolecular transformations')
         return None
-    c_max = 26
-    chids = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'*20) 
+    
     if not isinstance(atoms, prody.AtomGroup):
         atoms = atoms.copy()
     biomols = []
@@ -1472,8 +1484,10 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
                            'found in the header dictionary.'.format(biomol))
             return None
 
+    c_max = 26
     keys.sort()
     for i in keys: 
+        chids = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'*20)
         ags = []
         mt = biomt[i]
         # mt is a list, first item is list of chain identifiers
@@ -1483,6 +1497,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
             LOGGER.warning('Biomolecular transformations {0:s} were not '
                            'applied'.format(i))
             continue
+        chids_used = []
         for times in range((len(mt) - 1)/ 3):
             rotation = np.zeros((3,3))
             translation = np.zeros(3)
@@ -1496,11 +1511,13 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
             rotation[2,:] = line[:3]
             translation[2] = line[3]
             t = prody.Transformation(rotation, translation)
+            
             for chid in mt[0]:
+                chids_used.append(chid)
                 newag = atoms.copy('chain ' + chid)
                 if newag is None:
                     continue
-                newag.select('all').setChainIdentifiers(chids.pop(0))
+                
                 for acsi in range(newag.getNumOfCoordsets()):
                     newag.setActiveCoordsetIndex(acsi)
                     newag = t.apply(newag)
@@ -1509,6 +1526,9 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         if ags:
             # Handles the case when there is more atom groups than the number
             # of chain identifiers
+            if len(chids_used) != len(set(chids_used)):
+                for newag in ags:
+                    newag.select('all').setChainIdentifiers(chids.pop(0))
             if len(ags) <= c_max:
                 ags_ = [ags]
             else:

@@ -25,6 +25,8 @@ Release 0.7.1 (in development)
 
   * :func:`~proteins.parsePDB` can optionally return biomolecule when 
     ``biomol=True`` keyword argument is passed.
+  * :func:`~proteins.parsePDB` can optionally make secondary structure
+    assignments when ``secondary=True`` keyword argument is passed.
 
 
 Release 0.7.0 (Apr 4, 2011)
