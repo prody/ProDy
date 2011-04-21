@@ -47,6 +47,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 from collections import defaultdict
+import time
 
 import numpy as np
 
@@ -57,11 +58,14 @@ __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset',
            'Selection', 'Chain',
            'Residue', 'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS']
 
+def isBooleanKeyword(name):
+    return True
+
 class Field(object):
     __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', 
-                 '_meth', '_meth_pl', '_ndim')
+                 '_meth', '_meth_pl', '_ndim', '_hv')
     def __init__(self, name, var, dtype, doc, meth, 
-                 doc_pl=None, meth_pl=None, ndim=1):
+                 doc_pl=None, meth_pl=None, ndim=1, hv=False):
         self._name = name
         self._var = var
         self._dtype = dtype
@@ -76,6 +80,7 @@ class Field(object):
             self._meth_pl = meth + 's'
         else:
             self._meth_pl = meth_pl
+        self._hv = hv
         
     def name(self):
         return self._name
@@ -109,23 +114,27 @@ class Field(object):
         return self._ndim
     ndim = property(ndim, 
         doc='Dimensionality of the NumPy array storing atomic data.')
+    def hv(self):
+        return self._hv
+    hv = property(hv, 
+        doc='True when the field is related to building hierarchical views.')
 
 ATOMIC_DATA_FIELDS = {
     'name':      Field('name',      'names',       '|S6',      'atom name',                      'AtomName'),
     'altloc':    Field('altloc',    'altlocs',     '|S1',      'alternate location indicator',   'AltLocIndicator'),
     'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor', ndim=2),
-    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier'),
+    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier', hv=True),
     'element':   Field('element',   'elements',    '|S2',      'element symbol',                 'ElementSymbol'),
     'hetero':    Field('hetero',    'hetero',      np.bool,    'hetero flag',                    'HeteroFlag'),
     'occupancy': Field('occupancy', 'occupancies', np.float64, 'occupancy value',                'Occupancy',      meth_pl='Occupancies'),
     'resname':   Field('resname',   'resnames',    '|S6',      'residue name',                   'ResidueName'),
-    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber'),
+    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber', hv=True),
     'secondary': Field('secondary', 'secondary',   '|S1',      'secondary structure assignment', 'SecondaryStr'),
     'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
     'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
                                                                                                  'AnisoStdDev', ndim=2),
     'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
-    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode'),
+    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode', hv=True),
     'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
     'charge':    Field('charge',    'charges',     np.float64, 'atomic partial charge',          'Charge'),
     'mass':      Field('mass',      'masses',      np.float64, 'atomic mass',                    'Mass', 'atomic masses', 'Masses'),
@@ -190,19 +199,24 @@ class Atomic(object):
         
         return not self.__eq__(other)
       
-    def __getattr__(self, name):
+    def __getattribute__(self, name):
         """.. versionadded:: 0.7.1"""
         
+        try:
+            return object.__getattribute__(self, name)
+        except AttributeError:
+            pass
         if prody.select.isBooleanKeyword(name):
             return self.select(name)
         items = name[1:].split('_')
-        if items >= 1:
+
+        if len(items) > 1 or items[0] != '':
             if name.startswith('c'):
-                return self.select('chain ' + ' '.join(items))
+                result = self.select('chain ' + ' '.join(items))
             elif name.startswith('s'):
-                return self.select('segment ' + ' '.join(items))
+                result = self.select('segment ' + ' '.join(items))
             elif name.startswith('a'):
-                return self.select('name ' + ' '.join(items))
+                result = self.select('name ' + ' '.join(items))
             elif name.startswith('r'):
                 resnames = []
                 resnums = []
@@ -216,8 +230,9 @@ class Atomic(object):
                     selstr += 'resname ' + ' '.join(resnames) + ' or '
                 if resnums:
                     selstr += 'resnum ' + ' '.join(resnums)
-                return self.select(selstr)
-    
+                result = self.select(selstr)
+        if result is not None:
+            return result
         raise AttributeError("'{0:s}' object has no attribute '{1:s}' and "
                              "'{1:s}' is not a valid selection keyword"
                              .format(self.__class__.__name__, name))
@@ -251,7 +266,7 @@ class AtomGroupMeta(type):
             setattr(cls, 'get'+field.meth_pl, getData)
             
             def setData(self, array, var=field.var, dtype=field.dtype, 
-                        ndim=field.ndim):
+                        ndim=field.ndim, hv=field.hv):
                 if self._n_atoms == 0:
                     self._n_atoms = len(array)
                 elif len(array) != self._n_atoms:
@@ -271,6 +286,8 @@ class AtomGroupMeta(type):
                         raise ValueError('array cannot be assigned type '
                                          '{0:s}'.format(dtype))
                 self.__dict__['_'+var] = array
+                if hv:
+                    self.__dict__['_hvupdate'] = True
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
             setData.__doc__ = 'Set {0:s}.'.format(field.doc_pl)  
@@ -320,6 +337,8 @@ class AtomGroup(Atomic):
         self._coordinates = None
         self._acsi = 0                  # Active Coordinate Set Index
         self._n_coordsets = 0
+        self._hv = None
+        self._hvupdate = None
         self._userdata = {}
         
         for field in ATOMIC_DATA_FIELDS.values():
@@ -354,8 +373,11 @@ class AtomGroup(Atomic):
         elif isinstance(indices, (list, np.ndarray)):
             return Selection(self, np.array(indices), 'Some atoms', 
                  'index {0:s}'.format(' '.join(np.array(indices, '|S'))), acsi)
+        elif isinstance(indices, (str, tuple)):
+            hv = self.getHierView()
+            return hv[indices]
         else:
-            raise IndexError('invalid index') 
+            raise TypeError('invalid index') 
     
     def __iter__(self):
         """Iterate over atoms in the atom group."""
@@ -571,6 +593,9 @@ class AtomGroup(Atomic):
             * a Selection, Residue, Chain, or Atom instance
             * a list or an array of indices
             * a selection string
+            
+        .. versionchanged:: 0.7.1
+           If selection string does not select any atoms, ``None`` is returned.
         
         """
         
@@ -589,7 +614,9 @@ class AtomGroup(Atomic):
             indices = [which]
             newmol = AtomGroup('Copy of {0:s} index {1:d}'.format(name, which))
         elif isinstance(which, str):
-            indices = prody.ProDyAtomSelect.select(self, which).getIndices()
+            indices = prody.ProDyAtomSelect.getIndices(self, which)
+            if len(indices) == 0:
+                return None
             newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'
                                .format(name, which))
         elif isinstance(which, (list, np.ndarray)):
@@ -617,8 +644,14 @@ class AtomGroup(Atomic):
     
     def getHierView(self):
         """Return a hierarchical view of the atom group."""
-        
-        return HierView(self)
+        hv = self._hv
+        if hv is None:
+            hv = HierView(self)
+            self._hv = hv
+            self._hvupdate = False
+        elif self._hvupdate:
+            hv.update()
+        return hv
     
     def setAttribute(self, name, data):
         """Set a new attribute called *name* holding atomic *data*.
@@ -821,6 +854,7 @@ class AtomPointer(Atomic):
         
     def copy(self):
         """Make a copy of atoms."""
+        
         return self._ag.copy(self)
 
 
@@ -1617,7 +1651,8 @@ class HierView(object):
     
     def build(self):
         """Calls :meth:`update` method. This method will is deprecated and 
-        will be removed in the future."""
+        will be removed in v0.8."""
+        
         LOGGER.warning('HierView.build() method is deprecated. '
                        'Use HierView.update() method instead.')
         self.update()
@@ -1629,7 +1664,10 @@ class HierView(object):
         the hierarchical view when attributes of atoms change.
         
         """
-        
+        what = 'built'
+        if self._chains:
+            what = 'updated'
+        start = time.time()
         acsi = self._atoms.getActiveCoordsetIndex()
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
@@ -1656,11 +1694,14 @@ class HierView(object):
             self._chains[chid] = ch
         
         if atomgroup.getResidueNumbers() is None:
-            atomgroup.setResidueNumbers(np.zeros(atomgroup._n_atoms, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype))
+            atomgroup.setResidueNumbers(np.zeros(atomgroup._n_atoms, 
+                                     dtype=ATOMIC_DATA_FIELDS['resnum'].dtype))
         if atomgroup.getResidueNames() is None:
-            atomgroup.setResidueNames(np.zeros(atomgroup._n_atoms, dtype=ATOMIC_DATA_FIELDS['resname'].dtype))
+            atomgroup.setResidueNames(np.zeros(atomgroup._n_atoms, 
+                                    dtype=ATOMIC_DATA_FIELDS['resname'].dtype))
         if atomgroup.getInsertionCodes() is None:
-            atomgroup.setInsertionCodes(np.zeros(atomgroup._n_atoms, dtype=ATOMIC_DATA_FIELDS['icode'].dtype))
+            atomgroup.setInsertionCodes(np.zeros(atomgroup._n_atoms, 
+                                    dtype=ATOMIC_DATA_FIELDS['icode'].dtype))
 
         icodes = atomgroup.getInsertionCodes()
 
@@ -1682,6 +1723,8 @@ class HierView(object):
                     temp = subindices[0]
                     res = Residue(atomgroup, subindices, chain, acsi)   
                     chain._dict[(resnum, ic)] = res
+        LOGGER.debug('Hierarchical view was {0:s} in {1:.2f}s.'
+                     .format(what, time.time()-start))
         
     def __repr__(self):
         return '<HierView: {0:s}>'.format(str(self._atoms))
