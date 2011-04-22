@@ -4227,7 +4227,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     args = list(args)
     modesarg = []
     for arg in args:
-        if isinstance(arg, (Mode, ModeSet, NMA)):
+        if isinstance(arg, (Mode, ModeSet, NMABase)):
             modesarg.append(args.pop(0))
     show = [plt.plot(sqf, *args, label=str(modes), **kwargs)]
     plt.xlabel('Indices')
@@ -4266,7 +4266,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     args = list(args)
     modesarg = []
     for arg in args:
-        if isinstance(arg, (Mode, ModeSet, NMA)):
+        if isinstance(arg, (Mode, ModeSet, NMABase)):
             modesarg.append(args.pop(0))
     show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
                         label='{0:s}'.format(str(modes)), **kwargs)]    
