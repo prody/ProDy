@@ -659,6 +659,7 @@ class Vector(VectorBase):
         else:
             return len(self._array)
 
+
 class NMABase(object):
     
     """Base class for Normal Mode Analysis calculations.
@@ -959,7 +960,8 @@ class NMABase(object):
         self._n_modes = n_modes
         self._modes = [None] * n_modes
         self._vars = 1 / values
-        
+
+
 class NMA(NMABase):
     
     """A class for analysis of externally calculated Hessian matrices and 
@@ -969,6 +971,7 @@ class NMA(NMABase):
     
     def __init__(self, name):
         NMABase.__init__(self, name)
+
         
 class ModeSet(object):
     """A class for providing access to data for a subset of modes.
@@ -1621,6 +1624,7 @@ class ANM(GNMBase):
         self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                           ''.format(self._n_modes, time.time()-start))
+
 
 class PCA(NMABase):
     
@@ -4226,9 +4230,13 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     mean = sqf.mean()
     args = list(args)
     modesarg = []
-    for arg in args:
-        if isinstance(arg, (Mode, ModeSet, NMABase)):
-            modesarg.append(args.pop(0))
+    i = 0
+    while i < len(args):
+        if isinstance(args[i], (Mode, ModeSet, NMABase)):
+            modesarg.append(args.pop(i))
+        else:
+            i += 1
+    print args
     show = [plt.plot(sqf, *args, label=str(modes), **kwargs)]
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
@@ -4265,9 +4273,12 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
-    for arg in args:
-        if isinstance(arg, (Mode, ModeSet, NMABase)):
-            modesarg.append(args.pop(0))
+    i = 0
+    while i < len(args):
+        if isinstance(args[i], (Mode, ModeSet, NMABase)):
+            modesarg.append(args.pop(i))
+        else:
+            i += 1
     show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
                         label='{0:s}'.format(str(modes)), **kwargs)]    
     plt.xlabel('Indices')
