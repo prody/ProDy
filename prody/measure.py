@@ -59,8 +59,10 @@ class Transformation(object):
     __slots__ = ['_rotation', '_translation']
     
     def __init__(self, rotation, translation):
-        self._rotation = rotation
-        self._translation = translation
+        self._rotation = None
+        self.setRotation(rotation)
+        self._translation = None
+        self.setTranslation(translation)
     
     #def __repr__(self):
     #    if self._name is not None: 
@@ -97,7 +99,7 @@ class Transformation(object):
         """Returns translation vector."""
         return self._translation.copy()
     
-    def setTranslation(self): 
+    def setTranslation(self, translation): 
         """Set translation vector."""
         if not isinstance(translation, np.ndarray):
             raise TypeError('translation must be an ndarray')
@@ -117,12 +119,14 @@ class Transformation(object):
     def apply(self, atoms):
         """Applies transformation to given atoms or coordinate set.
         
-        :class:`AtomGroup`, :class:`Chain`, :class:`Residue`, :class:`Atom`, 
-        and :class:`Selection` instances are accepted.
+        :class:`~prody.atomic.AtomGroup`, :class:`~prody.atomic.Chain`, 
+        :class:`~prody.atomic.Residue`, :class:`~prody.atomic.Atom`, 
+        and :class:`~prody.atomic.Selection` instances are accepted.
         If an instance of one of these is provided, it is returned after
         its active coordinate set is transformed.
         
-        If a NumPy array is provided, transformed array is returned.
+        If an :class:`~numpy.ndarray` instance is given, transformed array 
+        is returned.
         
         """
         return applyTransformation(self, atoms)

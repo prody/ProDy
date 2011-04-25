@@ -658,6 +658,18 @@ class Vector(VectorBase):
             return len(self._array)/3
         else:
             return len(self._array)
+    
+    def getSqFlucts(self):
+        """Return square fluctuations.
+        
+        .. versionadded:: 0.7.1                 
+
+        """
+        
+        if self.is3d():
+            return (self.getArrayNx3()**2).sum(axis=1)
+        else:
+            return (self.getArray() ** 2)
 
 
 class NMABase(object):
@@ -714,7 +726,9 @@ class NMABase(object):
             return self.getMode(index)
         elif isinstance(index, slice):
             #modes = self._modes[index]
-            return ModeSet(self, np.arange(*index.indices(len(self))))
+            indices = np.arange(*index.indices(len(self)))
+            if len(indices) > 0:
+                return ModeSet(self, indices)
         elif isinstance(index, (list, tuple)):
             for i in index:
                 assert isinstance(i, int), 'all indices must be integers'
@@ -2566,7 +2580,7 @@ def calcProjection(ensemble, modes):
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'
                         .format(type(ensemble)))
-    if not isinstance(modes, (NMABase, ModeSet, Mode)):
+    if not isinstance(modes, (NMABase, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
     if not modes.is3d(): 
@@ -3581,11 +3595,11 @@ def calcSqFlucts(modes):
              
     """
     
-    if not isinstance(modes, (Mode, NMABase, ModeSet)):
+    if not isinstance(modes, (VectorBase, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
     square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
-    if isinstance(modes, Mode):
+    if isinstance(modes, VectorBase):
         modes = [modes]
     for mode in modes:
         square_fluctuations += mode.getSqFlucts()
@@ -4000,20 +4014,20 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'
                         .format(type(ensemble)))
-    if not isinstance(mode_x, Mode):
+    if not isinstance(mode_x, VectorBase):
         raise TypeError('mode_x must be a Mode instance, not {0:s}'
                         .format(type(mode_x)))
     if not mode_x.is3d():
-        raise Exception('mode_x must be 3-dimensional')
-    if not isinstance(mode_y, Mode):
+        raise ValueError('mode_x must be 3-dimensional')
+    if not isinstance(mode_y, VectorBase):
         raise TypeError('mode_y must be a Mode instance, not {0:s}'
                         .format(type(mode_y)))
     if not mode_y.is3d():
-        raise Exception('mode_y must be 3-dimensional')
+        raise ValueError('mode_y must be 3-dimensional')
     
     xcoords = calcProjection(ensemble, mode_x) 
     ycoords = calcProjection(ensemble, mode_y)
-    if isinstance(scale, str) and str(scale).lower() in ('x', 'y'):
+    if isinstance(scale, str) and scale.lower() in ('x', 'y'):
         if scalar is not None:
             scalar = float(scalar)
         else:
@@ -4027,12 +4041,13 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                 LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
                             .format(mode_x, scalar))
             else:
+                scalar = 1 / scalar
                 LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
                             .format(mode_y, scalar))
         if scale.lower() == 'x':
             xcoords = xcoords * scalar  
-        elif scale.lower() == 'y': 
-            ycoords = ycoords / scalar
+        else:
+            ycoords = ycoords * scalar
     elif scale is not None:
         LOGGER.warning('{0:s} is not a valid value for scale argument. '
                        'Only "x" or "y" are accepted.'.format(str(scale)))
@@ -4082,14 +4097,14 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         rows = rows[:]
     if isinstance(cols, NMABase):
         cols = cols[:]
-    Y = rows.getIndices()+0.5#np.arange(modes1.indices[0]+0.5, len(modes1)+1.5)
-    X = cols.getIndices()+0.5#np.arange(modes2.indices[0]+0.5, len(modes2)+1.5)
-    axis = (X[0], X[-1], Y[0], Y[-1])
-    X, Y = np.meshgrid(X, Y)
-    show = plt.pcolor(X, Y, overlap, cmap=plt.cm.jet, *args, **kwargs), plt.colorbar()
+    show = plt.pcolor(overlap, cmap=plt.cm.jet, *args, **kwargs), plt.colorbar()
+    x_range = np.arange(1, len(cols)+1)
+    plt.xticks(x_range-0.5, x_range)
     plt.xlabel(str(cols))
+    y_range = np.arange(1, len(rows)+1)
+    plt.yticks(y_range-0.5, y_range)
     plt.ylabel(str(rows))
-    plt.axis(axis)
+    plt.axis([0, len(cols), 0, len(rows)])
     return show
 
 def showCrossCorrelations(modes, *args, **kwargs):
@@ -4232,11 +4247,10 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     modesarg = []
     i = 0
     while i < len(args):
-        if isinstance(args[i], (Mode, ModeSet, NMABase)):
+        if isinstance(args[i], (VectorBase, ModeSet, NMABase)):
             modesarg.append(args.pop(i))
         else:
             i += 1
-    print args
     show = [plt.plot(sqf, *args, label=str(modes), **kwargs)]
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
@@ -4275,7 +4289,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     modesarg = []
     i = 0
     while i < len(args):
-        if isinstance(args[i], (Mode, ModeSet, NMABase)):
+        if isinstance(args[i], (VectorBase, ModeSet, NMABase)):
             modesarg.append(args.pop(i))
         else:
             i += 1
