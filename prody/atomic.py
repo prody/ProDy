@@ -17,31 +17,46 @@
 
 """This module defines classes for handling atomic data.
 
-Classes
--------
-
-    * :class:`AtomGroup`
-    * :class:`Atom`
-    * :class:`Chain`
-    * :class:`Residue`
-    * :class:`Selection`
-    * :class:`AtomMap`
-    * :class:`HierView`
+.. _atomic:
     
-Base Classes
-------------
+Atomic data
+===============================================================================
 
-    * :class:`Atomic`
-    * :class:`AtomPointer`
-    * :class:`AtomSubset`
-
-Inheritance Diagram
--------------------
-
-.. inheritance-diagram:: prody.atomic
-   :parts: 1
+ProDy stores atomic data in instances of :class:`AtomGroup` class. This
+class is designed to be efficient and responsive, i.e. facilitates user
+to access atomic data quickly for any subset of atoms. An :class:`AtomGroup`
+instance can be obtained by parsing a PDB file as follows: 
     
+>>> from prody import *
+>>> ag = parsePDB('1aar')
+
+
+:class:`AtomGroup` instances can store multiple coordinate sets, which may
+be models from an NMR structure, snapshots from an MD simulation.
+
+
+ProDy stores all atomic data in :class:`AtomGroup` instances and comes
+with other classes acting as pointers to provide convenient read/write access 
+to such data. These classes are:
+
+* :class:`Atom` - Points to a single atom in an :class:`AtomGroup` instance.                          
+
+* :class:`Selection` - Points to an arbitrary subset of atoms. See 
+  :ref:`selections` and :ref:`selection-operations` for usage examples.
+
+* :class:`Chain` - Points to atoms that have the same chain identifier.
+
+* :class:`Residue` - Points to atoms that have the same chain identifier, 
+  residue number and insertion code.
+                      
+* :class:`AtomMap` - Points to arbitrary subsets of atoms while allowing for 
+  duplicates and missing atoms. Indices of atoms are stored in the order 
+  provided by the user.
+    
+
 """
+
+
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
@@ -150,6 +165,224 @@ def wrapSetMethod(fn):
         return fn(self, data)
     return wrapped
 
+__doc__ += """
+
+Common methods
+-------------------------------------------------------------------------------
+
+Atomic data can be accessed and changed using ``get`` and ``set`` methods
+defined for :class:`Atomic` classes. To provide a coherent interface, 
+these methods are defined for :class:`AtomGroup`, :class:`Atom`, 
+:class:`Selection`, :class:`Chain`, :class:`Residue`, and :class:`AtomMap` 
+classes, with the following exceptions: 
+
+* Names of methods of the :class:`Atom` class are in singular form.
+* ``set`` methods are not defined for the :class:`AtomMap` class.
+
+The list of methods are below (they link to the documentation of the 
+:class:`AtomGroup` methods):
+
+.. csv-table::  
+   :header: "Get method", "Set method", "Description"
+   :widths: 20, 20, 60
+   
+"""
+
+keys = ATOMIC_DATA_FIELDS.keys()
+keys.sort()
+
+for key in keys:
+    field = ATOMIC_DATA_FIELDS[key]
+    __doc__ += '   :meth:`~AtomGroup.get{0:s}`, :meth:`~AtomGroup.set{0:s}`, "get/set {2:s}"\n'.format(field.meth_pl, field.meth_pl, field.doc_pl)
+
+
+
+
+__doc__ += """
+
+Other functions common to all atomic classes is given below:
+
+===============================  ==================================================================================================================
+Method name                                 Description
+===============================  ==================================================================================================================
+:meth:`copy`                     Makes a deep copy atomic data.
+:meth:`select`                   Select a subset of atoms (see :ref:`selections`).
+:meth:`getActiveCoordsetIndex`   Return the index of the active coordinate set.
+:meth:`setActiveCoordsetIndex`   Change the index of the active coordinate set.
+:meth:`iterActiveCoordsetIndex`  Change the index of the active coordinate set.
+:meth:`getNumOfAtoms`
+:meth:`getNumOfCoordsets`
+:meth:`isAttribute`              Check whether a user assigned attribute exists.
+:meth:`getAttribute`             Return user assigned attribute data.
+:meth:`setAttribute`             Change user assigned attribute data.
+===============================  ==================================================================================================================
+
+
+
+Special methods
+-------------------------------------------------------------------------------
+
+Atomic classes also have the following class specific methods: 
+    
+==================  ============================================================================================================================================
+Class               Special methods
+==================  ============================================================================================================================================
+:class:`AtomGroup`  * :meth:`~AtomGroup.getName` returns name of the instance.
+                    * :meth:`~AtomGroup.setName` changes name of the instance.
+                    * :meth:`~AtomGroup.delAttribute` deletes a user assigned
+                      attribute from the instance.
+                    * :meth:`~AtomGroup.addCoordset`
+                      
+:class:`Atom`       * :meth:`~Atom.getIndex` returns atom index.
+                    * :meth:`~Atom.getName` return atom name.
+                    * :meth:`~Atom.getSelectionString` returns selection
+                      string that selects the atom.
+                    
+                      
+:class:`Selection`  * :meth:`~Selection.getSelectionString` returns selection
+                      string of the instance.
+
+:class:`Chain`      * :meth:`~Chain.getIdentifier` returns chain identifier.
+                    * :meth:`~Chain.setIdentifier` changes chain identifier.
+                      for all atoms in the instance
+                    * :meth:`~Chain.getNumOfResidues` returns the number of 
+                      residues in the instance.
+                    * :meth:`~Chain.getResidue` returns residue with given
+                      number.
+                    * :meth:`~Chain.iterResidues` iterates over residues.
+                    * :meth:`~Chain.getSequence` returns single letter 
+                      amino acid sequence as a :func:`str`. 
+                    * :meth:`~Chain.getSelectionString` returns selection
+                      string that selects the chain atoms.
+                      
+:class:`Residue`    * :meth:`~Residue.getAtom` returns :class:`Atom` with 
+                      given name.
+                    * :meth:`~Residue.getChain` returns :class:`Chain` of 
+                      residue instance.
+                    * :meth:`~Residue.getChainIdentifier` returns chain 
+                      identifier.
+                    * :meth:`~Residue.getInsertionCode` returns insertion code.
+                    * :meth:`~Residue.setInsertionCode` changes insertion code.
+                    * :meth:`~Residue.getName` returns residue name.
+                    * :meth:`~Residue.setName` changes residue name.
+                    * :meth:`~Residue.getNumber` returns residue number.
+                    * :meth:`~Residue.setNumber` changes residue number.
+                    * :meth:`~Residue.getSelectionString` returns selection
+                      string that selects the residue atoms.
+
+:class:`AtomMap`    * :meth:`~AtomMap.getName` returns name of the instance.
+                    * :meth:`~AtomMap.setName` changes name of the instance.
+                    * :meth:`~AtomMap.getMapping`
+                    * :meth:`~AtomMap.getMappedFlags`
+                    * :meth:`~AtomMap.getUnmappedFlags`
+                    * :meth:`~AtomMap.getNumOfMapped`
+                    * :meth:`~AtomMap.getNumOfUnmapped`
+                    
+
+==================  ============================================================================================================================================
+
+Behavioral differences
+-------------------------------------------------------------------------------
+
+Atomic classes behave differently to indexing and to calls of certain built-in 
+functions. These differences are:
+
+==================  ============================================================================================================================================
+Class               Properties and differences
+==================  ============================================================================================================================================
+:class:`AtomGroup`  * :func:`len` returns the number of atoms.
+                    * :func:`iter` yields :class:`Atom` instances.
+                    * Indexing by:
+                        
+                      - *atom index* (:func:`int`), e.g, ``10`` returns an 
+                        :class:`Atom`.
+                      - *slice* (:func:`slice`), e.g, ``10:20:2`` returns a 
+                        :class:`Selection`.
+                      - *chain identifier* (:func:`str`), e.g. ``"A"`` return 
+                        a :class:`Chain`.
+                      - *chain identifier, residue number [, insertion code]* 
+                        (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
+                        returns a :class:`Residue`.
+                       
+:class:`Atom`       * :func:`len` returns 1.
+                    * :func:`iter` is not applicable.
+                    * Indexing is not applicable.
+                      
+:class:`Selection`  * :func:`len` returns the number of selected atoms.
+                    * :func:`iter` yields :class:`Atom` instances.
+                    * Indexing is not available.
+
+:class:`Chain`      * :func:`len` returns the number of residues in the chain.
+                    * :func:`iter` yields :class:`Residue` instances.
+                    * Indexing by:
+                        
+                      - *residue number [, insertion code]* (:func:`tuple`), 
+                        e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
+                    
+:class:`Residue`    * :func:`len` returns the number of atoms in the instance.
+                    * :func:`iter` yields :class:`Atom` instances.
+                    * Indexing by:
+                      
+                      - *atom name* (:func:`str`), e.g. ``"CA"`` returns 
+                        an :class:`Atom`.
+
+:class:`AtomMap`    * :func:`len` returns the number of atoms in the instance.
+                    * :func:`iter` yields :class:`Atom` instances.
+                    * Indexing is not available.
+==================  ============================================================================================================================================
+
+
+Hierarchical views
+-------------------------------------------------------------------------------
+
+:class:`HierView`   
+
+* Generated for :class:`AtomGroup` and :class:`Selection`
+  instances
+* :func:`len` return the number of chains
+* :func:`iter()` iterates over chains
+* Indexing/slicing:
+    
+  - *chain identifier* (:func:`str`), e.g. ``"A"`` - 
+    return a :class:`Chain`
+  - *chain identifier, residue number [, insertion code]* 
+    (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
+    - return a :class:`Residue`
+
+
+"""
+
+__doc__ += """
+
+:mod:`prody.atomic`
+===============================================================================
+
+Classes
+-------
+
+    * :class:`AtomGroup`
+    * :class:`Atom`
+    * :class:`Chain`
+    * :class:`Residue`
+    * :class:`Selection`
+    * :class:`AtomMap`
+    * :class:`HierView`
+    
+Base Classes
+------------
+
+    * :class:`Atomic`
+    * :class:`AtomPointer`
+    * :class:`AtomSubset`
+
+Inheritance Diagram
+-------------------
+
+.. inheritance-diagram:: prody.atomic
+   :parts: 1
+    
+"""
+
 class Atomic(object):
     """Base class for all atomic classes.
     
@@ -201,50 +434,18 @@ class Atomic(object):
       
     def __getattribute__(self, name):
         """.. versionadded:: 0.7.1"""
-        
-        #LOGGER.warning('__getattribute__ is evaluated 1 ({0:s}).'.format(name))
         try:
-            result = object.__getattribute__(self, name)
-            #LOGGER.warning('__getattribute__ is identified 1 ({0:s}).'.format(str(result)))
-            return result
+            return object.__getattribute__(self, name)
         except AttributeError:
-            pass
-        if not name.isalnum():
-            return
-        #LOGGER.warning('__getattribute__ is evaluated 2.')
-        if prody.select.isBooleanKeyword(name):
-            return self.select(name)
+            selstr = name
+            items = name.split('_')
+            if prody.select.isKeyword(items[0]):
+                selstr = ' '.join(items)
+                return prody.ProDyAtomSelect.select(self, selstr)
+        raise AttributeError("'{0:s}' object has no attribute '{1:s}' "
+                             "and '{2:s}' is not a valid selection string"
+                             .format(self.__class__.__name__, name, selstr))
         
-        if len(name) > 1: 
-            items = name[1:].split('_')
-            if items[0] != '':
-                if name.startswith('c'):
-                    return prody.ProDyAtomSelect.select(self, 
-                                                'chain ' + ' '.join(items))
-                elif name.startswith('s'):
-                    return prody.ProDyAtomSelect.select(self, 
-                                                'segment ' + ' '.join(items))
-                elif name.startswith('a'):
-                    return prody.ProDyAtomSelect.select(self, 
-                                                'name ' + ' '.join(items))
-                elif name.startswith('r'):
-                    resnames = []
-                    resnums = []
-                    for item in items:
-                        if item.isalpha():
-                            resnames.append(item)
-                        else:
-                            resnums.append(item)
-                    selstr = ''
-                    if resnames:
-                        selstr += 'resname ' + ' '.join(resnames) + ' or '
-                    if resnums:
-                        selstr += 'resnum ' + ' '.join(resnums)
-                    return prody.ProDyAtomSelect.select(self, selstr)
-        raise AttributeError("'{0:s}' object has no attribute '{1:s}' and "
-                             "'{1:s}' is not a valid selection keyword"
-                             .format(self.__class__.__name__, name))
-    
     def getActiveCoordsetIndex(self):
         """Return index of the active coordinate set."""
         
@@ -253,7 +454,7 @@ class Atomic(object):
     def select(self, selstr, **kwargs):
         """Return atoms matching the criteria in *selstr*.
         
-        .. seealso:: :meth:`prody.select.Select.select()` for more usage 
+        .. seealso:: :meth:`~prody.select.Select.select()` for more usage 
            details.
            
         """
@@ -682,6 +883,42 @@ class AtomGroup(Atomic):
             hv.update()
         return hv
     
+    def getNumOfChains(self):
+        """Return number of chains.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        return self.getHierView().getNumOfChains()
+    
+    def iterChains(self):
+        """Iterate over chains.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        return self.getHierView().iterChains()
+    
+    def getNumOfResidues(self):
+        """Return number of chains.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        return self.getHierView().getNumOfResidues()
+
+    def iterResidues(self):
+        """Iterate over residues.
+        
+        .. versionadded:: 0.7.1
+        
+        """
+        
+        return self.getHierView().iterResidues()
+
     def setAttribute(self, name, data):
         """Set a new attribute called *name* holding atomic *data*.
         
@@ -746,13 +983,11 @@ class AtomGroup(Atomic):
             
         self._userdata[name] = data
     
-    invalid = ATOMIC_DATA_FIELDS.keys()
-    invalid.sort() 
     setAttribute.__doc__ += """Name of the attribute cannot be one of the 
         following reserved names:
             
           * {0:s}
-    """.format('\n          * '.join(invalid))
+    """.format('\n          * '.join(ATOMIC_DATA_FIELDS.keys()))
     
     def delAttribute(self, name):
         """Delete the attribute with given *name* and return the stored data.
@@ -785,6 +1020,7 @@ class AtomGroup(Atomic):
         """
         
         return name in self._userdata
+    
     
 class AtomPointer(Atomic):
     """Base class for classes pointing to atom(s) in :class:`AtomGroup` 
@@ -1308,7 +1544,7 @@ class Chain(AtomSubset):
         return self._seq
 
     def getSelectionString(self):
-        """Return selection string that selects this atom group."""
+        """Return selection string that selects this chain."""
         
         return 'chain {0:s}'.format(self.getIdentifier())
 
@@ -1362,10 +1598,10 @@ class Residue(AtomSubset):
         returned.
         
         """
-        
-        nz = (self.getAtomNames() == name).nonzero()[0]
-        if len(nz) > 0:
-            return Atom(self._ag, self._indices[nz[0]], self._acsi)
+        if isinstance(name, str):
+            nz = (self.getAtomNames() == name).nonzero()[0]
+            if len(nz) > 0:
+                return Atom(self._ag, self._indices[nz[0]], self._acsi)
     
     def getChain(self):
         """Return the chain that the residue belongs to."""
@@ -1714,7 +1950,7 @@ class HierView(object):
         what = 'built'
         if self._chains:
             what = 'updated'
-        start = time.time()
+        #start = time.time()
         acsi = self._atoms.getActiveCoordsetIndex()
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
@@ -1770,8 +2006,8 @@ class HierView(object):
                     temp = subindices[0]
                     res = Residue(atomgroup, subindices, chain, acsi)   
                     chain._dict[(resnum, ic)] = res
-        LOGGER.debug('Hierarchical view was {0:s} in {1:.2f}s.'
-                     .format(what, time.time()-start))
+        #LOGGER.debug('Hierarchical view was {0:s} in {1:.2f}s.'
+        #             .format(what, time.time()-start))
         
     def __repr__(self):
         return '<HierView: {0:s}>'.format(str(self._atoms))
@@ -1799,10 +2035,7 @@ class HierView(object):
         elif isinstance(chid, tuple):
             ch = self._chains.get(chid[0], None)
             if ch is not None:
-                if len(chid) == 2:
-                    return ch[chid[1]]
-                else:
-                    return ch[chid[1:]]
+                return ch[chid[1:]]
 
     def iterResidues(self):
         """Iterate over residues."""
