@@ -108,12 +108,12 @@ class Ensemble(object):
             ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._name, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[index].copy())
+            ens.addCoordset(self._confs[index].copy(), self._weights[index].copy())
             return ens
         elif isinstance(index, (list, np.ndarray)):
             ens = Ensemble('{0:s} slice'.format(self._name))
             ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[index].copy())
+            ens.addCoordset(self._confs[index].copy(), self._weights[index].copy())
             return ens
         else:
             raise IndexError('invalid index')
