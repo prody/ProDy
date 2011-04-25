@@ -299,6 +299,7 @@ __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
 from . import atomic 
 from atomic import *
 __all__.extend(atomic.__all__)
+__all__.append('atomic')
 
 from . import select
 from select import *
