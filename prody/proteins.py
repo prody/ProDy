@@ -911,9 +911,13 @@ def _getHeaderDict(lines):
             return header, i
         
         if startswith == 'HELIX ':
-            chid = line[19]
-            # helix class, serial number, identifier
-            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
+            try:
+                chid = line[19]
+                # helix class, serial number, identifier
+                value = (int(line[38:40]), int(line[7:10]), 
+                         line[11:14].strip())
+            except:
+                continue
             
             initICode = line[25]
             initResnum = int(line[21:25])
@@ -930,10 +934,13 @@ def _getHeaderDict(lines):
             for resnum in range(initResnum, endResnum+1):
                 helix[(chid, resnum, '')] = value
         elif startswith == 'SHEET ':
-            chid = line[21]
-            # helix class, serial number, identifier
-            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
-            
+            try:
+                chid = line[21]
+                value = (int(line[38:40]), int(line[7:10]), 
+                         line[11:14].strip())
+            except:
+                continue
+    
             initICode = line[26]
             initResnum = int(line[22:26])
             if initICode != ' ':
