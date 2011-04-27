@@ -67,6 +67,7 @@ argument. These are noted in function documentations.
 
 **Analysis**:
 
+  * :func:`calcCollectivity`
   * :func:`calcCovariance`
   * :func:`calcCrossCorrelations`
   * :func:`calcSqFlucts`  
@@ -210,9 +211,9 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'calcANM', 'calcGNM', 
            
-           'calcCovariance', 'calcCrossCorrelations', 'calcSqFlucts',
+           'calcCollectivity', 'calcCovariance', 'calcCrossCorrelations', 
            
-           'calcTempFactors',
+           'calcSqFlucts', 'calcTempFactors',
            
            'calcProjection',  
            
@@ -514,32 +515,18 @@ class Mode(VectorBase):
     def getCollectivity(self, masses=None):
         """Return collectivity of the mode.
         
-        :arg masses: atomic masses
-        :type masses: :class:`numpy.ndarray`
+        This function implements collectivity as defined in equation 5 of 
+        [BR95]_.
         
-        This function implements collectivity as defined in equation 5 of [BR95]_.
-        
-        If *masses* are provided, they will be incorporated in the calculation.
-        Otherwise, atoms are assumed to have uniform masses.
+        To incorporate atomic *masses* in calculations, use 
+        :func:`calcCollectivity` function.
         
         >>> mode.getCollectivity() # doctest: +SKIP
         0.64762987283788642
         
         """
-        is3d = self.is3d()
-        if masses is not None:
-            if len(masses) != self._model._n_atoms: 
-                raise ValueError('length of massesmust be equal to number of atoms')
-            if is3d:
-                u2in = (self.getArrayNx3() ** 2 / masses).sum(1)
-        else:
-            if is3d:
-                u2in = (self.getArrayNx3() ** 2 ).sum(1)
-            else:
-                u2in = (self.getArrayNx3() ** 2 )
-        u2in = u2in / u2in.sum()
-        coll = np.exp(-(u2in * np.log(u2in)).sum()) / self._model._n_atoms
-        return coll
+
+        return calcCollectivity(self)
 
     def getCovariance(self):
         """Return covariance matrix calculated for this mode instance.
@@ -2547,6 +2534,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False)
        Returns also the :class:`~prody.atomic.Selection` instance.
     
     """
+    
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
         name = ag.getName()
@@ -2565,6 +2553,38 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False)
     gnm.calcModes(n_modes)
     return gnm, sel
 
+def calcCollectivity(mode, masses=None):
+    """Return collectivity of the mode.
+    
+    :arg mode: mode or vector
+    :type mode: :class:`Mode` or :class:`Vector`
+    
+    :arg masses: atomic masses
+    :type masses: :class:`numpy.ndarray`
+    
+    This function implements collectivity as defined in equation 5 of [BR95]_.
+    
+    If *masses* are provided, they will be incorporated in the calculation.
+    Otherwise, atoms are assumed to have uniform masses.
+    
+    """
+    
+    is3d = mode.is3d()
+    if masses is not None:
+        if len(masses) != mode.getNumOfAtoms(): 
+            raise ValueError('length of massesmust be equal to number of atoms')
+        if is3d:
+            u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
+    else:
+        if is3d:
+            u2in = (mode.getArrayNx3() ** 2 ).sum(1)
+        else:
+            u2in = (mode.getArrayNx3() ** 2 )
+    u2in = u2in * (1 / u2in.sum() ** 0.5)
+    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.getNumOfAtoms()
+    return coll
+    
+
 def calcProjection(ensemble, modes):
     """Return projection of conformational deviations onto given modes.
 
@@ -2576,7 +2596,9 @@ def calcProjection(ensemble, modes):
            ...
            [  5.516,  -5.108,  -5.983],
            [  5.875,  -7.408,   2.208]])
+    
     """
+    
     if not isinstance(ensemble, prody.Ensemble):
         raise TypeError('ensemble must be an Ensemble, not {0:s}'
                         .format(type(ensemble)))
