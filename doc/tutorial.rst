@@ -65,6 +65,8 @@ ProDy documentation is organized in three main sections:
   In interactive Python sessions, the reference documentation can be accessed 
   using the built-in Python function :func:`help`:: 
 
+    help(atomic)
+    help(select)
     help(parsePDB)
 
   This function prints the description of functions, classes, and class methods 
@@ -72,7 +74,7 @@ ProDy documentation is organized in three main sections:
   help. If you are using the interactive Python shell (IPython), you can also 
   receive help by typing::
   
-    prot ?
+    select ?
 
 
 Finally, the Tutorial, :ref:`examples` and :ref:`reference` 
@@ -128,7 +130,7 @@ and if it is not found it will download it from the PDB FTP server automatically
 The above example parses the coordinates and atomic data from the PDB file 1p38 
 which contains an unbound structure of the p38 MAP kinase. :file:`1p38.pdb.gz` 
 is downloaded, and coordinates and atomic data are returned in an 
-:class:`~atomic.AtomGroup` instance.
+:class:`~atomic.AtomGroup` instance. 
 
 To get information on the :class:`~prody.atomic.AtomGroup` instance, 
 type in the variable name and hit :kbd:`enter` key:
@@ -193,6 +195,7 @@ described in :mod:`~prody.proteins` module reference documentation.
 :ref:`fetchpdb` and :ref:`blastpdb` examples show other ways to 
 access the Protein Data Bank (|pdb|) content.
 
+For more details of atomic objects see :ref:`atomic`. 
 :class:`~atomic.AtomGroup` instances can be build from scratch or 
 parsers for other file types (e.g. mol2) can be developed. The example in 
 :ref:`atomgroup` can be helpful to this aim.

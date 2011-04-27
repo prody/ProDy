@@ -1678,6 +1678,10 @@ namespace eval ::nmwiz:: {
         -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
       -row 8 -column 2 -sticky we
     
+    if {[molinfo num] > 0} {
+      set ::nmwiz::preserview 1
+    }
+    
     grid [button $wmf.pcv_help -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Check this to preserve the current view when loading a new dataset."}] \
