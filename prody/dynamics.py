@@ -646,18 +646,6 @@ class Vector(VectorBase):
         else:
             return len(self._array)
     
-    def getSqFlucts(self):
-        """Return square fluctuations.
-        
-        .. versionadded:: 0.7.1                 
-
-        """
-        
-        if self.is3d():
-            return (self.getArrayNx3()**2).sum(axis=1)
-        else:
-            return (self.getArray() ** 2)
-
 
 class NMABase(object):
     
@@ -3608,6 +3596,9 @@ def deform(atoms, mode, rmsd=None):
 def calcSqFlucts(modes):
     """Return sum of square-fluctuations for given set of normal *modes*.
     
+    .. versionchanged:: 0.7.1
+       :class:`Vector` instances are accepted as *modes* argument.
+    
     >>> calcSqFlucts(p38_pca) # doctest: +SKIP 
     array([  0.94163178,   0.97486815,   0.81056074,   0.59926465,
              0.80505867,   0.93568339,   1.1634173 ,   1.39873827,
@@ -3620,12 +3611,18 @@ def calcSqFlucts(modes):
     if not isinstance(modes, (VectorBase, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
-    square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
-    if isinstance(modes, VectorBase):
-        modes = [modes]
-    for mode in modes:
-        square_fluctuations += mode.getSqFlucts()
-    return square_fluctuations
+    if isinstance(modes, Vector):
+        if self.is3d():
+            return (self.getArrayNx3()**2).sum(axis=1)
+        else:
+            return (self.getArray() ** 2)
+    else:
+        square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
+        if isinstance(modes, VectorBase):
+            modes = [modes]
+        for mode in modes:
+            square_fluctuations += mode.getSqFlucts()
+        return square_fluctuations
  
 def calcCrossCorrelations(modes, n_cpu=1):
     """Return cross-correlations matrix.
