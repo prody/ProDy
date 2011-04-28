@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
-__version__ = '0.7'
+__version__ = '0.7.1'
 
 import logging
 import logging.handlers
@@ -330,10 +330,6 @@ __all__.extend(ensemble.__all__)
 from . import volume
 from .volume import *
 __all__.extend(volume.__all__)
-
-from . import future
-from .future import *
-__all__.extend(future.__all__)
 
 
 import prody
