@@ -30,6 +30,10 @@ instance can be obtained by parsing a PDB file as follows:
 >>> from prody import *
 >>> ag = parsePDB('1aar')
 
+To read this page in a Python session, type:
+    
+>>> # help(atomic)
+
 
 :class:`AtomGroup` instances can store multiple coordinate sets, which may
 be models from an NMR structure, snapshots from an MD simulation.
@@ -54,9 +58,47 @@ to such data. These classes are:
   provided by the user.
     
 
+Atom selections
+-------------------------------------------------------------------------------
+
+Flexible and powerful atom selections is one of the most important features 
+of ProDy. The details of the selection grammar is described in 
+:ref:`selections`. 
+
+.. versionadded:: 0.7.1
+
+|new| Using the flexibility of Python, atom selections are made much easier by
+overriding the ``.`` operator i.e. the :meth:`__getattribute__` 
+method of :class:`Atomic` class. So the following will be interpreted
+as atom selections:
+    
+>>> ag.chain_A # selects chain A
+<Selection: "chain A" from 1aar (608 atoms; 1 coordinate sets, active set index: 0)>
+>>> ag.calpha # selects alpha carbons
+<Selection: "calpha" from 1aar (152 atoms; 1 coordinate sets, active set index: 0)>
+>>> ag.resname_ALA # selects alanine residues
+<Selection: "resname ALA" from 1aar (20 atoms; 1 coordinate sets, active set index: 0)>
+
+It is also possible to combine selections with ``and`` and ``or`` operators:
+
+>>> ag.chain_A_and_backbone
+<Selection: "chain A and backbone" from 1aar (304 atoms; 1 coordinate sets, active set index: 0)>
+>>> ag.acidic_or_basic
+<Selection: "acidic or basic" from 1aar (422 atoms; 1 coordinate sets, active set index: 0)>
+
+
+Using dot operator will behave like the logical ``and`` operator:
+    
+>>> ag.chain_A.backbone
+<Selection: "(backbone) and (chain A)" from 1aar (304 atoms; 1 coordinate sets, active set index: 0)>
+  
+For this to work, the first word following the dot operator must be a selection
+keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 
+Underscores will be interpreted as white space, as obvious from the
+previous examples. The limitation of this is that parentheses, special 
+characters cannot be used.     
+
 """
-
-
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
@@ -71,7 +113,8 @@ from prody import ProDyLogger as LOGGER
 
 __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
            'Selection', 'Chain',
-           'Residue', 'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS']
+           'Residue', 'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS',
+           'loadAtoms', 'saveAtoms',]
 
 def isBooleanKeyword(name):
     return True
@@ -156,6 +199,10 @@ ATOMIC_DATA_FIELDS = {
     'radius':    Field('radius',    'radii',       np.float64, 'atomic radius',                  'Radius', 'atomic radii', 'Radii'),
 }
 
+ATOMIC_ATTRIBUTES = {}
+for field in ATOMIC_DATA_FIELDS.values():
+    ATOMIC_ATTRIBUTES[field.var] = field
+
 def wrapGetMethod(fn):
     def wrapped(self):
         return fn(self)
@@ -170,22 +217,21 @@ __doc__ += """
 Common methods
 -------------------------------------------------------------------------------
 
-Atomic data can be accessed and changed using ``get`` and ``set`` methods
-defined for :class:`Atomic` classes. To provide a coherent interface, 
-these methods are defined for :class:`AtomGroup`, :class:`Atom`, 
-:class:`Selection`, :class:`Chain`, :class:`Residue`, and :class:`AtomMap` 
-classes, with the following exceptions: 
+Atomic data contained in a PDB file can be accessed and changed using 
+``get`` and ``set`` methods defined for :class:`Atomic` classes. To provide 
+a coherent interface, these methods are defined for :class:`AtomGroup`, 
+:class:`Atom`, :class:`Selection`, :class:`Chain`, :class:`Residue`, and 
+:class:`AtomMap` classes, with the following exceptions: 
 
 * Names of methods of the :class:`Atom` class are in singular form.
 * ``set`` methods are not defined for the :class:`AtomMap` class.
 
 The list of methods are below (they link to the documentation of the 
 :class:`AtomGroup` methods):
-
-.. csv-table::  
-   :header: "Get method", "Set method", "Description"
-   :widths: 20, 20, 60
-   
+ 
+===========================  ==================================================
+Get/set method               Description
+===========================  ==================================================
 """
 
 keys = ATOMIC_DATA_FIELDS.keys()
@@ -193,29 +239,34 @@ keys.sort()
 
 for key in keys:
     field = ATOMIC_DATA_FIELDS[key]
-    __doc__ += '   :meth:`~AtomGroup.get{0:s}`, :meth:`~AtomGroup.set{0:s}`, "get/set {2:s}"\n'.format(field.meth_pl, field.meth_pl, field.doc_pl)
-
-
-
+    __doc__ += '``get/set{0:18s}  get/set {1:s}\n'.format(field.meth_pl+'``', field.doc_pl)
 
 __doc__ += """
+===========================  ==================================================
+
+.. note:: Note that ``get`` methods return a copy of the data. Changes in the 
+   array obtained by calling one of the above methods will not be saved in the
+   :class:`AtomGroup` instance. To change the data stored in :class:`AtomGroup`
+   instance, use ``set`` methods.
 
 Other functions common to all atomic classes is given below:
 
-===============================  ==================================================================================================================
-Method name                                 Description
-===============================  ==================================================================================================================
-:meth:`copy`                     Makes a deep copy atomic data.
-:meth:`select`                   Select a subset of atoms (see :ref:`selections`).
-:meth:`getActiveCoordsetIndex`   Return the index of the active coordinate set.
-:meth:`setActiveCoordsetIndex`   Change the index of the active coordinate set.
-:meth:`iterActiveCoordsetIndex`  Change the index of the active coordinate set.
-:meth:`getNumOfAtoms`
-:meth:`getNumOfCoordsets`
-:meth:`isAttribute`              Check whether a user assigned attribute exists.
-:meth:`getAttribute`             Return user assigned attribute data.
-:meth:`setAttribute`             Change user assigned attribute data.
-===============================  ==================================================================================================================
+===========================  ==================================================
+Method name                  Description
+===========================  ==================================================
+``copy``                     returns a deep copy atomic data.
+``select``                   selects a subset of atoms (see :ref:`selections`).
+``getCoordinates``           changes the index of the active coordinate set.
+``getNumOfAtoms``            returns number of atoms.
+``getNumOfCoordset``         returns number of coordinate sets.
+``getCoordsets``             returns specified coordinate sets.
+``getActiveCoordsetIndex``   returns the index of the active coordinate set.
+``setActiveCoordsetIndex``   changes the index of the active coordinate set.
+``iterCoordsets``            iterate over coordinate sets.
+``isAttribute``              checks whether a user set attribute exists.
+``getAttribute``             returns user set attribute data.
+``setAttribute``             changes user set attribute data.
+===========================  ==================================================
 
 
 
@@ -224,62 +275,72 @@ Special methods
 
 Atomic classes also have the following class specific methods: 
     
-==================  ============================================================================================================================================
-Class               Special methods
-==================  ============================================================================================================================================
-:class:`AtomGroup`  * :meth:`~AtomGroup.getName` returns name of the instance.
-                    * :meth:`~AtomGroup.setName` changes name of the instance.
-                    * :meth:`~AtomGroup.delAttribute` deletes a user assigned
-                      attribute from the instance.
-                    * :meth:`~AtomGroup.addCoordset`
+========================  =====================================================
+Method                    Description
+========================  =====================================================
+:class:`AtomGroup`  
+* ``getName``             returns name of the instance.
+* ``setName``             changes name of the instance.
+* ``delAttribute``        deletes a user set attribute from the instance.
+* ``addCoordset``
+* ``getNumOfChains``      returns the number of chains.
+* ``iterChains``          iterates over chains.
+* ``getNumOfResidues``    returns the total number of residues from all chains.
+* ``iterResidues``        iterates over all residues.
+
                       
-:class:`Atom`       * :meth:`~Atom.getIndex` returns atom index.
-                    * :meth:`~Atom.getName` return atom name.
-                    * :meth:`~Atom.getSelectionString` returns selection
-                      string that selects the atom.
+:class:`Atom`              
+* ``getIndex``            returns atom index.
+* ``getName``             return atom name.
+* ``getSelectionString``  returns string that selects the atom.
                     
+:class:`Selection`         
+* ``getIndices``          returns indices of atoms.
+* ``getSelectionString``  returns selection string of the instance.
+
+:class:`Chain`
+* ``getIdentifier``       returns chain identifier.
+* ``setIdentifier``       changes chain identifier.
+* ``getResidue``          returns residue with given number.
+* ``iterResidues``        iterates over residues.
+* ``getNumOfResidues``    returns the number of residues in the instance.
+* ``getSequence``         returns single letter amino acid sequence. 
+* ``getSelectionString``  returns a string that selects chain atoms.
                       
-:class:`Selection`  * :meth:`~Selection.getSelectionString` returns selection
-                      string of the instance.
+:class:`Residue`
+* ``getIndices``          returns indices of atoms.
+* ``getAtom``             returns :class:`Atom` with given name.
+* ``getChain``            returns :class:`Chain` of residue instance.
+* ``getChainIdentifier``  returns chain identifier.
+* ``getInsertionCode``    returns insertion code.
+* ``setInsertionCode``    changes insertion code.
+* ``getName``             returns residue name.
+* ``setName``             changes residue name.
+* ``getNumber``           returns residue number.
+* ``setNumber``           changes residue number.
+* ``getSelectionString``  returns a string that selects residue atoms.
 
-:class:`Chain`      * :meth:`~Chain.getIdentifier` returns chain identifier.
-                    * :meth:`~Chain.setIdentifier` changes chain identifier.
-                      for all atoms in the instance
-                    * :meth:`~Chain.getNumOfResidues` returns the number of 
-                      residues in the instance.
-                    * :meth:`~Chain.getResidue` returns residue with given
-                      number.
-                    * :meth:`~Chain.iterResidues` iterates over residues.
-                    * :meth:`~Chain.getSequence` returns single letter 
-                      amino acid sequence as a :func:`str`. 
-                    * :meth:`~Chain.getSelectionString` returns selection
-                      string that selects the chain atoms.
-                      
-:class:`Residue`    * :meth:`~Residue.getAtom` returns :class:`Atom` with 
-                      given name.
-                    * :meth:`~Residue.getChain` returns :class:`Chain` of 
-                      residue instance.
-                    * :meth:`~Residue.getChainIdentifier` returns chain 
-                      identifier.
-                    * :meth:`~Residue.getInsertionCode` returns insertion code.
-                    * :meth:`~Residue.setInsertionCode` changes insertion code.
-                    * :meth:`~Residue.getName` returns residue name.
-                    * :meth:`~Residue.setName` changes residue name.
-                    * :meth:`~Residue.getNumber` returns residue number.
-                    * :meth:`~Residue.setNumber` changes residue number.
-                    * :meth:`~Residue.getSelectionString` returns selection
-                      string that selects the residue atoms.
+:class:`AtomMap`
+* ``getIndices``          returns indices of atoms.
+* ``getName``             returns name of the instance.
+* ``setName``             changes name of the instance.
+* ``getNumOfMapped``      returns number of mapped atoms.
+* ``getNumOfUnmapped``    returns number of unmapped atoms.
+* ``getMapping``          returns mapping of indices.
+* ``getMappedFlags``      returns an boolean array indicating mapped atoms.
+* ``getUnmappedFlags``    returns an boolean array indicating unmapped atoms.
+========================  =====================================================
 
-:class:`AtomMap`    * :meth:`~AtomMap.getName` returns name of the instance.
-                    * :meth:`~AtomMap.setName` changes name of the instance.
-                    * :meth:`~AtomMap.getMapping`
-                    * :meth:`~AtomMap.getMappedFlags`
-                    * :meth:`~AtomMap.getUnmappedFlags`
-                    * :meth:`~AtomMap.getNumOfMapped`
-                    * :meth:`~AtomMap.getNumOfUnmapped`
-                    
+Functions common to :class:`Atom`, :class:`Selection`, :class:`Chain`,
+:class:`Residue`, and :class:`AtomMap` include: 
+    
+========================  =====================================================
+Method                    Description
+========================  =====================================================  
+* ``getAtomGroup``        returns the associated :class:`AtomGroup`.
+* ``getIndices``          returns the indices of atoms.
+========================  =====================================================
 
-==================  ============================================================================================================================================
 
 Behavioral differences
 -------------------------------------------------------------------------------
@@ -287,67 +348,67 @@ Behavioral differences
 Atomic classes behave differently to indexing and to calls of certain built-in 
 functions. These differences are:
 
-==================  ============================================================================================================================================
+=========  ====================================================================
 Class               Properties and differences
-==================  ============================================================================================================================================
-:class:`AtomGroup`  * :func:`len` returns the number of atoms.
-                    * :func:`iter` yields :class:`Atom` instances.
-                    * Indexing by:
-                        
-                      - *atom index* (:func:`int`), e.g, ``10`` returns an 
-                        :class:`Atom`.
-                      - *slice* (:func:`slice`), e.g, ``10:20:2`` returns a 
-                        :class:`Selection`.
-                      - *chain identifier* (:func:`str`), e.g. ``"A"`` return 
-                        a :class:`Chain`.
-                      - *chain identifier, residue number [, insertion code]* 
-                        (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
-                        returns a :class:`Residue`.
+=========  ====================================================================
+AtomGroup  * :func:`len` returns the number of atoms.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing by:
+               
+             - *atom index* (:func:`int`), e.g, ``10`` returns an 
+               :class:`Atom`.
+             - *slice* (:func:`slice`), e.g, ``10:20:2`` returns a 
+               :class:`Selection`.
+             - *chain identifier* (:func:`str`), e.g. ``"A"`` return 
+               a :class:`Chain`.
+             - *chain identifier, residue number [, insertion code]* 
+               (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
+               returns a :class:`Residue`.
                        
-:class:`Atom`       * :func:`len` returns 1.
-                    * :func:`iter` is not applicable.
-                    * Indexing is not applicable.
+Atom       * :func:`len` returns 1.
+           * :func:`iter` is not applicable.
+           * Indexing is not applicable.
                       
-:class:`Selection`  * :func:`len` returns the number of selected atoms.
-                    * :func:`iter` yields :class:`Atom` instances.
-                    * Indexing is not available.
+Selection  * :func:`len` returns the number of selected atoms.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing is not available.
 
-:class:`Chain`      * :func:`len` returns the number of residues in the chain.
-                    * :func:`iter` yields :class:`Residue` instances.
-                    * Indexing by:
-                        
-                      - *residue number [, insertion code]* (:func:`tuple`), 
-                        e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
+Chain      * :func:`len` returns the number of residues in the chain.
+           * :func:`iter` yields :class:`Residue` instances.
+           * Indexing by:
+                
+             - *residue number [, insertion code]* (:func:`tuple`), 
+               e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
                     
-:class:`Residue`    * :func:`len` returns the number of atoms in the instance.
-                    * :func:`iter` yields :class:`Atom` instances.
-                    * Indexing by:
-                      
-                      - *atom name* (:func:`str`), e.g. ``"CA"`` returns 
-                        an :class:`Atom`.
+Residue    * :func:`len` returns the number of atoms in the instance.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing by:
+              
+             - *atom name* (:func:`str`), e.g. ``"CA"`` returns 
+               an :class:`Atom`.
 
-:class:`AtomMap`    * :func:`len` returns the number of atoms in the instance.
-                    * :func:`iter` yields :class:`Atom` instances.
-                    * Indexing is not available.
-==================  ============================================================================================================================================
+AtomMap    * :func:`len` returns the number of atoms in the instance.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing is not available.
+=========  ====================================================================
 
 
 Hierarchical views
 -------------------------------------------------------------------------------
 
-:class:`HierView`   
+:class:`HierView` instances can be built for :class:`AtomGroup` and 
+:class:`Selection` instances.
 
-* Generated for :class:`AtomGroup` and :class:`Selection`
-  instances
-* :func:`len` return the number of chains
-* :func:`iter()` iterates over chains
-* Indexing/slicing:
+Some overridden functions are:
+
+* :func:`len` return the number of chains.
+* :func:`iter()` iterates over chains.
+* Indexing:
     
-  - *chain identifier* (:func:`str`), e.g. ``"A"`` - 
-    return a :class:`Chain`
+  - *chain identifier* (:func:`str`), e.g. ``"A"`` returns a :class:`Chain`.
   - *chain identifier, residue number [, insertion code]* 
     (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
-    - return a :class:`Residue`
+    returns a :class:`Residue`
 
 
 """
@@ -374,6 +435,13 @@ Base Classes
     * :class:`Atomic`
     * :class:`AtomPointer`
     * :class:`AtomSubset`
+
+
+Functions
+---------
+
+    * :func:`saveAtoms`
+    * :func:`loadAtoms`
 
 Inheritance Diagram
 -------------------
@@ -434,6 +502,7 @@ class Atomic(object):
       
     def __getattribute__(self, name):
         """.. versionadded:: 0.7.1"""
+        
         try:
             return object.__getattribute__(self, name)
         except AttributeError:
@@ -537,10 +606,10 @@ class AtomGroup(Atomic):
 
     **Get and Set Methods** 
     
-    ``AtomGroup.get()`` methods return copies of the data arrays. 
+    ``get()`` methods return copies of the data arrays. 
     
-    ``AtomGroup.set()`` methods accepts data contained in :func:`list` or 
-    :class:`numpy.ndarray` instances. The length of the list or array must 
+    ``set()`` methods accepts data contained in :func:`list` or 
+    :class:`~numpy.ndarray` instances. The length of the list or array must 
     match the number of atoms in the atom group. Set method sets attributes of 
     all atoms at once.
     
@@ -884,7 +953,7 @@ class AtomGroup(Atomic):
         return hv
     
     def getNumOfChains(self):
-        """Return number of chains.
+        """|new| Return number of chains.
         
         .. versionadded:: 0.7.1
         
@@ -893,7 +962,7 @@ class AtomGroup(Atomic):
         return self.getHierView().getNumOfChains()
     
     def iterChains(self):
-        """Iterate over chains.
+        """|new| Iterate over chains.
         
         .. versionadded:: 0.7.1
         
@@ -902,7 +971,7 @@ class AtomGroup(Atomic):
         return self.getHierView().iterChains()
     
     def getNumOfResidues(self):
-        """Return number of chains.
+        """|new| Return number of chains.
         
         .. versionadded:: 0.7.1
         
@@ -911,7 +980,7 @@ class AtomGroup(Atomic):
         return self.getHierView().getNumOfResidues()
 
     def iterResidues(self):
-        """Iterate over residues.
+        """|new| Iterate over residues.
         
         .. versionadded:: 0.7.1
         
@@ -920,7 +989,7 @@ class AtomGroup(Atomic):
         return self.getHierView().iterResidues()
 
     def setAttribute(self, name, data):
-        """Set a new attribute called *name* holding atomic *data*.
+        """|new| Set a new attribute called *name* holding atomic *data*.
         
         .. versionadded:: 0.7.1
         
@@ -947,7 +1016,7 @@ class AtomGroup(Atomic):
         as a selection string for making selections
         
         Note that, if an attribute with given *name* exists, it will be 
-        overwritten.
+        overridden.
 
         :arg name: name of the attribute
         :type name: str
@@ -961,11 +1030,11 @@ class AtomGroup(Atomic):
             raise TypeError('name must be a string')
         elif name == '':
             raise ValueError('name cannot be empty string')
+        elif not name[0].isalnum():
+            raise ValueError('name must start with a letter')
         elif not all([part.isalnum() for part in name.split('_')]):
             raise ValueError('name may contain alphanumeric characters and '
                              'underscore, {0:s} is not valid'.format(name))
-        elif not name[0].isalnum():
-            raise ValueError('name must start with a letter')
             
         if name in ATOMIC_DATA_FIELDS or prody.select.isKeyword(name):
             raise ValueError('name cannot be a reserved name or a selection '
@@ -990,7 +1059,7 @@ class AtomGroup(Atomic):
     """.format('\n          * '.join(ATOMIC_DATA_FIELDS.keys()))
     
     def delAttribute(self, name):
-        """Delete the attribute with given *name* and return the stored data.
+        """|new| Delete the attribute with given *name* and return the stored data.
         
         .. versionadded:: 0.7.1
         
@@ -1001,7 +1070,7 @@ class AtomGroup(Atomic):
         return self._userdata.pop(name, None)
     
     def getAttribute(self, name):
-        """Return a copy of the attribute *name*, if it exists.
+        """|new| Return a copy of the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1013,7 +1082,7 @@ class AtomGroup(Atomic):
         return None
 
     def isAttribute(self, name):    
-        """Return ``True`` if *name* is a user set attribute.
+        """|new| Return ``True`` if *name* is a user set attribute.
         
         .. versionadded:: 0.7.1
         
@@ -1084,7 +1153,7 @@ class AtomPointer(Atomic):
                        np.concatenate(unmapped), name, acsi)
     
     def isAttribute(self, name):    
-        """Return ``True`` if *name* is a user set attribute.
+        """|new| Return ``True`` if *name* is a user set attribute.
         
         .. versionadded:: 0.7.1
         
@@ -1191,7 +1260,7 @@ class Atom(AtomPointer):
         return self._index
     
     def getAttribute(self, name):
-        """Return the attribute *name*, if it exists.
+        """|new| Return the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1199,6 +1268,22 @@ class Atom(AtomPointer):
         
         if self._ag.isAttribute(name):
             return self._ag._userdata[name][self._index]
+    
+    def setAttribute(self, name, data):
+        """|new| Set data for the attribute *name*.
+        
+        .. versionadded:: 0.7.1
+        
+        :raise AttributeError: when attribute *name* does not exist in the
+            the :class:`AtomGroup` instance.
+        
+        """
+        
+        if self._ag.isAttribute(name):
+            self._ag._userdata[name][self._index] = data 
+        else:
+            raise AttributeError("AtomGroup '{0:s}' has no attribute '{1:s}'"
+                                 .format(self._ag.getName(), name))
 
     def getIndices(self):
         """Return index of the atom in a :class:`numpy.ndarray`."""
@@ -1381,7 +1466,7 @@ class AtomSubset(AtomPointer):
                self.getSelectionString(), other.getSelectionString()), acsi)
                
     def getAttribute(self, name):
-        """Return a copy of the attribute *name*, if it exists.
+        """|new| Return a copy of the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1389,6 +1474,22 @@ class AtomSubset(AtomPointer):
         
         if self._ag.isAttribute(name):
             return self._ag._userdata[name][self._indices].copy()
+    
+    def setAttribute(self, name, data):
+        """|new| Set data for the attribute *name*.
+        
+        .. versionadded:: 0.7.1
+        
+        :raise AttributeError: when attribute *name* does not exist in the
+            the :class:`AtomGroup` instance.
+        
+        """
+        
+        if self._ag.isAttribute(name):
+            self._ag._userdata[name][self._indices] = data 
+        else:
+            raise AttributeError("AtomGroup '{0:s}' has no attribute '{1:s}'"
+                                 .format(self._ag.getName(), name))
     
     def getIndices(self):
         """Return the indices of atoms."""
@@ -1859,7 +1960,12 @@ class AtomMap(AtomPointer):
         return coordinates
     
     def setCoordinates(self, coordinates):
-        """Set coordinates in the active coordinate set."""
+        """Set coordinates in the active coordinate set.
+        
+        Length of the *coordinates* array must match the number of mapped 
+        atoms.
+        
+        """
         
         self._ag._coordinates[self._acsi, self._indices] = coordinates
     
@@ -2080,3 +2186,84 @@ class HierView(object):
         """Return number of chains."""
         
         return len(self._chains)
+
+
+def saveAtoms(atoms, filename=None):
+    """|new| Save *atoms*  in ProDy internal format.
+    
+    All classes derived from :class:`Atomic` are accepted as *atoms* argument.
+    
+    .. versionadded:: 0.7.1
+    
+    This function saves custom atomic attributes as well.
+    
+    Note that name of the :class:`AtomGroup` instance is used as the filename
+    when *atoms* is not an :class:`AtomGroup`. This is because names for
+    selections and atom maps may be too long and may contain special 
+    characters. To avoid overwriting an existing file with the same name, 
+    specify a *filename*.
+    
+    """
+    
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be Atomic instance, not {0:s}'
+                        .format(type(atoms)))
+    if isinstance(atoms, AtomGroup):
+        ag = atoms
+        name = ag.getName()
+    else:
+        ag = atoms.getAtomGroup()
+        name = str(atoms)
+    
+    if filename is None:
+        filename = ag.getName().replace(' ', '_')
+    filename += '.atm.npz'
+    attr_dict = {'_name': name}
+    attr_dict['_coordinates'] = atoms.getCoordsets()
+    for name, field in ATOMIC_DATA_FIELDS.items():
+        attr_dict['_' + field.var] = atoms.__getattribute__('get'+field.meth_pl)()
+    for attr in ag._userdata.keys():
+        attr_dict[attr] = atoms.getAttribute(attr)
+    np.savez(filename, **attr_dict)
+    return filename
+
+
+def loadAtoms(filename):
+    """|new| Return :class:`AtomGroup` instance loaded from *filename*.
+    
+    .. versionadded:: 0.7.1
+    
+    .. seealso: :func:`saveAtoms`
+    
+    This function makes use of :func:`numpy.load` function.
+    
+    """
+    
+    start = time.time()
+    attr_dict = np.load(filename)
+    if not '_coordinates' in attr_dict.files:
+        raise ValueError("'{0:s}' is not a valid atomic data file"
+                         .format(filename))
+    ag = AtomGroup(str(attr_dict['_name']))
+    for attr in attr_dict.files:
+        if attr == '_name':
+            continue  
+        elif attr == '_coordinates':
+            ag.setCoordinates(attr_dict[attr])
+        elif attr[0] == '_' and attr[1:] in ATOMIC_ATTRIBUTES: 
+            field = ATOMIC_ATTRIBUTES[attr[1:]]
+            data = attr_dict[attr]
+            if data.ndim > 0:
+                ag.__getattribute__('set' + field.meth_pl)(data)
+        elif attr[1] != '_':            
+            ag.setAttribute(attr, attr_dict[attr])
+        else:
+            LOGGER.warning("'{0:s} is not a valid attribute.'".format(attr))
+            
+    LOGGER.debug('Atoms were loaded in {0:.2f}s.'.format(time.time() - start))
+    return ag
+
+if __name__ == '__main__':
+    from prody import *
+    p = parsePDB('1aar')
+    saveAtoms(p)
