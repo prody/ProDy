@@ -17,7 +17,15 @@ NMWiz can be used for:
   * comparative analysis of normal modes from different sources/methods
   * preparing publication quality images of normal modes with the power of VMD
   
-See examples figures on the side panel. 
++--------------------------------------------------+------------------------------------------------+------------------------------------------------+
+| Example figure prepared using NMWiz                                                                                                                |
++==================================================+================================================+================================================+
+| ANM modes 1-3 for p38 MAPK                       | ANM and PCA modes for p38                      | p38 network model                              |
++--------------------------------------------------+------------------------------------------------+------------------------------------------------+
+| .. image:: /_static/gallery/p38_modes_123_sm.png | .. image:: /_static/gallery/p38_anm_pca_sm.png | .. image:: /_static/gallery/p38_network_sm.png |
++--------------------------------------------------+------------------------------------------------+------------------------------------------------+
+
+
 For **downloads** and **installation** instructions see :ref:`getnmwiz`.
 
 
