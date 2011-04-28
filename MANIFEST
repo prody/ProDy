@@ -12,7 +12,6 @@ prody/compare.py
 prody/cpairwise2module.c
 prody/dynamics.py
 prody/ensemble.py
-prody/future.py
 prody/measure.py
 prody/pairwise2.py
 prody/proteins.py
