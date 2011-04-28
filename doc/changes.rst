@@ -9,17 +9,35 @@ Changes
 Release 0.7.1 (in development)
 ===============================================================================
 
+**Highlights**:
+
+  * :class:`~atomic.Atomic` :meth:`__getattribute__` is overloaded to interpret
+    atomic selections following the dot operator. For example,
+    ``atoms.calpha`` is interpreted as ``atoms.select('calpha')``. See
+    :ref:`atomic` for more details.
+   * :class:`~atomic.AtomGroup` class is integrated with 
+     :class:`~atomic.HierView` class. Atom group instances now can be indexed
+     to get chains or residues and number of chains/residues can be retrieved.
+     A hierarchical view is generated and updated when needed. 
+      
+     
+
 **New Features**:
 
   * :func:`~compare.matchAlign` is implemented for quick alignment of protein
     structures. See :ref:`extract-ligands` usage example.
-  
   * :meth:`~atomic.AtomGroup.setAttribute`, 
     :meth:`~atomic.AtomGroup.getAttribute`,
     :meth:`~atomic.AtomGroup.delAttribute`, and
     :meth:`~atomic.AtomGroup.isAttribute` functions are implemented for
     :class:`~atomic.AtomGroup` class to facilitate storing user provided 
-    atomic data.
+    atomic data. See :ref:`attributes` example.
+  * :func:`~atomic.saveAtoms` and :func:`~atomic.loadAtoms` functions 
+    are implemented to allow for saving atomic data and loading it 
+    This saves custom atomic attributes and much faster than parsing
+    data from PDB files. 
+  * :func:`~dynamics.calcCollectivity` function is implemented to allow
+    for calculating collectivity of deformation vectors.
     
 **Improvements**:
 
@@ -27,7 +45,20 @@ Release 0.7.1 (in development)
     ``biomol=True`` keyword argument is passed.
   * :func:`~proteins.parsePDB` can optionally make secondary structure
     assignments when ``secondary=True`` keyword argument is passed.
+  * :func:`~dynamics.calcSqFlucts` function is changed to accept 
+    :class:`~dynamics.Vector` instances, e.g. deformation vectors.
 
+**Changes**:
+
+  * Changes were made in :func:`~measure.calcADPAxes` function to follow 
+    the conventions in analysis ADPs. See its documentation.
+
+**Bug Fixes**:
+
+  * A in :class:`~ensemble.Ensemble` slicing operations is fixed. Weights are
+    now copied to the new instances obtained by slicing.
+  * Bug fixes in :mod:`dynamics` plotting functions 
+    :func:`~dynamics.showScaledSqFlucts`, :func:`~dynamics.showNormedSqFlucts`, 
 
 Release 0.7.0 (Apr 4, 2011)
 ===============================================================================

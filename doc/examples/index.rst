@@ -64,11 +64,12 @@ Dynamics Analysis
    dynamics/extrapolate
    dynamics/reduce_slice
 
-More on :class:`~atomic.AtomGroup` 
+Atomic classes and data 
 ===============================================================================
 
 .. toctree::
    :maxdepth: 1
    
    atomic/atomgroup
+   atomic/attributes   
 
