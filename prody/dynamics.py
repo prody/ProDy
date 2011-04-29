@@ -2761,9 +2761,13 @@ def extrapolateModel(enm, nodes, atoms):
         array = enm.getArray()[indices,:]
         extra = NMA('Extrapolated ' + str(enm))
         extra.setEigens(array, enm.getEigenvalues())
-        atommap = AtomMap(atoms.getAtomGroup(), atom_indices, 
-                          np.arange(len(atom_indices)), np.array([]),
-                          str(atoms), atoms.getActiveCoordsetIndex())
+        if isinstance(atoms, AtomGroup):
+            ag = atoms
+        else: 
+            ag = atoms.getAtomGroup()
+        atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
+                          np.array([]), str(atoms), 
+                          atoms.getActiveCoordsetIndex())
         return extra, atommap
     else:
         raise TypeError('atoms must be an Atomic instance')
