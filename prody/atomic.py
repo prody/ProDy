@@ -1806,8 +1806,9 @@ class AtomMapMeta(type):
                 return result 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth_pl
-            getData.__doc__ = 'Return {0:s} of the atoms. Unmapped atoms ' + \
-                              'will have 0/empty entries.'.format(field.doc_pl)
+            getData.__doc__ = ('Return {0:s} of the atoms. Unmapped atoms '
+                               'will have ``0`` or ``""`` as entries.'
+                               .format(field.doc_pl))
             setattr(cls, 'get'+field.meth_pl, getData)
 
 
@@ -1907,9 +1908,13 @@ class AtomMap(AtomPointer):
             return result
 
     def getName(self):
+        """Return name of the atom map instance."""
+        
         return self._name
     
     def setName(self, name):
+        """Set name of the atom map instance."""
+        
         self._name = str(name)
 
     def getNumOfAtoms(self):
@@ -2217,7 +2222,7 @@ def saveAtoms(atoms, filename=None):
     
     if filename is None:
         filename = ag.getName().replace(' ', '_')
-    filename += '.atm.npz'
+    filename += '.ag.npz'
     attr_dict = {'_name': name}
     attr_dict['_coordinates'] = atoms.getCoordsets()
     for name, field in ATOMIC_DATA_FIELDS.items():
