@@ -73,6 +73,14 @@ variable to specify the path to this package:
 
 In this case you will need to install :ref:`nmwiz` separately.
 
+Mac OS
+-------------------------------------------------------------------------------
+
+For installing ProDy, please follow the Linux installation instructions.
+For installing NMWiz, please follow the manual installation instructions in
+:ref:`getnmwiz`.
+
+
 Windows
 -------------------------------------------------------------------------------
 
