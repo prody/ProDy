@@ -15,10 +15,11 @@ Release 0.7.1 (Apr 28, 2011)
     atomic selections following the dot operator. For example,
     ``atoms.calpha`` is interpreted as ``atoms.select('calpha')``. See
     :ref:`atomic` for more details.
-   * :class:`~atomic.AtomGroup` class is integrated with 
-     :class:`~atomic.HierView` class. Atom group instances now can be indexed
-     to get chains or residues and number of chains/residues can be retrieved.
-     A hierarchical view is generated and updated when needed. 
+  * :class:`~atomic.AtomGroup` class is integrated with 
+    :class:`~atomic.HierView` class. Atom group instances now can be indexed
+    to get chains or residues and number of chains/residues can be retrieved.
+    A hierarchical view is generated and updated when needed. See
+    :ref:`atomic` for more details.
       
      
 

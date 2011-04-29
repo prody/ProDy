@@ -6,16 +6,18 @@ NMWiz Installation
 
 NMWiz is written in `TCL <http://tcl.tk/>`_. To be able to use it, 
 you need to have VMD version 1.8.7 or higher installed on your computer.
+NMWiz works on all platforms that VMD is available for, including Linux, 
+Mac OS, and Windows.
 
 See |vmd| for obtaining VMD.
 
 Downloads
 ===============================================================================
 
-Plug-in files:
+Plug-in files come in the following compressed archives:
  
-  * Windows: :download:`NMWiz-0.6.zip <nmwiz/NMWiz-0.7.zip>`
-  * Linux: :download:`NMWiz-0.6.tar.gz <nmwiz/NMWiz-0.7.tar.gz>`
+  * :download:`NMWiz-0.6.zip <nmwiz/NMWiz-0.7.zip>`
+  * :download:`NMWiz-0.6.tar.gz <nmwiz/NMWiz-0.7.tar.gz>`
 
 
 Installation
@@ -58,6 +60,9 @@ also requires write access to the VMD folders. On Linux, following command
 should work:: 
  
   $ sudo python install_nmwiz.py
+  
+This installer script works in Linux and Windows. Mac OS users, please
+follow the manual installation instructions.
   
 Updates
 ===============================================================================
