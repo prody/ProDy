@@ -3616,10 +3616,10 @@ def calcSqFlucts(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
     if isinstance(modes, Vector):
-        if self.is3d():
-            return (self.getArrayNx3()**2).sum(axis=1)
+        if modes.is3d():
+            return (modes.getArrayNx3()**2).sum(axis=1)
         else:
-            return (self.getArray() ** 2)
+            return (modes.getArray() ** 2)
     else:
         square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
         if isinstance(modes, VectorBase):
@@ -3828,7 +3828,7 @@ def calcTempFactors(modes, atoms):
     if not isinstance(model, GNMBase):
         raise TypeError('modes must come from GNM or ANM')
     if model.getNumOfAtoms() != atoms.getNumOfAtoms():
-        raise ValueError('modes and atoms must have same number of modes')
+        raise ValueError('modes and atoms must have same number of nodes')
     sqf = calcSqFlucts(modes)
     return sqf / ((sqf**2).sum()**0.5) * (
                                         (atoms.getTempFactors()**2).sum()**0.5)

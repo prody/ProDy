@@ -25,7 +25,13 @@ Using ProDy
 
    __ http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf
 
+#. | |pdf|__
+     `ProDy: Protein Dynamics Inferred from Theory and Experiments  
+     <http://bioinformatics.oxfordjournals.org/content/early/2011/04/05/bioinformatics.btr168.abstract>`_
+   | Bakan A, Meireles LM, Bahar I
+   | **2011** *Bioinformatics* doi: 10.1093/bioinformatics/btr168
 
+   __ http://bioinformatics.oxfordjournals.org/content/early/2011/04/05/bioinformatics.btr168.full.pdf
 
 Servers
 ===============================================================================
@@ -81,7 +87,7 @@ Reviews
     `Normal Mode Analysis of Biomolecular Structures: Functional Mechanisms of 
     Membrane Proteins 
     <http://pubs.acs.org/doi/full/10.1021/cr900095e>`_
-  | Bahar I*, Lezon TR, **Bakan A**, Shrivastava IH 
+  | Bahar I, Lezon TR, Bakan A, Shrivastava IH 
   | **2010** *Chem Rev* 110(3):1463–1497 doi:10.1021/cr900095e
   
   __ http://pubs.acs.org/doi/pdf/10.1021/cr900095e
