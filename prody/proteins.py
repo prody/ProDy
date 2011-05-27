@@ -890,12 +890,12 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     
 def _getHeaderDict(lines):
     """Return header data in a dictionary."""
-    
     header = {}
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     helix = {}
     sheet = {}
     biomolecule = defaultdict(list)
+    sequences = defaultdict(str)
     applyToChains = (' ')
     for i in xrange(len(lines)):        
         line = lines[i]
@@ -904,6 +904,8 @@ def _getHeaderDict(lines):
            startswith == 'MODEL ':
             if biomolecule:
                 header['biomolecular_transformations'] = biomolecule
+            if sequences:
+                header['sequences'] = dict(sequences)
             if helix:
                 header['helix'] = helix
             if sheet:
@@ -978,6 +980,9 @@ def _getHeaderDict(lines):
             temp = header.get('source', '')
             temp += ' ' + line[10:]
             header['source'] = temp.strip()
+        elif startswith == 'SEQRES':
+            sequences[line[11]] += ''.join(
+                                prody.compare.getSequence(line[19:].split()))
         elif startswith == 'REMARK':
             nmbr = line[7:10]
             if nmbr == '  2':
@@ -1021,6 +1026,8 @@ def _getHeaderDict(lines):
             header['reference'] = temp
     if biomolecule:
         header['biomolecular_transformations'] = biomolecule
+    if sequences:
+        header['sequences'] = dict(sequences)
     if helix:
         header['helix'] = helix
     if sheet:
