@@ -10,7 +10,7 @@ package_name = 'ProDy'
 pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
 # Write statistics in a CSV file
 stats = open('_static/pypi_statistics.csv', 'w')
-stats.write('Release;Date;Downloads;\n')
+stats.write('Release;Date;Downloads\n')
 show_hidden = True
 releases = pypi.package_releases(package_name, show_hidden)
 downloads_total = 0
@@ -24,16 +24,12 @@ for release in releases:
         downloads += url['downloads']
     downloads_total += downloads
     date = datetime.strptime(url['upload_time'].value, "%Y%m%dT%H:%M:%S")
-    stats.write('{0:s};{1:s};{2:d};{3:s}\n'.format(
+    stats.write('{0:s};{1:s};{2:d}\n'.format(
         release, 
         date.strftime('%B %e, %Y'), 
-        downloads,
-        '#' + '=' * int(round(downloads / 10.)) + '>'))
+        downloads))
     
-#downloads_average = int(round((downloads_total * 1.0 / len(releases))))
-#stats.write('Average; ;{0:d};{1:s}\n'.format(
-#    downloads_average, '#' + '=' * int(round(downloads_average / 10.)) + '>'))
-stats.write('Total; ;{0:d};\n'.format(downloads_total))
+stats.write('Total; ;{0:d}\n'.format(downloads_total))
 stats.close()
 
 

@@ -96,7 +96,7 @@ It is not possible to save custom attributes in PDB files, but
 :func:`saveAtoms` function can be used them to save in disk for later use:
 
 >>> saveAtoms(ag)
-'1p38.atm.npz'
+'1p38.ag.npz'
 
 Let's load it using :func:`loadAtoms` function:
 
