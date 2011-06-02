@@ -5,13 +5,19 @@ ProDy Download Statistics
 
 *Last update*: |today|
 
-The following statistics are retrieved from |pypi|.
+The following statistics are retrieved from |pypi| and 
+http://pypi.python.org/stats/months/.
+
 
 .. csv-table::
    :file: ../_static/pypi_statistics.csv
    :header-rows: 1
    :stub-columns: 1
    :delim: ;
+
+.. image:: ../_static/pypi_monthly.png
+
+   
 
 
 Python code
@@ -21,3 +27,8 @@ The following code is used for retrieving the statistics and generating
 a comma-seperated values (CSV) file:
 
 .. literalinclude:: /pypi.py
+
+The following code is used for retrieving monthly statistics and plotting
+bar graph:
+
+.. literalinclude:: /pypi_month.py
