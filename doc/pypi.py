@@ -8,6 +8,7 @@ import xmlrpclib
 package_name = 'ProDy'
 
 pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
+
 # Write statistics in a CSV file
 stats = open('_static/pypi_statistics.csv', 'w')
 stats.write('Release;Date;Downloads\n')
@@ -33,7 +34,7 @@ stats.write('Total; ;{0:d}\n'.format(downloads_total))
 stats.close()
 
 
-# Now write a CSV file with info on and links to the current downloads 
+# Write a CSV file with info on and links to the current downloads 
 packagetype_map = {'sdist': 'Source', 'bdist_wininst': 'MS Windows installer'}
 python_version_map = {'source': ''} 
 files = open('_static/pypi_downloads.csv', 'w')
@@ -50,7 +51,7 @@ for url in current_urls:
     files.write('\n')
 files.close()
 
-# Now write an HTML sidebar to show the total number of downloads in index
+# Write an HTML sidebar to show the total number of downloads in index
 html = open('_templates/getprody.html', 'w')
 html.write('''
 <h3>Download</h3>
