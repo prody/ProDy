@@ -1891,7 +1891,7 @@ orange3"
   variable prodyMolecule
   variable prodyMolid -1
   variable prodyNFrames 0
-  variable prodySelstr "name CA"
+  variable prodySelstr "protein name CA"
   variable prodySelAtoms 0
   variable prodyScript "ANM"
   variable prodyPrefix ""
@@ -4749,4 +4749,4 @@ proc nmwiz_load {filename} {
   ::nmwiz::loadNMD $filename
 } 
 
-#nmwiz_tk
+nmwiz_tk
