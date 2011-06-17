@@ -659,7 +659,7 @@ class NMABase(object):
         
     """
     
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         """Initialize a Normal Mode analysis with a given name.
         
         .. versionchanged:: 0.7

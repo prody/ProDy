@@ -629,7 +629,7 @@ class AtomGroup(Atomic):
     """
     __metaclass__ = AtomGroupMeta
     
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         """Instantiate an AtomGroup with a *name*."""
         self._name = str(name)
         self._n_atoms = 0
