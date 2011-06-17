@@ -1186,11 +1186,20 @@ class AtomPointer(Atomic):
             index += self._ag._n_coordsets
         self._acsi = index
         
-    def copy(self):
-        """Make a copy of atoms."""
+    def copy(self, selstr=None):
+        """Make a copy of atoms.
         
-        return self._ag.copy(self)
-
+        .. versionchanged:: A selection string can be passed to copy select
+           atoms from the atom pointer.
+        
+        """
+        
+        if which is None:
+            return self._ag.copy(self)
+        elif isinstance(selstr, str):
+            return self._ag.copy(self.select(selstr))
+        raise TypeError('selstr must be a string')
+            
 
 class AtomMeta(type):
     def __init__(cls, name, bases, dict):
