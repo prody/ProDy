@@ -2458,6 +2458,8 @@ def writeNMD(filename, modes, atoms):
                 ['{0:.3f}'.format(x) for x in modes.getNormed().getArray()])))
         count += 1
     else:
+        if isinstance(modes, Mode):
+            modes = [modes]
         for mode in modes:
             if mode.getEigenvalue() < ZERO:
                 continue
