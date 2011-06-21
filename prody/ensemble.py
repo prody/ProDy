@@ -769,9 +769,12 @@ RECSCALE32BIT = 1
 RECSCALE64BIT = 2
 
 def parseDCD(filename, indices=None, first=None, last=None, stride=None):
-    """Parse CHARMM format DCD files (also NAMD 2.1 and later).
+    """|new| Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
-    Type of coordinate data array is :class:`~numpy.float32`. 
+    .. versionadded:: 0.7.2
+    
+    The type of coordinate data array returned by this function is 
+    :class:`~numpy.float32`. 
     
     :arg filename: DCD filename
     :type filename: str
@@ -812,6 +815,9 @@ def parseDCD(filename, indices=None, first=None, last=None, stride=None):
     n_atoms = header['n_atoms']
     if np.max(indices) >= n_atoms:
         raise ValueError('maximum index exceeds number of atoms in DCD file')
+    n_frames = header['n_frames']
+    LOGGER.info('DCD file contains {0:d} coordinate sets for {1:d} atoms.'
+                .format(n_frames, n_atoms))
     if first is None:
         first = 0
     else:
@@ -821,10 +827,9 @@ def parseDCD(filename, indices=None, first=None, last=None, stride=None):
     else:
         stride = int(stride)
     if last is None:
-        last = header['n_frames']
+        last = n_frames
     else:
         last = int(last)
-    
     n_floats = (n_atoms + 2) * 3 
     dtype = np.dtype(endian+'f')
     n_frames = 0
