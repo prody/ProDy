@@ -45,7 +45,7 @@ calculations for them:
 >>> saveModel(anm, 'rt_anm')
 'rt_anm.anm.npz'
 >>> anm[:5].getEigenvalues()
-array([ 0.03870821,  0.06267031,  0.12575956,  0.18125253,  0.22143882])
+array([ 0.039,  0.063,  0.126,  0.181,  0.221])
 >>> '%.3f' % (anm[0].getArray() ** 2).sum() ** 0.5
 '1.000'
 
@@ -111,7 +111,7 @@ chain A in the structure, using :func:`sliceModel` function:
 >>> saveModel(anm_slc_p66, 'rt_anm_sliced')
 'rt_anm_sliced.anm.npz'
 >>> anm_slc_p66[:5].getEigenvalues()
-array([ 0.03870821,  0.06267031,  0.12575956,  0.18125253,  0.22143882])
+array([ 0.039,  0.063,  0.126,  0.181,  0.221])
 >>> '%.3f' % (anm_slc_p66[0].getArray() ** 2).sum() ** 0.5
 '0.895'
 
@@ -173,7 +173,7 @@ function implements the method described in 2000 paper of Hinsen et al. [KH00]_
 >>> saveModel(anm_red_p66, 'rt_anm_reduced')
 'rt_anm_reduced.anm.npz'
 >>> anm_red_p66[:5].getEigenvalues()
-array([ 0.05038287,  0.09787223,  0.21379531,  0.289348  ,  0.42345319])
+array([ 0.05 ,  0.098,  0.214,  0.289,  0.423])
 >>> '%.3f' % (anm_red_p66[0].getArray() ** 2).sum() ** 0.5
 '1.000'
 

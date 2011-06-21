@@ -34,8 +34,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.intersphin
               'sphinx.ext.inheritance_diagram', 'sphinx.ext.graphviz',
               'matplotlib.sphinxext.plot_directive',
               'matplotlib.sphinxext.only_directives',
-              'matplotlib.sphinxext.mathmpl',
-              'sphinxcontrib.spelling']
+              'matplotlib.sphinxext.mathmpl']#, 'sphinxcontrib.spelling']
               
                #'sphinx.ext.pngmath',
 
@@ -66,7 +65,7 @@ def getRevisionNumber():
     logs = logfile.read()
     logfile.close()
     return str(logs.count('Author:'))
-version = '0.7.1'
+version = '0.7.2'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
