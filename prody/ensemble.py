@@ -771,6 +771,8 @@ RECSCALE64BIT = 2
 def parseDCD(filename, indices=None, first=None, last=None, stride=None):
     """Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
+    Type of coordinate data array is :class:`~numpy.float32`. 
+    
     :arg filename: DCD filename
     :type filename: str
     

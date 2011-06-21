@@ -40,10 +40,11 @@ while month <= datetime.date.today():
     month = incrMonth(month)
 
 # Make figure
+import numpy as np
 import matplotlib.pyplot as plt
 plt.figure(figsize=(7.5,4))
 plt.bar(range(len(counts)), counts, color='black')
-plt.xticks(arange(len(labels))+0.5, labels, rotation=15, fontsize=10)
+plt.xticks(np.arange(len(labels))+0.5, labels, rotation=15, fontsize=10)
 plt.yticks(plt.yticks()[0], fontsize=10)
 plt.grid()
 plt.title('{0:s} monthly download statistics'.format(package_name), fontsize=12)

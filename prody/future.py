@@ -33,6 +33,10 @@ from collections import defaultdict
 
 __all__ = ['MarkovModel']
 
+def parseDCD(filename, indices=None, header=False, first=0, skip=0, last=None):
+    """Returns coordinate sets for atoms at *indices* from specified frames."""
+    pass
+
 class MarkovModel(object):
     
     """Implementation of the Markov model described in [CC06]_ and [CC07]_.
@@ -112,16 +116,16 @@ class MarkovModel(object):
         if prody.dynamics.KDTree is None:
             prody.importBioKDTree()
 
-        
+        start = time.time()
         if not isinstance(atoms, prody.AtomGroup):
             atoms = atoms.getAtomGroup().copy(atoms)
         n_atoms = atoms.getNumOfAtoms()
         hv = prody.HierView(atoms)
         n_res = hv.getNumOfResidues()
 
-        rids = np.zeros(n_atoms, np.int64)
-        rlen = np.zeros(n_res)
-        resmap = {}
+        rids = np.zeros(n_atoms, np.int64) # residue indices of atoms
+        rlen = np.zeros(n_res) # residue lengths
+        resmap = {} # used for symmetry purposes
         for i, res in enumerate(hv.iterResidues()):
             rids[ res.getIndices() ] = i
             rlen[ i ] = len(res)
@@ -129,14 +133,17 @@ class MarkovModel(object):
                    res.getInsertionCode())
             resmap[i] = res
             resmap[res] = i
-            
         self._resmap = resmap
+        LOGGER.debug('Atoms were evalulated in {0:.2f}s.'
+                     .format(time.time()-start))
+
         start = time.time()
         kdtree = prody.dynamics.KDTree(3)
         kdtree.set_coords(atoms.getCoordinates())
         kdtree.all_search(cutoff)
         LOGGER.debug('KDTree was built in {0:.2f}s.'
                      .format(time.time()-start))
+
         start = time.time()
         affinity = defaultdict(int)
         for i, j in kdtree.all_get_indices():
@@ -157,7 +164,7 @@ class MarkovModel(object):
             j[k] = key[1]
             v[k] = value
             k += 1
-        rlen = 1 / (rlen ** 0.5)
+        rlen = rlen ** -0.5
         # = Nij * (1/Ni^0.5) * (1/Nj^0.5)    
         v = v * rlen[i] * rlen[j]  
         affinity = sparse.coo_matrix((v, (i,j)), shape=(n_res, n_res))
@@ -308,7 +315,7 @@ class MarkovModel(object):
                         ownership * sparse.dia_matrix((1 / delta, 0), 
                                                         shape=(length, length))
             step += 1
-        LOGGER.debug('Expectation maximization converged after {1:d} steps '
+        LOGGER.debug('EM converged after {1:d} steps '
                      'in {0:.2f}s.'.format(time.time()-start, step))
         self._ownership = ownership 
         self._kernel = kernel

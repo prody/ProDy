@@ -81,7 +81,7 @@ In addition, we can find out the sequence identity that the matched atoms
 (residues) share (third item in the tuple):
 
 >>> match[2]
-99.406528189910986
+99.40652818991099
 
 The fourth item in the tuple shows the coverage of the matching:
 

@@ -16,7 +16,7 @@ The following are some of the main features:
 
 **Examination and analysis of structural variability observed in experiments:**
 
-  * Fast and flexible parsing of PDB files
+  * Fast and flexible parsing of PDB and DCD files
   * Powerful atom selections and contact identification
   * Matching, superposing, and comparing multiple structures/chains
   * PCA of X-ray structures, NMR models and mixed structural datasets from Blast search

@@ -6,12 +6,31 @@
 Changes
 *******************************************************************************
 
-Release 0.7.2 (in development)
+Release 0.7.2 (Jun 21, 2011)
 ===============================================================================
+
+**New Features**:
+
+  * :func:`~ensemble.parseDCD` is implemented for parsing coordinate sets 
+    from DCD files.
+
 
 **Improvements**:
 
   * :func:`~proteins.parsePDB` parses ``SEQRES`` records in header sections.
+
+**Changes**:
+
+  * Major classes can be instantiated without passing a name argument.
+  * Default selection in NMWiz ProDy interface is changed to ensure selection
+    only protein Cα atoms.
+
+
+**Bug Fixes**:
+
+  * A bug in :func:`~dynamics.writeNMD` function causing problems when writing
+    a single mode is fixeed.
+  * Other bugfixes in :mod:`~dynamics` module functions.
 
 
 Release 0.7.1 (Apr 28, 2011)
