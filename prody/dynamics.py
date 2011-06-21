@@ -958,7 +958,7 @@ class NMA(NMABase):
     
     """
     
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         NMABase.__init__(self, name)
 
         
@@ -1163,7 +1163,7 @@ class ModeSet(object):
 class GNMBase(NMABase):
     """Class for Gaussian Network Model analysis of proteins."""
 
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         NMABase.__init__(self, name)
         self._is3d = False
         self._cutoff = None
@@ -1235,9 +1235,17 @@ class GNM(GNMBase):
         :arg gamma: Spring constant, default is 1.0.
         :type gamma: float
         
+        :arg sparse: Elect to use sparse matrices. Default is ``False``. If 
+            Scipy is not found, :class:`ImportError` is raised.
+        :type sparse: bool
+        
         .. versionchanged:: 0.6
             Instances of :class:`Gamma` classes and custom functions are
             accepted as *gamma* argument.        
+
+        .. versionchanged:: 0.7.3
+           When Scipy is available, user can select to use sparse matrices for
+           efficient usage of memory at the cost of computation speed.
 
         """
         
@@ -1284,6 +1292,7 @@ class GNM(GNMBase):
             kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
+        
         if KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
@@ -1294,8 +1303,8 @@ class GNM(GNMBase):
                 g = gamma(radii[r]**2, i, j)
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
-                kirchhoff[i, i] += g
-                kirchhoff[j, j] += g
+                kirchhoff[i, i] = kirchhoff[i, i] + g
+                kirchhoff[j, j] = kirchhoff[j, j] + g
                 r += 1
         else:
             cutoff2 = cutoff * cutoff
@@ -1309,8 +1318,8 @@ class GNM(GNMBase):
                     g = gamma(dist2, i, j)
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
-                    kirchhoff[i, i] += g
-                    kirchhoff[j, j] += g
+                    kirchhoff[i, i] = kirchhoff[i, i] + g
+                    kirchhoff[j, j] = kirchhoff[j, j] + g
             
         LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
                      .format(time.time()-start))
@@ -1326,7 +1335,7 @@ class GNM(GNMBase):
         is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
-                      If ``None`` is given, all modes will be calculated. 
+              If ``None`` is given, all modes will be calculated. 
         :type n_modes: int or None, default is 20
         
         :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
@@ -1336,6 +1345,7 @@ class GNM(GNMBase):
         :type turbo: bool, default is ``True``
         
         """
+        
         if self._kirchhoff is None:
             raise ProDyException('Kirchhoff matrix is not built or set')
         if linalg is None:
@@ -1360,9 +1370,12 @@ class GNM(GNMBase):
                                               eigvals=eigvals)
             else:
                 prody.importScipySparseLA()
-                values, vectors = scipy_sparse_la.eigsh(self._kirchhoff, 
-                                                       k=n_modes + 1,
-                                                       which='SA')                
+                try:
+                    values, vectors = scipy_sparse_la.eigsh(
+                                self._kirchhoff, k=n_modes + 1, which='SA')
+                except:
+                    values, vectors = scipy_sparse_la.eigen_symmetric(
+                                self._kirchhoff, k=n_modes + 1, which='SA')                
         else:
             values, vectors = linalg.eigh(self._kirchhoff)
         n_zeros = sum(values < ZERO)
@@ -1393,7 +1406,7 @@ class ANM(GNMBase):
     
     """
 
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         GNMBase.__init__(self, name)
         self._is3d = True
         self._cutoff = None
@@ -1435,7 +1448,7 @@ class ANM(GNMBase):
         self._dof = hessian.shape[0]
         self._n_atoms = self._dof / 3 
 
-    def buildHessian(self, coords, cutoff=15., gamma=1.):
+    def buildHessian(self, coords, cutoff=15., gamma=1., sparse=False):
         """Build Hessian matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
@@ -1448,12 +1461,18 @@ class ANM(GNMBase):
         :arg gamma: Spring constant, default is 1.0. 
         :type gamma: float, :class:`Gamma`
         
-        When available, this method makes use of Bio.KDTree.
+        :arg sparse: Elect to use sparse matrices. Default is ``False``. If 
+            Scipy is not found, :class:`ImportError` is raised.
+        :type sparse: bool
         
         .. versionchanged:: 0.6
             Instances of :class:`Gamma` classes and custom functions are
             accepted as *gamma* argument.        
-                           
+    
+        .. versionchanged:: 0.7.3
+           When Scipy is available, user can select to use sparse matrices for
+           efficient usage of memory at the cost of computation speed.
+                       
         """
         
         if KDTree is None: 
@@ -1496,8 +1515,14 @@ class ANM(GNMBase):
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
         start = time.time()
-        kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
-        hessian = np.zeros((dof, dof), 'd')
+        
+        if sparse:
+            prody.importScipySparse()
+            kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
+            hessian = scipy_sparse.lil_matrix((dof, dof))
+        else:
+            kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
+            hessian = np.zeros((dof, dof), 'd')
         if KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
@@ -1518,12 +1543,12 @@ class ANM(GNMBase):
                 res_j33 = res_j3+3
                 hessian[res_i3:res_i33, res_j3:res_j33] = super_element
                 hessian[res_j3:res_j33, res_i3:res_i33] = super_element
-                hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
-                hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
+                hessian[res_i3:res_i33, res_i3:res_i33] = hessian[res_i3:res_i33, res_i3:res_i33] - super_element
+                hessian[res_j3:res_j33, res_j3:res_j33] = hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
-                kirchhoff[i, i] += g
-                kirchhoff[j, j] += g
+                kirchhoff[i, i] = kirchhoff[i, i] - g
+                kirchhoff[j, j] = kirchhoff[j, j] - g
         else:
             cutoff2 = cutoff * cutoff 
             for i in range(n_atoms):
@@ -1541,12 +1566,12 @@ class ANM(GNMBase):
                     super_element = np.outer(i2j, i2j) * (- g / dist2) 
                     hessian[res_i3:res_i33, res_j3:res_j33] = super_element 
                     hessian[res_j3:res_j33, res_i3:res_i33] = super_element
-                    hessian[res_i3:res_i33, res_i3:res_i33] -= super_element
-                    hessian[res_j3:res_j33, res_j3:res_j33] -= super_element
+                    hessian[res_i3:res_i33, res_i3:res_i33] = hessian[res_i3:res_i33, res_i3:res_i33] - super_element
+                    hessian[res_j3:res_j33, res_j3:res_j33] = hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
-                    kirchhoff[i, i] += g
-                    kirchhoff[j, j] += g
+                    kirchhoff[i, i] = kirchhoff[i, i] - g
+                    kirchhoff[j, j] = kirchhoff[j, j] - g
         LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
         self._kirchhoff = kirchhoff
         self._hessian = hessian
@@ -1561,7 +1586,7 @@ class ANM(GNMBase):
         is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
-                      If ``None`` is given, all modes will be calculated. 
+            If ``None`` is given, all modes will be calculated. 
         :type n_modes: int or None, default is 20
         
         :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
@@ -1592,8 +1617,18 @@ class ANM(GNMBase):
                     eigvals = (0, n_modes + shift)
             if eigvals: 
                 turbo = False
-            values, vectors = linalg.eigh(self._hessian, turbo=turbo, 
-                                          eigvals=eigvals)
+            if isinstance(self._hessian, np.ndarray):            
+                values, vectors = linalg.eigh(self._hessian, turbo=turbo, 
+                                              eigvals=eigvals)
+            else:
+                prody.importScipySparseLA()
+                try:
+                    values, vectors = scipy_sparse_la.eigsh(
+                            self._hessian, k=n_modes+6, which='SA')
+                except:                
+                    values, vectors = scipy_sparse_la.eigen_symmetric(
+                            self._hessian, k=n_modes+6, which='SA')
+        
         else:
             values, vectors = linalg.eigh(self._hessian)
         n_zeros = sum(values < ZERO)
