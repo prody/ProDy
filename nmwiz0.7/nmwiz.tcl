@@ -4749,4 +4749,4 @@ proc nmwiz_load {filename} {
   ::nmwiz::loadNMD $filename
 } 
 
-nmwiz_tk
+#nmwiz_tk
