@@ -840,7 +840,7 @@ def parseDCD(filename, indices=None, first=None, last=None, stride=None):
             break
         if indices is not None:
             xyz = xyz[:,indices,:]
-        coords.append(xyz.astype('d'))
+        coords.append(xyz)#.astype('d'))
         n_frames += 1
         
     dcd.close()
@@ -848,15 +848,15 @@ def parseDCD(filename, indices=None, first=None, last=None, stride=None):
     time_ = time.time() - start
     dcd_size = 1.0 * n_frames * ((n_atoms + 2) * 4 * 3) / (1024 * 1024) 
     LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
-    LOGGER.info('{0:.2f} MB of data was parsed at {1:.2f} MB/s.'
+    LOGGER.info('{0:.2f} MB parsed at input rate {1:.2f} MB/s.'
                 .format(dcd_size, dcd_size/time_))
-    LOGGER.info('{0:d} coordinate sets were parsed at {0:.2f} frame/s.'
-                .format(n_frames, 1.0*n_frames/time_))
+    LOGGER.info('{0:d} coordinate sets parsed at input rate {1:d} frame/s.'
+                .format(n_frames, int(n_frames/time_)))
     
     return coords
 
 def _parseDCDXSC(dcd):
-    """For now, skip extended unit cell coordinate data."""
+    """For now, skip extended system coordinates (unit cell data)."""
     dcd.seek(56, 1)
 
 def _parseDCDFrame(dcd, n_atoms, n_floats, dtype):
@@ -997,8 +997,9 @@ def _parseDCDHeaader(dcd):
     
 
 if __name__ == '__main__':
-    dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
+    dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
+    dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', indices=np.arange(1000), stride=10)
+    #dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
     
     
     
