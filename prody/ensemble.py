@@ -27,6 +27,7 @@ Classes
 Functions
 ---------
 
+    * :func:`parseDCD`
     * :func:`saveEnsemble`
     * :func:`loadEnsemble`
     * :func:`calcSumOfWeights`
@@ -39,13 +40,15 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import time
+import os.path
 import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
 from prody import measure
 
 __all__ = ['Ensemble', 'Conformation', 'saveEnsemble', 'loadEnsemble', 
-           'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble']
+           'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble',
+           'parseDCD']
         
 class EnsembleError(Exception):
     pass
@@ -66,7 +69,7 @@ class Ensemble(object):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         """Instantiate with a name.
         
         .. versionchanged:: 0.6
@@ -118,12 +121,24 @@ class Ensemble(object):
         else:
             raise IndexError('invalid index')
             
-    #To be defined.
-    #def __add__(self, other):
-    #    if not isinstance(other, Ensemble):
-    #        raise TypeError('an Ensemble instance cannot be added to an {0:s} '
-    #                        'instance'.format(type(other)))
-    #    return None
+    
+    def __add__(self, other):
+        """Return ensemble that contains conformations in *self* and *other*.
+        
+        The reference coordinates of *self* is used in the result.
+        
+        """
+        
+        if not isinstance(other, Ensemble):
+            raise TypeError('an Ensemble instance cannot be added to an {0:s} '
+                            'instance'.format(type(other)))
+        elif self.getNumOfAtoms() != other.getNumOfAtoms():
+            raise ValueError('Ensembles must have same number of atoms.')
+    
+        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getName(), 
+                                                   other.getName()))
+        
+        return None
     
     def __len__(self):
         return self._n_confs
@@ -746,3 +761,244 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     plt.xlabel('Atom index')
     plt.ylabel('Sum of weights')
     return show
+
+# Translation of dcdplugin.c
+from struct import calcsize, unpack
+
+RECSCALE32BIT = 1
+RECSCALE64BIT = 2
+
+def parseDCD(filename, indices=None, first=None, last=None, stride=None):
+    """Parse CHARMM format DCD files (also NAMD 2.1 and later).
+    
+    :arg filename: DCD filename
+    :type filename: str
+    
+    :arg indices: indices of atoms to read coordinates for, default is all
+    :type indices: list
+    
+    :arg first: index of first frame to read
+    :type first: int
+        
+    :arg last: index of last frame to read
+    :type last: int
+        
+    :arg stride: steps between reading frames, default is 1
+    :type stride: int
+    
+    """
+    if not os.path.isfile(filename):
+        raise IOError('file not found, {0:s} is not a valid path'
+                      .format(filename))
+    
+    if indices is not None:
+        try:
+            indices = np.array(indices, dtype=np.int32)
+        except: 
+            raise TypeError('indices argument is not a list of Numpy array')
+        if indices.ndim != 1:
+            raise ValueError('indices argument must be one dimensional')
+
+    start = time.time() 
+    dcd = open(filename, 'rb')
+    header = _parseDCDHeaader(dcd)
+    if header is None:
+        return None
+    endian = header['endian']
+    unitcell = header['unitcell']
+    bit64 = header['is64bit'] == 2
+    n_atoms = header['n_atoms']
+    if np.max(indices) >= n_atoms:
+        raise ValueError('maximum index exceeds number of atoms in DCD file')
+    if first is None:
+        first = 0
+    else:
+        first = int(first)
+    if stride is None:
+        stride = 1
+    else:
+        stride = int(stride)
+    if last is None:
+        last = header['n_frames']
+    else:
+        last = int(last)
+    
+    n_floats = (n_atoms + 2) * 3 
+    dtype = np.dtype(endian+'f')
+    n_frames = 0
+    coords = []
+    for i in range(first, last, stride):
+        if stride > 1:
+            for j in range(1, stride):
+                dcd.seek(56, 1)
+                dcd.seek(n_floats*4, 1)
+        if unitcell:
+            _parseDCDXSC(dcd)
+        xyz = _parseDCDFrame(dcd, n_atoms, n_floats, dtype) 
+        if xyz is None:
+            LOGGER.error('DCD file ended unexpectedly, returning parsed data.')            
+            break
+        if indices is not None:
+            xyz = xyz[:,indices,:]
+        coords.append(xyz.astype('d'))
+        n_frames += 1
+        
+    dcd.close()
+    coords = np.concatenate(coords)
+    time_ = time.time() - start
+    dcd_size = 1.0 * n_frames * ((n_atoms + 2) * 4 * 3) / (1024 * 1024) 
+    LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
+    LOGGER.info('{0:.2f} MB of data was parsed at {1:.2f} MB/s.'
+                .format(dcd_size, dcd_size/time_))
+    LOGGER.info('{0:d} coordinate sets were parsed at {0:.2f} frame/s.'
+                .format(n_frames, 1.0*n_frames/time_))
+    
+    return coords
+
+def _parseDCDXSC(dcd):
+    """For now, skip extended unit cell coordinate data."""
+    dcd.seek(56, 1)
+
+def _parseDCDFrame(dcd, n_atoms, n_floats, dtype):
+    xyz = np.fromfile(dcd, dtype=dtype, count=n_floats)
+    if len(xyz) != n_floats:
+        return None
+    xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
+    xyz = xyz.reshape((1, n_atoms, 3))
+    return xyz
+    
+def _parseDCDHeaader(dcd):
+    """Read the header information from a dcd file.
+    Input: fd - a file struct opened for binary reading.
+    Output: 0 on success, negative error code on failure.
+    Side effects: *natoms set to number of atoms per frame
+                  *nsets set to number of frames in dcd file
+                  *istart set to starting timestep of dcd file
+                  *nsavc set to timesteps between dcd saves
+                  *delta set to value of trajectory timestep
+                  *nfixed set to number of fixed atoms 
+                  *freeind may be set to heap-allocated space
+                  *reverse set to one if reverse-endian, zero if not.
+                  *charmm set to internal code for handling charmm data.
+    """
+    
+    header = {}
+    endian = '' #'=' # native endian
+    rec_scale = RECSCALE32BIT
+    charmm = None
+    dcdcordmagic = unpack(endian+'i', 'CORD')[0]
+    # Check magic number in file header and determine byte order
+    bits = dcd.read(calcsize('ii'))
+    temp = unpack(endian+'ii', bits)
+    if temp[0] + temp[1] == 84:
+        LOGGER.info('Detected CHARMM -i8 64-bit DCD file of native endianness.')
+        rec_scale = RECSCALE64BIT
+    elif temp[0] == 84 and temp[1] == dcdcordmagic:
+        LOGGER.info('Detected standard 32-bit DCD file of native endianness.')
+    else:
+        if unpack('>ii', bits) == temp:
+            endian = '>'
+        else:
+            endian = '<'
+        temp = unpack(endian+'ii', bits)
+        if temp[0] + temp[1] == 84:
+            rec_scale = RECSCALE64BIT
+            LOGGER.info("Detected CHARMM -i8 64-bit DCD file of opposite endianness.")
+        else:
+            endian = ''
+            temp = unpack(endian+'ii', bits)
+            if temp[0] == 84 and temp[1] == dcdcordmagic:
+                LOGGER.info('Detected standard 32-bit DCD file of opposite endianness.')
+            else:
+                LOGGER.error('Unrecognized DCD header or unsupported DCD format.')
+                return None
+                
+    
+    # check for magic string, in case of long record markers
+    if rec_scale == RECSCALE64BIT:
+        LOGGER.error("CHARMM 64-bit DCD files are not yet supported.");
+        return None
+        temp = unpack('I', dcd.read(calcsize('I')))
+        if temp[0] != dcdcordmagic: 
+            LOGGER.error("Failed to find CORD magic in CHARMM -i8 64-bit DCD file.");
+            return None
+    
+    # Buffer the entire header for random access
+    bits = dcd.read(80)
+    # CHARMm-genereate DCD files set the last integer in the
+    # header, which is unused by X-PLOR, to its version number.
+    # Checking if this is nonzero tells us this is a CHARMm file
+    # and to look for other CHARMm flags.
+
+    temp = unpack(endian + 'i'*20 , bits)
+    if temp[-1] != 0:
+        charmm = True
+
+    if charmm:
+        LOGGER.info("CHARMM format DCD file (also NAMD 2.1 and later).")
+        temp = unpack(endian + 'i'*9 + 'f' + 'i'*10 , bits)
+    else:
+        LOGGER.info("X-PLOR format DCD file (also NAMD 2.0 and earlier) is not supported.")
+        return None
+    
+    # Store the number of sets of coordinates (NSET)
+    header['n_frames'] = temp[0]
+    # Store ISTART, the starting timestep
+    header['first_timestep'] = temp[1]
+    # Store NSAVC, the number of timesteps between dcd saves
+    header['save_frequency'] = temp[2]
+    # Store NAMNF, the number of fixed atoms
+    header['n_fixed_atoms'] = temp[8]
+    
+    if header['n_fixed_atoms'] > 0:
+        LOGGER.error('DCD files with fixed atoms is not yet supported.')
+        return None
+    
+    # Read in the timestep, DELTA
+    # Note: DELTA is stored as a double with X-PLOR but as a float with CHARMm
+    header['timestep'] = temp[9]
+    header['unitcell'] = temp[10]
+    
+    # Get the end size of the first block
+    if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 84:
+        LOGGER.error('Unrecognized DCD format.')
+        return None
+    
+    # Read in the size of the next block
+    if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 164:
+        LOGGER.error('Unrecognized DCD format.')
+        return None
+    # Read NTITLE, the number of 80 character title strings there are
+    temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
+    header['title'] = dcd.read(80).strip()
+    header['remarks'] = dcd.read(80).strip()
+    # Get the ending size for this block
+    if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 164:
+        LOGGER.error('Unrecognized DCD format.')
+        return None
+
+    # Read in an integer '4'
+    if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
+        LOGGER.error('Unrecognized DCD format.')
+        return None
+    # Read in the number of atoms
+    header['n_atoms'] = unpack(endian+'i', dcd.read(rec_scale*calcsize('i')))[0]
+    # Read in an integer '4'
+    if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
+        LOGGER.error('Bad DCD format.')
+        return None
+
+    header['is64bit'] = rec_scale == RECSCALE64BIT
+    header['endian'] = endian
+    
+    return header
+
+
+    
+
+if __name__ == '__main__':
+    dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
+    
+    
+    
