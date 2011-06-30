@@ -67,9 +67,9 @@ proc ::nmwiz_MultiPlot::init_plot {args} {
 
    if {$verbose} {
      if {[namespace exists $ns]} {
-       puts "Reinitializing namespace $ns."
+       vmdcon -info "Reinitializing namespace $ns."
      } else {
-       puts "Creating namespace $ns"
+       vmdcon -info "Creating namespace $ns"
      }
    }
 
@@ -1739,7 +1739,7 @@ orange3"
   variable defaultColor "purple"
   variable settings [dict create anm $pyANM gnm $pyGNM pca $pyPCA color $defaultColor outputdir $outputdir pybin $pybin]
   proc saveSettings {} {
-    puts "Saving NMWiz settings"
+    vmdcon -info "Saving NMWiz settings"
     dict set ::nmwiz::settings anm $::nmwiz::pyANM
     dict set ::nmwiz::settings gnm $::nmwiz::pyGNM
     dict set ::nmwiz::settings pca $::nmwiz::pyPCA
@@ -1753,7 +1753,7 @@ orange3"
   }
   
   proc loadSettings {} {
-    puts "Loading NMWiz settings"
+    vmdcon -info "Loading NMWiz settings"
     global env
     if {[file exists [file join $env(HOME) .nmwiz]]} {
       set inf [open [file join $env(HOME) .nmwiz]]
@@ -1895,6 +1895,9 @@ orange3"
   variable prodySelAtoms 0
   variable prodyScript "ANM"
   variable prodyPrefix ""
+  variable prodyRmCoords 0
+  variable prodyPCAfile "DCD"
+  variable prodyPCAfiletype "DCD file"
   variable prodyAllfig 0
   variable prodyAllnum 0
   variable prodyTask ""
@@ -2104,7 +2107,7 @@ orange3"
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Select the directory for writing output files."}] \
       -row 8 -column 0 -sticky w
-    grid [label $wf.outdLabel -text "Output dir:"] \
+    grid [label $wf.outdLabel -text "Output directory:"] \
       -row 8 -column 1 -sticky w
     grid [entry $wf.outdEntry -width 20 -textvariable ::nmwiz::outputdir] \
       -row 8 -column 2 -sticky w
@@ -2120,11 +2123,13 @@ orange3"
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Select the prefix for output files."}] \
       -row 9 -column 0 -sticky w
-    grid [label $wf.filepLabel -text "File prefix:"] \
+    grid [label $wf.filepLabel -text "Output filename:"] \
       -row 9 -column 1 -sticky w
     grid [entry $wf.filepEntry -width 28 -textvariable ::nmwiz::prodyPrefix] \
       -row 9 -column 2 -columnspan 2 -sticky we
 
+    grid [checkbutton $wf.rmfileEntry -text "remove coordinate file" -variable ::nmwiz::prodyRmCoords] \
+      -row 10 -column 1 -columnspan 2 -sticky w
 
     #grid [button $wf.numoutHelp -text "?" \
     #    -command {tk_messageBox -type ok -title "HELP" \
@@ -2235,7 +2240,7 @@ orange3"
 
     
     # PCA frame
-    set wf [labelframe $prodyGUI.pcaFrame -text "PCA Settings" -bd 2]
+    set wf [labelframe $prodyGUI.pcaFrame -text "PCA (EDA) Settings" -bd 2]
     
     grid [button $wf.firstHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
@@ -2275,6 +2280,24 @@ orange3"
       -row 12 -column 1 -sticky w
     grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
       -row 12 -column 2 -sticky w
+      
+    grid [label $wf.filetypeLabel -text "Trajectory file type:"] \
+      -row 13 -column 1 -sticky w
+    grid [frame $wf.filetypeFrame] \
+      -row 13 -column 2 -sticky ew
+    tk_optionMenu $wf.filetypeFrame.list ::nmwiz::prodyPCAfiletype "dcd" 
+    $wf.filetypeFrame.list.menu delete 0 last
+    foreach script "DCD PDB" {
+      $wf.filetypeFrame.list.menu add radiobutton -label "$script file" \
+          -variable ::nmwiz::prodyPCAfiletype \
+          -command "set ::nmwiz::prodyPCAfile $script;"
+      incr counter  
+    }
+    pack $wf.filetypeFrame.list -side left -anchor w -fill x
+    variable prodyPCAfiletype "DCD file"
+
+
+
       
       
     # Submit button
@@ -2502,7 +2525,7 @@ orange3"
       return 
     }
     if {$::nmwiz::pybin == "" || $::nmwiz::pybin == {}} {
-      variable ::nmwiz::pyPCA "[::ExecTool::find -interactive python.exe]"
+      variable ::nmwiz::pybin "[::ExecTool::find -interactive python.exe]"
       ::nmwiz::saveSettings
     }
     if {$::nmwiz::prodyScript == "ANM"} {
@@ -2517,24 +2540,25 @@ orange3"
     if {$::nmwiz::pyANM == "" || $::nmwiz::pyANM == {} || $::nmwiz::pyANM == "{}" ||
         ![file exists $::nmwiz::pyANM]} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Please specify the path to the ANM Script (anm.py) script."
+        -message "Please specify the path to the ProDy ANM Script (anm.py) script."
       ::nmwiz::initSettingsGUI
       return
     }
+    set n_frames [molinfo $::nmwiz::prodyMolid get numframes]
     if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
-        $::nmwiz::prodyFrame < [molinfo $::nmwiz::prodyMolid get numframes])} {
+        $::nmwiz::prodyFrame < $n_frames)} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Frame number must be a number and must be in the valid range."
+        -message "Frame number must be an integer from 0 to [expr $n_frames - 1]."
       return 
     }
-    if {!([string is double $::nmwiz::prodyCutoff] && $::nmwiz::prodyCutoff > 0)} {
+    if {!([string is double $::nmwiz::prodyCutoff] && $::nmwiz::prodyCutoff > 4.5)} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Cutoff distance must be a number and must be greater than 0."
+        -message "Cutoff distance (A) must be a number greater than 4.5."
       return 
     }
     if {!([string is double $::nmwiz::prodyGamma] && $::nmwiz::prodyGamma > 0)} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Force constant must be a number and must be greater than 0."
+        -message "Force constant must be a positive number."
       return 
     }
     set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.pdb]
@@ -2552,7 +2576,7 @@ orange3"
       set allfig "-A"
     }    
     set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
-    puts "Executing: $::nmwiz::pybin $::nmwiz::pyANM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
+    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::pyANM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
     set status [exec $::nmwiz::pybin $::nmwiz::pyANM --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
 
     if {$status != -1} {
@@ -2568,24 +2592,25 @@ orange3"
     if {$::nmwiz::pyGNM == "" || $::nmwiz::pyGNM == {} || $::nmwiz::pyGNM == "{}" ||
         ![file exists $::nmwiz::pyGNM]} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Please specify the path to the GNM Script (gnm.py) script."
+        -message "Please specify the path to the ProDy GNM Script (gnm.py) script."
       ::nmwiz::initSettingsGUI
       return
     }
+    set n_frames [molinfo $::nmwiz::prodyMolid get numframes]
     if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
-        $::nmwiz::prodyFrame < [molinfo $::nmwiz::prodyMolid get numframes])} {
+        $::nmwiz::prodyFrame < $n_frames)} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Frame number must be a number and must be in the valid range."
+        -message "Frame number must be an integer from 0 to [expr $n_frames - 1]."
       return 
     }
-    if {!([string is double $::nmwiz::prodyGNMCutoff] && $::nmwiz::prodyGNMCutoff > 0)} {
+    if {!([string is double $::nmwiz::prodyGNMCutoff] && $::nmwiz::prodyGNMCutoff > 4.5)} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Cutoff distance must be a number and must be greater than 0."
+        -message "Cutoff distance (A) must be a number greater than 4.5."
       return 
     }
     if {!([string is double $::nmwiz::prodyGamma] && $::nmwiz::prodyGamma > 0)} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Force constant must be a number and must be greater than 0."
+        -message "Force constant must be a positive number."
       return 
     }
     set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.pdb]
@@ -2603,7 +2628,7 @@ orange3"
       set allfig "-A"
     }    
     set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
-    puts "Executing: $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
+    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
     set status [exec $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
 
     if {$status != -1} {
@@ -2619,7 +2644,7 @@ orange3"
     if {$::nmwiz::pyPCA == "" || $::nmwiz::pyPCA == {} || $::nmwiz::pyPCA == "{}" ||
         ![file exists $::nmwiz::pyPCA]} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Please specify the path to the PCA Script (pca.py) script."
+        -message "Please specify the path to the ProDy PCA Script (pca.py) script."
       ::nmwiz::initSettingsGUI
       return
     }
@@ -2647,14 +2672,18 @@ orange3"
       return 
     }
     set sel [atomselect $::nmwiz::prodyMolid $::nmwiz::prodySelstr]
-    set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.pdb]
+    set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.[string tolower $::nmwiz::prodyPCAfile]]
     set end $::nmwiz::prodyLastFrame 
     if {$end == "end"} {
       set end [expr $::nmwiz::prodyNFrames -1]
     }
-    #puts "animate write pdb $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid"
-    set nwritten [animate write pdb $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid]
-    puts "$nwritten frames are written as $pdbfn"
+    #vmdcon -info "animate write pdb $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid"
+    if {$::nmwiz::prodyPCAfile == "DCD"} {
+      set nwritten [animate write dcd $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid]
+    } else {
+      set nwritten [animate write pdb $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid]
+    }
+    vmdcon -info "$nwritten frames are written as $pdbfn"
     
     $sel delete
     set allnum ""
@@ -2666,7 +2695,7 @@ orange3"
       set allfig "-A"
     } 
     set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]
-    puts "Executing: $::nmwiz::pybin $::nmwiz::pyPCA --quiet -s all -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes \"$pdbfn\""
+    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::pyPCA --quiet -s all -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes \"$pdbfn\""
     set status [exec $::nmwiz::pybin $::nmwiz::pyPCA --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes "$pdbfn"]
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
@@ -2829,7 +2858,7 @@ orange3"
   
   proc loadNMD {fn} {
     variable filename $fn
-    puts "NMWiz: Parsing file $filename"
+    vmdcon -info "NMWiz: Parsing file $filename"
     # Parse the file, and make sure coordinates are stored in the file
     #variable namespaces
     #variable nmwizguis
@@ -2879,35 +2908,35 @@ orange3"
         }
         atomnames {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            puts "NMWiz WARNING: Length of atomnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
+            vmdcon -info "NMWiz WARNING: Length of atomnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set atomnames [lrange $nmdline 1 end]
           }
         }
         resnames {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            puts "NMWiz WARNING: Length of resnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
+            vmdcon -info "NMWiz WARNING: Length of resnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set resnames [lrange $nmdline 1 end]
           }
         }
         chainids {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            puts "NMWiz WARNING: Length of chainids array must be $n_atoms, not [expr [llength $nmdline] -1]."
+            vmdcon -info "NMWiz WARNING: Length of chainids array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set chainids [lrange $nmdline 1 end]
           }
         }
         resids {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            puts "NMWiz WARNING: Length of resids array must be $n_atoms, not [expr [llength $nmdline] -1]."
+            vmdcon -info "NMWiz WARNING: Length of resids array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set resids [lrange $nmdline 1 end]
           }
         }
         bfactors {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            puts "NMWiz WARNING: Length of bfactors array must be $n_atoms, not [expr [llength $nmdline] -1]."
+            vmdcon -info "NMWiz WARNING: Length of bfactors array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set bfactors [lrange $nmdline 1 end]
           }      
@@ -2926,7 +2955,7 @@ orange3"
               }
               set dof [llength $coordinates]
               set n_dims 3
-              puts "NMWiz INFO: File contains a 3D model."
+              vmdcon -info "NMWiz INFO: File contains a 3D model."
             } else {
               set diff [expr $l - $n_atoms]
               if {$diff > 2} {
@@ -2936,11 +2965,11 @@ orange3"
               }
               set dof $n_atoms
               set n_dims 1
-              puts "NMWiz INFO: File contains a 1D model."
+              vmdcon -info "NMWiz INFO: File contains a 1D model."
             }
           }
           if {$modelength > 0 && $l != $modelength} {
-            puts "NMWiz WARNING: Mode line $modecounter does not have the same length as the first mode line."
+            vmdcon -info "NMWiz WARNING: Mode line $modecounter does not have the same length as the first mode line."
           } else {
             switch -exact [expr $l - $dof] {
               0 {
@@ -2969,13 +2998,13 @@ orange3"
                 }
               } 
               default {
-                puts "NMWiz WARNING: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
+                vmdcon -info "NMWiz WARNING: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
               }
             } 
           }
         }
         default {
-          puts "NMWiz WARNING: Unrecognized line starting with \"[lindex $nmdline 0]\""
+          vmdcon -info "NMWiz WARNING: Unrecognized line starting with \"[lindex $nmdline 0]\""
         }
       }
       
@@ -2989,7 +3018,7 @@ orange3"
 
     if {$title == ""} {
       set title "Untitled ($::nmwiz::guicount)"
-      puts "NMWiz INFO: Dataset is named as \"$title\"."
+      vmdcon -info "NMWiz INFO: Dataset is named as \"$title\"."
     }
 
     set ns [::nmwiz::makeNMWizGUI]
@@ -3186,7 +3215,7 @@ orange3"
         
         if {$atomnames == ""} {
           set atomnames [string repeat "CA " $n_atoms]
-          puts "NMWiz INFO: All atom names are set as \"CA\"."
+          vmdcon -info "NMWiz INFO: All atom names are set as \"CA\"."
         } else {
           variable showproteinas
           foreach an $atomnames {
@@ -3198,15 +3227,15 @@ orange3"
         }
         if {$resnames == ""} {
           set resnames [string repeat "GLY " $n_atoms]
-          puts "NMWiz INFO: All residue names are named set as \"GLY\"."
+          vmdcon -info "NMWiz INFO: All residue names are named set as \"GLY\"."
         }
         if {$chainids == ""} {
           set chainids [string repeat "A " $n_atoms]
-          puts "NMWiz INFO: All chain identifiers are set as \"A\"."
+          vmdcon -info "NMWiz INFO: All chain identifiers are set as \"A\"."
         }
         if {[llength $resids] == 0} {
           for {set i 1} {$i <= $n_atoms} {incr i} {lappend resids $i}
-          puts "NMWiz INFO: Residues are numbered starting from 1."
+          vmdcon -info "NMWiz INFO: Residues are numbered starting from 1."
         }
 
         foreach i [lrange $resids 0 end-1] j [lrange $resids 1 end] {
@@ -3217,11 +3246,11 @@ orange3"
         }
         if {[llength $plotrids] == 0} {
           set plotrids $ri
-          puts "NMWiz INFO: Residue numbers will be used for plotting."
+          vmdcon -info "NMWiz INFO: Residue numbers will be used for plotting."
         }
 
         if {[llength $bfactors] == 0} {
-          puts "NMWiz INFO: Experimental bfactors were not found in the data file."
+          vmdcon -info "NMWiz INFO: Experimental bfactors were not found in the data file."
           for {set i 1} {$i <= $n_atoms} {incr i} {lappend bfactors 0.0}
           set bfactormin 0.0
           set bfactormax 0.0
@@ -3370,7 +3399,7 @@ orange3"
             -nmwizns $ns \
             -plot]
         }
-        puts "Plot handle: [lindex [subst $${ns}::plothandles] end]"
+        vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
         #-dash [subst $${ns}::dash] \
       }
       
@@ -3455,9 +3484,9 @@ orange3"
         #mol addrep $selid
         if {[mol showrep $selid $which]} {
           mol showrep $selid $which off
-          puts "Deselected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+          vmdcon -info "Deselected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
         } else {
-          puts "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+          vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
           mol showrep $selid $which on
           mol modstyle $which $selid VDW $selectscale $resolution
           mol modmaterial $which $selid $material
@@ -4749,4 +4778,4 @@ proc nmwiz_load {filename} {
   ::nmwiz::loadNMD $filename
 } 
 
-#nmwiz_tk
+nmwiz_tk
