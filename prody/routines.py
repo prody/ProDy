@@ -604,20 +604,37 @@ and save all output and figure files:
     pdb = args[0]
     prefix = opt.prefix
     nmodes, selstr = opt.nmodes, opt.select
-    
-    pdb = parsePDB(pdb)
-    if prefix == '_pca':
-        prefix = pdb.getName() + '_pca'
-    select = pdb.select(selstr)
-    if select is None:
-        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
-                       .format(selstr))
-        sys.exit(-1)
-    LOGGER.info('{0:d} atoms will be used for PCA calculations.'
-                .format(len(select)))
-    ensemble = Ensemble(select)
+
+    if pdb.endswith('.dcd') or pdb.endswith('.DCD'):     
+        LOGGER.info('A DCD file is detected, using all atoms for calculation.')
+        coords = parseDCD(pdb).astype(np.float64)
+        if len(coords) < 2:
+            print "\nError: DCD file must contain multiple frames.\n"
+            sys.exit(-1)
+        pca = PCA(pdb[:-4])
+        ensemble = Ensemble(pdb[:-4])
+        ensemble.setCoordinates(coords[0])
+        ensemble.addCoordset(coords)
+        select = AtomGroup(pdb[:-4])
+        select.setCoordinates(coords[0])
+    else:
+        pdb = parsePDB(pdb)
+        if pdb.getNumOfCoordsets() < 2:
+            print "\nError: PDB file must contain multiple models.\n"
+            sys.exit(-1)
+        if prefix == '_pca':
+            prefix = pdb.getName() + '_pca'
+        select = pdb.select(selstr)
+        if select is None:
+            LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                           .format(selstr))
+            sys.exit(-1)
+        LOGGER.info('{0:d} atoms will be used for PCA calculations.'
+                    .format(len(select)))
+        ensemble = Ensemble(select)
+        pca = PCA(pdb.getName())
     ensemble.iterpose()
-    pca = PCA(pdb.getName())
+    
     pca.performSVD(ensemble)
     #pca.buildCovariance(ensemble)
     #pca.calcModes(nmodes)
