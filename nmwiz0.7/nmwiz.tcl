@@ -2128,7 +2128,8 @@ orange3"
     grid [entry $wf.filepEntry -width 28 -textvariable ::nmwiz::prodyPrefix] \
       -row 9 -column 2 -columnspan 2 -sticky we
 
-    grid [checkbutton $wf.rmfileEntry -text "remove coordinate file" -variable ::nmwiz::prodyRmCoords] \
+    grid [checkbutton $wf.rmfileEntry -text "remove coordinate file upon job completion." \
+        -variable ::nmwiz::prodyRmCoords] \
       -row 10 -column 1 -columnspan 2 -sticky w
 
     #grid [button $wf.numoutHelp -text "?" \
@@ -2582,10 +2583,14 @@ orange3"
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy ANM calculation is finished and results are being loaded."
-      ::nmwiz::loadNMD "$prefix.nmd" 
+      ::nmwiz::loadNMD "$prefix.nmd"
+      if {$::nmwiz::prodyRmCoords} {
+        file delete -force $pdbfn
+      }
     }  else {
       tk_messageBox -type ok -title "ERROR" \
         -message "An error occured."
+      file delete -force $pdbfn
     }
   }  
   proc prodySubmitGNMjob {} {
@@ -2634,10 +2639,14 @@ orange3"
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy GNM calculation is finished and results are being loaded."
-      ::nmwiz::loadNMD "$prefix.nmd" 
+      ::nmwiz::loadNMD "$prefix.nmd"
+      if {$::nmwiz::prodyRmCoords} {
+        file delete -force $pdbfn
+      } 
     }  else {
       tk_messageBox -type ok -title "ERROR" \
         -message "An error occured."
+      file delete -force $pdbfn
     }
   }  
   proc prodySubmitPCAjob {} {
@@ -2700,10 +2709,14 @@ orange3"
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy PCA calculation is finished and results are being loaded."
-      ::nmwiz::loadNMD "$prefix.nmd" 
+      ::nmwiz::loadNMD "$prefix.nmd"
+      if {$::nmwiz::prodyRmCoords} {
+        file delete -force $pdbfn
+      }  
     }  else {
       tk_messageBox -type ok -title "ERROR" \
         -message "An error occured."
+      file delete -force $pdbfn
     }
   }
   proc init_anm_interface {} {
