@@ -96,7 +96,7 @@ class Ensemble(object):
         self._coords = None         # reference
         self._n_atoms = None
         self._n_confs = 0
-        self._transformations = []    # from last superimposition
+        self._transformations = []    # from last superposition
         
         if isinstance(name, prody.Atomic):
             self.setCoordinates(name.getCoordinates())
@@ -388,7 +388,7 @@ class Ensemble(object):
         LOGGER.info('Superimposing structures.')
         start = time.time()
         self._superpose()
-        LOGGER.info(('Superimposition is completed in {0:.2f} '
+        LOGGER.info(('Superposition is completed in {0:.2f} '
                            'seconds.').format((time.time() - start)))
         
     def _superpose(self):
@@ -417,9 +417,9 @@ class Ensemble(object):
                 transformations[i] = t
         
     def transform(self):
-        """Apply transformations from previous superimposition step.
+        """Apply transformations from previous superposition step.
         
-        A potential use of this method is that superimposition may be performed
+        A potential use of this method is that superposition may be performed
         by a core set of atoms. Then set coordinates may be used to select all
         atoms to apply the transformations calculated for the core atoms.
         
@@ -455,7 +455,7 @@ class Ensemble(object):
         if self._confs is None or len(self._confs) == 0: 
             raise AttributeError('conformations are not set, '
                                  'use addCoordset() method to set it.')
-        LOGGER.info('Starting iterative superimposition')
+        LOGGER.info('Starting iterative superposition')
         start = time.time()
         rmsdif = 1
         step = 0
@@ -474,7 +474,7 @@ class Ensemble(object):
             step += 1
             LOGGER.info(('Step #{0:d}: RMSD difference = '
                                '{1:.4e}').format(step, rmsdif))
-        LOGGER.info('Iterative superimposition completed in {0:.2f}s.'
+        LOGGER.info('Iterative superposition completed in {0:.2f}s.'
                     .format((time.time() - start)))
         
     def getMSF(self):
@@ -641,7 +641,7 @@ class Conformation(object):
                                  self.getWeights())
     
     def getTransformation(self):
-        """Return the transformation from the last superimposition."""
+        """Return the transformation from the last superposition."""
         return self._ensemble._transformations[self._index].copy()
     
 def trimEnsemble(ensemble, **kwargs):
@@ -827,14 +827,18 @@ def parseDCD(filename, indices=None, first=None, last=None, stride=None):
     else:
         stride = int(stride)
     if last is None:
-        last = n_frames
+        last = n_frames -1
     else:
         last = int(last)
     n_floats = (n_atoms + 2) * 3 
     dtype = np.dtype(endian+'f')
     n_frames = 0
     coords = []
-    for i in range(first, last, stride):
+    if last < first:
+        raise ValueError('last (frame number) must be larger than or equal to '
+                         'the first frame number')
+    i = first
+    while i <= last:
         if stride > 1:
             for j in range(1, stride):
                 dcd.seek(56, 1)
@@ -849,8 +853,11 @@ def parseDCD(filename, indices=None, first=None, last=None, stride=None):
             xyz = xyz[:,indices,:]
         coords.append(xyz)#.astype('d'))
         n_frames += 1
+        i += stride
         
     dcd.close()
+    if len(coords) == 0:
+        raise IOError('Coordinate data could not be parsed from DCD file.')
     coords = np.concatenate(coords)
     time_ = time.time() - start
     dcd_size = 1.0 * n_frames * ((n_atoms + 2) * 4 * 3) / (1024 * 1024) 
