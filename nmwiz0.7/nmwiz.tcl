@@ -1613,6 +1613,182 @@ namespace eval ::nmwiz:: {
     }
   }
   
+  proc showHelp {context} {
+    set windowname nmwizhelp
+    if {[winfo exists .$windowname] == 0} {
+      set log [toplevel ".$windowname"]
+      wm title $log "NMWiz Help"
+      wm resizable $log 1 1
+      incr logcount
+
+      text $log.text -bg White -bd 2 \
+        -yscrollcommand ".$windowname.vscr set"
+      scrollbar $log.vscr -command ".$windowname.text yview"
+      pack $log.text -side left -fill both -expand 1  
+      pack $log.vscr -side right -fill y
+    } else {
+      set log .$windowname
+    }
+    $log.text configure -state normal -wrap word
+    $log.text delete 1.0 end
+      
+    if {$context == "wizard"} {
+      $log.text insert end "ProDy Interface\n"
+      $log.text insert end "===============\n\n"
+      $log.text insert end "\nActive Mode\n"
+      $log.text insert end "--------------\n\n"
+      $log.text insert end "Select the active mode for which you want to draw arrows or make an animation. "
+      $log.text insert end "The selected color effects both arrow graphics and square fluctuation plots."
+      $log.text insert end "\n\n**Scaling the arrow graphics**\n\n"
+      $log.text insert end "Active mode is multiplied by the length of the mode (shown in the first box) and the scalar value (value in the second box) before it is displayed. "
+      $log.text insert end "Direction of arrows can be changed by changing the sign of the scalar. Value of the scalar value can be adjusted by editing the entry in the box or by clicking the buttons. "
+      $log.text insert end "Note that, the length of the mode is the square root of the eigenvalue (standard deviation), if the modes are from  PCA or EDA. "
+      $log.text insert end "Otherwise (ANM/GNM), the length of the mode is the square-root of the inverse of the eigenvalue of the mode. "
+      $log.text insert end "\n\n**Selection**\n\n"
+      $log.text insert end "Selection entry allows the user to display arrows for a subset of atoms.\n\n"
+      $log.text insert end "*TIP*: If the arrow graphics are too crowded or the display is slow, draw arrows for an evenly spaced subset of residues, e.g try 'name CA and residue % 4 == 0', which will draw an arrow for every fourth residue."
+      $log.text insert end "\n\n\n"
+      $log.text insert end "Arrow Graphics\n"
+      $log.text insert end "--------------\n\n"
+      $log.text insert end "Id of the molecule that contains the arrow graphics of the active mode is shown in parentheses.\n\n"
+      $log.text insert end "Buttons:\n\n"
+      $log.text insert end " * Draw: draw/redraw arrow graphics for the active mode\n"
+      $log.text insert end " * Clean: remove most recently drawn arrow graphics\n"
+      $log.text insert end " * Hide/Show: hide/show most recently drawn arrow graphics\n"
+      $log.text insert end " * Options: show/hide arrow graphics option panel\n"
+      $log.text insert end "\nOptions:\n\n"
+      $log.text insert end "User can change arrow graphics properties and how NMWiz behave upon such changes in this panel.\n"
+      $log.text insert end "\nBy default:\n\n"
+      $log.text insert end " * arrow graphics are set to automatically change when graphics properties are changed by the user\n"
+      $log.text insert end " * current graphics are hidden the active mode is changed\n"
+      $log.text insert end "\nOptionally:\n\n"
+      $log.text insert end " * arrows can be drawn in both directions to look like a double headed arrow\n"
+      $log.text insert end " * arrows shorter than a length (A) can be hidden\n"
+      $log.text insert end "\nAdditionally, user can change:\n\n"
+      $log.text insert end " * width of the arrow cylinder\n"
+      $log.text insert end " * width/height of the arrow head code\n"
+      $log.text insert end " * graphics material and resolution"
+      $log.text insert end "\n\n\n"
+      $log.text insert end "Animations\n"
+      $log.text insert end "----------\n\n"
+      $log.text insert end "Id of the molecule that contains the most recently generated animation is shown in parentheses.\n\n"
+      $log.text insert end "Buttons:\n\n"
+      $log.text insert end " * Draw: animate fluctuations along the active mode\n"
+      $log.text insert end " * Play : play/pause the animation\n"
+      $log.text insert end " * Hide : hide/show the animation\n"
+      $log.text insert end " * Options: show/hide animation option panel\n"
+      $log.text insert end "\nOptions:\n\n"
+      $log.text insert end "User can elect automatic generation and continuous play of animations when the active mode changes. User can also select the number of frames in the animation."
+      $log.text insert end "\n\n\n"
+      $log.text insert end "Plotting\n"
+      $log.text insert end "--------\n\n"
+      $log.text insert end "Id of the molecule for displaying selected residues is shown in parentheses.\n\n"
+      $log.text insert end "Buttons:\n\n"
+      $log.text insert end " * Plot: plot squared-fluctuations along the active mode\n"
+      $log.text insert end " * Clear: clear all selections and selected atom labels\n"
+      $log.text insert end " * Hide/Show: hide/show the selected residues\n"
+      $log.text insert end " * Options: change plotting options\n"
+      $log.text insert end "\n\n\n"
+      $log.text insert end "Protein Graphics\n"
+      $log.text insert end "----------------\n\n"
+      $log.text insert end "Id of the molecule that contains the protein structure is shown in parentheses.\n\n"
+      $log.text insert end "Buttons:\n\n"
+      $log.text insert end " * Update: Uupdate protein representation\n"
+      $log.text insert end " * Focus: reset view to focus on the structure\n"
+      $log.text insert end " * Hide/Show: hide/show strudture\n"
+      $log.text insert end " * Options: change molecular system representation\n"
+      $log.text insert end "\nOptions:\n\n"
+      $log.text insert end "User can select the representation and coloring scheme. User can change the protein representation settings manually, by setting 'Show protein as' to 'Custom'.\n\n"      
+      $log.text insert end "Protein can be colored based on the `Mobility` of the residues in the active mode, based on 'Bfactors' that came in NMD file, or based on residue/atom 'Index'.\n\n"
+      $log.text insert end "In addition to standard representations (Tube/Trace/Licorice), protein can be represented as an elastic network."
+      $log.text insert end "User can set the cutoff distance, width of dynamic bonds, and node spheres. Note that changing the cutoff distance distance only affects representation, not the precalculated normal mode data.\n\n"
+      $log.text insert end "*TIP*: When visualizing a large system, display protein at lower resolutions and/or try displaying fewer atoms if all atoms are displayed."
+    } elseif {$context == "prody"} {
+      $log.text insert end "ProDy Interface\n"
+      $log.text insert end "===============\n\n"
+      $log.text insert end "ProDy interface allows users to perform the following calculations for molecules loaded in VMD:\n\n"
+      $log.text insert end "* Anisotropic Network Model (ANM)\n"
+      $log.text insert end "* Gaussian Network Model (GNM)\n"
+      $log.text insert end "* Principal Component Analysis (PCA) a.k.a. Essential Dynamics Analysis (EDA)\n\n\n"
+      $log.text insert end "Atom Selection\n"
+      $log.text insert end "--------------\n\n"
+      $log.text insert end "First thing you need to do is selecting the molecule and specifying the atoms that you want to include in the calculations. "
+      $log.text insert end "If you do not see all molecules in the menu, click 'Update'."
+      $log.text insert end "\n\n\n"
+      $log.text insert end "ProDy Job Settings\n"
+      $log.text insert end "------------------\n\n"
+      $log.text insert end "Specify the calculation type and output options in this panel. "
+      $log.text insert end "Coordinate data for selected atoms and the NMD data after calculations will be written into the 'Output directory'. "
+      $log.text insert end "All output files will named after 'Output filename'.\n\n"
+      $log.text insert end "**ProDy Scripts**\n\n"
+      $log.text insert end "Note that you need to specify the path to the individual ProDy scripts in 'Settings' NMWiz will save and reload the path in the future sessions."
+      $log.text insert end "\n\n\n"
+      $log.text insert end "ANM/GNM Settings\n"
+      $log.text insert end "----------------\n\n"
+      $log.text insert end "Specify the following:\n\n"
+      $log.text insert end " * number of modes to be calculated\n"
+      $log.text insert end " * index of the frame (coordinate set) to be used in calculations\n" 
+      $log.text insert end " * cutoff distance\n" 
+      $log.text insert end " * force constant"
+      $log.text insert end "\n\n\n"
+      $log.text insert end "PCA/EDA Settings\n"
+      $log.text insert end "----------------\n\n"
+      $log.text insert end "Note that for PCA/EDA calculations molecule must have multiple frames. Specify the range of frames to be used in calculations. For large systems, prefer to write coordinates in DCD format to gain IO speed and save save disk space."
+    } elseif {$context == "frommolecule"} {
+      $log.text insert end "From Molecule\n"
+      $log.text insert end "=============\n\n"
+      $log.text insert end "This window allows the user to analyze normal mode data present in file formats that are recognized by VMD. "
+      $log.text insert end "Follow these steps to analyze your data:\n\n"
+      $log.text insert end "1) Load data into VMD\n\n"
+      $log.text insert end "Normal mode data can be retrieved from a molecule with multiple frames in VMD. "
+      $log.text insert end "The molecule must contain both coordinate and normal mode data. "
+      $log.text insert end "First, you need to load the coordinate data as a new molecule and then load the normal mode data into the same molecule."
+      $log.text insert end "\n\n"
+      $log.text insert end "2) Select the molecule and atoms\n\n"
+      $log.text insert end "Select the molecule with normal mode data. If you don't see the molecule, click 'Update' button. "
+      $log.text insert end "You can also select a subset of atoms for which you want to display normal mode data graphics."
+      $log.text insert end "\n\n"
+      $log.text insert end "3) Specify data frames\n\n"
+      $log.text insert end "Frames that contain coordinate and normal mode data must be specified. "
+      $log.text insert end "Note that '0' is the index of the very first frame, and 'end' can be used to specify the last frame of the molecule. "
+      $log.text insert end "\n\n"
+      $log.text insert end "Finally, click load button to instantiate NMWiz window for selected data."
+      $log.text insert end "\n\n\n"
+      $log.text insert end "*TIP*: If normal mode data is calculated for all atom data for a large molecular system, select backbone or carbon alpha atoms "
+      $log.text insert end "for more responsive visual analysis experience, e.g enter 'name CA' as the selection string."
+    } elseif {$context == "main"} {
+      $log.text insert end "NMWiz Main\n"
+      $log.text insert end "==========\n\n\n"
+      $log.text insert end "Load Normal Mode Data\n"
+      $log.text insert end "---------------------\n\n"
+      $log.text insert end "Main interface allows user to load data into NMWiz in two ways: "
+      $log.text insert end "\n\n"
+      $log.text insert end "**Load NMD File**\n\n"
+      $log.text insert end "If you have an NMD file, click 'Load NMD file' button to select the file. "
+      $log.text insert end "The contents will be loaded and a Wizard window associated with the data will appear."
+      $log.text insert end "\n\n"
+      $log.text insert end "**From Molecule**\n\n"
+      $log.text insert end "Alternatively, when normal mode data is present in a file format that is recognized by VMD, "
+      $log.text insert end "load the files into VMD as a molecule and click 'From Molecule' button. A window will appear to "
+      $log.text insert end "facilitate selection of normal mode data from a molecule with multiple frames. "
+      $log.text insert end "\n\n\n"
+      $log.text insert end "Perform NMA Calculations\n"
+      $log.text insert end "------------------------\n\n"
+      $log.text insert end "You can use NMWiz to perform NMA calculations via ProDy for molecules loaded in VMD. "
+      $log.text insert end "Click 'ProDy Interface' and follow the instructions therein for ANM, GNM, and PCA (EDA) calculations."
+      $log.text insert end "\n\n\n"
+      $log.text insert end "Settings and Options\n"
+      $log.text insert end "--------------------\n\n"
+      $log.text insert end "NMWiz saves some user settings in your home folder. These settings can be changed using 'Settings' window."
+      $log.text insert end "\n\n"
+      $log.text insert end "**Preserve View**\n\n"
+      $log.text insert end "When NMWiz loads data, VMD will shift focus to the new molecule. Check this to preserve the current view when loading a new dataset."
+    }
+      
+    $log.text yview moveto 0
+    $log.text configure -state disabled
+  }
+  
   # Called by nmwiz_tk function
   # Makes the Main Window
   proc initGUI {} {
@@ -1630,47 +1806,21 @@ namespace eval ::nmwiz:: {
 
     set wmf [frame $w.mainframe -bd 2]
     
-    grid [button $wmf.helpnmd -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Load files in NMD format using this button."}] \
-      -row 3 -column 0 -sticky w
     grid [button $wmf.loadnmd -width 20 -text "Load NMD File" -command {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
         if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
-      -row 3 -column 1 -columnspan 2 -sticky we
+      -row 3 -column 0 -columnspan 3 -sticky we
 
-    grid [button $wmf.helpfromol -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Use this interface for obtaining normal mode data from a \
-                    molecule loaded into VMD.\
-                    Molecule must have more than one frames. Coordinate frame\
-                    should be followed by the frames containing normal mode data.\
-                    See website for more information."}] \
-      -row 5 -column 0 -sticky w
     grid [button $wmf.prody -width 20 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
-      -row 5 -column 1 -columnspan 2 -sticky we
+      -row 5 -column 0 -columnspan 3 -sticky we
 
-    grid [button $wmf.helpprody -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Use the ProDy interface for performing ANM/PCA/GNM calculations."}] \
-      -row 6 -column 0 -sticky w
     grid [button $wmf.fromol -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
-      -row 6 -column 1 -columnspan 2 -sticky we
+      -row 6 -column 0 -columnspan 3 -sticky we
    
-    if {$platform != "windows"} {
-      grid [button $wmf.helpanmserver -text "?" \
-          -command {tk_messageBox -type ok -title "HELP" \
-            -message "Use the the ANM server interface for submitting online ANM calculations."}] \
-        -row 7 -column 0 -sticky w
-      grid [button $wmf.retrieve -width 20 -text "ANM Server Interface" -command ::nmwiz::init_anm_interface] \
-        -row 7 -column 1 -columnspan 2 -sticky we
-    }
-
-    grid [button $wmf.helpsettings -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Change and save NMWiz settings and preferences."}] \
-      -row 8 -column 0 -sticky w
+    grid [button $wmf.showhelp -text "Help" \
+        -command {::nmwiz::showHelp main}] \
+      -row 8 -column 0 -sticky we
     grid [button $wmf.settings -text "Settings" \
         -command ::nmwiz::initSettingsGUI] \
       -row 8 -column 1 -sticky we
@@ -1682,15 +1832,9 @@ namespace eval ::nmwiz:: {
       set ::nmwiz::preserview 1
     }
     
-    grid [button $wmf.pcv_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Check this to preserve the current view when loading a new dataset."}] \
-      -row 10 -column 0 -sticky w
-    grid [label $wmf.pcv_label -text "Preserve view:"] \
-      -row 10 -column 1 -sticky w
-    grid [checkbutton $wmf.preserview -text "" \
+    grid [checkbutton $wmf.preserview -text "preserve current view" \
         -variable ::nmwiz::preserview] \
-      -row 10 -column 2 -sticky w
+      -row 10 -column 0 -columnspan 3 -sticky w
 
     #pack $wmf.options -side top -fill x -expand 1
     pack $wmf -side top -fill x -expand 1
@@ -1788,6 +1932,23 @@ orange3"
     
     set wf [labelframe $settingsGUI.mainFrame -text "NMWiz Settings" -bd 2]
 
+    grid [button $wf.clrHelp -text "?" \
+        -command {tk_messageBox -type ok -title "HELP" \
+          -message "The default color for arrow graphics."}] \
+      -row 0 -column 0 -sticky w
+    grid [label $wf.scriptLabel -text "Default color:"] \
+      -row 0 -column 1 -sticky w
+    grid [frame $wf.colorFrame] \
+      -row 0 -column 2 -sticky ew
+    tk_optionMenu $wf.colorFrame.list ::nmwiz::defaultColor "" 
+    $wf.colorFrame.list.menu delete 0 last
+    foreach acolor $::nmwiz::nmwizColors {
+      $wf.colorFrame.list.menu add radiobutton -label $acolor \
+          -variable ::nmwiz::defaultColor \
+          -command ::nmwiz::saveSettings
+    }
+    pack $wf.colorFrame.list -side left -anchor w -fill x
+
     grid [button $wf.pyHelp -text "?" \
         -command {tk_messageBox -type ok -title "HELP" \
           -message "Specify the path to the Python executable. If the folder\
@@ -1864,23 +2025,6 @@ orange3"
         }] \
       -row 5 -column 3 -sticky ew
 
-    grid [button $wf.clrHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "The default color for arrow graphics."}] \
-      -row 7 -column 0 -sticky w
-    grid [label $wf.scriptLabel -text "Default color:"] \
-      -row 7 -column 1 -sticky w
-    grid [frame $wf.colorFrame] \
-      -row 7 -column 2 -sticky ew
-    tk_optionMenu $wf.colorFrame.list ::nmwiz::defaultColor "" 
-    $wf.colorFrame.list.menu delete 0 last
-    foreach acolor $::nmwiz::nmwizColors {
-      $wf.colorFrame.list.menu add radiobutton -label $acolor \
-          -variable ::nmwiz::defaultColor \
-          -command ::nmwiz::saveSettings
-    }
-    pack $wf.colorFrame.list -side left -anchor w -fill x
-
     grid [button $wf.prodySubmit -text "Save and Close" \
         -command "::nmwiz::saveSettings; destroy .nmwizsettings"] \
       -row 15 -column 0 -columnspan 4 -sticky we
@@ -1933,11 +2077,7 @@ orange3"
     wm resizable $fromolGUI 0 0
 
     # Main frame (molecule and selection)
-    set wmf [labelframe $fromolGUI.mainFrame -text "Atom Selection" -bd 2]
-    grid [button $wmf.molHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the molecule to be used in calculations."}] \
-      -row 2 -column 0 -sticky w
+    set wmf [labelframe $fromolGUI.mainFrame -text "Molecule Selection" -bd 2]
     grid [label $wmf.molLabel -text "Molecule:"] \
       -row 2 -column 1 -sticky w
     grid [frame $wmf.molFrame] \
@@ -1947,20 +2087,11 @@ orange3"
         -command ::nmwiz::fromolUpdateMolList] \
       -row 2 -column 3 -sticky ew
       
-    grid [button $wmf.molinfoHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows the number of atoms and frames for the selected molecule."}] \
-      -row 3 -column 0 -sticky w
     grid [label $wmf.molinfoLbl -text "Information:"] \
       -row 3 -column 1 -sticky w
     grid [label $wmf.molinfoLabel -text ""] \
       -row 3 -column 2 -columnspan 2 -sticky w
     
-    grid [button $wmf.selstr -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the atoms to be used in calculations. Click \"Select\"\
-                    to update your selection."}] \
-      -row 5 -column 0 -sticky w
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
     grid [entry $wmf.selstrEntry -width 20 -textvariable ::nmwiz::fromolSelstr] \
@@ -1969,47 +2100,32 @@ orange3"
         -command ::nmwiz::fromolUpdateSelection] \
       -row 5 -column 3 -sticky ew
       
-    grid [button $wmf.selinfoHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows the number of selected atoms."}] \
-      -row 6 -column 0 -sticky w
     grid [label $wmf.selinfoLbl -text "Information:"] \
       -row 6 -column 1 -sticky w
     grid [label $wmf.selinfoLabel -text ""] \
       -row 6 -column 2 -columnspan 2 -sticky w
 
-    grid [button $wmf.frameHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the frame that contains coordinate data."}] \
-      -row 7 -column 0 -sticky w
     grid [label $wmf.frameLabel -text "Coordinate frame:"] \
       -row 7 -column 1 -sticky w
     grid [entry $wmf.frameEntry -width 4 -textvariable ::nmwiz::fromolFrame] \
       -row 7 -column 2 -sticky w
     
-    grid [button $wmf.firstHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the first frame that contains mode data.\
-                   Index of the very first frame is 0."}] \
-      -row 8 -column 0 -sticky w
     grid [label $wmf.firstLabel -text "First mode frame:"] \
       -row 8 -column 1 -sticky w
     grid [entry $wmf.firstEntry -width 4 -textvariable ::nmwiz::fromolFirstFrame] \
       -row 8 -column 2 -sticky w
     
-    grid [button $wmf.lastHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the last frame that contains mode data.\
-                   \"end\" can be used as the index of the very last frame."}] \
-      -row 10 -column 0 -sticky w
     grid [label $wmf.lastLabel -text "Last mode frame:"] \
       -row 10 -column 1 -sticky w
     grid [entry $wmf.lastEntry -width 4 -textvariable ::nmwiz::fromolLastFrame] \
       -row 10 -column 2 -sticky w
       
-    grid [button $wmf.prodySubmit -text "Get mode data from molecule" \
+    grid [button $wmf.showHelp -text "Help" \
+        -command {::nmwiz::showHelp frommolecule}] \
+      -row 12 -column 1 -sticky we
+    grid [button $wmf.prodySubmit -text "Load data from molecule" \
         -command ::nmwiz::fromMolecule] \
-      -row 12 -column 0 -columnspan 4 -sticky we
+      -row 12 -column 2 -columnspan 2 -sticky we
       
     pack $wmf -side top -fill x -expand 1
     ::nmwiz::fromolUpdateMolList
@@ -2033,10 +2149,6 @@ orange3"
     
     # Main frame (molecule and selection)
     set wmf [labelframe $prodyGUI.mainFrame -text "Atom Selection" -bd 2]
-    grid [button $wmf.molHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the molecule to be used in calculations."}] \
-      -row 2 -column 0 -sticky w
     grid [label $wmf.molLabel -text "Molecule:"] \
       -row 2 -column 1 -sticky w
     grid [frame $wmf.molFrame] \
@@ -2046,21 +2158,11 @@ orange3"
         -command ::nmwiz::prodyUpdateMolList] \
       -row 2 -column 3 -sticky ew
     
-    
-    grid [button $wmf.molinfoHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows the number of atoms and frames for the selected molecule."}] \
-      -row 3 -column 0 -sticky w
     grid [label $wmf.molinfoLbl -text "Information:"] \
       -row 3 -column 1 -sticky w
     grid [label $wmf.molinfoLabel -text ""] \
       -row 3 -column 2 -columnspan 2 -sticky w
     
-    grid [button $wmf.selstr -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the atoms to be used in calculations. Click \"Select\"\
-                    to update your selection."}] \
-      -row 5 -column 0 -sticky w
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
     grid [entry $wmf.selstrEntry -width 20 -textvariable ::nmwiz::prodySelstr] \
@@ -2069,10 +2171,6 @@ orange3"
         -command ::nmwiz::prodyUpdateSelection] \
       -row 5 -column 3 -sticky ew
       
-    grid [button $wmf.selinfoHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Shows the number of selected atoms."}] \
-      -row 6 -column 0 -sticky w
     grid [label $wmf.selinfoLbl -text "Information:"] \
       -row 6 -column 1 -sticky w
     grid [label $wmf.selinfoLabel -text ""] \
@@ -2103,14 +2201,10 @@ orange3"
         -command "::nmwiz::initSettingsGUI"] \
       -row 7 -column 3 -sticky ew
 
-    grid [button $wf.outdHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the directory for writing output files."}] \
-      -row 8 -column 0 -sticky w
     grid [label $wf.outdLabel -text "Output directory:"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wf.outdEntry -width 20 -textvariable ::nmwiz::outputdir] \
-      -row 8 -column 2 -sticky w
+    grid [entry $wf.outdEntry -width 16 -textvariable ::nmwiz::outputdir] \
+      -row 8 -column 2 -sticky ew
     grid [button $wf.outdBrowse -text "Browse" \
         -command {
       set tempdir [tk_chooseDirectory -initialdir $::nmwiz::outputdir ]
@@ -2119,173 +2213,90 @@ orange3"
         }] \
       -row 8 -column 3 -sticky ew
 
-    grid [button $wf.filepHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Select the prefix for output files."}] \
-      -row 9 -column 0 -sticky w
     grid [label $wf.filepLabel -text "Output filename:"] \
       -row 9 -column 1 -sticky w
-    grid [entry $wf.filepEntry -width 28 -textvariable ::nmwiz::prodyPrefix] \
+    grid [entry $wf.filepEntry -width 20 -textvariable ::nmwiz::prodyPrefix] \
       -row 9 -column 2 -columnspan 2 -sticky we
 
     grid [checkbutton $wf.rmfileEntry -text "remove coordinate file upon job completion." \
         -variable ::nmwiz::prodyRmCoords] \
-      -row 10 -column 1 -columnspan 2 -sticky w
-
-    #grid [button $wf.numoutHelp -text "?" \
-    #    -command {tk_messageBox -type ok -title "HELP" \
-    #      -message "Check this if you want all default numerical output files to be written."}] \
-    #  -row 10 -column 0 -sticky w
-    #grid [label $wf.numoutLabel -text "Save all numerical output files:"] \
-    #  -row 10 -column 1 -columnspan 2 -sticky w
-    #grid [checkbutton $wf.numoutCheck -text "" \
-    #    -variable ::nmwiz::prodyAllnum] \
-    #  -row 10 -column 3 -sticky w
-
-
-    #grid [button $wf.figoutHelp -text "?" \
-    #    -command {tk_messageBox -type ok -title "HELP" \
-    #      -message "Check this if you want all default graphical output files to be written."}] \
-    #  -row 12 -column 0 -sticky w
-    #grid [label $wf.figoutLabel -text "Save all graphical output files:"] \
-    #  -row 12 -column 1 -columnspan 2 -sticky w
-    #grid [checkbutton $wf.figoutCheck -text "" \
-    #    -variable ::nmwiz::prodyAllfig] \
-    #  -row 12 -column 3 -sticky w
+      -row 10 -column 1 -columnspan 3 -sticky w
 
     pack $wf -side top -fill x -expand 1
     
 
     # ANM frame
     set wf [labelframe $prodyGUI.anmFrame -text "ANM Settings" -bd 2]
-    grid [button $wf.frameHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the frame for the selected molecule\
-                    to be used in the calculations. Index of the very first\
-                    frame is 0,"}] \
-      -row 6 -column 0 -sticky w
-    grid [label $wf.frameLabel -text "Frame number:"] \
+    grid [label $wf.modesLabel -text "Number of modes:"] \
       -row 6 -column 1 -sticky w
+    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
+      -row 6 -column 2 -sticky w   
+    pack $wf -side top -fill x -expand 1
+    
+    grid [label $wf.frameLabel -text "Frame number:"] \
+      -row 6 -column 3 -sticky w
     grid [entry $wf.frameEntry -width 4 -textvariable ::nmwiz::prodyFrame] \
-      -row 6 -column 2 -sticky w
+      -row 6 -column 4 -sticky w
 
-    grid [button $wf.cutoffHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the cutoff distance for interactions between\
-                    selected atoms."}] \
-      -row 8 -column 0 -sticky w
-    grid [label $wf.cutoffLabel -text "Cutoff distance:"] \
+    grid [label $wf.cutoffLabel -text "Cutoff distance (A):"] \
       -row 8 -column 1 -sticky w
     grid [entry $wf.cutoffEntry -width 4 -textvariable ::nmwiz::prodyCutoff] \
       -row 8 -column 2 -sticky w
 
-    grid [button $wf.gammaHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the force constant value."}] \
-      -row 10 -column 0 -sticky w
     grid [label $wf.gammaLabel -text "Force constant:"] \
-      -row 10 -column 1 -sticky w
+      -row 8 -column 3 -sticky w
     grid [entry $wf.gammaEntry -width 4 -textvariable ::nmwiz::prodyGamma] \
-      -row 10 -column 2 -sticky w    
+      -row 8 -column 4 -sticky w    
 
-    
-    grid [button $wf.modesHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the number of non-zero eigenvalues/vectors to calculate."}] \
-      -row 12 -column 0 -sticky w
-    grid [label $wf.modesLabel -text "Number of modes:"] \
-      -row 12 -column 1 -sticky w
-    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
-      -row 12 -column 2 -sticky w   
-    pack $wf -side top -fill x -expand 1
-    
     # GNM frame
     set wf [labelframe $prodyGUI.gnmFrame -text "GNM Settings" -bd 2]
-    grid [button $wf.frameHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the frame for the selected molecule to be used\
-                    in the calculations."}] \
-      -row 6 -column 0 -sticky w
-    grid [label $wf.frameLabel -text "Frame number:"] \
+    grid [label $wf.modesLabel -text "Number of modes:"] \
       -row 6 -column 1 -sticky w
+    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
+      -row 6 -column 2 -sticky w   
+    
+    grid [label $wf.frameLabel -text "Frame number:"] \
+      -row 6 -column 3 -sticky w
     grid [entry $wf.frameEntry -width 4 -textvariable ::nmwiz::prodyFrame] \
-      -row 6 -column 2 -sticky w
+      -row 6 -column 4 -sticky w
 
-    grid [button $wf.cutoffHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the cutoff distance for interactions between selected atoms."}] \
-      -row 8 -column 0 -sticky w
-    grid [label $wf.cutoffLabel -text "Cutoff distance:"] \
+    grid [label $wf.cutoffLabel -text "Cutoff distance (A):"] \
       -row 8 -column 1 -sticky w
     grid [entry $wf.cutoffEntry -width 4 -textvariable ::nmwiz::prodyGNMCutoff] \
       -row 8 -column 2 -sticky w
 
-    grid [button $wf.gammaHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the force constant value."}] \
-      -row 10 -column 0 -sticky w
     grid [label $wf.gammaLabel -text "Force constant:"] \
-      -row 10 -column 1 -sticky w
+      -row 8 -column 3 -sticky w
     grid [entry $wf.gammaEntry -width 4 -textvariable ::nmwiz::prodyGamma] \
-      -row 10 -column 2 -sticky w    
+      -row 8 -column 4 -sticky w    
 
-    
-    grid [button $wf.modesHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the number of non-zero eigenvalues/vectors to calculate."}] \
-      -row 12 -column 0 -sticky w
-    grid [label $wf.modesLabel -text "Number of modes:"] \
-      -row 12 -column 1 -sticky w
-    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
-      -row 12 -column 2 -sticky w   
-
-    
     # PCA frame
     set wf [labelframe $prodyGUI.pcaFrame -text "PCA (EDA) Settings" -bd 2]
     
-    grid [button $wf.firstHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the first frame to be used in calculations.\
-                    Index of the very first frame is 0."}] \
-      -row 6 -column 0 -sticky w
-    grid [label $wf.firstLabel -text "First frame:"] \
-      -row 6 -column 1 -sticky w
-    grid [entry $wf.firstEntry -width 4 -textvariable ::nmwiz::prodyFirstFrame] \
-      -row 6 -column 2 -sticky w
-    
-    grid [button $wf.skipHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the number of frames to skip after each frame."}] \
-      -row 8 -column 0 -sticky w
-    grid [label $wf.skipLabel -text "Skip frame:"] \
-      -row 8 -column 1 -sticky w
-    grid [entry $wf.skipEntry -width 4 -textvariable ::nmwiz::prodySkipFrame] \
-      -row 8 -column 2 -sticky w
-
-    grid [button $wf.lastHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the index of the last frame number to be used in calculations.\
-                    \"end\" can be used as the index of the very last frame."}] \
-      -row 10 -column 0 -sticky w
-    grid [label $wf.lastLabel -text "Last frame:"] \
-      -row 10 -column 1 -sticky w
-    grid [entry $wf.lastEntry -width 4 -textvariable ::nmwiz::prodyLastFrame] \
-      -row 10 -column 2 -sticky w
-
-
-    grid [button $wf.modesHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter the number of non-zero eigenvalues/vectors to calculate."}] \
-      -row 12 -column 0 -sticky w
     grid [label $wf.modesLabel -text "Number of modes:"] \
-      -row 12 -column 1 -sticky w
+      -row 6 -column 1 -sticky w
     grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
-      -row 12 -column 2 -sticky w
+      -row 6 -column 2 -sticky w
       
+    grid [label $wf.skipLabel -text "Skip frame:"] \
+      -row 6 -column 3 -sticky w
+    grid [entry $wf.skipEntry -width 4 -textvariable ::nmwiz::prodySkipFrame] \
+      -row 6 -column 4 -sticky w
+
+    grid [label $wf.firstLabel -text "First frame:"] \
+      -row 8 -column 1 -sticky w
+    grid [entry $wf.firstEntry -width 4 -textvariable ::nmwiz::prodyFirstFrame] \
+      -row 8 -column 2 -sticky w    
+
+    grid [label $wf.lastLabel -text "Last frame:"] \
+      -row 8 -column 3 -sticky w
+    grid [entry $wf.lastEntry -width 4 -textvariable ::nmwiz::prodyLastFrame] \
+      -row 8 -column 4 -sticky w
+
     grid [label $wf.filetypeLabel -text "Trajectory file type:"] \
-      -row 13 -column 1 -sticky w
+      -row 10 -column 1 -sticky w
     grid [frame $wf.filetypeFrame] \
-      -row 13 -column 2 -sticky ew
+      -row 10 -column 2 -columnspan 3 -sticky ew
     tk_optionMenu $wf.filetypeFrame.list ::nmwiz::prodyPCAfiletype "dcd" 
     $wf.filetypeFrame.list.menu delete 0 last
     foreach script "DCD PDB" {
@@ -2304,12 +2315,15 @@ orange3"
     # Submit button
     set wf [frame $prodyGUI.submitFrame -bd 2]
       
-    grid [button $wf.prodySubmit -text "Submit ProDy Job" \
-        -command ::nmwiz::prodySubmitJob] \
+    grid [button $wf.showHelp -text "Help" \
+        -command {::nmwiz::prodySubmitJob prody}] \
       -row 0 -column 0 -sticky we
-    grid [button $wf.prodyWebsite -text "Go to ProDy Website" \
-        -command "vmd_open_url http://www.csb.pitt.edu/ProDy"] \
+    grid [button $wf.prodySubmit -text "Submit Job" \
+        -command ::nmwiz::prodySubmitJob] \
       -row 0 -column 1 -sticky we
+    grid [button $wf.prodyWebsite -text "ProDy Website" \
+        -command "vmd_open_url http://www.csb.pitt.edu/ProDy"] \
+      -row 0 -column 2 -sticky we
     pack $wf -side top -fill x -expand 1
          
   }
@@ -4070,28 +4084,11 @@ orange3"
         set wam [labelframe $w.active_mode -text "$title" -bd 2] 
 
         variable ndim
-        if {$ndim == 3} {
-          grid [button $wam.active_help -text "?" -command {
-            tk_messageBox -type ok -title "HELP" \
-              -message "Select the active mode for which you want to draw arrows\
-                        or make an animation. The selected color effects both arrow\
-                        graphics and plots."}] \
-              -row 0 -column 0 -sticky w
-        } else {
-          grid [button $wam.active_help -text "?" -command {
-            tk_messageBox -type ok -title "HELP" \
-              -message "Select the active mode based on which you want to color\
-                        the protein.\nProtein coloring method can also be selected\
-                        by the user. Eigenvector option colors the protein based\
-                        on the shape of the mode. This option also effects the\
-                        mode plots."}] \
-              -row 0 -column 0 -sticky w
-        }
         grid [label $wam.active_label -text "Active mode:"] \
             -row 0 -column 1 -sticky w
 
         grid [frame $wam.active] \
-            -row 0 -column 2 -columnspan 2 -sticky w
+            -row 0 -column 2 -columnspan 3 -sticky w
 
         tk_optionMenu $wam.active.list ${ns}::activemode 0
         $wam.active.list.menu delete 0
@@ -4136,18 +4133,10 @@ orange3"
         #blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3
 
         if {$ndim == 3} {
-          grid [button $wam.scale_help -text "?" -command {
-            tk_messageBox -type ok -title "HELP"\
-              -message "Mode will be multiplied with the scalar value and the length\
-  of the mode (shown in the first box). If these modes are from a PCA, the\
-  length of the mode is the standard deviation along the principal mode. If the\
-  modes are from a NMA, the length of the mode is the square-root of the inverse\
-  of the eigenvalue of the mode."}] \
-            -row 2 -column 0 -sticky w
           grid [label $wam.scale_label -text "Scale by:"] \
             -row 2 -column 1 -sticky w
           grid [frame $wam.scale_frame] \
-            -row 2 -column 2 -sticky w
+            -row 2 -column 2 -columnspan 2 -sticky w
           entry $wam.scale_frame.length -width 5 \
             -textvariable ${ns}::drawlengthstr \
             -state disabled -disabledbackground white -disabledforeground black
@@ -4162,16 +4151,12 @@ orange3"
             -side left -anchor w -fill x
           grid [button $wam.scale_draw -width 4 -text "Redraw" \
               -command ${ns}::drawArrows] \
-            -row 2 -column 3 -sticky we
+            -row 2 -column 4 -sticky we
 
-          grid [button $wam.adjust_help -text "?" -command {
-            tk_messageBox -type ok -title "HELP"\
-              -message "Adjust the length of arrows by changing the scalar value."}] \
-            -row 3 -column 0 -sticky w
           grid [label $wam.adjust_label -text "Adjust length:"] \
             -row 3 -column 1 -sticky w
           grid [frame $wam.adjust_frame] \
-            -row 3 -column 2 -columnspan 2 -sticky w
+            -row 3 -column 2 -columnspan 3 -sticky w
           button $wam.adjust_frame.decr5 -text "-5" -command \
             "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
           button $wam.adjust_frame.decr1 -text "-1" -command \
@@ -4187,24 +4172,30 @@ orange3"
             $wam.adjust_frame.incr1 $wam.adjust_frame.incr5 \
             -side left -anchor w -fill x
           
-
-          grid [button $wam.selstr_help -text "?" -command {
-            tk_messageBox -type ok -title "HELP" \
-              -message "Select the atoms for which you want to display arrows.\
-                        Optionally, selection can affect the protein representation\
-                        as well. See the Protein \"Options\" pane."}] \
-            -row 4 -column 0 -sticky w
           grid [label $wam.selstr_label -text "Selection:"] \
             -row 4 -column 1 -sticky w
           grid [entry $wam.selstr_entry \
             -textvariable ${ns}::selstr] \
-            -row 4 -column 2 -sticky we
+            -row 4 -column 2 -columnspan 2 -sticky we
           grid [button $wam.selstr_draw -width 4 -text "Redraw" \
               -command ${ns}::drawArrows] \
-            -row 4 -column 3 -sticky we
+            -row 4 -column 4 -sticky we
 
             
         }
+        grid [button $wam.showhelp -text "Help" \
+            -command {::nmwiz::showHelp wizard}] \
+          -row 8 -column 1 -sticky we
+        grid [button $wam.showmain -text "Main" \
+            -command nmwiz_tk] \
+          -row 8 -column 2 -sticky we
+        grid [button $wam.settings -text "Settings" \
+            -command ::nmwiz::initSettingsGUI] \
+          -row 8 -column 3 -sticky we
+        grid [button $wam.website -text "Website" \
+            -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
+          -row 8 -column 4 -sticky we
+
         pack $wam -side top -ipadx 10 -ipady 5 -fill x -expand 1
 
         set wda [labelframe $w.draw_arrows -text "Actions" -bd 2]
@@ -4212,141 +4203,87 @@ orange3"
         if {$ndim == 3} {
           grid [label $wda.arrowbuttons_label -text "Arrows:"] \
             -row 5 -column 0 -sticky w
-          grid [button $wda.ab_help -text "?" \
-              -command {tk_messageBox -type ok -title "HELP" \
-                -message "Molecule id for the arrow graphics of the active mode is shown in parentheses.\
-                          \n\nDraw : draw/redraw arrows for the active mode\
-                          \nClean : remove most recently drawn arrows\
-                          \nHide : hide/show most recently drawn arrows\
-                          \nOptions : change arrow properties and drawing options"}] \
-            -row 5 -column 1 -sticky w
-          grid [button $wda.arrowbuttons_draw -width 6 -text "Draw" \
+          grid [button $wda.arrowbuttons_draw -text "Draw" \
               -command ${ns}::drawArrows] \
-            -row 5 -column 2
-          grid [button $wda.arrowbuttons_clean -width 5 -text "Clean" \
+            -row 5 -column 2 -sticky ew
+          grid [button $wda.arrowbuttons_clean -text "Clean" \
               -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
             -row 5 -column 3
-          grid [button $wda.arrowbuttons_showhide -width 5 -text "Hide" \
+          grid [button $wda.arrowbuttons_showhide -text "Hide" \
               -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid;\
                         \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid;\
                         \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
-            -row 5 -column 4
-          grid [button $wda.arrowbuttons_options -width 6 -text "Options" \
+            -row 5 -column 4 -sticky ew
+          grid [button $wda.arrowbuttons_options -text "Options" \
               -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options;\
                         set ${ns}::arropt 0; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief raised} else {pack \$${ns}::w.graphics_options -side top -ipadx 10 -ipady 5 -fill x -expand 1;\
                         set ${ns}::arropt 1; \$${ns}::w.draw_arrows.arrowbuttons_options configure -relief sunken}"] \
-            -row 5 -column 5
+            -row 5 -column 5 -sticky ew
 
           grid [label $wda.animbuttons_label -text "Animation:"] \
             -row 6 -column 0 -sticky w
-          grid [button $wda.anb_help -text "?" \
-              -command {tk_messageBox -type ok -title "HELP" \
-                -message "Molecule id for the most recent animation is shown in parentheses.\
-                          \n\nMake : animate fluctuations along the active mode\
-                          \nPlay : play/pause the animation\
-                          \nHide : hide/show the animation\
-                          \nOptions : change animation options"}] \
-            -row 6 -column 1 -sticky w
-          grid [button $wda.animbuttons_animate -width 6 -text "Make" \
+          grid [button $wda.animbuttons_animate -text "Make" \
               -command ${ns}::Animate] \
-            -row 6 -column 2
-          grid [button $wda.animbuttons_stop -width 5 -text "Play" \
+            -row 6 -column 2 -sticky ew
+          grid [button $wda.animbuttons_stop -text "Play" \
               -command "if {\$${ns}::animid == -1} {${ns}::Animate} else {if {\$${ns}::stopped} {mol top \$${ns}::animid; animate forward; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Pause; set ${ns}::stopped 0} else {animate pause; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Play; set ${ns}::stopped 1}}"] \
-            -row 6 -column 3
-          grid [button $wda.animbuttons_showhide -width 5 -text "Hide" \
+            -row 6 -column 3 -sticky ew
+          grid [button $wda.animbuttons_showhide -text "Hide" \
               -command "if {\$${ns}::animid > -1 && \[lsearch \[molinfo list] \$${ns}::animid] > -1} {if {\[molinfo \$${ns}::animid get displayed]} {animate pause; mol off \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Show} else {mol on \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Hide; animate forward}}"] \
-            -row 6 -column 4
-          grid [button $wda.animbuttons_options -width 6 -text "Options" \
+            -row 6 -column 4 -sticky ew
+          grid [button $wda.animbuttons_options -text "Options" \
               -command "if {\$${ns}::anmopt} {pack forget \$${ns}::w.animation_options; set ${ns}::anmopt 0; \$${ns}::w.draw_arrows.animbuttons_options configure -relief raised} else {pack \$${ns}::w.animation_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::anmopt 1; \$${ns}::w.draw_arrows.animbuttons_options configure -relief sunken}"] \
-            -row 6 -column 5
+            -row 6 -column 5 -sticky ew
         }
 
         grid [label $wda.plot_label -text "Plotting:"] \
           -row 8 -column 0 -sticky w
-        grid [button $wda.plt_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Molecule id for displaying selected residues is shown in parentheses.\
-                        \n\nPlot : plot squared-fluctuations along the active mode\
-                        \nClear : clear all selections and selected atom labels\
-                        \nHide : hide/show the selected residues\
-                        \nOptions : change plotting options"}] \
-          -row 8 -column 1 -sticky w
-        grid [button $wda.plot_plot -width 6 -text "Plot" \
+        grid [button $wda.plot_plot -text "Plot" \
             -command "${ns}::Plot ${ns}"] \
-          -row 8 -column 2
-        grid [button $wda.plot_clear -width 5 -text "Clear" \
+          -row 8 -column 2 -sticky ew
+        grid [button $wda.plot_clear -text "Clear" \
             -command "${ns}::clearSelection"] \
-          -row 8 -column 3
-        grid [button $wda.plot_showhide -width 5 -text "Hide" \
+          -row 8 -column 3 -sticky ew
+        grid [button $wda.plot_showhide -text "Hide" \
             -command "if {\$${ns}::selid > -1 && \[lsearch \[molinfo list] \$${ns}::selid] > -1} {if {\[molinfo \$${ns}::selid get displayed]} {mol off \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Show} else {mol on \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Hide}}"] \
-          -row 8 -column 4
-        grid [button $wda.plot_options -width 6 -text "Options" \
+          -row 8 -column 4 -sticky ew
+        grid [button $wda.plot_options -text "Options" \
             -command "if {\$${ns}::pltopt} {pack forget \$${ns}::w.plotting_options; set ${ns}::pltopt 0; \$${ns}::w.draw_arrows.plot_options configure -relief raised} else {pack \$${ns}::w.plotting_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::pltopt 1; \$${ns}::w.draw_arrows.plot_options configure -relief sunken}"] \
-          -row 8 -column 5
+          -row 8 -column 5 -sticky ew
          
         ##-command "if {\$${ns}::pltopt} {pack forget \$${ns}::w.animation_options; set ${ns}::pltopt 0; \$${ns}::w.draw_arrows.plot_options configure -relief raised} else {pack \$${ns}::w.plot_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::pltopt 1; \$${ns}::w.draw_arrows.plot_options configure -relief sunken}"] \
 
         grid [label $wda.protbuttons_label -text "Protein:"] \
           -row 9 -column 0 -sticky w
-        grid [button $wda.prt_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Molecule id of the molecular system is shown in parentheses.\
-                        \n\nUpdate : Update protein representation\
-                        \nFocus : reset view to focus on the molecular system\
-                        \nHide : hide/show the molecular system\
-                        \nOptions : change molecular system representation\n"}] \
-          -row 9 -column 1 -sticky w
-        grid [button $wda.prt_update -width 6 -text "Update" \
+        grid [button $wda.prt_update -text "Update" \
             -command "${ns}::updateProtRep \$${ns}::molid"] \
-          -row 9 -column 2
-        grid [button $wda.protbuttons_focus -width 5 -text "Focus" \
+          -row 9 -column 2 -sticky ew
+        grid [button $wda.protbuttons_focus -text "Focus" \
             -command "mol top \$${ns}::molid; display resetview"] \
-          -row 9 -column 3  
-        grid [button $wda.protbuttons_showhide -width 5 -text "Hide" \
+          -row 9 -column 3  -sticky ew
+        grid [button $wda.protbuttons_showhide -text "Hide" \
             -command "if {\[molinfo \$${ns}::molid get displayed]} {mol off \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Show;} else {mol on \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Hide;}"] \
-          -row 9 -column 4
-        grid [button $wda.protbuttons_repoptions -width 6 -text "Options" \
+          -row 9 -column 4 -sticky ew
+        grid [button $wda.protbuttons_repoptions -text "Options" \
             -command "if {\$${ns}::prtopt} {pack forget \$${ns}::w.prograph_options; set ${ns}::prtopt 0; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief raised} else {pack \$${ns}::w.prograph_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::prtopt 1; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief sunken}"] \
-          -row 9 -column 5
+          -row 9 -column 5 -sticky ew
 
         pack $wda -side top -fill x -expand 1
 
         set wgo [labelframe $w.graphics_options -text "Arrow Graphics Options" -bd 2]
         
-        grid [button $wgo.auto_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, arrow graphics will be updated automatically when color selection, arrow scaling factor, arrow cone height, etc. variables change."}] \
-          -row 0 -column 0 -sticky w
-        grid [label $wgo.auto_label -text "Auto update:"] \
-          -row 0 -column 1 -sticky w
-        grid [checkbutton $wgo.auto_check -text "" \
+        grid [checkbutton $wgo.auto_check -text "auto update arrows" \
             -variable ${ns}::autoupdate] \
+          -row 0 -column 1 -sticky w
+
+        grid [checkbutton $wgo.overwrite_check -text "auto hide inactive mode" \
+            -variable ${ns}::overwrite] \
           -row 0 -column 2 -sticky w
 
-        grid [button $wgo.both_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, arrows will be drawn in both directions."}] \
-          -row 3 -column 0 -sticky w
-        grid [label $wgo.both_label -text "Both directions:"] \
-          -row 3 -column 1 -sticky w
-        grid [checkbutton $wgo.both_check -text "" \
+        grid [checkbutton $wgo.both_check -text "draw in both directions" \
             -variable ${ns}::bothdirections] \
-          -row 3 -column 2 -sticky w
+          -row 7 -column 1 -columnspan 2 -sticky w
 
-        grid [button $wgo.overwrite_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, when the active mode is changed, previously drawn mode will be hidden."}] \
-          -row 5 -column 0 -sticky w
-        grid [label $wgo.overwrite_label -text "Auto hide inactive mode:"] \
-          -row 5 -column 1 -sticky w
-        grid [checkbutton $wgo.overwrite_check -text "" \
-            -variable ${ns}::overwrite] \
-          -row 5 -column 2 -sticky w
-
-        grid [button $wgo.hide_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Arrows shorter than the specified value will not be drawn."}] \
-          -row 9 -column 0 -sticky w
         grid [label $wgo.hide_label -text "Draw if longer than:"] \
           -row 9 -column 1 -sticky w
         grid [frame $wgo.hide_frame] \
@@ -4360,10 +4297,6 @@ orange3"
         pack $wgo.hide_frame.entry $wgo.hide_frame.decr $wgo.hide_frame.incr \
           $wgo.hide_frame.angstrom -side left -anchor w -fill x
 
-        grid [button $wgo.cylinder_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Radius of the arrow cylinders."}] \
-          -row 10 -column 0 -sticky w
         grid [label $wgo.cylinder_label -text "Arrow cylinder radius:"] \
           -row 10 -column 1 -sticky w
         grid [frame $wgo.cylinder_frame] \
@@ -4378,11 +4311,6 @@ orange3"
           $wgo.cylinder_frame.incr $wgo.cylinder_frame.angstrom \
           -side left -anchor w -fill x
 
-        grid [button $wgo.coner_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Radius of the arrow cones. For a better representation,\
-this value should be larger than arrow cylinder radius."}] \
-          -row 11 -column 0 -sticky w
         grid [label $wgo.coner_label -text "Arrow cone radius:"] \
           -row 11 -column 1 -sticky w
         grid [frame $wgo.coner_frame] \
@@ -4396,10 +4324,6 @@ this value should be larger than arrow cylinder radius."}] \
         pack $wgo.coner_frame.entry $wgo.coner_frame.decr $wgo.coner_frame.incr \
           $wgo.coner_frame.angstrom -side left -anchor w -fill x
 
-        grid [button $wgo.coneh_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Height of the arrow cones. This height is not counted towards arrow length."}] \
-          -row 12 -column 0 -sticky w
         grid [label $wgo.coneh_label -text "Arrow cone height:"] \
           -row 12 -column 1 -sticky w
         grid [frame $wgo.coneh_frame] \
@@ -4413,10 +4337,6 @@ this value should be larger than arrow cylinder radius."}] \
         pack $wgo.coneh_frame.entry $wgo.coneh_frame.decr $wgo.coneh_frame.incr \
           $wgo.coneh_frame.angstrom -side left -anchor w -fill x
 
-        grid [button $wgo.material_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "The material used for drawing the arrows."}] \
-          -row 20 -column 0 -sticky w
         grid [label $wgo.material_label -text "Graphics material:"] \
           -row 20 -column 1 -sticky w
         grid [frame $wgo.material_frame] \
@@ -4430,10 +4350,6 @@ this value should be larger than arrow cylinder radius."}] \
         }
         pack $wgo.material_frame.list -side left -anchor w -fill x
 
-        grid [button $wgo.resolution_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "The quality of arrow graphics."}] \
-          -row 21 -column 0 -sticky w
         grid [label $wgo.resolution_label -text "Graphics resolution:"] \
           -row 21 -column 1 -sticky w
         grid [frame $wgo.resolution_frame] \
@@ -4449,27 +4365,10 @@ this value should be larger than arrow cylinder radius."}] \
 
         set wpgo [labelframe $w.prograph_options -text "Protein Graphics Options" -bd 2]
         
-        grid [button $wpgo.selstr_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, selection string will be effective for\
-protein and animation representations."}] \
-          -row 0 -column 0 -sticky w
-        grid [label $wpgo.selstr_label -text "Show selected atoms:"] \
-          -row 0 -column 1 -sticky w
-        grid [checkbutton $wpgo.selstr_check -text "" \
+        grid [checkbutton $wpgo.selstr_check -text "show selected atoms" \
             -variable ${ns}::selrep -command "${ns}::autoUpdate"] \
-          -row 0 -column 2 -sticky w
+          -row 0 -column 1 -columnspan 2 -sticky w
         
-        grid [button $wpgo.protas_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Select protein representation. For coarse-grained protein\
-              Tube option shows a trace of the protein chain. Licorice is ideal\
-              for atomic models of proteins.\
-              \n\nWhen Custom is selected NMWiz does not change the representation\
-              of the Protein whose molecule id is given in parantheses).\
-              User can set a custom representation using VMD Main > Graphics >\
-              Representation... window."}] \
-          -row 13 -column 0 -sticky w
         grid [label $wpgo.protas_label -text "Show protein as:"] \
           -row 13 -column 1 -sticky w
         grid [frame $wpgo.protas_frame] \
@@ -4483,10 +4382,6 @@ protein and animation representations."}] \
         $wpgo.protas_frame.list.menu add radiobutton -label "Tube" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.protas_frame.list -side left -anchor w -fill x
 
-        grid [button $wpgo.procolor_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Color scheme for the protein.\nMobility : protein is colored based on the mobility of residues in the active mode\nBfactors : protein is colored based on the PDB bfactors\nIndex : protein is colored based on residue/atom index"}] \
-          -row 14 -column 0 -sticky w
         grid [label $wpgo.procolor_label -text "Color protein:"] \
           -row 14 -column 1 -sticky w
         grid [frame $wpgo.procolor_frame] \
@@ -4503,10 +4398,6 @@ protein and animation representations."}] \
         pack $wpgo.procolor_frame.list -side left -anchor w -fill x
 
 
-        grid [button $wpgo.cutoffdistance_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Cutoff distance for placing bonds between nodes. Note that this distance only affects representation, not the normal modes contained in the ProDy GUI."}] \
-          -row 16 -column 0 -sticky w
         grid [label $wpgo.cutoffdistance_label -text "Network cutoff distance:"] \
           -row 16 -column 1 -sticky w
         grid [frame $wpgo.cutoffdistance_frame] \
@@ -4520,10 +4411,6 @@ protein and animation representations."}] \
         pack $wpgo.cutoffdistance_frame.entry $wpgo.cutoffdistance_frame.decr $wpgo.cutoffdistance_frame.incr \
           $wpgo.cutoffdistance_frame.angstrom -side left -anchor w -fill x
 
-        grid [button $wpgo.nodescale_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Scale the size of node spheres (or the vdW radius of alpha carbons)."}] \
-          -row 17 -column 0 -sticky w
         grid [label $wpgo.nodescale_label -text "Scale node spheres:"] \
           -row 17 -column 1 -sticky w
         grid [frame $wpgo.nodescale_frame] \
@@ -4536,10 +4423,6 @@ protein and animation representations."}] \
         pack $wpgo.nodescale_frame.entry $wpgo.nodescale_frame.decr $wpgo.nodescale_frame.incr \
           -side left -anchor w -fill x
           
-        grid [button $wpgo.bondradius_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Radius of the artificial bonds representing springs for connected nodes in the network."}] \
-          -row 18 -column 0 -sticky w
         grid [label $wpgo.bondradius_label -text "Network bond radius:"] \
           -row 18 -column 1 -sticky w
         grid [frame $wpgo.bondradius_frame] \
@@ -4554,10 +4437,6 @@ protein and animation representations."}] \
           $wpgo.bondradius_frame.angstrom -side left -anchor w -fill x
 
 
-        grid [button $wpgo.tuberadius_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Radius for the tube/licorice representations."}] \
-          -row 19 -column 0 -sticky w
         grid [label $wpgo.tuberadius_label -text "Tube/licorice radius:"] \
           -row 19 -column 1 -sticky w
         grid [frame $wpgo.tuberadius_frame] \
@@ -4572,10 +4451,6 @@ protein and animation representations."}] \
           $wpgo.tuberadius_frame.angstrom -side left -anchor w -fill x
 
 
-        grid [button $wpgo.material_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "The material used for drawing protein graphics."}] \
-          -row 20 -column 0 -sticky w
         grid [label $wpgo.material_label -text "Graphics material:"] \
           -row 20 -column 1 -sticky w
         grid [frame $wpgo.material_frame] \
@@ -4589,10 +4464,6 @@ protein and animation representations."}] \
         }
         pack $wpgo.material_frame.list -side left -anchor w -fill x
 
-        grid [button $wpgo.resolution_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "The quality of protein graphics."}] \
-          -row 21 -column 0 -sticky w
         grid [label $wpgo.resolution_label -text "Graphics resolution:"] \
           -row 21 -column 1 -sticky w
         grid [frame $wpgo.resolution_frame] \
@@ -4608,34 +4479,17 @@ protein and animation representations."}] \
 
         set wao [labelframe $w.animation_options -text "Animation Options" -bd 2]
         
-        grid [button $wao.auto_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Update animation automatically when active mode selection changes."}] \
-          -row 0 -column 0 -sticky w
-        grid [label $wao.auto_label -text "Auto animate:"] \
-          -row 0 -column 1 -sticky w
-        grid [checkbutton $wao.auto_check -text "" \
+        grid [checkbutton $wao.auto_check -text "auto animate" \
             -variable ${ns}::autoanimate] \
-          -row 0 -column 2 -sticky w
+          -row 0 -column 1 -columnspan 2 -sticky w
         
-
-        grid [button $wao.autoplay_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, animation will be played continuously."}] \
-          -row 4 -column 0 -sticky w
-        grid [label $wao.autoplay_label -text "Continuous autoplay:"] \
-          -row 4 -column 1 -sticky w
-        grid [checkbutton $wao.autoplay_check -text "" -variable ${ns}::autoplay] \
-          -row 4 -column 2 -sticky w
+        grid [checkbutton $wao.autoplay_check -text "continuous autoplay" -variable ${ns}::autoplay] \
+          -row 0 -column 3 -columnspan 2 -sticky w
           
-        grid [button $wao.nframes_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "The resulting animation will have this many plus one frames."}] \
-          -row 9 -column 0 -sticky w
         grid [label $wao.nframes_label -text "Number of frames:"] \
           -row 9 -column 1 -sticky w
         grid [frame $wao.nframes_frame] \
-          -row 9 -column 2 -sticky w
+          -row 9 -column 2 -columnspan 3 -sticky w
         entry $wao.nframes_frame.entry -width 4 -textvariable ${ns}::nframes
         button $wao.nframes_frame.decr5 -text "-5" \
           -command "set ${ns}::nframes \[expr \$${ns}::nframes - 5]"
@@ -4646,21 +4500,11 @@ protein and animation representations."}] \
 
         set wpo [labelframe $w.plotting_options -text "Plotting Options" -bd 2]
 
-        grid [button $wpo.overplot_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "If checked, previously generated canvas will be used for plotting."}] \
-          -row 0 -column 0 -sticky w
-        grid [label $wpo.overplot_label -text "Overplot:"] \
-          -row 0 -column 1 -sticky w
-        grid [checkbutton $wpo.overplot_check -text "" \
+        grid [checkbutton $wpo.overplot_check -text "reuse figure for new plots" \
             -variable ${ns}::overplot] \
-          -row 0 -column 2 -sticky w
+          -row 0 -column 1 -columnspan 2 -sticky w
   
         if {$ndim == 1} {        
-          grid [button $wpo.plotcolor_help -text "?" \
-              -command {tk_messageBox -type ok -title "HELP" \
-                -message "Color of the line."}] \
-            -row 0 -column 4 -sticky w
           grid [label $wpo.plotcolor_label -text "Line color:"] \
             -row 0 -column 5 -sticky w
             
@@ -4677,10 +4521,6 @@ protein and animation representations."}] \
             }
           pack $wpo.pcf.color -side left -anchor w -fill x
         }
-        grid [button $wpo.plotwidth_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Width of the plot in pixels."}] \
-          -row 1 -column 0 -sticky w
         grid [label $wpo.plotwidth_label -text "Plot width:"] \
           -row 1 -column 1 -sticky w
         grid [entry $wpo.plotwidth_entry -width 4 -textvariable ${ns}::plotwidth] \
@@ -4688,19 +4528,11 @@ protein and animation representations."}] \
         grid [label $wpo.spacing_label -text "  "] \
           -row 1 -column 3 -sticky w
 
-        grid [button $wpo.plotheight_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Height of the plot in pixels."}] \
-          -row 1 -column 4 -sticky w
         grid [label $wpo.plotheight_label -text "Plot height:"] \
           -row 1 -column 5 -sticky w
         grid [entry $wpo.plotheight_entry -width 4 -textvariable ${ns}::plotheight] \
           -row 1 -column 6 -sticky w
 
-        grid [button $wpo.line_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Connect (or not) datapoint with lines."}] \
-          -row 3 -column 0 -sticky w
         grid [label $wpo.line_label -text "Lines:"] \
           -row 3 -column 1 -sticky w
         grid [frame $wpo.line_frame] \
@@ -4713,19 +4545,11 @@ protein and animation representations."}] \
         }
         pack $wpo.line_frame.list -side left -anchor w -fill x  
 
-        grid [button $wpo.linewidth_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Width of the lines connecting datapoints."}] \
-          -row 3 -column 4 -sticky w
         grid [label $wpo.linewidth_label -text "Line width:"] \
           -row 3 -column 5 -sticky w
         grid [entry $wpo.linewidth_entry -width 4 -textvariable ${ns}::linewidth] \
           -row 3 -column 6 -sticky w
           
-        grid [button $wpo.marker_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Draw markers at datapoints."}] \
-          -row 5 -column 0 -sticky w
         grid [label $wpo.marker_label -text "Marker:"] \
           -row 5 -column 1 -sticky w
         grid [frame $wpo.marker_frame] \
@@ -4738,11 +4562,6 @@ protein and animation representations."}] \
         }
         pack $wpo.marker_frame.list -side left -anchor w -fill x
         
-        
-        grid [button $wpo.radius_help -text "?" \
-            -command {tk_messageBox -type ok -title "HELP" \
-              -message "Data point marker radius of circle and point, size of square."}] \
-          -row 5 -column 4 -sticky w
         grid [label $wpo.radius_label -text "Marker size:"] \
           -row 5 -column 5 -sticky w
         grid [entry $wpo.radius_entry -width 4 -textvariable ${ns}::mradius] \
@@ -4763,7 +4582,6 @@ protein and animation representations."}] \
         #      -variable ${ns}::dash
         #}
         #pack $wpo.dash_frame.list -side left -anchor w -fill x  
-          
         
         ${ns}::loadCoordinates
         if {$ndim == 3} {
