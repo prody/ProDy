@@ -173,22 +173,6 @@ ProDy Interface
                            loaded in VMD. Upon completion of the calculations, NMWiz automatically loads the results.
 ========================== ====================================================================================================================================
 
-|
-
-ANM Server Interface
--------------------------------------------------------------------------------
-
-|
-
-============================== ====================================================================================================================================
-.. image:: nmwiz/anmserver.png Finally, ANM jobs can be submitted to ANM server using this interface
-                               (Linux only). User needs to provide PDB and chain identifiers. Cutoff and
-                               distance weight parameters can also be adjusted by the user.
-                               
-                               After ANM Server completes calculations, the user needs to download normal
-                               mode data in an NMD file (see *download files* link in results page) and load it into VMD.
-============================== ====================================================================================================================================
-
 .. toctree::
    :glob:
    :maxdepth: 2
