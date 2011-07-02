@@ -6,6 +6,35 @@
 Changes
 *******************************************************************************
 
+Release 0.8.0 (in development)
+===============================================================================
+
+**New Features**:
+
+
+**Improvements**:
+
+
+**Changes**:
+
+
+**Bug Fixes**:
+
+
+:ref:`nmwiz`
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * NMWiz can be used to compare two structures by calculatint and depicting
+    structural changes.
+
+**Changes**:
+
+  * Help is provided in a text window to provide a cleaner GUI.
+
+
+
 Release 0.7.2 (Jun 21, 2011)
 ===============================================================================
 

@@ -36,7 +36,7 @@
 # OTHER DEALINGS WITH THE SOFTWARE.
 
 package require exectool 1.2
-package provide nmwiz 0.7
+package provide nmwiz 0.8
 
 # 2-D plotting tool
 #
@@ -2523,9 +2523,11 @@ orange3"
     set ref [atomselect $::nmwiz::strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
     set tar [atomselect $::nmwiz::strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
     if {[$ref num] == [$tar num]} {
-      $tar move [measure fit $tar $ref]
+      set all [atomselect $::nmwiz::strcompTarid "all" frame $::nmwiz::strcompTarFrame]
+      $all move [measure fit $tar $ref]
       .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
         -text "RMSD = [format %.2f [measure rmsd $ref $tar]] A"
+      $all delete
     } else {      
       .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
         -text "Length mismatch"
