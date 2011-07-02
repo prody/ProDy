@@ -1621,7 +1621,7 @@ namespace eval ::nmwiz:: {
       wm resizable $log 1 1
       incr logcount
 
-      text $log.text -bg White -bd 2 \
+      text $log.text -bg White -bd 2 -font Courier \
         -yscrollcommand ".$windowname.vscr set"
       scrollbar $log.vscr -command ".$windowname.text yview"
       pack $log.text -side left -fill both -expand 1  
@@ -1700,7 +1700,7 @@ namespace eval ::nmwiz:: {
       $log.text insert end "\nOptions:\n\n"
       $log.text insert end "User can select the representation and coloring scheme. User can change the protein representation settings manually, by setting 'Show protein as' to 'Custom'.\n\n"      
       $log.text insert end "Protein can be colored based on the `Mobility` of the residues in the active mode, based on 'Bfactors' that came in NMD file, or based on residue/atom 'Index'.\n\n"
-      $log.text insert end "In addition to standard representations (Tube/Trace/Licorice), protein can be represented as an elastic network."
+      $log.text insert end "In addition to the standard representations (Tube/Trace/Licorice), protein can be represented as an elastic network."
       $log.text insert end "User can set the cutoff distance, width of dynamic bonds, and node spheres. Note that changing the cutoff distance distance only affects representation, not the precalculated normal mode data.\n\n"
       $log.text insert end "*TIP*: When visualizing a large system, display protein at lower resolutions and/or try displaying fewer atoms if all atoms are displayed."
     } elseif {$context == "prody"} {
@@ -1734,10 +1734,25 @@ namespace eval ::nmwiz:: {
       $log.text insert end "PCA/EDA Settings\n"
       $log.text insert end "----------------\n\n"
       $log.text insert end "Note that for PCA/EDA calculations molecule must have multiple frames. Specify the range of frames to be used in calculations. For large systems, prefer to write coordinates in DCD format to gain IO speed and save save disk space."
+    } elseif {$context == "compare"} {
+      $log.text insert end "Structure Comparison\n"
+      $log.text insert end "====================\n\n"
+      $log.text insert end "This interface allows the user to compare two molecules (or two frames of the same molecule) loaded in VMD. It can be used to align structures and draw deformation vector."
+      $log.text insert end "Follow these steps to compare structures:\n\n"
+      $log.text insert end "1) Load molecules into VMD\n\n"
+      $log.text insert end "Select the molecules that you want to compare. If you don't see the molecule, click 'Update' button. "
+      $log.text insert end "\n\n"
+      $log.text insert end "2) Select atoms and specify frames\n\n"
+      $log.text insert end "Make atom selections for each molecule (or frame). Note that the number of selected atoms must be the same. "
+      $log.text insert end "\n\n"
+      $log.text insert end "3) Align molecules (or frames)\n\n"
+      $log.text insert end "Before deformation vector is calculated, you need to align the molecules (or frames) to have a meaningful depiction of structural change. "
+      $log.text insert end "\n\n"
+      $log.text insert end "Finally, click 'Calculate' button to generate depiction of structural change and NMWiz GUI."
     } elseif {$context == "frommolecule"} {
       $log.text insert end "From Molecule\n"
       $log.text insert end "=============\n\n"
-      $log.text insert end "This window allows the user to analyze normal mode data present in file formats that are recognized by VMD. "
+      $log.text insert end "This interface allows the user to analyze normal mode data present in file formats that are recognized by VMD. "
       $log.text insert end "Follow these steps to analyze your data:\n\n"
       $log.text insert end "1) Load data into VMD\n\n"
       $log.text insert end "Normal mode data can be retrieved from a molecule with multiple frames in VMD. "
@@ -1770,7 +1785,8 @@ namespace eval ::nmwiz:: {
       $log.text insert end "**From Molecule**\n\n"
       $log.text insert end "Alternatively, when normal mode data is present in a file format that is recognized by VMD, "
       $log.text insert end "load the files into VMD as a molecule and click 'From Molecule' button. A window will appear to "
-      $log.text insert end "facilitate selection of normal mode data from a molecule with multiple frames. "
+      $log.text insert end "facilitate selection of normal mode data from a molecule with multiple frames.\n\n"
+      $log.text insert end "Note that, data obtained from a molecule can be saved in NMD format from the Main window and NMD files can be parsed with ProDy for further analysis."
       $log.text insert end "\n\n\n"
       $log.text insert end "Perform NMA Calculations\n"
       $log.text insert end "------------------------\n\n"
@@ -1812,11 +1828,15 @@ namespace eval ::nmwiz:: {
         if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
       -row 3 -column 0 -columnspan 3 -sticky we
 
-    grid [button $wmf.prody -width 20 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
+    grid [button $wmf.fromol -width 20 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
       -row 5 -column 0 -columnspan 3 -sticky we
 
-    grid [button $wmf.fromol -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
+    grid [button $wmf.prody -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
       -row 6 -column 0 -columnspan 3 -sticky we
+
+    grid [button $wmf.compare -width 20 -text "Structure Comparison" -command ::nmwiz::initStrComp] \
+      -row 7 -column 0 -columnspan 3 -sticky we
+
    
     grid [button $wmf.showhelp -text "Help" \
         -command {::nmwiz::showHelp main}] \
@@ -2062,7 +2082,94 @@ orange3"
   variable fromolFrame 0
   variable fromolFirstFrame 1
   variable fromolLastFrame end
+  
+  variable strcompRefSelstr "name CA and protein"
+  variable strcompTarSelstr "name CA and protein"
+  variable strcompRefMol ""
+  variable strcompTarMol ""
+  variable strcompRefFrame 0
+  variable strcompTarFrame 0
+  variable strcompRefid -1
+  variable strcompTarid -1
+  variable strcompRefN 0
+  variable strcompTarN 0
+  
+  proc initStrComp {} {
+    variable strcompGUI
+    # If already initialized, just turn on
+    if [winfo exists .nmwizstrcomp] {
+      wm deiconify .nmwizstrcomp
+      raise .nmwizstrcomp
+      return 
+    }    
+    set strcompGUI [toplevel .nmwizstrcomp]
+    wm title $strcompGUI "NMWiz - Structure Comparison"
+    wm resizable $strcompGUI 0 0
 
+    # Main frame (molecule and selection)
+    set wmf [labelframe $strcompGUI.mainFrame -text "Molecule Selection" -bd 2]
+    grid [label $wmf.molRLabel -text "Reference"] \
+      -row 1 -column 2 -sticky w
+    grid [label $wmf.molTLabel -text "Target"] \
+      -row 1 -column 3 -sticky w
+
+    grid [label $wmf.molLabel -text "Molecule:"] \
+      -row 2 -column 1 -sticky w
+    grid [frame $wmf.refFrame] \
+      -row 2 -column 2 -sticky ew
+    tk_optionMenu $wmf.refFrame.list ::nmwiz::strcompRefMol "" 
+    grid [frame $wmf.tarFrame] \
+      -row 2 -column 3 -sticky ew
+    tk_optionMenu $wmf.tarFrame.list ::nmwiz::strcompTarMol "" 
+    grid [button $wmf.molUpdate -text "Update" \
+        -command ::nmwiz::strcompUpdateMolList] \
+      -row 2 -column 4 -sticky ew
+      
+    grid [label $wmf.selstrLabel -text "Selection:"] \
+      -row 5 -column 1 -sticky w
+    grid [entry $wmf.selstrRefEntry -width 12 -textvariable ::nmwiz::strcompRefSelstr] \
+      -row 5 -column 2 -sticky ew
+    grid [entry $wmf.selstrTarEntry -width 12 -textvariable ::nmwiz::strcompTarSelstr] \
+      -row 5 -column 3 -sticky ew
+    grid [button $wmf.selUpdate -text "Select" \
+        -command ::nmwiz::strcompUpdateMolinfo] \
+      -row 5 -column 4 -sticky ew
+      
+    grid [label $wmf.frameLabel -text "Frame:"] \
+      -row 7 -column 1 -sticky w
+    grid [entry $wmf.frameRefEntry -width 4 -textvariable ::nmwiz::strcompRefFrame] \
+      -row 7 -column 2 -sticky w
+    grid [entry $wmf.frameTarEntry -width 4 -textvariable ::nmwiz::strcompTarFrame] \
+      -row 7 -column 3 -sticky w
+
+    grid [label $wmf.selinfoLbl -text "Information:"] \
+      -row 8 -column 1 -sticky w
+    grid [label $wmf.selinfoRefLabel -text ""] \
+      -row 8 -column 2 -sticky w
+    grid [label $wmf.selinfoTarLabel -text ""] \
+      -row 8 -column 3 -sticky w
+    grid [label $wmf.selinfoRMSDLabel -text ""] \
+      -row 8 -column 4 -sticky w
+      
+    grid [button $wmf.showHelp -text "Help" \
+        -command {::nmwiz::showHelp compare}] \
+      -row 12 -column 1 -sticky we
+    grid [button $wmf.rmsdUpdate -text "RMSD" \
+        -command ::nmwiz::strcompRMSD] \
+      -row 12 -column 2 -sticky ew
+    grid [button $wmf.align -text "Align" \
+        -command ::nmwiz::strcompAlign] \
+      -row 12 -column 3 -sticky ew
+    grid [button $wmf.prodySubmit -text "Calculate" \
+        -command ::nmwiz::calcDeform] \
+      -row 12 -column 4 -sticky we
+      
+    pack $wmf -side top -fill x -expand 1
+    ::nmwiz::strcompUpdateMolList
+    ::nmwiz::strcompUpdateMolinfo
+
+
+  }
 
   proc initFromMolecule {} {
     variable fromolGUI
@@ -2130,9 +2237,7 @@ orange3"
     pack $wmf -side top -fill x -expand 1
     ::nmwiz::fromolUpdateMolList
     ::nmwiz::fromolUpdateMolinfo
-    
 
-  
   }
 
   proc initProdyGUI {} {
@@ -2352,6 +2457,96 @@ orange3"
     }
     ::nmwiz::prodyUpdateMolinfo
   }
+
+  proc strcompUpdateMolList {} {
+    variable strcompGUI
+    set wf $strcompGUI.mainFrame
+    $wf.refFrame.list.menu delete 0 last
+    $wf.tarFrame.list.menu delete 0 last
+    set counter 0
+    variable strcompRefid -1
+    variable strcompTarid -1
+    foreach id [molinfo list] {
+      if {[molinfo $id get numatoms] > 0 && [molinfo $id get numframes] > 1} {
+        if {$counter == 0} {
+          variable strcompRefid $id
+          variable strcompTarid $id
+        }
+        $wf.refFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
+            -variable ::nmwiz::strcompRefMolecule \
+            -command "set ::nmwiz::strcompRefid $id; ::nmwiz::strcompUpdateMolinfo"
+        $wf.tarFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
+            -variable ::nmwiz::strcompTarMolecule \
+            -command "set ::nmwiz::strcompTarid $id; ::nmwiz::strcompUpdateMolinfo"
+        incr counter  
+      }
+    }
+    pack $wf.refFrame.list -side left -anchor w -fill x
+    pack $wf.tarFrame.list -side left -anchor w -fill x
+    if {$strcompTarid > -1} {
+      variable strcompTarMol "[::nmwiz::cleanMolName $strcompTarid] ($strcompTarid)"
+      variable strcompRefMol "[::nmwiz::cleanMolName $strcompRefid] ($strcompRefid)"
+    }
+    ::nmwiz::strcompUpdateMolinfo
+  }
+  
+  proc strcompUpdateMolinfo {} {
+    variable strcompRefid
+    variable strcompTarid
+    if {$strcompRefid > -1} {
+      set ::nmwiz::strcompRefMol "[::nmwiz::cleanMolName $strcompRefid] ($strcompRefid)"
+      set ref [atomselect $strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
+      set ::nmwiz::strcompRefN [$ref num]
+      .nmwizstrcomp.mainFrame.selinfoRefLabel configure \
+        -text "$::nmwiz::strcompRefN selected"
+      $ref delete
+    } else {
+      set ::nmwiz::strcompRefMol ""
+      .nmwizstrcomp.mainFrame.selinfoRefLabel configure \
+        -text "0 selected"
+    }
+    if {$strcompTarid > -1} {
+      set ::nmwiz::strcompTarMol "[::nmwiz::cleanMolName $strcompTarid] ($strcompTarid)"
+      set tar [atomselect $strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
+      set ::nmwiz::strcompTarN [$tar num]
+      .nmwizstrcomp.mainFrame.selinfoTarLabel configure \
+        -text "$::nmwiz::strcompTarN selected"
+      $tar delete
+    } else {
+      set ::nmwiz::strcompTarMol ""
+      .nmwizstrcomp.mainFrame.selinfoTarLabel configure \
+        -text "0 selected"
+    }
+    
+  }
+  proc strcompAlign {} {
+    set ref [atomselect $::nmwiz::strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
+    set tar [atomselect $::nmwiz::strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
+    if {[$ref num] == [$tar num]} {
+      $tar move [measure fit $tar $ref]
+      .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
+        -text "RMSD = [format %.2f [measure rmsd $ref $tar]] A"
+    } else {      
+      .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
+        -text "Length mismatch"
+    }
+    $tar delete
+    $ref delete
+  }  
+  proc strcompRMSD {} {
+    set ref [atomselect $::nmwiz::strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
+    set tar [atomselect $::nmwiz::strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
+    if {[$ref num] == [$tar num]} {
+      .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
+        -text "RMSD = [format %.2f [measure rmsd $ref $tar]] A"
+    } else {
+      .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
+        -text "Length mismatch"
+    }
+    $tar delete
+    $ref delete
+  }
+
 
   proc fromolUpdateMolList {} {
     variable fromolGUI
@@ -3055,6 +3250,55 @@ orange3"
     
   }
 
+  proc calcDeform {} {
+    variable strcompRefN
+    variable strcompTarN
+    variable strcompRefid
+    variable strcompTarid
+    variable strcompRefFrame 
+    variable strcompTarFrame
+    variable strcompRefMol 
+    variable strcompTarMol
+    variable strcompRefSelstr 
+    variable strcompTarSelstr
+    if {$strcompRefid == $strcompTarid && $strcompRefFrame == $strcompTarFrame} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Reference and target cannot be the same frame of the same molecule."
+      return
+    }
+    if {$strcompRefN == 0 || $strcompRefN != $strcompTarN} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Reference and target selections must have same number of atoms."
+      return
+    }
+    set title "Deformation $strcompRefMol -> $strcompTarMol"
+    set ref [atomselect $strcompRefid $strcompRefSelstr frame $strcompRefFrame]
+    set coordinates [concat {*}[$ref get {x y z}]]
+    set modes [list]
+    set lengths [list]
+    set indices [list]
+    set tar [atomselect $strcompTarid $strcompTarSelstr frame $strcompTarFrame]
+    set target [concat {*}[$tar get {x y z}]]
+    $tar delete
+    set m [vecsub $target $coordinates]
+    set len [veclength $m]
+    lappend indices 1
+    lappend modes [vecscale $m [expr 1 / $len]]
+    lappend lengths $len
+    set atomnames [$ref get name]
+    set resnames [$ref get resname]
+    set resids [$ref get resid]
+    set chainids [$ref get chain]
+    set bfactors [$ref get beta]
+    $ref delete
+    
+    set ns [::nmwiz::makeNMWizGUI]
+    ${ns}::initialize $coordinates $modes 3 $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
+    ${ns}::nmwizgui
+    ::nmwiz::appendGUIcontrols $ns
+    
+  }
+
   proc fromMolecule {} {  
     variable fromolMolecule
     variable fromolMolid
@@ -3075,7 +3319,6 @@ orange3"
     set n_dims 3
     set sel [atomselect $fromolMolid $fromolSelstr frame $fromolFrame]
     set coordinates [concat {*}[$sel get {x y z}]]
-    puts $coordinates
     set modes [list]
     set lengths [list]
     set indices [list]
@@ -4189,11 +4432,11 @@ orange3"
         grid [button $wam.showmain -text "Main" \
             -command nmwiz_tk] \
           -row 8 -column 2 -sticky we
-        grid [button $wam.settings -text "Settings" \
-            -command ::nmwiz::initSettingsGUI] \
+        grid [button $wam.save -text "Save" \
+            -command "::nmwiz::writeNMD $ns"] \
           -row 8 -column 3 -sticky we
-        grid [button $wam.website -text "Website" \
-            -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
+        grid [button $wam.remove -text "Remove" \
+            -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget .nmwizgui.{[string range $ns 2 end]}frame; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
           -row 8 -column 4 -sticky we
 
         pack $wam -side top -ipadx 10 -ipady 5 -fill x -expand 1

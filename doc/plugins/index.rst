@@ -58,9 +58,8 @@ Examples :term:`nmd` files (*right click* and select *save as* option):
 NMWiz GUI
 ===============================================================================
 
-This section describes NMWiz Interfaces briefly. Help on functionality can be
-obtained by simply clicking on the question marks (:guilabel:`?`) on the 
-graphical user interface. In addition, a tutorial that was developed for an 
+This section describes NMWiz Interfaces briefly. Click :guilabel:`Help` on the 
+GUI to get instant help. In addition, a tutorial that was developed for an 
 earlier version of the plug-in can be obtained from here:
 :download:`Tutorial <nmwiz/NMWiz_tutorial.pdf>`. 
 
