@@ -1084,12 +1084,12 @@ class Select(object):
             return self._evalAlnum(keyword, token[1:])
         elif isFloatKeyword(keyword):
             return self._evalFloat(keyword, token[1:])
-        elif keyword in ('resnum', 'resid', 'serial'):
+        elif keyword in ('resnum', 'resid'):
             return self._resnum(token[1:])
         elif keyword == 'index':
             return self._index(token[1:])
         elif keyword == 'serial':
-            return self._index(token[1:], 1)
+            return self._serial(token[1:])
         elif keyword == 'within':
             return self._within([' '.join(token[:3])] + token[3:], False)
         elif keyword == 'exwithin':
@@ -1359,7 +1359,7 @@ class Select(object):
         elif token == 'index':
             return self._index()    
         elif token == 'serial':
-            return self._index(None, 1)
+            return self._serial()
         elif self._ag.isAttribute(token):
             data = self._getAtomicData(token)
             if data.dtype.type in (np.float64, np.int64):
