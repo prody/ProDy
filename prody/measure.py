@@ -30,6 +30,7 @@ Functions
   * :func:`applyTransformation`
   * :func:`buildADPMatrix`
   * :func:`calcADPAxes`
+  * :func:`calcADPs`
   * :func:`calcDeformVector`
   * :func:`calcDistance`
   * :func:`calcRadiusOfGyration`
@@ -50,7 +51,7 @@ from prody import ProDyLogger as LOGGER
 
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
-           'buildADPMatrix', 'calcADPAxes', 
+           'buildADPMatrix', 'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 'superpose']
            
@@ -545,6 +546,33 @@ def calcADPAxes(atoms, **kwargs):
         axes = axes * torf
     return axes
         
+def calcADPs(atom):
+    """|new| Calculate anisotropic displacement parameters (ADPs) from 
+    anisotropic temperature factors (ATFs).
+    
+    .. versionadded:: 0.8
+    
+    *atom* must have ATF values set for ADP calculation. ADPs are returned
+    as a tuple, i.e. (eigenvalues, eigenvectors). 
+
+    """
+    
+    if linalg is None: 
+        prody.importLA()
+    if not isinstance(atom, prody.Atom):
+        raise TypeError('atom must be of type Atom, not {0:s}'.type(atom))
+    anisou = atom.getAnisoTempFactor()
+    if anisou is None:
+        raise ValueError('atom does not have anisotropic temperature factors')
+    element = np.zeros((3,3))
+    element[0,0] = anisou[0]
+    element[1,1] = anisou[1]
+    element[2,2] = anisou[2]
+    element[0,1] = element[1,0] = anisou[3]
+    element[0,2] = element[2,0] = anisou[4]
+    element[1,2] = element[2,1] = anisou[5]
+    vals, vecs = linalg.eigh(element)
+    return vals[[2,1,0]], vecs[:, [2,1,0]] 
    
 def buildADPMatrix(atoms):
     """Return a 3Nx3N symmetric matrix containing anisotropic displacement
