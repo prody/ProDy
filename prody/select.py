@@ -1596,13 +1596,13 @@ class Select(object):
                 torf[serials == item] = True
         return torf
     
-    def _index(self, token=None, add=0):
+    def _index(self, token=None):
         if DEBUG: print '_index', token
         if token is None:
             if self._indices is not None:
-                return self._indices + add
+                return self._indices
             else:
-                return np.arange(add, self._ag._n_atoms + add)
+                return np.arange(self._ag._n_atoms)
         torf = np.zeros(self._ag._n_atoms, np.bool)
         
         for item in self._getNumRange(token):
@@ -1611,15 +1611,15 @@ class Select(object):
                                      .format(item))
             elif isinstance(item, tuple):
                 if len(item) == 2:
-                    torf[item[0]-add:item[1]-add] = True
+                    torf[item[0]:item[1]] = True
                 else:
-                    torf[item[0]-add:item[1]-add:item[2]-add] = True
+                    torf[item[0]:item[1]:item[2]] = True
             elif isinstance(item, list):
-                torf[int(np.ceil(item[0]-add)):int(
-                                    np.floor(item[1]-add))+1] = True
+                torf[int(np.ceil(item[0])):int(
+                                    np.floor(item[1]))+1] = True
             else:
                 try:
-                    torf[int(item)-add] = True
+                    torf[item] = True
                 except IndexError:
                     pass
         if self._evalonly is not None:
