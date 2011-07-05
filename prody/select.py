@@ -63,8 +63,8 @@ resname          string           residue name
 chain [‡]        string           one-character chain identifier
 segment [‡]      string           segment name
 secondary [*‡]   string           one-character secondary structure identifier
-index            integer, range   atom number, starting at 0 
-serial           integer, range   atom number, starting at 1
+index            integer, range   atom index (starts from 0) 
+serial           integer, range   atom serial number (parsed from file)
 resnum [§]       integer, range   residue number
 resid [§]        integer, range   residue number
 x                float, range     x coordinate
@@ -1084,7 +1084,7 @@ class Select(object):
             return self._evalAlnum(keyword, token[1:])
         elif isFloatKeyword(keyword):
             return self._evalFloat(keyword, token[1:])
-        elif keyword in ('resnum', 'resid'):
+        elif keyword in ('resnum', 'resid', 'serial'):
             return self._resnum(token[1:])
         elif keyword == 'index':
             return self._index(token[1:])
@@ -1568,6 +1568,32 @@ class Select(object):
                         torf[resids == i] = True
             else:
                 torf[resids == item] = True
+        return torf
+
+    def _serial(self, token=None):
+        if DEBUG: print '_serial', token
+        if token is None:
+            return self._getAtomicData('serial') 
+        if self._evalonly is None:
+            serials = self._getAtomicData('serial')
+            n_atoms = self._n_atoms
+        else:
+            evalonly = self._evalonly
+            serials = self._getAtomicData('serial')[evalonly]
+            n_atoms = len(evalonly)
+        torf = np.zeros(n_atoms, np.bool)
+        
+        for item in self._getNumRange(token):
+            if isinstance(item, list):
+                torf[(item[0] <= serials) * (serials <= item[1])] = True
+            elif isinstance(item, tuple):
+                if len(item) == 2:
+                    torf[(item[0] <= serials) * (serials < item[1])] = True
+                else:
+                    for i in range(item[0], item[1], item[2]):
+                        torf[serials == i] = True
+            else:
+                torf[serials == item] = True
         return torf
     
     def _index(self, token=None, add=0):

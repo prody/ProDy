@@ -191,6 +191,7 @@ ATOMIC_DATA_FIELDS = {
     'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
     'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
                                                                                                  'AnisoStdDev', ndim=2),
+    'serial':    Field('serial',    'serials',     np.int64,   'atom serial number (from file)', 'SerialNumber'),
     'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
     'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode', hv=True),
     'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
