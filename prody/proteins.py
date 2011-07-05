@@ -230,7 +230,8 @@ class WWPDB_PDBFetcher(PDBFetcher):
         
         If a file matching the given PDB identifier is not found in *folder*,
         the PDB file will be sought in the local PDB mirror, if a local
-        mirror is set by the user.
+        mirror is set by the user. When PDB is found in local repository, 
+        the path to the file will be returned. 
         
         Finally, if PDB file is not found in *folder* or local mirror,
         it will be downloaded from the user-selected WWPDB FTP server.
@@ -562,6 +563,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
     anisou = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
     siguij = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
+    serials = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['serial'].dtype)
     asize = 2000
     
     onlycoords = False
@@ -656,6 +658,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                 i += 1
                 continue
             
+            serials[acount] = int(line[6:11])
             altlocs[acount] = alt 
             atomnames[acount] = atomname
             
@@ -713,6 +716,8 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                     np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
                 icodes = np.concatenate((icodes, 
                     np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
+                serials = np.concatenate((serials, 
+                    np.zeros(asize, ATOMIC_DATA_FIELDS['serial'].dtype)))
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
@@ -748,6 +753,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                 atomgroup.setSegmentNames(segnames[:acount])
                 atomgroup.setElementSymbols(elements[:acount])
                 atomgroup.setInsertionCodes(icodes[:acount])
+                atomgroup.setSerialNumbers(serials[:acount])
                 if is_scndry:
                     atomgroup.setSecondaryStrs(secondary[:acount])
                 if is_anisou:
@@ -811,6 +817,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
         atomgroup.setSegmentNames(segnames[:acount])
         atomgroup.setElementSymbols(elements[:acount])
         atomgroup.setInsertionCodes(icodes[:acount])
+        atomgroup.setSerialNumbers(serials[:acount])
         if is_scndry:
             atomgroup.setSecondaryStrs(secondary[:acount])
         if is_anisou:
