@@ -136,7 +136,7 @@ Number ranges can be passed as follows:
     or smaller or equal to 10
     
 
-|new| **More special characters (``)**
+**More special characters (``)**
 
 .. versionadded:: 0.7
    Strings can include the following characters (including whitespace) as well 
@@ -148,7 +148,7 @@ Number ranges can be passed as follows:
 
 For example ``"name `CA*` `C *`"`` will work.
 
-|new| **Regular expressions ("")**
+**Regular expressions ("")**
 
 .. versionadded:: 0.7
    Strings surrounded by double quotes ("") will be treated as regular 
@@ -334,7 +334,7 @@ coil            residue not in one of above conformations, same as ``"secondary 
    H is added to the list of backbone atoms.
 
 .. versionadded:: 0.7 
-   |new| New keywords are defined: ``lipid, heme, ion, buried, surface, at, 
+   New keywords are defined: ``lipid, heme, ion, buried, surface, at, 
    cg, purine, pyrimidine, carbon, nitrogen, oxygen, sulfur, extended, helix, 
    helix_pi, helix_3_10, turn, bridge, bend, coil`` 
 
@@ -473,7 +473,7 @@ tanh(x)  yperbolic tangent of x
     to 100  
 
 
-|new| Selection macros
+Selection macros
 -------------------------------------------------------------------------------
 
 .. versionadded:: 0.7
@@ -586,7 +586,7 @@ except KeyError:
     MACROS = {}
 
 def defSelectionMacro(name, selstr):
-    """|new| Define selection macro *selstr* with name *name*.
+    """Define selection macro *selstr* with name *name*.
     
     .. versionadded:: 0.7
     
@@ -621,7 +621,7 @@ def defSelectionMacro(name, selstr):
         prody._saveProDySettings()
 
 def delSelectionMacro(name):
-    """|new| Delete the macro *name*.
+    """Delete the macro *name*.
     
     .. versionadded:: 0.7
     
@@ -639,7 +639,7 @@ def delSelectionMacro(name):
         prody._saveProDySettings()
 
 def getSelectionMacro(name=None):
-    """|new| Return the definition of the macro *name*. 
+    """Return the definition of the macro *name*. 
         
     .. versionadded:: 0.7
     
@@ -712,7 +712,7 @@ def setKeywordResidueNames(keyword, resnames):
         raise ValueError('{0:s} is not a valid keyword'.format(keyword))
 
 def getAtomNameRegex(name):
-    """|new| Return regular expression used for selecting common elements.
+    """Return regular expression used for selecting common elements.
     
     .. versionadded:: 0.7
     
@@ -727,7 +727,7 @@ def getAtomNameRegex(name):
         LOGGER.warning('{0:s} is not a valid element'.format(keyword))
 
 def setAtomNameRegex(name, regex):
-    """|new| Set regular expression used for selecting common elements.
+    """Set regular expression used for selecting common elements.
     
     Note that changes in keyword definitions are not saved permanently.
     
