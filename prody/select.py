@@ -63,7 +63,7 @@ resname          string           residue name
 chain [‡]        string           one-character chain identifier
 segment [‡]      string           segment name
 secondary [*‡]   string           one-character secondary structure identifier
-index            integer, range   atom index (starts from 0) 
+index            integer, range   internal atom number (starts from 0) 
 serial           integer, range   atom serial number (parsed from file)
 resnum [§]       integer, range   residue number
 resid [§]        integer, range   residue number
@@ -214,7 +214,7 @@ KEYWORD_RESNAMES = {
     'protein': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
                 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
                 'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
-                'GLX', 'ASX', 'SEC', 'PYL', 'XLE'],
+                'GLX', 'ASX', 'SEC', 'PYL', 'XLE', 'CSO'],
     'nucleic': ['GUA', 'ADE', 'CYT', 'THY', 'URA', 'DA', 'DC', 'DG', 'DT', 
                 'A', 'C', 'G', 'T', 'U'],
 
