@@ -79,6 +79,8 @@ def addOutput(parser):
                       default=False, help='write square-fluctuations')
     parser.add_option('-v', '--covariance', dest='covar', action='store_true', 
                      default=False, help='write covariance matrix')
+    parser.add_option('-z', '--npz', dest='npz', action='store_true', 
+                     default=False, help='write compressed ProDy data file')
 
 def addNumericalOptions(parser, prefix):
     parser.add_option('-p', '--file-prefix', dest='prefix', type='string', 
@@ -228,6 +230,8 @@ graphical output files:
     anm.buildHessian(select, cutoff, gamma)
     anm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
+    if opt.npz:
+        saveModel(anm)
     writeNMD(os.path.join(outdir, prefix + '.nmd'), anm, select)
 
     outall = opt.all
@@ -420,6 +424,8 @@ save all of the graphical output files:
     gnm.buildKirchhoff(select, cutoff, gamma)
     gnm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
+    if opt.npz:
+        saveModel(gnm)
     writeNMD(os.path.join(outdir, prefix + '.nmd'), gnm, select)
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
@@ -638,8 +644,9 @@ and save all output and figure files:
     pca.performSVD(ensemble)
     #pca.buildCovariance(ensemble)
     #pca.calcModes(nmodes)
-    
     LOGGER.info('Writing numerical output.')
+    if opt.npz:
+        saveModel(pca)
     writeNMD(os.path.join(outdir, prefix + '.nmd'), pca[:nmodes], select)
 
     outall = opt.all
