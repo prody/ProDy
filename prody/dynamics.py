@@ -2905,7 +2905,7 @@ def sliceMode(mode, atoms, selstr):
     return (vec, sel)
 
 def sliceModel(model, atoms, selstr):
-    """|new| Return a slice of *model* matching *atoms* specified by *selstr*.
+    """Return a slice of *model* matching *atoms* specified by *selstr*.
     
     .. versionadded:: 0.7
 
@@ -3194,7 +3194,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
         
 def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
                       irow=0, icol=1, first=1):
-    """|new| Parse sparse matrix data from a file.
+    """Parse sparse matrix data from a file.
     
     .. versionadded:: 0.7
     
@@ -3590,7 +3590,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     return ensemble
   
 def deform(atoms, mode, rmsd=None):  
-    """|new| Generate a new coordinate set for *atoms* along the *mode*.
+    """Generate a new coordinate set for *atoms* along the *mode*.
     
     .. versionadded:: 0.7
     

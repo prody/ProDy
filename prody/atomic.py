@@ -67,7 +67,7 @@ of ProDy. The details of the selection grammar is described in
 
 .. versionadded:: 0.7.1
 
-|new| Using the flexibility of Python, atom selections are made much easier by
+Using the flexibility of Python, atom selections are made much easier by
 overriding the ``.`` operator i.e. the :meth:`__getattribute__` 
 method of :class:`Atomic` class. So the following will be interpreted
 as atom selections:
@@ -954,7 +954,7 @@ class AtomGroup(Atomic):
         return hv
     
     def getNumOfChains(self):
-        """|new| Return number of chains.
+        """Return number of chains.
         
         .. versionadded:: 0.7.1
         
@@ -963,7 +963,7 @@ class AtomGroup(Atomic):
         return self.getHierView().getNumOfChains()
     
     def iterChains(self):
-        """|new| Iterate over chains.
+        """Iterate over chains.
         
         .. versionadded:: 0.7.1
         
@@ -972,7 +972,7 @@ class AtomGroup(Atomic):
         return self.getHierView().iterChains()
     
     def getNumOfResidues(self):
-        """|new| Return number of chains.
+        """Return number of chains.
         
         .. versionadded:: 0.7.1
         
@@ -981,7 +981,7 @@ class AtomGroup(Atomic):
         return self.getHierView().getNumOfResidues()
 
     def iterResidues(self):
-        """|new| Iterate over residues.
+        """Iterate over residues.
         
         .. versionadded:: 0.7.1
         
@@ -990,7 +990,7 @@ class AtomGroup(Atomic):
         return self.getHierView().iterResidues()
 
     def setAttribute(self, name, data):
-        """|new| Set a new attribute called *name* holding atomic *data*.
+        """Set a new attribute called *name* holding atomic *data*.
         
         .. versionadded:: 0.7.1
         
@@ -1060,7 +1060,7 @@ class AtomGroup(Atomic):
     """.format('\n          * '.join(ATOMIC_DATA_FIELDS.keys()))
     
     def delAttribute(self, name):
-        """|new| Delete the attribute with given *name* and return the stored data.
+        """Delete the attribute with given *name* and return the stored data.
         
         .. versionadded:: 0.7.1
         
@@ -1071,7 +1071,7 @@ class AtomGroup(Atomic):
         return self._userdata.pop(name, None)
     
     def getAttribute(self, name):
-        """|new| Return a copy of the attribute *name*, if it exists.
+        """Return a copy of the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1083,7 +1083,7 @@ class AtomGroup(Atomic):
         return None
 
     def isAttribute(self, name):    
-        """|new| Return ``True`` if *name* is a user set attribute.
+        """Return ``True`` if *name* is a user set attribute.
         
         .. versionadded:: 0.7.1
         
@@ -1154,7 +1154,7 @@ class AtomPointer(Atomic):
                        np.concatenate(unmapped), name, acsi)
     
     def isAttribute(self, name):    
-        """|new| Return ``True`` if *name* is a user set attribute.
+        """Return ``True`` if *name* is a user set attribute.
         
         .. versionadded:: 0.7.1
         
@@ -1270,7 +1270,7 @@ class Atom(AtomPointer):
         return self._index
     
     def getAttribute(self, name):
-        """|new| Return the attribute *name*, if it exists.
+        """Return the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1280,7 +1280,7 @@ class Atom(AtomPointer):
             return self._ag._userdata[name][self._index]
     
     def setAttribute(self, name, data):
-        """|new| Set data for the attribute *name*.
+        """Set data for the attribute *name*.
         
         .. versionadded:: 0.7.1
         
@@ -1476,7 +1476,7 @@ class AtomSubset(AtomPointer):
                self.getSelectionString(), other.getSelectionString()), acsi)
                
     def getAttribute(self, name):
-        """|new| Return a copy of the attribute *name*, if it exists.
+        """Return a copy of the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1486,7 +1486,7 @@ class AtomSubset(AtomPointer):
             return self._ag._userdata[name][self._indices].copy()
     
     def setAttribute(self, name, data):
-        """|new| Set data for the attribute *name*.
+        """Set data for the attribute *name*.
         
         .. versionadded:: 0.7.1
         
@@ -2204,7 +2204,7 @@ class HierView(object):
 
 
 def saveAtoms(atoms, filename=None):
-    """|new| Save *atoms*  in ProDy internal format.
+    """Save *atoms* in ProDy internal format.
     
     All classes derived from :class:`Atomic` are accepted as *atoms* argument.
     
@@ -2244,7 +2244,7 @@ def saveAtoms(atoms, filename=None):
 
 
 def loadAtoms(filename):
-    """|new| Return :class:`AtomGroup` instance loaded from *filename*.
+    """Return :class:`AtomGroup` instance loaded from *filename*.
     
     .. versionadded:: 0.7.1
     
