@@ -121,9 +121,9 @@ def isBooleanKeyword(name):
 
 class Field(object):
     __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', 
-                 '_meth', '_meth_pl', '_ndim', '_hv')
+                 '_meth', '_meth_pl', '_ndim', '_toggle')
     def __init__(self, name, var, dtype, doc, meth, 
-                 doc_pl=None, meth_pl=None, ndim=1, hv=False):
+                 doc_pl=None, meth_pl=None, ndim=1, toggle=None):
         self._name = name
         self._var = var
         self._dtype = dtype
@@ -138,7 +138,7 @@ class Field(object):
             self._meth_pl = meth + 's'
         else:
             self._meth_pl = meth_pl
-        self._hv = hv
+        self._toggle = toggle
         
     def name(self):
         return self._name
@@ -172,28 +172,28 @@ class Field(object):
         return self._ndim
     ndim = property(ndim, 
         doc='Dimensionality of the NumPy array storing atomic data.')
-    def hv(self):
-        return self._hv
-    hv = property(hv, 
-        doc='True when the field is related to building hierarchical views.')
+    def toggle(self):
+        return self._toggle
+    toggle = property(toggle, 
+        doc='Toggle the value of the binary variable.')
 
 ATOMIC_DATA_FIELDS = {
     'name':      Field('name',      'names',       '|S6',      'atom name',                      'AtomName'),
     'altloc':    Field('altloc',    'altlocs',     '|S1',      'alternate location indicator',   'AltLocIndicator'),
     'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor', ndim=2),
-    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier', hv=True),
+    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier', toggle='hvupdate'),
     'element':   Field('element',   'elements',    '|S2',      'element symbol',                 'ElementSymbol'),
     'hetero':    Field('hetero',    'hetero',      np.bool,    'hetero flag',                    'HeteroFlag'),
     'occupancy': Field('occupancy', 'occupancies', np.float64, 'occupancy value',                'Occupancy',      meth_pl='Occupancies'),
     'resname':   Field('resname',   'resnames',    '|S6',      'residue name',                   'ResidueName'),
-    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber', hv=True),
+    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber', toggle='hvupdate'),
     'secondary': Field('secondary', 'secondary',   '|S1',      'secondary structure assignment', 'SecondaryStr'),
     'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
     'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
                                                                                                  'AnisoStdDev', ndim=2),
-    'serial':    Field('serial',    'serials',     np.int64,   'atom serial number (from file)', 'SerialNumber'),
+    'serial':    Field('serial',    'serials',     np.int64,   'atom serial number (from file)', 'SerialNumber',  toggle='sn2iupdate'),
     'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
-    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode', hv=True),
+    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode', toggle='hvupdate'),
     'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
     'charge':    Field('charge',    'charges',     np.float64, 'atomic partial charge',          'Charge'),
     'mass':      Field('mass',      'masses',      np.float64, 'atomic mass',                    'Mass', 'atomic masses', 'Masses'),
@@ -543,9 +543,9 @@ class AtomGroupMeta(type):
             getData.__name__ = field.meth_pl
             getData.__doc__ = 'Return a copy of {0:s}.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
-            if field.hv:
+            if field.toggle:
                 def setData(self, array, var=field.var, dtype=field.dtype, 
-                            ndim=field.ndim):
+                            ndim=field.ndim, toggle=field.toggle):
                     if self._n_atoms == 0:
                         self._n_atoms = len(array)
                     elif len(array) != self._n_atoms:
@@ -565,7 +565,7 @@ class AtomGroupMeta(type):
                             raise ValueError('array cannot be assigned type '
                                              '{0:s}'.format(dtype))
                     self.__dict__['_'+var] = array
-                    self._hvupdate = True
+                    self.__dict__['_'+toggle] = not self.__dict__['_'+toggle]
             else:
                 def setData(self, array, var=field.var, dtype=field.dtype, 
                             ndim=field.ndim):
@@ -640,6 +640,8 @@ class AtomGroup(Atomic):
         self._hv = None
         self._hvupdate = None
         self._userdata = {}
+        self._sn2i = None
+        self._sn2iupdate = None
         
         for field in ATOMIC_DATA_FIELDS.values():
             self.__dict__['_'+field.var] = None
@@ -712,6 +714,26 @@ class AtomGroup(Atomic):
             if this is not None and that is not None:
                 new.__dict__[var] = np.concatenate((this, that))
         return new
+
+    def _buildSN2I(self):
+        """Builds a mapping from serial numbers to atom indices."""
+        
+        serials = self._serials  
+        if serials is None:
+            raise AttributeError('atom serial numbers are not set')
+        if len(np.unique(serials)) != self._n_atoms:
+            raise ValueError('atom serial numbers must be unique')
+        if serials.min() < 0:
+            raise ValueError('atoms must not have negative serial numbers')
+        sn2i = -np.ones(serials.max() + 1)
+        sn2i[serials] = np.arange(self._n_atoms)
+        self._sn2i = sn2i
+        self._sn2iupdate = False
+
+    def _getSN2I(self):
+        if self._sn2i is None or self._sn2iupdate:
+            self._buildSN2I()
+        return self._sn2i
 
     def getName(self):
         """Return name of the atom group instance."""
@@ -1090,7 +1112,60 @@ class AtomGroup(Atomic):
         """
         
         return name in self._userdata
+  
+    def getBySerial(self, serial):
+        """|new| Get an atom by its *serial* number.
+        
+        .. versionadded:: 0.8
+        
+        """
+
+        sn2i = self._getSN2I()
+        if not isinstance(serial, int):
+            raise TypeError('serial must be an integer')
+        if serial < 0:
+            raise ValueError('serial must be greater than or equal to zero')
+        if serial < len(sn2i):
+            index = sn2i[serial]
+            if index != -1:
+                return Atom(self, index)
+
+    def getBySerialRange(self, start, stop, step=None):
+        """|new| Get atoms by a *serial* number range.
+        
+        .. versionadded:: 0.8
+        
+        *start* must be zero or a positive integer and *stop* must be an 
+        integer greater than *start*. ``getBySerialRange(i, j)`` will return
+        atoms whose serial numbers are i+1, i+2, ..., j-1. Atom with serial
+        number *stop* will be excluded as in indexing a Python :func:`list`.
+        When *step* (default is 1) is given, it specified increment.  
+        
+        """
+        
+        sn2i = self._getSN2I()
+        if not isinstance(start, int):
+            raise TypeError('start must be an integer')
+        if start < 0:
+            raise ValueError('start must be greater than or equal to zero')
     
+        if not isinstance(stop, int):
+            raise TypeError('stop must be an integer')
+        if stop <= start:
+            raise ValueError('stop must be greater than start')
+            
+        if step is None:
+            step = 1
+        else:
+            if not isinstance(step, int):
+                raise TypeError('step must be an integer')
+            if step < 1:
+                raise ValueError('step must be greater than zero')
+        
+        indices = sn2i[start:stop:step]
+        indices = indices[ indices > -1 ]
+        return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
+                                        .format(start, stop, step))                
     
 class AtomPointer(Atomic):
     """Base class for classes pointing to atom(s) in :class:`AtomGroup` 
@@ -1214,14 +1289,14 @@ class AtomMeta(type):
             getData.__name__ = field.meth
             getData.__doc__ = 'Return {0:s} of the atom.'.format(field.doc)
             setattr(cls, 'get'+field.meth, getData)
-            if field.hv:
-                def setData(self, value, var=field.var):
+            if field.toggle:
+                def setData(self, value, var=field.var, toggle=field.toggle):
                     array = self._ag.__dict__['_'+var]
                     if array is None:
                         raise AttributeError('attribute of the AtomGroup is not '
                                              'set')
                     array[self._index] = value
-                    self._ag._hvupdate = True
+                    self._ag.__dict__['_'+toggle] = not self._ag.__dict__['_'+toggle]
             else:
                 def setData(self, value, var=field.var):
                     array = self._ag.__dict__['_'+var]
@@ -1252,14 +1327,24 @@ class Atom(AtomPointer):
         self._index = int(index)
         
     def __repr__(self):
-        return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
+        sn = self.getSerialNumber()
+        if sn is None: 
+            return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
+                    'coordinate sets, active set index: {4:d})>').format(
+                    self.getAtomName(), self._ag.getName(), self._index,  
+                    self._ag.getNumOfCoordsets(), self._acsi)
+        return ('<Atom: {0:s} from {1:s} (index {2:d}; sn {5:d}; {3:d} '
                 'coordinate sets, active set index: {4:d})>').format(
                 self.getAtomName(), self._ag.getName(), self._index,  
-                self._ag.getNumOfCoordsets(), self._acsi)
+                self._ag.getNumOfCoordsets(), self._acsi, sn)
 
     def __str__(self):
-        return ('Atom {0:s} (index {1:d})').format(self.getAtomName(), 
-                                                   self._index)
+        sn = self.getSerialNumber()
+        if sn is None: 
+            return ('Atom {0:s} (index {1:d})').format(self.getAtomName(), 
+                                                       self._index)
+        return ('Atom {0:s} (index {1:d}; sn {2:d})').format(
+                                    self.getAtomName(), self._index, sn)
 
     def __len__(self):
         return 1
@@ -1355,20 +1440,19 @@ class AtomSubsetMeta(type):
             getData.__name__ = field.meth_pl
             getData.__doc__ = 'Return {0:s} of the atoms.'.format(field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
-            if field.hv:
-                def setData(self, value, var=field.var):
+            if field.toggle:
+                def setData(self, value, var=field.var, toggle=field.toggle):
                     array = self._ag.__dict__['_'+var]
                     if array is None:
                         raise AttributeError('attribute of the AtomGroup is not set')
                     array[self._indices] = value
-                    self._ag._hvupdate = True
+                    self._ag.__dict__['_'+toggle] = not self._ag.__dict__['_'+toggle]
             else:
                 def setData(self, value, var=field.var):
                     array = self._ag.__dict__['_'+var]
                     if array is None:
                         raise AttributeError('attribute of the AtomGroup is not set')
                     array[self._indices] = value
-                    self._ag._hvupdate = True
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
             setData.__doc__ = 'Set {0:s} of the atoms.'.format(field.doc_pl)  
