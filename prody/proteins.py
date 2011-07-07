@@ -22,8 +22,6 @@ and write PDB files, and also to blast search
 Classes
 -------
 
-  * :class:`PDBFetcher`
-  * :class:`WWPDB_PDBFetcher`
   * :class:`PDBBlastRecord`
 
 Functions
@@ -64,6 +62,7 @@ import gzip
 import os.path
 import time
 import os
+import shutil
 from glob import glob
 from collections import defaultdict
 
@@ -76,7 +75,7 @@ from prody import ProDyLogger as LOGGER
 from prody.atomic import *
 
 
-__all__ = ['PDBBlastRecord', 'PDBFetcher', 'WWPDB_PDBFetcher', 
+__all__ = ['PDBBlastRecord', 
            'assignSecondaryStructure',
            'applyBiomolecularTransformations',
            'blastPDB', 'fetchPDB', 
@@ -106,16 +105,6 @@ def _makePath(path):
                               'specify another path'.format(path))
                 return os.getcwd()
     return os.path.join(os.getcwd(), path)
-
-
-class PDBFetcher(object):
-    """Base class for PDB fetcher classes."""
-    
-    
-    @staticmethod
-    def fetch(pdb, folder='.'):
-        """Fetch and save PDB file(s) into *folder*."""
-        pass
 
 
 _pdb_extensions = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ent.gz'])
@@ -209,165 +198,194 @@ def getWWPDBFTPServer():
     else:
         return server
 
-class WWPDB_PDBFetcher(PDBFetcher):
-    """A class to fetch PDB files from selected FTP server of RCSB.
+def fetchPDB(pdb, folder='.', compressed=True, copy=False):
+    """Return the path(s) to PDB file(s) for specified identifier(s).
+
+    *pdb* may be a list of PDB identifiers or an identifier string.
+
+    .. versionchanged:: 0.8
+       *compressed* and *copy* argument is introduced.  
     
-    .. versionchanged:: 0.6.1
-       First tries to locate the PDB file in a local PDB mirror, if set by the 
-       user. Then downloads PDB files from the user-set WWPDB FTP server. 
+    If *folder* already contains a PDB file matching given identifier, a 
+    file will not be downloaded and the path to the existing file
+    will be returned.
     
+    If a file matching the given PDB identifier is not found in *folder*,
+    the PDB file will be sought in the local PDB mirror, if a local
+    mirror is set by the user. When PDB is found in local repository, 
+    the path to the file will be returned. 
+    
+    Finally, if PDB file is not found in *folder* or local mirror,
+    it will be downloaded from the user-selected WWPDB FTP server.
+    User can set one of the WWPDB FTP servers using :func:`setWWPDBFTPServer`. 
+    Downloaded files will be saved in *folder*. FTP servers provides gunzipped 
+    PDB files.
+    
+    If *compressed* argument is set to ``False``, downloaded files will be 
+    decompressed. When a compressed file is found in the *folder*, it will
+    not be decompressed.
+    
+    For PDB files found in a local mirror of PDB, setting *copy* ``True`` will
+    copy them from the mirror to the user specified *folder*.  
+        
     """
     
-    @staticmethod
-    def fetch(pdb, folder='.'):
-        """Return the path(s) to PDB file(s) for specified identifier(s).
+    if isinstance(pdb, str):
+        identifiers = [pdb]
+    elif isinstance(pdb, list):
+        identifiers = pdb
+    else:
+        raise TypeError('pdb may be a string or a list of strings')
+        
+        
+    if folder != '.':
+        folder = _makePath(folder)
+    if not os.access(folder, os.W_OK):
+        raise IOError('permission to write in {0:s} is denied, please '
+                      'specify another folder'.format(folder))
+    
+    filenames = []
+    exists = 0
+    success = 0
+    failure = 0
+    download = False
 
-        *pdb* may be a list of PDB identifiers or an identifier string.
-        
-        If *folder* already contains a PDB file matching given identifier, a 
-        file will not be downloaded and the path to the existing file
-        will be returned.
-        
-        If a file matching the given PDB identifier is not found in *folder*,
-        the PDB file will be sought in the local PDB mirror, if a local
-        mirror is set by the user. When PDB is found in local repository, 
-        the path to the file will be returned. 
-        
-        Finally, if PDB file is not found in *folder* or local mirror,
-        it will be downloaded from the user-selected WWPDB FTP server.
-        User can set one of the WWPDB FTP servers using 
-        :func:`setWWPDBFTPServer`. Downloaded files will be saved in *folder*. 
-        FTP servers provides gunzipped PDB files. 
-            
-        """
-        
-        if isinstance(pdb, str):
-            identifiers = [pdb]
-        elif isinstance(pdb, list):
-            identifiers = pdb
+    pdbfnmap = {}
+    for pdbfn in glob(os.path.join(folder, '*.pdb*')): 
+        if os.path.splitext(pdbfn)[1] in _pdb_extensions:
+            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+    for pdbfn in glob(os.path.join(folder, '*.PDB*')):
+        if os.path.splitext(pdbfn)[1] in _pdb_extensions:
+            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+                
+    mirror_path = getPDBMirrorPath()
+    for i, pdbid in enumerate(identifiers):
+        if not isinstance(pdbid, str):
+            LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
+            filenames.append(None)
+            failure += 1 
+            continue
+        pdbid = pdbid.strip().lower()
+        if not (len(pdbid) == 4 and pdbid.isalnum()):
+            LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
+            filenames.append(None)
+            failure += 1 
+            continue
+        identifiers[i] = pdbid
+        try:
+            fn = pdbfnmap[pdbid]
+        except KeyError:
+            pass
         else:
-            raise TypeError('pdb may be a string or a list of strings')
-            
-            
-        if folder != '.':
-            folder = _makePath(folder)
-        if not os.access(folder, os.W_OK):
-            raise IOError('permission to write in {0:s} is denied, please '
-                          'specify another folder'.format(folder))
-        
-        filenames = []
-        exists = 0
-        success = 0
-        failure = 0
-        download = False
-
-        pdbfnmap = {}
-        for pdbfn in glob(os.path.join(folder, '*.pdb*')): 
-            if os.path.splitext(pdbfn)[1] in _pdb_extensions:
-                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-        for pdbfn in glob(os.path.join(folder, '*.PDB*')):
-            if os.path.splitext(pdbfn)[1] in _pdb_extensions:
-                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-                    
-        mirror_path = getPDBMirrorPath()
-        for i, pdbid in enumerate(identifiers):
-            if not isinstance(pdbid, str):
-                LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
-                filenames.append(None)
-                failure += 1 
-                continue
-            pdbid = pdbid.strip().lower()
-            if not (len(pdbid) == 4 and pdbid.isalnum()):
-                LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
-                filenames.append(None)
-                failure += 1 
-                continue
-            identifiers[i] = pdbid
-            try:
-                fn = pdbfnmap[pdbid]
-            except KeyError:
-                pass
-            else:
-                fn = os.path.relpath(fn)
-                filenames.append(fn)
-                LOGGER.debug('{0:s} ({1:s}) is found in the working directory.'
-                             .format(pdbid, fn))
-                exists += 1
-                continue
-            if mirror_path is not None:
-                fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
-                        pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
-                if os.path.isfile(fn):
+            fn = os.path.relpath(fn)
+            filenames.append(fn)
+            LOGGER.debug('{0:s} ({1:s}) is found in the working directory.'
+                         .format(pdbid, fn))
+            exists += 1
+            continue
+        if mirror_path is not None:
+            fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
+                    pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
+            if os.path.isfile(fn):
+                if copy:
+                    if compressed:
+                        filename = os.path.join(folder, pdbid + '.pdb.gz')
+                        shutil.copy(fn, filename)
+                    else:
+                        filename = os.path.join(folder, pdbid + '.pdb')
+                        gunzip(fn, filename)
+                    filenames.append(filename)
+                    LOGGER.debug('{0:s} copied from local mirror ({1:s})'
+                                 .format(pdbid, filename))
+                    success += 1
+                else:
                     filenames.append(fn)
+                    
                     LOGGER.debug('{0:s} ({1:s}...{2:s}) is found in the local '
                                 'mirror.'.format(pdbid, 
                                 fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
                     exists += 1
-                    continue
-            filenames.append(pdbid)
-            download = True
-        if download:
-            from ftplib import FTP
-            ftp_name, ftp_host, ftp_path = getWWPDBFTPServer()
-            LOGGER.debug('Connecting WWPDB FTP server {0:s}.'.format(ftp_name))
-            try:
-                ftp = FTP(ftp_host)
-            except Exception as error:
-                raise type(error)('FTP connection problem, potential reason: '
-                                  'no internet connectivity')
-            else:
-                ftp.login('')
-                for i, pdbid in enumerate(identifiers):
-                    if pdbid != filenames[i]:
-                        continue
-                    filename = os.path.join(folder, pdbid + '.pdb.gz')
-                    pdbfile = open(filename, 'w+b')
-                    try:
-                        ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
-                        ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
-                                       pdbfile.write)
-                    except Exception as error:
-                        pdbfile.close()
-                        os.remove(filename)
-                        if 'pdb{0:s}.ent.gz'.format(pdbid) in ftp.nlst():
-                            LOGGER.debug('{0:s} download failed ({1:s}). It '
-                                         'is possible that you don\'t have '
-                                         'rights to download .gz files in the '
-                                         'current network.'.format(pdbid, 
-                                         str(error)))
-                        else:
-                            LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.'
-                                         'gz does not exist on ftp.wwpdb.org.'
-                                         .format(pdbid))
-                        failure += 1
-                        filenames[i] = None 
-                    else:
-                        pdbfile.close()
-                        filename = os.path.relpath(filename)
-                        LOGGER.debug('{0:s} downloaded ({1:s})'
-                                     .format(pdbid, filename))
-                        success += 1
-                        filenames[i] = filename
-                ftp.quit()
-        if len(identifiers) == 1:
-            return filenames[0]    
+                continue
+        filenames.append(pdbid)
+        download = True
+    if download:
+        from ftplib import FTP
+        ftp_name, ftp_host, ftp_path = getWWPDBFTPServer()
+        LOGGER.debug('Connecting WWPDB FTP server {0:s}.'.format(ftp_name))
+        try:
+            ftp = FTP(ftp_host)
+        except Exception as error:
+            raise type(error)('FTP connection problem, potential reason: '
+                              'no internet connectivity')
         else:
-            LOGGER.info('PDB download completed ({2:d} found, '
-                        '{0:d} downloaded, {1:d} failed).'
-                        .format(success, failure, exists))
-            return filenames
- 
-def fetchPDB(pdb, folder='.', fetcher=None):
-    """Fetch PDB files using default PDB fetcher class.
+            ftp.login('')
+            for i, pdbid in enumerate(identifiers):
+                if pdbid != filenames[i]:
+                    continue
+                if compressed:
+                    filename = os.path.join(folder, pdbid + '.pdb.gz')
+                else:
+                    filename = os.path.join(folder, pdbid + '.pdb')
+                pdbfile = open(filename, 'w+b')
+                try:
+                    ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
+                    ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
+                                   pdbfile.write)
+                except Exception as error:
+                    pdbfile.close()
+                    os.remove(filename)
+                    if 'pdb{0:s}.ent.gz'.format(pdbid) in ftp.nlst():
+                        LOGGER.debug('{0:s} download failed ({1:s}). It '
+                                     'is possible that you don\'t have '
+                                     'rights to download .gz files in the '
+                                     'current network.'.format(pdbid, 
+                                     str(error)))
+                    else:
+                        LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.'
+                                     'gz does not exist on ftp.wwpdb.org.'
+                                     .format(pdbid))
+                    failure += 1
+                    filenames[i] = None 
+                else:
+                    pdbfile.close()
+                    if compressed:
+                        gunzip(pdbfile)
+                    filename = os.path.relpath(filename)
+                    LOGGER.debug('{0:s} downloaded ({1:s})'
+                                 .format(pdbid, filename))
+                    success += 1
+                    filenames[i] = filename
+            ftp.quit()
+    if len(identifiers) == 1:
+        return filenames[0]    
+    else:
+        LOGGER.info('PDB download completed ({2:d} found, '
+                    '{0:d} downloaded, {1:d} failed).'
+                    .format(success, failure, exists))
+        return filenames
+
+def gunzip(filename, outname=None):
+    """Decompresses *filename* and saves as *outname*. 
     
-    If *fetcher* is ``None``, default fetcher will be used. Default fetcher 
-    is :class:`WWPDB_PDBFetcher`.
+    When *outname* is ``None``, *filename* is used as the output name.
+    
+    Returns output filename upon successful completion.
     
     """
-    if fetcher is None:
-        return WWPDB_PDBFetcher.fetch(pdb, folder)
-    else:
-        return fetcher.fetch(pdb, folder)
+    
+    if not isinstance(filename, str):
+        raise TypeError('filename must be a string')
+    if not os.path.isfile(filename):
+        raise ValueError('{0:s} does not exist'.format(filename))
+    if outname is None: 
+        outname = filename
+    inp = gzip.open(filename, 'rb')
+    data = inp.read()
+    inp.close()
+    out = open(outname, 'w')
+    out.write(data)
+    out.close()
+    return outname
 
 _parsePDBdoc = """
     :arg model: model index or None (read all models), 

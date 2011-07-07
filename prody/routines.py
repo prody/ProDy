@@ -968,6 +968,8 @@ Download PDB files specified by their identifiers.
     parser.add_option('-f', '--file', dest="listfn", type='string', 
                       default='', metavar='FILE', 
                       help='file that contains PDB identifiers')
+    parser.add_option('-z', '--gzip', dest='gzip', action='store_true', 
+                     default=False, help='write compressed PDB file')
     usage_examples="""
 Fetch PDB files for given identifiers:
     
@@ -1001,7 +1003,7 @@ Fetch PDB files for given identifiers:
                     if len(pdb) == 4: pdblist.append(pdb)
         f.close()
     
-    pdblist2 = fetchPDB(pdblist, folder)
+    pdblist2 = fetchPDB(pdblist, folder, compressed=opt.gzip, copy=True)
     
 def pdbselect():
     """Write selected atoms from a PDB file in PDB format."""
