@@ -1327,6 +1327,10 @@ class Atom(AtomPointer):
         self._index = int(index)
         
     def __repr__(self):
+        return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
+                'coordinate sets, active set index: {4:d})>').format(
+                self.getAtomName(), self._ag.getName(), self._index,  
+                self._ag.getNumOfCoordsets(), self._acsi)
         sn = self.getSerialNumber()
         if sn is None: 
             return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
@@ -1339,6 +1343,8 @@ class Atom(AtomPointer):
                 self._ag.getNumOfCoordsets(), self._acsi, sn)
 
     def __str__(self):
+        return ('Atom {0:s} (index {1:d})').format(self.getAtomName(), 
+                                                   self._index)
         sn = self.getSerialNumber()
         if sn is None: 
             return ('Atom {0:s} (index {1:d})').format(self.getAtomName(), 

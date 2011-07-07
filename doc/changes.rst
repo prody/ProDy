@@ -11,15 +11,39 @@ Release 0.8.0 (in development)
 
 **New Features**:
 
+  * :func:`~proteins.parsePDB` function parses atom serial numbers. Atoms
+    can be retrieved from an :class:`~atomic.AtomGroup` instance by their
+    serial numbers using :meth:`~atomic.AtomGroup.getBySerial` and
+    :meth:`~atomic.AtomGroup.getBySerialRange` methods. 
+    
+  * :func:`~measure.calcADPs` function can be used to calculate anisotropic
+    displacement parameters for atoms with anisotropic temperature factor
+    data.
 
 **Improvements**:
+
+  * ANM, GNM, and PCA routines can optionally write compressed ProDy data files.
+  
+  * :func:`~proteins.fetchPDB` function can optionally write decompressed 
+    files and force copying a file from local mirror to target folder.
 
 
 **Changes**:
 
+  * :class:`~ensemble.Ensemble` does not store conformation names. Instead, 
+    newly implemented :class:`~ensemble.PDBEnsemble` class stores identifiers 
+    for individual conformations (PDB IDs). This class should be used in cases 
+    where source of individual conformations is important.
+    
+  * Oxidized cysteine residue abbreviation ``CSO`` is added to the definition
+    of ``protein`` keyword.
 
 **Bug Fixes**:
-
+  
+  * Various bugfixes in :mod:`ensemble` module.
+  
+  * Problem in :file:`fetchpdb.py` that occurred when a file is found in a
+    local mirror is fixed.
 
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
@@ -28,6 +52,11 @@ Release 0.8.0 (in development)
 
   * NMWiz can be used to compare two structures by calculatint and depicting
     structural changes.
+
+**Improvements**:
+
+  * NMWiz writes DCD format trajectories for PCA using ProDy. This provides
+    significantly speeds up analysis in cases when IO rate is the bottleneck.
 
 **Changes**:
 

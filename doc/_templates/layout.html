@@ -72,6 +72,7 @@ function checkFontSize() {
   })();
  
 </script> 
+<script type="text/javascript" src="https://apis.google.com/js/plusone.js"></script>
 {% endblock %}
 
 {% block rootrellink %}
@@ -98,4 +99,8 @@ if (document.URL.search("\/plugins\/") > -1) {
   logo.src = "{{ pathto("_static/nmwiz.png", 1) }}";
 }
 </script>
+{% endblock %}
+{% block document %}
+<div style="float: right; margin-top: 10px"><g:plusone size="medium"></g:plusone></div>
+{{ super() }}
 {% endblock %}
