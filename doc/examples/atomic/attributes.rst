@@ -3,7 +3,7 @@
 .. _attributes:
 
 *******************************************************************************
-|new| Storing data in AtomGroup instances
+Storing data in AtomGroup instances
 *******************************************************************************
 
 Synopsis

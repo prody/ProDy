@@ -2,6 +2,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
 
+import time
 from datetime import datetime
 import xmlrpclib
 
@@ -30,7 +31,7 @@ for release in releases:
         date.strftime('%B %e, %Y'), 
         downloads))
     
-stats.write('Total; ;{0:d}\n'.format(downloads_total))
+stats.write('Total;{0:s};{1:d}\n'.format(time.strftime('%B %e, %y'), downloads_total))
 stats.close()
 
 

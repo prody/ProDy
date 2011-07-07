@@ -27,11 +27,11 @@ Using ProDy
 
 #. | |pdf|__
      `ProDy: Protein Dynamics Inferred from Theory and Experiments  
-     <http://bioinformatics.oxfordjournals.org/content/early/2011/04/05/bioinformatics.btr168.abstract>`_
+     <http://bioinformatics.oxfordjournals.org/content/27/11/1575>`_
    | Bakan A, Meireles LM, Bahar I
    | **2011** *Bioinformatics* doi: 10.1093/bioinformatics/btr168
 
-   __ http://bioinformatics.oxfordjournals.org/content/early/2011/04/05/bioinformatics.btr168.full.pdf
+   __ http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf
 
 Servers
 ===============================================================================
