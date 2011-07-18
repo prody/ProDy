@@ -4387,7 +4387,7 @@ orange3"
             -state disabled -disabledbackground white -disabledforeground black
           label $wam.scale_frame.angstrom -text "A"
           label $wam.scale_frame.product -text "x"
-          button $wam.scale_frame.negate -text "+/-" -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::drawAction"  
+          button $wam.scale_frame.negate -text "+/-" -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::autoUpdate"  
           entry $wam.scale_frame.entry -width 4 -textvariable ${ns}::scalearrows
           pack $wam.scale_frame.length $wam.scale_frame.angstrom \
             $wam.scale_frame.product \
@@ -4854,4 +4854,4 @@ proc nmwiz_load {filename} {
   ::nmwiz::loadNMD $filename
 } 
 
-nmwiz_tk
+#nmwiz_tk
