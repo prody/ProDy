@@ -2624,9 +2624,9 @@ def calcProjection(ensemble, modes):
     
     """
     
-    if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble, not {0:s}'
-                        .format(type(ensemble)))
+    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation)):
+        raise TypeError('ensemble must be an Ensemble or a Conformation, '
+                        'not {0:s}'.format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
@@ -3980,9 +3980,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     
     if plt is None: prody.importPyPlot()
     if not plt: return None
-    if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble, not {0:s}'
-                        .format(type(ensemble)))
+    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation)):
+        raise TypeError('ensemble must be an Ensemble or a Conformation, '
+                        'not {0:s}'.format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
@@ -4071,9 +4071,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     """
     if plt is None: prody.importPyPlot()
     if not plt: return None
-    if not isinstance(ensemble, prody.Ensemble):
-        raise TypeError('ensemble must be an Ensemble, not {0:s}'
-                        .format(type(ensemble)))
+    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation)):
+        raise TypeError('ensemble must be an Ensemble or a Conformation, '
+                        'not {0:s}'.format(type(ensemble)))
     if not isinstance(mode_x, VectorBase):
         raise TypeError('mode_x must be a Mode instance, not {0:s}'
                         .format(type(mode_x)))
