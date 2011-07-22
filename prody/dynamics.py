@@ -2610,10 +2610,14 @@ def calcCollectivity(mode, masses=None):
     return coll
     
 
-def calcProjection(ensemble, modes):
+def calcProjection(ensemble, modes, rmsd=False):
     """Return projection of conformational deviations onto given modes.
 
-    For K conformations and M modes, a (K,M) matrix is returned.     
+    For K conformations and M modes, a (K,M) matrix is returned.
+    
+    .. versionadded:: 0.8
+       *rmsd* argument, when set ``True``, root-mean-square deviation (RMSD)
+       along the normal mode is calculated. 
     
     >>> calcProjection(p38_ensemble, p38_pca[:3]) # doctest: +SKIP
     array([[ 11.41 ,   2.651,   1.116],
@@ -2640,7 +2644,11 @@ def calcProjection(ensemble, modes):
                                          deviations.shape[1] * 3))
     else:
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
-    return np.dot(deviations, modes.getArray())
+    projection = np.dot(deviations, modes.getArray())
+    if rmsd:
+        projection = np.sign(projection) * ((projection ** 2) / 
+                                             ensemble.getNumOfAtoms()) ** 0.5
+    return projection
 
 
 def calcOverlap(rows, cols):
@@ -3940,16 +3948,23 @@ def showCumFractOfVariances(modes, *args, **kwargs):
     return show
 
 def showProjection(ensemble, modes, *args, **kwargs):
-    """Show projection of conformational deviations onto given modes.
+    """Show a projection of conformational deviations onto up to three normal 
+    modes from the same model.
     
     :arg ensemble: a :class:`~prody.ensemble.Ensemble` instance
+    :arg modes: a :class:`Mode`, :class:`ModeSet`, or :class:`NMABase` instance
+    
+    .. versionadded:: 0.8
+       To scale the projected values by number of atoms, pass ``rmsd=True``.
+       This will calculate and display the RMSD values, which is more
+       accustomed metric in structural comparisons. 
     
     Matplotlib function used for plotting depends on the number of modes:
         
       * 1 mode: :func:`~matplotlib.pyplot.hist`
       * 2 modes: :func:`~matplotlib.pyplot.plot`
       * 3 modes: :meth:`mpl_toolkits.mplot3d.Axes3D.plot`
-      
+          
     By default ``marker='o', ls='None'`` is passed to the plotting function 
     to disable lines in projections onto 2 or 3-d spaces.
     
@@ -3988,11 +4003,12 @@ def showProjection(ensemble, modes, *args, **kwargs):
                         .format(type(modes)))
     if not modes.is3d(): 
         raise Exception('modes must be 3-dimensional')
+    
     if isinstance(modes, Mode) or (isinstance(modes, (ModeSet, NMABase)) and 
                                    len(modes)==1):
         if not isinstance(modes, Mode):
             modes = modes[0]
-        projection = calcProjection(ensemble, modes)
+        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', False))
         show = plt.hist(projection.flatten(), *args, **kwargs)
         plt.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
         plt.ylabel('Number of conformations')
@@ -4001,7 +4017,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['ls'] = 'None'
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
-        projection = calcProjection(ensemble, modes)
+        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', False))
         show = plt.plot(projection[:,0], projection[:,1], *args, **kwargs)
         modes = [m for m in modes]
         plt.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
@@ -4011,7 +4027,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['ls'] = 'None'
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
-        projection = calcProjection(ensemble, modes)
+        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', False)) 
         modes = [m for m in modes]
         cf = plt.gcf()
         show = None
@@ -4034,10 +4050,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
 def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
                         *args, **kwargs):
-    """Show projection of conformational deviations using 
-    :func:`~matplotlib.pyplot.plot`.
+    """Show a projection of conformational deviations onto modes from
+    different models using :func:`~matplotlib.pyplot.plot`.
     
-    This function is differs from :func:`showProjection` by accepting modes
+    This function differs from :func:`showProjection` by accepting modes
     from two different models.
     
     :arg ensemble: Ensemble for which deviations will be projected
@@ -4049,6 +4065,11 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     :arg scale: Scale width of the projection onto one of modes. 
                 ``x`` and ``y`` are accepted.
     :type scale: str
+    
+    .. versionadded:: 0.8
+       To scale the projected values by number of atoms, pass ``rmsd=True``.
+       This will calculate and display the RMSD values, which is more
+       accustomed metric in structural comparisons. 
     
     By default ``marker='o', ls='None'`` is passed to the plotting function 
     to disable lines.
@@ -4084,9 +4105,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                         .format(type(mode_y)))
     if not mode_y.is3d():
         raise ValueError('mode_y must be 3-dimensional')
-    
-    xcoords = calcProjection(ensemble, mode_x) 
-    ycoords = calcProjection(ensemble, mode_y)
+    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', False)) 
+    ycoords = calcProjection(ensemble, mode_y, kwargs.pop('rmsd', False))
     if isinstance(scale, str) and scale.lower() in ('x', 'y'):
         if scalar is not None:
             scalar = float(scalar)
