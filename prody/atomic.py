@@ -1263,14 +1263,9 @@ class AtomPointer(Atomic):
         self._acsi = index
         
     def copy(self, selstr=None):
-        """Make a copy of atoms.
+        """Make a copy of atoms."""
         
-        .. versionchanged:: A selection string can be passed to copy select
-           atoms from the atom pointer.
-        
-        """
-        
-        if which is None:
+        if selstr is None:
             return self._ag.copy(self)
         elif isinstance(selstr, str):
             return self._ag.copy(self.select(selstr))
