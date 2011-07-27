@@ -560,7 +560,7 @@ class AtomGroupMeta(type):
                                              .format(ndim))
                     elif array.dtype != dtype:
                         try:
-                            array.astype(dtype)
+                            array = array.astype(dtype)
                         except ValueError:
                             raise ValueError('array cannot be assigned type '
                                              '{0:s}'.format(dtype))
@@ -583,7 +583,7 @@ class AtomGroupMeta(type):
                                              .format(ndim))
                     elif array.dtype != dtype:
                         try:
-                            array.astype(dtype)
+                            array = array.astype(dtype)
                         except ValueError:
                             raise ValueError('array cannot be assigned type '
                                              '{0:s}'.format(dtype))
@@ -784,7 +784,7 @@ class AtomGroup(Atomic):
         float64 = np.float64
         if coordinates.dtype != float64:
             try:
-                coordinates.astype(float64)
+                coordinates = coordinates.astype(float64)
             except ValueError:
                 raise ValueError('coordinate array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
@@ -836,7 +836,7 @@ class AtomGroup(Atomic):
                              'n_atoms, 3)')
         elif coords.dtype != np.float64:
             try:
-                coords.astype(np.float64)
+                coords = coords.astype(np.float64)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))

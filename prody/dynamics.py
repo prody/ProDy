@@ -1267,7 +1267,7 @@ class GNM(GNMBase):
             raise ValueError('shape of coords must be (n_atoms,3)')
         elif coords.dtype != np.float64:
             try:
-                coords.astype(np.float64)
+                coords = coords.astype(np.float64)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
@@ -1493,7 +1493,7 @@ class ANM(GNMBase):
             raise ValueError('shape of coords must be (n_atoms,3)')
         elif coords.dtype != np.float64:
             try:
-                coords.astype(np.float64)
+                coords = coords.astype(np.float64)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
