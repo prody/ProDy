@@ -22,6 +22,10 @@ Release 0.8.0 (in development)
 
 **Improvements**:
 
+  * :func:`~dynamics.calcProjection`, :func:`~dynamics.showProjection`, and 
+    :func:`~dynamics.showCrossProjection` function can optionally calculate/
+    display RMSD along the normal mode. 
+  
   * ANM, GNM, and PCA routines can optionally write compressed ProDy data files.
   
   * :func:`~proteins.fetchPDB` function can optionally write decompressed 

@@ -38,15 +38,15 @@ We use 1joy that contains 21 models homodimeric domain of EnvZ protein
 from E. coli.
 
 >>> pdb = parsePDB('1joy')
->>> print pdb.getNumOfCoordsets()
+>>> print( pdb.getNumOfCoordsets() )
 21
 
 Calculate RMSD
 -------------------------------------------------------------------------------
    
 >>> rmsds = calcRMSD( pdb )
->>> rmsds.mean() # doctest: +SKIP
-37.5069116784
+>>> print( rmsds.mean().round(2) )
+37.51
 
 This function calculates RMSDs with respect to the active coordinate set,
 which is the first model in this case.
@@ -67,8 +67,8 @@ Coordinate sets are superposed onto the first model (the active coordinate
 set).
    
 >>> rmsds = calcRMSD( pdb )
->>> rmsds.mean() # doctest: +SKIP
-3.27689121518
+>>> print( rmsds.mean().round(2) )
+3.28
 
 Write aligned coordinates
 -------------------------------------------------------------------------------

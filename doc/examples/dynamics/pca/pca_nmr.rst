@@ -108,13 +108,11 @@ Print data
 Let's print fraction of variance for top raking 4 PCs (listed in the Table S3):
 
 >>> for mode in pca[:4]:
-...     print mode.getFractOfVariance() # doctest: +SKIP
-0.133691677009
-0.0942276000043
-0.0833640062736
-0.0654647139302
-
-
+...     print mode.getFractOfVariance().round(3) # doctest: +ELLIPSIS
+0.134
+0.094
+0.083
+0.065
 
 Compare with ANM results
 -------------------------------------------------------------------------------

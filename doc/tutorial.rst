@@ -142,14 +142,12 @@ The above shows that atom group object contains 2962 atoms.
 All atomic data from this object can be retrieved using ``get`` methods. 
 For example:
 
->>> print prot.getResidueNames()
+>>> print( prot.getResidueNames() )
 ['GLU' 'GLU' 'GLU' ..., 'HOH' 'HOH' 'HOH']
->>> print prot.getCoordinates() # doctest: +SKIP
+>>> print( prot.getCoordinates() ) # doctest: +ELLIPSIS
 [[ 28.492   3.212  23.465]
  [ 27.552   4.354  23.629]
- [ 26.545   4.432  22.489]
- ..., 
- [ 18.872   8.33   36.716]
+ ...
  [-22.062  21.632  42.029]
  [  1.323  30.027  65.103]]
  
@@ -223,7 +221,7 @@ instance. Note that all ``get`` and ``set`` methods defined for
 the :class:`~atomic.AtomGroup` class are also defined for 
 :class:`~atomic.Selection` class. For example:
 
->>> print protein.getResidueNames()
+>>> print( protein.getResidueNames() )
 ['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
 
 *Select atoms by* "name":
@@ -260,7 +258,7 @@ Let's try a more sophisticated selection. We first calculate the geometric
 center of the protein atoms. Then, we select the Cα and Cβ atoms of residues 
 that have at least one atom within 10 Å away from the geometric center.
 
->>> print protein.getCoordinates().mean(0) # doctest: +SKIP
+>>> print( protein.getCoordinates().mean(0) ) # doctest: +ELLIPSIS
 [  1.005  17.533  40.052]
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
@@ -314,9 +312,9 @@ We can use this view to access chains or residues:
 
 We can also iterate over chains and residues:
 
->>> for chain in hv: print chain
+>>> for chain in hv: print( chain )
 Chain A
->>> for res in hv.iterResidues(): print res
+>>> for res in hv.iterResidues(): print( res )
 GLU 4
 ARG 5
 PRO 6
@@ -369,11 +367,11 @@ Perform the PCA:
 Print the fraction of variance for top raking 4 PCs:
 
 >>> for mode in pca[:4]:
-...     print mode.getFractOfVariance() # doctest: +SKIP
-0.133691677009
-0.0942276000043
-0.0833640062736
-0.0654647139302
+...     print( mode.getFractOfVariance().round(2) ) # doctest: +ELLIPSIS
+0.13
+0.09
+0.08
+0.07
 
 The :func:`~dynamics.writeNMD` function writes PCA results 
 in NMD format. NMD files can be viewed using the :ref:`nmwiz` VMD plug-in.
@@ -410,10 +408,10 @@ Individual :class:`~dynamics.Mode` instances can be accessed by
 indexing the :class:`~dynamics.ANM` instance:
 
 >>> slowest_mode = anm[0]
->>> print slowest_mode
+>>> print( slowest_mode )
 Mode 1 from ANM ubi
->>> slowest_mode.getEigenvalue() # doctest: +SKIP
-1.7142408905432185
+>>> print( slowest_mode.getEigenvalue().round(3) )
+1.714
 
 Note that indices in Python start from zero (0). 
 0th mode is the 1st non-zero mode in this case.
@@ -475,8 +473,8 @@ or obtain them for another protein from the ANM server.
 <NMA: oanm_slwevs (20 modes, 351 atoms)>
 >>> nma.setName('1p38 ANM')
 >>> slowmode = nma[0]
->>> slowmode.getEigenvalue() # doctest: +SKIP
-0.1788
+>>> print( slowmode.getEigenvalue().round(2) )
+0.18
 
 .. plot::
    :context:

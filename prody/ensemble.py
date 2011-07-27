@@ -229,7 +229,7 @@ class EnsembleBase(object):
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
             
-        if weights.ndim = 1:
+        if weights.ndim == 1:
             weights = weights.reshape((self._n_atoms, 1))
         self._weights = weights
 
@@ -772,20 +772,18 @@ class PDBEnsemble(Ensemble):
     def getRMSDs(self):
         """Calculate and return Root Mean Square Deviations.
         
-        >>> rmsd = ensemble.getRMSDs()
-        >>> rmsd[0]
-        0.74373797469999248
-        >>> rmsd.round(2)
-        array([ 0.74,  0.53,  0.58,  0.6 ,  0.61,  0.72,  0.62,  0.74,  0.69,
-                0.65,  0.48,  0.54,  0.48,  0.75,  0.56,  0.76,  0.84,  0.49,
-                0.69,  0.74,  0.69,  0.49,  0.69,  0.61,  0.73,  0.64,  0.52,
-                0.51,  0.65,  0.84,  0.77,  0.69,  0.82,  1.19,  0.6 ,  1.12,
-                0.71,  0.61,  0.73,  0.57,  0.99,  0.94,  0.85,  0.98,  0.58,
-                0.61,  0.64,  0.89,  0.82,  0.95,  0.88,  0.86,  1.09,  0.7 ,
-                0.72,  0.86,  0.76,  0.82,  0.88,  0.95,  0.63,  0.92,  1.08,
-                0.44,  0.43,  0.49,  0.64,  0.88,  0.72,  0.9 ,  0.96,  1.23,
-                0.58,  0.66,  0.83])
-        """
+        >>> rmsd = ensemble.getRMSDs().round(2)
+        >>> print rmsd[0]
+        0.74
+        >>> print( rmsd )
+        [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
+          0.48  0.75  0.56  0.76  0.84  0.49  0.69  0.74  0.69  0.49  0.69  0.61
+          0.73  0.64  0.52  0.51  0.65  0.84  0.77  0.69  0.82  1.19  0.6   1.12
+          0.71  0.61  0.73  0.57  0.99  0.94  0.85  0.98  0.58  0.61  0.64  0.89
+          0.82  0.95  0.88  0.86  1.09  0.7   0.72  0.86  0.76  0.82  0.88  0.95
+          0.63  0.92  1.08  0.44  0.43  0.49  0.64  0.88  0.72  0.9   0.96  1.23
+          0.58  0.66  0.83]
+          """
         
         if self._confs is None: 
             return None
@@ -795,6 +793,26 @@ class PDBEnsemble(Ensemble):
         rmsd = np.sqrt((np.power(self.getDeviations(), 2).sum(2) * 
                         wsum_axis_2).sum(1) / wsum_axis_1)
         return rmsd
+
+    def setWeights(self, weights):
+        """Set atomic weights."""
+        
+        if self._n_atoms == 0:
+            raise AttributeError('coordinates are not set')
+        elif not isinstance(weights, np.ndarray): 
+            raise TypeError('weights must be an ndarray instance')
+        elif weights.shape[:2] != (self._n_confs, self._n_atoms):
+            raise ValueError('shape of weights must (n_confs, n_atoms[, 1])')
+        if weights.dtype != np.float64:
+            try:
+                weights = weights.astype(np.float64)
+            except ValueError:
+                raise ValueError('coords array cannot be assigned type '
+                                 '{0:s}'.format(np.float64))
+            
+        if weights.ndim == 2:
+            weights = weights.reshape((self._n_confs, self._n_atoms, 1))
+        self._weights = weights
 
 
 def saveEnsemble(ensemble, filename=None):
@@ -976,7 +994,7 @@ class PDBConformation(Conformation):
     def getIdentifier(self):
         """Return the identifier of the conformation instance.
         
-        >>> print conf.getIdentifier()
+        >>> print( conf.getIdentifier() )
         AtomMap_Chain_A_from_1a9u_->_Chain_A_from_p38_reference
         
         """
@@ -1026,8 +1044,8 @@ class PDBConformation(Conformation):
         """Return RMSD from the ensemble reference coordinates. RMSD is
         calculated for selected atoms.
         
-        >>> print conf.getRMSD()
-        0.7437379747
+        >>> print( conf.getRMSD().round(2) )
+        0.74
 
         """
         

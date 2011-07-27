@@ -49,7 +49,7 @@ coordinates first. Number of atoms will be automatically set according to
 the size of the coordinate data array:
 
 >>> coords = np.array( [ [1, 0, 0], [0, 0, 0], [0, 0, 1] ] )
->>> print coords
+>>> print( coords )
 [[1 0 0]
  [0 0 0]
  [0 0 1]]
@@ -69,7 +69,7 @@ as the number of atoms.
 
 Accessing data will return a copy of the data:
 
->>> print wtr1.getAtomNames()
+>>> print( wtr1.getAtomNames() )
 ['H' 'O' 'H']
 
 Individual atoms
@@ -94,8 +94,8 @@ Atoms in an atom group can be accessed via indexing:
 >>> a = wtr1[0]
 >>> a
 <Atom: H from Water (index 0; 1 coordinate sets, active set index: 0)>
->>> print a.getCoordinates()
-[1 0 0]
+>>> print( a.getCoordinates() )
+[ 1.  0.  0.]
 
 Coordinate sets
 -------------------------------------------------------------------------------
@@ -121,18 +121,18 @@ coordinate set of the atom group:
 
 Coordinates for the atom group will be returned from the active coordinate set
 
->>> a.getCoordinates()
-array([0, 1, 0])
+>>> print( a.getCoordinates() )
+[ 0.  1.  0.]
 
 **Iterations**
 
 Coordinate sets can also be iterated over for :class:`Atom` and 
 :class:`AtomGroup` instances:
 
->>> for xyz in a.iterCoordsets(): xyz
+>>> for xyz in a.iterCoordsets(): print( xyz )
 ... 
-array([1, 0, 0])
-array([0, 1, 0])
+[ 1.  0.  0.]
+[ 0.  1.  0.]
 
 Clone atom groups
 -------------------------------------------------------------------------------
@@ -148,18 +148,18 @@ Now let's make another copy of this water:
 Let's translate the coordinates of wtr2 so that it does not overlap with wtr1
 
 >>> wtr2.setCoordinates( wtr2.getCoordinates() + 2 )
->>> wtr2.getCoordinates()
-array([[3, 2, 2],
-       [2, 2, 2],
-       [2, 2, 3]])
+>>> print( wtr2.getCoordinates() )
+[[ 3.  2.  2.]
+ [ 2.  2.  2.]
+ [ 2.  2.  3.]]
 
 Above operation only translated the coordinate set at index 0
 
 >>> wtr2.setActiveCoordsetIndex(1)
->>> wtr2.getCoordinates()
-array([[0, 1, 0],
-       [0, 0, 0],
-       [0, 0, 1]])
+>>> print( wtr2.getCoordinates() )
+[[ 0.  1.  0.]
+ [ 0.  0.  0.]
+ [ 0.  0.  1.]]
 >>> wtr2.setCoordinates( wtr2.getCoordinates() + 2 ) # translate the second coordinate set as well
 
 **Change clone attributes**
@@ -167,14 +167,14 @@ array([[0, 1, 0],
 Before we merge wtr1 and wtr2, let's change resid's of wtr2:
 
 >>> wtr2.setResidueNumbers( [2, 2, 2] )
->>> wtr2.getResidueNumbers()
-array([2, 2, 2])
+>>> print( wtr2.getResidueNumbers() )
+[2 2 2]
 
 We can do this in an alternate way too:
 
 >>> wtr2.select('all').setResidueNumbers(2)
->>> wtr2.getResidueNumbers()
-array([2, 2, 2])
+>>> print( wtr2.getResidueNumbers() )
+[2 2 2]
 
 Note that the following won't work:
 
@@ -196,16 +196,16 @@ Let's merge two water atom groups:
 >>> wtrs = wtr1 + wtr2
 >>> wtrs
 <AtomGroup: Water + Copy of Water (6 atoms; 2 coordinate sets, active set index: 0)>
->>> wtrs.getCoordinates()
-array([[1, 0, 0],
-       [0, 0, 0],
-       [0, 0, 1],
-       [3, 2, 2],
-       [2, 2, 2],
-       [2, 2, 3]])
->>> print wtrs.getAtomNames()
+>>> print( wtrs.getCoordinates() )
+[[ 1.  0.  0.]
+ [ 0.  0.  0.]
+ [ 0.  0.  1.]
+ [ 3.  2.  2.]
+ [ 2.  2.  2.]
+ [ 2.  2.  3.]]
+>>> print( wtrs.getAtomNames() )
 ['H' 'O' 'H' 'H' 'O' 'H']
->>> print wtrs.getResidueNumbers()
+>>> print( wtrs.getResidueNumbers() )
 [1 1 1 2 2 2]
 
 .. note::

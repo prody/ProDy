@@ -101,9 +101,9 @@ Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
 Step 3: Prepare ensemble
 -------------------------------------------------------------------------------
  
-Instantiate an :class:`~prody.ensemble.Ensemble`
+Instantiate an :class:`~prody.ensemble.PDBEnsemble`
 
->>> ensemble = Ensemble(name)
+>>> ensemble = PDBEnsemble(name)
 
 We now combine the reference chains and set the reference coordinates 
 of the ensemble.
@@ -150,7 +150,7 @@ We can now close the logfile using :func:`~prody.closeLogfile`:
 
 Let's check which structures, if any, are not mapped (added to the ensemble):
 
->>> print unmapped
+>>> print( unmapped )
 []
 
 We can write the aligned conformations into a PDB file as follows:
@@ -168,8 +168,8 @@ are resolved in more than 94% of the time.
 
 We can find out this using :func:`~prody.ensemble.calcSumOfWeights` function:
 
->>> calcSumOfWeights(ensemble).min() / len(ensemble) # doctest: +SKIP
-0.24503311258278146
+>>> print( (calcSumOfWeights(ensemble).min() / len(ensemble)).round(3) )
+0.242
 
 
 This shows that some residues were resolved in only 24% of the dataset.
