@@ -69,10 +69,13 @@ Access data from selections
 Custom attributes can be accessed from selections:
 
 >>> calpha = ag.calpha
->>> calpha.getAttribute('myresnum') # doctest: +SKIP
-array([  0.4,   0.5,   0.6,   0.7,   0.8,   0.9,   1. ,   1.1,   1.2,
-        ....,
-        34.6,  34.7,  34.8,  34.9,  35. ,  35.1,  35.2,  35.3,  35.4])
+>>> print( calpha.getAttribute('myresnum') ) # doctest: +ELLIPSIS
+[  0.4   0.5   0.6   0.7   0.8   0.9   1.    1.1   1.2   1.3   1.4   1.5
+   1.6   1.7   1.8   1.9   2.    2.1   2.2   2.3   2.4   2.5   2.6   2.7
+  ...
+  34.   34.1  34.2  34.3  34.4  34.5  34.6  34.7  34.8  34.9  35.   35.1
+  35.2  35.3  35.4]
+
 
 
 Use attribute in atom selections

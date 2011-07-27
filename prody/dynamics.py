@@ -399,7 +399,7 @@ class Mode(VectorBase):
     def is3d(self):
         """Returns True if mode instance is from a 3-dimensional model.
         
-        >>> print mode.is3d()
+        >>> print( mode.is3d() )
         True
         
         """
@@ -459,14 +459,15 @@ class Mode(VectorBase):
     def getArray(self):
         """Return the normal mode array (eigenvector).
         
-        >>> mode.getArray() # doctest: +SKIP
-        array([ -2.17154375e-02,   5.19952720e-02,  -5.45241061e-02,
-                -2.10540040e-02,   5.74771315e-02,  -5.74002951e-02,
-                -3.27903774e-02,   7.57414975e-02,  -5.86200994e-02,
-                 ...,
-                 9.90919829e-03,  -8.97774222e-03,  -3.05413370e-02,
-                 9.46978952e-03,  -8.34108970e-03,  -2.94414502e-02,
-                 1.14453479e-02,  -1.91394533e-02,  -2.43839818e-02])        
+        >>> print( mode.getArray().round(4) ) # doctest: +ELLIPSIS
+        [ -2.170e-02   5.200e-02  -5.450e-02  -2.110e-02   5.750e-02  -5.740e-02
+          -3.280e-02   7.570e-02  -5.860e-02  -3.950e-02   7.540e-02  -3.740e-02
+          -4.860e-02   8.730e-02  -3.000e-02  -5.800e-02   9.240e-02  -8.600e-03
+          ...
+           2.100e-03  -5.000e-04  -2.550e-02   3.300e-03  -4.900e-03  -1.840e-02
+           9.900e-03  -9.000e-03  -3.050e-02   9.500e-03  -8.300e-03  -2.940e-02
+           1.140e-02  -1.910e-02  -2.440e-02]
+
         """
         
         return self._model._array[:, self._index].copy()
@@ -476,8 +477,8 @@ class Mode(VectorBase):
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
         
-        >>> mode.getEigenvalue() # doctest: +SKIP
-        0.10652815070679021
+        >>> print( mode.getEigenvalue().round(4) ) # doctest: +ELLIPSIS
+        0.1065
         
         """
         
@@ -488,10 +489,10 @@ class Mode(VectorBase):
         
         If the model is not a PCA, inverse of the eigenvalue is returned.
         
-        >>> mode.getVariance() # doctest: +SKIP
-        9.3871900841723619
-        >>> mode.getEigenvalue()**-1 # doctest: +SKIP
-        9.3871900841723619
+        >>> print( mode.getVariance().round(2) ) # doctest: +ELLIPSIS
+        9.39
+        >>> print( (mode.getEigenvalue()**-1).round(2) ) # doctest: +ELLIPSIS
+        9.39
         
         """
         
@@ -505,8 +506,8 @@ class Mode(VectorBase):
         
         See :meth:`getVariance`
         
-        >>> mode.getFractOfVariance() # doctest: +SKIP
-        0.32090162902353198
+        >>> print( mode.getFractOfVariance().round(2) ) # doctest: +ELLIPSIS
+        0.32
         
         """
         
@@ -521,8 +522,8 @@ class Mode(VectorBase):
         To incorporate atomic *masses* in calculations, use 
         :func:`calcCollectivity` function.
         
-        >>> mode.getCollectivity() # doctest: +SKIP
-        0.64762987283788642
+        >>> print( mode.getCollectivity().round(2) ) # doctest: +ELLIPSIS
+        0.65
         
         """
 
@@ -531,21 +532,15 @@ class Mode(VectorBase):
     def getCovariance(self):
         """Return covariance matrix calculated for this mode instance.
         
-        >>> mode.getCovariance() # doctest: +SKIP
-        array([[ 0.00442663, -0.01059908,  0.01111457, ..., -0.0023331 ,
-                 0.00390152,  0.0049706 ],
-               [-0.01059908,  0.02537835, -0.02661264, ...,  0.00558635,
-                -0.00934177, -0.01190157],
-               [ 0.01111457, -0.02661264,  0.02790697, ..., -0.00585805,
-                 0.00979611,  0.01248041],
-               ..., 
-               [-0.0023331 ,  0.00558635, -0.00585805, ...,  0.00122968,
-                -0.00205634, -0.00261981],
-               [ 0.00390152, -0.00934177,  0.00979611, ..., -0.00205634,
-                 0.0034387 ,  0.00438096],
-               [ 0.0049706 , -0.01190157,  0.01248041, ..., -0.00261981,
-                 0.00438096,  0.00558142]])
-                 
+        >>> print( mode.getCovariance().round(4) ) # doctest: +ELLIPSIS
+        [[ 0.004 -0.011  0.011 ..., -0.002  0.004  0.005]
+         [-0.011  0.025 -0.027 ...,  0.006 -0.009 -0.012]
+         [ 0.011 -0.027  0.028 ..., -0.006  0.01   0.013]
+         ..., 
+         [-0.002  0.006 -0.006 ...,  0.001 -0.002 -0.003]
+         [ 0.004 -0.009  0.01  ..., -0.002  0.003  0.004]
+         [ 0.005 -0.012  0.013 ..., -0.003  0.004  0.006]]
+
         """
         
         array = self.getArray()
@@ -557,12 +552,14 @@ class Mode(VectorBase):
         Square fluctuations are obtained by multiplying the squared the mode 
         array with the variance (:meth:`getVariance`) along the mode.
         
-        >>> mode.getSqFlucts() # doctest: +SKIP
-        array([  5.77119441e-02,   6.61016413e-02,   9.62027339e-02,
-                 8.11873159e-02,   1.02183864e-01,   1.12300137e-01,
-                 ...
-                 6.55654114e-03,   6.14363088e-03,   3.52230202e-03,
-                 1.04344751e-02,   9.63172338e-03,   1.02498093e-02])                 
+        >>> print( mode.getSqFlucts().round(4) ) # doctest: +ELLIPSIS
+        [  5.770e-02   6.610e-02   9.620e-02   8.120e-02   1.022e-01   1.123e-01
+           1.220e-01   1.346e-01   1.128e-01   1.380e-01   1.707e-01   1.217e-01
+           1.090e-01   7.050e-02   6.920e-02   4.460e-02   4.720e-02   6.640e-02
+           ...
+           2.110e-02   1.990e-02   9.000e-03   4.300e-03   6.100e-03   5.600e-03
+           8.000e-04   1.000e-04   1.400e-03   6.600e-03   6.100e-03   3.500e-03
+           1.040e-02   9.600e-03   1.020e-02]
 
         """
         
@@ -1043,9 +1040,8 @@ class ModeSet(object):
     def getModes(self):
         """Return all modes in the subset in a list.
         
-        >>> modes.getModes() # doctest: +SKIP
-        [<Mode: 1 from ANM 1p38>, <Mode: 2 from ANM 1p38>, 
-        <Mode: 3 from ANM 1p38>]
+        >>> print( modes.getModes() )
+        [<Mode: 1 from ANM 1p38>, <Mode: 2 from ANM 1p38>, <Mode: 3 from ANM 1p38>]
         
         """
         
@@ -1085,8 +1081,8 @@ class ModeSet(object):
     def getEigenvalues(self):
         """Return eigenvalues.
         
-        >>> modes.getEigenvalues() # doctest: +SKIP
-        array([ 0.10652815,  0.1557703 ,  0.33017013])
+        >>> print( modes.getEigenvalues().round(2) )
+        [ 0.11  0.16  0.33]
         
         """
         
@@ -1095,15 +1091,15 @@ class ModeSet(object):
     def getEigenvectors(self):
         """Return eigenvectors.
         
-        >>> modes.getEigenvectors() # doctest: +SKIP
-        array([[-0.02171544, -0.04111048, -0.03200268],
-               [ 0.05199527, -0.06430818, -0.01006391],
-               [-0.05452411, -0.01514202, -0.05723971],
-               ..., 
-               [ 0.01144535, -0.04767575,  0.02667254],
-               [-0.01913945, -0.0217476 , -0.00341831],
-               [-0.02438398, -0.01942338,  0.00499727]])
-               
+        >>> print( modes.getEigenvectors().round(3) ) # doctest: +ELLIPSIS
+        [[-0.022 -0.041 -0.032]
+         [ 0.052 -0.064 -0.01 ]
+         [-0.055 -0.015 -0.057]
+         ..., 
+         [ 0.011 -0.048  0.027]
+         [-0.019 -0.022 -0.003]
+         [-0.024 -0.019  0.005]]
+                        
         """
         
         return self._model._array[:, self._indices].copy()
@@ -1111,10 +1107,10 @@ class ModeSet(object):
     def getVariances(self):
         """Return variances (~inverse eigenvalues).
         
-        >>> modes.getVariances() # doctest: +SKIP
-        array([ 9.38719008,  6.41970913,  3.02874162])
-        >>> modes.getEigenvalues()**-1 # doctest: +SKIP
-        array([ 9.38719008,  6.41970913,  3.02874162])
+        >>> print( modes.getVariances().round(2) )
+        [ 9.39  6.42  3.03]
+        >>> print( (modes.getEigenvalues()**-1).round(2) )
+        [ 9.39  6.42  3.03]
         
         """
         
@@ -1123,15 +1119,15 @@ class ModeSet(object):
     def getArray(self):
         """Return eigenvectors.
         
-        >>> modes.getArray() # doctest: +SKIP
-        array([[-0.02171544, -0.04111048, -0.03200268],
-               [ 0.05199527, -0.06430818, -0.01006391],
-               [-0.05452411, -0.01514202, -0.05723971],
-               ..., 
-               [ 0.01144535, -0.04767575,  0.02667254],
-               [-0.01913945, -0.0217476 , -0.00341831],
-               [-0.02438398, -0.01942338,  0.00499727]])
-               
+        >>> print( modes.getArray().round(3) )
+        [[-0.022 -0.041 -0.032]
+         [ 0.052 -0.064 -0.01 ]
+         [-0.055 -0.015 -0.057]
+         ..., 
+         [ 0.011 -0.048  0.027]
+         [-0.019 -0.022 -0.003]
+         [-0.024 -0.019  0.005]]
+                        
         """
         
         return self._model._array[:, self._indices].copy()
@@ -1139,21 +1135,15 @@ class ModeSet(object):
     def getCovariance(self):
         """Return covariance matrix calculated for modes in the set.
         
-        >>> modes.getCovariance() # doctest: +SKIP
-        array([[ 0.01837834,  0.00734844,  0.02065894, ...,  0.00766404,
-                 0.00997241,  0.00961239],
-               [ 0.00734844,  0.05223408, -0.01861669, ...,  0.0244558 ,
-                -0.0002593 , -0.00403514],
-               [ 0.02065894, -0.01861669,  0.03930221, ..., -0.00584768,
-                 0.01250275,  0.01350216],
-               ..., 
-               [ 0.00766404,  0.0244558 , -0.00584768, ...,  0.01797626,
-                 0.00432368,  0.0037287 ],
-               [ 0.00997241, -0.0002593 ,  0.01250275, ...,  0.00432368,
-                 0.00651035,  0.00704099],
-               [ 0.00961239, -0.00403514,  0.01350216, ...,  0.0037287 ,
-                 0.00704099,  0.00807901]])
-                
+        >>> print( modes.getCovariance().round(4) )
+        [[ 0.018  0.007  0.021 ...,  0.008  0.01   0.01 ]
+         [ 0.007  0.052 -0.019 ...,  0.025 -0.    -0.004]
+         [ 0.021 -0.019  0.039 ..., -0.006  0.013  0.013]
+         ..., 
+         [ 0.008  0.025 -0.006 ...,  0.018  0.004  0.004]
+         [ 0.01  -0.     0.013 ...,  0.004  0.006  0.007]
+         [ 0.01  -0.004  0.013 ...,  0.004  0.007  0.008]]
+
         """
         
         array = self.getArray()
@@ -2091,14 +2081,22 @@ class GammaVariableCutoff(Gamma):
 
     >>> hhai = parsePDB('1mht')
     >>> ca_p = hhai.select('(protein and name CA) or (nucleic and name P)')
-    >>> print ca_p.getAtomNames() # doctest: +SKIP
-    ['P' 'P' 'P' ..., 'CA' 'CA' 'CA']
-    
+    >>> print( ca_p.getAtomNames() ) # doctest: +ELLIPSIS
+    ['P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P'
+     'P' 'P' 'P' 'P' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA'
+     ...
+     'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA'
+     'CA']
+         
     We set the radii of atoms: 
      
     >>> variableCutoff = GammaVariableCutoff(ca_p.getAtomNames(), gamma=1, default_radius=7.5, debug=True, P=10)
-    >>> print variableCutoff.getRadii() # doctest: +SKIP
-    [ 10.   10.   10.   ...,   7.5   7.5   7.5]
+    >>> print( variableCutoff.getRadii() ) # doctest: +ELLIPSIS
+    [ 10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.
+      10.   10.   10.   10.   10.   10.   10.   10.   10.   10.    7.5   7.5
+      ...
+       7.5   7.5   7.5   7.5   7.5   7.5   7.5   7.5   7.5   7.5   7.5   7.5
+       7.5]
     
     The above shows that for phosphate atoms radii is set to 10 Å, because
     we passed the ``P=10`` argument. As for Cα atoms, the default 7.5 Å
@@ -2109,13 +2107,20 @@ class GammaVariableCutoff(Gamma):
     We build :class:`ANM` Hessian matrix as follows:  
         
     >>> anm = ANM('HhaI-DNA')
-    >>> anm.buildHessian(ca_p, gamma=variableCutoff, cutoff=20) # doctest: +SKIP
-    CA_275 -- P_7 effective cutoff: 17.5 distance: 19.5948930081 gamma: 0
-    CA_275 -- CA_110 effective cutoff: 15.0 distance: 13.5699586587 gamma: 1.0
-    P_20 -- P_6 effective cutoff: 20.0 distance: 18.150633763 gamma: 1.0
-    CA_275 -- P_6 effective cutoff: 17.5 distance: 18.7748343268 gamma: 0
-    CA_275 -- CA_109 effective cutoff: 15.0 distance: 10.5352334573 gamma: 1.0
+    >>> anm.buildHessian(ca_p, gamma=variableCutoff, cutoff=20) # doctest: +ELLIPSIS
+    P_5 -- CA_111 effective cutoff: 17.5 distance: 18.0730838818 gamma: 0
+    CA_257 -- CA_111 effective cutoff: 15.0 distance: 18.948157826 gamma: 0
+    CA_277 -- CA_111 effective cutoff: 15.0 distance: 18.2928823863 gamma: 0
+    CA_258 -- CA_111 effective cutoff: 15.0 distance: 17.3706104095 gamma: 0
+    CA_277 -- CA_104 effective cutoff: 15.0 distance: 17.6521736055 gamma: 0
+    CA_258 -- CA_104 effective cutoff: 15.0 distance: 18.2241431897 gamma: 0
+    P_7 -- P_5 effective cutoff: 20.0 distance: 12.4763126364 gamma: 1.0
     ...
+    CA_306 -- CA_24 effective cutoff: 15.0 distance: 12.2571321279 gamma: 1.0
+    CA_24 -- CA_310 effective cutoff: 15.0 distance: 15.4210115751 gamma: 0
+    CA_307 -- CA_308 effective cutoff: 15.0 distance: 3.81520169847 gamma: 1.0
+    CA_307 -- CA_309 effective cutoff: 15.0 distance: 5.28885564182 gamma: 1.0
+    CA_309 -- CA_308 effective cutoff: 15.0 distance: 3.81530260923 gamma: 1.0
     
     Note that we set passed ``cutoff=20.0`` to the :meth:`ANM.buildHessian` 
     method. This is equal to the largest possible cutoff distance (between two
@@ -2619,12 +2624,14 @@ def calcProjection(ensemble, modes, rmsd=False):
        *rmsd* argument, when set ``True``, root-mean-square deviation (RMSD)
        along the normal mode is calculated. 
     
-    >>> calcProjection(p38_ensemble, p38_pca[:3]) # doctest: +SKIP
-    array([[ 11.41 ,   2.651,   1.116],
-           [  7.846,  -1.856,   1.591],
-           ...
-           [  5.516,  -5.108,  -5.983],
-           [  5.875,  -7.408,   2.208]])
+    >>> print( calcProjection(p38_ensemble, p38_pca[:3]).round(2) ) # doctest: +ELLIPSIS
+    [[ 11.41   2.65   1.12]
+     [  7.85  -1.86   1.59]
+     [  8.93  -1.38   0.55]
+     ...
+     [  0.78  -4.17   3.53]
+     [  5.52  -5.11  -5.98]
+     [  5.87  -7.41   2.21]]
     
     """
     
@@ -2659,8 +2666,8 @@ def calcOverlap(rows, cols):
     *rows* argument, and columns correspond to those passed as *cols* 
     argument.
     
-    >>> calcOverlap(p38_pca[0], p38_anm[2]) # doctest: +SKIP
-    -0.71366564906422636
+    >>> print( calcOverlap(p38_pca[0], p38_anm[2]).round(2) )
+    -0.71
     
     .. versionchanged:: 0.7
        Both rows and columns are normalized prior to calculating overlap.       
@@ -3648,12 +3655,12 @@ def calcSqFlucts(modes):
     .. versionchanged:: 0.7.1
        :class:`Vector` instances are accepted as *modes* argument.
     
-    >>> calcSqFlucts(p38_pca) # doctest: +SKIP 
-    array([  0.94163178,   0.97486815,   0.81056074,   0.59926465,
-             0.80505867,   0.93568339,   1.1634173 ,   1.39873827,
-             ...,
-             0.17928521,   0.12930389,   0.21500264,   0.16070006,   
-             0.21077809])
+    >>> print( calcSqFlucts(p38_pca).round(2) ) # doctest: +ELLIPSIS 
+    [  0.94   0.98   0.81   0.6    0.81   0.94   1.16   1.4    1.57   2.46
+       1.87   1.73   1.34   0.63   0.51   0.35   0.36   0.46   0.37   0.28
+       ...
+       0.13   0.12   0.14   0.11   0.09   0.14   0.18   0.13   0.21   0.16
+       0.21]
              
     """
     
@@ -3690,14 +3697,14 @@ def calcCrossCorrelations(modes, n_cpu=1):
     :arg n_cpu: Number of CPUs to use. Default is 1. 
     :type n_cpu: int 
     
-    >>> calcCrossCorrelations(p38_anm) # doctest: +SKIP
-    array([[ 1.   ,  0.948,  0.874, ...,  0.604,  0.552,  0.32 ],
-           [ 0.948,  1.   ,  0.97 , ...,  0.517,  0.532,  0.317],
-           [ 0.874,  0.97 ,  1.   , ...,  0.323,  0.353,  0.145],
-           ..., 
-           [ 0.604,  0.517,  0.323, ...,  1.   ,  0.956,  0.865],
-           [ 0.552,  0.532,  0.353, ...,  0.956,  1.   ,  0.953],
-           [ 0.32 ,  0.317,  0.145, ...,  0.865,  0.953,  1.   ]])
+    >>> print( calcCrossCorrelations(p38_anm).round(2) ) # doctest: +ELLIPSIS
+    [[ 1.    0.95  0.87 ...,  0.6   0.55  0.32]
+     [ 0.95  1.    0.97 ...,  0.52  0.53  0.32]
+     [ 0.87  0.97  1.   ...,  0.32  0.35  0.15]
+     ..., 
+     [ 0.6   0.52  0.32 ...,  1.    0.96  0.87]
+     [ 0.55  0.53  0.35 ...,  0.96  1.    0.95]
+     [ 0.32  0.32  0.15 ...,  0.87  0.95  1.  ]]
 
     """
     
@@ -3777,8 +3784,8 @@ def calcCumulativeOverlap(modes1, modes2):
     array. Elements of the array correspond to cumulative overlaps for modes 
     in *modes1* with those in *modes2*.
     
-    >>> calcCumulativeOverlap(p38_pca[0], p38_anm) # doctest: +SKIP
-    0.89357715148440353
+    >>> print( calcCumulativeOverlap(p38_pca[0], p38_anm).round(2) ) # doctest: +ELLIPSIS
+    0.89
     
     """
     
@@ -3794,11 +3801,9 @@ def calcCumulativeOverlapArray(modes1, modes2):
     those in *modes2*. Each value in a row corresponds to cumulative overlap
     calculated using upto that many number of modes from *modes2*.
     
-    >>> calcCumulativeOverlapArray(p38_pca[0], p38_anm) # doctest: +SKIP
-    array([ 0.38956674,  0.39199772,  0.81423637,  0.81953805,  0.82296797,
-            0.83320235,  0.83947803,  0.85141434,  0.87426872,  0.88529856,
-            0.88647576,  0.88878561,  0.88882618,  0.88894772,  0.89121041,
-            0.89162571,  0.89276304,  0.89336947,  0.8934872 ,  0.89357715])
+    >>> print( calcCumulativeOverlapArray(p38_pca[0], p38_anm).round(2) )# doctest: +ELLIPSIS
+    [ 0.39  0.39  0.81  0.82  0.82  0.83  0.84  0.85  0.87  0.89  0.89  0.89
+      0.89  0.89  0.89  0.89  0.89  0.89  0.89  0.89]
     
     """
     
@@ -3815,8 +3820,8 @@ def calcSubspaceOverlap(modes1, modes2):
     
     This function returns a single number.
     
-    >>> calcSubspaceOverlap(p38_pca[:3], p38_anm[:3]) # doctest: +SKIP
-    0.75174192334469792
+    >>> print( calcSubspaceOverlap(p38_pca[:3], p38_anm[:3]).round(2) ) # doctest: +ELLIPSIS
+    0.75
     """
     overlap = calcOverlap(modes1, modes2)
     if isinstance(modes1, Mode):

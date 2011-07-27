@@ -54,7 +54,7 @@ calculate the deformation vector:
 :func:`matchChains` function returns a list. If there are no matching chains, 
 list is empty, else the list contains a tuple for each pair of matching chains.
 
->>> print len(matches) 
+>>> print( len(matches) ) 
 1
 >>> match = matches[0]
 
@@ -98,8 +98,8 @@ RMSD and superpose
 
 We calculate the RMSD using :func:`~prody.measure.calcRMSD` function: 
 
->>> print calcRMSD(ref_chain, mob_chain)
-72.9302308695
+>>> print( calcRMSD(ref_chain, mob_chain).round(2) )
+72.93
 
 Let's find the transformation that minimizes RMSD between these chains
 using :func:`~prody.measure.calcTransformation` function:
@@ -111,8 +111,8 @@ to preserve structures integrity).
 
 >>> t.apply(mobile)
 <AtomGroup: 1zz2 (2872 atoms; 1 coordinate sets, active set index: 0)>
->>> print calcRMSD(ref_chain, mob_chain)
-1.86280149087
+>>> print( calcRMSD(ref_chain, mob_chain).round(2) )
+1.86
 
 Deformation vector
 -------------------------------------------------------------------------------
@@ -121,27 +121,26 @@ Once matching chains are identified it is straightforward to calculate the
 deformation vector using :func:`~prody.measure.calcDeformVector`
 
 >>> defvec = calcDeformVector(ref_chain, mob_chain)
->>> print abs(defvec)
-34.1964896723
+>>> print( abs(defvec).round(3) )
+34.196
 
 
 To show how RMSD and deformation vector are related, we can be calculate 
 RMSD from the magnitude of the deformation vector:
 
->>> print (abs(defvec)**2 / len(ref_chain)) ** 0.5
+>>> print( (abs(defvec)**2 / len(ref_chain)) ** 0.5 )
 1.86280149087
 
 Array of numbers for this deformation can be obtained as follows
 
 >>> arr = defvec.getArray() # arr is a NumPy array
->>> print arr
-[-1.11304419 -0.52172806 -1.88613845 ...,  0.85101652 -0.17830892
-  0.54188907]
+>>> print( arr.round(2) )
+[-1.11 -0.52 -1.89 ...,  0.85 -0.18  0.54]
       
 Following yields the normalized deformation vector
 
 >>> defvecnormed = defvec.getNormed()
->>> print abs(defvecnormed)
+>>> print( abs(defvecnormed) )
 1.0
 
 Compare with ANM modes
@@ -154,15 +153,14 @@ Let's get ANM model for the reference chain using
 
 Calculate overlap between slowest ANM mode and the deformation vector
 
->>> print anm[0] * defvecnormed # note that we used normalized deformation vector
--0.422463159673
+>>> print( (anm[0] * defvecnormed).round(2) ) # note that we used normalized deformation vector
+-0.42
 
 We can do this for a set of ANM modes (slowest 6) as follows
 
 >>> import numpy as np
->>> print np.array( anm[:6].getModes() ) * defvecnormed
-[-0.422463159673 -0.135595183602 0.489432673122 0.0312043675942
- -0.17064639491 -0.095208459294]
+>>> print( (np.array( anm[:6].getModes() ) * defvecnormed).astype(np.float64).round(2) )
+[-0.42 -0.14  0.49  0.03 -0.17 -0.1 ]
 
 |questions|
 

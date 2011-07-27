@@ -31,7 +31,7 @@ for release in releases:
         date.strftime('%B %e, %Y'), 
         downloads))
     
-stats.write('Total;{0:s};{1:d}\n'.format(time.strftime('%B %e, %y'), downloads_total))
+stats.write('Total;{0:s};{1:d}\n'.format(time.strftime('%B %e, %Y'), downloads_total))
 stats.close()
 
 

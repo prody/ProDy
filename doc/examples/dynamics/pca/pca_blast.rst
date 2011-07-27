@@ -83,7 +83,7 @@ Step 1: Blast and download
 Let's check number of downloaded files:
 
 >>> len(pdb_files)
-81
+82
 
 Step 2: Set reference
 -------------------------------------------------------------------------------
@@ -101,8 +101,8 @@ For analysis of a dimeric protein see :ref:`pca-dimer`
 Step 3: Prepare ensemble
 -------------------------------------------------------------------------------
  
->>> # Instantiate an ensemble
->>> ensemble = Ensemble(name)
+>>> # Instantiate a PDB ensemble
+>>> ensemble = PDBEnsemble(name)
 >>> # Set reference coordinates
 >>> ensemble.setCoordinates(reference_chain.getCoordinates())
    
@@ -128,7 +128,7 @@ Step 3: Prepare ensemble
 Let's check how many conformations are extracted from PDB files:
 
 >>> len(ensemble)
-347
+348
 
 Note that number of conformations are more than the number of PDB structures
 we evaluated. This is because some of the PDB files contained NMR structures

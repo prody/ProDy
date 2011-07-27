@@ -168,7 +168,7 @@ was parsed.
 'X-RAY DIFFRACTION'
 >>> header['resolution']
 '2.35 ANGSTROMS'
->>> print header.keys() # doctest: +SKIP
+>>> print( header.keys() ) # doctest: +SKIP
 ['biomolecular_transformations', 'reference', 'classification', 'compounds', 
 'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
 'identifier', 'deposition_date']
@@ -177,7 +177,7 @@ It is also possible to parse only header data by passing `model=0` as an
 argument:
 
 >>> header = parsePDB('1mkp', header=True, model=0)
->>> print header.keys() # doctest: +SKIP
+>>> print( header.keys() ) # doctest: +SKIP
 ['biomolecular_transformations', 'reference', 'classification', 'compounds', 
 'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
 'identifier', 'deposition_date']

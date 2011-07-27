@@ -52,9 +52,10 @@ include in our analysis.
 
 
 Note that we used a list of identifiers that are different from what was 
-listed in the supporting material of our paper [AB09]_. 
+listed in the supporting material of [AB09]_. 
 Since the paper was published, the Protein Data Bank has refined some
-structures. The changes in identifiers are reflected in the dataset above.
+of the structures  and changed their identifiers. 
+These changes are reflected to the above list.
   
 Also note that, it is possible to update this list to include all of the p38
 structures currently available in the PDB using the 
@@ -68,8 +69,8 @@ structures currently available in the PDB using the
 >>> # blast_record = blastPDB('''p38_sequence''')
 >>> # pdbids = blast_record.getHits() # uncomment this and previous line to update PDB list
 
-We use the same dataset in the below example to reproduce the same results.
-After we listed the PDB identifiers, we obtained them using 
+We use the same set of structures to reproduce the results.
+After we listed the PDB identifiers, we obtain them using 
 :func:`~prody.proteins.fetchPDB` function as follows:
  
 >>> pdbfiles = fetchPDB(pdbids, folder='pdbfiles')
@@ -117,9 +118,9 @@ Start a logfile to save screen output:
 
 >>> startLogfile('p38_pca') 
 
-Instantiate an :class:`~prody.ensemble.Ensemble` object:
+Instantiate an :class:`~prody.ensemble.PDBEnsemble` object:
   
->>> ensemble = Ensemble('p38 X-ray')
+>>> ensemble = PDBEnsemble('p38 X-ray')
   
 Set the reference coordinates:
 
@@ -139,7 +140,7 @@ For each PDB file, we find the matching chain and add it to the ensemble:
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())    
 
 >>> ensemble
-<Ensemble: p38 X-ray (75 conformations, 321 atoms)>
+<PDBEnsemble: p38 X-ray (75 conformations, 321 atoms, 321 selected)>
 >>> len(ensemble) == len(pdbfiles)
 True
 
@@ -154,8 +155,8 @@ Close the logfile (file content shows how chains were paired/mapped):
 Save coordinates
 -------------------------------------------------------------------------------
 
-We use :class:`~prody.ensemble.Ensemble` to store coordinates of the X-ray 
-structures. The :class:`~prody.ensemble.Ensemble` instances do not store any 
+We use :class:`~prody.ensemble.PDBEnsemble` to store coordinates of the X-ray 
+structures. The :class:`~prody.ensemble.PDBEnsemble` instances do not store any 
 other atomic data. If we want to write aligned coordinates into a file, we 
 need to pass the coordinates to an :class:`~prody.atomic.AtomGroup` instance.
 Then we use :func:`~prody.proteins.writePDB` function to save coordinates:
@@ -190,8 +191,8 @@ and more memory efficient calculation of principal modes:
 The resulting eigenvalues and eigenvectors may show small differences due to
 missing atoms in the datasets:
 
->>> '%.3f' % abs(pca_svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
-'0.403'
+>>> '%.2f' % abs(pca_svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
+'0.40'
 >>> '%.3f' % abs(calcOverlap(pca, pca_svd).diagonal()[:20]).min()
 '0.998'
 

@@ -73,7 +73,7 @@ Select atoms by name
 We can select side-chain atoms as follows:
 
 >>> side_chain_atoms = prot.select('protein and not name N CA C O')
->>> print side_chain_atoms
+>>> print( side_chain_atoms )
 Selection "protein and not name N CA C O" from 1p38
 >>> len(side_chain_atoms)
 1429
@@ -90,7 +90,7 @@ backbone keyword preceded by *not*:
 Oops, not backbone did not select the same number of atoms. 
 Let's try to see why:
 
->>> print set(prot.select('not backbone').getResidueNames())
+>>> print( set(prot.select('not backbone').getResidueNames()) )
 set(['CYS', 'ILE', 'VAL', 'GLN', 'LYS', 'HOH', 'PRO', 'THR', 'PHE', 'ASN', 'HIS', 'MET', 'ASP', 'LEU', 'ARG', 'TRP', 'ALA', 'GLU', 'TYR', 'SER'])
 
 Note that we used built-in Python type :class:`set`.
@@ -118,7 +118,7 @@ keyword followed by 3-letter residue names:
 Or, we can use predefined keywords acidic and basic.
 
 >>> charged = prot.select('acidic or basic')
->>> print charged
+>>> print( charged )
 Selection "acidic or basic" from 1p38
 >>> len(charged)
 906
@@ -206,9 +206,9 @@ or changing the source code. See the following pages:
     >>> len(c.select('sqrt((x - {0[0]:.3f})**2 + (y - {0[1]:.3f})**2 + (z - {0[2]:.3f})**2) <= 5'.format(point)))
     29
     >>> contacts = Contacts(p)
-    >>> print len(contacts.select(5, i)) == len(p.select('within 5 of inhibitor', inhibitor=i))
+    >>> print( len(contacts.select(5, i)) == len(p.select('within 5 of inhibitor', inhibitor=i)) )
     True
-    >>> print len(contacts.select(5, np.array((25, 73, 13)))) == len(p.select('within 5 of point', point=np.array((25, 73, 13))))
+    >>> print( len(contacts.select(5, np.array((25, 73, 13)))) == len(p.select('within 5 of point', point=np.array((25, 73, 13)))) )
     True
     >>> len(p.select('ca'))
     337

@@ -58,7 +58,7 @@ Best match
 To get the best match, :meth:`PDBBlastRecord.getBest` method can be used:
 
 >>> best = blast_record.getBest()
->>> print best # doctest: +SKIP
+>>> print( best ) # doctest: +SKIP
 {'percent_identity': 100.0, 
 'sbjct_end': 144, 
 'pdb_title': 'Chain A, Crystal Structure Of Pyst1 (Mkp3)', 
@@ -83,28 +83,28 @@ PDB hits
 -------------------------------------------------------------------------------
 
 >>> hits = blast_record.getHits()
->>> print hits.keys()
+>>> print( hits.keys() )
 ['1mkp']
 
 This results in only MKP-3 itself, since percent_identity argument was set 
 to 90 by default
 
 >>> hits = blast_record.getHits(percent_identity=50)
->>> print hits.keys()
+>>> print( hits.keys() )
 ['2hxp', '3lj8', '1mkp']
 
 >>> hits = blast_record.getHits(percent_identity=40)
->>> print hits.keys()
+>>> print( hits.keys() )
 ['3lj8', '1mkp', '1zzw', '2g6z', '2hxp', '3ezz', '1m3g', '2oud']
 
 This resulted in 7 hits, including structures of MKP-2, MKP-4, and MKP-5
 More information on a hit can be obtained as follows:
 
->>> print hits['1zzw']['percent_identity']
+>>> print( hits['1zzw']['percent_identity'] )
 47.2222222222
->>> print hits['1zzw']['align_length']
+>>> print( hits['1zzw']['align_length'] )
 138
->>> print hits['1zzw']['identities']
+>>> print( hits['1zzw']['identities'] )
 68
 
 Download hits
@@ -114,7 +114,7 @@ PDB hits can be downloaded using :func:`fetchPDB`
 function.
 
 >>> filenames = fetchPDB(hits.keys())
->>> print filenames # doctest: +SKIP
+>>> print( filenames ) # doctest: +SKIP
 ['./1mkp.pdb.gz', './1zzw.pdb.gz', './2g6z.pdb.gz', './2hxp.pdb.gz', 
 './3ezz.pdb.gz', './1m3g.pdb.gz', './2oud.pdb.gz']
 
