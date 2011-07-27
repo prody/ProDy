@@ -3343,7 +3343,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
        ensemble = sampleModes( p38_anm[:3], n_confs=500 )
        # Project these conformations onto the space spanned by these modes
        plt.figure(figsize=(5,4))
-       showProjection(ensemble, p38_anm[:3])
+       showProjection(ensemble, p38_anm[:3], rmsd=True)
        
     .. plot::
        :context:
@@ -3978,15 +3978,15 @@ def showProjection(ensemble, modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showProjection(p38_ensemble, p38_pca[0]) 
+       showProjection(p38_ensemble, p38_pca[0], rmsd=True) 
        plt.title('Projection onto PC1')
 
        plt.figure(figsize=(5,4))
-       showProjection(p38_ensemble, p38_pca[:2])
+       showProjection(p38_ensemble, p38_pca[:2], rmsd=True)
        plt.title('Projection onto PC1-2')
        
        plt.figure(figsize=(5,4))
-       showProjection(p38_ensemble, p38_pca[:3]) # onto top 3 PCs
+       showProjection(p38_ensemble, p38_pca[:3], rmsd=True) # onto top 3 PCs
        plt.title('Projection onto PC1-3')
 
        
@@ -4083,8 +4083,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
        :context:
        :include-source:
         
-       plt.figure(figsize=(5,4))
-       showCrossProjection(p38_ensemble, p38_pca[0], p38_anm[2])
+       plt.figure(figsize=(5.2,4))
+       showCrossProjection(p38_ensemble, p38_pca[0], p38_anm[2], rmsd=True)
     
     .. plot::
        :context:
