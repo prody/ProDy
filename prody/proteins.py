@@ -348,7 +348,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                     filenames[i] = None 
                 else:
                     pdbfile.close()
-                    if compressed:
+                    if not compressed:
                         gunzip(pdbfile)
                     filename = os.path.relpath(filename)
                     LOGGER.debug('{0:s} downloaded ({1:s})'
@@ -372,7 +372,7 @@ def gunzip(filename, outname=None):
     Returns output filename upon successful completion.
     
     """
-    
+    LOGGER.info( filename)    
     if not isinstance(filename, str):
         raise TypeError('filename must be a string')
     if not os.path.isfile(filename):
@@ -922,7 +922,8 @@ def _getHeaderDict(lines):
     biomolecule = defaultdict(list)
     sequences = defaultdict(str)
     applyToChains = (' ')
-    for i in xrange(len(lines)):        
+    i = 0
+    for i, line in enumerate(lines):        
         line = lines[i]
         startswith = line[0:6]
         if startswith == 'ATOM  ' or startswith == 'HETATM' or \
