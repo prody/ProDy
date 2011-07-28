@@ -2653,8 +2653,7 @@ def calcProjection(ensemble, modes, rmsd=False):
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
     projection = np.dot(deviations, modes.getArray())
     if rmsd:
-        projection = np.sign(projection) * ((projection ** 2) / 
-                                             ensemble.getNumOfAtoms()) ** 0.5
+        projection =  (1 / (ensemble.getNumOfAtoms() ** 0.5)) * projection
     return projection
 
 
