@@ -22,11 +22,18 @@ Classes
 -------
 
   * :class:`Ensemble`
-  * :class:`PDBEnsemble`
   * :class:`Conformation`
+  * :class:`PDBEnsemble`
   * :class:`PDBConformation`
   * :class:`DCDTrajectory`
+  * :class:`Frame`
   
+Inheritance Diagram
+-------------------
+
+.. inheritance-diagram:: prody.ensemble
+   :parts: 1
+
 Functions
 ---------
 
@@ -36,6 +43,7 @@ Functions
     * :func:`calcSumOfWeights`
     * :func:`showSumOfWeights`
     * :func:`trimEnsemble`
+    
     
 Examples
 --------
@@ -158,15 +166,14 @@ class EnsembleBase(object):
     def select(self, selstr):
         """Select a subset atoms. Coordinates for selected atoms will be 
         evaluated. If *selstr* results in selecting no atoms, all atoms 
-        will be considered.
+        will be considered."""
         
-        """
         if selstr is None:
             self._sel = None
         else:
             if self._ag is None:
-                raise AttributeError('instance is not associated with an '
-                                     'AtomGroup')
+                raise AttributeError('instance needs to be associated with an '
+                                     'AtomGroup for making selections')
             self._sel = self._ag.select(selstr)
             return self._sel
     
@@ -430,8 +437,8 @@ class Ensemble(EnsembleBase):
         index.sort(reverse=True)
 
     def iterCoordsets(self):
-        """Iterate over coordinate sets by returning a copy of each 
-        coordinate set. Reference coordinates are not included."""
+        """Iterate over coordinate sets. A copy of each coordinate set for
+        selected atoms is returned. Reference coordinates are not included."""
         
         if self._sel is None:
             for conf in self._confs:
@@ -751,6 +758,15 @@ class PDBEnsemble(Ensemble):
                 coords[i, which] = self._coords[selids][which]
             return coords 
     
+    def iterCoordsets(self):
+        """Iterate over coordinate sets. A copy of each coordinate set for
+        selected atoms is returned. Reference coordinates are not included."""
+        
+        conf = PDBConformation(self, 0)
+        for i in range(self._n_confs):
+            conf._index = i
+            yield conf.getCoordinates()
+   
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
         
@@ -889,6 +905,10 @@ def loadEnsemble(filename):
 
 class ConformationBase(object):
 
+    """Base class for :class:`Conformation` and :class:`Frame`."""
+
+    __slots__ = ['_ensemble', '_index']
+
     def __init__(self, ensemble, index):
         self._ensemble = ensemble
         self._index = index
@@ -922,8 +942,6 @@ class Conformation(ConformationBase):
     
     """
     
-    __slots__ = ['_ensemble', '_index']
-
     def __init__(self, ensemble, index):
         """Instantiate with an ensemble instance, and an index."""
         ConformationBase.__init__(self, ensemble, index)
@@ -1348,8 +1366,8 @@ class Trajectory(EnsembleBase):
             yield self.next()
     
     def __repr__(self):
-        return ('<Trajectory: {0:s} (frame {1:d}/{2:d}, '
-                'selected atoms {3:d}/{3:d})>').format(self._name, 
+        return ('<Trajectory: {0:s} (frame at {1:d} of {2:d}, '
+                'atoms selected {3:d} of {3:d})>').format(self._name, 
                 self._current, self._n_confs, self.getNumOfSelected(),
                 self._n_atoms)
     
@@ -1381,8 +1399,13 @@ class Trajectory(EnsembleBase):
         return self.next()
     
     def iterCoordsets(self):
-        pass
-    
+        """Iterate over coordinate sets. A copy of each coordinate set for
+        selected atoms is returned. Reference coordinates are not included."""
+
+        self.reset()        
+        for frame in self:        
+            yield frame.getCoordinates()
+            
     def getCoordsets(self, indices=None):
         """Returns coordinate set at given *index*."""
         
@@ -1396,24 +1419,55 @@ class Trajectory(EnsembleBase):
     def next(self):
         """Return next frame."""
         
-        return self._next()
+        if self._current < self._n_confs:
+            return self._next()
     
     def skip(self, n=1):
-        """Skip *n* frames, default is 1."""
+        """Skip *n* frames, default is 1. If *n* is larger than the number 
+        of frames, it will move to the last frame. If *n* is negative, it 
+        will rewind the trajectory."""
         
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
-        self._skip(n)
+        current = self._current
+        if n > 0:
+            n_left = self._n_confs - current - 1 
+            if n > n_left:
+                n = n_left
+        elif n < 0:
+            if -n > current:
+                n = - current
+        self._trajectory.seek(n * self._bytes_per_frame, 1)                
         self._current += n
     
     def goto(self, n):
-        """Go to the frame at index *n*."""
-        pass
+        """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
+        to the beginning. ``n=-1`` will go to the last frame."""
+        
+        if not isinstance(n, (int, long)):
+            raise ValueError('n must be an integer')
+        n_confs = self._n_confs
+        if n > 0:
+            if n > n_confs: 
+                n = n_confs
+            self._trajectory.seek(self._first_byte + n * self._bytes_per_frame)
+            self._current = n
+        elif n < 0:
+            n = n_confs + n
+            if n < 0:
+                n = 0
+            self._trajectory.seek(self._first_byte + n * self._bytes_per_frame)
+            self._current = n
+        else:
+            self._reset()
+        
     
     def reset(self):
         """Go to the beginning (0th frame)."""
-        
-        self._reset()
+
+        self._trajectory.seek(self._first_byte)
+        self._current = 0
+
     
     def close(self):
         """Close trajectory file."""
@@ -1456,10 +1510,12 @@ class DCDTrajectory(Trajectory):
         bits = dcd.read(calcsize('ii'))
         temp = unpack(endian+'ii', bits)
         if temp[0] + temp[1] == 84:
-            LOGGER.info('Detected CHARMM -i8 64-bit DCD file of native endianness.')
+            LOGGER.info('Detected CHARMM -i8 64-bit DCD file of native '
+                        'endianness.')
             rec_scale = RECSCALE64BIT
         elif temp[0] == 84 and temp[1] == dcdcordmagic:
-            LOGGER.info('Detected standard 32-bit DCD file of native endianness.')
+            LOGGER.info('Detected standard 32-bit DCD file of native '
+                        'endianness.')
         else:
             if unpack('>ii', bits) == temp:
                 endian = '>'
@@ -1468,25 +1524,26 @@ class DCDTrajectory(Trajectory):
             temp = unpack(endian+'ii', bits)
             if temp[0] + temp[1] == 84:
                 rec_scale = RECSCALE64BIT
-                LOGGER.info("Detected CHARMM -i8 64-bit DCD file of opposite endianness.")
+                LOGGER.info('Detected CHARMM -i8 64-bit DCD file of opposite '
+                            'endianness.')
             else:
                 endian = ''
                 temp = unpack(endian+'ii', bits)
                 if temp[0] == 84 and temp[1] == dcdcordmagic:
-                    LOGGER.info('Detected standard 32-bit DCD file of opposite endianness.')
+                    LOGGER.info('Detected standard 32-bit DCD file of '
+                                'opposite endianness.')
                 else:
-                    LOGGER.error('Unrecognized DCD header or unsupported DCD format.')
-                    return None
+                    raise IOError('Unrecognized DCD header or unsupported '
+                                  'DCD format.')
                     
         
         # check for magic string, in case of long record markers
         if rec_scale == RECSCALE64BIT:
-            LOGGER.error("CHARMM 64-bit DCD files are not yet supported.");
-            return None
+            raise IOError("CHARMM 64-bit DCD files are not yet supported.");
             temp = unpack('I', dcd.read(calcsize('I')))
             if temp[0] != dcdcordmagic: 
-                LOGGER.error("Failed to find CORD magic in CHARMM -i8 64-bit DCD file.");
-                return None
+                raise IOError('Failed to find CORD magic in CHARMM -i8 64-bit '
+                              'DCD file.');
         
         # Buffer the entire header for random access
         bits = dcd.read(80)
@@ -1525,32 +1582,30 @@ class DCDTrajectory(Trajectory):
         
         # Get the end size of the first block
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 84:
-            LOGGER.error('Unrecognized DCD format.')
-            return None
+            raise IOError('Unrecognized DCD format.')
         
         # Read in the size of the next block
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 164:
-            LOGGER.error('Unrecognized DCD format.')
-            return None
+            raise IOError('Unrecognized DCD format.')
+
         # Read NTITLE, the number of 80 character title strings there are
         temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
         self._title = dcd.read(80).strip()
         self._remarks = dcd.read(80).strip()
         # Get the ending size for this block
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 164:
-            LOGGER.error('Unrecognized DCD format.')
-            return None
+            raise IOError('Unrecognized DCD format.')
+
 
         # Read in an integer '4'
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
-            LOGGER.error('Unrecognized DCD format.')
-            return None
+            raise IOError('Unrecognized DCD format.')
+
         # Read in the number of atoms
         self._n_atoms = unpack(endian+'i', dcd.read(rec_scale*calcsize('i')))[0]
         # Read in an integer '4'
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
-            LOGGER.error('Bad DCD format.')
-            return None
+            raise IOError('Bad DCD format.')
 
         self._is64bit = rec_scale == RECSCALE64BIT
         self._endian = endian
@@ -1571,10 +1626,6 @@ class DCDTrajectory(Trajectory):
             'for {0:s}.'.format(self._name))
         self._trajectory.seek(self._first_byte)
         
-    def _reset(self):
-        self._trajectory.seek(self._first_byte)
-        self._current = 0
-        
     def _next(self):
         self._skipXSC()
         frame = Frame(self, self._current, self._parseCoordset())
@@ -1586,8 +1637,9 @@ class DCDTrajectory(Trajectory):
         
         self._trajectory.seek(56, 1)
         
-    def _parseCoordset(self):#dcd, n_atoms, n_floats, dtype):
+    def _parseCoordset(self):
         """Return coordinate array with shape (n_atoms, 3)."""
+        
         n_floats = self._n_floats
         n_atoms = self._n_atoms
         xyz = np.fromfile(self._trajectory, dtype=self._dtype, count=n_floats)
@@ -1597,12 +1649,6 @@ class DCDTrajectory(Trajectory):
         xyz = xyz.reshape((n_atoms, 3))
         return xyz
     
-    def _skip(self, n):
-        n_left = self._n_confs - self._current - 1 
-        if n > n_left:
-            n = n_left
-        self._trajectory.seek(n * self._bytes_per_frame, 1)
-
 def parseDCD(filename, first=None, last=None, stride=None):
     """|new| Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
