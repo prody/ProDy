@@ -2615,14 +2615,14 @@ def calcCollectivity(mode, masses=None):
     return coll
     
 
-def calcProjection(ensemble, modes, rmsd=False):
+def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
 
     For K conformations and M modes, a (K,M) matrix is returned.
     
-    .. versionadded:: 0.8
-       *rmsd* argument, when set ``True``, root-mean-square deviation (RMSD)
-       along the normal mode is calculated. 
+    .. versionchanged:: 0.8
+       By default root-mean-square deviation (RMSD) along the normal mode is 
+       calculated. To calculate the projection pass ``rmsd=True``.   
     
     >>> print( calcProjection(p38_ensemble, p38_pca[:3]).round(2) ) # doctest: +ELLIPSIS
     [[ 11.41   2.65   1.12]
