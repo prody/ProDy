@@ -2625,13 +2625,13 @@ def calcProjection(ensemble, modes, rmsd=True):
        calculated. To calculate the projection pass ``rmsd=True``.   
     
     >>> print( calcProjection(p38_ensemble, p38_pca[:3]).round(2) ) # doctest: +ELLIPSIS
-    [[ 11.41   2.65   1.12]
-     [  7.85  -1.86   1.59]
-     [  8.93  -1.38   0.55]
+    [[ 0.64  0.15  0.06]
+     [ 0.44 -0.1   0.09]
+     [ 0.5  -0.08  0.03]
      ...
-     [  0.78  -4.17   3.53]
-     [  5.52  -5.11  -5.98]
-     [  5.87  -7.41   2.21]]
+     [ 0.04 -0.23  0.2 ]
+     [ 0.31 -0.29 -0.33]
+     [ 0.33 -0.41  0.12]]
     
     """
     
@@ -3958,10 +3958,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg ensemble: a :class:`~prody.ensemble.Ensemble` instance
     :arg modes: a :class:`Mode`, :class:`ModeSet`, or :class:`NMABase` instance
     
-    .. versionadded:: 0.8
-       To scale the projected values by number of atoms, pass ``rmsd=True``.
-       This will calculate and display the RMSD values, which is more
-       accustomed metric in structural comparisons. 
+    .. versionchanged:: 0.8
+       The projected values are by default converted to RMSD. 
+       Pass ``rmsd=True`` to use projection itself. 
     
     Matplotlib function used for plotting depends on the number of modes:
         
@@ -3977,15 +3976,15 @@ def showProjection(ensemble, modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showProjection(p38_ensemble, p38_pca[0], rmsd=True) 
+       showProjection(p38_ensemble, p38_pca[0]) 
        plt.title('Projection onto PC1')
 
        plt.figure(figsize=(5,4))
-       showProjection(p38_ensemble, p38_pca[:2], rmsd=True)
+       showProjection(p38_ensemble, p38_pca[:2])
        plt.title('Projection onto PC1-2')
        
        plt.figure(figsize=(5,4))
-       showProjection(p38_ensemble, p38_pca[:3], rmsd=True) # onto top 3 PCs
+       showProjection(p38_ensemble, p38_pca[:3]) # onto top 3 PCs
        plt.title('Projection onto PC1-3')
 
        
@@ -4070,10 +4069,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                 ``x`` and ``y`` are accepted.
     :type scale: str
     
-    .. versionadded:: 0.8
-       To scale the projected values by number of atoms, pass ``rmsd=True``.
-       This will calculate and display the RMSD values, which is more
-       accustomed metric in structural comparisons. 
+    .. versionchanged:: 0.8
+       The projected values are by default converted to RMSD. 
+       Pass ``rmsd=False`` to calculate raw projection values. 
+
     
     By default ``marker='o', ls='None'`` is passed to the plotting function 
     to disable lines.
@@ -4083,7 +4082,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
        :include-source:
         
        plt.figure(figsize=(5.2,4))
-       showCrossProjection(p38_ensemble, p38_pca[0], p38_anm[2], rmsd=True)
+       showCrossProjection(p38_ensemble, p38_pca[0], p38_anm[2])
     
     .. plot::
        :context:
