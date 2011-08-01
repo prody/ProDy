@@ -25,7 +25,8 @@ Classes
   * :class:`Conformation`
   * :class:`PDBEnsemble`
   * :class:`PDBConformation`
-  * :class:`DCDTrajectory`
+  * :class:`Trajectory`
+  * :class:`DCDFile`
   * :class:`Frame`
   
 Inheritance Diagram
@@ -60,7 +61,7 @@ illustrate class methods and functions in the module.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
-import time
+from time import time
 import os.path
 import numpy as np
 import prody
@@ -68,7 +69,7 @@ from prody import ProDyLogger as LOGGER
 from prody import measure
 
 __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
-           'DCDTrajectory', 'Frame', 
+           'Trajectory', 'DCDFile', 'Frame', 
            'saveEnsemble', 'loadEnsemble', 
            'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble',
            'parseDCD']
@@ -79,17 +80,22 @@ class EnsembleError(Exception):
 plt = None
 
 class EnsembleBase(object):
+    
+    """Base class for :class:`Ensemble` and :class:`TrajectoryBase`. 
+    This class provides methods for associating instances with an 
+    :class:`~prody.atomic.AtomGroup` and handling reference coordinates."""
 
     def __init__(self, name):
         self._name = str(name)
         if self._name == '':
             self._name = 'Unnamed'
+        self._coords = None         # reference
         self._n_atoms = 0
         self._n_confs = 0 # number of conformations/frames/coordinate sets
         self._weights = None
-        self._coords = None         # reference
         self._ag = None
         self._sel = None
+        self._indices = None # indices of selected atoms
 
     def __len__(self):
         return self._n_confs
@@ -119,7 +125,7 @@ class EnsembleBase(object):
         
         if self._sel is None:
             return self._n_atoms
-        return len(self._sel) 
+        return len(self._indices) 
     
     def getAtomGroup(self):
         """Return associated atom group instance."""
@@ -130,27 +136,30 @@ class EnsembleBase(object):
         """Associate the instance with an :class:`~prody.atomic.AtomGroup`.
         
         Note that at association, active coordinate set of the 
-        :class:`AtomGroup` will be set as the reference coordinate set.
-        Changes in :class:`AtomGroup` active coordinate set will not be
-        reflected to the reference coordinate set of the instance.
-        If you want to preserve the present reference coordinates, pass
-        ``setref=False``. 
+        :class:`~prody.atomic.AtomGroup`, if it has one, will be set as 
+        the reference coordinates for the ensemble or trajectory. Changes in 
+        :class:`~prody.atomicAtomGroup` active coordinate set will not be
+        reflected to the reference coordinates. If you want to preserve the 
+        present reference coordinates, pass ``setref=False``. 
         
         """
+        
         if ag is None:
             self._ag = None
-            self._sel = None
         else:
             if not isinstance(ag, prody.AtomGroup):
                 raise TypeError('ag must be an AtomGroup instance')
             if self._n_atoms != 0 and ag.getNumOfAtoms() != self._n_atoms:
-                    raise ValueError('AtomGroup must have same number of '
-                                     'atoms')
+                raise ValueError('AtomGroup must have same number of atoms')
             self._ag = ag
             if setref:
-                self._coords = ag.getCoordinates()
-                LOGGER.info('Coordinates of {0:s} is set as the reference '
-                            'for {1:s}.'.format(ag.getName(), self._name))
+                coords = ag.getCoordinates()
+                if coords is not None:
+                    self._coords = coords 
+                    LOGGER.info('Coordinates of {0:s} is set as the reference '
+                                'for {1:s}.'.format(ag.getName(), self._name))
+        self._sel = None
+        self._indices = None
         
     def getSelection(self):
         """Return the current selection. If ``None`` is returned, it means
@@ -159,33 +168,36 @@ class EnsembleBase(object):
         return self._sel
     
     def _getSelIndices(self):
-        if self._sel is None:
-            return None
-        return self._sel.getIndices() 
+        return self._indices 
     
     def select(self, selstr):
-        """Select a subset atoms. Coordinates for selected atoms will be 
-        evaluated. If *selstr* results in selecting no atoms, all atoms 
-        will be considered."""
+        """Select a subset atoms. When a subset of atoms are selected, their 
+        coordinates will be evaluated in, for example, RMSD calculations. 
+        If *selstr* results in selecting no atoms, all atoms will be 
+        considered. For more information on atom selections see 
+        :ref:`selections`."""
         
         if selstr is None:
             self._sel = None
+            self._indices = None
         else:
             if self._ag is None:
                 raise AttributeError('instance needs to be associated with an '
                                      'AtomGroup for making selections')
-            self._sel = self._ag.select(selstr)
-            return self._sel
+            sel = self._ag.select(selstr)
+            if sel is not None:
+                self._indices = sel.getIndices()
+            self._sel = sel
+            return sel
     
     def getCoordinates(self):
-        """Return a copy of reference coordinates. If a subset of atoms are 
-        selected, coordinates for those atoms will be returned."""
+        """Return a copy of reference coordinates of selected atoms."""
         
         if self._coords is None:
             return None
         if self._sel is None:
             return self._coords.copy()
-        return self._coords[self._getSelIndices()].copy()
+        return self._coords[self._indices].copy()
 
     def setCoordinates(self, coords):
         """Set reference coordinates."""
@@ -208,37 +220,37 @@ class EnsembleBase(object):
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
         
-        if self._n_atoms != 0:
-            if coords.shape[0] != self._n_atoms:
-                raise ValueError('size of coordinates does not match '
-                                 'number of atoms')
-        else:
+        if self._n_atoms == 0:
             self._n_atoms = coords.shape[0]    
+        elif coords.shape[0] != self._n_atoms:
+            raise ValueError('length of coords does not match number of atoms')
         self._coords = coords
         
     def getWeights(self):
-        """Return a copy of weights for selected atoms."""
+        """Return a copy of weights of selected atoms."""
         
         if self._weights is None:
             return None
         if self._sel is None:
             return self._weights.copy()
         if self.weights.ndim == 2:
-            return self._weights[self._getSelIndices()].copy()
+            return self._weights[self._indices].copy()
         else:
-            return self._weights[:, self._getSelIndices()].copy()
+            return self._weights[:, self._indices].copy()
     
     def setWeights(self, weights):
         """Set atomic weights."""
         
         if self._n_atoms == 0:
-            raise AttributeError('coordinates are not set')
-        elif not isinstance(weights, np.ndarray): 
+            raise AttributeError('first set reference coordinates')
+        elif not isinstance(weights, np.ndarray):
             raise TypeError('weights must be an ndarray instance')
-        elif weights.ndim in (1, 2) and len(weights) != self._n_atoms:
+        elif not weights.ndim in (1, 2): 
+            raise ValueError('weights.ndim must be equal to 1 or 2')        
+        elif len(weights) != self._n_atoms:
             raise ValueError('length of weights must be equal to number of '
                              'atoms')
-        if weights.dtype != np.float64:
+        if weights.dtype in (np.float32, np.float64):
             try:
                 weights = weights.astype(np.float64)
             except ValueError:
@@ -252,11 +264,12 @@ class EnsembleBase(object):
 
 class Ensemble(EnsembleBase):
     
-    """A class for analysis of arbitrary coordinate set ensembles. 
+    """A class for analysis of arbitrary conformational ensembles. 
     
-    Indexing returns a :class:`Conformation` instance, whereas slicing returns 
-    an :class:`Ensemble` instance that contains subset of conformations.
-    The ensemble obtained by slicing has the same reference coordinates.
+    Indexing returns a :class:`Conformation` instance, which corresponds to
+    a coordinate set. Slicing returns an :class:`Ensemble` instance that 
+    contains subset of conformations (coordinate sets). The ensemble obtained 
+    by slicing will have a copy of the reference coordinates.
 
     """
 
@@ -293,13 +306,13 @@ class Ensemble(EnsembleBase):
             ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._name, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[index].copy())
+            ens.addCoordset(self.getCoordsets(index))
             ens.setWeights(self.getWeights())
             return ens
         elif isinstance(index, (list, np.ndarray)):
             ens = Ensemble('Conformations of {0:s}'.format(self._name))
             ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[index].copy())
+            ens.addCoordset(self.getCoordsets(index))
             ens.setWeights(self.getWeights())
             return ens
         else:
@@ -322,7 +335,6 @@ class Ensemble(EnsembleBase):
     
         ensemble = Ensemble('{0:s} + {1:s}'.format(self.getName(), 
                                                    other.getName()))
-        
         return None
     
     def __iter__(self):
@@ -406,14 +418,23 @@ class Ensemble(EnsembleBase):
             return None
         if indices is None:
             indices = slice(None)
-
-        coords = self._confs[indices].copy()
-        if self._weights is not None and self._weights.ndim == 3:
-            for i, w in enumerate(self._weights[indices]):
-                which = w.flatten()==0
-                coords[i, which] = self._coords[which]
-        return coords 
-
+        elif isinstance(indices, (int, long)): 
+            indices = np.array([indices])
+        if self._sel is None:
+            coords = self._confs[indices].copy()
+            if self._weights is not None and self._weights.ndim == 3:
+                for i, w in enumerate(self._weights[indices]):
+                    which = w.flatten()==0
+                    coords[i, which] = self._coords[which]
+        else:
+            selids = self._indices
+            coords = self._confs[indices, selids].copy()
+            if self._weights is not None and self._weights.ndim == 3:
+                ref_coords = self._coords[selids]
+                for i, w in enumerate(self._weights[indices, selids]):
+                    which = w.flatten()==0
+                    coords[i, which] = ref_coords[which]
+        return coords
     
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
@@ -432,9 +453,7 @@ class Ensemble(EnsembleBase):
             self._confs = self._confs[which]
             if self._weights is not None:
                 self._weights = self._weights[which]
-            
         self._n_confs -= len(index)
-        index.sort(reverse=True)
 
     def iterCoordsets(self):
         """Iterate over coordinate sets. A copy of each coordinate set for
@@ -473,10 +492,10 @@ class Ensemble(EnsembleBase):
             raise AttributeError('conformations are not set, '
                                  'use addCoordset() method to set it.')
         LOGGER.info('Superimposing structures.')
-        start = time.time()
+        start = time()
         self._superpose()
         LOGGER.info(('Superposition is completed in {0:.2f} '
-                           'seconds.').format((time.time() - start)))
+                           'seconds.').format((time() - start)))
         
     def _superpose(self):
         """Superpose conformations and return new coordinates."""
@@ -489,7 +508,7 @@ class Ensemble(EnsembleBase):
                 confs[i] = measure._calcTransformation(conf, coords, weights
                                                             ).apply(confs[i]) 
         else:            
-            indices = self._getSelIndices()
+            indices = self._indices
             weights = None
             if self._weights is not None:
                 weights = self._weights[indices]
@@ -522,7 +541,7 @@ class Ensemble(EnsembleBase):
             raise AttributeError('conformations are not set, '
                                  'use addCoordset() method to set it.')
         LOGGER.info('Starting iterative superposition')
-        start = time.time()
+        start = time()
         rmsdif = 1
         step = 0
         weights = self._weights
@@ -541,8 +560,8 @@ class Ensemble(EnsembleBase):
             LOGGER.info(('Step #{0:d}: RMSD difference = '
                                '{1:.4e}').format(step, rmsdif))
         LOGGER.info('Iterative superposition completed in {0:.2f}s.'
-                    .format((time.time() - start)))
-        
+                    .format((time() - start)))
+#left here        
     def getMSF(self):
         """Calculate and return Mean-Square-Fluctuations."""
         
@@ -585,13 +604,13 @@ class PDBEnsemble(Ensemble):
     
     .. versionadded:: 0.8
     
-    .. warning:: This class is designed to handle conformations with missing
+    .. note:: This class is designed to handle conformations with missing
        coordinates, e.g. atoms that are note resolved in an X-ray structure.
        For unresolved atoms, the coordinates of the reference structure is
        assumed in RMSD calculations and superpositions.
     
     >>> ensemble
-    <PDBEnsemble: p38 X-ray (75 conformations, 321 atoms, 321 selected)>
+    <PDB Ensemble: p38 X-ray (75 conformations, 321 atoms, 321 selected)>
 
     """
 
@@ -744,6 +763,8 @@ class PDBEnsemble(Ensemble):
             return None
         if indices is None:
             indices = slice(None)
+        elif isinstance(indices, (int, long)): 
+            indices = np.array([indices])
         if self._sel is None:
             coords = self._confs[indices].copy()
             for i, w in enumerate(self._weights[indices]):
@@ -907,12 +928,24 @@ class ConformationBase(object):
 
     """Base class for :class:`Conformation` and :class:`Frame`."""
 
-    __slots__ = ['_ensemble', '_index']
+    __slots__ = ['_ensemble', '_index', '_sel', '_indices']
 
     def __init__(self, ensemble, index):
         self._ensemble = ensemble
         self._index = index
+        self._sel = ensemble.getSelection()
+        self._indices = ensemble._getSelIndices()
         
+    def __repr__(self):
+        return ('<{0:s}: {1:d} from {2:s} (selected {3:d} of {4:d} atoms)>'
+               ).format(self.__class__.__name__, self._index, 
+                        self._ensemble.getName(), self.getNumOfSelected(), 
+                        self._ensemble.getNumOfAtoms())
+
+    def __str__(self):
+        return '{0:s} {1:d} from {2:s}'.format(
+                    self._index, self._ensemble.getName())
+
     def getNumOfAtoms(self):
         """Return number of atoms."""
         
@@ -921,7 +954,10 @@ class ConformationBase(object):
     def getNumOfSelected(self):
         """Return number of selected atoms."""
         
-        return self._ensemble.getNumOfSelected()
+        if self._sel is None:
+            return self._ensemble.getNumOfAtoms()
+        else:
+            return len(self._indices)
     
     def getIndex(self):
         """Return index."""
@@ -931,13 +967,15 @@ class ConformationBase(object):
     def getWeights(self):
         """Return coordinate weights for selected atoms."""
         
-        return self._ensemble.getWeights()
+        if self._sel is None:
+            return self._ensemble.getWeights()
+        else:
+            return self._ensemble.getWeights()[self._indices]
 
 
 class Conformation(ConformationBase):
     
-    """A class to provide methods on a conformation in an ensemble.
-    
+    """A class to provide methods on a conformation in an ensemble.  
     Instances of this class do not keep coordinate and weights data.
     
     """
@@ -946,14 +984,6 @@ class Conformation(ConformationBase):
         """Instantiate with an ensemble instance, and an index."""
         ConformationBase.__init__(self, ensemble, index)
         
-    def __repr__(self):
-        return '<Conformation: {0:d} from {1:s}>'.format(
-                    self._index, self._ensemble.getName())
-
-    def __str__(self):
-        return 'Conformation {0:d} from {1:s}'.format(
-                    self._index, self._ensemble.getName())
-
     def getEnsemble(self):
         """Return the ensemble that this conformation belongs to."""
         
@@ -972,7 +1002,7 @@ class Conformation(ConformationBase):
         
         if self._ensemble._confs is None:
             return None
-        indices = self._ensemble._getSelIndices()
+        indices = self._indices
         if indices is None:
             return self._ensemble._confs[self._index].copy()
         return self._ensemble._confs[self._index, indices].copy()
@@ -984,43 +1014,47 @@ class Conformation(ConformationBase):
         ensemble = self._ensemble 
         if ensemble._confs is None:
             return None
-        indices = ensemble._getSelIndices()
+        indices = ensemble._indices
         if indices is None:
             return ensemble._coords - ensemble._confs[self._index].copy()
-        return ensemble._coords[indices] - ensemble._confs[self._index, 
-                                                           indices].copy()
+        else:
+            return (ensemble._confs[self._index, indices].copy() - 
+                    ensemble._coords[indices])
 
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates. RMSD is
         calculated for selected atoms."""
         
         ensemble = self._ensemble 
-        indices = ensemble._getSelIndices()
+        indices = self._indices
         if indices is None:
             return measure._calcRMSD(ensemble._coords,
                                      ensemble._confs[self._index], 
                                      self.getWeights())[0]
-        return measure._calcRMSD(ensemble._coords[indices],
-                                 ensemble._confs[self._index, indices], 
-                                 self.getWeights())[0]
+        else:
+            return measure._calcRMSD(ensemble._coords[indices],
+                                     ensemble._confs[self._index, indices], 
+                                     self.getWeights())[0]
     
 class PDBConformation(Conformation):
     
     """This class is the same as :class:`Conformation`, except that the 
-    conformation has an name (or identifier), e.g. PDB identifier.
+    conformation has a name (or identifier), e.g. PDB identifier.
     
     .. versionadded:: 0.8
 
     >>> conf = ensemble[0] 
     >>> conf
-    <PDB Conformation: AtomMap_Chain_A_from_1a9u_->_Chain_A_from_p38_reference from p38 X-ray (index: 0)>
+    <PDB Conformation: AtomMap_Chain_A_from_1a9u_->_Chain_A_from_p38_reference from p38 X-ray (index: 0; selected 321 of 321 atoms)>
 
     """
     
     def __repr__(self):
-        return '<PDB Conformation: {0:s} from {1:s} (index: {2:d})>'.format(
+        return ('<PDB Conformation: {0:s} from {1:s} (index: {2:d}; '
+                'selected {3:d} of {4:d} atoms)>').format(
                     self._ensemble._identifiers[self._index], 
-                    self._ensemble.getName(), self._index)
+                    self._ensemble.getName(), self._index, 
+                    self.getNumOfSelected(), self.getNumOfAtoms())
     
     def __str__(self):
         return 'PDB Conformation {0:s} from {1:s}'.format(
@@ -1037,7 +1071,7 @@ class PDBConformation(Conformation):
         
         return self._ensemble._identifiers[self._index]
     
-    def setIdentifier(self, name):
+    def setIdentifier(self, identifier):
         """Set the identifier of the conformation instance.
         
         >>> conf.setIdentifier('1a9u')
@@ -1062,7 +1096,7 @@ class PDBConformation(Conformation):
         ensemble = self._ensemble
         if ensemble._confs is None:
             return None
-        indices = ensemble._getSelIndices()
+        indices = ensemble._indices
         index = self._index
         if indices is None:
             coords = ensemble._confs[index].copy()
@@ -1080,7 +1114,11 @@ class PDBConformation(Conformation):
         """Return deviations from the ensemble reference coordinates. 
         Deviations are calculated for selected atoms."""
         
-        return self.getCoordinates() - self._ensemble.getCoordinates()
+        indices = self._indices
+        if indices is None:
+            return self.getCoordinates() - self._ensemble._coords
+        else:
+            return self.getCoordinates() - self._ensemble._coords[indices]
     
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates. RMSD is
@@ -1093,7 +1131,7 @@ class PDBConformation(Conformation):
         
         ensemble = self._ensemble
         index = self._index
-        indices = ensemble._getSelIndices()
+        indices = ensemble._indices
         if indices is None:
             return measure._calcRMSD(ensemble._coords,
                                      ensemble._confs[index], 
@@ -1107,7 +1145,7 @@ class PDBConformation(Conformation):
         """Return coordinate weights for selected atoms."""
         
         ensemble = self._ensemble
-        indices = ensemble._getSelIndices()
+        indices = ensemble._indices
         if indices is None:
             return ensemble._weights[self._index]
         else:
@@ -1119,21 +1157,13 @@ class Frame(ConformationBase):
     
     """
     
-    __slots__ = ['_ensemble', '_index', '_coords']
+    __slots__ = ['_ensemble', '_index', '_coords', '_indices', '_sel']
 
     def __init__(self, trajectory, index, coords):
         """Instantiate with an trajectory instance, index, and a name."""
         ConformationBase.__init__(self, trajectory, index)
         self._coords = coords
         
-    def __repr__(self):
-        return '<Frame: {0:d} from {1:s}>'.format(
-                    self._index, self._ensemble._name)
-
-    def __str__(self):
-        return 'Frame {0:d} from {1:s}'.format(
-                    self._index, self._ensemble._name)
-
     def getTrajectory(self):
         """Return the trajectory that this frame belongs to."""
         
@@ -1142,59 +1172,54 @@ class Frame(ConformationBase):
     def getCoordinates(self):
         """Return coordinates for selected atoms."""
         
-        ensemble = self._ensemble 
-        if ensemble._sel is None:
-            return self._coords.copy()
-        else:
-            return self._coords[ensemble._getSelIndices()].copy()
+        return self._coords.copy()
     
     def getDeviations(self):
         """Return deviations from the trajectory reference coordinates."""
 
-        ensemble = self._ensemble 
-        if ensemble._sel is None:
+        indices = self._indices 
+        if indices is None:
             return self._coords - ensemble._coords
-        indices = ensemble._getSelIndices()
-        return self._coords[indices] - ensemble._coords[indices]
-        
+        else:
+            return self._coords - ensemble._coords[indices]
 
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates."""
         
-        ensemble = self._ensemble 
-        if ensemble._sel is None:
+        indices = self._indices 
+        ensemble = self._ensemble
+        ensemble = self._ensemble
+        if indices is None:
             return measure._calcRMSD(self._coords, ensemble._coords, 
                                                     ensemble._weights)
-        indices = ensemble._getSelIndices()
-        if ensemble._weights is None:
-            return measure._calcRMSD(self._coords[indices], 
-                                     ensemble._coords[indices])
         else:
-            return measure._calcRMSD(self._coords[indices], 
-                                     ensemble._coords[indices], 
-                                     ensemble._weights[indices])
+            if ensemble._weights is None:
+                return measure._calcRMSD(self._coords[indices], 
+                                         ensemble._coords[indices])
+            else:
+                return measure._calcRMSD(self._coords[indices], 
+                                         ensemble._coords[indices], 
+                                         ensemble._weights[indices])
         
 
     def superpose(self):
         """Superpose frame coordinates onto the trajectory reference 
         coordinates."""
         
-        ensemble = self._ensemble 
-        if ensemble._sel is None:
+        indices = self._indices 
+        ensemble = self._ensemble
+        if indices is None:
             self._coords, t = measure.superpose(self._coords, 
                                                 ensemble._coords, 
                                                 ensemble._weights)
         else:
-            indices = ensemble._getSelIndices()
             if ensemble._weights is None:
-                self._coords = measure._calcTransformation(
-                        self._coords[indices], ensemble._coords[indices]
-                    ).apply(self._coords)
+                self._coords = measure.superpose(self._coords, 
+                                                 ensemble._coords[indices])
             else:
-                self._coords = measure._calcTransformation(
-                        self._coords[indices], ensemble._coords[indices], 
-                        ensemble._weights[indices]
-                    ).apply(self._coords)
+                self._coords = measure.superpose(self._coords, 
+                                                 ensemble._coords[indices], 
+                                                 ensemble._weights[indices])
     
 def trimEnsemble(ensemble, **kwargs):
     """Return a PDB ensemble obtained by trimming given *ensemble*.
@@ -1322,60 +1347,118 @@ from struct import calcsize, unpack
 RECSCALE32BIT = 1
 RECSCALE64BIT = 2
 
-class Trajectory(EnsembleBase):
+class TrajectoryBase(EnsembleBase):
+    
+    def __init__(self, name):
+        EnsembleBase.__init__(self, name)
+        self._nfi = 0
+        self._closed = False
+    
+    def __iter__(self):
+        if not self._closed:
+            while self._nfi < self._n_confs: 
+                yield self.next()
+    
+    def getNumOfFrames(self):
+        """Return number of frames."""
+        
+        return self._n_confs
+    
+    def getNextFrameIndex(self):
+        """Return the index of the next frame."""
+        
+        return self._nfi
+    
+    def iterCoordsets(self):
+        """Iterate over coordinate sets. Coordinates for selected atoms are 
+        returned. Reference coordinates are not included. Iteration starts
+        from the current position in the trajectory."""
+
+        if not self._closed:
+            while self._nfi < self._n_confs: 
+                yield self.nextCoordset()
+    
+    def getFrame(self):
+        pass
+
+
+    def next(self):
+        pass
+
+    def goto(self, n):
+        pass
+
+    def skip(self, n=1):
+        pass
+
+    def reset(self):
+        pass
+
+    def close(self):
+        pass
+
+
+class TrajectoryFile(TrajectoryBase):
+    
+    """A base class for providing a consistent interface over trajectories in 
+    different formats. 
+    
+    .. versionadded:: 0.8
+    
+    """
+    
     
     def __init__(self, filename):
         """Instantiate with a trajectory *filename*. The file will be 
-        automatically opened for reading at instantiation."""
+        automatically opened for reading at instantiation. 
+        Use :meth:`addFile` for appending files to the trajectory."""
         
         if not os.path.isfile(filename):
             raise IOError("[Errno 2] No such file or directory: '{0:s}'"
                           .format(filename))
         self._filename = filename
-        self._trajectory = open(filename, 'rb')
+        self._file = open(filename, 'rb')
         name = os.path.splitext(os.path.split(filename)[1])[0]
-        EnsembleBase.__init__(self, name)
-        self._current = 0
+        TrajectoryBase.__init__(self, name)
         self._bytes_per_frame = None
         self._first_byte = None
-        
+        self._dtype = np.float32
+
     def __getitem__(self, index):
         if isinstance(index, int):
-            return self.getFrame(index) 
-        elif isinstance(index, slice):
-            #return ensemble
-            ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                self._name, index.indices(len(self))))
+            return self.getFrame(index)
+        elif isinstance(index, (slice, list, np.ndarray)):
+            if isinstance(index, slice):
+                ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+                                    self._name, index.indices(len(self))))
+            else:
+                ens = Ensemble('{0:s} slice'.format(self._name))
             ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[index].copy(), self._weights[index].copy())
-            return ens
-        elif isinstance(index, (list, np.ndarray)):
-            #return ensemble
-            ens = Ensemble('{0:s} slice'.format(self._name))
-            ens.setCoordinates(self.getCoordinates())
-            ens.addCoordset(self._confs[index].copy(), self._weights[index].copy())
+            if self._weights is not None:
+                ens.setWeights(self._weights.copy())
+            ens.addCoordset(self.getCoordsets(index))
             return ens
         else:
             raise IndexError('invalid index')
     
-    def __len__(self):
-        return self._n_confs
-    
-    def __iter__(self):
-        while self._current < self._n_confs: 
-            yield self.next()
-    
     def __repr__(self):
-        return ('<Trajectory: {0:s} (frame at {1:d} of {2:d}, '
-                'atoms selected {3:d} of {3:d})>').format(self._name, 
-                self._current, self._n_confs, self.getNumOfSelected(),
-                self._n_atoms)
+        if self._closed:
+            return ('<{0:s}: {1:s} (closed)>').format(
+                        self.__class__.__name__, self._name)
+        else:
+            return ('<{0:s}: {1:s} (at {2:d} of {3:d} frames, '
+                    'selected {4:d} of {5:d} atoms)>').format(
+                    self.__class__.__name__, self._name, 
+                    self._nfi, self._n_confs, self.getNumOfSelected(),
+                    self._n_atoms)
     
     def __str__(self):
-        return 'Trajectory {0:s}'.format(self._name)
+        return '{0:s} {1:s}'.format(self.__class__.__name__, self._name)
     
+       
     def getFilename(self, absolute=False):
-        """Return relative filename. """
+        """Return relative path to the current file. For absolute path,
+        pass ``absolute=True`` argument."""
         
         if absolute:
             return os.path.abspath(self._filename)    
@@ -1384,109 +1467,122 @@ class Trajectory(EnsembleBase):
     def getFrame(self, index):
         """Return frame at given *index*."""
         
+        if closed:
+            return None
         if not isinstance(index, (int, long)):
             raise IndexError('index must be an integer')
         if not 0 <= index < self._n_confs:
             raise IndexError('index must be greater or equal to 0 and less '
                              'than number of frames')
-        current = self._current
-        if index > current:
-            self.skip(index - current)
-        elif index < current:
+        nfi = self._nfi
+        if index > nfi:
+            self.skip(index - nfi)
+        elif index < nfi:
             self.reset()
             if index > 0:
                 self.skip(index)
         return self.next()
     
-    def iterCoordsets(self):
-        """Iterate over coordinate sets. A copy of each coordinate set for
-        selected atoms is returned. Reference coordinates are not included."""
-
-        self.reset()        
-        for frame in self:        
-            yield frame.getCoordinates()
             
     def getCoordsets(self, indices=None):
-        """Returns coordinate set at given *index*."""
+        """Returns coordinate sets at given *indices*. *indices* may be an 
+        integer, a list of ordered integers or ``None``. ``None`` returns all 
+        coordinate sets."""
         
-        pass
-    
-    def getNumOfFrames(self):
-        """Return number of frames."""
-        
-        return self._n_confs
-    
-    def next(self):
-        """Return next frame."""
-        
-        if self._current < self._n_confs:
-            return self._next()
+        if indices is None:
+            indices = np.arange(self._n_confs)
+        elif isinstance(indices, (int, long)):
+            indices = np.array([indices])
+        elif isinstance(indices, slice):
+            indices = np.arange(*indices.indices(self._n_confs))
+        elif isinstance(indices, (list, np.ndarray)):
+            if isinstance(indices, list):
+                indices = np.array(indices)
+            indices.sort()
+        else:
+            raise TypeError('indices must be an integer or a list of integers')
+
+        nfi = self._nfi
+        self.reset()
+
+        n_atoms = self.getNumOfSelected() 
+        coords = np.zeros((len(indices), n_atoms, 3), self._dtype)
+
+        prev = 0
+        next = self.nextCoordset
+        for i, index in enumerate(indices):
+            diff = index - prev
+            if diff > 0:
+                self.skip(diff)
+            coords[i] = next()
+
+        self.goto(nfi)
+        return coords
     
     def skip(self, n=1):
-        """Skip *n* frames, default is 1. If *n* is larger than the number 
-        of frames, it will move to the last frame. If *n* is negative, it 
-        will rewind the trajectory."""
+        """Skip *n* frames. *n* must be a positive integer, default is 1."""
         
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
-        current = self._current
-        if n > 0:
-            n_left = self._n_confs - current - 1 
-            if n > n_left:
-                n = n_left
-        elif n < 0:
-            if -n > current:
-                n = - current
-        self._trajectory.seek(n * self._bytes_per_frame, 1)                
-        self._current += n
+        if not self._closed and n > 0:
+            left = self._n_confs - self._nfi
+            if n > left:
+                n = left
+            self._file.seek(n * self._bytes_per_frame, 1)                
+            self._nfi += n
     
     def goto(self, n):
         """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
         to the beginning. ``n=-1`` will go to the last frame."""
         
+        if self._closed:
+            return None
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         n_confs = self._n_confs
         if n > 0:
             if n > n_confs: 
                 n = n_confs
-            self._trajectory.seek(self._first_byte + n * self._bytes_per_frame)
-            self._current = n
+            self._file.seek(self._first_byte + n * self._bytes_per_frame)
+            self._nfi = n
         elif n < 0:
             n = n_confs + n
             if n < 0:
                 n = 0
-            self._trajectory.seek(self._first_byte + n * self._bytes_per_frame)
-            self._current = n
+            self._file.seek(self._first_byte + n * self._bytes_per_frame)
+            self._nfi = n
         else:
-            self._reset()
+            self.reset()
         
     
     def reset(self):
-        """Go to the beginning (0th frame)."""
+        """Go to first frame whose index is 0."""
 
-        self._trajectory.seek(self._first_byte)
-        self._current = 0
+        if not self._closed:
+            self._file.seek(self._first_byte)
+            self._nfi = 0
 
     
     def close(self):
         """Close trajectory file."""
-        self._trajectory.close()
-        self._current = 0
+        
+        self._file.close()
+        self._nfi = 0
+        self._closed = True
     
     
-class DCDTrajectory(Trajectory):
+class DCDFile(TrajectoryFile):
+    
+    """A class for reading DCD files."""
     
     def __init__(self, filename):
-        Trajectory.__init__(self, filename)
+        """Instantiate with a DCD filename. DCD header and first frame is 
+        parsed at instantiation. Coordinates from the first frame is set 
+        as the reference coordinates."""
+        
+        TrajectoryFile.__init__(self, filename)
         self._parseHeader()
         
-    def __repr__(self):
-        return '<DCD' + Trajectory.__repr__(self)[1:]
-    
-    def __str__(self):
-        return 'DCD' + Trajectory.__str__(self)
-    
     def _parseHeader(self):
         """Read the header information from a dcd file.
         Input: fd - a file struct opened for binary reading.
@@ -1501,7 +1597,8 @@ class DCDTrajectory(Trajectory):
                       *reverse set to one if reverse-endian, zero if not.
                       *charmm set to internal code for handling charmm data.
         """
-        dcd = self._trajectory
+        
+        dcd = self._file
         endian = '' #'=' # native endian
         rec_scale = RECSCALE32BIT
         charmm = None
@@ -1539,7 +1636,7 @@ class DCDTrajectory(Trajectory):
         
         # check for magic string, in case of long record markers
         if rec_scale == RECSCALE64BIT:
-            raise IOError("CHARMM 64-bit DCD files are not yet supported.");
+            raise IOError('CHARMM 64-bit DCD files are not yet supported.');
             temp = unpack('I', dcd.read(calcsize('I')))
             if temp[0] != dcdcordmagic: 
                 raise IOError('Failed to find CORD magic in CHARMM -i8 64-bit '
@@ -1557,10 +1654,11 @@ class DCDTrajectory(Trajectory):
             charmm = True
 
         if charmm:
-            LOGGER.info("CHARMM format DCD file (also NAMD 2.1 and later).")
+            LOGGER.info('CHARMM format DCD file (also NAMD 2.1 and later).')
             temp = unpack(endian + 'i'*9 + 'f' + 'i'*10 , bits)
         else:
-            LOGGER.info("X-PLOR format DCD file (also NAMD 2.0 and earlier) is not supported.")
+            LOGGER.info('X-PLOR format DCD file (also NAMD 2.0 and earlier) '
+                        'is not supported.')
             return None
         
         # Store the number of sets of coordinates (NSET)
@@ -1576,7 +1674,7 @@ class DCDTrajectory(Trajectory):
             raise IOError('DCD files with fixed atoms is not yet supported.')
         
         # Read in the timestep, DELTA
-        # Note: DELTA is stored as a double with X-PLOR but as a float with CHARMm
+        # Note: DELTA is stored as double with X-PLOR but as float with CHARMm
         self._timestep = temp[9]
         self._unitcell = temp[10]
         
@@ -1602,7 +1700,7 @@ class DCDTrajectory(Trajectory):
             raise IOError('Unrecognized DCD format.')
 
         # Read in the number of atoms
-        self._n_atoms = unpack(endian+'i', dcd.read(rec_scale*calcsize('i')))[0]
+        self._n_atoms = unpack(endian+'i',dcd.read(rec_scale*calcsize('i')))[0]
         # Read in an integer '4'
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
             raise IOError('Bad DCD format.')
@@ -1618,36 +1716,194 @@ class DCDTrajectory(Trajectory):
             self._bytes_per_frame = 56 + self._n_floats * 4
             self._dtype = np.float32
         
-        self._first_byte = self._trajectory.tell()
+        self._first_byte = self._file.tell()
         
-        self._skipXSC()
-        self._coords = self._parseCoordset()
-        LOGGER.info('First frame is set as the reference coordinate set '
-            'for {0:s}.'.format(self._name))
-        self._trajectory.seek(self._first_byte)
+        self._coords = self.nextCoordset()
+        self._file.seek(self._first_byte)
+        self._nfi = 0
         
-    def _next(self):
-        self._skipXSC()
-        frame = Frame(self, self._current, self._parseCoordset())
-        self._current += 1
-        return frame
+    def next(self):
+        """Return next frame."""
+        
+        if not self._closed and self._nfi < self._n_confs:
+            frame = Frame(self, self._nfi, self.nextCoordset())
+            return frame
+        
+    def nextCoordset(self):
+        """Return next coordinate set."""
+        
+        if not self._closed and self._nfi < self._n_confs:
+            #Skip extended system coordinates (unit cell data)
+            self._file.seek(56, 1)
+            n_floats = self._n_floats
+            n_atoms = self._n_atoms
+            xyz = np.fromfile(self._file, dtype=self._dtype, count=n_floats)
+            if len(xyz) != n_floats:
+                return None
+            xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
+            xyz = xyz.reshape((n_atoms, 3))
+            self._nfi += 1
+            if self._sel is None:
+                return xyz
+            else:
+                return xyz[self._indices]
 
-    def _skipXSC(self):
-        """Skip extended system coordinates (unit cell data)."""
+    def getCoordsets(self, indices=None):
+        """Returns coordinate sets at given *indices*. *indices* may be an 
+        integer, a list of integers or ``None``. ``None`` returns all 
+        coordinate sets."""
         
-        self._trajectory.seek(56, 1)
+        if indices is None or indices == slice(None):
+            nfi = self._nfi
+            self.reset()
+            n_floats = self._n_floats
+            n_atoms = self._n_atoms
+            n_confs = self._n_confs
+            data = np.fromfile(self._file, self._dtype, 
+                               self._bytes_per_frame * n_confs)
+            data = data.reshape((n_confs, 14 + n_floats))
+            data = data[:, 14:]
+            data = data.reshape((n_confs, 3, n_atoms+2))
+            data = data[:, :, 1:-1]
+            data = data.transpose(0, 2, 1)
+            self.goto(nfi)
+            return data
+        else:            
+            return TrajectoryFile.getCoordsets(self, indices)
+
+
+class Trajectory(TrajectoryBase):
+    
+    """A class for handling trajectories in multiple files."""
         
-    def _parseCoordset(self):
-        """Return coordinate array with shape (n_atoms, 3)."""
+    def __init__(self, name):
+        """Trajectory can be instantiated with a *name* or a filename. When
+        name is a valid path to a trajectory file it will be opened for 
+        reading."""
         
-        n_floats = self._n_floats
+        TrajectoryBase.__init__(self, name)
+        self._trajectory = None
+        self._trajectories = []
+        self._filenames = set()
+        self._n_files = 0
+        self._cfi = 0 # current file index
+        if os.path.isfile(name):
+            self.addFile(name)
+        
+        
+    def __repr__(self):
+        if self._closed:
+            return ('<Trajectory: {0:s} (closed)>').format(self._name)
+        else:
+            return ('<Trajectory: {0:s} ({1:d} files, at {2:d} of {3:d} '
+                    'frames, selected {4:d} of {5:d} atoms)>').format(
+                    self._name, self._n_files, self._nfi, 
+                    self._n_confs, self.getNumOfSelected(), self._n_atoms)
+    
+    def __str__(self):
+        return '{0:s} {1:s}'.format(self.__class__.__name__, self._name)
+
+    def _nextFile(self):
+        self._cfi += 1
+        if self._cfi < self._n_files: 
+            self._trajectory = self._trajectories[self._cfi]
+        
+    def addFile(self, filename):
+        """Add a file to the trajectory instance. Currently only DCD files
+        are supported."""
+        
+        if os.path.abspath(filename) in self._filenames:        
+            raise IOError('{0:s} is already added to the trajectory'
+                          .format(filename))
+        ext = os.path.splitext(filename)[1]
+        if ext.lower() == '.dcd':
+            traj = DCDFile(filename)
+        else: 
+            raise ValueError('Trajectory file type "{0:s}" is not recognized.'
+                             .format(ext))
+        
         n_atoms = self._n_atoms
-        xyz = np.fromfile(self._trajectory, dtype=self._dtype, count=n_floats)
-        if len(xyz) != n_floats:
-            return None
-        xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
-        xyz = xyz.reshape((n_atoms, 3))
-        return xyz
+        if n_atoms != 0 and n_atoms != traj.getNumOfAtoms():
+            raise IOError('{0:s} must have same number of atoms as previously '
+                          'loaded files'.format(traj.getName()))
+         
+        if self._n_files == 0:
+            self._trajectory = traj                
+            self._name = traj.getName()
+        if n_atoms == 0:
+            self._n_atoms = traj.getNumOfAtoms()
+            self._coords = traj._coords
+        self._trajectories.append(traj)
+        self._n_confs += traj.getNumOfFrames()
+        self._n_files += 1
+   
+    def getNumOfFiles(self):
+        """Return number of open trajectory files."""
+        
+        return self._n_files
+
+    def getFilenames(self, absolute=False):
+        """Return list of filenames opened for reading."""
+        
+        return [traj.getFilename(absolute) for traj in self._trajectories]
+        
+
+    def getCoordsets(self, indices=None):
+        pass
+    
+    def next(self):
+        """Return next frame."""
+
+        if not self._closed and self._nfi < self._n_confs:
+            return Frame(self, self._nfi, self.nextCoordset())
+    
+    def nextCoordset(self):
+        """Return next coordinate set."""
+        
+        if not self._closed and self._nfi < self._n_confs:
+            traj = self._trajectory
+            while traj._nfi == traj._n_confs:
+                self._nextFile()
+                traj = self._trajectory
+            self._nfi += 1
+            return traj.nextCoordset()
+    
+    def goto(self, n):
+        pass
+    
+    def skip(self, n=1):
+        """Skip *n* frames. *n* must be a positive integer, default is 1."""
+        
+        if not isinstance(n, (int, long)):
+            raise ValueError('n must be an integer')
+        left = self._n_confs - self._nfi
+        if n > left:
+            n = left
+        while not self._closed and self._nfi < self._n_frames and n > 0:
+            traj = self._trajectory
+            skip = min(n, traj.getNumOfFrames() - traj.getNextFrameIndex())
+            traj.skip(skip)
+            if n > skip:
+                self._nextFile()
+            self._nfi += skip
+            n -= skip
+    
+    def reset(self):
+        """Go to the first frame of the first file."""
+
+        if not self._closed and self._trajectories:
+            for traj in self._trajectories:
+                traj.reset()
+            self._trajectory = self._trajectories[0]
+            self._cfi = 0
+            self._nfi = 0
+
+    def close(self):
+        """Close all open trajectory files."""
+        
+        for traj in self._trajectories:
+            traj.close()
+        self._closed = True
     
 def parseDCD(filename, first=None, last=None, stride=None):
     """|new| Parse CHARMM format DCD files (also NAMD 2.1 and later).
@@ -1655,11 +1911,8 @@ def parseDCD(filename, first=None, last=None, stride=None):
     .. versionadded:: 0.7.2
     
     .. versionchanged:: 0.8
-       *indices* argument is removed. Use :class:`Trajectory` class for 
-       parsing coordinates for a subset of atoms.
-    
-    The type of coordinate data array returned by this function is 
-    :class:`~numpy.float32`.
+       Returns an :class:`Ensemble` instance. *indices* argument is removed. 
+       Use :class:`DCDFile` class for parsing coordinates of a subset of atoms.
     
     :arg filename: DCD filename
     :type filename: str
@@ -1676,7 +1929,7 @@ def parseDCD(filename, first=None, last=None, stride=None):
     """
     
     dcd = DCDFile(filename)
-    start = time.time()
+    start = time()
     endian = header['endian']
     unitcell = header['unitcell']
     bit64 = header['is64bit'] == 2
@@ -1723,8 +1976,8 @@ def parseDCD(filename, first=None, last=None, stride=None):
     if len(coords) == 0:
         raise IOError('Coordinate data could not be parsed from DCD file.')
     coords = np.concatenate(coords)
-    time_ = time.time() - start
-    dcd_size = 1.0 * n_frames * ((n_atoms + 2) * 4 * 3) / (1024 * 1024) 
+    time_ = time() - start
+    dcd_size = 1.0 * n_frames * ((n_atoms + 2) * 4 * 3) / (1024 * 1024)
     LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB parsed at input rate {1:.2f} MB/s.'
                 .format(dcd_size, dcd_size/time_))
@@ -1877,9 +2130,12 @@ def _parseDCDHeaader(dcd):
     
 
 if __name__ == '__main__':
-    from prody import *
-    dcd = DCDTrajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
-    dcd.setAtomGroup( parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb') )
+    ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
+    dcd = DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    dcd.setAtomGroup( ag )
+    traj = Trajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
+    traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    traj.setAtomGroup( ag )
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', indices=np.arange(1000), stride=10)
     #dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
