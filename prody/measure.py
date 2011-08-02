@@ -134,98 +134,115 @@ def calcTransformation(mobile, target, weights=None):
         try:
             mob = mobile.getCoordinates()
         except AttributeError:
-            raise TypeError('mobile is not a coordinate array '
-                            'and do not contain a coordinate set')
+            raise TypeError('mobile must be a numpy array or an object '
+                            'with getCoordinates method')
     else:
         mob = mobile
     if not isinstance(target, np.ndarray): 
         try:
             tar = target.getCoordinates()
         except AttributeError:
-            raise TypeError('target is not a coordinate array '
-                            'and do not contain a coordinate set')
+            raise TypeError('target must be a numpy array or an object '
+                            'with getCoordinates method')
     else:
         tar = target
     
     if mob.shape != tar.shape:
-        raise ValueError('reference and target coordinate arrays must have same shape')
+        raise ValueError('reference and target coordinate arrays '
+                         'must have same shape')
     
 
     if mob.shape[1] != 3:
         raise ValueError('reference and target must be 3-d coordinate arrays')
-        
-    t = _calcTransformation(mob, tar, weights)
-    return t
-
-def _calcTransformation(mob, tar, weights=None):
-    if linalg is None: 
-        prody.importLA()
-    n_atoms = mob.shape[0]
     
-    if weights is None:
-        weights = 1
-        weights_sum = n_atoms
-        weights_dot = 1
-    else:
+    if weights is not None:
         if not isinstance(weights, np.ndarray): 
             raise TypeError('weights must be an ndarray instance')
-        elif weights.shape[0] != n_atoms:
-            raise ValueError('lenth of weights array and coordinate arrays must be the same')
-        
+        elif weights.shape != (mob.shape[0], 1):
+            raise ValueError('weights must have shape (n_atoms, 1)')
+
+    return _calcTransformation(mob, tar, weights)
+
+def _calcTransformation(mob, tar, weights=None, superpose=False):
+    if linalg is None:
+        prody.importLA()
+    
+    if weights is None:
+        mob_com = mob.mean(0)
+        tar_com = tar.mean(0)
+        mob = mob - mob_com
+        tar = tar - tar_com
+        matrix = np.dot(tar.T, mob)
+    else:
         weights_sum = weights.sum()
         weights_dot = np.dot(weights.T, weights)
-    
-    mob_com = (mob * weights).sum(axis=0) / weights_sum
-    tar_com = (tar * weights).sum(axis=0) / weights_sum
-    mob = mob - mob_com
-    tar = tar - tar_com
-    
+        mob_com = (mob * weights).sum(axis=0) / weights_sum
+        tar_com = (tar * weights).sum(axis=0) / weights_sum
+        mob = mob - mob_com
+        tar = tar - tar_com
+        matrix = np.dot((tar * weights).T, (mob * weights)) / weights_dot
 
-    matrix = np.dot((tar * weights).T, (mob * weights)) / weights_dot
     U, s, Vh = linalg.svd(matrix)
-    
     Id = np.array([ [1, 0, 0], 
                     [0, 1, 0], 
                     [0, 0, np.sign(linalg.det(matrix))] ])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
     
-    # optalign
-    # http://www.pymolwiki.org/index.php/Kabsch
-    #E0 = np.sum( np.sum(ref_centered * ref_centered,axis=0),axis=0) + np.sum( np.sum(tar_centered * tar_centered,axis=0),axis=0)
-    #reflect = float(str(float(linalg.det(U) * linalg.det(Vh))))
-    #if reflect == -1.0:
-    #    s[-1] = -s[-1]
-    #    U[:,-1] = -U[:,-1]
-    #RMSD = E0 - (2.0 * sum(s))
-    #RMSD = np.sqrt(abs(RMSD / n_atoms))
-    #print RMSD
-    #transformation._rotation = np.dot(U, Vh)
-    t = Transformation(rotation, tar_com - np.dot(mob_com, rotation))
-    return t
+    #if superpose:
+    #    return Transformation(rotation,  - np.dot(mob, rotation + tar_com
+    #else:
+    return Transformation(rotation, tar_com - np.dot(mob_com, rotation))
 
-def applyTransformation(transformation, coordinates):
+def _superpose(mobs, tar, weights=None, movs=None):
+    # mobs.ndim == 3 and movs.ndim == 3
+    # mobs.shape[0] == movs.shape[0]
+    tar_com = tar.mean(0)
+    tar_org = tar - tar_com
+
+    for i, mob in enumerate(mobs):         
+        if linalg is None:
+            prody.importLA()
+        mob_com = mob.mean(0)
+        mob_org = mob - mob_com
+        matrix = np.dot(tar_org.T, mob_org)
+
+        U, s, Vh = linalg.svd(matrix)
+        Id = np.array([ [1, 0, 0], 
+                        [0, 1, 0], 
+                        [0, 0, np.sign(linalg.det(matrix))] ])
+        rotation = np.dot(Vh.T, np.dot(Id, U.T))
+
+        if movs is None:
+            mobs[i] = np.dot(mob_org, rotation) + tar_com 
+        else:
+            movs[i] = np.dot(movs[i], rotation) + (tar_com - 
+                                                   np.dot(mob_com, rotation))
+
+def applyTransformation(transformation, coords):
     """Applies a transformation to a given coordinate set."""
     
-    if not isinstance(coordinates, np.ndarray): 
-        molecule = coordinates
+    if not isinstance(coords, np.ndarray): 
+        mol = coords
         try:
-            coordinates = molecule.getCoordinates()
+            coords = mol.getCoordinates()
         except AttributeError:
-            raise TypeError('coordinates is not an array of coordinates '
+            raise TypeError('coords is not an array of coordinates '
                             'and do not contain a coordinate set')
     else:
-        molecule = None
+        mol = None
     
-    if coordinates.shape[1] != 3:
+    if coords.shape[1] != 3:
         raise ValueError('coordinates must be a 3-d coordinate array')
     
-    transformed = transformation._translation + np.dot(coordinates, 
-                                                       transformation._rotation)
-    if molecule is not None:
-        molecule.setCoordinates(transformed) 
-        return molecule
+    if mol is None:
+        return _applyTransformation(transformation, coords)
     else:
-        return transformed
+        mol.setCoordinates(_applyTransformation(transformation, coords)) 
+        return mol
+
+def _applyTransformation(t, coords):
+    return t._translation + np.dot(coords, t._rotation)
+    
 
 def calcDeformVector(from_atoms, to_atoms):
     """Returns deformation :class:`~prody.dynamics.Vector` from *from_atoms* 
@@ -314,26 +331,33 @@ def _calcRMSD(ref, tar, weights=None):
         if tar.ndim == 2:
             return np.sqrt(((ref-tar) ** 2).sum() * divByN)
         else:
-            return np.sqrt(((ref-tar) ** 2).sum(-1).sum(-1) * divByN)
+            rmsd = np.zeros(len(tar))
+            for i, t in enumerate(tar):
+                rmsd[i] = ((ref-t) ** 2).sum() 
+            return np.sqrt(rmsd * divByN)
     else:
         if tar.ndim == 2:
             return np.sqrt((((ref-tar) ** 2) * weights).sum() * 
                                                     (1 / weights.sum()))
         else:
-            print weights.ndim
+            rmsd = np.zeros(len(tar))
             if weights.ndim == 2:
-                return np.sqrt((((ref-tar) ** 2) * weights).sum(-1).sum(-1) * 
-                                                    (1 / weights.sum()))
+                for i, t in enumerate(tar):
+                    rmsd[i] = (((ref-t) ** 2) * weights).sum() 
+                return np.sqrt(rmsd * (1 / weights.sum()))
             else:
-                return np.sqrt((((ref-tar) ** 2) * weights).sum(-1).sum(-1) / 
-                                                      weights.sum(-1).sum(-1))
+                for i, t in enumerate(tar):
+                    rmsd[i] = (((ref-t) ** 2) * weights[i]).sum()
+                return np.sqrt(rmsd / weights.sum(1).flatten())
             
     
 def superpose(mobile, target, weights=None):
-    """Superpose *mobile* onto *target* to minimize the RMSD distance."""
+    """Superpose *mobile* onto *target* to minimize the RMSD distance.
+    Returns target after superposition and the transformation."""
+    
     t = calcTransformation(mobile, target, weights)
     result = applyTransformation(t, mobile)
-    return (result, t) 
+    return (result, t)
 
 def calcDistance(one, two):
     """Return the Euclidean distance between *one* and *two*.
@@ -370,12 +394,15 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
         
     """
     if not isinstance(atoms, prody.Atomic):
-        raise TypeError('atoms must have type Atomic, not {0:s}'.format(type(atoms)))
+        raise TypeError('atoms must have type Atomic, not {0:s}'
+                        .format(type(atoms)))
     if not isinstance(selstr, str):
-        raise TypeError('selstr must have type str, not {0:s}'.format(type(selstr)))
+        raise TypeError('selstr must have type str, not {0:s}'
+                        .format(type(selstr)))
     n_coordsets = atoms.getNumOfCoordsets()
     if n_coordsets < 2:
-        LOGGER.warning('{0:s} contains only one coordinate set, superposition not performed.'.format(str(atoms)))
+        LOGGER.warning('{0:s} contains only one coordinate set, '
+                       'superposition not performed.'.format(str(atoms)))
         return None
     
     acsi = atoms.getActiveCoordsetIndex()
