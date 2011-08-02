@@ -65,31 +65,14 @@ class Transformation(object):
         self._translation = None
         self.setTranslation(translation)
     
-    #def __repr__(self):
-    #    if self._name is not None: 
-    #        return '<Transformation: {0:s}>'.format(self._name)
-    #    else:
-    #        return object.__repr__(self)
-
-    #def __str__(self):
-    #    if self._name is not None: 
-    #        return 'Transformation {0:s}'.format(self._name)
-    #    else:    
-    #        return ''
-
-    #def getName(self): 
-    #    """Return name of the translation"""
-    #    return self._name
-    #def setName(self, name):
-    #    """Set name of the translation"""
-    #    self._name = name
-    
     def getRotation(self): 
         """Returns rotation matrix."""
+        
         return self._rotation.copy()
 
     def setRotation(self, rotation):
         """Set rotation matrix."""
+        
         if not isinstance(rotation, np.ndarray):
             raise TypeError('rotation must be an ndarray')
         elif rotation.shape != (3,3):
@@ -98,10 +81,12 @@ class Transformation(object):
 
     def getTranslation(self): 
         """Returns translation vector."""
+        
         return self._translation.copy()
     
     def setTranslation(self, translation): 
         """Set translation vector."""
+        
         if not isinstance(translation, np.ndarray):
             raise TypeError('translation must be an ndarray')
         elif translation.shape != (3,):
@@ -130,6 +115,7 @@ class Transformation(object):
         is returned.
         
         """
+        
         return applyTransformation(self, atoms)
     
 
@@ -142,6 +128,7 @@ def calcTransformation(mobile, target, weights=None):
     Molecule, AtomGroup, Chain, or Residue.
     
     """
+    
     name = ''
     if not isinstance(mobile, np.ndarray): 
         try:
@@ -218,6 +205,7 @@ def _calcTransformation(mob, tar, weights=None):
 
 def applyTransformation(transformation, coordinates):
     """Applies a transformation to a given coordinate set."""
+    
     if not isinstance(coordinates, np.ndarray): 
         molecule = coordinates
         try:
@@ -250,46 +238,96 @@ def calcDeformVector(from_atoms, to_atoms):
     return prody.Vector(array, name)
 
 def calcRMSD(reference, target=None, weights=None):
-    """Returns Root-Mean-Square-Deviations between reference and target coordinates."""
+    """Returns Root-Mean-Square-Deviations between reference and target 
+    coordinates.
+    
+    >>> ens = loadEnsemble('HIV-RT.ens.npz')
+    >>> print ens.getRMSDs().round(2) # doctest: +ELLIPSIS
+    [ 2.43  2.51  2.51  1.91  1.34  1.01  0.98  1.15  1.19  1.28  1.21  1.33
+      1.42  1.28  1.81  1.06  1.99  1.39  1.3   1.26  1.29  1.37  1.37  1.02
+      ...
+      0.93  0.94  1.59  4.65  1.71  1.63  2.22  1.44  1.03  1.32  1.2   2.
+      1.62  1.44  1.2   1.95  1.9   1.34  1.49  1.08  1.96]
+    >>> print calcRMSD(ens).round(2) # doctest: +ELLIPSIS
+    [ 2.43  2.51  2.51  1.91  1.34  1.01  0.98  1.15  1.19  1.28  1.21  1.33
+      1.42  1.28  1.81  1.06  1.99  1.39  1.3   1.26  1.29  1.37  1.37  1.02
+      ...
+      0.93  0.94  1.59  4.65  1.71  1.63  2.22  1.44  1.03  1.32  1.2   2.
+      1.62  1.44  1.2   1.95  1.9   1.34  1.49  1.08  1.96]
+    >>> print calcRMSD(ens.getCoordinates(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
+    [ 2.43  2.51  2.51  1.91  1.34  1.01  0.98  1.15  1.19  1.28  1.21  1.33
+      1.42  1.28  1.81  1.06  1.99  1.39  1.3   1.26  1.29  1.37  1.37  1.02
+      ...
+      0.93  0.94  1.59  4.65  1.71  1.63  2.22  1.44  1.03  1.32  1.2   2.
+      1.62  1.44  1.2   1.95  1.9   1.34  1.49  1.08  1.96]
+    
+    """
+    
     if not isinstance(reference, np.ndarray): 
         try:
             ref = reference.getCoordinates()
+        except AttributeError:
+            raise TypeError('reference must be a numpy array or an object '
+                            'with getCoordinates method')
+        try:
             if target is None:
                 target = reference.getCoordsets()
         except AttributeError:
-            raise TypeError('reference is not an array of coordinates '
-                            'and do not contain a coordinate set')
+            pass
+        try:
+            if weights is None:
+                weights = reference.getWeights()
+        except AttributeError:
+            pass
     else:
         ref = reference
-        
+    if ref.ndim != 2 or ref.shape[1] != 3:
+        raise ValueError('reference must have shape (n_atoms, 3)')
+    
     if not isinstance(target, np.ndarray): 
         try:
             tar = target.getCoordinates()
         except AttributeError:
-            raise TypeError('target is not an array of coordinates '
-                            'and do not contain a coordinate set')
+            raise TypeError('target must be a numpy array or an object '
+                            'with getCoordinates method')
     else:
         tar = target
-    
+    if tar.ndim not in (2, 3) or tar.shape[-1] != 3:
+        raise ValueError('target must have shape ([n_confs,] n_atoms, 3)')
+
     if ref.shape != tar.shape[-2:]:
-        raise ValueError('reference and target coordinate arrays must have same shape')
+        raise ValueError('reference and target arrays must have the same '
+                         'number of atoms')
+    
+    if weights is not None:
+        if not isinstance(weights, np.ndarray): 
+            raise TypeError('weights must be an ndarray instance')
+        elif not ((weights.ndim == 2 and len(weights) == len(ref)) or
+            (weights.ndim == 3 and weights.shape[:2] == target.shape[:2])) or \
+             weights.shape[-1] != 1:
+            raise ValueError('weights must have shape ([n_confs,] n_atoms, 1)')
     return _calcRMSD(ref, tar, weights)
     
 def _calcRMSD(ref, tar, weights=None):
-    n_atoms = ref.shape[0]
     if weights is None:
-        weights = 1
-        weights_sum = n_atoms
+        divByN = 1.0 / ref.shape[0]
+        if tar.ndim == 2:
+            return np.sqrt(((ref-tar) ** 2).sum() * divByN)
+        else:
+            return np.sqrt(((ref-tar) ** 2).sum(-1).sum(-1) * divByN)
     else:
-        if not isinstance(weights, np.ndarray): 
-            raise TypeError('weights must be an ndarray instance')
-        elif weights.shape[0] != n_atoms:
-            raise ValueError('lenth of weights array and coordinate arrays must be the same')
-        weights_sum = weights.sum()
-    if tar.ndim == 2:
-        return np.sqrt(((ref-tar) ** 2).sum() / weights_sum)
-    else:
-        return np.sqrt(((ref-tar) ** 2).sum(2).sum(1) / weights_sum)
+        if tar.ndim == 2:
+            return np.sqrt((((ref-tar) ** 2) * weights).sum() * 
+                                                    (1 / weights.sum()))
+        else:
+            print weights.ndim
+            if weights.ndim == 2:
+                return np.sqrt((((ref-tar) ** 2) * weights).sum(-1).sum(-1) * 
+                                                    (1 / weights.sum()))
+            else:
+                return np.sqrt((((ref-tar) ** 2) * weights).sum(-1).sum(-1) / 
+                                                      weights.sum(-1).sum(-1))
+            
     
 def superpose(mobile, target, weights=None):
     """Superpose *mobile* onto *target* to minimize the RMSD distance."""
