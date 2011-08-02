@@ -498,26 +498,18 @@ class Ensemble(EnsembleBase):
                            'seconds.').format((time() - start)))
         
     def _superpose(self):
-        """Superpose conformations and return new coordinates."""
+        """Superpose conformations and update coordinates."""
         
-        if self._sel is None:
-            weights = self._weights
-            coords = self._coords
-            confs = self._confs
-            for i, conf in enumerate(confs):
-                confs[i] = measure._calcTransformation(conf, coords, weights
-                                                            ).apply(confs[i]) 
-        else:            
-            indices = self._indices
+        indices = self._indices
+        if indices is None:
+            measure._superpose(self._confs, self._coords, self._weights)
+        else:
             weights = None
             if self._weights is not None:
                 weights = self._weights[indices]
-            coords = self._coords[indices]
-            confs_selected = self._confs[:,indices]
-            confs = self._confs
-            for i, conf in enumerate(confs_selected):
-                confs[i] = measure._calcTransformation(conf, coords, weights
-                                                            ).apply(confs[i]) 
+            measure._superpose(self._confs[:,indices], 
+                               self._coords[indices], weights,
+                               self._confs)
             
     def iterpose(self, rmsd=0.0001):
         """Iteratively superpose the ensemble until convergence.
@@ -563,20 +555,35 @@ class Ensemble(EnsembleBase):
                     .format((time() - start)))
 #left here        
     def getMSF(self):
-        """Calculate and return Mean-Square-Fluctuations."""
+        """Calculate and return Mean-Square-Fluctuations (MSF). Note that you
+        might need to align the conformations using :meth:`superpose` or 
+        :meth:`iterpose` before calculating MSF."""
         
         if self._confs is None: 
             return
-        
-        xyzmean = (self._confs * 
-                   self._weights).sum(0) / self._weights.sum(0)
-        xyzdiff2 = np.power(self._confs - xyzmean, 2).sum(2)
-        weightsum = self._weights.sum(2)
-        msf = (xyzdiff2 * weightsum).sum(0) / weightsum.sum(0)  
+        if self._sel is None:
+            if self._weights is None:
+                msf = np.power(self._confs - self._confs.mean(0), 2).mean(0)
+            else:
+                data = (self._confs * 
+                           self._weights).sum(0) / self._weights.sum(0)
+                data = np.power(self._confs - xyzmean, 2).sum(2)
+                weightsum = self._weights.sum(2)
+                msf = (xyzdiff2 * weightsum).sum(0) / weightsum.sum(0)  
+        else:
+            indices = self._indices
+            if self._weights is None:
+                msf = np.power(self._confs[indices] - 
+                               self._confs[indices].mean(0), 2).mean(0)
+            else:
+                xyzmean = self._confs[:,indices].mean(0)
+                xyzdiff2 = np.power(self._confs[:,indices] - xyzmean, 2).sum(2)
         return msf
             
     def getDeviations(self):
-        """Return deviations from reference coordinates."""
+        """Return deviations from reference coordinates. Note that you
+        might need to align the conformations using :meth:`superpose` or 
+        :meth:`iterpose` before calculating deviations."""
         
         if not isinstance(self._confs, np.ndarray):
             LOGGER.warning('Conformations are not set.')
@@ -588,11 +595,24 @@ class Ensemble(EnsembleBase):
         return self.getCoordsets() - self._coords 
         
     def getRMSDs(self):
-        """Calculate and return Root Mean Square Deviations."""
+        """Calculate and return Root Mean Square Deviations (RMSDs). Note that 
+        you might need to align the conformations using :meth:`superpose` or 
+        :meth:`iterpose` before calculating RMSDs."""
         
         if self._confs is None or self._coords is None: 
             return None
-        return measure._calcRMSD(self._coords, self._confs, self._weights)
+        if self._indices is None:
+            return measure._calcRMSD(self._coords, self._confs, self._weights)
+        else:
+            indices = self._indices
+            if self._weights is None:
+                return measure._calcRMSD(self._coords[indices], 
+                                         self._confs[:,indices])
+            else:
+                return measure._calcRMSD(self._coords[indices], 
+                                         self._confs[:,indices],
+                                         self._weights[indices])
+                
 
 class PDBEnsemble(Ensemble):
     
@@ -656,13 +676,14 @@ class PDBEnsemble(Ensemble):
     def _superpose(self):
         """Superpose conformations and return new coordinates."""
 
+        calcT = measure._calcTransformation
+        applyT = measure._applyTransformation
         if self._sel is None:
             weights = self._weights
             coords = self._coords
             confs = self._confs
             for i, conf in enumerate(confs):
-                confs[i] = measure._calcTransformation(conf, coords, weights[i]
-                                                            ).apply(confs[i])
+                confs[i] = applyT(calcT(conf, coords, weights[i]), confs[i])
         else:            
             indices = self._getSelIndices()
             weights = self._weights[:, indices]
@@ -670,8 +691,7 @@ class PDBEnsemble(Ensemble):
             confs_selected = self._confs[:,indices]
             confs = self._confs
             for i, conf in enumerate(confs_selected):
-                confs[i] = measure._calcTransformation(conf, coords, weights[i]
-                                                            ).apply(confs[i]) 
+                confs[i] = applyT(calcT(conf, coords, weights[i]), confs[i]) 
 
     def addCoordset(self, coords, weights=None, allcoordsets=True):
         """Add coordinate set(s) as conformation(s).
@@ -831,14 +851,16 @@ class PDBEnsemble(Ensemble):
           0.58  0.66  0.83]
           """
         
-        if self._confs is None: 
+        if self._confs is None or self._coords is None: 
             return None
-        weights = self._weights
-        wsum_axis_2 = weights.sum(2)
-        wsum_axis_1 = wsum_axis_2.sum(1)
-        rmsd = np.sqrt((np.power(self.getDeviations(), 2).sum(2) * 
-                        wsum_axis_2).sum(1) / wsum_axis_1)
-        return rmsd
+    
+        if self._sel is None:
+            return measure._calcRMSD(self._coords, self._confs, self._weights)
+        else:
+            indices = self._indices
+            return measure._calcRMSD(self._coords[indices], 
+                                     self._confs[:,indices],
+                                     self._weights[:, indices])
 
     def setWeights(self, weights):
         """Set atomic weights."""
@@ -1388,7 +1410,7 @@ class TrajectoryBase(EnsembleBase):
     def goto(self, n):
         pass
 
-    def skip(self, n=1):
+    def skip(self, n):
         pass
 
     def reset(self):
@@ -1512,15 +1534,16 @@ class TrajectoryFile(TrajectoryBase):
         next = self.nextCoordset
         for i, index in enumerate(indices):
             diff = index - prev
-            if diff > 0:
+            if diff > 1:
                 self.skip(diff)
             coords[i] = next()
+            prev = index
 
         self.goto(nfi)
         return coords
     
-    def skip(self, n=1):
-        """Skip *n* frames. *n* must be a positive integer, default is 1."""
+    def skip(self, n):
+        """Skip *n* frames. *n* must be a positive integer."""
         
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
@@ -1753,7 +1776,8 @@ class DCDFile(TrajectoryFile):
         integer, a list of integers or ``None``. ``None`` returns all 
         coordinate sets."""
         
-        if indices is None or indices == slice(None):
+        if self._indices is None and \
+            (indices is None or indices == slice(None)):
             nfi = self._nfi
             self.reset()
             n_floats = self._n_floats
@@ -1871,8 +1895,8 @@ class Trajectory(TrajectoryBase):
     def goto(self, n):
         pass
     
-    def skip(self, n=1):
-        """Skip *n* frames. *n* must be a positive integer, default is 1."""
+    def skip(self, n):
+        """Skip *n* frames. *n* must be a positive integer."""
         
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
@@ -1954,6 +1978,8 @@ if __name__ == '__main__':
     traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     traj.setAtomGroup( ag )
     ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    ens.setAtomGroup( ag )
+    ens.select('calpha')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', indices=np.arange(1000), stride=10)
     #dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
