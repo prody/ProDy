@@ -11,6 +11,14 @@ Release 0.8.0 (in development)
 
 **New Features**:
 
+  * :class:`~ensemble.Ensemble` and :class:`~ensemble.PDBEnsemble` classes
+    can be associated with :class:`~atomic.AtomGroup` instances. This allows
+    selecting and evaluating coordinates of subset of atoms. See
+    :meth:`~ensemble.EnsembleBase.setAtomGroup`, 
+    :meth:`~ensemble.EnsembleBase.select`,
+    :meth:`~ensemble.EnsembleBase.getAtomGroup`, and 
+    :meth:`~ensemble.EnsembleBase.getSelection` methods.
+  
   * :func:`~proteins.parsePDB` function parses atom serial numbers. Atoms
     can be retrieved from an :class:`~atomic.AtomGroup` instance by their
     serial numbers using :meth:`~atomic.AtomGroup.getBySerial` and
@@ -19,6 +27,9 @@ Release 0.8.0 (in development)
   * :func:`~measure.calcADPs` function can be used to calculate anisotropic
     displacement parameters for atoms with anisotropic temperature factor
     data.
+    
+  * :meth:`~ensemble.Ensemble.getRMSFs` is implemented for calculating
+    root mean square fluctuations.
 
 **Improvements**:
 
@@ -31,6 +42,16 @@ Release 0.8.0 (in development)
   * :func:`~proteins.fetchPDB` function can optionally write decompressed 
     files and force copying a file from local mirror to target folder.
 
+  * :meth:`~dynamics.PCA.buildCovariance` and :meth:`~dynamics.PCA.performSVD` 
+    methods accept Numpy arrays as coordinate sets.
+
+  * Performance of :meth:`~dynamics.PCA.buildCovariance` method is optimized 
+    for evaluation of PDB ensembles.
+  
+  * :func:`~measure.calcRMSD` and :func:`~measure.superpose` functions are
+    optimed for speed and memory usage.
+  
+  * :meth:`~ensemble.Ensemble.getMSFs` is optimized for speed and memory usage.
 
 **Changes**:
 
@@ -39,8 +60,17 @@ Release 0.8.0 (in development)
     for individual conformations (PDB IDs). This class should be used in cases 
     where source of individual conformations is important.
     
+  * :func:`~dynamics.calcProjection`, :func:`~dynamics.showProjection`, and
+    :func:`~dynamics.showCrossProjection` function calculate/display 
+    root mean square deviations, by default. 
+    
   * Oxidized cysteine residue abbreviation ``CSO`` is added to the definition
     of ``protein`` keyword.
+    
+  * :meth:`getMSF` method is renamed as :meth:`~ensemble.Ensemble.getMSFs`.
+  
+  * :func:`~ensemble.parseDCD` function returns :class:`~ensemble.Ensemble`
+    instances.
 
 **Bug Fixes**:
   
@@ -48,13 +78,15 @@ Release 0.8.0 (in development)
   
   * Problem in :file:`fetchpdb.py` that occurred when a file is found in a
     local mirror is fixed.
+    
+  * Bugfix in :meth:`~atomic.AtomPointer.copy` method.
 
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
 
 **New Features**:
 
-  * NMWiz can be used to compare two structures by calculatint and depicting
+  * NMWiz can be used to compare two structures by calculating and depicting
     structural changes.
 
 **Improvements**:
