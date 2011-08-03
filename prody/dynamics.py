@@ -1685,12 +1685,12 @@ class PCA(NMABase):
            Numpy array instances are accepted as *coordsets* argument.
          
         .. note::        
-            If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
-            coordinates are treated specially. Let's say **C***ij* is the 
-            super element of the covariance matrix that corresponds to atoms 
-            *i* and *j*. This super element is divided by number of coordinate
-            sets (PDB structures) in which both of these atoms are observed 
-            together. 
+           If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
+           coordinates are treated specially. Let's say **C**\_ij is the 
+           super element of the covariance matrix that corresponds to atoms 
+           *i* and *j*. This super element is divided by number of coordinate
+           sets (PDB structures) in which both of these atoms are observed 
+           together. 
         
         """
         

@@ -140,7 +140,7 @@ For each PDB file, we find the matching chain and add it to the ensemble:
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())    
 
 >>> ensemble
-<PDBEnsemble: p38 X-ray (75 conformations, 321 atoms, 321 selected)>
+<PDB Ensemble: p38 X-ray (75 conformations, 321 atoms, 321 selected)>
 >>> len(ensemble) == len(pdbfiles)
 True
 
