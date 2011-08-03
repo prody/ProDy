@@ -29,6 +29,15 @@ Classes
   * :class:`DCDFile`
   * :class:`Frame`
   
+Base Classes
+------------
+
+  * :class:`EnsembleBase`
+  * :class:`TrajectoryBase`
+  * :class:`TrajectoryFile`
+  * :class:`ConformationBase`
+  
+  
 Inheritance Diagram
 -------------------
 
@@ -69,7 +78,9 @@ from prody import ProDyLogger as LOGGER
 from prody import measure
 
 __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
-           'Trajectory', 'DCDFile', 'Frame', 
+           'Trajectory', 'DCDFile', 'Frame',
+           'EnsembleBase', 'TrajectoryBase', 'TrajectoryFile', 
+           'ConformationBase',
            'saveEnsemble', 'loadEnsemble', 
            'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble',
            'parseDCD']
@@ -91,14 +102,14 @@ class EnsembleBase(object):
             self._name = 'Unnamed'
         self._coords = None         # reference
         self._n_atoms = 0
-        self._n_confs = 0 # number of conformations/frames/coordinate sets
+        self._n_csets = 0 # number of conformations/frames/coordinate sets
         self._weights = None
         self._ag = None
         self._sel = None
         self._indices = None # indices of selected atoms
 
     def __len__(self):
-        return self._n_confs
+        return self._n_csets
 
     def getName(self):
         """Return name of the instance."""
@@ -118,7 +129,7 @@ class EnsembleBase(object):
     def getNumOfCoordsets(self):
         """Return number of coordinate sets, i.e conformations or frames."""
         
-        return self._n_confs
+        return self._n_csets
     
     def getNumOfSelected(self):
         """Return number of selected atoms."""
@@ -256,7 +267,9 @@ class EnsembleBase(object):
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
-            
+        if np.any(weights < 0):
+            raise ValueError('weights must greater or equal to 0')
+
         if weights.ndim == 1:
             weights = weights.reshape((self._n_atoms, 1))
         self._weights = weights
@@ -338,9 +351,9 @@ class Ensemble(EnsembleBase):
         return None
     
     def __iter__(self):
-        n_confs = self._n_confs
-        for i in range(n_confs):
-            if n_confs != self._n_confs:
+        n_csets = self._n_csets
+        for i in range(n_csets):
+            if n_csets != self._n_csets:
                 raise RuntimeError('number of conformations in the ensemble '
                                    'changed during iteration')
             yield Conformation(self, i)
@@ -356,7 +369,7 @@ class Ensemble(EnsembleBase):
     def getNumOfConfs(self):
         """Return number of conformations."""
 
-        return self._n_confs
+        return self._n_csets
 
     def addCoordset(self, coords, allcoordsets=True):
         """Add coordinate set(s) as conformation(s).
@@ -402,7 +415,7 @@ class Ensemble(EnsembleBase):
             self._confs = coords
         else:
             self._confs = np.concatenate((self._confs, coords), axis=0)
-        self._n_confs += n_confs
+        self._n_csets += n_confs
 
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices.
@@ -443,7 +456,7 @@ class Ensemble(EnsembleBase):
             index = [index]
         else:
             index = list(index)
-        length = self._n_confs
+        length = self._n_csets
         which = np.ones(length, np.bool)
         which[index] = False
         if which.sum() == 0:
@@ -453,7 +466,7 @@ class Ensemble(EnsembleBase):
             self._confs = self._confs[which]
             if self._weights is not None:
                 self._weights = self._weights[which]
-        self._n_confs -= len(index)
+        self._n_csets -= len(index)
 
     def iterCoordsets(self):
         """Iterate over coordinate sets. A copy of each coordinate set for
@@ -474,7 +487,7 @@ class Ensemble(EnsembleBase):
             raise AttributeError('conformations are not set')
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
-        n_confs = self._n_confs
+        n_confs = self._n_csets
         if -n_confs <= index < n_confs:
             if index < 0:
                 index = n_confs - index
@@ -553,32 +566,37 @@ class Ensemble(EnsembleBase):
                                '{1:.4e}').format(step, rmsdif))
         LOGGER.info('Iterative superposition completed in {0:.2f}s.'
                     .format((time() - start)))
-#left here        
-    def getMSF(self):
-        """Calculate and return Mean-Square-Fluctuations (MSF). Note that you
-        might need to align the conformations using :meth:`superpose` or 
-        :meth:`iterpose` before calculating MSF."""
+
+    def getMSFs(self):
+        """Calculate and return mean square fluctuations (MSFs). 
+        Note that you might need to align the conformations using 
+        :meth:`superpose` or :meth:`iterpose` before calculating MSFs."""
         
         if self._confs is None: 
             return
-        if self._sel is None:
-            if self._weights is None:
-                msf = np.power(self._confs - self._confs.mean(0), 2).mean(0)
-            else:
-                data = (self._confs * 
-                           self._weights).sum(0) / self._weights.sum(0)
-                data = np.power(self._confs - xyzmean, 2).sum(2)
-                weightsum = self._weights.sum(2)
-                msf = (xyzdiff2 * weightsum).sum(0) / weightsum.sum(0)  
+        indices = self._indices
+        if indices is None:
+            mean = self._confs.mean(0)
+            ssqf = np.zeros(mean.shape)
+            for conf in self._confs:
+                ssqf += (conf - mean) ** 2
         else:
-            indices = self._indices
-            if self._weights is None:
-                msf = np.power(self._confs[indices] - 
-                               self._confs[indices].mean(0), 2).mean(0)
-            else:
-                xyzmean = self._confs[:,indices].mean(0)
-                xyzdiff2 = np.power(self._confs[:,indices] - xyzmean, 2).sum(2)
-        return msf
+            mean = self._confs[indices].mean(0)
+            ssqf = np.zeros(mean.shape)
+            for conf in self._confs[:,indices]:
+                ssqf += (conf - mean) ** 2
+        return ssqf.sum(1) / self._n_csets
+    
+    def getRMSFs(self):
+        """Calculate and return root mean square fluctuations (RMSFs). 
+        Note that you might need to align the conformations using 
+        :meth:`superpose` or meth:`iterpose` before calculating RMSFs.
+        
+        .. versionadded:: 0.8
+        
+        """
+
+        return self.getMSFs() ** 0.5
             
     def getDeviations(self):
         """Return deviations from reference coordinates. Note that you
@@ -595,7 +613,7 @@ class Ensemble(EnsembleBase):
         return self.getCoordsets() - self._coords 
         
     def getRMSDs(self):
-        """Calculate and return Root Mean Square Deviations (RMSDs). Note that 
+        """Calculate and return root mean square deviations (RMSDs). Note that 
         you might need to align the conformations using :meth:`superpose` or 
         :meth:`iterpose` before calculating RMSDs."""
         
@@ -645,9 +663,9 @@ class PDBEnsemble(Ensemble):
         return 'PDB ' + Ensemble.__str__(self)
     
     def __iter__(self):
-        n_confs = self._n_confs
+        n_confs = self._n_csets
         for i in range(n_confs):
-            if n_confs != self._n_confs:
+            if n_confs != self._n_csets:
                 raise RuntimeError('number of conformations in the ensemble '
                                    'changed during iteration')
             yield PDBConformation(self, i)
@@ -701,11 +719,14 @@ class PDBEnsemble(Ensemble):
         the :class:`~prody.atomic.Atomic` instance will be appended to the 
         ensemble. Otherwise, only the active coordinate set will be appended.
 
-        
         *weights* is an optional argument. If provided, its length must
-        match number of atoms.
+        match number of atoms. Weights of missing (not resolved) atoms 
+        must be equal to ``0`` and weights of those that are resolved
+        can be anything greater than ``0``. If not provided, weights of 
+        atoms in this coordinate set will be set equal to ``1``. 
         
         """
+        
         ag = None
         if isinstance(coords, prody.AtomGroup):
             name = coords.getName()
@@ -714,7 +735,7 @@ class PDBEnsemble(Ensemble):
             name = 'Unnamed'
         else:
             name = str(coords)
-        n_confs = self._n_confs
+        n_confs = self._n_csets
         n_atoms = self._n_atoms
         
         if weights is not None:
@@ -725,18 +746,19 @@ class PDBEnsemble(Ensemble):
             elif weights.ndim in (2, 3) and weights.shape[-1] != 1:
                 raise ValueError('shape of weights must be '
                                  '([n_coordsets,] number_of_atoms, 1)')
-            elif weights.dtype != np.float64:
+            elif weights.dtype not in (np.float32, np.float64):
                 try:
                     weights = weights.astype(np.float64)
                 except ValueError:
                     raise ValueError('weights array cannot be assigned type '
                                      '{0:s}'.format(np.float64))
-            
+            if np.any(weights < 0):
+                raise ValueError('weights must greater or equal to 0')
             if weights.ndim < 3:
                 weights = weights.reshape((1, n_atoms, 1))
                 
         Ensemble.addCoordset(self, coords, allcoordsets)
-        diff = self._n_confs - n_confs
+        diff = self._n_csets - n_confs
 
         if weights.shape[0] != diff:  
             if weights.shape[0] == 1:
@@ -766,7 +788,8 @@ class PDBEnsemble(Ensemble):
             else:
                 if self._weights is not None:
                     self._weights = np.concatenate((self._weights, 
-                                    np.ones((diff, n_atoms, 1))), axis=0)
+                                    np.ones((diff, n_atoms, 1), np.bool)), 
+                                    axis=0)
 
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given *indices* for selected 
@@ -785,26 +808,27 @@ class PDBEnsemble(Ensemble):
             indices = slice(None)
         elif isinstance(indices, (int, long)): 
             indices = np.array([indices])
+        coords = self._coords
         if self._sel is None:
-            coords = self._confs[indices].copy()
+            confs = self._confs[indices].copy()
             for i, w in enumerate(self._weights[indices]):
                 which = w.flatten()==0
-                coords[i, which] = self._coords[which]
-            return coords 
+                confs[i, which] = coords[which]
         else:
             selids = self._getSelIndices()
-            coords = self._confs[indices, selids].copy()
+            coords = coords[selids]
+            confs = self._confs[indices, selids].copy()
             for i, w in enumerate(self._weights[indices]):
                 which = w[selids].flatten()==0
-                coords[i, which] = self._coords[selids][which]
-            return coords 
+                confs[i, which] = coords[which]
+        return confs 
     
     def iterCoordsets(self):
         """Iterate over coordinate sets. A copy of each coordinate set for
         selected atoms is returned. Reference coordinates are not included."""
         
         conf = PDBConformation(self, 0)
-        for i in range(self._n_confs):
+        for i in range(self._n_csets):
             conf._index = i
             yield conf.getCoordinates()
    
@@ -827,16 +851,44 @@ class PDBEnsemble(Ensemble):
             raise AttributeError('conformations are not set')
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
-        n_confs = self._n_confs
+        n_confs = self._n_csets
         if -n_confs <= index < n_confs:
             if index < 0:
                 index = n_confs - index
             return PDBConformation(self, index)
         else:
             raise IndexError('conformation index out of range')
-            
+
+    def getMSFs(self):
+        """Calculate and return mean square fluctuations (MSFs). 
+        Note that you might need to align the conformations using 
+        :meth:`superpose` or :meth:`iterpose` before calculating MSFs."""
+        
+        if self._confs is None: 
+            return
+        indices = self._indices
+        if indices is None:
+            coords = self._coords
+            confs = self._confs
+            weights = self._weights > 0
+        else:
+            coords = self._coords[indices]
+            confs = self._confs[:,indices]
+            weights = self._weights[:,indices] > 0
+        weightsum = weights.sum(0)
+        mean = np.zeros(coords.shape)
+        for i, conf in enumerate(confs):
+            mean += conf * weights[i]
+        mean /= weightsum
+        ssqf = np.zeros(mean.shape)
+        for i, conf in enumerate(confs):
+            ssqf += ((conf - mean) * weights[i]) ** 2
+        return ssqf.sum(1) / weightsum.flatten()
+    
     def getRMSDs(self):
-        """Calculate and return Root Mean Square Deviations.
+        """Calculate and return root mean square deviations (RMSDs). Note that 
+        you might need to align the conformations using :meth:`superpose` or 
+        :meth:`iterpose` before calculating RMSDs.
         
         >>> rmsd = ensemble.getRMSDs().round(2)
         >>> print rmsd[0]
@@ -849,7 +901,8 @@ class PDBEnsemble(Ensemble):
           0.82  0.95  0.88  0.86  1.09  0.7   0.72  0.86  0.76  0.82  0.88  0.95
           0.63  0.92  1.08  0.44  0.43  0.49  0.64  0.88  0.72  0.9   0.96  1.23
           0.58  0.66  0.83]
-          """
+          
+        """
         
         if self._confs is None or self._coords is None: 
             return None
@@ -869,17 +922,19 @@ class PDBEnsemble(Ensemble):
             raise AttributeError('coordinates are not set')
         elif not isinstance(weights, np.ndarray): 
             raise TypeError('weights must be an ndarray instance')
-        elif weights.shape[:2] != (self._n_confs, self._n_atoms):
+        elif weights.shape[:2] != (self._n_csets, self._n_atoms):
             raise ValueError('shape of weights must (n_confs, n_atoms[, 1])')
-        if weights.dtype != np.float64:
+        if weights.dtype not in (np.float32, np.float64):
             try:
                 weights = weights.astype(np.float64)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(np.float64))
+        if np.any(weights < 0):
+            raise ValueError('weights must greater or equal to 0')
             
         if weights.ndim == 2:
-            weights = weights.reshape((self._n_confs, self._n_atoms, 1))
+            weights = weights.reshape((self._n_csets, self._n_atoms, 1))
         self._weights = weights
 
 
@@ -905,8 +960,7 @@ def saveEnsemble(ensemble, filename=None):
         raise ValueError('ensemble instance does not contain data')
     
     dict_ = ensemble.__dict__
-    attr_list = ['_name', '_confs', '_weights', '_coords', '_n_atoms', 
-                 '_n_confs']
+    attr_list = ['_name', '_confs', '_weights', '_coords']
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_identifiers')
     if filename is None:
@@ -930,20 +984,22 @@ def loadEnsemble(filename):
     """
     
     attr_dict = np.load(filename)
-    if '_identifiers' in attr_dict.files:
+    weights = attr_dict['_weights']
+    isPDBEnsemble = False
+    if weights.ndim == 3:
+        isPDBEnsemble = True
         ensemble = PDBEnsemble(str(attr_dict['_name']))
     else:
         ensemble = Ensemble(str(attr_dict['_name']))
-    dict_ = ensemble.__dict__
-    for attr in attr_dict.files:
-        if attr == '_name': 
-            continue
-        elif attr in ('_n_confs', '_n_atoms'):
-            dict_[attr] = int(attr_dict[attr])
-        else:
-            dict_[attr] = attr_dict[attr]
-    if isinstance(ensemble, PDBEnsemble):
-        ensemble._ensemble = [None] * len(ensemble)
+    ensemble.setCoordinates(attr_dict['_coords'])
+    if isPDBEnsemble:
+        ensemble.addCoordset(attr_dict['_confs'], weights)
+        if '_identifiers' in attr_dict.files:
+            ensemble._identifiers = list(attr_dict['_identifiers'])
+    else:
+        ensemble.addCoordset(attr_dict['_confs'])
+        if weights != np.array(None): 
+            ensemble.addCoordset(weights)
     return ensemble
 
 class ConformationBase(object):
@@ -1014,20 +1070,15 @@ class Conformation(ConformationBase):
     def getCoordinates(self):
         """Return a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected
-        atoms will be returned.
-        
-        .. warning:: When there are atoms with weights equal to zero (0),
-           their coordinates will be replaced with the coordinates of the
-           ensemble reference coordinate set.
-
-        """
+        atoms will be returned."""
         
         if self._ensemble._confs is None:
             return None
         indices = self._indices
         if indices is None:
             return self._ensemble._confs[self._index].copy()
-        return self._ensemble._confs[self._index, indices].copy()
+        else:
+            return self._ensemble._confs[self._index, indices].copy()
     
     def getDeviations(self):
         """Return deviations from the ensemble reference coordinates. 
@@ -1122,13 +1173,11 @@ class PDBConformation(Conformation):
         index = self._index
         if indices is None:
             coords = ensemble._confs[index].copy()
-            weights = ensemble._weights[index].flatten()
-            which = weights==0
+            which = ensemble._weights[index].flatten()==0
             coords[which] = ensemble._coords[which]
         else: 
             coords = ensemble._confs[index, indices].copy()
-            weights = ensemble._weights[index, indices].flatten()
-            which = weights==0
+            which = ensemble._weights[index, indices].flatten()==0
             coords[which] = ensemble._coords[indices][which]
         return coords
     
@@ -1306,12 +1355,12 @@ def calcSumOfWeights(ensemble):
     When analyzing an ensemble of X-ray structures, this function can be used 
     to see how many times a residue is resolved.
     
-    >>> calcSumOfWeights(ensemble) # doctest: +ELLIPSIS
-    array([ 74.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  73.,  73.,
-            74.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,
-            ...
-            75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,  75.,
-            75.,  75.])
+    >>> print calcSumOfWeights(ensemble) # doctest: +ELLIPSIS
+    [ 74.  75.  75.  75.  75.  75.  75.  75.  75.  73.  73.  74.  75.  75.  75.
+      75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  70.  73.  75.  75.
+      ...
+      75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.
+      75.  75.  75.  75.  75.  75.]
             
     Each number in the above example corresponds to a residue (or atoms) and 
     shows the number of structures in which the corresponding residue is 
@@ -1378,13 +1427,13 @@ class TrajectoryBase(EnsembleBase):
     
     def __iter__(self):
         if not self._closed:
-            while self._nfi < self._n_confs: 
+            while self._nfi < self._n_csets: 
                 yield self.next()
     
     def getNumOfFrames(self):
         """Return number of frames."""
         
-        return self._n_confs
+        return self._n_csets
     
     def getNextFrameIndex(self):
         """Return the index of the next frame."""
@@ -1397,26 +1446,33 @@ class TrajectoryBase(EnsembleBase):
         from the current position in the trajectory."""
 
         if not self._closed:
-            while self._nfi < self._n_confs: 
+            while self._nfi < self._n_csets: 
                 yield self.nextCoordset()
     
     def getFrame(self):
+        """Return frame at given *index*."""
         pass
 
 
     def next(self):
+        """Return next frame."""
         pass
 
     def goto(self, n):
+        """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
+        to the beginning. ``n=-1`` will go to the last frame."""
         pass
 
     def skip(self, n):
+        """Skip *n* frames. *n* must be a positive integer."""
         pass
 
     def reset(self):
+        """Go to first frame whose index is 0."""
         pass
 
     def close(self):
+        """Close trajectory file."""
         pass
 
 
@@ -1468,10 +1524,10 @@ class TrajectoryFile(TrajectoryBase):
             return ('<{0:s}: {1:s} (closed)>').format(
                         self.__class__.__name__, self._name)
         else:
-            return ('<{0:s}: {1:s} (at {2:d} of {3:d} frames, '
+            return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames, '
                     'selected {4:d} of {5:d} atoms)>').format(
                     self.__class__.__name__, self._name, 
-                    self._nfi, self._n_confs, self.getNumOfSelected(),
+                    self._nfi, self._n_csets, self.getNumOfSelected(),
                     self._n_atoms)
     
     def __str__(self):
@@ -1493,7 +1549,7 @@ class TrajectoryFile(TrajectoryBase):
             return None
         if not isinstance(index, (int, long)):
             raise IndexError('index must be an integer')
-        if not 0 <= index < self._n_confs:
+        if not 0 <= index < self._n_csets:
             raise IndexError('index must be greater or equal to 0 and less '
                              'than number of frames')
         nfi = self._nfi
@@ -1509,18 +1565,19 @@ class TrajectoryFile(TrajectoryBase):
     def getCoordsets(self, indices=None):
         """Returns coordinate sets at given *indices*. *indices* may be an 
         integer, a list of ordered integers or ``None``. ``None`` returns all 
-        coordinate sets."""
+        coordinate sets. If a list of indices is given, unique numbers will
+        be selected and sorted. That is, this method will always return
+        coordinate sets in the order they appear in the trajectory file."""
         
         if indices is None:
-            indices = np.arange(self._n_confs)
+            indices = np.arange(self._n_csets)
         elif isinstance(indices, (int, long)):
             indices = np.array([indices])
         elif isinstance(indices, slice):
-            indices = np.arange(*indices.indices(self._n_confs))
-        elif isinstance(indices, (list, np.ndarray)):
-            if isinstance(indices, list):
-                indices = np.array(indices)
+            indices = np.arange(*indices.indices(self._n_csets))
             indices.sort()
+        elif isinstance(indices, (list, np.ndarray)):
+            indices = np.unique(indices)
         else:
             raise TypeError('indices must be an integer or a list of integers')
 
@@ -1548,7 +1605,7 @@ class TrajectoryFile(TrajectoryBase):
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         if not self._closed and n > 0:
-            left = self._n_confs - self._nfi
+            left = self._n_csets - self._nfi
             if n > left:
                 n = left
             self._file.seek(n * self._bytes_per_frame, 1)                
@@ -1562,7 +1619,7 @@ class TrajectoryFile(TrajectoryBase):
             return None
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
-        n_confs = self._n_confs
+        n_confs = self._n_csets
         if n > 0:
             if n > n_confs: 
                 n = n_confs
@@ -1685,7 +1742,7 @@ class DCDFile(TrajectoryFile):
             return None
         
         # Store the number of sets of coordinates (NSET)
-        self._n_confs = temp[0]
+        self._n_csets = temp[0]
         # Store ISTART, the starting timestep
         self._first_ts = temp[1]
         # Store NSAVC, the number of timesteps between dcd saves
@@ -1748,14 +1805,14 @@ class DCDFile(TrajectoryFile):
     def next(self):
         """Return next frame."""
         
-        if not self._closed and self._nfi < self._n_confs:
+        if not self._closed and self._nfi < self._n_csets:
             frame = Frame(self, self._nfi, self.nextCoordset())
             return frame
         
     def nextCoordset(self):
         """Return next coordinate set."""
         
-        if not self._closed and self._nfi < self._n_confs:
+        if not self._closed and self._nfi < self._n_csets:
             #Skip extended system coordinates (unit cell data)
             self._file.seek(56, 1)
             n_floats = self._n_floats
@@ -1782,7 +1839,7 @@ class DCDFile(TrajectoryFile):
             self.reset()
             n_floats = self._n_floats
             n_atoms = self._n_atoms
-            n_confs = self._n_confs
+            n_confs = self._n_csets
             data = np.fromfile(self._file, self._dtype, 
                                self._bytes_per_frame * n_confs)
             data = data.reshape((n_confs, 14 + n_floats))
@@ -1819,10 +1876,10 @@ class Trajectory(TrajectoryBase):
         if self._closed:
             return ('<Trajectory: {0:s} (closed)>').format(self._name)
         else:
-            return ('<Trajectory: {0:s} ({1:d} files, at {2:d} of {3:d} '
+            return ('<Trajectory: {0:s} ({1:d} files, next {2:d} of {3:d} '
                     'frames, selected {4:d} of {5:d} atoms)>').format(
                     self._name, self._n_files, self._nfi, 
-                    self._n_confs, self.getNumOfSelected(), self._n_atoms)
+                    self._n_csets, self.getNumOfSelected(), self._n_atoms)
     
     def __str__(self):
         return '{0:s} {1:s}'.format(self.__class__.__name__, self._name)
@@ -1858,7 +1915,7 @@ class Trajectory(TrajectoryBase):
             self._n_atoms = traj.getNumOfAtoms()
             self._coords = traj._coords
         self._trajectories.append(traj)
-        self._n_confs += traj.getNumOfFrames()
+        self._n_csets += traj.getNumOfFrames()
         self._n_files += 1
    
     def getNumOfFiles(self):
@@ -1878,15 +1935,15 @@ class Trajectory(TrajectoryBase):
     def next(self):
         """Return next frame."""
 
-        if not self._closed and self._nfi < self._n_confs:
+        if not self._closed and self._nfi < self._n_csets:
             return Frame(self, self._nfi, self.nextCoordset())
     
     def nextCoordset(self):
         """Return next coordinate set."""
         
-        if not self._closed and self._nfi < self._n_confs:
+        if not self._closed and self._nfi < self._n_csets:
             traj = self._trajectory
-            while traj._nfi == traj._n_confs:
+            while traj._nfi == traj._n_csets:
                 self._nextFile()
                 traj = self._trajectory
             self._nfi += 1
@@ -1900,7 +1957,7 @@ class Trajectory(TrajectoryBase):
         
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
-        left = self._n_confs - self._nfi
+        left = self._n_csets - self._nfi
         if n > left:
             n = left
         while not self._closed and self._nfi < self._n_frames and n > 0:
