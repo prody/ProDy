@@ -1650,7 +1650,7 @@ class PCA(NMABase):
     
     """
 
-    def __init__(self, name):
+    def __init__(self, name='Unnamed'):
         NMABase.__init__(self, name)
     
     def __repr__(self):
@@ -1673,51 +1673,72 @@ class PCA(NMABase):
         self._n_atoms = self._dof / 3
         self._trace = self._cov.trace()
 
-    def buildCovariance(self, coordsets, weights=None):
+    def buildCovariance(self, coordsets):
         """Build a weighted covariance matrix for coodsets.
         
-        *coordsets* argument must be a :class:`~prody.atomic.Atomic` or a 
-        :class:`~prody.ensemble.Ensemble` instance. 
-        
-        If *weights* is ``None``, but *coordsets* has a :meth:`getWeights` 
-        method, weights from that method will be used. 
+        *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
+        :class:`~prody.ensemble.Ensemble`, or :class:`numpy.ndarray` instance.
+        If *coordsets* is a numpy array it must have the shape 
+        (n_coordsets, n_atoms, 3).
+         
+        .. versionchanged:: 0.8
+           Numpy array instances are accepted as *coordsets* argument.
+         
+        .. note::        
+            If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
+            coordinates are treated specially. Let's say **C***ij* is the 
+            super element of the covariance matrix that corresponds to atoms 
+            *i* and *j*. This super element is divided by number of coordinate
+            sets (PDB structures) in which both of these atoms are observed 
+            together. 
         
         """
         
         start = time.time()
-        
-        if not isinstance(coordsets, (prody.Ensemble, prody.Atomic)):
-            raise TypeError('coordsets must be an Ensemble or Atomic instance')
-        n_atoms = coordsets.getNumOfAtoms()
-        n_confs = coordsets.getNumOfCoordsets()
+        if not isinstance(coordsets, (prody.Ensemble, prody.Atomic, 
+                                      np.ndarray)):
+            raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
+                            'array instance')
+        weights = None
+        if isinstance(coordsets, np.ndarray): 
+            if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
+                coordsets.dtype not in (np.float32, np.float64):
+                raise ValueError('coordsets is not a valid coordinate array')
+        else:
+            indices = coordsets.getSelection()
+            if indices is not None:
+                indices = sel.getIndices()
+            
+            if isinstance(coordsets, PDBEnsemble):
+                if indices is None:
+                    weights = coordsets._weights > 0
+                else:
+                    weights = coordsets._weights[:,indices] > 0
+            
+            if isinstance(coordsets, prody.Atomic):
+                coordsets = coordsets._coords
+            else:
+                coordsets = coordsets._confs
+            if indices is not None:
+                coordsets = coordsets[:, indices]
+        n_confs = coordsets.shape[0]
         if n_confs < 3:
             raise ValueError('coordsets must have more than 3 coordinate sets')
+        n_atoms = coordsets.shape[1]
         if n_atoms < 3:
             raise ValueError('coordsets must have more than 3 atoms')
-
-        if isinstance(coordsets, prody.Atomic):
-            coordsets = prody.Ensemble(coordsets)
         dof = n_atoms * 3
+
         if weights is None:
-            try:
-                weights = coordsets.getWeights()
-            except AttributeError:
-                pass
-        if weights is None:
-            #d_xyz = (conformations - coordinates)
-            #d_xyz = d_xyz.reshape((n_confs, dof))
-            #self._cov = np.dot(d_xyz.T, d_xyz) / n_confs
-            self._cov = np.cov(
-                            coordsets.getCoordsets().reshape((n_confs, dof)).T,
-                            bias=1)
+            self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, bias=1)
         else:
-            conformations = coordsets.getCoordsets()
-            coordinates = coordsets.getCoordinates()
-            d_xyz = ((conformations - coordinates) * weights)
-            d_xyz = d_xyz / (weights + (weights == 0)) 
-            d_xyz = d_xyz.reshape((n_confs, dof))
-            which_axis = weights.ndim-1
-            divide_by = weights.repeat(3, axis=which_axis).reshape((n_confs, dof))
+            mean = np.zeros((n_atoms, 3))
+            for i, coords in enumerate(coordsets):
+                mean += coords * weights[i]
+            mean /= weights.sum(0)
+            d_xyz = ((coordsets - mean) * weights).reshape((n_confs, dof))
+            divide_by = weights.astype(np.float64).repeat(3, axis=2).reshape(
+                                                                (n_confs, dof))
             self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T, divide_by)
         self._trace = self._cov.trace()
         self._dof = dof
@@ -1778,10 +1799,15 @@ class PCA(NMABase):
     def performSVD(self, coordsets):
         """Calculate principal modes using singular value decomposition (SVD).
         
-        *coordsets* argument must be a :class:`~prody.atomic.Atomic` or a 
-        :class:`~prody.ensemble.Ensemble` instance. 
+        *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
+        :class:`~prody.ensemble.Ensemble`, or :class:`numpy.ndarray` instance.
+        If *coordsets* is a numpy array it must have the shape 
+        (n_coordsets, n_atoms, 3).
         
         .. versionadded:: 0.6.2
+        
+        .. versionchanged:: 0.8
+           Numpy array instances are accepted as *coordsets* argument.
         
         This is a considerably faster way of performing PCA calculations 
         compared to eigenvalue decomposition of covariance matrix, but is
@@ -1790,29 +1816,35 @@ class PCA(NMABase):
         of ensembles with missing atomic data. See :ref:`pca-xray-calculations`
         examples for comparison of results from SVD and covariance methods.
         
-        
         """
 
         if linalg is None:
             prody.importLA()
 
         start = time.time()
+        if not isinstance(coordsets, (prody.Ensemble, prody.Atomic, 
+                                      np.ndarray)):
+            raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
+                            'array instance')
+        if isinstance(coordsets, np.ndarray):
+            if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
+                coordsets.dtype not in (np.float32, np.float64):
+                raise ValueError('coordsets is not a valid coordinate array')
+            deviations = coordsets - coordsets.mean(0)
+        else:
+            if isinstance(coordsets, prody.Ensemble):
+                deviations = coordsets.getDeviations()
+            elif isinstance(coordsets, prody.Atomic):
+                deviations = coordsets.getCoordsets() - \
+                             coordsets.getCoordinates()
 
-        if not isinstance(coordsets, (prody.Ensemble, prody.Atomic)):
-            raise TypeError('coordsets must be an Ensemble or Atomic instance')
-        n_atoms = coordsets.getNumOfAtoms()
-        n_confs = coordsets.getNumOfCoordsets()
+        n_confs = deviations.shape[0]
         if n_confs < 3:
             raise ValueError('coordsets must have more than 3 coordinate sets')
+        n_atoms = deviations.shape[1]
         if n_atoms < 3:
             raise ValueError('coordsets must have more than 3 atoms')
-        if isinstance(coordsets, prody.Ensemble):
-            deviations = coordsets.getDeviations()
-        elif isinstance(coordsets, prody.Atomic):
-            deviations = coordsets.getCoordsets() - coordsets.getCoordinates()
 
-        if isinstance(coordsets, prody.Atomic):
-            coordsets = prody.Ensemble(coordsets)
         dof = n_atoms * 3        
         deviations = deviations.reshape((n_confs, dof)).T
 
