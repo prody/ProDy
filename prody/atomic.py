@@ -642,6 +642,9 @@ class AtomGroup(Atomic):
         self._userdata = {}
         self._sn2i = None
         self._sn2iupdate = None
+        self._trajectory = None
+        self._frameindex = None
+        self._tcsi = None # Trajectory Coordinate Set Index
         
         for field in ATOMIC_DATA_FIELDS.values():
             self.__dict__['_'+field.var] = None
@@ -771,7 +774,7 @@ class AtomGroup(Atomic):
         coordinate set.
         
         """
-        
+
         if not isinstance(coordinates, np.ndarray):
             raise TypeError('coordinates must be an ndarray instance')
 
@@ -820,6 +823,10 @@ class AtomGroup(Atomic):
         
         """
         
+        if self._trajectory is not None:
+            raise AttributeError('AtomGroup is locked for coordinate set '
+                                 'addition/deletion when its associated with '
+                                 'a trajectory')
         if isinstance(coords, (prody.ensemble.Ensemble, Atomic)):
             if self._n_atoms != coords.getNumOfAtoms(): 
                 raise ValueError('coords must have same number of atoms')
@@ -848,6 +855,10 @@ class AtomGroup(Atomic):
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
         
+        if self._trajectory is not None:
+            raise AttributeError('AtomGroup is locked for coordinate set '
+                                 'addition/deletion when its associated with '
+                                 'a trajectory')
         which = np.ones(self._n_coordsets, np.bool)
         which[index] = False
         if which.sum() == self._n_coordsets:
@@ -918,6 +929,8 @@ class AtomGroup(Atomic):
             
         .. versionchanged:: 0.7.1
            If selection string does not select any atoms, ``None`` is returned.
+        
+        Note that association of an atom group with a trajectory is not copied.
         
         """
         
@@ -1165,7 +1178,60 @@ class AtomGroup(Atomic):
         indices = sn2i[start:stop:step]
         indices = indices[ indices > -1 ]
         return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
-                                        .format(start, stop, step))                
+                                        .format(start, stop, step))
+    '''                                    
+    def setTrajectory(self, trajectory):              
+        """Associates atom group with a *trajectory*. *trajectory* may be
+        a filename or a :class:`~prody.ensemble.Trajectory` instance.
+        Number of atoms in the atom group and the trajectory must match. 
+        At association a new coordinate set will be added to the atom group.
+        :meth:`nextFrame`, :meth:`skipFrame`, and :meth:`gotoFrame` methods
+        can be used to read coordinate sets from the trajectory.  To remove 
+        association with a trajectory, pass ``None`` as trajectory argument.
+        When atom group is associated with a trajectory, it will be locked
+        for coordinate set addition/deletion operations.
+        
+        .. versionadded:: 0.8
+        
+        """
+        
+        pass
+        
+    def nextFrame(self):
+        """Read the next frame from the trajectory and update coordinates.
+        
+        .. versionadded:: 0.8
+                
+        """
+        
+        pass
+    
+    def skipFrame(self, n=1): 
+        """Read the frame after skipping *n* frames and update coordinates.
+        
+        .. versionadded:: 0.8
+                
+        """
+        pass
+    
+    def gotoFrame(self, n):
+        """Read frame *n* from the trajectory and update coordinates.
+        
+        .. versionadded:: 0.8
+                
+        """
+        pass
+    
+    def getFrameIndex(self):
+        """Return current frame index.
+        
+        .. versionadded:: 0.8
+                
+        """
+        
+        pass
+    '''
+    
     
 class AtomPointer(Atomic):
     """Base class for classes pointing to atom(s) in :class:`AtomGroup` 
