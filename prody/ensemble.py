@@ -85,9 +85,6 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble',
            'parseDCD']
         
-class EnsembleError(Exception):
-    pass
-
 plt = None
 
 class EnsembleBase(object):
@@ -1224,7 +1221,7 @@ class PDBConformation(Conformation):
     
 class Frame(ConformationBase):
     
-    """A class to provide methods on a frame in a trajectory.
+    """|new| A class to provide methods on a frame in a trajectory.
     
     """
     
@@ -1418,6 +1415,11 @@ RECSCALE64BIT = 2
 
 class TrajectoryBase(EnsembleBase):
     
+    """Base class for :class:`Trajectory` and :class:`TrajectoryFile`.
+    Derived classes must implement functions described in this class.
+    
+    """
+    
     def __init__(self, name):
         EnsembleBase.__init__(self, name)
         self._nfi = 0
@@ -1473,11 +1475,14 @@ class TrajectoryBase(EnsembleBase):
         Shape of the coordinate set array is (n_sets, n_atoms, 3)."""
         pass
     
-    def getFrame(self):
+    def getFrame(self, index):
         """Return frame at given *index*."""
         pass
 
-
+    def nextCoordset(self):
+        """Return next coordinate set."""
+        pass
+    
     def next(self):
         """Return next frame."""
         pass
@@ -1568,7 +1573,8 @@ class TrajectoryFile(TrajectoryBase):
                 self.skip(index)
         return self.next()
     
-            
+    getFrame.__doc__ = TrajectoryBase.getFrame.__doc__
+                
     def getCoordsets(self, indices=None):
         
         if indices is None:
@@ -1604,8 +1610,7 @@ class TrajectoryFile(TrajectoryBase):
     getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
     
     def skip(self, n):
-        """Skip *n* frames. *n* must be a positive integer."""
-        
+     
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         if not self._closed and n > 0:
@@ -1614,10 +1619,10 @@ class TrajectoryFile(TrajectoryBase):
                 n = left
             self._file.seek(n * self._bytes_per_frame, 1)                
             self._nfi += n
+            
+    skip.__doc__ = TrajectoryBase.skip.__doc__
     
     def goto(self, n):
-        """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
-        to the beginning. ``n=-1`` will go to the last frame."""
         
         if self._closed:
             return None
@@ -1634,26 +1639,29 @@ class TrajectoryFile(TrajectoryBase):
             elif n > n_csets: 
                 n = n_csets
             self._file.seek(self._first_byte + n * self._bytes_per_frame)
-            self._nfi = n        
+            self._nfi = n
+            
+    goto.__doc__ = TrajectoryBase.goto.__doc__  
     
     def reset(self):
-        """Go to first frame whose index is 0."""
 
         if not self._closed:
             self._file.seek(self._first_byte)
             self._nfi = 0
+            
+    reset.__doc__ = TrajectoryBase.reset.__doc__  
     
     def close(self):
-        """Close trajectory file."""
-        
+       
         self._file.close()
         self._nfi = 0
         self._closed = True
     
+    close.__doc__ = TrajectoryBase.close.__doc__  
     
 class DCDFile(TrajectoryFile):
     
-    """A class for reading DCD files."""
+    """|new| A class for reading DCD files."""
     
     def __init__(self, filename):
         """Instantiate with a DCD filename. DCD header and first frame is 
@@ -1805,11 +1813,12 @@ class DCDFile(TrajectoryFile):
         self._nfi = 0
         
     def next(self):
-        """Return next frame."""
         
         if not self._closed and self._nfi < self._n_csets:
             frame = Frame(self, self._nfi, self.nextCoordset())
             return frame
+    
+    next.__doc__ = TrajectoryBase.next.__doc__  
         
     def nextCoordset(self):
         """Return next coordinate set."""
@@ -1829,6 +1838,8 @@ class DCDFile(TrajectoryFile):
                 return xyz
             else:
                 return xyz[self._indices]
+
+    nextCoordset.__doc__ = TrajectoryBase.nextCoordset.__doc__  
 
     def getCoordsets(self, indices=None):
         """Returns coordinate sets at given *indices*. *indices* may be an 
@@ -1859,7 +1870,7 @@ class DCDFile(TrajectoryFile):
 
 class Trajectory(TrajectoryBase):
     
-    """A class for handling trajectories in multiple files."""
+    """|new| A class for handling trajectories in multiple files."""
         
     def __init__(self, name):
         """Trajectory can be instantiated with a *name* or a filename. When
@@ -1943,6 +1954,10 @@ class Trajectory(TrajectoryBase):
         
         return [traj.getFilename(absolute) for traj in self._trajectories]
         
+    def getFrame(self, index):
+        
+        self.goto(index)
+        return self.next()
 
     def getCoordsets(self, indices=None):
         
@@ -1976,10 +1991,11 @@ class Trajectory(TrajectoryBase):
     getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
     
     def next(self):
-        """Return next frame."""
 
         if not self._closed and self._nfi < self._n_csets:
             return Frame(self, self._nfi, self.nextCoordset())
+
+    next.__doc__ = TrajectoryBase.next.__doc__
     
     def nextCoordset(self):
         """Return next coordinate set."""
@@ -1994,10 +2010,10 @@ class Trajectory(TrajectoryBase):
                 return traj.nextCoordset()
             else:
                 return traj.nextCoordset()[self._indices]
+
+    nextCoordset.__doc__ = TrajectoryBase.nextCoordset.__doc__
     
     def goto(self, n):
-        """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
-        to the beginning. ``n=-1`` will go to the last frame."""
         
         if self._closed:
             return None
@@ -2024,8 +2040,9 @@ class Trajectory(TrajectoryBase):
             self._trajectory.goto(nfi)
             self._nfi = n
     
+    goto.__doc__ = TrajectoryBase.goto.__doc__
+    
     def skip(self, n):
-        """Skip *n* frames. *n* must be a positive integer."""
         
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
@@ -2040,9 +2057,10 @@ class Trajectory(TrajectoryBase):
                 self._nextFile()
             self._nfi += skip
             n -= skip
+            
+    skip.__doc__ = TrajectoryBase.skip.__doc__
     
     def reset(self):
-        """Go to the first frame of the first file."""
 
         if not self._closed and self._trajectories:
             for traj in self._trajectories:
@@ -2051,15 +2069,18 @@ class Trajectory(TrajectoryBase):
             self._cfi = 0
             self._nfi = 0
 
+    reset.__doc__ = TrajectoryBase.reset.__doc__
+
     def close(self):
-        """Close all open trajectory files."""
         
         for traj in self._trajectories:
             traj.close()
         self._closed = True
+
+    close.__doc__ = TrajectoryBase.close.__doc__
     
 def parseDCD(filename, first=None, last=None, step=None):
-    """|new| Parse CHARMM format DCD files (also NAMD 2.1 and later).
+    """Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
     .. versionadded:: 0.7.2
     
