@@ -1428,6 +1428,23 @@ class TrajectoryBase(EnsembleBase):
             while self._nfi < self._n_csets: 
                 yield self.next()
     
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return self.getFrame(index)
+        elif isinstance(index, (slice, list, np.ndarray)):
+            if isinstance(index, slice):
+                ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+                                    self._name, index.indices(len(self))))
+            else:
+                ens = Ensemble('{0:s} slice'.format(self._name))
+            ens.setCoordinates(self.getCoordinates())
+            if self._weights is not None:
+                ens.setWeights(self._weights.copy())
+            ens.addCoordset(self.getCoordsets(index))
+            return ens
+        else:
+            raise IndexError('invalid index')
+    
     def getNumOfFrames(self):
         """Return number of frames."""
         
@@ -1446,6 +1463,15 @@ class TrajectoryBase(EnsembleBase):
         if not self._closed:
             while self._nfi < self._n_csets: 
                 yield self.nextCoordset()
+    
+    def getCoordsets(self, indices=None):
+        """Returns coordinate sets at given *indices*. *indices* may be an 
+        integer, a list of ordered integers or ``None``. ``None`` returns all 
+        coordinate sets. If a list of indices is given, unique numbers will
+        be selected and sorted. That is, this method will always return unique 
+        coordinate sets in the order they appear in the trajectory file.
+        Shape of the coordinate set array is (n_sets, n_atoms, 3)."""
+        pass
     
     def getFrame(self):
         """Return frame at given *index*."""
@@ -1499,23 +1525,6 @@ class TrajectoryFile(TrajectoryBase):
         self._bytes_per_frame = None
         self._first_byte = None
         self._dtype = np.float32
-
-    def __getitem__(self, index):
-        if isinstance(index, int):
-            return self.getFrame(index)
-        elif isinstance(index, (slice, list, np.ndarray)):
-            if isinstance(index, slice):
-                ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                    self._name, index.indices(len(self))))
-            else:
-                ens = Ensemble('{0:s} slice'.format(self._name))
-            ens.setCoordinates(self.getCoordinates())
-            if self._weights is not None:
-                ens.setWeights(self._weights.copy())
-            ens.addCoordset(self.getCoordsets(index))
-            return ens
-        else:
-            raise IndexError('invalid index')
     
     def __repr__(self):
         if self._closed:
@@ -1561,11 +1570,6 @@ class TrajectoryFile(TrajectoryBase):
     
             
     def getCoordsets(self, indices=None):
-        """Returns coordinate sets at given *indices*. *indices* may be an 
-        integer, a list of ordered integers or ``None``. ``None`` returns all 
-        coordinate sets. If a list of indices is given, unique numbers will
-        be selected and sorted. That is, this method will always return
-        coordinate sets in the order they appear in the trajectory file."""
         
         if indices is None:
             indices = np.arange(self._n_csets)
@@ -1596,6 +1600,8 @@ class TrajectoryFile(TrajectoryBase):
 
         self.goto(nfi)
         return coords
+    
+    getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
     
     def skip(self, n):
         """Skip *n* frames. *n* must be a positive integer."""
@@ -1847,6 +1853,8 @@ class DCDFile(TrajectoryFile):
             return data
         else:            
             return TrajectoryFile.getCoordsets(self, indices)
+    
+        getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
 
 
 class Trajectory(TrajectoryBase):
@@ -1937,7 +1945,35 @@ class Trajectory(TrajectoryBase):
         
 
     def getCoordsets(self, indices=None):
-        pass
+        
+        if indices is None:
+            indices = np.arange(self._n_csets)
+        elif isinstance(indices, (int, long)):
+            indices = np.array([indices])
+        elif isinstance(indices, slice):
+            indices = np.arange(*indices.indices(self._n_csets))
+            indices.sort()
+        elif isinstance(indices, (list, np.ndarray)):
+            indices = np.unique(indices)
+        else:
+            raise TypeError('indices must be an integer or a list of integers')
+
+        nfi = self._nfi
+        self.reset()
+        coords = np.zeros((len(indices), self.getNumOfSelected(), 3), 
+                          self._trajectories[0]._dtype)
+        prev = 0
+        next = self.nextCoordset
+        for i, index in enumerate(indices):
+            diff = index - prev
+            if diff > 1:
+                self.skip(diff)
+            coords[i] = next()
+            prev = index
+        self.goto(nfi)
+        return coords
+        
+    getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
     
     def next(self):
         """Return next frame."""
