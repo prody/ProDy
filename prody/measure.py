@@ -193,7 +193,7 @@ def _calcTransformation(mob, tar, weights=None, superpose=False):
     #else:
     return Transformation(rotation, tar_com - np.dot(mob_com, rotation))
 
-def _superpose(mobs, tar, weights=None, movs=None):
+def _superposeTraj(mobs, tar, weights=None, movs=None):
     # mobs.ndim == 3 and movs.ndim == 3
     # mobs.shape[0] == movs.shape[0]
     tar_com = tar.mean(0)
@@ -217,6 +217,28 @@ def _superpose(mobs, tar, weights=None, movs=None):
         else:
             movs[i] = np.dot(movs[i], rotation) + (tar_com - 
                                                    np.dot(mob_com, rotation))
+
+def _superpose(mob, tar, weights=None, mov=None):
+    tar_com = tar.mean(0)
+    tar_org = tar - tar_com
+
+    if linalg is None:
+        prody.importLA()
+    mob_com = mob.mean(0)
+    mob_org = mob - mob_com
+    matrix = np.dot(tar_org.T, mob_org)
+
+    U, s, Vh = linalg.svd(matrix)
+    Id = np.array([ [1, 0, 0], 
+                    [0, 1, 0], 
+                    [0, 0, np.sign(linalg.det(matrix))] ])
+    rotation = np.dot(Vh.T, np.dot(Id, U.T))
+
+    if mov is None:
+        mob[:] = np.dot(mob_org, rotation) + tar_com 
+    else:
+        mov[:] = np.dot(mov, rotation) + (tar_com - np.dot(mob_com, rotation))
+
 
 def applyTransformation(transformation, coords):
     """Applies a transformation to a given coordinate set."""

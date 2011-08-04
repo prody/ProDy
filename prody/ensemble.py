@@ -515,12 +515,12 @@ class Ensemble(EnsembleBase):
         
         indices = self._indices
         if indices is None:
-            measure._superpose(self._confs, self._coords, self._weights)
+            measure._superposeTraj(self._confs, self._coords, self._weights)
         else:
             weights = None
             if self._weights is not None:
                 weights = self._weights[indices]
-            measure._superpose(self._confs[:,indices], 
+            measure._superposeTraj(self._confs[:,indices], 
                                self._coords[indices], weights,
                                self._confs)
             
@@ -1265,10 +1265,10 @@ class Frame(ConformationBase):
                                                     ensemble._weights)
         else:
             if ensemble._weights is None:
-                return measure._calcRMSD(self._coords[indices], 
+                return measure._calcRMSD(self._coords, 
                                          ensemble._coords[indices])
             else:
-                return measure._calcRMSD(self._coords[indices], 
+                return measure._calcRMSD(self._coords, 
                                          ensemble._coords[indices], 
                                          ensemble._weights[indices])
         
@@ -1285,11 +1285,9 @@ class Frame(ConformationBase):
                                                 ensemble._weights)
         else:
             if ensemble._weights is None:
-                self._coords = measure.superpose(self._coords, 
-                                                 ensemble._coords[indices])
+                measure._superpose(self._coords, ensemble._coords[indices])
             else:
-                self._coords = measure.superpose(self._coords, 
-                                                 ensemble._coords[indices], 
+                measure._superpose(self._coords, ensemble._coords[indices], 
                                                  ensemble._weights[indices])
     
 def trimEnsemble(ensemble, **kwargs):
@@ -1619,21 +1617,18 @@ class TrajectoryFile(TrajectoryBase):
             return None
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
-        n_confs = self._n_csets
-        if n > 0:
-            if n > n_confs: 
-                n = n_confs
-            self._file.seek(self._first_byte + n * self._bytes_per_frame)
-            self._nfi = n
-        elif n < 0:
-            n = n_confs + n
+        n_csets = self._n_csets
+        if n == 0:
+            self.reset()
+        else:
+            if n < 0:
+                n = n_csets + n
             if n < 0:
                 n = 0
+            elif n > n_csets: 
+                n = n_csets
             self._file.seek(self._first_byte + n * self._bytes_per_frame)
-            self._nfi = n
-        else:
-            self.reset()
-        
+            self._nfi = n        
     
     def reset(self):
         """Go to first frame whose index is 0."""
@@ -1641,7 +1636,6 @@ class TrajectoryFile(TrajectoryBase):
         if not self._closed:
             self._file.seek(self._first_byte)
             self._nfi = 0
-
     
     def close(self):
         """Close trajectory file."""
@@ -1791,6 +1785,8 @@ class DCDFile(TrajectoryFile):
         
         if self._is64bit:
             self._bytes_per_frame = 56 + self._n_floats * 8
+            LOGGER.warning('Reading of 64 bit DCD files has not been tested. '
+                           'Please report any problems that you may find.')
             self._dtype = np.float64
         else: 
             self._bytes_per_frame = 56 + self._n_floats * 4
@@ -1888,11 +1884,22 @@ class Trajectory(TrajectoryBase):
         self._cfi += 1
         if self._cfi < self._n_files: 
             self._trajectory = self._trajectories[self._cfi]
+            if self._trajectory.getNextFrameIndex() > 0:
+                self._trajectory.reset()
+
+    def _gotoFile(self, i):
+        if i < self._n_files:
+            self._cfi = i
+            self._trajectory = self._trajectories[i]
+            if self._trajectory.getNextFrameIndex() > 0:
+                self._trajectory.reset()
         
     def addFile(self, filename):
         """Add a file to the trajectory instance. Currently only DCD files
         are supported."""
         
+        if not isinstance(filename, str):
+            raise ValueError('filename must be a string')
         if os.path.abspath(filename) in self._filenames:        
             raise IOError('{0:s} is already added to the trajectory'
                           .format(filename))
@@ -1947,10 +1954,39 @@ class Trajectory(TrajectoryBase):
                 self._nextFile()
                 traj = self._trajectory
             self._nfi += 1
-            return traj.nextCoordset()
+            if self._indices is None: 
+                return traj.nextCoordset()
+            else:
+                return traj.nextCoordset()[self._indices]
     
     def goto(self, n):
-        pass
+        """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
+        to the beginning. ``n=-1`` will go to the last frame."""
+        
+        if self._closed:
+            return None
+        if not isinstance(n, (int, long)):
+            raise ValueError('n must be an integer')
+        n_csets = self._n_csets
+        if n == 0:
+            self.reset()
+        else:
+            if n < 0:
+                n = n_csets + n
+            if n < 0:
+                n = 0
+            elif n > n_csets: 
+                n = n_csets
+            nfi = n
+            for which, traj in enumerate(self._trajectories):
+                if traj._n_csets >= nfi:
+                    break
+                else:
+                    nfi -= traj._n_csets
+            self._gotoFile(which)
+            print nfi
+            self._trajectory.goto(nfi)
+            self._nfi = n
     
     def skip(self, n):
         """Skip *n* frames. *n* must be a positive integer."""
