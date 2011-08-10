@@ -1469,7 +1469,7 @@ class Select(object):
         
         regexps = []
         strings = []
-        for value in set(values):
+        for value in values:
             if isinstance(value, str):
                 strings.append(value)
             elif value[0] == value[2] == '"':
