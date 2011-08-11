@@ -552,8 +552,7 @@ class AtomGroupMeta(type):
                 return self.__dict__['_'+var]
             _getData = wrapGetMethod(_getData)
             _getData.__name__ = field.meth_pl
-            _getData.__doc__ = ('Return actual {0:s} array (for internal use).'
-                                                        ).format(field.doc_pl)
+            _getData.__doc__ = ('Return {0:s} array.').format(field.doc_pl)
             setattr(cls, '_get'+field.meth_pl, _getData)
             
             # Define public method for setting values in data array
@@ -650,7 +649,7 @@ class AtomGroup(Atomic):
         self._n_atoms = 0
         self._coordinates = None
         self._acsi = 0                  # Active Coordinate Set Index
-        self._n_coordsets = 0
+        self._n_csets = 0
         self._hv = None
         self._hvupdate = None
         self._userdata = {}
@@ -666,14 +665,14 @@ class AtomGroup(Atomic):
     def __repr__(self):
         return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, active'
                ' set index: {3:d})>').format(self._name, 
-              self._n_atoms, self._n_coordsets, self._acsi)
+              self._n_atoms, self._n_csets, self._acsi)
         return ('<AtomGroup: {0:s}>').format(str(self))
         
     def __str__(self):
         return ('AtomGroup {0:s}').format(self._name)
         return ('{0:s} ({1:d} atoms; {2:d} coordinate sets, active '
                'set index: {3:d})').format(self._name, 
-              self._n_atoms, self._n_coordsets, self._acsi)
+              self._n_atoms, self._n_csets, self._acsi)
 
     def __getitem__(self, indices):
         acsi = self._acsi
@@ -700,6 +699,7 @@ class AtomGroup(Atomic):
     
     def __iter__(self):
         """Iterate over atoms in the atom group."""
+        
         acsi = self._acsi
         for index in xrange(self._n_atoms):
             yield Atom(self, index, acsi)
@@ -709,14 +709,15 @@ class AtomGroup(Atomic):
     
     def __add__(self, other):
         """.. versionadded:: 0.5"""
+        
         if not isinstance(other, AtomGroup):
             raise TypeError('type mismatch')
         if self == other:
             raise ValueError('an atom group cannot be added to itself')
         
         new = AtomGroup(self._name + ' + ' + other._name)
-        n_coordsets = self._n_coordsets
-        if n_coordsets != other._n_coordsets:
+        n_coordsets = self._n_csets
+        if n_coordsets != other._n_csets:
             LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same number'
               ' of coordinate sets. First from both AtomGroups will be merged.'
               .format(str(self._name), str(other._name), n_coordsets))
@@ -775,8 +776,7 @@ class AtomGroup(Atomic):
         return self._coordinates[self._acsi].copy()
     
     def _getCoordinates(self): 
-        """Return a view of coordinates from active coordinate set 
-        (for internal use). """
+        """Return a view of coordinates from active coordinate set."""
         
         if self._coordinates is None:
             return None
@@ -824,7 +824,7 @@ class AtomGroup(Atomic):
                 coordinates = coordinates.reshape(
                             (1, coordinates.shape[0], coordinates.shape[1]))
             self._coordinates = coordinates
-            self._n_coordsets = self._coordinates.shape[0]
+            self._n_csets = self._coordinates.shape[0]
             self._acsi = 0
         else:
             if coordinates.ndim == 2:
@@ -833,9 +833,8 @@ class AtomGroup(Atomic):
                 self._coordinates[self._acsi] = coordinates[0]
             else:
                 self._coordinates = coordinates
-                self._n_coordsets = self._coordinates.shape[0]
-                self._acsi = min(self._n_coordsets-1,
-                                                    self._acsi)
+                self._n_csets = self._coordinates.shape[0]
+                self._acsi = min(self._n_csets - 1, self._acsi)
     
     def addCoordset(self, coords):
         """Add a coordinate set to the atom group.
@@ -873,7 +872,7 @@ class AtomGroup(Atomic):
         if coords.ndim == 2:
             coords = coords.reshape((1, coords.shape[0], coords.shape[1]))
         self._coordinates = np.concatenate((self._coordinates, coords), axis=0)
-        self._n_coordsets = self._coordinates.shape[0]
+        self._n_csets = self._coordinates.shape[0]
 
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
@@ -882,77 +881,79 @@ class AtomGroup(Atomic):
             raise AttributeError('AtomGroup is locked for coordinate set '
                                  'addition/deletion when its associated with '
                                  'a trajectory')
-        which = np.ones(self._n_coordsets, np.bool)
+        which = np.ones(self._n_csets, np.bool)
         which[index] = False
-        if which.sum() == self._n_coordsets:
+        if which.sum() == self._n_csets:
             self._coordinates = None
-            self._n_coordsets = 0
+            self._n_csets = 0
         else:
             self._coordinates = self._coordinates[which]
-            self._n_coordsets = self._coordinates.shape[0]
+            self._n_csets = self._coordinates.shape[0]
         self._acsi = 0
 
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices.
         
         *indices* may be an integer, a list of integers or ``None``. ``None``
-        returns all coordinate sets. 
+        returns all coordinate sets."""
         
-        """
-        
-        coordsets = self._getCoordsets(indices)
-        if coordsets is not None:
-            return coordsets.copy()
-        
-    def _getCoordsets(self, indices):
-        """Return a view of coordinate sets at given indices 
-        (for internal use)."""
-        
-        if self._coordinates is None or self._n_coordsets == 0:
+        if self._coordinates is None:
             return None
         if indices is None:
-            indices = slice(None)
-        elif isinstance(indices, int):
-            if indices >= self._n_coordsets or indices < -self._n_coordsets:
-                raise IndexError('coordinate set index out of range')
-        try: 
+            return self._coordinates.copy()
+        elif isinstance(indices, (int, slice)):
             return self._coordinates[indices].copy()
-        except IndexError:
-            raise IndexError('indices must be an integer, a list of integers, '
-                             'or None')
+        elif isinstance(indices, (list, np.ndarray)):
+            return self._coordinates[indices]
+        else:
+            raise IndexError('indices must be an integer, a list/array of '
+                             'integers, a slice, or None')
+        
+    def _getCoordsets(self, indices=None):
+        """Return a view of coordinate sets at given indices."""
+        
+        if self._coordinates is None:
+            return None
+        if indices is None:
+            return self._coordinates
+        elif isinstance(indices, (int, slice)):
+            return self._coordinates[indices]
+        elif isinstance(indices, (list, np.ndarray)):
+            return self._coordinates[indices]
+        else:
+            raise IndexError('indices must be an integer, a list/array of '
+                             'integers, a slice, or None')
 
     def getNumOfCoordsets(self):
         """Return number of coordinate sets."""
         
-        return self._n_coordsets
+        return self._n_csets
     
     def iterCoordsets(self):
-        """Iterate over coordinate sets by returning a copy of each 
-        coordinate set."""
+        """Iterate over coordinate sets by returning a copy of each coordinate
+        set."""
         
-        for i in range(self._n_coordsets):
+        for i in range(self._n_csets):
             yield self._coordinates[i].copy()
     
     def _iterCoordsets(self):
-        """Iterate over coordinate sets by returning a view of each 
-        coordinate set.
+        """Iterate over coordinate sets by returning a view of each coordinate
+        set."""
         
-        """
-        
-        for i in range(self._n_coordsets):
+        for i in range(self._n_csets):
             yield self._coordinates[i]
 
     def setActiveCoordsetIndex(self, index):
         """Set the index of the active coordinate set."""
         
-        if self._n_coordsets == 0:
+        if self._n_csets == 0:
             self._acsi = 0
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
-        if self._n_coordsets <= index or self._n_coordsets < abs(index):
+        if self._n_csets <= index or self._n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
         if index < 0:
-            index += self._n_coordsets 
+            index += self._n_csets 
         self._acsi = index
 
     def copy(self, which=None):
@@ -967,6 +968,9 @@ class AtomGroup(Atomic):
             
         .. versionchanged:: 0.7.1
            If selection string does not select any atoms, ``None`` is returned.
+        
+        .. versionchanged:: 0.8
+           User data stored in the atom group is also copied.
         
         Note that association of an atom group with a trajectory is not copied.
         
@@ -995,6 +999,8 @@ class AtomGroup(Atomic):
         elif isinstance(which, (list, np.ndarray)):
             if isinstance(which, list):
                 indices = np.array(which)
+            elif which.ndim != 1:
+                raise ValueError('which must be a 1d array')
             else:
                 indices = which
             newmol = AtomGroup('Copy of a {0:s} subset'.format(name))
@@ -1005,14 +1011,17 @@ class AtomGroup(Atomic):
                 indices = which.getIndices()
             else:
                 raise TypeError('{0:s} is not a valid type'.format(type(which)))            
-            newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(name, str(which)))
-        newmol.setCoordinates(self._coordinates[:, indices].copy(
-                               ).reshape((self._n_coordsets, len(indices), 3)))
+            newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(name, 
+                                                                str(which)))
+        newmol.setCoordinates(self._coordinates[:, indices])
         for field in ATOMIC_DATA_FIELDS.values():
             var = '_' + field.var
             array = self.__dict__[var]
             if array is not None:
-                newmol.__dict__[var] = array[indices].copy()
+                newmol.__dict__[var] = array[indices]
+                
+        for name, data in self._userdata.iteritems():
+            newmol._userdata[name] = data[indices]
         return newmol
     
     def getHierView(self):
@@ -1360,7 +1369,7 @@ class AtomPointer(Atomic):
     def getNumOfCoordsets(self):
         """Return number of coordinate sets."""
         
-        return self._ag._n_coordsets
+        return self._ag._n_csets
 
     def setActiveCoordsetIndex(self, index):
         """Set the index of the active coordinate set."""
@@ -1369,11 +1378,11 @@ class AtomPointer(Atomic):
             raise AttributeError('coordinates are not set')
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
-        if self._ag._n_coordsets <= index or \
-           self._ag._n_coordsets < abs(index):
+        if self._ag._n_csets <= index or \
+           self._ag._n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
         if index < 0:
-            index += self._ag._n_coordsets
+            index += self._ag._n_csets
         self._acsi = index
         
     def copy(self, selstr=None):
@@ -1400,6 +1409,7 @@ class AtomMeta(type):
             getData.__name__ = field.meth
             getData.__doc__ = 'Return {0:s} of the atom.'.format(field.doc)
             setattr(cls, 'get'+field.meth, getData)
+            setattr(cls, '_get'+field.meth, getData)
             
             # Define public method for setting values in data array
             if field.toggle:
@@ -1514,7 +1524,7 @@ class Atom(AtomPointer):
     
     def _getCoordinates(self):
         """Return a view of coordinates of the atom from the active coordinate 
-        set (for internal use)."""
+        set."""
         
         if self._ag._coordinates is None:
             return None
@@ -1527,38 +1537,48 @@ class Atom(AtomPointer):
         
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices. 
-        *indices* may be an integer or a list of integers."""
+        *indices* may be an integer or a list/array of integers."""
         
-        coordsets = self._getCoordsets(indices)
-        if coordsets is not None: 
-            return coordsets.copy()
-       
-    def _getCoordsets(self, indices): 
-        """Return a view of coordinate sets at given indices (for internal 
-        use)."""
-        
-        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+        if self._ag._coordinates is None:
             return None
         if indices is None:
-            indices = slice(None)
-        try: 
+            return self._ag._coordinates[:, self._index].copy()
+        elif isinstance(indices, (int, slice)):
             return self._ag._coordinates[indices, self._index].copy()
-        except IndexError:
-            raise IndexError('indices may be an integer or a list of integers')
+        elif isinstance(indices, (list, np.ndarray)):
+            return self._ag._coordinates[indices, self._index]
+        else:
+            raise IndexError('indices must be an integer, a list/array of '
+                             'integers, a slice, or None')
+       
+    def _getCoordsets(self, indices): 
+        """Return a view of coordinate sets at given indices."""
+        
+        if self._ag._coordinates is None:
+            return None
+        if indices is None:
+            self._ag._coordinates[:, self._index]
+        elif isinstance(indices, (int, slice)):
+            self._ag._coordinates[indices, self._index]
+        elif isinstance(indices, (list, np.ndarray)):
+            return self._ag._coordinates[indices, self._index]
+        else:
+            raise IndexError('indices must be an integer, a list/array of '
+                             'integers, a slice, or None')
 
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each 
         coordinate set."""
         
-        for i in range(self._ag._n_coordsets):
+        for i in range(self._ag._n_csets):
             yield self._ag._coordinates[i, self._index].copy()
 
 
     def _iterCoordsets(self):
         """Iterate over coordinate sets by returning a view of each coordinate
-        set (for internal use)."""
+        set."""
         
-        for i in range(self._ag._n_coordsets):
+        for i in range(self._ag._n_csets):
             yield self._ag._coordinates[i, self._index]
 
     def getSelectionString(self):
@@ -1760,19 +1780,20 @@ class AtomSubset(AtomPointer):
         
     def getCoordsets(self, indices=None):
         """Return coordinate sets at given *indices*.
+        *indices* may be an integer or a list/array of integers."""
         
-        *indices* may be an integer or a list of integers.
-        
-        """
-        
-        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+        if self._ag._coordinates is None:
             return None
         if indices is None:
-            indices = slice(None)
-        try: 
-            return self._ag._coordinates[indices, self._indices].copy()
-        except IndexError:
-            raise IndexError('indices may be an integer or a list of integers')
+            return self._ag._coordinates[:, self._indices]
+        elif isinstance(indices, (int, slice)):
+            return self._ag._coordinates[indices, self._indices]
+        elif isinstance(indices, (list, np.ndarray)):
+            return self._ag._coordinates[indices, self._indices]
+        else:
+            raise IndexError('indices must be an integer, a list/array of '
+                             'integers, a slice, or None')
+    _getCoordsets = getCoordsets
 
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each coordinate 
@@ -1780,7 +1801,7 @@ class AtomSubset(AtomPointer):
         
         """
         
-        for i in range(self._ag._n_coordsets):
+        for i in range(self._ag._n_csets):
             yield self._ag._coordinates[i, self._indices]
 
     _iterCoordsets = iterCoordsets
@@ -2016,7 +2037,7 @@ class Selection(AtomSubset):
         return ('<Selection: "{0:s}" from {1:s} ({2:d} atoms; '
                 '{3:d} coordinate sets, active set index: {4:d})>').format(
                 selstr, self._ag.getName(), len(self), 
-                         self._ag._n_coordsets, self._acsi)
+                         self._ag._n_csets, self._acsi)
                    
     def __str__(self):
         selstr = self._selstr
@@ -2195,7 +2216,7 @@ class AtomMap(AtomPointer):
         
         """
         
-        for i in range(self._ag._n_coordsets):
+        for i in range(self._ag._n_csets):
             coordinates = np.zeros((self._len, 3), np.float64)
             coordinates[self._mapping] = self._ag._coordinates[i, 
                                                                self._indices] 
@@ -2206,7 +2227,7 @@ class AtomMap(AtomPointer):
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
         
-        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+        if self._ag._coordinates is None:
             return None
         coordinates = np.zeros((self._len, 3), np.float64)
         coordinates[self._mapping] = self._ag._coordinates[self._acsi, 
@@ -2225,24 +2246,29 @@ class AtomMap(AtomPointer):
         
         self._ag._coordinates[self._acsi, self._indices] = coordinates
     
+
     def getCoordsets(self, indices=None):
         """Return coordinate sets at given indices.
+        *indices* may be an integer or a list/array of integers."""
         
-        *indices* may be an integer or a list of integers.
-        
-        """
-        
-        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+        if self._ag._coordinates is None:
             return None
         if indices is None:
-            indices = slice(None)
+            indices = np.arange(self._ag._n_csets)
+        elif isinstance(indices, (int, long)):
+            indices = np.array([indices])
+        elif isinstance(indices, slice):
+            indices = np.arange(indices.indices(self._ag._n_csets))
         try:
-            coordsets = np.zeros((self._ag._n_coordsets, len(self), 3))
-            coordsets[:, self._mapping] = self._ag._coordinates[indices, 
+            coordsets = np.zeros((len(indices), self._len, 3))
+            coordsets[:, self._mapping] = self._ag._coordinates[indices][:, 
                                                                 self._indices]  
             return coordsets
         except IndexError:
-            raise IndexError('indices may be an integer or a list of integers')
+            raise IndexError('indices may be an integer or a list/array '
+                             'of integers')
+
+    _getCoordsets = getCoordsets
 
     def getUnmappedFlags(self):
         """Return an array with 1s for unmapped atoms."""

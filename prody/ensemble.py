@@ -205,7 +205,16 @@ class EnsembleBase(object):
             return None
         if self._sel is None:
             return self._coords.copy()
-        return self._coords[self._indices].copy()
+        return self._coords[self._indices]
+    
+    def _getCoordinates(self):
+        """Return a view of reference coordinates of selected atoms."""
+
+        if self._coords is None:
+            return None
+        if self._sel is None:
+            return self._coords
+        return self._coords[self._indices]
 
     def setCoordinates(self, coords):
         """Set reference coordinates."""
@@ -242,9 +251,9 @@ class EnsembleBase(object):
         if self._sel is None:
             return self._weights.copy()
         if self.weights.ndim == 2:
-            return self._weights[self._indices].copy()
+            return self._weights[self._indices]
         else:
-            return self._weights[:, self._indices].copy()
+            return self._weights[:, self._indices]
     
     def setWeights(self, weights):
         """Set atomic weights."""
@@ -302,7 +311,7 @@ class Ensemble(EnsembleBase):
         EnsembleBase.__init__(self, name)
         self._confs = None       # coordinate sets
         
-        if isinstance(name, prody.Atomic):
+        if isinstance(name, (prody.Atomic, prody.Ensemble)):
             self.setCoordinates(name.getCoordinates())
             self.addCoordset(name)
         
@@ -379,11 +388,15 @@ class Ensemble(EnsembleBase):
         """
         
         if not isinstance(coords, np.ndarray):
-            if isinstance(coords, prody.Atomic):
+            if isinstance(coords, (prody.Atomic, prody.Ensemble)):
+                atoms = coords
                 if allcoordsets:
-                    coords = coords.getCoordsets()
+                    coords = atoms.getCoordsets()
                 else:
-                    coords = coords.getCoordinates()
+                    coords = atoms.getCoordinates()
+                if coords is None:
+                    raise ValueError('{0:s} must contain coordinate data'
+                                     .format(atoms))
             else:
                 raise TypeError('coords must be a numpy ndarray or '
                                 'prody Atomic instance')
@@ -420,31 +433,59 @@ class Ensemble(EnsembleBase):
         *indices* may be an integer, a list of integers or ``None``. ``None``
         returns all coordinate sets. 
     
-        For reference coordinates, use getCoordinates method.
+        For reference coordinates, use :meth:`getCoordinates` method.
 
         """
         
         if self._confs is None:
             return None
-        if indices is None:
-            indices = slice(None)
-        elif isinstance(indices, (int, long)): 
-            indices = np.array([indices])
-        if self._sel is None:
-            coords = self._confs[indices].copy()
-            if self._weights is not None and self._weights.ndim == 3:
-                for i, w in enumerate(self._weights[indices]):
-                    which = w.flatten()==0
-                    coords[i, which] = self._coords[which]
+        elif self._indices is None:
+            if indices is None:
+                return self._confs.copy()
+            elif isinstance(indices, (int, long, slice)): 
+                return self._confs[indices].copy()
+            elif isinstance(indices, (list, np.ndarray)):        
+                return self._confs[indices]
+            else:
+                raise IndexError('indices must be an integer, a list/array of '
+                                 'integers, a slice, or None')
         else:
             selids = self._indices
-            coords = self._confs[indices, selids].copy()
-            if self._weights is not None and self._weights.ndim == 3:
-                ref_coords = self._coords[selids]
-                for i, w in enumerate(self._weights[indices, selids]):
-                    which = w.flatten()==0
-                    coords[i, which] = ref_coords[which]
-        return coords
+            if indices is None:
+                return self._confs[:,selids]
+            elif isinstance(indices, (int, long, slice)): 
+                return self._confs[indices, selids]
+            elif isinstance(indices, (list, np.ndarray)):        
+                return self._confs[indices, selids]
+            else:
+                raise IndexError('indices must be an integer, a list/array of '
+                                 'integers, a slice, or None')
+
+    def _getCoordsets(self, indices=None):
+
+        if self._confs is None:
+            return None
+        elif self._indices is None:
+            if indices is None:
+                return self._confs
+            elif isinstance(indices, (int, long, slice)): 
+                return self._confs[indices]
+            elif isinstance(indices, (list, np.ndarray)):        
+                return self._confs[indices]
+            else:
+                raise IndexError('indices must be an integer, a list/array of '
+                                 'integers, a slice, or None')
+        else:
+            selids = self._indices
+            if indices is None:
+                return self._confs[:,selids]
+            elif isinstance(indices, (int, long, slice)): 
+                return self._confs[indices, selids]
+            elif isinstance(indices, (list, np.ndarray)):        
+                return self._confs[indices, selids]
+            else:
+                raise IndexError('indices must be an integer, a list/array of '
+                                 'integers, a slice, or None')
     
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
@@ -501,7 +542,7 @@ class Ensemble(EnsembleBase):
         if self._confs is None or len(self._confs) == 0: 
             raise AttributeError('conformations are not set, '
                                  'use addCoordset() method to set it.')
-        LOGGER.info('Superimposing structures.')
+        LOGGER.info('Superposing structures.')
         start = time()
         self._superpose()
         LOGGER.info(('Superposition is completed in {0:.2f} '
@@ -801,6 +842,7 @@ class PDBEnsemble(Ensemble):
         
         if self._confs is None:
             return None
+    
         if indices is None:
             indices = slice(None)
         elif isinstance(indices, (int, long)): 
@@ -814,11 +856,13 @@ class PDBEnsemble(Ensemble):
         else:
             selids = self._getSelIndices()
             coords = coords[selids]
-            confs = self._confs[indices, selids].copy()
+            confs = self._confs[indices, selids]
             for i, w in enumerate(self._weights[indices]):
                 which = w[selids].flatten()==0
                 confs[i, which] = coords[which]
-        return confs 
+        return confs
+    
+    _getCoordsets = getCoordsets
     
     def iterCoordsets(self):
         """Iterate over coordinate sets. A copy of each coordinate set for
@@ -2036,7 +2080,7 @@ class Trajectory(TrajectoryBase):
                 else:
                     nfi -= traj._n_csets
             self._gotoFile(which)
-            print nfi
+            # print nfi
             self._trajectory.goto(nfi)
             self._nfi = n
     
@@ -2049,7 +2093,7 @@ class Trajectory(TrajectoryBase):
         left = self._n_csets - self._nfi
         if n > left:
             n = left
-        while not self._closed and self._nfi < self._n_frames and n > 0:
+        while not self._closed and self._nfi < self._n_csets and n > 0:
             traj = self._trajectory
             skip = min(n, traj.getNumOfFrames() - traj.getNextFrameIndex())
             traj.skip(skip)
@@ -2124,12 +2168,17 @@ if __name__ == '__main__':
     ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
     dcd = DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     dcd.setAtomGroup( ag )
-    traj = Trajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
-    traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    traj.setAtomGroup( ag )
-    ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    ens.setAtomGroup( ag )
-    ens.select('calpha')
+    dcd.select( 'protein' )
+    t = time()
+    for i in range(len(dcd)):
+        dcd.next().superpose()
+    print time()-t
+    #traj = Trajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
+    #traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    #traj.setAtomGroup( ag )
+    #ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    #ens.setAtomGroup( ag )
+    #ens.select('calpha')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', indices=np.arange(1000), stride=10)
     #dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)

@@ -1512,7 +1512,7 @@ class ANM(GNMBase):
             hessian = scipy_sparse.lil_matrix((dof, dof))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
-            hessian = np.zeros((dof, dof), 'd')
+            hessian = np.zeros((dof, dof), np.float64)
         if KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
@@ -1677,12 +1677,14 @@ class PCA(NMABase):
         """Build a weighted covariance matrix for coodsets.
         
         *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
-        :class:`~prody.ensemble.Ensemble`, or :class:`numpy.ndarray` instance.
+        :class:`~prody.ensemble.Ensemble`, :class:`~prody.ensemble.Trajectory`,
+        or :class:`numpy.ndarray` instance.
         If *coordsets* is a numpy array it must have the shape 
         (n_coordsets, n_atoms, 3).
          
         .. versionchanged:: 0.8
-           Numpy array instances are accepted as *coordsets* argument.
+           Numpy array and ProDy Trajectory instances are accepted as 
+           *coordsets* argument.
          
         .. note::        
            If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
@@ -1696,7 +1698,7 @@ class PCA(NMABase):
         
         start = time.time()
         if not isinstance(coordsets, (prody.Ensemble, prody.Atomic, 
-                                      np.ndarray)):
+                                      prody.TrajectoryBase, np.ndarray)):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
         weights = None
@@ -1704,23 +1706,12 @@ class PCA(NMABase):
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
                 coordsets.dtype not in (np.float32, np.float64):
                 raise ValueError('coordsets is not a valid coordinate array')
+        elif isinstance(coordsets, prody.Atomic):
+            coordsets = coordsets._getCoordsets()
         else:
-            indices = coordsets.getSelection()
-            if indices is not None:
-                indices = sel.getIndices()
-            
             if isinstance(coordsets, PDBEnsemble):
-                if indices is None:
-                    weights = coordsets._weights > 0
-                else:
-                    weights = coordsets._weights[:,indices] > 0
-            
-            if isinstance(coordsets, prody.Atomic):
-                coordsets = coordsets._coords
-            else:
-                coordsets = coordsets._confs
-            if indices is not None:
-                coordsets = coordsets[:, indices]
+                weights = coordsets.getWeights() > 0
+            coordsets = coordsets._getCoordsets()
         n_confs = coordsets.shape[0]
         if n_confs < 3:
             raise ValueError('coordsets must have more than 3 coordinate sets')
@@ -1730,8 +1721,17 @@ class PCA(NMABase):
         dof = n_atoms * 3
 
         if weights is None:
-            self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, bias=1)
+            if coordsets.dtype == np.float64:
+                self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, bias=1)
+            else:
+                cov = np.zeros((dof, dof))
+                coordsets = coordsets.reshape((n_confs, dof))
+                mean = coordsets.mean(0) 
+                for coords in coordsets.reshape((n_confs, dof)):
+                    deviations = coords - mean
+                    cov += np.outer((deviations, deviations)) 
         else:
+            # PDB ensemble case
             mean = np.zeros((n_atoms, 3))
             for i, coords in enumerate(coordsets):
                 mean += coords * weights[i]
