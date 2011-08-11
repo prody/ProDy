@@ -11,6 +11,9 @@ Release 0.8.0 (in development)
 
 **New Features**:
 
+  * :class:`~dynamics.PCA` supports :class:`~ensemble.Trajectory` and
+    :class:`~ensemble.DCDFile` instances. 
+  
   * :class:`~ensemble.Ensemble` and :class:`~ensemble.PDBEnsemble` classes
     can be associated with :class:`~atomic.AtomGroup` instances. This allows
     selecting and evaluating coordinates of subset of atoms. See
@@ -30,6 +33,10 @@ Release 0.8.0 (in development)
     
   * :meth:`~ensemble.Ensemble.getRMSFs` is implemented for calculating
     root mean square fluctuations.
+    
+  * :class:`~atomic.AtomGroup` and :class:`~dynamics.Mode` or 
+    :class:`~dynamics.Vector` additions are supported. This adds a new
+    coordinate set to the :class:`~atomic.AtomGroup` instance.
 
 **Improvements**:
 
@@ -53,6 +60,9 @@ Release 0.8.0 (in development)
   
   * :meth:`~ensemble.Ensemble.getMSFs` is optimized for speed and memory usage.
 
+  * Improvements in memory usage in :mod:`atomic`, :mod:`ensemble`, and
+    :mod:`dynamics` modules, faster data (PDB/NMD) output.
+
 **Changes**:
 
   * :class:`~ensemble.Ensemble` does not store conformation names. Instead, 
@@ -74,6 +84,9 @@ Release 0.8.0 (in development)
 
 **Bug Fixes**:
   
+  * A bug in :mod:`select` module causing exceptions when regular expressions
+    are used is fixed.
+
   * Various bugfixes in :mod:`ensemble` module.
   
   * Problem in :file:`fetchpdb.py` that occurred when a file is found in a
