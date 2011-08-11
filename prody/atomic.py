@@ -736,7 +736,7 @@ class AtomGroup(Atomic):
                 raise ValueError('Vector/Mode must have same number of atoms '
                                  'as the AtomGroup')
             self.addCoordset(self._coordinates[self._acsi] + 
-                             other.getArrayNx3())
+                             other._getArrayNx3())
             self.setActiveCoordsetIndex(self._n_csets - 1)
         else:
             raise TypeError('can only concatenate two AtomGroup`s or can '

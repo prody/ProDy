@@ -264,14 +264,15 @@ class VectorBase(object):
     """
     
     def __abs__(self):
-        return np.sqrt((self.getArray()**2).sum())
+        return np.sqrt((self._getArray()**2).sum())
     
     def __neg__(self):
-        return Vector(-self.getArray(), '-({0:s})'.format(str(self)), self.is3d())
+        return Vector(-self._getArray(), '-({0:s})'.format(str(self)), 
+                      self.is3d())
     
     def __div__(self, other):
         if isinstance(other, (int, float, long)):
-            return Vector(self.getArray() / other, 
+            return Vector(self._getArray() / other, 
                           '({1:s})/{0}'.format(other, str(self)), self.is3d())
         else:
             raise TypeError('{0} is not a scalar'.format(other))
@@ -282,20 +283,20 @@ class VectorBase(object):
     def __mul__(self, other):
         """Return scaled mode or dot product between modes."""
         if isinstance(other, (int, float, long)): 
-            return Vector(other * self.getArray(), 
+            return Vector(other * self._getArray(), 
                           '{0}*({1:s})'.format(other, str(self)), self.is3d())
         elif isinstance(other, VectorBase):
-            return np.dot(self.getArray(), other.getArray())
+            return np.dot(self._getArray(), other._getArray())
         else:
             raise TypeError('{0} is not a scalar or a mode'.format(other))
     
     def __rmul__(self, other):   
         """Return scaled mode or dot product between modes."""
         if isinstance(other, (int, float, long)): 
-            return Vector(other * self.getArray(), 
+            return Vector(other * self._getArray(), 
                           '{0}*({1:s})'.format(other, str(self)), self.is3d())
         elif isinstance(other, VectorBase):
-            return np.dot(self.getArray(), other.getArray())
+            return np.dot(self._getArray(), other._getArray())
         else:
             raise TypeError('{0} is not a scalar or a mode'.format(other))
             
@@ -306,8 +307,9 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return Vector(self.getArray() + other.getArray(), 
-                          '{0:s} + {1:s}'.format(str(self), str(other)), self.is3d())
+            return Vector(self._getArray() + other._getArray(), 
+                          '{0:s} + {1:s}'.format(str(self), str(other)), 
+                          self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
 
@@ -315,8 +317,9 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return Vector(self.getArray() + other.getArray(), 
-                          '{0:s} + {1:s}'.format(str(other), str(self)), self.is3d())
+            return Vector(self._getArray() + other._getArray(), 
+                          '{0:s} + {1:s}'.format(str(other), str(self)), 
+                          self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
         
@@ -327,8 +330,9 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return Vector(self.getArray() - other.getArray(), 
-                          '{0:s} - {1:s}'.format(str(self), str(other)), self.is3d())
+            return Vector(self._getArray() - other._getArray(), 
+                          '{0:s} - {1:s}'.format(str(self), str(other)), 
+                          self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
 
@@ -336,8 +340,9 @@ class VectorBase(object):
         if isinstance(other, VectorBase):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
-            return  Vector(other.getArray() - self.getArray(), 
-                           '{0:s} - {1:s}'.format(str(other), str(self)), self.is3d())
+            return  Vector(other._getArray() - self._getArray(), 
+                           '{0:s} - {1:s}'.format(str(other), str(self)), 
+                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
 
@@ -346,22 +351,31 @@ class VectorBase(object):
 
     def __pow__(self, other):
         if isinstance(other, (int, float, long)): 
-            return Vector(self.getArray() ** other, 
+            return Vector(self._getArray() ** other, 
                           '({0:s})**{1}'.format(str(self), other), self.is3d())
         else:
             raise TypeError('{0} is not a scalar'.format(other))
 
     def getArray(self):
-        """Return array."""
+        """Return a copy of array."""
         pass
         
     def getArrayNx3(self):
-        """Return array with shape (N, 3)."""
+        """Return a copy of array with shape (N, 3)."""
         
         if self.is3d():
             return self.getArray().reshape((len(self)/3, 3))
         else:
             return self.getArray()
+    
+    def _getArrayNx3(self):
+        """Return a copy of array with shape (N, 3)."""
+        
+        if self.is3d():
+            return self._getArray().reshape((len(self)/3, 3))
+        else:
+            return self._getArray()
+        
 
 class Mode(VectorBase):
     """A class to provide access to and operations on mode data.
@@ -457,7 +471,7 @@ class Mode(VectorBase):
         return self._model
     
     def getArray(self):
-        """Return the normal mode array (eigenvector).
+        """Return a copy of the normal mode array (eigenvector).
         
         >>> print( mode.getArray().round(4) ) # doctest: +ELLIPSIS
         [ -2.170e-02   5.200e-02  -5.450e-02  -2.110e-02   5.750e-02  -5.740e-02
@@ -473,6 +487,11 @@ class Mode(VectorBase):
         return self._model._array[:, self._index].copy()
     
     getEigenvector = getArray
+
+    def _getArray(self):
+        """Return a copy of the normal mode array (eigenvector)."""
+    
+        return self._model._array[:, self._index]
     
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
@@ -543,7 +562,7 @@ class Mode(VectorBase):
 
         """
         
-        array = self.getArray()
+        array = self._getArray()
         return np.outer(array, array) * self.getVariance()
     
     def getSqFlucts(self):
@@ -564,9 +583,9 @@ class Mode(VectorBase):
         """
         
         if self.is3d():
-            return (self.getArrayNx3()**2).sum(axis=1) * self.getVariance()
+            return (self._getArrayNx3()**2).sum(axis=1) * self.getVariance()
         else:
-            return (self.getArray() ** 2)  * self.getVariance()
+            return (self._getArray() ** 2)  * self.getVariance()
 
 
 class Vector(VectorBase):
@@ -617,10 +636,15 @@ class Vector(VectorBase):
         self._name = str(name) 
     
     def getArray(self):
-        """Normal mode array"""
+        """Return a copy of array."""
         
         return self._array.copy()
     
+    def _getArray(self):
+        """Return array."""
+        
+        return self._array
+
     def getNormed(self):
         """Return mode after normalizing it."""
         
@@ -669,8 +693,6 @@ class NMABase(object):
         if name == '':
             name = 'Unnamed'
         self._name = name 
-        
-        self._modes = []
         self._n_modes = 0
         self._cov = None
         self._n_atoms = 0
@@ -697,7 +719,6 @@ class NMABase(object):
         if isinstance(index, int):
             return self.getMode(index)
         elif isinstance(index, slice):
-            #modes = self._modes[index]
             indices = np.arange(*index.indices(len(self)))
             if len(indices) > 0:
                 return ModeSet(self, indices)
@@ -781,11 +802,7 @@ class NMABase(object):
                              '{1:d}'.format(str(self), self._n_modes))
         if index < 0:
             index += self._n_modes
-        mode = self._modes[index]
-        if mode is None:
-            mode = Mode(self, index)
-            self._modes[index] = mode
-        return mode
+        return Mode(self, index)
 
     def getModes(self):
         """Return all modes in a list."""
@@ -813,11 +830,18 @@ class NMABase(object):
         return self._vars.copy()
 
     def getArray(self):
-        """Return eigenvectors."""
+        """Return a copy of eigenvectors array."""
         
         if self._array is None: return None
         return self._array.copy()
         
+
+    def _getArray(self):
+        """Return eigenvectors array."""
+        
+        if self._array is None: return None
+        return self._array
+
     def getCovariance(self):
         """Return covariance matrix.
         
@@ -881,7 +905,6 @@ class NMABase(object):
             else:
                 self._n_atoms = self._dof
             self._n_modes = vector.shape[1]
-            self._modes = [None] * self._n_modes
         else:
             if vector.shape[0] != self._array.shape[0]: 
                 raise ValueError('shape of vector do not match shape of ' 
@@ -889,8 +912,6 @@ class NMABase(object):
             self._array = np.concatenate((self._array, vector), 1)
             self._eigvals = np.concatenate((self._eigvals, value))
             self._n_modes += vector.shape[1]            
-            self._modes += [None] * vector.shape[1]
-        
         self._vars = 1 / self._eigvals
     
     def setEigens(self, vectors, values=None):
@@ -944,7 +965,6 @@ class NMABase(object):
         self._dof = dof
         self._n_atoms = n_atoms
         self._n_modes = n_modes
-        self._modes = [None] * n_modes
         self._vars = 1 / values
 
 
@@ -1086,10 +1106,10 @@ class ModeSet(object):
         
         """
         
-        return self._model._eigvals[self._indices].copy()
+        return self._model._eigvals[self._indices]
 
     def getEigenvectors(self):
-        """Return eigenvectors.
+        """Return a copy of eigenvectors.
         
         >>> print( modes.getEigenvectors().round(3) ) # doctest: +ELLIPSIS
         [[-0.022 -0.041 -0.032]
@@ -1102,7 +1122,7 @@ class ModeSet(object):
                         
         """
         
-        return self._model._array[:, self._indices].copy()
+        return self._model._array[:, self._indices]
     
     def getVariances(self):
         """Return variances (~inverse eigenvalues).
@@ -1114,10 +1134,10 @@ class ModeSet(object):
         
         """
         
-        return self._model._vars[self._indices].copy()
+        return self._model._vars[self._indices]
 
     def getArray(self):
-        """Return eigenvectors.
+        """Return a copy of eigenvectors array.
         
         >>> print( modes.getArray().round(3) )
         [[-0.022 -0.041 -0.032]
@@ -1130,7 +1150,12 @@ class ModeSet(object):
                         
         """
         
-        return self._model._array[:, self._indices].copy()
+        return self._model._array[:, self._indices]
+
+    def _getArray(self):
+        """Return a copy of eigenvectors array."""
+
+        return self._model._array[:, self._indices]
         
     def getCovariance(self):
         """Return covariance matrix calculated for modes in the set.
@@ -1146,7 +1171,7 @@ class ModeSet(object):
 
         """
         
-        array = self.getArray()
+        array = self._getArray()
         return np.dot(array, np.dot(np.diag(self.getVariances()), array.T))
    
 
@@ -1382,7 +1407,6 @@ class GNM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
-        self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                           ''.format(self._n_modes, time.time()-start))
 
@@ -1635,7 +1659,6 @@ class ANM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
-        self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                           ''.format(self._n_modes, time.time()-start))
 
@@ -1821,7 +1844,6 @@ class PCA(NMABase):
         self._array = vectors[:, which]
         self._vars = self._eigvals
         self._n_modes = len(self._eigvals)
-        self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))
 
@@ -1887,7 +1909,6 @@ class PCA(NMABase):
         self._vars = self._eigvals
         self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
-        self._modes = [None] * self._n_modes
         LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
                          .format(self._n_modes, time.time()-start))
         
@@ -2345,7 +2366,6 @@ def loadModel(filename):
             dict_[attr] = int(attr_dict[attr])
         else:
             dict_[attr] = attr_dict[attr]
-    nma._modes = [None] * len(nma)
     return nma
 
 def saveVector(vector, filename):
@@ -2361,7 +2381,7 @@ def saveVector(vector, filename):
         raise TypeError('invalid type for vector, {0:s}'.format(type(vector)))
     attr_dict = {}
     attr_dict['name'] = vector.getName()
-    attr_dict['array'] = vector.getArray()
+    attr_dict['array'] = vector._getArray()
     attr_dict['is3d'] = vector.is3d()
     filename += '.vec.npz'
     np.savez(filename, **attr_dict)
@@ -2546,7 +2566,8 @@ def writeNMD(filename, modes, atoms):
     try:
         data = atoms.getTempFactors()
         if data is not None:
-            out.write('bfactors {0:s}\n'.format(' '.join(['{0:.3f}'.format(x) for x in data.flatten()])))
+            out.write('bfactors {0:s}\n'.format(' '.join(
+                            ['{0:.3f}'.format(x) for x in data.flatten()])))
     except:
         pass
     
@@ -2556,7 +2577,7 @@ def writeNMD(filename, modes, atoms):
     count = 0
     if isinstance(modes, Vector):
         out.write('mode 1 {0:.2f} {1:s}\n'.format(abs(modes), ' '.join(
-                ['{0:.3f}'.format(x) for x in modes.getNormed().getArray()])))
+                ['{0:.3f}'.format(x) for x in modes.getNormed()._getArray()])))
         count += 1
     else:
         if isinstance(modes, Mode):
@@ -2567,7 +2588,7 @@ def writeNMD(filename, modes, atoms):
             out.write('mode {0:d} {1:.2f} {2:s}\n'.format(
                        mode.getIndex()+1, mode.getVariance()**0.5, 
                        ' '.join(
-                            ['{0:.3f}'.format(x) for x in mode.getArray()])))
+                            ['{0:.3f}'.format(x) for x in mode._getArray()])))
             count += 1
     if count == 0:
         LOGGER.warning('No normal mode data was written. '
@@ -2712,7 +2733,7 @@ def calcProjection(ensemble, modes, rmsd=True):
                                          deviations.shape[1] * 3))
     else:
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
-    projection = np.dot(deviations, modes.getArray())
+    projection = np.dot(deviations, modes._getArray())
     if rmsd:
         projection =  (1 / (ensemble.getNumOfAtoms() ** 0.5)) * projection
     return projection
@@ -3009,7 +3030,7 @@ def sliceModel(model, atoms, selstr):
         raise ValueError('number of atoms in *model* and *atoms* must be '
                          'equal')
     
-    array = model.getArray()
+    array = model._getArray()
     if isinstance(atoms, AtomGroup):
         sel = atoms.select(selstr)
         which = sel.getIndices()
@@ -3129,7 +3150,8 @@ def writeModes(filename, modes, format='%.18e', delimiter=' '):
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
-    return writeArray(filename, modes.getArray(), format=format, delimiter=delimiter)
+    return writeArray(filename, modes._getArray(), format=format, 
+                      delimiter=delimiter)
 
 def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0, 
                nm_usecols=None, ev_delimiter=None, ev_skiprows=0, ev_usecols=None, 
@@ -3451,7 +3473,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     confs = []
     append = confs.append
     scale = scale * variances ** 0.5
-    array = modes.getArray()
+    array = modes._getArray()
     if array.ndim > 1:
         for i in range(n_confs):
             append( (array * scale * randn[i]).sum(1).reshape((n_atoms, 3)) )
@@ -3543,7 +3565,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     y = scale[1] * np.outer(np.sin(u), np.sin(v))
     z = scale[2] * np.outer(np.ones(np.size(u)), np.cos(v))
     if onto is not None:
-        change_of_basis = np.dot(modes.getArray().T, onto.getArray())
+        change_of_basis = np.dot(modes._getArray().T, onto._getArray())
 
         xyz = np.array([x.flatten(), y.flatten(), z.flatten()])
         xyz = np.dot(xyz.T, change_of_basis)
@@ -3730,9 +3752,9 @@ def calcSqFlucts(modes):
                         'not {0:s}'.format(type(modes)))
     if isinstance(modes, Vector):
         if modes.is3d():
-            return (modes.getArrayNx3()**2).sum(axis=1)
+            return (modes._getArrayNx3()**2).sum(axis=1)
         else:
-            return (modes.getArray() ** 2)
+            return (modes._getArray() ** 2)
     else:
         square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
         if isinstance(modes, VectorBase):
@@ -3911,9 +3933,9 @@ def calcCovarianceOverlap(modelA, modelB):
                         'try calcModes method')
     if modelA.getNumOfAtoms() != modelB.getNumOfAtoms(): 
         raise ValueError('modelA and modelB must have same number of atoms')
-    arrayA = modelA.getArray()
+    arrayA = modelA._getArray()
     varA = modelA.getVariances()
-    arrayB = modelB.getArray()
+    arrayB = modelB._getArray()
     varB = modelB.getVariances()
     
     dotAB = np.dot(arrayA.T, arrayB)**2
@@ -4326,7 +4348,7 @@ def showMode(mode, *args, **kwargs):
         plt.plot(a3d[:, 1], *args, label='y-component', **kwargs)
         plt.plot(a3d[:, 2], *args, label='z-component', **kwargs)
     else:
-        show = plt.plot(mode.getArray(), *args, **kwargs)
+        show = plt.plot(mode._getArray(), *args, **kwargs)
     plt.title(str(mode))
     plt.xlabel('Indices')
     return show
