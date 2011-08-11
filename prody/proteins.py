@@ -526,7 +526,8 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         else:
             ag.setName(name)
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                    'parsed in {2:.2f}s.'.format(ag._n_atoms, ag._n_coordsets, 
+                    'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
+                                                 ag.getNumOfCoordsets(), 
                                                  time.time()-start))
     if secondary:
         try:
