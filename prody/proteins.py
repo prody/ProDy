@@ -1284,7 +1284,7 @@ def writePDBStream(stream, atoms, model=None, sort=False):
     
     """ + _writePDBdoc
     
-    if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
+    if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
@@ -1312,36 +1312,36 @@ def writePDBStream(stream, atoms, model=None, sort=False):
             atomnames[i] = ' ' + an
         elif lenan > 4:
             atomnames[i] = an[:4]
-    resnames = atoms.getResidueNames()
+    resnames = atoms._getResidueNames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
-    resnums = atoms.getResidueNumbers()
+    resnums = atoms._getResidueNumbers()
     if resnums is None:
         resnums = np.ones(n_atoms, np.int64)
-    chainids = atoms.getChainIdentifiers()
+    chainids = atoms._getChainIdentifiers()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
-    occupancies = atoms.getOccupancies()
+    occupancies = atoms._getOccupancies()
     if occupancies is None:
         occupancies = np.zeros(n_atoms, np.float64)
-    bfactors = atoms.getTempFactors()
+    bfactors = atoms._getTempFactors()
     if bfactors is None:
         bfactors = np.zeros(n_atoms, np.float64)
-    icodes = atoms.getInsertionCodes()
+    icodes = atoms._getInsertionCodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
     hetero = ['ATOM'] * n_atoms 
-    heteroflags = atoms.getHeteroFlags()
+    heteroflags = atoms._getHeteroFlags()
     if heteroflags is not None:
         hetero = np.array(hetero, '|S6')
         hetero[heteroflags] = 'HETATM'
-    elements = atoms.getElementSymbols()
+    elements = atoms._getElementSymbols()
     if elements is None:
         elements = np.zeros(n_atoms, '|S1')
-    altlocs = atoms.getAltLocIndicators()
+    altlocs = atoms._getAltLocIndicators()
     if altlocs is None:
         altlocs = np.zeros(n_atoms, '|S1')
-    segments = atoms.getSegmentNames()
+    segments = atoms._getSegmentNames()
     if segments is None:
         segments = np.zeros(n_atoms, '|S6')
     
@@ -1358,7 +1358,7 @@ def writePDBStream(stream, atoms, model=None, sort=False):
         if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
         atoms.setActiveCoordsetIndex(m)
-        coords = atoms.getCoordinates()
+        coords = atoms._getCoordinates()
         for i, xyz in enumerate(coords):
             stream.write(line.format(hetero[i], i+1, atomnames[i], altlocs[i], 
                                      resnames[i], chainids[i], int(resnums[i]), 

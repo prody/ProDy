@@ -534,6 +534,8 @@ class Atomic(object):
 class AtomGroupMeta(type):
     def __init__(cls, name, bases, dict):
         for field in ATOMIC_DATA_FIELDS.values():
+            
+            # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self.__dict__['_'+var]
                 if array is None:
@@ -541,8 +543,20 @@ class AtomGroupMeta(type):
                 return array.copy() 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth_pl
-            getData.__doc__ = 'Return a copy of {0:s}.'.format(field.doc_pl)
+            getData.__doc__ = 'Return a copy of {0:s} array.'.format(
+                                                                field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
+            
+            # Define private method for retrieving actual data array
+            def _getData(self, var=field.var):
+                return self.__dict__['_'+var]
+            _getData = wrapGetMethod(_getData)
+            _getData.__name__ = field.meth_pl
+            _getData.__doc__ = ('Return actual {0:s} array (for internal use).'
+                                                        ).format(field.doc_pl)
+            setattr(cls, '_get'+field.meth_pl, _getData)
+            
+            # Define public method for setting values in data array
             if field.toggle:
                 def setData(self, array, var=field.var, dtype=field.dtype, 
                             ndim=field.ndim, toggle=field.toggle):
@@ -754,12 +768,21 @@ class AtomGroup(Atomic):
         return self._n_atoms
     
     def getCoordinates(self): 
-        """Return coordinates from active coordinate set."""
+        """Return a copy of coordinates from active coordinate set."""
         
-        if self._coordinates is None or self._n_coordsets == 0:
+        if self._coordinates is None:
             return None
         return self._coordinates[self._acsi].copy()
     
+    def _getCoordinates(self): 
+        """Return a view of coordinates from active coordinate set 
+        (for internal use). """
+        
+        if self._coordinates is None:
+            return None
+        return self._coordinates[self._acsi]
+
+
     def setCoordinates(self, coordinates):
         """Set coordinates.
         
@@ -877,6 +900,14 @@ class AtomGroup(Atomic):
         
         """
         
+        coordsets = self._getCoordsets(indices)
+        if coordsets is not None:
+            return coordsets.copy()
+        
+    def _getCoordsets(self, indices):
+        """Return a view of coordinate sets at given indices 
+        (for internal use)."""
+        
         if self._coordinates is None or self._n_coordsets == 0:
             return None
         if indices is None:
@@ -897,13 +928,20 @@ class AtomGroup(Atomic):
     
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each 
+        coordinate set."""
+        
+        for i in range(self._n_coordsets):
+            yield self._coordinates[i].copy()
+    
+    def _iterCoordsets(self):
+        """Iterate over coordinate sets by returning a view of each 
         coordinate set.
         
         """
         
         for i in range(self._n_coordsets):
-            yield self._coordinates[i].copy()
-    
+            yield self._coordinates[i]
+
     def setActiveCoordsetIndex(self, index):
         """Set the index of the active coordinate set."""
         
@@ -1106,7 +1144,7 @@ class AtomGroup(Atomic):
         return self._userdata.pop(name, None)
     
     def getAttribute(self, name):
-        """Return a copy of the attribute *name*, if it exists.
+        """Return a copy of the attribute *name* data array, if it exists.
         
         .. versionadded:: 0.7.1
         
@@ -1116,6 +1154,16 @@ class AtomGroup(Atomic):
         if data is not None:
             return data.copy()
         return None
+
+    def _getAttribute(self, name):
+        """Return the attribute *name* data array, if it exists (for internal 
+        use)."""
+        
+        data = self._userdata.get(name, None)
+        if data is not None:
+            return data
+        return None
+
 
     def isAttribute(self, name):    
         """Return ``True`` if *name* is a user set attribute.
@@ -1341,6 +1389,8 @@ class AtomPointer(Atomic):
 class AtomMeta(type):
     def __init__(cls, name, bases, dict):
         for field in ATOMIC_DATA_FIELDS.values():
+            
+            # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._ag.__dict__['_'+var]
                 if array is None:
@@ -1350,6 +1400,8 @@ class AtomMeta(type):
             getData.__name__ = field.meth
             getData.__doc__ = 'Return {0:s} of the atom.'.format(field.doc)
             setattr(cls, 'get'+field.meth, getData)
+            
+            # Define public method for setting values in data array
             if field.toggle:
                 def setData(self, value, var=field.var, toggle=field.toggle):
                     array = self._ag.__dict__['_'+var]
@@ -1425,7 +1477,7 @@ class Atom(AtomPointer):
         """Return the attribute *name*, if it exists.
         
         .. versionadded:: 0.7.1
-        
+
         """
         
         if self._ag.isAttribute(name):
@@ -1454,13 +1506,19 @@ class Atom(AtomPointer):
     
     def getCoordinates(self):
         """Return a copy of coordinates of the atom from the active coordinate 
-        set.
+        set."""
         
-        """
-        
-        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+        if self._ag._coordinates is None:
             return None
         return self._ag._coordinates[self._acsi, self._index].copy()
+    
+    def _getCoordinates(self):
+        """Return a view of coordinates of the atom from the active coordinate 
+        set (for internal use)."""
+        
+        if self._ag._coordinates is None:
+            return None
+        return self._ag._coordinates[self._acsi, self._index]
     
     def setCoordinates(self, coordinates):
         """Set coordinates of the atom in the active coordinate set."""
@@ -1468,11 +1526,16 @@ class Atom(AtomPointer):
         self._ag._coordinates[self._acsi, self._index] = coordinates
         
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate sets at given indices.
+        """Return a copy of coordinate sets at given indices. 
+        *indices* may be an integer or a list of integers."""
         
-        *indices* may be an integer or a list of integers.
-        
-        """
+        coordsets = self._getCoordsets(indices)
+        if coordsets is not None: 
+            return coordsets.copy()
+       
+    def _getCoordsets(self, indices): 
+        """Return a view of coordinate sets at given indices (for internal 
+        use)."""
         
         if self._ag._coordinates is None or self._ag._n_coordsets == 0:
             return None
@@ -1484,10 +1547,19 @@ class Atom(AtomPointer):
             raise IndexError('indices may be an integer or a list of integers')
 
     def iterCoordsets(self):
-        """Iterate over coordinate sets."""
+        """Iterate over coordinate sets by returning a copy of each 
+        coordinate set."""
         
         for i in range(self._ag._n_coordsets):
             yield self._ag._coordinates[i, self._index].copy()
+
+
+    def _iterCoordsets(self):
+        """Iterate over coordinate sets by returning a view of each coordinate
+        set (for internal use)."""
+        
+        for i in range(self._ag._n_coordsets):
+            yield self._ag._coordinates[i, self._index]
 
     def getSelectionString(self):
         """Return selection string that will select this atom."""
@@ -1498,6 +1570,8 @@ class Atom(AtomPointer):
 class AtomSubsetMeta(type):
     def __init__(cls, name, bases, dict):
         for field in ATOMIC_DATA_FIELDS.values():
+            
+            # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._ag.__dict__['_'+var]
                 if array is None:
@@ -1505,20 +1579,27 @@ class AtomSubsetMeta(type):
                 return array[self._indices] 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth_pl
-            getData.__doc__ = 'Return {0:s} of the atoms.'.format(field.doc_pl)
+            getData.__doc__ = 'Return a copy of {0:s} of the atoms.'.format(
+                                                                field.doc_pl)
             setattr(cls, 'get'+field.meth_pl, getData)
+            setattr(cls, '_get'+field.meth_pl, getData)
+            
+            # Define public method for setting values in data array
             if field.toggle:
                 def setData(self, value, var=field.var, toggle=field.toggle):
                     array = self._ag.__dict__['_'+var]
                     if array is None:
-                        raise AttributeError('attribute of the AtomGroup is not set')
+                        raise AttributeError('attribute of the AtomGroup is '
+                                             'not set')
                     array[self._indices] = value
-                    self._ag.__dict__['_'+toggle] = not self._ag.__dict__['_'+toggle]
+                    self._ag.__dict__['_'+toggle] = not \
+                        self._ag.__dict__['_'+toggle]
             else:
                 def setData(self, value, var=field.var):
                     array = self._ag.__dict__['_'+var]
                     if array is None:
-                        raise AttributeError('attribute of the AtomGroup is not set')
+                        raise AttributeError('attribute of the AtomGroup is '
+                                             'not set')
                     array[self._indices] = value
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
@@ -1663,11 +1744,14 @@ class AtomSubset(AtomPointer):
         return self._indices.__len__()
 
     def getCoordinates(self):
-        """Return coordinates from the active coordinate set."""
+        """Return a copy of coordinates from the active coordinate set."""
         
-        if self._ag._coordinates is None or self._ag._n_coordsets == 0:
+        if self._ag._coordinates is None:
             return None
-        return self._ag._coordinates[self._acsi, self._indices].copy()
+        # Since this is not slicing, a view is not returned
+        return self._ag._coordinates[self._acsi, self._indices]
+    
+    _getCoordinates = getCoordinates
     
     def setCoordinates(self, coordinates):
         """Set coordinates in the active coordinate set."""
@@ -1697,8 +1781,9 @@ class AtomSubset(AtomPointer):
         """
         
         for i in range(self._ag._n_coordsets):
-            yield self._ag._coordinates[i, self._indices].copy()
+            yield self._ag._coordinates[i, self._indices]
 
+    _iterCoordsets = iterCoordsets
 
 class Chain(AtomSubset):
     
@@ -1971,6 +2056,7 @@ class AtomMapMeta(type):
                                'will have ``0`` or ``""`` as entries.'
                                .format(field.doc_pl))
             setattr(cls, 'get'+field.meth_pl, getData)
+            setattr(cls, '_get'+field.meth_pl, getData)
 
 
 class AtomMap(AtomPointer):
@@ -2114,6 +2200,8 @@ class AtomMap(AtomPointer):
             coordinates[self._mapping] = self._ag._coordinates[i, 
                                                                self._indices] 
             yield coordinates
+    
+    _iterCoordsets = iterCoordsets
 
     def getCoordinates(self):
         """Return coordinates from the active coordinate set."""
@@ -2124,6 +2212,8 @@ class AtomMap(AtomPointer):
         coordinates[self._mapping] = self._ag._coordinates[self._acsi, 
                                                            self._indices] 
         return coordinates
+    
+    _getCoordinates = getCoordinates
     
     def setCoordinates(self, coordinates):
         """Set coordinates in the active coordinate set.
