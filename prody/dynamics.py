@@ -1679,12 +1679,18 @@ class PCA(NMABase):
         *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
         :class:`~prody.ensemble.Ensemble`, :class:`~prody.ensemble.Trajectory`,
         or :class:`numpy.ndarray` instance.
-        If *coordsets* is a numpy array it must have the shape 
-        (n_coordsets, n_atoms, 3).
-         
+
         .. versionchanged:: 0.8
-           Numpy array and ProDy Trajectory instances are accepted as 
-           *coordsets* argument.
+           :class:`~numpy.ndarray` and :class:`~prody.ensemble.TrajectoryBase` 
+           instances are accepted as *coordsets* argument.
+
+        A NumPy array passed as *coordsets* argument must have the shape 
+        (n_coordsets, n_atoms, 3).
+        
+        When a trajectory instance is passed as *coordsets* argument, 
+        covariance will be built by aligning frames to the reference 
+        coordinates. Reference coordinates will be considered as the 
+        average of coordinate sets in the trajectory. 
          
         .. note::        
            If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
@@ -1701,6 +1707,7 @@ class PCA(NMABase):
                                       prody.TrajectoryBase, np.ndarray)):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
+        
         weights = None
         if isinstance(coordsets, np.ndarray): 
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
@@ -1708,38 +1715,60 @@ class PCA(NMABase):
                 raise ValueError('coordsets is not a valid coordinate array')
         elif isinstance(coordsets, prody.Atomic):
             coordsets = coordsets._getCoordsets()
-        else:
+        elif isinstance(coordsets, prody.Ensemble):
             if isinstance(coordsets, PDBEnsemble):
                 weights = coordsets.getWeights() > 0
             coordsets = coordsets._getCoordsets()
-        n_confs = coordsets.shape[0]
-        if n_confs < 3:
-            raise ValueError('coordsets must have more than 3 coordinate sets')
-        n_atoms = coordsets.shape[1]
-        if n_atoms < 3:
-            raise ValueError('coordsets must have more than 3 atoms')
-        dof = n_atoms * 3
-
-        if weights is None:
-            if coordsets.dtype == np.float64:
-                self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, bias=1)
-            else:
-                cov = np.zeros((dof, dof))
-                coordsets = coordsets.reshape((n_confs, dof))
-                mean = coordsets.mean(0) 
-                for coords in coordsets.reshape((n_confs, dof)):
-                    deviations = coords - mean
-                    cov += np.outer((deviations, deviations)) 
+        
+        if isinstance(coordsets, prody.TrajectoryBase):
+            nfi = coordsets.getNextFrameIndex()
+            coordsets.reset()
+            n_atoms = coordsets.getNumOfSelected()
+            dof = n_atoms * 3
+            cov = np.zeros((dof, dof))
+            mean = coordsets._getCoordinates().flatten()
+            n_confs = 0
+            for frame in coordsets:
+                frame.superpose()
+                deviations = frame._getCoordinates().flatten() - mean
+                cov += np.outer(deviations, deviations)
+                n_confs += 1
+            cov /= n_confs
+            coordsets.goto(nfi)
+            self._cov = cov
         else:
-            # PDB ensemble case
-            mean = np.zeros((n_atoms, 3))
-            for i, coords in enumerate(coordsets):
-                mean += coords * weights[i]
-            mean /= weights.sum(0)
-            d_xyz = ((coordsets - mean) * weights).reshape((n_confs, dof))
-            divide_by = weights.astype(np.float64).repeat(3, axis=2).reshape(
-                                                                (n_confs, dof))
-            self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T, divide_by)
+            n_confs = coordsets.shape[0]
+            if n_confs < 3:
+                raise ValueError('coordsets must have more than 3 coordinate sets')
+            n_atoms = coordsets.shape[1]
+            if n_atoms < 3:
+                raise ValueError('coordsets must have more than 3 atoms')
+            dof = n_atoms * 3
+
+            if weights is None:
+                if coordsets.dtype == np.float64:
+                    self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, 
+                                       bias=1)
+                else:
+                    cov = np.zeros((dof, dof))
+                    coordsets = coordsets.reshape((n_confs, dof))
+                    mean = coordsets.mean(0) 
+                    for coords in coordsets.reshape((n_confs, dof)):
+                        deviations = coords - mean
+                        cov += np.outer((deviations, deviations))
+                    cov /= n_confs 
+                    self._cov = cov
+            else:
+                # PDB ensemble case
+                mean = np.zeros((n_atoms, 3))
+                for i, coords in enumerate(coordsets):
+                    mean += coords * weights[i]
+                mean /= weights.sum(0)
+                d_xyz = ((coordsets - mean) * weights).reshape((n_confs, dof))
+                divide_by = weights.astype(np.float64).repeat(3, 
+                                                axis=2).reshape((n_confs, dof))
+                self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T, 
+                                                            divide_by)
         self._trace = self._cov.trace()
         self._dof = dof
         self._n_atoms = n_atoms
