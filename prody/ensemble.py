@@ -1282,9 +1282,14 @@ class Frame(ConformationBase):
         return self._ensemble
     
     def getCoordinates(self):
-        """Return coordinates for selected atoms."""
+        """Return a copy of coordinates for selected atoms."""
         
         return self._coords.copy()
+    
+    def _getCoordinates(self):
+        """Return coordinates for selected atoms."""
+        
+        return self._coords
     
     def getDeviations(self):
         """Return deviations from the trajectory reference coordinates."""
@@ -2165,14 +2170,13 @@ def parseDCD(filename, first=None, last=None, step=None):
     return ensemble
   
 if __name__ == '__main__':
+    import prody
     ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
-    dcd = DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    dcd = prody.DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     dcd.setAtomGroup( ag )
-    dcd.select( 'protein' )
-    t = time()
-    for i in range(len(dcd)):
-        dcd.next().superpose()
-    print time()-t
+    dcd.select( 'calpha' )
+    pca = prody.PCA()
+    pca.buildCovariance(dcd)
     #traj = Trajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
     #traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     #traj.setAtomGroup( ag )
