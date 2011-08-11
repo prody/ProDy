@@ -710,28 +710,37 @@ class AtomGroup(Atomic):
     def __add__(self, other):
         """.. versionadded:: 0.5"""
         
-        if not isinstance(other, AtomGroup):
-            raise TypeError('type mismatch')
-        if self == other:
-            raise ValueError('an atom group cannot be added to itself')
-        
-        new = AtomGroup(self._name + ' + ' + other._name)
-        n_coordsets = self._n_csets
-        if n_coordsets != other._n_csets:
-            LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same number'
-              ' of coordinate sets. First from both AtomGroups will be merged.'
-              .format(str(self._name), str(other._name), n_coordsets))
-            n_coordsets = 1
-        coordset_range = range(n_coordsets)
-        new.setCoordinates(np.concatenate((self._coordinates[coordset_range],
-                                    other._coordinates[coordset_range]), 1))
-        for field in ATOMIC_DATA_FIELDS.values():
-            var = '_' + field.var
-            this = self.__dict__[var]
-            that = other.__dict__[var]
-            if this is not None and that is not None:
-                new.__dict__[var] = np.concatenate((this, that))
-        return new
+        if isinstance(other, AtomGroup):
+            if self == other:
+                raise ValueError('an atom group cannot be added to itself')
+            
+            new = AtomGroup(self._name + ' + ' + other._name)
+            n_coordsets = self._n_csets
+            if n_coordsets != other._n_csets:
+                LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same number'
+                  ' of coordinate sets. First from both AtomGroups will be merged.'
+                  .format(str(self._name), str(other._name), n_coordsets))
+                n_coordsets = 1
+            coordset_range = range(n_coordsets)
+            new.setCoordinates(np.concatenate((self._coordinates[coordset_range],
+                                        other._coordinates[coordset_range]), 1))
+            for field in ATOMIC_DATA_FIELDS.values():
+                var = '_' + field.var
+                this = self.__dict__[var]
+                that = other.__dict__[var]
+                if this is not None and that is not None:
+                    new.__dict__[var] = np.concatenate((this, that))
+            return new
+        elif isinstance(other, prody.VectorBase):
+            if self._n_atoms != other.getNumOfAtoms(): 
+                raise ValueError('Vector/Mode must have same number of atoms '
+                                 'as the AtomGroup')
+            self.addCoordset(self._coordinates[self._acsi] + 
+                             other.getArrayNx3())
+            self.setActiveCoordsetIndex(self._n_csets - 1)
+        else:
+            raise TypeError('can only concatenate two AtomGroup`s or can '
+                            'deform AtomGroup along a Vector/Mode')
 
     def _buildSN2I(self):
         """Builds a mapping from serial numbers to atom indices."""
