@@ -197,26 +197,30 @@ def _superposeTraj(mobs, tar, weights=None, movs=None):
     # mobs.ndim == 3 and movs.ndim == 3
     # mobs.shape[0] == movs.shape[0]
     tar_com = tar.mean(0)
-    tar_org = tar - tar_com
-
-    for i, mob in enumerate(mobs):         
-        if linalg is None:
-            prody.importLA()
+    tar_org_T = (tar - tar_com).T
+    if linalg is None:
+        prody.importLA()
+    svd = linalg.svd
+    det = linalg.det
+    dot = np.dot
+    array = np.array
+    sign = np.sign
+    for i, mob in enumerate(mobs):      
         mob_com = mob.mean(0)
         mob_org = mob - mob_com
-        matrix = np.dot(tar_org.T, mob_org)
 
-        U, s, Vh = linalg.svd(matrix)
-        Id = np.array([ [1, 0, 0], 
-                        [0, 1, 0], 
-                        [0, 0, np.sign(linalg.det(matrix))] ])
-        rotation = np.dot(Vh.T, np.dot(Id, U.T))
+        matrix = dot(tar_org_T, mob_org)
+        U, s, Vh = svd(matrix)
+        Id = array([ [1, 0, 0], [0, 1, 0], [0, 0, sign(det(matrix))] ])
+        rotation = dot(Vh.T, dot(Id, U.T))
 
         if movs is None:
-            mobs[i] = np.dot(mob_org, rotation) + tar_com 
+            mobs[i] = dot(mob_org, rotation) 
+            mobs[i] += tar_com 
         else:
-            movs[i] = np.dot(movs[i], rotation) + (tar_com - 
-                                                   np.dot(mob_com, rotation))
+            movs[i] = dot(movs[i], rotation) 
+            movs[i] += (tar_com - dot(mob_com, rotation))
+    
 
 def _superpose(mob, tar, weights=None, mov=None):
     tar_com = tar.mean(0)
