@@ -457,8 +457,9 @@ def calcDihedral():
 
 def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
-    if isinstance(coords, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap)):
-        coords = coords.getCoordinates()
+    if isinstance(coords, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap, 
+                           prody.ConformationBase)):
+        coords = coords._getCoordinates()
     if not isinstance(coords, np.ndarray):
         raise TypeError('coords must be a array or atomic')
     elif not coords.ndim in (2, 3):
