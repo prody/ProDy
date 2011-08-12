@@ -619,9 +619,9 @@ class Ensemble(EnsembleBase):
             for conf in self._confs:
                 ssqf += (conf - mean) ** 2
         else:
-            mean = self._confs[indices].mean(0)
+            mean = self._confs[:, indices].mean(0)
             ssqf = np.zeros(mean.shape)
-            for conf in self._confs[:,indices]:
+            for conf in self._confs[:, indices]:
                 ssqf += (conf - mean) ** 2
         return ssqf.sum(1) / self._n_csets
     
@@ -2172,6 +2172,8 @@ def parseDCD(filename, first=None, last=None, step=None):
 if __name__ == '__main__':
     import prody
     ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
+    ag.setTrajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    stop
     dcd = prody.DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     dcd.setAtomGroup( ag )
     dcd.select( 'calpha' )
