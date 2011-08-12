@@ -622,10 +622,9 @@ class AtomGroup(Atomic):
     
     ``get()`` methods return copies of the data arrays. 
     
-    ``set()`` methods accepts data contained in :func:`list` or 
-    :class:`~numpy.ndarray` instances. The length of the list or array must 
-    match the number of atoms in the atom group. Set method sets attributes of 
-    all atoms at once.
+    ``set()`` methods accepts data in :func:`list` or :class:`~numpy.ndarray` 
+    instances. The length of the list or array must match the number of atoms 
+    in the atom group. Set method sets attributes of all atoms at once.
     
     Atom groups with multiple coordinate sets may have one of these sets as 
     the active coordinate set. The active coordinate set may be changed using
@@ -658,15 +657,38 @@ class AtomGroup(Atomic):
         self._trajectory = None
         self._frameindex = None
         self._tcsi = None # Trajectory Coordinate Set Index
+        self._timestamp = None
         
         for field in ATOMIC_DATA_FIELDS.values():
             self.__dict__['_'+field.var] = None
 
+    def _getTimeStamp(self):
+        """Return time stamp showing when coordinates were last changed."""
+        
+        return self._timestamp
+    
+    def _setTimeStamp(self):
+        """Set time stamp when:
+           
+            * :meth:`setCoordinates` method of :class:`AtomGroup` or 
+              :class:`AtomPointer` instances are called.
+              
+            * one of :meth:`nextFrame`, :meth:`skipFrame`, or :meth:`gotoFrame` 
+              methods is called.
+        """
+        
+        self._timestamp = time.time()
+
     def __repr__(self):
-        return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, active'
-               ' set index: {3:d})>').format(self._name, 
-              self._n_atoms, self._n_csets, self._acsi)
-        return ('<AtomGroup: {0:s}>').format(str(self))
+        if self._trajectory is None:
+            return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, '
+                    'active set index: {3:d})>').format(self._name, 
+                                    self._n_atoms, self._n_csets, self._acsi)
+        else:
+            return ('<AtomGroup: {0:s} ({1:d} atoms; trajectory {2:s}, '
+                    'frame index {3:d})>').format(self._name, 
+                    self._n_atoms, self._trajectory.getName(), self._tcsi, 
+                    len(self._trajectory))
         
     def __str__(self):
         return ('AtomGroup {0:s}').format(self._name)
@@ -844,6 +866,7 @@ class AtomGroup(Atomic):
                 self._coordinates = coordinates
                 self._n_csets = self._coordinates.shape[0]
                 self._acsi = min(self._n_csets - 1, self._acsi)
+        self._setTimeStamp()
     
     def addCoordset(self, coords):
         """Add a coordinate set to the atom group.
@@ -851,7 +874,6 @@ class AtomGroup(Atomic):
         .. versionchanged:: 0.6.2
             :class:`~prody.ensemble.Ensemble` and :class:`Atomic` instances are 
             accepted as *coords* argument.
-        
         """
         
         if self._trajectory is not None:
@@ -892,12 +914,16 @@ class AtomGroup(Atomic):
                                  'a trajectory')
         which = np.ones(self._n_csets, np.bool)
         which[index] = False
-        if which.sum() == self._n_csets:
+        n_csets = self._n_csets 
+        if which.sum() == n_csets:
             self._coordinates = None
             self._n_csets = 0
         else:
             self._coordinates = self._coordinates[which]
             self._n_csets = self._coordinates.shape[0]
+        if not (isinstance(index, int) and (index == n_csets - 1 or 
+                                            index == -1)): 
+            self._setTimeStamp()
         self._acsi = 0
 
     def getCoordsets(self, indices=None):
@@ -995,7 +1021,6 @@ class AtomGroup(Atomic):
                 array = self.__dict__[var]
                 if array is not None:
                     newmol.__dict__[var] = array.copy()
-            return newmol
         elif isinstance(which, int):
             indices = [which]
             newmol = AtomGroup('Copy of {0:s} index {1:d}'.format(name, which))
@@ -1022,13 +1047,13 @@ class AtomGroup(Atomic):
                 raise TypeError('{0:s} is not a valid type'.format(type(which)))            
             newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(name, 
                                                                 str(which)))
-        newmol.setCoordinates(self._coordinates[:, indices])
+        if indices is not None:
+            newmol.setCoordinates(self._coordinates[:, indices])
         for field in ATOMIC_DATA_FIELDS.values():
             var = '_' + field.var
             array = self.__dict__[var]
             if array is not None:
                 newmol.__dict__[var] = array[indices]
-                
         for name, data in self._userdata.iteritems():
             newmol._userdata[name] = data[indices]
         return newmol
@@ -1245,7 +1270,7 @@ class AtomGroup(Atomic):
         indices = indices[ indices > -1 ]
         return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
                                         .format(start, stop, step))
-    '''                                    
+
     def setTrajectory(self, trajectory):              
         """Associates atom group with a *trajectory*. *trajectory* may be
         a filename or a :class:`~prody.ensemble.Trajectory` instance.
@@ -1261,42 +1286,74 @@ class AtomGroup(Atomic):
         
         """
         
-        pass
+        if trajectory is None:
+            self._tcsi = None
+            self._trajectory = None
+            self.delCoordset(self._acsi)
+        else:
+            if isinstance(trajectory, str):
+                trajectory = prody.Trajectory(trajectory)
+            elif not isinstance(trajectory, prody.TrajectoryBase):
+                raise TypeError('trajectory must be a file name or a '
+                                'TrajectoryBase instance')
+            if self._n_atoms != trajectory.getNumOfAtoms():
+                raise ValueError('trajectory must have same number of atoms')
+                
+            self._tcsi = trajectory.getNextFrameIndex()
+            self.addCoordset(trajectory.nextCoordset())
+            self._acsi = self._n_csets - 1
+            self._trajectory = trajectory
         
+    def getTrajectory(self):
+        """Return trajectory associated with the atom group."""
+        
+        return self._trajectory
+    
     def nextFrame(self):
         """Read the next frame from the trajectory and update coordinates.
         
         .. versionadded:: 0.8
-                
         """
-        
-        pass
-    
+        nfi = self._trajectory.getNextFrameIndex()
+        if nfi - self._tcsi == 1:
+            self._tcsi = nfi
+            self._coordinates[self._acsi] = self._trajectory.nextCoordset()
+            self._setTimeStamp()
+        else:
+            self._gotoFrame(self._tcsi+1)
+                
     def skipFrame(self, n=1): 
         """Read the frame after skipping *n* frames and update coordinates.
         
         .. versionadded:: 0.8
-                
         """
-        pass
+        nfi = self._trajectory.getNextFrameIndex()
+        self._trajectory.skip(n)
+        if nfi - self._tcsi == 1:         
+            self._tcsi = self._trajectory.getNextFrameIndex()
+            self._coordinates[self._acsi] = self._trajectory.nextCoordset()
+            self._setTimeStamp()
+        else:
+            self.gotoFrame(self._tcsi+1+n)
     
     def gotoFrame(self, n):
         """Read frame *n* from the trajectory and update coordinates.
         
         .. versionadded:: 0.8
-                
         """
-        pass
+        
+        self._trajectory.goto(n)        
+        self._tcsi = self._trajectory.getNextFrameIndex()
+        self._coordinates[self._acsi] = self._trajectory.nextCoordset()
+        self._setTimeStamp()
     
     def getFrameIndex(self):
         """Return current frame index.
         
         .. versionadded:: 0.8
-                
         """
         
-        pass
-    '''
+        return self._tcsi
     
     
 class AtomPointer(Atomic):
@@ -1402,6 +1459,38 @@ class AtomPointer(Atomic):
         elif isinstance(selstr, str):
             return self._ag.copy(self.select(selstr))
         raise TypeError('selstr must be a string')
+        
+    def nextFrame(self):
+        """Read the next frame from the trajectory and update coordinates.
+        
+        .. versionadded:: 0.8
+        """
+        
+        self._ag.nextFrame()
+                
+    def skipFrame(self, n=1): 
+        """Read the frame after skipping *n* frames and update coordinates.
+        
+        .. versionadded:: 0.8
+        """
+        
+        self._ag.skipFrame(n)
+    
+    def gotoFrame(self, n):
+        """Read frame *n* from the trajectory and update coordinates.
+        
+        .. versionadded:: 0.8
+        """
+        
+        self._ag.gotoFrame(n)
+    
+    def getFrameIndex(self):
+        """Return current frame index.
+        
+        .. versionadded:: 0.8
+        """
+        
+        return self._ag.getFrameIndex()
             
 
 class AtomMeta(type):
@@ -1543,6 +1632,7 @@ class Atom(AtomPointer):
         """Set coordinates of the atom in the active coordinate set."""
         
         self._ag._coordinates[self._acsi, self._index] = coordinates
+        self._ag._setTimeStamp()
         
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices. 
@@ -1786,6 +1876,7 @@ class AtomSubset(AtomPointer):
         """Set coordinates in the active coordinate set."""
         
         self._ag._coordinates[self._acsi, self._indices] = coordinates
+        self._ag._setTimeStamp()
         
     def getCoordsets(self, indices=None):
         """Return coordinate sets at given *indices*.
