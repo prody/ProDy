@@ -1751,23 +1751,31 @@ class PCA(NMABase):
             cov = np.zeros((dof, dof))
             mean = coordsets._getCoordinates().flatten()
             n_confs = 0
+            LOGGER.info('Covariance is calculated using {0:d} frames.'
+                            .format(len(coordsets)))
+            coordsum = np.zeros(dof)
             for frame in coordsets:
                 frame.superpose()
-                deviations = frame._getCoordinates().flatten() - mean
-                cov += np.outer(deviations, deviations)
+                coords = frame._getCoordinates().flatten()
+                coordsum += coords
+                cov += np.outer(coords, coords)
                 n_confs += 1
             cov /= n_confs
+            coordsum /= n_confs
+            cov -= np.outer(coordsum, coordsum)
             coordsets.goto(nfi)
             self._cov = cov
         else:
             n_confs = coordsets.shape[0]
             if n_confs < 3:
-                raise ValueError('coordsets must have more than 3 coordinate sets')
+                raise ValueError('coordsets must have more than 3 coordinate '
+                                 'sets')
             n_atoms = coordsets.shape[1]
             if n_atoms < 3:
                 raise ValueError('coordsets must have more than 3 atoms')
             dof = n_atoms * 3
-
+            LOGGER.info('Covariance is calculated using {0:d} coordinate sets.'
+                            .format(len(coordsets)))
             if weights is None:
                 if coordsets.dtype == np.float64:
                     self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, 
@@ -1778,7 +1786,7 @@ class PCA(NMABase):
                     mean = coordsets.mean(0) 
                     for coords in coordsets.reshape((n_confs, dof)):
                         deviations = coords - mean
-                        cov += np.outer((deviations, deviations))
+                        cov += np.outer(deviations, deviations)
                     cov /= n_confs 
                     self._cov = cov
             else:
