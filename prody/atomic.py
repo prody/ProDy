@@ -1120,8 +1120,8 @@ class AtomGroup(Atomic):
         
         return self.getHierView().iterResidues()
 
-    def getListOfAttrs(self):
-        """Return a list of attribute names set by user."""
+    def getAttrNames(self):
+        """Return a list of user attribute names."""
         
         return self._userdata.keys()
         
