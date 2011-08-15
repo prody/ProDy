@@ -15,15 +15,14 @@ dynamics (MD) trajectories.
 Input
 -------------------------------------------------------------------------------
 
+User needs to provide a trajectory in DCD file format and PDB file of the 
+system.
 
-User needs to provide coordinate sets from an MD trajectory as a 
-:class:`numpy.ndarray`. 
+Example input: 
 
-In this example, we show how to extract coordinate sets
-from a trajectory in :term:`DCD` file format using MDAnalysis package.
-In this case, user needs to provide  :term:`PDB`, :term:`PSF`, and :term:`DCD` 
-files from a completed simulation, but other formats will also do.  
-   
+* :download:`MDM2 reference structure </doctest/mdm2.pdb>` 
+* :download:`MDM2 trajectory </doctest/mdm2.dcd>` 
+
 Output
 -------------------------------------------------------------------------------
 
@@ -35,58 +34,83 @@ to functions in :mod:`~prody.dynamics` module for further analysis.
 Notes
 -------------------------------------------------------------------------------
 
-MDAnalysis Python package is required for parsing coordinates from DCD
-trajectory files. It can be used to parse trajectories in several other file 
-formats as well. For more information interested user should consult the wiki 
-pages of the package. See |mdanalysis| for more information.
+Analysis of trajectories in some other formats can be performed with the help
+of MDAnalysis Python package. Interested user should consult |mdanalysis| for 
+more information.
 
 
 ProDy Code
 ===============================================================================
 
-We start by importing everything from ProDy and MDAnalysis packages::
+We start by importing everything from ProDy:
   
-  from prody import *
-  import MDAnalysis
-
-.. note::
-   Note that MDAnalysis is also undergoing continuous development and 
-   object attributes and features may change when major releases are made. 
-   This example code is updated to reflect changes in MDAnalysis version 
-   0.7.0. If you are using an older version, please refer to its documentation 
-   to learn how to access MD trajectory data.
+>>> from prody import *
    
-
-Prepare ensemble
+Parse reference structure
 -------------------------------------------------------------------------------
 
-Instantiate a Universe for the simulated system::
+The PDB file provided with this example contains and X-ray structure which will 
+be useful in a number of places, so let's start with parsing this file first:
 
-  universe = MDAnalysis.Universe('protein.psf', 'protein.dcd')
-  # Select atoms of interest
-  universe_ca = universe.selectAtoms('name CA')
-  # Get coordinates of CA atoms
-  ca_coords = universe.trajectory.timeseries(universe_ca, format='fac')
+>>> structure = parsePDB('mdm2.pdb')
+>>> structure
+<AtomGroup: mdm2 (1449 atoms; 1 coordinate sets, active set index: 0)>
 
-
-Instantiate a ProDy :class:`~prody.ensemble.Ensemble`::
-
-  ensemble = Ensemble('MD snapshots')
-  # Add all coordinate sets to ensemble
-  ensemble.addCoordset(ca_coords)
-  # Set reference coordinates 
-  ensemble.setCoordinates(ca_coords[0])
-  # Perform iterative sueprimposition
-  ensemble.iterpose()
+This function returned a :class:`~prody.atomic.AtomGroup` instance that
+stores all atomic data parsed from the PDB file.
 
 EDA calculations
 -------------------------------------------------------------------------------
 
-Instantiate :class:`EDA` and perform calculations::
+Essential dynamics analysis (EDA or PCA) of a trajectory can be performed in 
+two ways. 
 
-  eda = EDA('EDA')
-  eda.buildCovariance(ensemble)
-  eda.calcModes()
+**Small trajectory files**
+
+If you are analyzing a small trajectory, you can use an 
+:class:`Ensemble` instance obtained by parsing the trajectory at once using
+:func:`parseDCD`:
+
+>>> ensemble = parseDCD('mdm2.dcd')
+>>> ensemble.setAtomGroup( structure )
+>>> ensemble.select('calpha')
+<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
+>>> #ensemble.superpose()
+>>> ensemble.iterpose()
+>>> eda_ensemble = EDA('MDM2 Ensemble')
+>>> eda_ensemble.buildCovariance( ensemble )
+>>> eda_ensemble.calcModes()
+>>> eda_ensemble
+<EDA: MDM2 Ensemble (20 modes, 85 atoms)>
+
+**Large trajectory files**
+
+If you are analyzing a large trajectory, you can pass the trajectory instance
+to the :meth:`~dynamics.PCA.buildCovariance` method as follows:
+
+>>> dcd = DCDFile('mdm2.dcd')
+>>> dcd.setAtomGroup( structure )
+>>> dcd.select('calpha')
+<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
+>>> eda_trajectory = EDA('MDM2 Trajectory')
+>>> eda_trajectory.buildCovariance( dcd )
+>>> eda_trajectory.calcModes()
+>>> eda_trajectory
+<EDA: MDM2 Trajectory (20 modes, 85 atoms)>
+
+**Compare two methods**
+
+>>> printOverlapTable(eda_ensemble[:3], eda_trajectory[:3])
+Overlap Table
+                       EDA MDM2 Trajectory
+                         #1     #2     #3
+EDA MDM2 Ensemble #1   +1.00  +0.00  -0.00
+EDA MDM2 Ensemble #2   -0.00  +1.00  +0.00
+EDA MDM2 Ensemble #3   +0.00  -0.00  +1.00
+<BLANKLINE>
+
+Overlap values of +1 along the diagonal of the table shows that top ranking
+3 essential (principal) modes are the same.
 
 
 Write NMD file
@@ -95,24 +119,28 @@ Write NMD file
 We can write essential modes into an :term:`NMD` file for NMWiz.
 For this we will need to parse the protein structure as well::
 
-  prot = parsePDB('protein.pdb')
-  prot_ca = prot.select('calpha')
-  writeNMD('md_eda.nmd', eda[:3], prot_ca)
+>>> writeNMD('mdm2_eda.nmd', eda_trajectory[:3], structure.select('calpha'))
+'mdm2_eda.nmd'
 
 Print data
 -------------------------------------------------------------------------------
 
 Let's print fraction of variance for top raking 4 essential modes::
 
-  for mode in eda[:4]:
-      print mode.getFractOfVariance()
-
+>>> for mode in eda_trajectory[:4]:
+...     print mode.getFractOfVariance().round(2)
+0.26
+0.11
+0.08
+0.06
 
 See Also
 ===============================================================================
    
-User is referred to other examples in :ref:`pca-xray` for illustration of 
+See other examples in :ref:`pca-xray` for illustration of 
 comparative analysis of theoretical and computational data.
+
+See also :ref:`trajectory` for more analysis examples. 
 
 
 |questions|

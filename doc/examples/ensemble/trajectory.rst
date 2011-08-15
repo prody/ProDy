@@ -19,6 +19,11 @@ Input
 Currently, ProDy supports only reading DCD files. A DCD trajectory file and 
 corresponding PDB structure file is needed for this example.
 
+Example input:
+ 
+* :download:`MDM2 reference structure </doctest/mdm2.pdb>` 
+* :download:`MDM2 trajectory </doctest/mdm2.dcd>` 
+
 Output
 -------------------------------------------------------------------------------
 
@@ -150,53 +155,6 @@ We can perform these calculations for all frames in a for loop. Let's reset
   ...
   13.05  13.05  13.16  13.1   13.15  13.18  13.1 ]
 
-EDA calculations
--------------------------------------------------------------------------------
-
-Essential dynamics analysis (EDA or PCA) of a trajectory can be performed in 
-two ways. If you are analyzing a small trajectory, you can use an 
-:class:`Ensemble` instance obtained by parsing the trajectory at once using
-:func:`parseDCD`:
-
->>> ensemble = parseDCD('mdm2.dcd')
->>> ensemble.setAtomGroup( structure )
->>> ensemble.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
->>> #ensemble.superpose()
->>> ensemble.iterpose()
->>> pca_ensemble = PCA('MDM2 Ensemble')
->>> pca_ensemble.buildCovariance( ensemble )
->>> pca_ensemble.calcModes()
->>> pca_ensemble
-<PCA: MDM2 Ensemble (20 modes, 85 atoms)>
-
-If you are analyzing a large trajectory, you can pass the trajectory instance
-to the :meth:`~dynamics.PCA.buildCovariance` method as follows:
-
->>> dcd = DCDFile('mdm2.dcd')
->>> dcd.setAtomGroup( structure )
->>> dcd.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
->>> pca_trajectory = PCA('MDM2 Trajectory')
->>> pca_trajectory.buildCovariance( dcd )
->>> pca_trajectory.calcModes()
->>> pca_trajectory
-<PCA: MDM2 Trajectory (20 modes, 85 atoms)>
-
-The modes calculated from these two methods will be identical:
-
->>> printOverlapTable(pca_ensemble[:3], pca_trajectory[:3])
-Overlap Table
-                       PCA MDM2 Trajectory
-                         #1     #2     #3
-PCA MDM2 Ensemble #1   +1.00  +0.00  -0.00
-PCA MDM2 Ensemble #2   -0.00  +1.00  +0.00
-PCA MDM2 Ensemble #3   +0.00  -0.00  +1.00
-<BLANKLINE>
-
-Overlap values of +1 along the diagonal of the table shows that top ranking
-3 essential (principal) modes are the same.
-
 Associate with an AtomGroup
 -------------------------------------------------------------------------------
 
@@ -217,6 +175,10 @@ Let's calculate end-to-end distance:
   ...
   11.94  11.7   12.43  11.65  12.37  12.54  11.34  11.55  11.47]
    
+See Also
+===============================================================================
+
+See :ref:`eda-md` for essential dynamics analysis example. 
 
 |questions|
 

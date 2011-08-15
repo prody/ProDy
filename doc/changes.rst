@@ -17,7 +17,7 @@ Release 0.8.0 (in development)
     files.
     
   * :ref:`trajectory` example to illustrate usage of new classes for handling
-    DCD files.
+    DCD files. :ref:`eda-md` example is updated to use new ProDy classes.
   
   * :class:`~dynamics.PCA` supports :class:`~ensemble.Trajectory` and
     :class:`~ensemble.DCDFile` instances. 
