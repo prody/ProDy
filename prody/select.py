@@ -892,10 +892,11 @@ class Select(object):
             raise TypeError('selstr must be a string, not a {0:s}'
                             .format(type(selstr)))
         if self._atoms == atoms:
+            if DEBUG: print('atoms is the same')
             if self._acsi != atoms.getActiveCoordsetIndex():
                 self._coordinates = None
-                self._kdtree = None                    
-            elif self._timestamp != atoms._getTimeStamp():
+                self._kdtree = None
+            elif self._timestamp != atoms._getTimeStamp(self._acsi):
                 self._kdtree = None
         else:
             self._reset()
@@ -914,22 +915,24 @@ class Select(object):
                     self._atoms = atoms
                 self._n_atoms = len(self._indices)
         self._selstr = selstr
+        self._acsi = atoms.getActiveCoordsetIndex()
+        self._timestamp = atoms._getTimeStamp(self._acsi)
             
         self._kwargs = kwargs
         if DEBUG:
-            print 'getBoolArray', selstr
+            print('getBoolArray', selstr)
         torf = self._evalSelstr()
         if not isinstance(torf, np.ndarray):
             raise SelectionError('{0:s} is not a valid selection string.'
                                  .format(selstr))
         elif torf.dtype != np.bool:
             if DEBUG:
-                print '_select torf.dtype', torf.dtype, isinstance(torf.dtype, 
-                                                                   np.bool)
+                print('_select torf.dtype', torf.dtype, isinstance(torf.dtype, 
+                                                                   np.bool))
             raise SelectionError('{0:s} is not a valid selection string.'
                                  .format(selstr))
         if DEBUG:
-            print '_select', torf
+            print('_select', torf)
         return torf
     
     def getIndices(self, atoms, selstr, **kwargs):
@@ -951,7 +954,7 @@ class Select(object):
         :arg selstr: selection string
         :type selstr: str
         
-        :keyword cache: cache atomic data and KDTree, default is ``False``
+        :keyword cache: cache atomic data and KDTree, default is ``True``
         :type cache: bool
         
         If type of *atoms* is :class:`~prody.atomic.AtomMap`, an 
@@ -987,7 +990,7 @@ class Select(object):
         if not isinstance(atoms, prody.AtomGroup):
             indices = self._indices[indices]
         ag = self._ag
-        if not kwargs.get('cache', False):
+        if not kwargs.get('cache', True):
             self._reset()
         self._kwargs = None
         if len(indices) == 0:
@@ -1010,7 +1013,7 @@ class Select(object):
                                                 atoms.getActiveCoordsetIndex())
         
     def _reset(self):
-        if DEBUG: print '_reset'
+        if DEBUG: print('_reset')
         self._ag = None
         self._atoms = None
         self._indices = None
@@ -1051,28 +1054,28 @@ class Select(object):
            ')' not in selstr and selstr not in MACROS:
             return self._evalBoolean(selstr)
         selstr = self._standardizeSelectionString()
-        if DEBUG: print '_evalSelstr', selstr
+        if DEBUG: print('_evalSelstr', selstr)
 
         try: 
             tokens = self._tokenizer.parseString(selstr, 
                                                  parseAll=True).asList()
-            if DEBUG: print '_evalSelstr', tokens
+            if DEBUG: print('_evalSelstr', tokens)
             return tokens[0]
         except pp.ParseException, err:
-            print 'Parse Failure'
-            print self._selstr #err.line
-            print " "*(err.column-1) + "^"
+            print('Parse Failure')
+            print(self._selstr) #err.line
+            print(" "*(err.column-1) + "^")
             raise pp.ParseException(str(err))
     
     def _defaultAction(self, token):
-        if DEBUG: print '_defaultAction', token
+        if DEBUG: print('_defaultAction', token)
         if isinstance(token[0], (np.ndarray, float)):
             return token[0]
         else:
             return self._evaluate(token)        
     
     def _evaluate(self, token):
-        if DEBUG: print '_evaluate', token
+        if DEBUG: print('_evaluate', token)
 
         keyword = token[0]
         if len(token) == 1:
@@ -1119,7 +1122,7 @@ class Select(object):
                              .format(' '.join(token)))
 
     def _or(self, tokens):
-        if DEBUG: print '_or', tokens
+        if DEBUG: print('_or', tokens)
         temp = tokens[0]
         tokenlist = []
         token = []
@@ -1134,7 +1137,7 @@ class Select(object):
                 token.append(tkn)
         tokenlist.append(token)
 
-        if DEBUG: print '_or tokenlist', tokenlist
+        if DEBUG: print('_or tokenlist', tokenlist)
 
         for token in tokenlist:
             zero = token[0]
@@ -1150,14 +1153,14 @@ class Select(object):
                     self._evalonly = np.invert(torf).nonzero()[0]
                 else:
                     self._evalonly = self._evalonly[np.invert(torf)]
-            if DEBUG: print '_or evalonly', self._evalonly
+            if DEBUG: print('_or evalonly', self._evalonly)
         torf = np.ones(self._n_atoms, np.bool)
         torf[self._evalonly] = False
         self._evalonly = None
         return torf
 
     def _and(self, tokens):
-        if DEBUG: print '_and', tokens
+        if DEBUG: print('_and', tokens)
         temp = tokens[0]
         tokenlist = []
         token = []
@@ -1175,7 +1178,7 @@ class Select(object):
             else:
                 token.append(tkn)
         tokenlist.append(token)
-        if DEBUG: print '_and tokenlist', tokenlist
+        if DEBUG: print('_and tokenlist', tokenlist)
         for token in tokenlist:
             zero = token[0]
             if isinstance(zero, np.ndarray):                    
@@ -1190,14 +1193,14 @@ class Select(object):
                     self._evalonly = torf.nonzero()[0]
                 else:
                     self._evalonly = self._evalonly[torf]
-            if DEBUG: print '_and evalonly', self._evalonly
+            if DEBUG: print('_and evalonly', self._evalonly)
         torf = np.zeros(self._n_atoms, np.bool)
         torf[self._evalonly] = True
         self._evalonly = None
         return torf
     
     def _special(self, token):
-        if DEBUG: print '_special', token
+        if DEBUG: print('_special', token)
         token = token[0]
         if token[0] == '!!!':
             return self._not(token)
@@ -1207,7 +1210,7 @@ class Select(object):
             return self._within(token, token[0].startswith('exwithin'))
 
     def _not(self, token):
-        if DEBUG: print '_not', token
+        if DEBUG: print('_not', token)
         if isinstance(token[1], np.ndarray):
             torf = token[1]
         else:
@@ -1217,7 +1220,7 @@ class Select(object):
     
     def _within(self, token, exclude):
         terms = token
-        if DEBUG: print '_within', terms
+        if DEBUG: print('_within', terms)
         within = float(terms[0].split()[1])
         which = terms[1]
         if not isinstance(which, np.ndarray):
@@ -1237,7 +1240,7 @@ class Select(object):
                 append(get_indices())
         else:
             if self._kwargs is not None and which in self._kwargs:
-                if DEBUG: print '_kwargs', which
+                if DEBUG: print('_kwargs', which)
                 which = self._kwargs[which]
                 exclude=False
                 self._selstr2indices = True
@@ -1248,7 +1251,7 @@ class Select(object):
                     raise SelectionError('{0:s} must be a coordinate array, '
                                          'shape (N, 3) or (3,)'.format(kw))
                 for xyz in which:
-                    if DEBUG: print 'xyz', xyz
+                    if DEBUG: print('xyz', xyz)
                     search(xyz, within)
                     append(get_indices())
             else:
@@ -1284,7 +1287,7 @@ class Select(object):
     
     def _sameas(self, token):
         terms = token
-        if DEBUG: print '_sameas', terms
+        if DEBUG: print('_sameas', terms)
         what = token[0].split()[1]
         which = token[1]
         if not isinstance(which, np.ndarray):
@@ -1306,7 +1309,7 @@ class Select(object):
         return torf
      
     def _comp(self, token):
-        if DEBUG: print '_comp', token
+        if DEBUG: print('_comp', token)
         token = token[0]
         if len(token) > 3:
             if isBooleanKeyword(token[0]):
@@ -1318,9 +1321,9 @@ class Select(object):
                                      .format(' '.join(token)))
         comp = token[1]
         left = self._getNumArray(token[0])
-        if DEBUG: print '_comp left', left
+        if DEBUG: print('_comp left', left)
         right = self._getNumArray(token[2])
-        if DEBUG: print '_comp right', right
+        if DEBUG: print('_comp right', right)
 
         try:
             return BINARY_OPERATOR_MAP[comp](left, right)
@@ -1329,22 +1332,22 @@ class Select(object):
                                  .format(' '.join(token)))
 
     def _pow(self, token):
-        if DEBUG: print '_pow', token
+        if DEBUG: print('_pow', token)
         items = token[0]
         return self._getNumArray(items[0]) ** self._getNumArray(items[2])
 
     def _add(self, token):
-        if DEBUG: print '_add', token
+        if DEBUG: print('_add', token)
         items = token[0]
         left = self._getNumArray(items.pop(0))
         while items:
             left = BINARY_OPERATOR_MAP[items.pop(0)](
                                         left, self._getNumArray(items.pop(0)))
-        if DEBUG: print '_add total', left
+        if DEBUG: print('_add total', left)
         return left
  
     def _mul(self, token):
-        if DEBUG: print '_mul', token
+        if DEBUG: print('_mul', token)
         items = token[0]
         left = self._getNumArray(items[0])
         i = 1
@@ -1359,7 +1362,7 @@ class Select(object):
         return left
     
     def _getNumArray(self, token):
-        if DEBUG: print '_getNumArray', token
+        if DEBUG: print('_getNumArray', token)
         if isinstance(token, (np.ndarray, float)):
             return token
         elif isFloatKeyword(token):
@@ -1387,7 +1390,7 @@ class Select(object):
                 return token
 
     def _sign(self, tokens):
-        if DEBUG: print '_sign', tokens
+        if DEBUG: print('_sign', tokens)
         tokens = tokens[0]
         token = self._getNumArray(tokens[1])
         if tokens[0] == '-':
@@ -1395,7 +1398,7 @@ class Select(object):
         return token
 
     def _func(self, token):
-        if DEBUG: print '_func', token
+        if DEBUG: print('_func', token)
         token = token[0]
         return FUNCTION_MAP[token[0]](token[1])
 
@@ -1418,7 +1421,7 @@ class Select(object):
                                      .format(keyword))
 
     def _evalBoolean(self, keyword, _and=False):
-        if DEBUG: print '_evalBoolean', keyword
+        if DEBUG: print('_evalBoolean', keyword)
         
         if self._evalonly is None:
             n_atoms = self._n_atoms
@@ -1436,9 +1439,11 @@ class Select(object):
                 return self._evalAlnum('secondary', 
                                        [SECONDARY_STRUCTURE_MAP[keyword]])
         try:
-            residue_names, rn_invert, atom_names, an_invert = KEYWORD_MAP[keyword]
+            (residue_names, rn_invert, atom_names, 
+                                            an_invert) = KEYWORD_MAP[keyword]
             if DEBUG:
-                print '_evalBoolean', residue_names, rn_invert, atom_names, an_invert
+                print('_evalBoolean', residue_names, rn_invert, atom_names, 
+                      an_invert)
         except KeyError:
             raise SelectionError('"{0:s}" is not a valid keyword.'
                                  .format(keyword))
@@ -1457,14 +1462,14 @@ class Select(object):
             compound.append('resname')
             compound.extend(residue_names)
         if DEBUG:
-            print '_evalBoolean compound', compound
+            print('_evalBoolean compound', compound)
         if _and:
             return compound
         else:
             return self._and([compound])
     
     def _evalAlnum(self, keyword, values):
-        if DEBUG: print '_evalAlnum', keyword, values
+        if DEBUG: print('_evalAlnum', keyword, values)
         data = self._getAtomicData(keyword)
         if keyword in _specialKeywords:
             for i, value in enumerate(values):
@@ -1508,7 +1513,7 @@ class Select(object):
         return torf
     
     def _evalFloat(self, keyword, values=None):
-        if DEBUG: print '_evalFloat', keyword, values
+        if DEBUG: print('_evalFloat', keyword, values)
         if keyword == 'x':
             data = self._getCoordinates()[:,0]
         elif keyword == 'y':
@@ -1544,7 +1549,7 @@ class Select(object):
         return torf
 
     def _resnum(self, token=None):
-        if DEBUG: print '_resnum', token
+        if DEBUG: print('_resnum', token)
         if token is None:
             return self._getAtomicData('resnum') 
         icodes = None
@@ -1581,7 +1586,7 @@ class Select(object):
         return torf
 
     def _serial(self, token=None):
-        if DEBUG: print '_serial', token
+        if DEBUG: print('_serial', token)
         if token is None:
             return self._getAtomicData('serial') 
         if self._evalonly is None:
@@ -1607,7 +1612,7 @@ class Select(object):
         return torf
     
     def _index(self, token=None):
-        if DEBUG: print '_index', token
+        if DEBUG: print('_index', token)
         if token is None:
             if self._indices is not None:
                 return self._indices
@@ -1636,7 +1641,7 @@ class Select(object):
             return torf[self._evalonly]
         if self._indices is not None:
             return torf[self._indices]
-        if DEBUG: print '_index return ', len(torf), torf
+        if DEBUG: print('_index return ', len(torf), torf)
         return torf
 
     def _getNumRange(self, token):
@@ -1689,7 +1694,7 @@ class Select(object):
                                          .format(item))
             else:
                 token.append( item )
-        if DEBUG: print '_getNumRange', token            
+        if DEBUG: print('_getNumRange', token)            
         return token
     
     def _getAtomicData(self, keyword):
@@ -1727,7 +1732,7 @@ class Select(object):
             if self._indices is None:
                 self._coordinates = self._ag._coordinates[self._ag._acsi]
             else:
-                self._coordinates = self._atoms.getCoordinates()
+                self._coordinates = self._atoms._getCoordinates()
         return self._coordinates
    
     def _getKDTree(self):
@@ -1736,6 +1741,7 @@ class Select(object):
             raise ImportError('Bio.KDTree is required for distance based '
                               'selections.')
         if self._kdtree is None:
+            if DEBUG: print('kdtree')
             kdtree = KDTree(3)
             kdtree.set_coords(self._getCoordinates())
             self._kdtree = kdtree
@@ -1747,64 +1753,80 @@ class Contacts(object):
     """A class for identification of intermolecular contacts."""
     
     def __init__(self, atoms):
+        """*atoms* for which contacts will be identified. *atoms* can be 
+        :class:`~prody.atomic.AtomGroup` or :class:`~prody.atomic.AtomSubset`.
         """
-        
-        :arg atoms: atoms for which contacts will be identified
-        :type atoms: :class:`~prody.atomic.AtomGroup` or 
-            :class:`~prody.atomic.AtomSubset`
-        
-        """
+
         if not isinstance(atoms, (AtomGroup, AtomSubset)):                
             raise TypeError('{0:s} is not a valid type for atoms'
                             .format(type(atoms)))
         self._atoms = atoms
         self._acsi = atoms.getActiveCoordsetIndex()
+        self._timestamps = np.zeros(atoms.getNumOfCoordsets()) 
+        self._kdtrees = [None] * atoms.getNumOfCoordsets()
         if not isinstance(atoms, AtomGroup):
             self._indices = atoms.getIndices()
             self._ag = atoms.getAtomGroup()
         else:
             self._ag = atoms 
             self._indices = None
-        self._timestamp = self._ag._getTimeStamp(self._acsi)
         if KDTree is None: prody.importBioKDTree()
         if not KDTree:
             raise ImportError('Bio.KDTree is required for distance based '
                               'selections.')
-        kdtree = KDTree(3)
-        kdtree.set_coords(atoms.getCoordinates())
-        self._kdtree = kdtree
 
     def __repr__(self):
         return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(
                                                 str(self._atoms), self._acsi)
     
+
+    def _getKDTree(self):
+
+        acsi = self._acsi
+        ag = self._ag
+        if ag._getTimeStamp(acsi) != self._timestamps[acsi]:    
+            kdtree = KDTree(3)
+            if self._indices == None:
+                kdtree.set_coords(self._ag._getCoordinates())
+            else:
+                kdtree.set_coords(self._ag._getCoordinates()[self._indices])
+            self._kdtrees[acsi] = kdtree
+            self._timestamps[acsi] = ag._getTimeStamp(acsi) 
+            return kdtree
+        else:
+            return self._kdtrees[acsi]
+
     def getActiveCoordsetIndex(self):
         """Return active coordinate set index."""
+        
         return self._acsi
     
     def setActiveCoordsetIndex(self, acsi):
         """Set active coordinate set index.
         
-        .. note:: When active coordinate set index is changed, KDTree
-           that is used for identifying contacts is rebuilt for this instance. 
-           This does not affect the associated Atomic class instance. The 
-           active coordinate set index of the associated Atomic instance 
+        .. note:: Changing active coordinate set index effects only 
+           :class:`Contacts` instance. The active coordinate set index
+           of the associated :class:`~prody.atomic.Atomic` instance 
            remains the same. 
         """
-        kdtree = KDTree(3)
-        kdtree.set_coords(self._atoms.getCoordsets(acsi))
-        self._kdtree = kdtree
+        
+        ts = self._timestamps
+        ag = self._ag
+        if acsi >= len(ts):
+            n_csets = ag.getNumOfCoordsets() 
+            diff = n_csets - len(ts)
+            self._kdtrees += [None] * diff
+            self._timestamps = np.zeros(n_csets)
+            self._timestamps[:len(ts)] = ts
         self._acsi = acsi
+   
 
     def select(self, within, what):
-        """Select atoms *within* of *what*.
-        
-        :arg within: distance
-        :type within: float
-        :arg what: a point in 3-d space or a set of atoms 
-        :type what: :class:`numpy.ndarray` or :class:`~prody.atomic.Atomic`
-        
+        """Select atoms *within* of *what*. *within* is distance in Å and 
+        *what* can be point(s) in 3-d space (:class:`~numpy.ndarray` with 
+        shape N,3) or a set of atoms (:class:`~prody.atomic.Atomic` instances).
         """
+        
         if isinstance(what, np.ndarray):
             if what.ndim == 1 and len(what) == 3:
                 what = [what]
@@ -1813,14 +1835,14 @@ class Contacts(object):
                                      'shape (N, 3) or (3,).')
         else:
             try:
-                what = what.getCoordinates()
+                what = what._getCoordinates()
             except:
                 raise SelectionError('*what* must have a getCoordinates() '
                                      'method.')
             if not isinstance(what, np.ndarray):
                 raise SelectionError('what.getCoordinates() method must '
                                      'return a numpy.ndarray instance.')
-        kdtree = self._kdtree
+        kdtree = self._getKDTree()
         search = kdtree.search
         get_indices = kdtree.get_indices
         indices = []
