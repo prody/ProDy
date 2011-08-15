@@ -836,6 +836,8 @@ class Select(object):
         self._n_atoms = None
         self._selstr = None
         self._evalonly = None
+        self._acsi = None
+        self._timestamp = None
         
         self._coordinates = None
         self._kdtree = None
@@ -873,7 +875,8 @@ class Select(object):
         self._tokenizer.setParseAction(self._defaultAction)
 
     def getBoolArray(self, atoms, selstr, **kwargs):
-        """Return a boolean array with ``True`` values for matching atoms.
+        """Return a boolean array with ``True`` values for *atoms* matching 
+        *selstr*.
         
         .. versionadded:: 0.5
         
@@ -888,24 +891,30 @@ class Select(object):
         elif not isinstance(selstr, str):
             raise TypeError('selstr must be a string, not a {0:s}'
                             .format(type(selstr)))
-        if self._atoms is not None and atoms != self._atoms:
-            self._reset()
-            
-        self._selstr = selstr
-        if isinstance(atoms, prody.AtomGroup): 
-            self._ag = atoms
-            self._atoms = atoms
-            self._indices = None
-            self._n_atoms = atoms.getNumOfAtoms()
+        if self._atoms == atoms:
+            if self._acsi != atoms.getActiveCoordsetIndex():
+                self._coordinates = None
+                self._kdtree = None                    
+            elif self._timestamp != atoms._getTimeStamp():
+                self._kdtree = None
         else:
-            self._ag = atoms.getAtomGroup()
-            self._indices = atoms.getIndices()
-            if isinstance(atoms, prody.AtomMap):
-                self._atoms = prody.Selection(self._ag, self._indices, '')
-                self._atoms._indices = self._indices
-            else: 
+            self._reset()
+            if isinstance(atoms, prody.AtomGroup): 
+                self._ag = atoms
                 self._atoms = atoms
-            self._n_atoms = len(self._indices)
+                self._indices = None
+                self._n_atoms = atoms.getNumOfAtoms()
+            else:
+                self._ag = atoms.getAtomGroup()
+                self._indices = atoms.getIndices()
+                if isinstance(atoms, prody.AtomMap):
+                    self._atoms = prody.Selection(self._ag, self._indices, '')
+                    self._atoms._indices = self._indices
+                else: 
+                    self._atoms = atoms
+                self._n_atoms = len(self._indices)
+        self._selstr = selstr
+            
         self._kwargs = kwargs
         if DEBUG:
             print 'getBoolArray', selstr
@@ -1006,8 +1015,9 @@ class Select(object):
         self._atoms = None
         self._indices = None
         self._n_atoms = None
-        self._selstr = None
         self._evalonly = None
+        self._acsi = None
+        self._timestamp = None
         self._coordinates = None
         self._kdtree = None
         for var in mapField2Var.values():
@@ -1684,16 +1694,17 @@ class Select(object):
     
     def _getAtomicData(self, keyword):
         field = ATOMIC_DATA_FIELDS.get(keyword, None)
+        indices = self._indices
         if field is None:
             data = self._atoms.getAttribute(keyword)
             if data is None:
                 raise SelectionError('"{0:s}" is not a valid keyword or '
                                      'attribute.'.format(keyword))
             elif data.ndim == 1:
-                if self._indices is None:                
+                if indices is None:                
                     return data
                 else:
-                    return data[self._indices]
+                    return data[indices]
             else:
                 raise SelectionError('attribute "{0:s}" is 1-dimensional data '
                                      .format(keyword))                
@@ -1705,10 +1716,11 @@ class Select(object):
                 if data is None:
                     raise SelectionError('{0:s} are not set.'
                                          .format(field.doc_pl))
-                if self._indices is not None:
-                    data = data[self._indices]
-                self.__dict__[var] = data 
-        return data
+                self.__dict__[var] = data
+            if indices is None:                
+                return data
+            else:
+                return data[indices]
     
     def _getCoordinates(self):
         if self._coordinates is None:
@@ -1753,6 +1765,7 @@ class Contacts(object):
         else:
             self._ag = atoms 
             self._indices = None
+        self._timestamp = self._ag._getTimeStamp(self._acsi)
         if KDTree is None: prody.importBioKDTree()
         if not KDTree:
             raise ImportError('Bio.KDTree is required for distance based '

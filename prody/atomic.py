@@ -657,17 +657,20 @@ class AtomGroup(Atomic):
         self._trajectory = None
         self._frameindex = None
         self._tcsi = None # Trajectory Coordinate Set Index
-        self._timestamp = None
+        self._timestamps = None
         
         for field in ATOMIC_DATA_FIELDS.values():
             self.__dict__['_'+field.var] = None
 
-    def _getTimeStamp(self):
+    def _getTimeStamp(self, index):
         """Return time stamp showing when coordinates were last changed."""
-        
-        return self._timestamp
+
+        if index is None:
+            return self._timestamps[self._acsi]
+        else:
+            return self._timestamps[index]
     
-    def _setTimeStamp(self):
+    def _setTimeStamp(self, index=None):
         """Set time stamp when:
            
             * :meth:`setCoordinates` method of :class:`AtomGroup` or 
@@ -677,7 +680,11 @@ class AtomGroup(Atomic):
               methods is called.
         """
         
-        self._timestamp = time.time()
+        if index is None:
+            self._timestamps = np.zeros(self._n_csets)
+            self._timestamps[:] = time.time()
+        else:
+            self._timestamps[index] = time.time()
 
     def __repr__(self):
         if self._trajectory is None:
@@ -857,17 +864,20 @@ class AtomGroup(Atomic):
             self._coordinates = coordinates
             self._n_csets = self._coordinates.shape[0]
             self._acsi = 0
+            self._setTimeStamp()
         else:
             if coordinates.ndim == 2:
                 self._coordinates[self._acsi] = coordinates
+                self._setTimeStamp(self._acsi)
             elif coordinates.shape[0] == 1:
                 self._coordinates[self._acsi] = coordinates[0]
+                self._setTimeStamp(self._acsi)
             else:
                 self._coordinates = coordinates
                 self._n_csets = self._coordinates.shape[0]
                 self._acsi = min(self._n_csets - 1, self._acsi)
-        self._setTimeStamp()
-    
+                self._setTimeStamp()
+            
     def addCoordset(self, coords):
         """Add a coordinate set to the atom group.
         
@@ -904,7 +914,11 @@ class AtomGroup(Atomic):
             coords = coords.reshape((1, coords.shape[0], coords.shape[1]))
         self._coordinates = np.concatenate((self._coordinates, coords), axis=0)
         self._n_csets = self._coordinates.shape[0]
-
+        timestamps = self._timestamps
+        self._timestamps = np.zeros(self._n_csets)
+        self._timestamps[:len(timestamps)] = timestamps
+        self._timestamps[len(timestamps):] = time.time()
+        
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
         
@@ -921,9 +935,7 @@ class AtomGroup(Atomic):
         else:
             self._coordinates = self._coordinates[which]
             self._n_csets = self._coordinates.shape[0]
-        if not (isinstance(index, int) and (index == n_csets - 1 or 
-                                            index == -1)): 
-            self._setTimeStamp()
+        self._timestamps = self._timestamps[which]
         self._acsi = 0
 
     def getCoordsets(self, indices=None):
@@ -1328,7 +1340,7 @@ class AtomGroup(Atomic):
         if nfi - self._tcsi == 1:
             self._tcsi = nfi
             self._coordinates[self._acsi] = self._trajectory.nextCoordset()
-            self._setTimeStamp()
+            self._setTimeStamp(self._acsi)
         else:
             self._gotoFrame(self._tcsi+1)
                 
@@ -1342,7 +1354,7 @@ class AtomGroup(Atomic):
         if nfi - self._tcsi == 1:         
             self._tcsi = self._trajectory.getNextFrameIndex()
             self._coordinates[self._acsi] = self._trajectory.nextCoordset()
-            self._setTimeStamp()
+            self._setTimeStamp(self._acsi)
         else:
             self.gotoFrame(self._tcsi+1+n)
     
@@ -1352,10 +1364,10 @@ class AtomGroup(Atomic):
         .. versionadded:: 0.8
         """
         
-        self._trajectory.goto(n)        
+        self._trajectory.goto(n)
         self._tcsi = self._trajectory.getNextFrameIndex()
         self._coordinates[self._acsi] = self._trajectory.nextCoordset()
-        self._setTimeStamp()
+        self._setTimeStamp(self._acsi)
     
     def getFrameIndex(self):
         """Return current frame index.
@@ -1426,6 +1438,10 @@ class AtomPointer(Atomic):
             unmapped.append(np.array([]))
         return AtomMap(ag, indices, np.concatenate(mapping), 
                        np.concatenate(unmapped), name, acsi)
+    
+    def _getTimeStamp(self):
+        
+        return self._ag._getTimeStamp(self._acsi)
     
     def isAttribute(self, name):    
         """Return ``True`` if *name* is a user set attribute.
@@ -1642,7 +1658,7 @@ class Atom(AtomPointer):
         """Set coordinates of the atom in the active coordinate set."""
         
         self._ag._coordinates[self._acsi, self._index] = coordinates
-        self._ag._setTimeStamp()
+        self._ag._setTimeStamp(self._acsi)
         
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices. 
@@ -1886,7 +1902,7 @@ class AtomSubset(AtomPointer):
         """Set coordinates in the active coordinate set."""
         
         self._ag._coordinates[self._acsi, self._indices] = coordinates
-        self._ag._setTimeStamp()
+        self._ag._setTimeStamp(self._acsi)
         
     def getCoordsets(self, indices=None):
         """Return coordinate sets at given *indices*.
