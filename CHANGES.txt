@@ -11,6 +11,14 @@ Release 0.8.0 (in development)
 
 **New Features**:
 
+  * :class:`~ensemble.DCDFile` is implemented for handling DCD files.
+    
+  * :class:`~ensemble.Trajectory` is implemented for handling multiple DCD
+    files.
+    
+  * :ref:`trajectory` example to illustrate usage of new classes for handling
+    DCD files. :ref:`eda-md` example is updated to use new ProDy classes.
+  
   * :class:`~dynamics.PCA` supports :class:`~ensemble.Trajectory` and
     :class:`~ensemble.DCDFile` instances. 
   
@@ -22,6 +30,10 @@ Release 0.8.0 (in development)
     :meth:`~ensemble.EnsembleBase.getAtomGroup`, and 
     :meth:`~ensemble.EnsembleBase.getSelection` methods.
   
+  * :func:`~proteins.execDSSSP`, :func:`~proteins.parseDSSSP`, and 
+    :func:`~proteins.performDSSSP` functions are implemented for 
+    executing and parsing DSSP calculations.
+
   * :func:`~proteins.parsePDB` function parses atom serial numbers. Atoms
     can be retrieved from an :class:`~atomic.AtomGroup` instance by their
     serial numbers using :meth:`~atomic.AtomGroup.getBySerial` and
@@ -37,6 +49,10 @@ Release 0.8.0 (in development)
   * :class:`~atomic.AtomGroup` and :class:`~dynamics.Mode` or 
     :class:`~dynamics.Vector` additions are supported. This adds a new
     coordinate set to the :class:`~atomic.AtomGroup` instance.
+    
+  * :meth:`~atomic.AtomGroup.getAttrNames` is implemented for listing
+    user set attribute names.
+    
 
 **Improvements**:
 
@@ -62,6 +78,9 @@ Release 0.8.0 (in development)
 
   * Improvements in memory usage in :mod:`atomic`, :mod:`ensemble`, and
     :mod:`dynamics` modules, faster data (PDB/NMD) output.
+    
+  * Optimizations in :class:`~select.Select` and :class:`~select.Contacts`
+    classes.
 
 **Changes**:
 
