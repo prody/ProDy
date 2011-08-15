@@ -28,6 +28,24 @@ import sys
 
 _PY3K = sys.version_info[0] > 2
 
+def isExecutable(path):
+    return os.path.exists(path) and os.access(path, os.X_OK)
+
+def which(program):
+    """This function is based on the example in:
+    http://stackoverflow.com/questions/377017/"""
+    
+    fpath, fname = os.path.split(program)
+    if fpath and isExecutable(program):
+        return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = os.path.join(path, program)
+            if isExecutable(path):
+                return path
+    return None
+
+
 def importLA():
     try:
         import scipy.linalg as linalg
