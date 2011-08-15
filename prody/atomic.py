@@ -1439,9 +1439,12 @@ class AtomPointer(Atomic):
         return AtomMap(ag, indices, np.concatenate(mapping), 
                        np.concatenate(unmapped), name, acsi)
     
-    def _getTimeStamp(self):
+    def _getTimeStamp(self, index=None):
         
-        return self._ag._getTimeStamp(self._acsi)
+        if index is None:
+            return self._ag._getTimeStamp(self._acsi)
+        else:
+            return self._ag._getTimeStamp(index)
     
     def isAttribute(self, name):    
         """Return ``True`` if *name* is a user set attribute.
