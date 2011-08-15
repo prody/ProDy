@@ -1053,7 +1053,10 @@ class AtomGroup(Atomic):
             var = '_' + field.var
             array = self.__dict__[var]
             if array is not None:
-                newmol.__dict__[var] = array[indices]
+                if indices is None:
+                    newmol.__dict__[var] = array
+                else:
+                    newmol.__dict__[var] = array[indices]
         for name, data in self._userdata.iteritems():
             newmol._userdata[name] = data[indices]
         return newmol
@@ -1105,8 +1108,14 @@ class AtomGroup(Atomic):
         
         return self.getHierView().iterResidues()
 
+    def getListOfAttrs(self):
+        """Return a list of attribute names set by user."""
+        
+        return self._userdata.keys()
+        
+
     def setAttribute(self, name, data):
-        """Set a new attribute called *name* holding atomic *data*.
+        """Set a new attribute called *name* storing atomic *data*.
         
         .. versionadded:: 0.7.1
         
@@ -1197,6 +1206,7 @@ class AtomGroup(Atomic):
         if data is not None:
             return data.copy()
         return None
+
 
     def _getAttribute(self, name):
         """Return the attribute *name* data array, if it exists (for internal 
@@ -1853,7 +1863,7 @@ class AtomSubset(AtomPointer):
                                  .format(self._ag.getName(), name))
     
     def getIndices(self):
-        """Return the indices of atoms."""
+        """Return a copy of the indices of atoms."""
         
         return self._indices.copy()
     
