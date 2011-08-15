@@ -60,6 +60,7 @@ Dynamics Analysis
 
    dynamics/enm/index
    dynamics/pca/index
+   ensemble/trajectory
    dynamics/generate_conformers
    dynamics/extrapolate
    dynamics/reduce_slice
