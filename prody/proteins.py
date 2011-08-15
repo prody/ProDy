@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010-2011 Ahmet Bakan
@@ -39,6 +40,10 @@ Functions
   * :func:`parsePDBStream`
   * :func:`writePDB`
   * :func:`writePDBStream`
+  
+  * :func:`execDSSP`
+  * :func:`parseDSSP`
+  * :func:`performDSSP`
 
   
    
@@ -83,6 +88,7 @@ __all__ = ['PDBBlastRecord',
            'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 
            'writePDBStream', 'writePDB',
+           'execDSSP', 'parseDSSP', 'performDSSP',
            ]
 
 class PDBParserError(Exception):    
@@ -1397,7 +1403,7 @@ mapHelix = {
 10: '' # Polyproline
 }
 
-def assignSecondaryStructure(header, atoms, coil=True):
+def assignSecondaryStructure(header, atoms, coil=False):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
@@ -1439,6 +1445,8 @@ def assignSecondaryStructure(header, atoms, coil=True):
        section will be assigned coil (C) conformation. This can be prevented
        by passing ``coil=False`` argument.
        
+    .. versionchanged:: 0.8
+       Default value for *coil* argument is set to ``False``.
     
     """
     if not isinstance(header, dict):
@@ -1602,3 +1610,170 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
     else:
         return None
 
+def execDSSP(pdb, outputname=None, outputdir=None):
+    """|new| Execute DSSP for given *pdb*. *pdb* can be a PDB identifier or a PDB 
+    file path. If *pdb* is a compressed file, it will be decompressed using
+    Python :mod:`gzip` library. When no *outputname* is given, output name 
+    will be :file:`pdbidentifier.dssp`. :file:`.dssp` extension will be 
+    appended automatically to *outputname*. If :file:`outputdir` is given,
+    DSSP output and uncompressed PDB file will be written into this folder.
+    Upon successful execution of :command:`dssp pdb > out` command, output
+    filename is returned. 
+    
+    For more information on DSSP see http://swift.cmbi.ru.nl/gv/dssp/."""
+    
+    dssp = prody.which('dssp')
+    if dssp is None:
+        raise EnvironmentError('command not found: dssp executable is not '
+                               'found in one of system paths')
+    
+    if not os.path.isfile(pdb):
+        pdb = fetchPDB(pdb, compressed=False)
+    if pdb is None:
+        raise ValueError('pdb is not a valid PDB identifier or filename')
+    if os.path.splitext(pdb)[1] == '.gz':
+        if outputdir:
+            pdb = gunzip(pdb, os.path.splitext(pdb)[0])
+        else:
+            pdb = gunzip(pdb, os.path.join(outputdir, 
+                                os.path.split(os.path.splitext(pdb)[0])[1]))
+    if outputdir is None:
+        outputdir = '.'
+    if outputname is None:
+        out = os.path.join(outputdir,
+                        os.path.splitext(os.path.split(pdb)[1])[0] + '.dssp')
+    else:
+        out = os.path.join(outputdir, outputname + '.dssp')
+        
+    status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
+    if status == 0:
+        return out
+    
+def parseDSSP(dssp, ag, parseall=False):
+    """|new| Parse DSSP data from file *dssp* into :class:`~prody.atomic.AtomGroup`
+    instance *ag*. DSSP output file must be in the new format used from July 
+    1995 and onwards. When *dssp* file is parsed, following attributes are 
+    added to *ag*:
+        
+    * *dssp_resnum*: DSSP's sequential residue number, starting at the first 
+      residue actually in the data set and including chain breaks; this number 
+      is used to refer to residues throughout.
+    
+    * *dssp_acc*: number of water molecules in contact with this residue \*10. 
+      or residue water exposed surface in Angstrom^2.
+      
+    * *dssp_kappa*: virtual bond angle (bend angle) defined by the three Cα 
+      atoms of residues I-2,I,I+2. Used to define bend (structure code 'S').
+        
+    * *dssp_alpha*: virtual torsion angle (dihedral angle) defined by the four 
+      Cα atoms of residues I-1,I,I+1,I+2.Used to define chirality (structure 
+      code '+' or '-').
+        
+    * *dssp_phi* and *dssp_psi*: IUPAC peptide backbone torsion angles 
+
+    The following attributes are parsed when ``parseall=True`` is passed: 
+
+    * *dssp_bp1*, *dssp_bp2*, and *dssp_sheet_label*: residue number of first 
+      and second bridge partner followed by one letter sheet label
+      
+    * *dssp_tco*: cosine of angle between C=O of residue I and C=O of residue 
+      I-1. For α-helices, TCO is near +1, for β-sheets TCO is near -1. Not 
+      used for structure definition.
+      
+    * *dssp_NH_O_1_index*, *dssp_NH_O_1_energy*, etc.: hydrogen bonds; e.g. 
+      -3,-1.4 means: if this residue is residue i then N-H of I is h-bonded to 
+      C=O of I-3 with an electrostatic H-bond energy of -1.4 kcal/mol. There 
+      are two columns for each type of H-bond, to allow for bifurcated H-bonds.
+        
+    See http://swift.cmbi.ru.nl/gv/dssp/DSSP_3.html for details."""
+    
+    if not os.path.isfile(dssp):
+        raise IOError('{0:s} is not a valid file path'.format(dssp))
+    if not isinstance(ag, prody.AtomGroup):
+        raise TypeError('ag argument must be an AtomGroup instance')
+        
+    dssp = open(dssp)
+    
+    n_atoms = ag.getNumOfAtoms()
+    NUMBER = np.zeros(n_atoms, np.int64)
+    SHEETLABEL = np.zeros(n_atoms, '|S1')
+    ACC = np.zeros(n_atoms, np.float64)
+    KAPPA = np.zeros(n_atoms, np.float64)
+    ALPHA = np.zeros(n_atoms, np.float64)
+    PHI = np.zeros(n_atoms, np.float64)
+    PSI = np.zeros(n_atoms, np.float64)
+
+    if parseall:
+        BP1 = np.zeros(n_atoms, np.int64)
+        BP2 = np.zeros(n_atoms, np.int64)
+        NH_O_1 = np.zeros(n_atoms, np.int64)
+        NH_O_1_nrg = np.zeros(n_atoms, np.float64)
+        O_HN_1 = np.zeros(n_atoms, np.int64)
+        O_HN_1_nrg = np.zeros(n_atoms, np.float64)
+        NH_O_2 = np.zeros(n_atoms, np.int64)
+        NH_O_2_nrg = np.zeros(n_atoms, np.float64)
+        O_HN_2 = np.zeros(n_atoms, np.int64)
+        O_HN_2_nrg = np.zeros(n_atoms, np.float64)
+        TCO = np.zeros(n_atoms, np.float64)
+
+    ag.setSecondaryStrs(np.zeros(n_atoms))
+    for line in dssp:
+        if line.startswith('  #  RESIDUE'):
+            break
+    for line in dssp:
+        res = ag[(line[11], int(line[5:10]), line[10].strip())]
+        if res is None:
+            continue
+        indices = res.getIndices()
+        res.setSecondaryStrs(line[16].strip())
+        NUMBER[indices] = int(line[:5])
+        SHEETLABEL[indices] = line[33].strip()
+        ACC[indices] = int(line[35:38])
+        KAPPA[indices] = float(line[91:97])
+        ALPHA[indices] = float(line[97:103])
+        PHI[indices] = float(line[103:109])
+        PSI[indices] = float(line[109:115])
+
+        if parseall:
+            BP1[indices] = int(line[26:29])
+            BP2[indices] = int(line[30:33])
+            NH_O_1[indices] = int(line[40:45])
+            NH_O_1_nrg[indices] = float(line[47:51]) 
+            O_HN_1[indices] = int(line[51:56])
+            O_HN_1_nrg[indices] = float(line[57:61])
+            NH_O_2[indices] = int(line[62:67])
+            NH_O_2_nrg[indices] = float(line[68:72])
+            O_HN_2[indices] = int(line[73:78])
+            O_HN_2_nrg[indices] = float(line[79:83])
+            TCO[indices] = float(line[85:91])
+    
+    ag.setAttribute('dssp_resnum', NUMBER)
+    ag.setAttribute('dssp_sheet_label', SHEETLABEL)
+    ag.setAttribute('dssp_acc', ACC)
+    ag.setAttribute('dssp_kappa', KAPPA)
+    ag.setAttribute('dssp_alpha', ALPHA)
+    ag.setAttribute('dssp_phi', PHI)
+    ag.setAttribute('dssp_psi', PSI)
+
+    if parseall:
+        ag.setAttribute('dssp_bp1', BP1)
+        ag.setAttribute('dssp_bp2', BP2)
+        ag.setAttribute('dssp_NH_O_1_index', NH_O_1)
+        ag.setAttribute('dssp_NH_O_1_energy', NH_O_1_nrg)
+        ag.setAttribute('dssp_O_NH_1_index', O_HN_1)
+        ag.setAttribute('dssp_O_NH_1_energy', O_HN_1_nrg)    
+        ag.setAttribute('dssp_NH_O_2_index', NH_O_2)
+        ag.setAttribute('dssp_NH_O_2_energy', NH_O_2_nrg)
+        ag.setAttribute('dssp_O_NH_2_index', O_HN_2)
+        ag.setAttribute('dssp_O_NH_2_energy', O_HN_2_nrg)
+        ag.setAttribute('dssp_tco', TCO)
+    return ag
+
+def performDSSP(pdb, parseall=False):
+    """|new| Perform DSSP calculations and parse results. DSSP data is returned 
+    in an :class:`~prody.atomic.AtomGroup` instance. See also :func:`execDSSP` 
+    and :func:`parseDSSP`."""
+    
+    pdb = fetchPDB(pdb, compressed=False)
+    return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
+    
