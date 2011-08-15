@@ -457,6 +457,7 @@ def calcDihedral():
 
 def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
+    
     if isinstance(coords, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap, 
                            prody.ConformationBase)):
         coords = coords._getCoordinates()
