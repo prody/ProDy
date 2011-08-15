@@ -1289,7 +1289,7 @@ def writePDBStream(stream, atoms, model=None, sort=False):
     :arg stream: anything that implements the method write() 
         (e.g. file, buffer, stdout)
     
-    """ + _writePDBdoc
+    """
     
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms does not have a valid type')
@@ -1378,17 +1378,21 @@ def writePDBStream(stream, atoms, model=None, sort=False):
             altlocs = np.zeros(n_atoms, '|S1')
     atoms.setActiveCoordsetIndex(acsi)
 
+writePDBStream.__doc__ += _writePDBdoc
+
 def writePDB(filename, atoms, model=None, sort=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
     Returns *filename* if file is succesfully written. 
    
-    """ + _writePDBdoc
+    """
     
     out = open(filename, 'w')
     writePDBStream(out, atoms, model, sort)
     out.close()
     return filename
+
+writePDB.__doc__ += _writePDBdoc
 
 mapHelix = {
 1: 'H', # 4-turn helix (alpha helix)
