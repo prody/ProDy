@@ -1875,14 +1875,15 @@ class PCA(NMABase):
         .. versionadded:: 0.6.2
         
         .. versionchanged:: 0.8
-           Numpy array instances are accepted as *coordsets* argument.
+           :class:`numpy.ndarray` instances are accepted as *coordsets* 
+           argument.
         
         This is a considerably faster way of performing PCA calculations 
         compared to eigenvalue decomposition of covariance matrix, but is
         an approximate method when heterogeneous datasets are analyzed. 
         Covariance method should be preferred over this one for analysis
         of ensembles with missing atomic data. See :ref:`pca-xray-calculations`
-        examples for comparison of results from SVD and covariance methods.
+        example for comparison of results from SVD and covariance methods.
         
         """
 
@@ -1903,8 +1904,8 @@ class PCA(NMABase):
             if isinstance(coordsets, prody.Ensemble):
                 deviations = coordsets.getDeviations()
             elif isinstance(coordsets, prody.Atomic):
-                deviations = coordsets.getCoordsets() - \
-                             coordsets.getCoordinates()
+                deviations = coordsets._getCoordsets() - \
+                             coordsets._getCoordinates()
 
         n_confs = deviations.shape[0]
         if n_confs < 3:
@@ -1916,7 +1917,8 @@ class PCA(NMABase):
         dof = n_atoms * 3        
         deviations = deviations.reshape((n_confs, dof)).T
 
-        vectors, values, self._temp = linalg.svd(deviations, full_matrices=False)
+        vectors, values, self._temp = linalg.svd(deviations, 
+                                                 full_matrices=False)
         values = (values ** 2) / n_confs
         self._dof = dof
         self._n_atoms = n_atoms
@@ -1930,7 +1932,7 @@ class PCA(NMABase):
                          .format(self._n_modes, time.time()-start))
         
     def addEigenpair(self, eigenvector, eigenvalue=None):
-        """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
+        """Add *eigenvector* and *eigenvalue* pair to :class:`NMA` instance.
         
         .. versionadded:: 0.7
         
