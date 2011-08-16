@@ -205,6 +205,7 @@ def _superposeTraj(mobs, tar, weights=None, movs=None):
     dot = np.dot
     array = np.array
     sign = np.sign
+    progress = prody.ProDyProgress(len(mobs))
     for i, mob in enumerate(mobs):      
         mob_com = mob.mean(0)
         mob_org = mob - mob_com
@@ -221,6 +222,8 @@ def _superposeTraj(mobs, tar, weights=None, movs=None):
             movs[i] = dot(movs[i], rotation) 
             movs[i] += (tar_com - dot(mob_com, rotation))
     
+        progress.report(i)
+    progress.clean()
 
 def _superpose(mob, tar, weights=None, mov=None):
     tar_com = tar.mean(0)
