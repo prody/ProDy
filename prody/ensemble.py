@@ -1856,7 +1856,12 @@ class DCDFile(TrajectoryFile):
             self._dtype = np.float32
         
         self._first_byte = self._file.tell()
-        
+        n_csets = (os.path.getsize(self._filename) - self._first_byte
+                    ) / self._bytes_per_frame
+        if n_csets != self._n_csets: 
+            LOGGER.warning('DCD header indicates {0:d} frames, but {1:d} is ' 
+                           'found'.format(self._n_csets, n_csets))
+            self._n_csets = n_csets
         self._coords = self.nextCoordset()
         self._file.seek(self._first_byte)
         self._nfi = 0
@@ -2171,9 +2176,13 @@ def parseDCD(filename, first=None, last=None, step=None):
   
 if __name__ == '__main__':
     import prody
+    ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', last=5000)
     ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
-    ag.setTrajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    ens.setAtomGroup( ag )
+    ens.select('calpha')
+    ens.iterpose()
     stop
+    ag.setTrajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     dcd = prody.DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     dcd.setAtomGroup( ag )
     dcd.select( 'calpha' )
@@ -2182,9 +2191,6 @@ if __name__ == '__main__':
     #traj = Trajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
     #traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     #traj.setAtomGroup( ag )
-    #ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    #ens.setAtomGroup( ag )
-    #ens.select('calpha')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
     #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', indices=np.arange(1000), stride=10)
     #dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
