@@ -25,6 +25,8 @@ import os
 import os.path
 import cPickle
 import sys
+import time
+import math
 
 _PY3K = sys.version_info[0] > 2
 
@@ -255,6 +257,54 @@ def closeLogfile(filename):
                 return
     logger.warning('Logfile "{0:s}" was not found.'.format(filename))
 
+class ProDyProgress(object):
+    
+    """A class to print progress to sys.stderr."""
+    
+    def __init__(self, n, **kwargs):
+        """Instantiate with number of steps."""
+        
+        self._n = n
+        self._level = getVerbosityLevel()
+        self._start = time.time()
+        self._prefix = str(kwargs.get('prefix', ''))
+        self._barlen = int(kwargs.get('barlen', 30))
+        self._prev = (0, 0)
+    
+    def report(self, i):
+        """Print status to current line in the console."""
+        
+        if self._level < logging.WARNING:   
+            n = self._n
+            percent = 100 * i / n
+            if percent > 3:
+                seconds = int(math.ceil((time.time()-self._start) * (n-i)/i))
+                prev = (percent, seconds)
+            else:
+                prev = (percent, 0)
+            if self._prev == prev:
+                return
+            prefix = ProDySignature + self._prefix
+            bar = ''
+            barlen = self._barlen
+            if barlen > 10:
+                barlen = int(round(0.2*percent))
+                bar = ' [' + '=' * (barlen-1) + '>' + ' ' * (20-barlen) + '] '
+            if percent > 3:
+                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar + '%ds    ') % 
+                 (percent, seconds))
+            else:
+                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar) % percent) 
+            sys.stderr.flush()
+            self._prev = prev
+    
+    def clean(self):
+        """Clean sys.stderr."""
+        
+        if self._level < logging.WARNING:
+            sys.stderr.write('\r' + ' ' + '\r')
+    
+
 def changeVerbosity(level):
     """Set ProDy console verbosity *level*.
     
@@ -281,7 +331,12 @@ def changeVerbosity(level):
     if lvl is None: 
         ProDyLogger.warning('{0:s} is not a valid log level.'.format(level))
     else:
-        ProDyLogger.handlers[0].level = lvl 
+        ProDyLogger.handlers[0].level = lvl
+
+def getVerbosityLevel():
+    """Return ProDy console verbosity level."""
+    
+    return ProDyLogger.handlers[0].level
 
 def checkUpdates():
     """Check latest ProDy release and compare with the installed one.
