@@ -187,6 +187,7 @@ import os.path
 import time
 import os
 from types import FunctionType
+import sys
 
 import numpy as np
 linalg = None
@@ -1751,15 +1752,19 @@ class PCA(NMABase):
             cov = np.zeros((dof, dof))
             mean = coordsets._getCoordinates().flatten()
             n_confs = 0
-            LOGGER.info('Covariance is calculated using {0:d} frames.'
-                            .format(len(coordsets)))
+            n_frames = len(coordsets)
+            LOGGER.info('Covariance will be calculated using {0:d} frames.'
+                            .format(n_frames))
             coordsum = np.zeros(dof)
+            progress = prody.ProDyProgress(n_frames)
             for frame in coordsets:
                 frame.superpose()
                 coords = frame._getCoordinates().flatten()
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
+                progress.report(n_confs)
+            progress.clean()
             cov /= n_confs
             coordsum /= n_confs
             cov -= np.outer(coordsum, coordsum)
@@ -1783,10 +1788,14 @@ class PCA(NMABase):
                 else:
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
-                    mean = coordsets.mean(0) 
-                    for coords in coordsets.reshape((n_confs, dof)):
+                    mean = coordsets.mean(0)
+                    progress = prody.ProDyProgress(n_confs)
+                    for i, coords in enumerate(
+                                            coordsets.reshape((n_confs, dof))):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
+                        progress.report(n_confs)
+                    progress.clean()
                     cov /= n_confs 
                     self._cov = cov
             else:
@@ -2317,6 +2326,7 @@ def saveModel(nma, filename=None, matrices=False):
     This function makes use of :func:`numpy.savez` function.
     
     """
+    
     if not isinstance(nma, NMABase):
         raise TypeError('invalid type for nma, {0:s}'.format(type(nma)))
     if len(nma) == 0:
@@ -2340,6 +2350,8 @@ def saveModel(nma, filename=None, matrices=False):
             type_ = 'GNM'
     elif isinstance(nma, PCA):
         type_ = 'PCA'
+    elif isinstance(nma, EDA):
+        type_ = 'EDA'
     else:
         type_ = 'NMA'  
     
@@ -2373,6 +2385,8 @@ def loadModel(filename):
         nma = ANM(str(attr_dict['_name']))
     elif type_ == 'PCA':
         nma = PCA(str(attr_dict['_name']))
+    elif type_ == 'EDA':
+        nma = EDA(str(attr_dict['_name']))
     elif type_ == 'GNM':
         nma = GNM(str(attr_dict['_name']))
     else:
