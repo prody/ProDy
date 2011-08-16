@@ -302,7 +302,7 @@ class ProDyProgress(object):
         """Clean sys.stderr."""
         
         if self._level < logging.WARNING:
-            sys.stderr.write('\r' + ' ' + '\r')
+            sys.stderr.write('\r' + ' ' * (self._barlen + 20) + '\r')
     
 
 def changeVerbosity(level):
