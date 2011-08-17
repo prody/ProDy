@@ -291,7 +291,7 @@ class ProDyProgress(object):
                 bar = int(round(percent*barlen/100.))
                 bar = ' [' + '='*(max(bar-1, 0)) + '>' + ' '*(barlen-bar) + '] '
             if percent > 3:
-                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar + '%ds    \n') % 
+                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar + '%ds    ') % 
                  (percent, seconds))
             else:
                 sys.stderr.write(('\r' + prefix + ' %2d%%' + bar) % percent) 

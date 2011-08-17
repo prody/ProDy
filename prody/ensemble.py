@@ -82,6 +82,8 @@ import prody
 from prody import ProDyLogger as LOGGER
 from prody import measure
 
+PISQUARE = np.pi ** 2
+
 __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'Trajectory', 'DCDFile', 'Frame',
            'EnsembleBase', 'TrajectoryBase', 'TrajectoryFile', 
@@ -1274,12 +1276,14 @@ class Frame(ConformationBase):
     
     """
     
-    __slots__ = ['_ensemble', '_index', '_coords', '_indices', '_sel']
+    __slots__ = ['_ensemble', '_index', '_coords', '_indices', '_sel', 
+                 '_unitcell']
 
-    def __init__(self, trajectory, index, coords):
+    def __init__(self, trajectory, index, coords, unitcell=None):
         """Instantiate with an trajectory instance, index, and a name."""
         ConformationBase.__init__(self, trajectory, index)
         self._coords = coords
+        self._unitcell = unitcell
         
     def getTrajectory(self):
         """Return the trajectory that this frame belongs to."""
@@ -1295,6 +1299,15 @@ class Frame(ConformationBase):
         """Return coordinates for selected atoms."""
         
         return self._coords
+    
+    def getUnitcell(self):
+        """Return a copy of unitcell array."""
+        
+        if self._unitcell is not None:
+             return self._unitcell.copy()
+    
+    def _getUnitcell(self):
+        return self._unitcell
     
     def getDeviations(self):
         """Return deviations from the trajectory reference coordinates."""
@@ -1555,7 +1568,11 @@ class TrajectoryBase(EnsembleBase):
     def close(self):
         """Close trajectory file."""
         pass
-
+    
+    def hasUnitcell(self):
+        """Return ``True`` if trajectory has unitcell data."""
+        pass
+    
 
 class TrajectoryFile(TrajectoryBase):
     
@@ -1609,7 +1626,7 @@ class TrajectoryFile(TrajectoryBase):
     def getFrame(self, index):
         """Return frame at given *index*."""
         
-        if closed:
+        if self._closed:
             return None
         if not isinstance(index, (int, long)):
             raise IndexError('index must be an integer')
@@ -1710,6 +1727,7 @@ class TrajectoryFile(TrajectoryBase):
         self._closed = True
     
     close.__doc__ = TrajectoryBase.close.__doc__  
+    
 
 DEBUG = False
 
@@ -1819,7 +1837,7 @@ class DCDFile(TrajectoryFile):
         # Read in the timestep, DELTA
         # Note: DELTA is stored as double with X-PLOR but as float with CHARMm
         self._timestep = temp[9]
-        self._unitcell = temp[10]
+        self._unitcell = temp[10] == 1
         
         # Get the end size of the first block
         if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 84:
@@ -1860,12 +1878,18 @@ class DCDFile(TrajectoryFile):
         self._n_floats = (self._n_atoms + 2) * 3
         
         if self._is64bit:
-            self._bytes_per_frame = 56 + self._n_floats * 8
+            if self._unitcell:
+                self._bytes_per_frame = 56 + self._n_floats * 8
+            else:
+                self._bytes_per_frame = self._n_floats * 8
             LOGGER.warning('Reading of 64 bit DCD files has not been tested. '
                            'Please report any problems that you may find.')
             self._dtype = np.float64
         else: 
-            self._bytes_per_frame = 56 + self._n_floats * 4
+            if self._unitcell:
+                self._bytes_per_frame = 56 + self._n_floats * 4
+            else:
+                self._bytes_per_frame = self._n_floats * 4
             self._dtype = np.float32
         
         self._first_byte = self._file.tell()
@@ -1880,18 +1904,28 @@ class DCDFile(TrajectoryFile):
         self._file.seek(self._first_byte)
         self._nfi = 0
    
+    def hasUnitcell(self):
+        
+        return self._unitcell
+    
+    hasUnitcell.__doc__ = TrajectoryBase.hasUnitcell.__doc__ 
+   
     def getTitle(self):
+        """Return title parsed from DCD file."""
         
         return self._title
     
     def getRemarks(self):
+        """Return remarks parsed from DCD file."""
         
         return self._remarks
         
     def next(self):
         
         if not self._closed and self._nfi < self._n_csets:
-            frame = Frame(self, self._nfi, self.nextCoordset())
+            unitcell = self._nextUnitcell()
+            coords = self._nextCoordset()
+            frame = Frame(self, self._nfi, coords, unitcell)
             return frame
     
     next.__doc__ = TrajectoryBase.next.__doc__  
@@ -1901,12 +1935,12 @@ class DCDFile(TrajectoryFile):
         
         if not self._closed and self._nfi < self._n_csets:
             #Skip extended system coordinates (unit cell data)
-            if False:
-                print unpack('i', self._file.read(4))
-                print unpack('d'*6, self._file.read(48))
-                print unpack('i', self._file.read(4))
-            else:
+            if self._unitcell:
                 self._file.seek(56, 1)
+            return self._nextCoordset()
+            
+    def _nextCoordset(self):
+    
             n_floats = self._n_floats
             n_atoms = self._n_atoms
             xyz = np.fromfile(self._file, dtype=self._dtype, count=n_floats)
@@ -1921,6 +1955,21 @@ class DCDFile(TrajectoryFile):
                 return xyz[self._indices]
 
     nextCoordset.__doc__ = TrajectoryBase.nextCoordset.__doc__  
+
+    def _nextUnitcell(self):
+        
+        if self._unitcell:
+            self._file.read(4)
+            unitcell = np.fromfile(self._file, dtype=np.float64, count=6)
+            unitcell = unitcell[[0,2,5,1,3,4]]
+            if np.all(abs(unitcell[3:]) <= 1):
+                # This file was generated by CHARMM, or by NAMD > 2.5, with the angle */
+                # cosines of the periodic cell angles written to the DCD file.        */ 
+                # This formulation improves rounding behavior for orthogonal cells    */
+                # so that the angles end up at precisely 90 degrees, unlike acos().   */
+                unitcell[3:] = 90. - np.arcsin(unitcell[3:]) * 90 / PISQUARE  
+            self._file.read(4)
+            return unitcell
 
     def getCoordsets(self, indices=None):
         """Returns coordinate sets at given *indices*. *indices* may be an 
@@ -2165,6 +2214,12 @@ class Trajectory(TrajectoryBase):
 
     close.__doc__ = TrajectoryBase.close.__doc__
     
+    def hasUnitcell(self):
+        
+        return np.all([traj.hasUnitcell() for traj in self._trajectories])
+    
+    hasUnitcell.__doc__ = TrajectoryBase.hasUnitcell.__doc__
+    
 def parseDCD(filename, start=None, stop=None, step=None):
     """Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
@@ -2220,7 +2275,13 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if not isinstance(trajectory, EnsembleBase):
         raise TypeError('{0:s} is not a valid type for trajectory'
                         .format(type(trajectory)))
+                        
+    if isinstance(trajectory, Ensemble):
+        unitcell = False
+    else:
+        unitcell = trajectory.hasUnitcell()
     irange = range(*slice(start, stop, step).indices(len(trajectory)))
+    nfi = trajectory.getNextFrameIndex() 
     trajectory.reset()
     n_atoms = trajectory.getNumOfSelected()
     n_csets = len(irange)
@@ -2246,7 +2307,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     dcd.write(pack_i_0) # 4 NAMD writes NSTEP or ISTART - NSAVC here?
     dcd.write(pack_ix4_0x4) # 5, 6, 7, 8
     dcd.write(pack('f', 0)) # 9 timestep
-    dcd.write(pack('i', 1)) # 10 with unitcell
+    dcd.write(pack('i', int(unitcell))) # 10 with unitcell
     dcd.write(pack_ix4_0x4) # 11, 12, 13, 14
     dcd.write(pack_ix4_0x4) # 15, 16, 17, 18
     dcd.write(pack('i', 24)) # 19 Pretend to be CHARMM version 24
@@ -2266,21 +2327,23 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     prev = -1
     unitcell = pack('d'*6, *(0,0,0,0,0,0))
     for j, i in enumerate(irange):
-        if align:
-            frame = trajectory.next()
-            frame.superpose()
-            coords = frame._getCoordinates().T
-        else:
-            coords = trajectory.nextCoordset().T
-        if coords is None:
-            break
         diff = i - prev
         if diff > 1:
             trajectory.skip(diff-1)
         prev = i
-        dcd.write(pack_i_48)
-        dcd.write(unitcell)
-        dcd.write(pack_i_48)
+        frame = trajectory.next()
+        if frame is None:
+            break
+        if align:
+            frame.superpose()
+        if unitcell:
+            uc = frame._getUnitcell()
+            uc[3:] = np.sin((PISQUARE/90) * (90-uc[3:]))
+            uc = uc[[0,3,1,4,5,2]]
+            dcd.write(pack_i_48)
+            uc.tofile(dcd)
+            dcd.write(pack_i_48)
+        coords = frame._getCoordinates().T
         dcd.write(pack_i_4N)
         coords[0].tofile(dcd)
         dcd.write(pack_i_4N)
@@ -2307,11 +2370,20 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if j != n_csets:
         LOGGER.warning('Warning: {0:d} frames expected, {1:d} written.'
                        .format(n_csets, j))
+    trajectory.goto(nfi)
     return filename
         
   
 if __name__ == '__main__':
     import prody
+    dcd = DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
+    writeDCD('/home/abakan/dene.dcd', dcd)
+    print dcd.getTitle()
+    print dcd.getFrame(852).getUnitcell()
+    new = DCDFile('/home/abakan/dene.dcd')
+    print new.getTitle()
+    print new.getFrame(852).getUnitcell()
+    stop
     ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
     ens.setAtomGroup( ag )
