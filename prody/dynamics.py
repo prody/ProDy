@@ -2741,7 +2741,9 @@ def calcProjection(ensemble, modes, rmsd=True):
     
     .. versionchanged:: 0.8
        By default root-mean-square deviation (RMSD) along the normal mode is 
-       calculated. To calculate the projection pass ``rmsd=True``.   
+       calculated. To calculate the projection pass ``rmsd=True``.
+       :class:`Vector` instances are accepted as *ensemble* argument to allow
+       for projecting a deformation vector onto normal modes.  
     
     >>> print( calcProjection(p38_ensemble, p38_pca[:3]).round(2) ) # doctest: +ELLIPSIS
     [[ 0.64  0.15  0.06]
@@ -2754,8 +2756,9 @@ def calcProjection(ensemble, modes, rmsd=True):
     
     """
     
-    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation)):
-        raise TypeError('ensemble must be an Ensemble or a Conformation, '
+    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
+                                 prody.Vector)):
+        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
                         'not {0:s}'.format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'
@@ -2764,12 +2767,19 @@ def calcProjection(ensemble, modes, rmsd=True):
         raise ValueError('modes must be 3-dimensional')
     if ensemble.getNumOfAtoms() != modes.getNumOfAtoms():
         raise ValueError('number of atoms are not the same')
-    deviations = ensemble.getDeviations()
+    if isinstance(ensemble, Vector):
+        if not ensemble.is3d(): 
+            raise ValueError('ensemble must be a 3d vector instance')
+        deviations = ensemble._getArray()
+    else:
+        deviations = ensemble.getDeviations()
     if deviations.ndim == 3:
         deviations = deviations.reshape((deviations.shape[0], 
                                          deviations.shape[1] * 3))
-    else:
+    elif deviations.ndim == 2:
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
+    else:
+        deviations = deviations.reshape((1, deviations.shape[0]))
     projection = np.dot(deviations, modes._getArray())
     if rmsd:
         projection =  (1 / (ensemble.getNumOfAtoms() ** 0.5)) * projection
@@ -4081,7 +4091,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     
     .. versionchanged:: 0.8
        The projected values are by default converted to RMSD. 
-       Pass ``rmsd=True`` to use projection itself. 
+       Pass ``rmsd=False`` to use projection itself.
+       :class:`Vector` instances are accepted as *ensemble* argument to allow
+       for projecting a deformation vector onto normal modes.  
     
     Matplotlib function used for plotting depends on the number of modes:
         
@@ -4119,8 +4131,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     
     if plt is None: prody.importPyPlot()
     if not plt: return None
-    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation)):
-        raise TypeError('ensemble must be an Ensemble or a Conformation, '
+    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
+                                 prody.Vector)):
+        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
                         'not {0:s}'.format(type(ensemble)))
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
@@ -4132,7 +4145,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
                                    len(modes)==1):
         if not isinstance(modes, Mode):
             modes = modes[0]
-        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', False))
+        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
         show = plt.hist(projection.flatten(), *args, **kwargs)
         plt.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
         plt.ylabel('Number of conformations')
@@ -4141,7 +4154,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['ls'] = 'None'
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
-        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', False))
+        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
         show = plt.plot(projection[:,0], projection[:,1], *args, **kwargs)
         modes = [m for m in modes]
         plt.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
@@ -4151,7 +4164,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['ls'] = 'None'
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
-        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', False)) 
+        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True)) 
         modes = [m for m in modes]
         cf = plt.gcf()
         show = None
@@ -4192,8 +4205,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     
     .. versionchanged:: 0.8
        The projected values are by default converted to RMSD. 
-       Pass ``rmsd=False`` to calculate raw projection values. 
-
+       Pass ``rmsd=False`` to calculate raw projection values.
+       :class:`Vector` instances are accepted as *ensemble* argument to allow
+       for projecting a deformation vector onto normal modes.  
     
     By default ``marker='o', ls='None'`` is passed to the plotting function 
     to disable lines.
@@ -4216,8 +4230,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     """
     if plt is None: prody.importPyPlot()
     if not plt: return None
-    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation)):
-        raise TypeError('ensemble must be an Ensemble or a Conformation, '
+    if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
+                                 prody.Vector)):
+        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
                         'not {0:s}'.format(type(ensemble)))
     if not isinstance(mode_x, VectorBase):
         raise TypeError('mode_x must be a Mode instance, not {0:s}'
@@ -4229,8 +4244,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                         .format(type(mode_y)))
     if not mode_y.is3d():
         raise ValueError('mode_y must be 3-dimensional')
-    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', False)) 
-    ycoords = calcProjection(ensemble, mode_y, kwargs.pop('rmsd', False))
+    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', True)) 
+    ycoords = calcProjection(ensemble, mode_y, kwargs.pop('rmsd', True))
     if isinstance(scale, str) and scale.lower() in ('x', 'y'):
         if scalar is not None:
             scalar = float(scalar)
