@@ -15,6 +15,8 @@ Release 0.8.0 (in development)
     
   * :class:`~ensemble.Trajectory` is implemented for handling multiple DCD
     files.
+  
+  * :func:`~ensemble.writeDCD` is implemented for writing DCD files.
     
   * :ref:`trajectory` example to illustrate usage of new classes for handling
     DCD files. :ref:`eda-md` example is updated to use new ProDy classes.

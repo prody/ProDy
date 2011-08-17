@@ -68,15 +68,14 @@ two ways.
 **Small trajectory files**
 
 If you are analyzing a small trajectory, you can use an 
-:class:`Ensemble` instance obtained by parsing the trajectory at once using
-:func:`parseDCD`:
+:class:`~prody.ensemble.Ensemble` instance obtained by parsing the 
+trajectory at once using :func:`~prody.ensemble.parseDCD`:
 
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble.setAtomGroup( structure )
 >>> ensemble.select('calpha')
 <Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
->>> #ensemble.superpose()
->>> ensemble.iterpose()
+>>> ensemble.superpose()
 >>> eda_ensemble = EDA('MDM2 Ensemble')
 >>> eda_ensemble.buildCovariance( ensemble )
 >>> eda_ensemble.calcModes()
@@ -117,15 +116,16 @@ Write NMD file
 -------------------------------------------------------------------------------
 
 We can write essential modes into an :term:`NMD` file for NMWiz.
-For this we will need to parse the protein structure as well::
+For this we will need to parse the protein structure as well:
 
 >>> writeNMD('mdm2_eda.nmd', eda_trajectory[:3], structure.select('calpha'))
 'mdm2_eda.nmd'
 
+
 Print data
 -------------------------------------------------------------------------------
 
-Let's print fraction of variance for top raking 4 essential modes::
+Let's print fraction of variance for top raking 4 essential modes:
 
 >>> for mode in eda_trajectory[:4]:
 ...     print mode.getFractOfVariance().round(2)
@@ -133,6 +133,7 @@ Let's print fraction of variance for top raking 4 essential modes::
 0.11
 0.08
 0.06
+
 
 See Also
 ===============================================================================
