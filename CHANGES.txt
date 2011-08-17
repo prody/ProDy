@@ -13,8 +13,8 @@ Release 0.8.0 (in development)
 
   * :class:`~ensemble.DCDFile` is implemented for handling DCD files.
     
-  * :class:`~ensemble.Trajectory` is implemented for handling multiple DCD
-    files.
+  * :class:`~ensemble.Trajectory` is implemented for handling multiple 
+    trajectory files.
   
   * :func:`~ensemble.writeDCD` is implemented for writing DCD files.
     
@@ -58,9 +58,9 @@ Release 0.8.0 (in development)
 
 **Improvements**:
 
-  * :func:`~dynamics.calcProjection`, :func:`~dynamics.showProjection`, and 
-    :func:`~dynamics.showCrossProjection` function can optionally calculate/
-    display RMSD along the normal mode. 
+  * :func:`~dynamics.calcProjection`, :func:`~dynamics.showProjection`, 
+    and :func:`~dynamics.showCrossProjection` functions can optionally 
+    calculate/display RMSD along the normal mode. 
   
   * ANM, GNM, and PCA routines can optionally write compressed ProDy data files.
   
@@ -127,12 +127,11 @@ Release 0.8.0 (in development)
 **Improvements**:
 
   * NMWiz writes DCD format trajectories for PCA using ProDy. This provides
-    significantly speeds up analysis in cases when IO rate is the bottleneck.
+    significant speed up in cases where IO rate is the bottleneck.
 
 **Changes**:
 
   * Help is provided in a text window to provide a cleaner GUI.
-
 
 
 Release 0.7.2 (Jun 21, 2011)

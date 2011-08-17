@@ -227,7 +227,7 @@ Parsing this file returns:
 See Also
 ===============================================================================
 
-See :ref:`eda-md` for essential dynamics analysis example. 
+See :ref:`eda` for essential dynamics analysis example. 
 
 |questions|
 

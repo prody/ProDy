@@ -44,6 +44,9 @@ Bibliography
    coarse-graining of large protein dynamics.  *J Comput Biol* **2007** 
    14:765-76.
 
+.. [DF95] Frishman D, Argos P. Knowledge-Based Protein Secondary Structure 
+   Assignment. *Proteins* **1995** 23:566-579.  
+
 .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal 
    fluctuations in protein using a single parameter harmonic potential.
    *Folding & Design* **1997** 2:173-181.
@@ -65,3 +68,7 @@ Bibliography
 .. [WZ05] Zheng W, Brooks BR. Probing the Local Dynamics of Nucleotide-Binding 
    Pocket Coupled to the Global Dynamics: Myosin versus Kinesin.
    *Biophysical Journal*  **2005** 89:167–178.
+
+.. [WK83] Kabsch W, Sander C. Dictionary of protein secondary structure: 
+   pattern recognition of hydrogen-bonded and geometrical features.
+   *Biopolymers* **1983** 22:2577-2637.

@@ -37,9 +37,23 @@ Feature Index
   * :ref:`pca-xray`
   * :ref:`pca-nmr`
   * :ref:`pca-blast`
-  * :ref:`eda-md`
+  * :ref:`eda`
   * :ref:`scripts-pca`
+
+**Trajectory Analysis:**
+
+  * :ref:`eda`
+  * :ref:`trajectory`
+  
+**Execute/parse secondary structure analysis programs/data:**
    
+  * :func:`~proteins.execDSSP`
+  * :func:`~proteins.parseDSSP`
+  * :func:`~proteins.performDSSP`
+  * :func:`~proteins.execSTRIDE`
+  * :func:`~proteins.parseSTRIDE`
+  * :func:`~proteins.performSTRIDE`
+
 **Generate conformations along normal modes:**
 
   * Sample random conformations along a set of modes (:func:`~dynamics.sampleModes`)
@@ -87,6 +101,9 @@ Feature Index
   * Parse NMD files (:func:`~dynamics.parseNMD`)
   * Parse arrays from file (:func:`~dynamics.parseArray`)
   * Parse normal mode data (:func:`~dynamics.parseModes`)
+  * Parse DCD files (:func:`~ensemble.parseDCD`)
+  * Parse DSSP output (:func:`~proteins.parseDSSP`)
+  * Parse STRIDE output (:func:`~proteins.parseSTRIDE`)
   
 **Visualization**:
   
@@ -99,3 +116,4 @@ Feature Index
   * Save/load ANM/GNM/PCA data (:func:`~dynamics.saveModel`, :func:`~dynamics.loadModel`)
   * Save/load arbitrary vectors (:func:`~dynamics.saveVector`, :func:`~dynamics.loadVector`)
   * Save/load ensembles (:func:`~ensemble.saveEnsemble`, :func:`~ensemble.loadEnsemble`)
+  * Save/load atomic data (:func:`~atomic.saveAtoms`, :func:`~atomic.loadAtoms`)

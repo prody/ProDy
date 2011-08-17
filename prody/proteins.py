@@ -1630,7 +1630,8 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     Upon successful execution of :command:`dssp pdb > out` command, output
     filename is returned. 
     
-    For more information on DSSP see http://swift.cmbi.ru.nl/gv/dssp/."""
+    For more information on DSSP see http://swift.cmbi.ru.nl/gv/dssp/.
+    If you benefited from DSSP, please consider citing [WK83]_."""
     
     dssp = prody.which('dssp')
     if dssp is None:
@@ -1788,16 +1789,17 @@ def performDSSP(pdb, parseall=False):
     return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
     
 def execSTRIDE(pdb, outputname=None, outputdir=None):
-    """|new| Execute STRIDE for given *pdb*. *pdb* can be a PDB identifier or 
-    a PDB file path. If *pdb* is a compressed file, it will be decompressed 
+    """|new| Execute STRIDE program for given *pdb*. *pdb* can be an identifier 
+    or a PDB file path. If *pdb* is a compressed file, it will be decompressed 
     using Python :mod:`gzip` library. When no *outputname* is given, output 
     name will be :file:`pdbidentifier.stride`. :file:`.stride` extension will 
-    be appended automatically to *outputname*. If :file:`outputdir` is given,
+    be appended automatically to *outputname*. If :file:`outputdir` is given, 
     STRIDE output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`stride pdb > out` command, output
     filename is returned. 
     
-    For more information on STRIDE see http://webclu.bio.wzw.tum.de/stride/."""
+    For more information on STRIDE see http://webclu.bio.wzw.tum.de/stride/.
+    If you benefited from STRIDE, please consider citing [DF95]_."""
     
     stride = prody.which('stride')
     if stride is None:
@@ -1835,9 +1837,9 @@ def parseSTRIDE(stride, ag):
     * *stride_resnum*: STRIDE's sequential residue number, starting at the 
       first residue actually in the data set.
     
-    * *stride_phi* and *stride_psi*: IUPAC peptide backbone torsion angles
+    * *stride_phi*, *stride_psi*: peptide backbone torsion angles phi and psi
     
-    * *stride_area*:  
+    * *stride_area*: residue solvent accessible area
     
     """
     
@@ -1866,7 +1868,7 @@ def parseSTRIDE(stride, ag):
         NUMBER[indices] = int(line[16:20])
         PHI[indices] = float(line[42:49])
         PSI[indices] = float(line[52:59])
-        AREA[indices] = float(line[61:69])
+        AREA[indices] = float(line[64:69])
     ag.setAttribute('stride_resnum', NUMBER)
     ag.setAttribute('stride_phi', PHI)
     ag.setAttribute('stride_psi', PSI)
