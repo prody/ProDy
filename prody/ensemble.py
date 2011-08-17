@@ -655,7 +655,7 @@ class Ensemble(EnsembleBase):
             LOGGER.warning('Coordinates are not set.')
             return None
         
-        return self.getCoordsets() - self._coords 
+        return self._getCoordsets() - self._coords 
         
     def getRMSDs(self):
         """Calculate and return root mean square deviations (RMSDs). Note that 
@@ -1148,7 +1148,7 @@ class Conformation(ConformationBase):
             return None
         indices = ensemble._indices
         if indices is None:
-            return ensemble._coords - ensemble._confs[self._index].copy()
+            return ensemble._confs[self._index] - ensemble._coords 
         else:
             return (ensemble._confs[self._index, indices].copy() - 
                     ensemble._coords[indices])
@@ -1688,8 +1688,14 @@ class TrajectoryFile(TrajectoryBase):
         for i, index in enumerate(indices):
             diff = index - prev
             if diff > 1:
-                self.skip(diff)
-            coords[i] = next()
+                self.skip(diff-1)
+            xyz = next()
+            if xyz is None:         
+                LOGGER.warning('Expected {0:d} frames, but parsed {1:d}.'
+                               .format(len(indices), i))
+                self.goto(nfi)
+                return coords[:i]
+            coords[i] = xyz 
             prev = index
 
         self.goto(nfi)
