@@ -16,13 +16,14 @@ a number of different ways that coordinate data in DCD files can be analyzed.
 Input
 -------------------------------------------------------------------------------
 
-Currently, ProDy supports only reading DCD files. A DCD trajectory file and 
+Currently, ProDy supports only DCD format files. Two DCD trajectory files and 
 corresponding PDB structure file is needed for this example.
 
 Example input:
  
 * :download:`MDM2 reference structure </doctest/mdm2.pdb>` 
-* :download:`MDM2 trajectory </doctest/mdm2.dcd>` 
+* :download:`MDM2 trajectory </doctest/mdm2.dcd>`
+* :download:`MDM2 trajectory </doctest/mdm2sim2.dcd>`  
 
 Output
 -------------------------------------------------------------------------------
@@ -155,6 +156,36 @@ We can perform these calculations for all frames in a for loop. Let's reset
   ...
   13.05  13.05  13.16  13.1   13.15  13.18  13.1 ]
 
+Handling multiple files
+-------------------------------------------------------------------------------
+
+:class:`Trajectory` is designed for handling multiple trajectory files:
+
+>>> traj = Trajectory('mdm2.dcd')
+>>> traj
+<Trajectory: mdm2 (1 files, next 0 of 500 frames, selected 1449 of 1449 atoms)>
+>>> traj.addFile('mdm2sim2.dcd')
+>>> traj 
+<Trajectory: mdm2 (2 files, next 0 of 1000 frames, selected 1449 of 1449 atoms)>
+
+Instances of this class are also suitable for previous calculations:
+
+>>> traj.setAtomGroup( structure )
+>>> rgyr = np.zeros(len(traj))
+>>> rmsd = np.zeros(len(traj))
+>>> for i, frame in enumerate(traj):
+...     rgyr[i] = calcRadiusOfGyration( frame )
+...     frame.superpose()
+...     rmsd[i] = frame.getRMSD()
+>>> print rmsd.round(2) # doctest: +ELLIPSIS
+[ 0.96  1.38  1.86  1.67  1.82  2.    1.84  1.85  1.72  2.    1.91  1.89
+  ...
+  2.34  2.3   2.37  2.36]
+>>> print rgyr.round(2) # doctest: +ELLIPSIS
+[ 12.95  13.08  12.93  13.03  12.96  13.02  12.87  12.93  12.9   12.86
+  ...
+  12.95  12.98  12.96  13.    13.08  12.9   12.94  12.98  12.96]
+  
 Associate with an AtomGroup
 -------------------------------------------------------------------------------
 
@@ -174,7 +205,25 @@ Let's calculate end-to-end distance:
 [ 11.79  14.13  15.66  14.52  16.46  17.21  16.45  14.29  11.6   12.66
   ...
   11.94  11.7   12.43  11.65  12.37  12.54  11.34  11.55  11.47]
-   
+  
+Writing DCD files
+-------------------------------------------------------------------------------
+
+Finally, you can write :class:`Ensemble`, :class:`Trajectory`, and 
+:class:`DCDFile` instances in DCD format using :func:`writeDCD` function.
+Let's select non-hydrogen protein atoms and write a merged trajectory for
+MDM2:
+
+>>> traj.select('noh')
+<Selection: "noh" from mdm2 (706 atoms; 2 coordinate sets, active set index: 1)>
+>>> writeDCD('mdm2_merged_noh.dcd', traj)
+'mdm2_merged_noh.dcd'
+
+Parsing this file returns:
+
+>>> DCDFile('mdm2_merged_noh.dcd')
+<DCDFile: mdm2_merged_noh (next 0 of 1000 frames, selected 706 of 706 atoms)>
+
 See Also
 ===============================================================================
 
