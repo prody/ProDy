@@ -284,17 +284,18 @@ class ProDyProgress(object):
                 prev = (percent, 0)
             if self._prev == prev:
                 return
-            prefix = ProDySignature + self._prefix
+            prefix = '\r' + ProDySignature + self._prefix
             bar = ''
             barlen = self._barlen
             if barlen > 10:
                 bar = int(round(percent*barlen/100.))
-                bar = ' [' + '='*(max(bar-1, 0)) + '>' + ' '*(barlen-bar) + '] '
+                bar = '='*bar + '>' + ' '*(barlen-bar)
+                bar = ' [' + bar  + '] '
             if percent > 3:
-                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar + '%ds    ') % 
-                 (percent, seconds))
+                sys.stderr.write((prefix + ' %2d%%' + bar + '%ds    ') % 
+                                 (percent, seconds))
             else:
-                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar) % percent) 
+                sys.stderr.write((prefix + ' %2d%%' + bar) % percent) 
             sys.stderr.flush()
             self._prev = prev
     
