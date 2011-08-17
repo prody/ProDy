@@ -2171,8 +2171,13 @@ class Trajectory(TrajectoryBase):
             while traj._nfi == traj._n_csets:
                 self._nextFile()
                 traj = self._trajectory
-            frame = traj.next()
-            frame._index = nfi
+            unitcell = traj._nextUnitcell()
+            if self._indices is None: 
+                coords = traj._nextCoordset()
+            else:
+                coords = traj._nextCoordset()[self._indices]
+            
+            frame = Frame(self, nfi, coords, unitcell)
             self._nfi += 1
             return frame
 
@@ -2347,6 +2352,9 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if n_csets == 0:
         raise ValueError('trajectory does not have any coordinate sets, or '
                          'no coordinate sets are selected')
+    n_atoms = trajectory.getNumOfSelected()
+    if n_atoms == 0:
+        raise ValueError('no atoms are selected in the trajectory')
     if isinstance(trajectory, TrajectoryBase):
         isTrajectory = True
         unitcell = trajectory.hasUnitcell()
@@ -2371,9 +2379,6 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         first_ts = 0
         framefreq = 1
         n_fixed = 0
-    n_atoms = trajectory.getNumOfSelected()
-    if n_atoms == 0:
-        raise ValueError('no atoms are selected in the trajectory')
     pack_i_0 = pack('i', 0)
     pack_ix4_0x4 = pack('i'*4, 0, 0, 0, 0)
     pack_i_1 = pack('i', 1)
@@ -2421,7 +2426,6 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
             frame = trajectory.next()
             if frame is None:
                 break
-
             if unitcell:
                 uc = frame._getUnitcell()
                 uc[3:] = np.sin((PISQUARE/90) * (90-uc[3:]))
