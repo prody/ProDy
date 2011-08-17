@@ -1128,6 +1128,17 @@ class Conformation(ConformationBase):
         else:
             return self._ensemble._confs[self._index, indices].copy()
     
+    def _getCoordinates(self):
+
+        if self._ensemble._confs is None:
+            return None
+        indices = self._indices
+        if indices is None:
+            return self._ensemble._confs[self._index]
+        else:
+            return self._ensemble._confs[self._index, indices]
+
+    
     def getDeviations(self):
         """Return deviations from the ensemble reference coordinates. 
         Deviations are calculated for selected atoms."""
@@ -1228,6 +1239,8 @@ class PDBConformation(Conformation):
             which = ensemble._weights[index, indices].flatten()==0
             coords[which] = ensemble._coords[indices][which]
         return coords
+    
+    _getCoordinates = getCoordinates
     
     def getDeviations(self):
         """Return deviations from the ensemble reference coordinates. 
@@ -1599,6 +1612,12 @@ class TrajectoryFile(TrajectoryBase):
         self._bytes_per_frame = None
         self._first_byte = None
         self._dtype = np.float32
+        
+        self._timestep = 1
+        self._first_ts = 0
+        self._framefreq = 1
+        self._n_fixed = 0
+        
     
     def __repr__(self):
         if self._closed:
@@ -1726,8 +1745,27 @@ class TrajectoryFile(TrajectoryBase):
         self._nfi = 0
         self._closed = True
     
-    close.__doc__ = TrajectoryBase.close.__doc__  
+    close.__doc__ = TrajectoryBase.close.__doc__
     
+    def getTimestep(self):
+        """Return timestep size."""
+        
+        return self._timestep
+    
+    def getFirstTimestep(self):
+        """Return first timestep value."""
+        
+        return self._first_ts
+    
+    def getFrameFreq(self):
+        """Return timesteps between frames."""
+        
+        return self._framefreq
+    
+    def getNumOfFixed(self):
+        """Return number of fixed atoms."""
+        
+        return self._n_fixed
 
 DEBUG = False
 
@@ -1827,7 +1865,7 @@ class DCDFile(TrajectoryFile):
         # Store ISTART, the starting timestep
         self._first_ts = temp[1]
         # Store NSAVC, the number of timesteps between dcd saves
-        self._save_freq = temp[2]
+        self._framefreq = temp[2]
         # Store NAMNF, the number of fixed atoms
         self._n_fixed = temp[8]
         
@@ -1922,10 +1960,11 @@ class DCDFile(TrajectoryFile):
         
     def next(self):
         
-        if not self._closed and self._nfi < self._n_csets:
+        nfi = self._nfi
+        if not self._closed and nfi < self._n_csets:
             unitcell = self._nextUnitcell()
             coords = self._nextCoordset()
-            frame = Frame(self, self._nfi, coords, unitcell)
+            frame = Frame(self, nfi, coords, unitcell)
             return frame
     
     next.__doc__ = TrajectoryBase.next.__doc__  
@@ -2126,9 +2165,16 @@ class Trajectory(TrajectoryBase):
     getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
     
     def next(self):
-
-        if not self._closed and self._nfi < self._n_csets:
-            return Frame(self, self._nfi, self.nextCoordset())
+        nfi = self._nfi
+        if not self._closed and nfi < self._n_csets:
+            traj = self._trajectory
+            while traj._nfi == traj._n_csets:
+                self._nextFile()
+                traj = self._trajectory
+            frame = traj.next()
+            frame._index = nfi
+            self._nfi += 1
+            return frame
 
     next.__doc__ = TrajectoryBase.next.__doc__
     
@@ -2220,6 +2266,26 @@ class Trajectory(TrajectoryBase):
     
     hasUnitcell.__doc__ = TrajectoryBase.hasUnitcell.__doc__
     
+    def getTimestep(self):
+        """Return a list timestep sizes, one from each file."""
+        
+        return [traj.getTimestep() for traj in self._trajectories]
+    
+    def getFirstTimestep(self):
+        """Return a list first timestep values, one from each file."""
+        
+        return [traj.getFirstTimestep() for traj in self._trajectories]
+    
+    def getFrameFreq(self):
+        """Return a list timesteps between frames, one from each file."""
+        
+        return [traj.getFrameFreq() for traj in self._trajectories]
+    
+    def getNumOfFixed(self):
+        """Return a list of fixed atom numbers, one from each file."""
+        
+        return [traj.getNumOfFixed() for traj in self._trajectories]
+    
 def parseDCD(filename, start=None, stop=None, step=None):
     """Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
@@ -2275,16 +2341,37 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if not isinstance(trajectory, EnsembleBase):
         raise TypeError('{0:s} is not a valid type for trajectory'
                         .format(type(trajectory)))
-                        
-    if isinstance(trajectory, Ensemble):
-        unitcell = False
-    else:
-        unitcell = trajectory.hasUnitcell()
+    
     irange = range(*slice(start, stop, step).indices(len(trajectory)))
-    nfi = trajectory.getNextFrameIndex() 
-    trajectory.reset()
-    n_atoms = trajectory.getNumOfSelected()
     n_csets = len(irange)
+    if n_csets == 0:
+        raise ValueError('trajectory does not have any coordinate sets, or '
+                         'no coordinate sets are selected')
+    if isinstance(trajectory, TrajectoryBase):
+        isTrajectory = True
+        unitcell = trajectory.hasUnitcell()
+        nfi = trajectory.getNextFrameIndex() 
+        trajectory.reset()
+        pack_i_48 = pack('i', 48)
+        if isinstance(trajectory, Trajectory):
+            timestep = trajectory.getTimestep()[0]
+            first_ts = trajectory.getFirstTimestep()[0]
+            framefreq = trajectory.getFrameFreq()[0]
+            n_fixed = trajectory.getNumOfFixed()[0]
+        else:
+            timestep = trajectory.getTimestep()
+            first_ts = trajectory.getFirstTimestep()
+            framefreq = trajectory.getFrameFreq()
+            n_fixed = trajectory.getNumOfFixed()
+    else:
+        isTrajectory = False
+        unitcell = False
+        frame = trajectory[0]
+        timestep = 1
+        first_ts = 0
+        framefreq = 1
+        n_fixed = 0
+    n_atoms = trajectory.getNumOfSelected()
     if n_atoms == 0:
         raise ValueError('no atoms are selected in the trajectory')
     pack_i_0 = pack('i', 0)
@@ -2292,7 +2379,6 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     pack_i_1 = pack('i', 1)
     pack_i_2 = pack('i', 2)
     pack_i_4 = pack('i', 4)
-    pack_i_48 = pack('i', 48)
     pack_i_84 = pack('i', 84)
     pack_i_164 = pack('i', 164)
     pack_i_4N = pack('i', n_atoms * 4)
@@ -2301,12 +2387,12 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     dcd.write(pack_i_84)
     dcd.write('CORD')
     dcd.write(pack_i_0) # 0 Number of frames in file, none written yet
-    dcd.write(pack_i_0) # 1 Starting timestep
-    dcd.write(pack_i_1) # 2 Timesteps between frames written to the file
+    dcd.write(pack('i', first_ts)) # 1 Starting timestep
+    dcd.write(pack('i', framefreq)) # 2 Timesteps between frames written to the file
     dcd.write(pack('i', n_csets)) # 3 Number of timesteps in simulation
     dcd.write(pack_i_0) # 4 NAMD writes NSTEP or ISTART - NSAVC here?
     dcd.write(pack_ix4_0x4) # 5, 6, 7, 8
-    dcd.write(pack('f', 0)) # 9 timestep
+    dcd.write(pack('f', timestep)) # 9 timestep
     dcd.write(pack('i', int(unitcell))) # 10 with unitcell
     dcd.write(pack_ix4_0x4) # 11, 12, 13, 14
     dcd.write(pack_ix4_0x4) # 15, 16, 17, 18
@@ -2331,18 +2417,22 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         if diff > 1:
             trajectory.skip(diff-1)
         prev = i
-        frame = trajectory.next()
-        if frame is None:
-            break
+        if isTrajectory:
+            frame = trajectory.next()
+            if frame is None:
+                break
+
+            if unitcell:
+                uc = frame._getUnitcell()
+                uc[3:] = np.sin((PISQUARE/90) * (90-uc[3:]))
+                uc = uc[[0,3,1,4,5,2]]
+                dcd.write(pack_i_48)
+                uc.tofile(dcd)
+                dcd.write(pack_i_48)
+        else:
+            frame._index = i
         if align:
             frame.superpose()
-        if unitcell:
-            uc = frame._getUnitcell()
-            uc[3:] = np.sin((PISQUARE/90) * (90-uc[3:]))
-            uc = uc[[0,3,1,4,5,2]]
-            dcd.write(pack_i_48)
-            uc.tofile(dcd)
-            dcd.write(pack_i_48)
         coords = frame._getCoordinates().T
         dcd.write(pack_i_4N)
         coords[0].tofile(dcd)
@@ -2370,7 +2460,8 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if j != n_csets:
         LOGGER.warning('Warning: {0:d} frames expected, {1:d} written.'
                        .format(n_csets, j))
-    trajectory.goto(nfi)
+    if isTrajectory:
+        trajectory.goto(nfi)
     return filename
         
   
