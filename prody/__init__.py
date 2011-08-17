@@ -288,10 +288,10 @@ class ProDyProgress(object):
             bar = ''
             barlen = self._barlen
             if barlen > 10:
-                barlen = int(round(0.2*percent))
-                bar = ' [' + '=' * (barlen-1) + '>' + ' ' * (20-barlen) + '] '
+                bar = int(round(percent*barlen/100.))
+                bar = ' [' + '='*(max(bar-1, 0)) + '>' + ' '*(barlen-bar) + '] '
             if percent > 3:
-                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar + '%ds    ') % 
+                sys.stderr.write(('\r' + prefix + ' %2d%%' + bar + '%ds    \n') % 
                  (percent, seconds))
             else:
                 sys.stderr.write(('\r' + prefix + ' %2d%%' + bar) % percent) 
