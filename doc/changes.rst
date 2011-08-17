@@ -13,13 +13,13 @@ Release 0.8.0 (in development)
 
   * :class:`~ensemble.DCDFile` is implemented for handling DCD files.
     
-  * :class:`~ensemble.Trajectory` is implemented for handling multiple DCD
-    files.
+  * :class:`~ensemble.Trajectory` is implemented for handling multiple 
+    trajectory files.
   
   * :func:`~ensemble.writeDCD` is implemented for writing DCD files.
     
   * :ref:`trajectory` example to illustrate usage of new classes for handling
-    DCD files. :ref:`eda-md` example is updated to use new ProDy classes.
+    DCD files. :ref:`eda` example is updated to use new ProDy classes.
   
   * :class:`~dynamics.PCA` supports :class:`~ensemble.Trajectory` and
     :class:`~ensemble.DCDFile` instances. 
@@ -32,8 +32,8 @@ Release 0.8.0 (in development)
     :meth:`~ensemble.EnsembleBase.getAtomGroup`, and 
     :meth:`~ensemble.EnsembleBase.getSelection` methods.
   
-  * :func:`~proteins.execDSSSP`, :func:`~proteins.parseDSSSP`, and 
-    :func:`~proteins.performDSSSP` functions are implemented for 
+  * :func:`~proteins.execDSSP`, :func:`~proteins.parseDSSP`, and 
+    :func:`~proteins.performDSSP` functions are implemented for 
     executing and parsing DSSP calculations.
 
   * :func:`~proteins.parsePDB` function parses atom serial numbers. Atoms
@@ -58,9 +58,9 @@ Release 0.8.0 (in development)
 
 **Improvements**:
 
-  * :func:`~dynamics.calcProjection`, :func:`~dynamics.showProjection`, and 
-    :func:`~dynamics.showCrossProjection` function can optionally calculate/
-    display RMSD along the normal mode. 
+  * :func:`~dynamics.calcProjection`, :func:`~dynamics.showProjection`, 
+    and :func:`~dynamics.showCrossProjection` functions can optionally 
+    calculate/display RMSD along the normal mode. 
   
   * ANM, GNM, and PCA routines can optionally write compressed ProDy data files.
   
@@ -78,8 +78,9 @@ Release 0.8.0 (in development)
   
   * :meth:`~ensemble.Ensemble.getMSFs` is optimized for speed and memory usage.
 
-  * Improvements in memory usage in :mod:`atomic`, :mod:`ensemble`, and
-    :mod:`dynamics` modules, faster data (PDB/NMD) output.
+  * Improvements in memory operations in :mod:`~prody.atomic`, 
+    :mod:`~prody.ensemble`, and :mod:`~prody.dynamics` modules for 
+    faster data (PDB/NMD) output.
     
   * Optimizations in :class:`~select.Select` and :class:`~select.Contacts`
     classes.
@@ -126,12 +127,11 @@ Release 0.8.0 (in development)
 **Improvements**:
 
   * NMWiz writes DCD format trajectories for PCA using ProDy. This provides
-    significantly speeds up analysis in cases when IO rate is the bottleneck.
+    significant speed up in cases where IO rate is the bottleneck.
 
 **Changes**:
 
   * Help is provided in a text window to provide a cleaner GUI.
-
 
 
 Release 0.7.2 (Jun 21, 2011)
