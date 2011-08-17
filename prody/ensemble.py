@@ -47,13 +47,14 @@ Inheritance Diagram
 Functions
 ---------
 
-    * :func:`parseDCD`
     * :func:`saveEnsemble`
     * :func:`loadEnsemble`
     * :func:`calcSumOfWeights`
     * :func:`showSumOfWeights`
     * :func:`trimEnsemble`
-    
+    * :func:`parseDCD`
+    * :func:`writeDCD`
+
     
 Examples
 --------
@@ -72,6 +73,10 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 from time import time
 import os.path
+import datetime
+from struct import calcsize, unpack, pack
+import math
+
 import numpy as np
 import prody
 from prody import ProDyLogger as LOGGER
@@ -83,7 +88,7 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'ConformationBase',
            'saveEnsemble', 'loadEnsemble', 
            'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble',
-           'parseDCD']
+           'parseDCD', 'writeDCD']
         
 plt = None
 
@@ -932,7 +937,7 @@ class PDBEnsemble(Ensemble):
         :meth:`iterpose` before calculating RMSDs.
         
         >>> rmsd = ensemble.getRMSDs().round(2)
-        >>> print rmsd[0]
+        >>> print( rmsd[0] )
         0.74
         >>> print( rmsd )
         [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
@@ -1189,7 +1194,7 @@ class PDBConformation(Conformation):
         """Set the identifier of the conformation instance.
         
         >>> conf.setIdentifier('1a9u')
-        >>> print conf.getIdentifier()
+        >>> print( conf.getIdentifier() )
         1a9u
         
         """
@@ -1399,7 +1404,7 @@ def calcSumOfWeights(ensemble):
     When analyzing an ensemble of X-ray structures, this function can be used 
     to see how many times a residue is resolved.
     
-    >>> print calcSumOfWeights(ensemble) # doctest: +ELLIPSIS
+    >>> print( calcSumOfWeights(ensemble) ) # doctest: +ELLIPSIS
     [ 74.  75.  75.  75.  75.  75.  75.  75.  75.  73.  73.  74.  75.  75.  75.
       75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  70.  73.  75.  75.
       ...
@@ -1456,8 +1461,6 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     plt.ylabel('Sum of weights')
     return show
 
-# Translation of dcdplugin.c
-from struct import calcsize, unpack
 
 RECSCALE32BIT = 1
 RECSCALE64BIT = 2
@@ -1707,7 +1710,9 @@ class TrajectoryFile(TrajectoryBase):
         self._closed = True
     
     close.__doc__ = TrajectoryBase.close.__doc__  
-    
+
+DEBUG = False
+
 class DCDFile(TrajectoryFile):
     
     """|new| A class for reading DCD files."""
@@ -1743,6 +1748,7 @@ class DCDFile(TrajectoryFile):
         # Check magic number in file header and determine byte order
         bits = dcd.read(calcsize('ii'))
         temp = unpack(endian+'ii', bits)
+        if DEBUG: print len(temp), temp
         if temp[0] + temp[1] == 84:
             LOGGER.info('Detected CHARMM -i8 64-bit DCD file of native '
                         'endianness.')
@@ -1785,8 +1791,8 @@ class DCDFile(TrajectoryFile):
         # header, which is unused by X-PLOR, to its version number.
         # Checking if this is nonzero tells us this is a CHARMm file
         # and to look for other CHARMm flags.
-
         temp = unpack(endian + 'i'*20 , bits)
+        if DEBUG: print len(temp), temp
         if temp[-1] != 0:
             charmm = True
 
@@ -1820,15 +1826,22 @@ class DCDFile(TrajectoryFile):
             raise IOError('Unrecognized DCD format.')
         
         # Read in the size of the next block
-        if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 164:
+        temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
+        if DEBUG: print len(temp), temp
+        if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
         # Read NTITLE, the number of 80 character title strings there are
         temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        self._title = dcd.read(80).strip()
-        self._remarks = dcd.read(80).strip()
+        if DEBUG: print len(temp), temp
+        self._title = dcd.read(80)
+        if DEBUG: print self._title
+        self._remarks = dcd.read(80)
+        if DEBUG: print self._remarks
         # Get the ending size for this block
-        if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 164:
+        temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
+        if DEBUG: print len(temp), temp
+        if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
 
@@ -1859,12 +1872,21 @@ class DCDFile(TrajectoryFile):
         n_csets = (os.path.getsize(self._filename) - self._first_byte
                     ) / self._bytes_per_frame
         if n_csets != self._n_csets: 
-            LOGGER.warning('DCD header indicates {0:d} frames, but {1:d} is ' 
-                           'found'.format(self._n_csets, n_csets))
+            LOGGER.warning('DCD is corrupt, header indicates {0:d} '
+                           'frames, file contains {1:d}.'
+                           .format(self._n_csets, n_csets))
             self._n_csets = n_csets
         self._coords = self.nextCoordset()
         self._file.seek(self._first_byte)
         self._nfi = 0
+   
+    def getTitle(self):
+        
+        return self._title
+    
+    def getRemarks(self):
+        
+        return self._remarks
         
     def next(self):
         
@@ -1879,7 +1901,12 @@ class DCDFile(TrajectoryFile):
         
         if not self._closed and self._nfi < self._n_csets:
             #Skip extended system coordinates (unit cell data)
-            self._file.seek(56, 1)
+            if False:
+                print unpack('i', self._file.read(4))
+                print unpack('d'*6, self._file.read(48))
+                print unpack('i', self._file.read(4))
+            else:
+                self._file.seek(56, 1)
             n_floats = self._n_floats
             n_atoms = self._n_atoms
             xyz = np.fromfile(self._file, dtype=self._dtype, count=n_floats)
@@ -1899,19 +1926,24 @@ class DCDFile(TrajectoryFile):
         """Returns coordinate sets at given *indices*. *indices* may be an 
         integer, a list of integers or ``None``. ``None`` returns all 
         coordinate sets."""
-        
+                
         if self._indices is None and \
             (indices is None or indices == slice(None)):
             nfi = self._nfi
             self.reset()
-            n_floats = self._n_floats
+            n_floats = self._n_floats + 14
             n_atoms = self._n_atoms
-            n_confs = self._n_csets
+            n_csets = self._n_csets
             data = np.fromfile(self._file, self._dtype, 
-                               self._bytes_per_frame * n_confs)
-            data = data.reshape((n_confs, 14 + n_floats))
+                               n_floats * n_csets)
+            if len(data) > n_floats * n_csets:
+                n_csets = len(data)/n_floats
+                data = data[:n_csets]
+                LOGGER.warning('DCD is corrupt, {0:d} out of {1:d} frames '
+                               'were parsed.'.format(n_csets, self._n_csets))
+            data = data.reshape((n_csets, n_floats))
             data = data[:, 14:]
-            data = data.reshape((n_confs, 3, n_atoms+2))
+            data = data.reshape((n_csets, 3, n_atoms+2))
             data = data[:, :, 1:-1]
             data = data.transpose(0, 2, 1)
             self.goto(nfi)
@@ -2133,7 +2165,7 @@ class Trajectory(TrajectoryBase):
 
     close.__doc__ = TrajectoryBase.close.__doc__
     
-def parseDCD(filename, first=None, last=None, step=None):
+def parseDCD(filename, start=None, stop=None, step=None):
     """Parse CHARMM format DCD files (also NAMD 2.1 and later).
     
     .. versionadded:: 0.7.2
@@ -2147,11 +2179,11 @@ def parseDCD(filename, first=None, last=None, step=None):
     :arg filename: DCD filename
     :type filename: str
     
-    :arg first: index of first frame to read
-    :type first: int
+    :arg start: index of first frame to read
+    :type start: int
         
-    :arg last: index of last frame to read
-    :type last: int
+    :arg stop: index of the frame that stops reading
+    :type stop: int
         
     :arg step: steps between reading frames, default is 1 meaning every frame
     :type step: int
@@ -2159,13 +2191,13 @@ def parseDCD(filename, first=None, last=None, step=None):
     """
     
     dcd = DCDFile(filename)
-    start = time()
+    time_ = time()
     n_frames = dcd.getNumOfFrames()
     LOGGER.info('DCD file contains {0:d} coordinate sets for {1:d} atoms.'
                 .format(n_frames, dcd.getNumOfAtoms()))
-    ensemble = dcd[slice(first,last,step)]    
+    ensemble = dcd[slice(start,stop,step)]    
     dcd.close()
-    time_ = time() - start
+    time_ = time() - time_
     dcd_size = 1.0 * dcd.getNumOfFrames() * dcd._bytes_per_frame / (1024*1024)
     LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB parsed at input rate {1:.2f} MB/s.'
@@ -2173,14 +2205,118 @@ def parseDCD(filename, first=None, last=None, step=None):
     LOGGER.info('{0:d} coordinate sets parsed at input rate {1:d} frame/s.'
                 .format(n_frames, int(n_frames/time_)))
     return ensemble
+
+
+
+def writeDCD(filename, trajectory, start=None, stop=None, step=None, 
+             align=False):
+    """Write 32-bit CHARMM format DCD file (also NAMD 2.1 and later).
+    *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or 
+    :class:`Ensemble` instance. *filename* is returned upon successful
+    output of file.
+    
+    """
+    
+    if not isinstance(trajectory, EnsembleBase):
+        raise TypeError('{0:s} is not a valid type for trajectory'
+                        .format(type(trajectory)))
+    irange = range(*slice(start, stop, step).indices(len(trajectory)))
+    trajectory.reset()
+    n_atoms = trajectory.getNumOfSelected()
+    n_csets = len(irange)
+    if n_atoms == 0:
+        raise ValueError('no atoms are selected in the trajectory')
+    pack_i_0 = pack('i', 0)
+    pack_ix4_0x4 = pack('i'*4, 0, 0, 0, 0)
+    pack_i_1 = pack('i', 1)
+    pack_i_2 = pack('i', 2)
+    pack_i_4 = pack('i', 4)
+    pack_i_48 = pack('i', 48)
+    pack_i_84 = pack('i', 84)
+    pack_i_164 = pack('i', 164)
+    pack_i_4N = pack('i', n_atoms * 4)
+    time_ = time()
+    dcd = open(filename, 'wb')
+    dcd.write(pack_i_84)
+    dcd.write('CORD')
+    dcd.write(pack_i_0) # 0 Number of frames in file, none written yet
+    dcd.write(pack_i_0) # 1 Starting timestep
+    dcd.write(pack_i_1) # 2 Timesteps between frames written to the file
+    dcd.write(pack('i', n_csets)) # 3 Number of timesteps in simulation
+    dcd.write(pack_i_0) # 4 NAMD writes NSTEP or ISTART - NSAVC here?
+    dcd.write(pack_ix4_0x4) # 5, 6, 7, 8
+    dcd.write(pack('f', 0)) # 9 timestep
+    dcd.write(pack('i', 1)) # 10 with unitcell
+    dcd.write(pack_ix4_0x4) # 11, 12, 13, 14
+    dcd.write(pack_ix4_0x4) # 15, 16, 17, 18
+    dcd.write(pack('i', 24)) # 19 Pretend to be CHARMM version 24
+    dcd.write(pack_i_84)
+    dcd.write(pack_i_164)
+    dcd.write(pack_i_2)
+    dcd.write('{0:80s}'.format('Created by ProDy'))
+    dcd.write('{0:80s}'.format('REMARKS Created ' + 
+                        datetime.datetime.now().strftime('%d %B, %Y at %R')))
+    dcd.write(pack_i_164)
+    
+    dcd.write(pack_i_4)
+    dcd.write(pack('i', n_atoms))
+    dcd.write(pack_i_4)
+    
+    progress = prody.ProDyProgress(len(irange))
+    prev = -1
+    unitcell = pack('d'*6, *(0,0,0,0,0,0))
+    for j, i in enumerate(irange):
+        if align:
+            frame = trajectory.next()
+            frame.superpose()
+            coords = frame._getCoordinates().T
+        else:
+            coords = trajectory.nextCoordset().T
+        if coords is None:
+            break
+        diff = i - prev
+        if diff > 1:
+            trajectory.skip(diff-1)
+        prev = i
+        dcd.write(pack_i_48)
+        dcd.write(unitcell)
+        dcd.write(pack_i_48)
+        dcd.write(pack_i_4N)
+        coords[0].tofile(dcd)
+        dcd.write(pack_i_4N)
+        dcd.write(pack_i_4N)
+        coords[1].tofile(dcd)
+        dcd.write(pack_i_4N)
+        dcd.write(pack_i_4N)
+        coords[2].tofile(dcd)
+        dcd.write(pack_i_4N)
+        dcd.seek(8)
+        dcd.write(pack('i', j+1))
+        dcd.seek(0, 2)
+        progress.report(i)
+    j += 1
+    progress.clean()
+    dcd.close()
+    time_ = time() - time_
+    dcd_size = 1.0 * (56 + (n_atoms * 3 + 6) * 4 ) * n_csets / (1024*1024)
+    LOGGER.info('DCD file was written in {0:.2f} seconds.'.format(time_))
+    LOGGER.info('{0:.2f} MB written at input rate {1:.2f} MB/s.'
+                .format(dcd_size, dcd_size/time_))
+    LOGGER.info('{0:d} coordinate sets written at output rate {1:d} frame/s.'
+                .format(n_csets, int(n_csets/time_)))
+    if j != n_csets:
+        LOGGER.warning('Warning: {0:d} frames expected, {1:d} written.'
+                       .format(n_csets, j))
+    return filename
+        
   
 if __name__ == '__main__':
     import prody
-    ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', last=5000)
+    ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
     ens.setAtomGroup( ag )
     ens.select('calpha')
-    ens.iterpose()
+    ens.superpose()
     stop
     ag.setTrajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     dcd = prody.DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
