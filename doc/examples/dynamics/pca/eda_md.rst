@@ -1,6 +1,6 @@
 .. currentmodule:: prody.dynamics
 
-.. _eda-md:
+.. _eda:
 
 *******************************************************************************
 EDA of MD Trajectories
