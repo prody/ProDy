@@ -535,7 +535,7 @@ class Ensemble(EnsembleBase):
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
             if index < 0:
-                index = n_confs - index
+                index = n_confs + index
             return Conformation(self, index)
         else:
             raise IndexError('conformation index out of range')
@@ -902,7 +902,7 @@ class PDBEnsemble(Ensemble):
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
             if index < 0:
-                index = n_confs - index
+                index = n_confs + index
             return PDBConformation(self, index)
         else:
             raise IndexError('conformation index out of range')
