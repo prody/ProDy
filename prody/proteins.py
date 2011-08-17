@@ -44,6 +44,10 @@ Functions
   * :func:`execDSSP`
   * :func:`parseDSSP`
   * :func:`performDSSP`
+  
+  * :func:`execSTRIDE`
+  * :func:`parseSTRIDE`
+  * :func:`performSTRIDE`
 
   
    
@@ -89,6 +93,7 @@ __all__ = ['PDBBlastRecord',
            'parsePDBStream', 'parsePDB', 
            'writePDBStream', 'writePDB',
            'execDSSP', 'parseDSSP', 'performDSSP',
+           'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
            ]
 
 class PDBParserError(Exception):    
@@ -278,12 +283,13 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
             failure += 1 
             continue
         identifiers[i] = pdbid
-        try:
-            fn = pdbfnmap[pdbid]
-        except KeyError:
-            pass
-        else:
+        fn = pdbfnmap.get(pdbid, None)
+        if fn:
             fn = os.path.relpath(fn)
+            if not compressed:
+                temp, ext = os.path.splitext(fn) 
+                if ext == '.gz':
+                    fn = gunzip(fn, temp)
             filenames.append(fn)
             LOGGER.debug('{0:s} ({1:s}) is found in the working directory.'
                          .format(pdbid, fn))
@@ -378,7 +384,7 @@ def gunzip(filename, outname=None):
     Returns output filename upon successful completion.
     
     """
-    LOGGER.info( filename)    
+
     if not isinstance(filename, str):
         raise TypeError('filename must be a string')
     if not os.path.isfile(filename):
@@ -1781,3 +1787,96 @@ def performDSSP(pdb, parseall=False):
     pdb = fetchPDB(pdb, compressed=False)
     return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
     
+def execSTRIDE(pdb, outputname=None, outputdir=None):
+    """|new| Execute STRIDE for given *pdb*. *pdb* can be a PDB identifier or 
+    a PDB file path. If *pdb* is a compressed file, it will be decompressed 
+    using Python :mod:`gzip` library. When no *outputname* is given, output 
+    name will be :file:`pdbidentifier.stride`. :file:`.stride` extension will 
+    be appended automatically to *outputname*. If :file:`outputdir` is given,
+    STRIDE output and uncompressed PDB file will be written into this folder.
+    Upon successful execution of :command:`stride pdb > out` command, output
+    filename is returned. 
+    
+    For more information on STRIDE see http://webclu.bio.wzw.tum.de/stride/."""
+    
+    stride = prody.which('stride')
+    if stride is None:
+        raise EnvironmentError('command not found: stride executable is not '
+                               'found in one of system paths')
+    
+    if not os.path.isfile(pdb):
+        pdb = fetchPDB(pdb, compressed=False)
+    if pdb is None:
+        raise ValueError('pdb is not a valid PDB identifier or filename')
+    if os.path.splitext(pdb)[1] == '.gz':
+        if outputdir:
+            pdb = gunzip(pdb, os.path.splitext(pdb)[0])
+        else:
+            pdb = gunzip(pdb, os.path.join(outputdir, 
+                                os.path.split(os.path.splitext(pdb)[0])[1]))
+    if outputdir is None:
+        outputdir = '.'
+    if outputname is None:
+        out = os.path.join(outputdir,
+                        os.path.splitext(os.path.split(pdb)[1])[0] + '.stride')
+    else:
+        out = os.path.join(outputdir, outputname + '.stride')
+        
+    status = os.system('{0:s} {1:s} > {2:s}'.format(stride, pdb, out))
+    if status == 0:
+        return out
+    
+def parseSTRIDE(stride, ag):
+    """|new| Parse STRIDE data from file *stride* into :class:`~prody.atomic.AtomGroup`
+    instance *ag*. STRIDE output file must be in the new format used from July 
+    1995 and onwards. When *stride* file is parsed, following attributes are 
+    added to *ag*:
+        
+    * *stride_resnum*: STRIDE's sequential residue number, starting at the 
+      first residue actually in the data set.
+    
+    * *stride_phi* and *stride_psi*: IUPAC peptide backbone torsion angles
+    
+    * *stride_area*:  
+    
+    """
+    
+    if not os.path.isfile(stride):
+        raise IOError('{0:s} is not a valid file path'.format(stride))
+    if not isinstance(ag, prody.AtomGroup):
+        raise TypeError('ag argument must be an AtomGroup instance')
+        
+    stride = open(stride)
+    
+    n_atoms = ag.getNumOfAtoms()
+    NUMBER = np.zeros(n_atoms, np.int64)
+    AREA = np.zeros(n_atoms, np.float64)
+    PHI = np.zeros(n_atoms, np.float64)
+    PSI = np.zeros(n_atoms, np.float64)
+
+    ag.setSecondaryStrs(np.zeros(n_atoms))
+    for line in stride:
+        if not line.startswith('ASG '):
+            continue
+        res = ag[(line[9], int(line[10:15]), line[15].strip())]
+        if res is None:
+            continue
+        indices = res.getIndices()
+        res.setSecondaryStrs(line[24].strip())
+        NUMBER[indices] = int(line[16:20])
+        PHI[indices] = float(line[42:49])
+        PSI[indices] = float(line[52:59])
+        AREA[indices] = float(line[61:69])
+    ag.setAttribute('stride_resnum', NUMBER)
+    ag.setAttribute('stride_phi', PHI)
+    ag.setAttribute('stride_psi', PSI)
+    ag.setAttribute('stride_area', AREA)
+    return ag
+
+def performSTRIDE(pdb):
+    """|new| Perform STRIDE calculations and parse results. STRIDE data is 
+    returned in an :class:`~prody.atomic.AtomGroup` instance. See also 
+    :func:`execSTRIDE` and :func:`parseSTRIDE`."""
+    
+    pdb = fetchPDB(pdb, compressed=False)
+    return parseSTRIDE(execSTRIDE(pdb), parsePDB(pdb))
