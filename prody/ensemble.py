@@ -262,6 +262,18 @@ class EnsembleBase(object):
         else:
             return self._weights[:, self._indices]
     
+    def _getWeights(self):
+
+        if self._weights is None:
+            return None
+        if self._sel is None:
+            return self._weights
+        if self.weights.ndim == 2:
+            return self._weights[self._indices]
+        else:
+            return self._weights[:, self._indices]
+
+    
     def setWeights(self, weights):
         """Set atomic weights."""
         
@@ -1122,6 +1134,13 @@ class ConformationBase(object):
         else:
             return self._ensemble.getWeights()[self._indices]
 
+    def _getWeights(self):
+        
+        if self._sel is None:
+            return self._ensemble._getWeights()
+        else:
+            return self._ensemble._getWeights()[self._indices]
+
 
 class Conformation(ConformationBase):
     
@@ -1303,10 +1322,20 @@ class PDBConformation(Conformation):
         ensemble = self._ensemble
         indices = ensemble._indices
         if indices is None:
-            return ensemble._weights[self._index]
+            return ensemble._weights[self._index].copy()
         else:
             return ensemble._weights[self._index, indices]
     
+    def _getWeights(self):
+        
+        ensemble = self._ensemble
+        indices = ensemble._indices
+        if indices is None:
+            return ensemble._weights[self._index]
+        else:
+            return ensemble._weights[self._index, indices]
+
+
 class Frame(ConformationBase):
     
     """|new| A class to provide methods on a frame in a trajectory.
