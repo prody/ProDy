@@ -346,12 +346,8 @@ class Ensemble(EnsembleBase):
             
     
     def __add__(self, other):
-        """Return ensemble that contains conformations in *self* and *other*.
-        
-        The reference coordinates of *self* is used in the result.
-        
-        """
-        raise NotImplemented('addition for ensembles is not implemented')
+        """Concatenate ensembles. The reference coordinates of *self* is used 
+        in the result."""
         
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0:s} '
@@ -361,7 +357,15 @@ class Ensemble(EnsembleBase):
     
         ensemble = Ensemble('{0:s} + {1:s}'.format(self.getName(), 
                                                    other.getName()))
-        return None
+        ensemble.setCoordinates(self._coords.copy())
+        ensemble.addCoordset(self._confs.copy())
+        ensemble.addCoordset(other._confs.copy())
+        if self._weights is not None and other._weights is not None: 
+            if np.all(self._weights == other._weights):
+                ensemble.setWeights(self._weights)
+            else:
+                LOGGER.info('weights are different in ensembles, so omitted')
+        return ensemble
     
     def __iter__(self):
         n_csets = self._n_csets
@@ -706,6 +710,26 @@ class PDBEnsemble(Ensemble):
     
     def __str__(self):
         return 'PDB ' + Ensemble.__str__(self)
+    
+    def __add__(self, other):
+        """Concatenate two ensembles. The reference coordinates of *self* is 
+        used in the result."""
+        
+        if not isinstance(other, Ensemble):
+            raise TypeError('an Ensemble instance cannot be added to an {0:s} '
+                            'instance'.format(type(other)))
+        elif self.getNumOfAtoms() != other.getNumOfAtoms():
+            raise ValueError('Ensembles must have same number of atoms.')
+    
+        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getName(), 
+                                                   other.getName()))
+        ensemble.setCoordinates(self._coords.copy())
+        ensemble.addCoordset(self._confs.copy(), self._weights.copy())
+        if other._weights is None:
+            ensemble.addCoordset(other._confs.copy())
+        else:
+            ensemble.addCoordset(other._confs.copy(), other._weights.copy())
+        return ensemble
     
     def __iter__(self):
         n_confs = self._n_csets
