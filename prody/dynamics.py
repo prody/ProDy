@@ -2350,10 +2350,10 @@ def saveModel(nma, filename=None, matrices=False):
             type_ = 'ANM'
         else:
             type_ = 'GNM'
-    elif isinstance(nma, PCA):
-        type_ = 'PCA'
     elif isinstance(nma, EDA):
         type_ = 'EDA'
+    elif isinstance(nma, PCA):
+        type_ = 'PCA'
     else:
         type_ = 'NMA'  
     
@@ -2765,7 +2765,11 @@ def calcProjection(ensemble, modes, rmsd=True):
                         .format(type(modes)))
     if not modes.is3d(): 
         raise ValueError('modes must be 3-dimensional')
-    if ensemble.getNumOfAtoms() != modes.getNumOfAtoms():
+    if isinstance(ensemble, Vector):
+        n_atoms = ensemble.getNumOfAtoms()
+    else:
+        n_atoms = ensemble.getNumOfSelected()
+    if n_atoms != modes.getNumOfAtoms():
         raise ValueError('number of atoms are not the same')
     if isinstance(ensemble, Vector):
         if not ensemble.is3d(): 
@@ -2782,7 +2786,7 @@ def calcProjection(ensemble, modes, rmsd=True):
         deviations = deviations.reshape((1, deviations.shape[0]))
     projection = np.dot(deviations, modes._getArray())
     if rmsd:
-        projection =  (1 / (ensemble.getNumOfAtoms() ** 0.5)) * projection
+        projection =  (1 / (n_atoms ** 0.5)) * projection
     return projection
 
 
