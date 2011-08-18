@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines class and methods and for calculating comparing coordinate 
-data and measuring quantities.
+"""This module defines a class and methods and for comparing coordinate data 
+and measuring quantities.
 
 Classes
 -------
@@ -76,7 +76,7 @@ class Transformation(object):
         if not isinstance(rotation, np.ndarray):
             raise TypeError('rotation must be an ndarray')
         elif rotation.shape != (3,3):
-            raise TypeError('rotation must be a 3x3 array')
+            raise ValueError('rotation must be a 3x3 array')
         self._rotation = rotation
 
     def getTranslation(self): 
@@ -90,10 +90,10 @@ class Transformation(object):
         if not isinstance(translation, np.ndarray):
             raise TypeError('translation must be an ndarray')
         elif translation.shape != (3,):
-            raise TypeError('translation must be an ndarray of length 3')
+            raise ValueError('translation must be an ndarray of length 3')
         self._translation = translation
     
-    def ge4x4Matrix(self):
+    def get4x4Matrix(self):
         """Returns 4x4 transformation matrix whose top left is rotation matrix
         and last column is translation vector."""
         
@@ -105,16 +105,13 @@ class Transformation(object):
     def apply(self, atoms):
         """Applies transformation to given atoms or coordinate set.
         
-        :class:`~prody.atomic.AtomGroup`, :class:`~prody.atomic.Chain`, 
-        :class:`~prody.atomic.Residue`, :class:`~prody.atomic.Atom`, 
-        and :class:`~prody.atomic.Selection` instances are accepted.
-        If an instance of one of these is provided, it is returned after
-        its active coordinate set is transformed.
+        ProDy class instances from :mod:`~prody.atomic` are accepted. Instance
+        is returned after its active coordinate set is transformed.
+        If a :class:`~prody.atomic.AtomPointer` is passsed, the 
+        :class:`~prody.atomic.AtomGroup` that it points to is transformed. 
         
         If an :class:`~numpy.ndarray` instance is given, transformed array 
-        is returned.
-        
-        """
+        is returned."""
         
         return applyTransformation(self, atoms)
     
@@ -125,14 +122,12 @@ def calcTransformation(mobile, target, weights=None):
     *target*.
     
     *mobile* and *target* may be NumPy coordinate arrays, or istances of 
-    Molecule, AtomGroup, Chain, or Residue.
-    
-    """
+    Molecule, AtomGroup, Chain, or Residue."""
     
     name = ''
     if not isinstance(mobile, np.ndarray): 
         try:
-            mob = mobile.getCoordinates()
+            mob = mobile._getCoordinates()
         except AttributeError:
             raise TypeError('mobile must be a numpy array or an object '
                             'with getCoordinates method')
@@ -140,7 +135,7 @@ def calcTransformation(mobile, target, weights=None):
         mob = mobile
     if not isinstance(target, np.ndarray): 
         try:
-            tar = target.getCoordinates()
+            tar = target._getCoordinates()
         except AttributeError:
             raise TypeError('target must be a numpy array or an object '
                             'with getCoordinates method')
@@ -163,7 +158,7 @@ def calcTransformation(mobile, target, weights=None):
 
     return _calcTransformation(mob, tar, weights)
 
-def _calcTransformation(mob, tar, weights=None, superpose=False):
+def _calcTransformation(mob, tar, weights=None):
     if linalg is None:
         prody.importLA()
     
@@ -187,10 +182,7 @@ def _calcTransformation(mob, tar, weights=None, superpose=False):
                     [0, 1, 0], 
                     [0, 0, np.sign(linalg.det(matrix))] ])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
-    
-    #if superpose:
-    #    return Transformation(rotation,  - np.dot(mob, rotation + tar_com
-    #else:
+
     return Transformation(rotation, tar_com - np.dot(mob_com, rotation))
 
 def _superposeTraj(mobs, tar, weights=None, movs=None):
@@ -248,34 +240,48 @@ def _superpose(mob, tar, weights=None, mov=None):
 
 
 def applyTransformation(transformation, coords):
-    """Applies a transformation to a given coordinate set."""
+    """Returns *coords* after applying *transformation*. If *coords* is a 
+    class instance from :mod:`~prody.atomic`, it will be returned after 
+    *transformation* is applied to its active coordinate set. If *coords*
+    is an :class:`~prody.atomic.AtomPointer` instance, *transformation* will
+    be applied to the corresponding coordinate set in the associated
+    :class:`~prody.atomic.AtomGroup` instance."""
     
-    if not isinstance(coords, np.ndarray): 
-        mol = coords
-        try:
-            coords = mol.getCoordinates()
-        except AttributeError:
-            raise TypeError('coords is not an array of coordinates '
-                            'and do not contain a coordinate set')
+    atoms = None
+    ag = None
+    if isinstance(coords, np.ndarray): 
+        if coords.shape[1] != 3:
+            raise ValueError('coordinates must be a 3-d coordinate array')
     else:
-        mol = None
-    
-    if coords.shape[1] != 3:
-        raise ValueError('coordinates must be a 3-d coordinate array')
-    
-    if mol is None:
+        atoms = coords
+        if isinstance(atoms, prody.AtomPointer):
+            ag = atoms.getAtomGroup()
+            acsi = ag.getActiveCoordsetIndex()
+            ag.setActiveCoordsetIndex(atoms.getActiveCoordsetIndex())
+            coords = ag._getCoordinates()
+        else:
+            try:
+                coords = atoms._getCoordinates()
+            except AttributeError:
+                raise TypeError('coords is not an array of coordinates '
+                                'and do not contain a coordinate set')
+    if atoms is None:
         return _applyTransformation(transformation, coords)
     else:
-        mol.setCoordinates(_applyTransformation(transformation, coords)) 
-        return mol
+        if ag is None:
+            atoms.setCoordinates(_applyTransformation(transformation, coords))
+        else: 
+            ag.setCoordinates(_applyTransformation(transformation, coords))
+            ag.setActiveCoordsetIndex(acsi)
+        return atoms
 
 def _applyTransformation(t, coords):
     return t._translation + np.dot(coords, t._rotation)
     
 
 def calcDeformVector(from_atoms, to_atoms):
-    """Returns deformation :class:`~prody.dynamics.Vector` from *from_atoms* 
-    to *atoms_to*."""
+    """Returns deformation from *from_atoms* to *atoms_to* as a 
+    :class:`~prody.dynamics.Vector` instance."""
     
     name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
     if len(name) > 30: 
@@ -287,57 +293,51 @@ def calcRMSD(reference, target=None, weights=None):
     """Returns Root-Mean-Square-Deviations between reference and target 
     coordinates.
     
-    >>> ens = loadEnsemble('HIV-RT.ens.npz')
+    >>> ens = loadEnsemble('p38_X-ray.ens.npz')
     >>> print ens.getRMSDs().round(2) # doctest: +ELLIPSIS
-    [ 2.43  2.51  2.51  1.91  1.34  1.01  0.98  1.15  1.19  1.28  1.21  1.33
-      1.42  1.28  1.81  1.06  1.99  1.39  1.3   1.26  1.29  1.37  1.37  1.02
+    [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
-      0.93  0.94  1.59  4.65  1.71  1.63  2.22  1.44  1.03  1.32  1.2   2.
-      1.62  1.44  1.2   1.95  1.9   1.34  1.49  1.08  1.96]
+      0.58  0.66  0.83]
     >>> print calcRMSD(ens).round(2) # doctest: +ELLIPSIS
-    [ 2.43  2.51  2.51  1.91  1.34  1.01  0.98  1.15  1.19  1.28  1.21  1.33
-      1.42  1.28  1.81  1.06  1.99  1.39  1.3   1.26  1.29  1.37  1.37  1.02
+    [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
-      0.93  0.94  1.59  4.65  1.71  1.63  2.22  1.44  1.03  1.32  1.2   2.
-      1.62  1.44  1.2   1.95  1.9   1.34  1.49  1.08  1.96]
+      0.58  0.66  0.83]
     >>> print calcRMSD(ens.getCoordinates(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
-    [ 2.43  2.51  2.51  1.91  1.34  1.01  0.98  1.15  1.19  1.28  1.21  1.33
-      1.42  1.28  1.81  1.06  1.99  1.39  1.3   1.26  1.29  1.37  1.37  1.02
+    [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
-      0.93  0.94  1.59  4.65  1.71  1.63  2.22  1.44  1.03  1.32  1.2   2.
-      1.62  1.44  1.2   1.95  1.9   1.34  1.49  1.08  1.96]
+      0.58  0.66  0.83]
     
     """
     
-    if not isinstance(reference, np.ndarray): 
+    if isinstance(reference, np.ndarray): 
+        ref = reference
+    else:
         try:
-            ref = reference.getCoordinates()
+            ref = reference._getCoordinates()
         except AttributeError:
             raise TypeError('reference must be a numpy array or an object '
                             'with getCoordinates method')
-        try:
-            if target is None:
-                target = reference.getCoordsets()
-        except AttributeError:
-            pass
-        try:
-            if weights is None:
-                weights = reference.getWeights()
-        except AttributeError:
-            pass
-    else:
-        ref = reference
+        if target is None:
+            try:
+                target = reference._getCoordsets()
+            except AttributeError:
+                pass
+        if weights is None:
+            try:
+                weights = reference._getWeights()
+            except AttributeError:
+                pass
     if ref.ndim != 2 or ref.shape[1] != 3:
         raise ValueError('reference must have shape (n_atoms, 3)')
     
-    if not isinstance(target, np.ndarray): 
+    if isinstance(target, np.ndarray): 
+        tar = target
+    else:
         try:
-            tar = target.getCoordinates()
+            tar = target._getCoordinates()
         except AttributeError:
             raise TypeError('target must be a numpy array or an object '
                             'with getCoordinates method')
-    else:
-        tar = target
     if tar.ndim not in (2, 3) or tar.shape[-1] != 3:
         raise ValueError('target must have shape ([n_confs,] n_atoms, 3)')
 
@@ -382,7 +382,7 @@ def _calcRMSD(ref, tar, weights=None):
     
 def superpose(mobile, target, weights=None):
     """Superpose *mobile* onto *target* to minimize the RMSD distance.
-    Returns target after superposition and the transformation."""
+    Return *target*, after superposition, and the transformation."""
     
     t = calcTransformation(mobile, target, weights)
     result = applyTransformation(t, mobile)
@@ -393,17 +393,14 @@ def calcDistance(one, two):
     
     Arguments may be :class:`Atom` instances or NumPy arrays. Shape 
     of numpy arrays must be ([M,]N,3), where M is number of coordinate sets
-    and N is the number of atoms.
+    and N is the number of atoms."""
     
-    """
     if not isinstance(one, np.ndarray):
         one = one.getCoordinates()
     if not isinstance(two, np.ndarray):
         two = two.getCoordinates()
     if one.shape != two.shape:
         raise ValueError('shape of coordinates must be the same')
-    #if one.shape[-2:] != (1,3):
-    #    raise ValueError('shape of coordinates must be ([M,]1,3)')
     
     return np.sqrt(np.power(one - two, 2).sum(axis=-1))
     
@@ -419,9 +416,8 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
     
     By default, alpha carbon atoms are used to calculate the transformations.
     
-    Optionally, atomic *weights* can be passed for weighted superposition.
-        
-    """
+    Optionally, atomic *weights* can be passed for weighted superposition."""
+    
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must have type Atomic, not {0:s}'
                         .format(type(atoms)))
@@ -649,9 +645,7 @@ def calcADPs(atom):
     .. versionadded:: 0.8
     
     *atom* must have ATF values set for ADP calculation. ADPs are returned
-    as a tuple, i.e. (eigenvalues, eigenvectors). 
-
-    """
+    as a tuple, i.e. (eigenvalues, eigenvectors)."""
     
     if linalg is None: 
         prody.importLA()
@@ -680,7 +674,6 @@ def buildADPMatrix(atoms):
     >>> protein = parsePDB('1ejg')  
     >>> calphas = protein.select('calpha')
     >>> adp_matrix = buildADPMatrix( calphas )
-    
     """
     
     if not isinstance(atoms, prody.Atomic):
