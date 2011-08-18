@@ -78,7 +78,7 @@ following example should be used:
 .. toctree::
    :maxdepth: 1
 
-   eda_md
+   eda
 
 
 Functions and Plotting
