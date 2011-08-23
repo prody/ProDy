@@ -60,7 +60,7 @@ __all__ = ['matchChains',
            'getPairwiseGapOpeningPenalty', 'setPairwiseGapOpeningPenalty',
            'getPairwiseGapExtensionPenalty', 'setPairwiseGapExtensionPenalty',
            'getPairwiseAlignmentMethod', 'setPairwiseAlignmentMethod',
-           'getIntAsStr',
+           'rangeString',
            ]
 
 PAIRWISE_MATCH_SCORE = 1.0
@@ -176,8 +176,8 @@ def setPairwiseAlignmentMethod(method):
         raise ValueError('method must be "local" or "global"')
 
 
-def getIntAsStr(lint, sep=' ', rng=' to '):
-    """Return a structured string for a given list of ordered integers.
+def rangeString(lint, sep=' ', rng=' to '):
+    """Return a structured string for a given list of integers.
     
     :arg lint: list of integers
     :arg sep: range or number separator         
@@ -189,7 +189,7 @@ def getIntAsStr(lint, sep=' ', rng=' to '):
         [1, 2, 3, 4, 10, 15, 16, 17] -> "1-4,10,15-17"
     
     """
-    
+    lint = np.unique(lint)
     strint = ''
     i = -1
     for j in lint:
