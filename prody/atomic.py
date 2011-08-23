@@ -509,7 +509,7 @@ class Atomic(object):
         except AttributeError:
             selstr = name
             items = name.split('_')
-            if prody.select.isKeyword(items[0]):
+            if prody.select.isKeyword(items[0]) or items[0] == 'not':
                 selstr = ' '.join(items)
                 return prody.ProDyAtomSelect.select(self, selstr)
         raise AttributeError("'{0:s}' object has no attribute '{1:s}' "
