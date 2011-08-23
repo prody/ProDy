@@ -56,7 +56,7 @@ namespace eval ::nmwiz_MultiPlot:: {
    }
    initialize
 }
-
+proc sign x {expr {($x>0) - ($x<0)}}
 proc ::nmwiz_MultiPlot::init_plot {args} {
    variable parent
    variable verbose
@@ -1638,12 +1638,12 @@ namespace eval ::nmwiz:: {
       $log.text insert end "\nActive Mode\n"
       $log.text insert end "--------------\n\n"
       $log.text insert end "Select the active mode for which you want to draw arrows or make an animation. "
+      $log.text insert end "Direction of arrows depicting the normal mode can be changed using +/- button. "
+      $log.text insert end "Arrows can be drawn along both directions by changing the options Arrow Graphics Options panel. "
       $log.text insert end "The selected color effects both arrow graphics and square fluctuation plots."
-      $log.text insert end "\n\n**Scaling the arrow graphics**\n\n"
-      $log.text insert end "Active mode is multiplied by the length of the mode (shown in the first box) and the scalar value (value in the second box) before it is displayed. "
-      $log.text insert end "Direction of arrows can be changed by changing the sign of the scalar. Value of the scalar value can be adjusted by editing the entry in the box or by clicking the buttons. "
-      $log.text insert end "Note that, the length of the mode is the square root of the eigenvalue (standard deviation), if the modes are from  PCA or EDA. "
-      $log.text insert end "Otherwise (ANM/GNM), the length of the mode is the square-root of the inverse of the eigenvalue of the mode. "
+      $log.text insert end "\n\n**RMSD**\n\n"
+      $log.text insert end "The RMSD corresponding to the displacement described by the arrows is displayed. User can change the RMSD value to rescale the arrows. "
+      $log.text insert end "The scaling factor that produces the specified RMSD is printed to the VMD console (along with the magnitude of the mode provided in NMD file). "
       $log.text insert end "\n\n**Selection**\n\n"
       $log.text insert end "Selection entry allows the user to display arrows for a subset of atoms.\n\n"
       $log.text insert end "*TIP*: If the arrow graphics are too crowded or the display is slow, draw arrows for an evenly spaced subset of residues, e.g try 'name CA and residue % 4 == 0', which will draw an arrow for every fourth residue."
@@ -3081,6 +3081,10 @@ orange3"
   }
   
   proc loadNMD {fn} {
+    if {![file isfile $fn]} {
+      vmdcon -err "$fn is not a valid NMD file path."
+      return
+    }
     variable filename $fn
     vmdcon -info "NMWiz: Parsing file $filename"
     # Parse the file, and make sure coordinates are stored in the file
@@ -3555,15 +3559,16 @@ orange3"
           lappend betalist 0
         } 
         variable scalearrows_list
-        foreach l $lengths {
-            if {$l < 1} { set l 1}
-            set l [::tcl::mathfunc::int [expr 0.2 * $n_atoms / $l / $l ] ]
-            if {$l < 1} {set l 1}
-            lappend scalearrows_list $l  
+        variable rmsd 2
+        variable rmsd_list
+        set one_over_root_of_n_atoms [expr 1 / $n_atoms ** 0.5]
+        foreach len $lengths mode $modes {
+            set l [::tcl::mathfunc::abs $len] 
+            lappend scalearrows_list [expr $rmsd / $one_over_root_of_n_atoms / [veclength $mode] / $l]
+            lappend rmsd_list $rmsd  
         }
         variable scalearrows
         set scalearrows [lindex $scalearrows_list 0]
-         
         
         variable arridlist
         variable animidlist
@@ -3937,8 +3942,28 @@ orange3"
           [namespace current]::drawArrows
         }
       }
+      
+      proc evalRMSD {} {
+        variable rmsd
+        if {![string is double $rmsd]} {
+          set rmsd 2
+        } elseif {$rmsd <= 0} {
+          set rmsd 0.1
+        }
+        variable scalearrows
+        variable lengths
+        variable modes
+        variable activemode
+        variable indices
+        variable n_atoms
+        set whichmode [lsearch $indices $activemode]
+        set length [lindex $lengths $whichmode]
+        set scalearrows [expr [sign $scalearrows] * $rmsd / $length / [veclength [lindex $modes $whichmode]] * $n_atoms ** 0.5 ]
+        vmdcon -info "Mode $activemode is scaled by [format %.2f $scalearrows](x[format %.2f $length]) for [format %.2f $rmsd] A RMSD."
+      }
 
       proc drawArrows {} {
+        [namespace current]::evalRMSD
         variable color
         variable material
         variable resolution
@@ -3977,8 +4002,8 @@ orange3"
         graphics $arrid color $color
         graphics $arrid materials on
         graphics $arrid material $material
-        set length [lindex $lengths [lsearch $indices $activemode]]
-        set mode [vecscale [expr $length * $scalearrows] [lindex $modes [lsearch $indices $activemode]]]
+        set length [lindex $lengths $whichmode]
+        set mode [vecscale [expr $length * $scalearrows] [lindex $modes $whichmode]]
         
         variable bothdirections
   
@@ -4238,6 +4263,7 @@ orange3"
         set activeindex [lsearch $indices $activemode]
         if {$ndim == 3} {
           variable scalearrows_list
+          variable rmsd_list
           variable hide_shorter_list 
           variable cylinder_radius_list
           variable cone_radius_list
@@ -4250,6 +4276,7 @@ orange3"
           variable cone_radius
           variable cone_height
           variable resolution
+          variable rmsd
           
           lset scalearrows_list $inactiveindex $scalearrows
           lset hide_shorter_list $inactiveindex $hide_shorter  
@@ -4257,6 +4284,7 @@ orange3"
           lset cone_radius_list $inactiveindex $cone_radius
           lset cone_height_list $inactiveindex $cone_height
           lset resolution_list $inactiveindex $resolution
+          lset rmsd_list $inactiveindex $rmsd
 
           set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]];
           
@@ -4266,6 +4294,7 @@ orange3"
           set cone_radius [lindex $cone_radius_list $activeindex]
           set cone_height [lindex $cone_height_list $activeindex]
           set resolution [lindex $resolution_list $activeindex]
+          set rmsd [lindex $rmsd_list $activeindex]
 
       
           variable overwrite
@@ -4308,6 +4337,7 @@ orange3"
         } else {
           [namespace current]::calcMSF          
         }
+        
       }
       
       #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4346,7 +4376,7 @@ orange3"
         }
         
         button $wam.active.prev -text "<=" -command "${ns}::prevMode"
-        
+        button $wam.active.negate -text "+/-" -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::autoUpdate"  
         button $wam.active.next -text "=>" -command "${ns}::nextMode"
         
         variable ndim
@@ -4361,7 +4391,7 @@ orange3"
                 -variable ${ns}::color \
                 -command "${ns}::changeColor; ${ns}::autoUpdate; "
           }
-          pack $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
+          pack $wam.active.list $wam.active.prev $wam.active.negate $wam.active.next $wam.active.color -side left -anchor w -fill x
         } else {
           tk_optionMenu $wam.active.color ${ns}::msformode "Mobility"
           $wam.active.color.menu delete 0
@@ -4378,67 +4408,44 @@ orange3"
         #blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3
 
         if {$ndim == 3} {
-          grid [label $wam.scale_label -text "Scale by:"] \
+          grid [label $wam.scale_label -text "RMSD (A):"] \
             -row 2 -column 1 -sticky w
-          grid [frame $wam.scale_frame] \
-            -row 2 -column 2 -columnspan 2 -sticky w
-          entry $wam.scale_frame.length -width 5 \
-            -textvariable ${ns}::drawlengthstr \
-            -state disabled -disabledbackground white -disabledforeground black
-          label $wam.scale_frame.angstrom -text "A"
-          label $wam.scale_frame.product -text "x"
-          button $wam.scale_frame.negate -text "+/-" -command "set ${ns}::scalearrows \[expr - \$${ns}::scalearrows]; ${ns}::autoUpdate"  
-          entry $wam.scale_frame.entry -width 4 -textvariable ${ns}::scalearrows
-          pack $wam.scale_frame.length $wam.scale_frame.angstrom \
-            $wam.scale_frame.product \
-            $wam.scale_frame.negate \
-            $wam.scale_frame.entry \
-            -side left -anchor w -fill x
-          grid [button $wam.scale_draw -width 4 -text "Redraw" \
-              -command ${ns}::drawArrows] \
-            -row 2 -column 4 -sticky we
-
-          grid [label $wam.adjust_label -text "Adjust length:"] \
-            -row 3 -column 1 -sticky w
           grid [frame $wam.adjust_frame] \
-            -row 3 -column 2 -columnspan 3 -sticky w
-          button $wam.adjust_frame.decr5 -text "-5" -command \
-            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
-          button $wam.adjust_frame.decr1 -text "-1" -command \
-            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 1]; ${ns}::autoUpdate"
-          button $wam.adjust_frame.one -text "1" -command \
-            "set ${ns}::scalearrows 1; ${ns}::autoUpdate"
-          button $wam.adjust_frame.incr1 -text "+1" -command \
-            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 1]; ${ns}::autoUpdate"
-          button $wam.adjust_frame.incr5 -text "+5" -command \
-            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 5]; ${ns}::autoUpdate"
-          pack $wam.adjust_frame.decr5 $wam.adjust_frame.decr1 \
-            $wam.adjust_frame.one \
+            -row 2 -column 2 -columnspan 3 -sticky w
+          entry $wam.adjust_frame.entry -width 4 -textvariable ${ns}::rmsd
+          button $wam.adjust_frame.incr1 -text "+0.1" -command \
+            "set ${ns}::rmsd \[expr \$${ns}::rmsd + 0.1]; ${ns}::autoUpdate"
+          button $wam.adjust_frame.incr5 -text "+0.5" -command \
+            "set ${ns}::rmsd \[expr \$${ns}::rmsd + 0.5]; ${ns}::autoUpdate"
+          button $wam.adjust_frame.decr5 -text "-0.5" -command \
+            "set ${ns}::rmsd \[expr \$${ns}::rmsd - 0.5]; ${ns}::autoUpdate"
+          button $wam.adjust_frame.decr1 -text "-0.1" -command \
+            "set ${ns}::rmsd \[expr \$${ns}::rmsd - 0.1]; ${ns}::autoUpdate"
+          pack $wam.adjust_frame.entry \
             $wam.adjust_frame.incr1 $wam.adjust_frame.incr5 \
+            $wam.adjust_frame.decr5 $wam.adjust_frame.decr1 \
             -side left -anchor w -fill x
-          
+
           grid [label $wam.selstr_label -text "Selection:"] \
-            -row 4 -column 1 -sticky w
+            -row 5 -column 1 -sticky w
           grid [entry $wam.selstr_entry \
             -textvariable ${ns}::selstr] \
-            -row 4 -column 2 -columnspan 2 -sticky we
+            -row 5 -column 2 -columnspan 2 -sticky we
           grid [button $wam.selstr_draw -width 4 -text "Redraw" \
               -command ${ns}::drawArrows] \
-            -row 4 -column 4 -sticky we
-
-            
+            -row 5 -column 4 -sticky we
         }
-        grid [button $wam.showhelp -text "Help" \
-            -command {::nmwiz::showHelp wizard}] \
-          -row 8 -column 1 -sticky we
         grid [button $wam.showmain -text "Main" \
             -command nmwiz_tk] \
-          -row 8 -column 2 -sticky we
+          -row 8 -column 1 -sticky we
         grid [button $wam.save -text "Save" \
             -command "::nmwiz::writeNMD $ns"] \
-          -row 8 -column 3 -sticky we
+          -row 8 -column 2 -sticky we
         grid [button $wam.remove -text "Remove" \
             -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget .nmwizgui.{[string range $ns 2 end]}frame; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+          -row 8 -column 3 -sticky we
+        grid [button $wam.showhelp -text "Help" \
+            -command {::nmwiz::showHelp wizard}] \
           -row 8 -column 4 -sticky we
 
         pack $wam -side top -ipadx 10 -ipady 5 -fill x -expand 1
