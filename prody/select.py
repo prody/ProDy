@@ -1004,7 +1004,7 @@ class Select(object):
         else:
             
             if self._selstr2indices:
-                selstr = 'index {0:s}'.format(prody.getIntAsStr(indices))
+                selstr = 'index {0:s}'.format(prody.rangeString(indices))
             elif isinstance(atoms, prody.AtomPointer):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                     atoms.getSelectionString())
