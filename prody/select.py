@@ -1039,6 +1039,7 @@ class Select(object):
         selstr = selstr.replace(')or ', ')|| ')
         selstr = selstr.replace(' or ', ' || ')
         
+        selstr = selstr.replace('(not ', '(!!! ')
         selstr = selstr.replace(' not(', ' !!!(')
         selstr = selstr.replace(' not ', ' !!! ')
         
