@@ -124,6 +124,8 @@ Release 0.8.0 (in development)
   * NMWiz can be used to compare two structures by calculating and depicting
     structural changes.
 
+  * Arrow graphics is scaled based on a user specified RMSD value.
+
 **Improvements**:
 
   * NMWiz writes DCD format trajectories for PCA using ProDy. This provides
