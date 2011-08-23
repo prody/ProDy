@@ -140,6 +140,8 @@ Now, we parse the PDB files one by one and add them to the ensemble:
 ...         continue
 ...     atommap = atommaps[0] + atommaps[1]
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags()) 
+>>> ensemble
+<PDB Ensemble: HIV-RT (155 conformations, 971 atoms, 971 selected)>
 >>> ensemble.iterpose()
 >>> saveEnsemble(ensemble)
 'HIV-RT.ens.npz'
@@ -169,7 +171,7 @@ are resolved in more than 94% of the time.
 We can find out this using :func:`~prody.ensemble.calcSumOfWeights` function:
 
 >>> print( (calcSumOfWeights(ensemble).min() / len(ensemble)).round(3) )
-0.242
+0.252
 
 
 This shows that some residues were resolved in only 24% of the dataset.
