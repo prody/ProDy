@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.8.0 (in development)
+Release 0.8 (Aug 24, 2011)
 ===============================================================================
 
 **New Features**:
@@ -108,6 +108,9 @@ Release 0.8.0 (in development)
   
   * A bug in :mod:`select` module causing exceptions when regular expressions
     are used is fixed.
+  
+  * Another bug in :mod:`select` module raising exception when "(not ..," is
+    passed is fixed.
 
   * Various bugfixes in :mod:`ensemble` module.
   
@@ -218,7 +221,7 @@ Release 0.7.1 (Apr 28, 2011)
   * Bug fixes in :mod:`dynamics` plotting functions 
     :func:`~dynamics.showScaledSqFlucts`, :func:`~dynamics.showNormedSqFlucts`, 
 
-Release 0.7.0 (Apr 4, 2011)
+Release 0.7 (Apr 4, 2011)
 ===============================================================================
 
 **New Features**:

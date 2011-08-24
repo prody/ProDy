@@ -16,8 +16,8 @@ Downloads
 
 Plug-in files come in the following compressed archives:
  
-  * :download:`NMWiz-0.6.zip <nmwiz/NMWiz-0.7.zip>`
-  * :download:`NMWiz-0.6.tar.gz <nmwiz/NMWiz-0.7.tar.gz>`
+  * `ProDy-0.8.zip <http://pypi.python.org/packages/source/P/ProDy/ProDy-0.8.zip>`_
+  * `ProDy-0.8.tar.gz <http://pypi.python.org/packages/source/P/ProDy/ProDy-0.8.tar.gz>`_
 
 
 Installation
@@ -29,7 +29,7 @@ Manual Installation
 Following instructions apply to all computer architectures and operating 
 systems that VMD runs on, but may require root (or administrator) access.
 
-#. Extract tarball/zip (:file:`NMWiz-0.{x}.tar.gz`) contents.
+#. Extract tarball/zip (:file:`ProDy-0.{x}.tar.gz`) contents.
 
 #. Copy :file:`nmwiz0.{x}` folder into VMD plug-ins directory 
    (:file:`$VMDDIR/plugins/noarch/tcl/`).
