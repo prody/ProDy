@@ -891,7 +891,7 @@ class Select(object):
         elif not isinstance(selstr, str):
             raise TypeError('selstr must be a string, not a {0:s}'
                             .format(type(selstr)))
-        if self._atoms == atoms:
+        if self._atoms is atoms:
             if DEBUG: print('atoms is the same')
             if self._acsi != atoms.getActiveCoordsetIndex():
                 self._coordinates = None
