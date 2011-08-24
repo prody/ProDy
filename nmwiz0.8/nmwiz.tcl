@@ -1817,7 +1817,7 @@ namespace eval ::nmwiz:: {
     }
     ::nmwiz::loadSettings
     set w [toplevel .nmwizgui]
-    wm title $w "NMWiz 0.7 - Main"
+    wm title $w "NMWiz 0.8 - Main"
     wm resizable $w 0 0
 
     set wmf [frame $w.mainframe -bd 2]
