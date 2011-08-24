@@ -9,6 +9,14 @@ Changes
 Release 0.8 (Aug 24, 2011)
 ===============================================================================
 
+.. note::
+   After installing v0.8, you may need to make a small change in your 
+   existing scripts. If you are using :class:`~ensemble.Ensemble` class 
+   for analyzing PDB structures, rename it as :class:`~ensemble.PDBEnsemble`.
+   See the other changes that may affect your work below and the class 
+   documentation for more information.
+    
+
 **New Features**:
 
   * :class:`~ensemble.DCDFile` is implemented for handling DCD files.

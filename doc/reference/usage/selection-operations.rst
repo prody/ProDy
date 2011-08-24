@@ -165,7 +165,3 @@ You can also check the equality of selections. Comparison will return
 >>> calpha2 = prot.select('calpha')
 >>> calpha == calpha2
 True
-
->>> all = prot.select('all')
->>> prot == all
-True
