@@ -18,7 +18,8 @@ follow the instructions.
 Download Files
 ===============================================================================
 
-Download a suitable ProDy installation file from here:
+Download a suitable ProDy installation file from http://python.org/pypi/ProDy 
+or here:
 
 .. csv-table::
    :file: _static/pypi_downloads.csv
