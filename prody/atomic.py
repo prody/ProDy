@@ -485,15 +485,16 @@ class Atomic(object):
         """
         
         if isinstance(other, Atomic):
-            # Atommaps may need special handling
-            if isinstance(self, AtomPointer) and isinstance(other, AtomPointer):
+            # AtomMaps may need special handling
+            if self is other:
+                return True
+            elif isinstance(self, AtomPointer) and \
+                isinstance(other, AtomPointer):
                 self_indices = self._indices
                 if len(self_indices) == len(other):
                     other_indices = other.getIndices()
                     if np.all(self_indices == other_indices):
                         return True
-            elif isinstance(self, AtomGroup) and isinstance(other, AtomGroup):
-                return self.__hash__() == other.__hash__()
         return False
     
     def __ne__(self, other):
