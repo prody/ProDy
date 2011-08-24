@@ -474,26 +474,26 @@ class Atomic(object):
         return False        
       
     def __eq__(self, other):
-        """.. versionadded:: 0.5.3"""
+        """
+        .. versionadded:: 0.5.3
+        
+        .. versionchanged:: 0.8.1
+           A :class:`Selection` (:class:`AtomPointer`) of all atoms is 
+           considered not equal to the :class:`AtomGroup` anymore as 
+           this causes problems in :mod:`select` module. 
+        
+        """
         
         if isinstance(other, Atomic):
+            # Atommaps may need special handling
             if isinstance(self, AtomPointer) and isinstance(other, AtomPointer):
                 self_indices = self._indices
-                other_indices = other.getIndices()
-                if len(self_indices) == len(other_indices) and \
-                    np.all(self_indices == other_indices):
+                if len(self_indices) == len(other):
+                    other_indices = other.getIndices()
+                    if np.all(self_indices == other_indices):
                         return True
             elif isinstance(self, AtomGroup) and isinstance(other, AtomGroup):
                 return self.__hash__() == other.__hash__()
-            else:
-                if len(other) == len(self):
-                    if isinstance(self, AtomGroup):
-                        indices = other.getIndices()
-                    else:
-                        indices = self.getIndices()
-                    if indices[0] == 0 and \
-                        np.all(indices[1:] - indices[:-1] == 1):
-                        return True
         return False
     
     def __ne__(self, other):
