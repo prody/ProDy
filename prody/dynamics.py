@@ -263,6 +263,8 @@ class VectorBase(object):
         * Power (mode**x)
     
     """
+   
+    __slots__ = []
     
     def __abs__(self):
         return np.sqrt((self._getArray()**2).sum())
