@@ -391,16 +391,22 @@ def superpose(mobile, target, weights=None):
 def calcDistance(one, two):
     """Return the Euclidean distance between *one* and *two*.
     
-    Arguments may be :class:`Atom` instances or NumPy arrays. Shape 
-    of numpy arrays must be ([M,]N,3), where M is number of coordinate sets
-    and N is the number of atoms."""
+    Arguments may be :class:`~prody.atomic.Atomic` instances or NumPy arrays. 
+    Shape of numpy arrays must be ([M,]N,3), where M is number of coordinate 
+    sets and N is the number of atoms."""
     
     if not isinstance(one, np.ndarray):
-        one = one.getCoordinates()
+        try:
+            one = one.getCoordinates()
+        except AttributeError:
+            raise ValueError('one must be Atom instance or a coordinate array')
     if not isinstance(two, np.ndarray):
-        two = two.getCoordinates()
-    if one.shape != two.shape:
-        raise ValueError('shape of coordinates must be the same')
+        try:
+            two = two.getCoordinates()
+        except AttributeError:
+            raise ValueError('one must be Atom instance or a coordinate array')
+    if one.shape[-1] != 3 or two.shape[-1] != 3:
+        raise ValueError('one and two must have shape ([M,]N,3)')
     
     return np.sqrt(np.power(one - two, 2).sum(axis=-1))
     
