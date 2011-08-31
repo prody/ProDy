@@ -4,6 +4,23 @@
 Getting ProDy
 *******************************************************************************
 
+Required Software
+===============================================================================
+
+* `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, the 32 bit option 
+  is required for compatibility)
+* `Numpy 1.3+ <http://numpy.scipy.org/>`_
+
+When compiling from source, on Linux for example, you will need a C compiler 
+(e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).  
+If you don't have Python developer libraries installed on your machine,
+use your package manager to install "python-dev" package. 
+
+In addition, `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required
+for using plotting functions. ProDy and :ref:`scripts` can be operated without
+this package.   
+
+
 Easy Install
 ===============================================================================
 
@@ -30,18 +47,6 @@ or here:
 For details of ProDy releases see :ref:`changes` and :ref:`pypi-statistics`.
 
 Windows installers are built using `MinGW <http://www.mingw.org/>`_.
-
-
-Required Software
-===============================================================================
-
-* `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, the 32 bit option 
-  is required for compatibility)
-* `Numpy 1.3+ <http://numpy.scipy.org/>`_
-
-In addition, `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required
-for using plotting functions. ProDy and :ref:`scripts` can be operated without
-this package.   
 
 Installation Instructions
 ===============================================================================
