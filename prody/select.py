@@ -843,8 +843,9 @@ class Select(object):
         self._kdtree = None
         self._kwargs  = None
         self._selstr2indices = False
+        self._data = dict()
         for var in mapField2Var.values():
-            self.__dict__['_'+var] = None        
+            self._data[var] = None        
         
         shortlist = pp.alphanums + '''~@#$.:;_','''
         longlist = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
@@ -1024,7 +1025,7 @@ class Select(object):
         self._coordinates = None
         self._kdtree = None
         for var in mapField2Var.values():
-            self.__dict__['_'+var] = None        
+            self._data[var] = None        
 
     def _standardizeSelectionString(self):
         selstr = ' ' + self._selstr + ' '
@@ -1715,14 +1716,14 @@ class Select(object):
                 raise SelectionError('attribute "{0:s}" is 1-dimensional data '
                                      .format(keyword))                
         else:
-            var = '_'+field.var
-            data = self.__dict__[var]
+            var = field.var
+            data = self._data[var]
             if data is None:
-                data = self._ag.__dict__[var] 
+                data = self._ag._data[var] 
                 if data is None:
                     raise SelectionError('{0:s} are not set.'
                                          .format(field.doc_pl))
-                self.__dict__[var] = data
+                self._data[var] = data
             if indices is None:                
                 return data
             else:
