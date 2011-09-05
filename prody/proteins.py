@@ -41,6 +41,8 @@ Functions
   * :func:`writePDB`
   * :func:`writePDBStream`
   
+  * :func:`fetchLigandData`
+
   * :func:`execDSSP`
   * :func:`parseDSSP`
   * :func:`performDSSP`
@@ -75,9 +77,13 @@ import shutil
 from glob import glob
 from collections import defaultdict
 
+ET = None
+urllib = None
+
 import numpy as np
 
 BioBlast = None
+
 
 import prody
 from prody import ProDyLogger as LOGGER
@@ -92,6 +98,7 @@ __all__ = ['PDBBlastRecord',
            'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 
            'writePDBStream', 'writePDB',
+           'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
            ]
@@ -1494,7 +1501,132 @@ def assignSecondaryStructure(header, atoms, coil=False):
     return atoms
             
 
-            
+def fetchLigandData(cci):
+    """|new| Fetch ligand data from Ligand Expo (http://ligand-expo.rcsb.org/).
+
+    :arg cci: 3-letter chemical component identifier
+    
+    Returns a dictionary that contains ligand data. Ligand atom data with 
+    *model* and *ideal* coordinates are also stored in this dictionary.
+    
+    Following example downloads ligand data for ligand STI (a.k.a. Gleevec and
+    Imatinib) and calculates RMSD between model (X-ray) and ideal (energy 
+    minimized) coordinate sets.
+    
+    >>> from prody import *
+    >>> ligand_data = fetchLigandData('STI')
+    >>> ligand_data['model_coordinates_db_code'] 
+    '1IEP'
+    
+    Model (X-ray) coordinates are from structure **1IEP**.
+    
+    >>> ligand_model = ligand_data['model'] 
+    >>> ligand_ideal = ligand_data['ideal']
+    >>> superpose(ligand_ideal.noh, ligand_model.noh) # doctest: +SKIP
+    >>> print( calcRMSD(ligand_ideal.noh, ligand_model.noh).round(2) )
+    2.27
+    """
+
+    if not isinstance(cci, str):
+        raise TypeError('cci must be a string')
+    elif len(cci) != 3 or not cci.isalnum():
+        raise ValueError('cci must be 3-letters long and alphanumeric')
+
+    global urllib, ET
+    if urllib is None:
+        import urllib
+        prody.proteins.urllib = urllib
+    if ET is None:
+        import xml.etree.cElementTree as ET
+        prody.proteins.ET = ET
+
+    xml = urllib.urlopen(
+                'http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
+                .format(cci))
+    etree = ET.parse(xml)
+    xml.close()
+
+    root = etree.getroot()
+    ns = root.tag[:root.tag.rfind('}')+1]
+    len_ns = len(ns)
+    dict_ = {}
+
+    for child in list(root.find(ns + 'chem_compCategory')[0]):
+        tag = child.tag[len_ns:]
+        if tag.startswith('pdbx_'):
+            tag = tag[5:]
+        dict_[tag] = child.text
+
+    for child in list(root.find(ns + 'pdbx_chem_comp_identifierCategory')) + \
+                 list(root.find(ns + 'pdbx_chem_comp_descriptorCategory')):
+        program = child.get('program').replace(' ', '_')
+        type_ = child.get('type').replace(' ', '_')
+        dict_[program + '_' + type_] = child[0].text
+        dict_[program + '_version'] = child.get('program_version')
+
+    dict_['audits'] = [(audit.get('action_type'), audit.get('date'))
+        for audit in list(root.find(ns + 'pdbx_chem_comp_auditCategory'))]
+
+    atoms = list(root.find(ns + 'chem_comp_atomCategory'))
+    n_atoms = len(atoms)
+    ideal_coords = np.zeros((n_atoms, 3))
+    model_coords = np.zeros((n_atoms, 3))
+    
+    atomnames = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['name'].dtype) 
+    elements = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
+    resnames = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
+    charges = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
+    
+    resnums = np.ones(n_atoms, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
+    
+    alternate_atomnames = np.zeros(n_atoms, 
+                                        dtype=ATOMIC_DATA_FIELDS['name'].dtype)
+    leaving_atom_flags = np.zeros(n_atoms, np.bool)
+    aromatic_flags = np.zeros(n_atoms, np.bool)
+    stereo_configs = np.zeros(n_atoms, np.bool)
+    ordinals = np.zeros(n_atoms, np.int64)
+    
+    for i, atom in enumerate(atoms):
+        data = dict([(child.tag[len_ns:], child.text) for child in list(atom)])
+
+        atomnames[i] = data['pdbx_component_atom_id']
+        elements[i] = data['type_symbol']
+        resnames[i] = data['pdbx_component_comp_id']
+        charges[i] = float(data['charge'])
+        
+        alternate_atomnames[i] = data['alt_atom_id']
+        leaving_atom_flags[i] = data['pdbx_leaving_atom_flag'] == 'Y'
+        aromatic_flags[i] = data.get('pdbx_atomatic_flag') == 'Y'
+        stereo_configs[i] = data.get('pdbx_stereo_config') == 'Y'
+        ordinals[i] = int(data['pdbx_ordinal'])
+        
+        model_coords[i, 0] = float(data['model_Cartn_x'])
+        model_coords[i, 1] = float(data['model_Cartn_y'])
+        model_coords[i, 2] = float(data['model_Cartn_z'])
+        ideal_coords[i, 0] = float(data['pdbx_model_Cartn_x_ideal'])
+        ideal_coords[i, 1] = float(data['pdbx_model_Cartn_y_ideal'])
+        ideal_coords[i, 2] = float(data['pdbx_model_Cartn_z_ideal'])
+
+    model = AtomGroup(cci + ' model')
+    model.setCoordinates(model_coords)
+    model.setAtomNames(atomnames)
+    model.setResidueNames(resnames)
+    model.setResidueNames(resnums)
+    model.setElementSymbols(elements)
+    model.setCharges(charges)
+    model.setAttribute('leaving_atom_flags', leaving_atom_flags)
+    model.setAttribute('aromatic_flags', aromatic_flags)
+    model.setAttribute('stereo_configs', stereo_configs)
+    model.setAttribute('ordinals', ordinals)
+    model.setAttribute('alternate_atomnames', alternate_atomnames)
+    dict_['model'] = model
+    ideal = model.copy()
+    ideal.setName(cci + ' ideal')
+    ideal.setCoordinates(ideal_coords)
+    dict_['ideal'] = ideal
+
+    return dict_      
+
 def applyBiomolecularTransformations(header, atoms, biomol=None):
     """Return *atoms* after applying biomolecular transformations from *header*
     dictionary.
