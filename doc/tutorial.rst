@@ -48,10 +48,10 @@ ProDy can be used:
 * from within VMD via :ref:`nmwiz`,
 * or as a toolkit for developing new software.
 
-Users who are new to Python are referred to the following resources for
-an introduction to Python Programming:
+Users who are new to programming or Python are referred to the following 
+resources for an introduction to programming in Python:
 
-* `The Python Tutorial <http://docs.python.org/tutorial/>`_,
+* `The Python Tutorial <http://docs.python.org/tutorial/>`_
 * `Python Scientific Lecture Notes <http://scipy-lectures.github.com/>`_
 * `A Primer on Python for Life Science Researchers
   <http://www.ploscompbiol.org/article/info%3Adoi%2F10.1371%2Fjournal.pcbi.0030199>`_

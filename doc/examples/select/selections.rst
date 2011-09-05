@@ -25,7 +25,6 @@ ProDy Code
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
->>> prody.select.DEBUG = False
 
 Using keywords
 -------------------------------------------------------------------------------
