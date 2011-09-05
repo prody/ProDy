@@ -1626,6 +1626,8 @@ class Atom(AtomPointer):
         if self._ag.isAttribute(name):
             return self._ag._userdata[name][self._index]
     
+    _getAttribute = getAttribute
+    
     def setAttribute(self, name, data):
         """Set data for the attribute *name*.
         
@@ -1685,7 +1687,7 @@ class Atom(AtomPointer):
             raise IndexError('indices must be an integer, a list/array of '
                              'integers, a slice, or None')
        
-    def _getCoordsets(self, indices): 
+    def _getCoordsets(self, indices=None): 
         """Return a view of coordinate sets at given indices."""
         
         if self._ag._coordinates is None:
@@ -1869,6 +1871,8 @@ class AtomSubset(AtomPointer):
         
         if self._ag.isAttribute(name):
             return self._ag._userdata[name][self._indices].copy()
+    
+    _getAttribute = getAttribute
     
     def setAttribute(self, name, data):
         """Set data for the attribute *name*.
@@ -2308,6 +2312,8 @@ class AtomMap(AtomPointer):
             result[self._mapping] = data
             return result
 
+    _getAttribute = getAttribute
+
     def getName(self):
         """Return name of the atom map instance."""
         
@@ -2629,16 +2635,25 @@ def saveAtoms(atoms, filename=None):
     else:
         ag = atoms.getAtomGroup()
         name = str(atoms)
+    singular = False
+    if isinstance(atoms, Atom):
+        singular = True
+    
     
     if filename is None:
         filename = ag.getName().replace(' ', '_')
     filename += '.ag.npz'
     attr_dict = {'_name': name}
-    attr_dict['_coordinates'] = atoms.getCoordsets()
+    attr_dict['_coordinates'] = atoms._getCoordsets()
     for name, field in ATOMIC_DATA_FIELDS.items():
-        attr_dict[field.var] = atoms.__getattribute__('get'+field.meth_pl)()
+        if singular:
+            data = atoms.__getattribute__('_get'+field.meth)()
+        else:
+            data = atoms.__getattribute__('_get'+field.meth_pl)()
+        if data is not None:
+            attr_dict[field.var] = data 
     for attr in ag._userdata.keys():
-        attr_dict[attr] = atoms.getAttribute(attr)
+        attr_dict[attr] = atoms._getAttribute(attr)
     np.savez(filename, **attr_dict)
     return filename
 
