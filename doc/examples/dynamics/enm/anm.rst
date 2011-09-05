@@ -117,10 +117,10 @@ of non-zero modes or to keep zero modes, try: ``anm.calcModes(50, zeros=True)``
 Access calculated data
 -------------------------------------------------------------------------------
 
->>> print( anm.getEigenvalues() ) # doctest: +ELLIPSIS
+>>> print( anm.getEigenvalues().round(3) ) # doctest: +ELLIPSIS
 [ 0.179  0.334  0.346  0.791  0.942  1.012  1.188  1.304  1.469  1.546
   1.608  1.811  1.925  1.983  2.14   2.298  2.33   2.364  2.69   2.794]
->>> print( anm.getEigenvectors() ) # doctest: +ELLIPSIS
+>>> print( anm.getEigenvectors().round(3) ) # doctest: +ELLIPSIS
 [[ 0.039 -0.045  0.007 ...,  0.105  0.032 -0.038]
  [ 0.009 -0.096 -0.044 ...,  0.091  0.036 -0.037]
  [ 0.058 -0.009  0.08  ..., -0.188 -0.08  -0.063]
@@ -163,7 +163,7 @@ Get the slowest mode by indexing :class:`ANM` instance as follows:
 >>> slowest_mode = anm[0]
 >>> print( slowest_mode.getEigenvalue().round(4) )
 0.1789
->>> print( slowest_mode.getEigenvector() ) # doctest: +ELLIPSIS
+>>> print( slowest_mode.getEigenvector().round(3) ) # doctest: +ELLIPSIS
 [ 0.039  0.009  0.058 ...,  0.046  0.042  0.08 ]
 
 Write NMD file
