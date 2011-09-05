@@ -1072,11 +1072,14 @@ class AtomGroup(Atomic):
             array = self._data[var]
             if array is not None:
                 if indices is None:
-                    newmol._data[var] = array
+                    newmol._data[var] = array.copy()
                 else:
                     newmol._data[var] = array[indices]
         for name, data in self._userdata.iteritems():
-            newmol._userdata[name] = data[indices]
+            if indices is None:
+                newmol._userdata[name] = data.copy()
+            else:
+                newmol._userdata[name] = data[indices]
         return newmol
     
     def getHierView(self):
