@@ -1693,9 +1693,9 @@ class Atom(AtomPointer):
         if self._ag._coordinates is None:
             return None
         if indices is None:
-            self._ag._coordinates[:, self._index]
+            return self._ag._coordinates[:, self._index]
         elif isinstance(indices, (int, slice)):
-            self._ag._coordinates[indices, self._index]
+            return self._ag._coordinates[indices, self._index]
         elif isinstance(indices, (list, np.ndarray)):
             return self._ag._coordinates[indices, self._index]
         else:
@@ -2679,16 +2679,22 @@ def loadAtoms(filename):
         if attr == '_name':
             continue  
         elif attr == '_coordinates':
-            ag.setCoordinates(attr_dict[attr])
-        elif attr[0] == '_' and attr[1:] in ATOMIC_ATTRIBUTES: 
-            field = ATOMIC_ATTRIBUTES[attr[1:]]
             data = attr_dict[attr]
             if data.ndim > 0:
-                ag.__getattribute__('set' + field.meth_pl)(data)
-        elif attr[1] != '_':            
-            ag.setAttribute(attr, attr_dict[attr])
-        else:
-            LOGGER.warning("'{0:s} is not a valid attribute.'".format(attr))
+                ag.setCoordinates(data)
+        elif attr in ATOMIC_ATTRIBUTES: 
+            field = ATOMIC_ATTRIBUTES[attr]
+            data = attr_dict[attr]
+            if data.ndim > 0:
+               ag.__getattribute__('set' + field.meth_pl)(data)
+            else:
+                ag.__getattribute__('set' + field.meth_pl)([data])
+        else:            
+            data = attr_dict[attr]
+            if data.ndim > 0:
+                ag.setAttribute(attr, data)
+            else:
+                ag.setAttribute(attr, [data])
             
     LOGGER.debug('Atoms were loaded in {0:.2f}s.'.format(time.time() - start))
     return ag
