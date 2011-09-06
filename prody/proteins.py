@@ -1537,7 +1537,9 @@ def fetchLigandData(cci, save=False, folder='.'):
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
     elif os.path.isfile(cci):
-        xml = open(cci)
+        inp = open(cci)
+        xml = inp.read()
+        inp.close()
     elif len(cci) > 4 or not cci.isalnum(): 
         raise ValueError('cci must be 3-letters long and alphanumeric or '
                          'a valid filename')
@@ -1547,22 +1549,24 @@ def fetchLigandData(cci, save=False, folder='.'):
             prody.proteins.urllib2 = urllib2
             
         try:
-            xml = urllib2.urlopen(
+            inp = urllib2.urlopen(
                 'http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
                 .format(cci))
         except urllib2.HTTPError:
             raise IOError('XML file for ligand {0:s} is not found'.format(cci))
-        
+        else:
+            xml = inp.read()
+            inp.close()
+        if save:
+            out = open(os.path.join(folder, cci+'.xml'), 'w')
+            out.write(xml)
+            out.close()
 
     if ET is None:
         import xml.etree.cElementTree as ET
         prody.proteins.ET = ET
 
-
-    etree = ET.parse(xml)
-    xml.close()
-    
-    root = etree.getroot()
+    root = ET.XML(xml)
     if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
         != 'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v40.xsd':
         LOGGER.warning('XML does not seem to be in PDBx/PDBML v 4.0 format, '
