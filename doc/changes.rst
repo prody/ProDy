@@ -6,6 +6,26 @@
 Changes
 *******************************************************************************
 
+Release 0.8.1 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`~proteins.fetchLigandData` is implemented for fetching ligand data
+    from Ligand Expo.
+    
+**Changes**:
+
+  * __slots__ is used in :class:`~atomic.AtomGroup` and :class:`~atomic.Atomic`
+    classes. This prevent user from assigning new variables to instances
+    of all classes derived from :class:`~atomic.Atomic`.   
+
+**Bug Fixes**:
+
+  * A bug in :meth:`~atomic.AtomGroup.copy` method is fixed. When 
+
+
+
 Release 0.8 (Aug 24, 2011)
 ===============================================================================
 
