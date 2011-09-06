@@ -1504,12 +1504,16 @@ def assignSecondaryStructure(header, atoms, coil=False):
 def fetchLigandData(cci):
     """|new| Fetch ligand data from Ligand Expo (http://ligand-expo.rcsb.org/).
 
+    .. versionadded:: 0.8.1
+    
     :arg cci: 3-letter chemical component identifier
     
-    Returns a dictionary that contains ligand data. Ligand atom data with 
-    *model* and *ideal* coordinates are also stored in this dictionary.
+    This function is compatible with PDBx/PDBML v 4.0.
     
-    Following example downloads ligand data for ligand STI (a.k.a. Gleevec and
+    Returns a dictionary that contains ligand data. Ligand atom data with 
+    *model* and *ideal* coordinate sets are also stored in this dictionary.
+    
+    Following example downloads data for ligand STI (a.k.a. Gleevec and
     Imatinib) and calculates RMSD between model (X-ray) and ideal (energy 
     minimized) coordinate sets.
     
@@ -1545,8 +1549,12 @@ def fetchLigandData(cci):
                 .format(cci))
     etree = ET.parse(xml)
     xml.close()
-
+    
     root = etree.getroot()
+    if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
+        != 'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v4.xsd':
+        LOGGER.warning('XML does not seem to be in PDBx/PDBML v 4.0 format, '
+                       'resulting dictionary may not have all possible data')
     ns = root.tag[:root.tag.rfind('}')+1]
     len_ns = len(ns)
     dict_ = {}
