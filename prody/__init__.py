@@ -270,6 +270,7 @@ class ProDyProgress(object):
         self._prefix = str(kwargs.get('prefix', ''))
         self._barlen = int(kwargs.get('barlen', 30))
         self._prev = (0, 0)
+        self._line = ''
     
     def report(self, i):
         """Print status to current line in the console."""
@@ -291,19 +292,22 @@ class ProDyProgress(object):
                 bar = int(round(percent*barlen/100.))
                 bar = '='*bar + '>' + ' '*(barlen-bar)
                 bar = ' [' + bar  + '] '
+            
+            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
             if percent > 3:
-                sys.stderr.write((prefix + ' %2d%%' + bar + '%ds    ') % 
-                                 (percent, seconds))
+                line = (prefix + ' %2d%%' + bar + '%ds')%(percent, seconds)
             else:
-                sys.stderr.write((prefix + ' %2d%%' + bar) % percent) 
+                line = (prefix + ' %2d%%' + bar) % percent
+            sys.stderr.write(line)
             sys.stderr.flush()
             self._prev = prev
+            self._line = line
     
     def clean(self):
         """Clean sys.stderr."""
         
         if self._level < logging.WARNING:
-            sys.stderr.write('\r' + ' ' * (self._barlen + 20) + '\r')
+            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
     
 
 def changeVerbosity(level):
