@@ -1547,11 +1547,10 @@ def fetchLigandData(cci, save=False, folder='.'):
         if urllib2 is None:
             import urllib2
             prody.proteins.urllib2 = urllib2
-            
         try:
             inp = urllib2.urlopen(
                 'http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
-                .format(cci))
+                .format(cci.upper()))
         except urllib2.HTTPError:
             raise IOError('XML file for ligand {0:s} is not found'.format(cci))
         else:
