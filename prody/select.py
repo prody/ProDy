@@ -1294,14 +1294,19 @@ class Select(object):
         which = token[1]
         if not isinstance(which, np.ndarray):
             which = self._evaluate(token[1:])
-        
         if what == 'residue':
-            chainids = self._getAtomicData('chain')
-            resids =  self._getAtomicData('resnum')
-            resnum = np.unique(resids[which]).astype('|S6')
-            torf = np.all(
-                [self._evalAlnum('chain', list(np.unique(chainids[which]))),
-                 self._resnum(resnum)], 0)
+            chainids = self._getAtomicData('chain')[which]
+            resnum =  self._getAtomicData('resnum')[which]
+            icodes = self._getAtomicData('icode')[which]
+            if icodes is None:
+                resnum = [str(resnum[i]) + code 
+                                    if code else resids[i] 
+                                    for i, code in enumerate(icodes)]
+            torf = np.zeros(self._n_atoms, np.bool)
+            for chain in np.unique(chainids):
+                torf[np.all([self._evalAlnum('chain', [chain]),
+                             self._resnum(np.unique[resnum[chainids == chain]), 
+                                          numRange=False)], 0)] = True
         elif what == 'chain':
             chainids = self._getAtomicData('chain')
             torf = self._evalAlnum('chain', list(np.unique(chainids[which])))        
@@ -1550,7 +1555,7 @@ class Select(object):
                 torf[data == item] = True
         return torf
 
-    def _resnum(self, token=None):
+    def _resnum(self, token=None, numRange=True):
         if DEBUG: print('_resnum', token)
         if token is None:
             return self._getAtomicData('resnum') 
@@ -1564,7 +1569,10 @@ class Select(object):
             n_atoms = len(evalonly)
         torf = np.zeros(n_atoms, np.bool)
         
-        for item in self._getNumRange(token):
+        if numRange:
+            token = self._getNumRange(token)
+        
+        for item in token:
             if isinstance(item, str):
                 if icodes is None:
                     if self._evalonly is None:
@@ -1647,6 +1655,7 @@ class Select(object):
         return torf
 
     def _getNumRange(self, token):
+        if DEBUG: print('_getNumRange', token)
         tknstr = ' '.join(token)
         while '  ' in tknstr:
             tknstr = tknstr.replace('  ', ' ')
@@ -1682,19 +1691,14 @@ class Select(object):
                     raise SelectionError('"{0:s}" is not understood, ":" must '
                                          'be surrounded by integers.'
                                          .format(':'.join(items)))
-            elif '.' in item:
-                try:
-                    token.append( float(item) )
-                except:
-                    raise SelectionError('"{0:s}" is not understood.'
-                                         .format(item))
-            elif item.isdigit():
-                try:
-                    token.append( int(item) )
-                except:
-                    raise SelectionError('"{0:s}" is not understood.'
-                                         .format(item))
             else:
+                try: 
+                    item = int(item)
+                except ValueError:
+                    try:
+                        item = float(item)
+                    except ValueError:
+                        pass
                 token.append( item )
         if DEBUG: print('_getNumRange', token)            
         return token
