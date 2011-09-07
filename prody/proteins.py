@@ -1242,7 +1242,7 @@ def blastPDB(sequence, filename=None, **kwargs):
             sequence = sequence.data
         except AttributeError:    
             try:
-                sequence = sequence.seq.data
+                sequence = str(sequence.seq)
             except AttributeError:    
                 pass
         if not isinstance(sequence, str):
