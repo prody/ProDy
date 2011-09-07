@@ -1265,7 +1265,6 @@ def blastPDB(sequence, filename=None, **kwargs):
     LOGGER.info('Blast search completed in {0:.2f}s.'
                 .format(time.time()-start))
                 
-    
     if filename is not None:
         filename = str(filename)
         if not filename.lower().endswith('.xml'):
@@ -1514,6 +1513,13 @@ def fetchLigandData(cci, save=False, folder='.'):
     
     Returns a dictionary that contains ligand data. Ligand atom data with 
     *model* and *ideal* coordinate sets are also stored in this dictionary.
+    Note that this dictionary will contain data that is present in the XML
+    file and all Ligand Expo XML files do not contain every possible data
+    field. So, it may be better if you use :meth:`dict.get` instead of
+    indexing the dictionary, e.g. to retrieve formula weight (or relative
+    molar mass) of the chemical component use ``data.get('formula_weight')``
+    instead of ``data['formula_weight']`` to avoid exceptions when this
+    data field is not found in the XML file.
     
     Following example downloads data for ligand STI (a.k.a. Gleevec and
     Imatinib) and calculates RMSD between model (X-ray) and ideal (energy 
