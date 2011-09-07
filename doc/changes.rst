@@ -18,7 +18,9 @@ Release 0.8.1 (in development)
 
   * __slots__ is used in :class:`~atomic.AtomGroup` and :class:`~atomic.Atomic`
     classes. This change prevents user from assigning new variables to 
-    instances of all classes derived from the base :class:`~atomic.Atomic`.   
+    instances of all classes derived from the base :class:`~atomic.Atomic`.
+    
+  * :mod:`pyparsing` is updated to version 1.5.6.
 
 **Bug Fixes**:
 
