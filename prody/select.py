@@ -1305,7 +1305,7 @@ class Select(object):
             torf = np.zeros(self._n_atoms, np.bool)
             for chain in np.unique(chainids):
                 torf[np.all([self._evalAlnum('chain', [chain]),
-                             self._resnum(np.unique[resnum[chainids == chain]), 
+                             self._resnum(np.unique(resnum[chainids == chain]), 
                                           numRange=False)], 0)] = True
         elif what == 'chain':
             chainids = self._getAtomicData('chain')

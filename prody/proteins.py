@@ -1525,7 +1525,6 @@ def fetchLigandData(cci, save=False, folder='.'):
     Imatinib) and calculates RMSD between model (X-ray) and ideal (energy 
     minimized) coordinate sets.
     
-    >>> from prody import *
     >>> ligand_data = fetchLigandData('STI')
     >>> ligand_data['model_coordinates_db_code'] 
     '1IEP'
@@ -1534,7 +1533,7 @@ def fetchLigandData(cci, save=False, folder='.'):
     
     >>> ligand_model = ligand_data['model'] 
     >>> ligand_ideal = ligand_data['ideal']
-    >>> superpose(ligand_ideal.noh, ligand_model.noh) # doctest: +SKIP
+    >>> transformation = superpose(ligand_ideal.noh, ligand_model.noh)
     >>> print( calcRMSD(ligand_ideal.noh, ligand_model.noh).round(2) )
     2.27
     """

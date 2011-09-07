@@ -103,7 +103,7 @@ It is not possible to save custom attributes in PDB files, but
 
 Let's load it using :func:`loadAtoms` function:
 
->>> ag = loadAtoms('1p38.atm.npz')
+>>> ag = loadAtoms('1p38.ag.npz')
 >>> ag.getAttribute('myresnum')
 array([  0.4,   0.4,   0.4, ...,  77.1,  77.3,  77.6])
 

@@ -17,12 +17,20 @@ Release 0.8.1 (in development)
 **Changes**:
 
   * __slots__ is used in :class:`~atomic.AtomGroup` and :class:`~atomic.Atomic`
-    classes. This prevent user from assigning new variables to instances
-    of all classes derived from :class:`~atomic.Atomic`.   
+    classes. This change prevents user from assigning new variables to 
+    instances of all classes derived from the base :class:`~atomic.Atomic`.   
 
 **Bug Fixes**:
 
-  * A bug in :meth:`~atomic.AtomGroup.copy` method is fixed. When 
+  * A bug in :meth:`~atomic.AtomGroup.copy` method is fixed. When AtomGroup
+    instance itself is copied, deep copies of data arrays were not made.
+
+  * A bug in :class:`~select.Select` class raising exceptions when negative
+    residue number values are present is fixed.
+
+  * Another bug in :class:`~select.Select` class misinterpreting
+    ``same residue as ...`` statement when specific chains are involved is
+    fixed.
 
 
 
@@ -616,7 +624,6 @@ Release 0.2 (Nov 16, 2010)
     identification.
   * :class:`~select.Select` can identify intermolecular contacts. See
     :ref:`contacts` for an examples and details.
-  * :func:`~dynamics.getCumulativeOverlapArray`.
   * :func:`~dynamics.sampleModes` implemented for sampling conformations 
     along normal modes.
 
