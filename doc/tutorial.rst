@@ -260,7 +260,7 @@ Let's try a more sophisticated selection. We first calculate the geometric
 center of the protein atoms. Then, we select the Cα and Cβ atoms of residues 
 that have at least one atom within 10 Å away from the geometric center.
 
->>> print( protein.getCoordinates().mean(0) ) # doctest: +ELLIPSIS
+>>> print( protein.getCoordinates().mean(0).round(3) ) # doctest: +ELLIPSIS
 [  1.005  17.533  40.052]
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
@@ -316,7 +316,7 @@ We can also iterate over chains and residues:
 
 >>> for chain in hv: print( chain )
 Chain A
->>> for res in hv.iterResidues(): print( res )
+>>> for res in hv.iterResidues(): print( res ) # doctest: +ELLIPSIS
 GLU 4
 ARG 5
 PRO 6
