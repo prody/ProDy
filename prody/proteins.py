@@ -1579,9 +1579,16 @@ def fetchLigandData(cci, save=False, folder='.'):
         if tag.startswith('pdbx_'):
             tag = tag[5:]
         dict_[tag] = child.text
+    dict_['formula_weight'] = float(dict_.get('formula_weight')) 
 
-    for child in list(root.find(ns + 'pdbx_chem_comp_identifierCategory')) + \
-                 list(root.find(ns + 'pdbx_chem_comp_descriptorCategory')):
+    identifiers_and_descriptors = []
+    results = root.find(ns + 'pdbx_chem_comp_identifierCategory')
+    if results:
+        identifiers_and_descriptors.extend(results)
+    results = root.find(ns + 'pdbx_chem_comp_descriptorCategory')
+    if results:
+        identifiers_and_descriptors.extend(results)
+    for child in identifiers_and_descriptors:
         program = child.get('program').replace(' ', '_')
         type_ = child.get('type').replace(' ', '_')
         dict_[program + '_' + type_] = child[0].text
@@ -1612,23 +1619,23 @@ def fetchLigandData(cci, save=False, folder='.'):
     for i, atom in enumerate(atoms):
         data = dict([(child.tag[len_ns:], child.text) for child in list(atom)])
 
-        atomnames[i] = data['pdbx_component_atom_id']
-        elements[i] = data['type_symbol']
-        resnames[i] = data['pdbx_component_comp_id']
-        charges[i] = float(data['charge'])
+        atomnames[i] = data.get('pdbx_component_atom_id', 'X')
+        elements[i] = data.get('type_symbol', 'X')
+        resnames[i] = data.get('pdbx_component_comp_id', 'UNK')
+        charges[i] = float(data.get('charge', 0))
         
-        alternate_atomnames[i] = data['alt_atom_id']
-        leaving_atom_flags[i] = data['pdbx_leaving_atom_flag'] == 'Y'
+        alternate_atomnames[i] = data.get('alt_atom_id', 'X')
+        leaving_atom_flags[i] = data.get('pdbx_leaving_atom_flag') == 'Y'
         aromatic_flags[i] = data.get('pdbx_atomatic_flag') == 'Y'
         stereo_configs[i] = data.get('pdbx_stereo_config') == 'Y'
-        ordinals[i] = int(data['pdbx_ordinal'])
+        ordinals[i] = int(data.get('pdbx_ordinal',0))
         
-        model_coords[i, 0] = float(data['model_Cartn_x'])
-        model_coords[i, 1] = float(data['model_Cartn_y'])
-        model_coords[i, 2] = float(data['model_Cartn_z'])
-        ideal_coords[i, 0] = float(data['pdbx_model_Cartn_x_ideal'])
-        ideal_coords[i, 1] = float(data['pdbx_model_Cartn_y_ideal'])
-        ideal_coords[i, 2] = float(data['pdbx_model_Cartn_z_ideal'])
+        model_coords[i, 0] = float(data.get('model_Cartn_x', 0))
+        model_coords[i, 1] = float(data.get('model_Cartn_y', 0))
+        model_coords[i, 2] = float(data.get('model_Cartn_z', 0))
+        ideal_coords[i, 0] = float(data.get('pdbx_model_Cartn_x_ideal', 0))
+        ideal_coords[i, 1] = float(data.get('pdbx_model_Cartn_y_ideal', 0))
+        ideal_coords[i, 2] = float(data.get('pdbx_model_Cartn_z_ideal', 0))
 
     model = AtomGroup(cci + ' model')
     model.setCoordinates(model_coords)
