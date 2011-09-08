@@ -442,7 +442,14 @@ _parsePDBdoc = """
     :arg secondary: If ``True``, parse the secondary structure information
         from header section and assign data to atoms.
     :type secondary: False
-
+    
+    :arg ag: :class:`~prody.atomic.AtomGroup` instance for storing data parsed 
+        from PDB file. Number of atoms in *ag* and number of atoms parsed from
+        the PDB file must be the same. Atoms in *ag* and the PDB file must be 
+        in the same order. Non-coordinate data stored in *ag* will be 
+        overwritten with those parsed from the file. 
+    :type ag: :class:`~prody.atomic.AtomGroup`
+    
 
     If ``model=0`` and ``header=True``, return header 
     dictionary only.
@@ -455,7 +462,10 @@ _parsePDBdoc = """
        *name* is now a keyword argument. *biomol* and *secondary* keyword 
        arguments makes the parser return the biological molecule and/or
        assign secondary structure information.
-    
+       
+    .. versionchanged:: 0.8.1
+       User can pass an :class:`~prody.atomic.AtomGroup` instance as *ag*.
+
     """
     
 _PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
@@ -533,21 +543,27 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
     secondary = kwargs.get('secondary', False)
     split = 0
     hd = None
-    ag = None
+    if 'ag' in kwargs:
+        ag = kwargs.get('ag')
+        if not isinstance(ag, prody.AtomGroup):
+            raise TypeError('ag must be an AtomGroup instance')
+        n_csets = ag.getNumOfCoordsets()
+    else:
+        ag = None
+        n_csets = 0
     if header or biomol or secondary:
         hd, split = _getHeaderDict(lines)
     name = kwargs.get('name', None)
     if model != 0:
         start = time.time()
-        ag = _getAtomGroup(lines, split, model, chain, subset, altloc)
+        ag = _getAtomGroup(lines, split, model, chain, subset, altloc, ag)
         if name is None:
             ag.setName('unknown')
         else:
             ag.setName(name)
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
                     'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
-                                                 ag.getNumOfCoordsets(), 
-                                                 time.time()-start))
+                     ag.getNumOfCoordsets() - n_csets, time.time()-start))
     if secondary:
         try:
             ag = assignSecondaryStructure(hd, ag)
@@ -576,7 +592,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
 
 parsePDBStream.__doc__ += _parsePDBdoc
 
-def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
+def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
     
     :arg lines: Lines from a PDB file.
@@ -778,8 +794,17 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf):
                 acount = 0
                 coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
             else:
-                atomgroup = prody.AtomGroup('')
-                atomgroup.setCoordinates(coordinates[:acount])
+                if ag is None:
+                    atomgroup = prody.AtomGroup('')
+                    atomgroup.setCoordinates(coordinates[:acount])
+                else:
+                    ag_n_atoms = ag.getNumOfAtoms()
+                    if ag_n_atoms > 0 and ag_n_atoms != acount:
+                        raise ValueError('ag AtomGroup instance does not have '
+                                         'correct number of atoms')
+                    else:
+                        atomgroup = ag
+                    atomgroup.addCoordset(coordinates[:acount])
                 atomgroup.setAtomNames(atomnames[:acount])
                 atomgroup.setResidueNames(resnames[:acount])
                 atomgroup.setResidueNumbers(resnums[:acount])
