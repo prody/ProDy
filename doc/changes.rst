@@ -13,6 +13,9 @@ Release 0.8.1 (in development)
 
   * :func:`~proteins.fetchLigandData` is implemented for fetching ligand data
     from Ligand Expo.
+
+  * :func:`~proteins.parsePSF` function is implemented for parsing X-PLOR 
+    format PSF files.
     
 **Changes**:
 

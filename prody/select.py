@@ -1717,8 +1717,8 @@ class Select(object):
                 else:
                     return data[indices]
             else:
-                raise SelectionError('attribute "{0:s}" is 1-dimensional data '
-                                     .format(keyword))                
+                raise SelectionError('attribute "{0:s}" is not 1-dimensional'
+                                     .format(keyword))
         else:
             var = field.var
             data = self._data[var]
