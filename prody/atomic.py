@@ -655,7 +655,7 @@ class AtomGroup(Atomic):
         self._name = str(name)
         self._n_atoms = 0
         self._coordinates = None
-        self._acsi = 0                  # Active Coordinate Set Index
+        self._acsi = None                  # Active Coordinate Set Index
         self._n_csets = 0
         self._hv = None
         self._userdata = {}
@@ -698,9 +698,14 @@ class AtomGroup(Atomic):
 
     def __repr__(self):
         if self._trajectory is None:
-            return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate sets, '
-                    'active set index: {3:d})>').format(self._name, 
+            if self._n_csets > 0:
+                return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate '
+                        'sets, active set index: {3:d})>').format(self._name, 
                                     self._n_atoms, self._n_csets, self._acsi)
+            else:
+                return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate '
+                        'sets)>').format(self._name,  self._n_atoms, 
+                        self._n_csets)
         else:
             return ('<AtomGroup: {0:s} ({1:d} atoms; trajectory {2:s}, '
                     'frame index {3:d})>').format(self._name, 
@@ -931,21 +936,24 @@ class AtomGroup(Atomic):
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
         
+        if self._n_csets == 0:
+            raise AttributeError('coordinates are not set')
         if self._trajectory is not None:
             raise AttributeError('AtomGroup is locked for coordinate set '
                                  'addition/deletion when its associated with '
                                  'a trajectory')
         which = np.ones(self._n_csets, np.bool)
         which[index] = False
-        n_csets = self._n_csets 
-        if which.sum() == n_csets:
+        n_csets = self._n_csets
+        if which.sum() == 0:
             self._coordinates = None
             self._n_csets = 0
+            self._acsi = None
         else:
             self._coordinates = self._coordinates[which]
             self._n_csets = self._coordinates.shape[0]
-        self._timestamps = self._timestamps[which]
-        self._acsi = 0
+            self._acsi = 0
+        self._timestamps = self._timestamps[which]        
 
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given indices.
@@ -1586,10 +1594,17 @@ class Atom(AtomPointer):
         self._index = int(index)
         
     def __repr__(self):
-        return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
-                'coordinate sets, active set index: {4:d})>').format(
-                self.getAtomName(), self._ag.getName(), self._index,  
-                self._ag.getNumOfCoordsets(), self._acsi)
+        n_csets = self._ag.getNumOfCoordsets()
+        if n_csets > 0:
+            return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
+                    'coordinate sets, active set index: {4:d})>').format(
+                    self.getAtomName(), self._ag.getName(), self._index,  
+                    n_csets, self._acsi)
+        else:
+            return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
+                    'coordinate sets)>').format(self.getAtomName(), 
+                    self._ag.getName(), self._index, n_csets)
+                    
         sn = self.getSerialNumber()
         if sn is None: 
             return ('<Atom: {0:s} from {1:s} (index {2:d}; {3:d} '
@@ -1985,10 +2000,16 @@ class Chain(AtomSubset):
         return len(self._dict)
     
     def __repr__(self):
-        return ('<Chain: {0:s} from {1:s} ({2:d} atoms; '
-                '{3:d} coordinate sets, active set index: {4:d})>').format(
-                self.getIdentifier(), self._ag.getName(), self.getNumOfAtoms(), 
-                self._ag.getNumOfCoordsets(), self._acsi)
+        n_csets = self._ag.getNumOfCoordsets()
+        if n_csets > 0:
+            return ('<Chain: {0:s} from {1:s} ({2:d} atoms; '
+                    '{3:d} coordinate sets, active set index: {4:d})>').format(
+                    self.getIdentifier(), self._ag.getName(), 
+                    self.getNumOfAtoms(), n_csets, self._acsi)
+        else:
+            return ('<Chain: {0:s} from {1:s} ({2:d} atoms; '
+                    '{3:d} coordinate sets)>').format(self.getIdentifier(), 
+                    self._ag.getName(), self.getNumOfAtoms(), n_csets)
 
     def __str__(self):
         return ('Chain {0:s}').format(self.getIdentifier())
@@ -2084,14 +2105,23 @@ class Residue(AtomSubset):
         self._chain = chain
 
     def __repr__(self):
-        return ('<Residue: {0:s} {1:d}{2:s} from Chain {3:s} from {4:s} '
-                '({5:d} atoms; {6:d} coordinate sets, active set index: {7:d})>'
-                ).format(self.getName(), self.getNumber(), 
-                         self.getInsertionCode(), 
-                         self.getChain().getIdentifier(), 
-                         self._ag.getName(), len(self), 
-                         self._ag.getNumOfCoordsets(), self._acsi)
-        
+        n_csets = self._ag.getNumOfCoordsets()
+        if n_csets > 0:
+            return ('<Residue: {0:s} {1:d}{2:s} from Chain {3:s} from {4:s} '
+                    '({5:d} atoms; {6:d} coordinate sets, active set index: '
+                    '{7:d})>').format(self.getName(), self.getNumber(), 
+                                      self.getInsertionCode(), 
+                                      self.getChain().getIdentifier(), 
+                                      self._ag.getName(), len(self), 
+                                      n_csets, self._acsi)
+        else:        
+            return ('<Residue: {0:s} {1:d}{2:s} from Chain {3:s} from {4:s} '
+                    '({5:d} atoms; {6:d} coordinate sets)>').format(
+                        self.getName(), self.getNumber(), 
+                        self.getInsertionCode(), 
+                        self.getChain().getIdentifier(), 
+                        self._ag.getName(), len(self), n_csets)
+            
     def __str__(self):
         return '{0:s} {1:d}{2:s}'.format(self.getName(), self.getNumber(), 
                                          self.getInsertionCode())
@@ -2172,14 +2202,19 @@ class Selection(AtomSubset):
         self._selstr = str(selstr)
         
     def __repr__(self):
+        n_csets = self._ag.getNumOfCoordsets()
         selstr = self._selstr
         if len(selstr) > 33:
             selstr = selstr[:15] + '...' + selstr[-15:]  
-        return ('<Selection: "{0:s}" from {1:s} ({2:d} atoms; '
-                '{3:d} coordinate sets, active set index: {4:d})>').format(
-                selstr, self._ag.getName(), len(self), 
-                         self._ag._n_csets, self._acsi)
-                   
+        if n_csets > 0:
+            return ('<Selection: "{0:s}" from {1:s} ({2:d} atoms; '
+                    '{3:d} coordinate sets, active set index: {4:d})>').format(
+                    selstr, self._ag.getName(), len(self), n_csets, self._acsi)
+        else:
+            return ('<Selection: "{0:s}" from {1:s} ({2:d} atoms; '
+                    '{3:d} coordinate sets)>').format(
+                    selstr, self._ag.getName(), len(self), n_csets)
+
     def __str__(self):
         selstr = self._selstr
         if len(selstr) > 33:
@@ -2278,12 +2313,19 @@ class AtomMap(AtomPointer):
         self._len = len(self._unmapped) + len(self._mapping)
         
     def __repr__(self):
-        return ('<AtomMap: {0:s} (from {1:s}; {2:d} atoms; '
-                '{3:d} mapped; {4:d} unmapped; {5:d} coordinate sets, '
-                'active set index: {6:d})>').format(self._name,
-                self._ag.getName(), self._len, len(self._mapping), 
-                len(self._unmapped), self.getNumOfCoordsets(), self._acsi)
-    
+        n_csets = self._ag.getNumOfCoordsets()
+        if n_csets > 0:
+            return ('<AtomMap: {0:s} (from {1:s}; {2:d} atoms; '
+                    '{3:d} mapped; {4:d} unmapped; {5:d} coordinate sets, '
+                    'active set index: {6:d})>').format(self._name,
+                    self._ag.getName(), self._len, len(self._mapping), 
+                    len(self._unmapped), n_csets, self._acsi)
+        else:
+            return (('<AtomMap: {0:s} (from {1:s}; {2:d} atoms; '
+                    '{3:d} mapped; {4:d} unmapped; {5:d} coordinate sets)>')
+                    .format(self._name, self._ag.getName(), self._len, 
+                    len(self._mapping), len(self._unmapped), n_csets))
+            
     def __str__(self):
         return 'AtomMap {0:s}'.format(self._name)
     
