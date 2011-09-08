@@ -38,6 +38,7 @@ Functions
   * :func:`setWWPDBFTPServer` 
   * :func:`parsePDB`
   * :func:`parsePDBStream`
+  * :func:`parsePSF`
   * :func:`writePDB`
   * :func:`writePDBStream`
   
@@ -96,7 +97,7 @@ __all__ = ['PDBBlastRecord',
            'blastPDB', 'fetchPDB', 
            'getPDBMirrorPath', 'getWWPDBFTPServer', 
            'setPDBMirrorPath', 'setWWPDBFTPServer',
-           'parsePDBStream', 'parsePDB', 
+           'parsePDBStream', 'parsePDB', 'parsePSF',
            'writePDBStream', 'writePDB',
            'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
@@ -1104,6 +1105,104 @@ def _getHeaderDict(lines):
     if sheet:
         header['sheet'] = sheet
     return header, i
+
+def parsePSF(filename, name=None, ag=None):
+    """Return a :class:`~prody.atomic.AtomGroup` instance containing data 
+    parsed from X-PLOR format PSF file *filename*. If *name* is not given, 
+    *filename* will be set as the name of the :class:`AtomGroup` instance. 
+    An :class:`AtomGroup` instance may be provided as *ag* argument. When 
+    provided, *ag* must have the same number of atoms in the same order as 
+    the file. Data from PSF file will be added to *ag*. This may overwrite 
+    present data if it overlaps with PSF file content.
+    
+    .. versionadded:: 0.8.1
+    
+    """
+    
+    if ag is not None:
+        if not isinstance(ag, prody.AtomGroup):
+            raise TypeError('ag must be an AtomGroup instance') 
+    
+    psf = open(filename)
+    line = psf.readline()
+    i_line = 1
+    while line:
+        line = line.strip()
+        if line.strip().endswith('!NATOM'):
+            n_atoms = int(line.split('!')[0])
+            break
+        line = psf.readline()
+        i_line += 1
+    if name is None:
+        name = os.path.splitext(os.path.split(filename)[1])[0]
+    else:
+        name = str(name)
+    if ag is None:
+        ag = prody.AtomGroup(name)
+    else:
+        if n_atoms != ag.getNumOfAtoms():
+            raise ValueError('ag and PSF file must have same number of atoms')
+        
+    serials = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['serial'].dtype)
+    segnames = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['segment'].dtype)
+    resnums = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['resnum'].dtype)
+    resnames = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['resname'].dtype)
+    atomnames = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['name'].dtype)
+    atomtypes = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['type'].dtype)
+    charges = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['charge'].dtype)
+    masses = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['mass'].dtype)
+    
+    lines = psf.readlines(71 * (n_atoms + 5))
+    index = True
+    split = False
+    if len(lines) < n_atoms:
+        raise IOError('number of lines in PSF is less than the number of '
+                      'atoms')
+    
+    for i, line in enumerate(lines):
+        if i == n_atoms:
+            break
+        i_line += 1
+        if index:
+            try:            
+                serials[i] = int(line[:8])
+                segnames[i] = line[9:13].strip()
+                resnums[i] = int(line[14:19])
+                resnames[i] = line[19:23].strip()
+                atomnames[i] = line[24:28].strip()
+                atomtypes[i] = line[29:35].strip()
+                charges[i] = float(line[35:44])
+                masses[i] = float(line[50:60])
+            except:
+                LOGGER.warning('line {0:d} in {1:s} is not formatted as '
+                               'expected, trying alternate method for the '
+                               'rest of the file.'.format(i_line, filename))
+                split = True
+                index = False
+        if split:
+            try:
+                items = line.strip().split()
+                serials[i] = int(items[0])
+                segnames[i] = items[1]
+                resnums[i] = int(items[2])
+                resnames[i] = items[3]
+                atomnames[i] = items[4]
+                atomtypes[i] = items[5]
+                charges[i] = float(items[6])
+                masses[i] = float(items[7])
+            except:
+                IOError('line {0:d} in {1:s} could not be parsed. Please '
+                        'report this error.'.format(i_line, filename))
+    psf.close()
+    ag.setSerialNumbers(serials)
+    ag.setSegmentNames(segnames)
+    ag.setResidueNumbers(resnums)
+    ag.setResidueNames(resnames)
+    ag.setAtomNames(atomnames)
+    ag.setAtomTypes(atomtypes)
+    ag.setCharges(charges)
+    ag.setMasses(masses)
+    return ag
 
 class PDBBlastRecord(object):
 
