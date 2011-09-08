@@ -38,7 +38,7 @@ Instantiate an AtomGroup
 
 >>> wtr1 = AtomGroup('Water')
 >>> wtr1
-<AtomGroup: Water (0 atoms; 0 coordinate sets, active set index: 0)>
+<AtomGroup: Water (0 atoms; 0 coordinate sets)>
 
 
 Set coordinates
