@@ -1736,9 +1736,11 @@ class Select(object):
     def _getCoordinates(self):
         if self._coordinates is None:
             if self._indices is None:
-                self._coordinates = self._ag._coordinates[self._ag._acsi]
+                self._coordinates = self._ag._getCoordinates()
             else:
                 self._coordinates = self._atoms._getCoordinates()
+        if self._coordinates is None:
+            raise AttributeError('coordinates are not set')
         return self._coordinates
    
     def _getKDTree(self):
