@@ -550,18 +550,13 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.getNumOfCoordsets()
     else:
-        ag = None
+        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
         n_csets = 0
     if header or biomol or secondary:
         hd, split = _getHeaderDict(lines)
-    name = kwargs.get('name', None)
     if model != 0:
         start = time.time()
-        ag = _getAtomGroup(lines, split, model, chain, subset, altloc, ag)
-        if name is None:
-            ag.setName('unknown')
-        else:
-            ag.setName(name)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
                     'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
                      ag.getNumOfCoordsets() - n_csets, time.time()-start))
@@ -593,7 +588,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
 
 parsePDBStream.__doc__ += _parsePDBdoc
 
-def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
+def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
     
     :arg lines: Lines from a PDB file.
@@ -641,7 +636,6 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
     stop = len(lines)
     nmodel = 0
     if model is not None and model != 1:
-
         for i in range(split, len(lines)):
             if lines[i][:5] == 'MODEL':
                 nmodel += 1
@@ -668,7 +662,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
     is_siguij = False
     is_scndry = False
     altloc = defaultdict(list)
-    n_atoms = 0
+    n_atoms = atomgroup.getNumOfAtoms()
     i = start
     while i < stop:
         line = lines[i]
@@ -743,35 +737,35 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
                 alength += asize
                 coordinates = np.concatenate(
                     (coordinates, np.zeros((asize, 3), np.float64)))
-                atomnames = np.concatenate((atomnames, 
+                atomnames = np.concatenate((atomnames,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
-                resnames = np.concatenate((resnames, 
+                resnames = np.concatenate((resnames,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
-                resnums = np.concatenate((resnums, 
+                resnums = np.concatenate((resnums,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
-                chainids = np.concatenate((chainids, 
+                chainids = np.concatenate((chainids,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
-                bfactors = np.concatenate((bfactors, 
+                bfactors = np.concatenate((bfactors,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
-                occupancies = np.concatenate((occupancies, 
+                occupancies = np.concatenate((occupancies,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
-                hetero = np.concatenate((hetero, 
+                hetero = np.concatenate((hetero,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
-                altlocs = np.concatenate((altlocs, 
+                altlocs = np.concatenate((altlocs,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
-                segnames = np.concatenate((segnames, 
+                segnames = np.concatenate((segnames,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
-                elements = np.concatenate((elements, 
+                elements = np.concatenate((elements,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
-                secondary = np.concatenate((secondary, 
+                secondary = np.concatenate((secondary,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
-                anisou = np.concatenate((anisou, 
+                anisou = np.concatenate((anisou,
                     np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
-                siguij = np.concatenate((siguij, 
+                siguij = np.concatenate((siguij,
                     np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
-                icodes = np.concatenate((icodes, 
+                icodes = np.concatenate((icodes,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
-                serials = np.concatenate((serials, 
+                serials = np.concatenate((serials,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['serial'].dtype)))
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
@@ -795,17 +789,7 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
                 acount = 0
                 coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
             else:
-                if ag is None:
-                    atomgroup = prody.AtomGroup('')
-                    atomgroup.setCoordinates(coordinates[:acount])
-                else:
-                    ag_n_atoms = ag.getNumOfAtoms()
-                    if ag_n_atoms > 0 and ag_n_atoms != acount:
-                        raise ValueError('ag AtomGroup instance does not have '
-                                         'correct number of atoms')
-                    else:
-                        atomgroup = ag
-                    atomgroup.addCoordset(coordinates[:acount])
+                atomgroup.addCoordset(coordinates[:acount])
                 atomgroup.setAtomNames(atomnames[:acount])
                 atomgroup.setResidueNames(resnames[:acount])
                 atomgroup.setResidueNumbers(resnums[:acount])
@@ -867,8 +851,6 @@ def _getAtomGroup(lines, split, model, chain, subset, altloc_torf, ag=None):
         if acount == atomgroup.getNumOfAtoms():
             atomgroup.addCoordset(coordinates)
     else:            
-        atomgroup = prody.AtomGroup('')
-        atomgroup.setCoordinates(coordinates[:acount])
         atomgroup.setCoordinates(coordinates[:acount])
         atomgroup.setAtomNames(atomnames[:acount])
         atomgroup.setResidueNames(resnames[:acount])
@@ -1107,7 +1089,7 @@ def _getHeaderDict(lines):
     return header, i
 
 def parsePSF(filename, name=None, ag=None):
-    """Return a :class:`~prody.atomic.AtomGroup` instance containing data 
+    """|new| Return an :class:`~prody.atomic.AtomGroup` instance storing data 
     parsed from X-PLOR format PSF file *filename*. If *name* is not given, 
     *filename* will be set as the name of the :class:`AtomGroup` instance. 
     An :class:`AtomGroup` instance may be provided as *ag* argument. When 
