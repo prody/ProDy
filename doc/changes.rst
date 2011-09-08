@@ -37,6 +37,8 @@ Release 0.8.1 (in development)
     ``same residue as ...`` statement when specific chains are involved is
     fixed.
 
+  * A bug in :meth:`~atomic.AtomGroup.methodaddCoordset duplicating 
+   coordinates when no coordsets are present in the instance is fixed.
 
 
 Release 0.8 (Aug 24, 2011)

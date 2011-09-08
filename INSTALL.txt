@@ -112,7 +112,7 @@ Included in ProDy Package
 ===============================================================================
 The following software is included in the ProDy installation packages:
 
-* `Pyparsing 1.5.5 <http://pyparsing.wikispaces.com/>`_ 
+* `Pyparsing 1.5.6 <http://pyparsing.wikispaces.com/>`_ 
 
   Pyparsing is used to define the atom selection grammar.
 
