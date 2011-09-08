@@ -911,6 +911,7 @@ class AtomGroup(Atomic):
 
         if self._coordinates is None:
             self.setCoordinates(coords)
+            return
         if not isinstance(coords, np.ndarray):
             raise TypeError('coords must be an ndarray instance')
         elif not coords.ndim in (2, 3):
