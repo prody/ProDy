@@ -672,10 +672,13 @@ class AtomGroup(Atomic):
     def _getTimeStamp(self, index):
         """Return time stamp showing when coordinates were last changed."""
 
-        if index is None:
-            return self._timestamps[self._acsi]
+        if self._n_csets > 0:
+            if index is None:
+                return self._timestamps[self._acsi]
+            else:
+                return self._timestamps[index]
         else:
-            return self._timestamps[index]
+            return None
     
     def _setTimeStamp(self, index=None):
         """Set time stamp when:
