@@ -2384,7 +2384,10 @@ def loadModel(filename):
     """
     
     attr_dict = np.load(filename)
-    type_ = attr_dict['type']
+    try:
+        type_ = attr_dict['type']
+    except KeyError:
+        raise IOError('{0:s} is not a valid NMA model file'.format(filename))
     if type_ == 'ANM':
         nma = ANM(str(attr_dict['_name']))
     elif type_ == 'PCA':
@@ -2393,8 +2396,10 @@ def loadModel(filename):
         nma = EDA(str(attr_dict['_name']))
     elif type_ == 'GNM':
         nma = GNM(str(attr_dict['_name']))
-    else:
+    elif type_ == 'NMA':
         nma = NMA(str(attr_dict['_name']))
+    else:
+        raise IOError('NMA model type is not recognized'.format(type_))
     dict_ = nma.__dict__ 
     for attr in attr_dict.files:
         if attr in ('type', '_name'): 
