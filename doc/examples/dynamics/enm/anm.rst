@@ -132,20 +132,14 @@ Access calculated data
 
 You can get the covariance matrix as follows:
 
->>> print( anm.getCovariance().round(4) ) # doctest: +ELLIPSIS
-[[  3.000e-02   3.220e-02  -4.600e-03 ...,   3.500e-03   1.500e-03
-    1.300e-02]
- [  3.220e-02   5.920e-02  -2.840e-02 ...,   1.290e-02  -1.200e-03
-    6.900e-03]
- [ -4.600e-03  -2.840e-02   8.510e-02 ...,  -8.700e-03  -1.300e-03
-    9.600e-03]
- ...
- [  3.500e-03   1.290e-02  -8.700e-03 ...,   1.215e+00   4.000e-04
-   -1.749e-01]
- [  1.500e-03  -1.200e-03  -1.300e-03 ...,   4.000e-04   4.056e-01
-    3.763e-01]
- [  1.300e-02   6.900e-03   9.600e-03 ...,  -1.749e-01   3.763e-01
-    3.998e-01]]
+>>> print( anm.getCovariance().round(2) ) # doctest: +ELLIPSIS
+[[ 0.03  0.03 -0.   ...,  0.    0.    0.01]
+ [ 0.03  0.06 -0.03 ...,  0.01 -0.    0.01]
+ [-0.   -0.03  0.09 ..., -0.01 -0.    0.01]
+ ..., 
+ [ 0.    0.01 -0.01 ...,  1.21  0.   -0.17]
+ [ 0.   -0.   -0.   ...,  0.    0.41  0.38]
+ [ 0.01  0.01  0.01 ..., -0.17  0.38  0.4 ]]
 
 Covariance matrices are calculated using available modes (slowest 20 modes in
 this case). If user calculates M slowest modes, only they will be used in the 
@@ -161,8 +155,8 @@ slowest non-trivial mode would have index 6.
 Get the slowest mode by indexing :class:`ANM` instance as follows:
 
 >>> slowest_mode = anm[0]
->>> print( slowest_mode.getEigenvalue().round(4) )
-0.1789
+>>> print( slowest_mode.getEigenvalue().round(3) )
+0.179
 >>> print( slowest_mode.getEigenvector().round(3) ) # doctest: +ELLIPSIS
 [ 0.039  0.009  0.058 ...,  0.046  0.042  0.08 ]
 
