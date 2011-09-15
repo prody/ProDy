@@ -200,7 +200,7 @@ scipy_sparse_la = None
 import prody
 from .atomic import *
 from .ensemble import *
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 from prody import ProDyAtomSelect as SELECT
 from prody import ProDyException
 

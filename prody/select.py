@@ -178,7 +178,7 @@ pp.ParserElement.enablePackrat()
 KDTree = None
 
 import prody
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 from prody.atomic import *
 DEBUG = False
 
