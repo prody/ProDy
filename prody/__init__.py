@@ -88,7 +88,7 @@ def importPyPlot():
     except ImportError:
         dynamics.plt = False
         ensemble.plt = False
-        ProDyLogger.warning('Matplotlib is required for plotting.')
+        LOGGER.warning('Matplotlib is required for plotting.')
 
 def importBioKDTree():
     try:
@@ -99,9 +99,9 @@ def importBioKDTree():
         except ImportError:
             dynamics.KDTree = False
             select.KDTree = False
-            ProDyLogger.warning('KDTree module could not be imported. '
-                                'Reinstalling ProDy or installing BioPython '
-                                'can resolve the problem.')
+            LOGGER.warning('KDTree module could not be imported. '
+                           'Reinstalling ProDy or installing BioPython '
+                           'can resolve the problem.')
         else:
             dynamics.KDTree = KDTree
             select.KDTree = KDTree
@@ -121,9 +121,9 @@ def importBioPairwise2():
             from Bio import pairwise2
         except ImportError:
             compare.pairwise2 = False
-            ProDyLogger.warning('pairwise2 module could not be imported. '
-                                'Reinstalling ProDy or installing BioPython '
-                                'can resolve the problem.')
+            LOGGER.warning('pairwise2 module could not be imported. '
+                           'Reinstalling ProDy or installing BioPython '
+                           'can resolve the problem.')
         else:
             compare.pairwise2 = pairwise2
     else:
@@ -167,12 +167,11 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'critical': logging.CRITICAL,
                   'none': logging.CRITICAL}
 LOGGING_LEVELS.setdefault(logging.INFO)
-ProDySignature = '@>'
+PackageSignature = '@>'
 
-def _startLogger(**kwargs):
-    """Set a global logger for ProDy."""
+def startPackageLogger(name='.'+__package__, **kwargs):
+    """Start logger for the package. Returns a logger instance."""
     
-    name = '.prody'
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     
@@ -182,11 +181,11 @@ def _startLogger(**kwargs):
     
     console = logging.StreamHandler()
     console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
-    console.setFormatter(logging.Formatter(ProDySignature + ' %(message)s'))
+    console.setFormatter(logging.Formatter(PackageSignature + ' %(message)s'))
     logger.addHandler(console)
     return logger
 
-ProDyLogger = _startLogger()
+LOGGER = startPackageLogger()
 
 def plog(*text):
     """Log *text* using ProDy logger at log level info.
@@ -199,7 +198,7 @@ def plog(*text):
     
     """
     
-    ProDyLogger.info(' '.join([str(s) for s in text]))
+    LOGGER.info(' '.join([str(s) for s in text]))
 
 def startLogfile(filename, **kwargs):
     """Start a file to save ProDy logs.
@@ -215,11 +214,8 @@ def startLogfile(filename, **kwargs):
     """
     :keyword loglevel: loglevel for logfile verbosity
     :type loglevel: str, default is *debug*
-    
-
-    
     """
-    logger = ProDyLogger
+    
     logfilename = filename
     if not logfilename.endswith('.log'):
         logfilename += '.log'
@@ -233,13 +229,13 @@ def startLogfile(filename, **kwargs):
                     backupCount=kwargs.get('backupcount', 1))
         logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
         logfile.setFormatter(logging.Formatter('%(message)s'))
-        logger.addHandler(logfile)
+        LOGGER.addHandler(logfile)
         if rollover:
-            logger.info('Saving existing logfile "{0:s}" and starting a new one.'
+            LOGGER.info('Saving existing logfile "{0:s}" and starting a new one.'
                          .format(filename))
             logfile.doRollover()
         else:
-            logger.info('Logfile "{0:s}" has been started.'.format(filename))
+            LOGGER.info('Logfile "{0:s}" has been started.'.format(filename))
 
 
 def closeLogfile(filename):
@@ -247,15 +243,14 @@ def closeLogfile(filename):
     filename = str(filename)
     if not filename.endswith('.log'):
         filename += '.log'
-    logger = ProDyLogger
-    for index, handler in enumerate(logger.handlers):
+    for index, handler in enumerate(LOGGER.handlers):
         if isinstance(handler, logging.handlers.RotatingFileHandler):
             if handler.stream.name in (filename, os.path.abspath(filename)):
-                logger.info('Closing logfile {0:s}'.format(filename))
+                LOGGER.info('Closing logfile {0:s}'.format(filename))
                 handler.close()
-                logger.handlers.pop(index)
+                LOGGER.handlers.pop(index)
                 return
-    logger.warning('Logfile "{0:s}" was not found.'.format(filename))
+    LOGGER.warning('Logfile "{0:s}" was not found.'.format(filename))
 
 class ProDyProgress(object):
     
@@ -285,7 +280,7 @@ class ProDyProgress(object):
                 prev = (percent, 0)
             if self._prev == prev:
                 return
-            prefix = '\r' + ProDySignature + self._prefix
+            prefix = '\r' + PackageSignature + self._prefix
             bar = ''
             barlen = self._barlen
             if barlen > 10:
@@ -334,14 +329,14 @@ def changeVerbosity(level):
     """
     lvl = LOGGING_LEVELS.get(level, None)
     if lvl is None: 
-        ProDyLogger.warning('{0:s} is not a valid log level.'.format(level))
+        LOGGER.warning('{0:s} is not a valid log level.'.format(level))
     else:
-        ProDyLogger.handlers[0].level = lvl
+        LOGGER.handlers[0].level = lvl
 
 def getVerbosityLevel():
     """Return ProDy console verbosity level."""
     
-    return ProDyLogger.handlers[0].level
+    return LOGGER.handlers[0].level
 
 def checkUpdates():
     """Check latest ProDy release and compare with the installed one.
@@ -356,12 +351,12 @@ def checkUpdates():
     pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
-        ProDyLogger.info('You are using the latest ProDy release ({0:s}).'
+        LOGGER.info('You are using the latest ProDy release ({0:s}).'
                          .format(__version__))
     else:
-        ProDyLogger.info('ProDy {0:s} has been released. '
-                         'You are using release {1:s}.'.format(releases[0],
-                                                               __version__))
+        LOGGER.info('ProDy {0:s} has been released. '
+                    'You are using release {1:s}.'.format(releases[0],
+                                                          __version__))
 
 try:
     import numpy as np

@@ -79,7 +79,7 @@ import math
 
 import numpy as np
 import prody
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 from prody import measure
 
 PISQUARE = np.pi ** 2

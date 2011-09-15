@@ -41,7 +41,7 @@ import os.path
 import numpy as np
 
 import prody
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 
 __all__ = ['Volume', 'parseDX', 'writeDX']
 

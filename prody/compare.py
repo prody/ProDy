@@ -48,7 +48,7 @@ import numpy as np
 pairwise2 = None
 
 import prody
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 
 from . import AtomMap, select
 

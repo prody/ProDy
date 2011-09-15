@@ -47,7 +47,7 @@ import numpy as np
 linalg = None
 
 import prody
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',

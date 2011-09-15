@@ -28,7 +28,7 @@ import time
 from scipy import sparse
 import numpy as np
 import prody
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 from collections import defaultdict
 
 __all__ = ['MarkovModel']

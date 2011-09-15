@@ -26,7 +26,7 @@ import os.path
 import numpy as np
 
 from prody import *
-from prody import ProDyLogger as LOGGER
+LOGGER = prody.LOGGER
 
 __all__ = ['anm', 'gnm', 'pca', 'alignmodels', 'biomolecule', 'blastpdb',
            'fetchpdb', 'pdbselect']
@@ -783,7 +783,7 @@ than 71:
         LOGGER.warning('Selection "{0:s}" do not match any atoms.'
                        .format(selstr))
         sys.exit(-1)
-    prody.ProDyLogger.info('{0:d} atoms will be used for alignment.'
+    LOGGER.info('{0:d} atoms will be used for alignment.'
                            .format(len(pdbselect)))
     pdb.setActiveCoordsetIndex(model-1)
     alignCoordsets(pdb, selstr=selstr)
