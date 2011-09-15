@@ -476,15 +476,12 @@ class Mode(VectorBase):
     def getArray(self):
         """Return a copy of the normal mode array (eigenvector).
         
-        >>> print( mode.getArray().round(4) ) # doctest: +ELLIPSIS
-        [ -2.170e-02   5.200e-02  -5.450e-02  -2.110e-02   5.750e-02  -5.740e-02
-          -3.280e-02   7.570e-02  -5.860e-02  -3.950e-02   7.540e-02  -3.740e-02
-          -4.860e-02   8.730e-02  -3.000e-02  -5.800e-02   9.240e-02  -8.600e-03
-          ...
-           2.100e-03  -5.000e-04  -2.550e-02   3.300e-03  -4.900e-03  -1.840e-02
-           9.900e-03  -9.000e-03  -3.050e-02   9.500e-03  -8.300e-03  -2.940e-02
-           1.140e-02  -1.910e-02  -2.440e-02]
-
+        >>> print( mode.getArray().round(3) ) # doctest: +ELLIPSIS
+        [-0.022  0.052 -0.055 -0.021  0.057 -0.057 -0.033  0.076 -0.059 -0.039
+          0.075 -0.037 -0.049  0.087 -0.03  -0.058  0.092 -0.009 -0.064  0.094
+        ...
+         -0.008  0.015 -0.02   0.002 -0.    -0.025  0.003 -0.005 -0.018  0.01
+         -0.009 -0.031  0.009 -0.008 -0.029  0.011 -0.019 -0.024]
         """
         
         return self._model._array[:, self._index].copy()
@@ -499,8 +496,8 @@ class Mode(VectorBase):
     def getEigenvalue(self):
         """Return normal mode eigenvalue.
         
-        >>> print( mode.getEigenvalue().round(4) ) # doctest: +ELLIPSIS
-        0.1065
+        >>> print( mode.getEigenvalue().round(3) ) # doctest: +ELLIPSIS
+        0.107
         
         """
         
@@ -554,14 +551,14 @@ class Mode(VectorBase):
     def getCovariance(self):
         """Return covariance matrix calculated for this mode instance.
         
-        >>> print( mode.getCovariance().round(4) ) # doctest: +ELLIPSIS
+        >>> print( mode.getCovariance().round(3) ) # doctest: +ELLIPSIS
         [[ 0.004 -0.011  0.011 ..., -0.002  0.004  0.005]
          [-0.011  0.025 -0.027 ...,  0.006 -0.009 -0.012]
-         [ 0.011 -0.027  0.028 ..., -0.006  0.01   0.013]
+         [ 0.011 -0.027  0.028 ..., -0.006  0.01   0.012]
          ..., 
          [-0.002  0.006 -0.006 ...,  0.001 -0.002 -0.003]
          [ 0.004 -0.009  0.01  ..., -0.002  0.003  0.004]
-         [ 0.005 -0.012  0.013 ..., -0.003  0.004  0.006]]
+         [ 0.005 -0.012  0.012 ..., -0.003  0.004  0.006]]
 
         """
         
@@ -574,14 +571,12 @@ class Mode(VectorBase):
         Square fluctuations are obtained by multiplying the squared the mode 
         array with the variance (:meth:`getVariance`) along the mode.
         
-        >>> print( mode.getSqFlucts().round(4) ) # doctest: +ELLIPSIS
-        [  5.770e-02   6.610e-02   9.620e-02   8.120e-02   1.022e-01   1.123e-01
-           1.220e-01   1.346e-01   1.128e-01   1.380e-01   1.707e-01   1.217e-01
-           1.090e-01   7.050e-02   6.920e-02   4.460e-02   4.720e-02   6.640e-02
-           ...
-           2.110e-02   1.990e-02   9.000e-03   4.300e-03   6.100e-03   5.600e-03
-           8.000e-04   1.000e-04   1.400e-03   6.600e-03   6.100e-03   3.500e-03
-           1.040e-02   9.600e-03   1.020e-02]
+        >>> print( mode.getSqFlucts().round(3) ) # doctest: +ELLIPSIS
+        [ 0.058  0.066  0.096  0.081  0.102  0.112  0.122  0.135  0.113  0.138
+          0.171  0.122  0.109  0.071  0.069  0.045  0.047  0.066  0.043  0.027
+          ...
+          0.038  0.045  0.048  0.034  0.019  0.021  0.02   0.009  0.004  0.006
+          0.006  0.001  0.     0.001  0.007  0.006  0.004  0.01   0.01   0.01 ]
 
         """
         
@@ -1130,9 +1125,9 @@ class ModeSet(object):
     def getVariances(self):
         """Return variances (~inverse eigenvalues).
         
-        >>> print( modes.getVariances().round(2) )
+        >>> print( modes.getVariances().round(2) ) # doctest: +ELLIPSIS
         [ 9.39  6.42  3.03]
-        >>> print( (modes.getEigenvalues()**-1).round(2) )
+        >>> print( (modes.getEigenvalues()**-1).round(2) ) # doctest: +ELLIPSIS
         [ 9.39  6.42  3.03]
         
         """
@@ -1142,7 +1137,7 @@ class ModeSet(object):
     def getArray(self):
         """Return a copy of eigenvectors array.
         
-        >>> print( modes.getArray().round(3) )
+        >>> print( modes.getArray().round(3) ) # doctest: +ELLIPSIS
         [[-0.022 -0.041 -0.032]
          [ 0.052 -0.064 -0.01 ]
          [-0.055 -0.015 -0.057]
@@ -1163,14 +1158,14 @@ class ModeSet(object):
     def getCovariance(self):
         """Return covariance matrix calculated for modes in the set.
         
-        >>> print( modes.getCovariance().round(4) )
+        >>> print( modes.getCovariance().round(3) ) # doctest: +ELLIPSIS
         [[ 0.018  0.007  0.021 ...,  0.008  0.01   0.01 ]
-         [ 0.007  0.052 -0.019 ...,  0.025 -0.    -0.004]
-         [ 0.021 -0.019  0.039 ..., -0.006  0.013  0.013]
+         [ 0.007  0.052 -0.019 ...,  0.024 -0.    -0.004]
+         [ 0.021 -0.019  0.039 ..., -0.006  0.013  0.014]
          ..., 
-         [ 0.008  0.025 -0.006 ...,  0.018  0.004  0.004]
-         [ 0.01  -0.     0.013 ...,  0.004  0.006  0.007]
-         [ 0.01  -0.004  0.013 ...,  0.004  0.007  0.008]]
+         [ 0.008  0.024 -0.006 ...,  0.018  0.004  0.004]
+         [ 0.01  -0.     0.013 ...,  0.004  0.007  0.007]
+         [ 0.01  -0.004  0.014 ...,  0.004  0.007  0.008]]
 
         """
         
@@ -3762,8 +3757,8 @@ def deform(atoms, mode, rmsd=None):
     >>> deform(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 + 
     ...                       p38_pca[1] * p38_pca[1].getVariance()**0.5)
     >>> deform(p38_structure, p38_pca[0], rmsd=1.0)
-    >>> calcRMSD(p38_structure)
-    array([ 0.   ,  0.41 ,  0.308,  0.513,  1.   ])
+    >>> print calcRMSD(p38_structure).round(3)
+    [ 0.     0.41   0.308  0.513  1.   ]
     
     """
 
