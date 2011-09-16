@@ -3819,11 +3819,13 @@ orange3"
         #  set vmdcolorid 0
         #}
         
+        set all [atomselect $targetid "all"]
         if {$proteincolor == "Bfactors"} {
-          [atomselect $targetid "all"] set beta $bfactors
+          $all set beta $bfactors
         } elseif {$proteincolor == "Mobility"} {
-          [atomselect $targetid "all"] set beta $betalist
+          $all set beta $betalist
         } 
+        $all delete
         
         if {$showproteinas == "Network"} {
           mol addrep $targetid
@@ -3921,7 +3923,9 @@ orange3"
             incr index
           }
         }
-        [atomselect $molid "all"] set beta $betalist 
+        set all [atomselect $molid "all"] 
+        $all set beta $betalist
+        $all delete 
         #mol scaleminmax $molid 0 [::tcl::mathfunc::min $betalist] [::tcl::mathfunc::max $betalist]
         color scale midpoint 0.1
         color scale method BWR
@@ -4017,8 +4021,8 @@ orange3"
         set mode [vecscale [expr $length * $scalearrows] [lindex $modes $whichmode]]
         
         variable bothdirections
-  
-        foreach index [[atomselect $molid $selstr] get index] {
+        set sel [atomselect $molid $selstr]
+        foreach index [$sel get index] {
           set from [expr $index * 3]
           set to  [expr $from + 2]
           set xyz [lrange $coordinates $from $to ] 
@@ -4038,6 +4042,7 @@ orange3"
             }
           }
         }
+        $sel delete
         mol rename $arrid "$title mode $activemode arrows"
         set currentview [molinfo $molid get {rotate_matrix center_matrix scale_matrix global_matrix}]
         display resetview
@@ -4214,7 +4219,8 @@ orange3"
         variable molid
         variable modes
         variable coordinates
-        if {[[atomselect $molid "all"] num] != [llength [lindex $modes 0]]} {
+        set sel [atomselect $molid "all"]
+        if {[$sel num] != [llength [lindex $modes 0]]} {
           mol delete $molid
           set molid -1
           if {"ok" == [tk_messageBox -type okcancel -title "ERROR" \
@@ -4222,8 +4228,11 @@ orange3"
             [namespace current]::locateCoordinates
           } 
         } else {
-          set coordinates [[atomselect $molid all] get {x y z}]
+          set $all [atomselect $molid all]
+          set coordinates [$all get {x y z}]
+          $all delete
         }
+        $sel delete
       }
       
       proc changeColor {} {
