@@ -26,14 +26,10 @@ How to Make a New Release
    
    * :file:`doc/changes.rst`.
 
-#. Copy the documentation files packed with source release::
-
-     $ make copytxt
-
-#. Make sure the following files are  file is up to date.
+#. Make sure the following files are  file is up-to-date.
     
    * :file:`README.txt`
-   * :file:`MANIFEST`
+   * :file:`MANIFEST.in`
    * :file:`setup.py`
 
 #. Generate the source distributions::
@@ -47,31 +43,26 @@ How to Make a New Release
      $ C:\python26\python setup.py bdist_wininst
      $ C:\python27\python setup.py bdist_wininst
 
-#. Generate the :file:`zip` and :file:`tar.gz` distributions for NMWiz 
-   containing the following files:
-   
-   * :file:`nmwiz_install.py` 
-   * :file:`nmwiz_install.txt`
-   * :file:`nmwiz0.{X}/nmwiz_install.py`
-   * :file:`nmwiz0.{X}/nmwiz_install.txt`
-  
 #. Test the installers.
 
 #. Register new release to PyPI::
 
      $ python setup.py register
 
-#. Upload the new release files to the PyPI.
+#. Upload the new release files to the `PyPI <http://pypi.python.org/pypi/ProDy/>`_.
 
 #. Update the release download file names::
    
      $ cd doc
-     $ doc/pypi.py
+     $ ./pypi.py
 
 #. Update the links to NMWiz installers in:
 
    * :file:`doc/plugins/getnmwiz.rst`.
 
+#. Copy the documentation files packed with source release::
+
+     $ make copytxt
 
 #. Generate HTML and PDF documentation::
 
