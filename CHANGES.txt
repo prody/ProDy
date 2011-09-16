@@ -46,6 +46,12 @@ Release 0.8.1 (in development)
 **Changes**:
 
   * Version number in main window is iterated.
+  
+  * Mode graphics material is stored for individual modes.
+
+  * Mode scaling factor is printed when active mode or RMSD is changed.
+
+  * All selections are deleted to avoid memory leaks.
 
 
 Release 0.8 (Aug 24, 2011)
