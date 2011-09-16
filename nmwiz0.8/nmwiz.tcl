@@ -3423,6 +3423,7 @@ orange3"
       variable cone_radius_list [list]
       variable cone_height_list [list]
       variable resolution_list [list]
+      variable material_list [list]
 
       variable hide_shorter 0.0 
       variable cylinder_radius 0.3
@@ -3560,6 +3561,8 @@ orange3"
         } 
         variable scalearrows_list
         variable rmsd 2
+        variable rmsdprev 0
+        variable activeindexprev 0
         variable rmsd_list
         set one_over_root_of_n_atoms [expr 1 / $n_atoms ** 0.5]
         foreach len $lengths mode $modes {
@@ -3579,12 +3582,14 @@ orange3"
         variable cone_radius_list
         variable cone_height_list
         variable resolution_list
+        variable material_list
         
         variable hide_shorter 
         variable cylinder_radius
         variable cone_radius
         variable cone_height
         variable resolution
+        variable material
         set shift 0
         for {set i 0} {$i < [llength $modes]} {incr i} {
           lappend arridlist -1
@@ -3600,6 +3605,7 @@ orange3"
           lappend cone_radius_list $cone_radius
           lappend cone_height_list $cone_height
           lappend resolution_list $resolution
+          lappend material_list $material
         }
         if {$::nmwiz::guicount == 0} {
           lset colorlist 0 $::nmwiz::defaultColor  
@@ -3960,10 +3966,15 @@ orange3"
         set length [lindex $lengths $whichmode]
         set scalearrows [expr [sign $scalearrows] * $rmsd / $length / [veclength [lindex $modes $whichmode]] * $n_atoms ** 0.5 ]
         vmdcon -info "Mode $activemode is scaled by [format %.2f $scalearrows](x[format %.2f $length]) for [format %.2f $rmsd] A RMSD."
+        variable rmsdprev $rmsd
       }
 
       proc drawArrows {} {
-        [namespace current]::evalRMSD
+        variable rmsd
+        variable rmsdprev
+        variable activeindex
+        variable activeindexprev
+        if {$rmsdprev != $rmsd || $activeindex!= $activeindexprev} {[namespace current]::evalRMSD}
         variable color
         variable material
         variable resolution
@@ -4259,6 +4270,7 @@ orange3"
         variable lengths
         variable activeindex 
         variable ndim
+        variable activeindexprev $activeindex
         set inactiveindex $activeindex 
         set activeindex [lsearch $indices $activemode]
         if {$ndim == 3} {
@@ -4269,6 +4281,7 @@ orange3"
           variable cone_radius_list
           variable cone_height_list
           variable resolution_list
+          variable material_list
           
           variable scalearrows
           variable hide_shorter 
@@ -4276,6 +4289,7 @@ orange3"
           variable cone_radius
           variable cone_height
           variable resolution
+          variable material
           variable rmsd
           
           lset scalearrows_list $inactiveindex $scalearrows
@@ -4284,6 +4298,7 @@ orange3"
           lset cone_radius_list $inactiveindex $cone_radius
           lset cone_height_list $inactiveindex $cone_height
           lset resolution_list $inactiveindex $resolution
+          lset material_list $inactiveindex $material
           lset rmsd_list $inactiveindex $rmsd
 
           set drawlengthstr [format "%.1f" [lindex $lengths $activeindex]];
@@ -4294,6 +4309,7 @@ orange3"
           set cone_radius [lindex $cone_radius_list $activeindex]
           set cone_height [lindex $cone_height_list $activeindex]
           set resolution [lindex $resolution_list $activeindex]
+          set material [lindex $material_list $activeindex]
           set rmsd [lindex $rmsd_list $activeindex]
 
       
