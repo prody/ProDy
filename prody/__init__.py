@@ -30,6 +30,15 @@ import math
 
 _PY3K = sys.version_info[0] > 2
 
+USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
+PACKAGEPATH = os.path.join(USERHOME, '.' + __package__)
+PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
+if os.path.isfile(PACKAGECONF[:-2]):
+    os.rename(PACKAGECONF[:-2], PACKAGECONF)
+if not os.path.isdir(PACKAGEPATH):
+    os.mkdir(PACKAGEPATH)
+
+
 def isExecutable(path):
     return os.path.exists(path) and os.access(path, os.X_OK)
 
@@ -132,10 +141,9 @@ def importBioPairwise2():
 _ProDySettings = None 
 
 def _loadProDySettings():
-    fn = os.path.join(os.path.expanduser('~'), '.prody')
     settings = None
-    if os.path.isfile(fn):
-        inf = open(fn)
+    if os.path.isfile(PACKAGECONF):
+        inf = open(PACKAGECONF)
         settings = cPickle.load(inf)
         inf.close()
         if not isinstance(settings, dict):
@@ -148,8 +156,7 @@ def _loadProDySettings():
     _ProDySettings = settings
 
 def _saveProDySettings():
-    fn = os.path.join(os.path.expanduser('~'), '.prody')
-    out = open(fn, 'w')
+    out = open(PACKAGECONF, 'wb')
     cPickle.dump(_ProDySettings, out)
     out.close()
     
