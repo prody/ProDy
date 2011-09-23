@@ -1655,13 +1655,14 @@ def fetchLigandData(cci, save=False, folder='.'):
         raise ValueError('cci must be 3-letters long and alphanumeric or '
                          'a valid filename')
     else:
+        #'http://www.pdb.org/pdb/files/ligand/{0:s}.xml'
+        url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
+               .format(cci.upper()))
         if urllib2 is None:
             import urllib2
             prody.proteins.urllib2 = urllib2
         try:
-            inp = urllib2.urlopen(
-                'http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
-                .format(cci.upper()))
+            inp = urllib2.urlopen(url)
         except urllib2.HTTPError:
             raise IOError('XML file for ligand {0:s} is not found'.format(cci))
         else:
@@ -1683,7 +1684,7 @@ def fetchLigandData(cci, save=False, folder='.'):
                        'resulting dictionary may not have all possible data')
     ns = root.tag[:root.tag.rfind('}')+1]
     len_ns = len(ns)
-    dict_ = {}
+    dict_ = {'url': url}
 
     for child in list(root.find(ns + 'chem_compCategory')[0]):
         tag = child.tag[len_ns:]
