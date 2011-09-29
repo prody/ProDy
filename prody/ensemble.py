@@ -1830,7 +1830,9 @@ DEBUG = False
 
 class DCDFile(TrajectoryFile):
     
-    """|new| A class for reading DCD files."""
+    """|new| A class for reading DCD files.
+    
+    .. versionadded:: 0.8"""
     
     def __init__(self, filename):
         """Instantiate with a DCD filename. DCD header and first frame is 
@@ -2103,7 +2105,9 @@ class DCDFile(TrajectoryFile):
 
 class Trajectory(TrajectoryBase):
     
-    """|new| A class for handling trajectories in multiple files."""
+    """|new| A class for handling trajectories in multiple files.
+    
+    .. versionadded:: 0.8"""
         
     def __init__(self, name):
         """Trajectory can be instantiated with a *name* or a filename. When
@@ -2400,7 +2404,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     :class:`Ensemble` instance. *filename* is returned upon successful
     output of file.
     
-    """
+    .. versionadded:: 0.8"""
     
     if not isinstance(trajectory, EnsembleBase):
         raise TypeError('{0:s} is not a valid type for trajectory'

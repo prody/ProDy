@@ -1139,7 +1139,9 @@ class AtomGroup(Atomic):
         return self.getHierView().iterResidues()
 
     def getAttrNames(self):
-        """Return a list of user attribute names."""
+        """Return a list of user attribute names.
+        
+        .. versionadded:: 0.8"""
         
         return self._userdata.keys()
         

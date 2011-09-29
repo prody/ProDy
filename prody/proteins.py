@@ -1620,6 +1620,9 @@ def fetchLigandData(cci, save=False, folder='.'):
 
     .. versionadded:: 0.8.1
     
+    .. versionchanged:: 0.8.2
+       URL of the XML file is returned in the dictionary with key ``url``.
+    
     *cci* may be 3-letter chemical component identifier or a valid XML 
     filename. If ``aave=True`` is passed, XML file will be saved in the 
     specified *folder*. 
@@ -1914,7 +1917,9 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     filename is returned. 
     
     For more information on DSSP see http://swift.cmbi.ru.nl/gv/dssp/.
-    If you benefited from DSSP, please consider citing [WK83]_."""
+    If you benefited from DSSP, please consider citing [WK83]_.
+    
+    .. versionadded:: 0.8"""
     
     dssp = prody.which('dssp')
     if dssp is None:
@@ -1979,7 +1984,9 @@ def parseDSSP(dssp, ag, parseall=False):
       C=O of I-3 with an electrostatic H-bond energy of -1.4 kcal/mol. There 
       are two columns for each type of H-bond, to allow for bifurcated H-bonds.
         
-    See http://swift.cmbi.ru.nl/gv/dssp/DSSP_3.html for details."""
+    See http://swift.cmbi.ru.nl/gv/dssp/DSSP_3.html for details.
+    
+    .. versionadded:: 0.8"""
     
     if not os.path.isfile(dssp):
         raise IOError('{0:s} is not a valid file path'.format(dssp))
@@ -2066,7 +2073,9 @@ def parseDSSP(dssp, ag, parseall=False):
 def performDSSP(pdb, parseall=False):
     """|new| Perform DSSP calculations and parse results. DSSP data is returned 
     in an :class:`~prody.atomic.AtomGroup` instance. See also :func:`execDSSP` 
-    and :func:`parseDSSP`."""
+    and :func:`parseDSSP`.
+    
+    .. versionadded:: 0.8"""
     
     pdb = fetchPDB(pdb, compressed=False)
     return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
@@ -2082,7 +2091,9 @@ def execSTRIDE(pdb, outputname=None, outputdir=None):
     filename is returned. 
     
     For more information on STRIDE see http://webclu.bio.wzw.tum.de/stride/.
-    If you benefited from STRIDE, please consider citing [DF95]_."""
+    If you benefited from STRIDE, please consider citing [DF95]_.
+    
+    .. versionadded:: 0.8"""
     
     stride = prody.which('stride')
     if stride is None:
@@ -2124,7 +2135,7 @@ def parseSTRIDE(stride, ag):
     
     * *stride_area*: residue solvent accessible area
     
-    """
+    .. versionadded:: 0.8"""
     
     if not os.path.isfile(stride):
         raise IOError('{0:s} is not a valid file path'.format(stride))
@@ -2161,7 +2172,9 @@ def parseSTRIDE(stride, ag):
 def performSTRIDE(pdb):
     """|new| Perform STRIDE calculations and parse results. STRIDE data is 
     returned in an :class:`~prody.atomic.AtomGroup` instance. See also 
-    :func:`execSTRIDE` and :func:`parseSTRIDE`."""
+    :func:`execSTRIDE` and :func:`parseSTRIDE`.
+    
+    .. versionadded:: 0.8"""
     
     pdb = fetchPDB(pdb, compressed=False)
     return parseSTRIDE(execSTRIDE(pdb), parsePDB(pdb))
@@ -2178,7 +2191,9 @@ def fetchPDBClusters():
     compressing in your home directory in :file:`.prody/pdbclusters`.
     Compressed files will be less than 4 Mb in size. Cluster data can 
     be loaded using :func:`loadPDBClusters` function and be accessed 
-    using :func:`getPDBCluster`."""
+    using :func:`getPDBCluster`.
+    
+    .. versionadded:: 0.8.2"""
     
     global urllib2
     if urllib2 is None:
@@ -2207,7 +2222,9 @@ def fetchPDBClusters():
     progress.clean()
 
 def loadPDBClusters(sqid=None):
-    """|new| Load previously fetched PDB sequence clusters from disk to memory."""
+    """|new| Load previously fetched PDB sequence clusters from disk to memory.
+    
+    .. versionadded:: 0.8.2"""
 
     if sqid is None:
         sqid_list = PDB_CLUSTERS.keys()
@@ -2260,7 +2277,9 @@ def getPDBCluster(pdb, ch, sqid=95):
     
     Before this function is used, :func:`fetchPDBClusters` needs to be called. 
     This function will load the PDB sequence clusters for *sqid* automatically 
-    using :func:`loadPDBClusters`."""
+    using :func:`loadPDBClusters`.
+    
+    .. versionadded:: 0.8.2"""
 
     assert isinstance(pdb, str), 'pdb must be a string'
     assert isinstance(ch, str), 'pdb must be a string'

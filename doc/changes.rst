@@ -6,6 +6,23 @@
 Changes
 *******************************************************************************
 
+Release 0.8.2 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`~proteins.fetchPDBClusters`, :func:`~proteins.loadPDBClusters`, and
+    :func:`~proteins.getPDBCluster` functions are implemented for handling
+    PDB sequence cluster data.
+
+**Changes**:
+
+  * :func:`~proteins.fetchLigandData` returns the URL of the XML file in the
+    ligand data dictionary.
+    
+  * Name of the ProDy configuration file save in user :file:`home` directory 
+    is renamed as :file:`.prodyrc` (used to be :file:`.prody`). 
+
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================
 
@@ -90,6 +107,10 @@ Release 0.8 (Aug 24, 2011)
   
   * :func:`~proteins.execDSSP`, :func:`~proteins.parseDSSP`, and 
     :func:`~proteins.performDSSP` functions are implemented for 
+    executing and parsing DSSP calculations.
+
+  * :func:`~proteins.execSTRIDE`, :func:`~proteins.parseSTRIDE`, and 
+    :func:`~proteins.performSTRIDE` functions are implemented for 
     executing and parsing DSSP calculations.
 
   * :func:`~proteins.parsePDB` function parses atom serial numbers. Atoms
