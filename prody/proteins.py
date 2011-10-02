@@ -2038,8 +2038,8 @@ def parseDSSP(dssp, ag, parseall=False):
         PSI[indices] = float(line[109:115])
 
         if parseall:
-            BP1[indices] = int(line[26:29])
-            BP2[indices] = int(line[30:33])
+            BP1[indices] = int(line[25:29])
+            BP2[indices] = int(line[29:33])
             NH_O_1[indices] = int(line[40:45])
             NH_O_1_nrg[indices] = float(line[47:51]) 
             O_HN_1[indices] = int(line[51:56])
