@@ -378,7 +378,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                 else:
                     pdbfile.close()
                     if not compressed:
-                        gunzip(pdbfile)
+                        gunzip(filename)
                     filename = os.path.relpath(filename)
                     LOGGER.debug('{0:s} downloaded ({1:s})'
                                  .format(pdbid, filename))
