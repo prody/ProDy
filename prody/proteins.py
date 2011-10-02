@@ -2022,6 +2022,8 @@ def parseDSSP(dssp, ag, parseall=False):
         if line.startswith('  #  RESIDUE'):
             break
     for line in dssp:
+        if line[13] == '!':
+            continue
         res = ag[(line[11], int(line[5:10]), line[10].strip())]
         if res is None:
             continue
