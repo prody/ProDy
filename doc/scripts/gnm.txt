@@ -1,9 +1,9 @@
 Usage: gnm.py [options] PDB
 
-ProDy v0.6 - Gaussian Network Model
+ProDy v0.8.1 - Gaussian Network Model
 
-Perform GNM calculations for given PDB structure and output eigenvalues and
-eigenvectors. If an identifier is passed, file from the PDB FTP server will be 
+Perform GNM calculations for given PDB structure and output results in NMD 
+format. If an identifier is passed, file from the PDB FTP server will be 
 downloaded.
 
 Options:
@@ -35,6 +35,7 @@ Options:
     -q, --square-fluctuations
                         write square-fluctuations
     -v, --covariance    write covariance matrix
+    -z, --npz           write compressed ProDy data file
     -b, --beta-factors  write B-factors
     -k, --kirchhoff     write Kirchhoff matrix
 

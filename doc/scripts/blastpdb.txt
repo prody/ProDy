@@ -1,6 +1,6 @@
 Usage: ../scripts/blastpdb.py [options] SEQUENCE
     
-ProDy v0.6 - Blast PDB
+ProDy v0.8.1 - Blast PDB
 
 SEQUENCE can be a sequence string or a file in fasta format.  
 

@@ -1,6 +1,6 @@
 Usage: anm.py [options] PDB
 
-ProDy v0.6 - Anisotropic Network Model
+ProDy v0.8.1 - Anisotropic Network Model
 
 Perform ANM calculations for given PDB structure and output results in NMD 
 format. If an identifier is passed, file from the PDB FTP server will be 
@@ -35,6 +35,7 @@ Options:
     -q, --square-fluctuations
                         write square-fluctuations
     -v, --covariance    write covariance matrix
+    -z, --npz           write compressed ProDy data file
     -b, --beta-factors  write B-factors
     -l, --hessian       write Hessian matrix
     -k, --kirchhoff     write Kirchhoff matrix

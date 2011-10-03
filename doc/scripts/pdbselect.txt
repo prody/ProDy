@@ -1,6 +1,6 @@
 Usage: ../scripts/pdbselect.py [options] PDB SELECTION  
 
-ProDy v0.6 - PDB Select
+ProDy v0.8.1 - PDB Select
 
 Select atoms specified by SELECTION from PDB and write them in a file.
 

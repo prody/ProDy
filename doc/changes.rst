@@ -20,8 +20,15 @@ Release 0.8.2 (in development)
   * :func:`~proteins.fetchLigandData` returns the URL of the XML file in the
     ligand data dictionary.
     
-  * Name of the ProDy configuration file save in user :file:`home` directory 
+  * Name of the ProDy configuration file in user :file:`home` directory 
     is renamed as :file:`.prodyrc` (used to be :file:`.prody`). 
+
+
+**Bug Fixes**:
+
+  * Bugfixes in :func:`~proteins.parseDSSP`: first arised problems in lines
+    indicating chain breaks, second did not parse bridge-partners correctly.
+    Both fixes are contributed by Kian Ho.
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================

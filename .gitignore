@@ -1,0 +1,5 @@
+*.so
+*.pyc
+*.nmd
+*.pdb
+*.pdb.gz

@@ -1,6 +1,6 @@
 Usage: ../scripts/biomolecule.py [options] PDB  
 
-ProDy v0.6 - Generate Biomolecule Coordinates
+ProDy v0.8.1 - Generate Biomolecule Coordinates
 
 Options:
   -h, --help            show this help message and exit

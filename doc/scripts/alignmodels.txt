@@ -1,6 +1,6 @@
 Usage: ../scripts/alignmodels.py [options] PDB  
 
-ProDy v0.6 - Align Models
+ProDy v0.8.1 - Align Models
 
 Align models in the PDB file using selected atoms and save aligned coordinate
 sets.

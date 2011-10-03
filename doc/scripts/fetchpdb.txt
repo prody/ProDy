@@ -1,6 +1,6 @@
 Usage: ../scripts/fetchpdb.py [options] PDB PDB2 PDB3 ...  
 
-ProDy v0.6 - Fetch PDB
+ProDy v0.8.1 - Fetch PDB
 
 Download PDB files specified by their identifiers.
 
@@ -12,3 +12,4 @@ Options:
   --version             print ProDy version and exit
   -d PATH, --dir=PATH   target directory saving downloaded PDB files
   -f FILE, --file=FILE  file that contains PDB identifiers
+  -z, --gzip            write compressed PDB file

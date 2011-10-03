@@ -1,6 +1,6 @@
 Usage: pca.py [options] PDB
 
-ProDy v0.6 - Principal Component Analysis
+ProDy v0.8.1 - Principal Component Analysis
 
 Perform PCA calculations for given PDB structure with multiple models and save 
 results in NMD format. If an identifier is passed, file from the PDB FTP 
@@ -29,6 +29,7 @@ Options:
     -q, --square-fluctuations
                         write square-fluctuations
     -v, --covariance    write covariance matrix
+    -z, --npz           write compressed ProDy data file
     -j, --projection    write projections onto PCs
 
   Output Options:
