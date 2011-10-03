@@ -3,3 +3,4 @@
 *.nmd
 *.pdb
 *.pdb.gz
+.unison*
