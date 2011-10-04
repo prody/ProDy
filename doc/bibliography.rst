@@ -36,6 +36,10 @@ Bibliography
 .. [BS07] Bassi S.  A primer on Python for life science researchers. 
    *PLoS Comput Biol* **2007** 3(11): e199. doi:10.1371/journal.pcbi.0030199   
 
+.. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning Reveals Ligand 
+   Entry-Exit Mechanisms of Ferric Binding Protein. *PLoS Comput Biol* **2009** 
+   5(10):e1000544.
+
 .. [CC06] Chennubhotla C, Bahar I. Markov propagation of allosteric effects in 
    biomolecular systems: application to GroEL-GroES.  *Mol Syst Biol* **2006** 
    2:36.
