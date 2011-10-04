@@ -559,11 +559,12 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.getNumOfCoordsets()
     else:
-        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
+        ag = None
         n_csets = 0
     if header or biomol or secondary:
         hd, split = _getHeaderDict(lines)
     if model != 0:
+        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
         start = time.time()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
@@ -588,10 +589,11 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
-    if ag is not None and header:
-        return ag, hd
-    elif ag is not None:
-        return ag
+    if ag is not None:
+        if header:
+            return ag, hd
+        else:
+            return ag
     else:
         return hd
 
