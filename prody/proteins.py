@@ -502,12 +502,12 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
                 kwargs['name'] = name
             filename = fetchPDB(pdb)
             if filename is None:
-                raise PDBParserError('PDB file for {0:s} could not be '
-                                   'downloaded.'.format(pdb))
+                raise IOError('PDB file for {0:s} could not be downloaded.'
+                              .format(pdb))
             pdb = filename
         else:
-            raise PDBParserError('{0:s} is not a valid filename or a valid '
-                               'PDB identifier.'.format(pdb))
+            raise IOError('{0:s} is not a valid filename or a valid PDB '
+                          'identifier.'.format(pdb))
     if name is None:
         fn, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
@@ -538,7 +538,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
     if model is not None:
         if isinstance(model, int):
             if model < 0:
-                raise PDBParserError('model must be greater than 0')
+                raise ValueError('model must be greater than 0')
         else:
             raise TypeError('model must be an integer, {0:s} is invalid'
                             .format(str(model)))
