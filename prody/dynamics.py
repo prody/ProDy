@@ -73,6 +73,7 @@ argument. These are noted in function documentations.
   * :func:`calcSqFlucts`  
   * :func:`calcProjection`
   * :func:`calcTempFactors`
+  * :func:`scanPerturbationResponse`
 
 **Parse/write data**:
 
@@ -216,7 +217,7 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'calcSqFlucts', 'calcTempFactors',
            
-           'calcProjection',  
+           'calcProjection', 'scanPerturbationResponse',
            
            'parseArray', 'parseModes', 'parseNMD',
            
@@ -3783,6 +3784,65 @@ def deform(atoms, mode, rmsd=None):
         atoms.addCoordset( atoms.getCoordinates() + array * scalar)
     else:     
         atoms.addCoordset( atoms.getCoordinates() + array)
+
+def scanPerturbationResponse(model, repeats=100):
+    """|new| Return a matrix of profiles from scanning of the response of the 
+    structure to random perturbations at specific atom (or node) positions. 
+    The function implements the method described in [CA09]_. Columns of the 
+    matrix are average response profile obtained by perturbing the atom/node 
+    position at that column index. PRS is performed using the covariance 
+    matrix from *model*, e.t. :class:`ANM` instance. Each atom/node is 
+    perturbed *repeats* times with a random unit force vector.
+    
+    .. versionadded:: 0.8.2"""
+    
+    if not isinstance(model, NMABase): 
+        raise TypeError('model must be an NMA instance')
+    elif not model.is3d():
+        raise TypeError('model must be a 3-dimensional NMA instance')
+    elif len(model) == 0:
+        raise ValueError('model must have normal modes calculated')
+    
+    cov = model.getCovariance()
+    if cov is None:
+        raise ValueError('model did not return a covariance matrix')
+    
+    n_atoms = model.getNumOfAtoms()
+    response_matrix = None
+    progress = prody.ProDyProgress(n_atoms)
+    for i in range(n_atoms):
+        response = np.zeros(n_atoms)
+        forces = np.random.rand(repeats * 3).reshape((repeats, 3))
+        forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
+        for force in forces:
+            response += (np.dot(cov[:, i*3:i*3+3], force) ** 2
+                                            ).reshape((n_atoms, 3)).sum(1)
+        response /= repeats
+        if response_matrix is None:
+            response_matrix = response
+        else:
+            response_matrix = np.vstack((response_matrix, response))
+        progress.report(i)
+
+    return response_matrix.transpose()
+    
+    # save the original PRS matrix
+    np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
+    
+    # calculate the normalized PRS matrix
+ 
+    self_dp = np.diag(response_matrix) # using self displacement (diagonal of
+                               # the original matrix) as a
+                               # normalization factor     
+    self_dp = self_dp.reshape(n_atoms, 1)
+    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
+
+    # suppress the diagonal (self displacement) to facilitate
+    # visualizing the response profile
+    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
+    np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
+    return response_matrix
+    
     
 def calcSqFlucts(modes):
     """Return sum of square-fluctuations for given set of normal *modes*.
@@ -3796,8 +3856,6 @@ def calcSqFlucts(modes):
        ...
        0.13   0.12   0.14   0.11   0.09   0.14   0.18   0.13   0.21   0.16
        0.21]
-
-             
     """
     
     if not isinstance(modes, (VectorBase, NMABase, ModeSet)):
