@@ -202,6 +202,69 @@ class TestParsePSF(unittest.TestCase):
 
 class TestParsePSFandPDB(unittest.TestCase):
     pass
+ 
+# Kian's parsing snippet, modify as you see fit.
+class TestPDBParsing(unittest.TestCase):
+    def setUp(self):
+        """Setup the testing framework.
+
+        """
+
+        self.pdb_ids = ["1r19"]
+
+        return
+
+    def test_pdb_parsing(self):
+        """Check if each of the PDB id's specified in self.pdb_ids is
+        parsed "correctly".
+
+        Note:
+            Given the discrepencies in a number of PDB files, defining a
+            "correctly" parsed PDB file is non-trivial.
+        """
+
+        from prody.proteins import parsePDB, execDSSP, parseDSSP
+
+        for pdb_id in self.pdb_ids:
+            prot_ag = parsePDB(pdb_id, folder="/tmp")
+            dssp = execDSSP(pdb_id, outputdir="/tmp")
+            parseDSSP(dssp, prot_ag, parseall=True)
+
+        return
+
+    def test_dssp_bridge_partners(self):
+        """Check if the DSSP bridge-partners were correctly parsed and assigned.
+
+        """
+
+        from prody.proteins import parsePDB, execDSSP, parseDSSP
+
+        for pdb_id in self.pdb_ids:
+            prot_ag = parsePDB(pdb_id, folder="/tmp")
+            dssp = execDSSP(pdb_id, outputdir="/tmp")
+            parseDSSP(dssp, prot_ag, parseall=True)
+    
+        # Map a dssp_resnum to its Residue object.
+        dssp_dict = {}
+
+        for chain in prot_ag.select("protein").getHierView():
+            for res in chain:
+                dssp_resnum = res.getAttribute("dssp_resnum")[0]
+                dssp_dict[dssp_resnum] = res
+
+        for res in dssp_dict.itervalues():
+            bp1 = res.getAttribute("dssp_bp1")[0]
+            bp2 = res.getAttribute("dssp_bp2")[0]
+
+            if bp1 != 0:
+                msg_ = "BP1 (dssp_resnum: %d) of %s is missing" % (bp1, str(res))
+                self.assertTrue(dssp_dict.has_key(bp1), msg=msg_)
+
+            if bp2 != 0:
+                msg_ = "BP2 (dssp_resnum: %d) of %s is missing" % (bp2, str(res))
+                self.assertTrue(dssp_dict.has_key(bp2), msg=msg_)
+
+        return
 
 
 if __name__ == '__main__':
