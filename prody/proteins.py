@@ -234,6 +234,10 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     .. versionchanged:: 0.8
        *compressed* and *copy* argument is introduced.  
     
+    .. versionchanged:: 0.8.2
+       When *compressed* is false, compressed files found in *folder* or 
+       local PDB mirror are decompressed.
+
     If *folder* already contains a PDB file matching given identifier, a 
     file will not be downloaded and the path to the existing file
     will be returned.
@@ -251,7 +255,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     
     If *compressed* argument is set to ``False``, downloaded files will be 
     decompressed. When a compressed file is found in the *folder*, it will
-    not be decompressed.
+    also be decompressed.
     
     For PDB files found in a local mirror of PDB, setting *copy* ``True`` will
     copy them from the mirror to the user specified *folder*.  
@@ -312,11 +316,11 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                          .format(pdbid, fn))
             exists += 1
             continue
-        if mirror_path is not None:
+        if mirror_path is not None and os.path.isdir(mirror_path):
             fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
                     pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
             if os.path.isfile(fn):
-                if copy:
+                if copy or not compressed:
                     if compressed:
                         filename = os.path.join(folder, pdbid + '.pdb.gz')
                         shutil.copy(fn, filename)
