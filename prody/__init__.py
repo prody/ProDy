@@ -376,6 +376,10 @@ class ProDyException(Exception):
 __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
            'checkUpdates', 'plog']
 
+def test(verbosity=2, descriptions=True, stream=sys.stderr):
+    import prody.tests
+    tests.test(verbosity, descriptions, stream)
+
 from . import atomic 
 from atomic import *
 __all__.extend(atomic.__all__)
