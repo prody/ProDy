@@ -77,7 +77,7 @@ class TestFetchPDB(unittest.TestCase):
 class TestParsePDBHeaderOnly(unittest.TestCase): 
     
     def setUp(self):
-        self.header = prody.parsePDB('data/pdb_nmr_2k39_models_1to3.pdb', 
+        self.header = prody.parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
                                      header=True, model=0)
 
     def testHeaderType(self):
@@ -115,7 +115,8 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
 
     def setUp(self):
         self.atomgroup, self.header = \
-            prody.parsePDB('data/pdb_nmr_2k39_models_1to3.pdb', header=True)
+            prody.parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
+                           header=True)
 
     def testReturnTypes(self):
         self.assertIsInstance(self.header, dict,
@@ -147,7 +148,7 @@ class TestParsePDBAltloc(unittest.TestCase):
     
     def setUp(self):
         
-        self.pdbfile = 'data/pdb_altloc_1ejg.pdb'
+        self.pdbfile = 'data/proteins_altloc_1ejg.pdb'
     
     def testAltlocNone(self):
         
@@ -175,7 +176,7 @@ class TestParsePDBName(unittest.TestCase):
     def setUp(self):
         
         self.name = 'small protein'
-        self.pdbfile = 'data/pdb_small_3nir.pdb'
+        self.pdbfile = 'data/proteins_small_3nir.pdb'
         self.filename = os.path.splitext(os.path.split(self.pdbfile)[1])[0]
     
     def testDefaultName(self):
