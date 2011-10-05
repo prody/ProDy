@@ -24,8 +24,10 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 import os
 import os.path
 import unittest
+import tempfile
 import prody
-from prody.tests import TEMPDIR
+
+TEMPDIR = tempfile.gettempdir()
 
 prody.changeVerbosity('none')
 
@@ -36,14 +38,14 @@ class TestFetchPDB(unittest.TestCase):
         self.filenames = []
     
     def testFetchingSingleFile(self):
-        fn = prody.fetchPDB('1p38', copy=True)
+        fn = prody.fetchPDB('1p38', folder=TEMPDIR, copy=True)
         self.assertTrue(os.path.isfile(fn), 
                         'fetching a single PDB file failed')
         self.filenames.append(fn)
         
     def testFetchingMultipleFiles(self): 
         
-        fns = prody.fetchPDB(['1p38', '1r39'], copy=True)
+        fns = prody.fetchPDB(['1p38', '1r39'], folder=TEMPDIR, copy=True)
         self.assertIsInstance(fns, list, 
             'failed to return a list of filenames')
         self.assertTrue(all([os.path.isfile(fn) for fn in fns]),
@@ -52,7 +54,7 @@ class TestFetchPDB(unittest.TestCase):
         
     def testDecompressing(self):
         
-        fns = prody.fetchPDB(['1p38', '1r39'], compressed=False)
+        fns = prody.fetchPDB(['1p38', '1r39'], folder=TEMPDIR, compressed=False)
         self.assertTrue(all([os.path.isfile(fn) for fn in fns]),
             'fetching decompressed PDB files failed')
         self.assertTrue(all([os.path.splitext(fn)[1] != '.gz' for fn in fns]),
@@ -61,10 +63,11 @@ class TestFetchPDB(unittest.TestCase):
 
     def testInvalidPDBIdentifier(self):
         
-        self.assertIsNone(prody.fetchPDB('XXXXX'),
+        self.assertIsNone(prody.fetchPDB('XXXXX', folder=TEMPDIR),
             'failed to return None for an invalid PDB identifier')
             
-        self.assertFalse(all(prody.fetchPDB(['XXXXX', '654654', '-/-*/+', ''])),
+        self.assertFalse(all(prody.fetchPDB(
+                    ['XXXXX', '654654', '-/-*/+', ''], folder=TEMPDIR)),
             'failed to return None for invalid PDB identifiers')
         
 

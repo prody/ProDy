@@ -2,9 +2,7 @@ import sys
 import unittest
 import test_proteins
 import test_select
-import tempfile
 
-TEMPDIR = tempfile.gettempdir()
 
 def test(verbosity=2, descriptions=True, stream=sys.stderr):
     testrunner = unittest.TextTestRunner(stream, descriptions, verbosity)
