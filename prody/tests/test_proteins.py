@@ -25,6 +25,7 @@ import os
 import os.path
 import unittest
 import prody
+from prody.tests import TEMPDIR
 
 prody.changeVerbosity('none')
 
@@ -226,8 +227,8 @@ class TestPDBParsing(unittest.TestCase):
         from prody.proteins import parsePDB, execDSSP, parseDSSP
 
         for pdb_id in self.pdb_ids:
-            prot_ag = parsePDB(pdb_id, folder="/tmp")
-            dssp = execDSSP(pdb_id, outputdir="/tmp")
+            prot_ag = parsePDB(pdb_id, folder=TEMPDIR)
+            dssp = execDSSP(pdb_id, outputdir=TEMPDIR)
             parseDSSP(dssp, prot_ag, parseall=True)
 
         return
@@ -240,8 +241,8 @@ class TestPDBParsing(unittest.TestCase):
         from prody.proteins import parsePDB, execDSSP, parseDSSP
 
         for pdb_id in self.pdb_ids:
-            prot_ag = parsePDB(pdb_id, folder="/tmp")
-            dssp = execDSSP(pdb_id, outputdir="/tmp")
+            prot_ag = parsePDB(pdb_id, folder=TEMPDIR)
+            dssp = execDSSP(pdb_id, outputdir=TEMPDIR)
             parseDSSP(dssp, prot_ag, parseall=True)
     
         # Map a dssp_resnum to its Residue object.
