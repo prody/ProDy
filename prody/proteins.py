@@ -1599,15 +1599,20 @@ def assignSecondaryStructure(header, atoms, coil=False):
        
     .. versionchanged:: 0.8
        Default value for *coil* argument is set to ``False``.
+       
+    .. versionchanged:: 0.8.2
+       Raises :class:`ValueError` when *header* does not contain 
+       secondary structure data.
     
     """
+    
     if not isinstance(header, dict):
         raise TypeError('header must be a dictionary')
     helix = header.get('helix', {})
     sheet = header.get('sheet', {})
     if len(helix) == 0 and len(sheet) == 0:
-        LOGGER.warning('header does not contain secondary structure data')
-        return None
+        raise ValueError('header does not contain secondary structure data')
+
     ssa = atoms.getSecondaryStrs()
     if ssa is None:
         if isinstance(atoms, prody.AtomGroup):
