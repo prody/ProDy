@@ -556,24 +556,22 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-
-    lines = stream.readlines()
-    biomol = kwargs.get('biomol', False)
-    secondary = kwargs.get('secondary', False)
-    split = 0
-    hd = None
     if 'ag' in kwargs:
-        ag = kwargs.get('ag')
+        ag = kwargs['ag']
         if not isinstance(ag, prody.AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.getNumOfCoordsets()
     else:
-        ag = None
+        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
         n_csets = 0
+    biomol = kwargs.get('biomol', False)
+    secondary = kwargs.get('secondary', False)
+    split = 0
+    hd = None
+    lines = stream.readlines()
     if header or biomol or secondary:
         hd, split = _getHeaderDict(lines)
     if model != 0:
-        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
         start = time.time()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.getNumOfAtoms() > 0:
@@ -616,10 +614,9 @@ parsePDBStream.__doc__ += _parsePDBdoc
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
     
-    :arg lines: Lines from a PDB file.
-    :arg split: Starting index for lines related to coordinate data.
+    :arg lines: PDB lines 
+    :arg split: starting index for coordinate data lines"""
     
-    """
     if subset is not None:
         subset = subset.lower()
         if subset in ('calpha', 'ca'):
@@ -634,10 +631,14 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
         only_chains = False
     else:
         only_chains = True
-    
     onlycoords = False
-    asize = len(lines) - split
-    alength = 5000
+    n_atoms = atomgroup.getNumOfAtoms()
+    if n_atoms > 0:
+        asize = n_atoms
+    else:
+        # most PDB files contain less than 99999 atoms
+        asize = min(len(lines) - split, 99999)
+    alength = asize
     coordinates = np.zeros((asize, 3), dtype=np.float64)
     atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
     resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
@@ -654,7 +655,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
     siguij = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['serial'].dtype)
-    asize = 2000
+    asize = 2000 # increase array length by this much when needed 
         
     start = split
     stop = len(lines)
@@ -686,7 +687,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
     is_siguij = False
     is_scndry = False
     altloc = defaultdict(list)
-    n_atoms = atomgroup.getNumOfAtoms()
     i = start
     while i < stop:
         line = lines[i]
@@ -713,8 +713,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                 coordinates[acount, 0] = float(line[30:38])
                 coordinates[acount, 1] = float(line[38:46])
                 coordinates[acount, 2] = float(line[46:54])
-            except Exception:
-                if acount >= n_atoms:
+            except:
+                if acount >= n_atoms > 0:
+                    if nmodel ==0:
+                        raise ValueError('PDB file and AtomGroup ag must have '
+                                         'same number of atoms')
                     LOGGER.warning('Discarding model {0:d}, which contains '
                                    'more atoms than first model does.'
                                    .format(nmodel+1))
@@ -757,7 +760,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
             segnames[acount] = line[72:76].strip()
             elements[acount] = line[76:78].strip()
             acount += 1
-            if acount >= alength:
+            if n_atoms == 0 and acount >= alength:
                 alength += asize
                 coordinates = np.concatenate(
                     (coordinates, np.zeros((asize, 3), np.float64)))
@@ -799,7 +802,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                 # If there is no atom record between ENDMDL and END skip to next
                 i += 1
                 continue
-            if model is not None:
+            elif model is not None:
                 i += 1
                 break
             elif onlycoords:
@@ -813,6 +816,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                 acount = 0
                 coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
             else:
+                if acount != n_atoms > 0:
+                    raise ValueError('PDB file and AtomGroup ag must have '
+                                    'same number of atoms')
                 atomgroup.addCoordset(coordinates[:acount])
                 atomgroup.setAtomNames(atomnames[:acount])
                 atomgroup.setResidueNames(resnames[:acount])
