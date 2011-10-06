@@ -172,6 +172,14 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(parsePDB(path, subset='ca').getNumOfAtoms(), 10)
         self.assertEqual(parsePDB(path, subset='bb').getNumOfAtoms(), 49)
 
+    def testAgArgument(self):
+        pass
+    
+    def testBiomolArgument(self):
+        pass
+
+    def testSecondaryArgument(self):
+        pass
 
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
@@ -220,7 +228,7 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
     def testAtomGroupType(self):
         self.assertIsInstance(self.header, dict,
             'header type is incorrect')
-        self.assertIsInstance(self.atomgroup, AtomGroup,
+        self.assertIsInstance(self.atomgroup, prody.AtomGroup,
             'atom group type is incorrect')
         
     def testAtomGroupContent(self):
