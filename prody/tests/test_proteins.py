@@ -31,6 +31,7 @@ import sys
 import unittest
 import tempfile
 import prody
+import numpy as np
 from prody.proteins import *
 from prody import proteins
 
@@ -40,7 +41,7 @@ prody.changeVerbosity('none')
 PDB_FILES = {
     'multi_model_truncated': {
         'pdb': '2k39',
-        'path': 'data/pdb2k39_m1to3_r1to10.pdb',
+        'path': 'data/pdb2k39_truncated.pdb',
         'atoms': 167,
         'models': 3
     },
@@ -50,6 +51,13 @@ PDB_FILES = {
         'atoms': 8216,
         'models': 1
     },
+    'oneatom': {
+        'pdb': '1ejg',
+        'path': 'data/pdb1ejg_oneatom.pdb',
+        'atoms': 1,
+        'models': 1
+    },
+    
 }
 
 class TestFetchPDB(unittest.TestCase):
@@ -112,6 +120,7 @@ class TestParsePDB(unittest.TestCase):
         """Set PDB file data and parse the PDB file."""
         
         self.pdb = PDB_FILES['multi_model_truncated']
+        self.one = PDB_FILES['oneatom']
         self.ag = parsePDB(self.pdb['path'])
          
     def testReturnType(self):
@@ -211,10 +220,57 @@ class TestParsePDB(unittest.TestCase):
             'parsePDB failed to parse correct number of atoms')
     
     def testBiomolArgument(self):
-        pass
+        
+        self.assertRaises(proteins.PDBParserError, parsePDB, self.one['path'], 
+                          biomol=True)
+
 
     def testSecondaryArgument(self):
-        pass
+
+        self.assertRaises(proteins.PDBParserError, parsePDB, self.one['path'], 
+                          secondary=True)
+
+class TestWritePDB(unittest.TestCase):
+    
+    def setUp(self):
+        """Set PDB file data and parse the PDB file."""
+        
+        self.pdb = PDB_FILES['multi_model_truncated']
+        self.ag = parsePDB(self.pdb['path'])
+        self.tmp = os.path.join(TEMPDIR, 'test.pdb')
+
+    msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR) 
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testParsingOutput(self):
+        """Test if parsing output is the same as parsing original file."""
+        
+        out = writePDB(self.tmp, self.ag)
+        self.assertEqual(self.tmp, out,
+            'writePDB failed to return correct output filename')
+        self.assertTrue(os.path.isfile(out),
+            'writePDB failed to write output')
+        out = parsePDB(out)
+        self.assertEqual(self.ag.getNumOfAtoms(), out.getNumOfAtoms(),
+            'writePDB failed to write correct number of atoms')                
+        self.assertEqual(self.ag.getNumOfCoordsets(), out.getNumOfCoordsets(),
+            'writePDB failed to write correct number of atoms')
+            
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testModelArgument(self):
+        """Test valid and invalid model arguments and if specified model
+        is correctly written."""
+        
+        self.assertRaises(TypeError, writePDB, self.tmp, self.ag, model='s')
+        self.assertRaises(ValueError, writePDB, self.tmp, self.ag, model=-1)
+        self.assertRaises(ValueError, writePDB, self.tmp, self.ag, model=0)
+        for i in range(self.ag.getNumOfCoordsets()):
+            out = parsePDB(writePDB(self.tmp, self.ag, model=i+1))
+            self.assertEqual(out.getNumOfCoordsets(), 1,
+                'writePDB failed to write correct number of models')
+            self.assertTrue(np.all(out.getCoordinates() == 
+                                    self.ag.getCoordsets(i)),
+                'writePDB failed to write coordinates correctly')
+                
 
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
