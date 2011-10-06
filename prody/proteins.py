@@ -551,6 +551,11 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
+    if chain is not None:
+        if not isinstance(chain, str):
+            raise TypeError('chain must be a string')
+        elif len(chain) == 0:
+            raise ValueError('chain must not be an empty string')
 
     lines = stream.readlines()
     biomol = kwargs.get('biomol', False)
@@ -627,10 +632,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
         only_subset = False
     if chain is None:
         only_chains = False
-    elif not isinstance(chain, str):
-        raise TypeError('chain must be a string')
-    elif len(chain) == 0:
-        raise ValueError('chain must not be an empty string')
     else:
         only_chains = True
     
