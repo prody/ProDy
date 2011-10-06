@@ -23,13 +23,24 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import os
 import os.path
+import sys
 import unittest
 import tempfile
 import prody
+from prody.proteins import *
+from prody import proteins
 
 TEMPDIR = tempfile.gettempdir()
-
 prody.changeVerbosity('none')
+
+PDB_FILES = {
+    'multi_model_truncated': {
+        'pdb': '2k39',
+        'path': 'data/pdb2k39_m1to3_r1to10.pdb',
+        'atoms': 167,
+        'models': 3
+    },
+}
 
 class TestFetchPDB(unittest.TestCase):
     
@@ -38,14 +49,14 @@ class TestFetchPDB(unittest.TestCase):
         self.filenames = []
     
     def testFetchingSingleFile(self):
-        fn = prody.fetchPDB('1p38', folder=TEMPDIR, copy=True)
+        fn = fetchPDB('1p38', folder=TEMPDIR, copy=True)
         self.assertTrue(os.path.isfile(fn), 
-                        'fetching a single PDB file failed')
+            'fetching a single PDB file failed')
         self.filenames.append(fn)
         
     def testFetchingMultipleFiles(self): 
         
-        fns = prody.fetchPDB(['1p38', '1r39'], folder=TEMPDIR, copy=True)
+        fns = fetchPDB(['1p38', '1r39'], folder=TEMPDIR, copy=True)
         self.assertIsInstance(fns, list, 
             'failed to return a list of filenames')
         self.assertTrue(all([os.path.isfile(fn) for fn in fns]),
@@ -54,7 +65,7 @@ class TestFetchPDB(unittest.TestCase):
         
     def testDecompressing(self):
         
-        fns = prody.fetchPDB(['1p38', '1r39'], folder=TEMPDIR, compressed=False)
+        fns = fetchPDB(['1p38', '1r39'], folder=TEMPDIR, compressed=False)
         self.assertTrue(all([os.path.isfile(fn) for fn in fns]),
             'fetching decompressed PDB files failed')
         self.assertTrue(all([os.path.splitext(fn)[1] != '.gz' for fn in fns]),
@@ -63,25 +74,103 @@ class TestFetchPDB(unittest.TestCase):
 
     def testInvalidPDBIdentifier(self):
         
-        self.assertIsNone(prody.fetchPDB('XXXXX', folder=TEMPDIR),
+        self.assertIsNone(fetchPDB('XXXXX', folder=TEMPDIR),
             'failed to return None for an invalid PDB identifier')
             
-        self.assertFalse(all(prody.fetchPDB(
+        self.assertFalse(all(fetchPDB(
                     ['XXXXX', '654654', '-/-*/+', ''], folder=TEMPDIR)),
             'failed to return None for invalid PDB identifiers')
         
-
     def tearDown(self):
         
         for fn in self.filenames:
             if os.path.isfile(fn):
                 os.remove(fn)
         
-
-class TestParsePDBHeaderOnly(unittest.TestCase): 
+class TestParsePDB(unittest.TestCase):
     
     def setUp(self):
-        self.header = prody.parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
+        
+        self.pdb = PDB_FILES['multi_model_truncated']
+        self.ag = parsePDB(self.pdb['path'])
+         
+    def testReturnType(self):
+        
+        self.assertIsInstance(self.ag, prody.AtomGroup,
+            'parsePDB failed to return an AtomGroup instance')
+    
+    def testNumOfAtoms(self):
+        
+        self.assertEqual(self.ag.getNumOfAtoms(), self.pdb['atoms'],
+            'parsePDB failed to parse correct number of atoms')
+    
+    def testNumOfCoordsets(self):
+        
+        self.assertEqual(self.ag.getNumOfCoordsets(), self.pdb['models'],
+            'parsePDB failed to parse correct number of coordinate sets '
+            '(models)')
+
+    def testAtomGroupName(self):
+        
+        self.assertEqual(self.ag.getName(), 
+             os.path.splitext(os.path.split(self.pdb['path'])[1])[0],
+            'failed to set AtomGroup name based on filename')
+
+    def testPDBArgument(self):
+        
+        self.assertRaises(IOError, parsePDB, self.pdb['path'] + '.gz')
+        self.assertRaises(TypeError, parsePDB, None)
+
+    def testModelArgument(self):
+        
+        path = self.pdb['path']
+        self.assertRaises(TypeError, parsePDB, path, model='0')
+        self.assertRaises(ValueError, parsePDB, path, model=-1)
+        self.assertRaises(proteins.PDBParserError, parsePDB, path, 
+                          model=self.pdb['models']+1)
+        self.assertIsNone(parsePDB(path, model=0),
+            'parsePDB failed to parse no coordinate sets')
+        self.assertEqual(parsePDB(path, model=1).getNumOfCoordsets(), 1,
+            'parsePDB failed to parse the first coordinate set')
+        self.assertEqual(parsePDB(path, model=self.pdb['models'])
+            .getNumOfCoordsets(), 1,
+            'parsePDB failed to parse the last coordinate set')
+
+    def testNameArgument(self):
+        
+        path = self.pdb['path']
+        name = 'small protein'    
+        self.assertEqual(parsePDB(path, name=name).getName(), 
+             name, 'parsePDB failed to set user given name')
+
+        name = 1999
+        self.assertEqual(parsePDB(path, name=name).getName(), 
+             str(name), 'parsePDB failed to set user given non-string name')
+            
+    def testChainArgument(self):
+        
+        path = self.pdb['path']
+        self.assertRaises(TypeError, parsePDB, path, chain=['A'])
+        self.assertRaises(ValueError, parsePDB, path, chain='')
+        self.assertIsNone(parsePDB(path, chain='$'))
+        self.assertEqual(parsePDB(path, chain='A')
+            .getNumOfAtoms(), self.pdb['atoms'],
+            'parsePDB failed to parse correct number of atoms when chain is '
+            'specified')
+
+    def testSubsetArgument(self):
+
+        path = self.pdb['path']
+        self.assertRaises(TypeError, parsePDB, path, subset=['A'])
+        self.assertRaises(ValueError, parsePDB, path, subset='')
+        self.assertEqual(parsePDB(path, subset='ca').getNumOfAtoms(), 10)
+        self.assertEqual(parsePDB(path, subset='bb').getNumOfAtoms(), 49)
+
+
+class TestParsePDBHeaderOnly(unittest.TestCase):
+    
+    def setUp(self):
+        self.header = parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
                                      header=True, model=0)
 
     def testHeaderType(self):
@@ -119,18 +208,17 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
 
     def setUp(self):
         self.atomgroup, self.header = \
-            prody.parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
+            parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
                            header=True)
 
-    def testReturnTypes(self):
+    def testAtomGroupType(self):
         self.assertIsInstance(self.header, dict,
             'header type is incorrect')
-        self.assertIsInstance(self.atomgroup, prody.AtomGroup,
+        self.assertIsInstance(self.atomgroup, AtomGroup,
             'atom group type is incorrect')
         
     def testAtomGroupContent(self):
-        self.assertEqual(len(self.atomgroup), 1231,
-            'len() function reports incorrect number of atoms')
+        
         self.assertEqual(self.atomgroup.getNumOfAtoms(), 1231,
             'incorrect number of atoms')
         self.assertEqual(self.atomgroup.getNumOfCoordsets(), 3,
@@ -142,12 +230,6 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
         self.atomgroup = None
 
 
-class TestParsePDBSubset(unittest.TestCase):
-    pass
-
-class TestParsePDBChain(unittest.TestCase):
-    pass
-
 class TestParsePDBAltloc(unittest.TestCase):
     
     def setUp(self):
@@ -156,43 +238,24 @@ class TestParsePDBAltloc(unittest.TestCase):
     
     def testAltlocNone(self):
         
-        self.assertEqual(len(prody.parsePDB(self.pdbfile)), 637,
+        self.assertEqual(len(parsePDB(self.pdbfile)), 637,
             'failed to parse unspecified alternate locations correctly')
     
     def testAltlocA(self):
         
-        self.assertEqual(len(prody.parsePDB(self.pdbfile, altloc='A')), 637,
+        self.assertEqual(len(parsePDB(self.pdbfile, altloc='A')), 637,
             'failed to parse alternate locations A correctly')
         
     def testAltlocB(self):
         
-        self.assertEqual(len(prody.parsePDB(self.pdbfile, altloc='B')), 634,
+        self.assertEqual(len(parsePDB(self.pdbfile, altloc='B')), 634,
             'failed to parse alternate locations B correctly')
 
     def testAltlocC(self):
         
-        self.assertEqual(len(prody.parsePDB(self.pdbfile, altloc='C')), 496,
+        self.assertEqual(len(parsePDB(self.pdbfile, altloc='C')), 496,
             'failed to parse alternate locations C correctly')
 
-
-class TestParsePDBName(unittest.TestCase):
-    
-    def setUp(self):
-        
-        self.name = 'small protein'
-        self.pdbfile = 'data/proteins_small_3nir.pdb'
-        self.filename = os.path.splitext(os.path.split(self.pdbfile)[1])[0]
-    
-    def testDefaultName(self):
-        
-        self.assertEqual(prody.parsePDB(self.pdbfile).getName(), self.filename,
-            'failed to set AtomGroup name based on filename')
-
-    def testUserGivenName(self):
-        
-        self.assertEqual(prody.parsePDB(self.pdbfile, name=self.name).getName(), 
-                         self.name,
-            'failed to set user given name as the AtomGroup name')
 
 
 class TestParsePDBBiomolecule(unittest.TestCase):
@@ -209,6 +272,7 @@ class TestParsePSFandPDB(unittest.TestCase):
  
 # Kian's parsing snippet, modify as you see fit.
 class TestPDBParsing(unittest.TestCase):
+    
     def setUp(self):
         """Setup the testing framework.
 
