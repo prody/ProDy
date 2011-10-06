@@ -462,7 +462,7 @@ sinh(x)  hyperbolic sine of x
 sq(x)    square of x
 sqrt(x)  square-root of x
 tan(x)   tangent of x
-tanh(x)  yperbolic tangent of x
+tanh(x)  hyperbolic tangent of x
 ======== ===================================
 
 **Examples**
