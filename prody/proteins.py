@@ -615,7 +615,26 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
     :arg split: Starting index for lines related to coordinate data.
     
     """
+    if subset is not None:
+        subset = subset.lower()
+        if subset in ('calpha', 'ca'):
+            subset = set(('CA',))
+        elif subset in ('backbone', 'bb'):
+            subset = set(prody.getBackboneAtomNames())
+        only_subset = True
+        protein_resnames = set(prody.getProteinResidueNames())
+    else:
+        only_subset = False
+    if chain is None:
+        only_chains = False
+    elif not isinstance(chain, str):
+        raise TypeError('chain must be a string')
+    elif len(chain) == 0:
+        raise ValueError('chain must not be an empty string')
+    else:
+        only_chains = True
     
+    onlycoords = False
     asize = len(lines) - split
     alength = 5000
     coordinates = np.zeros((asize, 3), dtype=np.float64)
@@ -635,23 +654,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
     icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['serial'].dtype)
     asize = 2000
-    
-    onlycoords = False
         
-    if subset is not None:
-        subset = subset.lower()
-        if subset in ('calpha', 'ca'):
-            subset = set(('CA',))
-        elif subset in ('backbone', 'bb'):
-            subset = set(prody.getBackboneAtomNames())
-        only_subset = True
-        protein_resnames = set(prody.getProteinResidueNames())
-    else:
-        only_subset = False
-    if isinstance(chain, str):
-        only_chains = True
-    else:
-        only_chains = False
     start = split
     stop = len(lines)
     nmodel = 0
