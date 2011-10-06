@@ -1421,10 +1421,7 @@ _writePDBdoc = """
     :arg model: Model index or list of model indices.
     :type model: int, list
         
-    :arg sort: if True, atoms will be sorted Chain, ResidueNumber, 
-        AtomName (not working yet).
-    
-    If *models* = ``None``, all coordinate sets will be outputted. Model 
+    If *models* is ``None``, all coordinate sets will be written. Model 
     indices start from 1.
     
     *atoms* instance must at least contain coordinates and atom names data.
