@@ -1810,6 +1810,10 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
        Biomolecular transformations are applied to all coordinate sets in the
        molecule.
     
+    .. versionchanged:: 0.8.2
+       Raises :class:`ValueError` when *header* does not contain 
+       biomolecular transformations.
+
     Some PDB files contain transformations for more than 1 biomolecules. A 
     specific set of transformations can be choosen using *biomol* argument.
     Transformation sets are identified by integer numbers, e.g. 1, 2, ...
@@ -1831,10 +1835,10 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         raise TypeError('header must be a dictionary')
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be an Atomic instance')
-    biomt = header.get('biomolecular_transformations', {})
-    if len(biomt) == 0:
-        LOGGER.warning('header does not contain biomolecular transformations')
-        return None
+    biomt = header.get('biomolecular_transformations')
+    if not isinstance(biomt, dict) or len(biomt) == 0:
+        raise ValueError('header does not contain biomolecular' 
+                         'transformations')
     
     if not isinstance(atoms, prody.AtomGroup):
         atoms = atoms.copy()
