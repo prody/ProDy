@@ -271,6 +271,12 @@ class TestWritePDB(unittest.TestCase):
                                     self.ag.getCoordsets(i)),
                 'writePDB failed to write coordinates correctly')
                 
+    def tearDown(self):
+        """Remove test file."""
+        
+        if os.path.isfile(self.tmp):
+            os.remove(self.tmp)
+
 
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
