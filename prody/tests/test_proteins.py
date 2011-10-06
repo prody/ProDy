@@ -197,7 +197,18 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(parsePDB(path, subset='bb').getNumOfAtoms(), 49)
 
     def testAgArgument(self):
-        pass
+        
+        """Test outcome of valid and invalid *ag* arguments."""
+
+        path = self.pdb['path']
+        self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
+        ag = prody.AtomGroup('One atom')
+        ag.setCoordinates(prody.np.array([[0, 0, 0]]))
+        self.assertRaises(ValueError, parsePDB, path, ag=ag)
+        ag = prody.AtomGroup('Test')
+        self.assertEqual(parsePDB(path, ag=ag).getNumOfAtoms(), 
+            self.pdb['atoms'],
+            'parsePDB failed to parse correct number of atoms')
     
     def testBiomolArgument(self):
         pass
