@@ -40,6 +40,12 @@ PDB_FILES = {
         'atoms': 167,
         'models': 3
     },
+    'dssp': {
+        'pdb': '1r19',
+        'path': 'data/pdb1r19_dssp.pdb',
+        'atoms': 8216,
+        'models': 1
+    },
 }
 
 class TestFetchPDB(unittest.TestCase):
@@ -270,36 +276,17 @@ class TestParsePSF(unittest.TestCase):
 class TestParsePSFandPDB(unittest.TestCase):
     pass
  
-# Kian's parsing snippet, modify as you see fit.
-class TestPDBParsing(unittest.TestCase):
+
+class TestDSSPFunctions(unittest.TestCase):
     
     def setUp(self):
-        """Setup the testing framework.
+        """Setup the testing framework."""
 
-        """
-
-        self.pdb_ids = ["1r19"]
+        self.pdbs = [PDB_FILES['dssp']]
 
         return
-
-    def test_pdb_parsing(self):
-        """Check if each of the PDB id's specified in self.pdb_ids is
-        parsed "correctly".
-
-        Note:
-            Given the discrepencies in a number of PDB files, defining a
-            "correctly" parsed PDB file is non-trivial.
-        """
-
-        from prody.proteins import parsePDB, execDSSP, parseDSSP
-
-        for pdb_id in self.pdb_ids:
-            prot_ag = parsePDB(pdb_id, folder=TEMPDIR)
-            dssp = execDSSP(pdb_id, outputdir=TEMPDIR)
-            parseDSSP(dssp, prot_ag, parseall=True)
-
-        return
-
+    
+    @unittest.skipIf(prody.which('dssp') is None, 'dssp is not found')
     def test_dssp_bridge_partners(self):
         """Check if the DSSP bridge-partners were correctly parsed and assigned.
 
@@ -307,32 +294,32 @@ class TestPDBParsing(unittest.TestCase):
 
         from prody.proteins import parsePDB, execDSSP, parseDSSP
 
-        for pdb_id in self.pdb_ids:
-            prot_ag = parsePDB(pdb_id, folder=TEMPDIR)
-            dssp = execDSSP(pdb_id, outputdir=TEMPDIR)
+        for pdb in self.pdbs:
+            prot_ag = parsePDB(pdb['path'], folder=TEMPDIR)
+            dssp = execDSSP(pdb['path'], outputdir=TEMPDIR)
             parseDSSP(dssp, prot_ag, parseall=True)
     
-        # Map a dssp_resnum to its Residue object.
-        dssp_dict = {}
+            # Map a dssp_resnum to its Residue object.
+            dssp_dict = {}
 
-        for chain in prot_ag.select("protein").getHierView():
-            for res in chain:
-                dssp_resnum = res.getAttribute("dssp_resnum")[0]
-                dssp_dict[dssp_resnum] = res
+            for chain in prot_ag.select("protein").getHierView():
+                for res in chain:
+                    dssp_resnum = res.getAttribute("dssp_resnum")[0]
+                    dssp_dict[dssp_resnum] = res
 
-        for res in dssp_dict.itervalues():
-            bp1 = res.getAttribute("dssp_bp1")[0]
-            bp2 = res.getAttribute("dssp_bp2")[0]
+            for res in dssp_dict.itervalues():
+                bp1 = res.getAttribute("dssp_bp1")[0]
+                bp2 = res.getAttribute("dssp_bp2")[0]
 
-            if bp1 != 0:
-                msg_ = "BP1 (dssp_resnum: %d) of %s is missing" % (bp1, str(res))
-                self.assertTrue(dssp_dict.has_key(bp1), msg=msg_)
+                if bp1 != 0:
+                    msg_ = "BP1 (dssp_resnum: %d) of %s is missing" % \
+                        (bp1, str(res))
+                    self.assertTrue(dssp_dict.has_key(bp1), msg=msg_)
 
-            if bp2 != 0:
-                msg_ = "BP2 (dssp_resnum: %d) of %s is missing" % (bp2, str(res))
-                self.assertTrue(dssp_dict.has_key(bp2), msg=msg_)
-
-        return
+                if bp2 != 0:
+                    msg_ = "BP2 (dssp_resnum: %d) of %s is missing" % \
+                        (bp2, str(res))
+                    self.assertTrue(dssp_dict.has_key(bp2), msg=msg_)
 
 
 if __name__ == '__main__':
