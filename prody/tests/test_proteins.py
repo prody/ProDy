@@ -283,16 +283,11 @@ class TestDSSPFunctions(unittest.TestCase):
         """Setup the testing framework."""
 
         self.pdbs = [PDB_FILES['dssp']]
-
-        return
     
     @unittest.skipIf(prody.which('dssp') is None, 'dssp is not found')
-    def test_dssp_bridge_partners(self):
-        """Check if the DSSP bridge-partners were correctly parsed and assigned.
-
-        """
-
-        from prody.proteins import parsePDB, execDSSP, parseDSSP
+    def testDSSPBridgePartners(self):
+        """Check if the DSSP bridge-partners were correctly parsed and 
+        assigned."""
 
         for pdb in self.pdbs:
             prot_ag = parsePDB(pdb['path'], folder=TEMPDIR)
