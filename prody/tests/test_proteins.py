@@ -16,7 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains unit tests for :mod:`~prody.proteins` module."""
+"""This module contains unit tests for :mod:`~prody.proteins` module.
+Data files used in tests are truncated PDB files, e.g. most of atoms and/or
+models and/or header sections are removed for having a compact installation
+package that contains test modules and files as well.  
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
@@ -50,17 +54,23 @@ PDB_FILES = {
 
 class TestFetchPDB(unittest.TestCase):
     
+    """Test :func:`~prody.proteins.fetchPDB` function."""
+    
     def setUp(self):
+        """Instantiate a list for storing downloaded file names."""
         
         self.filenames = []
     
     def testFetchingSingleFile(self):
+        """Test the outcome of fetching a single PDB file."""
+        
         fn = fetchPDB('1p38', folder=TEMPDIR, copy=True)
         self.assertTrue(os.path.isfile(fn), 
             'fetching a single PDB file failed')
         self.filenames.append(fn)
         
     def testFetchingMultipleFiles(self): 
+        """Test the outcome of fetching multiple PDB files."""
         
         fns = fetchPDB(['1p38', '1r39'], folder=TEMPDIR, copy=True)
         self.assertIsInstance(fns, list, 
@@ -69,7 +79,8 @@ class TestFetchPDB(unittest.TestCase):
             'fetching multiple PDB files failed')
         self.filenames.extend(fns)
         
-    def testDecompressing(self):
+    def testCompressedArgument(self):
+        """Test decompressing fetched PDB files."""
         
         fns = fetchPDB(['1p38', '1r39'], folder=TEMPDIR, compressed=False)
         self.assertTrue(all([os.path.isfile(fn) for fn in fns]),
@@ -79,6 +90,7 @@ class TestFetchPDB(unittest.TestCase):
         self.filenames.extend(fns)
 
     def testInvalidPDBIdentifier(self):
+        """Test outcome of passing invalid PDB identifiers."""
         
         self.assertIsNone(fetchPDB('XXXXX', folder=TEMPDIR),
             'failed to return None for an invalid PDB identifier')
@@ -88,6 +100,7 @@ class TestFetchPDB(unittest.TestCase):
             'failed to return None for invalid PDB identifiers')
         
     def tearDown(self):
+        """Remove downloaded files from disk."""
         
         for fn in self.filenames:
             if os.path.isfile(fn):
@@ -96,38 +109,46 @@ class TestFetchPDB(unittest.TestCase):
 class TestParsePDB(unittest.TestCase):
     
     def setUp(self):
+        """Set PDB file data and parse the PDB file."""
         
         self.pdb = PDB_FILES['multi_model_truncated']
         self.ag = parsePDB(self.pdb['path'])
          
     def testReturnType(self):
+        """Test the outcome of a simple parsing scenario."""
         
         self.assertIsInstance(self.ag, prody.AtomGroup,
             'parsePDB failed to return an AtomGroup instance')
     
     def testNumOfAtoms(self):
+        """Test the number of parsed atoms."""
         
         self.assertEqual(self.ag.getNumOfAtoms(), self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')
     
     def testNumOfCoordsets(self):
+        """Test the number of parsed coordinate sets."""
         
         self.assertEqual(self.ag.getNumOfCoordsets(), self.pdb['models'],
             'parsePDB failed to parse correct number of coordinate sets '
             '(models)')
 
     def testAtomGroupName(self):
+        """Test the name of the parsed :class:`~prody.atomic.AtomGroup` 
+        instance."""
         
         self.assertEqual(self.ag.getName(), 
              os.path.splitext(os.path.split(self.pdb['path'])[1])[0],
             'failed to set AtomGroup name based on filename')
 
     def testPDBArgument(self):
+        """Test outcome of invalid *pdb* arguments."""
         
         self.assertRaises(IOError, parsePDB, self.pdb['path'] + '.gz')
         self.assertRaises(TypeError, parsePDB, None)
 
     def testModelArgument(self):
+        """Test outcome of valid and invalid *model* arguments."""
         
         path = self.pdb['path']
         self.assertRaises(TypeError, parsePDB, path, model='0')
@@ -143,6 +164,7 @@ class TestParsePDB(unittest.TestCase):
             'parsePDB failed to parse the last coordinate set')
 
     def testNameArgument(self):
+        """Test outcome of *name* argument."""
         
         path = self.pdb['path']
         name = 'small protein'    
@@ -154,6 +176,7 @@ class TestParsePDB(unittest.TestCase):
              str(name), 'parsePDB failed to set user given non-string name')
             
     def testChainArgument(self):
+        """Test outcome of valid and invalid *chain* arguments."""
         
         path = self.pdb['path']
         self.assertRaises(TypeError, parsePDB, path, chain=['A'])
@@ -165,6 +188,7 @@ class TestParsePDB(unittest.TestCase):
             'specified')
 
     def testSubsetArgument(self):
+        """Test outcome of valid and invalid *subset* arguments."""
 
         path = self.pdb['path']
         self.assertRaises(TypeError, parsePDB, path, subset=['A'])
