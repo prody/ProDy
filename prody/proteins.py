@@ -571,9 +571,14 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
         start = time.time()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
-        LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                    'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
-                     ag.getNumOfCoordsets() - n_csets, time.time()-start))
+        if ag.getNumOfAtoms() > 0:
+            LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
+                        'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
+                         ag.getNumOfCoordsets() - n_csets, time.time()-start))
+        else:
+            ag = None
+            LOGGER.warning('Atomic data were could not be parsed, please '
+                           'check the input file.')
     if secondary:
         try:
             ag = assignSecondaryStructure(hd, ag)
@@ -593,7 +598,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
-    if ag is not None:
+    if model != 0:
         if header:
             return ag, hd
         else:
