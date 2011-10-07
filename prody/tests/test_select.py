@@ -24,9 +24,15 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 import os
 import os.path
 import unittest
+import numpy as np
 import prody
 
 prody.changeVerbosity('none')
+
+# If a selection string is paired with None, SelectionError is expected
+# If two selection strings are paired, they must select exactly same of atoms
+# Else, number must be the number atoms that the string is expected to select 
+
 
 SELECTION_TESTS = {'data/pdb3mht.pdb':
     {'n_atoms': 3211,
@@ -90,19 +96,37 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('resnum 10:16:1', 49),
                      ('resid 10to15', 49),
                      ('resid 10:16:1', 49),],
-     'float':       [('none', 0),
-                     ('none', 0),
+     'float':       [('beta 5.0 41.15 11.85', 2),
+                     ('occupancy 1.0', 3211),
+                     ('x 6.665', 1),
+                     ('y 69.99 13.314', 2),
+                     ('z 115.246 45.784', 2),
                      ('charge 0', None),
-                     ('mass 1', None),],
-     'comparison':  [('none', 0),
-                     ('none', 0),
-                     ('none', 0),
-                     ('none', 0),],
-     'operation':   [('none', 0),
-                     ('none', 0),
-                     ('none', 0),
-                     ('none', 0),],
-     'function':    [('none', 0),
+                     ('mass 1', None),
+                     ('radius 0', None),],
+     'comparison':  [('x = -51.659', 1),
+                     ('x != -51.659', 3210),
+                     ('z >= 82.813', 1670),
+                     ('z < 82.813', 1541),
+                     ('beta > 10', 2874),
+                     ('beta < 10', 336),
+                     ('occupancy > 0.999999', 3211),
+                     ('radius > 10', None),
+                     ('chain = A', None),],
+     'operation':   [('x ** 2 < 10', 238),
+                     ('x ** 2 ** 2 ** 2 < 10', 99),
+                     ('x ** (2 ** (2 ** 2)) < 10', 87),
+                     ('occupancy % 2 == 1', 3211),
+                     ('x**2 + y**2 + z**2 < 10000', 1975),],
+     'function':    [('sqrt(x**2 + y**2 + z**2) < 100', 
+                      'x**2 + y**2 + z**2 < 10000'),
+                     ('sqrt(x**2 + y**2 + z**2) == '
+                      '(x**2 + y**2 + z**2) ** 0.5', 3211),
+                     ('beta % 3 < 1', 1070),
+                     ('beta % 4 % 3 < 1', 1530),
+                     ('ceil(beta) == 10', 60),
+                     ('floor(beta) == 10', 58),
+                     ('abs(x) == sqrt(sq(x))', 3211),
                      ('none', 0),
                      ('none', 0),
                      ('none', 0),],
@@ -116,8 +140,9 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('exwithin 4 of resname SAH', 61),],
      'sameas':      [('same residue as index 0', 22),
                      ('same chain as index 0', 248),   
-                     ('none', 0),
-                     ('none', 0),],
+                     ('same segment as index 0', 3211),
+                     ('same residue as resname DG ALA', 212),
+                     ('same chain as chain C', 248),],
     }
 
 }
@@ -144,12 +169,22 @@ class TestSelectMeta(type):
                         if natoms is None:
                             self.assertRaises(prody.select.SelectionError,
                                 self.select.getIndices, atoms, selstr)
+                        elif isinstance(natoms, str):
+                            sel = self.select.getIndices(atoms, selstr)
+                            sel2 = self.select.getIndices(atoms, natoms)
+                            self.assertTrue(len(sel) == len(sel2) and
+                                    np.all(sel == sel2),
+                                'selection strings "{0:s}" and "{1:s}" for '
+                                'failed to select same atoms'
+                                .format(selstr, natoms, str(atoms), natoms))
+
                         else:
                             sel = self.select.getIndices(atoms, selstr)
                             self.assertEqual(len(sel), natoms,
                                 'selection "{0:s}" for {1:s} failed, expected '
                                 '{2:d}, selected {3:d}'
                                 .format(selstr, str(atoms), natoms, len(sel)))
+                                
             testFunction.__name__ = 'test' + test.title() + 'Selections'
             testFunction.__doc__ = 'Test {0:s} selections.'.format(test)
             setattr(cls, testFunction.__name__, testFunction)
