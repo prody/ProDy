@@ -1346,7 +1346,13 @@ class Select(object):
     def _pow(self, token):
         if DEBUG: print('_pow', token)
         items = token[0]
-        return self._getNumArray(items[0]) ** self._getNumArray(items[2])
+        base = self._getNumArray(items.pop(0))
+        power = self._getNumArray(items.pop())
+        items.pop()
+        while items:
+            power = self._getNumArray(items.pop()) * power
+            items.pop()
+        return base ** power
 
     def _add(self, token):
         if DEBUG: print('_add', token)
