@@ -456,7 +456,7 @@ acos(x)  arccos of x
 asin(x)  arcsin of x
 atan(x)  arctan of x
 ceil(x)  smallest integer not less than x
-cos(x)   cosine of x"
+cos(x)   cosine of x
 cosh(x)  hyperbolic cosine of x
 floor(x) largest integer not greater than x 
 exp(x)   e to the power x
