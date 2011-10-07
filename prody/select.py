@@ -410,7 +410,7 @@ arithmetic operations or as arguments to functions:
  * beta, occupancy
  * charge, mass, radius (these must be set by user before they can be used) 
 
-Numerical attributes of atoms can be used wit the following comparison 
+Numerical attributes of atoms can be used with the following comparison 
 
 ========== =================================
 Comparison Description
@@ -423,6 +423,8 @@ Comparison Description
    =       equal
    !=      not equal
 ========== =================================
+
+*Examples:* ``"x < 0"``, ``"occupancy != 1"``
 
 Numerical attributes of atoms can be used as operands to the following 
 operators:
@@ -439,6 +441,9 @@ x % y     x modulo y
 x + y     x plus y 
 x - y     x minus y
 ========= ==================================
+   
+These operations must be used with a numerical comparison, e.g. 
+``"x ** 2 < 10"``, ``"x ** 2 ** 2 < 10"``, ``"occupancy != 1"``
    
 Numerical attributes of atoms can be used as arguments to the following 
 functions:
