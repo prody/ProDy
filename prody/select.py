@@ -345,7 +345,7 @@ can be changed using :func:`setAtomNameRegex`.
 
 """
 
-SECSTRMAP = {
+SECSTR_MAP = {
     'extended': 'E',
     'helix': 'H',
     'helix_pi': 'G',
@@ -394,7 +394,7 @@ def _buildKeywordMap():
     
 _buildKeywordMap()
 KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys() + 
-                       SECSTRMAP.keys())
+                       SECSTR_MAP.keys())
 
 __doc__ += """
 
@@ -546,7 +546,7 @@ FUNCTION_MAP = {
     'log10' : np.log10,
 }
     
-BINOPMAP = {
+BINOP_MAP = {
     '+'  : lambda a, b: a + b,
     '-'  : lambda a, b: a - b,
     '*'  : lambda a, b: a * b,
@@ -1364,7 +1364,7 @@ class Select(object):
         right = self._evalNumeric(token[2])
         if DEBUG: print('_comp right', right)
         try:
-            return BINOPMAP[comp](left, right)
+            return BINOP_MAP[comp](left, right)
         except KeyError:
             raise SelectionError('Unknown error in "{0:s}".'
                                  .format(' '.join(token)))
@@ -1391,7 +1391,7 @@ class Select(object):
         items = token[0]
         left = self._evalNumeric(items.pop(0))
         while items:
-            left = BINOPMAP[items.pop(0)](
+            left = BINOP_MAP[items.pop(0)](
                                         left, self._evalNumeric(items.pop(0)))
         if DEBUG: print('_add total', left)
         return left
@@ -1411,7 +1411,7 @@ class Select(object):
             i += 1
             if op == '/' and right == 0.0: 
                 raise ZeroDivisionError(' '.join(items))
-            left = BINOPMAP[op](left, right)
+            left = BINOP_MAP[op](left, right)
         return left
     
     def _evalNumeric(self, token):
@@ -1487,12 +1487,12 @@ class Select(object):
             return np.ones(n_atoms, np.bool)
         elif keyword == 'none':
             return np.zeros(n_atoms, np.bool)
-        elif keyword in SECSTRMAP:
+        elif keyword in SECSTR_MAP:
             if _and:
-                return ['secondary', SECSTRMAP[keyword]]
+                return ['secondary', SECSTR_MAP[keyword]]
             else:
                 return self._evalAlnum('secondary', 
-                                       [SECSTRMAP[keyword]])
+                                       [SECSTR_MAP[keyword]])
         try:
             (residue_names, rn_invert, atom_names, 
                                             an_invert) = KEYWORD_MAP[keyword]
