@@ -358,11 +358,11 @@ SECSTR_MAP = {
 }
     
 KEYWORD_NAME_REGEX = {
-    'carbon': 'C.*',
-    'hydrogen': '[0-9]?H.*',
-    'nitrogen': 'N.*',
-    'oxygen': 'O.*',
-    'sulfur': 'S.*',
+    'carbon': RE.compile('C.*'),
+    'hydrogen': RE.compile('[0-9]?H.*'),
+    'nitrogen': RE.compile('N.*'),
+    'oxygen': RE.compile('O.*'),
+    'sulfur': RE.compile('S.*'),
 }
 
 BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 'H')) 
@@ -387,10 +387,10 @@ def _buildKeywordMap():
     KEYWORD_MAP['hetero'] = (protein + KEYWORD_RESNAMES['nucleic'], True, None, False) 
 
     for name, regex in KEYWORD_NAME_REGEX.iteritems():
-        KEYWORD_MAP[name] = (None, False, [['"', regex, '"']], False)
+        KEYWORD_MAP[name] = (None, False, [regex], False)
     
-    KEYWORD_MAP['carbon'] = (KEYWORD_RESNAMES['ion'], True, [['"', KEYWORD_NAME_REGEX['carbon'], '"']], False)
-    KEYWORD_MAP['noh'] = (None, False, [['"', KEYWORD_NAME_REGEX['hydrogen'], '"']], True)
+    KEYWORD_MAP['carbon'] = (KEYWORD_RESNAMES['ion'], True, [KEYWORD_NAME_REGEX['carbon']], False)
+    KEYWORD_MAP['noh'] = (None, False, [KEYWORD_NAME_REGEX['hydrogen']], True)
     
 _buildKeywordMap()
 KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys() + 
@@ -745,7 +745,7 @@ def setAtomNameRegex(name, regex):
     if not name in KEYWORD_NAME_REGEX:
         raise ValueError('{0:s} is not a valid keyword'.format(name))
     try:
-        RE.compile(regex)
+        regex = RE.compile(regex)
     except:
         raise ValueError('{0:s} is not a valid regular expression'
                          .format(regex))
@@ -857,12 +857,12 @@ class Select(object):
         specialchars = pp.Group(pp.Literal('`') + pp.Word(longlist + '"') + 
                                 pp.Literal('`'))
         specialchars.setParseAction(lambda token: token[0][1])
+        regularexp = pp.Group(pp.Literal('"') + pp.Word(longlist + '`') + 
+                              pp.Literal('"')) 
+        regularexp.setParseAction(lambda token: RE.compile('^(' + token[0][1] + 
+                                                           ')$'))
         self._tokenizer = pp.operatorPrecedence(
-             pp.OneOrMore(pp.Word(shortlist) | 
-             pp.Group(pp.Literal('"') + pp.Word(longlist + '`') + 
-                      pp.Literal('"')) | 
-                      specialchars
-                      ),
+             pp.OneOrMore(pp.Word(shortlist) | regularexp | specialchars),
              [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
                         'asin acos sinh cosh tanh exp log log10'), 
                         1, pp.opAssoc.RIGHT, self._func),
@@ -1542,10 +1542,8 @@ class Select(object):
         for value in values:
             if isinstance(value, str):
                 strings.append(value)
-            elif value[0] == value[2] == '"':
-                regexps.append(value[1])
             else:
-                strings.append(value[1])
+                regexps.append(value)
                 
         if len(strings) == 1:
             torf = data == strings[0]
@@ -1559,9 +1557,7 @@ class Select(object):
             torf = np.concatenate(torf, 1).sum(1).astype(np.bool) 
         else:
             torf = np.zeros(n_atoms, np.bool)
-
         for value in regexps:
-            value = RE.compile('^' + value + '$')
             for i in xrange(n_atoms):
                 torf[i] = (value.match(data[i]) is not None)
 
