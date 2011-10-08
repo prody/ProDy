@@ -878,7 +878,7 @@ class Select(object):
               (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
             )
 
-        self._tokenizer.setParseAction(self._defaultAction)
+        self._tokenizer.setParseAction(self._evaluate)
 
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with ``True`` values for *atoms* matching 
@@ -1032,7 +1032,7 @@ class Select(object):
         for var in mapField2Var.values():
             self._data[var] = None        
 
-    def _standardizeSelectionString(self):
+    def _prepareSelstr(self):
         selstr = ' ' + self._selstr + ' '
 
         selstr = selstr.replace(')and(', ')&&&(')
@@ -1051,7 +1051,9 @@ class Select(object):
         
         if MACROS:
             for macro in MACROS.iterkeys():
-                selstr = selstr.replace(macro, '(' + MACROS[macro] + ')')
+                selstr = selstr.replace(' ' + macro + ' ', ' (' + MACROS[macro] + ') ')
+                selstr = selstr.replace('(' + macro + ' ', '((' + MACROS[macro] + ') ')
+                selstr = selstr.replace(' ' + macro + ')', ' (' + MACROS[macro] + '))')
         
         return selstr.strip()
 
@@ -1060,7 +1062,7 @@ class Select(object):
         if len(selstr.split()) == 1 and '(' not in selstr and \
            ')' not in selstr and selstr not in MACROS:
             return self._evalBoolean(selstr)
-        selstr = self._standardizeSelectionString()
+        selstr = self._prepareSelstr()
         if DEBUG: print('_evalSelstr', selstr)
 
         try: 
@@ -1075,6 +1077,8 @@ class Select(object):
             raise pp.ParseException(str(err))
     
     def _defaultAction(self, token):
+        """Evaluate a token not involving an operation or comparison."""
+        
         if DEBUG: print('_defaultAction', token)
         if isinstance(token[0], (np.ndarray, float)):
             return token[0]
@@ -1084,7 +1088,11 @@ class Select(object):
     def _evaluate(self, token):
         if DEBUG: print('_evaluate', token)
 
+        if isinstance(token[0], (np.ndarray, float)):
+            return token[0]
+
         keyword = token[0]
+        if DEBUG: print('_evaluate keyword', keyword)
         if len(token) == 1:
             if isBooleanKeyword(keyword):
                 return self._evalBoolean(keyword)
