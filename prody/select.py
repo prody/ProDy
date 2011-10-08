@@ -546,7 +546,7 @@ FUNCTION_MAP = {
     'log10' : np.log10,
 }
     
-BINARY_OPERATOR_MAP = {
+BINOPMAP = {
     '+'  : lambda a, b: a + b,
     '-'  : lambda a, b: a - b,
     '*'  : lambda a, b: a * b,
@@ -873,7 +873,7 @@ class Select(object):
               (pp.Keyword('!!!') | 
                pp.Regex('same [a-z]+ as') | 
                pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 
-                        1, pp.opAssoc.RIGHT, self._special),
+                        1, pp.opAssoc.RIGHT, self._unary),
               (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
               (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
             )
@@ -1097,7 +1097,7 @@ class Select(object):
             if isBooleanKeyword(keyword):
                 return self._evalBoolean(keyword)
             elif isNumericKeyword(keyword):
-                return self._getNumArray(keyword)
+                return self._evalNumeric(keyword)
             elif self._kwargs is not None and keyword in self._kwargs:
                 return keyword
             elif self._ag.isAttribute():
@@ -1214,7 +1214,9 @@ class Select(object):
         self._evalonly = None
         return torf
     
-    def _special(self, token):
+    def _unary(self, token):
+        """Select the unary operation."""
+        
         if DEBUG: print('_special', token)
         token = token[0]
         if token[0] == '!!!':
@@ -1225,6 +1227,8 @@ class Select(object):
             return self._within(token, token[0].startswith('exwithin'))
 
     def _not(self, token):
+        """Negate selection"""
+        
         if DEBUG: print('_not', token)
         if isinstance(token[1], np.ndarray):
             torf = token[1]
@@ -1234,6 +1238,8 @@ class Select(object):
         return torf
     
     def _within(self, token, exclude):
+        """Perform distance based selection."""
+        
         terms = token
         if DEBUG: print('_within', terms)
         within = float(terms[0].split()[1])
@@ -1301,6 +1307,8 @@ class Select(object):
             return torf[self._evalonly]
     
     def _sameas(self, token):
+        """Expand selection."""
+        
         terms = token
         if DEBUG: print('_sameas', terms)
         what = token[0].split()[1]
@@ -1325,12 +1333,21 @@ class Select(object):
             torf = self._evalAlnum('chain', list(np.unique(chainids[which])))        
         elif what == 'segment':
             segnames = self._getAtomicData('segment')
-            torf = self._evalAlnum('segment', list(np.unique(segnames[which]))) 
+            torf = self._evalAlnum('segment', list(np.unique(segnames[which])))
+        else: 
+            raise SelectionError('"{0:s}" is not valid, selections can be '
+                                 'expanded to same "chain", "residue", or ' 
+                                 '"segment"'.format(token[0]))
         return torf
      
     def _comp(self, token):
+        """Perform numeric comparisons. Expected operands are numbers 
+        and numeric atom attributes."""
+        
         if DEBUG: print('_comp', token)
         token = token[0]
+        # this does not look necessary anymore
+        '''
         if len(token) > 3:
             if isBooleanKeyword(token[0]):
                 return self._and([[token.pop(0), '&&&', self._comp([token])]])
@@ -1339,56 +1356,67 @@ class Select(object):
             else:
                 raise SelectionError('{0:s} is not valid'
                                      .format(' '.join(token)))
+        '''
         comp = token[1]
-        left = self._getNumArray(token[0])
+        left = self._evalNumeric(token[0])
         if DEBUG: print('_comp left', left)
-        right = self._getNumArray(token[2])
+        right = self._evalNumeric(token[2])
         if DEBUG: print('_comp right', right)
-
         try:
-            return BINARY_OPERATOR_MAP[comp](left, right)
+            return BINOPMAP[comp](left, right)
         except KeyError:
             raise SelectionError('Unknown error in "{0:s}".'
                                  .format(' '.join(token)))
 
     def _pow(self, token):
+        """Perform power operation. Expected operands are numbers 
+        and numeric atom attributes."""
+        
         if DEBUG: print('_pow', token)
         items = token[0]
-        base = self._getNumArray(items.pop(0))
-        power = self._getNumArray(items.pop())
+        base = self._evalNumeric(items.pop(0))
+        power = self._evalNumeric(items.pop())
         items.pop()
         while items:
-            power = self._getNumArray(items.pop()) * power
+            power = self._evalNumeric(items.pop()) * power
             items.pop()
         return base ** power
 
     def _add(self, token):
+        """Perform addition operations. Expected operands are numbers 
+        and numeric atom attributes."""
+        
         if DEBUG: print('_add', token)
         items = token[0]
-        left = self._getNumArray(items.pop(0))
+        left = self._evalNumeric(items.pop(0))
         while items:
-            left = BINARY_OPERATOR_MAP[items.pop(0)](
-                                        left, self._getNumArray(items.pop(0)))
+            left = BINOPMAP[items.pop(0)](
+                                        left, self._evalNumeric(items.pop(0)))
         if DEBUG: print('_add total', left)
         return left
  
     def _mul(self, token):
+        """Perform multiplication operations. Expected operands are numbers 
+        and numeric atom attributes."""
+        
         if DEBUG: print('_mul', token)
         items = token[0]
-        left = self._getNumArray(items[0])
+        left = self._evalNumeric(items[0])
         i = 1
         while i < len(items):
             op = items[i]
             i += 1
-            right = self._getNumArray(items[i])
+            right = self._evalNumeric(items[i])
             i += 1
             if op == '/' and right == 0.0: 
                 raise ZeroDivisionError(' '.join(items))
-            left = BINARY_OPERATOR_MAP[op](left, right)
+            left = BINOPMAP[op](left, right)
         return left
     
-    def _getNumArray(self, token):
-        if DEBUG: print('_getNumArray', token)
+    def _evalNumeric(self, token):
+        """Evaluate a number operand or a numeric keyword."""
+        
+        if DEBUG: print('_evalNumeric', token)
         if isinstance(token, (np.ndarray, float)):
             return token
         elif isFloatKeyword(token):
@@ -1418,7 +1446,7 @@ class Select(object):
     def _sign(self, tokens):
         if DEBUG: print('_sign', tokens)
         tokens = tokens[0]
-        token = self._getNumArray(tokens[1])
+        token = self._evalNumeric(tokens[1])
         if tokens[0] == '-':
             return -token
         return token
@@ -1539,6 +1567,9 @@ class Select(object):
         return torf
     
     def _evalFloat(self, keyword, values=None):
+        """Evaluate a keyword associated with atom attributes of type float. 
+        If *values* is not passed, return the attribute array."""
+        
         if DEBUG: print('_evalFloat', keyword, values)
         if keyword == 'x':
             data = self._getCoordinates()[:,0]
@@ -1674,8 +1705,9 @@ class Select(object):
         return torf
 
     def _getNumRange(self, token):
-        if DEBUG: print('_getNumRange', token)
+        if DEBUG: print('_getNumRange', token, 'len', len(token))
         tknstr = ' '.join(token)
+        if DEBUG: print('_getNumRange tknstr', tknstr)
         while '  ' in tknstr:
             tknstr = tknstr.replace('  ', ' ')
         tknstr = tknstr.replace(' to ', 'to').replace(
@@ -1723,6 +1755,8 @@ class Select(object):
         return token
     
     def _getAtomicData(self, keyword):
+        """Return atomic data."""
+        
         field = ATOMIC_DATA_FIELDS.get(keyword, None)
         indices = self._indices
         if field is None:
@@ -1730,14 +1764,14 @@ class Select(object):
             if data is None:
                 raise SelectionError('"{0:s}" is not a valid keyword or '
                                      'attribute.'.format(keyword))
-            elif data.ndim == 1:
+            elif isinstance(data, np.ndarray) and data.ndim == 1:
                 if indices is None:                
                     return data
                 else:
                     return data[indices]
             else:
-                raise SelectionError('attribute "{0:s}" is not 1-dimensional'
-                                     .format(keyword))
+                raise SelectionError('attribute "{0:s}" must be a 1-dimensional'
+                                     ' numpy array'.format(keyword))
         else:
             var = field.var
             data = self._data[var]
@@ -1753,6 +1787,8 @@ class Select(object):
                 return data[indices]
     
     def _getCoordinates(self):
+        """Return atomic coordinates."""
+        
         if self._coordinates is None:
             if self._indices is None:
                 self._coordinates = self._ag._getCoordinates()
@@ -1763,6 +1799,8 @@ class Select(object):
         return self._coordinates
    
     def _getKDTree(self):
+        """Return KDTree."""
+        
         if KDTree is None: prody.importBioKDTree()
         if not KDTree:
             raise ImportError('Bio.KDTree is required for distance based '
