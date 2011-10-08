@@ -854,13 +854,14 @@ class Select(object):
         
         shortlist = pp.alphanums + '''~@#$.:;_','''
         longlist = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
-        
+        specialchars = pp.Group(pp.Literal('`') + pp.Word(longlist + '"') + 
+                                pp.Literal('`'))
+        specialchars.setParseAction(lambda token: token[0][1])
         self._tokenizer = pp.operatorPrecedence(
              pp.OneOrMore(pp.Word(shortlist) | 
              pp.Group(pp.Literal('"') + pp.Word(longlist + '`') + 
                       pp.Literal('"')) | 
-             pp.Group(pp.Literal('`') + pp.Word(longlist + '"') + 
-                      pp.Literal('`'))
+                      specialchars
                       ),
              [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
                         'asin acos sinh cosh tanh exp log log10'), 
