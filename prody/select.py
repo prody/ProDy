@@ -180,7 +180,7 @@ KDTree = None
 import prody
 LOGGER = prody.LOGGER
 from prody.atomic import *
-DEBUG = False
+DEBUG = True
 
 __all__ = ['Select', 'Contacts',
            'getProteinResidueNames', 'setProteinResidueNames',
@@ -345,7 +345,7 @@ can be changed using :func:`setAtomNameRegex`.
 
 """
 
-SECONDARY_STRUCTURE_MAP = {
+SECSTRMAP = {
     'extended': 'E',
     'helix': 'H',
     'helix_pi': 'G',
@@ -394,7 +394,7 @@ def _buildKeywordMap():
     
 _buildKeywordMap()
 KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys() + 
-                       SECONDARY_STRUCTURE_MAP.keys())
+                       SECSTRMAP.keys())
 
 __doc__ += """
 
@@ -1487,12 +1487,12 @@ class Select(object):
             return np.ones(n_atoms, np.bool)
         elif keyword == 'none':
             return np.zeros(n_atoms, np.bool)
-        elif keyword in SECONDARY_STRUCTURE_MAP:
+        elif keyword in SECSTRMAP:
             if _and:
-                return ['secondary', SECONDARY_STRUCTURE_MAP[keyword]]
+                return ['secondary', SECSTRMAP[keyword]]
             else:
                 return self._evalAlnum('secondary', 
-                                       [SECONDARY_STRUCTURE_MAP[keyword]])
+                                       [SECSTRMAP[keyword]])
         try:
             (residue_names, rn_invert, atom_names, 
                                             an_invert) = KEYWORD_MAP[keyword]
