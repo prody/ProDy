@@ -122,6 +122,8 @@ Numbers can be provided as integers or floats, and they will be converted to
 appropriate type. For example ``"resnum 10 11.0"`` will select residues
 with number 10 and 11, but ``"resnum 10.5"`` will not select anything.
 
+Negative numbers must be specified between apostrophes, e.g. ``"resnum `-3`"``
+
 **Number ranges**
 
 Number ranges can be passed as follows:
@@ -135,6 +137,8 @@ Number ranges can be passed as follows:
   * ``"x 1:10"`` selects atoms whose x coordinates are greater or equal to 1
     or smaller or equal to 10
     
+Number ranges involving negative numbers must be specified between apostrophes, 
+e.g. ``"resnum `-3 to 10`"``, ``"resnum `-3:10:2`"``
 
 **More special characters (``)**
 
@@ -146,7 +150,7 @@ Number ranges can be passed as follows:
   
   ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"
 
-For example ``"name `CA*` `C *`"`` will work.
+For example ``"name `CA#` `C #`"`` will work.
 
 **Regular expressions ("")**
 
@@ -224,7 +228,8 @@ KEYWORD_RESNAMES = {
     'basic': ['LYS', 'ARG', 'HIS', 'HSP', 'HSD'],
     'buried': 'ALA LEU VAL ILE XLE PHE CYS MET TRP'.split(),
     'cyclic': ['HIS', 'PHE', 'PRO', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'],
-    'hydrophobic': ['ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'VAL', 'XLE'],
+    'hydrophobic': ['ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'VAL', 
+                    'XLE'],
     'small': ['ALA', 'GLY', 'SER'],
     'medium': ['VAL', 'THR', 'ASP', 'ASN', 'ASX', 'PRO', 'CYS', 'SEC'],
     
@@ -254,12 +259,18 @@ KEYWORD_RESNAMES_READONLY = {
 
 def _setReadonlyResidueNames():
     protein = set(KEYWORD_RESNAMES['protein'])
-    KEYWORD_RESNAMES['acyclic'] = list(protein.difference(set(KEYWORD_RESNAMES['cyclic'])))
-    KEYWORD_RESNAMES['charged'] = list(set(KEYWORD_RESNAMES['acidic'] + KEYWORD_RESNAMES['basic']))
-    KEYWORD_RESNAMES['large'] = list(protein.difference(set(KEYWORD_RESNAMES['small'] + KEYWORD_RESNAMES['medium'])))
-    KEYWORD_RESNAMES['neutral'] = list(protein.difference(set(KEYWORD_RESNAMES['charged'])))
-    KEYWORD_RESNAMES['polar'] = list(protein.difference(set(KEYWORD_RESNAMES['hydrophobic'])))
-    KEYWORD_RESNAMES['surface'] = list(protein.difference(set(KEYWORD_RESNAMES['buried'])))
+    KEYWORD_RESNAMES['acyclic'] = list(protein.difference(
+        set(KEYWORD_RESNAMES['cyclic'])))
+    KEYWORD_RESNAMES['charged'] = list(set(KEYWORD_RESNAMES['acidic'] + 
+        KEYWORD_RESNAMES['basic']))
+    KEYWORD_RESNAMES['large'] = list(protein.difference(
+        set(KEYWORD_RESNAMES['small'] + KEYWORD_RESNAMES['medium'])))
+    KEYWORD_RESNAMES['neutral'] = list(protein.difference(
+        set(KEYWORD_RESNAMES['charged'])))
+    KEYWORD_RESNAMES['polar'] = list(protein.difference(
+        set(KEYWORD_RESNAMES['hydrophobic'])))
+    KEYWORD_RESNAMES['surface'] = list(protein.difference(
+        set(KEYWORD_RESNAMES['buried'])))
     
 _setReadonlyResidueNames()
 
@@ -269,8 +280,9 @@ Keywords without arguments
 -------------------------------------------------------------------------------
 
 Below is the list of keywords defined based on residue type and/or property.
-These definitions can be retrieved or altered using :func:`getKeywordResidueNames` 
-and :func:`setKeywordResidueNames`, respectively.
+These definitions can be retrieved or altered using 
+:func:`getKeywordResidueNames` and :func:`setKeywordResidueNames`, 
+respectively.
 
 ============= =================================================================
 Keyword       Description
@@ -280,11 +292,14 @@ keys = KEYWORD_RESNAMES.keys()
 keys.sort()
 for key in keys:
     if key in KEYWORD_RESNAMES_READONLY:
-        __doc__ += '{0:13s} resname {1:s}\n'.format(key + ' [#]', ' '.join(KEYWORD_RESNAMES[key]))
+        __doc__ += '{0:13s} resname {1:s}\n'.format(
+            key + ' [#]', ' '.join(KEYWORD_RESNAMES[key]))
     else:
-        __doc__ += '{0:13s} resname {1:s}\n'.format(key, ' '.join(KEYWORD_RESNAMES[key]))
+        __doc__ += '{0:13s} resname {1:s}\n'.format(
+            key, ' '.join(KEYWORD_RESNAMES[key]))
 
-__doc__ += """============= =================================================================
+__doc__ += """\
+============= =================================================================
 
 **[#]** Definitions of these keywords cannot be changed directly, as they 
 are defined based on others as follows: 
@@ -293,7 +308,8 @@ are defined based on others as follows:
 keys = KEYWORD_RESNAMES_READONLY.keys()
 keys.sort()
 for key in keys:
-    __doc__ += '  * "{0:s}" is "{1:s}"\n'.format(key, KEYWORD_RESNAMES_READONLY[key])
+    __doc__ += '  * "{0:s}" is "{1:s}"\n'.format(
+        key, KEYWORD_RESNAMES_READONLY[key])
 
 __doc__ += """
 .. versionchanged:: 0.6.1
@@ -310,10 +326,13 @@ Keyword         Description
 =============== ===============================================================
 all             all atoms
 none            nothing (returns ``None``)
-hetero          non-protein/nucleic atoms, same as ``"not (protein or nucleic)"``
+hetero          non-protein/nucleic atoms, same as \
+``"not (protein or nucleic)"``
 calpha (ca)     Cα atoms of protein residues, same as ``"name CA and protein"``
-backbone (bb)   backbone atoms of protein residues, same as ``"name CA C O N H and protein"``
-sidechain (sc)  side-chain atoms of protein residues, same as ``"not name CA C O N H and protein"``
+backbone (bb)   backbone atoms of protein residues, same as \
+``"name CA C O N H and protein"``
+sidechain (sc)  side-chain atoms of protein residues, same as \
+``"not name CA C O N H and protein"``
 carbon          carbon atoms, same as ``'name "C.*" and not resname ion'``
 hydrogen        hydrogen atoms, same as ``'name "[1-9]?H.*"'``
 noh             non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
@@ -324,10 +343,13 @@ extended        residue in extended conformation, same as ``"secondary E"``
 helix           residue in α-helix conformation, same as ``"secondary H"``
 helix_3_10      residue in 3_10-helix conformation, same as ``"secondary G"``
 helix_pi        residue in π-helix conformation, same as ``"secondary I"``
-turn            residue in hydrogen bonded turn conformation, same as ``"secondary T"``
-bridge          residue in isolated beta-bridge conformation, same as ``"secondary B"``
+turn            residue in hydrogen bonded turn conformation, same as \
+``"secondary T"``
+bridge          residue in isolated beta-bridge conformation, same as \
+``"secondary B"``
 bend            residue in bend conformation, same as ``"secondary S"``
-coil            residue not in one of above conformations, same as ``"secondary C"``
+coil            residue not in one of above conformations, same as \
+``"secondary C"``
 =============== ===============================================================
 
 .. versionchanged:: 0.6.2
@@ -384,12 +406,14 @@ def _buildKeywordMap():
     KEYWORD_MAP['sidechain'] = (protein, False, BACKBONE_ATOM_NAMES, True)
     KEYWORD_MAP['sc'] = (protein, False, BACKBONE_ATOM_NAMES, True)
 
-    KEYWORD_MAP['hetero'] = (protein + KEYWORD_RESNAMES['nucleic'], True, None, False) 
+    KEYWORD_MAP['hetero'] = (protein + KEYWORD_RESNAMES['nucleic'], True, 
+                             None, False) 
 
     for name, regex in KEYWORD_NAME_REGEX.iteritems():
         KEYWORD_MAP[name] = (None, False, [regex], False)
     
-    KEYWORD_MAP['carbon'] = (KEYWORD_RESNAMES['ion'], True, [KEYWORD_NAME_REGEX['carbon']], False)
+    KEYWORD_MAP['carbon'] = (KEYWORD_RESNAMES['ion'], True, 
+                             [KEYWORD_NAME_REGEX['carbon']], False)
     KEYWORD_MAP['noh'] = (None, False, [KEYWORD_NAME_REGEX['hydrogen']], True)
     
 _buildKeywordMap()
@@ -477,6 +501,27 @@ tanh(x)  hyperbolic tangent of x
   * ``"resnum <= 100"`` selects atoms with residue numbers less than or equal 
     to 100  
 
+
+Distance based selections
+-------------------------------------------------------------------------------
+
+Atoms within a user specified distance (Å) from a set of user specified atoms
+can be selected using ``within . of ..`` keyword, e.g. ``within 5 of water``
+selects atoms that are within 5 Å of water molecules. This setting will
+results selecting water atoms as well.
+
+User can avoid selecting specified atoms using ``exwithin . of ..`` setting,
+e.g. ``exwithin 5 of water`` will not select water molecules and is equivalent
+to ``within 5 of water and not water``
+
+
+Expanding selections
+-------------------------------------------------------------------------------
+
+A selection can be expanded to include the atoms in the same *residue*, 
+*chain*, or *segment* using ``same .. as ..`` setting, e.g.
+``same residue as exwithin 4 of water`` will select residues that have
+at least an atom within 4 Å of any water molecule.    
 
 Selection macros
 -------------------------------------------------------------------------------
@@ -822,6 +867,7 @@ def isComparison(tokens):
 
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
 
+
 class Select(object):
 
     """Select subsets of atoms based on a selection string.
@@ -867,12 +913,20 @@ class Select(object):
                               pp.Optional(pp.Word(longlist + '`')) + 
                               pp.Literal('"'))
         def regularExpParseAction(token): 
+            token = token[0]
             if len(token[0]) == 2:
                 return RE.compile('^()$')
             else:
-                return RE.compile('^(' + token[0][1] + ')$') 
+                try:
+                    regexp = RE.compile('^(' + token[1] + ')$')
+                except:
+                    raise SelectionError('failed to compile regular expression'
+                                         ' "{0:s}"'.format(token[1]))
+                else:
+                    return regexp  
         regularexp.setParseAction(regularExpParseAction)
-        oneormore = pp.OneOrMore(pp.Word(shortlist) | regularexp | specialchars)
+        oneormore = pp.OneOrMore(pp.Word(shortlist) | regularexp | 
+                                 specialchars)
         self._tokenizer = pp.operatorPrecedence(
              oneormore,
              [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
@@ -893,6 +947,8 @@ class Select(object):
 
         self._tokenizer.setParseAction(self._evaluate)
         self._tokenizer.leaveWhitespace()
+        
+        
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with ``True`` values for *atoms* matching 
         *selstr*.
@@ -1064,9 +1120,12 @@ class Select(object):
         
         if MACROS:
             for macro in MACROS.iterkeys():
-                selstr = selstr.replace(' ' + macro + ' ', ' (' + MACROS[macro] + ') ')
-                selstr = selstr.replace('(' + macro + ' ', '((' + MACROS[macro] + ') ')
-                selstr = selstr.replace(' ' + macro + ')', ' (' + MACROS[macro] + '))')
+                selstr = selstr.replace(' ' + macro + ' ', 
+                                        ' (' + MACROS[macro] + ') ')
+                selstr = selstr.replace('(' + macro + ' ', 
+                                        '((' + MACROS[macro] + ') ')
+                selstr = selstr.replace(' ' + macro + ')', 
+                                        ' (' + MACROS[macro] + '))')
         
         return selstr.strip()
 
