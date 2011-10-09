@@ -724,10 +724,10 @@ def getKeywordResidueNames(keyword):
         return resnames  
     except KeyError:
         if keyword in KEYWORD_RESNAMES_READONLY:
-            LOGGER.warning('{0:s} is defined as "{1:s}"'.format(keyword, 
+            LOGGER.warning('"{0:s}" is defined as "{1:s}"'.format(keyword, 
                                         KEYWORD_RESNAMES_READONLY[keyword]))
         else:
-            LOGGER.warning('{0:s} is not a keyword'.format(keyword))
+            LOGGER.warning('"{0:s}" is not a keyword'.format(keyword))
 
 def setKeywordResidueNames(keyword, resnames):
     """Change the list of residue names associated with a keyword.
@@ -748,7 +748,7 @@ def setKeywordResidueNames(keyword, resnames):
     if not isinstance(resnames, (list, tuple, set)):
         raise TypeError('resnames must be a list, set, or tuple')
     if keyword in KEYWORD_RESNAMES_READONLY:
-        LOGGER.warning('{0:s} is defined as "{1:s}" and cannot be changed '
+        LOGGER.warning('"{0:s}" is defined as "{1:s}" and cannot be changed '
                            'directly'.format(keyword, 
                                         KEYWORD_RESNAMES_READONLY[keyword]))
         return
@@ -759,7 +759,7 @@ def setKeywordResidueNames(keyword, resnames):
         KEYWORD_RESNAMES[keyword] = list(set(resnames))
         _setReadonlyResidueNames()
     else:
-        raise ValueError('{0:s} is not a valid keyword'.format(keyword))
+        raise ValueError('"{0:s}" is not a valid keyword'.format(keyword))
 
 def getAtomNameRegex(name):
     """Return regular expression used for selecting common elements.
@@ -788,11 +788,11 @@ def setAtomNameRegex(name, regex):
     """
     
     if not name in KEYWORD_NAME_REGEX:
-        raise ValueError('{0:s} is not a valid keyword'.format(name))
+        raise ValueError('"{0:s}" is not a valid keyword'.format(name))
     try:
         regex = RE.compile(regex)
     except:
-        raise ValueError('{0:s} is not a valid regular expression'
+        raise ValueError('"{0:s}" is not a valid regular expression'
                          .format(regex))
     else:
         KEYWORD_NAME_REGEX[name] = regex
@@ -1133,7 +1133,11 @@ class Select(object):
         selstr = self._selstr.strip() 
         if len(selstr.split()) == 1 and '(' not in selstr and \
            ')' not in selstr and selstr not in MACROS:
-            return self._evalBoolean(selstr)
+            if isBooleanKeyword(selstr):
+                return self._evalBoolean(selstr)
+            elif isValuePairedKeyword(selstr):
+                raise SelectionError('Keyword "{0:s}" must be followed by '
+                                     'values.'.format(selstr))
         selstr = self._prepareSelstr()
         if DEBUG: print('_evalSelstr', selstr)
 
@@ -1147,15 +1151,6 @@ class Select(object):
             print(self._selstr) #err.line
             print(" "*(err.column-1) + "^")
             raise pp.ParseException(str(err))
-    
-    def _defaultAction(self, token):
-        """Evaluate a token not involving an operation or comparison."""
-        
-        if DEBUG: print('_defaultAction', token)
-        if isinstance(token[0], (np.ndarray, float)):
-            return token[0]
-        else:
-            return self._evaluate(token)        
     
     def _evaluate(self, token):
         if DEBUG: print('_evaluate', token)
