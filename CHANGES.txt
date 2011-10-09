@@ -14,14 +14,30 @@ Release 0.8.2 (in development)
   * :func:`~proteins.fetchPDBClusters`, :func:`~proteins.loadPDBClusters`, and
     :func:`~proteins.getPDBCluster` functions are implemented for handling
     PDB sequence cluster data.
+    
+  * Perturbation response scanning method described in [AC09]_ is implemented 
+    as :func:`~dynamics.scanPerturbationResponse` based on the code provided 
+    by Ying Liu.
+  
 
 **Changes**:
 
   * :func:`~proteins.fetchLigandData` returns the URL of the XML file in the
     ligand data dictionary.
     
-  * Name of the ProDy configuration file save in user :file:`home` directory 
+  * Name of the ProDy configuration file in user :file:`home` directory 
     is renamed as :file:`.prodyrc` (used to be :file:`.prody`). 
+
+
+**Bug Fixes**:
+
+  * Bugfixes in :func:`~proteins.parseDSSP`: first arised problems in lines
+    indicating chain breaks, second did not parse bridge-partners correctly.
+    Both fixes are contributed by Kian Ho.
+    
+  * Bugfix in :func:`~proteins.parsePDB` function. When only header is desired
+    (``header=True, model=0``), would return a tuple containing an empty 
+    atom group and the header.
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================
