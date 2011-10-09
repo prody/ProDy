@@ -180,7 +180,7 @@ KDTree = None
 import prody
 LOGGER = prody.LOGGER
 from prody.atomic import *
-DEBUG = True
+DEBUG = False
 
 __all__ = ['Select', 'Contacts',
            'getProteinResidueNames', 'setProteinResidueNames',
@@ -854,15 +854,27 @@ class Select(object):
         
         shortlist = pp.alphanums + '''~@#$.:;_','''
         longlist = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
-        specialchars = pp.Group(pp.Literal('`') + pp.Word(longlist + '"') + 
+        specialchars = pp.Group(pp.Literal('`') + 
+                                pp.Optional(pp.Word(longlist + '"')) + 
                                 pp.Literal('`'))
-        specialchars.setParseAction(lambda token: token[0][1])
-        regularexp = pp.Group(pp.Literal('"') + pp.Word(longlist + '`') + 
-                              pp.Literal('"')) 
-        regularexp.setParseAction(lambda token: RE.compile('^(' + token[0][1] + 
-                                                           ')$'))
+        def specialCharsParseAction(token):
+            if len(token[0]) == 2:
+                return '_'
+            else:
+                return token[0][1]
+        specialchars.setParseAction(specialCharsParseAction)
+        regularexp = pp.Group(pp.Literal('"') + 
+                              pp.Optional(pp.Word(longlist + '`')) + 
+                              pp.Literal('"'))
+        def regularExpParseAction(token): 
+            if len(token[0]) == 2:
+                return RE.compile('^()$')
+            else:
+                return RE.compile('^(' + token[0][1] + ')$') 
+        regularexp.setParseAction(regularExpParseAction)
+        oneormore = pp.OneOrMore(pp.Word(shortlist) | regularexp | specialchars)
         self._tokenizer = pp.operatorPrecedence(
-             pp.OneOrMore(pp.Word(shortlist) | regularexp | specialchars),
+             oneormore,
              [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
                         'asin acos sinh cosh tanh exp log log10'), 
                         1, pp.opAssoc.RIGHT, self._func),
@@ -880,7 +892,7 @@ class Select(object):
             )
 
         self._tokenizer.setParseAction(self._evaluate)
-
+        self._tokenizer.leaveWhitespace()
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with ``True`` values for *atoms* matching 
         *selstr*.
@@ -1524,6 +1536,9 @@ class Select(object):
             return self._and([compound])
     
     def _evalAlnum(self, keyword, values):
+        """Evaluate keywords associated with alphanumeric data, e.g. residue 
+        names, atom names, etc."""
+        
         if DEBUG: print('_evalAlnum', keyword, values)
         data = self._getAtomicData(keyword)
         if keyword in _specialKeywords:
@@ -1603,6 +1618,8 @@ class Select(object):
         return torf
 
     def _resnum(self, token=None, numRange=True):
+        """Evaluate "resnum" keyword."""
+        
         if DEBUG: print('_resnum', token)
         if token is None:
             return self._getAtomicData('resnum') 
@@ -1643,6 +1660,8 @@ class Select(object):
         return torf
 
     def _serial(self, token=None):
+        """Evaluate "serial" keyword."""
+        
         if DEBUG: print('_serial', token)
         if token is None:
             return self._getAtomicData('serial') 
@@ -1669,6 +1688,8 @@ class Select(object):
         return torf
     
     def _index(self, token=None):
+        """Evaluate "index" keyword."""
+        
         if DEBUG: print('_index', token)
         if token is None:
             if self._indices is not None:
@@ -1702,6 +1723,9 @@ class Select(object):
         return torf
 
     def _getNumRange(self, token):
+        """Evaluate numeric values. Identify ranges, integers, and floats,
+        put them in a list and return."""
+        
         if DEBUG: print('_getNumRange', token, 'len', len(token))
         tknstr = ' '.join(token)
         if DEBUG: print('_getNumRange tknstr', tknstr)
@@ -1714,17 +1738,21 @@ class Select(object):
         token = []
         for item in tknstr.split():
             if 'to' in item:
+                # to means upper bound is included in the range
+                # boundaries are placed in a LIST
                 items = item.split('to')
                 if len(items) != 2:
                     raise SelectionError('"{0:s}" is not understood.'
                                          .format(' to '.join(items)))
                 try:
-                    token.append( [float(items[0]), float(items[1])] )
+                    token.append([float(items[0]), float(items[1])])
                 except:
                     raise SelectionError('"{0:s}" is not understood, "to" '
                                          'must be surrounded by numbers.'
                                          .format(' to '.join(items)))
             elif ':' in item:
+                # : means upper bound is NOT included in the range
+                # boundaries are placed in a TUPLE
                 items = item.split(':')
                 if not len(items) in (2, 3):
                     raise SelectionError('"{0:s}" is not understood.'
@@ -1733,8 +1761,8 @@ class Select(object):
                     if len(items) == 2:
                         token.append( (int(items[0]), int(items[1])) )
                     else:
-                        token.append( (int(items[0]), int(items[1]), 
-                                       int(items[2])) )
+                        token.append((int(items[0]), int(items[1]),
+                                      int(items[2])))
                 except:
                     raise SelectionError('"{0:s}" is not understood, ":" must '
                                          'be surrounded by integers.'
@@ -1747,7 +1775,7 @@ class Select(object):
                         item = float(item)
                     except ValueError:
                         pass
-                token.append( item )
+                token.append(item)
         if DEBUG: print('_getNumRange', token)            
         return token
     
