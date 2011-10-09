@@ -1202,10 +1202,10 @@ class Select(object):
             return self._evalAttribute(keyword, token[1:])
         elif isBooleanKeyword(keyword):
             raise SelectionError('Single word keywords must be followed with '
-                                 'and operator.')            
+                                 'and operator.')
             return self._and([token])
-        raise SelectionError('{0:s} is not understood. Please report this if '
-                             'you think there is a bug.'
+        raise SelectionError('"{0:s}" is not understood. Please report this if'
+                             ' you think there is a bug.'
                              .format(' '.join(token)))
 
     def _or(self, tokens):
