@@ -27,6 +27,7 @@ import unittest
 import numpy as np
 import prody
 
+prody.select.DEBUG = False
 prody.changeVerbosity('none')
 
 # If a selection string is paired with None, SelectionError is expected
@@ -91,7 +92,6 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('resname DG ALA', 212),
                      ('altloc A', 0),
                      ('altloc _', 3211),
-                     #('altloc ``', 3211),
                      ('secondary H', 763),
                      ('secondary H', 'helix'),
                      ('secondary H E', 1266),
@@ -112,8 +112,12 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('serial 0:10:10', 0),
                      ('resnum 10to15', 49),
                      ('resnum 10:16:1', 49),
+                     ('resnum `-3:16:1`', 125),
                      ('resid 10to15', 49),
-                     ('resid 10:16:1', 49),],
+                     ('resid 10:16:1', 49),
+                     ('x `-10:20`', 673),
+                     ('x `-10 to 20`', 673),
+                     ('x 0:20:1', None),],
      'float':       [('beta 5.0 41.15 11.85', 2),
                      ('occupancy 1.0', 3211),
                      ('x 6.665', 1),
@@ -133,7 +137,7 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('chain = A', None),],
      'operation':   [('x ** 2 < 10', 238),
                      ('x ** 2 ** 2 ** 2 < 10', 99),
-                     ('x ** (2 ** (2 ** 2)) < 10', 87),
+                     ('x ** (+2 ** (+2 ** +2)) < 10', 87),
                      ('occupancy % 2 == 1', 3211),
                      ('x**2 + y**2 + z**2 < 10000', 1975),],
      'function':    [('sqrt(x**2 + y**2 + z**2) < 100', 
@@ -146,20 +150,29 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('floor(beta) == 10', 58),
                      ('abs(x) == sqrt(sq(x))', 3211),],
      'composite':   [('same residue as within 4 of resname SAH', 177),
-                     ('name CA and same residue as within 4 of resname SAH', 20),
-                     ('none', 0),
-                     ('none', 0),
+                     ('name CA and same residue as within 4 of resname SAH', 
+                      20),
+                     ('water and within 5 of not protein', 70),
+                     ('backbone and sqrt((x - 25)**2 + (y - 74)**2 + '
+                      '(z - 13)**2) <= 500', 1308),
                      ('none', 0),],
      'within':      [('within 10 of index 0', 72),
                      ('exwithin 100 of index 0', 3210),
-                     ('exwithin 4 of resname SAH', 61),],
+                     ('exwithin 4 of resname SAH', 61),
+                     ('within 4 of water and not water', 
+                      'exwithin 4 of water'),],
      'sameas':      [('same residue as index 0', 22),
                      ('same chain as index 0', 248),   
                      ('same segment as index 0', 3211),
                      ('same residue as resname DG ALA', 212),
                      ('same chain as chain C', 248),],
      'regexp':      [('resname "S.."', 122),
-                     ('name "C.*"', 1920),],
+                     ('name "C.*"', 1920),
+                     ('name ".*\'"', 208),
+                     ('name "C(A|B)"', 628),],
+     'specialchar': [('altloc ``', 3211),
+                     ('altloc ` `', 3211),
+                     ('z `+100.291`', 1),],
     }
 
 }
