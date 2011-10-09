@@ -173,6 +173,10 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
      'specialchar': [('altloc ``', 3211),
                      ('altloc ` `', 3211),
                      ('z `+100.291`', 1),],
+     'logical':     [('name or name', None),
+                     ('name and name', None),
+                     ('name CA and name CA', 328),
+                     ('name CA or name CA', 328),],
     }
 
 }
