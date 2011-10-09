@@ -1213,6 +1213,10 @@ class Select(object):
             if isinstance(tkn, str) and isBooleanKeyword(tkn):
                 tkn = self._evalBoolean(tkn)
             if tkn == '||':
+                if len(token) <= 1 and isinstance(token[0], str):
+                    raise SelectionError('"{0:s}" is not a valid keyword or '
+                                         'must be followed by values.'
+                                         .format(token[0]))
                 tokenlist.append(token)
                 token = []
             else:
@@ -1255,6 +1259,10 @@ class Select(object):
                     temp = tkn
                     continue
             if tkn == '&&&':
+                if len(token) <= 1 and isinstance(token[0], str):
+                    raise SelectionError('"{0:s}" is not a valid keyword or '
+                                         'must be followed by values.'
+                                         .format(token[0]))
                 tokenlist.append(token)
                 token = []
             else:
