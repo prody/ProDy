@@ -932,8 +932,8 @@ class Select(object):
              [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
                         'asin acos sinh cosh tanh exp log log10'), 
                         1, pp.opAssoc.RIGHT, self._func),
-              (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
               (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
+              (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
