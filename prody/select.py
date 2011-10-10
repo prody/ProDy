@@ -1345,7 +1345,8 @@ class Select(object):
                     which = [which]
                 elif not (which.ndim == 2 and which.shape[1] == 3):
                     raise SelectionError('{0:s} must be a coordinate array, '
-                                         'shape (N, 3) or (3,)'.format(kw))
+                                         'shape (N, 3) or (3,)'
+                                         .format(str(which)))
                 for xyz in which:
                     if DEBUG: print('xyz', xyz)
                     search(xyz, within)
@@ -1355,11 +1356,11 @@ class Select(object):
                     coordinates = which.getCoordinates()
                 except:
                     raise SelectionError('{0:s} must have a getCoordinates() '
-                                         'method.'.format(kw))
+                                         'method.'.format(str(which)))
                 if not isinstance(coordinates, np.ndarray):
                     raise SelectionError('{0:s}.getCoordinates() method must '
                                          'return a numpy.ndarray instance.'
-                                         .format(kw))
+                                         .format(str(which)))
                 for xyz in coordinates:
                     search(xyz, within)
                     append(get_indices())
