@@ -839,9 +839,8 @@ def setProteinResidueNames(resnames):
 class SelectionError(Exception):    
     
     def __init__(self, selstr, *args):
-        selstr = selstr.replace('&&&', 
-                                'and').replace('||', 
-                                               'or').replace('!!!', 'not')
+        selstr = selstr.replace(AND, 'and').replace(OR, 'or').replace(NOT, 
+                                                                     'not')
         Exception.__init__(self, '"{0:s}" is not a valid selection string. '
                                  .format(selstr) + ' '.join(args) )
 
@@ -880,6 +879,10 @@ def tkn2str(token):
     else:
         return ' '.join(token)
 
+AND = '&&&'
+NOT = '!!!'
+OR  = '||'
+
 def expandBoolean(keyword):
     
     if keyword in KEYWORD_MAP:
@@ -888,15 +891,15 @@ def expandBoolean(keyword):
         tokens = []
         if atom_names is not None:
             if an_invert:
-                tokens.append('!!!')
+                tokens.append(NOT)
             tokens.append('name')
             tokens.extend(atom_names)
             if residue_names is not None:
-                tokens.append('&&&')
+                tokens.append(AND)
         if residue_names is not None:
             
             if rn_invert:
-                tokens.append('!!!')
+                tokens.append(NOT)
             tokens.append('resname')
             tokens.extend(residue_names)
         return tokens
@@ -904,11 +907,6 @@ def expandBoolean(keyword):
         return ['secondary', SECSTR_MAP[keyword]]
     else:
         return keyword
-
-AND = '&&&'
-NOT = '!!!'
-OR  = '||'
-
 
 class Select(object):
 
@@ -978,12 +976,12 @@ class Select(object):
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              (pp.Keyword('!!!') | 
+              (pp.Keyword(NOT) | 
                pp.Regex('same [a-z]+ as') | 
                pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 
                         1, pp.opAssoc.RIGHT, self._unary),
-              (pp.Keyword('&&&'), 2, pp.opAssoc.LEFT, self._and),
-              (pp.Keyword('||'), 2, pp.opAssoc.LEFT, self._or),]
+              (pp.Keyword(AND), 2, pp.opAssoc.LEFT, self._and),
+              (pp.Keyword(OR), 2, pp.opAssoc.LEFT, self._or),]
             )
 
         self._tokenizer.setParseAction(self._defaultAction)
@@ -1233,8 +1231,6 @@ class Select(object):
                 return self._evalNumeric(keyword)
             elif self._ag.isAttribute(keyword):
                 return self._evalAttribute(keyword, evalonly=evalonly)
-            #elif self._kwargs is not None and keyword in self._kwargs:
-            #    return keyword
             else:
                 try:
                     return float(keyword)
@@ -1250,12 +1246,7 @@ class Select(object):
             return self._index(tokens[1:], evalonly=evalonly)
         elif keyword == 'serial':
             return self._serial(tokens[1:], evalonly=evalonly)
-        elif keyword == 'within':
-            return self._within([' '.join(tokens[:3])] + tokens[3:], 
-                                keyword.startswith('exwithin'))
-        elif keyword == 'same':
-            return self._sameas([' '.join(tokens[:3])] + tokens[3:])
-        elif keyword == '!!!':
+        elif keyword == NOT:
             return self._not(tokens, evalonly=evalonly)
         elif self._ag.isAttribute(keyword):
             return self._evalAttribute(keyword, tokens[1:], evalonly=evalonly)
@@ -1270,7 +1261,7 @@ class Select(object):
             if previous is None:
                 previous = current
                 continue
-            if current == '||':
+            if current == OR:
                 if isinstance(previous, np.ndarray):
                     if evalonly is None:
                         torf = previous
@@ -1319,7 +1310,7 @@ class Select(object):
             if previous is None:
                 previous = current
                 continue
-            if current == '&&&':
+            if current == AND:
                 if isinstance(previous, np.ndarray):
                     if evalonly is None:
                         torf = previous
@@ -1368,7 +1359,7 @@ class Select(object):
         
         if DEBUG: print('_unary', tokens)
         tokens = tokens[0]
-        if tokens[0] == '!!!':
+        if tokens[0] == NOT:
             result = self._not(tokens)
         elif tokens[0].startswith('same'):
             result = self._sameas(tokens)
