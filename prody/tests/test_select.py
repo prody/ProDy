@@ -179,9 +179,18 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('name and name', None),
                      ('name CA and name CA', 328),
                      ('name CA or name CA', 328),],
+      'kwargs':     [('within 100 of origin', 1975, None, 
+                      {'origin': np.zeros(3)}),
+                     ('none', 0),]
     }
 
 }
+
+for key in SELECTION_TESTS.iterkeys():
+    SELECTION_TESTS[key]['ag'] = prody.parsePDB(key, secondary=True)
+SELECT = prody.Select()
+
+EMPTYDICT = {}
 
 class TestSelectMeta(type):
     
@@ -192,54 +201,60 @@ class TestSelectMeta(type):
             for key, item in case.iteritems():
                 if isinstance(item, list):
                     test_types.add(key.lower())
-        
+
         for type_ in test_types:
-            
-            def testFunction(self, type_=type_):
+            count = 0        
+            for key, testsets in SELECTION_TESTS.iteritems():
+                tests = testsets.get(type_, [])
+                for test in tests:
+                    def testFunction(self, pdb=key, test=test, type_=type_, 
+                                     **kwargs):
                 
-                for key, testsets in SELECTION_TESTS.iteritems():
-                    atoms = self.atomgroups[key]
+                        atoms = SELECTION_TESTS[key]['ag']
                     
-                    tests = testsets.get(type_, [])
-                    for test in tests:
                         selstr = test[0]
                         natoms = test[1]
                         selstr2 = None
+                        kwargs = EMPTYDICT
                         if len(test) == 3:
                             selstr2 = test[2]
+                        if len(test) == 4:
+                            kwargs = test[3]
+
                             
                         if natoms is None:
                             self.assertRaises(prody.select.SelectionError,
-                                self.select.getIndices, atoms, selstr)
-                            self.count += 1
+                                SELECT.getIndices, atoms, selstr, **kwargs)
                         elif selstr2 is None:
-                            sel = self.select.getIndices(atoms, selstr)
+                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
                             self.assertEqual(len(sel), natoms,
                                 'selection "{0:s}" for {1:s} failed, expected '
                                 '{2:d}, selected {3:d}'
                                 .format(selstr, str(atoms), natoms, len(sel)))
-                            self.count += 1
                         else:
-                            sel = self.select.getIndices(atoms, selstr)
-                            sel2 = self.select.getIndices(atoms, selstr2)
+                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                            sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
                             self.assertTrue(len(sel) == len(sel2) == natoms and
                                     np.all(sel == sel2),
                                 'selection strings "{0:s}" and "{1:s}" for '
                                 '{2:s} failed to select same number of atoms, '
                                 'expected ({3:d})'
                                 .format(selstr, selstr2, str(atoms), natoms))
-                            self.count += 1
-
                                 
-            testFunction.__name__ = 'test' + type_.title() + 'Selections'
-            testFunction.__doc__ = 'Test {0:s} selections.'.format(type_)
-            setattr(cls, testFunction.__name__, testFunction)
+                    #testFunction.__name__ = 'test' + type_.title() + 'Selections'
+                    count += 1
+                    testFunction.__name__ = 'test{0:s}Selection{1:d}'.format(
+                                                        type_.title(), count)
+                    testFunction.__doc__ = 'Test {0:s} selections.'.format(
+                                                                        type_)
+                    setattr(cls, testFunction.__name__, testFunction)
 
 class TestSelect(unittest.TestCase):
     
     """Test :func:`~prody.proteins.fetchPDB` function."""
     __metaclass__ = TestSelectMeta
     
+    '''
     def setUp(self):
         """Instantiate a list for storing downloaded file names."""
         self.count = 0
@@ -263,5 +278,7 @@ class TestSelect(unittest.TestCase):
         self.count = 0
         self.select = None
         self.atomgroups = None
+    '''
 if __name__ == '__main__':
+    #pass
     unittest.main()
