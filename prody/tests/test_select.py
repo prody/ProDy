@@ -182,13 +182,26 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('name CA or name CA', 328),],
       'kwargs':     [('within 100 of origin', 1975, None, 
                       {'origin': np.zeros(3)}),
-                     ('none', 0),]
+                     ('within 100 of origin', 1975, None, 
+                      {'origin': np.zeros((1, 3))}),                      
+                     ('within 100 of origin', 1975, None, 
+                      {'origin': np.zeros((10, 3))}),],
+      'equivalent': [('chain C', 248, 'not not chain C'),
+                     ('chain C', 248, 'not not not not chain C'),],
+      'invalid':    [('chain C and and chain C', None),
+                     ('chain C or or chain D', None),
+                     ('chain C or not or chain D', None),
+                     ('chain C + 3', None),],
+
     }
 
 }
 
 for key in SELECTION_TESTS.iterkeys():
-    SELECTION_TESTS[key]['ag'] = prody.parsePDB(key, secondary=True)
+    try:
+        SELECTION_TESTS[key]['ag'] = prody.parsePDB(key, secondary=True)
+    except IOError:
+        pass
 SELECT = prody.Select()
 
 EMPTYDICT = {}
