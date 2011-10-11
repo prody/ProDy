@@ -1139,21 +1139,26 @@ class Select(object):
             self._data[var] = None        
 
     def _prepareSelstr(self):
+        if DEBUG: print('_prepareSelstr', self._selstr) 
         selstr = ' ' + self._selstr + ' '
-
         selstr = selstr.replace(')and(', ')&&&(')
         selstr = selstr.replace(' and(', ' &&&(')
         selstr = selstr.replace(')and ', ')&&& ')
-        selstr = selstr.replace(' and ', ' &&& ')
+        while ' and ' in selstr:
+            selstr = selstr.replace(' and ', ' &&& ')
             
         selstr = selstr.replace(')or(', ')||(')
         selstr = selstr.replace(' or(', ' ||(')
         selstr = selstr.replace(')or ', ')|| ')
-        selstr = selstr.replace(' or ', ' || ')
+        while ' or ' in selstr:
+            selstr = selstr.replace(' or ', ' || ')
         
+        #if selstr.startswith('not '):
+        #    selstr = selstr.replace('not ', '!!! ')
         selstr = selstr.replace('(not ', '(!!! ')
         selstr = selstr.replace(' not(', ' !!!(')
-        selstr = selstr.replace(' not ', ' !!! ')
+        while ' not ' in selstr:
+            selstr = selstr.replace(' not ', ' !!! ')
         
         if MACROS:
             for macro in MACROS.iterkeys():
@@ -1164,6 +1169,7 @@ class Select(object):
                 selstr = selstr.replace(' ' + macro + ')', 
                                         ' (' + MACROS[macro] + '))')
         
+        if DEBUG: print('_prepareSelstr', selstr) 
         return selstr.strip()
 
     def _evalSelstr(self):
@@ -1183,17 +1189,15 @@ class Select(object):
                                      'group attribute either.'.format(selstr))
         
         selstr = self._prepareSelstr()
-        #try: 
-        if DEBUG: print('_evalSelstr using Pyparsing')
-        tokens = self._tokenizer.parseString(selstr, 
+        try:
+            if DEBUG: print('_evalSelstr using Pyparsing')
+            tokens = self._tokenizer.parseString(selstr, 
                                              parseAll=True).asList()
-        if DEBUG: print('_evalSelstr', tokens)
-        return tokens[0]
-        #except pp.ParseException, err:
-        #    print('Parse Failure')
-        #    print(self._selstr) #err.line
-        #    print(" "*(err.column-1) + "^")
-        #    raise pp.ParseException(str(err))
+            if DEBUG: print('_evalSelstr', tokens)
+            return tokens[0]
+        except pp.ParseException as err:
+            raise SelectionError(selstr, '\n' + ' ' * (err.column + 16) + 
+                                         '^ parsing the rest failed.')
     
     def _isValid(self, token):
         """Check the validity of part of a selection string. Expects a Python
