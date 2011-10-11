@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
