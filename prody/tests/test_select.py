@@ -93,7 +93,7 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('altloc A', 0),
                      ('altloc _', 3211),
                      ('secondary H', 763),
-                     ('secondary H', 'helix'),
+                     ('secondary H', 763, 'helix'),
                      ('secondary H E', 1266),
                      ('secondary _', 605),
                      ('segment _', 3211),],
@@ -140,7 +140,7 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('x ** (+2 ** (+2 ** +2)) < 10', 87),
                      ('occupancy % 2 == 1', 3211),
                      ('x**2 + y**2 + z**2 < 10000', 1975),],
-     'function':    [('sqrt(x**2 + y**2 + z**2) < 100', 
+     'function':    [('sqrt(x**2 + y**2 + z**2) < 100', 1975,
                       'x**2 + y**2 + z**2 < 10000'),
                      ('sqrt(x**2 + y**2 + z**2) == '
                       '(x**2 + y**2 + z**2) ** 0.5', 3211),
@@ -155,11 +155,13 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('water and within 5 of not protein', 70),
                      ('backbone and sqrt((x - 25)**2 + (y - 74)**2 + '
                       '(z - 13)**2) <= 500', 1308),
-                     ('none', 0),],
+                     ('not resname SAH and (protein and name CA) or '
+                      '(nucleic and name P)', 351,
+                      '(protein and name CA) or (nucleic and name P)'),],
      'within':      [('within 10 of index 0', 72),
                      ('exwithin 100 of index 0', 3210),
                      ('exwithin 4 of resname SAH', 61),
-                     ('within 4 of water and not water', 
+                     ('within 4 of water and not water', 534, 
                       'exwithin 4 of water'),],
      'sameas':      [('same residue as index 0', 22),
                      ('same chain as index 0', 248),   
@@ -191,36 +193,46 @@ class TestSelectMeta(type):
                 if isinstance(item, list):
                     test_types.add(key.lower())
         
-        for test in test_types:
+        for type_ in test_types:
             
-            def testFunction(self, test=test):
+            def testFunction(self, type_=type_):
                 
                 for key, testsets in SELECTION_TESTS.iteritems():
                     atoms = self.atomgroups[key]
                     
-                    tests = testsets.get(test, [])
-                    for selstr, natoms in tests:
+                    tests = testsets.get(type_, [])
+                    for test in tests:
+                        selstr = test[0]
+                        natoms = test[1]
+                        selstr2 = None
+                        if len(test) == 3:
+                            selstr2 = test[2]
+                            
                         if natoms is None:
                             self.assertRaises(prody.select.SelectionError,
                                 self.select.getIndices, atoms, selstr)
-                        elif isinstance(natoms, str):
-                            sel = self.select.getIndices(atoms, selstr)
-                            sel2 = self.select.getIndices(atoms, natoms)
-                            self.assertTrue(len(sel) == len(sel2) and
-                                    np.all(sel == sel2),
-                                'selection strings "{0:s}" and "{1:s}" for '
-                                'failed to select same atoms'
-                                .format(selstr, natoms, str(atoms), natoms))
-
-                        else:
+                            self.count += 1
+                        elif selstr2 is None:
                             sel = self.select.getIndices(atoms, selstr)
                             self.assertEqual(len(sel), natoms,
                                 'selection "{0:s}" for {1:s} failed, expected '
                                 '{2:d}, selected {3:d}'
                                 .format(selstr, str(atoms), natoms, len(sel)))
+                            self.count += 1
+                        else:
+                            sel = self.select.getIndices(atoms, selstr)
+                            sel2 = self.select.getIndices(atoms, selstr2)
+                            self.assertTrue(len(sel) == len(sel2) == natoms and
+                                    np.all(sel == sel2),
+                                'selection strings "{0:s}" and "{1:s}" for '
+                                '{2:s} failed to select same number of atoms, '
+                                'expected ({3:d})'
+                                .format(selstr, selstr2, str(atoms), natoms))
+                            self.count += 1
+
                                 
-            testFunction.__name__ = 'test' + test.title() + 'Selections'
-            testFunction.__doc__ = 'Test {0:s} selections.'.format(test)
+            testFunction.__name__ = 'test' + type_.title() + 'Selections'
+            testFunction.__doc__ = 'Test {0:s} selections.'.format(type_)
             setattr(cls, testFunction.__name__, testFunction)
 
 class TestSelect(unittest.TestCase):
@@ -230,11 +242,12 @@ class TestSelect(unittest.TestCase):
     
     def setUp(self):
         """Instantiate a list for storing downloaded file names."""
-        
+        self.count = 0
         self.select = prody.Select()
         self.atomgroups = {}
         for pdb in SELECTION_TESTS.iterkeys(): 
             self.atomgroups[pdb] = prody.parsePDB(pdb, secondary=True)
+        print 'Parsed {0:d} atomgroups.'.format(len(self.atomgroups))
             
     def testAtomGroups(self):    
         
@@ -244,5 +257,11 @@ class TestSelect(unittest.TestCase):
                 'parsePDB failed to parse correct number of atoms from {0:s}'
                 .format(key))
 
+    def tearDown(self):
+        
+        print 'Tested {0:d} selections.'.format(self.count)
+        self.count = 0
+        self.select = None
+        self.atomgroups = None
 if __name__ == '__main__':
     unittest.main()
