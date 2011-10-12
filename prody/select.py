@@ -868,8 +868,12 @@ AND = '&&&'
 NOT = '!!!'
 OR  = '||'
 
+OTHER_RESERVED_KEYWORDS = set([AND, OR, NOT, 'and', 'or', 'not', 
+                               'within', 'of', 'exwithin', 'same', 'as'])
+
 def isReserved(word):
-    return isKeyword(word) or word in FUNCTION_MAP or word in (AND, OR, NOT)
+    return isKeyword(word) or word in FUNCTION_MAP or \
+        word in OTHER_RESERVED_KEYWORDS
 
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
 
