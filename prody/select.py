@@ -864,6 +864,9 @@ def isKeyword(keyword):
     return (isBooleanKeyword(keyword) or isValuePairedKeyword(keyword) or
             isNumericKeyword(keyword))
 
+def isReserved(word):
+    return isKeyword(word) or word in FUNCTION_MAP
+
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
 
 def tkn2str(token):
@@ -960,11 +963,13 @@ class Select(object):
         regularexp.setParseAction(regularExpParseAction)
         oneormore = pp.OneOrMore(pp.Word(shortlist) | regularexp | 
                                  specialchars)
+        funcnames = FUNCTION_MAP.keys()
+        functions = pp.Keyword(funcnames[0])
+        for func in funcnames[1:]:
+            functions = functions | pp.Keyword(func)
         self._tokenizer = pp.operatorPrecedence(
              oneormore,
-             [(pp.oneOf('sqrt sq abs floor ceil sin cos tan atan '
-                        'asin acos sinh cosh tanh exp log log10'), 
-                        1, pp.opAssoc.RIGHT, self._func),
+             [(functions, 1, pp.opAssoc.RIGHT, self._func),
               (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
               (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
@@ -1201,7 +1206,7 @@ class Select(object):
         
         if isinstance(token, str):
             return isBooleanKeyword(token)
-        elif isinstance(token, str):
+        elif isinstance(token, list):
             tkn = token[0]
             return isValuePairedKeyword(tkn) or tkn in self._kwargs or \
                     self._atoms.isAttribute(tkn) or tkn == NOT
@@ -1620,26 +1625,22 @@ class Select(object):
         else:
             raise SelectionError(selstr)
 
-    def _evalAttribute(self, keyword, values=None):
+    def _evalAttribute(self, keyword, values=None, evalonly=None):
+        if DEBUG: print('_evalAttribute', keyword, values)
+        data = self._atoms.getAttribute(keyword)
         if values is None:
-            torf = self._atoms.getAttribute(keyword)
-            if isinstance(torf.dtype, np.bool):
-                return torf
+            if isinstance(data.dtype, np.bool):
+                return data
             else:
                 return None
-                raise SelectionError(keyword, 'Attribute "{0:s}" must have '
-                                    'boolean values for it to work this way.'
-                                     .format(keyword))
         else:
-            data = self._getAtomicData(keyword)
             if data.dtype.type in (np.int64, np.float64):
-                return self._evalFloat(keyword, values)
+                return self._evalFloat(keyword, values, evalonly=evalonly)
             elif data.dtype.type == np.string_:
-                return self._evalAlnum(keyword, values)
+                return self._evalAlnum(keyword, values, evalonly=evalonly)
             else:
                 return None
-                raise SelectionError(keyword, 'type of attribute {0:s} is not valid'
-                                     .format(keyword))
+
 
     def _evalBoolean(self, keyword, evalonly=None):
         """Evaluate a boolean keyword."""
