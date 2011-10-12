@@ -85,6 +85,8 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('coil', 1222),],
      'string':      [('name P', 24),
                      ('name P CA', 352),
+                     ('name `A 1`', 0), 
+                     ('name `A *`', 0),
                      ('chain C', 248),
                      ('chain C D', 521),
                      ('chain CD', 0),
@@ -149,7 +151,9 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('beta % 4 % 3 < 1', 1530),
                      ('ceil(beta) == 10', 60),
                      ('floor(beta) == 10', 58),
-                     ('abs(x) == sqrt(sq(x))', 3211),],
+                     ('abs(x) == sqrt(sq(x))', 3211), 
+                     ('sq(x-5)+sq(y+4)+sq(z) > sq(100)', 1444),
+                     ],
      'composite':   [('same residue as within 4 of resname SAH', 177),
                      ('name CA and same residue as within 4 of resname SAH', 
                       20),
@@ -158,7 +162,8 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                       '(z - 13)**2) <= 500', 1308),
                      ('not resname SAH and (protein and name CA) or '
                       '(nucleic and name P)', 351,
-                      '(protein and name CA) or (nucleic and name P)'),],
+                      '(protein and name CA) or (nucleic and name P)'), 
+                      ('protein and (backbone or name H)', 1308),],
      'within':      [('within 10 of index 0', 72),
                      ('exwithin 100 of index 0', 3210),
                      ('exwithin 4 of resname SAH', 61),
@@ -191,17 +196,24 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
       'invalid':    [('chain C and and chain C', None),
                      ('chain C or or chain D', None),
                      ('chain C or not or chain D', None),
-                     ('chain C + 3', None),],
-
+                     ('chain C + 3', None),
+                     ('sqr(x-5)+sqr(y+4)+sqr(z) > sqr(100)', None),
+                     ('x > sq(calpha)', None),
+                     ('x > sq(name CA and resname ALA)', None),
+                     ('resname ALA and +1', None)],
+      'equivalent': [('temp < 10', 336, 'beta < 10'),
+                     ('temp < 10 and chain D', 37, 'temp < 10 and chain D'),
+                     ('oc10 - 10 == 0', 3211, 'occupancy 1'),],
     }
 
 }
 
 for key in SELECTION_TESTS.iterkeys():
-    try:
-        SELECTION_TESTS[key]['ag'] = prody.parsePDB(key, secondary=True)
-    except IOError:
-        pass
+    ag = prody.parsePDB(key, secondary=True)
+    ag.setAttribute('temp', ag.getTempFactors())
+    ag.setAttribute('oc10', ag.getOccupancies() * 10)
+    SELECTION_TESTS[key]['ag'] = ag
+    
 SELECT = prody.Select()
 
 EMPTYDICT = {}
