@@ -1260,7 +1260,7 @@ class AtomGroup(Atomic):
         return name in self._userdata
   
     def getBySerial(self, serial):
-        """|new| Get an atom by its *serial* number.
+        """Get an atom by its *serial* number.
         
         .. versionadded:: 0.8
         
@@ -1277,7 +1277,7 @@ class AtomGroup(Atomic):
                 return Atom(self, index)
 
     def getBySerialRange(self, start, stop, step=None):
-        """|new| Get atoms by a *serial* number range.
+        """Get atoms by a *serial* number range.
         
         .. versionadded:: 0.8
         

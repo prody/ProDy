@@ -645,7 +645,7 @@ def calcADPAxes(atoms, **kwargs):
     return axes
         
 def calcADPs(atom):
-    """|new| Calculate anisotropic displacement parameters (ADPs) from 
+    """Calculate anisotropic displacement parameters (ADPs) from 
     anisotropic temperature factors (ATFs).
     
     .. versionadded:: 0.8

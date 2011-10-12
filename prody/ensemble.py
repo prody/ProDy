@@ -1338,7 +1338,7 @@ class PDBConformation(Conformation):
 
 class Frame(ConformationBase):
     
-    """|new| A class to provide methods on a frame in a trajectory.
+    """A class to provide methods on a frame in a trajectory.
     
     """
     
@@ -1830,7 +1830,7 @@ DEBUG = False
 
 class DCDFile(TrajectoryFile):
     
-    """|new| A class for reading DCD files.
+    """A class for reading DCD files.
     
     .. versionadded:: 0.8"""
     
@@ -2105,7 +2105,7 @@ class DCDFile(TrajectoryFile):
 
 class Trajectory(TrajectoryBase):
     
-    """|new| A class for handling trajectories in multiple files.
+    """A class for handling trajectories in multiple files.
     
     .. versionadded:: 0.8"""
         
