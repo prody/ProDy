@@ -864,8 +864,12 @@ def isKeyword(keyword):
     return (isBooleanKeyword(keyword) or isValuePairedKeyword(keyword) or
             isNumericKeyword(keyword))
 
+AND = '&&&'
+NOT = '!!!'
+OR  = '||'
+
 def isReserved(word):
-    return isKeyword(word) or word in FUNCTION_MAP
+    return isKeyword(word) or word in FUNCTION_MAP or word in (AND, OR, NOT)
 
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
 
@@ -876,9 +880,6 @@ def tkn2str(token):
     else:
         return ' '.join(token)
 
-AND = '&&&'
-NOT = '!!!'
-OR  = '||'
 
 def expandBoolean(keyword):
     
