@@ -1225,8 +1225,14 @@ class Select(object):
     def _evaluate(self, tokens, evalonly=None):
         if DEBUG: print('_evaluate', tokens)
         
-        if isinstance(tokens, str) and isBooleanKeyword(tokens):
-            return self._evalBoolean(tokens, evalonly=evalonly)
+        if isinstance(tokens, str):
+            if isBooleanKeyword(tokens):
+                return self._evalBoolean(tokens, evalonly=evalonly)
+            else:
+                return None
+        elif isinstance(tokens, (np.ndarray, float)):
+            return tokens
+    
         keyword = tokens[0]
         if len(tokens) == 1:
             if isBooleanKeyword(keyword):
@@ -1235,6 +1241,8 @@ class Select(object):
                 return self._evalNumeric(keyword)
             elif self._ag.isAttribute(keyword):
                 return self._evalAttribute(keyword, evalonly=evalonly)
+            elif isinstance(keyword, np.ndarray):
+                return keyword
             else:
                 try:
                     return float(keyword)
@@ -1604,11 +1612,18 @@ class Select(object):
     def _func(self, selstr, location, tokens):
         if DEBUG: print('_func', tokens)
         tokens = tokens[0]
-        function = tokens[0]
-        argument = tokens[1]
-        if len(tokens) != 2 and not isinstance(argument, np.ndarray):
+        if len(tokens) != 2:
             raise SelectionError(selstr)
-        return FUNCTION_MAP[function](argument)
+        arg = tokens[1]
+        if not isinstance(arg, (np.ndarray, float)):
+            arg = self._evaluate(arg)
+
+        if isinstance(arg, float) or \
+            isinstance(arg, np.ndarray) and \
+            arg.dtype in (np.float64, np.int64):
+            return FUNCTION_MAP[tokens[0]](arg)
+        else:
+            raise SelectionError(selstr)
 
     def _evalAttribute(self, keyword, values=None):
         if values is None:
