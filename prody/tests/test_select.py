@@ -203,7 +203,8 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('resname ALA and +1', None)],
       'equivalent': [('temp < 10', 336, 'beta < 10'),
                      ('temp < 10 and chain D', 37, 'temp < 10 and chain D'),
-                     ('oc10 - 10 == 0', 3211, 'occupancy 1'),],
+                     ('oc10 - 10 == 0', 3211, 'occupancy 1'),
+                     ('temp < 10', 336, 'temp + oc10 < 20'),],
     }
 
 }
