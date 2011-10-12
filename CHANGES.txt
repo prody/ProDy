@@ -13,9 +13,11 @@ Release 0.8.2 (in development)
 
   * :func:`~proteins.fetchPDBClusters`, :func:`~proteins.loadPDBClusters`, and
     :func:`~proteins.getPDBCluster` functions are implemented for handling
-    PDB sequence cluster data.
+    PDB sequence cluster data. These functions can be used instead of 
+    :func:`~proteins.blastPDB` function for fast access to structures of 
+    the same protein (at 95% sequence identity level) or similar proteins.
     
-  * Perturbation response scanning method described in [AC09]_ is implemented 
+  * Perturbation response scanning method described in [CA09]_ is implemented 
     as :func:`~dynamics.scanPerturbationResponse` based on the code provided 
     by Ying Liu.
   
@@ -26,18 +28,36 @@ Release 0.8.2 (in development)
     ligand data dictionary.
     
   * Name of the ProDy configuration file in user :file:`home` directory 
-    is renamed as :file:`.prodyrc` (used to be :file:`.prody`). 
+    is renamed as :file:`.prodyrc` (used to be :file:`.prody`).
+    
+  * :func:`~proteins.applyBiomolecularTransformations` and
+    :func:`~proteins.assignSecondaryStructure` functions raise 
+    :class:`ValueError` when the function fails to perform it action.
+    
+  * :func:`~proteins.fetchPDB` decompresses PDB files found in the working
+    directory when user asks for decompressed files.
 
+**Improvements**:
 
+  * Atom selection class :class:`~select.Select` is completely redesigned
+    to prevent breaking of the parser when evaluating invalid selection
+    strings.
+    
+  * Improved type checking in :func:`~proteins.parsePDB` function.
+    
 **Bug Fixes**:
 
-  * Bugfixes in :func:`~proteins.parseDSSP`: first arised problems in lines
-    indicating chain breaks, second did not parse bridge-partners correctly.
+  * Bugfixes in :func:`~proteins.parseDSSP`: one emerged problems in lines
+    indicating chain breaks, another did not parse bridge-partners correctly.
     Both fixes are contributed by Kian Ho.
     
   * Bugfix in :func:`~proteins.parsePDB` function. When only header is desired
     (``header=True, model=0``), would return a tuple containing an empty 
     atom group and the header.
+
+**Developmental**:
+
+  * Unit tests for :mod:`proteins` and :mod:`select` modules are developed. 
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================
