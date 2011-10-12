@@ -1207,11 +1207,12 @@ class Select(object):
         
         if isinstance(token, str):
             return isBooleanKeyword(token)
-        else:
+        elif isinstance(token, str):
             tkn = token[0]
             return isValuePairedKeyword(tkn) or tkn in self._kwargs or \
                     self._atoms.isAttribute(tkn) or tkn == NOT
-    
+        return False
+        
     def _defaultAction(self, tokens):
         if DEBUG: print('_evaluate', tokens)
 
