@@ -1188,7 +1188,7 @@ class AtomGroup(Atomic):
             raise TypeError('name must be a string')
         elif name == '':
             raise ValueError('name cannot be empty string')
-        elif not name[0].isalnum():
+        elif not name[0].isalpha():
             raise ValueError('name must start with a letter')
         elif not all([part.isalnum() for part in name.split('_')]):
             raise ValueError('name may contain alphanumeric characters and '
