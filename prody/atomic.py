@@ -1190,11 +1190,11 @@ class AtomGroup(Atomic):
             raise ValueError('name cannot be empty string')
         elif not name[0].isalpha():
             raise ValueError('name must start with a letter')
-        elif not all([part.isalnum() for part in name.split('_')]):
+        elif not (''.join((''.join(name.split('_'))).split())).isalnum():
             raise ValueError('name may contain alphanumeric characters and '
                              'underscore, {0:s} is not valid'.format(name))
             
-        if name in ATOMIC_DATA_FIELDS or prody.select.isKeyword(name):
+        if name in ATOMIC_DATA_FIELDS or prody.select.isReserved(name):
             raise ValueError('name cannot be a reserved name or a selection '
                              'keyword, "{0:s}" is invalid'.format(name))
         if isinstance(data, list):
