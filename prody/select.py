@@ -864,12 +864,6 @@ def isKeyword(keyword):
     return (isBooleanKeyword(keyword) or isValuePairedKeyword(keyword) or
             isNumericKeyword(keyword))
 
-def isComparison(tokens):
-    for tkn in tokens:
-        if tkn in COMPARISONS:
-            return True
-    return False
-
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
 
 def tkn2str(token):
