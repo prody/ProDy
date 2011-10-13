@@ -122,7 +122,8 @@ Numbers can be provided as integers or floats, and they will be converted to
 appropriate type. For example ``"resnum 10 11.0"`` will select residues
 with number 10 and 11, but ``"resnum 10.5"`` will not select anything.
 
-Negative numbers must be specified between apostrophes, e.g. ``"resnum `-3`"``
+Negative numbers must be entered between grave accent symbols, 
+e.g. ``"resnum `-3`"``
 
 **Number ranges**
 
@@ -137,8 +138,8 @@ Number ranges can be passed as follows:
   * ``"x 1:10"`` selects atoms whose x coordinates are greater or equal to 1
     or smaller or equal to 10
     
-Number ranges involving negative numbers must be specified between apostrophes, 
-e.g. ``"resnum `-3 to 10`"``, ``"resnum `-3:10:2`"``
+Number ranges involving negative numbers must be entered between grave accent 
+symbols, e.g. ``"resnum `-3 to 10`"``, ``"resnum `-3:10:2`"``
 
 **More special characters (``)**
 
