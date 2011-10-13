@@ -31,12 +31,12 @@ import math
 _PY3K = sys.version_info[0] > 2
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
-PACKAGEPATH = os.path.join(USERHOME, '.' + __package__)
-PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
-if os.path.isfile(PACKAGECONF[:-2]):
-    os.rename(PACKAGECONF[:-2], PACKAGECONF)
-if not os.path.isdir(PACKAGEPATH):
-    os.mkdir(PACKAGEPATH)
+PACKAGE_PATH = os.path.join(USERHOME, '.' + __package__)
+PACKAGE_CONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
+if os.path.isfile(PACKAGE_CONF[:-2]):
+    os.rename(PACKAGE_CONF[:-2], PACKAGE_CONF)
+#if not os.path.isdir(PACKAGE_PATH):
+    #os.mkdir(PACKAGE_PATH)
 
 
 def isExecutable(path):
@@ -142,8 +142,8 @@ _ProDySettings = None
 
 def _loadProDySettings():
     settings = None
-    if os.path.isfile(PACKAGECONF):
-        inf = open(PACKAGECONF)
+    if os.path.isfile(PACKAGE_CONF):
+        inf = open(PACKAGE_CONF)
         settings = cPickle.load(inf)
         inf.close()
         if not isinstance(settings, dict):
@@ -156,11 +156,53 @@ def _loadProDySettings():
     _ProDySettings = settings
 
 def _saveProDySettings():
-    out = open(PACKAGECONF, 'wb')
+    out = open(PACKAGE_CONF, 'wb')
     cPickle.dump(_ProDySettings, out)
     out.close()
     
 _loadProDySettings()
+
+def setPackagePath(path):
+    if not os.path.isdir(path):
+        try:
+            os.mkdir(path)
+        except Exception as err:
+            LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
+                           .format(path, err.strerror))
+            return False
+    _ProDySettings['package_path'] = path
+    _saveProDySettings()
+    return path    
+
+def getPackagePath():
+    
+    path = _ProDySettings.get('package_path', None)
+    
+    update = False
+    if path is None:
+        LOGGER.warning('{0:s} package path is not yet set by the user.'
+                       .format(__package__))
+        update = True
+    elif not os.path.isdir(path):
+        LOGGER.warning('{0:s} package path "{1:s}" does not exist.'
+                       .format(__package__, path))
+        update = True
+    elif not os.access(path, os.W_OK):
+        LOGGER.warning('User does not have write access to {0:s} package path '
+                       ' "{1:s}".'
+                       .format(__package__, path))
+        update = True
+        
+    if update:
+        default = os.path.join(USERHOME, '.' + __package__)
+        path = raw_input('Please specify a folder for storing {0:s} data '
+                         '(press enter for "{1:s}"):'
+                         .format(__package__, default)) or default
+        while not setPackagePath(path):
+            path = raw_input('Please specify a valid folder name with write ' 
+                             'access:')
+    return path
+    
 
 #def ProDyPrintSettings():
 #    print _ProDySettings
