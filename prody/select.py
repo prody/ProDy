@@ -639,6 +639,15 @@ try:
 except KeyError:
     MACROS = {}
 
+def areAllStrings(container):
+    """Return ``True`` if all items in *container* are instances of 
+    :func:`str`."""
+    
+    for item in container: 
+        if not isinstance(item, str):
+            return False
+    return True
+
 def defSelectionMacro(name, selstr):
     """Define selection macro *selstr* with name *name*.
     
@@ -722,6 +731,7 @@ def getKeywordResidueNames(keyword):
     
     """
     
+    assert isinstance(keyword, str), 'keyword must be a string instance'
     try:
         resnames = KEYWORD_RESNAMES[keyword]
         resnames.sort()
@@ -751,6 +761,9 @@ def setKeywordResidueNames(keyword, resnames):
         raise TypeError('keyword must be a string')
     if not isinstance(resnames, (list, tuple, set)):
         raise TypeError('resnames must be a list, set, or tuple')
+    if not areAllStrings(resnames):
+        raise TypeError('all items in resnames must be string instances')
+    
     if keyword in KEYWORD_RESNAMES_READONLY:
         LOGGER.warning('"{0:s}" is defined as "{1:s}" and cannot be changed '
                            'directly'.format(keyword, 
@@ -775,6 +788,7 @@ def getAtomNameRegex(name):
     
     """
     
+    assert isinstance(name, str), 'name must be a string instance'
     try:
         return KEYWORD_NAME_REGEX[name]   
     except KeyError:
@@ -791,8 +805,11 @@ def setAtomNameRegex(name, regex):
     
     """
     
+    assert isinstance(name, str), 'name must be a string instance'
     if not name in KEYWORD_NAME_REGEX:
         raise ValueError('"{0:s}" is not a valid keyword'.format(name))
+    if not isinstance(regex, str):
+        raise TypeError('regex must be a string instance')
     try:
         regex = RE.compile(regex)
     except:
@@ -813,6 +830,7 @@ def getBackboneAtomNames(full=False):
 
     """
     
+    assert isinstance(full, bool), 'full must be a boolean instance'
     if full:
         bban = list(BACKBONE_FULL_ATOM_NAMES)
     else:
@@ -833,7 +851,10 @@ def setBackboneAtomNames(backbone_atom_names, full=False):
     
     if not isinstance(backbone_atom_names, (list, tuple, set)):
         raise TypeError('backbone_atom_names must be a list, tuple, or set')
-
+    if not areAllStrings(backbone_atom_names):
+        raise TypeError('all items in backbone_atom_names must be string '
+                        'instances')
+    assert isinstance(full, bool), 'full must be a boolean instance'
     if full:    
         global BACKBONE_FULL_ATOM_NAMES
         BACKBONE_FULL_ATOM_NAMES = set(backbone_FULL_atom_names)
