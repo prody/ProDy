@@ -93,7 +93,7 @@ import prody
 LOGGER = prody.LOGGER
 from prody.atomic import *
 
-PDB_CLUSTERS_PATH = os.path.join(prody.PACKAGEPATH, 'pdbclusters')
+
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
                 90: None, 95: None, 100: None}
 PDB_CLUSTERS_UPDATE_WARNING = True
@@ -2228,7 +2228,7 @@ def fetchPDBClusters():
     if urllib2 is None:
         import urllib2
         prody.proteins.urllib2 = urllib2
-    
+    PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)
     progress = prody.ProDyProgress(len(PDB_CLUSTERS))
@@ -2255,6 +2255,7 @@ def loadPDBClusters(sqid=None):
     
     .. versionadded:: 0.8.2"""
 
+    PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if sqid is None:
         sqid_list = PDB_CLUSTERS.keys()
         LOGGER.info('Loading all PDB sequence clusters.')
@@ -2313,6 +2314,7 @@ def getPDBCluster(pdb, ch, sqid=95):
     assert isinstance(pdb, str), 'pdb must be a string'
     assert isinstance(ch, str), 'pdb must be a string'
     assert isinstance(sqid, int), 'sqid must be an integer'
+    PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if sqid not in PDB_CLUSTERS:
         keys = PDB_CLUSTERS.keys()
         keys.sort()
