@@ -339,6 +339,32 @@ class TestGetSetFunctions(unittest.TestCase):
                                      'failed to reset "backbone' + full + '" '
                                      'atom names definition')
     
+MACROS = [('cacb', 'name CA CB')]
+
+class TestSelectionMacros(unittest.TestCase):
+
+    def testMacroFunctions(self):
+
+        for name, macro in MACROS:
+        
+            prody.defSelectionMacro(name, macro)            
+            self.assertEqual(prody.getSelectionMacro(name), macro,
+                             'failed to get correct macro definition')        
+            prody.delSelectionMacro(name)            
+
+    def testSelections(self):
+        
+        for name, macro in MACROS:
+        
+            prody.defSelectionMacro(name, macro)
+            for key, case in SELECTION_TESTS.iteritems():
+                atoms = case['ag']
+                sel1 = SELECT.getIndices(atoms, macro)
+                sel2 = SELECT.getIndices(atoms, name)
+                self.assertListEqual(list(sel1), list(sel2),
+                                     'failed to select correct selection '
+                                     'using macro')        
+            prody.delSelectionMacro(name)
 
 
 if __name__ == '__main__':
