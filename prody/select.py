@@ -387,7 +387,9 @@ KEYWORD_NAME_REGEX = {
     'sulfur': RE.compile('S.*'),
 }
 
-BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 'H')) 
+BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O'))
+BACKBONE_FULL_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 
+                                'H', 'H1', 'H2', 'H3', 'OXT'))
 
 KEYWORD_MAP = {}
 def _buildKeywordMap():
@@ -400,11 +402,13 @@ def _buildKeywordMap():
 
     KEYWORD_MAP['alpha'] = (protein, False, ['CA'], False)
     KEYWORD_MAP['calpha'] = (protein, False, ['CA'], False)
-    KEYWORD_MAP['ca'] = (protein, False, ['CA'], False)
+    KEYWORD_MAP['ca'] = KEYWORD_MAP['calpha']
     KEYWORD_MAP['backbone'] = (protein, False, BACKBONE_ATOM_NAMES, False)
-    KEYWORD_MAP['bb'] = (protein, False, BACKBONE_ATOM_NAMES, False)
-    KEYWORD_MAP['sidechain'] = (protein, False, BACKBONE_ATOM_NAMES, True)
-    KEYWORD_MAP['sc'] = (protein, False, BACKBONE_ATOM_NAMES, True)
+    KEYWORD_MAP['bb'] = KEYWORD_MAP['backbone']
+    KEYWORD_MAP['backbonefull'] = (protein, False, BACKBONE_ATOM_NAMES, False)
+    KEYWORD_MAP['bbfull'] = KEYWORD_MAP['backbonefull']
+    KEYWORD_MAP['sidechain'] = (protein, False, BACKBONE_FULL_ATOM_NAMES, True)
+    KEYWORD_MAP['sc'] = KEYWORD_MAP['sidechain']
 
     KEYWORD_MAP['hetero'] = (protein + KEYWORD_RESNAMES['nucleic'], True, 
                              None, False) 
@@ -797,29 +801,45 @@ def setAtomNameRegex(name, regex):
     else:
         KEYWORD_NAME_REGEX[name] = regex
 
-def getBackboneAtomNames():
-    """Return protein backbone atom names.
+def getBackboneAtomNames(full=False):
+    """Return protein backbone [full] atom names.
     
     >>> getBackboneAtomNames()
-    ['C', 'CA', 'H', 'N', 'O']
+    ['C', 'CA', 'N', 'O']
     
+    .. versionchanged:: 0.8.2
+       User can get the atom names for *backbonefull* keyword by passing
+       ``full=True`` argument.
+
     """
     
-    bban = list(BACKBONE_ATOM_NAMES)
+    if full:
+        bban = list(BACKBONE_FULL_ATOM_NAMES)
+    else:
+        bban = list(BACKBONE_ATOM_NAMES)
     bban.sort()
     return bban 
 
-def setBackboneAtomNames(backbone_atom_names):
-    """Set protein backbone atom names.
+def setBackboneAtomNames(backbone_atom_names, full=False):
+    """Set protein backbone [full] atom names.
     
     Note that changes in keyword definitions are not saved permanently.
+    
+    .. versionchanged:: 0.8.2
+       User can set the atom names for *backbonefull* keyword by passing
+       ``full=True`` argument.
     
     """
     
     if not isinstance(backbone_atom_names, (list, tuple, set)):
         raise TypeError('backbone_atom_names must be a list, tuple, or set')
-    global BACKBONE_ATOM_NAMES
-    BACKBONE_ATOM_NAMES = set(backbone_atom_names)
+
+    if full:    
+        global BACKBONE_FULL_ATOM_NAMES
+        BACKBONE_FULL_ATOM_NAMES = set(backbone_FULL_atom_names)
+    else:
+        global BACKBONE_ATOM_NAMES
+        BACKBONE_ATOM_NAMES = set(backbone_atom_names)
     _buildKeywordMap()
 
 def getProteinResidueNames():
