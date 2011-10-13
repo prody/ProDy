@@ -162,7 +162,13 @@ def getPDBMirrorPath():
     
     """
 
-    return prody._ProDySettings.get('pdb_mirror_path')
+    path = prody._ProDySettings.get('pdb_mirror_path')
+    if isinstance(path, str):
+        if os.path.isdir(path):
+            return path
+        else:
+            LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
+                           .format(path))
 
 
 def setPDBMirrorPath(path):
