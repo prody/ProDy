@@ -69,7 +69,7 @@ SELECTION_TESTS = {'data/pdb3mht.pdb':
                      ('hetero', 96),
                      ('calpha', 327),
                      ('backbone', 1308),
-                     ('sidechain', 1298),
+                     ('sidechain', 1297),
                      ('carbon', 1920),
                      ('hydrogen', 0),
                      ('noh', 3211),
