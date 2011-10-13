@@ -405,7 +405,8 @@ def _buildKeywordMap():
     KEYWORD_MAP['ca'] = KEYWORD_MAP['calpha']
     KEYWORD_MAP['backbone'] = (protein, False, BACKBONE_ATOM_NAMES, False)
     KEYWORD_MAP['bb'] = KEYWORD_MAP['backbone']
-    KEYWORD_MAP['backbonefull'] = (protein, False, BACKBONE_ATOM_NAMES, False)
+    KEYWORD_MAP['backbonefull'] = (protein, False, 
+                                   BACKBONE_FULL_ATOM_NAMES, False)
     KEYWORD_MAP['bbfull'] = KEYWORD_MAP['backbonefull']
     KEYWORD_MAP['sidechain'] = (protein, False, BACKBONE_FULL_ATOM_NAMES, True)
     KEYWORD_MAP['sc'] = KEYWORD_MAP['sidechain']
@@ -857,7 +858,7 @@ def setBackboneAtomNames(backbone_atom_names, full=False):
     assert isinstance(full, bool), 'full must be a boolean instance'
     if full:    
         global BACKBONE_FULL_ATOM_NAMES
-        BACKBONE_FULL_ATOM_NAMES = set(backbone_FULL_atom_names)
+        BACKBONE_FULL_ATOM_NAMES = set(backbone_atom_names)
     else:
         global BACKBONE_ATOM_NAMES
         BACKBONE_ATOM_NAMES = set(backbone_atom_names)

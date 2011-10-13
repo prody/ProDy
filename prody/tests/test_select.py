@@ -306,6 +306,41 @@ class TestSelect(unittest.TestCase):
         self.select = None
         self.atomgroups = None
     '''
+
+
+class TestGetSetFunctions(unittest.TestCase):
+    
+    def testGetBackboneAtomNames(self):
+        bban = list(prody.select.BACKBONE_ATOM_NAMES)
+        bban.sort()
+        self.assertListEqual(bban, prody.getBackboneAtomNames())
+        bban = list(prody.select.BACKBONE_FULL_ATOM_NAMES)
+        bban.sort()
+        self.assertListEqual(bban, prody.getBackboneAtomNames(True))
+        
+    def testSetBackboneAtomNames(self):
+
+        for full, torf, defn in [
+                  ('', False, list(prody.select.BACKBONE_ATOM_NAMES)), 
+                  ('full', True, list(prody.select.BACKBONE_FULL_ATOM_NAMES))]:
+            for key, case in SELECTION_TESTS.iteritems():
+                atoms = case['ag']
+                sel1 = SELECT.getIndices(atoms, 'backbone' + full)
+                sel2 = SELECT.getIndices(atoms, 'protein and name CB or '
+                                                'backbone' + full)        
+                prody.setBackboneAtomNames(defn + ['CB'], torf)
+                sel3 = SELECT.getIndices(atoms, 'backbone' + full)
+                self.assertListEqual(list(sel2), list(sel3),
+                                     'failed to change "backbone' + full + '" '
+                                     'atom names definition')
+                prody.setBackboneAtomNames(defn, torf)
+                sel4 = SELECT.getIndices(atoms, 'backbone' + full)
+                self.assertListEqual(list(sel1), list(sel4),
+                                     'failed to reset "backbone' + full + '" '
+                                     'atom names definition')
+    
+
+
 if __name__ == '__main__':
     #pass
     unittest.main()
