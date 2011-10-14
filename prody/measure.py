@@ -215,7 +215,7 @@ def _superposeTraj(mobs, tar, weights=None, movs=None):
             movs[i] += (tar_com - dot(mob_com, rotation))
     
         progress.report(i)
-    progress.clean()
+    progress.clear()
 
 def _superpose(mob, tar, weights=None, mov=None):
     tar_com = tar.mean(0)

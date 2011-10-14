@@ -2254,7 +2254,7 @@ def fetchPDBClusters():
             inp.close()
             out.close()
         progress.report(i)
-    progress.clean()
+    progress.clear()
 
 def loadPDBClusters(sqid=None):
     """Load previously fetched PDB sequence clusters from disk to memory.

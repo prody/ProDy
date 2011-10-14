@@ -2515,7 +2515,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         dcd.seek(0, 2)
         progress.report(i)
     j += 1
-    progress.clean()
+    progress.clear()
     dcd.close()
     time_ = time() - time_
     dcd_size = 1.0 * (56 + (n_atoms * 3 + 6) * 4 ) * n_csets / (1024*1024)

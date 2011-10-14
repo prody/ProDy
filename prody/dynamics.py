@@ -1762,7 +1762,7 @@ class PCA(NMABase):
                 cov += np.outer(coords, coords)
                 n_confs += 1
                 progress.report(n_confs)
-            progress.clean()
+            progress.clear()
             cov /= n_confs
             coordsum /= n_confs
             cov -= np.outer(coordsum, coordsum)
@@ -1793,7 +1793,7 @@ class PCA(NMABase):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
                         progress.report(n_confs)
-                    progress.clean()
+                    progress.clear()
                     cov /= n_confs 
                     self._cov = cov
             else:
@@ -3842,7 +3842,7 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
         progress.report(i)
 
     response_matrix /= repeats
-    progress.clean()
+    progress.clear()
     LOGGER.info('Perturbation response scanning completed in {0:.1f}s.'
                 .format(time.time()-start))
     if atoms is not None:

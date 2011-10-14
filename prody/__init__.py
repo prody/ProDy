@@ -347,8 +347,8 @@ class ProDyProgress(object):
             self._prev = prev
             self._line = line
     
-    def clean(self):
-        """Clean sys.stderr."""
+    def clear(self):
+        """Clear sys.stderr."""
         
         if self._level < logging.WARNING:
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
