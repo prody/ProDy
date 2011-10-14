@@ -309,7 +309,7 @@ are defined based on others as follows:
 keys = KEYWORD_RESNAMES_READONLY.keys()
 keys.sort()
 for key in keys:
-    __doc__ += '  * "{0:s}" is "{1:s}"\n'.format(
+    __doc__ += '  * ``"{0:s}"`` is ``"{1:s}"``\n'.format(
         key, KEYWORD_RESNAMES_READONLY[key])
 
 __doc__ += """
@@ -331,7 +331,10 @@ hetero          non-protein/nucleic atoms, same as \
 ``"not (protein or nucleic)"``
 calpha (ca)     Cα atoms of protein residues, same as ``"name CA and protein"``
 backbone (bb)   backbone atoms of protein residues, same as \
-``"name CA C O N H and protein"``
+``"name CA C O N and protein"``
+backbonefull    backbone atoms of protein residues, same as \
+``"name CA C O N H H1 H2 H3 OXT and protein"``
+bbful           same as ``backbonefull`` 
 sidechain (sc)  side-chain atoms of protein residues, same as \
 ``"not name CA C O N H and protein"``
 carbon          carbon atoms, same as ``'name "C.*" and not resname ion'``
@@ -360,6 +363,15 @@ coil            residue not in one of above conformations, same as \
    New keywords are defined: ``lipid, heme, ion, buried, surface, at, 
    cg, purine, pyrimidine, carbon, nitrogen, oxygen, sulfur, extended, helix, 
    helix_pi, helix_3_10, turn, bridge, bend, coil`` 
+
+.. versionchanged:: 0.8.2
+   H is added to the list of backbone atoms. ``backbone`` now selects maximum 
+   of four heavy atoms per residue, to return consistent results for NMR and
+   X-ray structures. 
+   
+.. versionadded:: 0.8.2
+   ``backbonefull`` (or ``bbfull``) keyword is added and selects all backbone 
+   atoms including hydrogens.     
 
 
 Among these list of backbone atom names can be changed using 
@@ -438,7 +450,7 @@ arithmetic operations or as arguments to functions:
  * resnum, resid
  * x, y, z
  * beta, occupancy
- * charge, mass, radius (these must be set by user before they can be used) 
+ * charge, mass, radius (these must be set by the user before they can be used) 
 
 Numerical attributes of atoms can be used with the following comparison 
 
