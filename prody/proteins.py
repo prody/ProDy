@@ -586,7 +586,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
                          ag.getNumOfCoordsets() - n_csets, time.time()-start))
         else:
             ag = None
-            LOGGER.warning('Atomic data were could not be parsed, please '
+            LOGGER.warning('Atomic data could not be parsed, please '
                            'check the input file.')
     if secondary:
         try:
