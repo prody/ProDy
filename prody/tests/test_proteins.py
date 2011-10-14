@@ -42,19 +42,22 @@ prody.changeVerbosity('none')
 PDB_FILES = {
     'multi_model_truncated': {
         'pdb': '2k39',
-        'path': 'data/pdb2k39_truncated.pdb',
+        'path': os.path.join(prody.__path__[0], 
+                             'tests/data/pdb2k39_truncated.pdb'),
         'atoms': 167,
         'models': 3
     },
     'dssp': {
         'pdb': '1r19',
-        'path': 'data/pdb1r19_dssp.pdb',
+        'path': os.path.join(prody.__path__[0], 
+                             'tests/data/pdb1r19_dssp.pdb'),
         'atoms': 8216,
         'models': 1
     },
     'oneatom': {
         'pdb': '1ejg',
-        'path': 'data/pdb1ejg_oneatom.pdb',
+        'path': os.path.join(prody.__path__[0], 
+                             'tests/data/pdb1ejg_oneatom.pdb'),
         'atoms': 1,
         'models': 1
     },
@@ -203,8 +206,10 @@ class TestParsePDB(unittest.TestCase):
         path = self.pdb['path']
         self.assertRaises(TypeError, parsePDB, path, subset=['A'])
         self.assertRaises(ValueError, parsePDB, path, subset='')
-        self.assertEqual(parsePDB(path, subset='ca').getNumOfAtoms(), 10)
-        self.assertEqual(parsePDB(path, subset='bb').getNumOfAtoms(), 49)
+        self.assertEqual(parsePDB(path, subset='ca').getNumOfAtoms(), 10,
+                        'failed to parse correct number of "ca" atoms')
+        self.assertEqual(parsePDB(path, subset='bb').getNumOfAtoms(), 40,
+                        'failed to parse correct number of "bb" atoms')
 
     def testAgArgument(self):
         
@@ -282,7 +287,8 @@ class TestWritePDB(unittest.TestCase):
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
     def setUp(self):
-        self.header = parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
+        self.header = parsePDB(os.path.join(prody.__path__[0],
+                            'tests/data/proteins_nmr_2k39_models_1to3.pdb'), 
                                      header=True, model=0)
 
     def testHeaderType(self):
@@ -320,7 +326,8 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
 
     def setUp(self):
         self.atomgroup, self.header = \
-            parsePDB('data/proteins_nmr_2k39_models_1to3.pdb', 
+            parsePDB(os.path.join(prody.__path__[0],
+                    'tests/data/proteins_nmr_2k39_models_1to3.pdb'), 
                            header=True)
 
     def testAtomGroupType(self):
@@ -346,7 +353,8 @@ class TestParsePDBAltloc(unittest.TestCase):
     
     def setUp(self):
         
-        self.pdbfile = 'data/proteins_altloc_1ejg.pdb'
+        self.pdbfile = os.path.join(prody.__path__[0],
+                                    'tests/data/proteins_altloc_1ejg.pdb')
     
     def testAltlocNone(self):
         

@@ -36,7 +36,7 @@ prody.changeVerbosity('none')
 # Else, number must be the number atoms that the string is expected to select 
 
 
-SELECTION_TESTS = {'data/pdb3mht.pdb':
+SELECTION_TESTS = {os.path.join(prody.__path__[0], 'tests/data/pdb3mht.pdb'):
     {'n_atoms': 3211,
      'keyword':     [('none', 0),
                      ('all', 3211),
