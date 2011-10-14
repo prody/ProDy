@@ -288,7 +288,7 @@ class TestParsePDBHeaderOnly(unittest.TestCase):
     
     def setUp(self):
         self.header = parsePDB(os.path.join(prody.__path__[0],
-                            'tests/data/proteins_nmr_2k39_models_1to3.pdb'), 
+                            'tests/data/pdb2k39_truncated.pdb'), 
                                      header=True, model=0)
 
     def testHeaderType(self):
@@ -327,7 +327,7 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
     def setUp(self):
         self.atomgroup, self.header = \
             parsePDB(os.path.join(prody.__path__[0],
-                    'tests/data/proteins_nmr_2k39_models_1to3.pdb'), 
+                    'tests/data/pdb2k39_truncated.pdb'), 
                            header=True)
 
     def testAtomGroupType(self):
@@ -338,7 +338,7 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
         
     def testAtomGroupContent(self):
         
-        self.assertEqual(self.atomgroup.getNumOfAtoms(), 1231,
+        self.assertEqual(self.atomgroup.getNumOfAtoms(), 167,
             'incorrect number of atoms')
         self.assertEqual(self.atomgroup.getNumOfCoordsets(), 3,
             'incorrect number of coordinate sets (models)')
@@ -354,7 +354,7 @@ class TestParsePDBAltloc(unittest.TestCase):
     def setUp(self):
         
         self.pdbfile = os.path.join(prody.__path__[0],
-                                    'tests/data/proteins_altloc_1ejg.pdb')
+                                    'tests/data/pdb1ejg.pdb')
     
     def testAltlocNone(self):
         
