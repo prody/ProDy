@@ -101,6 +101,8 @@ For analysis of a dimeric protein see :ref:`pca-dimer`
 Step 3: Prepare ensemble
 -------------------------------------------------------------------------------
  
+>>> # Start a log file
+>>> startLogfile('pca_blast') 
 >>> # Instantiate a PDB ensemble
 >>> ensemble = PDBEnsemble(name)
 >>> # Set reference coordinates
@@ -114,6 +116,9 @@ Step 3: Prepare ensemble
 ...     
 ...     # Parse the current PDB file   
 ...     structure = parsePDB(pdb_file, subset='calpha')
+...     if structure is None:
+...         plog('Failed to parse ' + pdb_file)
+...         continue
 ...     # Map current PDB file to the reference chain
 ...     mappings = mapOntoChain(structure, reference_chain, seqid=sequence_identity)
 ...     if len(mappings) == 0:
