@@ -1253,22 +1253,35 @@ class PDBBlastRecord(object):
         LOGGER.info('  {0:s}: {1}'.format('query length', record.query_length))
         LOGGER.info('  {0:s}: {1}'.format('blast version', record.version))
 
-    def getHits(self, percent_identity=90., percent_coverage=70.):
+    def getHits(self, percent_identity=90., percent_coverage=70., chain=False):
         """Return a dictionary that contains hits.
         
         Returns a dictionary whose keys are PDB identifiers. Each dictionary
         entry is also a dictionary that contains information on the blast hit
         and alignment. 
+        
+        .. versionadded:: 0.8.2
+           *chain* argument is added to allow user retrieve individual
+           chains as hits.
 
         :arg percent_identity: PDB hits with percent sequence identity equal 
-            to or higher than this value will be returned.
-        :type percent_identity: float, default is 90.0
+            to or higher than this value will be returned, default is ``90.0``.
+        :type percent_identity: float
         :arg percent_coverage: PDB hits with percent coverage of the query 
-          sequence equivalent or better will be returned.
-        :type percent_coverage: float, default is 70.0
+          sequence equivalent or better will be returned, default is ``70.0``.
+        :type percent_coverage: float
+        :arg chain: if chain is set ``True``, individual chains in a PDB file
+          will be considered as separate hits when they match the query
+          sequence. Default is ``False``.
+        :type chain: bool
         
         """
         
+        assert isinstance(percent_identity, (float, int)), \
+            'percent_identity must be float or integer'
+        assert isinstance(percent_coverage, (float, int)), \
+            'percent_coverage must be float or integer'
+        assert isinstance(chain, bool), 'chain must be boolean'
         query_length = self._record.query_length
         
         pdb_hits = {}
@@ -1287,12 +1300,17 @@ class PDBBlastRecord(object):
                     title = item[item.find(' ')+1:].encode('utf-8').strip()
                     pdb_id = item.split()[0].split('|')[3].encode('utf-8')
                     pdb_id = pdb_id.lower()
+                    chain_id = title[6]
+                    if chain:
+                        hit_id = (pdb_id, chain_id)
+                    else:
+                        hit_id = pdb_id
                     # if pdb_id is extracted, but a better alignment exists
                     if (pdb_id not in pdb_hits or 
                         p_identity > pdb_hits[pdb_id]['percent_identity']):
                         hit = {}
                         hit['pdb_id'] = pdb_id
-                        hit['chain_id'] = title[6]
+                        hit['chain_id'] = chain_id
                         hit['percent_identity'] = p_identity
                         hit['percent_coverage'] = p_coverage
                         hit['bits'] = hsp.bits
@@ -1310,7 +1328,7 @@ class PDBBlastRecord(object):
                         hit['sbjct_start'] = hsp.sbjct_start
                         hit['sbjct_end'] = hsp.sbjct_end
                         hit['match'] = hsp.match
-                        pdb_hits[pdb_id] = hit
+                        pdb_hits[hit_id] = hit
         LOGGER.info('{0:d} hits were identified.'
                          .format(len(pdb_hits)))
         return pdb_hits
