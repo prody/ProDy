@@ -317,7 +317,8 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
             exists += 1
             continue
         if mirror_path is not None and os.path.isdir(mirror_path):
-            fn = os.path.join(mirror_path, pdbid[1:3], "pdb%s.ent.gz" % pdbid)
+            fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
+                    pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
             if os.path.isfile(fn):
                 if copy or not compressed:
                     if compressed:
