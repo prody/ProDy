@@ -41,6 +41,7 @@ Functions
   * :func:`parsePQR`
   * :func:`writePDB`
   * :func:`writePDBStream`
+  * :func:`writePQR`
   
   * :func:`fetchLigandData`
   * :func:`fetchPDBClusters`
@@ -106,7 +107,7 @@ __all__ = ['PDBBlastRecord',
            'getPDBMirrorPath', 'getWWPDBFTPServer', 
            'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 'parsePSF', 'parsePQR',
-           'writePDBStream', 'writePDB',
+           'writePDBStream', 'writePDB', 'writePQR', 
            'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
@@ -534,8 +535,7 @@ def parsePDB(pdb, **kwargs):
         pdb = gzip.open(pdb)
     else:
         pdb = open(pdb)
-    result = parsePDBStream(pdb, model, header, chain, subset, 
-                            altloc, **kwargs)
+    result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
 
@@ -582,7 +582,7 @@ def parsePDBStream(stream, **kwargs):
     else:
         ag = prody.AtomGroup(str(kwargs.get('name', 'unknown')) + name_suffix)
         n_csets = 0
-    assert isinstance(altloc, str), 'altloc must be a string instance'
+    
     biomol = kwargs.get('biomol', False)
     secondary = kwargs.get('secondary', False)
     split = 0
@@ -1649,25 +1649,26 @@ def writePDBStream(stream, atoms, model=None):
     multi = False
     if len(model) > 1:
         multi = True
-    line = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
-            '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
-            '{8:8.3f}{9:8.3f}{10:8.3f}' +
-            '{11:6.2f}{12:6.2f}      ' +
-            '{13:4s}{14:2s}\n')
+    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
+              '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
+              '{8:8.3f}{9:8.3f}{10:8.3f}' +
+              '{11:6.2f}{12:6.2f}      ' +
+              '{13:4s}{14:2s}\n').format
+    write = stream.write
     for m in model:
         if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
         atoms.setActiveCoordsetIndex(m)
         coords = atoms._getCoordinates()
         for i, xyz in enumerate(coords):
-            stream.write(line.format(hetero[i], i+1, atomnames[i], altlocs[i], 
-                                     resnames[i], chainids[i], int(resnums[i]), 
-                                     icodes[i], 
-                                     xyz[0], xyz[1], xyz[2], 
-                                     occupancies[i], bfactors[i],  
-                                     segments[i], elements[i].rjust(2)))
+            write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
+                         resnames[i], chainids[i], int(resnums[i]), 
+                         icodes[i], 
+                         xyz[0], xyz[1], xyz[2], 
+                         occupancies[i], bfactors[i],  
+                         segments[i], elements[i].rjust(2)))
         if multi:
-            stream.write('ENDMDL\n')
+            write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, '|S1')
     atoms.setActiveCoordsetIndex(acsi)
 
@@ -1676,16 +1677,81 @@ writePDBStream.__doc__ += _writePDBdoc
 def writePDB(filename, atoms, model=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
-    Returns *filename* if file is succesfully written. 
-   
+    Returns *filename* if file is successfully written. 
     """
     
+    assert isinstance(filename, str), 'filename must be a string instance'
     out = open(filename, 'w')
-    writePDBStream(out, atoms, model, sort)
+    writePDBStream(out, atoms, model)
     out.close()
     return filename
 
 writePDB.__doc__ += _writePDBdoc
+
+def writePQR(filename, atoms):
+    """Write *atoms* in PQR format to a file with name *filename*.  Only 
+    current coordinate set is written.  Returns *filename* if file is 
+    successfully written."""
+    
+    assert isinstance(filename, str), 'filename must be a string instance'
+    if not isinstance(atoms, prody.Atomic):
+        raise TypeError('atoms does not have a valid type')
+    if isinstance(atoms, prody.Atom):
+        atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
+                                atoms.getActiveCoordsetIndex(), 
+                                'index ' + str(atoms.getIndex()))
+
+    n_atoms = atoms.getNumOfAtoms()
+    atomnames = atoms.getAtomNames()
+    if atomnames is None:
+        raise RuntimeError('atom names are not set')
+    for i, an in enumerate(atomnames):
+        lenan = len(an)
+        if lenan < 4:
+            atomnames[i] = ' ' + an
+        elif lenan > 4:
+            atomnames[i] = an[:4]
+    resnames = atoms._getResidueNames()
+    if resnames is None:
+        resnames = ['UNK'] * n_atoms
+    resnums = atoms._getResidueNumbers()
+    if resnums is None:
+        resnums = np.ones(n_atoms, np.int64)
+    chainids = atoms._getChainIdentifiers()
+    if chainids is None: 
+        chainids = np.zeros(n_atoms, '|S1')
+    charges = atoms._getCharges()
+    if charges is None:
+        charges = np.zeros(n_atoms, np.float64)
+    radii = atoms._getRadii()
+    if radii is None:
+        radii = np.zeros(n_atoms, np.float64)
+    icodes = atoms._getInsertionCodes()
+    if icodes is None:
+        icodes = np.zeros(n_atoms, '|S1')
+    hetero = ['ATOM'] * n_atoms 
+    heteroflags = atoms._getHeteroFlags()
+    if heteroflags is not None:
+        hetero = np.array(hetero, '|S6')
+        hetero[heteroflags] = 'HETATM'
+    altlocs = atoms._getAltLocIndicators()
+    if altlocs is None:
+        altlocs = np.zeros(n_atoms, '|S1')
+    
+    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
+              '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
+              '{8:8.3f}{9:8.3f}{10:8.3f}' +
+              '{11:8.4f}{12:7.4f}\n').format
+    stream = open(filename, 'w')
+    coords = atoms._getCoordinates()
+    write = stream.write
+    for i, xyz in enumerate(coords):
+        write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
+                     resnames[i], chainids[i], int(resnums[i]), 
+                     icodes[i], xyz[0], xyz[1], xyz[2], charges[i], radii[i]))
+    write('TER\nEND')
+    stream.close()
+    return filename
 
 mapHelix = {
 1: 'H', # 4-turn helix (alpha helix)
