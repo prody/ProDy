@@ -77,8 +77,8 @@ Step 1: Blast and download
 -------------------------------------------------------------------------------
 
 >>> blast_record = blastPDB(sequence)
->>> pdb_hits = blast_record.getHits(sequence_identity).keys()
->>> pdb_files = fetchPDB(pdb_hits, folder='pdbfiles')
+>>> pdb_hits = blast_record.getHits(sequence_identity)
+>>> pdb_files = fetchPDB(pdb_hits.keys(), folder='pdbfiles')
 
 Let's check number of downloaded files:
 
@@ -109,13 +109,14 @@ Step 3: Prepare ensemble
 >>> ensemble.setCoordinates(reference_chain.getCoordinates())
    
 >>> # Parse hits 
->>> for pdb_hit, pdb_file in zip(pdb_hits, pdb_files):
+>>> for pdb_hit, pdb_file in zip(pdb_hits.keys(), pdb_files):
 ...     # Skip the PDB file if its in the exclude list
 ...     if pdb_hit in exclude:
 ...         continue
 ...     
 ...     # Parse the current PDB file   
-...     structure = parsePDB(pdb_file, subset='calpha')
+...     structure = parsePDB(pdb_file, subset='calpha', 
+...                          chain=pdb_hits[pdb_hit]['chain_id'])
 ...     if structure is None:
 ...         plog('Failed to parse ' + pdb_file)
 ...         continue
@@ -133,7 +134,7 @@ Step 3: Prepare ensemble
 Let's check how many conformations are extracted from PDB files:
 
 >>> len(ensemble)
-348
+349
 
 Note that number of conformations are more than the number of PDB structures
 we evaluated. This is because some of the PDB files contained NMR structures
