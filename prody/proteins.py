@@ -156,7 +156,7 @@ WWPDB_FTP_SERVERS = {
 }
 
 def getPDBMirrorPath():
-    """Set the path to a local PDB mirror.
+    """Return the path to a local PDB mirror.
     
     .. versionadded:: 0.6.1
     
@@ -172,7 +172,7 @@ def getPDBMirrorPath():
 
 
 def setPDBMirrorPath(path):
-    """Return the path to a local PDB mirror.
+    """Set the path to a local PDB mirror.
     
     .. versionadded:: 0.6.1
     
@@ -1378,6 +1378,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     1e-10) parameter values. 
 
     """
+    
     if BioBlast is None: prody.importBioBlast()
     if not isinstance(sequence, str):
         try:
