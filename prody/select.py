@@ -804,7 +804,7 @@ def getAtomNameRegex(name):
     
     assert isinstance(name, str), 'name must be a string instance'
     try:
-        return KEYWORD_NAME_REGEX[name]   
+        return KEYWORD_NAME_REGEX[name].pattern   
     except KeyError:
         LOGGER.warning('{0:s} is not a valid element'.format(keyword))
 
