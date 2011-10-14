@@ -485,11 +485,15 @@ _parsePDBdoc = """
     .. versionchanged:: 0.8.1
        User can pass an :class:`~prody.atomic.AtomGroup` instance as *ag*.
 
+    .. versionchanged:: 0.8.2
+       *chain* and *subset* arguments are appended to atom group name, e.g. for 
+       ``('1mkp', chain='A', subset='calpha')`` name will be ``"1mkp_A_ca"``.
+
     Note that this function does not evaluate ``CONECT`` records.
     
     """
     
-_PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
+_PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
 def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
              altloc='A', **kwargs):
@@ -553,23 +557,26 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         else:
             raise TypeError('model must be an integer, {0:s} is invalid'
                             .format(str(model)))
+    name_prefix = ''
     if subset is not None: 
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
+        name_prefix = '_' + _PDBSubsets[subset]
     if chain is not None:
         if not isinstance(chain, str):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
+        name_prefix = '_' + chain + name_prefix
     if 'ag' in kwargs:
         ag = kwargs['ag']
         if not isinstance(ag, prody.AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.getNumOfCoordsets()
     else:
-        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
+        ag = prody.AtomGroup(str(kwargs.get('name', 'unknown')) + name_prefix)
         n_csets = 0
     biomol = kwargs.get('biomol', False)
     secondary = kwargs.get('secondary', False)
