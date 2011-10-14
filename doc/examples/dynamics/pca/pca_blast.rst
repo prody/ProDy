@@ -76,9 +76,33 @@ Parameters
 Step 1: Blast and download
 -------------------------------------------------------------------------------
 
->>> blast_record = blastPDB(sequence)
->>> pdb_hits = blast_record.getHits(sequence_identity)
->>> pdb_files = fetchPDB(pdb_hits.keys(), folder='pdbfiles')
+The results are displayed for following list of structures:
+
+>>> pdb_hits = [('1ccr', 'A'), ('2frc', 'A'), ('1fhb', 'A'), ('1chh', 'A'), 
+...  ('1chj', 'A'), ('1lc2', 'A'), ('1cie', 'A'), ('1kyo', 'W'), ('1m60', 'A'),
+...  ('1fi7', 'A'), ('2bgv', 'X'), ('2hv4', 'A'), ('2aiu', 'A'), ('2bcn', 'B'),
+...  ('1csu', 'A'), ('1csw', 'A'), ('1csv', 'A'), ('1cyc', 'A'), ('2giw', 'A'),
+...  ('1fi9', 'A'), ('1i55', 'A'), ('1i54', 'A'), ('3nbs', 'A'), ('1nmi', 'A'),
+...  ('1cry', 'A'), ('1ocd', 'A'), ('1ycc', 'A'), ('1cih', 'A'), ('1lms', 'A'),
+...  ('2ycc', 'A'), ('1hrc', 'A'), ('2gb8', 'B'), ('2b12', 'B'), ('2b11', 'B'),
+...  ('3cx5', 'W'), ('1io3', 'A'), ('1wej', 'F'), ('2jqr', 'A'), ('2b0z', 'B'),
+...  ('1csx', 'A'), ('1raq', 'A'), ('1u75', 'B'), ('3cyt', 'O'), ('1crc', 'A'),
+...  ('1cig', 'A'), ('3nwv', 'A'), ('1crg', 'A'), ('2b4z', 'A'), ('1yfc', 'A'),
+...  ('1crj', 'A'), ('1cif', 'A'), ('1crh', 'A'), ('1cri', 'A'), ('2w9k', 'A'),
+...  ('1cty', 'A'), ('1ctz', 'A'), ('2orl', 'A'), ('2pcc', 'B'), ('2pcb', 'B'),
+...  ('5cyt', 'R'), ('1akk', 'A'), ('1ytc', 'A'), ('1co6', 'A'), ('1rap', 'A'),
+...  ('3nbt', 'A'), ('1i5t', 'A'), ('1yic', 'A'), ('1irv', 'A'), ('1irw', 'A'),
+...  ('2yk3', 'A'), ('1giw', 'A'), ('2jti', 'B'), ('3cxh', 'W'), ('1lc1', 'A'),
+...  ('1s6v', 'B'), ('1yea', 'A'), ('1yeb', 'A'), ('1lfm', 'A'), ('2b10', 'B'),
+...  ('1u74', 'B'), ('1j3s', 'A'), ('1chi', 'A'),]
+
+List of hits can be updated as follows::
+  blast_record = blastPDB(sequence)
+  pdb_hits = []
+  for key, item blast_record.getHits(sequence_identity).iteritems():
+      pdb_hits.append((key, item['chain_id']))
+
+>>> pdb_files = fetchPDB([pdb for pdb, ch in pdb_hits], folder='pdbfiles')
 
 Let's check number of downloaded files:
 
@@ -109,21 +133,21 @@ Step 3: Prepare ensemble
 >>> ensemble.setCoordinates(reference_chain.getCoordinates())
    
 >>> # Parse hits 
->>> for pdb_hit, pdb_file in zip(pdb_hits.keys(), pdb_files):
+>>> for pdb_hit, pdb_file in zip(pdb_hits, pdb_files):
+...     pdb_id, chain_id = pdb_hit
 ...     # Skip the PDB file if its in the exclude list
-...     if pdb_hit in exclude:
+...     if pdb_id in exclude:
 ...         continue
 ...     
 ...     # Parse the current PDB file   
-...     structure = parsePDB(pdb_file, subset='calpha', 
-...                          chain=pdb_hits[pdb_hit]['chain_id'])
+...     structure = parsePDB(pdb_file, subset='calpha', chain=chain_id)
 ...     if structure is None:
 ...         plog('Failed to parse ' + pdb_file)
 ...         continue
 ...     # Map current PDB file to the reference chain
 ...     mappings = mapOntoChain(structure, reference_chain, seqid=sequence_identity)
 ...     if len(mappings) == 0:
-...         plog('Failed to map', pdb_hit)
+...         plog('Failed to map', pdb_id)
 ...         continue  
 ...     atommap = mappings[0][0]
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())
