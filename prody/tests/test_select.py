@@ -25,19 +25,24 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 import os
 import os.path
 import unittest
+import inspect
+import sys
 import numpy as np
 import prody
 
 prody.select.DEBUG = False
 prody.changeVerbosity('none')
 
+TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
+                                                   inspect.currentframe()))[0])
+
 # If a selection string is paired with None, SelectionError is expected
 # If two selection strings are paired, they must select exactly same of atoms
 # Else, number must be the number atoms that the string is expected to select 
 
-
-SELECTION_TESTS = {os.path.join(prody.__path__[0], 'tests/data/pdb3mht.pdb'):
+SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': 3211,
+     'path': os.path.join(TESTS_PATH, 'data/pdb3mht.pdb'),
      'keyword':     [('none', 0),
                      ('all', 3211),
                      ('acidic', 334),
@@ -212,9 +217,8 @@ SELECTION_TESTS = {os.path.join(prody.__path__[0], 'tests/data/pdb3mht.pdb'):
     }
 
 }
-
-for key in SELECTION_TESTS.iterkeys():
-    ag = prody.parsePDB(key, secondary=True)
+for key, item in SELECTION_TESTS.iteritems():
+    ag = prody.parsePDB(item['path'], secondary=True)
     ag.setAttribute('temp', ag.getTempFactors())
     ag.setAttribute('oc10', ag.getOccupancies() * 10)
     SELECTION_TESTS[key]['ag'] = ag
@@ -321,6 +325,7 @@ class TestGetSetFunctions(unittest.TestCase):
         bban = list(prody.select.BACKBONE_FULL_ATOM_NAMES)
         bban.sort()
         self.assertListEqual(bban, prody.getBackboneAtomNames(True))
+    
         
     def testSetBackboneAtomNames(self):
 
@@ -350,7 +355,6 @@ class TestSelectionMacros(unittest.TestCase):
     def testMacroFunctions(self):
 
         for name, macro in MACROS:
-        
             prody.defSelectionMacro(name, macro)            
             self.assertEqual(prody.getSelectionMacro(name), macro,
                              'failed to get correct macro definition')        
@@ -359,7 +363,6 @@ class TestSelectionMacros(unittest.TestCase):
     def testSelections(self):
         
         for name, macro in MACROS:
-        
             prody.defSelectionMacro(name, macro)
             for key, case in SELECTION_TESTS.iteritems():
                 atoms = case['ag']
@@ -372,5 +375,4 @@ class TestSelectionMacros(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    #pass
     unittest.main()
