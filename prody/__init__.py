@@ -27,7 +27,9 @@ import cPickle
 import sys
 import time
 import math
+import platform
 
+PLATFORM = platform.system()
 _PY3K = sys.version_info[0] > 2
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
@@ -38,6 +40,14 @@ if not os.path.isfile(PACKAGE_CONF) and os.path.isfile(PACKAGE_CONF[:-2]):
 
 def isExecutable(path):
     return os.path.exists(path) and os.access(path, os.X_OK)
+
+def relpath(path):
+    """Return *path* on Windows, and relative path elsewhere."""
+    
+    if PLATFORM == 'Windows':
+        return path
+    else:
+        return os.path.relpath(path)
 
 def which(program):
     """This function is based on the example in:

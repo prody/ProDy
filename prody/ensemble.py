@@ -1693,7 +1693,7 @@ class TrajectoryFile(TrajectoryBase):
         
         if absolute:
             return os.path.abspath(self._filename)    
-        return os.path.relpath(self._filename)
+        return prody.relpath(self._filename)
     
     def getFrame(self, index):
         """Return frame at given *index*."""

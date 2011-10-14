@@ -119,7 +119,7 @@ class PDBParserError(Exception):
 def _makePath(path):
     """Make all directories that does not exist in a given path."""
     if os.path.isabs(path):
-        path = os.path.relpath(path)
+        path = prody.relpath(path)
     if not os.path.isdir(path):
         dirs = path.split(os.sep)
         for i in range(len(dirs)):
@@ -311,7 +311,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
         identifiers[i] = pdbid
         fn = pdbfnmap.get(pdbid, None)
         if fn:
-            fn = os.path.relpath(fn)
+            fn = prody.relpath(fn)
             if not compressed:
                 temp, ext = os.path.splitext(fn) 
                 if ext == '.gz':
@@ -388,7 +388,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                     pdbfile.close()
                     if not compressed:
                         gunzip(filename)
-                    filename = os.path.relpath(filename)
+                    filename = prody.relpath(filename)
                     LOGGER.debug('{0:s} downloaded ({1:s})'
                                  .format(pdbid, filename))
                     success += 1
@@ -1480,11 +1480,11 @@ def writePDBStream(stream, atoms, model=None, sort=False):
                                 'index ' + str(atoms.getIndex()))
 
     if model is None:
-        model = np.arange(atoms.getNumOfCoordsets())
+        model = np.arange(atoms.getNumOfCoordsets(), dtype=np.int)
     elif isinstance(model, int):
-        model = np.array([model], np.int64) -1
+        model = np.array([model], np.int) -1
     elif isinstance(model, list):
-        model = np.array(model, np.int64) -1
+        model = np.array(model, np.int) -1
     else:
         raise TypeError('model must be an integer or a list of integers')
     if model.min() < 0 or model.max() >= atoms.getNumOfCoordsets():
