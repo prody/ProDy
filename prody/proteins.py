@@ -16,9 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes and functions to fetch, parse, 
-and write PDB files, and also to blast search 
-`ProteinDataBank <http://wwpdb.org>`_.
+"""This module defines classes and functions to fetch, parse, and write PDB 
+files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
 
 Classes
 -------
@@ -250,17 +249,17 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     
     If a file matching the given PDB identifier is not found in *folder*,
     the PDB file will be sought in the local PDB mirror, if a local
-    mirror is set by the user. When PDB is found in local repository, 
+    mirror is set by the user.  When PDB is found in local repository, 
     the path to the file will be returned. 
     
     Finally, if PDB file is not found in *folder* or local mirror,
-    it will be downloaded from the user-selected WWPDB FTP server.
+    it will be downloaded from the user-selected WWPDB FTP server. 
     User can set one of the WWPDB FTP servers using :func:`setWWPDBFTPServer`. 
     Downloaded files will be saved in *folder*. FTP servers provides gunzipped 
     PDB files.
     
     If *compressed* argument is set to ``False``, downloaded files will be 
-    decompressed. When a compressed file is found in the *folder*, it will
+    decompressed.  When a compressed file is found in the *folder*, it will
     also be decompressed.
     
     For PDB files found in a local mirror of PDB, setting *copy* ``True`` will
@@ -446,12 +445,12 @@ _parsePDBdoc = """
 
     :arg altloc: If a location indicator is passed, such as ``'A'`` or ``'B'``, 
          only indicated alternate locations will be parsed as the single 
-         coordinate set of the AtomGroup. If ``True`` all alternate locations 
+         coordinate set of the AtomGroup.  If ``True`` all alternate locations 
          will be parsed and each will be appended as a distinct coordinate set.
          Default is ``"A"``.
     :type altloc: str
 
-    :arg name: Name of the AtomGroup instance. When ``None`` is passed,
+    :arg name: Name of the AtomGroup instance.  When ``None`` is passed,
         AtomGroup is named after the PDB filename.  
     :type name: str
     
@@ -464,9 +463,9 @@ _parsePDBdoc = """
     :type secondary: False
     
     :arg ag: :class:`~prody.atomic.AtomGroup` instance for storing data parsed 
-        from PDB file. Number of atoms in *ag* and number of atoms parsed from
-        the PDB file must be the same. Atoms in *ag* and the PDB file must be 
-        in the same order. Non-coordinate data stored in *ag* will be 
+        from PDB file.  Number of atoms in *ag* and number of atoms parsed from
+        the PDB file must be the same.  Atoms in *ag* and the PDB file must be 
+        in the same order.  Non-coordinate data stored in *ag* will be 
         overwritten with those parsed from the file. 
     :type ag: :class:`~prody.atomic.AtomGroup`
     
@@ -479,13 +478,15 @@ _parsePDBdoc = """
        Alternate locations indicated by ``A`` are parsed.
     
     .. versionchanged:: 0.7.1
-       *name* is now a keyword argument. *biomol* and *secondary* keyword 
+       *name* is now a keyword argument.  *biomol* and *secondary* keyword 
        arguments makes the parser return the biological molecule and/or
        assign secondary structure information.
        
     .. versionchanged:: 0.8.1
        User can pass an :class:`~prody.atomic.AtomGroup` instance as *ag*.
 
+    Note that this function does not evaluate ``CONECT`` records.
+    
     """
     
 _PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
@@ -1126,14 +1127,17 @@ def _getHeaderDict(lines):
 
 def parsePSF(filename, name=None, ag=None):
     """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
-    parsed from X-PLOR format PSF file *filename*. If *name* is not given, 
-    *filename* will be set as the name of the :class:`AtomGroup` instance. 
-    An :class:`AtomGroup` instance may be provided as *ag* argument. When 
+    parsed from X-PLOR format PSF file *filename*.  If *name* is not given, 
+    *filename* will be set as the name of the :class:`AtomGroup` instance.  
+    An :class:`AtomGroup` instance may be provided as *ag* argument.  When 
     provided, *ag* must have the same number of atoms in the same order as 
-    the file. Data from PSF file will be added to *ag*. This may overwrite 
+    the file.  Data from PSF file will be added to *ag*.  This may overwrite 
     present data if it overlaps with PSF file content.
     
     .. versionadded:: 0.8.1
+    
+    Note that this function does not evaluate bonds, angles, dihedrals, and
+    impropers sections.
     
     """
     
@@ -1256,7 +1260,7 @@ class PDBBlastRecord(object):
     def getHits(self, percent_identity=90., percent_coverage=70., chain=False):
         """Return a dictionary that contains hits.
         
-        Returns a dictionary whose keys are PDB identifiers. Each dictionary
+        Returns a dictionary whose keys are PDB identifiers.  Each dictionary
         entry is also a dictionary that contains information on the blast hit
         and alignment. 
         
@@ -1272,7 +1276,7 @@ class PDBBlastRecord(object):
         :type percent_coverage: float
         :arg chain: if chain is set ``True``, individual chains in a PDB file
           will be considered as separate hits when they match the query
-          sequence. Default is ``False``.
+          sequence, default is ``False``.
         :type chain: bool
         
         """
@@ -1388,7 +1392,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     :type filename: str
     
     This method uses :meth:`qdblast` function in :mod:`NCBIWWW` module of 
-    Biopython. It will use *blastp* program and search *pdb* database.
+    Biopython.  It will use *blastp* program and search *pdb* database.
     Results are parsed using :meth:`NCBIXML.parse` and passed to a
     :class:`PDBBlastRecord`
     
@@ -1614,9 +1618,9 @@ def assignSecondaryStructure(header, atoms, coil=False):
       * Polyproline (10)
       
     .. versionchanged:: 0.7
-       Secondary structures are assigned to all atoms in a residue. Amino acid
+       Secondary structures are assigned to all atoms in a residue.  Amino acid
        residues without any secondary structure assignments in the header 
-       section will be assigned coil (C) conformation. This can be prevented
+       section will be assigned coil (C) conformation.  This can be prevented
        by passing ``coil=False`` argument.
        
     .. versionchanged:: 0.8
@@ -1672,16 +1676,16 @@ def fetchLigandData(cci, save=False, folder='.'):
        URL of the XML file is returned in the dictionary with key ``url``.
     
     *cci* may be 3-letter chemical component identifier or a valid XML 
-    filename. If ``aave=True`` is passed, XML file will be saved in the 
+    filename.  If ``aave=True`` is passed, XML file will be saved in the 
     specified *folder*. 
     
     This function is compatible with PDBx/PDBML v 4.0.
     
-    Returns a dictionary that contains ligand data. Ligand atom data with 
+    Returns a dictionary that contains ligand data.  Ligand atom data with 
     *model* and *ideal* coordinate sets are also stored in this dictionary.
     Note that this dictionary will contain data that is present in the XML
     file and all Ligand Expo XML files do not contain every possible data
-    field. So, it may be better if you use :meth:`dict.get` instead of
+    field.  So, it may be better if you use :meth:`dict.get` instead of
     indexing the dictionary, e.g. to retrieve formula weight (or relative
     molar mass) of the chemical component use ``data.get('formula_weight')``
     instead of ``data['formula_weight']`` to avoid exceptions when this
@@ -1841,7 +1845,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
        Raises :class:`ValueError` when *header* does not contain 
        biomolecular transformations.
 
-    Some PDB files contain transformations for more than 1 biomolecules. A 
+    Some PDB files contain transformations for more than 1 biomolecules.  A 
     specific set of transformations can be choosen using *biomol* argument.
     Transformation sets are identified by integer numbers, e.g. 1, 2, ...
     
@@ -1851,7 +1855,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
 
     If the resulting biomolecule has more than 26 chains, the molecular 
     assembly will be split into multiple :class:`~prody.atomic.AtomGroup`
-    instances each containing at most 26 chains. These 
+    instances each containing at most 26 chains.  These 
     :class:`~prody.atomic.AtomGroup` instances will be returned in a tuple.
    
     Note that atoms in biomolecules are ordered according to chain identifiers.
@@ -2002,8 +2006,8 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     
 def parseDSSP(dssp, ag, parseall=False):
     """Parse DSSP data from file *dssp* into :class:`~prody.atomic.AtomGroup`
-    instance *ag*. DSSP output file must be in the new format used from July 
-    1995 and onwards. When *dssp* file is parsed, following attributes are 
+    instance *ag*.  DSSP output file must be in the new format used from July 
+    1995 and onwards.  When *dssp* file is parsed, following attributes are 
     added to *ag*:
         
     * *dssp_resnum*: DSSP's sequential residue number, starting at the first 
@@ -2014,7 +2018,7 @@ def parseDSSP(dssp, ag, parseall=False):
       or residue water exposed surface in Angstrom^2.
       
     * *dssp_kappa*: virtual bond angle (bend angle) defined by the three Cα 
-      atoms of residues I-2,I,I+2. Used to define bend (structure code 'S').
+      atoms of residues I-2,I,I+2.  Used to define bend (structure code 'S').
         
     * *dssp_alpha*: virtual torsion angle (dihedral angle) defined by the four 
       Cα atoms of residues I-1,I,I+1,I+2.Used to define chirality (structure 
@@ -2028,12 +2032,12 @@ def parseDSSP(dssp, ag, parseall=False):
       and second bridge partner followed by one letter sheet label
       
     * *dssp_tco*: cosine of angle between C=O of residue I and C=O of residue 
-      I-1. For α-helices, TCO is near +1, for β-sheets TCO is near -1. Not 
+      I-1.  For α-helices, TCO is near +1, for β-sheets TCO is near -1.  Not 
       used for structure definition.
       
     * *dssp_NH_O_1_index*, *dssp_NH_O_1_energy*, etc.: hydrogen bonds; e.g. 
       -3,-1.4 means: if this residue is residue i then N-H of I is h-bonded to 
-      C=O of I-3 with an electrostatic H-bond energy of -1.4 kcal/mol. There 
+      C=O of I-3 with an electrostatic H-bond energy of -1.4 kcal/mol.  There 
       are two columns for each type of H-bond, to allow for bifurcated H-bonds.
         
     See http://swift.cmbi.ru.nl/gv/dssp/DSSP_3.html for details.
@@ -2125,8 +2129,8 @@ def parseDSSP(dssp, ag, parseall=False):
     return ag
 
 def performDSSP(pdb, parseall=False):
-    """Perform DSSP calculations and parse results. DSSP data is returned 
-    in an :class:`~prody.atomic.AtomGroup` instance. See also :func:`execDSSP` 
+    """Perform DSSP calculations and parse results.  DSSP data is returned 
+    in an :class:`~prody.atomic.AtomGroup` instance.  See also :func:`execDSSP` 
     and :func:`parseDSSP`.
     
     .. versionadded:: 0.8"""
@@ -2135,11 +2139,11 @@ def performDSSP(pdb, parseall=False):
     return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
     
 def execSTRIDE(pdb, outputname=None, outputdir=None):
-    """Execute STRIDE program for given *pdb*. *pdb* can be an identifier 
-    or a PDB file path. If *pdb* is a compressed file, it will be decompressed 
-    using Python :mod:`gzip` library. When no *outputname* is given, output 
-    name will be :file:`pdbidentifier.stride`. :file:`.stride` extension will 
-    be appended automatically to *outputname*. If :file:`outputdir` is given, 
+    """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier 
+    or a PDB file path.  If *pdb* is a compressed file, it will be decompressed 
+    using Python :mod:`gzip` library.  When no *outputname* is given, output 
+    name will be :file:`pdbidentifier.stride`.  :file:`.stride` extension will 
+    be appended automatically to *outputname*.  If :file:`outputdir` is given, 
     STRIDE output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`stride pdb > out` command, output
     filename is returned. 
@@ -2178,8 +2182,8 @@ def execSTRIDE(pdb, outputname=None, outputdir=None):
     
 def parseSTRIDE(stride, ag):
     """Parse STRIDE output from file *stride* into 
-    :class:`~prody.atomic.AtomGroup` instance *ag*. STRIDE output file must 
-    be in the new format used from July 1995 and onwards. When *stride* file 
+    :class:`~prody.atomic.AtomGroup` instance *ag*.  STRIDE output file must 
+    be in the new format used from July 1995 and onwards.  When *stride* file 
     is parsed, following attributes are added to *ag*:
         
     * *stride_resnum*: STRIDE's sequential residue number, starting at the 
@@ -2224,8 +2228,8 @@ def parseSTRIDE(stride, ag):
     return ag
 
 def performSTRIDE(pdb):
-    """Perform STRIDE calculations and parse results. STRIDE data is 
-    returned in an :class:`~prody.atomic.AtomGroup` instance. See also 
+    """Perform STRIDE calculations and parse results.  STRIDE data is 
+    returned in an :class:`~prody.atomic.AtomGroup` instance.  See also 
     :func:`execSTRIDE` and :func:`parseSTRIDE`.
     
     .. versionadded:: 0.8"""
@@ -2237,13 +2241,13 @@ def performSTRIDE(pdb):
 
 
 def fetchPDBClusters():
-    """Downloads PDB sequence clusters. PDB sequence clusters are results of 
+    """Downloads PDB sequence clusters.  PDB sequence clusters are results of 
     the weekly clustering of protein chains in the PDB generated by blastclust. 
     They are available at FTP site: ftp://resources.rcsb.org/sequence/clusters/
     
     This function will download about 10 Mb of data and save it after 
     compressing in your home directory in :file:`.prody/pdbclusters`.
-    Compressed files will be less than 4 Mb in size. Cluster data can 
+    Compressed files will be less than 4 Mb in size.  Cluster data can 
     be loaded using :func:`loadPDBClusters` function and be accessed 
     using :func:`getPDBCluster`.
     
@@ -2324,9 +2328,9 @@ def loadPDBClusters(sqid=None):
 
 def getPDBCluster(pdb, ch, sqid=95):
     """Return the PDB sequence cluster for chain *ch* in structure *pdb*
-    that chains sharing sequence identity *sqid* or more. PDB sequence cluster
+    that chains sharing sequence identity *sqid* or more.  PDB sequence cluster
     will be returned in the form of a list of tuples, e.g. 
-    ``[('1XXX', 'A'), ('2YYY', 'A')]``. Note that PDB clusters chains, so
+    ``[('1XXX', 'A'), ('2YYY', 'A')]``.  Note that PDB clusters chains, so
     the same PDB identifier may appear twice in the same cluster if the 
     corresponding chain is present in the structure twice.    
     
