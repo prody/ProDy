@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.8.2 (in development)
+Release 0.8.2 (Oct 14, 2011)
 ===============================================================================
 
 **New Features**:
@@ -32,7 +32,8 @@ Release 0.8.2 (in development)
     
   * :func:`~proteins.applyBiomolecularTransformations` and
     :func:`~proteins.assignSecondaryStructure` functions raise 
-    :class:`ValueError` when the function fails to perform it action.
+    :class:`ValueError` when the function fails to perform its action
+    due to missing data in header dictionary.
     
   * :func:`~proteins.fetchPDB` decompresses PDB files found in the working
     directory when user asks for decompressed files.
@@ -62,7 +63,8 @@ Release 0.8.2 (in development)
 
 **Developmental**:
 
-  * Unit tests for :mod:`proteins` and :mod:`select` modules are developed. 
+  * Unit tests for :mod:`~prody.proteins` and :mod:`~prody.select` modules are 
+    developed. 
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================

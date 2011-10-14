@@ -6,7 +6,7 @@
 How to Make a New Release
 *******************************************************************************
 
-#. Make sure ProDy imports and passes unit tests::
+#. Make sure ProDy imports and passes unit tests (Python 2.7)::
      
      $ python
      >>> import prody
@@ -24,7 +24,7 @@ How to Make a New Release
 
 #. Update the version numbers in: 
     
-   * :file:`doc/conf.py`.
+   * :file:`doc/conf.py`
    * :file:`prody/__init__.py` 
 
 
