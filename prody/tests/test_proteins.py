@@ -31,33 +31,34 @@ import os.path
 import sys
 import unittest
 import tempfile
+import inspect
 import prody
 import numpy as np
 from prody.proteins import *
 from prody import proteins
 
 TEMPDIR = tempfile.gettempdir()
+TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
+                                                   inspect.currentframe()))[0])
+
 prody.changeVerbosity('none')
 
 PDB_FILES = {
     'multi_model_truncated': {
         'pdb': '2k39',
-        'path': os.path.join(prody.__path__[0], 
-                             'tests/data/pdb2k39_truncated.pdb'),
+        'path': os.path.join(TESTS_PATH, 'data/pdb2k39_truncated.pdb'),
         'atoms': 167,
         'models': 3
     },
     'dssp': {
         'pdb': '1r19',
-        'path': os.path.join(prody.__path__[0], 
-                             'tests/data/pdb1r19_dssp.pdb'),
+        'path': os.path.join(TESTS_PATH, 'data/pdb1r19_dssp.pdb'),
         'atoms': 8216,
         'models': 1
     },
     'oneatom': {
         'pdb': '1ejg',
-        'path': os.path.join(prody.__path__[0], 
-                             'tests/data/pdb1ejg_oneatom.pdb'),
+        'path': os.path.join(TESTS_PATH, 'data/pdb1ejg_oneatom.pdb'),
         'atoms': 1,
         'models': 1
     },
@@ -287,9 +288,9 @@ class TestWritePDB(unittest.TestCase):
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
     def setUp(self):
-        self.header = parsePDB(os.path.join(prody.__path__[0],
-                            'tests/data/pdb2k39_truncated.pdb'), 
-                                     header=True, model=0)
+        self.header = parsePDB(os.path.join(TESTS_PATH, 
+                                            'data/pdb2k39_truncated.pdb'), 
+                               header=True, model=0)
 
     def testHeaderType(self):
         self.assertIsInstance(self.header, dict,
@@ -326,8 +327,7 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
 
     def setUp(self):
         self.atomgroup, self.header = \
-            parsePDB(os.path.join(prody.__path__[0],
-                    'tests/data/pdb2k39_truncated.pdb'), 
+            parsePDB(os.path.join(TESTS_PATH, 'data/pdb2k39_truncated.pdb'), 
                            header=True)
 
     def testAtomGroupType(self):
@@ -353,8 +353,7 @@ class TestParsePDBAltloc(unittest.TestCase):
     
     def setUp(self):
         
-        self.pdbfile = os.path.join(prody.__path__[0],
-                                    'tests/data/pdb1ejg.pdb')
+        self.pdbfile = os.path.join(TESTS_PATH, 'data/pdb1ejg.pdb')
     
     def testAltlocNone(self):
         
