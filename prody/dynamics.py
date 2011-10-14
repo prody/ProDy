@@ -3785,16 +3785,27 @@ def deform(atoms, mode, rmsd=None):
     else:     
         atoms.addCoordset( atoms.getCoordinates() + array)
 
-def scanPerturbationResponse(model, repeats=100):
+def scanPerturbationResponse(model, atoms=None, repeats=100):
     """|new| Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
-    The function implements the method described in [CA09]_. Columns of the 
+    The function implements the method described in [CA09]_. Rows of the 
     matrix are average response profile obtained by perturbing the atom/node 
-    position at that column index. PRS is performed using the covariance 
-    matrix from *model*, e.t. :class:`ANM` instance. Each atom/node is 
-    perturbed *repeats* times with a random unit force vector.
+    position at that row index. PRS is performed using the covariance matrix 
+    from *model*, e.t. :class:`ANM` instance. Each atom/node is perturbed 
+    *repeats* times with a random unit force vector. When *atoms* instance is 
+    given, PRS profile for residues will be added as a user attribute which 
+    then can be retrieve as ``atoms.getAttribute('prs_profile')``. *model*
+    and *atoms* must have the same number of atoms.
     
-    .. versionadded:: 0.8.2"""
+    .. versionadded:: 0.8.2
+    
+    The RPS matrix can be save as follows:
+        
+    >>> prs_matrix = scanPerturbationResponse(p38_anm)
+    >>> writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
+    'prs_matrix.txt'
+    
+    """
     
     if not isinstance(model, NMABase): 
         raise TypeError('model must be an NMA instance')
@@ -3802,28 +3813,40 @@ def scanPerturbationResponse(model, repeats=100):
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
-    
+    if atoms is not None:
+        if not isinstance(atoms, prody.AtomGroup):
+            raise TypeError('atoms must be an AtomGroup instance')
+        elif atoms.getNumOfAtoms() != model.getNumOfAtoms():
+            raise ValueError('model and atoms must have the same number atoms')
+            
+    assert isinstance(repeats, int), 'repeats must be an integer'
     cov = model.getCovariance()
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
     
     n_atoms = model.getNumOfAtoms()
-    response_matrix = None
+    response_matrix = np.zeros((n_atoms, n_atoms))
     progress = prody.ProDyProgress(n_atoms)
+    i3 = -3
+    i3p3 = 0
+    LOGGER.info('Starting perturbation response scanning.')
+    start = time.time()
     for i in range(n_atoms):
-        response = np.zeros(n_atoms)
+        i3 += 3
+        i3p3 += 3
         forces = np.random.rand(repeats * 3).reshape((repeats, 3))
         forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
         for force in forces:
-            response += (np.dot(cov[:, i*3:i*3+3], force) ** 2
+            response_matrix[i] += (np.dot(cov[:, i3:i3p3], force) ** 2
                                             ).reshape((n_atoms, 3)).sum(1)
-        response /= repeats
-        if response_matrix is None:
-            response_matrix = response
-        else:
-            response_matrix = np.vstack((response_matrix, response))
         progress.report(i)
 
+    response_matrix /= repeats
+    progress.clean()
+    LOGGER.info('Perturbation response scanning completed in {0:.1f}s.'
+                .format(time.time()-start))
+    if atoms is not None:
+        atoms.setAttribute('prs_profile', response_matrix)
     return response_matrix.transpose()
     
     # save the original PRS matrix
