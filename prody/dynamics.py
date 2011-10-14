@@ -3788,14 +3788,17 @@ def deform(atoms, mode, rmsd=None):
 def scanPerturbationResponse(model, atoms=None, repeats=100):
     """|new| Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
-    The function implements the method described in [CA09]_. Rows of the 
-    matrix are average response profile obtained by perturbing the atom/node 
-    position at that row index. PRS is performed using the covariance matrix 
-    from *model*, e.t. :class:`ANM` instance. Each atom/node is perturbed 
-    *repeats* times with a random unit force vector. When *atoms* instance is 
-    given, PRS profile for residues will be added as a user attribute which 
-    then can be retrieve as ``atoms.getAttribute('prs_profile')``. *model*
-    and *atoms* must have the same number of atoms.
+    The function implements the perturbation response scanning (PRS) method 
+    described in [CA09]_. Rows of the matrix are the average magnitude of the 
+    responses obtained by perturbing the atom/node position at that row index, 
+    i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to 
+    perturbations in residue/node *i*. PRS is performed using the covariance 
+    matrix from *model*, e.t. :class:`ANM` instance. Each residue/node is 
+    perturbed *repeats* times with a random unit force vector. When *atoms* 
+    instance is given, PRS profile for residues will be added as an attribute 
+    which then can be retrieved as ``atoms.getAttribute('prs_profile')``. 
+    *model* and *atoms* must have the same number of atoms. *atoms* must be
+    an :class:`~prody.atomic.AtomGroup` instance.
     
     .. versionadded:: 0.8.2
     
@@ -3847,19 +3850,16 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
                 .format(time.time()-start))
     if atoms is not None:
         atoms.setAttribute('prs_profile', response_matrix)
-    return response_matrix.transpose()
+    return response_matrix
     
     # save the original PRS matrix
     np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
-    
     # calculate the normalized PRS matrix
- 
     self_dp = np.diag(response_matrix) # using self displacement (diagonal of
                                # the original matrix) as a
                                # normalization factor     
     self_dp = self_dp.reshape(n_atoms, 1)
     norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-
     # suppress the diagonal (self displacement) to facilitate
     # visualizing the response profile
     norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
