@@ -1576,7 +1576,7 @@ _writePDBdoc = """
     
     """
 
-def writePDBStream(stream, atoms, model=None, sort=False):
+def writePDBStream(stream, atoms, model=None):
     """Write *atoms* in PDB format to a *stream*.
     
     :arg stream: anything that implements the method write() 
@@ -1673,7 +1673,7 @@ def writePDBStream(stream, atoms, model=None, sort=False):
 
 writePDBStream.__doc__ += _writePDBdoc
 
-def writePDB(filename, atoms, model=None, sort=None):
+def writePDB(filename, atoms, model=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
     Returns *filename* if file is succesfully written. 
