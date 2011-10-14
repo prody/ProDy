@@ -33,11 +33,8 @@ _PY3K = sys.version_info[0] > 2
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 PACKAGE_PATH = os.path.join(USERHOME, '.' + __package__)
 PACKAGE_CONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
-if os.path.isfile(PACKAGE_CONF[:-2]):
+if not os.path.isfile(PACKAGE_CONF) and os.path.isfile(PACKAGE_CONF[:-2]):
     os.rename(PACKAGE_CONF[:-2], PACKAGE_CONF)
-#if not os.path.isdir(PACKAGE_PATH):
-    #os.mkdir(PACKAGE_PATH)
-
 
 def isExecutable(path):
     return os.path.exists(path) and os.access(path, os.X_OK)
@@ -55,7 +52,6 @@ def which(program):
             if isExecutable(path):
                 return path
     return None
-
 
 def importLA():
     try:
@@ -419,8 +415,18 @@ __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
            'checkUpdates', 'plog']
 
 def test(verbosity=2, descriptions=True, stream=sys.stderr):
-    import prody.tests
-    tests.test(verbosity, descriptions, stream)
+    
+    if sys.version_info[:2] > (2,6):    
+        try:
+            import prody.tests
+        except ImportError:
+            LOGGER.warning('Could not import test modules, you might be '
+                           'using a Windows machine.')
+        else:
+            tests.test(verbosity, descriptions, stream)
+    else:
+        LOGGER.warning('Unit tests are compatible with Python 2.7 and later.')
+        
 
 from . import atomic 
 from atomic import *
