@@ -94,7 +94,7 @@ Step 2: Set reference
 >>> reference_hierview = reference_structure.getHierView() 
 >>> reference_chains = [reference_hierview[chid] for chid in ref_chids]
 >>> reference_chains
-[<Chain: A from 1dlo (556 atoms; 1 coordinate sets, active set index: 0)>, <Chain: B from 1dlo (415 atoms; 1 coordinate sets, active set index: 0)>]
+[<Chain: A from 1dlo_ca (556 atoms; 1 coordinate sets, active set index: 0)>, <Chain: B from 1dlo_ca (415 atoms; 1 coordinate sets, active set index: 0)>]
  
 Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
  

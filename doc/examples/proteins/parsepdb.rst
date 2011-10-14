@@ -79,10 +79,10 @@ Parser can be used to parse backbone or Cα atoms:
 
 >>> backbone = parsePDB('1mkp', subset='bb')
 >>> backbone
-<AtomGroup: 1mkp (576 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1mkp_bb (576 atoms; 1 coordinate sets, active set index: 0)>
 >>> calpha = parsePDB('1mkp', subset='ca')
 >>> calpha
-<AtomGroup: 1mkp (144 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1mkp_ca (144 atoms; 1 coordinate sets, active set index: 0)>
 
 
 Specific chains
@@ -92,16 +92,16 @@ Parser can be used to parse a specific chain from a PDB file:
 
 >>> chA = parsePDB('3mkb', chain='A')
 >>> chA
-<AtomGroup: 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb_A (1198 atoms; 1 coordinate sets, active set index: 0)>
 >>> chC = parsePDB('3mkb', chain='C')
 >>> chC
-<AtomGroup: 3mkb (1189 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb_C (1189 atoms; 1 coordinate sets, active set index: 0)>
 
 Multiple chains can also be parsed in the same way:
 
 >>> chAC = parsePDB('3mkb', chain='AC')
 >>> chAC
-<AtomGroup: 3mkb (2387 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb_AC (2387 atoms; 1 coordinate sets, active set index: 0)>
 
 Specific models
 -------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ atoms of a specific chain:
 
 >>> composite = parsePDB('2k39', model=10, chain='A', subset='ca')
 >>> composite
-<AtomGroup: 2k39 (76 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 2k39_A_ca (76 atoms; 1 coordinate sets, active set index: 0)>
 
 Header data
 -------------------------------------------------------------------------------
