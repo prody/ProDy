@@ -42,7 +42,7 @@ your results in NMD format for analysis with NMWiz. NMD is a simple plain text
 format and can be easily prepared using a text editor. See 
 :ref:`nmd-format` for details.
 
-|new| NMWiz can retrieve coordinate and normal mode data from molecules
+NMWiz can retrieve coordinate and normal mode data from molecules
 loaded in VMD. See the :guilabel:`From Molecule` interface.
 
 Example Input
@@ -87,7 +87,7 @@ From Molecule Window
 |
 
 ============================ ====================================================================================================================================
-.. image:: nmwiz/frommol.png |new| Use this interface to retrieve data from a molecule which contains normal modes as frames.
+.. image:: nmwiz/frommol.png Use this interface to retrieve data from a molecule which contains normal modes as frames.
                              In the following two examples mode data are provided in Gromacs TRR or PDB formats. 
                              
                              |example| Lysozyme example contains 10 modes from all-atom NMA calculations (courtesy of Guang Hu). Coordinate data is in GRO format
@@ -171,6 +171,18 @@ ProDy Interface
 .. image:: nmwiz/prody.png ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins 
                            loaded in VMD. Upon completion of the calculations, NMWiz automatically loads the results.
 ========================== ====================================================================================================================================
+
+|
+
+Structure Comparison 
+-------------------------------------------------------------------------------
+
+|
+
+============================ ====================================================================================================================================
+.. image:: nmwiz/compare.png NMWiz can be used to generate arrows for a pair related molecules from this panel. User needs to make a selections for both 
+                             molecules that will result in selecting the same number of atoms. NMWiz will generate arrows between atoms in these selections.   
+============================ ====================================================================================================================================
 
 .. toctree::
    :glob:
