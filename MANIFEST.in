@@ -25,6 +25,14 @@ include prody/KDTree/KDTree.h
 include prody/KDTree/KDTree.py
 include prody/KDTree/KDTreemodule.c
 include prody/KDTree/Neighbor.h
+include prody/tests/__init__.py
+include prody/tests/test_proteins.py
+include prody/tests/test_select.py
+include prody/tests/data/pdb1ejg_oneatom.pdb
+include prody/tests/data/pdb1r19_dssp.pdb
+include prody/tests/data/pdb2k39_truncated.pdb  
+include prody/tests/data/pdb3mht.pdb
+include prody/tests/data/pdb1ejg.pdb
 include scripts/alignmodels.py
 include scripts/anm.py
 include scripts/biomolecule.py

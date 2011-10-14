@@ -37,6 +37,11 @@ Release 0.8.2 (in development)
   * :func:`~proteins.fetchPDB` decompresses PDB files found in the working
     directory when user asks for decompressed files.
 
+  * :func:`~proteins.parsePDB` appends *chain* and *subset* arguments to
+    :func:`~atomic.AtomGroup` name.
+
+  * *chain* argument is added to :meth:`~proteins.PDBBlastRecord.getHits`.
+
 **Improvements**:
 
   * Atom selection class :class:`~select.Select` is completely redesigned
