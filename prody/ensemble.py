@@ -410,6 +410,7 @@ class Ensemble(EnsembleBase):
         
         """
         
+        assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
         if not isinstance(coords, np.ndarray):
             if isinstance(coords, (prody.Atomic, prody.Ensemble)):
                 atoms = coords
@@ -757,14 +758,14 @@ class PDBEnsemble(Ensemble):
         if isinstance(index, int):
             return self.getConformation(index) 
         elif isinstance(index, slice):
-            ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+            ens = PDBEnsemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._name, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy())
             return ens
         elif isinstance(index, (list, np.ndarray)):
-            ens = Ensemble('Conformations of {0:s}'.format(self._name))
+            ens = PDBEnsemble('Conformations of {0:s}'.format(self._name))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy())
