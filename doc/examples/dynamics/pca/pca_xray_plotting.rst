@@ -234,15 +234,15 @@ along ANM mode:
 
    plt.figure(figsize=(5,4))
    for lbl, clr in color_assignments:
-       showCrossProjection(ensemble[color_array == clr], pca[0], anm[2], scale="y", scalar=-0.78, color=clr, label=lbl)
-   plt.plot([-25, 25], [-25, 25], 'k')
-   plt.axis([-25, 25, -25, 25])
+       showCrossProjection(ensemble[color_array == clr], pca[0], anm[2], scale="y", scalar=-1.27, color=clr, label=lbl)
+   plt.plot([-0.8, 0.8], [-0.8, 0.8], 'k')
+   plt.axis([-0.8, 0.8, -0.8, 0.8])
 
    plt.figure(figsize=(5,4))
    for lbl, clr in color_assignments:
-       showCrossProjection(ensemble[color_array == clr], pca[1], anm[0], scale="y", scalar=-0.94, color=clr, label=lbl)
-   plt.plot([-15, 15], [-15, 15], 'k')
-   plt.axis([-15, 15, -15, 15])
+       showCrossProjection(ensemble[color_array == clr], pca[1], anm[0], scale="y", scalar=-1.05, color=clr, label=lbl)
+   plt.plot([-0.8, 0.8], [-0.8, 0.8], 'k')
+   plt.axis([-0.8, 0.8, -0.8, 0.8])
 
 It is also possible to find the correlation between these projections:
 
