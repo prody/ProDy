@@ -4242,7 +4242,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
         projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
-        show = plt.plot(projection[:,0], projection[:,1], *args, **kwargs)
+        show = plt.plot(projection[:, 0], projection[:, 1], *args, **kwargs)
         modes = [m for m in modes]
         plt.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
         plt.ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
@@ -4269,7 +4269,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise ValueError('Projection onto upto 3 modes can be shown. '
                          'You have given {0:d} mode.'.format(len(modes)))
-    
     return show
 
 def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
@@ -4289,6 +4288,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     :arg scale: Scale width of the projection onto one of modes. 
                 ``x`` and ``y`` are accepted.
     :type scale: str
+    :arg scalar: Scalar factor for ``x`` or ``y``.  If ``scalar=None`` is 
+        passed, best scaling factor will be calculated and printed on the
+        console.
+    :type scalar: float
     
     .. versionchanged:: 0.8
        The projected values are by default converted to RMSD. 
@@ -4331,17 +4334,18 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                         .format(type(mode_y)))
     if not mode_y.is3d():
         raise ValueError('mode_y must be 3-dimensional')
-    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', True)) 
+    if scale is None:
+        assert isinstance(scale, str), 'scale must be a string'
+        scale = scale.lower()
+        assert scale in ('x', 'y'), 'scale must be x or y'
+    if scalar is not None:
+        assert isinstance(scalar, float), 'scalar must be a float'
+    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', True))
     ycoords = calcProjection(ensemble, mode_y, kwargs.pop('rmsd', True))
-    if isinstance(scale, str) and scale.lower() in ('x', 'y'):
-        if scalar is not None:
-            scalar = float(scalar)
-        else:
-            xmin = xcoords.min()
-            xmax = xcoords.max()
-            ymin = ycoords.min()
-            ymax = ycoords.max()
-            scalar = ((ymax - ymin) / (xmax - xmin)) 
+    if scale:
+        if scalar is None:
+            scalar = ((ycoords.max() - ycoords.min()) / 
+                      (xcoords.max() - xcoords.min())) 
             scalar = scalar * np.sign(calcOverlap(mode_x, mode_y))
             if scale == 'x':
                 LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
@@ -4350,13 +4354,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                 scalar = 1 / scalar
                 LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
                             .format(mode_y, scalar))
-        if scale.lower() == 'x':
+        if scale == 'x':
             xcoords = xcoords * scalar  
         else:
             ycoords = ycoords * scalar
-    elif scale is not None:
-        LOGGER.warning('{0:s} is not a valid value for scale argument. '
-                       'Only "x" or "y" are accepted.'.format(str(scale)))
     if 'ls' not in kwargs:
         kwargs['ls'] = 'None'
     if 'marker' not in kwargs:
