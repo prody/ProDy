@@ -231,7 +231,7 @@ Let's plot RMSD to the average structure:
    :include-source:
    
    from matplotlib import pyplot as plt
-   
+   plt.close('all')
    plt.figure(figsize=(5,4))
    plt.plot(calcRMSD(ensemble))
    plt.xlabel('Conformation')

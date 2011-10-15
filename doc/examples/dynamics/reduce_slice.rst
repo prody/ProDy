@@ -59,6 +59,8 @@ array([ 0.039,  0.063,  0.126,  0.181,  0.221])
    anm = loadModel('rt_anm.anm.npz')
    anm_slc_p66 = loadModel('rt_anm_sliced.anm.npz')
    anm_red_p66 = loadModel('rt_anm_reduced.anm.npz')
+   import matplotlib.pyplot as plt
+   plt.close('all')
    
 Analysis of full model
 -------------------------------------------------------------------------------
@@ -72,6 +74,7 @@ as follows:
    :context:
    :include-source:
    
+   import matplotlib.pyplot as plt
    plt.figure(figsize=(5,4))
    showCrossCorrelations(anm)
 

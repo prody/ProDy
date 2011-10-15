@@ -209,6 +209,7 @@ Step 5: Plot data and results
    from matplotlib import pyplot as plt
    ensemble = loadEnsemble('CytC.ens.npz')
    pca = loadModel('CytC.pca.npz')
+   plt.close('all')
 
 Let's plot RMSD to the average structure:
 
@@ -224,6 +225,14 @@ Let's plot RMSD to the average structure:
    plt.xlabel('Conformation index')
    plt.ylabel('RMSD (A)')
 
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+   
+   
 Let's show a projection of the ensemble onto PC1 and PC2:
 
 .. plot::
@@ -232,6 +241,14 @@ Let's show a projection of the ensemble onto PC1 and PC2:
 
    plt.figure(figsize=(5,4))
    showProjection(ensemble, pca[:2])
+
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+   
 
 See Also
 ===============================================================================

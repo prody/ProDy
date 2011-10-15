@@ -180,6 +180,7 @@ Now, let's project the trajectories onto top three essential modes:
 
    # Let's import plotting library and make an empty figure
    import matplotlib.pyplot as plt
+   plt.close('all')
    plt.figure(figsize=(5,4))
    
    # We project independent trajectories in different color   
@@ -194,6 +195,12 @@ Now, let's project the trajectories onto top three essential modes:
    showProjection(mdm2ca_sim1[-1], eda[:3], color='red', marker='s', ms=12)
    showProjection(mdm2ca_sim2[-1], eda[:3], color='blue', marker='s', ms=12)
 
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
 
 Write NMD file
 -------------------------------------------------------------------------------

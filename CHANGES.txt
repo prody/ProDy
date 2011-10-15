@@ -14,6 +14,9 @@ Release 0.8.3 (in development)
   * Functions to read and write PQR files: :func:`~proteins.parsePQR` and
     :func:`~proteins.writePQR` 
 
+**Bug Fixes**:
+
+  * Bugfixes in :func:`~ensemble.PDBEnsemble` slicing operation.
 
 Release 0.8.2 (Oct 14, 2011)
 ===============================================================================

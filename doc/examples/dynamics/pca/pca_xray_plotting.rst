@@ -36,6 +36,7 @@ library:
    
    from prody import *
    import matplotlib.pyplot as plt
+   plt.close('all')
 
 
 Then we load data saved in :ref:`pca-xray-calculations`:
