@@ -92,7 +92,7 @@ This could also be printed in a pretty table format using :func:`printOverlapTab
 Overlap Table
                       ANM 1r39_anm
                     #1     #2     #3
-ANM 1p38_anm #1   -0.98  -0.14  -0.00
+ANM 1p38_anm #1   -0.98  -0.14   0.00
 ANM 1p38_anm #2   +0.15  -0.98  +0.08
 ANM 1p38_anm #3   +0.01  -0.08  -0.99
 <BLANKLINE>
