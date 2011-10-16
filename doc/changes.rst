@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.8.3 (in development)
+Release 0.8.3 (Oct 16, 2011)
 ===============================================================================
 
 **New Features**:
@@ -16,14 +16,26 @@ Release 0.8.3 (in development)
     
   * Added :meth:`~ensemble.PDBEnsemble.getIdentifiers` method that returns
     identifiers of all conformations in the ensemble. 
+
+**Improvements**:
+
+  * :func:`~proteins.blastPDB` function and :class:`~proteins.PDBBlastRecord`
+    class are rewritten to use faster and more compact code.
     
+  * New :class:`PackageLogger` function is implemented to unify logging
+    and reporting task progression.
+  
+  * Improvements in PDB ensemble support functions, e.g. 
+    :func:`~ensemble.trimEnsemble`, are made.
+   
+  * Improvements in ensemble concatenations are made.
 
 **Bug Fixes**:
 
   * Bugfixes in :func:`~ensemble.PDBEnsemble` slicing operation.  This may
     have affected users when slicing a PDB ensemble for plotting projections
-    in color for different forms of the protein. 
-
+    in color for different forms of the protein.
+    
 Release 0.8.2 (Oct 14, 2011)
 ===============================================================================
 
