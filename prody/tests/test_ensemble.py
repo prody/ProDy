@@ -52,6 +52,8 @@ ATOMS = prody.parsePDB(PDB_FILES['multi_model_truncated']['path'], subset='ca')
 
 ENSEMBLE = Ensemble(ATOMS)
 CONF = ENSEMBLE[0]
+ENSEMBLE_RMSD = prody.parseArray('data/pdb2k39_truncated_RMSDca.dat')
+ENSEMBLE_SUPERPOSE = prody.parseArray('data/pdb2k39_truncated_alignRMSDca.dat')
 
 ENSEMBLEW = Ensemble(ATOMS)
 ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
@@ -153,6 +155,32 @@ class TestEnsemble(unittest.TestCase):
                          ATOMS.getNumOfCoordsets(),
                          'failed to get correct number of coordinate sets for ' 
                          'Ensemble')  
+
+    def testGetRMSDs(self):
+        
+        self.assertTrue(np.all(ENSEMBLE_RMSD == ENSEMBLE.getRMSDs().round(3)),
+                        'failed to calculate RMSDs sets for Ensemble')
+
+    def testSuperpose(self):
+        
+        ensemble = ENSEMBLE[:]
+        ensemble.superpose()
+        self.assertTrue(np.all(ENSEMBLE_SUPERPOSE == 
+                               ensemble.getRMSDs().round(3)),
+                        'failed to superpose coordinate sets for Ensemble')
+
+    def testGetRMSDsWeights(self):
+        
+        self.assertTrue(np.all(ENSEMBLE_RMSD == ENSEMBLEW.getRMSDs().round(3)),
+                        'failed to calculate RMSDs sets for Ensemble')
+
+    def testSuperposeWeights(self):
+        
+        ensemble = ENSEMBLEW[:]
+        ensemble.superpose()
+        self.assertTrue(np.all(ENSEMBLE_SUPERPOSE == 
+                               ensemble.getRMSDs().round(3)),
+                        'failed to superpose coordinate sets for Ensemble')
 
 
 class TestConformation(unittest.TestCase): 
