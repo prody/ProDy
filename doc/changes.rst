@@ -12,11 +12,17 @@ Release 0.8.3 (in development)
 **New Features**:
 
   * Functions to read and write PQR files: :func:`~proteins.parsePQR` and
-    :func:`~proteins.writePQR` 
+    :func:`~proteins.writePQR`.
+    
+  * Added :meth:`~ensemble.PDBEnsemble.getIdentifiers` method that returns
+    identifiers of all conformations in the ensemble. 
+    
 
 **Bug Fixes**:
 
-  * Bugfixes in :func:`~ensemble.PDBEnsemble` slicing operation.
+  * Bugfixes in :func:`~ensemble.PDBEnsemble` slicing operation.  This may
+    have affected users when slicing a PDB ensemble for plotting projections
+    in color for different forms of the protein. 
 
 Release 0.8.2 (Oct 14, 2011)
 ===============================================================================

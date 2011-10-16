@@ -153,7 +153,7 @@ html_index = 'index.html'
 # 'sourcelink.html'
 generic_sidebars = ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'googlegroup.html', 'relatedstuff.html', 'searchbox.html'], 
+    'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'getintouch.html', 'relatedstuff.html', 'searchbox.html'], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
@@ -309,8 +309,8 @@ rst_epilog = """
 
 .. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
-.. |questions| replace:: Questions? Join our Google Group: 
-   http://groups.google.com/group/prody-dev
+.. |questions| replace:: To stay up to date, join our ProDy-News Google Group: 
+   http://groups.google.com/group/prody-news
     
 .. |suggestions| replace:: Suggestions, feature requests, or
    problems? Submit them to the GitHub issue tracker: 
