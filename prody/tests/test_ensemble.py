@@ -182,6 +182,85 @@ class TestEnsemble(unittest.TestCase):
                                ensemble.getRMSDs().round(3)),
                         'failed to superpose coordinate sets for Ensemble')
 
+    def testDelCoordsetMiddle(self):
+        
+        ensemble = ENSEMBLE[:]
+        ensemble.delCoordset(1)
+        self.assertTrue(np.all(ATOMS.getCoordsets([0,2]) == 
+                               ensemble.getCoordsets()),
+                        'failed to delete middle coordinate set for Ensemble')
+        
+    def testDelCoordsetAll(self):
+        
+        ensemble = ENSEMBLE[:]
+        ensemble.delCoordset(range(len(ENSEMBLE)))
+        self.assertIsNone(ensemble.getCoordsets(),
+                        'failed to delete all coordinate sets for Ensemble')
+        self.assertTrue(np.all(ensemble.getCoordinates() ==
+                               ATOMS.getCoordinates()),
+                        'failed to delete all coordinate sets for Ensemble')
+
+
+    def testConcatenation(self):
+        
+        ensemble = ENSEMBLE + ENSEMBLE
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3,6))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ensemble.getCoordinates() ==
+                               ATOMS.getCoordinates()),
+                        'failed at concatenation for Ensemble')
+
+    def testConcatenationWeights(self):
+        
+        ensemble = ENSEMBLEW + ENSEMBLEW
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3,6))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ensemble.getCoordinates() ==
+                               ATOMS.getCoordinates()),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ensemble.getWeights() ==
+                               ENSEMBLEW.getWeights()),
+                        'failed at concatenation for Ensemble')
+
+    def testConcatenationNoweightsWeights(self):
+        
+        ensemble = ENSEMBLE + ENSEMBLEW
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3,6))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ensemble.getCoordinates() ==
+                               ATOMS.getCoordinates()),
+                        'failed at concatenation for Ensemble')
+        self.assertIsNone(ensemble.getWeights(),
+                        'failed at concatenation for Ensemble')
+
+    def testConcatenationWeightsNoweights(self):
+        
+        ensemble = ENSEMBLEW + ENSEMBLE 
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ATOMS.getCoordsets() == 
+                               ensemble.getCoordsets(range(3,6))),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ensemble.getCoordinates() ==
+                               ATOMS.getCoordinates()),
+                        'failed at concatenation for Ensemble')
+        self.assertTrue(np.all(ensemble.getWeights() ==
+                               ENSEMBLEW.getWeights()),
+                        'failed at concatenation for Ensemble')
+
 
 class TestConformation(unittest.TestCase): 
     
