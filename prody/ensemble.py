@@ -358,8 +358,8 @@ class Ensemble(EnsembleBase):
             
     
     def __add__(self, other):
-        """Concatenate ensembles. The reference coordinates of *self* is used 
-        in the result."""
+        """Concatenate ensembles. The reference coordinates and weights of 
+        *self* is used in the resulting ensemble."""
         
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0:s} '
@@ -371,12 +371,11 @@ class Ensemble(EnsembleBase):
                                                    other.getName()))
         ensemble.setCoordinates(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
-        ensemble.addCoordset(other._confs.copy())
-        if self._weights is not None and other._weights is not None: 
-            if np.all(self._weights == other._weights):
-                ensemble.setWeights(self._weights)
-            else:
-                LOGGER.info('weights are different in ensembles, so omitted')
+        ensemble.addCoordset(other.getCoordsets())
+        if self._weights is not None: 
+            LOGGER.info('Atom weights from "{0:s}" are used in "{1:s}".'
+                        .format(self._name, ensemble.getName()))
+            ensemble.setWeights(self._weights)
         return ensemble
     
     def __iter__(self):
@@ -734,12 +733,12 @@ class PDBEnsemble(Ensemble):
         elif self.getNumOfAtoms() != other.getNumOfAtoms():
             raise ValueError('Ensembles must have same number of atoms.')
     
-        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getName(), 
+        ensemble = PDBEnsemble('{0:s} + {1:s}'.format(self.getName(), 
                                                    other.getName()))
         ensemble.setCoordinates(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
         if other._weights is None:
-            ensemble.addCoordset(other._confs.copy())
+            ensemble.addCoordset(other.getCoordsets())
         else:
             ensemble.addCoordset(other._confs.copy(), other._weights.copy())
         return ensemble
@@ -873,6 +872,15 @@ class PDBEnsemble(Ensemble):
                                     np.ones((diff, n_atoms, 1), np.bool)), 
                                     axis=0)
 
+    def getIdentifiers(self):
+        """Return identifiers of the conformations in the ensemble.
+        
+        .. versionadded:: 0.8.3
+        
+        """
+        
+        return list(self._identifiers)
+    
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate sets at given *indices* for selected 
         atoms. *indices* may be an integer, a list of integers or ``None``. 
@@ -1421,42 +1429,43 @@ class Frame(ConformationBase):
                 measure._superpose(self._coords, ensemble._coords[indices], 
                                                  ensemble._weights[indices])
     
-def trimEnsemble(ensemble, **kwargs):
-    """Return a PDB ensemble obtained by trimming given *ensemble*.
+def trimEnsemble(pdbensemble, **kwargs):
+    """Return a PDB ensemble obtained by trimming given *pdbensemble*.
     
     .. versionadded:: 0.5.3
     
-    This function helps selecting atoms in an ensemble based on one of the 
-    following criteria, and returns them in a new :class:`PDBEnsemble` instance.
+    This function helps selecting atoms in a pdb ensemble based on one of the 
+    following criteria, and returns them in a new :class:`PDBEnsemble` 
+    instance.
         
     **Occupancy**
     
     If weights in the ensemble correspond to atomic occupancies, then this 
     option may be used to select atoms with average occupancy values higher
-    than the argument *occupancy*. Function will calculate average occupancy 
+    than the argument *occupancy*.  Function will calculate average occupancy 
     by dividing the sum of weights for each atom to the number of conformations
     in the ensemble.
     
-    :arg occupancy: average occupancy for selection atoms in an ensemble, 
+    :arg occupancy: average occupancy for selection atoms in a pdb ensemble, 
                     must be 0 < *occupancy* <= 1
     :type occupancy: float
     
     """
     
-    if not isinstance(ensemble, PDBEnsemble):
-        raise TypeError('trimEnsemble() argument must be an Ensemble instance')
-    if ensemble.getNumOfConfs() == 0 and ensemble.getNumOfAtoms() == 0:
+    if not isinstance(pdbensemble, PDBEnsemble):
+        raise TypeError('pdbensemble argument must be a PDBEnsemble')
+    if pdbensemble.getNumOfConfs() == 0 or pdbensemble.getNumOfAtoms() == 0:
         raise ValueError('coordinates or conformations must be set for '
-                         'ensemble')
+                         'pdbensemble')
     
     if 'occupancy' in kwargs:
         occupancy = float(kwargs['occupancy'])
         assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
                                    '{0:s}'.format(repr(occupancy)))
-        n_confs = ensemble.getNumOfConfs()
-        assert n_confs > 0, 'ensemble does not contain anyconformations'
-        weights = calcSumOfWeights(ensemble)
-        assert weights is not None, 'weights must be set for ensemble'
+        n_confs = pdbensemble.getNumOfConfs()
+        assert n_confs > 0, 'pdbensemble does not contain any conformations'
+        weights = calcSumOfWeights(pdbensemble)
+        assert weights is not None, 'weights must be set for pdbensemble'
         weights = weights.flatten()
         mean_weights = weights / n_confs
         
@@ -1465,17 +1474,17 @@ def trimEnsemble(ensemble, **kwargs):
     else:
         return None
     
-    trimmed = PDBEnsemble(ensemble.getName())
-    coords = ensemble.getCoordinates()
+    trimmed = PDBEnsemble(pdbensemble.getName())
+    coords = pdbensemble.getCoordinates()
     if coords is not None:
         trimmed.setCoordinates( coords[torf] )
-    confs = ensemble.getCoordsets()
+    confs = pdbensemble.getCoordsets()
     if confs is not None:
-        weights = ensemble.getWeights()
+        weights = pdbensemble.getWeights()
         trimmed.addCoordset( confs[:, torf], weights[:, torf] )
     return trimmed
 
-def calcSumOfWeights(ensemble):
+def calcSumOfWeights(pdbensemble):
     """Return sum of weights from a PDB ensemble.
     
     Weights are summed for each atom over conformations in the ensemble.
@@ -1497,10 +1506,10 @@ def calcSumOfWeights(ensemble):
     
     """
     
-    if not isinstance(ensemble, PDBEnsemble):
-        raise TypeError('ensemble must be an Ensemble instance')
+    if not isinstance(pdbensemble, PDBEnsemble):
+        raise TypeError('pdbensemble must be a PDBEnsemble instance')
     
-    weights = ensemble.getWeights()
+    weights = pdbensemble.getWeights()
     
     if weights is None:
         return None
@@ -1508,7 +1517,7 @@ def calcSumOfWeights(ensemble):
     return weights.sum(0).flatten()
     
     
-def showSumOfWeights(ensemble, *args, **kwargs):
+def showSumOfWeights(pdbensemble, *args, **kwargs):
     """Show sum of weights for a PDB ensemble using 
     :func:`~matplotlib.pyplot.plot`.
     
@@ -1527,9 +1536,9 @@ def showSumOfWeights(ensemble, *args, **kwargs):
     
     if plt is None: prody.importPyPlot()
     if not plt: return None
-    if not isinstance(ensemble, PDBEnsemble):
-        raise TypeError('ensemble must be an Ensemble instance')
-    weights = calcSumOfWeights(ensemble)
+    if not isinstance(pdbensemble, PDBEnsemble):
+        raise TypeError('pdbensemble must be a PDBEnsemble instance')
+    weights = calcSumOfWeights(pdbensemble)
     if weights is None:
         return None
     show = plt.plot(weights, *args, **kwargs)
