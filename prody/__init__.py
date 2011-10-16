@@ -220,23 +220,138 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
 LOGGING_LEVELS.setdefault(logging.INFO)
 PackageSignature = '@>'
 
-def startPackageLogger(name='.'+__package__, **kwargs):
-    """Start logger for the package. Returns a logger instance."""
+class PackageLogger(object):
     
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    def __init__(self, name='.'+__package__, **kwargs):
+        """Start logger for the package. Returns a logger instance."""
     
-    for handler in logger.handlers: 
-        handler.close()
-    logger.handlers = []
-    
-    console = logging.StreamHandler()
-    console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
-    console.setFormatter(logging.Formatter(PackageSignature + ' %(message)s'))
-    logger.addHandler(console)
-    return logger
+        self._level = logging.DEBUG
+        logger = logging.getLogger(name)
+        logger.setLevel(self._level)
+        
+        for handler in logger.handlers: 
+            handler.close()
+        logger.handlers = []
+        
+        console = logging.StreamHandler()
+        console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
+        console.setFormatter(logging.Formatter(PackageSignature + 
+                                               ' %(message)s'))
+        logger.addHandler(console)
+        self._logger = logger
 
-LOGGER = startPackageLogger()
+    def getVerbosityLevel(self):
+        """Return verbosity level of the logger."""
+        
+        return self._logger.handlers[0].level
+    
+    def setVerbosityLevel(self, level):
+        """Set verbosity level of the logger."""
+        
+        lvl = LOGGING_LEVELS.get(level, None)
+        if lvl is None: 
+            self.warning('{0:s} is not a valid log level.'.format(level))
+        else:
+            self._logger.handlers[0].level = lvl
+            self._level = lvl 
+
+    def info(self, msg):
+        """Log *msg* with severity 'INFO'."""
+        
+        self._logger.info(msg)
+
+    def critical(self, msg):
+        """Log *msg* with severity 'CRITICAL'."""
+        
+        self._logger.critical(msg)
+
+    def debug(self, msg):
+        """Log *msg* with severity 'DEBUG'."""
+        
+        self._logger.debug(msg)
+        
+    def warning(self, msg):
+        """Log *msg* with severity 'WARNING'."""
+        
+        self._logger.warning(msg)
+
+    def error(self, msg):
+        """Log *msg* with severity 'ERROR'."""
+        
+        self._logger.error(msg)
+    
+    def addHandler(self, hdlr):
+        """Add the specified handler to this logger."""
+        
+        self._logger.addHandler(hdlr)
+        
+    def getHandlers(self):
+        """Return handlers."""
+        
+        return self._logger.handlers
+
+    def delHandler(self, index):
+        """Remove handler at given *index* from the logger instance."""
+        
+        self._logger.handlers.pop(index)
+
+    def progress(self, n, **kwargs):
+        """Instantiate with number of steps."""
+        
+        self._n = n
+        self._level = getVerbosityLevel()
+        self._start = time.time()
+        self._prefix = str(kwargs.get('prefix', ''))
+        self._barlen = int(kwargs.get('barlen', 30))
+        self._prev = (0, 0)
+        self._line = ''
+    
+    def report(self, i):
+        """Print status to current line in the console."""
+        
+        if self._level < logging.WARNING:   
+            n = self._n
+            percent = 100 * i / n
+            if percent > 3:
+                seconds = int(math.ceil((time.time()-self._start) * (n-i)/i))
+                prev = (percent, seconds)
+            else:
+                prev = (percent, 0)
+            if self._prev == prev:
+                return
+            prefix = '\r' + PackageSignature + self._prefix
+            bar = ''
+            barlen = self._barlen
+            if barlen > 10:
+                bar = int(round(percent*barlen/100.))
+                bar = '='*bar + '>' + ' '*(barlen-bar)
+                bar = ' [' + bar  + '] '
+            
+            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
+            if percent > 3:
+                line = (prefix + ' %2d%%' + bar + '%ds')%(percent, seconds)
+            else:
+                line = (prefix + ' %2d%%' + bar) % percent
+            sys.stderr.write(line)
+            sys.stderr.flush()
+            self._prev = prev
+            self._line = line
+    
+    def clear(self):
+        """Clear sys.stderr."""
+        
+        if self._level < logging.WARNING:
+            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
+
+    def write(self, line):
+        """Write a line to sys.stderr."""
+        
+        self._line = str(line)
+        if self._level < logging.WARNING:
+            sys.stderr.write(self._line)
+            sys.stderr.flush()
+
+LOGGER = PackageLogger()
 
 def plog(*text):
     """Log *text* using ProDy logger at log level info.
@@ -294,67 +409,15 @@ def closeLogfile(filename):
     filename = str(filename)
     if not filename.endswith('.log'):
         filename += '.log'
-    for index, handler in enumerate(LOGGER.handlers):
+    for index, handler in enumerate(LOGGER.getHandlers()):
         if isinstance(handler, logging.handlers.RotatingFileHandler):
             if handler.stream.name in (filename, os.path.abspath(filename)):
                 LOGGER.info('Closing logfile {0:s}'.format(filename))
                 handler.close()
-                LOGGER.handlers.pop(index)
+                LOGGER.delHandler(index)
                 return
     LOGGER.warning('Logfile "{0:s}" was not found.'.format(filename))
 
-class ProDyProgress(object):
-    
-    """A class to print progress to sys.stderr."""
-    
-    def __init__(self, n, **kwargs):
-        """Instantiate with number of steps."""
-        
-        self._n = n
-        self._level = getVerbosityLevel()
-        self._start = time.time()
-        self._prefix = str(kwargs.get('prefix', ''))
-        self._barlen = int(kwargs.get('barlen', 30))
-        self._prev = (0, 0)
-        self._line = ''
-    
-    def report(self, i):
-        """Print status to current line in the console."""
-        
-        if self._level < logging.WARNING:   
-            n = self._n
-            percent = 100 * i / n
-            if percent > 3:
-                seconds = int(math.ceil((time.time()-self._start) * (n-i)/i))
-                prev = (percent, seconds)
-            else:
-                prev = (percent, 0)
-            if self._prev == prev:
-                return
-            prefix = '\r' + PackageSignature + self._prefix
-            bar = ''
-            barlen = self._barlen
-            if barlen > 10:
-                bar = int(round(percent*barlen/100.))
-                bar = '='*bar + '>' + ' '*(barlen-bar)
-                bar = ' [' + bar  + '] '
-            
-            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            if percent > 3:
-                line = (prefix + ' %2d%%' + bar + '%ds')%(percent, seconds)
-            else:
-                line = (prefix + ' %2d%%' + bar) % percent
-            sys.stderr.write(line)
-            sys.stderr.flush()
-            self._prev = prev
-            self._line = line
-    
-    def clear(self):
-        """Clear sys.stderr."""
-        
-        if self._level < logging.WARNING:
-            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-    
 
 def changeVerbosity(level):
     """Set ProDy console verbosity *level*.
@@ -378,16 +441,13 @@ def changeVerbosity(level):
     >>> plog('test')
     
     """
-    lvl = LOGGING_LEVELS.get(level, None)
-    if lvl is None: 
-        LOGGER.warning('{0:s} is not a valid log level.'.format(level))
-    else:
-        LOGGER.handlers[0].level = lvl
+
+    LOGGER.setVerbosityLevel(level)
 
 def getVerbosityLevel():
     """Return ProDy console verbosity level."""
     
-    return LOGGER.handlers[0].level
+    return LOGGER.getVerbosityLevel()
 
 def checkUpdates():
     """Check latest ProDy release and compare with the installed one.
@@ -465,9 +525,9 @@ from . import ensemble
 from .ensemble import *
 __all__.extend(ensemble.__all__)
 
-from . import volume
-from .volume import *
-__all__.extend(volume.__all__)
+#from . import volume
+#from .volume import *
+#__all__.extend(volume.__all__)
 
 
 import prody

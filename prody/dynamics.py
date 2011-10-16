@@ -1754,15 +1754,15 @@ class PCA(NMABase):
             LOGGER.info('Covariance will be calculated using {0:d} frames.'
                             .format(n_frames))
             coordsum = np.zeros(dof)
-            progress = prody.ProDyProgress(n_frames)
+            LOGGER.progress(n_frames)
             for frame in coordsets:
                 frame.superpose()
                 coords = frame._getCoordinates().flatten()
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
-                progress.report(n_confs)
-            progress.clear()
+                LOGGER.report(n_confs)
+            LOGGER.clear()
             cov /= n_confs
             coordsum /= n_confs
             cov -= np.outer(coordsum, coordsum)
@@ -1787,13 +1787,13 @@ class PCA(NMABase):
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
                     mean = coordsets.mean(0)
-                    progress = prody.ProDyProgress(n_confs)
+                    LOGGER.progress(n_confs)
                     for i, coords in enumerate(
                                             coordsets.reshape((n_confs, dof))):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        progress.report(n_confs)
-                    progress.clear()
+                        LOGGER.report(n_confs)
+                    LOGGER.clear()
                     cov /= n_confs 
                     self._cov = cov
             else:
@@ -3829,7 +3829,7 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
     
     n_atoms = model.getNumOfAtoms()
     response_matrix = np.zeros((n_atoms, n_atoms))
-    progress = prody.ProDyProgress(n_atoms)
+    LOGGER.progress(n_atoms)
     i3 = -3
     i3p3 = 0
     LOGGER.info('Starting perturbation response scanning.')
@@ -3842,10 +3842,10 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
         for force in forces:
             response_matrix[i] += (np.dot(cov[:, i3:i3p3], force) ** 2
                                             ).reshape((n_atoms, 3)).sum(1)
-        progress.report(i)
+        LOGGER.report(i)
 
     response_matrix /= repeats
-    progress.clear()
+    LOGGER.clear()
     LOGGER.info('Perturbation response scanning completed in {0:.1f}s.'
                 .format(time.time()-start))
     if atoms is not None:

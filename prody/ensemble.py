@@ -2478,7 +2478,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     dcd.write(pack('i', n_atoms))
     dcd.write(pack_i_4)
     
-    progress = prody.ProDyProgress(len(irange))
+    LOGGER.progress(len(irange))
     prev = -1
     unitcell = pack('d'*6, *(0,0,0,0,0,0))
     for j, i in enumerate(irange):
@@ -2514,9 +2514,9 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         dcd.seek(8)
         dcd.write(pack('i', j+1))
         dcd.seek(0, 2)
-        progress.report(i)
+        LOGGER.report(i)
     j += 1
-    progress.clear()
+    LOGGER.clear()
     dcd.close()
     time_ = time() - time_
     dcd_size = 1.0 * (56 + (n_atoms * 3 + 6) * 4 ) * n_csets / (1024*1024)
