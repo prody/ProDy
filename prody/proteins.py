@@ -630,8 +630,8 @@ parsePDBStream.__doc__ += _parsePDBdoc
 
 
 def parsePQR(filename, **kwargs):
-    """Return an :class:`~prody.atomic.AtomGroup` containing data parsed from 
-    PDB lines. 
+    """|new| Return an :class:`~prody.atomic.AtomGroup` containing data parsed 
+    from PDB lines. 
     
     :arg filename: a PQR filename
     :type filename: str
@@ -1594,7 +1594,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     data = urllib.urlencode(query)
     
     while True:
-        LOGGER.write('Waiting {0:.0f}s to connect NCBI for search results.'
+        LOGGER.write('Waiting for {0:.0f}s to connect NCBI for search results.'
                      .format(sleep))
         time.sleep(sleep)
         LOGGER.clear()
@@ -1752,7 +1752,7 @@ def writePDB(filename, atoms, model=None):
 writePDB.__doc__ += _writePDBdoc
 
 def writePQR(filename, atoms):
-    """Write *atoms* in PQR format to a file with name *filename*.  Only 
+    """|new| Write *atoms* in PQR format to a file with name *filename*.  Only 
     current coordinate set is written.  Returns *filename* if file is 
     successfully written."""
     
