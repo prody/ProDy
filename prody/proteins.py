@@ -1594,10 +1594,12 @@ def blastPDB(sequence, filename=None, **kwargs):
     data = urllib.urlencode(query)
     
     while True:
-        LOGGER.write('Waiting for {0:.0f}s to connect NCBI for search results.'
-                     .format(sleep))
-        time.sleep(sleep)
-        LOGGER.clear()
+        for second in range(int(sleep), 0, -1):
+            LOGGER.write('Waiting for {0:.0f}s to connect NCBI for search '
+                         'results.'.format(second))
+            time.sleep(1)
+            LOGGER.clear()
+        LOGGER.write('Connecting NCBI for search results...')
         request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
         handle = urllib2.urlopen(request)
         results = handle.read()
@@ -1612,9 +1614,9 @@ def blastPDB(sequence, filename=None, **kwargs):
         if time.time() - start > timeout:
             LOGGER.warning('Blast search time out.')
             return None
+    LOGGER.clear()
     LOGGER.info('Blast search completed in {0:.1f}s.'
                 .format(time.time()-start))
-
     if filename is not None:
         filename = str(filename)
         if not filename.lower().endswith('.xml'):
