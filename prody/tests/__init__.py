@@ -29,7 +29,7 @@ import test_ensemble
 
 def test(verbosity=2, descriptions=True, stream=sys.stderr):
     testrunner = unittest.TextTestRunner(stream, descriptions, verbosity)
-    for module in [test_select, test_ensemble, test_proteins]:
+    for module in [test_proteins, test_select, test_ensemble]:
         testrunner.run(unittest.defaultTestLoader.loadTestsFromModule(module))
     
 if __name__ == '__main__':

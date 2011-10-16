@@ -52,8 +52,10 @@ ATOMS = prody.parsePDB(PDB_FILES['multi_model_truncated']['path'], subset='ca')
 
 ENSEMBLE = Ensemble(ATOMS)
 CONF = ENSEMBLE[0]
-ENSEMBLE_RMSD = prody.parseArray('data/pdb2k39_truncated_RMSDca.dat')
-ENSEMBLE_SUPERPOSE = prody.parseArray('data/pdb2k39_truncated_alignRMSDca.dat')
+ENSEMBLE_RMSD = prody.parseArray(os.path.join(TESTS_PATH, 
+                                 'data/pdb2k39_truncated_RMSDca.dat'))
+ENSEMBLE_SUPERPOSE = prody.parseArray(os.path.join(TESTS_PATH, 
+                                     'data/pdb2k39_truncated_alignRMSDca.dat'))
 
 ENSEMBLEW = Ensemble(ATOMS)
 ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
