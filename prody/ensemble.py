@@ -874,7 +874,7 @@ class PDBEnsemble(Ensemble):
             self._identifiers += ['{0:s}_{1:d}'
                                   .format(name, i+1) for i in range(n_csets)]
         else:
-            if ag is not None and ag.getNumOfCoordsets() > 0:
+            if ag is not None and ag.getNumOfCoordsets() > 1:
                 self._identifiers.append('{0:s}_{1:d}'.format(name, 
                                          atoms.getActiveCoordsetIndex()))
             else:                
@@ -1248,7 +1248,7 @@ class PDBConformation(Conformation):
 
     >>> conf = ensemble[0] 
     >>> conf
-    <PDB Conformation: AtomMap_Chain_A_from_1a9u_ca_->_Chain_A_from_p38_reference from p38 X-ray (index: 0; selected 321 of 321 atoms)>
+    <PDB Conformation: 1a9u_ca from p38 X-ray (index: 0; selected 321 of 321 atoms)>
 
     """
     
@@ -1268,7 +1268,7 @@ class PDBConformation(Conformation):
         """Return the identifier of the conformation instance.
         
         >>> print( conf.getIdentifier() )
-        AtomMap_Chain_A_from_1a9u_ca_->_Chain_A_from_p38_reference
+        1a9u_ca
         
         """
         
