@@ -2897,7 +2897,9 @@ def calcOverlapTable(rows, cols):
     for i in range(rlen):
         line = rname + (' #{0}'.format(rids[i]+1)).ljust(5)
         for j in range(clen):
-            if overlap[i, j] < 0: 
+            if abs(overlap[i, j]).round(1) == 0.00:
+                minplus = ' '
+            elif overlap[i, j] < 0: 
                 minplus = '-'
             else: 
                 minplus = '+'

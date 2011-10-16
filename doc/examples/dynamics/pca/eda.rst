@@ -103,9 +103,9 @@ to the :meth:`~dynamics.PCA.buildCovariance` method as follows:
 Overlap Table
                        EDA MDM2 Trajectory
                          #1     #2     #3
-EDA MDM2 Ensemble #1   +1.00  +0.00  +0.00
-EDA MDM2 Ensemble #2   -0.00  +1.00  +0.00
-EDA MDM2 Ensemble #3   -0.00  -0.00  +1.00
+EDA MDM2 Ensemble #1   +1.00   0.00   0.00
+EDA MDM2 Ensemble #2    0.00  +1.00   0.00
+EDA MDM2 Ensemble #3    0.00   0.00  +1.00
 <BLANKLINE>
 
 Overlap values of +1 along the diagonal of the table shows that top ranking
