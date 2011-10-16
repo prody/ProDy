@@ -70,19 +70,19 @@ for i, xyz in enumerate(ATOMS.iterCoordsets()):
         
 class TestEnsemble(unittest.TestCase):
     
-    def testCoordinates(self):
+    def testGetCoordinates(self):
         
         self.assertTrue(np.all(ATOMS.getCoordinates() == 
                                ENSEMBLE.getCoordinates()),
                         'failed to set reference coordinates for Ensemble')
     
-    def testCoordsets(self):
+    def testGetCoordsets(self):
 
         self.assertTrue(np.all(ATOMS.getCoordsets() == 
                                ENSEMBLE.getCoordsets()),
                         'failed to add coordinate sets for Ensemble')
     
-    def testWeights(self):
+    def testGetWeights(self):
 
         self.assertEqual(ENSEMBLEW.getWeights().ndim, 2,
                         'wrong ndim for weights of Ensemble')
@@ -116,6 +116,18 @@ class TestEnsemble(unittest.TestCase):
         self.assertTrue(np.all(SLICE.getCoordsets() == 
                                ENSEMBLE.getCoordsets([0,1])),
                         'slicing failed to add coordinate sets for Ensemble')
+
+    def testSlicingList(self):
+        
+        SLICE = ENSEMBLE[[0,2]]
+        self.assertTrue(np.all(SLICE.getCoordinates() == 
+                               ENSEMBLE.getCoordinates()),
+                        'slicing failed to set reference coordinates for '
+                        'Ensemble')
+        self.assertTrue(np.all(SLICE.getCoordsets() == 
+                               ENSEMBLE.getCoordsets([0,2])),
+                        'slicing failed to add coordinate sets for Ensemble')
+
 
     def testSlicingWeights(self):
         
