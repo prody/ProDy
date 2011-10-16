@@ -825,9 +825,7 @@ class PDBEnsemble(Ensemble):
         match number of atoms. Weights of missing (not resolved) atoms 
         must be equal to ``0`` and weights of those that are resolved
         can be anything greater than ``0``. If not provided, weights of 
-        atoms in this coordinate set will be set equal to ``1``. 
-        
-        """
+        atoms in this coordinate set will be set equal to ``1``."""
         
         assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
         if weights is not None:
@@ -884,9 +882,11 @@ class PDBEnsemble(Ensemble):
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
+            self._n_csets = n_csets
         elif self._confs is not None and self._weights is not None:
             self._confs = np.concatenate((self._confs, coords), axis=0)
             self._weights = np.concatenate((self._weights, weights), axis=0)
+            self._n_csets += n_csets
         else:
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
