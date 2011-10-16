@@ -4334,7 +4334,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                         .format(type(mode_y)))
     if not mode_y.is3d():
         raise ValueError('mode_y must be 3-dimensional')
-    if scale is None:
+    if scale is not None:
         assert isinstance(scale, str), 'scale must be a string'
         scale = scale.lower()
         assert scale in ('x', 'y'), 'scale must be x or y'

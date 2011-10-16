@@ -83,9 +83,6 @@ import sys
 from glob import glob
 from collections import defaultdict
 
-ET = None
-urllib2 = None
-
 import numpy as np
 
 BioBlast = None
@@ -1960,7 +1957,7 @@ def fetchLigandData(cci, save=False, folder='.'):
     2.27
     """
 
-    global urllib2, ET
+    
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
     elif os.path.isfile(cci):
@@ -1974,9 +1971,7 @@ def fetchLigandData(cci, save=False, folder='.'):
         #'http://www.pdb.org/pdb/files/ligand/{0:s}.xml'
         url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
                .format(cci.upper()))
-        if urllib2 is None:
-            import urllib2
-            prody.proteins.urllib2 = urllib2
+        import urllib2
         try:
             inp = urllib2.urlopen(url)
         except urllib2.HTTPError:
@@ -1989,9 +1984,7 @@ def fetchLigandData(cci, save=False, folder='.'):
             out.write(xml)
             out.close()
 
-    if ET is None:
-        import xml.etree.cElementTree as ET
-        prody.proteins.ET = ET
+    import xml.etree.cElementTree as ET
 
     root = ET.XML(xml)
     if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
@@ -2505,10 +2498,7 @@ def fetchPDBClusters():
     
     .. versionadded:: 0.8.2"""
     
-    global urllib2
-    if urllib2 is None:
-        import urllib2
-        prody.proteins.urllib2 = urllib2
+    import urllib2
     PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)

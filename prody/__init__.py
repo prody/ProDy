@@ -124,10 +124,6 @@ def importBioKDTree():
         dynamics.KDTree = KDTree
         select.KDTree = KDTree
 
-def importBioBlast():
-    import bioblast
-    proteins.BioBlast = bioblast
-
 def importBioPairwise2():
     try:
         import pairwise2
