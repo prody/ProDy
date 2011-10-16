@@ -94,6 +94,70 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
         
 plt = None
 
+def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
+                     reshape=None):
+    """Return array if checks pass, otherwise raise an exception."""
+
+    assert isinstance(arg, str), 'arg must be a string'
+    assert isinstance(cset, bool), 'cset must be a boolean'
+    assert n_atoms is None or isinstance(n_atoms, int) and n_atoms >= 0, \
+        'n_atoms must be a positive integer'
+    assert reshape is None or isinstance(reshape, bool), \
+        'reshape must be a boolean'
+
+    if not isinstance(array, np.ndarray):
+        raise TypeError(arg + ' must be a Numpy array')
+    elif cset and array.ndim not in (2,3): 
+        raise ValueError(arg + '.ndim must be  2 or 3'.format(ndim))
+    elif not cset and array.ndim != 2:
+        raise ValueError(arg + '.ndim must be 2')
+    elif array.shape[-1] != 3:
+        raise ValueError(arg + '.shape[-1] of 3, i.e. ([n_csets,]n_atoms,3)')
+    if n_atoms is not None and n_atoms != 0 and array.shape[-2] != n_atoms:
+        raise ValueError(arg + ' size do nut match number of atoms')
+    if array.dtype != float:
+        try:
+            array = array.astype(float)
+        except ValueError:
+            raise ValueError(arg + '.astype(float) fails, float type could '
+                             'not be assigned')
+    if cset and reshape and array.ndim == 2:
+        array = array.reshape([1, array.shape[0], 3])
+    return array
+
+def checkWeightsArray(weights, n_atoms, n_csets=None):
+    """Return weights if checks pass, otherwise raise an exception."""
+    
+    assert isinstance(n_atoms, int) and n_atoms > 0, \
+        'n_atoms must be a positive integer'
+    assert n_csets is None or isinstance(n_csets, int) and n_csets > 0, \
+        'n_csets must be a positive integer'
+    
+    if not isinstance(weights, np.ndarray):
+        raise TypeError('weights must be a Numpy array')
+    elif n_csets is None and weights.ndim not in (1, 2):
+        raise ValueError('weights.dim must be 1 or 2')
+    elif n_csets is not None:
+        if weights.ndim not in (1, 2, 3):
+            raise ValueError('weights.dim must be 1, 2, or 3')
+        elif weights.ndim == 3 and weights.shape[0] != n_csets:
+            raise ValueError('weights.shape must be (n_csets, n_atoms, 1)')
+    elif weights.ndim in (2, 3) and weights.shape[-1] != 1:
+        raise ValueError('shape of weights must be ([n_csets,] n_atoms, 1)')
+    elif weights.dtype != float:
+        try:
+            weights = weights.astype(float)
+        except ValueError:
+            raise ValueError(arg + '.astype(float) fails, float type could '
+                             'not be assigned')
+    if np.any(weights < 0):
+        raise ValueError('all weights must greater or equal to 0')
+    if weights.ndim == 1:
+        weights = weights.reshape((n_atoms, 1))
+    if n_csets is not None and weights.ndim == 2:
+        weights = np.tile(weights.reshape((1, n_atoms, 1)), (n_csets, 1, 1))
+    return weights
+
 class EnsembleBase(object):
     
     """Base class for :class:`Ensemble` and :class:`TrajectoryBase`. 
@@ -230,25 +294,10 @@ class EnsembleBase(object):
             try:
                 coords = coords.getCoordinates()
             except AttributeError:
-                raise TypeError('coords must be an ndarray instance or '
-                                'must contain getCoordinates as an attribute')
-
-        elif coords.ndim != 2:
-            raise ValueError('coordinates must be a 2d array')
-        elif coords.shape[1] != 3:
-            raise ValueError('shape of coordinates must be (n_atoms,3)')
-        elif not coords.dtype in (np.float32, np.float64):
-            try:
-                coords = coords.astype(np.float64)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
-        
-        if self._n_atoms == 0:
-            self._n_atoms = coords.shape[0]    
-        elif coords.shape[0] != self._n_atoms:
-            raise ValueError('length of coords does not match number of atoms')
-        self._coords = coords
+                raise TypeError('coords must be a Numpy array or must have '
+                                'getCoordinates attribute')
+        self._coords = checkCoordsArray(coords, arg='coords', 
+                                        n_atoms=self._n_atoms, cset=False)
         
     def getWeights(self):
         """Return a copy of weights of selected atoms."""
@@ -279,25 +328,7 @@ class EnsembleBase(object):
         
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
-        elif not isinstance(weights, np.ndarray):
-            raise TypeError('weights must be an ndarray instance')
-        elif not weights.ndim in (1, 2): 
-            raise ValueError('weights.ndim must be equal to 1 or 2')        
-        elif len(weights) != self._n_atoms:
-            raise ValueError('length of weights must be equal to number of '
-                             'atoms')
-        if weights.dtype in (np.float32, np.float64):
-            try:
-                weights = weights.astype(np.float64)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
-        if np.any(weights < 0):
-            raise ValueError('weights must greater or equal to 0')
-
-        if weights.ndim == 1:
-            weights = weights.reshape((self._n_atoms, 1))
-        self._weights = weights
+        self._weights = checkWeightsArray(weights, self._n_atoms, None)
 
 
 class Ensemble(EnsembleBase):
@@ -345,13 +376,15 @@ class Ensemble(EnsembleBase):
                                 self._name, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self.getCoordsets(index))
-            ens.setWeights(self.getWeights())
+            if self._weights is not None:
+                ens.setWeights(self.getWeights())
             return ens
         elif isinstance(index, (list, np.ndarray)):
             ens = Ensemble('Conformations of {0:s}'.format(self._name))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self.getCoordsets(index))
-            ens.setWeights(self.getWeights())
+            if self._weights is not None:
+                ens.setWeights(self.getWeights())
             return ens
         else:
             raise IndexError('invalid index')
@@ -421,27 +454,15 @@ class Ensemble(EnsembleBase):
                     raise ValueError('{0:s} must contain coordinate data'
                                      .format(atoms))
             else:
-                raise TypeError('coords must be a numpy ndarray or '
-                                'prody Atomic instance')
+                raise TypeError('coords must be a Numpy array or '
+                                'ProDy Atomic or Ensemble instance')
             
-        if not coords.ndim in (2, 3):
-            raise ValueError('coords must be a 2d or a 3d array')
-        elif not coords.dtype in (np.float32, np.float64):
-            try:
-                coords = coords.astype(np.float64)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
         
+        coords = checkCoordsArray(coords, arg='coords', cset=True, 
+                                  n_atoms=self._n_atoms, reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coords.shape[-2]
-        else:
-            if coords.shape[-2] != self._n_atoms:
-                raise ValueError('shape of conf must be (n_atoms,3)')
         n_atoms = self._n_atoms
-
-        if coords.ndim == 2:
-            coords = coords.reshape((1, self._n_atoms, 3))
         n_confs = coords.shape[0]
             
         if self._confs is None: 
@@ -808,69 +829,67 @@ class PDBEnsemble(Ensemble):
         
         """
         
+        assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
+        if weights is not None:
+            assert isinstance(weights, np.ndarray), 'weights must be ndarray'
+            
         ag = None
-        if isinstance(coords, prody.AtomGroup):
-            name = coords.getName()
-            ag = coords
+        if isinstance(coords, prody.Atomic):
+            atoms = coords
+            if isinstance(coords, prody.AtomGroup):
+                ag = atoms
+            else:
+                ag = atoms.getAtomGroup()
+            if allcoordsets:
+                coords = atoms.getCoordsets()
+            else: 
+                coords = atoms.getCoordinates()
+            name = ag.getName()
         elif isinstance(coords, np.ndarray):
             name = 'Unnamed'
         else:
             name = str(coords)
-        n_confs = self._n_csets
-        n_atoms = self._n_atoms
-        
-        if weights is not None:
-            if not isinstance(weights, np.ndarray):
-                raise TypeError('weights must be an ndarray')
-            elif not weights.ndim in (1, 2, 3):
-                raise ValueError('weights must be a 1d, 2d, or 3d array')
-            elif weights.ndim in (2, 3) and weights.shape[-1] != 1:
-                raise ValueError('shape of weights must be '
-                                 '([n_coordsets,] number_of_atoms, 1)')
-            elif weights.dtype not in (np.float32, np.float64):
-                try:
-                    weights = weights.astype(np.float64)
-                except ValueError:
-                    raise ValueError('weights array cannot be assigned type '
-                                     '{0:s}'.format(np.float64))
-            if np.any(weights < 0):
-                raise ValueError('weights must greater or equal to 0')
-            if weights.ndim < 3:
-                weights = weights.reshape((1, n_atoms, 1))
-                
-        Ensemble.addCoordset(self, coords, allcoordsets)
-        diff = self._n_csets - n_confs
+            try:
+                if allcoordsets:
+                    coords = coords.getCoordsets()
+                else: 
+                    coords = coords.getCoordinates()
+            except AttributeError:            
+                raise TypeError('coords must be a Numpy array or must have '
+                                'getCoordinates attribute')
 
-        if weights.shape[0] != diff:  
-            if weights.shape[0] == 1:
-                LOGGER.warning('Shape of coords and weights did not match. '
-                       'First set of weights are used for all coordinate set.')
-                weights = weights[0]          
-            weights = np.tile(weights, (diff, 1, 1))
-                
+        coords = checkCoordsArray(coords, 'coords', cset=True, 
+                                  n_atoms=self._n_atoms, reshape=True)
+        n_csets, n_atoms, _ = coords.shape
+        if self._n_atoms == 0:
+            self._n_atoms = n_atoms
+        if weights is None:
+            weights = np.ones((n_csets, n_atoms, 1), dtype=float)
+        else:
+            weights = checkWeightsArray(weights, n_atoms, n_csets)
+
         while '  ' in name:
             name = name.replace('  ', ' ')
         name = name.replace(' ', '_')
-        if diff > 1:
+        
+        if n_csets > 1:
             self._identifiers += ['{0:s}_{1:d}'
-                                  .format(name, i+1) for i in range(diff)]
+                                  .format(name, i+1) for i in range(n_csets)]
         else:
             if ag is not None and ag.getNumOfCoordsets() > 0:
                 self._identifiers.append('{0:s}_{1:d}'.format(name, 
-                                                ag.getActiveCoordsetIndex()))
+                                         atoms.getActiveCoordsetIndex()))
             else:                
                 self._identifiers.append(name)
-        if self._weights is None: 
+        if self._confs is None and self._weights is None:
+            self._confs = coords
             self._weights = weights
+        elif self._confs is not None and self._weights is not None:
+            self._confs = np.concatenate((self._confs, coords), axis=0)
+            self._weights = np.concatenate((self._weights, weights), axis=0)
         else:
-            if weights is not None:
-                self._weights = np.concatenate((self._weights, weights),
-                                               axis=0)
-            else:
-                if self._weights is not None:
-                    self._weights = np.concatenate((self._weights, 
-                                    np.ones((diff, n_atoms, 1), np.bool)), 
-                                    axis=0)
+            raise RuntimeError('_confs and _weights must be set or None at '
+                               'the same time')
 
     def getIdentifiers(self):
         """Return identifiers of the conformations in the ensemble.
