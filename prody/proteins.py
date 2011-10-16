@@ -79,6 +79,7 @@ import os.path
 import time
 import os
 import shutil
+import sys
 from glob import glob
 from collections import defaultdict
 
@@ -1345,37 +1346,111 @@ def parsePSF(filename, name=None, ag=None):
     ag.setMasses(masses)
     return ag
 
+def children2dict(element, prefix=None):
+    dict_ = {}
+    length = False
+    if isinstance(prefix, str):
+        length = len(prefix)
+    for child in element:
+        tag = child.tag
+        if length and tag.startswith(prefix):
+            tag = tag[length:]
+        if len(child) == 0:
+            dict_[tag] = child.text
+        else:
+            dict_[tag] = child
+    return dict_
+    
+
 class PDBBlastRecord(object):
 
     """A class to store results from ProteinDataBank blast search."""
     
-    __slots__ = ['_record', '_sequence']
+    __slots__ = ['_param', '_sequence', '_hits']
 
-    def __init__(self, sequence, blast_record):
+    def __init__(self, sequence, xml):
         """Instantiate a PDBlast object instance.
         
-        :arg sequence: string of one-letter amino acid code
-        :arg blast_record: record from parsing results using NCBIXML.parse
+        :arg sequence: query sequence
+        :type xml: str
+        :arg xml: blast search results in XML format or an XML file that 
+            contains the results
+        :type xml: str
         
         """
+        
+        sequence = checkSequence(sequence)
+        if not sequence:
+            raise ValueError('not a valid protein sequence')
         self._sequence = sequence
-        self._record = blast_record
+        
+        import xml.etree.cElementTree as ET
+        assert isinstance(xml, str), 'xml must be a string'
+        if len(xml) < 100:
+            if os.path.isfile(xml):
+                xml = ET.parse(xml)
+                xml.getroot()
+            else:
+                raise ValueError('xml is not a filename and does not look like'
+                                 ' a valid XML string')
+        else:
+            root = ET.XML(xml)
+        
+        root = children2dict(root, 'BlastOutput_')
+        if root['db'] != 'pdb':
+            raise ValueError('blast search database in xml must be "pdb"')
+        if root['program'] != 'blastp':
+            raise ValueError('blast search program in xml must be "blastp"')
+        self._param = children2dict(root['param'][0], 'Parameters_')
+        query_length = int(root['query-len'])
+        if len(sequence) != query_length:
+            raise ValueError('query-len and the length of the sequence do not '
+                             'match, xml data may not be for the given' 
+                             'sequence')
+        hits = [] 
+        for iteration in root['iterations']:
+            for hit in children2dict(iteration, 'Iteration_')['hits']:
+                hit = children2dict(hit, 'Hit_')
+                data = children2dict(hit['hsps'][0], 'Hsp_')
+                for key in ['align-len', 'gaps', 'hit-frame', 'hit-from',
+                            'hit-to', 'identity', 'positive', 'query-frame',
+                            'query-from', 'query-to']:
+                    data[key] = int(data[key])
+                for key in ['evalue', 'bit-score', 'score']:
+                    data[key] = float(data[key])
+                p_identity = 100.0 * data['identity'] / data['align-len']
+                data['percent_identity'] = p_identity
+                p_coverage = 100.0 * (data['align-len'] - data['gaps']) / \
+                    query_length
+                data['percent_coverage'] = p_coverage  
+                for item in (hit['id'] + hit['def']).split('>gi'):
+                    #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
+                    #                        __________TITLE__________
+                    head, title = item.split(None, 1)
+                    head = head.split('|')
+                    pdb_id = head[-2].lower() 
+                    chain_id = head[-1][0]
+                    pdbch = dict(data)
+                    pdbch['pdb_id'] = pdb_id
+                    pdbch['chain_id'] = chain_id
+                    pdbch['title'] = (head[-1][1:] + title).strip()
+                    hits.append((p_identity, p_coverage, pdbch))
+        hits.sort(reverse=True)
+        self._hits = hits
+        
         
     def getSequence(self):    
         """Return the query sequence that was used in the search."""
+        
         return self._sequence
         
-    def printSummary(self):
-        """Prints a summary of the results to the screen."""
-        record = self._record
-        LOGGER.info('Blast results summary:')
-        LOGGER.info('  {0:s}: {1}'.format('database', record.database))
-        LOGGER.info('  {0:s}: {1}'.format('expect', record.expect))
-        LOGGER.info('  {0:s}: {1}'.format('matrix', record.matrix))
-        LOGGER.info('  {0:s}: {1}'.format('query', record.query))
-        LOGGER.info('  {0:s}: {1}'.format('query length', record.query_length))
-        LOGGER.info('  {0:s}: {1}'.format('blast version', record.version))
-
+    def getParameters(self):
+        """Return parameters used in blast search.
+        
+        .. versionadded: 0.8.3"""
+        
+        return self._param
+        
     def getHits(self, percent_identity=90., percent_coverage=70., chain=False):
         """Return a dictionary that contains hits.
         
@@ -1405,107 +1480,44 @@ class PDBBlastRecord(object):
         assert isinstance(percent_coverage, (float, int)), \
             'percent_coverage must be float or integer'
         assert isinstance(chain, bool), 'chain must be boolean'
-        query_length = self._record.query_length
         
-        pdb_hits = {}
-        for alignment in self._record.alignments:
-            #Stores information about one hit in the alignments section.
-            #######self.sqid = [ 0.0 ]
-            #A list because getPercentSequenceIdentity returns a list
-            hsp = alignment.hsps[0]
-            p_identity = (100.0 * hsp.identities / query_length)
-            p_coverage = (100.0 * hsp.align_length / query_length)
-            if p_identity > percent_identity and p_coverage > percent_coverage:
-                items = alignment.title.split('>gi')
-                for item in items:
-                    #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
-                    #                        __________TITLE__________
-                    title = item[item.find(' ')+1:].encode('utf-8').strip()
-                    pdb_id = item.split()[0].split('|')[3].encode('utf-8')
-                    pdb_id = pdb_id.lower()
-                    chain_id = title[6]
-                    if chain:
-                        hit_id = (pdb_id, chain_id)
-                    else:
-                        hit_id = pdb_id
-                    # if pdb_id is extracted, but a better alignment exists
-                    if (pdb_id not in pdb_hits or 
-                        p_identity > pdb_hits[pdb_id]['percent_identity']):
-                        hit = {}
-                        hit['pdb_id'] = pdb_id
-                        hit['chain_id'] = chain_id
-                        hit['percent_identity'] = p_identity
-                        hit['percent_coverage'] = p_coverage
-                        hit['bits'] = hsp.bits
-                        hit['score'] = hsp.score
-                        hit['expect'] = hsp.expect
-                        hit['align_length'] = hsp.align_length
-                        hit['identities'] = hsp.identities
-                        hit['positives'] = hsp.positives
-                        hit['gaps'] = hsp.gaps
-                        hit['pdb_title'] = title
-                        hit['query'] = hsp.query
-                        hit['query_start'] = hsp.query_start
-                        hit['query_end'] = hsp.query_end
-                        hit['sbjct'] = hsp.sbjct
-                        hit['sbjct_start'] = hsp.sbjct_start
-                        hit['sbjct_end'] = hsp.sbjct_end
-                        hit['match'] = hsp.match
-                        pdb_hits[hit_id] = hit
-        LOGGER.info('{0:d} hits were identified.'
-                         .format(len(pdb_hits)))
-        return pdb_hits
+        hits = {}
+        for p_identity, p_coverage, hit in self._hits:
+            if p_identity < percent_identity:
+                break
+            if p_coverage < percent_coverage:
+                continue
+            if chain:
+                key = (hit['pdb_id'], hit['chain_id'])
+            else:
+                key = hit['pdb_id']
+            if not key in hits: 
+                hits[key] = hit
+        return hits
     
     def getBest(self):
         """Returns a dictionary for the hit with highest sequence identity."""
         
-        from heapq import heappop, heappush
-        
-        query_length = self._record.query_length
-        
-        pdb_hits = {}
-        hit_list = []
-        for alignment in self._record.alignments:
-            hsp = alignment.hsps[0]
-            p_identity = (100.0 * hsp.identities / query_length)
-            p_coverage = (100.0 * hsp.align_length / query_length)
-            items = alignment.title.split('>gi')
-            for item in items:
-                title = item[item.find(' ')+1:].encode('utf-8').strip()
-                pdb_id = item.split()[0].split('|')[3].encode('utf-8')
-                pdb_id = pdb_id.lower()
-                if (pdb_id not in pdb_hits or 
-                    p_identity > pdb_hits[pdb_id]['percent_identity']):
-                    hit = {}
-                    hit['pdb_id'] = pdb_id
-                    hit['chain_id'] = title[6]
-                    hit['percent_identity'] = p_identity
-                    hit['percent_coverage'] = p_coverage
-                    hit['bits'] = hsp.bits
-                    hit['score'] = hsp.score
-                    hit['expect'] = hsp.expect
-                    hit['align_length'] = hsp.align_length
-                    hit['identities'] = hsp.identities
-                    hit['positives'] = hsp.positives
-                    hit['gaps'] = hsp.gaps
-                    hit['pdb_title'] = title
-                    hit['query'] = hsp.query
-                    hit['query_start'] = hsp.query_start
-                    hit['query_end'] = hsp.query_end
-                    hit['sbjct'] = hsp.sbjct
-                    hit['sbjct_start'] = hsp.sbjct_start
-                    hit['sbjct_end'] = hsp.sbjct_end
-                    hit['match'] = hsp.match
-                    pdb_hits[pdb_id] = hit
-                    heappush(hit_list, (-p_identity, hit))
-        return heappop(hit_list)[1]
+        return dict(self._hits[0][2])
+
+PROTSEQ_ALPHABET = set('ARNDCQEGHILKMFPSTWYVBJOUXZ-')
+
+def checkSequence(sequence):
+    """Check validity of a protein sequence.  If a valid sequence, return
+    after standardizing it (make all upper case, remove spaces, etc.), 
+    otherwise return ``False``."""
+    
+    if isinstance(sequence, str):
+        sequence = ''.join(sequence.split()).upper()
+        if PROTSEQ_ALPHABET.issuperset(set(sequence)):
+            return sequence
+    return False
 
 def blastPDB(sequence, filename=None, **kwargs):
-    """Blast search ProteinDataBank for a given sequence and return results.
+    """Blast search *sequence* in ProteinDataBank database using NCBI blastp.
         
     :arg sequence: Single-letter code amino acid sequence of the protein.
-    :type sequence: str, :class:`Bio.SeqRecord.SeqRecord`, or 
-        :class:`Bio.Seq.Seq` 
+    :type sequence: str 
     
     :arg filename: Provide a *filename* to save the results in XML format. 
     :type filename: str
@@ -1516,51 +1528,106 @@ def blastPDB(sequence, filename=None, **kwargs):
     :class:`PDBBlastRecord`
     
     User can adjust *hitlist_size* (default is 250) and *expect* (default is 
-    1e-10) parameter values. 
+    1e-10) parameter values.
+    
+    User can also set the time interval for checking the results using
+    *sleep* keyword argument.  Default value for *sleep* is 2 seconds.
+    Finally, user can set a *timeout* value after which the function 
+    will return ``None`` if the results are not ready.  Default for
+    *timeout* is 30 seconds. 
+    
+    .. versionchanged:: 0.8.3
+       *sequence* argument must be a string.  Biopython objects are not 
+       accepted.  *sleep* and *timeout* arguments are added.
 
     """
     
-    if BioBlast is None: prody.importBioBlast()
-    if not isinstance(sequence, str):
-        try:
-            sequence = sequence.data
-        except AttributeError:    
-            try:
-                sequence = str(sequence.seq)
-            except AttributeError:    
-                pass
-        if not isinstance(sequence, str):
-            raise TypeError('sequence must be a string or a Biopython object')
+    sequence = checkSequence(sequence)
     if not sequence:
-        raise ValueError('sequence cannot be an empty string')
+        raise ValueError('not a valid protein sequence')
 
-    if 'hitlist_size' not in kwargs:
-        kwargs['hitlist_size'] = 250
-    if 'expect' not in kwargs:
-        kwargs['expect'] = 1e-10
+    query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
+             ('PROGRAM', 'blastp'),] 
+    expect = kwargs.pop('expect', 10e-10)
+    assert isinstance(expect, (float, int)), 'expect must be float'
+    assert expect > 0, 'expect must be a positive number'
+    query.append(('EXPECT', expect))
+    hitlist_size = kwargs.pop('hitlist_size', 250)
+    assert isinstance(hitlist_size, int), 'hitlist_size must be integer'
+    assert hitlist_size > 0, 'expect must be a positive integer'
+    query.append(('HITLIST_SIZE', hitlist_size))
+    query.append(('QUERY', sequence))
+    query.append(('CMD', 'Put'))
+    
+    sleep = float(kwargs.get('sleep', 2))
+    timeout = float(kwargs.get('timeout', 20))
+    
+    if kwargs:
+        LOGGER.warning('Keyword arguments "{0:s}" are not used.'
+                       .format('", "'.join(kwargs.keys())))
 
-    sequence = ''.join(sequence.split())
-    LOGGER.info('Blasting ProteinDataBank for "{0:s}...{1:s}"'
-                .format(sequence[:10], sequence[-10:]))
+    import urllib, urllib2
+    
+    url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
+    
+    data = urllib.urlencode(query)
     start = time.time()
-    results = BioBlast.qblast('blastp', 'pdb', sequence, format_type='XML', 
-                              **kwargs)
+    LOGGER.info('Blast searching NCBI PDB database for "{0:s}..."'
+                .format(sequence[:5]))
+    request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
+    handle = urllib2.urlopen(request)
+    
+    html = handle.read()
+    index = html.find('RID =')
+    if index == -1:
+        raise Exception('NCBI did not return expected response.')
+    else:
+        last = html.find('\n', index)
+        rid = html[index + len('RID ='):last].strip()
 
-    LOGGER.info('Blast search completed in {0:.2f}s.'
+    index = html.find('RTOE =')
+    if index == -1:
+        rtoe = None # This is not used
+    else:
+        last = html.find('\n', index)
+        rtoe = int(html[index + len('RTOE ='):last].strip())
+
+    query = [('ALIGNMENTS', 500), ('DESCRIPTIONS', 500), 
+             ('FORMAT_TYPE', 'XML'), ('RID', rid), ('CMD', 'Get')]
+    data = urllib.urlencode(query)
+    
+    while True:
+        msg = 'Waiting {0:.0f}s to connect NCBI for search results.'\
+              .format(sleep)
+        sys.stderr.write(msg)
+        time.sleep(sleep)
+        sys.stderr.write('\r' + ' ' * len(msg) + '\r')
+        request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
+        handle = urllib2.urlopen(request)
+        results = handle.read()
+        index = results.find('Status=')
+        if index < 0:
+            break
+        last = results.index('\n', index)
+        status = results[index+len('Status='):last].strip()
+        if status.upper() == 'READY':
+            break
+        sleep *= 2
+        if time.time() - start > timeout:
+            LOGGER.warning('Blast search time out.')
+            return None
+    LOGGER.info('Blast search completed in {0:.1f}s.'
                 .format(time.time()-start))
-                
+
     if filename is not None:
         filename = str(filename)
         if not filename.lower().endswith('.xml'):
                 filename += '.xml'        
         out = open(filename, 'w')
-        for line in self._results:
-            out.write(line)
+        out.write(results)
         out.close()
-        LOGGER.info('Results are saved as {0:s}.'.format(filename))    
-        results.reset()
-    record = BioBlast.parse(results).next()
-    return PDBBlastRecord(sequence, record)
+        LOGGER.info('Results are saved as {0:s}.'.format(filename))
+    return PDBBlastRecord(sequence, results)
 
 _writePDBdoc = """
     :arg atoms: Atomic data container.
