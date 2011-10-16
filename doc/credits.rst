@@ -32,7 +32,8 @@ Institutes of Health (NIH) and NIH Roadmap for Medical Research, and its
 contents are solely the responsibility of the authors and do not necessarily 
 represent the official view of NCRR or NIH.  
 Information on Re-engineering the Clinical Research Enterprise can be obtained 
-from `here <http://nihroadmap.nih.gov/clinicalresearch/overview-translational.asp>`_.
+from `here 
+<http://nihroadmap.nih.gov/clinicalresearch/overview-translational.asp>`_.
 
 Software
 ===============================================================================
@@ -44,24 +45,22 @@ Last but not least, ProDy makes use of the following great software:
   grammar. This makes every user a power user by enabling fast access to and 
   easy handling of atomic data via simple selection statements.    
 
-* `Biopython <http://biopython.org/>`_ Blast and KDTree packages, and pairwise2 
-  module, which are distributed ProDy, significantly enrich and improve the 
-  ProDy user experience. Blast package enables searching the Protein Data Bank
-  content for structures sharing similarity to a user given sequence 
-  conveniently. KDtree package allows for fast distance based selections
-  making atom selections suitable for contact identification. Finally,
-  pairwise2 module enables performing sequence alignment for protein structure
+* `Biopython <http://biopython.org/>`_ KDTree package and pairwise2 module, 
+  which are distributed ProDy, significantly enrich and improve the ProDy 
+  user experience.  KDtree package allows for fast distance based selections
+  making atom selections suitable for contact identification.  pairwise2 
+  module enables performing sequence alignment for protein structure
   comparison and ensemble analysis.
      
 * ProDy requires `Numpy <http://numpy.scipy.org/>`_ for almost all major 
   functionality including, but not limited to, storing atomic data and 
-  performing normal mode calculations. This power and speed of Numpy makes
+  performing normal mode calculations.  The power and speed of Numpy makes
   ProDy suitable for interactive and high-throughput structural analysis.
   
 * Finally, ProDy can benefit from `Scipy <http://www.scipy.org/SciPy>`_ and
-  `Matplotlib <http://matplotlib.sourceforge.net/>`_ packages. Scipy
+  `Matplotlib <http://matplotlib.sourceforge.net/>`_ packages.  Scipy
   makes ProDy normal calculations more flexible and on low memory machines 
-  possible. Matplotlib allows greatly enriches user experience by allowing
+  possible.  Matplotlib allows greatly enriches user experience by allowing
   plotting protein dynamics data calculated using ProDy. 
    
   
