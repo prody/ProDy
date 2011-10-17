@@ -17,8 +17,8 @@ Release 0.8.3 (Oct 16, 2011)
   * Added :meth:`~ensemble.PDBEnsemble.getIdentifiers` method that returns
     identifiers of all conformations in the ensemble. 
 
-  * ProDy tests are incorporated to installer.  Calling ``prody.test()`` 
-    function will run tests.
+  * ProDy tests are incorporated to the package installer.  If you are using 
+    Python version 2.7, you can run the tests by calling ``prody.test()``.
 
 
 **Improvements**:
