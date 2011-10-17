@@ -134,8 +134,9 @@ def _makePath(path):
 
 _PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
                        '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ',
-                       '.xml', '.XML', '.xml.gz', '.XML.GZ'])
-
+                       '.xml', '.XML', '.xml.gz', '.XML.GZ',
+                       '.cif', '.CIF', '.cif.gz', '.CIF.GZ',])
+_PDB_FORMATS = set(['pdb', 'cif', 'xml'])
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', 
     '/pub/pdb/')
 _WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', 
@@ -248,7 +249,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
        local PDB mirror are decompressed.
     
     .. versionadded:: 0.8.4
-       *xml* and *noatom* keyword arguments.
+       *format* and *noatom* keyword arguments.
 
     The order of operations are as follows:
 
@@ -270,11 +271,13 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     For PDB files found in a local mirror of PDB, setting *copy* ``True`` 
     will copy them from the mirror to the user specified *folder*.
     
-    Additionally, this function can be used to fetch XML files.  Passing
-    ``xml=True`` keyword argument will perform the aforementioned for
-    PDBML header file, e.g. :file:`1XXX.xml.gz`.  If XML file with only
-    header data is desired, passing ``noatom=True`` keyword argument 
-    will do the job, e.g. :file:`1XXX-noatom.xml.gz`"""
+    Additionally, using *format* keyword option this function can be used to 
+    fetch `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ 
+    files.  For example, passing ``format="cif"`` keyword argument will fetch 
+    an mmCIF (e.g. :file:`1XXX.cif.gz`) or passing ``format="xml"`` keyword 
+    argument will fetch a PDBML file (e.g. :file:`1XXX.xml.gz`).  If PDBML 
+    header file is desired, passing ``format="xml", noatom=True`` keyword 
+    arguments will do the job (e.g. :file:`1XXX-noatom.xml.gz`)"""
     
     if isinstance(pdb, str):
         identifiers = [pdb]
@@ -286,10 +289,15 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     assert isinstance(folder, str), 'folder must be string'
     assert isinstance(compressed, bool), 'compressed must be boolean'
     assert isinstance(copy, bool), 'copy must be boolean'
-    xml = kwargs.get('xml', False)
-    assert isinstance(xml, bool), 'xml must be boolean'
-    noatom = kwargs.get('noatom', False) 
+    format = kwargs.pop('format', 'pdb')
+    assert isinstance(format, str), 'format must be string'
+    format = format.lower()
+    assert format in _PDB_FORMATS, '"{0:s}" is not valid format'.format(format)
+    noatom = kwargs.pop('noatom', False) 
     assert isinstance(noatom, bool), 'noatom must be boolean'
+    if kwargs:
+        raise TypeError('"{0:s}" is not a valid keyword argument for this' 
+                        'function'.format(kwargs.iterkeys().next()))
     if folder != '.':
         folder = _makePath(folder)
     if not os.access(folder, os.W_OK):
@@ -301,7 +309,12 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     success = 0
     failure = 0
     download = False
-    if xml:
+    if format == 'pdb':
+        divided = 'data/structures/divided/pdb'
+        pdbext = '.ent.gz'
+        extensions = ['.ent', '.pdb'] # '.pdb' should be the last item
+        prefix = 'pdb'
+    elif format == 'xml':
         if noatom:
             divided = 'data/structures/divided/XML-noatom'
             pdbext = '-noatom.xml.gz'
@@ -312,10 +325,10 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             extensions = ['.xml']
         prefix = ''
     else:
-        divided = 'data/structures/divided/pdb'
-        pdbext = '.ent.gz'
-        extensions = ['.ent', '.pdb'] # '.pdb' should be the last item
-        prefix = 'pdb'
+        divided = 'data/structures/divided/mmCIF'
+        pdbext = '.cif.gz'
+        extensions = ['.cif'] # '.pdb' should be the last item
+        prefix = ''
     
     pdbfnmap = {}
     for extension in extensions:
