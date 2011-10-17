@@ -134,7 +134,7 @@ Overlap Table
                      #1     #2     #3     #4
 PCA Ubiquitin #1   -0.19  -0.30  +0.22  -0.62
 PCA Ubiquitin #2   +0.09  -0.72  -0.16  +0.16
-PCA Ubiquitin #3   +0.31  -0.06  -0.23  00.00
+PCA Ubiquitin #3   +0.31  -0.06  -0.23   0.00
 PCA Ubiquitin #4   +0.11  +0.02  +0.16  -0.31
 <BLANKLINE>
 

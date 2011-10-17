@@ -17,6 +17,10 @@ Release 0.8.3 (Oct 16, 2011)
   * Added :meth:`~ensemble.PDBEnsemble.getIdentifiers` method that returns
     identifiers of all conformations in the ensemble. 
 
+  * ProDy tests are incorporated to installer.  Calling ``prody.test()`` 
+    function will run tests.
+
+
 **Improvements**:
 
   * :func:`~proteins.blastPDB` function and :class:`~proteins.PDBBlastRecord`
