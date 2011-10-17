@@ -133,14 +133,16 @@ def _makePath(path):
                 return os.getcwd()
     return os.path.join(os.getcwd(), path)
 
+_PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
+                       '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ',
+                       '.xml', '.XML', '.xml.gz', '.XML.GZ'])
 
-_pdb_extensions = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ent.gz'])
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', 
-    '/pub/pdb/data/structures/divided/pdb/')
+    '/pub/pdb/')
 _WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', 
-    '/pub/databases/rcsb/pdb/data/structures/divided/pdb/')
+    '/pub/databases/rcsb/pdb/')
 _WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', 
-    '/pub/pdb/data/structures/divided/pdb/')
+    '/pub/pdb/')
 WWPDB_FTP_SERVERS = {
     'rcsb'   : _WWPDB_RCSB,
     'usa'    : _WWPDB_RCSB,
@@ -230,11 +232,16 @@ def getWWPDBFTPServer():
         return _WWPDB_RCSB
     else:
         return server
+    
+_ = getWWPDBFTPServer()
+if isinstance(_, tuple) and len(_) == 3:
+    setWWPDBFTPServer(_[0].split()[0])
 
-def fetchPDB(pdb, folder='.', compressed=True, copy=False):
-    """Return the path(s) to PDB file(s) for specified identifier(s).
-
-    *pdb* may be a list of PDB identifiers or an identifier string.
+def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
+    """Return path(s) to PDB/XML file(s) for specified identifier(s).  This
+    function may be used to locate PDB files in *folder* or in a local PDB 
+    mirror or to download files from a WWPDB FTP servers.  *pdb* may be a list 
+    of PDB identifiers or an identifier string.
 
     .. versionchanged:: 0.8
        *compressed* and *copy* argument is introduced.  
@@ -242,30 +249,35 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     .. versionchanged:: 0.8.2
        When *compressed* is false, compressed files found in *folder* or 
        local PDB mirror are decompressed.
+    
+    .. versionadded:: 0.8.4
+       *xml* and *noatom* keyword arguments.
 
-    If *folder* already contains a PDB file matching given identifier, a 
-    file will not be downloaded and the path to the existing file
-    will be returned.
+    The order of operations are as follows:
+
+    First, user specified *folder* will be sought for PDB/XML files.  If 
+    *folder* contains a PDB file matching given identifier, a file will not 
+    be downloaded and the path to the existing file will be returned.
     
-    If a file matching the given PDB identifier is not found in *folder*,
-    the PDB file will be sought in the local PDB mirror, if a local
-    mirror is set by the user.  When PDB is found in local repository, 
-    the path to the file will be returned. 
+    Second, local PDB mirror will be sought for PDB/XML files, if one is set 
+    by the user (see :func:`setPDBMirrorPath`). If PDB is found in the local 
+    repository, the path to the file will be returned. 
     
-    Finally, if PDB file is not found in *folder* or local mirror,
-    it will be downloaded from the user-selected WWPDB FTP server. 
-    User can set one of the WWPDB FTP servers using :func:`setWWPDBFTPServer`. 
-    Downloaded files will be saved in *folder*. FTP servers provides gunzipped 
-    PDB files.
+    Finally, if PDB file is not found in *folder* or the local mirror, it will 
+    be downloaded from a user specified World Wide PDB FTP server (see 
+    :func:`setWWPDBFTPServer`. Downloaded files will be saved in *folder*. 
     
-    If *compressed* argument is set to ``False``, downloaded files will be 
-    decompressed.  When a compressed file is found in the *folder*, it will
-    also be decompressed.
+    If *compressed* argument is set to ``False``, local files in *folder*
+    or files from local mirror or WWPDB will be decompressed.  
     
-    For PDB files found in a local mirror of PDB, setting *copy* ``True`` will
-    copy them from the mirror to the user specified *folder*.  
-        
-    """
+    For PDB files found in a local mirror of PDB, setting *copy* ``True`` 
+    will copy them from the mirror to the user specified *folder*.
+    
+    Additionally, this function can be used to fetch XML files. Passing
+    ``xml=True`` keyword argument will perform the aforementioned for
+    PDBML header file, e.g. :file:`1XXX.xml.gz`.  If XML file with only
+    header data is desired, passing ``noatom=True`` keyword argument 
+    will do the job, e.g. :file:`1XXX.xml.gz`"""
     
     if isinstance(pdb, str):
         identifiers = [pdb]
@@ -274,7 +286,15 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     else:
         raise TypeError('pdb may be a string or a list of strings')
         
-        
+    assert isinstance(folder, str), 'folder must be string'
+    assert isinstance(compressed, bool), 'compressed must be boolean'
+    assert isinstance(copy, bool), 'copy must be boolean'
+    xml = kwargs.get('xml', False)
+    assert isinstance(xml, bool), 'xml must be boolean'
+    noatom = False 
+    if xml:
+        noatom = kwargs.get('noatom') 
+        assert isinstance(noatom, bool), 'noatom must be boolean'
     if folder != '.':
         folder = _makePath(folder)
     if not os.access(folder, os.W_OK):
@@ -286,17 +306,34 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     success = 0
     failure = 0
     download = False
-
+    if xml:
+        if noatom:
+            divided = 'data/structures/divided/XML-noatom'
+            pdbext = '-noatom.xml.gz'
+            extension = '-noatom.xml'
+        else:
+            divided = 'data/structures/divided/XML'
+            pdbext = '.xml.gz'
+            extension = '.xml'
+        prefix = ''
+    else:
+        divided = 'data/structures/divided/pdb'
+        pdbext = '.ent.gz'
+        extension = '.pdb'
+        prefix = 'pdb'
+            
+    
     pdbfnmap = {}
-    for pdbfn in glob(os.path.join(folder, '*.pdb*')): 
-        if os.path.splitext(pdbfn)[1] in _pdb_extensions:
+    for pdbfn in glob(os.path.join(folder, '*' + extension + '*')): 
+        if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
             pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-    for pdbfn in glob(os.path.join(folder, '*.PDB*')):
-        if os.path.splitext(pdbfn)[1] in _pdb_extensions:
+    for pdbfn in glob(os.path.join(folder, '*' + extension.upper() + '*')):
+        if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
             pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
                 
     mirror_path = getPDBMirrorPath()
     for i, pdbid in enumerate(identifiers):
+        # Check validity of identifiers
         if not isinstance(pdbid, str):
             LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
             filenames.append(None)
@@ -308,8 +345,12 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
             filenames.append(None)
             failure += 1 
             continue
+        # Check if file exists in working directory
         identifiers[i] = pdbid
-        fn = pdbfnmap.get(pdbid, None)
+        if noatom:
+            fn = pdbfnmap.get(pdbid + '-noatom', None)
+        else:
+            fn = pdbfnmap.get(pdbid, None)
         if fn:
             fn = prody.relpath(fn)
             if not compressed:
@@ -321,16 +362,18 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                          .format(pdbid, fn))
             exists += 1
             continue
+        # Check the PDB mirror
         if mirror_path is not None and os.path.isdir(mirror_path):
-            fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
-                    pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
+            fn = os.path.join(mirror_path, divided, pdbid[1:3], 
+                              prefix + pdbid + pdbext)
             if os.path.isfile(fn):
                 if copy or not compressed:
                     if compressed:
-                        filename = os.path.join(folder, pdbid + '.pdb.gz')
+                        filename = os.path.join(folder, pdbid + extension + 
+                                                        '.gz')
                         shutil.copy(fn, filename)
                     else:
-                        filename = os.path.join(folder, pdbid + '.pdb')
+                        filename = os.path.join(folder, pdbid + extension)
                         gunzip(fn, filename)
                     filenames.append(filename)
                     LOGGER.debug('{0:s} copied from local mirror ({1:s})'
@@ -356,32 +399,32 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
             raise type(error)('FTP connection problem, potential reason: '
                               'no internet connectivity')
         else:
+            ftp_path = os.path.join(ftp_path, divided)
             ftp.login('')
             for i, pdbid in enumerate(identifiers):
                 if pdbid != filenames[i]:
                     continue
                 if compressed:
-                    filename = os.path.join(folder, pdbid + '.pdb.gz')
+                    filename = os.path.join(folder, pdbid + extension + '.gz')
                 else:
-                    filename = os.path.join(folder, pdbid + '.pdb')
+                    filename = os.path.join(folder, pdbid + extension)
                 pdbfile = open(filename, 'w+b')
+                fn = prefix + pdbid + pdbext
                 try:
                     ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
-                    ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
-                                   pdbfile.write)
+                    ftp.retrbinary('RETR ' + fn, pdbfile.write)
                 except Exception as error:
                     pdbfile.close()
                     os.remove(filename)
-                    if 'pdb{0:s}.ent.gz'.format(pdbid) in ftp.nlst():
+                    if fn in ftp.nlst():
                         LOGGER.debug('{0:s} download failed ({1:s}). It '
                                      'is possible that you don\'t have '
                                      'rights to download .gz files in the '
                                      'current network.'.format(pdbid, 
                                      str(error)))
                     else:
-                        LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.'
-                                     'gz does not exist on ftp.wwpdb.org.'
-                                     .format(pdbid))
+                        LOGGER.debug('{0:s} download failed. {0:s} does not '
+                                     'exist on ftp.wwpdb.org.'.format(fn))
                     failure += 1
                     filenames[i] = None 
                 else:
