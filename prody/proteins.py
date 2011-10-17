@@ -305,25 +305,26 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
         if noatom:
             divided = 'data/structures/divided/XML-noatom'
             pdbext = '-noatom.xml.gz'
-            extension = '-noatom.xml'
+            extensions = ['-noatom.xml']
         else:
             divided = 'data/structures/divided/XML'
             pdbext = '.xml.gz'
-            extension = '.xml'
+            extensions = ['.xml']
         prefix = ''
     else:
         divided = 'data/structures/divided/pdb'
         pdbext = '.ent.gz'
-        extension = '.pdb'
+        extensions = ['.ent', '.pdb'] # '.pdb' should be the last item
         prefix = 'pdb'
     
     pdbfnmap = {}
-    for pdbfn in glob(os.path.join(folder, '*' + extension + '*')): 
-        if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
-            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-    for pdbfn in glob(os.path.join(folder, '*' + extension.upper() + '*')):
-        if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
-            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+    for extension in extensions:
+        for pdbfn in glob(os.path.join(folder, '*' + extension + '*')): 
+            if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
+                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+        for pdbfn in glob(os.path.join(folder, '*' + extension.upper() + '*')):
+            if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
+                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
                 
     mirror_path = getPDBMirrorPath()
     for i, pdbid in enumerate(identifiers):
@@ -344,7 +345,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
         if noatom:
             fn = pdbfnmap.get(pdbid + '-noatom', None)
         else:
-            fn = pdbfnmap.get(pdbid, None)
+            fn = pdbfnmap.get(pdbid, None) or pdbfnmap.get('pdb'+pdbid, None)
         if fn:
             fn = prody.relpath(fn)
             if not compressed:
@@ -458,6 +459,9 @@ def gunzip(filename, outname=None):
     out.close()
     return outname
 
+
+PDBML_CATEGORIES = set(['struct_refCategory'])
+
 def parsePDBML(pdb):
     """Return PDB header data in a dictionary parsed from PDBML/XML file."""
     
@@ -471,6 +475,16 @@ def parsePDBML(pdb):
         else:
             raise IOError('{0:s} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
+    import xml.etree.cElementTree as ET
+    xml = ET.parse(pdb)
+    root = xml.getroot()
+    ns = root.tag[:root.tag.rfind('}')+1]
+    len_ns = len(ns)
+    for e in root:
+        e_tag = e.tag[len_ns:]
+        if not e_tag in PDBML_CATEGORIES:  
+            continue
+        struct_ref
     header = {}
     return header
 
