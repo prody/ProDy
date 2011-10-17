@@ -36,9 +36,12 @@ if not isInstalled('numpy'):
     print("""NumPy is not installed. This package is required for main ProDy 
 features and needs to be installed before you can use ProDy.  
 You can find NumPy at: http://numpy.scipy.org""")
-    
-PACKAGES = ['prody', 'prody.tests']
-PACKAGE_DATA = {'prody.tests': ['data/pdb*.pdb', 'data/*.dat']}
+
+PACKAGES = ['prody']
+PACKAGE_DATA = {}
+if sys.version_info[:2] > (2,6):
+    PACKAGES.append('prody.tests')
+    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat']
 
 EXTENSIONS = []
 
