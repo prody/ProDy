@@ -42,6 +42,7 @@ Functions
   * :func:`writePDB`
   * :func:`writePDBStream`
   * :func:`writePQR`
+  * :func:`parsePDBHeader`
   * :func:`parsePDBML`
   
   * :func:`fetchLigandData`
@@ -102,7 +103,8 @@ __all__ = ['PDBBlastRecord',
            'getPDBMirrorPath', 'getWWPDBFTPServer', 
            'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 'parsePSF', 'parsePQR',
-           'writePDBStream', 'writePDB', 'writePQR', 'parsePDBML',
+           'writePDBStream', 'writePDB', 'writePQR', 
+           'parsePDBHeader', 'parsePDBML',
            'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
@@ -757,6 +759,26 @@ def parsePQR(filename, **kwargs):
         return None
 
 parsePQR.__doc__ += _parsePQRdoc
+
+def parsePDBHeader(pdb):
+    """Return PDB header data from *pdb* in a dictionary.  Same as calling 
+    ``parsePDB(pdb, header=True, model=0)``."""
+    
+    if not os.path.isfile(pdb):
+        if len(pdb) == 4 and pdb.isalnum():
+            filename = fetchPDB(pdb)
+            if filename is None:
+                raise IOError('PDB file for {0:s} could not be downloaded.'
+                              .format(pdb))
+            pdb = filename
+        else:
+            raise IOError('{0:s} is not a valid filename or a valid PDB '
+                          'identifier.'.format(pdb))
+    if pdb.endswith('.gz'):
+        pdb = gzip.open(pdb)
+    else:
+        pdb = open(pdb)
+    return _getHeaderDict(pdb)
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset, 
                    altloc_torf, format='pdb'):
