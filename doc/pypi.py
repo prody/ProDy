@@ -65,19 +65,24 @@ def updateReleaseStats():
             date, downloads = item
             stats.write('{0:s};{1:s};{2:d}\n'.format(release, date, downloads))
             downloads_total += downloads
-    stats.write('Total;{0:s};{1:d}\n'.format(time.strftime('%B %e, %Y'), downloads_total))
+    stats.write('Total;{0:s};{1:d}\n'.format(time.strftime('%B %e, %Y'), 
+                                             downloads_total))
     stats.close()
 
     # Write a CSV file with info on and links to the current downloads 
-    packagetype_map = {'sdist': 'Source', 'bdist_wininst': 'MS Windows installer'}
+    packagetype_map = {'sdist': 'Source', 
+                       'bdist_wininst': 'MS Windows installer'}
     python_version_map = {'source': ''} 
     files = open('_static/pypi_downloads.csv', 'w')
     files.write('File;Type;Py Version;Size;Downloads\n')
     for url in current_urls:
-        url['packagetype'] = packagetype_map.get(url['packagetype'], url['packagetype'])
-        url['python_version'] = python_version_map.get(url['python_version'], url['python_version'])
+        url['packagetype'] = packagetype_map.get(url['packagetype'], 
+                                                 url['packagetype'])
+        url['python_version'] = python_version_map.get(url['python_version'], 
+                                                       url['python_version'])
         files.write('`{0[filename]:s} <{0[url]:s}>`_ '.format(url))
-        files.write('(`md5 <http://pypi.python.org/pypi?:action=show_md5&digest={0[md5_digest]:s}>`_);'.format(url))
+        files.write('(`md5 <http://pypi.python.org/pypi?:action=show_md5&'
+                    'digest={0[md5_digest]:s}>`_);'.format(url))
         files.write('{0[packagetype]:s};'.format(url))
         files.write('{0[python_version]:s};'.format(url))
         files.write('{0:d}KB;'.format(int(url['size']/1024)))
@@ -96,8 +101,8 @@ def updateReleaseStats():
        <pre>easy_install -U ProDy</pre>   
     ''')
     html.write('Total of {0:d} downloads '.format(downloads_total)) 
-    html.write('''(see <a href="{{ pathto("reports/pypi_statistics") }}">details</a>).
-    </p>''')
+    html.write('(see <a href="{{ pathto("reports/pypi_statistics") }}">'
+               'details</a>).</p>')
 
 def updateMonthlyStats():
     import bz2
