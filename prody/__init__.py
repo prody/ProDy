@@ -486,8 +486,7 @@ def test(verbosity=2, descriptions=True, stream=sys.stderr):
         try:
             import prody.tests
         except ImportError:
-            LOGGER.warning('Could not import test modules, you might be '
-                           'using a Windows machine.')
+            LOGGER.warning('Could not import test modules.')
         else:
             tests.test(verbosity, descriptions, stream)
     else:
