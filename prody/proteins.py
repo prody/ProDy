@@ -288,10 +288,8 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     assert isinstance(copy, bool), 'copy must be boolean'
     xml = kwargs.get('xml', False)
     assert isinstance(xml, bool), 'xml must be boolean'
-    noatom = False 
-    if xml:
-        noatom = kwargs.get('noatom') 
-        assert isinstance(noatom, bool), 'noatom must be boolean'
+    noatom = kwargs.get('noatom', False) 
+    assert isinstance(noatom, bool), 'noatom must be boolean'
     if folder != '.':
         folder = _makePath(folder)
     if not os.access(folder, os.W_OK):
