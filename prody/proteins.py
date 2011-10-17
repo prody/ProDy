@@ -776,7 +776,9 @@ def parsePDBHeader(pdb):
         pdb = gzip.open(pdb)
     else:
         pdb = open(pdb)
-    return _getHeaderDict(pdb)
+    dict_, _ = _getHeaderDict(pdb)
+    pdb.close()
+    return dict_
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset, 
                    altloc_torf, format='pdb'):
