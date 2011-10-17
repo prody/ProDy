@@ -611,7 +611,8 @@ def parsePDBStream(stream, **kwargs):
     """
     
     model = kwargs.get('model')
-    header = kwargs.get('header')
+    header = kwargs.get('header', False)
+    assert isinstance(header, bool), 'header must be a boolean'
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
@@ -648,10 +649,10 @@ def parsePDBStream(stream, **kwargs):
     secondary = kwargs.get('secondary', False)
     split = 0
     hd = None
-    lines = stream.readlines()
-    if header or biomol or secondary:
-        hd, split = _getHeaderDict(lines)
     if model != 0:
+        lines = stream.readlines()
+        if header or biomol or secondary:
+            hd, split = _getHeaderDict(lines)
         start = time.time()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.getNumOfAtoms() > 0:
@@ -662,6 +663,9 @@ def parsePDBStream(stream, **kwargs):
             ag = None
             LOGGER.warning('Atomic data could not be parsed, please '
                            'check the input file.')
+    elif header or biomol or secondary:
+        hd, split = _getHeaderDict(stream)
+
     if secondary:
         try:
             ag = assignSecondaryStructure(hd, ag)
@@ -1159,7 +1163,9 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
             atomgroup.addCoordset(xyz)
     
 def _getHeaderDict(lines):
-    """Return header data in a dictionary."""
+    """Return header data in a dictionary.  *lines* may be a list of PDB lines
+    or a stream."""
+    
     header = {}
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     helix = {}
@@ -1169,7 +1175,6 @@ def _getHeaderDict(lines):
     applyToChains = (' ')
     i = 0
     for i, line in enumerate(lines):        
-        line = lines[i]
         startswith = line[0:6]
         if startswith == 'ATOM  ' or startswith == 'HETATM' or \
            startswith == 'MODEL ':
