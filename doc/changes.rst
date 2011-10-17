@@ -11,7 +11,11 @@ Release 0.8.3 (in development)
 
 **New Features**:
 
-  * PDBML/XML files can be retrieved using :func:`~proteins.fetchPDB` function.
+  * `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files
+    can be retrieved using :func:`~proteins.fetchPDB` function.
+    
+  * :func:`~proteins.parsePDBHeader` is implemented for convenient parsing of
+    PDB header data from :file:`.pdb` files.
 
 
 Release 0.8.3 (Oct 16, 2011)
