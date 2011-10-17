@@ -42,6 +42,7 @@ Functions
   * :func:`writePDB`
   * :func:`writePDBStream`
   * :func:`writePQR`
+  * :func:`parsePDBML`
   
   * :func:`fetchLigandData`
   * :func:`fetchPDBClusters`
@@ -55,9 +56,6 @@ Functions
   * :func:`execSTRIDE`
   * :func:`parseSTRIDE`
   * :func:`performSTRIDE`
-
-  
-   
    
 .. doctest::
     :hide:
@@ -68,7 +66,6 @@ Functions
     >>> model10 = parsePDB('2k39', subset='ca', model=10)
     >>> np.all(allmodels.getCoordsets(9) == model10.getCoordinates())
     True
-    
 """
 
 __author__ = 'Ahmet Bakan'
@@ -105,7 +102,7 @@ __all__ = ['PDBBlastRecord',
            'getPDBMirrorPath', 'getWWPDBFTPServer', 
            'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 'parsePSF', 'parsePQR',
-           'writePDBStream', 'writePDB', 'writePQR', 
+           'writePDBStream', 'writePDB', 'writePQR', 'parsePDBML',
            'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
@@ -205,7 +202,6 @@ def setWWPDBFTPServer(key):
     +---------------------------+-----------------------------+
     | PDBj (Japan)              | PDBj, Japan, Jp             |
     +---------------------------+-----------------------------+
-    
     """
     
     server = WWPDB_FTP_SERVERS.get(key.lower())
@@ -220,7 +216,6 @@ def getWWPDBFTPServer():
     set WWPDB FTP server.
     
     .. versionadded:: 0.6.1
-    
     """
     
     server = prody._ProDySettings.get('wwpdb_ftp')
@@ -260,12 +255,12 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     be downloaded and the path to the existing file will be returned.
     
     Second, local PDB mirror will be sought for PDB/XML files, if one is set 
-    by the user (see :func:`setPDBMirrorPath`). If PDB is found in the local 
+    by the user (see :func:`setPDBMirrorPath`).  If PDB is found in the local 
     repository, the path to the file will be returned. 
     
     Finally, if PDB file is not found in *folder* or the local mirror, it will 
     be downloaded from a user specified World Wide PDB FTP server (see 
-    :func:`setWWPDBFTPServer`. Downloaded files will be saved in *folder*. 
+    :func:`setWWPDBFTPServer`.  Downloaded files will be saved in *folder*. 
     
     If *compressed* argument is set to ``False``, local files in *folder*
     or files from local mirror or WWPDB will be decompressed.  
@@ -273,11 +268,11 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     For PDB files found in a local mirror of PDB, setting *copy* ``True`` 
     will copy them from the mirror to the user specified *folder*.
     
-    Additionally, this function can be used to fetch XML files. Passing
+    Additionally, this function can be used to fetch XML files.  Passing
     ``xml=True`` keyword argument will perform the aforementioned for
     PDBML header file, e.g. :file:`1XXX.xml.gz`.  If XML file with only
     header data is desired, passing ``noatom=True`` keyword argument 
-    will do the job, e.g. :file:`1XXX.xml.gz`"""
+    will do the job, e.g. :file:`1XXX-noatom.xml.gz`"""
     
     if isinstance(pdb, str):
         identifiers = [pdb]
@@ -321,7 +316,6 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
         pdbext = '.ent.gz'
         extension = '.pdb'
         prefix = 'pdb'
-            
     
     pdbfnmap = {}
     for pdbfn in glob(os.path.join(folder, '*' + extension + '*')): 
@@ -446,13 +440,9 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
         return filenames
 
 def gunzip(filename, outname=None):
-    """Decompresses *filename* and saves as *outname*. 
-    
-    When *outname* is ``None``, *filename* is used as the output name.
-    
-    Returns output filename upon successful completion.
-    
-    """
+    """Decompresses *filename* and saves as *outname*.  When *outname* is 
+    ``None``, *filename* is used as the output name.  Returns output filename 
+    upon successful completion."""
 
     if not isinstance(filename, str):
         raise TypeError('filename must be a string')
@@ -467,6 +457,22 @@ def gunzip(filename, outname=None):
     out.write(data)
     out.close()
     return outname
+
+def parsePDBML(pdb):
+    """Return PDB header data in a dictionary parsed from PDBML/XML file."""
+    
+    if not os.path.isfile(pdb):
+        if len(pdb) == 4 and pdb.isalnum():
+            filename = fetchPDB(pdb, xml=True, noatom=True)
+            if filename is None:
+                raise IOError('PDBML file for {0:s} could not be downloaded.'
+                              .format(pdb))
+            pdb = filename
+        else:
+            raise IOError('{0:s} is not a valid filename or a valid PDB '
+                          'identifier.'.format(pdb))
+    header = {}
+    return header
 
 _parsePQRdoc = """
     :arg name: Name of the AtomGroup instance.  When ``None`` is passed,
