@@ -103,7 +103,7 @@ List of PDB structures can be updated using :func:`blastPDB` as follows::
   for key, item blast_record.getHits(sequence_identity).iteritems():
       pdb_hits.append((key, item['chain_id']))
 
->>> pdb_files = fetchPDB([pdb for pdb, ch in pdb_hits], folder='pdbfiles')
+>>> pdb_files = fetchPDB([pdb for pdb, ch in pdb_hits], folder='pdbfiles', compressed=False)
 
 Let's check number of downloaded files:
 
@@ -117,7 +117,7 @@ We first parse the reference structure. Note that we parse only Cα atoms from
 chain A. The analysis will be performed for a single chain (monomeric) protein.
 For analysis of a dimeric protein see :ref:`pca-dimer`
 
->>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb.gz', 
+>>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb', 
 ...                                subset='calpha', chain=ref_chid)
 >>> # Get the reference chain from this structure
 >>> reference_hierview = reference_structure.getHierView() 

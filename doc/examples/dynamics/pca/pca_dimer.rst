@@ -96,13 +96,13 @@ Structures
 Step 1: Retrieve structures
 -------------------------------------------------------------------------------
 
->>> pdb_files = fetchPDB(pdb_ids, folder='pdbfiles')
+>>> pdb_files = fetchPDB(pdb_ids, folder='pdbfiles', compressed=False)
 
 Step 2: Set reference
 -------------------------------------------------------------------------------
 
 >>> # Parse reference structure
->>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb.gz', subset='calpha')
+>>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb', subset='calpha')
 >>> # Get the reference chain from this structure
 >>> reference_hierview = reference_structure.getHierView() 
 >>> reference_chains = [reference_hierview[chid] for chid in ref_chids]
