@@ -660,7 +660,7 @@ def parsePDBStream(stream, **kwargs):
             ag = None
             LOGGER.warning('Atomic data could not be parsed, please '
                            'check the input file.')
-    elif header or biomol or secondary:
+    elif header:
         hd, split = _getHeaderDict(stream)
 
     if secondary:
@@ -756,8 +756,8 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def parsePDBHeader(pdb):
-    """Return PDB header data from *pdb* in a dictionary.  Same as calling 
-    ``parsePDB(pdb, header=True, model=0)``."""
+    """Return PDB header data from *pdb* in a dictionary.  This function
+    is equivalent to ``parsePDB(pdb, header=True, model=0, meta=False)``."""
     
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
@@ -1115,7 +1115,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 
     return atomgroup
 
-    
 def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     altloc_keys = altloc.keys()
     altloc_keys.sort()
@@ -1183,25 +1182,165 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 
 _START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
 
-def _getHeaderDict(stream, meta=False):
+def cleanString(string):
+    return ' '.join(string.strip().split())
+
+class Chemical(object):
+    
+    """A data structure for storing chemical component (or heterogen) data 
+    parsed from PDB header.
+    
+    .. versionadded:: 0.8.4
+    
+    A :class:`Chemical` instance has the following attributes:
+        
+    =========== ===============================================================
+    Attribute   Description
+    =========== ===============================================================
+    identifier  Chemical component (heterogen) identifier (CCI).
+    name        Chemical name.
+    chain       Chain identifier.
+    number      Residue (or sequence) number.
+    icode       Insertion code.
+    n_atoms     Number of HETATM records for the group present in the entry.
+    description Text describing heterogen group.
+    synonyms    List of synonyms.
+    formula     Chemical formula.
+    =========== ===============================================================
+    
+    """
+    
+    __slots__ = ['identifier', 'name', 'chain', 'number', 'icode', 
+                 'n_atoms', 'description', 'synonyms', 'formula']
+    
+    def __init__(self, identifier):
+        
+        self.identifier = identifier
+        self.name = None
+        self.chain = None
+        self.number = None
+        self.icode = None
+        self.n_atoms = None
+        self.description = None
+        self.synonyms = None
+        self.formula = None
+        
+    def __str__(self):
+        return self.identifier
+    
+    def __repr__(self):
+        return ('<Chemical: {0:s}>'.format(self.identifier))
+
+def _getHeaderDict(stream):
     """Return header data in a dictionary.  *stream* may be a list of PDB lines
     or a stream."""
     
     header = {}
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     
-    
-    biomolecule = defaultdict(list)
     applyToChains = (' ')
     lines = defaultdict(list)
-    for split, line in enumerate(stream):
+    for loc, line in enumerate(stream):
         startswith = line[0:6]
         if startswith in _START_COORDINATE_SECTION:
             break
         lines[startswith].append(line)
+    for line in lines['REMARK']:
+        lines[line[7:10]].append(line)
         
+    # One time, single line
+    # =========================================================================
+    
+    # Mandatory
+    #--------------------------------------------------------------------------
+    
+    # "HEADER"
+    # First line of the entry, contains PDB ID code, classification, and date 
+    # of deposition.
+    line = lines['HEADER']
+    if line:
+        line = line[0]
+        header['deposition_date'] = line[50:59].strip()
+        header['classification'] = line[10:50].strip()
+        header['identifier'] = line[62:66]
+        
+    # Optional
+    #--------------------------------------------------------------------------
+    
+    # "NUMMDL", Integer, 11 - 14  
+    # Number of models.
+    line = lines['NUMMDL']
+    if line:
+        line = line[0]
+        try:
+            header['n_models'] = int(line[10:14])
+        except:
+            LOGGER.warning('Failed to parse number of models.')
+        
+    # One time, multiple lines
+    # =========================================================================
+    
+    # Mandatory
+    #--------------------------------------------------------------------------
+    
+    # "TITLE ", String, 11 - 80
+    # Description of the experiment represented in the entry.
+    string = ''
+    for line in lines['TITLE ']:
+        string += ' ' + line[10:]
+    header['title'] = cleanString(string)
+    
+    # "EXPDTA", SList, 11 - 79, mandatory
+    # Experimental technique used for the structure determination.
+    string = ''
+    for line in lines['EXPDTA']:
+        string += ' ' + line[10:]
+    header['experiment'] = cleanString(string)
+    
+    # "AUTHOR", List, 11 - 79
+    # List of contributors.
+    string = ''
+    for line in lines['AUTHOR']:
+        string += ' ' + line[10:]
+    header['authors'] = cleanString(string).split(',')
+    
+    # "COMPND"
+    for line in lines['COMPND']:
+        temp = header.get('compounds', '')
+        temp += ' ' + line[10:]
+        header['compounds'] = temp.strip()
+    
+    # "SOURCE"
+    for line in lines['SOURCE']:
+        temp = header.get('source', '')
+        temp += ' ' + line[10:]
+        header['source'] = temp.strip()
+    
+    # Optional
+    #--------------------------------------------------------------------------
+    
+    # "SPLIT "
+    # List of PDB entries that compose a larger macromolecular complexes.
+    split = []
+    for line in lines['SPLIT ']: 
+        split.extend(line[11:].split())
+    if split:
+        header['split'] = split
+        
+    # "MDLTYP", SList, 11 - 80
+    # Contains additional annotation pertinent to the coordinates presented 
+    # in the entry.
+    string = ''
+    for line in lines['MDLTYP']:
+        string += ' ' + line[10:]
+    if string:
+        header['model_type'] = cleanString(string)
+    
+    # Multiple times, one line
+    #==========================================================================
+    
+    helix = {}
     for line in lines['HELIX ']:
-        helix = {}
         try:
             chid = line[19]
             #        helix class,      serial number,   identifier
@@ -1223,10 +1362,10 @@ def _getHeaderDict(stream, meta=False):
             endResnum -= 1    
         for resnum in range(initResnum, endResnum+1):
             helix[(chid, resnum, '')] = value
-        header['helix'] = helix
+    header['helix'] = helix
         
+    sheet = {}
     for line in lines['SHEET ']:
-        sheet = {}
         try:
             chid = line[21]
             value = (int(line[38:40]), int(line[7:10]), 
@@ -1248,91 +1387,133 @@ def _getHeaderDict(stream, meta=False):
             endResnum -= 1    
         for resnum in range(initResnum, endResnum+1):
             sheet[(chid, resnum, '')] = value
-        header['sheet'] = sheet
-        
-    for line in lines['HEADER']:
-        header['deposition_date'] = line[50:59].strip()
-        header['classification'] = line[10:50].strip()
-        header['identifier'] = line[62:66]
-        
-    for line in lines['TITLE ']:
-        temp = header.get('title', '')
-        temp += ' ' + line[10:]
-        header['title'] = temp.strip()
-        
-    for line in lines['EXPDTA']:
-        temp = header.get('experiment', '')
-        temp += ' ' + line[10:]
-        header['experiment'] = temp.strip()
+    header['sheet'] = sheet
+    
+    # Multiple times, multiple lines
+    #==========================================================================
 
-    for line in lines['SOURCE']:
-        temp = header.get('source', '')
-        temp += ' ' + line[10:]
-        header['source'] = temp.strip()
-        
+    sequences = defaultdict(str)
     for line in lines['SEQRES']:
-        sequences = defaultdict(str)
         sequences[line[11]] += ''.join(
                             prody.compare.getSequence(line[19:].split()))
-        header['sequences'] = dict(sequences)
+    header['sequences'] = dict(sequences)
         
-    for line in lines['REMARK']:
-        nmbr = line[7:10]
-        if nmbr == '  2':
-            if 'RESOLUTION' in line:
-                header['resolution'] = line[23:].strip()[:-1]    
-        elif nmbr == '350':
-            if line[13:18] == 'BIOMT':
-                biomt = biomolecule[currentBiomolecule]
-                if len(biomt) == 0:
-                    biomt.append(applyToChains)
-                biomt.append(line[23:])
-            elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
-                applyToChains = line[41:].replace(' ', 
-                                                  '').strip().split(',')
-            elif line[11:23] == 'BIOMOLECULE:': 
-                currentBiomolecule = line.split()[-1]
-                
-    for line in lines['COMPND']:
-        temp = header.get('compounds', '')
-        temp += ' ' + line[10:]
-        header['compounds'] = temp.strip()
+    
+    # Heterogen Section
+    #==========================================================================
+    heterogens = set([])
+    # "HET   "
+    for line in lines['HET   ']:
+        het = line[7:10].strip()
+        heterogens.add(het)
+        het = header.get(het, Chemical(het))
+        het.chain = line[12].strip()
+        het.number = int(line[13:17])
+        het.icode = line[17].strip()
+        het.n_atoms = int(line[20:25])
+        het.description = line[30:70].strip()
+        header[het.identifier] = het
+    # "HETNAM"
+    for line in lines['HETNAM']:
+        het = line[11:14].strip()
+        heterogens.add(het)
+        het = header.get(het, Chemical(het))
+        if het.name is None: 
+            het.name = ''
+        het.name += line[15:70]
+        header[het.identifier] = het
+    # "HETSYN"
+    for line in lines['HETNAM']:
+        het = line[11:14].strip()
+        heterogens.add(het)
+        het = header.get(het, Chemical(het))
+        if het.synonyms is None: 
+            het.synonyms = ''
+        het.synonyms += line[15:70]
+        header[het.identifier] = het
+    # "FORMUL"
+    for line in lines['FORMUL']:
+        het = line[12:15].strip()
+        heterogens.add(het)
+        het = header.get(het, Chemical(het))
+        if het.formula is None: 
+            het.formula = ''
+        het.formula += line[18:70]
+        header[het.identifier] = het
+    heterogens = list(heterogens)
+    header['chemicals'] = []
+    for het in heterogens:
+        het = header[het]
+        header['chemicals'].append(het)
+        if het.identifier == 'HOH':
+            het.name = 'WATER'
+            het.synonyms = 'WATER'
+        het.name = cleanString(het.name)
+        het.formula = cleanString(het.formula)
+        het.synonyms = cleanString(het.synonyms)
+        het.synonyms = het.synonyms.split(';')
+    
+    # Other
+    #==========================================================================
+    
+    # "JRNL  "
+    ref = {}
+    title = ''
+    authors = []
+    editors = []
+    reference = ''
+    publisher = ''
+    for line in lines['JRNL  '] + lines['  1']:
+        try:
+            what = line.split(None, 2)[1]
+        except:
+            continue
+        if what == 'AUTH':
+            authors.extend(line[19:].strip().split(','))
+        elif what == 'TITL':
+            title += line[19:]
+        elif what == 'EDIT':
+            editors.extend(line[19:].strip().split(','))
+        elif what == 'REF':
+            reference += line[19:]
+        elif what == 'PUBL':
+            publisher += line[19:]
+        elif what == 'REFN':
+            ref['issn'] = line[19:].strip()
+        elif what == 'PMID':
+            ref['pmid'] = line[19:].strip()
+        elif what == 'DOI':
+            ref['doi'] = line[19:].strip()
+    ref['authors'] = authors
+    ref['title'] = cleanString(title)
+    ref['editors'] = editors
+    ref['reference'] = cleanString(reference)
+    ref['publisher'] = cleanString(publisher)
+    header['reference'] = ref
+
+    
+    # "REMARK"
+    for line in lines['  2']:
+        if 'RESOLUTION' in line:
+            header['resolution'] = line[23:].strip()[:-1]    
+    
+    biomolecule = defaultdict(list)
+    for line in lines['350']:
         
-    if meta:        
-        for line in lines['AUTHOR']:
-            temp = header.get('authors', [])
-            temp += line[10:].strip().split(',')
-            while '' in temp:
-                temp.pop(temp.index(''))
-            header['authors'] = temp
-        
-        for line in lines['JRNL  ']:
-            temp =  header.get('reference', {})
-            items = line.split()
-            if items[1] == 'AUTH':
-                tmp = temp.get('authors', [])
-                tmp += line[19:].strip().split(',')
-                while '' in tmp:
-                    tmp.pop(tmp.index(''))
-                temp['authors'] = tmp
-            elif items[1] == 'TITL':
-                tmp = temp.get('title', '')
-                tmp += ' ' + line[19:]
-                temp['title'] = tmp.strip()
-            elif items[1] == 'REF':
-                tmp = temp.get('reference', '')
-                tmp += ' ' + line[19:]
-                temp['reference'] = ' '.join(tmp.split())
-            elif items[1] == 'PMID':
-                temp['pubmed'] = line[19:].strip()
-            elif items[1] == 'DOI':
-                temp['doi'] = line[19:].strip()
-            header['reference'] = temp
-        
+        if line[13:18] == 'BIOMT':
+            biomt = biomolecule[currentBiomolecule]
+            if len(biomt) == 0:
+                biomt.append(applyToChains)
+            biomt.append(line[23:])
+        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
+            applyToChains = line[41:].replace(' ', 
+                                              '').strip().split(',')
+        elif line[11:23] == 'BIOMOLECULE:': 
+            currentBiomolecule = line.split()[-1]
     if biomolecule:
         header['biomolecular_transformations'] = biomolecule
         
-    return header, split
+    return header, loc
 
 def parsePSF(filename, name=None, ag=None):
     """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
@@ -1696,6 +1877,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         handle = urllib2.urlopen(request)
         results = handle.read()
         index = results.find('Status=')
+        LOGGER.clear()
         if index < 0:
             break
         last = results.index('\n', index)
