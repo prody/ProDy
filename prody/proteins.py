@@ -157,10 +157,10 @@ WWPDB_FTP_SERVERS = {
 }
 
 def getPDBMirrorPath():
-    """Return the path to a local PDB mirror.
+    """Return the path to a local PDB mirror, or ``None`` if a mirror path is 
+    not set.
     
     .. versionadded:: 0.6.1
-    
     """
 
     path = prody._ProDySettings.get('pdb_mirror_path')
@@ -171,23 +171,19 @@ def getPDBMirrorPath():
             LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
                            .format(path))
 
-
 def setPDBMirrorPath(path):
-    """Set the path to a local PDB mirror.
+    """Set the path to a local PDB mirror.  
     
     .. versionadded:: 0.6.1
-    
-    Returns ``None`` if a PDB local mirror path is not set.
-    
     """
     
-    path = str(path)
+    if not isinstance(path, str):
+        raise TypeError('path must be a string')
     if os.path.isdir(path):
         prody._ProDySettings['pdb_mirror_path'] = path
         prody._saveProDySettings()
     else:
-        LOGGER.warning('{0:s} is not a valid path.'.format(path))
-
+        raise IOError('No such directory: "{0:s}"'.format(path))
 
 def setWWPDBFTPServer(key):
     """Set the PDB FTP server used for downloading PDB structures when needed.
@@ -231,15 +227,16 @@ def getWWPDBFTPServer():
     else:
         return server
     
+# The following is to prevent breaking users code due to changes in fetchPDB
+# Remove this in v0.9.2
 _ = getWWPDBFTPServer()
 if isinstance(_, tuple) and len(_) == 3:
     setWWPDBFTPServer(_[0].split()[0])
 
 def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
-    """Return path(s) to PDB/XML file(s) for specified identifier(s).  This
-    function may be used to locate PDB files in *folder* or in a local PDB 
-    mirror or to download files from a WWPDB FTP servers.  *pdb* may be a list 
-    of PDB identifiers or an identifier string.
+    """Retrieve PDB, PDBML, or mmCIF file(s) for specified *pdb* identifier(s).  
+    *pdb* may be a string or a list.  The function will return a filename or a 
+    list of filenames depending on input (see :ref:`fetchpdb` for examples).  
 
     .. versionchanged:: 0.8
        *compressed* and *copy* argument is introduced.  
@@ -251,33 +248,20 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     .. versionadded:: 0.8.4
        *format* and *noatom* keyword arguments.
 
-    The order of operations are as follows:
-
-    First, user specified *folder* will be sought for PDB/XML files.  If 
-    *folder* contains a PDB file matching given identifier, a file will not 
-    be downloaded and the path to the existing file will be returned.
+    If *compressed* is ``False``, all files will be decompressed.  If *copy* is 
+    ``True``, all files from local PDB mirror will copied to the user specified 
+    *folder*.  *format* keyword argument can be used to retrieve `PDBML 
+    <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files:  
+    ``format="cif"`` will fetch an mmCIF file (e.g. :file:`1XXX.cif.gz`), 
+    similarly ``format="xml"`` will fetch a PDBML file.  If PDBML header file 
+    is desired, ``format="xml", noatom=True`` will do the job (e.g. 
+    :file:`1XXX-noatom.xml.gz`)
     
-    Second, local PDB mirror will be sought for PDB/XML files, if one is set 
-    by the user (see :func:`setPDBMirrorPath`).  If PDB is found in the local 
-    repository, the path to the file will be returned. 
-    
-    Finally, if PDB file is not found in *folder* or the local mirror, it will 
-    be downloaded from a user specified World Wide PDB FTP server (see 
-    :func:`setWWPDBFTPServer`.  Downloaded files will be saved in *folder*. 
-    
-    If *compressed* argument is set to ``False``, local files in *folder*
-    or files from local mirror or WWPDB will be decompressed.  
-    
-    For PDB files found in a local mirror of PDB, setting *copy* ``True`` 
-    will copy them from the mirror to the user specified *folder*.
-    
-    Additionally, using *format* keyword option this function can be used to 
-    fetch `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ 
-    files.  For example, passing ``format="cif"`` keyword argument will fetch 
-    an mmCIF (e.g. :file:`1XXX.cif.gz`) or passing ``format="xml"`` keyword 
-    argument will fetch a PDBML file (e.g. :file:`1XXX.xml.gz`).  If PDBML 
-    header file is desired, passing ``format="xml", noatom=True`` keyword 
-    arguments will do the job (e.g. :file:`1XXX-noatom.xml.gz`)"""
+    The order of file search operations are as follows:  First, files are 
+    sought in *folder*.  Second, local PDB mirror will be sought, if one is 
+    set by the user (see :func:`setPDBMirrorPath`).  Finally, if files are 
+    now found locally, they will be downloaded one of WWPDB FTP servers (use 
+    :func:`setWWPDBFTPServer` to specify one close to you)."""
     
     if isinstance(pdb, str):
         identifiers = [pdb]
@@ -286,15 +270,15 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     else:
         raise TypeError('pdb may be a string or a list of strings')
         
-    assert isinstance(folder, str), 'folder must be string'
-    assert isinstance(compressed, bool), 'compressed must be boolean'
-    assert isinstance(copy, bool), 'copy must be boolean'
+    assert isinstance(folder, str), 'folder must be a string'
+    assert isinstance(compressed, bool), 'compressed must be a boolean'
+    assert isinstance(copy, bool), 'copy must be a boolean'
     format = kwargs.pop('format', 'pdb')
-    assert isinstance(format, str), 'format must be string'
+    assert isinstance(format, str), 'format must be a string'
     format = format.lower()
     assert format in _PDB_FORMATS, '"{0:s}" is not valid format'.format(format)
     noatom = kwargs.pop('noatom', False) 
-    assert isinstance(noatom, bool), 'noatom must be boolean'
+    assert isinstance(noatom, bool), 'noatom must be a boolean'
     if kwargs:
         raise TypeError('"{0:s}" is not a valid keyword argument for this' 
                         'function'.format(kwargs.iterkeys().next()))
@@ -1196,124 +1180,133 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                         'set to the atom group.'
                         .format(key, atomgroup.getName()))
             atomgroup.addCoordset(xyz)
-    
-def _getHeaderDict(lines):
-    """Return header data in a dictionary.  *lines* may be a list of PDB lines
+
+_START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
+
+def _getHeaderDict(stream, meta=False):
+    """Return header data in a dictionary.  *stream* may be a list of PDB lines
     or a stream."""
     
     header = {}
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    helix = {}
-    sheet = {}
-    biomolecule = defaultdict(list)
-    sequences = defaultdict(str)
-    applyToChains = (' ')
-    i = 0
-    for i, line in enumerate(lines):        
-        startswith = line[0:6]
-        if startswith == 'ATOM  ' or startswith == 'HETATM' or \
-           startswith == 'MODEL ':
-            if biomolecule:
-                header['biomolecular_transformations'] = biomolecule
-            if sequences:
-                header['sequences'] = dict(sequences)
-            if helix:
-                header['helix'] = helix
-            if sheet:
-                header['sheet'] = sheet
-            return header, i
-        
-        if startswith == 'HELIX ':
-            try:
-                chid = line[19]
-                # helix class, serial number, identifier
-                value = (int(line[38:40]), int(line[7:10]), 
-                         line[11:14].strip())
-            except:
-                continue
-            
-            initICode = line[25]
-            initResnum = int(line[21:25])
-            if initICode != ' ':
-                for icode in alphas[alphas.index(initICode):]:
-                    helix[(chid, initResnum, icode)] = value
-                initResnum += 1    
-            endICode = line[37]
-            endResnum = int(line[33:37])
-            if endICode != ' ':
-                for icode in alphas[:alphas.index(endICode)+1]:
-                    helix[(chid, endResnum, icode)] = value
-                endResnum -= 1    
-            for resnum in range(initResnum, endResnum+1):
-                helix[(chid, resnum, '')] = value
-        elif startswith == 'SHEET ':
-            try:
-                chid = line[21]
-                value = (int(line[38:40]), int(line[7:10]), 
-                         line[11:14].strip())
-            except:
-                continue
     
-            initICode = line[26]
-            initResnum = int(line[22:26])
-            if initICode != ' ':
-                for icode in alphas[alphas.index(initICode):]:
-                    sheet[(chid, initResnum, icode)] = value
-                initResnum += 1    
-            endICode = line[37]
-            endResnum = int(line[33:37])
-            if endICode != ' ':
-                for icode in alphas[:alphas.index(endICode)+1]:
-                    sheet[(chid, endResnum, icode)] = value
-                endResnum -= 1    
-            for resnum in range(initResnum, endResnum+1):
-                sheet[(chid, resnum, '')] = value
-            
-        elif startswith == 'HEADER':
-            header['deposition_date'] = line[50:59].strip()
-            header['classification'] = line[10:50].strip()
-            header['identifier'] = line[62:66]
-        elif startswith == 'TITLE ':
-            temp = header.get('title', '')
-            temp += ' ' + line[10:]
-            header['title'] = temp.strip()
-        elif startswith == 'EXPDTA':
-            temp = header.get('experiment', '')
-            temp += ' ' + line[10:]
-            header['experiment'] = temp.strip()
-        elif startswith == 'AUTHOR':
+    
+    biomolecule = defaultdict(list)
+    applyToChains = (' ')
+    lines = defaultdict(list)
+    for split, line in enumerate(stream):
+        startswith = line[0:6]
+        if startswith in _START_COORDINATE_SECTION:
+            break
+        lines[startswith].append(line)
+        
+    for line in lines['HELIX ']:
+        helix = {}
+        try:
+            chid = line[19]
+            #        helix class,      serial number,   identifier
+            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
+        except:
+            continue
+        
+        initICode = line[25]
+        initResnum = int(line[21:25])
+        if initICode != ' ':
+            for icode in alphas[alphas.index(initICode):]:
+                helix[(chid, initResnum, icode)] = value
+            initResnum += 1    
+        endICode = line[37]
+        endResnum = int(line[33:37])
+        if endICode != ' ':
+            for icode in alphas[:alphas.index(endICode)+1]:
+                helix[(chid, endResnum, icode)] = value
+            endResnum -= 1    
+        for resnum in range(initResnum, endResnum+1):
+            helix[(chid, resnum, '')] = value
+        header['helix'] = helix
+        
+    for line in lines['SHEET ']:
+        sheet = {}
+        try:
+            chid = line[21]
+            value = (int(line[38:40]), int(line[7:10]), 
+                     line[11:14].strip())
+        except:
+            continue
+
+        initICode = line[26]
+        initResnum = int(line[22:26])
+        if initICode != ' ':
+            for icode in alphas[alphas.index(initICode):]:
+                sheet[(chid, initResnum, icode)] = value
+            initResnum += 1    
+        endICode = line[37]
+        endResnum = int(line[33:37])
+        if endICode != ' ':
+            for icode in alphas[:alphas.index(endICode)+1]:
+                sheet[(chid, endResnum, icode)] = value
+            endResnum -= 1    
+        for resnum in range(initResnum, endResnum+1):
+            sheet[(chid, resnum, '')] = value
+        header['sheet'] = sheet
+        
+    for line in lines['HEADER']:
+        header['deposition_date'] = line[50:59].strip()
+        header['classification'] = line[10:50].strip()
+        header['identifier'] = line[62:66]
+        
+    for line in lines['TITLE ']:
+        temp = header.get('title', '')
+        temp += ' ' + line[10:]
+        header['title'] = temp.strip()
+        
+    for line in lines['EXPDTA']:
+        temp = header.get('experiment', '')
+        temp += ' ' + line[10:]
+        header['experiment'] = temp.strip()
+
+    for line in lines['SOURCE']:
+        temp = header.get('source', '')
+        temp += ' ' + line[10:]
+        header['source'] = temp.strip()
+        
+    for line in lines['SEQRES']:
+        sequences = defaultdict(str)
+        sequences[line[11]] += ''.join(
+                            prody.compare.getSequence(line[19:].split()))
+        header['sequences'] = dict(sequences)
+        
+    for line in lines['REMARK']:
+        nmbr = line[7:10]
+        if nmbr == '  2':
+            if 'RESOLUTION' in line:
+                header['resolution'] = line[23:].strip()[:-1]    
+        elif nmbr == '350':
+            if line[13:18] == 'BIOMT':
+                biomt = biomolecule[currentBiomolecule]
+                if len(biomt) == 0:
+                    biomt.append(applyToChains)
+                biomt.append(line[23:])
+            elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
+                applyToChains = line[41:].replace(' ', 
+                                                  '').strip().split(',')
+            elif line[11:23] == 'BIOMOLECULE:': 
+                currentBiomolecule = line.split()[-1]
+                
+    for line in lines['COMPND']:
+        temp = header.get('compounds', '')
+        temp += ' ' + line[10:]
+        header['compounds'] = temp.strip()
+        
+    if meta:        
+        for line in lines['AUTHOR']:
             temp = header.get('authors', [])
             temp += line[10:].strip().split(',')
             while '' in temp:
                 temp.pop(temp.index(''))
             header['authors'] = temp
-        elif startswith == 'SOURCE':
-            temp = header.get('source', '')
-            temp += ' ' + line[10:]
-            header['source'] = temp.strip()
-        elif startswith == 'SEQRES':
-            sequences[line[11]] += ''.join(
-                                prody.compare.getSequence(line[19:].split()))
-        elif startswith == 'REMARK':
-            nmbr = line[7:10]
-            if nmbr == '  2':
-                if 'RESOLUTION' in line:
-                    header['resolution'] = line[23:].strip()[:-1]    
-            elif nmbr == '350':
-                if line[13:18] == 'BIOMT':
-                    biomt = biomolecule[currentBiomolecule]
-                    if len(biomt) == 0:
-                        biomt.append(applyToChains)
-                    biomt.append(line[23:])
-                elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
-                    applyToChains = line[41:].replace(' ', '').strip().split(',')
-                elif line[11:23] == 'BIOMOLECULE:': 
-                    currentBiomolecule = line.split()[-1]
-        elif startswith == 'COMPND':
-            temp = header.get('compounds', '')
-            temp += ' ' + line[10:]
-            header['compounds'] = temp.strip()
-        elif startswith == 'JRNL  ':
+        
+        for line in lines['JRNL  ']:
             temp =  header.get('reference', {})
             items = line.split()
             if items[1] == 'AUTH':
@@ -1335,15 +1328,11 @@ def _getHeaderDict(lines):
             elif items[1] == 'DOI':
                 temp['doi'] = line[19:].strip()
             header['reference'] = temp
+        
     if biomolecule:
         header['biomolecular_transformations'] = biomolecule
-    if sequences:
-        header['sequences'] = dict(sequences)
-    if helix:
-        header['helix'] = helix
-    if sheet:
-        header['sheet'] = sheet
-    return header, i
+        
+    return header, split
 
 def parsePSF(filename, name=None, ag=None):
     """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
@@ -1576,10 +1565,10 @@ class PDBBlastRecord(object):
         """
         
         assert isinstance(percent_identity, (float, int)), \
-            'percent_identity must be float or integer'
+            'percent_identity must be a float or an integer'
         assert isinstance(percent_coverage, (float, int)), \
-            'percent_coverage must be float or integer'
-        assert isinstance(chain, bool), 'chain must be boolean'
+            'percent_coverage must be a float or an integer'
+        assert isinstance(chain, bool), 'chain must be a boolean'
         
         hits = {}
         for p_identity, p_coverage, hit in self._hits:
@@ -1649,11 +1638,11 @@ def blastPDB(sequence, filename=None, **kwargs):
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),] 
     expect = kwargs.pop('expect', 10e-10)
-    assert isinstance(expect, (float, int)), 'expect must be float'
+    assert isinstance(expect, (float, int)), 'expect must be a float'
     assert expect > 0, 'expect must be a positive number'
     query.append(('EXPECT', expect))
     hitlist_size = kwargs.pop('hitlist_size', 250)
-    assert isinstance(hitlist_size, int), 'hitlist_size must be integer'
+    assert isinstance(hitlist_size, int), 'hitlist_size must be an integer'
     assert hitlist_size > 0, 'expect must be a positive integer'
     query.append(('HITLIST_SIZE', hitlist_size))
     query.append(('QUERY', sequence))
