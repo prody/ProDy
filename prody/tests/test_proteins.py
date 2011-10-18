@@ -298,25 +298,26 @@ class TestParsePDBHeaderOnly(unittest.TestCase):
         
     def testHeaderContent(self):
         self.assertEqual(self.header.get('resolution'), 'NOT APPLICABLE',
-            'mistakes in header dictionary content')
+            'failed to get expected value for resolution from header')
         self.assertEqual(self.header.get('classification'), 
             'SIGNALING PROTEIN',
-            'mistakes in header dictionary content')
+            'failed to get expected value for classification from header')
         self.assertEqual(self.header.get('experiment'), 'SOLUTION NMR',
-            'mistakes in header dictionary content')
+            'failed to get expected value for experiment from header')
         self.assertEqual(self.header.get('deposition_date'), '25-APR-08',
-            'mistakes in header dictionary content')
+            'failed to get expected value for deposition_date from header')
         self.assertEqual(self.header.get('identifier'), '2K39',
-            'mistakes in header dictionary content')
+            'failed to get expected value for identifier from header')
         self.assertEqual(self.header.get('source'), 
             'MOL_ID: 1;  ORGANISM_SCIENTIFIC: XENOPUS LAEVIS;  '
             'ORGANISM_COMMON: AFRICAN CLAWED FROG;  '
             'EXPRESSION_SYSTEM: ESCHERICHIA COLI',
-            'mistakes in header dictionary content')
+            'failed to get expected value for source from header')
+        print self.header.get('title')
         self.assertEqual(self.header.get('title'), 
-            'RECOGNITION DYNAMICS UP TO MICROSECONDS REVEALED FROM RDC  '
+            'RECOGNITION DYNAMICS UP TO MICROSECONDS REVEALED FROM RDC '
             'DERIVED UBIQUITIN ENSEMBLE IN SOLUTION',
-            'mistakes in header dictionary content')
+            'failed to get expected value for title from header dictionary')
 
     def tearDown(self):
         
