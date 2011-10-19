@@ -110,6 +110,7 @@ import numpy as np
 
 import prody
 LOGGER = prody.LOGGER
+checkCoordsArray = prody.checkCoordsArray 
 
 __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
            'Selection', 'Chain',
@@ -836,59 +837,33 @@ class AtomGroup(Atomic):
 
 
     def setCoordinates(self, coordinates):
-        """Set coordinates.
-        
-        Coordinates must be a :class:`numpy.ndarray` instance.
-        
-        If the shape of the coordinates array is (n_coordsets,n_atoms,3),
-        the given array will replace all coordinate sets. To avoid it,
-        :meth:`addCoordset` may be used.
+        """Set coordinates.  Coordinates must be a :class:`numpy.ndarray` 
+        instance.  If the shape of the coordinates array is 
+        (n_coordsets,n_atoms,3), the given array will replace all coordinate 
+        sets. To avoid it, :meth:`addCoordset` may be used.
         
         If the shape of the coordinates array is (n_atoms,3) or (1,n_atoms,3),
-        the coordinate set will replace the coordinates of the currently active 
-        coordinate set.
-        
-        """
+        the coordinate set will replace the coordinates of the currently active
+        coordinate set."""
 
-        if not isinstance(coordinates, np.ndarray):
-            raise TypeError('coordinates must be an ndarray instance')
-
-        if not coordinates.ndim in (2, 3):
-            raise ValueError('coordinates must be a 2d or a 3d array')
-            
-        if coordinates.shape[-1] != 3:
-            raise ValueError('shape of coordinates must be (n_atoms,3) or '
-                             '(n_coordsets,n_atoms,3)')
-        float64 = np.float64
-        if coordinates.dtype != float64:
-            try:
-                coordinates = coordinates.astype(float64)
-            except ValueError:
-                raise ValueError('coordinate array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
+        coordinates = checkCoordsArray(coordinates, 'coordinates',
+                                       cset=True, n_atoms=self._n_atoms,
+                                       reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coordinates.shape[-2] 
-        elif coordinates.shape[-2] != self._n_atoms:
-            raise ValueError('length of coordinate array must match n_atoms')
         
         if self._coordinates is None:
-            if coordinates.ndim == 2:
-                coordinates = coordinates.reshape(
-                            (1, coordinates.shape[0], coordinates.shape[1]))
             self._coordinates = coordinates
-            self._n_csets = self._coordinates.shape[0]
+            self._n_csets = coordinates.shape[0]
             self._acsi = 0
             self._setTimeStamp()
         else:
-            if coordinates.ndim == 2:
-                self._coordinates[self._acsi] = coordinates
-                self._setTimeStamp(self._acsi)
-            elif coordinates.shape[0] == 1:
+            if coordinates.shape[0] == 1:
                 self._coordinates[self._acsi] = coordinates[0]
                 self._setTimeStamp(self._acsi)
             else:
                 self._coordinates = coordinates
-                self._n_csets = self._coordinates.shape[0]
+                self._n_csets = coordinates.shape[0]
                 self._acsi = min(self._n_csets - 1, self._acsi)
                 self._setTimeStamp()
             
@@ -912,21 +887,10 @@ class AtomGroup(Atomic):
         if self._coordinates is None:
             self.setCoordinates(coords)
             return
-        if not isinstance(coords, np.ndarray):
-            raise TypeError('coords must be an ndarray instance')
-        elif not coords.ndim in (2, 3):
-            raise ValueError('coords must be a 2d or a 3d array')
-        elif coords.shape[-2:] != self._coordinates.shape[1:]:
-            raise ValueError('shape of coords must be ([n_coordsets,] '
-                             'n_atoms, 3)')
-        elif coords.dtype != np.float64:
-            try:
-                coords = coords.astype(np.float64)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
-        if coords.ndim == 2:
-            coords = coords.reshape((1, coords.shape[0], coords.shape[1]))
+
+        coords = checkCoordsArray(coords, 'coords', cset=True, 
+                                  n_atoms=self._n_atoms, reshape=True)
+
         self._coordinates = np.concatenate((self._coordinates, coords), axis=0)
         self._n_csets = self._coordinates.shape[0]
         timestamps = self._timestamps
