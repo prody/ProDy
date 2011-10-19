@@ -33,8 +33,10 @@ Functions
   * :func:`buildBiomolecules`
   * :func:`blastPDB`
   * :func:`fetchPDB`
+  * :func:`getPDBLocalFolder`
   * :func:`getPDBMirrorPath`
   * :func:`getWWPDBFTPServer`
+  * :func:`setPDBLocalFolder`
   * :func:`setPDBMirrorPath`
   * :func:`setWWPDBFTPServer` 
   * :func:`parsePDB`
@@ -102,8 +104,8 @@ __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
            'assignSecondaryStructure', 'assignSecondaryStr',
            'applyBiomolecularTransformations', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
-           'getPDBMirrorPath', 'getWWPDBFTPServer', 
-           'setPDBMirrorPath', 'setWWPDBFTPServer',
+           'getPDBLocalFolder', 'getPDBMirrorPath', 'getWWPDBFTPServer', 
+           'setPDBLocalFolder', 'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 'parsePSF', 'parsePQR',
            'writePDBStream', 'writePDB', 'writePQR', 
            'parsePDBHeader', 'parsePDBML',
@@ -157,12 +159,62 @@ WWPDB_FTP_SERVERS = {
     'jp'     : _WWPDB_PDBj,
 }
 
+def getPDBLocalFolder():
+    """Return the path to a local PDB folder and folder structure specifier. 
+    If a local folder is not set, ``None`` will be returned.
+    
+    .. versionadded:: 0.8.4"""
+
+    folder = prody._ProDySettings.get('pdb_local_folder')
+    if isinstance(folder, str):
+        if os.path.isdir(folder):
+            return folder, prody._ProDySettings.get('pdb_local_divided', True)
+        else:
+            LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
+                           .format(folder))
+
+def setPDBLocalFolder(folder, divided=False):
+    """Set a local PDB folder.  Setting a local PDB folder will make 
+    :func:`fetchPDB` function to seek that folder for presence of requested
+    PDB files.  Also, PDB files downloaded from WWPDB FTP servers will be 
+    saved in this folder.  This may help users to store PDB files in a single 
+    place and have access to them in different working directories.
+    
+    .. versionadded:: 0.8.4
+    
+    If *divided* is ``True``, the divided folder structure of WWPDB servers 
+    will be assumed when reading from and writing to the local folder.  For 
+    example, a structure with identifier **1XYZ** will be present as 
+    :file:`pdblocalfolder/yz/pdb1xyz.pdb.gz`. 
+    
+    If *divided* is ``False``, a plain folder structure will be expected and 
+    adopted when saving files.  For example, the same structure will be 
+    present as :file:`pdblocalfolder/1xyz.pdb.gz`.
+    
+    Finally, in either case, lower case letters will be used and compressed
+    files will be stored."""
+    
+    if not isinstance(folder, str):
+        raise TypeError('folder must be a string')
+    assert isinstance(divided, bool), 'divided must be a boolean'
+    if os.path.isdir(folder):
+        if divided:
+            LOGGER.info('When using local PDB folder, WWPDB divided '
+                        'folder structure will be assumed.')
+        else:
+            LOGGER.info('When using local PDB folder, a plain folder structure '
+                        'will be assumed.')
+        prody._ProDySettings['pdb_local_folder'] = folder
+        prody._ProDySettings['pdb_local_divided'] = divided
+        prody._saveProDySettings()
+    else:
+        raise IOError('No such directory: "{0:s}"'.format(folder))
+
 def getPDBMirrorPath():
     """Return the path to a local PDB mirror, or ``None`` if a mirror path is 
     not set.
     
-    .. versionadded:: 0.6.1
-    """
+    .. versionadded:: 0.6.1"""
 
     path = prody._ProDySettings.get('pdb_mirror_path')
     if isinstance(path, str):
@@ -175,8 +227,7 @@ def getPDBMirrorPath():
 def setPDBMirrorPath(path):
     """Set the path to a local PDB mirror.  
     
-    .. versionadded:: 0.6.1
-    """
+    .. versionadded:: 0.6.1"""
     
     if not isinstance(path, str):
         raise TypeError('path must be a string')
@@ -215,8 +266,7 @@ def getWWPDBFTPServer():
     """Return a tuple containing name, host, and path of the currently 
     set WWPDB FTP server.
     
-    .. versionadded:: 0.6.1
-    """
+    .. versionadded:: 0.6.1"""
     
     server = prody._ProDySettings.get('wwpdb_ftp')
     if server is None:
@@ -247,7 +297,11 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
        local PDB mirror are decompressed.
     
     .. versionadded:: 0.8.4
-       *format* and *noatom* keyword arguments.
+       *format* and *noatom* keyword arguments are added.
+       
+    .. versionchanged:: 0.8.4
+       File discovery is improved to handle a local PDB folder. See 
+       :func:`setPDBLocalFolder` method for details.  
 
     If *compressed* is ``False``, all files will be decompressed.  If *copy* is 
     ``True``, all files from local PDB mirror will copied to the user specified 
@@ -260,9 +314,11 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     
     The order of file search operations are as follows:  First, files are 
     sought in *folder*.  Second, local PDB mirror will be sought, if one is 
-    set by the user (see :func:`setPDBMirrorPath`).  Finally, if files are 
-    now found locally, they will be downloaded one of WWPDB FTP servers (use 
-    :func:`setWWPDBFTPServer` to specify one close to you)."""
+    set by the user (see :func:`setPDBMirrorPath`).  Then, local PDB folder
+    will be sought, if one is  set by the user (see :func:`setPDBLocalFolder`).
+    Finally, if files are not found locally, they will be downloaded one of 
+    WWPDB FTP servers (use :func:`setWWPDBFTPServer` to specify one close to 
+    you)."""
     
     if isinstance(pdb, str):
         identifiers = [pdb]
@@ -324,7 +380,6 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
                 pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
                 
-    mirror_path = getPDBMirrorPath()
     for i, pdbid in enumerate(identifiers):
         # Check validity of identifiers
         if not isinstance(pdbid, str):
@@ -356,6 +411,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             exists += 1
             continue
         # Check the PDB mirror
+        mirror_path = getPDBMirrorPath()
         if mirror_path is not None and os.path.isdir(mirror_path):
             fn = os.path.join(mirror_path, divided, pdbid[1:3], 
                               prefix + pdbid + pdbext)
@@ -380,12 +436,58 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                                 fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
                     exists += 1
                 continue
+        # Check the PDB mirror
+        local_folder = getPDBLocalFolder()
+        if format and local_folder:
+            local_folder, is_divided = local_folder
+            if is_divided:
+                fn = os.path.join(local_folder, pdbid[1:3], 
+                                  'pdb' + pdbid + '.pdb.gz')
+            else:
+                fn = os.path.join(local_folder, pdbid + '.pdb.gz')
+                
+            if os.path.isfile(fn):
+                if copy or not compressed:
+                    if compressed:
+                        filename = os.path.join(folder, pdbid + extension + 
+                                                        '.gz')
+                        shutil.copy(fn, filename)
+                    else:
+                        filename = os.path.join(folder, pdbid + extension)
+                        gunzip(fn, filename)
+                    filenames.append(filename)
+                    LOGGER.debug('{0:s} copied from local folder ({1:s})'
+                                 .format(pdbid, filename))
+                    success += 1
+                else:
+                    filenames.append(fn)
+                    
+                    LOGGER.debug('{0:s} ({1:s}...{2:s}) is found in the local '
+                                'folder.'.format(pdbid, 
+                                fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
+                    exists += 1
+                continue
+
         filenames.append(pdbid)
         download = True
     if download:
         from ftplib import FTP
         ftp_name, ftp_host, ftp_path = getWWPDBFTPServer()
         LOGGER.debug('Connecting WWPDB FTP server {0:s}.'.format(ftp_name))
+        if format == 'pdb' and not copy and local_folder:
+            folder = local_folder
+            compressed = True
+            if is_divided:
+                getfn = lambda folder, pdbid, ext: \
+                    os.path.join(_makePath(os.path.join(local_folder, 
+                                            pdbid[1:3])), 'pdb' + pdbid + ext)
+            else:
+                getfn = lambda folder, pdbid, ext: os.path.join(folder,
+                                                                pdbid + ext)
+                
+        else: 
+            getfn = lambda folder, pdbid, ext: os.path.join(folder, 
+                                                            pdbid + ext)
         try:
             ftp = FTP(ftp_host)
         except Exception as error:
@@ -397,10 +499,10 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             for i, pdbid in enumerate(identifiers):
                 if pdbid != filenames[i]:
                     continue
+                filename = getfn(folder, pdbid, extension)
                 if compressed:
-                    filename = os.path.join(folder, pdbid + extension + '.gz')
-                else:
-                    filename = os.path.join(folder, pdbid + extension)
+                    filename += '.gz'
+
                 pdbfile = open(filename, 'w+b')
                 fn = prefix + pdbid + pdbext
                 try:
