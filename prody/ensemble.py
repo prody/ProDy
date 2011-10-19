@@ -1006,12 +1006,12 @@ class PDBEnsemble(Ensemble):
             raise TypeError('weights must be an ndarray instance')
         elif weights.shape[:2] != (self._n_csets, self._n_atoms):
             raise ValueError('shape of weights must (n_confs, n_atoms[, 1])')
-        if weights.dtype not in (np.float32, np.float64):
+        if weights.dtype not in (np.float32, float):
             try:
-                weights = weights.astype(np.float64)
+                weights = weights.astype(float)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
+                                 '{0:s}'.format(float))
         if np.any(weights < 0):
             raise ValueError('weights must greater or equal to 0')
             

@@ -1647,7 +1647,7 @@ class Select(object):
             return self._serial()
         elif self._ag.isAttribute(token):
             data = self._getAtomicData(token)
-            if data.dtype.type in (np.float64, np.int64):
+            if data.dtype in (np.float, np.int):
                 return data
             else:
                 return None
@@ -1680,7 +1680,7 @@ class Select(object):
 
         if isinstance(arg, float) or \
             isinstance(arg, np.ndarray) and \
-            arg.dtype in (np.float64, np.int64):
+            arg.dtype in (np.float, np.int):
             return FUNCTION_MAP[tokens[0]](arg)
         else:
             raise SelectionError(selstr)
@@ -1694,7 +1694,7 @@ class Select(object):
             else:
                 return None
         else:
-            if data.dtype.type in (np.int64, np.float64):
+            if data.dtype in (np.int, np.float):
                 return self._evalFloat(keyword, values, evalonly=evalonly)
             elif data.dtype.type == np.string_:
                 return self._evalAlnum(keyword, values, evalonly=evalonly)

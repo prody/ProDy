@@ -791,7 +791,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         # most PDB files contain less than 99999 atoms
         asize = min(len(lines) - split, 99999)
     alength = asize
-    coordinates = np.zeros((asize, 3), dtype=np.float64)
+    coordinates = np.zeros((asize, 3), dtype=float)
     atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
     resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
     resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
@@ -879,7 +879,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                    .format(nmodel+1))
                     acount = 0
                     nmodel += 1
-                    coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                    coordinates = np.zeros((n_atoms, 3), dtype=float)
                     while lines[i][:6] != 'ENDMDL':
                         i += 1
                 else:
@@ -931,7 +931,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if n_atoms == 0 and acount >= alength:
                 alength += asize
                 coordinates = np.concatenate(
-                    (coordinates, np.zeros((asize, 3), np.float64)))
+                    (coordinates, np.zeros((asize, 3), float)))
                 atomnames = np.concatenate((atomnames,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
                 resnames = np.concatenate((resnames,
@@ -989,7 +989,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.addCoordset(coordinates)
                 nmodel += 1
                 acount = 0
-                coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                coordinates = np.zeros((n_atoms, 3), dtype=float)
             else:
                 if acount != n_atoms > 0:
                     raise ValueError('PDB file and AtomGroup ag must have '
@@ -1021,7 +1021,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 nmodel += 1
                 n_atoms = acount 
                 acount = 0
-                coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                coordinates = np.zeros((n_atoms, 3), dtype=float)
                 if altloc and altloc_torf:
                     _evalAltlocs(atomgroup, altloc, chainids, resnums, 
                                  resnames, atomnames)
@@ -2164,16 +2164,16 @@ def writePDBStream(stream, atoms, model=None):
         resnames = ['UNK'] * n_atoms
     resnums = atoms._getResidueNumbers()
     if resnums is None:
-        resnums = np.ones(n_atoms, np.int64)
+        resnums = np.ones(n_atoms, int)
     chainids = atoms._getChainIdentifiers()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
     occupancies = atoms._getOccupancies()
     if occupancies is None:
-        occupancies = np.zeros(n_atoms, np.float64)
+        occupancies = np.zeros(n_atoms, float)
     bfactors = atoms._getTempFactors()
     if bfactors is None:
-        bfactors = np.zeros(n_atoms, np.float64)
+        bfactors = np.zeros(n_atoms, float)
     icodes = atoms._getInsertionCodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
@@ -2263,16 +2263,16 @@ def writePQR(filename, atoms):
         resnames = ['UNK'] * n_atoms
     resnums = atoms._getResidueNumbers()
     if resnums is None:
-        resnums = np.ones(n_atoms, np.int64)
+        resnums = np.ones(n_atoms, int)
     chainids = atoms._getChainIdentifiers()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
     charges = atoms._getCharges()
     if charges is None:
-        charges = np.zeros(n_atoms, np.float64)
+        charges = np.zeros(n_atoms, float)
     radii = atoms._getRadii()
     if radii is None:
-        radii = np.zeros(n_atoms, np.float64)
+        radii = np.zeros(n_atoms, float)
     icodes = atoms._getInsertionCodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
@@ -2525,7 +2525,7 @@ def fetchLigandData(cci, save=False, folder='.'):
     leaving_atom_flags = np.zeros(n_atoms, np.bool)
     aromatic_flags = np.zeros(n_atoms, np.bool)
     stereo_configs = np.zeros(n_atoms, np.bool)
-    ordinals = np.zeros(n_atoms, np.int64)
+    ordinals = np.zeros(n_atoms, int)
     
     for i, atom in enumerate(atoms):
         data = dict([(child.tag[len_ns:], child.text) for child in list(atom)])
@@ -2794,26 +2794,26 @@ def parseDSSP(dssp, ag, parseall=False):
     dssp = open(dssp)
     
     n_atoms = ag.getNumOfAtoms()
-    NUMBER = np.zeros(n_atoms, np.int64)
+    NUMBER = np.zeros(n_atoms, int)
     SHEETLABEL = np.zeros(n_atoms, '|S1')
-    ACC = np.zeros(n_atoms, np.float64)
-    KAPPA = np.zeros(n_atoms, np.float64)
-    ALPHA = np.zeros(n_atoms, np.float64)
-    PHI = np.zeros(n_atoms, np.float64)
-    PSI = np.zeros(n_atoms, np.float64)
+    ACC = np.zeros(n_atoms, float)
+    KAPPA = np.zeros(n_atoms, float)
+    ALPHA = np.zeros(n_atoms, float)
+    PHI = np.zeros(n_atoms, float)
+    PSI = np.zeros(n_atoms, float)
 
     if parseall:
-        BP1 = np.zeros(n_atoms, np.int64)
-        BP2 = np.zeros(n_atoms, np.int64)
-        NH_O_1 = np.zeros(n_atoms, np.int64)
-        NH_O_1_nrg = np.zeros(n_atoms, np.float64)
-        O_HN_1 = np.zeros(n_atoms, np.int64)
-        O_HN_1_nrg = np.zeros(n_atoms, np.float64)
-        NH_O_2 = np.zeros(n_atoms, np.int64)
-        NH_O_2_nrg = np.zeros(n_atoms, np.float64)
-        O_HN_2 = np.zeros(n_atoms, np.int64)
-        O_HN_2_nrg = np.zeros(n_atoms, np.float64)
-        TCO = np.zeros(n_atoms, np.float64)
+        BP1 = np.zeros(n_atoms, int)
+        BP2 = np.zeros(n_atoms, int)
+        NH_O_1 = np.zeros(n_atoms, int)
+        NH_O_1_nrg = np.zeros(n_atoms, float)
+        O_HN_1 = np.zeros(n_atoms, int)
+        O_HN_1_nrg = np.zeros(n_atoms, float)
+        NH_O_2 = np.zeros(n_atoms, int)
+        NH_O_2_nrg = np.zeros(n_atoms, float)
+        O_HN_2 = np.zeros(n_atoms, int)
+        O_HN_2_nrg = np.zeros(n_atoms, float)
+        TCO = np.zeros(n_atoms, float)
 
     ag.setSecondaryStrs(np.zeros(n_atoms))
     for line in dssp:
@@ -2945,10 +2945,10 @@ def parseSTRIDE(stride, ag):
     stride = open(stride)
     
     n_atoms = ag.getNumOfAtoms()
-    NUMBER = np.zeros(n_atoms, np.int64)
-    AREA = np.zeros(n_atoms, np.float64)
-    PHI = np.zeros(n_atoms, np.float64)
-    PSI = np.zeros(n_atoms, np.float64)
+    NUMBER = np.zeros(n_atoms, int)
+    AREA = np.zeros(n_atoms, float)
+    PHI = np.zeros(n_atoms, float)
+    PSI = np.zeros(n_atoms, float)
 
     ag.setSecondaryStrs(np.zeros(n_atoms))
     for line in stride:

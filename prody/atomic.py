@@ -178,26 +178,26 @@ class Field(object):
         doc='Set the value of the variable to None.')
 
 ATOMIC_DATA_FIELDS = {
-    'name':      Field('name',      'names',       '|S6',      'atom name',                      'AtomName'),
-    'altloc':    Field('altloc',    'altlocs',     '|S1',      'alternate location indicator',   'AltLocIndicator'),
-    'anisou':    Field('anisou',    'anisou',      np.float64, 'anisotropic temperature factor', 'AnisoTempFactor', ndim=2),
-    'chain':     Field('chain',     'chids',       '|S1',      'chain identifier',               'ChainIdentifier', none='hv'),
-    'element':   Field('element',   'elements',    '|S2',      'element symbol',                 'ElementSymbol'),
-    'hetero':    Field('hetero',    'hetero',      np.bool,    'hetero flag',                    'HeteroFlag'),
-    'occupancy': Field('occupancy', 'occupancies', np.float64, 'occupancy value',                'Occupancy',      meth_pl='Occupancies'),
-    'resname':   Field('resname',   'resnames',    '|S6',      'residue name',                   'ResidueName'),
-    'resnum':    Field('resnum',    'resnums',     np.int64,   'residue number',                 'ResidueNumber', none='hv'),
-    'secondary': Field('secondary', 'secondary',   '|S1',      'secondary structure assignment', 'SecondaryStr'),
-    'segment':   Field('segment',   'segments',    '|S6',      'segment name',                   'SegmentName'),
-    'siguij':    Field('siguij',    'siguij',      np.float64, 'standard deviations for the anisotropic temperature factor',                   
-                                                                                                 'AnisoStdDev', ndim=2),
-    'serial':    Field('serial',    'serials',     np.int64,   'atom serial number (from file)', 'SerialNumber',  none='sn2i'),
-    'beta':      Field('beta',      'bfactors',    np.float64, 'temperature (B) factor',         'TempFactor'),
-    'icode':     Field('icode',     'icodes',      '|S1',      'insertion code',                 'InsertionCode', none='hv'),
-    'type':      Field('type',      'types',       '|S6',      'atom type',                      'AtomType'),
-    'charge':    Field('charge',    'charges',     np.float64, 'atomic partial charge',          'Charge'),
-    'mass':      Field('mass',      'masses',      np.float64, 'atomic mass',                    'Mass', 'atomic masses', 'Masses'),
-    'radius':    Field('radius',    'radii',       np.float64, 'atomic radius',                  'Radius', 'atomic radii', 'Radii'),
+    'name':      Field('name',      'names',       '|S6',  'atom name',                      'AtomName'),
+    'altloc':    Field('altloc',    'altlocs',     '|S1', 'alternate location indicator',   'AltLocIndicator'),
+    'anisou':    Field('anisou',    'anisou',      float, 'anisotropic temperature factor', 'AnisoTempFactor', ndim=2),
+    'chain':     Field('chain',     'chids',       '|S1', 'chain identifier',               'ChainIdentifier', none='hv'),
+    'element':   Field('element',   'elements',    '|S2', 'element symbol',                 'ElementSymbol'),
+    'hetero':    Field('hetero',    'hetero',      bool,  'hetero flag',                    'HeteroFlag'),
+    'occupancy': Field('occupancy', 'occupancies', float, 'occupancy value',                'Occupancy',      meth_pl='Occupancies'),
+    'resname':   Field('resname',   'resnames',    '|S6', 'residue name',                   'ResidueName'),
+    'resnum':    Field('resnum',    'resnums',     int,   'residue number',                 'ResidueNumber', none='hv'),
+    'secondary': Field('secondary', 'secondary',   '|S1', 'secondary structure assignment', 'SecondaryStr'),
+    'segment':   Field('segment',   'segments',    '|S6', 'segment name',                   'SegmentName'),
+    'siguij':    Field('siguij',    'siguij',      float, 'standard deviations for the '
+                                                          'anisotropic temperature factor', 'AnisoStdDev', ndim=2),
+    'serial':    Field('serial',    'serials',     int,   'atom serial number (from file)', 'SerialNumber',  none='sn2i'),
+    'beta':      Field('beta',      'bfactors',    float, 'temperature (B) factor',         'TempFactor'),
+    'icode':     Field('icode',     'icodes',      '|S1', 'insertion code',                 'InsertionCode', none='hv'),
+    'type':      Field('type',      'types',       '|S6', 'atom type',                      'AtomType'),
+    'charge':    Field('charge',    'charges',     float, 'atomic partial charge',          'Charge'),
+    'mass':      Field('mass',      'masses',      float, 'atomic mass',                    'Mass', 'atomic masses', 'Masses'),
+    'radius':    Field('radius',    'radii',       float, 'atomic radius',                  'Radius', 'atomic radii', 'Radii'),
 }
 
 ATOMIC_ATTRIBUTES = {}
@@ -903,7 +903,7 @@ class AtomGroup(Atomic):
             raise AttributeError('AtomGroup is locked for coordinate set '
                                  'addition/deletion when its associated with '
                                  'a trajectory')
-        which = np.ones(self._n_csets, np.bool)
+        which = np.ones(self._n_csets, bool)
         which[index] = False
         n_csets = self._n_csets
         if which.sum() == 0:
@@ -1113,10 +1113,10 @@ class AtomGroup(Atomic):
         must be equal to the number of atoms, and the type of data array must 
         be one of the following:
             
-            * :class:`numpy.bool_`
-            * :class:`numpy.float64`
-            * :class:`numpy.int64`
-            * :class:`numpy.string_`
+            * :class:`numpy.bool`
+            * :class:`numpy.float`
+            * :class:`numpy.int`
+            * :class:`numpy.string`
         
         If a :func:`list` is given, its type must match one of the above 
         after it is converted to an array.  
@@ -1154,10 +1154,11 @@ class AtomGroup(Atomic):
             raise TypeError('data must be a numpy.ndarray instance')
         elif len(data) != self._n_atoms:
             raise ValueError('length of data array must match number of atoms')
-        elif not data.dtype.type in (np.float64, np.int64, np.string_, np.bool_):
-            raise TypeError('type of data array must be float64, int64, or '
+        elif not data.dtype in (np.float, np.int, np.bool) and \
+              data.dtype.type != np.string_:
+            raise TypeError('type of data array must be float, int, or '
                             'string_, {0:s} is not valid'.format(
-                            str(data.dtype.type)))
+                            str(data.dtype)))
             
         self._userdata[name] = data
     
@@ -1186,7 +1187,6 @@ class AtomGroup(Atomic):
             return data.copy()
         return None
 
-
     def _getAttribute(self, name):
         """Return the attribute *name* data array, if it exists (for internal 
         use)."""
@@ -1195,7 +1195,6 @@ class AtomGroup(Atomic):
         if data is not None:
             return data
         return None
-
 
     def isAttribute(self, name):    
         """Return ``True`` if *name* is a user set attribute.
@@ -1735,9 +1734,9 @@ class AtomSubset(AtomPointer):
         
         AtomPointer.__init__(self, atomgroup, acsi)
         if not isinstance(indices, np.ndarray):
-            indices = np.array(indices, np.int64)
-        elif not indices.dtype == np.int64:
-            indices = indices.astype(np.int64)
+            indices = np.array(indices, int)
+        elif not indices.dtype == int:
+            indices = indices.astype(int)
         self._indices = np.unique(indices)
     
     def __iter__(self):
@@ -2207,23 +2206,23 @@ class AtomMap(AtomPointer):
         AtomPointer.__init__(self, atomgroup, acsi)
         
         if not isinstance(indices, np.ndarray):
-            self._indices = np.array(indices, np.int64)
-        elif not indices.dtype == np.int64:
-            self._indices = indices.astype(np.int64)
+            self._indices = np.array(indices, int)
+        elif not indices.dtype == int:
+            self._indices = indices.astype(int)
         else:
             self._indices = indices
 
         if not isinstance(mapping, np.ndarray):
-            self._mapping = np.array(mapping, np.int64)
-        elif not mapping.dtype == np.int64:
-            self._mapping = mapping.astype(np.int64)
+            self._mapping = np.array(mapping, int)
+        elif not mapping.dtype == int:
+            self._mapping = mapping.astype(int)
         else:
             self._mapping = mapping
 
         if not isinstance(unmapped, np.ndarray):
-            self._unmapped = np.array(unmapped, np.int64)
-        elif not unmapped.dtype == np.int64:
-            self._unmapped = unmapped.astype(np.int64)
+            self._unmapped = np.array(unmapped, int)
+        elif not unmapped.dtype == int:
+            self._unmapped = unmapped.astype(int)
         else:
             self._unmapped = unmapped
         
@@ -2248,7 +2247,7 @@ class AtomMap(AtomPointer):
         return 'AtomMap {0:s}'.format(self._name)
     
     def __iter__(self):
-        indices = np.zeros(self._len, np.int64)
+        indices = np.zeros(self._len, int)
         indices[self._unmapped] = -1
         indices[self._mapping] = self._indices
         ag = self._ag
@@ -2315,7 +2314,7 @@ class AtomMap(AtomPointer):
         set."""
         
         for i in range(self._ag._n_csets):
-            coordinates = np.zeros((self._len, 3), np.float64)
+            coordinates = np.zeros((self._len, 3), float)
             coordinates[self._mapping] = self._ag._coordinates[i, 
                                                                self._indices] 
             yield coordinates
@@ -2327,7 +2326,7 @@ class AtomMap(AtomPointer):
         
         if self._ag._coordinates is None:
             return None
-        coordinates = np.zeros((self._len, 3), np.float64)
+        coordinates = np.zeros((self._len, 3), float)
         coordinates[self._mapping] = self._ag._coordinates[self._acsi, 
                                                            self._indices] 
         return coordinates

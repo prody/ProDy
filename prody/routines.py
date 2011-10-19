@@ -613,7 +613,7 @@ and save all output and figure files:
 
     if pdb.endswith('.dcd') or pdb.endswith('.DCD'):     
         LOGGER.info('A DCD file is detected, using all atoms for calculation.')
-        coords = parseDCD(pdb).astype(np.float64)
+        coords = parseDCD(pdb).astype(float)
         if len(coords) < 2:
             print "\nError: DCD file must contain multiple frames.\n"
             sys.exit(-1)

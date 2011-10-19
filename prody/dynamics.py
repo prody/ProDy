@@ -1000,7 +1000,7 @@ class ModeSet(object):
             raise TypeError('model must be an NMA, not {0:s}'
                             .format(type(model)))
         self._model = model
-        self._indices = np.array(indices, np.int64)
+        self._indices = np.array(indices, int)
         
     def __len__(self):
         return len(self._indices)
@@ -1279,12 +1279,12 @@ class GNM(GNMBase):
             raise ValueError('coords must be a 2d array')
         elif coords.shape[1] != 3:
             raise ValueError('shape of coords must be (n_atoms,3)')
-        elif coords.dtype != np.float64:
+        elif coords.dtype != float:
             try:
-                coords = coords.astype(np.float64)
+                coords = coords.astype(float)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
+                                 '{0:s}'.format(float))
                                  
         cutoff = float(cutoff)
         assert cutoff > 0, 'cutoff distance must be greater than 0'
@@ -1504,12 +1504,12 @@ class ANM(GNMBase):
             raise ValueError('coords must be a 2d array')
         elif coords.shape[1] != 3:
             raise ValueError('shape of coords must be (n_atoms,3)')
-        elif coords.dtype != np.float64:
+        elif coords.dtype != float:
             try:
-                coords = coords.astype(np.float64)
+                coords = coords.astype(float)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
+                                 '{0:s}'.format(float))
         
         cutoff = float(cutoff)
         assert cutoff > 0, 'cutoff distance must be greater than 0'
@@ -1535,7 +1535,7 @@ class ANM(GNMBase):
             hessian = scipy_sparse.lil_matrix((dof, dof))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
-            hessian = np.zeros((dof, dof), np.float64)
+            hessian = np.zeros((dof, dof), float)
         if KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
@@ -1733,7 +1733,7 @@ class PCA(NMABase):
         weights = None
         if isinstance(coordsets, np.ndarray): 
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
-                coordsets.dtype not in (np.float32, np.float64):
+                coordsets.dtype not in (np.float32, float):
                 raise ValueError('coordsets is not a valid coordinate array')
         elif isinstance(coordsets, prody.Atomic):
             coordsets = coordsets._getCoordsets()
@@ -1780,7 +1780,7 @@ class PCA(NMABase):
             LOGGER.info('Covariance is calculated using {0:d} coordinate sets.'
                             .format(len(coordsets)))
             if weights is None:
-                if coordsets.dtype == np.float64:
+                if coordsets.dtype == float:
                     self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, 
                                        bias=1)
                 else:
@@ -1803,7 +1803,7 @@ class PCA(NMABase):
                     mean += coords * weights[i]
                 mean /= weights.sum(0)
                 d_xyz = ((coordsets - mean) * weights).reshape((n_confs, dof))
-                divide_by = weights.astype(np.float64).repeat(3, 
+                divide_by = weights.astype(float).repeat(3, 
                                                 axis=2).reshape((n_confs, dof))
                 self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T, 
                                                             divide_by)
@@ -1895,7 +1895,7 @@ class PCA(NMABase):
                             'array instance')
         if isinstance(coordsets, np.ndarray):
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
-                coordsets.dtype not in (np.float32, np.float64):
+                coordsets.dtype not in (np.float32, float):
                 raise ValueError('coordsets is not a valid coordinate array')
             deviations = coordsets - coordsets.mean(0)
         else:
@@ -2489,7 +2489,7 @@ def parseNMD(filename, type=NMA):
     coords = atomic.pop('coordinates', None)
     dof = None
     if coords is not None:
-        coords = np.fromstring( coords, dtype=np.float64, sep=' ')
+        coords = np.fromstring( coords, dtype=float, sep=' ')
         dof = coords.shape[0]
         ag = None
         n_atoms = dof / 3
@@ -2507,19 +2507,19 @@ def parseNMD(filename, type=NMA):
             ag.setChainIdentifiers(data.split())
         data = atomic.pop('resnums', None)
         if data is not None:
-            ag.setResidueNumbers(np.fromstring(data, np.int64, sep=' '))
+            ag.setResidueNumbers(np.fromstring(data, int, sep=' '))
         data = atomic.pop('resids', None)
         if data is not None:
-            ag.setResidueNumbers(np.fromstring(data, np.int64, sep=' '))
+            ag.setResidueNumbers(np.fromstring(data, int, sep=' '))
         data = atomic.pop('bfactors', None)
         if data is not None:
-            ag.setTempFactors(np.fromstring(data, np.float64, sep=' '))
+            ag.setTempFactors(np.fromstring(data, float, sep=' '))
     nma = type(name)
     for mode in modes:
         
         items = mode.split()
         diff = len(items) - dof
-        mode = np.array(items[diff:]).astype(np.float64)
+        mode = np.array(items[diff:]).astype(float)
         if len(mode) != dof:
             pass
         if diff == 1 and not items[0].isdigit():
@@ -3309,8 +3309,8 @@ def writeArray(filename, array, format='%d', delimiter=' '):
     np.savetxt(filename, array, format, delimiter)
     return filename
 
-def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
-               dtype=np.float64):
+def parseArray(filename, delimiter=None, skiprows=0, usecols=None, 
+               dtype=float):
     """Parse array data from a file.
     
     .. versionadded:: 0.5.3
@@ -3335,8 +3335,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
         The default, ``None``, results in all columns being read.
     :type usecols: list
     
-    :arg dtype: Data-type of the resulting array, default is 
-        :class:`numpy.float64`. 
+    :arg dtype: Data-type of the resulting array, default is :func:`float`. 
     :type dtype: :class:`numpy.dtype`.
     
     """
@@ -3388,7 +3387,7 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     :arg first: First index in the data file (0 or 1), default is ``1``. 
     :type first: int
 
-    Data-type of the resulting array, default is :class:`numpy.float64`. 
+    Data-type of the resulting array, default is :func:`float`. 
 
     """
     irow = int(irow)
@@ -3403,8 +3402,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     sparse = parseArray(filename, delimiter, skiprows)
     dof = sparse[:,[irow, icol]].max() 
     matrix = np.zeros((dof,dof))
-    irow = (sparse[:,irow] - first).astype(np.int64)
-    icol = (sparse[:,icol] - first).astype(np.int64)
+    irow = (sparse[:,irow] - first).astype(int)
+    icol = (sparse[:,icol] - first).astype(int)
     matrix[irow, icol] = sparse[:,idata]
     if symmetric:
         matrix[icol, irow] = sparse[:,idata]
@@ -4736,14 +4735,12 @@ def resetTicks(x, y=None):
     """Reset X (and Y) axis ticks using values in given *array*.
     
     Ticks in the current figure should not be fractional values for this 
-    function to work as expected. 
-    
-    """
+    function to work as expected."""
     
     if x is not None:
         try:    
             xticks = plt.xticks()[0]
-            xlist = list(xticks.astype(np.int32))
+            xlist = list(xticks.astype(int))
             if xlist[-1] > len(x):
                 xlist.pop()
             if xlist:
@@ -4754,7 +4751,7 @@ def resetTicks(x, y=None):
     if y is not None:
         try:    
             yticks = plt.yticks()[0]
-            ylist = list(yticks.astype(np.int32))
+            ylist = list(yticks.astype(int))
             if ylist[-1] > len(y):
                 ylist.pop()
             if ylist:
