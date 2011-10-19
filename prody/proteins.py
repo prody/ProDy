@@ -1206,8 +1206,11 @@ class Chemical(object):
         return self.identifier
     
     def __repr__(self):
-        return '<Chemical: {0:s} ({1:s} {2:s} {3:d})>'.format(
+        return '<Chemical: {0:s} ({1:s}_{2:s}_{3:d})>'.format(
                     self.identifier, self.pdbentry, self.chain, self.number)
+
+    def __len__(self):
+        return self._n_atoms
 
 _PDB_DBREF = { 
     'GB': 'GenBank',
@@ -1308,11 +1311,11 @@ class Polymer(object):
         self.dblast = None        
         
     def __str__(self):
-        return self.accession
+        return self.name
     
     def __repr__(self):
-        return '<Polymer: {0:s}_{1:s} ({2:s})>'.format(
-                   self.pdbentry, self.chain, self.name)
+        return '<Polymer: {0:s} ({1:s}_{2:s})>'.format(
+                                        self.name, self.pdbentry, self.chain)
 
     def __len__(self): 
         return len(self.sequence)
@@ -1417,27 +1420,34 @@ def _getHeaderDict(stream, *keys):
         lines[startswith].append((loc, line))
     for i, line in lines['REMARK']:
         lines[line[:10]].append((i, line))
-        
+    
     if keys:
         keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
-                keys[k] = _PDB_HEADER_MAP[key](lines)
+                value = _PDB_HEADER_MAP[key](lines)
+                keys[k] = value
             else:
                 raise KeyError('"{0:s}" is not a valid header data identifier'
                                .format(key))
+            if key == 'chemicals':
+                pdbentry = _PDB_HEADER_MAP['identifier'](lines)
+                for chem in value:
+                    chem.pdbentry = pdbentry
         if len(keys) == 1:
             return keys[0], loc
         else:
             return tuple(keys), loc
     else:
         header = {}
-        
         keys = _PDB_HEADER_MAP.iterkeys()
         for key, func in _PDB_HEADER_MAP.iteritems():
             value = func(lines)
             if value is not None:
                 header[key] = value        
+        pdbentry = header.get('identifier', '')
+        for chem in header.get('chemicals', []):
+            chem.pdbentry = pdbentry
         return header, loc
 
 
