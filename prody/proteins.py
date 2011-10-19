@@ -1610,11 +1610,13 @@ def _getPolymers(lines):
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
-            LOGGER.warning('failed to parse first residue number for sequence')
+            LOGGER.warning('failed to parse first residue number for sequence'
+                           ' at line {0:d}'.format(i))
         try:
             poly.sqlast = (int(line[20:24]), line[24])
         except:
-            LOGGER.warning('failed to parse last residue number for sequence')
+            LOGGER.warning('failed to parse last residue number for sequence'
+                           ' at line {0:d}'.format(i))
     for i, line in lines['DBREF2']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
@@ -1623,11 +1625,13 @@ def _getPolymers(lines):
         try:
             poly.dbfirst = (int(line[45:55]), '')
         except:
-            LOGGER.warning('failed to parse first residue number for database')
+            LOGGER.warning('failed to parse first residue number for database'
+                           ' at line {0:d}'.format(i))
         try:
             poly.dblast = (int(line[57:67]), '')
         except:
-            LOGGER.warning('failed to parse last residue number for database')
+            LOGGER.warning('failed to parse last residue number for database'
+                           ' at line {0:d}'.format(i))
 
     string = ''
     for i, line in lines['COMPND']:
