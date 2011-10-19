@@ -22,6 +22,8 @@ files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
 Classes
 -------
 
+  * :class:`Chemical`
+  * :class:`Polymer`
   * :class:`PDBBlastRecord`
 
 Functions
@@ -96,7 +98,7 @@ PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None,
 PDB_CLUSTERS_UPDATE_WARNING = True
 
 
-__all__ = ['PDBBlastRecord', 
+__all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
            'assignSecondaryStructure',
            'applyBiomolecularTransformations',
            'blastPDB', 'fetchPDB', 
@@ -137,12 +139,11 @@ _PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT',
                        '.xml', '.XML', '.xml.gz', '.XML.GZ',
                        '.cif', '.CIF', '.cif.gz', '.CIF.GZ',])
 _PDB_FORMATS = set(['pdb', 'cif', 'xml'])
-_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', 
-    '/pub/pdb/')
-_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', 
-    '/pub/databases/rcsb/pdb/')
-_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', 
-    '/pub/pdb/')
+
+_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/pdb/')
+_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/pdb/')
+_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/pdb/')
+
 WWPDB_FTP_SERVERS = {
     'rcsb'   : _WWPDB_RCSB,
     'usa'    : _WWPDB_RCSB,
@@ -755,28 +756,6 @@ def parsePQR(filename, **kwargs):
 
 parsePQR.__doc__ += _parsePQRdoc
 
-def parsePDBHeader(pdb):
-    """Return PDB header data from *pdb* in a dictionary.  This function
-    is equivalent to ``parsePDB(pdb, header=True, model=0, meta=False)``."""
-    
-    if not os.path.isfile(pdb):
-        if len(pdb) == 4 and pdb.isalnum():
-            filename = fetchPDB(pdb)
-            if filename is None:
-                raise IOError('PDB file for {0:s} could not be downloaded.'
-                              .format(pdb))
-            pdb = filename
-        else:
-            raise IOError('{0:s} is not a valid filename or a valid PDB '
-                          'identifier.'.format(pdb))
-    if pdb.endswith('.gz'):
-        pdb = gzip.open(pdb)
-    else:
-        pdb = open(pdb)
-    dict_, _ = _getHeaderDict(pdb)
-    pdb.close()
-    return dict_
-
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset, 
                    altloc_torf, format='pdb'):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
@@ -1180,11 +1159,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                         .format(key, atomgroup.getName()))
             atomgroup.addCoordset(xyz)
 
-_START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
-
-def cleanString(string):
-    return ' '.join(string.strip().split())
-
 class Chemical(object):
     
     """A data structure for storing chemical component (or heterogen) data 
@@ -1195,19 +1169,19 @@ class Chemical(object):
     A :class:`Chemical` instance has the following attributes:
         
     =========== ===== =========================================================
-    Attribute   Type  Description
+    Attribute   Type  Description (RECORD TYPE)
     =========== ===== =========================================================
-    identifier  str   chemical component identifier (a.k.a residue name)
-    name        str   chemical name
-    chain       str   chain identifier
-    number      int   residue (or sequence) number
-    icode       str   insertion code
+    identifier  str   chemical component identifier (a.k.a residue name) (HET)
+    name        str   chemical name (HETNAM)
+    chain       str   chain identifier (HET)
+    number      int   residue (or sequence) number (HET)
+    icode       str   insertion code (HET)
     n_atoms     int   number of HETATM records for the group present in the 
-                      entry
-    description str   text describing chemical component
-    synonyms    list  synonyms
-    formula     str   chemical formula
-    pdb         str   PDB identifier that chemical data data is extracted from
+                      entry (HET)
+    description str   text describing chemical component (HET)
+    synonyms    list  synonyms (HETSYN)
+    formula     str   chemical formula (FORMUL)
+    pdbentry    str   PDB identifier that chemical data data is extracted from
     =========== ===== =========================================================
     
     """
@@ -1252,52 +1226,157 @@ class Polymer(object):
     
     A :class:`Polymer` instance has the following attributes:
         
-    =========== ====== ========================================================
-    Attribute   Type   Description (HEADER)
-    =========== ====== ========================================================
-    
-    chain       str    chain identifier
-    sequence    str    chain sequence (SEQRES)
-    dbref       str    reference sequence database abbreviation (DBREF or 
-                        DBREF2/3)
-    database    str    reference sequence database name
-    identifier  str    sequence database identification code
-    accession   str    sequence database accession code
-    different   list   differences between sequences (SEQADV)
-    modified    list   modified residues (SEQMOD)
-    pdbentry    str    PDB identifier that polymer data data is extracted from
-    =========== ====== ========================================================
+    ============= ====== ======================================================
+    Attribute     Type   Description (RECORD TYPE)
+    ============= ====== ======================================================
+    chain         str    chain identifier
+    name          str    name of the macromolecule (COMPND)
+    fragment      str    specifies a domain or region of the molecule (COMPND)
+    synonyms      list   list of synonyms for the molecule (COMPND)
+    ec            list   list of associated Enzyme Commission numbers (COMPND)
+    engineered    bool   indicates that the molecule was produced using 
+                         recombinant technology or by purely chemical synthesis
+                         (COMPND)
+    mutation      bool   indicates if there is a mutation (COMPND)
+    comments      str    additional comments
+    sequence      str    chain sequence (SEQRES)
+    dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
+    dbname        str    reference sequence database name (DBREF[1|2])
+    dbidentifier  str    sequence database identification code (DBREF[1|2])
+    accession     str    sequence database accession code (DBREF[1|2])
+    different     list   differences between sequences (SEQADV)
+    modified      list   modified residues (SEQMOD)
+    pdbentry      str    PDB identifier that polymer data data is extracted 
+                         from
+    ============= ====== ======================================================
     
     """
     
-    __slots__ = ['chain', 'sequence', 'dbref', 'database', 'identifier', 
-                 'accession', 'pdbentry', 'modified', 'different']
+    __slots__ = ['chain', 'name', 'fragment', 'synonyms', 'ec', 'engineered',
+                 'mutation', 'comments', 'sequence', 'pdbentry', 
+                 'dbabbr', 'dbname', 'dbidentifier', 'dbaccession', 
+                 'modified', 'different']
     
-    def __init__(self, chain, pdbid):
+    def __init__(self, chain):
         
         self.chain = chain
+        self.name = ''
+        self.fragment = None
+        self.synonyms = None
+        self.ec = None
+        self.engineered = None
+        self.mutation = None
+        self.comments = None
         self.sequence = ''
-        self.dbref = None
-        self.database = None
-        self.identifier = None
-        self.accession = None
-        self.pdbentry = pdbid
+        self.dbabbr = None
+        self.dbname = None
+        self.dbidentifier = None
+        self.dbaccession = None
+        self.pdbentry = None
+        
         
     def __str__(self):
         return self.accession
     
     def __repr__(self):
-        return '<Polymer: {0:s} ({1:s} - {2:s} {3:s})>'.format(
-                   self.identifier, self.accession, self.pdbentry, self.chain)
+        return '<Polymer: {0:s}_{1:s} ({2:s})>'.format(
+                   self.pdbentry, self.chain, self.name)
 
-def _getHeaderDict(stream):
+    def __len__(self): 
+        return len(self.sequence)
+    
+_START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
+
+def cleanString(string, nows=False):
+    """*nows* is no white space."""
+    
+    if nows:
+        return ''.join(string.strip().split())
+    else:
+        return ' '.join(string.strip().split())
+
+def parsePDBHeader(pdb, *keys):
+    """Return header data dictionary for *pdb*.  This function is equivalent to 
+    ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be 
+    an identifier or a filename.
+    
+    .. versionadded:: 0.8.4
+    
+    List of header records that are parsed. 
+    
+    ============ ================= ============================================
+    Record type  Dictionary key(s)  Description 
+    ============ ================= ============================================
+    HEADER       | classification  | molecule classification 
+                 | deposition_date | deposition date
+                 | identifier      | PDB identifier
+    TITLE        title             title for the experiment or analysis
+    SPLIT        split             list of PDB entries that make up the whole
+                                   structure when combined with this one
+    COMPND       polymers          see :class:`Polymer`
+    EXPDTA       experiment        information about the experiment
+    NUMMDL       n_models          number of models
+    MDLTYP       model_type        additional structural annotation
+    AUTHOR       authors           list of contributors
+    JRNL         reference         reference information dictionary:
+                                     * *authors*: list of authors
+                                     * *title*: title of the article
+                                     * *editors*: list of editors
+                                     * *issn*:
+                                     * *reference*: journal, vol, issue, etc.
+                                     * *publisher*: publisher information
+                                     * *pmid*: pubmed identifier
+                                     * *doi*: digital object identifier 
+                                     
+    DBREF[1|2]   polymers          database sequence (see :class:`Polymer`)
+    SEQADV       polymers          (see :class:`Polymer`)
+    SEQRES       polymers          (see :class:`Polymer`)
+    MODRES       polymers          (see :class:`Polymer`)
+    HET          chemicals         (see :class:`Chemical`)
+    HETNAM       chemicals         (see :class:`Chemical`)
+    HETSYN       chemicals         (see :class:`Chemical`)
+    FORMUL       chemicals         (see :class:`Chemical`)
+    HELIX        polymers          (see :class:`Polymer`)
+    SHEET        polymers          (see :class:`Polymer`)
+    REMARK 2     resolution        resolution of structures, when applicable
+    REMARK 4     version           PDB file version
+    REMARK 350   biomoltrans       biomolecular transformation lines 
+                                   (unprocessed)
+    ============ ================= ============================================
+    
+    Header records that are not parsed are: OBSLTE, CAVEAT, SOURCE, KEYWDS, 
+    REVDAT, SPRSDE, SSBOND, LINK, CISPEP, CRYST1, ORIGX1, ORIGX2, ORIGX3, 
+    MTRIX1, MTRIX2, MTRIX3, and REMARK X not mentioned above.
+    
+    
+    Usage examples:
+        
+    >>> 
+    
+    """
+    
+    if not os.path.isfile(pdb):
+        if len(pdb) == 4 and pdb.isalnum():
+            filename = fetchPDB(pdb)
+            if filename is None:
+                raise IOError('PDB file for {0:s} could not be downloaded.'
+                              .format(pdb))
+            pdb = filename
+        else:
+            raise IOError('{0:s} is not a valid filename or a valid PDB '
+                          'identifier.'.format(pdb))
+    if pdb.endswith('.gz'):
+        pdb = gzip.open(pdb)
+    else:
+        pdb = open(pdb)
+    header, _ = _getHeaderDict(pdb, *keys)
+    pdb.close()
+    return header
+
+def _getHeaderDict(stream, *keys):
     """Return header data in a dictionary.  *stream* may be a list of PDB lines
     or a stream."""
     
-    header = {}
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    
-    applyToChains = (' ')
     lines = defaultdict(list)
     for loc, line in enumerate(stream):
         startswith = line[0:6]
@@ -1305,100 +1384,63 @@ def _getHeaderDict(stream):
             break
         lines[startswith].append((loc, line))
     for i, line in lines['REMARK']:
-        lines[line[7:10]].append((i, line))
+        lines[line[:10]].append((i, line))
         
-    # One time, single line
-    # =========================================================================
-    
-    # Mandatory
-    #--------------------------------------------------------------------------
-    
-    # "HEADER"
-    # First line of the entry, contains PDB ID code, classification, and date 
-    # of deposition.
-    line = lines['HEADER']
-    if line:
-        i, line = line[0]
-        header['deposition_date'] = line[50:59].strip()
-        header['classification'] = line[10:50].strip()
-        pdbidentifier = line[62:66]
-        header['identifier'] = pdbidentifier 
+    if keys:
+        keys = list(keys)
+        for k, key in enumerate(keys):
+            if key in _PDB_HEADER_MAP:
+                keys[k] = _PDB_HEADER_MAP[key](lines)
+            else:
+                raise KeyError('"{0:s}" is not a valid header data identifier'
+                               .format(key))
+        if len(keys) == 1:
+            return keys[0], loc
+        else:
+            return tuple(keys), loc
+    else:
+        header = {}
         
-    # Optional
-    #--------------------------------------------------------------------------
-    
-    # "NUMMDL", Integer, 11 - 14  
-    # Number of models.
-    line = lines['NUMMDL']
-    if line:
-        i, line = line[0]
-        try:
-            header['n_models'] = int(line[10:14])
-        except:
-            LOGGER.warning('Failed to parse number of models.')
+        keys = _PDB_HEADER_MAP.iterkeys()
+        for key, func in _PDB_HEADER_MAP.iteritems():
+            value = func(lines)
+            if value is not None:
+                header[key] = value        
+        return header, loc
+
+
+def _getBiomoltrans(lines): 
+
+    applyToChains = (' ')
+    biomolecule = defaultdict(list)
+    for i, line in lines['350']:
         
-    # One time, multiple lines
-    # =========================================================================
-    
-    # Mandatory
-    #--------------------------------------------------------------------------
-    
-    # "TITLE ", String, 11 - 80
-    # Description of the experiment represented in the entry.
-    string = ''
-    for i, line in lines['TITLE ']:
-        string += ' ' + line[10:].rstrip()
-    header['title'] = cleanString(string)
-    
-    # "EXPDTA", SList, 11 - 79, mandatory
-    # Experimental technique used for the structure determination.
-    string = ''
-    for i, line in lines['EXPDTA']:
-        string += ' ' + line[10:].rstrip()
-    header['experiment'] = cleanString(string)
-    
-    # "AUTHOR", List, 11 - 79
-    # List of contributors.
-    string = ''
-    for i, line in lines['AUTHOR']:
-        string += ' ' + line[10:].rstrip()
-    header['authors'] = cleanString(string).split(',')
-    
-    # "COMPND"
-    for i, line in lines['COMPND']:
-        temp = header.get('compounds', '')
-        temp += ' ' + line[10:].rstrip()
-        header['compounds'] = temp.strip()
-    
-    # "SOURCE"
-    for i, line in lines['SOURCE']:
-        temp = header.get('source', '')
-        temp += ' ' + line[10:].rstrip()
-        header['source'] = temp.strip()
-    
-    # Optional
-    #--------------------------------------------------------------------------
-    
-    # "SPLIT "
-    # List of PDB entries that compose a larger macromolecular complexes.
-    split = []
-    for i, line in lines['SPLIT ']: 
-        split.extend(line[11:].split())
-    if split:
-        header['split'] = split
+        if line[13:18] == 'BIOMT':
+            biomt = biomolecule[currentBiomolecule]
+            if len(biomt) == 0:
+                biomt.append(applyToChains)
+            biomt.append(line[23:])
+        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
+            applyToChains = line[41:].replace(' ', 
+                                              '').strip().split(',')
+        elif line[11:23] == 'BIOMOLECULE:': 
+            currentBiomolecule = line.split()[-1]
+    if biomolecule:
+        return biomolecule
         
-    # "MDLTYP", SList, 11 - 80
-    # Contains additional annotation pertinent to the coordinates presented 
-    # in the entry.
-    string = ''
-    for i, line in lines['MDLTYP']:
-        string += ' ' + line[10:]
-    if string:
-        header['model_type'] = cleanString(string)
+        
+def _getResolution(lines): 
+
+    for i, line in lines['REMARK   2']:
+        if 'RESOLUTION' in line:
+            try:
+                return float(line[23:30])
+            except:
+                return None
+
+def _getHelix(lines):
     
-    # Multiple times, one line
-    #==========================================================================
-    
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     helix = {}
     for i, line in lines['HELIX ']:
         try:
@@ -1422,8 +1464,11 @@ def _getHeaderDict(stream):
             endResnum -= 1    
         for resnum in range(initResnum, endResnum+1):
             helix[(chid, resnum, '')] = value
-    header['helix'] = helix
-        
+    return helix
+
+def _getSheet(lines):
+    
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     sheet = {}
     for i, line in lines['SHEET ']:
         try:
@@ -1447,98 +1492,12 @@ def _getHeaderDict(stream):
             endResnum -= 1    
         for resnum in range(initResnum, endResnum+1):
             sheet[(chid, resnum, '')] = value
-    header['sheet'] = sheet
-    
-    # Heterogen Section
-    #==========================================================================
-    chemicals = defaultdict(list)
-    chem_names = defaultdict(str)
-    chem_synonyms = defaultdict(str)
-    chem_formulas = defaultdict(str)
-    for i, line in lines['HET   ']:
-        chem = Chemical(line[7:10].strip())
-        chem.chain = line[12].strip()
-        chem.number = int(line[13:17])
-        chem.icode = line[17].strip()
-        chem.n_atoms = int(line[20:25])
-        chem.description = line[30:70].strip()
-        chem.pdbentry = pdbidentifier
-        chemicals[chem.identifier].append(chem)
-    for i, line in lines['HETNAM']:
-        chem = line[11:14].strip()
-        chem_names[chem] += line[15:70].rstrip()
-    for i, line in lines['HETSYN']:
-        chem = line[11:14].strip()
-        chem_synonyms[chem] += line[15:70].rstrip()
-    for i, line in lines['FORMUL']:
-        chem = line[12:15].strip()
-        chem_formulas[chem] += line[18:70].rstrip()
+    return sheet
 
-    for chem, name in chem_names.iteritems():
-        name = cleanString(name)
-        for chem in chemicals[chem]:
-            chem.name = name
-    for chem, formula in chem_formulas.iteritems():
-        formula = cleanString(formula)
-        for chem in chemicals[chem]:
-            chem.formula = formula
-    for chem, synonyms in chem_synonyms.iteritems():
-        synonyms = cleanString(synonyms)
-        synonyms = synonyms.split(';')
-        for chem in chemicals[chem]:
-            chem.synonyms = synonyms
-    
-    alist = []
-    for chem in chemicals.itervalues():
-        for chem in chem:
-            alist.append(chem)
-    header['chemicals'] = alist 
-    
-    
-    # Primary Structure Section
-    #==========================================================================
 
-    polymers = dict()
+def _getReference(lines):
+    """Return a reference of the PDB entry."""
 
-    for i, line in lines['SEQRES']:
-        chain = line[11]
-        poly = polymers.get(chain, Polymer(chain, pdbidentifier))
-        poly.sequence += ''.join(prody.compare.getSequence(line[19:].split()))
-        polymers[chain] = poly
-    for i, line in lines['DBREF ']:
-        assert line[7:11] == pdbidentifier, \
-            'pdb identifier does not match at line {0:d}'.format(i)
-        chain = line[12]
-        poly = polymers.get(chain, Polymer(chain, pdbidentifier))
-        poly.dbref = line[26:32].strip()
-        poly.database = _PDB_DBREF[poly.dbref] 
-        poly.accession = line[33:41].strip()
-        poly.identifier = line[42:54].strip()
-    for i, line in lines['DBREF2']:
-        assert line[7:11] == pdbidentifier, \
-            'pdb identifier does not match at line {0:d}'.format(i)
-        chain = line[12]
-        poly = polymers.get(chain, Polymer(chain, pdbidentifier))
-        poly.dbref = line[26:32].strip()
-        poly.database = _PDB_DBREF[poly.dbref] 
-        poly.identifier = line[47:67].strip()
-        polymers[chain] = poly
-    for i, line in lines['DBREF3']:
-        assert line[7:11] == pdbidentifier, \
-            'pdb identifier does not match at line {0:d}'.format(i)
-        chain = line[12]
-        poly = polymers.get(chain, Polymer(chain, pdbidentifier))
-        poly.accession = line[18:40].strip()
-        polymers[chain] = poly
-    header['polymers'] = polymers.values()
-
-    #header['sequences'] = dict(sequences)
-
-    
-    # Other
-    #==========================================================================
-    
-    # "JRNL  "
     ref = {}
     title = ''
     authors = []
@@ -1571,31 +1530,175 @@ def _getHeaderDict(stream):
     ref['editors'] = editors
     ref['reference'] = cleanString(reference)
     ref['publisher'] = cleanString(publisher)
-    header['reference'] = ref
 
+    return ref
+
+
+def _getPolymers(lines):
+    """Return list of polymers (macromolecules)."""
     
-    # "REMARK"
-    for i, line in lines['  2']:
-        if 'RESOLUTION' in line:
-            header['resolution'] = line[23:].strip()[:-1]    
+    polymers = dict()
+    for i, line in lines['SEQRES']:
+        ch = line[11]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.sequence += ''.join(prody.compare.getSequence(line[19:].split()))
+    for i, line in lines['DBREF ']:
+        ch = line[12]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.pdbentry = line[7:11]
+        poly.dbabbr = line[26:32].strip()
+        poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
+        poly.dbaccession = line[33:41].strip()
+        poly.dbidentifier = line[42:54].strip()
+    for i, line in lines['DBREF1']:
+        ch = line[12]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.pdbentry = line[7:11]
+        poly.dbabbr = line[26:32].strip()
+        poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
+        poly.dbidentifier = line[47:67].strip()
+    for i, line in lines['DBREF2']:
+        ch = line[12]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.dbaccession = line[18:40].strip()
+
+    string = ''
+    for i, line in lines['COMPND']:
+        string += line[10:]
+    string = cleanString(string)
+    dict_ = {}
+    for molecule in string.split('MOL_ID'):
+        dict_.clear()
+        for token in molecule.strip().split(';'):
+            if not token:
+                continue
+            key, value = token.split(':', 1)
+            dict_[key.strip()] = value.strip()
+        chains = dict_.pop('CHAIN', '').strip()
+        if not chains:
+            continue
+        for ch in chains.split(','):
+            ch = ch.strip()
+            poly = polymers.get(ch, Polymer(ch))
+            polymers[ch] = poly
+            poly.name = dict_.get('MOLECULE', '').strip()
+            poly.fragment = dict_.get('FRAGMENT', '').strip()
+            poly.comments = dict_.get('OTHER_DETAILS', '').strip()
+            poly.synonyms = [s.strip() 
+                             for s in dict_.get('SYNONYMS', '').split(',')]
+            poly.ec = [s.strip() 
+                       for s in dict_.get('EC', '').split(',')]
+            poly.engineered = dict_.get('ENGINEERED', '').strip() == 'YES'
+            poly.mutation = dict_.get('MUTATION', '').strip() == 'YES'
+        
+    return polymers.values()    
+
+def _getChemicals(lines):
+    """Return list of chemical components (heterogens)."""
     
-    biomolecule = defaultdict(list)
-    for i, line in lines['350']:
-        
-        if line[13:18] == 'BIOMT':
-            biomt = biomolecule[currentBiomolecule]
-            if len(biomt) == 0:
-                biomt.append(applyToChains)
-            biomt.append(line[23:])
-        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
-            applyToChains = line[41:].replace(' ', 
-                                              '').strip().split(',')
-        elif line[11:23] == 'BIOMOLECULE:': 
-            currentBiomolecule = line.split()[-1]
-    if biomolecule:
-        header['biomolecular_transformations'] = biomolecule
-        
-    return header, loc
+    chemicals = defaultdict(list)
+    chem_names = defaultdict(str)
+    chem_synonyms = defaultdict(str)
+    chem_formulas = defaultdict(str)
+    for i, line in lines['HET   ']:
+        chem = Chemical(line[7:10].strip())
+        chem.chain = line[12].strip()
+        chem.number = int(line[13:17])
+        chem.icode = line[17].strip()
+        chem.n_atoms = int(line[20:25])
+        chem.description = line[30:70].strip()
+        chemicals[chem.identifier].append(chem)
+    for i, line in lines['HETNAM']:
+        chem = line[11:14].strip()
+        chem_names[chem] += line[15:70].rstrip()
+    for i, line in lines['HETSYN']:
+        chem = line[11:14].strip()
+        chem_synonyms[chem] += line[15:70].rstrip()
+    for i, line in lines['FORMUL']:
+        chem = line[12:15].strip()
+        chem_formulas[chem] += line[18:70].rstrip()
+
+    for chem, name in chem_names.iteritems():
+        name = cleanString(name)
+        for chem in chemicals[chem]:
+            chem.name = name
+    for chem, formula in chem_formulas.iteritems():
+        formula = cleanString(formula)
+        for chem in chemicals[chem]:
+            chem.formula = formula
+    for chem, synonyms in chem_synonyms.iteritems():
+        synonyms = cleanString(synonyms)
+        synonyms = synonyms.split(';')
+        for chem in chemicals[chem]:
+            chem.synonyms = synonyms
+    
+    alist = []
+    for chem in chemicals.itervalues():
+        for chem in chem:
+            alist.append(chem)
+    return alist 
+
+
+def _getVersion(lines):
+    
+    for i, line in lines['REMARK   4']:
+        if 'COMPLIES' in line:
+            try:
+                # Return a string, because floating makes 3.20, 3.2 or
+                # may arise problems if WWPDB uses a version number like 3.30.1
+                return line.split('V.')[1].split(',')[0].strip()
+            except:
+                return None
+
+def _getNumOfModels(lines):
+
+    # "NUMMDL", Integer, 11 - 14: Number of models.
+    line = lines['NUMMDL']
+    if line:
+        i, line = line[0]
+        try:
+            header['n_models'] = int(line[10:14])
+        except:
+            return None
+
+# Make sure that lambda functions defined below won't raise exceptions
+_PDB_HEADER_MAP = {
+    'helix': _getHelix,
+    'sheet': _getSheet,
+    'chemicals': _getChemicals,
+    'polymers': _getPolymers,
+    'reference': _getReference,
+    'resolution': _getResolution,
+    'biomoltrans': _getBiomoltrans,
+    'version': _getVersion,
+    'deposition_date': lambda lines: lines['HEADER'][0][1][50:59].strip() 
+                                    if lines['HEADER'] else None,
+    'classification': lambda lines: lines['HEADER'][0][1][10:50].strip() 
+                                        if lines['HEADER'] else None,
+    'identifier': lambda lines: lines['HEADER'][0][1][62:66].strip() 
+                                    if lines['HEADER'] else None,
+    'title': lambda lines: cleanString(
+                ''.join([line[1][10:].rstrip() for line in lines['TITLE ']])
+                ) if lines['TITLE '] else None,
+    'experiment': lambda lines: cleanString(
+                ''.join([line[1][10:].rstrip() for line in lines['EXPDTA']])
+                ) if lines['EXPDTA'] else None,
+    'authors': lambda lines: cleanString(
+                ''.join([line[1][10:].rstrip() for line in lines['AUTHOR']]),
+                True).split(',') if lines['AUTHOR'] else None,
+    'split': lambda lines: (' '.join([line[1][11:].rstrip() 
+                                      for line in lines['SPLIT ']])).split()
+                             if lines['SPLIT '] else None,
+    'model_type': lambda lines: cleanString(
+                   ''.join([line[1][10:].rstrip() for line in lines['MDLTYP']])
+                   ) if lines['MDLTYP'] else None,
+    'n_models': _getNumOfModels,
+}
+
 
 def parsePSF(filename, name=None, ag=None):
     """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
@@ -2468,7 +2571,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         raise TypeError('header must be a dictionary')
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be an Atomic instance')
-    biomt = header.get('biomolecular_transformations')
+    biomt = header.get('biomoltrans')
     if not isinstance(biomt, dict) or len(biomt) == 0:
         raise ValueError('header does not contain biomolecular' 
                          'transformations')
@@ -2565,12 +2668,12 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         return None
 
 def execDSSP(pdb, outputname=None, outputdir=None):
-    """Execute DSSP for given *pdb*. *pdb* can be a PDB identifier or a PDB 
-    file path. If *pdb* is a compressed file, it will be decompressed using
-    Python :mod:`gzip` library. When no *outputname* is given, output name 
-    will be :file:`pdbidentifier.dssp`. :file:`.dssp` extension will be 
-    appended automatically to *outputname*. If :file:`outputdir` is given,
-    DSSP output and uncompressed PDB file will be written into this folder.
+    """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 
+    file path.  If *pdb* is a compressed file, it will be decompressed using
+    Python :mod:`gzip` library.  When no *outputname* is given, output name 
+    will be :file:`pdb.dssp`.  :file:`.dssp` extension will be appended 
+    automatically to *outputname*.  If :file:`outputdir` is given, DSSP 
+    output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`dssp pdb > out` command, output
     filename is returned. 
     
@@ -2741,11 +2844,11 @@ def performDSSP(pdb, parseall=False):
     return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
     
 def execSTRIDE(pdb, outputname=None, outputdir=None):
-    """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier 
-    or a PDB file path.  If *pdb* is a compressed file, it will be decompressed 
+    """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier or 
+    a PDB file path.  If *pdb* is a compressed file, it will be decompressed 
     using Python :mod:`gzip` library.  When no *outputname* is given, output 
-    name will be :file:`pdbidentifier.stride`.  :file:`.stride` extension will 
-    be appended automatically to *outputname*.  If :file:`outputdir` is given, 
+    name will be :file:`pdb.stride`.  :file:`.stride` extension will be 
+    appended automatically to *outputname*.  If :file:`outputdir` is given, 
     STRIDE output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`stride pdb > out` command, output
     filename is returned. 
