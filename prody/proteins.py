@@ -1257,8 +1257,8 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 
 class Chemical(object):
     
-    """A data structure for storing chemical component (or heterogen) data 
-    parsed from PDB header.
+    """A data structure for storing information on chemical components (or 
+    heterogens) in PDB structures.
     
     .. versionadded:: 0.8.4
     
@@ -1278,6 +1278,18 @@ class Chemical(object):
     formula     str   chemical formula (FORMUL)
     pdbentry    str   PDB entry that chemical data is extracted from
     =========== ===== =========================================================
+    
+    Chemical class instances can be obtained as follows:
+        
+    >>> chemical = parsePDBHeader('1zz2', 'chemicals')[0]
+    >>> chemical
+    <Chemical: B11 (1ZZ2_A_362)>
+    >>> print(chemical.name)
+    N-[3-(4-FLUOROPHENOXY)PHENYL]-4-[(2-HYDROXYBENZYL) AMINO]PIPERIDINE-1-SULFONAMIDE
+    >>> chemical.n_atoms
+    33
+    >>> len(chemical)
+    33 
     
     """
     
@@ -1327,8 +1339,8 @@ _PDB_DBREF = {
 
 class Polymer(object):
     
-    """A data structure for storing polymer component (protein/nucleic) data 
-    parsed from PDB header.
+    """A data structure for storing information on polymer components (protein
+    or nucleic) of PDB structures.
     
     .. versionadded:: 0.8.4
     
@@ -1361,6 +1373,8 @@ class Polymer(object):
     pdbentry      str    PDB entry that polymer data is extracted from
     ============= ====== ======================================================
     
+    Polymer class instances can be obtained as follows:
+    
     >>> polymer = parsePDBHeader('2k39', 'polymers')[0]
     >>> polymer
     <Polymer: UBIQUITIN (2K39_A)>
@@ -1382,8 +1396,6 @@ class Polymer(object):
     P62972
     >>> print(polymer.dbidcode)
     UBIQ_XENLA
-    
-    
     
     """
     
