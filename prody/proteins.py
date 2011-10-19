@@ -1205,8 +1205,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         success = 0
         lines = altloc[key]
         for line, i in lines:
-            #-->
-            #try:
             aan = line[12:16].strip()
             arn = line[17:21].strip()
             ach = line[21]
@@ -1249,10 +1247,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                                .format(key, i+1))
                 continue
             success += 1
-            #except Exception as exception:
-            #    print i, line
-            #    print exception
-            #-->
         LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were '
                     'parsed successfully.'.format(success, len(lines), key))
         if success > 0:
