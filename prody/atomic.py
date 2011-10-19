@@ -22,9 +22,9 @@
 Atomic data
 ===============================================================================
 
-ProDy stores atomic data in instances of :class:`AtomGroup` class. This
+ProDy stores atomic data in instances of :class:`AtomGroup` class.  This
 class is designed to be efficient and responsive, i.e. facilitates user
-to access atomic data quickly for any subset of atoms. An :class:`AtomGroup`
+to access atomic data quickly for any subset of atoms.  An :class:`AtomGroup`
 instance can be obtained by parsing a PDB file as follows: 
     
 >>> from prody import *
@@ -34,14 +34,13 @@ To read this page in a Python session, type:
     
 >>> # help(atomic)
 
-
 :class:`AtomGroup` instances can store multiple coordinate sets, which may
 be models from an NMR structure, snapshots from an MD simulation.
 
 
 ProDy stores all atomic data in :class:`AtomGroup` instances and comes
 with other classes acting as pointers to provide convenient read/write access 
-to such data. These classes are:
+to such data.  These classes are:
 
 * :class:`Atom` - Points to a single atom in an :class:`AtomGroup` instance.                          
 
@@ -54,7 +53,7 @@ to such data. These classes are:
   residue number and insertion code.
                       
 * :class:`AtomMap` - Points to arbitrary subsets of atoms while allowing for 
-  duplicates and missing atoms. Indices of atoms are stored in the order 
+  duplicates and missing atoms.  Indices of atoms are stored in the order 
   provided by the user.
     
 
@@ -62,14 +61,14 @@ Atom selections
 -------------------------------------------------------------------------------
 
 Flexible and powerful atom selections is one of the most important features 
-of ProDy. The details of the selection grammar is described in 
+of ProDy.  The details of the selection grammar is described in 
 :ref:`selections`. 
 
 .. versionadded:: 0.7.1
 
 Using the flexibility of Python, atom selections are made much easier by
 overriding the ``.`` operator i.e. the :meth:`__getattribute__` 
-method of :class:`Atomic` class. So the following will be interpreted
+method of :class:`Atomic` class.  So the following will be interpreted
 as atom selections:
     
 >>> ag.chain_A # selects chain A
@@ -95,7 +94,7 @@ Using dot operator will behave like the logical ``and`` operator:
 For this to work, the first word following the dot operator must be a selection
 keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 
 Underscores will be interpreted as white space, as obvious from the
-previous examples. The limitation of this is that parentheses, special 
+previous examples.  The limitation of this is that parentheses, special 
 characters cannot be used.     
 
 """
@@ -219,11 +218,11 @@ __doc__ += """
 Common methods
 -------------------------------------------------------------------------------
 
-Atomic data contained in a PDB file can be accessed and changed using 
-``get`` and ``set`` methods defined for :class:`Atomic` classes. To provide 
-a coherent interface, these methods are defined for :class:`AtomGroup`, 
-:class:`Atom`, :class:`Selection`, :class:`Chain`, :class:`Residue`, and 
-:class:`AtomMap` classes, with the following exceptions: 
+Atomic data contained in a PDB file can be accessed and changed using ``get`` 
+and ``set`` methods defined for :class:`Atomic` classes.  To provide a coherent
+interface, these methods are defined for :class:`AtomGroup`, :class:`Atom`, 
+:class:`Selection`, :class:`Chain`, :class:`Residue`, and :class:`AtomMap` 
+classes, with the following exceptions: 
 
 * Names of methods of the :class:`Atom` class are in singular form.
 * ``set`` methods are not defined for the :class:`AtomMap` class.
@@ -348,7 +347,7 @@ Behavioral differences
 -------------------------------------------------------------------------------
 
 Atomic classes behave differently to indexing and to calls of certain built-in 
-functions. These differences are:
+functions.  These differences are:
 
 =========  ====================================================================
 Class               Properties and differences
@@ -483,9 +482,7 @@ class Atomic(object):
         .. versionchanged:: 0.8.1
            A :class:`Selection` (:class:`AtomPointer`) of all atoms is 
            considered not equal to the :class:`AtomGroup` anymore as 
-           this causes problems in :mod:`select` module. 
-        
-        """
+           this causes problems in :mod:`select` module."""
         
         if isinstance(other, Atomic):
             # AtomMaps may need special handling
@@ -529,9 +526,7 @@ class Atomic(object):
         """Return atoms matching the criteria in *selstr*.
         
         .. seealso:: :meth:`~prody.select.Select.select()` for more usage 
-           details.
-           
-        """
+           details."""
         
         return prody.ProDyAtomSelect.select(self, selstr, **kwargs)
 
@@ -644,6 +639,7 @@ class AtomGroup(Atomic):
     group by calling :meth:`getHierView()`.
     
     """
+    
     __metaclass__ = AtomGroupMeta
     
     __slots__ = ('_acsi', '_name', '_n_atoms', '_coordinates', '_n_csets', 
@@ -653,6 +649,7 @@ class AtomGroup(Atomic):
     
     def __init__(self, name='Unnamed'):
         """Instantiate an AtomGroup with a *name*."""
+        
         self._name = str(name)
         self._n_atoms = 0
         self._coordinates = None
@@ -688,8 +685,7 @@ class AtomGroup(Atomic):
               :class:`AtomPointer` instances are called.
               
             * one of :meth:`nextFrame`, :meth:`skipFrame`, or :meth:`gotoFrame` 
-              methods is called.
-        """
+              methods is called."""
         
         if index is None:
             self._timestamps = np.zeros(self._n_csets)
@@ -762,8 +758,9 @@ class AtomGroup(Atomic):
             new = AtomGroup(self._name + ' + ' + other._name)
             n_coordsets = self._n_csets
             if n_coordsets != other._n_csets:
-                LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same number'
-                  ' of coordinate sets. First from both AtomGroups will be merged.'
+                LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same '
+                               'number of coordinate sets.  First from both '
+                               'AtomGroups will be merged.'
                   .format(str(self._name), str(other._name), n_coordsets))
                 n_coordsets = 1
             coordset_range = range(n_coordsets)
@@ -872,8 +869,7 @@ class AtomGroup(Atomic):
         
         .. versionchanged:: 0.6.2
             :class:`~prody.ensemble.Ensemble` and :class:`Atomic` instances are 
-            accepted as *coords* argument.
-        """
+            accepted as *coords* argument."""
         
         if self._trajectory is not None:
             raise AttributeError('AtomGroup is locked for coordinate set '
@@ -921,10 +917,9 @@ class AtomGroup(Atomic):
         self._timestamps = self._timestamps[which]        
 
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate sets at given indices.
-        
-        *indices* may be an integer, a list of integers or ``None``. ``None``
-        returns all coordinate sets."""
+        """Return a copy of coordinate sets at given indices.  *indices* may 
+        be an integer, a list of integers or ``None``.  ``None`` returns all 
+        coordinate sets."""
         
         if self._coordinates is None:
             return None
@@ -1002,7 +997,6 @@ class AtomGroup(Atomic):
            User data stored in the atom group is also copied.
         
         Note that association of an atom group with a trajectory is not copied.
-        
         """
         
         name = self._name
@@ -1060,6 +1054,7 @@ class AtomGroup(Atomic):
     
     def getHierView(self):
         """Return a hierarchical view of the atom group."""
+        
         hv = self._hv
         if hv is None:
             hv = HierView(self)
@@ -1069,36 +1064,28 @@ class AtomGroup(Atomic):
     def getNumOfChains(self):
         """Return number of chains.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         return self.getHierView().getNumOfChains()
     
     def iterChains(self):
         """Iterate over chains.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         return self.getHierView().iterChains()
     
     def getNumOfResidues(self):
         """Return number of chains.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         return self.getHierView().getNumOfResidues()
 
     def iterResidues(self):
         """Iterate over residues.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         return self.getHierView().iterResidues()
 
@@ -1183,9 +1170,7 @@ class AtomGroup(Atomic):
     def delAttribute(self, name):
         """Delete the attribute with given *name* and return the stored data.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         if not isinstance(name, str):
             raise TypeError('name must be a string')
@@ -1194,9 +1179,7 @@ class AtomGroup(Atomic):
     def getAttribute(self, name):
         """Return a copy of the attribute *name* data array, if it exists.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         data = self._userdata.get(name, None)
         if data is not None:
@@ -1217,18 +1200,14 @@ class AtomGroup(Atomic):
     def isAttribute(self, name):    
         """Return ``True`` if *name* is a user set attribute.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         return name in self._userdata
   
     def getBySerial(self, serial):
         """Get an atom by its *serial* number.
         
-        .. versionadded:: 0.8
-        
-        """
+        .. versionadded:: 0.8"""
 
         sn2i = self._getSN2I()
         if not isinstance(serial, int):
@@ -1246,12 +1225,10 @@ class AtomGroup(Atomic):
         .. versionadded:: 0.8
         
         *start* must be zero or a positive integer and *stop* must be an 
-        integer greater than *start*. ``getBySerialRange(i, j)`` will return
-        atoms whose serial numbers are i+1, i+2, ..., j-1. Atom with serial
+        integer greater than *start*.  ``getBySerialRange(i, j)`` will return
+        atoms whose serial numbers are i+1, i+2, ..., j-1.  Atom with serial
         number *stop* will be excluded as in indexing a Python :func:`list`.
-        When *step* (default is 1) is given, it specified increment.  
-        
-        """
+        When *step* (default is 1) is given, it specified increment."""
         
         sn2i = self._getSN2I()
         if not isinstance(start, int):
@@ -1278,7 +1255,7 @@ class AtomGroup(Atomic):
                                         .format(start, stop, step))
 
     def setTrajectory(self, trajectory):              
-        """Associates atom group with a *trajectory*. *trajectory* may be
+        """Associates atom group with a *trajectory*.  *trajectory* may be
         a filename or a :class:`~prody.ensemble.Trajectory` instance.
         Number of atoms in the atom group and the trajectory must match. 
         At association a new coordinate set will be added to the atom group.
@@ -1288,9 +1265,7 @@ class AtomGroup(Atomic):
         When atom group is associated with a trajectory, it will be locked
         for coordinate set addition/deletion operations.
         
-        .. versionadded:: 0.8
-        
-        """
+        .. versionadded:: 0.8"""
         
         if trajectory is None:
             self._tcsi = None
@@ -1318,8 +1293,8 @@ class AtomGroup(Atomic):
     def nextFrame(self):
         """Read the next frame from the trajectory and update coordinates.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
+        
         nfi = self._trajectory.getNextFrameIndex()
         if nfi - self._tcsi == 1:
             self._tcsi = nfi
@@ -1331,8 +1306,8 @@ class AtomGroup(Atomic):
     def skipFrame(self, n=1): 
         """Read the frame after skipping *n* frames and update coordinates.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
+        
         nfi = self._trajectory.getNextFrameIndex()
         self._trajectory.skip(n)
         if nfi - self._tcsi == 1:         
@@ -1345,8 +1320,7 @@ class AtomGroup(Atomic):
     def gotoFrame(self, n):
         """Read frame *n* from the trajectory and update coordinates.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
         
         self._trajectory.goto(n)
         self._tcsi = self._trajectory.getNextFrameIndex()
@@ -1356,13 +1330,13 @@ class AtomGroup(Atomic):
     def getFrameIndex(self):
         """Return current frame index.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
         
         return self._tcsi
     
     
 class AtomPointer(Atomic):
+    
     """Base class for classes pointing to atom(s) in :class:`AtomGroup` 
     instances.
     
@@ -1388,9 +1362,7 @@ class AtomPointer(Atomic):
         """Returns an :class:`AtomMap` instance. Order of pointed atoms are
         preserved.
         
-        .. versionadded:: 0.5
-        
-        """
+        .. versionadded:: 0.5"""
         
         if not isinstance(other, AtomPointer):
             raise TypeError('an AtomPointer instance cannot be added to a '
@@ -1402,7 +1374,7 @@ class AtomPointer(Atomic):
         acsi = self._acsi
         if self._acsi != other._acsi:
             LOGGER.warning('Active coordinate set indices of operands are not '
-                           'the same. Result will have {0:d}'.format(acsi))
+                           'the same.  Result will have {0:d}'.format(acsi))
         
         name = '({0:s}) + ({1:s})'.format(str(self), str(other))
         indices = np.concatenate([self.getIndices(), other.getIndices()])
@@ -1433,9 +1405,7 @@ class AtomPointer(Atomic):
     def isAttribute(self, name):    
         """Return ``True`` if *name* is a user set attribute.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         return self._ag.isAttribute(name)
 
@@ -1476,32 +1446,28 @@ class AtomPointer(Atomic):
     def nextFrame(self):
         """Read the next frame from the trajectory and update coordinates.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
         
         self._ag.nextFrame()
                 
     def skipFrame(self, n=1): 
         """Read the frame after skipping *n* frames and update coordinates.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
         
         self._ag.skipFrame(n)
     
     def gotoFrame(self, n):
         """Read frame *n* from the trajectory and update coordinates.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
         
         self._ag.gotoFrame(n)
     
     def getFrameIndex(self):
         """Return current frame index.
         
-        .. versionadded:: 0.8
-        """
+        .. versionadded:: 0.8"""
         
         return self._ag.getFrameIndex()
             
@@ -1604,9 +1570,7 @@ class Atom(AtomPointer):
     def getAttribute(self, name):
         """Return the attribute *name*, if it exists.
         
-        .. versionadded:: 0.7.1
-
-        """
+        .. versionadded:: 0.7.1"""
         
         if self._ag.isAttribute(name):
             return self._ag._userdata[name][self._index]
@@ -1619,9 +1583,7 @@ class Atom(AtomPointer):
         .. versionadded:: 0.7.1
         
         :raise AttributeError: when attribute *name* does not exist in the
-            the :class:`AtomGroup` instance.
-        
-        """
+            the :class:`AtomGroup` instance."""
         
         if self._ag.isAttribute(name):
             self._ag._userdata[name][self._index] = data 
@@ -1657,8 +1619,8 @@ class Atom(AtomPointer):
         self._ag._setTimeStamp(self._acsi)
         
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate sets at given indices. 
-        *indices* may be an integer or a list/array of integers."""
+        """Return a copy of coordinate sets at given indices.  *indices* may 
+        be an integer or a list/array of integers."""
         
         if self._ag._coordinates is None:
             return None
@@ -1757,6 +1719,7 @@ class AtomSubset(AtomPointer):
     
     __metaclass__ = AtomSubsetMeta    
     __slots__ = ['_ag', '_indices', '_acsi']
+    
     def __init__(self, atomgroup, indices, acsi=None):
         """Instantiate atom group base class. 
         
@@ -1768,7 +1731,6 @@ class AtomSubset(AtomPointer):
         
         :arg acsi: active coordinate set index
         :type acsi: integer
-        
         """
         
         AtomPointer.__init__(self, atomgroup, acsi)
@@ -1780,6 +1742,7 @@ class AtomSubset(AtomPointer):
     
     def __iter__(self):
         """Iterate over atoms."""
+        
         acsi = self._acsi
         ag = self._ag 
         for index in self._indices:
@@ -1821,9 +1784,7 @@ class AtomSubset(AtomPointer):
         """
         .. versionchanged:: 0.7.1
            If intersection of selections does not contain any atoms, ``None``
-           is returned.
-        
-        """
+           is returned."""
         
         if not isinstance(other, AtomSubset):
             raise TypeError('other must be an AtomSubset')
@@ -1850,9 +1811,7 @@ class AtomSubset(AtomPointer):
     def getAttribute(self, name):
         """Return a copy of the attribute *name*, if it exists.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         if self._ag.isAttribute(name):
             return self._ag._userdata[name][self._indices].copy()
@@ -1865,9 +1824,7 @@ class AtomSubset(AtomPointer):
         .. versionadded:: 0.7.1
         
         :raise AttributeError: when attribute *name* does not exist in the
-            the :class:`AtomGroup` instance.
-        
-        """
+            the :class:`AtomGroup` instance."""
         
         if self._ag.isAttribute(name):
             self._ag._userdata[name][self._indices] = data 
@@ -1902,8 +1859,8 @@ class AtomSubset(AtomPointer):
         self._ag._setTimeStamp(self._acsi)
         
     def getCoordsets(self, indices=None):
-        """Return coordinate sets at given *indices*.
-        *indices* may be an integer or a list/array of integers."""
+        """Return coordinate sets at given *indices*.  *indices* may be an 
+        integer or a list/array of integers."""
         
         if self._ag._coordinates is None:
             return None
@@ -1920,9 +1877,7 @@ class AtomSubset(AtomPointer):
 
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each coordinate 
-        set.
-        
-        """
+        set."""
         
         for i in range(self._ag._n_csets):
             yield self._ag._coordinates[i, self._indices]
@@ -1953,7 +1908,6 @@ class Chain(AtomSubset):
     PRO 6
     THR 7
     ...
-        
     """
         
     __slots__ = AtomSubset.__slots__ + ['_seq', '_dict']
@@ -1989,9 +1943,7 @@ class Chain(AtomSubset):
         
         .. versionchanged:: 6.2
            Tuples composed of chain identifier, residue number, and residue
-           insertion code is accepted.
-        
-        """
+           insertion code is accepted."""
         
         if isinstance(number, tuple): 
             if len(number) == 2:
@@ -2047,6 +1999,7 @@ class Chain(AtomSubset):
 
 
 class Residue(AtomSubset):
+    
     """Instances are generated by :class:`HierView` class.
     
     Indexing a :class:`Residue` by atom name returns :class:`Atom` instances.
@@ -2097,13 +2050,11 @@ class Residue(AtomSubset):
         return self.getAtom(name)
     
     def getAtom(self, name):
-        """Return atom with given *name*, ``None`` if not found.
-        
-        Assumes that atom names in a residue are unique. If more than one atoms 
-        with the given *name* exists, the one with the smaller index will be 
-        returned.
-        
+        """Return atom with given *name*, ``None`` if not found.  Assumes that 
+        atom names in a residue are unique.  If more than one atoms with the 
+        given *name* exists, the one with the smaller index will be returned.
         """
+        
         if isinstance(name, str):
             nz = (self.getAtomNames() == name).nonzero()[0]
             if len(nz) > 0:
@@ -2157,6 +2108,7 @@ class Residue(AtomSubset):
 
 
 class Selection(AtomSubset):
+    
     """A class for accessing and manipulating attributes of select of atoms 
     in an :class:`AtomGroup` instance.
     
@@ -2223,6 +2175,7 @@ class AtomMapMeta(type):
 
 
 class AtomMap(AtomPointer):
+    
     """A class for mapping atomic data.
     
     This class stores a reference to an :class:`AtomGroup` instance, a set of 
@@ -2247,11 +2200,9 @@ class AtomMap(AtomPointer):
         :arg acsi: active coordinate set index, if ``None`` defaults to that 
             of *atomgrup*
         
-        Length of *mapping* must be equal to length of *indices*. Number of 
-        atoms (including unmapped dummy atoms) are determined from the 
-        sum of lengths of *mapping* and *unmapped* arrays.
-                 
-        """
+        Length of *mapping* must be equal to length of *indices*.  Number of 
+        atoms (including unmapped dummy atoms) are determined from the sum of 
+        lengths of *mapping* and *unmapped* arrays."""
         
         AtomPointer.__init__(self, atomgroup, acsi)
         
@@ -2314,9 +2265,7 @@ class AtomMap(AtomPointer):
     def getAttribute(self, name):
         """Return a copy of the attribute *name*, if it exists.
         
-        .. versionadded:: 0.7.1
-        
-        """
+        .. versionadded:: 0.7.1"""
         
         if self._ag.isAttribute(name):
             data = self._ag._userdata[name][self._indices]
@@ -2363,9 +2312,7 @@ class AtomMap(AtomPointer):
 
     def iterCoordsets(self):
         """Iterate over coordinate sets by returning a copy of each coordinate 
-        set.
-        
-        """
+        set."""
         
         for i in range(self._ag._n_csets):
             coordinates = np.zeros((self._len, 3), np.float64)
@@ -2391,16 +2338,14 @@ class AtomMap(AtomPointer):
         """Set coordinates in the active coordinate set.
         
         Length of the *coordinates* array must match the number of mapped 
-        atoms.
-        
-        """
+        atoms."""
         
         self._ag._coordinates[self._acsi, self._indices] = coordinates
     
 
     def getCoordsets(self, indices=None):
-        """Return coordinate sets at given indices.
-        *indices* may be an integer or a list/array of integers."""
+        """Return coordinate sets at given indices.  *indices* may be an 
+        integer or a list/array of integers."""
         
         if self._ag._coordinates is None:
             return None
@@ -2423,6 +2368,7 @@ class AtomMap(AtomPointer):
 
     def getUnmappedFlags(self):
         """Return an array with 1s for unmapped atoms."""
+        
         flags = np.zeros(self._len)
         if len(self._unmapped):
             flags[self._unmapped] = 1
@@ -2430,6 +2376,7 @@ class AtomMap(AtomPointer):
     
     def getMappedFlags(self):
         """Return an array with 1s for mapped atoms."""
+        
         flags = np.ones(self._len)
         if len(self._unmapped):
             flags[self._unmapped] = 0
@@ -2437,10 +2384,9 @@ class AtomMap(AtomPointer):
 
 class HierView(object):
     
-    """Hierarchical views can be generated for :class:`AtomGroup` 
-    and :class:`Selection` instances.
-    
-    Indexing a :class:`HierView` instance returns a :class:`Chain` instance.
+    """Hierarchical views can be generated for :class:`AtomGroup` and 
+    :class:`Selection` instances.  Indexing a :class:`HierView` instance 
+    returns a :class:`Chain` instance.
     
     >>> from prody import *
     >>> pdb = parsePDB('1p38')
@@ -2465,9 +2411,7 @@ class HierView(object):
     def getAtoms(self):
         """Return atoms for which the hierarchical view is built.
         
-        .. versionadded:: 0.6.2
-        
-        """
+        .. versionadded:: 0.6.2"""
         
         return self._atoms
     
@@ -2480,12 +2424,10 @@ class HierView(object):
         self.update()
     
     def update(self):
-        """Rebuild hierarchical view of atoms.
+        """Rebuild hierarchical view of atoms.  This method is called at 
+        instantiation, but can be used to rebuild the hierarchical view 
+        when attributes of atoms change."""
         
-        This method is called at instantiation, but can be used to rebuild
-        the hierarchical view when attributes of atoms change.
-        
-        """
         what = 'built'
         if self._chains:
             what = 'updated'
@@ -2556,6 +2498,7 @@ class HierView(object):
     
     def __iter__(self):
         """Iterate over chains."""
+        
         return self.iterChains()
     
     def __len__(self):
@@ -2565,9 +2508,7 @@ class HierView(object):
         """
         .. versionchanged:: 6.2
            Tuples composed of chain identifier, residue number, and residue
-           insertion code is accepted.
-        
-        """
+           insertion code is accepted."""
         
         if isinstance(chid, str):
             return self._chains.get(chid, None)
@@ -2588,9 +2529,7 @@ class HierView(object):
                 
     def getResidue(self, chid, resnum, icode=''):
         """Return residue with number *resnum* and insertion code *icode* from 
-        the chain with identifier *chid*, if it exists.
-        
-        """
+        the chain with identifier *chid*, if it exists."""
         
         ch = self._chains.get(chid, None)
         if ch is not None:
@@ -2622,21 +2561,16 @@ class HierView(object):
 
 
 def saveAtoms(atoms, filename=None):
-    """Save *atoms* in ProDy internal format.
-    
-    All classes derived from :class:`Atomic` are accepted as *atoms* argument.
+    """Save *atoms* in ProDy internal format.  All classes derived from 
+    :class:`Atomic` are accepted as *atoms* argument.
     
     .. versionadded:: 0.7.1
     
-    This function saves custom atomic attributes as well.
-    
-    Note that name of the :class:`AtomGroup` instance is used as the filename
-    when *atoms* is not an :class:`AtomGroup`. This is because names for
-    selections and atom maps may be too long and may contain special 
-    characters. To avoid overwriting an existing file with the same name, 
-    specify a *filename*.
-    
-    """
+    This function saves user set atomic attributes as well.  Note that name of 
+    the :class:`AtomGroup` instance is used as the filename when *atoms* is not
+    an :class:`AtomGroup`.  This is because names for selections and atom maps
+    may be too long and may contain special characters.  To avoid overwriting 
+    an existing file with the same name, specify a *filename*."""
     
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be Atomic instance, not {0:s}'
@@ -2677,9 +2611,7 @@ def loadAtoms(filename):
     
     .. seealso: :func:`saveAtoms`
     
-    This function makes use of :func:`numpy.load` function.
-    
-    """
+    This function makes use of :func:`numpy.load` function."""
     
     start = time.time()
     attr_dict = np.load(filename)
