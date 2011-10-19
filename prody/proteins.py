@@ -1171,43 +1171,52 @@ class Chemical(object):
     =========== ===== =========================================================
     Attribute   Type  Description (RECORD TYPE)
     =========== ===== =========================================================
-    identifier  str   chemical component identifier (a.k.a residue name) (HET)
+    identifier  str   residue name (or chemical component identifier) (HET)
     name        str   chemical name (HETNAM)
     chain       str   chain identifier (HET)
     number      int   residue (or sequence) number (HET)
     icode       str   insertion code (HET)
-    n_atoms     int   number of HETATM records for the group present in the 
-                      entry (HET)
-    description str   text describing chemical component (HET)
+    n_atoms     int   number of atoms present in the structure (HET)
+    description str   description of the chemical component (HET)
     synonyms    list  synonyms (HETSYN)
     formula     str   chemical formula (FORMUL)
-    pdbentry    str   PDB identifier that chemical data data is extracted from
+    pdbentry    str   PDB entry that chemical data is extracted from
     =========== ===== =========================================================
     
     """
     
-    __slots__ = ['identifier', 'name', 'chain', 'number', 'icode', 
+    __slots__ = ['resname', 'name', 'chain', 'resnum', 'icode', 
                  'n_atoms', 'description', 'synonyms', 'formula', 'pdbentry']
     
-    def __init__(self, identifier):
+    def __init__(self, resname):
         
-        self.identifier = identifier
+        #: residue name (or chemical component identifier)
+        self.resname = esname
+        #: chemical name
         self.name = None
+        #: chain identifier
         self.chain = None
-        self.number = None
+        #: residue (or sequence) number
+        self.resnum = None
+        #: insertion code
         self.icode = None
+        #: number of atoms present in the structure
         self.n_atoms = None
+        #: description of the chemical component
         self.description = None
+        #: list of synonyms
         self.synonyms = None
+        #: chemical formula
         self.formula = None
+        #: PDB entry that chemical data is extracted from
         self.pdbentry = None
         
     def __str__(self):
-        return self.identifier
+        return self.resname
     
     def __repr__(self):
         return '<Chemical: {0:s} ({1:s}_{2:s}_{3:d})>'.format(
-                    self.identifier, self.pdbentry, self.chain, self.number)
+                    self.resname, self.pdbentry, self.chain, self.resnum)
 
     def __len__(self):
         return self._n_atoms
@@ -1233,16 +1242,16 @@ class Polymer(object):
     Attribute     Type   Description (RECORD TYPE)
     ============= ====== ======================================================
     chain         str    chain identifier
-    name          str    name of the macromolecule (COMPND)
+    name          str    name of the polymer (macromolecule) (COMPND)
     fragment      str    specifies a domain or region of the molecule (COMPND)
-    synonyms      list   list of synonyms for the molecule (COMPND)
+    synonyms      list   list of synonyms for the polymer (COMPND)
     ec            list   list of associated Enzyme Commission numbers (COMPND)
-    engineered    bool   indicates that the molecule was produced using 
+    engineered    bool   indicates that the polymer was produced using 
                          recombinant technology or by purely chemical synthesis
                          (COMPND)
-    mutation      bool   indicates if there is a mutation (COMPND)
+    mutation      bool   indicates presence of a mutation (COMPND)
     comments      str    additional comments
-    sequence      str    chain sequence (SEQRES)
+    sequence      str    polymer chain sequence (SEQRES)
     sqfirst       tuple  (resnum, icode) of the *first* residue in structure
     sqlast        tuple  (resnum, icode) of the *last* residue in structure
     dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
@@ -1253,8 +1262,7 @@ class Polymer(object):
     dblast        tuple  (resnum, icode) of the *last* residue in database
     different     list   differences between sequences (SEQADV)
     modified      list   modified residues (SEQMOD)
-    pdbentry      str    PDB identifier that polymer data data is extracted 
-                         from
+    pdbentry      str    PDB entry that polymer data is extracted from
     ============= ====== ======================================================
     
     >>> polymer = parsePDBHeader('2k39', 'polymers')[0]
@@ -1291,24 +1299,42 @@ class Polymer(object):
     
     def __init__(self, chain):
         
+        #: chain identifier
         self.chain = chain
+        #: name of the polymer (macromolecule)
         self.name = ''
+        #: specifies a domain or region of the molecule
         self.fragment = None
+        #: list of synonyms for the molecule
         self.synonyms = None
+        #: list of associated Enzyme Commission numbers
         self.ec = None
         self.engineered = None
+        """indicates that the molecule was produced using recombinant 
+        technology or by purely chemical synthesis"""
+        #: indicates presence of a mutation
         self.mutation = None
+        #: additional comments
         self.comments = None
+        #: polymer chain sequence
         self.sequence = ''
+        #: reference sequence database abbreviation 
         self.dbabbr = None
+        #: reference sequence database name 
         self.dbname = None
+        #: sequence database identification code
         self.dbidcode = None
+        #: sequence database accession code 
         self.dbaccess = None
-        self.pdbentry = None
+        #: ``(resnum, icode)`` of the *first* residue in structure
         self.sqfirst = None
+        #: ``(resnum, icode)`` of the *last* residue in structure
         self.sqlast = None
+        #: ``(resnum, icode)`` of the *first* residue in database
         self.dbfirst = None
+        #: ``(resnum, icode)`` of the *last* residue in database
         self.dblast = None        
+        self.pdbentry = None
         
     def __str__(self):
         return self.name
@@ -1683,11 +1709,11 @@ def _getChemicals(lines):
     for i, line in lines['HET   ']:
         chem = Chemical(line[7:10].strip())
         chem.chain = line[12].strip()
-        chem.number = int(line[13:17])
+        chem.resnum = int(line[13:17])
         chem.icode = line[17].strip()
         chem.n_atoms = int(line[20:25])
         chem.description = line[30:70].strip()
-        chemicals[chem.identifier].append(chem)
+        chemicals[chem.resname].append(chem)
     for i, line in lines['HETNAM']:
         chem = line[11:14].strip()
         chem_names[chem] += line[15:70].rstrip()
