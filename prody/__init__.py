@@ -350,7 +350,18 @@ class PackageLogger(object):
         if self._level < logging.WARNING:
             sys.stderr.write(self._line)
             sys.stderr.flush()
-
+            
+    def sleep(self, seconds, msg=''):
+        """Sleep for seconds while updating screen message every second. 
+        Message will start with ``"Waiting for XXs"``"""
+        
+        assert isinstance(seconds, int), 'seconds must be an integer'
+        assert isinstance(msg, str), 'msg must be a string'
+        for second in range(seconds, 0, -1):
+            self.write('Waiting for {0:d}s{1:s}'.format(second, msg))
+            time.sleep(1)
+            self.clear()
+            
 LOGGER = PackageLogger()
 
 def plog(*text):
