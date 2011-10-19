@@ -1242,19 +1242,43 @@ class Polymer(object):
     sequence      str    chain sequence (SEQRES)
     dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
     dbname        str    reference sequence database name (DBREF[1|2])
-    dbidentifier  str    sequence database identification code (DBREF[1|2])
-    accession     str    sequence database accession code (DBREF[1|2])
+    dbidcode      str    sequence database identification code (DBREF[1|2])
+    dbaccess      str    sequence database accession code (DBREF[1|2])
     different     list   differences between sequences (SEQADV)
     modified      list   modified residues (SEQMOD)
     pdbentry      str    PDB identifier that polymer data data is extracted 
                          from
     ============= ====== ======================================================
     
+    >>> polymer = parsePDBHeader('2k39', 'polymers')[0]
+    >>> polymer
+    <Polymer: 2K39_A (UBIQUITIN)>
+    >>> print(polymer.pdbentry)
+    2K39
+    >>> print(polymer.chain)
+    A
+    >>> print(polymer.name)
+    UBIQUITIN
+    >>> print(polymer.sequence)
+    MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
+    >>> len(polymer.sequence)
+    76
+    >>> len(polymer)
+    76
+    >>> print(polymer.dbname)
+    UniProt
+    >>> print(polymer.dbaccess)
+    P62972
+    >>> print(polymer.dbidcode)
+    UBIQ_XENLA
+    
+    
+    
     """
     
     __slots__ = ['chain', 'name', 'fragment', 'synonyms', 'ec', 'engineered',
                  'mutation', 'comments', 'sequence', 'pdbentry', 
-                 'dbabbr', 'dbname', 'dbidentifier', 'dbaccession', 
+                 'dbabbr', 'dbname', 'dbidcode', 'dbaccess', 
                  'modified', 'different']
     
     def __init__(self, chain):
@@ -1270,8 +1294,8 @@ class Polymer(object):
         self.sequence = ''
         self.dbabbr = None
         self.dbname = None
-        self.dbidentifier = None
-        self.dbaccession = None
+        self.dbidcode = None
+        self.dbaccess = None
         self.pdbentry = None
         
         
@@ -1413,7 +1437,7 @@ def _getBiomoltrans(lines):
 
     applyToChains = (' ')
     biomolecule = defaultdict(list)
-    for i, line in lines['350']:
+    for i, line in lines['REMARK 350']:
         
         if line[13:18] == 'BIOMT':
             biomt = biomolecule[currentBiomolecule]
@@ -1425,8 +1449,7 @@ def _getBiomoltrans(lines):
                                               '').strip().split(',')
         elif line[11:23] == 'BIOMOLECULE:': 
             currentBiomolecule = line.split()[-1]
-    if biomolecule:
-        return biomolecule
+    return biomolecule
         
         
 def _getResolution(lines): 
@@ -1504,7 +1527,7 @@ def _getReference(lines):
     editors = []
     reference = ''
     publisher = ''
-    for line in lines['JRNL  '] + lines['  1']:
+    for i, line in lines['JRNL  ']:
         try:
             what = line.split(None, 2)[1]
         except:
@@ -1550,8 +1573,8 @@ def _getPolymers(lines):
         poly.pdbentry = line[7:11]
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbaccession = line[33:41].strip()
-        poly.dbidentifier = line[42:54].strip()
+        poly.dbaccess = line[33:41].strip()
+        poly.dbidcode = line[42:54].strip()
     for i, line in lines['DBREF1']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
@@ -1559,12 +1582,12 @@ def _getPolymers(lines):
         poly.pdbentry = line[7:11]
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbidentifier = line[47:67].strip()
+        poly.dbidcode = line[47:67].strip()
     for i, line in lines['DBREF2']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.dbaccession = line[18:40].strip()
+        poly.dbaccess = line[18:40].strip()
 
     string = ''
     for i, line in lines['COMPND']:
@@ -2573,8 +2596,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         raise TypeError('atoms must be an Atomic instance')
     biomt = header.get('biomoltrans')
     if not isinstance(biomt, dict) or len(biomt) == 0:
-        raise ValueError('header does not contain biomolecular' 
-                         'transformations')
+        raise ValueError("header doesn't contain biomolecular transformations")
     
     if not isinstance(atoms, prody.AtomGroup):
         atoms = atoms.copy()
