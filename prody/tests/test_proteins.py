@@ -297,8 +297,6 @@ class TestParsePDBHeaderOnly(unittest.TestCase):
             'header type is incorrect')
         
     def testHeaderContent(self):
-        self.assertEqual(self.header.get('resolution'), 'NOT APPLICABLE',
-            'failed to get expected value for resolution from header')
         self.assertEqual(self.header.get('classification'), 
             'SIGNALING PROTEIN',
             'failed to get expected value for classification from header')
@@ -308,12 +306,6 @@ class TestParsePDBHeaderOnly(unittest.TestCase):
             'failed to get expected value for deposition_date from header')
         self.assertEqual(self.header.get('identifier'), '2K39',
             'failed to get expected value for identifier from header')
-        self.assertEqual(self.header.get('source'), 
-            'MOL_ID: 1;  ORGANISM_SCIENTIFIC: XENOPUS LAEVIS;  '
-            'ORGANISM_COMMON: AFRICAN CLAWED FROG;  '
-            'EXPRESSION_SYSTEM: ESCHERICHIA COLI',
-            'failed to get expected value for source from header')
-        print self.header.get('title')
         self.assertEqual(self.header.get('title'), 
             'RECOGNITION DYNAMICS UP TO MICROSECONDS REVEALED FROM RDC '
             'DERIVED UBIQUITIN ENSEMBLE IN SOLUTION',
