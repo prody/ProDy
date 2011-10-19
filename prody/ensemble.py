@@ -79,8 +79,9 @@ import math
 
 import numpy as np
 import prody
-LOGGER = prody.LOGGER
 from prody import measure
+LOGGER = prody.LOGGER
+checkCoordsArray = prody.checkCoordsArray
 
 PISQUARE = np.pi ** 2
 
@@ -93,8 +94,6 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'parseDCD', 'writeDCD']
         
 plt = None
-
-checkCoordsArray = prody.checkCoordsArray
 
 def checkWeightsArray(weights, n_atoms, n_csets=None):
     """Return weights if checks pass, otherwise raise an exception."""
