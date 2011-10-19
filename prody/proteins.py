@@ -1327,7 +1327,7 @@ class Chemical(object):
                     self.resname, self.pdbentry, self.chain, self.resnum)
 
     def __len__(self):
-        return self._n_atoms
+        return self.n_atoms
 
 _PDB_DBREF = { 
     'GB': 'GenBank',
