@@ -94,36 +94,7 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
         
 plt = None
 
-def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
-                     reshape=None):
-    """Return array if checks pass, otherwise raise an exception."""
-
-    assert isinstance(arg, str), 'arg must be a string'
-    assert isinstance(cset, bool), 'cset must be a boolean'
-    assert n_atoms is None or isinstance(n_atoms, int) and n_atoms >= 0, \
-        'n_atoms must be a positive integer'
-    assert reshape is None or isinstance(reshape, bool), \
-        'reshape must be a boolean'
-
-    if not isinstance(array, np.ndarray):
-        raise TypeError(arg + ' must be a Numpy array')
-    elif cset and array.ndim not in (2,3): 
-        raise ValueError(arg + '.ndim must be  2 or 3'.format(ndim))
-    elif not cset and array.ndim != 2:
-        raise ValueError(arg + '.ndim must be 2')
-    elif array.shape[-1] != 3:
-        raise ValueError(arg + '.shape[-1] of 3, i.e. ([n_csets,]n_atoms,3)')
-    if n_atoms is not None and n_atoms != 0 and array.shape[-2] != n_atoms:
-        raise ValueError(arg + ' size do nut match number of atoms')
-    if array.dtype != float:
-        try:
-            array = array.astype(float)
-        except ValueError:
-            raise ValueError(arg + '.astype(float) fails, float type could '
-                             'not be assigned')
-    if cset and reshape and array.ndim == 2:
-        array = array.reshape([1, array.shape[0], 3])
-    return array
+checkCoordsArray = prody.checkCoordsArray
 
 def checkWeightsArray(weights, n_atoms, n_csets=None):
     """Return weights if checks pass, otherwise raise an exception."""
