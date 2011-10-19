@@ -1259,7 +1259,7 @@ class Polymer(object):
     
     >>> polymer = parsePDBHeader('2k39', 'polymers')[0]
     >>> polymer
-    <Polymer: 2K39_A (UBIQUITIN)>
+    <Polymer: UBIQUITIN (2K39_A)>
     >>> print(polymer.pdbentry)
     2K39
     >>> print(polymer.chain)
@@ -1362,17 +1362,16 @@ def parsePDBHeader(pdb, *keys):
                                      * *publisher*: publisher information
                                      * *pmid*: pubmed identifier
                                      * *doi*: digital object identifier 
-                                     
-    DBREF[1|2]   polymers          database sequence (see :class:`Polymer`)
-    SEQADV       polymers          (see :class:`Polymer`)
-    SEQRES       polymers          (see :class:`Polymer`)
-    MODRES       polymers          (see :class:`Polymer`)
-    HET          chemicals         (see :class:`Chemical`)
-    HETNAM       chemicals         (see :class:`Chemical`)
-    HETSYN       chemicals         (see :class:`Chemical`)
-    FORMUL       chemicals         (see :class:`Chemical`)
-    HELIX        polymers          (see :class:`Polymer`)
-    SHEET        polymers          (see :class:`Polymer`)
+    DBREF[1|2]   polymers          see :class:`Polymer`
+    SEQADV       polymers          see :class:`Polymer`
+    SEQRES       polymers          see :class:`Polymer`
+    MODRES       polymers          see :class:`Polymer`
+    HELIX        polymers          see :class:`Polymer`
+    SHEET        polymers          see :class:`Polymer`
+    HET          chemicals         see :class:`Chemical`
+    HETNAM       chemicals         see :class:`Chemical`
+    HETSYN       chemicals         see :class:`Chemical`
+    FORMUL       chemicals         see :class:`Chemical`
     REMARK 2     resolution        resolution of structures, when applicable
     REMARK 4     version           PDB file version
     REMARK 350   biomoltrans       biomolecular transformation lines 
