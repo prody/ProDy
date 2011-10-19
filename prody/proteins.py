@@ -1267,7 +1267,7 @@ class Chemical(object):
     =========== ===== =========================================================
     Attribute   Type  Description (RECORD TYPE)
     =========== ===== =========================================================
-    identifier  str   residue name (or chemical component identifier) (HET)
+    identifier  str   chemical component identifier (or residue name) (HET)
     name        str   chemical name (HETNAM)
     chain       str   chain identifier (HET)
     number      int   residue (or sequence) number (HET)
@@ -1289,17 +1289,17 @@ class Chemical(object):
     >>> chemical.n_atoms
     33
     >>> len(chemical)
-    33 
+    33
     
     """
     
-    __slots__ = ['resname', 'name', 'chain', 'resnum', 'icode', 
+    __slots__ = ['identifier', 'name', 'chain', 'resnum', 'icode', 
                  'n_atoms', 'description', 'synonyms', 'formula', 'pdbentry']
     
-    def __init__(self, resname):
+    def __init__(self, identifier):
         
         #: residue name (or chemical component identifier)
-        self.resname = resname
+        self.identifier = identifier
         #: chemical name
         self.name = None
         #: chain identifier
@@ -1320,11 +1320,11 @@ class Chemical(object):
         self.pdbentry = None
         
     def __str__(self):
-        return self.resname
+        return self.identifier
     
     def __repr__(self):
         return '<Chemical: {0:s} ({1:s}_{2:s}_{3:d})>'.format(
-                    self.resname, self.pdbentry, self.chain, self.resnum)
+                    self.identifier, self.pdbentry, self.chain, self.resnum)
 
     def __len__(self):
         return self.n_atoms
@@ -1349,7 +1349,7 @@ class Polymer(object):
     ============= ====== ======================================================
     Attribute     Type   Description (RECORD TYPE)
     ============= ====== ======================================================
-    chain         str    chain identifier
+    identifier    str    chain identifier
     name          str    name of the polymer (macromolecule) (COMPND)
     fragment      str    specifies a domain or region of the molecule (COMPND)
     synonyms      list   list of synonyms for the polymer (COMPND)
@@ -1369,7 +1369,11 @@ class Polymer(object):
     dbfirst       tuple  (resnum, icode) of the *first* residue in database
     dblast        tuple  (resnum, icode) of the *last* residue in database
     different     list   differences between sequences (SEQADV)
-    modified      list   modified residues (SEQMOD)
+    modified      list   | modified residues (SEQMOD)
+                         | when modified residues are present, they will be 
+                           each will be represented as a tuple:
+                           ``(residue_number, insertion_code, residue_name, 
+                           standard_name, comment)``
     pdbentry      str    PDB entry that polymer data is extracted from
     ============= ====== ======================================================
     
@@ -1380,7 +1384,7 @@ class Polymer(object):
     <Polymer: UBIQUITIN (2K39_A)>
     >>> print(polymer.pdbentry)
     2K39
-    >>> print(polymer.chain)
+    >>> print(polymer.identifier)
     A
     >>> print(polymer.name)
     UBIQUITIN
@@ -1399,16 +1403,16 @@ class Polymer(object):
     
     """
     
-    __slots__ = ['chain', 'name', 'fragment', 'synonyms', 'ec', 'engineered',
-                 'mutation', 'comments', 'sequence', 'pdbentry', 
+    __slots__ = ['identifier', 'name', 'fragment', 'synonyms', 'ec', 
+                 'engineered', 'mutation', 'comments', 'sequence', 'pdbentry', 
                  'dbabbr', 'dbname', 'dbidcode', 'dbaccess', 
                  'modified', 'different',
                  'sqfirst', 'sqlast', 'dbfirst', 'dblast']
     
-    def __init__(self, chain):
+    def __init__(self, identifier):
         
         #: chain identifier
-        self.chain = chain
+        self.identifier = identifier
         #: name of the polymer (macromolecule)
         self.name = ''
         #: specifies a domain or region of the molecule
@@ -1441,15 +1445,18 @@ class Polymer(object):
         #: ``(resnum, icode)`` of the *first* residue in database
         self.dbfirst = None
         #: ``(resnum, icode)`` of the *last* residue in database
-        self.dblast = None        
+        self.dblast = None
+        #: modified residues
+        self.modified = None
+        #: PDB entry that polymer data is extracted from        
         self.pdbentry = None
         
     def __str__(self):
         return self.name
     
     def __repr__(self):
-        return '<Polymer: {0:s} ({1:s}_{2:s})>'.format(
-                                        self.name, self.pdbentry, self.chain)
+        return '<Polymer: {0:s} ({1:s}_{2:s})>'.format(self.name, 
+                                                self.pdbentry, self.identifier)
 
     def __len__(self): 
         return len(self.sequence)
@@ -1776,6 +1783,19 @@ def _getPolymers(lines):
             LOGGER.warning('failed to parse last residue number for database'
                            ' at line {0:d}'.format(i))
 
+    for i, line in lines['MODRES']:
+        ch = line[16]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        if poly.modified is None:
+            poly.modified = []
+        try:
+            num = int(line[18:22])
+        except:
+            LOGGER.warning('failed to parse MODRES record at line {0:d}'
+                           .format(i))
+        poly.modified.append((num, line[22].strip(), line[12:15], 
+                              line[24:27].strip(), line[29:70].strip()))
     string = ''
     for i, line in lines['COMPND']:
         string += line[10:]
@@ -1821,7 +1841,7 @@ def _getChemicals(lines):
         chem.icode = line[17].strip()
         chem.n_atoms = int(line[20:25])
         chem.description = line[30:70].strip()
-        chemicals[chem.resname].append(chem)
+        chemicals[chem.identifier].append(chem)
     for i, line in lines['HETNAM']:
         chem = line[11:14].strip()
         chem_names[chem] += line[15:70].rstrip()
@@ -2484,16 +2504,16 @@ def writePQR(filename, atoms):
     return filename
 
 mapHelix = {
-1: 'H', # 4-turn helix (alpha helix)
-2: '', # other helix, Right-handed omega
-3: 'I', # 5-turn helix (pi helix)
-4: '', # other helix, Right-handed gamma
-5: 'G', # 3-turn helix (3-10 helix)
-6: '', # Left-handed alpha
-7: '', # Left-handed omega
-8: '', # Left-handed gamma
-9: '', # 2 - 7 ribbon/helix
-10: '' # Polyproline
+     1: 'H', # 4-turn helix (alpha helix)
+     2: '',  # other helix, Right-handed omega
+     3: 'I', # 5-turn helix (pi helix)
+     4: '',  # other helix, Right-handed gamma
+     5: 'G', # 3-turn helix (3-10 helix)
+     6: '',  # Left-handed alpha
+     7: '',  # Left-handed omega
+     8: '',  # Left-handed gamma
+     9: '',  # 2 - 7 ribbon/helix
+    10: '',  # Polyproline
 }
 
 def assignSecondaryStructure(header, atoms, coil=False):
