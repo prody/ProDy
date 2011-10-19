@@ -167,7 +167,7 @@ was parsed.
 >>> header['experiment']
 'X-RAY DIFFRACTION'
 >>> header['resolution']
-'2.35 ANGSTROMS'
+2.35
 >>> print( header.keys() ) # doctest: +SKIP
 ['biomolecular_transformations', 'reference', 'classification', 'compounds', 
 'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
