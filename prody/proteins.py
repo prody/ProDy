@@ -1293,7 +1293,7 @@ class Chemical(object):
     def __init__(self, resname):
         
         #: residue name (or chemical component identifier)
-        self.resname = esname
+        self.resname = resname
         #: chemical name
         self.name = None
         #: chain identifier
