@@ -198,6 +198,8 @@ def setPDBLocalFolder(folder, divided=False):
         raise TypeError('folder must be a string')
     assert isinstance(divided, bool), 'divided must be a boolean'
     if os.path.isdir(folder):
+        folder = os.path.abspath(folder)
+        LOGGER.info('Local PDB folder is set: "{0:s}"'.format(folder))
         if divided:
             LOGGER.info('When using local PDB folder, WWPDB divided '
                         'folder structure will be assumed.')
@@ -232,6 +234,8 @@ def setPDBMirrorPath(path):
     if not isinstance(path, str):
         raise TypeError('path must be a string')
     if os.path.isdir(path):
+        path = os.path.abspath(path)
+        LOGGER.info('Local PDB mirror path is set: "{0:s}"'.format(path))
         prody._ProDySettings['pdb_mirror_path'] = path
         prody._saveProDySettings()
     else:
