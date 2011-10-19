@@ -29,8 +29,8 @@ Classes
 Functions
 ---------
 
-  * :func:`applyBiomolecularTransformations`
-  * :func:`assignSecondaryStructure`
+  * :func:`assignSecondaryStr`
+  * :func:`buildBiomolecules`
   * :func:`blastPDB`
   * :func:`fetchPDB`
   * :func:`getPDBMirrorPath`
@@ -99,8 +99,8 @@ PDB_CLUSTERS_UPDATE_WARNING = True
 
 
 __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
-           'assignSecondaryStructure',
-           'applyBiomolecularTransformations',
+           'assignSecondaryStructure', 'assignSecondaryStr',
+           'applyBiomolecularTransformations', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
            'getPDBMirrorPath', 'getWWPDBFTPServer', 
            'setPDBMirrorPath', 'setWWPDBFTPServer',
@@ -666,13 +666,13 @@ def parsePDBStream(stream, **kwargs):
 
     if secondary:
         try:
-            ag = assignSecondaryStructure(hd, ag)
+            ag = assignSecondaryStr(hd, ag)
         except:
             raise PDBParserError('secondary structure assignments could not '
                                  'be made, check input file')
     if biomol:
         try:
-            ag = applyBiomolecularTransformations(hd, ag)
+            ag = buildBiomolecules(hd, ag)
         except:
             raise PDBParserError('biomolecule could not be generated, check'
                                  'input file')
@@ -1449,7 +1449,7 @@ def _getBiomoltrans(lines):
                                               '').strip().split(',')
         elif line[11:23] == 'BIOMOLECULE:': 
             currentBiomolecule = line.split()[-1]
-    return biomolecule
+    return dict(biomolecule)
         
         
 def _getResolution(lines): 
@@ -2314,6 +2314,14 @@ mapHelix = {
 }
 
 def assignSecondaryStructure(header, atoms, coil=False):
+    """This function will deprecate in v0.9, use :func:`assignSecondaryStr` 
+    instead."""
+    
+    LOGGER.warning('assignSecondaryStructure will deprecate in v0.9, '
+                   'use assignSecondaryStr instead')
+    return assignSecondaryStr(header, atoms, coil)
+
+def assignSecondaryStr(header, atoms, coil=False):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
@@ -2396,8 +2404,7 @@ def assignSecondaryStructure(header, atoms, coil=False):
         count += 1
     LOGGER.info('Secondary structures were assigned to {0:d} residues.'
                 .format(count))
-    return atoms
-            
+    return atoms        
 
 def fetchLigandData(cci, save=False, folder='.'):
     """Fetch ligand data from Ligand Expo (http://ligand-expo.rcsb.org/).
@@ -2562,6 +2569,14 @@ def fetchLigandData(cci, save=False, folder='.'):
     return dict_      
 
 def applyBiomolecularTransformations(header, atoms, biomol=None):
+    """This function will deprecate in v0.9, use :func:`buildBiomolecules` 
+    instead."""
+    
+    LOGGER.warning('applyBiomolecularTransformations will deprecate in v0.9, '
+                   'use buildBiomolecules instead')
+    return buildBiomolecules(header, atoms, biomol)
+
+def buildBiomolecules(header, atoms, biomol=None):
     """Return *atoms* after applying biomolecular transformations from *header*
     dictionary.
     
@@ -2570,12 +2585,12 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
        molecule.
     
     .. versionchanged:: 0.8.2
-       Raises :class:`ValueError` when *header* does not contain 
-       biomolecular transformations.
+       Raises :class:`ValueError` when *header* does not contain biomolecular 
+       transformations.
 
     Some PDB files contain transformations for more than 1 biomolecules.  A 
     specific set of transformations can be choosen using *biomol* argument.
-    Transformation sets are identified by integer numbers, e.g. 1, 2, ...
+    Transformation sets are identified by numbers, e.g. ``"1"``, ``"2"``, ...
     
     If multiple biomolecular transformations are provided in the *header*
     dictionary, biomolecules will be returned as 
