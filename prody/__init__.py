@@ -218,7 +218,6 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'critical': logging.CRITICAL,
                   'none': logging.CRITICAL}
 LOGGING_LEVELS.setdefault(logging.INFO)
-PackageSignature = '@>'
 
 class PackageLogger(object):
     
@@ -228,6 +227,10 @@ class PackageLogger(object):
         self._level = logging.DEBUG
         logger = logging.getLogger(name)
         logger.setLevel(self._level)
+
+        prefix = kwargs.get('prefix', '@>')
+        assert isinstance(prefix, str), 'prefix must be as string'
+        self._prefix = prefix
         
         for handler in logger.handlers: 
             handler.close()
@@ -235,10 +238,16 @@ class PackageLogger(object):
         
         console = logging.StreamHandler()
         console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
-        console.setFormatter(logging.Formatter(PackageSignature + 
-                                               ' %(message)s'))
+        console.setFormatter(logging.Formatter(self._prefix + ' %(message)s'))
         logger.addHandler(console)
         self._logger = logger
+        
+        self._n = None
+        self._last = None
+        self._start = None
+        self._barlen = None
+        self._prev = None
+        self._line = None
 
     def getVerbosityLevel(self):
         """Return verbosity level of the logger."""
@@ -254,6 +263,12 @@ class PackageLogger(object):
         else:
             self._logger.handlers[0].level = lvl
             self._level = lvl 
+            
+    def getPrefix(self):
+        """Return string prefixed to console messages."""
+        
+        return self._prefix
+        
 
     def info(self, msg):
         """Log *msg* with severity 'INFO'."""
@@ -298,10 +313,10 @@ class PackageLogger(object):
     def progress(self, n, **kwargs):
         """Instantiate with number of steps."""
         
+        assert isinstance(n, int) and n > 0, 'n must be a positive integer'
         self._n = n
-        self._level = getVerbosityLevel()
+        self._last = 0
         self._start = time.time()
-        self._prefix = str(kwargs.get('prefix', ''))
         self._barlen = int(kwargs.get('barlen', 30))
         self._prev = (0, 0)
         self._line = ''
@@ -309,8 +324,13 @@ class PackageLogger(object):
     def report(self, i):
         """Print status to current line in the console."""
         
-        if self._level < logging.WARNING:   
-            n = self._n
+        n = self._n
+        if self._level < logging.WARNING and n > 0 and i <= n and \
+            i > self._last:
+            self._last = i
+            head = '>'
+            if i == n:
+                head = ''
             percent = 100 * i / n
             if percent > 3:
                 seconds = int(math.ceil((time.time()-self._start) * (n-i)/i))
@@ -319,12 +339,12 @@ class PackageLogger(object):
                 prev = (percent, 0)
             if self._prev == prev:
                 return
-            prefix = '\r' + PackageSignature + self._prefix
+            prefix = '\r' + self._prefix
             bar = ''
             barlen = self._barlen
             if barlen > 10:
                 bar = int(round(percent*barlen/100.))
-                bar = '='*bar + '>' + ' '*(barlen-bar)
+                bar = '='*bar + head + ' '*(barlen-bar)
                 bar = ' [' + bar  + '] '
             
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
