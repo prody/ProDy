@@ -1240,10 +1240,14 @@ class Polymer(object):
     mutation      bool   indicates if there is a mutation (COMPND)
     comments      str    additional comments
     sequence      str    chain sequence (SEQRES)
+    sqfirst       tuple  (resnum, icode) of the *first* residue in structure
+    sqlast        tuple  (resnum, icode) of the *last* residue in structure
     dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
     dbname        str    reference sequence database name (DBREF[1|2])
     dbidcode      str    sequence database identification code (DBREF[1|2])
     dbaccess      str    sequence database accession code (DBREF[1|2])
+    dbfirst       tuple  (resnum, icode) of the *first* residue in database
+    dblast        tuple  (resnum, icode) of the *last* residue in database
     different     list   differences between sequences (SEQADV)
     modified      list   modified residues (SEQMOD)
     pdbentry      str    PDB identifier that polymer data data is extracted 
@@ -1279,7 +1283,8 @@ class Polymer(object):
     __slots__ = ['chain', 'name', 'fragment', 'synonyms', 'ec', 'engineered',
                  'mutation', 'comments', 'sequence', 'pdbentry', 
                  'dbabbr', 'dbname', 'dbidcode', 'dbaccess', 
-                 'modified', 'different']
+                 'modified', 'different',
+                 'sqfirst', 'sqlast', 'dbfirst', 'dblast']
     
     def __init__(self, chain):
         
@@ -1297,7 +1302,10 @@ class Polymer(object):
         self.dbidcode = None
         self.dbaccess = None
         self.pdbentry = None
-        
+        self.sqfirst = None
+        self.sqlast = None
+        self.dbfirst = None
+        self.dblast = None        
         
     def __str__(self):
         return self.accession
@@ -1575,6 +1583,22 @@ def _getPolymers(lines):
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
         poly.dbaccess = line[33:41].strip()
         poly.dbidcode = line[42:54].strip()
+        try:
+            poly.sqfirst = (int(line[14:18]), line[18])
+        except:
+            LOGGER.warning('failed to parse first residue number for sequence')
+        try:
+            poly.sqlast = (int(line[20:24]), line[24])
+        except:
+            LOGGER.warning('failed to parse last residue number for sequence')
+        try:
+            poly.dbfirst = (int(line[56:60]), line[60])
+        except:
+            LOGGER.warning('failed to parse first residue number for database')
+        try:
+            poly.dblast = (int(line[62:67]), line[67])
+        except:
+            LOGGER.warning('failed to parse last residue number for database')
     for i, line in lines['DBREF1']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
@@ -1583,11 +1607,27 @@ def _getPolymers(lines):
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
         poly.dbidcode = line[47:67].strip()
+        try:
+            poly.sqfirst = (int(line[14:18]), line[18])
+        except:
+            LOGGER.warning('failed to parse first residue number for sequence')
+        try:
+            poly.sqlast = (int(line[20:24]), line[24])
+        except:
+            LOGGER.warning('failed to parse last residue number for sequence')
     for i, line in lines['DBREF2']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
         poly.dbaccess = line[18:40].strip()
+        try:
+            poly.dbfirst = (int(line[45:55]), '')
+        except:
+            LOGGER.warning('failed to parse first residue number for database')
+        try:
+            poly.dblast = (int(line[57:67]), '')
+        except:
+            LOGGER.warning('failed to parse last residue number for database')
 
     string = ''
     for i, line in lines['COMPND']:
