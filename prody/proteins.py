@@ -32,17 +32,17 @@ Following functions are provided for access to protein structural data:
 Function                  Description
 ========================= =====================================================
 :func:`blastPDB`          blast search NCBI PDB database
-:func:`fetchPDB`          retrieve PDB/PDBML/mmCIF files from WWPDB servers
+:func:`fetchPDB`          retrieve PDB/PDBML/mmCIF files from wwPDB servers
 :func:`fetchLigandData`   retrieve ligand from Ligand-Expo 
-:func:`fetchPDBClusters`  retrieve PDB sequence cluster data from WWPDB servers
+:func:`fetchPDBClusters`  retrieve PDB sequence cluster data from wwPDB servers
 :func:`loadPDBClusters`   load PDB sequence cluster data to memory
 :func:`getPDBCluster`     access PDB sequence clusters
 :func:`setPDBLocalFolder` set a local folder for reading/writing PDB files
 :func:`setPDBMirrorPath`  set a local PDB mirror path
-:func:`setWWPDBFTPServer` set a WWPDB FTP server for downloading structures 
+:func:`setWWPDBFTPServer` set a wwPDB FTP server for downloading structures 
 :func:`getPDBLocalFolder` get preset local PDB folder
 :func:`getPDBMirrorPath`  get preset local PDB mirror path
-:func:`getWWPDBFTPServer` get preset WWPDB FTP server
+:func:`getWWPDBFTPServer` get preset wwPDB FTP server
 ========================= =====================================================
 
 
@@ -230,13 +230,14 @@ def getPDBLocalFolder():
 def setPDBLocalFolder(folder, divided=False):
     """Set a local PDB folder.  Setting a local PDB folder will make 
     :func:`fetchPDB` function to seek that folder for presence of requested
-    PDB files.  Also, PDB files downloaded from WWPDB FTP servers will be 
-    saved in this folder.  This may help users to store PDB files in a single 
-    place and have access to them in different working directories.
+    PDB files.  Also, files downloaded from `wwPDB <http://www.wwpdb.org/>`_ 
+    FTP servers will be saved in this folder.  This may help users to store 
+    PDB files in a single place and have access to them in different working 
+    directories.
     
     .. versionadded:: 0.8.4
     
-    If *divided* is ``True``, the divided folder structure of WWPDB servers 
+    If *divided* is ``True``, the divided folder structure of wwPDB servers 
     will be assumed when reading from and writing to the local folder.  For 
     example, a structure with identifier **1XYZ** will be present as 
     :file:`pdblocalfolder/yz/pdb1xyz.pdb.gz`. 
@@ -255,7 +256,7 @@ def setPDBLocalFolder(folder, divided=False):
         folder = os.path.abspath(folder)
         LOGGER.info('Local PDB folder is set: "{0:s}"'.format(folder))
         if divided:
-            LOGGER.info('When using local PDB folder, WWPDB divided '
+            LOGGER.info('When using local PDB folder, wwPDB divided '
                         'folder structure will be assumed.')
         else:
             LOGGER.info('When using local PDB folder, a plain folder structure '
@@ -296,14 +297,15 @@ def setPDBMirrorPath(path):
         raise IOError('No such directory: "{0:s}"'.format(path))
 
 def setWWPDBFTPServer(key):
-    """Set the PDB FTP server used for downloading PDB structures when needed.
+    """Set the `wwPDB <http://www.wwpdb.org/>`_ FTP server used for downloading
+    PDB structures when needed.
     
     .. versionadded:: 0.6.1
     
     Use one of the following keywords for setting a different server.
     
     +---------------------------+-----------------------------+
-    | WWPDB FTP server          | *Key* (case insensitive)    |
+    | wwPDB FTP server          | *Key* (case insensitive)    |
     +===========================+=============================+
     | RCSB PDB (USA) (default)  | RCSB, USA, US               |
     +---------------------------+-----------------------------+
@@ -322,13 +324,13 @@ def setWWPDBFTPServer(key):
 
 def getWWPDBFTPServer():
     """Return a tuple containing name, host, and path of the currently 
-    set WWPDB FTP server.
+    set `wwPDB <http://www.wwpdb.org/>`_ FTP server.
     
     .. versionadded:: 0.6.1"""
     
     server = prody._ProDySettings.get('wwpdb_ftp')
     if server is None:
-        LOGGER.warning('A WWPDB FTP server is not set by the user. '
+        LOGGER.warning('A wwPDB FTP server is not set by the user. '
                        'Default FTP server RCSB PDB is returned. Use '
                        'setWWPDBFTPServer function for choosing a server '
                        'physically close to your location.')
@@ -375,7 +377,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     set by the user (see :func:`setPDBMirrorPath`).  Then, local PDB folder
     will be sought, if one is  set by the user (see :func:`setPDBLocalFolder`).
     Finally, if files are not found locally, they will be downloaded one of 
-    WWPDB FTP servers (use :func:`setWWPDBFTPServer` to specify one close to 
+    wwPDB FTP servers (use :func:`setWWPDBFTPServer` to specify one close to 
     you)."""
     
     if isinstance(pdb, str):
@@ -531,7 +533,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     if download:
         from ftplib import FTP
         ftp_name, ftp_host, ftp_path = getWWPDBFTPServer()
-        LOGGER.debug('Connecting WWPDB FTP server {0:s}.'.format(ftp_name))
+        LOGGER.debug('Connecting wwPDB FTP server {0:s}.'.format(ftp_name))
         if format == 'pdb' and not copy and local_folder:
             folder = local_folder
             compressed = True
@@ -1928,7 +1930,7 @@ def _getVersion(lines):
         if 'COMPLIES' in line:
             try:
                 # Return a string, because floating makes 3.20, 3.2 or
-                # may arise problems if WWPDB uses a version number like 3.30.1
+                # may arise problems if wwPDB uses a version number like 3.30.1
                 return line.split('V.')[1].split(',')[0].strip()
             except:
                 return None
