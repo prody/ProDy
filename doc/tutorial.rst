@@ -285,12 +285,11 @@ More examples
 
 There is much more to what you can do with this flexible and fast atom 
 selection engine, without the need for writing nested loops with comparisons 
-or changing the source code. See the following pages:
+or changing the source code.  See the following pages:
 
   * :ref:`selections` for description of all selection keywords
-  * :ref:`selection-examples` for a detailed usage example
-  * :ref:`selection-operations` for handy features of :class:`~atomic.Selection`
-    objects
+  * :ref:`selection-operations` for handy features of 
+    :class:`~atomic.Selection` objects
   * :ref:`contacts` for selecting interacting atoms
 
 Hierarchical views

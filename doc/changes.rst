@@ -30,6 +30,11 @@ Release 0.8.4 (in development)
   * :func:`~proteins.assignSecondaryStructure` is renamed as 
     :func:`~proteins.assignSecondaryStr` and will be removed in v0.9.
 
+**Bug Fixes**:
+
+  * Bugs in :func:`~proteins.execDSSP` and :func:`~proteins.execSTRIDE`
+    functions that caused exceptions when compressed files were passed 
+    is fixed.
 
 Release 0.8.3 (Oct 16, 2011)
 ===============================================================================
