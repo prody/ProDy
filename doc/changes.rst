@@ -15,8 +15,13 @@ Release 0.8.4 (in development)
     can be retrieved using :func:`~proteins.fetchPDB` function.
     
   * :func:`~proteins.parsePDBHeader` is implemented for convenient parsing of
-    PDB header data from :file:`.pdb` files.
+    header data from :file:`.pdb` files.
     
+  * :class:`~proteins.Chemical` and :class:`~proteins.Polymer` classes are 
+    implemented for storing chemical and polymer component data parsed from
+    PDB header records.
+
+
 **Changes**:
 
   * :func:`~proteins.applyBiomolecularTransformations` is renamed as 

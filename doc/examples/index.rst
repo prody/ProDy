@@ -42,9 +42,8 @@ Protein Structure
 .. toctree::
    :maxdepth: 1
 
-   select/selections
-   select/contacts
    atomic/hierview
+   select/contacts
    measure/alignment
    proteins/biomolt
    compare/compare

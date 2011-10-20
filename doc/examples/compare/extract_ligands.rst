@@ -29,9 +29,9 @@ structure.
 ProDy Code
 ===============================================================================
 
-We start by importing everything from the ProDy package:
+We start by importing everything from the ProDy package::
 
->>> from prody import *
+  from prody import *
 
 Parse reference and blast PDB
 -------------------------------------------------------------------------------
