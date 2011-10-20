@@ -16,60 +16,115 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes and functions to fetch, parse, and write PDB 
-files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
+"""This module defines classes and functions to fetch, parse, and write 
+structural data files, execute structural analysis programs, and to access 
+and search structural databases, e.g. `ProteinDataBank <http://wwpdb.org>`_.
 
-Classes
--------
+Protein structural data
+===============================================================================
 
-  * :class:`Chemical`
-  * :class:`Polymer`
-  * :class:`PDBBlastRecord`
+Access databases 
+-------------------------------------------------------------------------------
 
-Functions
----------
+Following functions are provided for access to protein structural data:
 
-  * :func:`assignSecondaryStr`
-  * :func:`buildBiomolecules`
-  * :func:`blastPDB`
-  * :func:`fetchPDB`
-  * :func:`getPDBLocalFolder`
-  * :func:`getPDBMirrorPath`
-  * :func:`getWWPDBFTPServer`
-  * :func:`setPDBLocalFolder`
-  * :func:`setPDBMirrorPath`
-  * :func:`setWWPDBFTPServer` 
-  * :func:`parsePDB`
-  * :func:`parsePDBStream`
-  * :func:`parsePSF`
-  * :func:`parsePQR`
-  * :func:`writePDB`
-  * :func:`writePDBStream`
-  * :func:`writePQR`
-  * :func:`parsePDBHeader`
-  
-  * :func:`fetchLigandData`
-  * :func:`fetchPDBClusters`
-  * :func:`loadPDBClusters`
-  * :func:`getPDBCluster`
+========================= =====================================================
+Function                  Description
+========================= =====================================================
+:func:`blastPDB`          blast search NCBI PDB database
+:func:`fetchPDB`          retrieve PDB/PDBML/mmCIF files from WWPDB servers
+:func:`fetchLigandData`   retrieve ligand from Ligand-Expo 
+:func:`fetchPDBClusters`  retrieve PDB sequence cluster data from WWPDB servers
+:func:`loadPDBClusters`   load PDB sequence cluster data to memory
+:func:`getPDBCluster`     access PDB sequence clusters
+:func:`setPDBLocalFolder` set a local folder for reading/writing PDB files
+:func:`setPDBMirrorPath`  set a local PDB mirror path
+:func:`setWWPDBFTPServer` set a WWPDB FTP server for downloading structures 
+:func:`getPDBLocalFolder` get preset local PDB folder
+:func:`getPDBMirrorPath`  get preset local PDB mirror path
+:func:`getWWPDBFTPServer` get preset WWPDB FTP server
+========================= =====================================================
 
-  * :func:`execDSSP`
-  * :func:`parseDSSP`
-  * :func:`performDSSP`
-  
-  * :func:`execSTRIDE`
-  * :func:`parseSTRIDE`
-  * :func:`performSTRIDE`
+
+Parse/write files
+-------------------------------------------------------------------------------
+
+Following ProDy functions are for parsing and writing atomic data:
+
+====================== ========================================================
+Function               Description
+====================== ========================================================
+:func:`parsePDB`       parse atomic data from files in :file:`.pdb` format
+:func:`parsePSF`       parse atomic data from files in :file:`.psf` format
+:func:`parsePQR`       parse atomic data from files in :file:`.pqr` format
+:func:`parsePDBHeader` parse header data from :file:`.pdb` files 
+:func:`parsePDBStream` parse atomic data from a stream in :file:`.pdb` format
+:func:`parseDSSP`      parse structural data from :program:`dssp` output
+:func:`parseSTRIDE`    parse structural data from :program:`stride` output
+:func:`writePDB`       write atomic data to a file in :file:`.pdb` format
+:func:`writePQR`       write atomic data to a file in :file:`.pqr` format
+:func:`writePDBStream` write atomic data in :file:`.pdb` format to a stream
+====================== ========================================================
+
+.. seealso::
    
+   Atom data (coordinates, atom names, residue names, etc.) parsed from 
+   PDB files are stored in :class:`~prody.atomic.AtomGroup` instances.  
+   See :mod:`atomic` module documentation for more details. 
+
+
+Store data
+-------------------------------------------------------------------------------
+
+Following classes are for storing meta, structural, and/or search data: 
+
+======================== ======================================================
+Function                 Description
+======================== ======================================================
+:class:`Chemical`        store PDB chemical (heterogen) component data
+:class:`Polymer`         store PDB polymer (macromolecule) component data
+:class:`PDBBlastRecord`  store and evaluate NCBI PDB blast search results 
+======================== ======================================================
+
+Execute programs
+-------------------------------------------------------------------------------
+
+Following functions can be used to execute structural analysis programs from 
+within Python:
+
+========================= =====================================================
+Function                  Description
+========================= =====================================================
+:func:`execDSSP`          execute :program:`dssp`
+:func:`execSTRIDE`        execute :program:`stride`
+:func:`performDSSP`       execute :program:`dssp` and parse results
+:func:`performSTRIDE`     execute :program:`stride` and parse results
+========================= =====================================================
+
+
+Edit structures
+-------------------------------------------------------------------------------
+
+Following functions allow editing structures, or to be exact instances of 
+:class:`~prody.atomic.AtomGroup` class, using structural data from PDB header 
+records:
+
+========================== ====================================================
+Function                   Description
+========================== ====================================================
+:func:`assignSecondaryStr` add secondary structure data from header to atoms
+:func:`buildBiomolecules`  build biomolecule data based on header records
+========================== ====================================================
+
+
+:mod:`prody.proteins`
+===============================================================================
+
 .. doctest::
     :hide:
         
     >>> from prody import *
     >>> import numpy as np
-    >>> allmodels = parsePDB('2k39', subset='ca')
-    >>> model10 = parsePDB('2k39', subset='ca', model=10)
-    >>> np.all(allmodels.getCoordsets(9) == model10.getCoordinates())
-    True
 """
 
 __author__ = 'Ahmet Bakan'
@@ -1345,8 +1400,8 @@ class Polymer(object):
     different     list   | differences from database sequence (SEQADV)
                          | when different residues are present, they will be 
                            each will be represented as: ``(residueName, 
-                           residueNumberInsertionCode, dbResidueNumber, 
-                           dbResidueName, comment)``
+                           residueNumberInsertionCode, dbResidueName, 
+                           dbResidueNumber, comment)``
     modified      list   | modified residues (SEQMOD)
                          | when modified residues are present, each will be 
                            represented as: ``(residueName, 

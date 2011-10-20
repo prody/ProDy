@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.8.3 (in development)
+Release 0.8.4 (in development)
 ===============================================================================
 
 **New Features**:
@@ -16,6 +16,14 @@ Release 0.8.3 (in development)
     
   * :func:`~proteins.parsePDBHeader` is implemented for convenient parsing of
     PDB header data from :file:`.pdb` files.
+    
+**Changes**:
+
+  * :func:`~proteins.applyBiomolecularTransformations` is renamed as 
+    :func:`~proteins.buildBiomolecules` and will be removed in v0.9.
+
+  * :func:`~proteins.assignSecondaryStructure` is renamed as 
+    :func:`~proteins.assignSecondaryStr` and will be removed in v0.9.
 
 
 Release 0.8.3 (Oct 16, 2011)
