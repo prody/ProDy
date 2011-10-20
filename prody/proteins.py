@@ -1368,16 +1368,19 @@ class Polymer(object):
     sqlast        tuple  (resnum, icode) of the *last* residue in structure
     dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
     dbname        str    reference sequence database name (DBREF[1|2])
-    dbidcode      str    sequence database identification code (DBREF[1|2])
-    dbaccess      str    sequence database accession code (DBREF[1|2])
+    dbidentifier  str    sequence database identification code (DBREF[1|2])
+    dbaccession   str    sequence database accession code (DBREF[1|2])
     dbfirst       tuple  (resnum, icode) of the *first* residue in database
     dblast        tuple  (resnum, icode) of the *last* residue in database
-    different     list   differences between sequences (SEQADV)
+    different     list   | differences from database sequence (SEQADV)
+                         | when different residues are present, they will be 
+                           each will be represented as: ``(residueName, 
+                           residueNumberInsertionCode, dbResidueNumber, 
+                           dbResidueName, comment)``
     modified      list   | modified residues (SEQMOD)
-                         | when modified residues are present, they will be 
-                           each will be represented as a tuple:
-                           ``(residue_number, insertion_code, residue_name, 
-                           standard_name, comment)``
+                         | when modified residues are present, each will be 
+                           represented as: ``(residueName, 
+                           residueNumberInsertionCode, standardName, comment)``
     pdbentry      str    PDB entry that polymer data is extracted from
     ============= ====== ======================================================
     
@@ -1400,16 +1403,16 @@ class Polymer(object):
     76
     >>> print(polymer.dbname)
     UniProt
-    >>> print(polymer.dbaccess)
+    >>> print(polymer.dbaccession)
     P62972
-    >>> print(polymer.dbidcode)
+    >>> print(polymer.dbidentifier)
     UBIQ_XENLA
     
     """
     
     __slots__ = ['identifier', 'name', 'fragment', 'synonyms', 'ec', 
                  'engineered', 'mutation', 'comments', 'sequence', 'pdbentry', 
-                 'dbabbr', 'dbname', 'dbidcode', 'dbaccess', 
+                 'dbabbr', 'dbname', 'dbidentifier', 'dbaccession', 
                  'modified', 'different',
                  'sqfirst', 'sqlast', 'dbfirst', 'dblast']
     
@@ -1439,9 +1442,9 @@ class Polymer(object):
         #: reference sequence database name 
         self.dbname = None
         #: sequence database identification code
-        self.dbidcode = None
+        self.dbidentifier = None
         #: sequence database accession code 
-        self.dbaccess = None
+        self.dbaccession = None
         #: ``(resnum, icode)`` of the *first* residue in structure
         self.sqfirst = None
         #: ``(resnum, icode)`` of the *last* residue in structure
@@ -1452,6 +1455,8 @@ class Polymer(object):
         self.dblast = None
         #: modified residues
         self.modified = None
+        #: differences from database reference sequence
+        self.different = None
         #: PDB entry that polymer data is extracted from        
         self.pdbentry = None
         
@@ -1735,8 +1740,8 @@ def _getPolymers(lines):
         poly.pdbentry = line[7:11]
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbaccess = line[33:41].strip()
-        poly.dbidcode = line[42:54].strip()
+        poly.dbaccession = line[33:41].strip()
+        poly.dbidentifier = line[42:54].strip()
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
@@ -1760,7 +1765,7 @@ def _getPolymers(lines):
         poly.pdbentry = line[7:11]
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbidcode = line[47:67].strip()
+        poly.dbidentifier = line[47:67].strip()
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
@@ -1775,7 +1780,7 @@ def _getPolymers(lines):
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.dbaccess = line[18:40].strip()
+        poly.dbaccession = line[18:40].strip()
         try:
             poly.dbfirst = (int(line[45:55]), '')
         except:
@@ -1793,13 +1798,28 @@ def _getPolymers(lines):
         polymers[ch] = poly
         if poly.modified is None:
             poly.modified = []
-        try:
-            num = int(line[18:22])
-        except:
-            LOGGER.warning('failed to parse MODRES record at line {0:d}'
-                           .format(i))
-        poly.modified.append((num, line[22].strip(), line[12:15], 
-                              line[24:27].strip(), line[29:70].strip()))
+        poly.modified.append((line[12:15].strip(), line[18:22].strip() + 
+                   line[22].strip(), line[24:27].strip(), line[29:70].strip()))
+    for i, line in lines['SEQADV']:
+        ch = line[16]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        if poly.different is None:
+            poly.different = []
+        dbabbr = line[24:28].strip()
+        if poly.dbabbr != dbabbr:
+            LOGGER.warning('sequence database do not match in SEQADV record '
+                           'at line {0:d}'.format(i))
+            continue
+        dbaccession = line[29:38].strip() 
+        if poly.dbaccession != dbaccession:
+            LOGGER.warning('database identifier code do not match in SEQADV '
+                           'record at line {0:d}'.format(i))
+            continue
+        poly.different.append((line[12:15].strip(), line[18:22].strip() + 
+            line[22].strip(), line[39:42].strip(), line[43:48].strip(), 
+            line[49:70].strip()))
+    
     string = ''
     for i, line in lines['COMPND']:
         string += line[10:]
