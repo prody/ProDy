@@ -15,7 +15,7 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""This module defines classes and functions for dynamics analysis. 
+"""This module defines classes and functions for protein dynamics analysis. 
 
 Classes
 -------
@@ -49,13 +49,14 @@ Functions
 ---------
 
 Many of the functions documented in this page accepts a *modes* argument (may 
-also appear in different names). One of the following may be accepted as this 
+also appear in different names).  One of the following may be accepted as this 
 argument:
 
   * an NMA model, which may be an instance of one of :class:`ANM`, 
     :class:`GNM`, :class:`NMA`, :class:`PCA`.
   * a :class:`Mode` instance obtained by indexing an NMA model, e.g. ``nma[0]``
-  * a :class:`ModeSet` instance obtained by slicing an NMA model, e.g. ``nma[:10]``
+  * a :class:`ModeSet` instance obtained by slicing an NMA model, 
+    e.g. ``nma[:10]``
 
 Some of these functions may also accept :class:`Vector` instances as *mode* 
 argument. These are noted in function documentations. 
@@ -124,10 +125,10 @@ argument. These are noted in function documentations.
 
 **Plotting Functions**:
 
-Plotting functions are called by the name of the plotted data/property and are
-prefixed with "show". Function documentations include the :mod:`matplotlib.pyplot` 
-function utilized for actual plotting. Arguments and keyword arguments are passed 
-to the Matplotlib functions.  
+Plotting functions are called by the name of the plotted data/property 
+and are prefixed with "show".  Function documentations refers to the 
+:mod:`matplotlib.pyplot` function utilized for actual plotting. 
+Arguments and keyword arguments are passed to the Matplotlib functions.  
 
 
   * :func:`showContactMap`
@@ -382,6 +383,7 @@ class VectorBase(object):
         
 
 class Mode(VectorBase):
+
     """A class to provide access to and operations on mode data.
         
     """
@@ -395,11 +397,6 @@ class Mode(VectorBase):
         :type model: :class:`ANM`, :class:`GNM`, or :class:`PCA` 
         :arg index: index of the mode 
         :type index: int
-        
-        >>> mode = p38_anm[0]
-        >>> mode
-        <Mode: 1 from ANM 1p38>
-        
         """
         
         self._model = model
@@ -415,75 +412,39 @@ class Mode(VectorBase):
         return 'Mode {0:d} from {1:s}'.format(self._index+1, str(self._model))
 
     def is3d(self):
-        """Returns True if mode instance is from a 3-dimensional model.
-        
-        >>> print( mode.is3d() )
-        True
-        
-        """
+        """Return ``True`` if mode instance is from a 3-dimensional model."""
         
         return self._model._is3d
     
     def getNumOfAtoms(self):
-        """Return number of atoms.
-        
-        >>> mode.getNumOfAtoms()
-        321
-        
-        """
+        """Return number of atoms."""
         
         return self._model._n_atoms
     
     def getNumOfDegOfFreedom(self):
-        """Return number of degrees of freedom.
-        
-        >>> mode.getNumOfDegOfFreedom()
-        963
-        
-        """
+        """Return number of degrees of freedom (three times the number of 
+        atoms)."""
         
         return self._model._dof
     
     def getName(self):
-        """A descriptive name for the mode instance.
-        
-        >>> mode.getName()
-        'Mode 1 from ANM 1p38'
-        
-        """
+        """A descriptive name for the mode instance."""
         
         return str(self)
     
     def getIndex(self):
-        """Return index of the mode.
-        
-        >>> mode.getIndex() # Note that this returns 0, i.e. anm[0]
-        0
-        
-        """
+        """Return the index of the mode.  Note that mode indices are 
+        zero-based."""
         
         return self._index
     
     def getModel(self):
-        """Return the model that the mode belongs to.
-        
-        >>> mode.getModel()
-        <ANM: 1p38 (20 modes, 321 nodes)>
-        
-        """
+        """Return the model that the mode instance belongs to."""
         
         return self._model
     
     def getArray(self):
-        """Return a copy of the normal mode array (eigenvector).
-        
-        >>> print( mode.getArray().round(3) ) # doctest: +ELLIPSIS
-        [-0.022  0.052 -0.055 -0.021  0.057 -0.057 -0.033  0.076 -0.059 -0.039
-          0.075 -0.037 -0.049  0.087 -0.03  -0.058  0.092 -0.009 -0.064  0.094
-        ...
-         -0.008  0.015 -0.02   0.002 -0.    -0.025  0.003 -0.005 -0.018  0.01
-         -0.009 -0.031  0.009 -0.008 -0.029  0.011 -0.019 -0.024]
-        """
+        """Return a copy of the normal mode array (eigenvector)."""
         
         return self._model._array[:, self._index].copy()
     
@@ -495,73 +456,32 @@ class Mode(VectorBase):
         return self._model._array[:, self._index]
     
     def getEigenvalue(self):
-        """Return normal mode eigenvalue.
-        
-        >>> print( mode.getEigenvalue().round(3) ) # doctest: +ELLIPSIS
-        0.107
-        
-        """
+        """Return normal mode eigenvalue."""
         
         return self._model._eigvals[self._index]
     
     def getVariance(self):
-        """Variance along the mode. 
-        
-        If the model is not a PCA, inverse of the eigenvalue is returned.
-        
-        >>> print( mode.getVariance().round(2) ) # doctest: +ELLIPSIS
-        9.39
-        >>> print( (mode.getEigenvalue()**-1).round(2) ) # doctest: +ELLIPSIS
-        9.39
-        
-        """
+        """Variance along the mode.  If the model is not a PCA, inverse of the
+        eigenvalue is returned."""
         
         return self._model._vars[self._index]
 
     def getFractOfVariance(self):
-        """Return fraction of variance explained by the mode.
-        
-        Fraction of variance is the ratio of the variance along this mode to 
-        the trace of the covariance matrix.
-        
-        See :meth:`getVariance`
-        
-        >>> print( mode.getFractOfVariance().round(2) ) # doctest: +ELLIPSIS
-        0.32
-        
-        """
+        """Return fraction of variance explained by the mode.  Fraction of 
+        variance is the ratio of the variance along this mode to the trace 
+        of the covariance matrix.  See :meth:`getVariance`."""
         
         return self.getVariance() / self._model._trace
     
     def getCollectivity(self, masses=None):
-        """Return collectivity of the mode.
-        
-        This function implements collectivity as defined in equation 5 of 
-        [BR95]_.
-        
-        To incorporate atomic *masses* in calculations, use 
-        :func:`calcCollectivity` function.
-        
-        >>> print( mode.getCollectivity().round(2) ) # doctest: +ELLIPSIS
-        0.65
-        
-        """
+        """Return the degree of collectivity of the mode.  This function 
+        implements collectivity as defined in equation 5 of [BR95]_. See 
+        also the :func:`calcCollectivity`."""
 
         return calcCollectivity(self)
 
     def getCovariance(self):
-        """Return covariance matrix calculated for this mode instance.
-        
-        >>> print( mode.getCovariance().round(3) ) # doctest: +ELLIPSIS
-        [[ 0.004 -0.011  0.011 ..., -0.002  0.004  0.005]
-         [-0.011  0.025 -0.027 ...,  0.006 -0.009 -0.012]
-         [ 0.011 -0.027  0.028 ..., -0.006  0.01   0.012]
-         ..., 
-         [-0.002  0.006 -0.006 ...,  0.001 -0.002 -0.003]
-         [ 0.004 -0.009  0.01  ..., -0.002  0.003  0.004]
-         [ 0.005 -0.012  0.012 ..., -0.003  0.004  0.006]]
-
-        """
+        """Return covariance matrix calculated for this mode instance."""
         
         array = self._getArray()
         return np.outer(array, array) * self.getVariance()
@@ -589,13 +509,11 @@ class Mode(VectorBase):
 
 class Vector(VectorBase):
     
-    """A class to provide operations on a modified mode array.
-    
-    This class holds only mode array (i.e. eigenvector) data, and has no
-    associations with an NMA instance.
-    
-    Scalar multiplication of :class:`Mode` instance or addition of two
-    :class:`Mode` instances results in a :class:`Vector` instance. 
+    """A class to provide operations on a modified mode array.  This class 
+    holds only mode array (i.e. eigenvector) data, and has no associations 
+    with an NMA instance.  Scalar multiplication of :class:`Mode` instance 
+    or addition of two :class:`Mode` instances results in a :class:`Vector` 
+    instance. 
     
     """
     
@@ -655,11 +573,8 @@ class Vector(VectorBase):
         return len(self._array)
 
     def getNumOfAtoms(self):
-        """Return number of atoms.
-        
-        For a 3-dimensional vector, returns length of the vector divided by 3.
-        
-        """
+        """Return number of atoms.  For a 3-dimensional vector, returns length 
+        of the vector divided by 3."""
         
         if self._is3d: 
             return len(self._array)/3
@@ -708,9 +623,7 @@ class NMABase(object):
     def __getitem__(self, index):
         """
         .. versionchanged:: 0.6
-           A list or tuple of integers can be used for indexing. 
-        
-        """
+           A list or tuple of integers can be used for indexing."""
         
         if self._n_modes == 0:
             raise ProDyException('{0:s} modes are not calculated, try '
@@ -842,12 +755,8 @@ class NMABase(object):
         return self._array
 
     def getCovariance(self):
-        """Return covariance matrix.
-        
-        If covariance matrix is not set or calculated yet, it will be 
-        calculated using available modes and then returned.
-        
-        """
+        """Return covariance matrix.  If covariance matrix is not set or yet 
+        calculated, it will be calculated using available modes."""
         
         if self._cov is None:
             if self._array is None:
@@ -860,14 +769,12 @@ class NMABase(object):
         pass
     
     def addEigenpair(self, eigenvector, eigenvalue=None):
-        """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` instance.
-        
-        .. versionadded:: 0.5.3
-        
-        If *eigenvalue* is not given, it will be set to 1. 
+        """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` 
+        instance.  If *eigenvalue* is not given, it will be set to 1. 
         Variances are set as the inverse eigenvalues.
         
-        """
+        .. versionadded:: 0.5.3"""
+        
         vector = eigenvector
         value = eigenvalue
         if not isinstance(vector, np.ndarray):
@@ -979,19 +886,14 @@ class NMA(NMABase):
 
         
 class ModeSet(object):
+
     """A class for providing access to data for a subset of modes.
     
     Instances are obtained by slicing an NMA model (:class:`ANM`, :class:`GNM`, 
     or :class:`PCA`).
     
     ModeSet's contain a reference to the model and a list of mode indices.
-    Methods common to NMA models are also defined for mode sets.
-    
-    >>> modes = p38_anm[:3]
-    >>> modes
-    <ModeSet: 3 modes from ANM 1p38>
-    
-    """
+    Methods common to NMA models are also defined for mode sets."""
     
     __slots__ = ['_model', '_indices']
     
@@ -1018,136 +920,64 @@ class ModeSet(object):
                                                str(self._model))
     
     def is3d(self):
-        """Return True if mode instance is from a 3-dimensional model.
+        """Return True if mode instance is from a 3-dimensional model."""
         
-        >>> modes.is3d()
-        True
-        
-        """
         return self._model._is3d
     
     def getNumOfAtoms(self):
-        """Return number of nodes.
+        """Return number of nodes."""
         
-        >>> modes.getNumOfAtoms()
-        321
-        
-        """
         return self._model._n_atoms
     
     def getNumOfModes(self):
         """Return number of modes in the instance (not necessarily maximum 
-        number of possible modes).
-        
-        >>> modes.getNumOfModes()
-        3
-        
-        """
+        number of possible modes)."""
         
         return len(self._indices)
     
     def getNumOfDegOfFreedom(self):
-        """Return number of degrees of freedom.
-        
-        >>> modes.getNumOfDegOfFreedom()
-        963
-        
-        """
+        """Return number of degrees of freedom."""
         
         return self._model._dof
         
     def getModes(self):
-        """Return all modes in the subset in a list.
-        
-        >>> print( modes.getModes() )
-        [<Mode: 1 from ANM 1p38>, <Mode: 2 from ANM 1p38>, <Mode: 3 from ANM 1p38>]
-        
-        """
+        """Return a list that contains the modes in the mode set."""
         
         getMode = self._model.getMode
         return [getMode(i) for i in self._indices]
     
     def getName(self):
-        """Return name.
-        
-        >>> modes.getName()
-        '3 modes from ANM 1p38'
-        
-        """
+        """Return name."""
         
         return str(self)
     
     def getModel(self):
-        """Return the model that the modes belongs to.
-        
-        >>> modes.getModel()
-        <ANM: 1p38 (20 modes, 321 nodes)>
-        
-        """
+        """Return the model that the modes belongs to."""
         
         return self._model
     
     def getIndices(self):
-        """Return indices of modes in the mode set.
-        
-        >>> modes.getIndices()
-        array([0, 1, 2])
-        
-        """
+        """Return indices of modes in the mode set."""
         
         return self._indices
     
     def getEigenvalues(self):
-        """Return eigenvalues.
-        
-        >>> print( modes.getEigenvalues().round(2) )
-        [ 0.11  0.16  0.33]
-        
-        """
+        """Return eigenvalues."""
         
         return self._model._eigvals[self._indices]
 
     def getEigenvectors(self):
-        """Return a copy of eigenvectors.
-        
-        >>> print( modes.getEigenvectors().round(3) ) # doctest: +ELLIPSIS
-        [[-0.022 -0.041 -0.032]
-         [ 0.052 -0.064 -0.01 ]
-         [-0.055 -0.015 -0.057]
-         ..., 
-         [ 0.011 -0.048  0.027]
-         [-0.019 -0.022 -0.003]
-         [-0.024 -0.019  0.005]]
-                        
-        """
+        """Return a copy of eigenvectors."""
         
         return self._model._array[:, self._indices]
     
     def getVariances(self):
-        """Return variances (~inverse eigenvalues).
-        
-        >>> print( modes.getVariances().round(2) ) # doctest: +ELLIPSIS
-        [ 9.39  6.42  3.03]
-        >>> print( (modes.getEigenvalues()**-1).round(2) ) # doctest: +ELLIPSIS
-        [ 9.39  6.42  3.03]
-        
-        """
+        """Return variances (~inverse eigenvalues)."""
         
         return self._model._vars[self._indices]
 
     def getArray(self):
-        """Return a copy of eigenvectors array.
-        
-        >>> print( modes.getArray().round(3) ) # doctest: +ELLIPSIS
-        [[-0.022 -0.041 -0.032]
-         [ 0.052 -0.064 -0.01 ]
-         [-0.055 -0.015 -0.057]
-         ..., 
-         [ 0.011 -0.048  0.027]
-         [-0.019 -0.022 -0.003]
-         [-0.024 -0.019  0.005]]
-                        
-        """
+        """Return a copy of eigenvectors array."""
         
         return self._model._array[:, self._indices]
 
@@ -1157,24 +987,14 @@ class ModeSet(object):
         return self._model._array[:, self._indices]
         
     def getCovariance(self):
-        """Return covariance matrix calculated for modes in the set.
-        
-        >>> print( modes.getCovariance().round(3) ) # doctest: +ELLIPSIS
-        [[ 0.018  0.007  0.021 ...,  0.008  0.01   0.01 ]
-         [ 0.007  0.052 -0.019 ...,  0.024 -0.    -0.004]
-         [ 0.021 -0.019  0.039 ..., -0.006  0.013  0.014]
-         ..., 
-         [ 0.008  0.024 -0.006 ...,  0.018  0.004  0.004]
-         [ 0.01  -0.     0.013 ...,  0.004  0.007  0.007]
-         [ 0.01  -0.004  0.014 ...,  0.004  0.007  0.008]]
-
-        """
+        """Return covariance matrix calculated for modes in the set."""
         
         array = self._getArray()
         return np.dot(array, np.dot(np.diag(self.getVariances()), array.T))
    
 
 class GNMBase(NMABase):
+
     """Class for Gaussian Network Model analysis of proteins."""
 
     def __init__(self, name='Unnamed'):
@@ -1259,9 +1079,7 @@ class GNM(GNMBase):
 
         .. versionchanged:: 0.7.3
            When Scipy is available, user can select to use sparse matrices for
-           efficient usage of memory at the cost of computation speed.
-
-        """
+           efficient usage of memory at the cost of computation speed."""
         
         if KDTree is None: 
             prody.importBioKDTree()
@@ -1342,11 +1160,9 @@ class GNM(GNMBase):
         self._dof = n_atoms
         
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
-        """Calculate normal modes.
-
-        This method uses :func:`scipy.linalg.eigh` function to diagonalize 
-        Kirchhoff matrix. When Scipy is not found, :func:`numpy.linalg.eigh` 
-        is used.
+        """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh` 
+        function to diagonalize the Kirchhoff matrix. When Scipy is not found, 
+        :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
               If ``None`` is given, all modes will be calculated. 
@@ -1357,7 +1173,6 @@ class GNM(GNMBase):
         
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
-        
         """
         
         if self._kirchhoff is None:
@@ -1445,12 +1260,8 @@ class ANM(GNMBase):
         return self._hessian.copy()
     
     def setHessian(self, hessian):
-        """Set Hessian matrix.
-        
-        A symmetric matrix is expected, i.e. not a lower- or upper-triangular
-        matrix.
-        
-        """
+        """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a 
+        lower- or upper-triangular matrix."""
         
         if not isinstance(hessian, np.ndarray):
             raise TypeError('hessian must be an ndarray')
@@ -1592,11 +1403,9 @@ class ANM(GNMBase):
         self._dof = dof
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
-        """Calculate normal modes.
-
-        This method uses :func:`scipy.linalg.eigh` function to diagonalize 
-        Hessian matrix. When Scipy is not found, :func:`numpy.linalg.eigh` 
-        is used.
+        """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh` 
+        function to diagonalize the Hessian matrix. When Scipy is not found, 
+        :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
             If ``None`` is given, all modes will be calculated. 
@@ -1607,7 +1416,6 @@ class ANM(GNMBase):
         
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
-        
         """
         
         if self._hessian is None:
@@ -1664,12 +1472,10 @@ class ANM(GNMBase):
 
 class PCA(NMABase):
     
-    """A class for Principal Component Analysis (PCA) of conformational ensembles 
-    (also known as Essential Dynamics Analysis (EDA) in [AA93]_).
-    
+    """A class for Principal Component Analysis (PCA) of conformational 
+    ensembles.
     
     |example| See examples in :ref:`pca`.
-    
     """
 
     def __init__(self, name='Unnamed'):
@@ -1696,11 +1502,14 @@ class PCA(NMABase):
         self._trace = self._cov.trace()
 
     def buildCovariance(self, coordsets):
-        """Build a weighted covariance matrix for coodsets.
-        
-        *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
-        :class:`~prody.ensemble.Ensemble`, :class:`~prody.ensemble.Trajectory`,
-        or :class:`numpy.ndarray` instance.
+        """Build a weighted covariance matrix for coodsets.  *coordsets* 
+        argument may be an instance of one of the following:
+          
+        * :class:`~prody.atomic.Atomic`
+        * :class:`~prody.ensemble.Ensemble`
+        * :class:`~prody.ensemble.PDBEnsemble`
+        * :class:`~prody.ensemble.Trajectory`
+        * :class:`numpy.ndarray`
 
         .. versionchanged:: 0.8
            :class:`~numpy.ndarray` and :class:`~prody.ensemble.TrajectoryBase` 
@@ -1711,17 +1520,16 @@ class PCA(NMABase):
         
         When a trajectory instance is passed as *coordsets* argument, 
         covariance will be built by aligning frames to the reference 
-        coordinates. Reference coordinates will be considered as the 
+        coordinates.  Reference coordinates will be considered as the 
         average of coordinate sets in the trajectory. 
          
         .. note::        
            If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
-           coordinates are treated specially. Let's say **C**\_ij is the 
+           coordinates are treated specially.  Let's say **C**\_ij is the 
            super element of the covariance matrix that corresponds to atoms 
-           *i* and *j*. This super element is divided by number of coordinate
+           *i* and *j*.  This super element is divided by number of coordinate
            sets (PDB structures) in which both of these atoms are observed 
            together. 
-        
         """
         
         start = time.time()
@@ -1814,11 +1622,9 @@ class PCA(NMABase):
                     .format(time.time()-start))
         
     def calcModes(self, n_modes=20, turbo=True):
-        """Calculate principal (or essential) modes.
-
-        This method uses :func:`scipy.linalg.eigh` function to diagonalize
-        covariance matrix. When Scipy is not found, :func:`numpy.linalg.eigh` 
-        is used.
+        """Calculate principal (or essential) modes.  This method uses 
+        :func:`scipy.linalg.eigh` function to diagonalize covariance matrix. 
+        When Scipy is not found, :func:`numpy.linalg.eigh` is used.
         
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
                       If ``None`` is given, all modes will be calculated. 
@@ -1826,7 +1632,6 @@ class PCA(NMABase):
         
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
-        
         """
         
         if linalg is None:
@@ -1864,11 +1669,10 @@ class PCA(NMABase):
 
     def performSVD(self, coordsets):
         """Calculate principal modes using singular value decomposition (SVD).
-        
         *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
         :class:`~prody.ensemble.Ensemble`, or :class:`numpy.ndarray` instance.
         If *coordsets* is a numpy array it must have the shape 
-        (n_coordsets, n_atoms, 3).
+        ``(n_coordsets, n_atoms, 3)``.
         
         .. versionadded:: 0.6.2
         
@@ -1879,10 +1683,9 @@ class PCA(NMABase):
         This is a considerably faster way of performing PCA calculations 
         compared to eigenvalue decomposition of covariance matrix, but is
         an approximate method when heterogeneous datasets are analyzed. 
-        Covariance method should be preferred over this one for analysis
-        of ensembles with missing atomic data. See :ref:`pca-xray-calculations`
+        Covariance method should be preferred over this one for analysis of 
+        ensembles with missing atomic data.  See :ref:`pca-xray-calculations`
         example for comparison of results from SVD and covariance methods.
-        
         """
 
         if linalg is None:
@@ -1931,13 +1734,10 @@ class PCA(NMABase):
         
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add *eigenvector* and *eigenvalue* pair to :class:`NMA` instance.
+        If *eigenvalue* is not given, it will be set to 1.  Eigenvalue is also 
+        set as the variance.
         
-        .. versionadded:: 0.7
-        
-        If *eigenvalue* is not given, it will be set to 1. 
-        Eigenvalue is also set as the variance.
-        
-        """
+        .. versionadded:: 0.7"""
 
         NMABase.addEigenpair(self, eigenvector, eigenvalue)
         self._vars = self._eigvals.copy()
@@ -1956,10 +1756,8 @@ class PCA(NMABase):
         :type values: numpy.ndarray
         
         For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
-        and values must have shape ``(M,)``.
-        
-        Eigenvalues are also set as the variances.
-        
+        and values must have shape ``(M,)``.  Eigenvalues are also set as the 
+        variances.
         """
         
         NMABase.setEigens(self, vectors, values)
@@ -2081,7 +1879,6 @@ class GammaStructureBased(Gamma):
     def __init__(self, atoms, gamma=1.0, helix=6.0, sheet=6.0, connected=10.0):
         """Setup the parameters.
         
-        
         :arg atoms: A set of atoms with chain identifiers, residue numbers,
             and secondary structure assignments are set.
         :type atoms: :class:`~prody.atomic.Atomic`
@@ -2101,7 +1898,6 @@ class GammaStructureBased(Gamma):
         :arg connected: Force constant factor for residue pairs that are
             connected. Default is 10.0, i.e. ``10.0`*gamma``.
         :type connected: float
-        
         """
         
         if not isinstance(atoms, prody.Atomic):
@@ -2202,7 +1998,8 @@ class GammaVariableCutoff(Gamma):
          
     We set the radii of atoms: 
      
-    >>> variableCutoff = GammaVariableCutoff(ca_p.getAtomNames(), gamma=1, default_radius=7.5, debug=True, P=10)
+    >>> variableCutoff = GammaVariableCutoff(ca_p.getAtomNames(), gamma=1,  
+    ... default_radius=7.5, debug=True, P=10)
     >>> print( variableCutoff.getRadii() ) # doctest: +ELLIPSIS
     [ 10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.
       10.   10.   10.   10.   10.   10.   10.   10.   10.   10.    7.5   7.5
@@ -2211,8 +2008,8 @@ class GammaVariableCutoff(Gamma):
        7.5]
     
     The above shows that for phosphate atoms radii is set to 10 Å, because
-    we passed the ``P=10`` argument. As for Cα atoms, the default 7.5 Å
-    is set as the radius (``default_radius=7.5``). Note we also passed
+    we passed the ``P=10`` argument.  As for Cα atoms, the default 7.5 Å
+    is set as the radius (``default_radius=7.5``).  Note we also passed
     ``debug=True`` argument for demonstration purposes. This argument 
     allows printing debugging information on the screen.
     
@@ -2235,13 +2032,13 @@ class GammaVariableCutoff(Gamma):
     CA_309 -- CA_308 effective cutoff: 15.0 distance: 3.81530260923 gamma: 1.0
     
     Note that we set passed ``cutoff=20.0`` to the :meth:`ANM.buildHessian` 
-    method. This is equal to the largest possible cutoff distance (between two
-    phosphate atoms) for this system, and ensures that all of the potential 
-    interactions are evaluated. 
+    method.  This is equal to the largest possible cutoff distance (between 
+    two phosphate atoms) for this system, and ensures that all of the 
+    potential interactions are evaluated. 
     
     For pairs of atoms for which the actual distance is larger than the 
     effective cutoff, the :meth:`GammaVariableCutoff.gamma` method returns 
-    ``0``. This annuls the interaction between those atom pairs.
+    ``0``.  This annuls the interaction between those atom pairs.
     
     """
     
@@ -2310,21 +2107,14 @@ def saveModel(nma, filename=None, matrices=False):
     .. versionadded:: 0.5
     
     By default, eigenvalues, eigenvectors, variances, trace of covariance 
-    matrix, and name of the model will be saved. If *matrices* is ``True``,
+    matrix, and name of the model will be saved.  If *matrices* is ``True``,
     covariance, Hessian or Kirchhoff matrices are saved too, whichever are 
-    available.
-    
-    If *filename* is ``None``, name of the NMA instance will be used as 
-    the filename, after " " (blank spaces) in the name are replaced with "_" 
-    (underscores) 
-    
-    Extension may differ based on the type of the NMA model. For ANM models,
-    it is :file:`.anm.npz`.
-    
-    Upon successful completion of saving, filename is returned.
-    
-    This function makes use of :func:`numpy.savez` function.
-    
+    available.  If *filename* is ``None``, name of the NMA instance will be 
+    used as the filename, after ``" "`` (white spaces) in the name are 
+    replaced with ``"_"`` (underscores).  Extension may differ based on 
+    the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
+    Upon successful completion of saving, filename is returned. This 
+    function makes use of :func:`numpy.savez` function.
     """
     
     if not isinstance(nma, NMABase):
@@ -2369,15 +2159,11 @@ def saveModel(nma, filename=None, matrices=False):
 
 
 def loadModel(filename):
-    """Return NMA instance after loading it from file (*filename*).
+    """Return NMA instance after loading it from file (*filename*).  
+    This function makes use of :func:`numpy.load` function.  See 
+    also :func:`saveModel`.
     
-    .. versionadded:: 0.5
-    
-    .. seealso: :func:`saveModel`
-    
-    This function makes use of :func:`numpy.load` function.
-    
-    """
+    .. versionadded:: 0.5"""
     
     attr_dict = np.load(filename)
     try:
@@ -2409,13 +2195,9 @@ def loadModel(filename):
     return nma
 
 def saveVector(vector, filename):
-    """Save *vector* data as :file:`filename.vec.npz`. 
-    
-    Upon successful completion of saving, filename is returned.
-    
-    This function makes use of :func:`numpy.savez` function.
-    
-    """
+    """Save *vector* data as :file:`filename.vec.npz`.  Upon successful 
+    completion of saving, filename is returned.  This function makes use 
+    of :func:`numpy.savez` function."""
     
     if not isinstance(vector, Vector):
         raise TypeError('invalid type for vector, {0:s}'.format(type(vector)))
@@ -2429,12 +2211,8 @@ def saveVector(vector, filename):
 
 def loadVector(filename):
     """Return :class:`Vector` instance after loading it from file (*filename*).
-    
-    .. seealso: :func:`saveVector`
-    
-    This function makes use of :func:`numpy.load` function.
-    
-    """
+    This function makes use of :func:`numpy.load` function.  See also
+    :func:`saveVector`."""
     
     attr_dict = np.load(filename)
     return Vector(attr_dict['array'], str(attr_dict['name']), 
@@ -2442,6 +2220,7 @@ def loadVector(filename):
 
 def getVMDpath():
     """Return path to the VMD executable."""
+    
     path = prody._ProDySettings.get('vmd')
     if path is None:
         LOGGER.warning('VMD path is not set.')
@@ -2460,18 +2239,16 @@ def setVMDpath(path):
 
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
+    Normal mode data is returned in an :class:`NMA` instance. Atomic
+    data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
     
     .. versionadded:: 0.5.3
     
     .. versionchanged:: 0.7
        User can pass NMA type for the data, eg. :class:`ANM` or :class:`PCA`.
-    
-    Normal mode data is returned in an :class:`NMA` instance. Atomic
-    data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
-    
     """
+
     assert not isinstance(type, NMABase), 'type must be NMA, ANM, GNM, or PCA'
-    
     atomic = dict()
     modes = []
     nmd = open(filename)
@@ -2537,19 +2314,14 @@ def parseNMD(filename, type=NMA):
 
 def writeNMD(filename, modes, atoms):
     """Writes an NMD file for given *modes* and includes applicable data from 
-    *atoms*.
-    
-    Returns *filename*, if file is successfully written.
-    
-    NMD file format is described at 
-    http://www.csb.pitt.edu/People/abakan/software/NMWiz/nmdformat.html.
+    *atoms*.  Returns *filename*, if file is successfully written.  NMD file 
+    format is described at :ref:`nmd`.
     
     .. note:: 
        #. This function skips modes with zero eigenvalues.
        #. If a :class:`Vector` instance is given, it will be normalized before
           it is written. It's length before normalization will be written
           as the scaling factor of the vector.
-        
     """
     
     if not isinstance(modes, (NMABase, ModeSet, Mode, Vector)):
@@ -2645,15 +2417,12 @@ def viewNMDinVMD(filename):
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
             zeros=False):
     """Return an :class:`ANM` instance and atoms used for the calculations.
-    
-    By default only alpha carbons are considered, but selection string
-    helps selecting a subset of it.
-    
-    *pdb* can be :class:`~prody.atomic.Atomic` instance.
+    By default only alpha carbons are considered, but selection string helps 
+    selecting a subset of it.  *pdb* can be :class:`~prody.atomic.Atomic` 
+    instance.
     
     .. versionchanged:: 0.6
        Returns also the :class:`~prody.atomic.Selection` instance.
-    
     """
     
     if isinstance(pdb, str):
@@ -2674,13 +2443,12 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     anm.calcModes(n_modes)
     return anm, sel 
 
-def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False):
+def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
+            zeros=False):
     """Return a :class:`GNM` instance and atoms used for the calculations.
-    
-    By default only alpha carbons are considered, but selection string
-    helps selecting a subset of it.
-    
-    *pdb* can be :class:`~prody.atomic.Atomic` instance.  
+    By default only alpha carbons are considered, but selection string helps 
+    selecting a subset of it.  *pdb* can be :class:`~prody.atomic.Atomic` 
+    instance.  
     
     .. versionchanged:: 0.6
        Returns also the :class:`~prody.atomic.Selection` instance.
@@ -2706,19 +2474,16 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, zeros=False)
     return gnm, sel
 
 def calcCollectivity(mode, masses=None):
-    """Return collectivity of the mode.
+    """Return collectivity of the mode.  This function implements collectivity 
+    as defined in equation 5 of [BR95]_.  If *masses* are provided, they will 
+    be incorporated in the calculation.  Otherwise, atoms are assumed to have 
+    uniform masses.
     
     :arg mode: mode or vector
     :type mode: :class:`Mode` or :class:`Vector`
     
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`
-    
-    This function implements collectivity as defined in equation 5 of [BR95]_.
-    
-    If *masses* are provided, they will be incorporated in the calculation.
-    Otherwise, atoms are assumed to have uniform masses.
-    
     """
     
     is3d = mode.is3d()
@@ -2739,7 +2504,6 @@ def calcCollectivity(mode, masses=None):
 
 def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
-
     For K conformations and M modes, a (K,M) matrix is returned.
     
     .. versionchanged:: 0.8
@@ -2747,16 +2511,6 @@ def calcProjection(ensemble, modes, rmsd=True):
        calculated. To calculate the projection pass ``rmsd=True``.
        :class:`Vector` instances are accepted as *ensemble* argument to allow
        for projecting a deformation vector onto normal modes.  
-    
-    >>> print( calcProjection(p38_ensemble, p38_pca[:3]).round(2) ) # doctest: +ELLIPSIS
-    [[ 0.64  0.15  0.06]
-     [ 0.44 -0.1   0.09]
-     [ 0.5  -0.08  0.03]
-     ...
-     [ 0.04 -0.23  0.2 ]
-     [ 0.31 -0.29 -0.33]
-     [ 0.33 -0.41  0.12]]
-    
     """
     
     if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
@@ -2794,19 +2548,12 @@ def calcProjection(ensemble, modes, rmsd=True):
 
 
 def calcOverlap(rows, cols):
-    """Return overlap (or correlation) between two sets of modes 
-    (*rows* and *cols*).
-    
-    Returns a matrix whose rows correspond to modes passed as 
-    *rows* argument, and columns correspond to those passed as *cols* 
-    argument.
-    
-    >>> print( calcOverlap(p38_pca[0], p38_anm[2]).round(2) )
-    -0.71
+    """Return overlap (or correlation) between two sets of modes (*rows* and 
+    *cols*).  Returns a matrix whose rows correspond to modes passed as *rows* 
+    argument, and columns correspond to those passed as *cols* argument.
     
     .. versionchanged:: 0.7
        Both rows and columns are normalized prior to calculating overlap.       
-    
     """
     
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
@@ -2827,12 +2574,9 @@ def calcOverlap(rows, cols):
 
 def printOverlapTable(rows, cols):
     """Print table of overlaps (correlations) between two sets of modes.
-    
     *rows* and *cols* are sets of normal modes, and correspond to rows
-    and columns of the printed table.
-
-    This function may be used to take a quick look into mode correspondences 
-    between two models.
+    and columns of the printed table.  This function may be used to take 
+    a quick look into mode correspondences between two models.
     
     >>> # Compare top 3 PCs and slowest 3 ANM modes
     >>> printOverlapTable(p38_pca[:3], p38_anm[:3]) # doctest: +SKIP   
@@ -2843,23 +2587,24 @@ def printOverlapTable(rows, cols):
     PCA p38 xray #2   -0.78  -0.20  +0.22
     PCA p38 xray #3   +0.05  -0.57  +0.06
     """
-    print calcOverlapTable(rows, cols)
+    
+    print getOverlapTable(rows, cols)
 
 def writeOverlapTable(filename, rows, cols):
     """Write table of overlaps (correlations) between two sets of modes to a 
-    file.
-
-    *rows* and *cols* are sets of normal modes, and correspond to rows
-    and columns of the overlap table.
+    file.  *rows* and *cols* are sets of normal modes, and correspond to rows
+    and columns of the overlap table.  See also :func:`printOverlapTable`."""
     
-    See also :func:`printOverlapTable`.
-    """
+    assert isinstance(filename, str), 'filename must be a string'
     out = open(filename, 'w')
-    out.write(calcOverlapTable(rows, cols))
+    out.write(getOverlapTable(rows, cols))
     out.close()
     return filename
     
-def calcOverlapTable(rows, cols):
+def getOverlapTable(rows, cols):
+    """Make a formatted string of overlaps between modes in *rows* and *cols*.
+    """
+
     overlap = calcOverlap(rows, cols)
     if isinstance(rows, Mode):
         rids = [rows.getIndex()]
@@ -2913,14 +2658,10 @@ def extrapolateModel(enm, nodes, atoms):
     .. version added:: 0.6.2
     
     This function is designed for extrapolating an NMA model built at coarse 
-    grained level to all atom level. For each atom in *nodes* argument
-    *atoms* argument must contain a corresponding residue.
-    
-    Note that modes in the extrapolated model will not be normalized.
-    
-    For a usage example see :ref:`extrapolate`.
-    
-    """
+    grained level to all atom level.  For each atom in *nodes* argument *atoms* 
+    argument must contain a corresponding residue.  Note that modes in the 
+    extrapolated model will not be normalized.  For a usage example see 
+    :ref:`extrapolate`."""
     
     if not isinstance(enm, NMABase):
         raise TypeError('enm must be an NMABase instance')
@@ -2982,7 +2723,6 @@ def sliceVector(vector, atoms, selstr):
     :type selstr: str 
     
     :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)
-    
     """
     
     if not isinstance(vector, VectorBase):
@@ -3073,7 +2813,6 @@ def sliceModel(model, atoms, selstr):
     :type selstr: str 
     
     :returns: (:class:`NMA`, :class:`~prody.atomic.Selection`)
-    
     """
     
     if not isinstance(model, NMABase):
@@ -3111,25 +2850,19 @@ def reduceModel(model, atoms, selstr):
        Returns the reduced model and the corresponding atom selection. 
     
     Reduces a :class:`NMA` model to a subset of *atoms* matching a selection 
-    *selstr*.
-    
-    This function behaves depending on the type of the model.
-    
-    For ANM and GNM or other NMA models, this functions derives the force 
-    constant matrix for system of interest (specified by the *selstr*) from 
-    the force constant matrix for the *model* by assuming that for any given 
-    displacement of the system of interest, the other atoms move along in 
-    such a way as to minimize the potential energy. This is based on the
-    formulation in in [KH00]_.
-       
-    For PCA models, this function simply takes the sub-covariance matrix for 
-    the selected atoms.
+    *selstr*.  This function behaves differently depending on the type of the 
+    *model* argument.  For ANM and GNM or other NMA models, this functions 
+    derives the force constant matrix for system of interest (specified by the 
+    *selstr*) from the force constant matrix for the *model* by assuming that 
+    for any given displacement of the system of interest, the other atoms move 
+    along in such a way as to minimize the potential energy.  This is based on 
+    the formulation in in [KH00]_.  For PCA models, this function simply takes 
+    the sub-covariance matrix for the selected atoms.
 
     :arg model: dynamics model
     :type model: :class:`ANM`, :class:`GNM`, or :class:`PCA`
     :arg atoms: atoms that were used to build the model
     :arg selstr: a selection string specifying subset of atoms  
-       
     """
     
     if linalg is None:
@@ -3151,7 +2884,8 @@ def reduceModel(model, atoms, selstr):
     else:
         raise TypeError('model does not have a valid type derived from NMA')
     if matrix is None:
-        raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not built')
+        raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not '
+                         'built')
 
     system = SELECT.getBoolArray(atoms, selstr)
     other = np.invert(system)
@@ -3191,16 +2925,11 @@ def reduceModel(model, atoms, selstr):
         return eda, system
 
 def writeModes(filename, modes, format='%.18e', delimiter=' '):
-    """Write *modes* (eigenvectors) into a plain text file with name *filename*.
+    """Write *modes* (eigenvectors) into a plain text file with name 
+    *filename*. See also :func:`writeArray`.
     
     .. versionchanged:: 0.5.3
-       A compressed file is not outputted.
-    
-    See also :func:`writeArray`.
-        
-    >>> writeModes('p38_pca_modes_1-3.txt', p38_pca[:3])
-    'p38_pca_modes_1-3.txt'
-
+       A decompressed file is outputted.
     """
     
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
@@ -3209,19 +2938,16 @@ def writeModes(filename, modes, format='%.18e', delimiter=' '):
     return writeArray(filename, modes._getArray(), format=format, 
                       delimiter=delimiter)
 
-def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0, 
-               nm_usecols=None, ev_delimiter=None, ev_skiprows=0, ev_usecols=None, 
-               ev_usevalues=None):
+def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, 
+               nm_skiprows=0, nm_usecols=None, ev_delimiter=None, 
+               ev_skiprows=0, ev_usecols=None, ev_usevalues=None):
     """Return :class:`NMA` instance with normal modes parsed from *normalmodes*.
     
     .. versionadded:: 0.5.3
     
-    In normal mode file *normalmodes*, columns must correspond to  
-    modes (eigenvectors).
-
-    Optionally, *eigenvalues* can be parsed from a separate file. If 
-    eigenvalues are not provided, they will all be set to 1.
-    
+    In normal mode file *normalmodes*, columns must correspond to modes 
+    (eigenvectors).  Optionally, *eigenvalues* can be parsed from a separate 
+    file. If eigenvalues are not provided, they will all be set to 1.
     
     :arg normalmodes: File or filename that contains normal modes. 
         If the filename extension is :file:`.gz` or :file:`.bz2`, the file is 
@@ -3266,7 +2992,6 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, nm_skiprows=0,
     :type ev_usevalues: list
     
     See :func:`parseArray` for details of parsing arrays from files.
-    
     """
     
     modes = parseArray(normalmodes, delimiter=nm_delimiter, 
@@ -3289,17 +3014,11 @@ def writeArray(filename, array, format='%d', delimiter=' '):
        A compressed file is not outputted.
        
     This function is using :func:`numpy.savetxt` to write the file, after 
-    making some type and value checks.
-    
-    Default *format* argument is ``"%d"``.
+    making some type and value checks.  Default *format* argument is ``"%d"``.
     Default *delimiter* argument is white space, ``" "``.
     
-    *filename* will be returned upon successful writing. 
-     
-    >>> writeArray('p38_cross-correlations.txt', calcCrossCorrelations(p38_pca))
-    'p38_cross-correlations.txt'
+    *filename* will be returned upon successful writing."""
     
-    """
     if not isinstance(array, np.ndarray):
         raise TypeError('array must be a Numpy ndarray, not {0:s}'
                         .format(type(array)))
@@ -3315,9 +3034,8 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
     
     .. versionadded:: 0.5.3
     
-    This function is using :func:`numpy.loadtxt` to parse the file.
-    
-    Each row in the text file must have the same number of values.
+    This function is using :func:`numpy.loadtxt` to parse the file.  Each row 
+    in the text file must have the same number of values.
     
     :arg filename: File or filename to read. If the filename extension is 
         :file:`.gz` or :file:`.bz2`, the file is first decompressed.
@@ -3337,7 +3055,6 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
     
     :arg dtype: Data-type of the resulting array, default is :func:`float`. 
     :type dtype: :class:`numpy.dtype`.
-    
     """
 
     array = np.loadtxt(filename, dtype=dtype, delimiter=delimiter, 
@@ -3351,7 +3068,6 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     .. versionadded:: 0.7
     
     This function is using :func:`parseArray` to parse the file.
-    
     Input must have the following format::
         
        1       1    9.958948135375977e+00
@@ -3387,9 +3103,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     :arg first: First index in the data file (0 or 1), default is ``1``. 
     :type first: int
 
-    Data-type of the resulting array, default is :func:`float`. 
-
-    """
+    Data-type of the resulting array, default is :func:`float`."""
+    
     irow = int(irow)
     icol = int(icol)
     first = int(first)
@@ -3410,7 +3125,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     return matrix
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
-    """Return an ensemble of randomly sampled conformations along given *modes*.
+    """Return an ensemble of randomly sampled conformations along given 
+    *modes*.
     
     If *atoms* are provided, sampling will be around its active coordinate set. 
     Otherwise, sampling is around the 0 coordinate set.
@@ -3465,7 +3181,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
      
     Note that random numbers are generated before conformations are 
     sampled, hence exact value of :math:`s` is known from this relation to
-    ensure that the generated ensemble will have user given average *rmsd* value. 
+    ensure that the generated ensemble will have user given average *rmsd* 
+    value. 
      
     Note that if modes are from a :class:`PCA`, variances are used instead of 
     inverse eigenvalues, i.e. :math:`\sigma_i \sim \lambda^{-1}_i`.
@@ -3546,7 +3263,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     return ensemble  
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
-    """Show an ellipsoid using :meth:`~mpl_toolkits.mplot3d.Axes3D.plot_wireframe`.
+    """Show an ellipsoid using  :meth:`~mpl_toolkits.mplot3d.Axes3D.
+    plot_wireframe`.
     
     Ellipsoid volume gives an analytical view of the conformational space that
     given modes describe.
@@ -3790,12 +3508,12 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
     """|new| Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
     The function implements the perturbation response scanning (PRS) method 
-    described in [CA09]_. Rows of the matrix are the average magnitude of the 
+    described in [CA09]_.  Rows of the matrix are the average magnitude of the 
     responses obtained by perturbing the atom/node position at that row index, 
     i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to 
-    perturbations in residue/node *i*. PRS is performed using the covariance 
-    matrix from *model*, e.t. :class:`ANM` instance. Each residue/node is 
-    perturbed *repeats* times with a random unit force vector. When *atoms* 
+    perturbations in residue/node *i*.  PRS is performed using the covariance 
+    matrix from *model*, e.t. :class:`ANM` instance.  Each residue/node is 
+    perturbed *repeats* times with a random unit force vector.  When *atoms* 
     instance is given, PRS profile for residues will be added as an attribute 
     which then can be retrieved as ``atoms.getAttribute('prs_profile')``. 
     *model* and *atoms* must have the same number of atoms. *atoms* must be
@@ -3803,11 +3521,10 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
     
     .. versionadded:: 0.8.2
     
-    The RPS matrix can be save as follows:
+    The RPS matrix can be save as follows::
         
-    >>> prs_matrix = scanPerturbationResponse(p38_anm)
-    >>> writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
-    'prs_matrix.txt'
+     prs_matrix = scanPerturbationResponse(p38_anm)
+     writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
     
     """
     
@@ -3872,15 +3589,7 @@ def calcSqFlucts(modes):
     """Return sum of square-fluctuations for given set of normal *modes*.
     
     .. versionchanged:: 0.7.1
-       :class:`Vector` instances are accepted as *modes* argument.
-    
-    >>> print( calcSqFlucts(p38_pca).round(2) ) # doctest: +ELLIPSIS 
-    [  0.94   0.98   0.81   0.6    0.81   0.94   1.16   1.4    1.57   2.46
-       1.87   1.73   1.34   0.63   0.51   0.35   0.36   0.46   0.37   0.28
-       ...
-       0.13   0.12   0.14   0.11   0.09   0.14   0.18   0.13   0.21   0.16
-       0.21]
-    """
+       :class:`Vector` instances are accepted as *modes* argument."""
     
     if not isinstance(modes, (VectorBase, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
@@ -3899,32 +3608,13 @@ def calcSqFlucts(modes):
         return square_fluctuations
  
 def calcCrossCorrelations(modes, n_cpu=1):
-    """Return cross-correlations matrix.
-    
-    For a 3-d model, cross-correlations matrix is an NxN matrix, where N is the 
-    number of atoms. Each element of this matrix is the trace of the 
-    submatrix corresponding to a pair of atoms.
-    
+    """Return cross-correlations matrix.  For a 3-d model, cross-correlations 
+    matrix is an NxN matrix, where N is the number of atoms.  Each element of 
+    this matrix is the trace of the submatrix corresponding to a pair of atoms.
     Covariance matrix may be calculated using all modes or a subset of modes
-    of an NMA instance.
-
-    For large systems, calculation of cross-correlations matrix may be time 
-    consuming. Optionally, multiple processors may be employed to perform
-    calculations by passing ``n_cpu=2`` or more. 
-
-    :arg n_cpu: Number of CPUs to use. Default is 1. 
-    :type n_cpu: int 
-    
-    >>> print( calcCrossCorrelations(p38_anm).round(2) ) # doctest: +ELLIPSIS
-    [[ 1.    0.95  0.87 ...,  0.6   0.55  0.32]
-     [ 0.95  1.    0.97 ...,  0.52  0.53  0.32]
-     [ 0.87  0.97  1.   ...,  0.32  0.35  0.15]
-     ..., 
-     [ 0.6   0.52  0.32 ...,  1.    0.96  0.87]
-     [ 0.55  0.53  0.35 ...,  0.96  1.    0.95]
-     [ 0.32  0.32  0.15 ...,  0.87  0.95  1.  ]]
-
-    """
+    of an NMA instance.  For large systems, calculation of cross-correlations 
+    matrix may be time consuming.  Optionally, multiple processors may be 
+    employed to perform calculations by passing ``n_cpu=2`` or more."""
     
     if not isinstance(n_cpu, int):
         raise TypeError('n_cpu must be an integer')
@@ -3996,34 +3686,21 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 
 def calcCumulativeOverlap(modes1, modes2):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
-    
     Returns a number of *modes1* contains a single :class:`Mode` or a 
     :class:`Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes 
-    in *modes1* with those in *modes2*.
-    
-    >>> print( calcCumulativeOverlap(p38_pca[0], p38_anm).round(2) ) # doctest: +ELLIPSIS
-    0.89
-    
-    """
+    in *modes1* with those in *modes2*."""
     
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
     return cumov
 
 def calcCumulativeOverlapArray(modes1, modes2):
-    """Return array of cumulative overlaps.
-   
-    Returned array has the shape ``(len(modes1), len(modes2))``. Each row
-    corresponds to cumulative overlaps calculated for modes in *modes1* with
-    those in *modes2*. Each value in a row corresponds to cumulative overlap
-    calculated using upto that many number of modes from *modes2*.
-    
-    >>> print( calcCumulativeOverlapArray(p38_pca[0], p38_anm).round(2) )# doctest: +ELLIPSIS
-    [ 0.39  0.39  0.81  0.82  0.82  0.83  0.84  0.85  0.87  0.89  0.89  0.89
-      0.89  0.89  0.89  0.89  0.89  0.89  0.89  0.89]
-    
-    """
+    """Return array of cumulative overlaps. Returned array has the shape 
+    ``(len(modes1), len(modes2))``.  Each row corresponds to cumulative 
+    overlaps calculated for modes in *modes1* with those in *modes2*.  
+    Each value in a row corresponds to cumulative overlap calculated 
+    using upto that many number of modes from *modes2*."""
     
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
@@ -4031,16 +3708,10 @@ def calcCumulativeOverlapArray(modes1, modes2):
 
 
 def calcSubspaceOverlap(modes1, modes2):
-    """Return subspace overlap between two sets of modes (*modes1* and *modes2*).
+    """Return subspace overlap between two sets of modes (*modes1* and 
+    *modes2*).  Also known as the root mean square inner product (RMSIP) 
+    of essential subspaces [AA99]_.  This function returns a single number."""
     
-    Also known as the root mean square inner product (RMSIP) of essential 
-    subspaces [AA99]_.
-    
-    This function returns a single number.
-    
-    >>> print( calcSubspaceOverlap(p38_pca[:3], p38_anm[:3]).round(2) ) # doctest: +ELLIPSIS
-    0.75
-    """
     overlap = calcOverlap(modes1, modes2)
     if isinstance(modes1, Mode):
         length = 1
@@ -4057,10 +3728,8 @@ def calcCovarianceOverlap(modelA, modelB):
     
     Overlap between covariances are calculated using normal modes 
     (eigenvectors), hence modes in both models must have been calculated.
+    This function implements equation 11 in [BH02]_."""
     
-    This function implements equation 11 in [BH02]_.
-    
-    """
     if not modelA.is3d() or not modelB.is3d(): 
         raise TypeError('both models must be 3-dimensional') 
     if len(modelA) == 0 or len(modelB) == 0:  
@@ -4090,7 +3759,7 @@ def calcCovariance(modes):
 def calcTempFactors(modes, atoms):
     """Return temperature (β) factors calculated using *modes* from a 
     :class:`ANM` or :class:`GNM` instance scaled according to the experimental 
-    β factors from *atoms*."""
+    β-factors from *atoms*."""
     
     model = modes.getModel()
     if not isinstance(model, GNMBase):
@@ -4102,9 +3771,8 @@ def calcTempFactors(modes, atoms):
                                         (atoms.getTempFactors()**2).sum()**0.5)
     
 def showFractOfVariances(modes, *args, **kwargs):
-    """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.bar`.
-    
-    Note that mode indices are incremented by 1.
+    """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
+    bar`.  Note that mode indices are incremented by 1.
     
     .. plot::
        :context:
@@ -4140,7 +3808,8 @@ def showFractOfVariances(modes, *args, **kwargs):
     return show
 
 def showCumFractOfVariances(modes, *args, **kwargs):
-    """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.plot`.
+    """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
+    plot`.
     
     Note that mode indices are incremented by 1.
     See :func:`showFractOfVariances` for an example.
@@ -4178,10 +3847,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: a :class:`Mode`, :class:`ModeSet`, or :class:`NMABase` instance
     
     .. versionchanged:: 0.8
-       The projected values are by default converted to RMSD. 
-       Pass ``rmsd=False`` to use projection itself.
-       :class:`Vector` instances are accepted as *ensemble* argument to allow
-       for projecting a deformation vector onto normal modes.  
+       The projected values are by default converted to RMSD.  Pass 
+       ``rmsd=False`` to use projection itself. :class:`Vector` instances 
+       are accepted as *ensemble* argument to allow for projecting a 
+       deformation vector onto normal modes.  
     
     Matplotlib function used for plotting depends on the number of modes:
         
@@ -4275,10 +3944,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
 def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
                         *args, **kwargs):
     """Show a projection of conformational deviations onto modes from
-    different models using :func:`~matplotlib.pyplot.plot`.
-    
-    This function differs from :func:`showProjection` by accepting modes
-    from two different models.
+    different models using :func:`~matplotlib.pyplot.plot`.  This function 
+    differs from :func:`showProjection` by accepting modes from two different 
+    models.
     
     :arg ensemble: Ensemble for which deviations will be projected
     :type ensemble: :class:`~prody.ensemble.Ensemble`
@@ -4369,13 +4037,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     return show
 
 def showOverlapTable(rows, cols, *args, **kwargs):
-    """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.
-    
-    *rows* and *cols* are sets of normal modes, and correspond to rows
-    and columns of the displayed matrix.
-    
-    Note that mode indices are increased by 1. List of modes should contain
-    a set of contiguous modes from the same model. 
+    """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *rows* and 
+    *cols* are sets of normal modes, and correspond to rows and columns of the 
+    displayed matrix.  Note that mode indices are increased by 1.  List of 
+    modes should contain a set of contiguous modes from the same model. 
     
     .. plot::
        :context:
@@ -4390,8 +4055,8 @@ def showOverlapTable(rows, cols, *args, **kwargs):
        :nofigs:
         
        plt.close('all') 
-       
     """
+    
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(rows, (NMABase, ModeSet)):
@@ -4416,14 +4081,10 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     return show
 
 def showCrossCorrelations(modes, *args, **kwargs):
-    """Show cross-correlations for given modes using 
-    :func:`~matplotlib.pyplot.imshow`.
-    
-    See also :func:`getCrossCorrelations`. 
-    
-    By default, *origin=lower* and *interpolation=bilinear* keyword
-    arguments are passed to imshow function. User can overwrite these
-    parameters.
+    """Show cross-correlations for given modes using :func:`~matplotlib.pyplot.
+    imshow`.  By default, *origin=lower* and *interpolation=bilinear* keyword 
+    arguments are passed to imshow function. User can overwrite these 
+    parameters.  See also :func:`getCrossCorrelations`.
     
     .. plot::
        :context:
@@ -4527,7 +4188,6 @@ def showSqFlucts(modes, *args, **kwargs):
 
 def showScaledSqFlucts(modes, *args, **kwargs):
     """Show scaled square fluctuations using :func:`~matplotlib.pyplot.plot`.
-    
     Modes or mode sets given as additional arguments will be scaled to have
     the same mean squared fluctuations as *modes*. 
     
@@ -4571,8 +4231,8 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     return show
 
 def showNormedSqFlucts(modes, *args, **kwargs):
-    """Show normalized square fluctuations using 
-    :func:`~matplotlib.pyplot.plot`.
+    """Show normalized square fluctuations using :func:`~matplotlib.pyplot.
+    plot`.
     
     .. plot::
        :context:
@@ -4732,10 +4392,9 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
     return show
     
 def resetTicks(x, y=None):
-    """Reset X (and Y) axis ticks using values in given *array*.
-    
-    Ticks in the current figure should not be fractional values for this 
-    function to work as expected."""
+    """Reset X (and Y) axis ticks using values in given *array*.  Ticks in the 
+    current figure should not be fractional values for this function to work as
+    expected."""
     
     if x is not None:
         try:    
