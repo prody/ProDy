@@ -2956,7 +2956,7 @@ def buildBiomolecules(header, atoms, biomol=None):
     else:
         return None
 
-def execDSSP(pdb, outputname=None, outputdir=os.curdir):
+def execDSSP(pdb, outputname=None, outputdir=None):
     """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 
     file path.  If *pdb* is a compressed file, it will be decompressed using
     Python :mod:`gzip` library.  When no *outputname* is given, output name 
@@ -2975,18 +2975,22 @@ def execDSSP(pdb, outputname=None, outputdir=os.curdir):
     if dssp is None:
         raise EnvironmentError('command not found: dssp executable is not '
                                'found in one of system paths')
-    
+    assert outputname is None or isinstance(outputname, str),\
+        'outputname must be a string'
+    assert outputdir is None or isinstance(outputdir, str),\
+        'outputdir must be a string'
     if not os.path.isfile(pdb):
         pdb = fetchPDB(pdb, compressed=False)
     if pdb is None:
         raise ValueError('pdb is not a valid PDB identifier or filename')
     if os.path.splitext(pdb)[1] == '.gz':
-        if outputdir:
+        if outputdir is None:
             pdb = gunzip(pdb, os.path.splitext(pdb)[0])
         else:
             pdb = gunzip(pdb, os.path.join(outputdir, 
                                 os.path.split(os.path.splitext(pdb)[0])[1]))
-
+    if outputdir is None:
+        outputdir = '.'
     if outputname is None:
         out = os.path.join(outputdir,
                         os.path.splitext(os.path.split(pdb)[1])[0] + '.dssp')
@@ -3150,13 +3154,16 @@ def execSTRIDE(pdb, outputname=None, outputdir=None):
     if stride is None:
         raise EnvironmentError('command not found: stride executable is not '
                                'found in one of system paths')
-    
+    assert outputname is None or isinstance(outputname, str),\
+        'outputname must be a string'
+    assert outputdir is None or isinstance(outputdir, str),\
+        'outputdir must be a string'
     if not os.path.isfile(pdb):
         pdb = fetchPDB(pdb, compressed=False)
     if pdb is None:
         raise ValueError('pdb is not a valid PDB identifier or filename')
     if os.path.splitext(pdb)[1] == '.gz':
-        if outputdir:
+        if outputdir is None:
             pdb = gunzip(pdb, os.path.splitext(pdb)[0])
         else:
             pdb = gunzip(pdb, os.path.join(outputdir, 
