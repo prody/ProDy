@@ -47,7 +47,6 @@ Functions
   * :func:`writePDBStream`
   * :func:`writePQR`
   * :func:`parsePDBHeader`
-  * :func:`parsePDBML`
   
   * :func:`fetchLigandData`
   * :func:`fetchPDBClusters`
@@ -108,7 +107,7 @@ __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
            'setPDBLocalFolder', 'setPDBMirrorPath', 'setWWPDBFTPServer',
            'parsePDBStream', 'parsePDB', 'parsePSF', 'parsePQR',
            'writePDBStream', 'writePDB', 'writePQR', 
-           'parsePDBHeader', 'parsePDBML',
+           'parsePDBHeader',
            'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
@@ -562,35 +561,6 @@ def gunzip(filename, outname=None):
     out.write(data)
     out.close()
     return outname
-
-
-PDBML_CATEGORIES = set(['struct_refCategory'])
-
-def parsePDBML(pdb):
-    """Return PDB header data in a dictionary parsed from PDBML/XML file."""
-    
-    if not os.path.isfile(pdb):
-        if len(pdb) == 4 and pdb.isalnum():
-            filename = fetchPDB(pdb, xml=True, noatom=True)
-            if filename is None:
-                raise IOError('PDBML file for {0:s} could not be downloaded.'
-                              .format(pdb))
-            pdb = filename
-        else:
-            raise IOError('{0:s} is not a valid filename or a valid PDB '
-                          'identifier.'.format(pdb))
-    import xml.etree.cElementTree as ET
-    xml = ET.parse(pdb)
-    root = xml.getroot()
-    ns = root.tag[:root.tag.rfind('}')+1]
-    len_ns = len(ns)
-    for e in root:
-        e_tag = e.tag[len_ns:]
-        if not e_tag in PDBML_CATEGORIES:  
-            continue
-        struct_ref
-    header = {}
-    return header
 
 _parsePQRdoc = """
     :arg name: Name of the AtomGroup instance.  When ``None`` is passed,
