@@ -2661,7 +2661,7 @@ def assignSecondaryStr(header, atoms, coil=False):
     return atoms        
 
 def fetchLigandData(cci, save=False, folder='.'):
-    """Fetch ligand data from Ligand Expo (http://ligand-expo.rcsb.org/).
+    """Fetch ligand data from `Ligand Expo <http://ligand-expo.rcsb.org/>`_.
 
     .. versionadded:: 0.8.1
     
@@ -2669,7 +2669,7 @@ def fetchLigandData(cci, save=False, folder='.'):
        URL of the XML file is returned in the dictionary with key ``url``.
     
     *cci* may be 3-letter chemical component identifier or a valid XML 
-    filename.  If ``aave=True`` is passed, XML file will be saved in the 
+    filename.  If ``save=True`` is passed, XML file will be saved in the 
     specified *folder*. 
     
     This function is compatible with PDBx/PDBML v 4.0.
@@ -2685,20 +2685,17 @@ def fetchLigandData(cci, save=False, folder='.'):
     data field is not found in the XML file.
     
     Following example downloads data for ligand STI (a.k.a. Gleevec and
-    Imatinib) and calculates RMSD between model (X-ray) and ideal (energy 
-    minimized) coordinate sets.
+    Imatinib) and calculates RMSD between model (X-ray structure 1IEP) and 
+    ideal (energy minimized) coordinate sets::
     
-    >>> ligand_data = fetchLigandData('STI')
-    >>> ligand_data['model_coordinates_db_code'] 
-    '1IEP'
-    
-    Model (X-ray) coordinates are from structure **1IEP**.
-    
-    >>> ligand_model = ligand_data['model'] 
-    >>> ligand_ideal = ligand_data['ideal']
-    >>> transformation = superpose(ligand_ideal.noh, ligand_model.noh)
-    >>> print( calcRMSD(ligand_ideal.noh, ligand_model.noh).round(2) )
-    2.27
+      ligand_data = fetchLigandData('STI')
+      print ligand_data['model_coordinates_db_code'] 
+      # 1IEP
+      ligand_model = ligand_data['model'] 
+      ligand_ideal = ligand_data['ideal']
+      transformation = superpose(ligand_ideal.noh, ligand_model.noh)
+      print( calcRMSD(ligand_ideal.noh, ligand_model.noh).round(2) )
+      # 2.27
     """
 
     
