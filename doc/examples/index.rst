@@ -20,7 +20,7 @@ Notes
 -------------------------------------------------------------------------------
 
 * Some examples need internet connectivity for blast searching the PDB and 
-  retrieving files from the PDB FTP server.
+  retrieving files from the `wwPDB <http://www.wwpdb.org/>`_ FTP servers.
 
 * Some examples attempt to download well over 100 structure 
   files, which may take several minutes depending on connection speed.  

@@ -35,22 +35,19 @@ and can be used as input to functions and classes for dynamics analysis.
 ProDy Code
 ===============================================================================
 
-We start by importing everything from the ProDy package:
+We start by importing everything from the ProDy package::
 
->>> from prody import *
+  from prody import *
 
 Parse a file
 -------------------------------------------------------------------------------
 
 You can parse PDB files by passing a filename (gzipped files are handled).
 We do so after downloading a PDB file (see :ref:`fetchpdb` for more 
-information): 
+information)::
 
->>> fetchPDB('1p38') # doctest: +SKIP
-'1p38.pdb.gz'
->>> atoms = parsePDB('1p38.pdb.gz')
->>> atoms
-<AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+  fetchPDB('1p38')
+  atoms = parsePDB('1p38.pdb.gz')
 
 Parser returns an :class:`~prody.atomic.AtomGroup` instance.
 
@@ -65,78 +62,58 @@ Use an identifier
 PDB files can be parsed by passing simply an identifier. arser will look for a 
 PDB file that matches the given identifier in the current working directory. 
 If a matching file is not found, ProDy will downloaded it from PDB FTP server 
-automatically and saved it in the current working directory.
+automatically and saved it in the current working directory::
 
->>> atoms = parsePDB('1mkp')
->>> atoms
-<AtomGroup: 1mkp (1183 atoms; 1 coordinate sets, active set index: 0)>
+  atoms = parsePDB('1mkp')
 
 
 Subsets of atoms
 -------------------------------------------------------------------------------
 
-Parser can be used to parse backbone or Cα atoms:
+Parser can be used to parse backbone or Cα atoms::
 
->>> backbone = parsePDB('1mkp', subset='bb')
->>> backbone
-<AtomGroup: 1mkp_bb (576 atoms; 1 coordinate sets, active set index: 0)>
->>> calpha = parsePDB('1mkp', subset='ca')
->>> calpha
-<AtomGroup: 1mkp_ca (144 atoms; 1 coordinate sets, active set index: 0)>
+  backbone = parsePDB('1mkp', subset='bb')
+  calpha = parsePDB('1mkp', subset='ca')
 
 
 Specific chains
 -------------------------------------------------------------------------------
 
-Parser can be used to parse a specific chain from a PDB file:
+Parser can be used to parse a specific chain from a PDB file::
 
->>> chA = parsePDB('3mkb', chain='A')
->>> chA
-<AtomGroup: 3mkb_A (1198 atoms; 1 coordinate sets, active set index: 0)>
->>> chC = parsePDB('3mkb', chain='C')
->>> chC
-<AtomGroup: 3mkb_C (1189 atoms; 1 coordinate sets, active set index: 0)>
+  chA = parsePDB('3mkb', chain='A')
+  chC = parsePDB('3mkb', chain='C')
 
-Multiple chains can also be parsed in the same way:
+Multiple chains can also be parsed in the same way::
 
->>> chAC = parsePDB('3mkb', chain='AC')
->>> chAC
-<AtomGroup: 3mkb_AC (2387 atoms; 1 coordinate sets, active set index: 0)>
+  chAC = parsePDB('3mkb', chain='AC')
 
 Specific models
 -------------------------------------------------------------------------------
 
-Parser can be used to parse a specific model from a file:
+Parser can be used to parse a specific model from a file::
 
->>> model1 = parsePDB('2k39', model=10)
->>> model1
-<AtomGroup: 2k39 (1231 atoms; 1 coordinate sets, active set index: 0)>
+  model1 = parsePDB('2k39', model=10)
 
 Alternate locations
 -------------------------------------------------------------------------------
 
 When a PDB file contains alternate locations for some of the atoms, by default
-alternate locations with indicator ``A`` are parsed. 
+alternate locations with indicator ``A`` are parsed:: 
 
->>> altlocA = parsePDB('1ejg')
->>> altlocA
-<AtomGroup: 1ejg (637 atoms; 1 coordinate sets, active set index: 0)>
+  altlocA = parsePDB('1ejg')
 
-Specific alternate locations can be parsed as follows:
+Specific alternate locations can be parsed as follows::
 
->>> altlocB = parsePDB('1ejg', altloc='B')
->>> altlocB
-<AtomGroup: 1ejg (634 atoms; 1 coordinate sets, active set index: 0)>
+  altlocB = parsePDB('1ejg', altloc='B')
 
 Note that in this case number of atoms are different between the two atom 
 groups. This is because the residue types of atoms with alternate locations
 are different.
 
-Also, all alternate locations can be parsed as follows:
+Also, all alternate locations can be parsed as follows::
 
->>> all_altlocs = parsePDB('1ejg', altloc=True)
->>> all_altlocs
-<AtomGroup: 1ejg (637 atoms; 3 coordinate sets, active set index: 0)>
+  all_altlocs = parsePDB('1ejg', altloc=True)
 
 Note that this time parser returned three coordinate sets. One for each 
 alternate location indicator found in this file (A, B, C). When parsing
@@ -148,39 +125,30 @@ Composite arguments
 -------------------------------------------------------------------------------
 
 Parser can be used to parse coordinates from a specific model for a subset of 
-atoms of a specific chain:
+atoms of a specific chain::
 
->>> composite = parsePDB('2k39', model=10, chain='A', subset='ca')
->>> composite
-<AtomGroup: 2k39_A_ca (76 atoms; 1 coordinate sets, active set index: 0)>
+  composite = parsePDB('2k39', model=10, chain='A', subset='ca')
 
 Header data
 -------------------------------------------------------------------------------
 
-PDB parser can be used to extract header data from PDB files as follows:
+PDB parser can be used to extract header data from PDB files as follows::
 
->>> atoms, header = parsePDB('1mkp', header=True)
+  atoms, header = parsePDB('1mkp', header=True)
 
 Header data is returned in a :class:`dict`. Printing its keys will show what
-was parsed.
+was parsed::
 
->>> header['experiment']
-'X-RAY DIFFRACTION'
->>> header['resolution']
-2.35
->>> print( header.keys() ) # doctest: +SKIP
-['biomolecular_transformations', 'reference', 'classification', 'compounds', 
-'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
-'identifier', 'deposition_date']
+  header['experiment']
+  # 'X-RAY DIFFRACTION'
+  header['resolution']
+  # 2.35
 
 It is also possible to parse only header data by passing `model=0` as an 
-argument:
+argument or by using :func:`parsePDBHeader` function::
 
->>> header = parsePDB('1mkp', header=True, model=0)
->>> print( header.keys() ) # doctest: +SKIP
-['biomolecular_transformations', 'reference', 'classification', 'compounds', 
-'resolution', 'title', 'source', 'experiment', 'helix', 'authors', 'sheet', 
-'identifier', 'deposition_date']
+  header = parsePDB('1mkp', header=True, model=0)
+  header = parsePDBHeader('1mkp')
 
 
 |questions|
