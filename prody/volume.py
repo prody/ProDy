@@ -112,16 +112,16 @@ class Volume(object):
             raise TypeError('array must be an ndarray instance')
         elif array.ndim != 3:
             raise ValueError('array must a 3-dimensional array')
-        if array.dtype != np.float64:
+        if array.dtype != float:
             try:
-                array = array.astype(np.float64)
+                array = array.astype(float)
             except:
-                raise ValueError('array must have data type float64')
+                raise ValueError('array must have data type float')
         self._array = array
         if self._origin is None:
-            self._origin = np.zeros(3, np.float64)
+            self._origin = np.zeros(3, float)
         if self._spacing is None:
-            self._spacing = np.ones(3, np.float64)
+            self._spacing = np.ones(3, float)
     
     def getOrigin(self):
         """Return the coordinates of the grid lower corner."""
@@ -132,17 +132,17 @@ class Volume(object):
         """Set the coordinates of the grid lower corner."""
         if not isinstance(origin, np.ndarray): 
             try:
-                origin = np.array(origin, np.float64)
+                origin = np.array(origin, float)
             except:
                 raise TypeError('origin must be an ndarray, a list, or a '
                                 'tuple instance')
         if origin.ndim != 1:
             raise ValueError('origin must a 1-dimensional array')
-        if origin.dtype != np.float64:
+        if origin.dtype != float:
             try:
-                origin = origin.astype(np.float64)
+                origin = origin.astype(float)
             except:
-                raise ValueError('origin must have data type float64')
+                raise ValueError('origin must have data type float')
         self._origin = origin
 
     def getShape(self):
@@ -160,17 +160,17 @@ class Volume(object):
         
         if not isinstance(spacing, np.ndarray): 
             try:
-                spacing = np.array(spacing, np.float64)
+                spacing = np.array(spacing, float)
             except:
                 raise TypeError('spacing must be an ndarray, a list, or a '
                                 'tuple instance')
         if spacing.ndim != 1:
             raise ValueError('spacing must a 1-dimensional array')
-        if spacing.dtype != np.float64:
+        if spacing.dtype != float:
             try:
-                spacing = spacing.astype(np.float64)
+                spacing = spacing.astype(float)
             except:
-                raise ValueError('spacing must have data type float64')
+                raise ValueError('spacing must have data type float')
 
         self._spacing = spacing
 
@@ -212,19 +212,19 @@ def parseDX(filename):
     lindex = opendx.index('data follows') + len('data follows') + 1
     lines = opendx[:lindex].split('\n')
     comments = []
-    spacing = np.zeros(3, np.float64)
+    spacing = np.zeros(3, float)
     for line in lines:
         if line.startswith('#'):
             comments.append(line)
         elif line.startswith('object 1'):
             items = line.strip().split()
-            shape = np.array(items[-3:], np.int64)
+            shape = np.array(items[-3:], int)
         elif line.startswith('origin'):
             items = line.strip().split()
-            origin = np.array(items[1:], np.float64)
+            origin = np.array(items[1:], float)
         elif line.startswith('delta'):
             items = line.strip().split()
-            spacing += np.array(items[1:], np.float64)
+            spacing += np.array(items[1:], float)
     rindex = -1
     index = -1
     count = 0
@@ -238,7 +238,7 @@ def parseDX(filename):
     epilog = opendx[rindex:].strip()
     #volume._offset = origin - volume._spacing / 2
     try:
-        array = np.fromstring(opendx[lindex:rindex], dtype=np.float64, 
+        array = np.fromstring(opendx[lindex:rindex], dtype=float, 
                               sep=' ').reshape(tuple(shape))
     except:
         raise IOError('There was a problem when parsing the volume data. '

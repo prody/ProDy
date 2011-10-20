@@ -65,7 +65,7 @@ Download :file:`ProDy-0.{x}.{y}.tar.gz`. Extract tarball contents and run
     $ python setup.py build
     $ python setup.py install
 
-You may need root access for the last step. Following these steps will
+You may need root access for the last step.  Following these steps will
 also install :ref:`nmwiz`, if VMD is installed on your machine. 
   
 
@@ -92,7 +92,7 @@ Windows
 
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
-Windows installers do not install :ref:`nmwiz`. Please follow the steps in
+Windows installers do not install :ref:`nmwiz`.  Please follow the steps in
 :ref:`getnmwiz`.
 
 Recommended Software
@@ -119,8 +119,8 @@ The following software is included in the ProDy installation packages:
 * `Biopython 1.56 <http://biopython.org/>`_ - Blast and KDTree packages,
   and pairwise2 module
    
-  Blast, KDTree, and pairwise2 components are used for blast searching PDB, 
-  distance based selection, and pairwise sequence alignment, respectively. 
+  KDTree and pairwise2 components are used for distance based atom selections 
+  and pairwise sequence alignment, respectively. 
 
 
 Source Code

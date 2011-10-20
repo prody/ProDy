@@ -77,8 +77,8 @@ which is also distributed under UIUC Open Source License.
 Biopython
 ===============================================================================
 
-`Biopython <http://biopython.org/>`_ Blast and KDTree packages and pairwise2 
-module are distributed with the ProDy package. Biopython is developed by The 
+`Biopython <http://biopython.org/>`_ KDTree package and pairwise2 module are 
+distributed with the ProDy package.  Biopython is developed by The 
 Biopython Consortium and is available under the `Biopython license 
 <http://www.biopython.org/DIST/LICENSE>`_::
 
@@ -106,7 +106,7 @@ Pyparsing
 ===============================================================================
 
 The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with 
-the ProDy package. Pyparsing is developed by Paul T. McGuire and is available 
+the ProDy package.  Pyparsing is developed by Paul T. McGuire and is available 
 under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_::
 
   Permission is hereby granted, free of charge, to any person obtaining

@@ -76,9 +76,34 @@ Parameters
 Step 1: Blast and download
 -------------------------------------------------------------------------------
 
->>> blast_record = blastPDB(sequence)
->>> pdb_hits = blast_record.getHits(sequence_identity).keys()
->>> pdb_files = fetchPDB(pdb_hits, folder='pdbfiles')
+The results are displayed for following list of structures:
+
+>>> pdb_hits = [('1ccr', 'A'), ('2frc', 'A'), ('1fhb', 'A'), ('1chh', 'A'), 
+...  ('1chj', 'A'), ('1lc2', 'A'), ('1cie', 'A'), ('1kyo', 'W'), ('1m60', 'A'),
+...  ('1fi7', 'A'), ('2bgv', 'X'), ('2hv4', 'A'), ('2aiu', 'A'), ('2bcn', 'B'),
+...  ('1csu', 'A'), ('1csw', 'A'), ('1csv', 'A'), ('1cyc', 'A'), ('2giw', 'A'),
+...  ('1fi9', 'A'), ('1i55', 'A'), ('1i54', 'A'), ('3nbs', 'A'), ('1nmi', 'A'),
+...  ('1cry', 'A'), ('1ocd', 'A'), ('1ycc', 'A'), ('1cih', 'A'), ('1lms', 'A'),
+...  ('2ycc', 'A'), ('1hrc', 'A'), ('2gb8', 'B'), ('2b12', 'B'), ('2b11', 'B'),
+...  ('3cx5', 'W'), ('1io3', 'A'), ('1wej', 'F'), ('2jqr', 'A'), ('2b0z', 'B'),
+...  ('1csx', 'A'), ('1raq', 'A'), ('1u75', 'B'), ('3cyt', 'O'), ('1crc', 'A'),
+...  ('1cig', 'A'), ('3nwv', 'A'), ('1crg', 'A'), ('2b4z', 'A'), ('1yfc', 'A'),
+...  ('1crj', 'A'), ('1cif', 'A'), ('1crh', 'A'), ('1cri', 'A'), ('2w9k', 'A'),
+...  ('1cty', 'A'), ('1ctz', 'A'), ('2orl', 'A'), ('2pcc', 'B'), ('2pcb', 'B'),
+...  ('5cyt', 'R'), ('1akk', 'A'), ('1ytc', 'A'), ('1co6', 'A'), ('1rap', 'A'),
+...  ('3nbt', 'A'), ('1i5t', 'A'), ('1yic', 'A'), ('1irv', 'A'), ('1irw', 'A'),
+...  ('2yk3', 'A'), ('1giw', 'A'), ('2jti', 'B'), ('3cxh', 'W'), ('1lc1', 'A'),
+...  ('1s6v', 'B'), ('1yea', 'A'), ('1yeb', 'A'), ('1lfm', 'A'), ('2b10', 'B'),
+...  ('1u74', 'B'), ('1j3s', 'A'), ('1chi', 'A'),]
+
+List of PDB structures can be updated using :func:`blastPDB` as follows::
+
+  blast_record = blastPDB(sequence)
+  pdb_hits = []
+  for key, item blast_record.getHits(sequence_identity).iteritems():
+      pdb_hits.append((key, item['chain_id']))
+
+>>> pdb_files = fetchPDB([pdb for pdb, ch in pdb_hits], folder='pdbfiles', compressed=False)
 
 Let's check number of downloaded files:
 
@@ -92,7 +117,7 @@ We first parse the reference structure. Note that we parse only Cα atoms from
 chain A. The analysis will be performed for a single chain (monomeric) protein.
 For analysis of a dimeric protein see :ref:`pca-dimer`
 
->>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb.gz', 
+>>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb', 
 ...                                subset='calpha', chain=ref_chid)
 >>> # Get the reference chain from this structure
 >>> reference_hierview = reference_structure.getHierView() 
@@ -101,6 +126,8 @@ For analysis of a dimeric protein see :ref:`pca-dimer`
 Step 3: Prepare ensemble
 -------------------------------------------------------------------------------
  
+>>> # Start a log file
+>>> startLogfile('pca_blast') 
 >>> # Instantiate a PDB ensemble
 >>> ensemble = PDBEnsemble(name)
 >>> # Set reference coordinates
@@ -108,16 +135,20 @@ Step 3: Prepare ensemble
    
 >>> # Parse hits 
 >>> for pdb_hit, pdb_file in zip(pdb_hits, pdb_files):
+...     pdb_id, chain_id = pdb_hit
 ...     # Skip the PDB file if its in the exclude list
-...     if pdb_hit in exclude:
+...     if pdb_id in exclude:
 ...         continue
 ...     
 ...     # Parse the current PDB file   
-...     structure = parsePDB(pdb_file, subset='calpha')
+...     structure = parsePDB(pdb_file, subset='calpha', chain=chain_id)
+...     if structure is None:
+...         plog('Failed to parse ' + pdb_file)
+...         continue
 ...     # Map current PDB file to the reference chain
 ...     mappings = mapOntoChain(structure, reference_chain, seqid=sequence_identity)
 ...     if len(mappings) == 0:
-...         plog('Failed to map', pdb_hit)
+...         plog('Failed to map', pdb_id)
 ...         continue  
 ...     atommap = mappings[0][0]
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())
@@ -128,7 +159,7 @@ Step 3: Prepare ensemble
 Let's check how many conformations are extracted from PDB files:
 
 >>> len(ensemble)
-348
+349
 
 Note that number of conformations are more than the number of PDB structures
 we evaluated. This is because some of the PDB files contained NMR structures
@@ -178,6 +209,7 @@ Step 5: Plot data and results
    from matplotlib import pyplot as plt
    ensemble = loadEnsemble('CytC.ens.npz')
    pca = loadModel('CytC.pca.npz')
+   plt.close('all')
 
 Let's plot RMSD to the average structure:
 
@@ -193,6 +225,14 @@ Let's plot RMSD to the average structure:
    plt.xlabel('Conformation index')
    plt.ylabel('RMSD (A)')
 
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+   
+   
 Let's show a projection of the ensemble onto PC1 and PC2:
 
 .. plot::
@@ -201,6 +241,14 @@ Let's show a projection of the ensemble onto PC1 and PC2:
 
    plt.figure(figsize=(5,4))
    showProjection(ensemble, pca[:2])
+
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+   
 
 See Also
 ===============================================================================

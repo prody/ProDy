@@ -16,31 +16,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes and functions to fetch, parse, 
-and write PDB files, and also to blast search 
-`ProteinDataBank <http://wwpdb.org>`_.
+"""This module defines classes and functions to fetch, parse, and write PDB 
+files, and also to blast search `ProteinDataBank <http://wwpdb.org>`_.
 
 Classes
 -------
 
+  * :class:`Chemical`
+  * :class:`Polymer`
   * :class:`PDBBlastRecord`
 
 Functions
 ---------
 
-  * :func:`applyBiomolecularTransformations`
-  * :func:`assignSecondaryStructure`
+  * :func:`assignSecondaryStr`
+  * :func:`buildBiomolecules`
   * :func:`blastPDB`
   * :func:`fetchPDB`
+  * :func:`getPDBLocalFolder`
   * :func:`getPDBMirrorPath`
   * :func:`getWWPDBFTPServer`
+  * :func:`setPDBLocalFolder`
   * :func:`setPDBMirrorPath`
   * :func:`setWWPDBFTPServer` 
   * :func:`parsePDB`
   * :func:`parsePDBStream`
   * :func:`parsePSF`
+  * :func:`parsePQR`
   * :func:`writePDB`
   * :func:`writePDBStream`
+  * :func:`writePQR`
+  * :func:`parsePDBHeader`
   
   * :func:`fetchLigandData`
   * :func:`fetchPDBClusters`
@@ -54,9 +60,6 @@ Functions
   * :func:`execSTRIDE`
   * :func:`parseSTRIDE`
   * :func:`performSTRIDE`
-
-  
-   
    
 .. doctest::
     :hide:
@@ -67,7 +70,6 @@ Functions
     >>> model10 = parsePDB('2k39', subset='ca', model=10)
     >>> np.all(allmodels.getCoordsets(9) == model10.getCoordinates())
     True
-    
 """
 
 __author__ = 'Ahmet Bakan'
@@ -78,11 +80,9 @@ import os.path
 import time
 import os
 import shutil
+import sys
 from glob import glob
 from collections import defaultdict
-
-ET = None
-urllib2 = None
 
 import numpy as np
 
@@ -93,20 +93,21 @@ import prody
 LOGGER = prody.LOGGER
 from prody.atomic import *
 
-PDB_CLUSTERS_PATH = os.path.join(prody.PACKAGEPATH, 'pdbclusters')
+
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
                 90: None, 95: None, 100: None}
 PDB_CLUSTERS_UPDATE_WARNING = True
 
 
-__all__ = ['PDBBlastRecord', 
-           'assignSecondaryStructure',
-           'applyBiomolecularTransformations',
+__all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
+           'assignSecondaryStructure', 'assignSecondaryStr',
+           'applyBiomolecularTransformations', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
-           'getPDBMirrorPath', 'getWWPDBFTPServer', 
-           'setPDBMirrorPath', 'setWWPDBFTPServer',
-           'parsePDBStream', 'parsePDB', 'parsePSF',
-           'writePDBStream', 'writePDB',
+           'getPDBLocalFolder', 'getPDBMirrorPath', 'getWWPDBFTPServer', 
+           'setPDBLocalFolder', 'setPDBMirrorPath', 'setWWPDBFTPServer',
+           'parsePDBStream', 'parsePDB', 'parsePSF', 'parsePQR',
+           'writePDBStream', 'writePDB', 'writePQR', 
+           'parsePDBHeader',
            'fetchLigandData',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
@@ -120,7 +121,7 @@ class PDBParserError(Exception):
 def _makePath(path):
     """Make all directories that does not exist in a given path."""
     if os.path.isabs(path):
-        path = os.path.relpath(path)
+        path = prody.relpath(path)
     if not os.path.isdir(path):
         dirs = path.split(os.sep)
         for i in range(len(dirs)):
@@ -134,14 +135,16 @@ def _makePath(path):
                 return os.getcwd()
     return os.path.join(os.getcwd(), path)
 
+_PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
+                       '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ',
+                       '.xml', '.XML', '.xml.gz', '.XML.GZ',
+                       '.cif', '.CIF', '.cif.gz', '.CIF.GZ',])
+_PDB_FORMATS = set(['pdb', 'cif', 'xml'])
 
-_pdb_extensions = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ent.gz'])
-_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', 
-    '/pub/pdb/data/structures/divided/pdb/')
-_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', 
-    '/pub/databases/rcsb/pdb/data/structures/divided/pdb/')
-_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', 
-    '/pub/pdb/data/structures/divided/pdb/')
+_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/pdb/')
+_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/pdb/')
+_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/pdb/')
+
 WWPDB_FTP_SERVERS = {
     'rcsb'   : _WWPDB_RCSB,
     'usa'    : _WWPDB_RCSB,
@@ -155,32 +158,87 @@ WWPDB_FTP_SERVERS = {
     'jp'     : _WWPDB_PDBj,
 }
 
+def getPDBLocalFolder():
+    """Return the path to a local PDB folder and folder structure specifier. 
+    If a local folder is not set, ``None`` will be returned.
+    
+    .. versionadded:: 0.8.4"""
+
+    folder = prody._ProDySettings.get('pdb_local_folder')
+    if isinstance(folder, str):
+        if os.path.isdir(folder):
+            return folder, prody._ProDySettings.get('pdb_local_divided', True)
+        else:
+            LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
+                           .format(folder))
+
+def setPDBLocalFolder(folder, divided=False):
+    """Set a local PDB folder.  Setting a local PDB folder will make 
+    :func:`fetchPDB` function to seek that folder for presence of requested
+    PDB files.  Also, PDB files downloaded from WWPDB FTP servers will be 
+    saved in this folder.  This may help users to store PDB files in a single 
+    place and have access to them in different working directories.
+    
+    .. versionadded:: 0.8.4
+    
+    If *divided* is ``True``, the divided folder structure of WWPDB servers 
+    will be assumed when reading from and writing to the local folder.  For 
+    example, a structure with identifier **1XYZ** will be present as 
+    :file:`pdblocalfolder/yz/pdb1xyz.pdb.gz`. 
+    
+    If *divided* is ``False``, a plain folder structure will be expected and 
+    adopted when saving files.  For example, the same structure will be 
+    present as :file:`pdblocalfolder/1xyz.pdb.gz`.
+    
+    Finally, in either case, lower case letters will be used and compressed
+    files will be stored."""
+    
+    if not isinstance(folder, str):
+        raise TypeError('folder must be a string')
+    assert isinstance(divided, bool), 'divided must be a boolean'
+    if os.path.isdir(folder):
+        folder = os.path.abspath(folder)
+        LOGGER.info('Local PDB folder is set: "{0:s}"'.format(folder))
+        if divided:
+            LOGGER.info('When using local PDB folder, WWPDB divided '
+                        'folder structure will be assumed.')
+        else:
+            LOGGER.info('When using local PDB folder, a plain folder structure '
+                        'will be assumed.')
+        prody._ProDySettings['pdb_local_folder'] = folder
+        prody._ProDySettings['pdb_local_divided'] = divided
+        prody._saveProDySettings()
+    else:
+        raise IOError('No such directory: "{0:s}"'.format(folder))
+
 def getPDBMirrorPath():
-    """Set the path to a local PDB mirror.
+    """Return the path to a local PDB mirror, or ``None`` if a mirror path is 
+    not set.
     
-    .. versionadded:: 0.6.1
-    
-    """
+    .. versionadded:: 0.6.1"""
 
-    return prody._ProDySettings.get('pdb_mirror_path')
-
+    path = prody._ProDySettings.get('pdb_mirror_path')
+    if isinstance(path, str):
+        if os.path.isdir(path):
+            return path
+        else:
+            LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
+                           .format(path))
 
 def setPDBMirrorPath(path):
-    """Return the path to a local PDB mirror.
+    """Set the path to a local PDB mirror.  
     
-    .. versionadded:: 0.6.1
+    .. versionadded:: 0.6.1"""
     
-    Returns ``None`` if a PDB local mirror path is not set.
-    
-    """
-    
-    path = str(path)
+    if not isinstance(path, str):
+        raise TypeError('path must be a string')
     if os.path.isdir(path):
+        path = os.path.abspath(path)
+        LOGGER.info('Local PDB mirror path is set: "{0:s}"'.format(path))
         prody._ProDySettings['pdb_mirror_path'] = path
         prody._saveProDySettings()
     else:
-        LOGGER.warning('{0:s} is not a valid path.'.format(path))
-
+        raise IOError('No such directory: "{0:s}"'.format(path))
 
 def setWWPDBFTPServer(key):
     """Set the PDB FTP server used for downloading PDB structures when needed.
@@ -198,7 +256,6 @@ def setWWPDBFTPServer(key):
     +---------------------------+-----------------------------+
     | PDBj (Japan)              | PDBj, Japan, Jp             |
     +---------------------------+-----------------------------+
-    
     """
     
     server = WWPDB_FTP_SERVERS.get(key.lower())
@@ -212,9 +269,7 @@ def getWWPDBFTPServer():
     """Return a tuple containing name, host, and path of the currently 
     set WWPDB FTP server.
     
-    .. versionadded:: 0.6.1
-    
-    """
+    .. versionadded:: 0.6.1"""
     
     server = prody._ProDySettings.get('wwpdb_ftp')
     if server is None:
@@ -225,11 +280,17 @@ def getWWPDBFTPServer():
         return _WWPDB_RCSB
     else:
         return server
+    
+# The following is to prevent breaking users code due to changes in fetchPDB
+# Remove this in v0.9.2
+_ = getWWPDBFTPServer()
+if isinstance(_, tuple) and len(_) == 3:
+    setWWPDBFTPServer(_[0].split()[0])
 
-def fetchPDB(pdb, folder='.', compressed=True, copy=False):
-    """Return the path(s) to PDB file(s) for specified identifier(s).
-
-    *pdb* may be a list of PDB identifiers or an identifier string.
+def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
+    """Retrieve PDB, PDBML, or mmCIF file(s) for specified *pdb* identifier(s).  
+    *pdb* may be a string or a list.  The function will return a filename or a 
+    list of filenames depending on input (see :ref:`fetchpdb` for examples).  
 
     .. versionchanged:: 0.8
        *compressed* and *copy* argument is introduced.  
@@ -237,30 +298,30 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     .. versionchanged:: 0.8.2
        When *compressed* is false, compressed files found in *folder* or 
        local PDB mirror are decompressed.
+    
+    .. versionadded:: 0.8.4
+       *format* and *noatom* keyword arguments are added.
+       
+    .. versionchanged:: 0.8.4
+       File discovery is improved to handle a local PDB folder. See 
+       :func:`setPDBLocalFolder` method for details.  
 
-    If *folder* already contains a PDB file matching given identifier, a 
-    file will not be downloaded and the path to the existing file
-    will be returned.
+    If *compressed* is ``False``, all files will be decompressed.  If *copy* is 
+    ``True``, all files from local PDB mirror will copied to the user specified 
+    *folder*.  *format* keyword argument can be used to retrieve `PDBML 
+    <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files:  
+    ``format="cif"`` will fetch an mmCIF file (e.g. :file:`1XXX.cif.gz`), 
+    similarly ``format="xml"`` will fetch a PDBML file.  If PDBML header file 
+    is desired, ``format="xml", noatom=True`` will do the job (e.g. 
+    :file:`1XXX-noatom.xml.gz`)
     
-    If a file matching the given PDB identifier is not found in *folder*,
-    the PDB file will be sought in the local PDB mirror, if a local
-    mirror is set by the user. When PDB is found in local repository, 
-    the path to the file will be returned. 
-    
-    Finally, if PDB file is not found in *folder* or local mirror,
-    it will be downloaded from the user-selected WWPDB FTP server.
-    User can set one of the WWPDB FTP servers using :func:`setWWPDBFTPServer`. 
-    Downloaded files will be saved in *folder*. FTP servers provides gunzipped 
-    PDB files.
-    
-    If *compressed* argument is set to ``False``, downloaded files will be 
-    decompressed. When a compressed file is found in the *folder*, it will
-    also be decompressed.
-    
-    For PDB files found in a local mirror of PDB, setting *copy* ``True`` will
-    copy them from the mirror to the user specified *folder*.  
-        
-    """
+    The order of file search operations are as follows:  First, files are 
+    sought in *folder*.  Second, local PDB mirror will be sought, if one is 
+    set by the user (see :func:`setPDBMirrorPath`).  Then, local PDB folder
+    will be sought, if one is  set by the user (see :func:`setPDBLocalFolder`).
+    Finally, if files are not found locally, they will be downloaded one of 
+    WWPDB FTP servers (use :func:`setWWPDBFTPServer` to specify one close to 
+    you)."""
     
     if isinstance(pdb, str):
         identifiers = [pdb]
@@ -269,7 +330,18 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     else:
         raise TypeError('pdb may be a string or a list of strings')
         
-        
+    assert isinstance(folder, str), 'folder must be a string'
+    assert isinstance(compressed, bool), 'compressed must be a boolean'
+    assert isinstance(copy, bool), 'copy must be a boolean'
+    format = kwargs.pop('format', 'pdb')
+    assert isinstance(format, str), 'format must be a string'
+    format = format.lower()
+    assert format in _PDB_FORMATS, '"{0:s}" is not valid format'.format(format)
+    noatom = kwargs.pop('noatom', False) 
+    assert isinstance(noatom, bool), 'noatom must be a boolean'
+    if kwargs:
+        raise TypeError('"{0:s}" is not a valid keyword argument for this' 
+                        'function'.format(kwargs.iterkeys().next()))
     if folder != '.':
         folder = _makePath(folder)
     if not os.access(folder, os.W_OK):
@@ -281,17 +353,38 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
     success = 0
     failure = 0
     download = False
-
+    if format == 'pdb':
+        divided = 'data/structures/divided/pdb'
+        pdbext = '.ent.gz'
+        extensions = ['.ent', '.pdb'] # '.pdb' should be the last item
+        prefix = 'pdb'
+    elif format == 'xml':
+        if noatom:
+            divided = 'data/structures/divided/XML-noatom'
+            pdbext = '-noatom.xml.gz'
+            extensions = ['-noatom.xml']
+        else:
+            divided = 'data/structures/divided/XML'
+            pdbext = '.xml.gz'
+            extensions = ['.xml']
+        prefix = ''
+    else:
+        divided = 'data/structures/divided/mmCIF'
+        pdbext = '.cif.gz'
+        extensions = ['.cif'] # '.pdb' should be the last item
+        prefix = ''
+    
     pdbfnmap = {}
-    for pdbfn in glob(os.path.join(folder, '*.pdb*')): 
-        if os.path.splitext(pdbfn)[1] in _pdb_extensions:
-            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
-    for pdbfn in glob(os.path.join(folder, '*.PDB*')):
-        if os.path.splitext(pdbfn)[1] in _pdb_extensions:
-            pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+    for extension in extensions:
+        for pdbfn in glob(os.path.join(folder, '*' + extension + '*')): 
+            if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
+                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
+        for pdbfn in glob(os.path.join(folder, '*' + extension.upper() + '*')):
+            if os.path.splitext(pdbfn)[1] in _PDB_EXTENSIONS:
+                pdbfnmap[os.path.split(pdbfn)[1].split('.')[0].lower()] = pdbfn
                 
-    mirror_path = getPDBMirrorPath()
     for i, pdbid in enumerate(identifiers):
+        # Check validity of identifiers
         if not isinstance(pdbid, str):
             LOGGER.debug('{0:s} is not a valid identifier.'.format(pdbid))
             filenames.append(None)
@@ -303,10 +396,14 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
             filenames.append(None)
             failure += 1 
             continue
+        # Check if file exists in working directory
         identifiers[i] = pdbid
-        fn = pdbfnmap.get(pdbid, None)
+        if noatom:
+            fn = pdbfnmap.get(pdbid + '-noatom', None)
+        else:
+            fn = pdbfnmap.get(pdbid, None) or pdbfnmap.get('pdb'+pdbid, None)
         if fn:
-            fn = os.path.relpath(fn)
+            fn = prody.relpath(fn)
             if not compressed:
                 temp, ext = os.path.splitext(fn) 
                 if ext == '.gz':
@@ -316,16 +413,19 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                          .format(pdbid, fn))
             exists += 1
             continue
+        # Check the PDB mirror
+        mirror_path = getPDBMirrorPath()
         if mirror_path is not None and os.path.isdir(mirror_path):
-            fn = os.path.join(mirror_path, 'data/structures/divided/pdb',
-                    pdbid[1:3], 'pdb' + pdbid + '.ent.gz')
+            fn = os.path.join(mirror_path, divided, pdbid[1:3], 
+                              prefix + pdbid + pdbext)
             if os.path.isfile(fn):
                 if copy or not compressed:
                     if compressed:
-                        filename = os.path.join(folder, pdbid + '.pdb.gz')
+                        filename = os.path.join(folder, pdbid + extension + 
+                                                        '.gz')
                         shutil.copy(fn, filename)
                     else:
-                        filename = os.path.join(folder, pdbid + '.pdb')
+                        filename = os.path.join(folder, pdbid + extension)
                         gunzip(fn, filename)
                     filenames.append(filename)
                     LOGGER.debug('{0:s} copied from local mirror ({1:s})'
@@ -339,51 +439,97 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
                                 fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
                     exists += 1
                 continue
+        # Check the PDB mirror
+        local_folder = getPDBLocalFolder()
+        if format and local_folder:
+            local_folder, is_divided = local_folder
+            if is_divided:
+                fn = os.path.join(local_folder, pdbid[1:3], 
+                                  'pdb' + pdbid + '.pdb.gz')
+            else:
+                fn = os.path.join(local_folder, pdbid + '.pdb.gz')
+                
+            if os.path.isfile(fn):
+                if copy or not compressed:
+                    if compressed:
+                        filename = os.path.join(folder, pdbid + extension + 
+                                                        '.gz')
+                        shutil.copy(fn, filename)
+                    else:
+                        filename = os.path.join(folder, pdbid + extension)
+                        gunzip(fn, filename)
+                    filenames.append(filename)
+                    LOGGER.debug('{0:s} copied from local folder ({1:s})'
+                                 .format(pdbid, filename))
+                    success += 1
+                else:
+                    filenames.append(fn)
+                    
+                    LOGGER.debug('{0:s} ({1:s}...{2:s}) is found in the local '
+                                'folder.'.format(pdbid, 
+                                fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
+                    exists += 1
+                continue
+
         filenames.append(pdbid)
         download = True
     if download:
         from ftplib import FTP
         ftp_name, ftp_host, ftp_path = getWWPDBFTPServer()
         LOGGER.debug('Connecting WWPDB FTP server {0:s}.'.format(ftp_name))
+        if format == 'pdb' and not copy and local_folder:
+            folder = local_folder
+            compressed = True
+            if is_divided:
+                getfn = lambda folder, pdbid, ext: \
+                    os.path.join(_makePath(os.path.join(local_folder, 
+                                            pdbid[1:3])), 'pdb' + pdbid + ext)
+            else:
+                getfn = lambda folder, pdbid, ext: os.path.join(folder,
+                                                                pdbid + ext)
+                
+        else: 
+            getfn = lambda folder, pdbid, ext: os.path.join(folder, 
+                                                            pdbid + ext)
         try:
             ftp = FTP(ftp_host)
         except Exception as error:
             raise type(error)('FTP connection problem, potential reason: '
                               'no internet connectivity')
         else:
+            ftp_path = os.path.join(ftp_path, divided)
             ftp.login('')
             for i, pdbid in enumerate(identifiers):
                 if pdbid != filenames[i]:
                     continue
+                filename = getfn(folder, pdbid, extension)
                 if compressed:
-                    filename = os.path.join(folder, pdbid + '.pdb.gz')
-                else:
-                    filename = os.path.join(folder, pdbid + '.pdb')
+                    filename += '.gz'
+
                 pdbfile = open(filename, 'w+b')
+                fn = prefix + pdbid + pdbext
                 try:
                     ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
-                    ftp.retrbinary('RETR pdb{0:s}.ent.gz'.format(pdbid), 
-                                   pdbfile.write)
+                    ftp.retrbinary('RETR ' + fn, pdbfile.write)
                 except Exception as error:
                     pdbfile.close()
                     os.remove(filename)
-                    if 'pdb{0:s}.ent.gz'.format(pdbid) in ftp.nlst():
+                    if fn in ftp.nlst():
                         LOGGER.debug('{0:s} download failed ({1:s}). It '
                                      'is possible that you don\'t have '
                                      'rights to download .gz files in the '
                                      'current network.'.format(pdbid, 
                                      str(error)))
                     else:
-                        LOGGER.debug('{0:s} download failed. pdb{0:s}.ent.'
-                                     'gz does not exist on ftp.wwpdb.org.'
-                                     .format(pdbid))
+                        LOGGER.debug('{0:s} download failed. {0:s} does not '
+                                     'exist on ftp.wwpdb.org.'.format(fn))
                     failure += 1
                     filenames[i] = None 
                 else:
                     pdbfile.close()
                     if not compressed:
                         gunzip(filename)
-                    filename = os.path.relpath(filename)
+                    filename = prody.relpath(filename)
                     LOGGER.debug('{0:s} downloaded ({1:s})'
                                  .format(pdbid, filename))
                     success += 1
@@ -398,13 +544,9 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False):
         return filenames
 
 def gunzip(filename, outname=None):
-    """Decompresses *filename* and saves as *outname*. 
-    
-    When *outname* is ``None``, *filename* is used as the output name.
-    
-    Returns output filename upon successful completion.
-    
-    """
+    """Decompresses *filename* and saves as *outname*.  When *outname* is 
+    ``None``, *filename* is used as the output name.  Returns output filename 
+    upon successful completion."""
 
     if not isinstance(filename, str):
         raise TypeError('filename must be a string')
@@ -420,13 +562,17 @@ def gunzip(filename, outname=None):
     out.close()
     return outname
 
-_parsePDBdoc = """
-    :arg model: model index or None (read all models), 
-        e.g. ``model=10``
-    :type model: int, list
-
-    :arg header: If ``True`` PDB header content will be parsed and returned.
-    :type header: bool
+_parsePQRdoc = """
+    :arg name: Name of the AtomGroup instance.  When ``None`` is passed,
+        AtomGroup is named after the PDB filename.  
+    :type name: str
+    
+    :arg ag: :class:`~prody.atomic.AtomGroup` instance for storing data parsed 
+        from PDB file.  Number of atoms in *ag* and number of atoms parsed from
+        the PDB file must be the same.  Atoms in *ag* and the PDB file must be 
+        in the same order.  Non-coordinate data stored in *ag* will be 
+        overwritten with those parsed from the file. 
+    :type ag: :class:`~prody.atomic.AtomGroup`
 
     :arg chain: Chain identifiers for parsing specific chains, e.g. 
         ``chain='A'``, ``chain='B'``, ``chain='DE'``. By default all chains
@@ -437,18 +583,23 @@ _parsePDBdoc = """
         Valid keywords are ``"calpha"`` (``"ca"``) or ``"backbone"`` 
         (``"bb"``), or ``None`` (read all atoms), e.g. ``subset='bb'``
     :type subset: str
+"""
+
+_parsePDBdoc = _parsePQRdoc + """
+    :arg model: model index or None (read all models), 
+        e.g. ``model=10``
+    :type model: int, list
+
+    :arg header: If ``True`` PDB header content will be parsed and returned.
+    :type header: bool
 
     :arg altloc: If a location indicator is passed, such as ``'A'`` or ``'B'``, 
          only indicated alternate locations will be parsed as the single 
-         coordinate set of the AtomGroup. If ``True`` all alternate locations 
+         coordinate set of the AtomGroup.  If ``True`` all alternate locations 
          will be parsed and each will be appended as a distinct coordinate set.
          Default is ``"A"``.
     :type altloc: str
 
-    :arg name: Name of the AtomGroup instance. When ``None`` is passed,
-        AtomGroup is named after the PDB filename.  
-    :type name: str
-    
     :arg biomol: If ``True``, return biomolecule obtained by transforming the
         coordinates using information from header section.
     :type biomol: False
@@ -456,14 +607,7 @@ _parsePDBdoc = """
     :arg secondary: If ``True``, parse the secondary structure information
         from header section and assign data to atoms.
     :type secondary: False
-    
-    :arg ag: :class:`~prody.atomic.AtomGroup` instance for storing data parsed 
-        from PDB file. Number of atoms in *ag* and number of atoms parsed from
-        the PDB file must be the same. Atoms in *ag* and the PDB file must be 
-        in the same order. Non-coordinate data stored in *ag* will be 
-        overwritten with those parsed from the file. 
-    :type ag: :class:`~prody.atomic.AtomGroup`
-    
+        
 
     If ``model=0`` and ``header=True``, return header 
     dictionary only.
@@ -473,29 +617,33 @@ _parsePDBdoc = """
        Alternate locations indicated by ``A`` are parsed.
     
     .. versionchanged:: 0.7.1
-       *name* is now a keyword argument. *biomol* and *secondary* keyword 
+       *name* is now a keyword argument.  *biomol* and *secondary* keyword 
        arguments makes the parser return the biological molecule and/or
        assign secondary structure information.
        
     .. versionchanged:: 0.8.1
        User can pass an :class:`~prody.atomic.AtomGroup` instance as *ag*.
 
+    .. versionchanged:: 0.8.2
+       *chain* and *subset* arguments are appended to atom group name, e.g. for 
+       ``('1mkp', chain='A', subset='calpha')`` name will be ``"1mkp_A_ca"``.
+
+    Note that this function does not evaluate ``CONECT`` records.
+    
     """
     
-_PDBSubsets = ['ca', 'calpha', 'bb', 'backbone']
+_PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parsePDB(pdb, model=None, header=False, chain=None, subset=None, 
-             altloc='A', **kwargs):
-    """Return an :class:`~prody.atomic.AtomGroup` and/or 
-    dictionary containing header data parsed from a stream of PDB lines. 
+def parsePDB(pdb, **kwargs):
+    """Return an :class:`~prody.atomic.AtomGroup` and/or dictionary containing 
+    header data parsed from a PDB file. 
     
     This function extends :func:`parsePDBStream`.
     
     |example| See :ref:`parsepdb` for a detailed example.
     
     :arg pdb: A valid PDB identifier or filename.  
-        If needed, PDB files are downloaded using :func:`fetchPDB()` function.  
-        
+        If needed, PDB files are downloaded using :func:`fetchPDB()` function.
     """
     
     name = kwargs.get('name', None)
@@ -522,23 +670,26 @@ def parsePDB(pdb, model=None, header=False, chain=None, subset=None,
         pdb = gzip.open(pdb)
     else:
         pdb = open(pdb)
-    result = parsePDBStream(pdb, model, header, chain, subset, 
-                            altloc, **kwargs)
+    result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
 
 parsePDB.__doc__ += _parsePDBdoc
     
-def parsePDBStream(stream, model=None, header=False, chain=None, subset=None, 
-                   altloc='A', **kwargs):
+def parsePDBStream(stream, **kwargs):
     """Return an :class:`~prody.atomic.AtomGroup` and/or 
     dictionary containing header data parsed from a stream of PDB lines. 
     
     :arg stream: Anything that implements the method readlines() 
         (e.g. :class:`file`, buffer, stdin).
-
     """
     
+    model = kwargs.get('model')
+    header = kwargs.get('header', False)
+    assert isinstance(header, bool), 'header must be a boolean'
+    chain = kwargs.get('chain')
+    subset = kwargs.get('subset')
+    altloc = kwargs.get('altloc', 'A')
     if model is not None:
         if isinstance(model, int):
             if model < 0:
@@ -546,43 +697,58 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
         else:
             raise TypeError('model must be an integer, {0:s} is invalid'
                             .format(str(model)))
+    name_suffix = ''
     if subset is not None: 
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
-
-    lines = stream.readlines()
-    biomol = kwargs.get('biomol', False)
-    secondary = kwargs.get('secondary', False)
-    split = 0
-    hd = None
+        name_suffix = '_' + _PDBSubsets[subset]
+    if chain is not None:
+        if not isinstance(chain, str):
+            raise TypeError('chain must be a string')
+        elif len(chain) == 0:
+            raise ValueError('chain must not be an empty string')
+        name_suffix = '_' + chain + name_suffix
     if 'ag' in kwargs:
-        ag = kwargs.get('ag')
+        ag = kwargs['ag']
         if not isinstance(ag, prody.AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.getNumOfCoordsets()
     else:
-        ag = None
+        ag = prody.AtomGroup(str(kwargs.get('name', 'unknown')) + name_suffix)
         n_csets = 0
-    if header or biomol or secondary:
-        hd, split = _getHeaderDict(lines)
+    
+    biomol = kwargs.get('biomol', False)
+    secondary = kwargs.get('secondary', False)
+    split = 0
+    hd = None
     if model != 0:
-        ag = prody.AtomGroup(kwargs.get('name', 'unknown'))
+        lines = stream.readlines()
+        if header or biomol or secondary:
+            hd, split = _getHeaderDict(lines)
         start = time.time()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
-        LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                    'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
-                     ag.getNumOfCoordsets() - n_csets, time.time()-start))
+        if ag.getNumOfAtoms() > 0:
+            LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
+                        'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
+                         ag.getNumOfCoordsets() - n_csets, time.time()-start))
+        else:
+            ag = None
+            LOGGER.warning('Atomic data could not be parsed, please '
+                           'check the input file.')
+    elif header:
+        hd, split = _getHeaderDict(stream)
+
     if secondary:
         try:
-            ag = assignSecondaryStructure(hd, ag)
+            ag = assignSecondaryStr(hd, ag)
         except:
             raise PDBParserError('secondary structure assignments could not '
                                  'be made, check input file')
     if biomol:
         try:
-            ag = applyBiomolecularTransformations(hd, ag)
+            ag = buildBiomolecules(hd, ag)
         except:
             raise PDBParserError('biomolecule could not be generated, check'
                                  'input file')
@@ -593,7 +759,7 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
-    if ag is not None:
+    if model != 0:
         if header:
             return ag, hd
         else:
@@ -603,36 +769,82 @@ def parsePDBStream(stream, model=None, header=False, chain=None, subset=None,
 
 parsePDBStream.__doc__ += _parsePDBdoc
 
-def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
-    """Return an AtomGroup. See also :func:`parsePDBStream()`.
+
+def parsePQR(filename, **kwargs):
+    """|new| Return an :class:`~prody.atomic.AtomGroup` containing data parsed 
+    from PDB lines. 
     
-    :arg lines: Lines from a PDB file.
-    :arg split: Starting index for lines related to coordinate data.
-    
+    :arg filename: a PQR filename
+    :type filename: str
     """
     
-    asize = len(lines) - split
-    alength = 5000
-    coordinates = np.zeros((asize, 3), dtype=np.float64)
-    atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
-    resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
-    resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
-    chainids = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
-    bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
-    occupancies = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['occupancy'].dtype)
-    hetero = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['hetero'].dtype)
-    altlocs = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['altloc'].dtype)
-    segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
-    elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
-    secondary = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['secondary'].dtype)
-    anisou = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
-    siguij = np.zeros((asize, 6), dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
-    icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
-    serials = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['serial'].dtype)
-    asize = 2000
-    
-    onlycoords = False
+    name = kwargs.get('name', None)
+    model = 1
+    header = False
+    chain = kwargs.get('chain')
+    subset = kwargs.get('subset')
+    altloc = kwargs.get('altloc', 'A')
+    if not os.path.isfile(filename):
+        raise IOError('No such file: "{0:s}"'.format(filename))
+    if name is None:
+        fn, ext = os.path.splitext(os.path.split(filename)[1])
+        if ext == '.gz':
+            fn, ext = os.path.splitext(fn)
+        name = fn.lower()
+    name_suffix = ''
+    if subset is not None:
+        if not isinstance(subset, str):
+            raise TypeError('subset must be a string')
+        elif subset.lower() not in _PDBSubsets:
+            raise ValueError('"{0:s}" is not a valid subset'.format(subset))
+        name_suffix = '_' + _PDBSubsets[subset]
+    if chain is not None:
+        if not isinstance(chain, str):
+            raise TypeError('chain must be a string')
+        elif len(chain) == 0:
+            raise ValueError('chain must not be an empty string')
+        name_suffix = '_' + chain + name_suffix
+    if 'ag' in kwargs:
+        ag = kwargs['ag']
+        if not isinstance(ag, prody.AtomGroup):
+            raise TypeError('ag must be an AtomGroup instance')
+        n_csets = ag.getNumOfCoordsets()
+    else:
+        ag = prody.AtomGroup(name + name_suffix)
+        n_csets = 0
         
+    if filename.endswith('.gz'):
+        pqr = gzip.open(filename)
+    else:
+        pqr = open(filename)
+    lines = pqr.readlines()
+    pqr.close()
+    start = time.time()
+    ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain, 
+                        subset=subset, altloc_torf=False, format='pqr')
+    if ag.getNumOfAtoms() > 0:
+        LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
+                    'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
+                     ag.getNumOfCoordsets() - n_csets, time.time()-start))
+        return ag
+    else:
+        return None
+
+parsePQR.__doc__ += _parsePQRdoc
+
+def _parsePDBLines(atomgroup, lines, split, model, chain, subset, 
+                   altloc_torf, format='pdb'):
+    """Return an AtomGroup. See also :func:`parsePDBStream()`.
+    
+    :arg lines: PDB/PQR lines 
+    :arg split: starting index for coordinate data lines"""
+    
+    format = format.upper()
+    if format == 'PDB':
+        isPDB = True
+    else:
+        isPDB = False
+    
     if subset is not None:
         subset = subset.lower()
         if subset in ('calpha', 'ca'):
@@ -643,14 +855,47 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
         protein_resnames = set(prody.getProteinResidueNames())
     else:
         only_subset = False
-    if isinstance(chain, str):
-        only_chains = True
-    else:
+    if chain is None:
         only_chains = False
+    else:
+        only_chains = True
+    onlycoords = False
+    n_atoms = atomgroup.getNumOfAtoms()
+    if n_atoms > 0:
+        asize = n_atoms
+    else:
+        # most PDB files contain less than 99999 atoms
+        asize = min(len(lines) - split, 99999)
+    alength = asize
+    coordinates = np.zeros((asize, 3), dtype=float)
+    atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
+    resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
+    resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
+    chainids = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+    hetero = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['hetero'].dtype)
+    altlocs = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['altloc'].dtype)
+    icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
+    serials = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['serial'].dtype)
+    if isPDB:
+        segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
+        elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
+        bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
+        occupancies = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['occupancy']
+                               .dtype)
+        secondary = None
+        anisou = None
+        siguij = None
+    else:
+        charges = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
+        radii = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['radius'].dtype)
+        type_ = 'PDB'
+        
+    asize = 2000 # increase array length by this much when needed 
+        
     start = split
     stop = len(lines)
     nmodel = 0
-    if model is not None and model != 1:
+    if isPDB and model is not None and model != 1:
         for i in range(split, len(lines)):
             if lines[i][:5] == 'MODEL':
                 nmodel += 1
@@ -673,11 +918,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
         altloc_torf = True
         
     acount = 0
-    is_anisou = False
-    is_siguij = False
-    is_scndry = False
     altloc = defaultdict(list)
-    n_atoms = atomgroup.getNumOfAtoms()
     i = start
     while i < stop:
         line = lines[i]
@@ -704,14 +945,17 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                 coordinates[acount, 0] = float(line[30:38])
                 coordinates[acount, 1] = float(line[38:46])
                 coordinates[acount, 2] = float(line[46:54])
-            except Exception:
-                if acount >= n_atoms:
+            except:
+                if acount >= n_atoms > 0:
+                    if nmodel ==0:
+                        raise ValueError(format + 'file and AtomGroup ag must '
+                                         'have same number of atoms')
                     LOGGER.warning('Discarding model {0:d}, which contains '
                                    'more atoms than first model does.'
                                    .format(nmodel+1))
                     acount = 0
                     nmodel += 1
-                    coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                    coordinates = np.zeros((n_atoms, 3), dtype=float)
                     while lines[i][:6] != 'ENDMDL':
                         i += 1
                 else:
@@ -731,27 +975,39 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
             chainids[acount] = chid
             resnums[acount] = int(line[22:26].split()[0])
             icodes[acount] = line[26].strip()
-            try:
-                occupancies[acount] = float(line[54:60])
-            except:
-                LOGGER.warning('failed to parse occupancy at line {0:d}'
-                               .format(i))
-            try:
-                bfactors[acount] = float(line[60:66])
-            except:
-                LOGGER.warning('failed to parse beta-factor at line {0:d}'
-                               .format(i))
-            
-            if startswith[0] == 'H':
-                hetero[acount] = True
+            if isPDB:
+                try:
+                    occupancies[acount] = float(line[54:60])
+                except:
+                    LOGGER.warning('failed to parse occupancy at line {0:d}'
+                                   .format(i))
+                try:
+                    bfactors[acount] = float(line[60:66])
+                except:
+                    LOGGER.warning('failed to parse beta-factor at line {0:d}'
+                                   .format(i))
+                
+                if startswith[0] == 'H':
+                    hetero[acount] = True
 
-            segnames[acount] = line[72:76].strip()
-            elements[acount] = line[76:78].strip()
+                segnames[acount] = line[72:76].strip()
+                elements[acount] = line[76:78].strip()
+            else:
+                try:
+                    charges[acount] = float(line[54:62])
+                except:
+                    LOGGER.warning('failed to parse charge at line {0:d}'
+                                   .format(i))
+                try:
+                    radii[acount] = float(line[62:69])
+                except:
+                    LOGGER.warning('failed to parse radius at line {0:d}'
+                                   .format(i))
             acount += 1
-            if acount >= alength:
+            if n_atoms == 0 and acount >= alength:
                 alength += asize
                 coordinates = np.concatenate(
-                    (coordinates, np.zeros((asize, 3), np.float64)))
+                    (coordinates, np.zeros((asize, 3), float)))
                 atomnames = np.concatenate((atomnames,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
                 resnames = np.concatenate((resnames,
@@ -760,28 +1016,35 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                     np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
                 chainids = np.concatenate((chainids,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
-                bfactors = np.concatenate((bfactors,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
-                occupancies = np.concatenate((occupancies,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
                 hetero = np.concatenate((hetero,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
                 altlocs = np.concatenate((altlocs,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
-                segnames = np.concatenate((segnames,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
-                elements = np.concatenate((elements,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
-                secondary = np.concatenate((secondary,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['secondary'].dtype)))
-                anisou = np.concatenate((anisou,
-                    np.zeros((asize, 6), ATOMIC_DATA_FIELDS['anisou'].dtype)))
-                siguij = np.concatenate((siguij,
-                    np.zeros((asize, 6), ATOMIC_DATA_FIELDS['siguij'].dtype)))
                 icodes = np.concatenate((icodes,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
                 serials = np.concatenate((serials,
                     np.zeros(asize, ATOMIC_DATA_FIELDS['serial'].dtype)))
+                if isPDB:
+                    bfactors = np.concatenate((bfactors,
+                        np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
+                    occupancies = np.concatenate((occupancies,
+                        np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
+                    segnames = np.concatenate((segnames,
+                        np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
+                    elements = np.concatenate((elements,
+                        np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
+                    if anisou is not None:
+                        anisou = np.concatenate((anisou, np.zeros((asize, 6), 
+                            ATOMIC_DATA_FIELDS['anisou'].dtype)))
+                    if siguij is not None:
+                        siguij = np.concatenate((siguij, np.zeros((asize, 6), 
+                            ATOMIC_DATA_FIELDS['siguij'].dtype)))
+                else:
+                    charges = np.concatenate((charges,
+                        np.zeros(asize, ATOMIC_DATA_FIELDS['charge'].dtype)))
+                    radii = np.concatenate((radii,
+                        np.zeros(asize, ATOMIC_DATA_FIELDS['radius'].dtype)))
+                    
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
@@ -790,7 +1053,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                 # If there is no atom record between ENDMDL and END skip to next
                 i += 1
                 continue
-            if model is not None:
+            elif model is not None:
                 i += 1
                 break
             elif onlycoords:
@@ -802,39 +1065,48 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
                     atomgroup.addCoordset(coordinates)
                 nmodel += 1
                 acount = 0
-                coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                coordinates = np.zeros((n_atoms, 3), dtype=float)
             else:
+                if acount != n_atoms > 0:
+                    raise ValueError('PDB file and AtomGroup ag must have '
+                                    'same number of atoms')
                 atomgroup.addCoordset(coordinates[:acount])
                 atomgroup.setAtomNames(atomnames[:acount])
                 atomgroup.setResidueNames(resnames[:acount])
                 atomgroup.setResidueNumbers(resnums[:acount])
                 atomgroup.setChainIdentifiers(chainids[:acount])
-                atomgroup.setTempFactors(bfactors[:acount])
-                atomgroup.setOccupancies(occupancies[:acount])
                 atomgroup.setHeteroFlags(hetero[:acount])
                 atomgroup.setAltLocIndicators(altlocs[:acount])
-                atomgroup.setSegmentNames(segnames[:acount])
-                atomgroup.setElementSymbols(elements[:acount])
                 atomgroup.setInsertionCodes(icodes[:acount])
                 atomgroup.setSerialNumbers(serials[:acount])
-                if is_scndry:
-                    atomgroup.setSecondaryStrs(secondary[:acount])
-                if is_anisou:
-                    atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
-                if is_siguij:
-                    atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+                if isPDB:
+                    atomgroup.setTempFactors(bfactors[:acount])
+                    atomgroup.setOccupancies(occupancies[:acount])
+                    atomgroup.setSegmentNames(segnames[:acount])
+                    atomgroup.setElementSymbols(elements[:acount])
+                    if anisou is not None:
+                        atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
+                    if siguij is not None:
+                        atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+                else:
+                    atomgroup.setCharges(charges[:acount])
+                    atomgroup.setRadii(radii[:acount])
+                    
                 
                 onlycoords = True
                 nmodel += 1
                 n_atoms = acount 
                 acount = 0
-                coordinates = np.zeros((n_atoms, 3), dtype=np.float64)
+                coordinates = np.zeros((n_atoms, 3), dtype=float)
                 if altloc and altloc_torf:
                     _evalAltlocs(atomgroup, altloc, chainids, resnums, 
                                  resnames, atomnames)
                     altloc = defaultdict(list)
-        elif startswith == 'ANISOU':
-            is_anisou = True
+        elif isPDB and startswith == 'ANISOU':
+            if anisou is None:
+                anisou = True
+                anisou = np.zeros((alength, 6), 
+                    dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
             try:
                 index = acount - 1
                 anisou[index, 0] = float(line[28:35])
@@ -846,8 +1118,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
             except:
                 LOGGER.warning('failed to parse anisotropic temperature '
                     'factors at line {0:d}'.format(i))
-        elif startswith =='SIGUIJ':
-            is_siguij = True
+        elif isPDB and startswith =='SIGUIJ':
+            if siguij is None:
+                siguij = np.zeros((alength, 6), 
+                    dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
+
+
             try:
                 index = acount - 1
                 siguij[index, 0] = float(line[28:35])
@@ -871,26 +1147,29 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset, altloc_torf):
         atomgroup.setResidueNames(resnames[:acount])
         atomgroup.setResidueNumbers(resnums[:acount])
         atomgroup.setChainIdentifiers(chainids[:acount])
-        atomgroup.setTempFactors(bfactors[:acount])
-        atomgroup.setOccupancies(occupancies[:acount])
         atomgroup.setHeteroFlags(hetero[:acount])
         atomgroup.setAltLocIndicators(altlocs[:acount])
-        atomgroup.setSegmentNames(segnames[:acount])
-        atomgroup.setElementSymbols(elements[:acount])
         atomgroup.setInsertionCodes(icodes[:acount])
         atomgroup.setSerialNumbers(serials[:acount])
-        if is_scndry:
-            atomgroup.setSecondaryStrs(secondary[:acount])
-        if is_anisou:
-            atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
-        if is_siguij:
-            atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+        if isPDB:
+            if anisou is not None:
+                atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
+            if siguij is not None:
+                atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+            atomgroup.setSegmentNames(segnames[:acount])
+            atomgroup.setElementSymbols(elements[:acount])
+            atomgroup.setTempFactors(bfactors[:acount])
+            atomgroup.setOccupancies(occupancies[:acount])
+        else:
+            atomgroup.setCharges(charges[:acount])
+            atomgroup.setRadii(radii[:acount])
+            
 
     if altloc and altloc_torf:
         _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
                 
     return atomgroup
-    
+
 def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     altloc_keys = altloc.keys()
     altloc_keys.sort()
@@ -900,8 +1179,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         success = 0
         lines = altloc[key]
         for line, i in lines:
-            #-->
-            #try:
             aan = line[12:16].strip()
             arn = line[17:21].strip()
             ach = line[21]
@@ -944,10 +1221,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                                .format(key, i+1))
                 continue
             success += 1
-            #except Exception as exception:
-            #    print i, line
-            #    print exception
-            #-->
         LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were '
                     'parsed successfully.'.format(success, len(lines), key))
         if success > 0:
@@ -955,164 +1228,715 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                         'set to the atom group.'
                         .format(key, atomgroup.getName()))
             atomgroup.addCoordset(xyz)
+
+class Chemical(object):
     
-def _getHeaderDict(lines):
-    """Return header data in a dictionary."""
-    header = {}
+    """A data structure for storing information on chemical components (or 
+    heterogens) in PDB structures.
+    
+    .. versionadded:: 0.8.4
+    
+    A :class:`Chemical` instance has the following attributes:
+        
+    =========== ===== =========================================================
+    Attribute   Type  Description (RECORD TYPE)
+    =========== ===== =========================================================
+    identifier  str   chemical component identifier (or residue name) (HET)
+    name        str   chemical name (HETNAM)
+    chain       str   chain identifier (HET)
+    number      int   residue (or sequence) number (HET)
+    icode       str   insertion code (HET)
+    n_atoms     int   number of atoms present in the structure (HET)
+    description str   description of the chemical component (HET)
+    synonyms    list  synonyms (HETSYN)
+    formula     str   chemical formula (FORMUL)
+    pdbentry    str   PDB entry that chemical data is extracted from
+    =========== ===== =========================================================
+    
+    Chemical class instances can be obtained as follows:
+        
+    >>> chemical = parsePDBHeader('1zz2', 'chemicals')[0]
+    >>> chemical
+    <Chemical: B11 (1ZZ2_A_362)>
+    >>> print(chemical.name)
+    N-[3-(4-FLUOROPHENOXY)PHENYL]-4-[(2-HYDROXYBENZYL) AMINO]PIPERIDINE-1-SULFONAMIDE
+    >>> chemical.n_atoms
+    33
+    >>> len(chemical)
+    33
+    
+    """
+    
+    __slots__ = ['identifier', 'name', 'chain', 'resnum', 'icode', 
+                 'n_atoms', 'description', 'synonyms', 'formula', 'pdbentry']
+    
+    def __init__(self, identifier):
+        
+        #: residue name (or chemical component identifier)
+        self.identifier = identifier
+        #: chemical name
+        self.name = None
+        #: chain identifier
+        self.chain = None
+        #: residue (or sequence) number
+        self.resnum = None
+        #: insertion code
+        self.icode = None
+        #: number of atoms present in the structure
+        self.n_atoms = None
+        #: description of the chemical component
+        self.description = None
+        #: list of synonyms
+        self.synonyms = None
+        #: chemical formula
+        self.formula = None
+        #: PDB entry that chemical data is extracted from
+        self.pdbentry = None
+        
+    def __str__(self):
+        return self.identifier
+    
+    def __repr__(self):
+        return '<Chemical: {0:s} ({1:s}_{2:s}_{3:d})>'.format(
+                    self.identifier, self.pdbentry, self.chain, self.resnum)
+
+    def __len__(self):
+        return self.n_atoms
+
+_PDB_DBREF = { 
+    'GB': 'GenBank',
+    'PDB': 'ProteinDataBank',
+    'UNP': 'UniProt',
+    'NORINE': 'Norine',
+    'UNIMES': 'UNIMES'
+}
+
+class Polymer(object):
+    
+    """A data structure for storing information on polymer components (protein
+    or nucleic) of PDB structures.
+    
+    .. versionadded:: 0.8.4
+    
+    A :class:`Polymer` instance has the following attributes:
+        
+    ============= ====== ======================================================
+    Attribute     Type   Description (RECORD TYPE)
+    ============= ====== ======================================================
+    identifier    str    chain identifier
+    name          str    name of the polymer (macromolecule) (COMPND)
+    fragment      str    specifies a domain or region of the molecule (COMPND)
+    synonyms      list   list of synonyms for the polymer (COMPND)
+    ec            list   list of associated Enzyme Commission numbers (COMPND)
+    engineered    bool   indicates that the polymer was produced using 
+                         recombinant technology or by purely chemical synthesis
+                         (COMPND)
+    mutation      bool   indicates presence of a mutation (COMPND)
+    comments      str    additional comments
+    sequence      str    polymer chain sequence (SEQRES)
+    sqfirst       tuple  (resnum, icode) of the *first* residue in structure
+    sqlast        tuple  (resnum, icode) of the *last* residue in structure
+    dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
+    dbname        str    reference sequence database name (DBREF[1|2])
+    dbidentifier  str    sequence database identification code (DBREF[1|2])
+    dbaccession   str    sequence database accession code (DBREF[1|2])
+    dbfirst       tuple  (resnum, icode) of the *first* residue in database
+    dblast        tuple  (resnum, icode) of the *last* residue in database
+    different     list   | differences from database sequence (SEQADV)
+                         | when different residues are present, they will be 
+                           each will be represented as: ``(residueName, 
+                           residueNumberInsertionCode, dbResidueNumber, 
+                           dbResidueName, comment)``
+    modified      list   | modified residues (SEQMOD)
+                         | when modified residues are present, each will be 
+                           represented as: ``(residueName, 
+                           residueNumberInsertionCode, standardName, comment)``
+    pdbentry      str    PDB entry that polymer data is extracted from
+    ============= ====== ======================================================
+    
+    Polymer class instances can be obtained as follows:
+    
+    >>> polymer = parsePDBHeader('2k39', 'polymers')[0]
+    >>> polymer
+    <Polymer: UBIQUITIN (2K39_A)>
+    >>> print(polymer.pdbentry)
+    2K39
+    >>> print(polymer.identifier)
+    A
+    >>> print(polymer.name)
+    UBIQUITIN
+    >>> print(polymer.sequence)
+    MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
+    >>> len(polymer.sequence)
+    76
+    >>> len(polymer)
+    76
+    >>> print(polymer.dbname)
+    UniProt
+    >>> print(polymer.dbaccession)
+    P62972
+    >>> print(polymer.dbidentifier)
+    UBIQ_XENLA
+    
+    """
+    
+    __slots__ = ['identifier', 'name', 'fragment', 'synonyms', 'ec', 
+                 'engineered', 'mutation', 'comments', 'sequence', 'pdbentry', 
+                 'dbabbr', 'dbname', 'dbidentifier', 'dbaccession', 
+                 'modified', 'different',
+                 'sqfirst', 'sqlast', 'dbfirst', 'dblast']
+    
+    def __init__(self, identifier):
+        
+        #: chain identifier
+        self.identifier = identifier
+        #: name of the polymer (macromolecule)
+        self.name = ''
+        #: specifies a domain or region of the molecule
+        self.fragment = None
+        #: list of synonyms for the molecule
+        self.synonyms = None
+        #: list of associated Enzyme Commission numbers
+        self.ec = None
+        self.engineered = None
+        """indicates that the molecule was produced using recombinant 
+        technology or by purely chemical synthesis"""
+        #: indicates presence of a mutation
+        self.mutation = None
+        #: additional comments
+        self.comments = None
+        #: polymer chain sequence
+        self.sequence = ''
+        #: reference sequence database abbreviation 
+        self.dbabbr = None
+        #: reference sequence database name 
+        self.dbname = None
+        #: sequence database identification code
+        self.dbidentifier = None
+        #: sequence database accession code 
+        self.dbaccession = None
+        #: ``(resnum, icode)`` of the *first* residue in structure
+        self.sqfirst = None
+        #: ``(resnum, icode)`` of the *last* residue in structure
+        self.sqlast = None
+        #: ``(resnum, icode)`` of the *first* residue in database
+        self.dbfirst = None
+        #: ``(resnum, icode)`` of the *last* residue in database
+        self.dblast = None
+        #: modified residues
+        self.modified = None
+        #: differences from database reference sequence
+        self.different = None
+        #: PDB entry that polymer data is extracted from        
+        self.pdbentry = None
+        
+    def __str__(self):
+        return self.name
+    
+    def __repr__(self):
+        return '<Polymer: {0:s} ({1:s}_{2:s})>'.format(self.name, 
+                                                self.pdbentry, self.identifier)
+
+    def __len__(self): 
+        return len(self.sequence)
+    
+_START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
+
+def cleanString(string, nows=False):
+    """*nows* is no white space."""
+    
+    if nows:
+        return ''.join(string.strip().split())
+    else:
+        return ' '.join(string.strip().split())
+
+def parsePDBHeader(pdb, *keys):
+    """Return header data dictionary for *pdb*.  This function is equivalent to 
+    ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be 
+    an identifier or a filename.
+    
+    .. versionadded:: 0.8.4
+    
+    List of header records that are parsed. 
+    
+    ============ ================= ============================================
+    Record type  Dictionary key(s)  Description 
+    ============ ================= ============================================
+    HEADER       | classification  | molecule classification 
+                 | deposition_date | deposition date
+                 | identifier      | PDB identifier
+    TITLE        title             title for the experiment or analysis
+    SPLIT        split             list of PDB entries that make up the whole
+                                   structure when combined with this one
+    COMPND       polymers          see :class:`Polymer`
+    EXPDTA       experiment        information about the experiment
+    NUMMDL       n_models          number of models
+    MDLTYP       model_type        additional structural annotation
+    AUTHOR       authors           list of contributors
+    JRNL         reference         reference information dictionary:
+                                     * *authors*: list of authors
+                                     * *title*: title of the article
+                                     * *editors*: list of editors
+                                     * *issn*:
+                                     * *reference*: journal, vol, issue, etc.
+                                     * *publisher*: publisher information
+                                     * *pmid*: pubmed identifier
+                                     * *doi*: digital object identifier 
+    DBREF[1|2]   polymers          see :class:`Polymer`
+    SEQADV       polymers          see :class:`Polymer`
+    SEQRES       polymers          see :class:`Polymer`
+    MODRES       polymers          see :class:`Polymer`
+    HELIX        polymers          see :class:`Polymer`
+    SHEET        polymers          see :class:`Polymer`
+    HET          chemicals         see :class:`Chemical`
+    HETNAM       chemicals         see :class:`Chemical`
+    HETSYN       chemicals         see :class:`Chemical`
+    FORMUL       chemicals         see :class:`Chemical`
+    REMARK 2     resolution        resolution of structures, when applicable
+    REMARK 4     version           PDB file version
+    REMARK 350   biomoltrans       biomolecular transformation lines 
+                                   (unprocessed)
+    ============ ================= ============================================
+    
+    Header records that are not parsed are: OBSLTE, CAVEAT, SOURCE, KEYWDS, 
+    REVDAT, SPRSDE, SSBOND, LINK, CISPEP, CRYST1, ORIGX1, ORIGX2, ORIGX3, 
+    MTRIX1, MTRIX2, MTRIX3, and REMARK X not mentioned above.
+    
+    
+    Usage examples:
+        
+    >>> 
+    
+    """
+    
+    if not os.path.isfile(pdb):
+        if len(pdb) == 4 and pdb.isalnum():
+            filename = fetchPDB(pdb)
+            if filename is None:
+                raise IOError('PDB file for {0:s} could not be downloaded.'
+                              .format(pdb))
+            pdb = filename
+        else:
+            raise IOError('{0:s} is not a valid filename or a valid PDB '
+                          'identifier.'.format(pdb))
+    if pdb.endswith('.gz'):
+        pdb = gzip.open(pdb)
+    else:
+        pdb = open(pdb)
+    header, _ = _getHeaderDict(pdb, *keys)
+    pdb.close()
+    return header
+
+def _getHeaderDict(stream, *keys):
+    """Return header data in a dictionary.  *stream* may be a list of PDB lines
+    or a stream."""
+    
+    lines = defaultdict(list)
+    for loc, line in enumerate(stream):
+        startswith = line[0:6]
+        if startswith in _START_COORDINATE_SECTION:
+            break
+        lines[startswith].append((loc, line))
+    for i, line in lines['REMARK']:
+        lines[line[:10]].append((i, line))
+    
+    if keys:
+        keys = list(keys)
+        for k, key in enumerate(keys):
+            if key in _PDB_HEADER_MAP:
+                value = _PDB_HEADER_MAP[key](lines)
+                keys[k] = value
+            else:
+                raise KeyError('"{0:s}" is not a valid header data identifier'
+                               .format(key))
+            if key == 'chemicals':
+                pdbentry = _PDB_HEADER_MAP['identifier'](lines)
+                for chem in value:
+                    chem.pdbentry = pdbentry
+        if len(keys) == 1:
+            return keys[0], loc
+        else:
+            return tuple(keys), loc
+    else:
+        header = {}
+        keys = _PDB_HEADER_MAP.iterkeys()
+        for key, func in _PDB_HEADER_MAP.iteritems():
+            value = func(lines)
+            if value is not None:
+                header[key] = value        
+        pdbentry = header.get('identifier', '')
+        for chem in header.get('chemicals', []):
+            chem.pdbentry = pdbentry
+        return header, loc
+
+
+def _getBiomoltrans(lines): 
+
+    applyToChains = (' ')
+    biomolecule = defaultdict(list)
+    for i, line in lines['REMARK 350']:
+        
+        if line[13:18] == 'BIOMT':
+            biomt = biomolecule[currentBiomolecule]
+            if len(biomt) == 0:
+                biomt.append(applyToChains)
+            biomt.append(line[23:])
+        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
+            applyToChains = line[41:].replace(' ', 
+                                              '').strip().split(',')
+        elif line[11:23] == 'BIOMOLECULE:': 
+            currentBiomolecule = line.split()[-1]
+    return dict(biomolecule)
+        
+        
+def _getResolution(lines): 
+
+    for i, line in lines['REMARK   2']:
+        if 'RESOLUTION' in line:
+            try:
+                return float(line[23:30])
+            except:
+                return None
+
+def _getHelix(lines):
+    
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     helix = {}
-    sheet = {}
-    biomolecule = defaultdict(list)
-    sequences = defaultdict(str)
-    applyToChains = (' ')
-    i = 0
-    for i, line in enumerate(lines):        
-        line = lines[i]
-        startswith = line[0:6]
-        if startswith == 'ATOM  ' or startswith == 'HETATM' or \
-           startswith == 'MODEL ':
-            if biomolecule:
-                header['biomolecular_transformations'] = biomolecule
-            if sequences:
-                header['sequences'] = dict(sequences)
-            if helix:
-                header['helix'] = helix
-            if sheet:
-                header['sheet'] = sheet
-            return header, i
+    for i, line in lines['HELIX ']:
+        try:
+            chid = line[19]
+            #        helix class,      serial number,   identifier
+            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
+        except:
+            continue
         
-        if startswith == 'HELIX ':
-            try:
-                chid = line[19]
-                # helix class, serial number, identifier
-                value = (int(line[38:40]), int(line[7:10]), 
-                         line[11:14].strip())
-            except:
-                continue
-            
-            initICode = line[25]
-            initResnum = int(line[21:25])
-            if initICode != ' ':
-                for icode in alphas[alphas.index(initICode):]:
-                    helix[(chid, initResnum, icode)] = value
-                initResnum += 1    
-            endICode = line[37]
-            endResnum = int(line[33:37])
-            if endICode != ' ':
-                for icode in alphas[:alphas.index(endICode)+1]:
-                    helix[(chid, endResnum, icode)] = value
-                endResnum -= 1    
-            for resnum in range(initResnum, endResnum+1):
-                helix[(chid, resnum, '')] = value
-        elif startswith == 'SHEET ':
-            try:
-                chid = line[21]
-                value = (int(line[38:40]), int(line[7:10]), 
-                         line[11:14].strip())
-            except:
-                continue
+        initICode = line[25]
+        initResnum = int(line[21:25])
+        if initICode != ' ':
+            for icode in alphas[alphas.index(initICode):]:
+                helix[(chid, initResnum, icode)] = value
+            initResnum += 1    
+        endICode = line[37]
+        endResnum = int(line[33:37])
+        if endICode != ' ':
+            for icode in alphas[:alphas.index(endICode)+1]:
+                helix[(chid, endResnum, icode)] = value
+            endResnum -= 1    
+        for resnum in range(initResnum, endResnum+1):
+            helix[(chid, resnum, '')] = value
+    return helix
+
+def _getSheet(lines):
     
-            initICode = line[26]
-            initResnum = int(line[22:26])
-            if initICode != ' ':
-                for icode in alphas[alphas.index(initICode):]:
-                    sheet[(chid, initResnum, icode)] = value
-                initResnum += 1    
-            endICode = line[37]
-            endResnum = int(line[33:37])
-            if endICode != ' ':
-                for icode in alphas[:alphas.index(endICode)+1]:
-                    sheet[(chid, endResnum, icode)] = value
-                endResnum -= 1    
-            for resnum in range(initResnum, endResnum+1):
-                sheet[(chid, resnum, '')] = value
-            
-        elif startswith == 'HEADER':
-            header['deposition_date'] = line[50:59].strip()
-            header['classification'] = line[10:50].strip()
-            header['identifier'] = line[62:66]
-        elif startswith == 'TITLE ':
-            temp = header.get('title', '')
-            temp += ' ' + line[10:]
-            header['title'] = temp.strip()
-        elif startswith == 'EXPDTA':
-            temp = header.get('experiment', '')
-            temp += ' ' + line[10:]
-            header['experiment'] = temp.strip()
-        elif startswith == 'AUTHOR':
-            temp = header.get('authors', [])
-            temp += line[10:].strip().split(',')
-            while '' in temp:
-                temp.pop(temp.index(''))
-            header['authors'] = temp
-        elif startswith == 'SOURCE':
-            temp = header.get('source', '')
-            temp += ' ' + line[10:]
-            header['source'] = temp.strip()
-        elif startswith == 'SEQRES':
-            sequences[line[11]] += ''.join(
-                                prody.compare.getSequence(line[19:].split()))
-        elif startswith == 'REMARK':
-            nmbr = line[7:10]
-            if nmbr == '  2':
-                if 'RESOLUTION' in line:
-                    header['resolution'] = line[23:].strip()[:-1]    
-            elif nmbr == '350':
-                if line[13:18] == 'BIOMT':
-                    biomt = biomolecule[currentBiomolecule]
-                    if len(biomt) == 0:
-                        biomt.append(applyToChains)
-                    biomt.append(line[23:])
-                elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
-                    applyToChains = line[41:].replace(' ', '').strip().split(',')
-                elif line[11:23] == 'BIOMOLECULE:': 
-                    currentBiomolecule = line.split()[-1]
-        elif startswith == 'COMPND':
-            temp = header.get('compounds', '')
-            temp += ' ' + line[10:]
-            header['compounds'] = temp.strip()
-        elif startswith == 'JRNL  ':
-            temp =  header.get('reference', {})
-            items = line.split()
-            if items[1] == 'AUTH':
-                tmp = temp.get('authors', [])
-                tmp += line[19:].strip().split(',')
-                while '' in tmp:
-                    tmp.pop(tmp.index(''))
-                temp['authors'] = tmp
-            elif items[1] == 'TITL':
-                tmp = temp.get('title', '')
-                tmp += ' ' + line[19:]
-                temp['title'] = tmp.strip()
-            elif items[1] == 'REF':
-                tmp = temp.get('reference', '')
-                tmp += ' ' + line[19:]
-                temp['reference'] = ' '.join(tmp.split())
-            elif items[1] == 'PMID':
-                temp['pubmed'] = line[19:].strip()
-            elif items[1] == 'DOI':
-                temp['doi'] = line[19:].strip()
-            header['reference'] = temp
-    if biomolecule:
-        header['biomolecular_transformations'] = biomolecule
-    if sequences:
-        header['sequences'] = dict(sequences)
-    if helix:
-        header['helix'] = helix
-    if sheet:
-        header['sheet'] = sheet
-    return header, i
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    sheet = {}
+    for i, line in lines['SHEET ']:
+        try:
+            chid = line[21]
+            value = (int(line[38:40]), int(line[7:10]), 
+                     line[11:14].strip())
+        except:
+            continue
+
+        initICode = line[26]
+        initResnum = int(line[22:26])
+        if initICode != ' ':
+            for icode in alphas[alphas.index(initICode):]:
+                sheet[(chid, initResnum, icode)] = value
+            initResnum += 1    
+        endICode = line[37]
+        endResnum = int(line[33:37])
+        if endICode != ' ':
+            for icode in alphas[:alphas.index(endICode)+1]:
+                sheet[(chid, endResnum, icode)] = value
+            endResnum -= 1    
+        for resnum in range(initResnum, endResnum+1):
+            sheet[(chid, resnum, '')] = value
+    return sheet
+
+
+def _getReference(lines):
+    """Return a reference of the PDB entry."""
+
+    ref = {}
+    title = ''
+    authors = []
+    editors = []
+    reference = ''
+    publisher = ''
+    for i, line in lines['JRNL  ']:
+        try:
+            what = line.split(None, 2)[1]
+        except:
+            continue
+        if what == 'AUTH':
+            authors.extend(line[19:].strip().split(','))
+        elif what == 'TITL':
+            title += line[19:]
+        elif what == 'EDIT':
+            editors.extend(line[19:].strip().split(','))
+        elif what == 'REF':
+            reference += line[19:]
+        elif what == 'PUBL':
+            publisher += line[19:]
+        elif what == 'REFN':
+            ref['issn'] = line[19:].strip()
+        elif what == 'PMID':
+            ref['pmid'] = line[19:].strip()
+        elif what == 'DOI':
+            ref['doi'] = line[19:].strip()
+    ref['authors'] = authors
+    ref['title'] = cleanString(title)
+    ref['editors'] = editors
+    ref['reference'] = cleanString(reference)
+    ref['publisher'] = cleanString(publisher)
+
+    return ref
+
+
+def _getPolymers(lines):
+    """Return list of polymers (macromolecules)."""
+    
+    polymers = dict()
+    for i, line in lines['SEQRES']:
+        ch = line[11]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.sequence += ''.join(prody.compare.getSequence(line[19:].split()))
+    for i, line in lines['DBREF ']:
+        ch = line[12]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.pdbentry = line[7:11]
+        poly.dbabbr = line[26:32].strip()
+        poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
+        poly.dbaccession = line[33:41].strip()
+        poly.dbidentifier = line[42:54].strip()
+        try:
+            poly.sqfirst = (int(line[14:18]), line[18])
+        except:
+            LOGGER.warning('failed to parse first residue number for sequence')
+        try:
+            poly.sqlast = (int(line[20:24]), line[24])
+        except:
+            LOGGER.warning('failed to parse last residue number for sequence')
+        try:
+            poly.dbfirst = (int(line[56:60]), line[60])
+        except:
+            LOGGER.warning('failed to parse first residue number for database')
+        try:
+            poly.dblast = (int(line[62:67]), line[67])
+        except:
+            LOGGER.warning('failed to parse last residue number for database')
+    for i, line in lines['DBREF1']:
+        ch = line[12]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.pdbentry = line[7:11]
+        poly.dbabbr = line[26:32].strip()
+        poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
+        poly.dbidentifier = line[47:67].strip()
+        try:
+            poly.sqfirst = (int(line[14:18]), line[18])
+        except:
+            LOGGER.warning('failed to parse first residue number for sequence'
+                           ' at line {0:d}'.format(i))
+        try:
+            poly.sqlast = (int(line[20:24]), line[24])
+        except:
+            LOGGER.warning('failed to parse last residue number for sequence'
+                           ' at line {0:d}'.format(i))
+    for i, line in lines['DBREF2']:
+        ch = line[12]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        poly.dbaccession = line[18:40].strip()
+        try:
+            poly.dbfirst = (int(line[45:55]), '')
+        except:
+            LOGGER.warning('failed to parse first residue number for database'
+                           ' at line {0:d}'.format(i))
+        try:
+            poly.dblast = (int(line[57:67]), '')
+        except:
+            LOGGER.warning('failed to parse last residue number for database'
+                           ' at line {0:d}'.format(i))
+
+    for i, line in lines['MODRES']:
+        ch = line[16]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        if poly.modified is None:
+            poly.modified = []
+        poly.modified.append((line[12:15].strip(), line[18:22].strip() + 
+                   line[22].strip(), line[24:27].strip(), line[29:70].strip()))
+    for i, line in lines['SEQADV']:
+        ch = line[16]
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        if poly.different is None:
+            poly.different = []
+        dbabbr = line[24:28].strip()
+        if poly.dbabbr != dbabbr:
+            LOGGER.warning('sequence database do not match in SEQADV record '
+                           'at line {0:d}'.format(i))
+            continue
+        dbaccession = line[29:38].strip() 
+        if poly.dbaccession != dbaccession:
+            LOGGER.warning('database identifier code do not match in SEQADV '
+                           'record at line {0:d}'.format(i))
+            continue
+        poly.different.append((line[12:15].strip(), line[18:22].strip() + 
+            line[22].strip(), line[39:42].strip(), line[43:48].strip(), 
+            line[49:70].strip()))
+    
+    string = ''
+    for i, line in lines['COMPND']:
+        string += line[10:]
+    string = cleanString(string)
+    dict_ = {}
+    for molecule in string.split('MOL_ID'):
+        dict_.clear()
+        for token in molecule.strip().split(';'):
+            if not token:
+                continue
+            key, value = token.split(':', 1)
+            dict_[key.strip()] = value.strip()
+        chains = dict_.pop('CHAIN', '').strip()
+        if not chains:
+            continue
+        for ch in chains.split(','):
+            ch = ch.strip()
+            poly = polymers.get(ch, Polymer(ch))
+            polymers[ch] = poly
+            poly.name = dict_.get('MOLECULE', '').strip()
+            poly.fragment = dict_.get('FRAGMENT', '').strip()
+            poly.comments = dict_.get('OTHER_DETAILS', '').strip()
+            poly.synonyms = [s.strip() 
+                             for s in dict_.get('SYNONYMS', '').split(',')]
+            poly.ec = [s.strip() 
+                       for s in dict_.get('EC', '').split(',')]
+            poly.engineered = dict_.get('ENGINEERED', '').strip() == 'YES'
+            poly.mutation = dict_.get('MUTATION', '').strip() == 'YES'
+        
+    return polymers.values()    
+
+def _getChemicals(lines):
+    """Return list of chemical components (heterogens)."""
+    
+    chemicals = defaultdict(list)
+    chem_names = defaultdict(str)
+    chem_synonyms = defaultdict(str)
+    chem_formulas = defaultdict(str)
+    for i, line in lines['HET   ']:
+        chem = Chemical(line[7:10].strip())
+        chem.chain = line[12].strip()
+        chem.resnum = int(line[13:17])
+        chem.icode = line[17].strip()
+        chem.n_atoms = int(line[20:25])
+        chem.description = line[30:70].strip()
+        chemicals[chem.identifier].append(chem)
+    for i, line in lines['HETNAM']:
+        chem = line[11:14].strip()
+        chem_names[chem] += line[15:70].rstrip()
+    for i, line in lines['HETSYN']:
+        chem = line[11:14].strip()
+        chem_synonyms[chem] += line[15:70].rstrip()
+    for i, line in lines['FORMUL']:
+        chem = line[12:15].strip()
+        chem_formulas[chem] += line[18:70].rstrip()
+
+    for chem, name in chem_names.iteritems():
+        name = cleanString(name)
+        for chem in chemicals[chem]:
+            chem.name = name
+    for chem, formula in chem_formulas.iteritems():
+        formula = cleanString(formula)
+        for chem in chemicals[chem]:
+            chem.formula = formula
+    for chem, synonyms in chem_synonyms.iteritems():
+        synonyms = cleanString(synonyms)
+        synonyms = synonyms.split(';')
+        for chem in chemicals[chem]:
+            chem.synonyms = synonyms
+    
+    alist = []
+    for chem in chemicals.itervalues():
+        for chem in chem:
+            alist.append(chem)
+    return alist 
+
+
+def _getVersion(lines):
+    
+    for i, line in lines['REMARK   4']:
+        if 'COMPLIES' in line:
+            try:
+                # Return a string, because floating makes 3.20, 3.2 or
+                # may arise problems if WWPDB uses a version number like 3.30.1
+                return line.split('V.')[1].split(',')[0].strip()
+            except:
+                return None
+
+def _getNumOfModels(lines):
+
+    # "NUMMDL", Integer, 11 - 14: Number of models.
+    line = lines['NUMMDL']
+    if line:
+        i, line = line[0]
+        try:
+            header['n_models'] = int(line[10:14])
+        except:
+            return None
+
+# Make sure that lambda functions defined below won't raise exceptions
+_PDB_HEADER_MAP = {
+    'helix': _getHelix,
+    'sheet': _getSheet,
+    'chemicals': _getChemicals,
+    'polymers': _getPolymers,
+    'reference': _getReference,
+    'resolution': _getResolution,
+    'biomoltrans': _getBiomoltrans,
+    'version': _getVersion,
+    'deposition_date': lambda lines: lines['HEADER'][0][1][50:59].strip() 
+                                    if lines['HEADER'] else None,
+    'classification': lambda lines: lines['HEADER'][0][1][10:50].strip() 
+                                        if lines['HEADER'] else None,
+    'identifier': lambda lines: lines['HEADER'][0][1][62:66].strip() 
+                                    if lines['HEADER'] else None,
+    'title': lambda lines: cleanString(
+                ''.join([line[1][10:].rstrip() for line in lines['TITLE ']])
+                ) if lines['TITLE '] else None,
+    'experiment': lambda lines: cleanString(
+                ''.join([line[1][10:].rstrip() for line in lines['EXPDTA']])
+                ) if lines['EXPDTA'] else None,
+    'authors': lambda lines: cleanString(
+                ''.join([line[1][10:].rstrip() for line in lines['AUTHOR']]),
+                True).split(',') if lines['AUTHOR'] else None,
+    'split': lambda lines: (' '.join([line[1][11:].rstrip() 
+                                      for line in lines['SPLIT ']])).split()
+                             if lines['SPLIT '] else None,
+    'model_type': lambda lines: cleanString(
+                   ''.join([line[1][10:].rstrip() for line in lines['MDLTYP']])
+                   ) if lines['MDLTYP'] else None,
+    'n_models': _getNumOfModels,
+}
+
 
 def parsePSF(filename, name=None, ag=None):
-    """|new| Return an :class:`~prody.atomic.AtomGroup` instance storing data 
-    parsed from X-PLOR format PSF file *filename*. If *name* is not given, 
-    *filename* will be set as the name of the :class:`AtomGroup` instance. 
-    An :class:`AtomGroup` instance may be provided as *ag* argument. When 
+    """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
+    parsed from X-PLOR format PSF file *filename*.  If *name* is not given, 
+    *filename* will be set as the name of the :class:`AtomGroup` instance.  
+    An :class:`AtomGroup` instance may be provided as *ag* argument.  When 
     provided, *ag* must have the same number of atoms in the same order as 
-    the file. Data from PSF file will be added to *ag*. This may overwrite 
+    the file.  Data from PSF file will be added to *ag*.  This may overwrite 
     present data if it overlaps with PSF file content.
     
     .. versionadded:: 0.8.1
+    
+    Note that this function does not evaluate bonds, angles, dihedrals, and
+    impropers sections.
     
     """
     
@@ -1201,203 +2025,286 @@ def parsePSF(filename, name=None, ag=None):
     ag.setMasses(masses)
     return ag
 
+def children2dict(element, prefix=None):
+    dict_ = {}
+    length = False
+    if isinstance(prefix, str):
+        length = len(prefix)
+    for child in element:
+        tag = child.tag
+        if length and tag.startswith(prefix):
+            tag = tag[length:]
+        if len(child) == 0:
+            dict_[tag] = child.text
+        else:
+            dict_[tag] = child
+    return dict_
+    
+
 class PDBBlastRecord(object):
 
     """A class to store results from ProteinDataBank blast search."""
     
-    __slots__ = ['_record', '_sequence']
+    __slots__ = ['_param', '_sequence', '_hits']
 
-    def __init__(self, sequence, blast_record):
+    def __init__(self, sequence, xml):
         """Instantiate a PDBlast object instance.
         
-        :arg sequence: string of one-letter amino acid code
-        :arg blast_record: record from parsing results using NCBIXML.parse
+        :arg sequence: query sequence
+        :type xml: str
+        :arg xml: blast search results in XML format or an XML file that 
+            contains the results
+        :type xml: str
         
         """
+        
+        sequence = checkSequence(sequence)
+        if not sequence:
+            raise ValueError('not a valid protein sequence')
         self._sequence = sequence
-        self._record = blast_record
+        
+        import xml.etree.cElementTree as ET
+        assert isinstance(xml, str), 'xml must be a string'
+        if len(xml) < 100:
+            if os.path.isfile(xml):
+                xml = ET.parse(xml)
+                xml.getroot()
+            else:
+                raise ValueError('xml is not a filename and does not look like'
+                                 ' a valid XML string')
+        else:
+            root = ET.XML(xml)
+        
+        root = children2dict(root, 'BlastOutput_')
+        if root['db'] != 'pdb':
+            raise ValueError('blast search database in xml must be "pdb"')
+        if root['program'] != 'blastp':
+            raise ValueError('blast search program in xml must be "blastp"')
+        self._param = children2dict(root['param'][0], 'Parameters_')
+        query_length = int(root['query-len'])
+        if len(sequence) != query_length:
+            raise ValueError('query-len and the length of the sequence do not '
+                             'match, xml data may not be for the given' 
+                             'sequence')
+        hits = [] 
+        for iteration in root['iterations']:
+            for hit in children2dict(iteration, 'Iteration_')['hits']:
+                hit = children2dict(hit, 'Hit_')
+                data = children2dict(hit['hsps'][0], 'Hsp_')
+                for key in ['align-len', 'gaps', 'hit-frame', 'hit-from',
+                            'hit-to', 'identity', 'positive', 'query-frame',
+                            'query-from', 'query-to']:
+                    data[key] = int(data[key])
+                for key in ['evalue', 'bit-score', 'score']:
+                    data[key] = float(data[key])
+                p_identity = 100.0 * data['identity'] / data['align-len']
+                data['percent_identity'] = p_identity
+                p_coverage = 100.0 * (data['align-len'] - data['gaps']) / \
+                    query_length
+                data['percent_coverage'] = p_coverage  
+                for item in (hit['id'] + hit['def']).split('>gi'):
+                    #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
+                    #                        __________TITLE__________
+                    head, title = item.split(None, 1)
+                    head = head.split('|')
+                    pdb_id = head[-2].lower() 
+                    chain_id = head[-1][0]
+                    pdbch = dict(data)
+                    pdbch['pdb_id'] = pdb_id
+                    pdbch['chain_id'] = chain_id
+                    pdbch['title'] = (head[-1][1:] + title).strip()
+                    hits.append((p_identity, p_coverage, pdbch))
+        hits.sort(reverse=True)
+        self._hits = hits
+        
         
     def getSequence(self):    
         """Return the query sequence that was used in the search."""
+        
         return self._sequence
         
-    def printSummary(self):
-        """Prints a summary of the results to the screen."""
-        record = self._record
-        LOGGER.info('Blast results summary:')
-        LOGGER.info('  {0:s}: {1}'.format('database', record.database))
-        LOGGER.info('  {0:s}: {1}'.format('expect', record.expect))
-        LOGGER.info('  {0:s}: {1}'.format('matrix', record.matrix))
-        LOGGER.info('  {0:s}: {1}'.format('query', record.query))
-        LOGGER.info('  {0:s}: {1}'.format('query length', record.query_length))
-        LOGGER.info('  {0:s}: {1}'.format('blast version', record.version))
-
-    def getHits(self, percent_identity=90., percent_coverage=70.):
+    def getParameters(self):
+        """Return parameters used in blast search.
+        
+        .. versionadded: 0.8.3"""
+        
+        return self._param
+        
+    def getHits(self, percent_identity=90., percent_coverage=70., chain=False):
         """Return a dictionary that contains hits.
         
-        Returns a dictionary whose keys are PDB identifiers. Each dictionary
+        Returns a dictionary whose keys are PDB identifiers.  Each dictionary
         entry is also a dictionary that contains information on the blast hit
         and alignment. 
+        
+        .. versionadded:: 0.8.2
+           *chain* argument is added to allow user retrieve individual
+           chains as hits.
 
         :arg percent_identity: PDB hits with percent sequence identity equal 
-            to or higher than this value will be returned.
-        :type percent_identity: float, default is 90.0
+            to or higher than this value will be returned, default is ``90.0``.
+        :type percent_identity: float
         :arg percent_coverage: PDB hits with percent coverage of the query 
-          sequence equivalent or better will be returned.
-        :type percent_coverage: float, default is 70.0
+          sequence equivalent or better will be returned, default is ``70.0``.
+        :type percent_coverage: float
+        :arg chain: if chain is set ``True``, individual chains in a PDB file
+          will be considered as separate hits when they match the query
+          sequence, default is ``False``.
+        :type chain: bool
         
         """
         
-        query_length = self._record.query_length
+        assert isinstance(percent_identity, (float, int)), \
+            'percent_identity must be a float or an integer'
+        assert isinstance(percent_coverage, (float, int)), \
+            'percent_coverage must be a float or an integer'
+        assert isinstance(chain, bool), 'chain must be a boolean'
         
-        pdb_hits = {}
-        for alignment in self._record.alignments:
-            #Stores information about one hit in the alignments section.
-            #######self.sqid = [ 0.0 ]
-            #A list because getPercentSequenceIdentity returns a list
-            hsp = alignment.hsps[0]
-            p_identity = (100.0 * hsp.identities / query_length)
-            p_coverage = (100.0 * hsp.align_length / query_length)
-            if p_identity > percent_identity and p_coverage > percent_coverage:
-                items = alignment.title.split('>gi')
-                for item in items:
-                    #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
-                    #                        __________TITLE__________
-                    title = item[item.find(' ')+1:].encode('utf-8').strip()
-                    pdb_id = item.split()[0].split('|')[3].encode('utf-8')
-                    pdb_id = pdb_id.lower()
-                    # if pdb_id is extracted, but a better alignment exists
-                    if (pdb_id not in pdb_hits or 
-                        p_identity > pdb_hits[pdb_id]['percent_identity']):
-                        hit = {}
-                        hit['pdb_id'] = pdb_id
-                        hit['chain_id'] = title[6]
-                        hit['percent_identity'] = p_identity
-                        hit['percent_coverage'] = p_coverage
-                        hit['bits'] = hsp.bits
-                        hit['score'] = hsp.score
-                        hit['expect'] = hsp.expect
-                        hit['align_length'] = hsp.align_length
-                        hit['identities'] = hsp.identities
-                        hit['positives'] = hsp.positives
-                        hit['gaps'] = hsp.gaps
-                        hit['pdb_title'] = title
-                        hit['query'] = hsp.query
-                        hit['query_start'] = hsp.query_start
-                        hit['query_end'] = hsp.query_end
-                        hit['sbjct'] = hsp.sbjct
-                        hit['sbjct_start'] = hsp.sbjct_start
-                        hit['sbjct_end'] = hsp.sbjct_end
-                        hit['match'] = hsp.match
-                        pdb_hits[pdb_id] = hit
-        LOGGER.info('{0:d} hits were identified.'
-                         .format(len(pdb_hits)))
-        return pdb_hits
+        hits = {}
+        for p_identity, p_coverage, hit in self._hits:
+            if p_identity < percent_identity:
+                break
+            if p_coverage < percent_coverage:
+                continue
+            if chain:
+                key = (hit['pdb_id'], hit['chain_id'])
+            else:
+                key = hit['pdb_id']
+            if not key in hits: 
+                hits[key] = hit
+        return hits
     
     def getBest(self):
         """Returns a dictionary for the hit with highest sequence identity."""
         
-        from heapq import heappop, heappush
-        
-        query_length = self._record.query_length
-        
-        pdb_hits = {}
-        hit_list = []
-        for alignment in self._record.alignments:
-            hsp = alignment.hsps[0]
-            p_identity = (100.0 * hsp.identities / query_length)
-            p_coverage = (100.0 * hsp.align_length / query_length)
-            items = alignment.title.split('>gi')
-            for item in items:
-                title = item[item.find(' ')+1:].encode('utf-8').strip()
-                pdb_id = item.split()[0].split('|')[3].encode('utf-8')
-                pdb_id = pdb_id.lower()
-                if (pdb_id not in pdb_hits or 
-                    p_identity > pdb_hits[pdb_id]['percent_identity']):
-                    hit = {}
-                    hit['pdb_id'] = pdb_id
-                    hit['chain_id'] = title[6]
-                    hit['percent_identity'] = p_identity
-                    hit['percent_coverage'] = p_coverage
-                    hit['bits'] = hsp.bits
-                    hit['score'] = hsp.score
-                    hit['expect'] = hsp.expect
-                    hit['align_length'] = hsp.align_length
-                    hit['identities'] = hsp.identities
-                    hit['positives'] = hsp.positives
-                    hit['gaps'] = hsp.gaps
-                    hit['pdb_title'] = title
-                    hit['query'] = hsp.query
-                    hit['query_start'] = hsp.query_start
-                    hit['query_end'] = hsp.query_end
-                    hit['sbjct'] = hsp.sbjct
-                    hit['sbjct_start'] = hsp.sbjct_start
-                    hit['sbjct_end'] = hsp.sbjct_end
-                    hit['match'] = hsp.match
-                    pdb_hits[pdb_id] = hit
-                    heappush(hit_list, (-p_identity, hit))
-        return heappop(hit_list)[1]
+        return dict(self._hits[0][2])
+
+PROTSEQ_ALPHABET = set('ARNDCQEGHILKMFPSTWYVBJOUXZ-')
+
+def checkSequence(sequence):
+    """Check validity of a protein sequence.  If a valid sequence, return
+    after standardizing it (make all upper case, remove spaces, etc.), 
+    otherwise return ``False``."""
+    
+    if isinstance(sequence, str):
+        sequence = ''.join(sequence.split()).upper()
+        if PROTSEQ_ALPHABET.issuperset(set(sequence)):
+            return sequence
+    return False
 
 def blastPDB(sequence, filename=None, **kwargs):
-    """Blast search ProteinDataBank for a given sequence and return results.
+    """Blast search *sequence* in ProteinDataBank database using NCBI blastp.
         
     :arg sequence: Single-letter code amino acid sequence of the protein.
-    :type sequence: str, :class:`Bio.SeqRecord.SeqRecord`, or 
-        :class:`Bio.Seq.Seq` 
+    :type sequence: str 
     
     :arg filename: Provide a *filename* to save the results in XML format. 
     :type filename: str
     
     This method uses :meth:`qdblast` function in :mod:`NCBIWWW` module of 
-    Biopython. It will use *blastp* program and search *pdb* database.
+    Biopython.  It will use *blastp* program and search *pdb* database.
     Results are parsed using :meth:`NCBIXML.parse` and passed to a
     :class:`PDBBlastRecord`
     
     User can adjust *hitlist_size* (default is 250) and *expect* (default is 
-    1e-10) parameter values. 
+    1e-10) parameter values.
+    
+    User can also set the time interval for checking the results using
+    *sleep* keyword argument.  Default value for *sleep* is 2 seconds.
+    Finally, user can set a *timeout* value after which the function 
+    will return ``None`` if the results are not ready.  Default for
+    *timeout* is 30 seconds. 
+    
+    .. versionchanged:: 0.8.3
+       *sequence* argument must be a string.  Biopython objects are not 
+       accepted.  *sleep* and *timeout* arguments are added.
 
     """
-    if BioBlast is None: prody.importBioBlast()
-    if not isinstance(sequence, str):
-        try:
-            sequence = sequence.data
-        except AttributeError:    
-            try:
-                sequence = str(sequence.seq)
-            except AttributeError:    
-                pass
-        if not isinstance(sequence, str):
-            raise TypeError('sequence must be a string or a Biopython object')
+    
+    sequence = checkSequence(sequence)
     if not sequence:
-        raise ValueError('sequence cannot be an empty string')
+        raise ValueError('not a valid protein sequence')
 
-    if 'hitlist_size' not in kwargs:
-        kwargs['hitlist_size'] = 250
-    if 'expect' not in kwargs:
-        kwargs['expect'] = 1e-10
+    query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
+             ('PROGRAM', 'blastp'),] 
+    expect = kwargs.pop('expect', 10e-10)
+    assert isinstance(expect, (float, int)), 'expect must be a float'
+    assert expect > 0, 'expect must be a positive number'
+    query.append(('EXPECT', expect))
+    hitlist_size = kwargs.pop('hitlist_size', 250)
+    assert isinstance(hitlist_size, int), 'hitlist_size must be an integer'
+    assert hitlist_size > 0, 'expect must be a positive integer'
+    query.append(('HITLIST_SIZE', hitlist_size))
+    query.append(('QUERY', sequence))
+    query.append(('CMD', 'Put'))
+    
+    sleep = float(kwargs.get('sleep', 2))
+    timeout = float(kwargs.get('timeout', 20))
+    
+    if kwargs:
+        LOGGER.warning('Keyword arguments "{0:s}" are not used.'
+                       .format('", "'.join(kwargs.keys())))
 
-    sequence = ''.join(sequence.split())
-    LOGGER.info('Blasting ProteinDataBank for "{0:s}...{1:s}"'
-                .format(sequence[:10], sequence[-10:]))
+    import urllib, urllib2
+    
+    url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
+    
+    data = urllib.urlencode(query)
     start = time.time()
-    results = BioBlast.qblast('blastp', 'pdb', sequence, format_type='XML', 
-                              **kwargs)
+    LOGGER.info('Blast searching NCBI PDB database for "{0:s}..."'
+                .format(sequence[:5]))
+    request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
+    handle = urllib2.urlopen(request)
+    
+    html = handle.read()
+    index = html.find('RID =')
+    if index == -1:
+        raise Exception('NCBI did not return expected response.')
+    else:
+        last = html.find('\n', index)
+        rid = html[index + len('RID ='):last].strip()
 
-    LOGGER.info('Blast search completed in {0:.2f}s.'
+    index = html.find('RTOE =')
+    if index == -1:
+        rtoe = None # This is not used
+    else:
+        last = html.find('\n', index)
+        rtoe = int(html[index + len('RTOE ='):last].strip())
+
+    query = [('ALIGNMENTS', 500), ('DESCRIPTIONS', 500), 
+             ('FORMAT_TYPE', 'XML'), ('RID', rid), ('CMD', 'Get')]
+    data = urllib.urlencode(query)
+    
+    while True:
+        LOGGER.sleep(int(sleep), ' to connect NCBI for search results.')
+        LOGGER.write('Connecting NCBI for search results...')
+        request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
+        handle = urllib2.urlopen(request)
+        results = handle.read()
+        index = results.find('Status=')
+        LOGGER.clear()
+        if index < 0:
+            break
+        last = results.index('\n', index)
+        status = results[index+len('Status='):last].strip()
+        if status.upper() == 'READY':
+            break
+        sleep *= 2
+        if time.time() - start > timeout:
+            LOGGER.warning('Blast search time out.')
+            return None
+    LOGGER.clear()
+    LOGGER.info('Blast search completed in {0:.1f}s.'
                 .format(time.time()-start))
-                
     if filename is not None:
         filename = str(filename)
         if not filename.lower().endswith('.xml'):
                 filename += '.xml'        
         out = open(filename, 'w')
-        for line in self._results:
-            out.write(line)
+        out.write(results)
         out.close()
-        LOGGER.info('Results are saved as {0:s}.'.format(filename))    
-        results.reset()
-    record = BioBlast.parse(results).next()
-    return PDBBlastRecord(sequence, record)
+        LOGGER.info('Results are saved as {0:s}.'.format(filename))
+    return PDBBlastRecord(sequence, results)
 
 _writePDBdoc = """
     :arg atoms: Atomic data container.
@@ -1406,17 +2313,14 @@ _writePDBdoc = """
     :arg model: Model index or list of model indices.
     :type model: int, list
         
-    :arg sort: if True, atoms will be sorted Chain, ResidueNumber, 
-        AtomName (not working yet).
-    
-    If *models* = ``None``, all coordinate sets will be outputted. Model 
+    If *models* is ``None``, all coordinate sets will be written. Model 
     indices start from 1.
     
     *atoms* instance must at least contain coordinates and atom names data.
     
     """
 
-def writePDBStream(stream, atoms, model=None, sort=False):
+def writePDBStream(stream, atoms, model=None):
     """Write *atoms* in PDB format to a *stream*.
     
     :arg stream: anything that implements the method write() 
@@ -1432,11 +2336,11 @@ def writePDBStream(stream, atoms, model=None, sort=False):
                                 'index ' + str(atoms.getIndex()))
 
     if model is None:
-        model = np.arange(atoms.getNumOfCoordsets())
+        model = np.arange(atoms.getNumOfCoordsets(), dtype=np.int)
     elif isinstance(model, int):
-        model = np.array([model], np.int64) -1
+        model = np.array([model], np.int) -1
     elif isinstance(model, list):
-        model = np.array(model, np.int64) -1
+        model = np.array(model, np.int) -1
     else:
         raise TypeError('model must be an integer or a list of integers')
     if model.min() < 0 or model.max() >= atoms.getNumOfCoordsets():
@@ -1457,16 +2361,16 @@ def writePDBStream(stream, atoms, model=None, sort=False):
         resnames = ['UNK'] * n_atoms
     resnums = atoms._getResidueNumbers()
     if resnums is None:
-        resnums = np.ones(n_atoms, np.int64)
+        resnums = np.ones(n_atoms, int)
     chainids = atoms._getChainIdentifiers()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
     occupancies = atoms._getOccupancies()
     if occupancies is None:
-        occupancies = np.zeros(n_atoms, np.float64)
+        occupancies = np.zeros(n_atoms, float)
     bfactors = atoms._getTempFactors()
     if bfactors is None:
-        bfactors = np.zeros(n_atoms, np.float64)
+        bfactors = np.zeros(n_atoms, float)
     icodes = atoms._getInsertionCodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
@@ -1489,58 +2393,132 @@ def writePDBStream(stream, atoms, model=None, sort=False):
     multi = False
     if len(model) > 1:
         multi = True
-    line = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
-            '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
-            '{8:8.3f}{9:8.3f}{10:8.3f}' +
-            '{11:6.2f}{12:6.2f}      ' +
-            '{13:4s}{14:2s}\n')
+    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
+              '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
+              '{8:8.3f}{9:8.3f}{10:8.3f}' +
+              '{11:6.2f}{12:6.2f}      ' +
+              '{13:4s}{14:2s}\n').format
+    write = stream.write
     for m in model:
         if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
         atoms.setActiveCoordsetIndex(m)
         coords = atoms._getCoordinates()
         for i, xyz in enumerate(coords):
-            stream.write(line.format(hetero[i], i+1, atomnames[i], altlocs[i], 
-                                     resnames[i], chainids[i], int(resnums[i]), 
-                                     icodes[i], 
-                                     xyz[0], xyz[1], xyz[2], 
-                                     occupancies[i], bfactors[i],  
-                                     segments[i], elements[i].rjust(2)))
+            write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
+                         resnames[i], chainids[i], int(resnums[i]), 
+                         icodes[i], 
+                         xyz[0], xyz[1], xyz[2], 
+                         occupancies[i], bfactors[i],  
+                         segments[i], elements[i].rjust(2)))
         if multi:
-            stream.write('ENDMDL\n')
+            write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, '|S1')
     atoms.setActiveCoordsetIndex(acsi)
 
 writePDBStream.__doc__ += _writePDBdoc
 
-def writePDB(filename, atoms, model=None, sort=None):
+def writePDB(filename, atoms, model=None):
     """Write *atoms* in PDB format to a file with name *filename*.
     
-    Returns *filename* if file is succesfully written. 
-   
+    Returns *filename* if file is successfully written. 
     """
     
+    assert isinstance(filename, str), 'filename must be a string instance'
     out = open(filename, 'w')
-    writePDBStream(out, atoms, model, sort)
+    writePDBStream(out, atoms, model)
     out.close()
     return filename
 
 writePDB.__doc__ += _writePDBdoc
 
+def writePQR(filename, atoms):
+    """|new| Write *atoms* in PQR format to a file with name *filename*.  Only 
+    current coordinate set is written.  Returns *filename* if file is 
+    successfully written."""
+    
+    assert isinstance(filename, str), 'filename must be a string instance'
+    if not isinstance(atoms, prody.Atomic):
+        raise TypeError('atoms does not have a valid type')
+    if isinstance(atoms, prody.Atom):
+        atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
+                                atoms.getActiveCoordsetIndex(), 
+                                'index ' + str(atoms.getIndex()))
+
+    n_atoms = atoms.getNumOfAtoms()
+    atomnames = atoms.getAtomNames()
+    if atomnames is None:
+        raise RuntimeError('atom names are not set')
+    for i, an in enumerate(atomnames):
+        lenan = len(an)
+        if lenan < 4:
+            atomnames[i] = ' ' + an
+        elif lenan > 4:
+            atomnames[i] = an[:4]
+    resnames = atoms._getResidueNames()
+    if resnames is None:
+        resnames = ['UNK'] * n_atoms
+    resnums = atoms._getResidueNumbers()
+    if resnums is None:
+        resnums = np.ones(n_atoms, int)
+    chainids = atoms._getChainIdentifiers()
+    if chainids is None: 
+        chainids = np.zeros(n_atoms, '|S1')
+    charges = atoms._getCharges()
+    if charges is None:
+        charges = np.zeros(n_atoms, float)
+    radii = atoms._getRadii()
+    if radii is None:
+        radii = np.zeros(n_atoms, float)
+    icodes = atoms._getInsertionCodes()
+    if icodes is None:
+        icodes = np.zeros(n_atoms, '|S1')
+    hetero = ['ATOM'] * n_atoms 
+    heteroflags = atoms._getHeteroFlags()
+    if heteroflags is not None:
+        hetero = np.array(hetero, '|S6')
+        hetero[heteroflags] = 'HETATM'
+    altlocs = atoms._getAltLocIndicators()
+    if altlocs is None:
+        altlocs = np.zeros(n_atoms, '|S1')
+    
+    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
+              '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
+              '{8:8.3f}{9:8.3f}{10:8.3f}' +
+              '{11:8.4f}{12:7.4f}\n').format
+    stream = open(filename, 'w')
+    coords = atoms._getCoordinates()
+    write = stream.write
+    for i, xyz in enumerate(coords):
+        write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
+                     resnames[i], chainids[i], int(resnums[i]), 
+                     icodes[i], xyz[0], xyz[1], xyz[2], charges[i], radii[i]))
+    write('TER\nEND')
+    stream.close()
+    return filename
+
 mapHelix = {
-1: 'H', # 4-turn helix (alpha helix)
-2: '', # other helix, Right-handed omega
-3: 'I', # 5-turn helix (pi helix)
-4: '', # other helix, Right-handed gamma
-5: 'G', # 3-turn helix (3-10 helix)
-6: '', # Left-handed alpha
-7: '', # Left-handed omega
-8: '', # Left-handed gamma
-9: '', # 2 - 7 ribbon/helix
-10: '' # Polyproline
+     1: 'H', # 4-turn helix (alpha helix)
+     2: '',  # other helix, Right-handed omega
+     3: 'I', # 5-turn helix (pi helix)
+     4: '',  # other helix, Right-handed gamma
+     5: 'G', # 3-turn helix (3-10 helix)
+     6: '',  # Left-handed alpha
+     7: '',  # Left-handed omega
+     8: '',  # Left-handed gamma
+     9: '',  # 2 - 7 ribbon/helix
+    10: '',  # Polyproline
 }
 
 def assignSecondaryStructure(header, atoms, coil=False):
+    """This function will be removed in v0.9, use :func:`assignSecondaryStr` 
+    instead."""
+    
+    LOGGER.warning('assignSecondaryStructure will be removed in v0.9, '
+                   'use assignSecondaryStr instead')
+    return assignSecondaryStr(header, atoms, coil)
+
+def assignSecondaryStr(header, atoms, coil=False):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
@@ -1577,22 +2555,27 @@ def assignSecondaryStructure(header, atoms, coil=False):
       * Polyproline (10)
       
     .. versionchanged:: 0.7
-       Secondary structures are assigned to all atoms in a residue. Amino acid
+       Secondary structures are assigned to all atoms in a residue.  Amino acid
        residues without any secondary structure assignments in the header 
-       section will be assigned coil (C) conformation. This can be prevented
+       section will be assigned coil (C) conformation.  This can be prevented
        by passing ``coil=False`` argument.
        
     .. versionchanged:: 0.8
        Default value for *coil* argument is set to ``False``.
+       
+    .. versionchanged:: 0.8.2
+       Raises :class:`ValueError` when *header* does not contain 
+       secondary structure data.
     
     """
+    
     if not isinstance(header, dict):
         raise TypeError('header must be a dictionary')
     helix = header.get('helix', {})
     sheet = header.get('sheet', {})
     if len(helix) == 0 and len(sheet) == 0:
-        LOGGER.warning('header does not contain secondary structure data')
-        return None
+        raise ValueError('header does not contain secondary structure data')
+
     ssa = atoms.getSecondaryStrs()
     if ssa is None:
         if isinstance(atoms, prody.AtomGroup):
@@ -1618,11 +2601,10 @@ def assignSecondaryStructure(header, atoms, coil=False):
         count += 1
     LOGGER.info('Secondary structures were assigned to {0:d} residues.'
                 .format(count))
-    return atoms
-            
+    return atoms        
 
 def fetchLigandData(cci, save=False, folder='.'):
-    """|new| Fetch ligand data from Ligand Expo (http://ligand-expo.rcsb.org/).
+    """Fetch ligand data from Ligand Expo (http://ligand-expo.rcsb.org/).
 
     .. versionadded:: 0.8.1
     
@@ -1630,16 +2612,16 @@ def fetchLigandData(cci, save=False, folder='.'):
        URL of the XML file is returned in the dictionary with key ``url``.
     
     *cci* may be 3-letter chemical component identifier or a valid XML 
-    filename. If ``aave=True`` is passed, XML file will be saved in the 
+    filename.  If ``aave=True`` is passed, XML file will be saved in the 
     specified *folder*. 
     
     This function is compatible with PDBx/PDBML v 4.0.
     
-    Returns a dictionary that contains ligand data. Ligand atom data with 
+    Returns a dictionary that contains ligand data.  Ligand atom data with 
     *model* and *ideal* coordinate sets are also stored in this dictionary.
     Note that this dictionary will contain data that is present in the XML
     file and all Ligand Expo XML files do not contain every possible data
-    field. So, it may be better if you use :meth:`dict.get` instead of
+    field.  So, it may be better if you use :meth:`dict.get` instead of
     indexing the dictionary, e.g. to retrieve formula weight (or relative
     molar mass) of the chemical component use ``data.get('formula_weight')``
     instead of ``data['formula_weight']`` to avoid exceptions when this
@@ -1662,7 +2644,7 @@ def fetchLigandData(cci, save=False, folder='.'):
     2.27
     """
 
-    global urllib2, ET
+    
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
     elif os.path.isfile(cci):
@@ -1676,9 +2658,7 @@ def fetchLigandData(cci, save=False, folder='.'):
         #'http://www.pdb.org/pdb/files/ligand/{0:s}.xml'
         url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
                .format(cci.upper()))
-        if urllib2 is None:
-            import urllib2
-            prody.proteins.urllib2 = urllib2
+        import urllib2
         try:
             inp = urllib2.urlopen(url)
         except urllib2.HTTPError:
@@ -1691,9 +2671,7 @@ def fetchLigandData(cci, save=False, folder='.'):
             out.write(xml)
             out.close()
 
-    if ET is None:
-        import xml.etree.cElementTree as ET
-        prody.proteins.ET = ET
+    import xml.etree.cElementTree as ET
 
     root = ET.XML(xml)
     if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
@@ -1744,7 +2722,7 @@ def fetchLigandData(cci, save=False, folder='.'):
     leaving_atom_flags = np.zeros(n_atoms, np.bool)
     aromatic_flags = np.zeros(n_atoms, np.bool)
     stereo_configs = np.zeros(n_atoms, np.bool)
-    ordinals = np.zeros(n_atoms, np.int64)
+    ordinals = np.zeros(n_atoms, int)
     
     for i, atom in enumerate(atoms):
         data = dict([(child.tag[len_ns:], child.text) for child in list(atom)])
@@ -1788,6 +2766,14 @@ def fetchLigandData(cci, save=False, folder='.'):
     return dict_      
 
 def applyBiomolecularTransformations(header, atoms, biomol=None):
+    """This function will be removed in v0.9, use :func:`buildBiomolecules` 
+    instead."""
+    
+    LOGGER.warning('applyBiomolecularTransformations will be removed in v0.9, '
+                   'use buildBiomolecules instead')
+    return buildBiomolecules(header, atoms, biomol)
+
+def buildBiomolecules(header, atoms, biomol=None):
     """Return *atoms* after applying biomolecular transformations from *header*
     dictionary.
     
@@ -1795,9 +2781,13 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
        Biomolecular transformations are applied to all coordinate sets in the
        molecule.
     
-    Some PDB files contain transformations for more than 1 biomolecules. A 
+    .. versionchanged:: 0.8.2
+       Raises :class:`ValueError` when *header* does not contain biomolecular 
+       transformations.
+
+    Some PDB files contain transformations for more than 1 biomolecules.  A 
     specific set of transformations can be choosen using *biomol* argument.
-    Transformation sets are identified by integer numbers, e.g. 1, 2, ...
+    Transformation sets are identified by numbers, e.g. ``"1"``, ``"2"``, ...
     
     If multiple biomolecular transformations are provided in the *header*
     dictionary, biomolecules will be returned as 
@@ -1805,7 +2795,7 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
 
     If the resulting biomolecule has more than 26 chains, the molecular 
     assembly will be split into multiple :class:`~prody.atomic.AtomGroup`
-    instances each containing at most 26 chains. These 
+    instances each containing at most 26 chains.  These 
     :class:`~prody.atomic.AtomGroup` instances will be returned in a tuple.
    
     Note that atoms in biomolecules are ordered according to chain identifiers.
@@ -1816,10 +2806,9 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         raise TypeError('header must be a dictionary')
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be an Atomic instance')
-    biomt = header.get('biomolecular_transformations', {})
-    if len(biomt) == 0:
-        LOGGER.warning('header does not contain biomolecular transformations')
-        return None
+    biomt = header.get('biomoltrans')
+    if not isinstance(biomt, dict) or len(biomt) == 0:
+        raise ValueError("header doesn't contain biomolecular transformations")
     
     if not isinstance(atoms, prody.AtomGroup):
         atoms = atoms.copy()
@@ -1913,12 +2902,12 @@ def applyBiomolecularTransformations(header, atoms, biomol=None):
         return None
 
 def execDSSP(pdb, outputname=None, outputdir=None):
-    """|new| Execute DSSP for given *pdb*. *pdb* can be a PDB identifier or a PDB 
-    file path. If *pdb* is a compressed file, it will be decompressed using
-    Python :mod:`gzip` library. When no *outputname* is given, output name 
-    will be :file:`pdbidentifier.dssp`. :file:`.dssp` extension will be 
-    appended automatically to *outputname*. If :file:`outputdir` is given,
-    DSSP output and uncompressed PDB file will be written into this folder.
+    """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 
+    file path.  If *pdb* is a compressed file, it will be decompressed using
+    Python :mod:`gzip` library.  When no *outputname* is given, output name 
+    will be :file:`pdb.dssp`.  :file:`.dssp` extension will be appended 
+    automatically to *outputname*.  If :file:`outputdir` is given, DSSP 
+    output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`dssp pdb > out` command, output
     filename is returned. 
     
@@ -1955,9 +2944,9 @@ def execDSSP(pdb, outputname=None, outputdir=None):
         return out
     
 def parseDSSP(dssp, ag, parseall=False):
-    """|new| Parse DSSP data from file *dssp* into :class:`~prody.atomic.AtomGroup`
-    instance *ag*. DSSP output file must be in the new format used from July 
-    1995 and onwards. When *dssp* file is parsed, following attributes are 
+    """Parse DSSP data from file *dssp* into :class:`~prody.atomic.AtomGroup`
+    instance *ag*.  DSSP output file must be in the new format used from July 
+    1995 and onwards.  When *dssp* file is parsed, following attributes are 
     added to *ag*:
         
     * *dssp_resnum*: DSSP's sequential residue number, starting at the first 
@@ -1968,7 +2957,7 @@ def parseDSSP(dssp, ag, parseall=False):
       or residue water exposed surface in Angstrom^2.
       
     * *dssp_kappa*: virtual bond angle (bend angle) defined by the three Cα 
-      atoms of residues I-2,I,I+2. Used to define bend (structure code 'S').
+      atoms of residues I-2,I,I+2.  Used to define bend (structure code 'S').
         
     * *dssp_alpha*: virtual torsion angle (dihedral angle) defined by the four 
       Cα atoms of residues I-1,I,I+1,I+2.Used to define chirality (structure 
@@ -1982,12 +2971,12 @@ def parseDSSP(dssp, ag, parseall=False):
       and second bridge partner followed by one letter sheet label
       
     * *dssp_tco*: cosine of angle between C=O of residue I and C=O of residue 
-      I-1. For α-helices, TCO is near +1, for β-sheets TCO is near -1. Not 
+      I-1.  For α-helices, TCO is near +1, for β-sheets TCO is near -1.  Not 
       used for structure definition.
       
     * *dssp_NH_O_1_index*, *dssp_NH_O_1_energy*, etc.: hydrogen bonds; e.g. 
       -3,-1.4 means: if this residue is residue i then N-H of I is h-bonded to 
-      C=O of I-3 with an electrostatic H-bond energy of -1.4 kcal/mol. There 
+      C=O of I-3 with an electrostatic H-bond energy of -1.4 kcal/mol.  There 
       are two columns for each type of H-bond, to allow for bifurcated H-bonds.
         
     See http://swift.cmbi.ru.nl/gv/dssp/DSSP_3.html for details.
@@ -2002,26 +2991,26 @@ def parseDSSP(dssp, ag, parseall=False):
     dssp = open(dssp)
     
     n_atoms = ag.getNumOfAtoms()
-    NUMBER = np.zeros(n_atoms, np.int64)
+    NUMBER = np.zeros(n_atoms, int)
     SHEETLABEL = np.zeros(n_atoms, '|S1')
-    ACC = np.zeros(n_atoms, np.float64)
-    KAPPA = np.zeros(n_atoms, np.float64)
-    ALPHA = np.zeros(n_atoms, np.float64)
-    PHI = np.zeros(n_atoms, np.float64)
-    PSI = np.zeros(n_atoms, np.float64)
+    ACC = np.zeros(n_atoms, float)
+    KAPPA = np.zeros(n_atoms, float)
+    ALPHA = np.zeros(n_atoms, float)
+    PHI = np.zeros(n_atoms, float)
+    PSI = np.zeros(n_atoms, float)
 
     if parseall:
-        BP1 = np.zeros(n_atoms, np.int64)
-        BP2 = np.zeros(n_atoms, np.int64)
-        NH_O_1 = np.zeros(n_atoms, np.int64)
-        NH_O_1_nrg = np.zeros(n_atoms, np.float64)
-        O_HN_1 = np.zeros(n_atoms, np.int64)
-        O_HN_1_nrg = np.zeros(n_atoms, np.float64)
-        NH_O_2 = np.zeros(n_atoms, np.int64)
-        NH_O_2_nrg = np.zeros(n_atoms, np.float64)
-        O_HN_2 = np.zeros(n_atoms, np.int64)
-        O_HN_2_nrg = np.zeros(n_atoms, np.float64)
-        TCO = np.zeros(n_atoms, np.float64)
+        BP1 = np.zeros(n_atoms, int)
+        BP2 = np.zeros(n_atoms, int)
+        NH_O_1 = np.zeros(n_atoms, int)
+        NH_O_1_nrg = np.zeros(n_atoms, float)
+        O_HN_1 = np.zeros(n_atoms, int)
+        O_HN_1_nrg = np.zeros(n_atoms, float)
+        NH_O_2 = np.zeros(n_atoms, int)
+        NH_O_2_nrg = np.zeros(n_atoms, float)
+        O_HN_2 = np.zeros(n_atoms, int)
+        O_HN_2_nrg = np.zeros(n_atoms, float)
+        TCO = np.zeros(n_atoms, float)
 
     ag.setSecondaryStrs(np.zeros(n_atoms))
     for line in dssp:
@@ -2079,8 +3068,8 @@ def parseDSSP(dssp, ag, parseall=False):
     return ag
 
 def performDSSP(pdb, parseall=False):
-    """|new| Perform DSSP calculations and parse results. DSSP data is returned 
-    in an :class:`~prody.atomic.AtomGroup` instance. See also :func:`execDSSP` 
+    """Perform DSSP calculations and parse results.  DSSP data is returned 
+    in an :class:`~prody.atomic.AtomGroup` instance.  See also :func:`execDSSP` 
     and :func:`parseDSSP`.
     
     .. versionadded:: 0.8"""
@@ -2089,11 +3078,11 @@ def performDSSP(pdb, parseall=False):
     return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
     
 def execSTRIDE(pdb, outputname=None, outputdir=None):
-    """|new| Execute STRIDE program for given *pdb*. *pdb* can be an identifier 
-    or a PDB file path. If *pdb* is a compressed file, it will be decompressed 
-    using Python :mod:`gzip` library. When no *outputname* is given, output 
-    name will be :file:`pdbidentifier.stride`. :file:`.stride` extension will 
-    be appended automatically to *outputname*. If :file:`outputdir` is given, 
+    """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier or 
+    a PDB file path.  If *pdb* is a compressed file, it will be decompressed 
+    using Python :mod:`gzip` library.  When no *outputname* is given, output 
+    name will be :file:`pdb.stride`.  :file:`.stride` extension will be 
+    appended automatically to *outputname*.  If :file:`outputdir` is given, 
     STRIDE output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`stride pdb > out` command, output
     filename is returned. 
@@ -2131,10 +3120,10 @@ def execSTRIDE(pdb, outputname=None, outputdir=None):
         return out
     
 def parseSTRIDE(stride, ag):
-    """|new| Parse STRIDE data from file *stride* into :class:`~prody.atomic.AtomGroup`
-    instance *ag*. STRIDE output file must be in the new format used from July 
-    1995 and onwards. When *stride* file is parsed, following attributes are 
-    added to *ag*:
+    """Parse STRIDE output from file *stride* into 
+    :class:`~prody.atomic.AtomGroup` instance *ag*.  STRIDE output file must 
+    be in the new format used from July 1995 and onwards.  When *stride* file 
+    is parsed, following attributes are added to *ag*:
         
     * *stride_resnum*: STRIDE's sequential residue number, starting at the 
       first residue actually in the data set.
@@ -2153,10 +3142,10 @@ def parseSTRIDE(stride, ag):
     stride = open(stride)
     
     n_atoms = ag.getNumOfAtoms()
-    NUMBER = np.zeros(n_atoms, np.int64)
-    AREA = np.zeros(n_atoms, np.float64)
-    PHI = np.zeros(n_atoms, np.float64)
-    PSI = np.zeros(n_atoms, np.float64)
+    NUMBER = np.zeros(n_atoms, int)
+    AREA = np.zeros(n_atoms, float)
+    PHI = np.zeros(n_atoms, float)
+    PSI = np.zeros(n_atoms, float)
 
     ag.setSecondaryStrs(np.zeros(n_atoms))
     for line in stride:
@@ -2178,8 +3167,8 @@ def parseSTRIDE(stride, ag):
     return ag
 
 def performSTRIDE(pdb):
-    """|new| Perform STRIDE calculations and parse results. STRIDE data is 
-    returned in an :class:`~prody.atomic.AtomGroup` instance. See also 
+    """Perform STRIDE calculations and parse results.  STRIDE data is 
+    returned in an :class:`~prody.atomic.AtomGroup` instance.  See also 
     :func:`execSTRIDE` and :func:`parseSTRIDE`.
     
     .. versionadded:: 0.8"""
@@ -2187,30 +3176,24 @@ def performSTRIDE(pdb):
     pdb = fetchPDB(pdb, compressed=False)
     return parseSTRIDE(execSTRIDE(pdb), parsePDB(pdb))
 
-
-
-
 def fetchPDBClusters():
-    """|new| Downloads PDB sequence clusters. PDB sequence clusters are results of 
+    """Downloads PDB sequence clusters.  PDB sequence clusters are results of 
     the weekly clustering of protein chains in the PDB generated by blastclust. 
     They are available at FTP site: ftp://resources.rcsb.org/sequence/clusters/
     
     This function will download about 10 Mb of data and save it after 
     compressing in your home directory in :file:`.prody/pdbclusters`.
-    Compressed files will be less than 4 Mb in size. Cluster data can 
+    Compressed files will be less than 4 Mb in size.  Cluster data can 
     be loaded using :func:`loadPDBClusters` function and be accessed 
     using :func:`getPDBCluster`.
     
     .. versionadded:: 0.8.2"""
     
-    global urllib2
-    if urllib2 is None:
-        import urllib2
-        prody.proteins.urllib2 = urllib2
-    
+    import urllib2
+    PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)
-    progress = prody.ProDyProgress(len(PDB_CLUSTERS))
+    LOGGER.progress(len(PDB_CLUSTERS))
     for i, x in enumerate(PDB_CLUSTERS.keys()):
         filename = 'bc-{0:d}.out'.format(x)
         url = ('ftp://resources.rcsb.org/sequence/clusters/' + filename)
@@ -2226,14 +3209,15 @@ def fetchPDBClusters():
             out.write(inp.read())
             inp.close()
             out.close()
-        progress.report(i)
-    progress.clean()
+        LOGGER.report(i)
+    LOGGER.clear()
 
 def loadPDBClusters(sqid=None):
-    """|new| Load previously fetched PDB sequence clusters from disk to memory.
+    """Load previously fetched PDB sequence clusters from disk to memory.
     
     .. versionadded:: 0.8.2"""
 
+    PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if sqid is None:
         sqid_list = PDB_CLUSTERS.keys()
         LOGGER.info('Loading all PDB sequence clusters.')
@@ -2276,10 +3260,10 @@ def loadPDBClusters(sqid=None):
         PDB_CLUSTERS[sqid] = clusters
 
 def getPDBCluster(pdb, ch, sqid=95):
-    """|new| Return the PDB sequence cluster for chain *ch* in structure *pdb*
-    that chains sharing sequence identity *sqid* or more. PDB sequence cluster
+    """Return the PDB sequence cluster for chain *ch* in structure *pdb*
+    that chains sharing sequence identity *sqid* or more.  PDB sequence cluster
     will be returned in the form of a list of tuples, e.g. 
-    ``[('1XXX', 'A'), ('2YYY', 'A')]``. Note that PDB clusters chains, so
+    ``[('1XXX', 'A'), ('2YYY', 'A')]``.  Note that PDB clusters chains, so
     the same PDB identifier may appear twice in the same cluster if the 
     corresponding chain is present in the structure twice.    
     
@@ -2292,6 +3276,7 @@ def getPDBCluster(pdb, ch, sqid=95):
     assert isinstance(pdb, str), 'pdb must be a string'
     assert isinstance(ch, str), 'pdb must be a string'
     assert isinstance(sqid, int), 'sqid must be an integer'
+    PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if sqid not in PDB_CLUSTERS:
         keys = PDB_CLUSTERS.keys()
         keys.sort()

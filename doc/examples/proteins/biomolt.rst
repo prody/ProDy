@@ -3,15 +3,15 @@
 .. _biomolt:
 
 *******************************************************************************
-Biomolecular transformations
+Building biomolecules
 *******************************************************************************
 
 Synopsis
 ===============================================================================
 
-Some PDB files contain coordinates for monomer from a functional/biological 
-multimer. ProDy offers functions to build the structure of the multimer
-using the header data from the PDB file.
+Some PDB files contain coordinates for a monomer from a functional/biological 
+multimer (biomolecule).  ProDy offers functions to build structures of 
+biomolecules using the header data from the PDB file.
 
 Input
 -------------------------------------------------------------------------------
@@ -49,10 +49,9 @@ to coordinates.
 Build multimer
 -------------------------------------------------------------------------------
 
-Let's get the dimer coordinates using :func:`applyBiomolecularTransformations`
-function:
+Let's get the dimer coordinates using :func:`buildBiomolecules` function:
 
->>> dimer = applyBiomolecularTransformations(header, monomer)
+>>> dimer = buildBiomolecules(header, monomer)
 >>> dimer
 <AtomGroup: 3enl biomolecule 1 (7294 atoms; 1 coordinate sets, active set index: 0)>
 

@@ -59,26 +59,29 @@ To get the best match, :meth:`PDBBlastRecord.getBest` method can be used:
 
 >>> best = blast_record.getBest()
 >>> print( best ) # doctest: +SKIP
-{'percent_identity': 100.0, 
-'sbjct_end': 144, 
-'pdb_title': 'Chain A, Crystal Structure Of Pyst1 (Mkp3)', 
-'query': u'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPISDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDAYDIVKMKKSNISPNFNFMGQLLDFERTL', 
-'match': u'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPISDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDAYDIVKMKKSNISPNFNFMGQLLDFERTL', 
-'sbjct': u'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPISDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDAYDIVKMKKSNISPNFNFMGQLLDFERTL', 
-'identities': 144, 
-'query_start': 1, 
-'query_end': 144, 
-'chain_id': 'A', 
-'pdb_id': '1mkp', 
-'sbjct_start': 1, 
-'score': 762.0, 
-'gaps': 0, 
-'expect': 7.6441600000000005e-82, 
-'percent_coverage': 100.0, 
-'positives': 144, 
-'align_length': 144, 
-'bits': 298.13}
-
+{'align-len': 144,
+ 'bit-score': 298.13,
+ 'chain_id': 'A',
+ 'evalue': 5.99055e-106,
+ 'gaps': 0,
+ 'hit-frame': 0,
+ 'hit-from': 1,
+ 'hit-to': 144,
+ 'hseq': 'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPISDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDAYDIVKMKKSNISPNFNFMGQLLDFERTL',
+ 'identity': 144,
+ 'midline': 'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPISDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDAYDIVKMKKSNISPNFNFMGQLLDFERTL',
+ 'num': '1',
+ 'pdb_id': '1mkp',
+ 'percent_coverage': 100.0,
+ 'percent_identity': 100.0,
+ 'positive': 144,
+ 'qseq': 'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPISDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDAYDIVKMKKSNISPNFNFMGQLLDFERTL',
+ 'query-frame': 0,
+ 'query-from': 1,
+ 'query-to': 144,
+ 'score': 762.0,
+ 'title': 'ChainA, Crystal Structure Of Pyst1 (Mkp3)'}
+ 
 PDB hits
 -------------------------------------------------------------------------------
 
@@ -91,7 +94,7 @@ to 90 by default
 
 >>> hits = blast_record.getHits(percent_identity=50)
 >>> print( hits.keys() )
-['2hxp', '3lj8', '1mkp']
+['1m3g', '2hxp', '3lj8', '3ezz', '1mkp']
 
 >>> hits = blast_record.getHits(percent_identity=40)
 >>> print( hits.keys() )
@@ -101,10 +104,10 @@ This resulted in 7 hits, including structures of MKP-2, MKP-4, and MKP-5
 More information on a hit can be obtained as follows:
 
 >>> print( hits['1zzw']['percent_identity'] )
-47.2222222222
->>> print( hits['1zzw']['align_length'] )
+49.2753623188
+>>> print( hits['1zzw']['align-len'] )
 138
->>> print( hits['1zzw']['identities'] )
+>>> print( hits['1zzw']['identity'] )
 68
 
 Download hits

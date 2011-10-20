@@ -11,6 +11,7 @@ from distutils.extension import Extension
 from distutils.command.install import install
 
 PY3K = sys.version_info[0] > 2
+USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
 readme = open('README.txt')
 long_description = ''.join(readme.readlines())
@@ -35,8 +36,12 @@ if not isInstalled('numpy'):
     print("""NumPy is not installed. This package is required for main ProDy 
 features and needs to be installed before you can use ProDy.  
 You can find NumPy at: http://numpy.scipy.org""")
-    
+
 PACKAGES = ['prody']
+PACKAGE_DATA = {}
+if sys.version_info[:2] > (2,6):
+    PACKAGES.append('prody.tests')
+    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat']
 
 EXTENSIONS = []
 
@@ -159,9 +164,9 @@ def removeNMWiz(vmddir):
 # End NMWiz installer
 
 def updateVMDpath(vmdpath):
-    """Update VMD path in ProDy settings file (.prody)."""
+    """Update VMD path in ProDy settings file (.prodyrc)."""
     
-    fn = os.path.join(os.path.expanduser('~'), '.prody')
+    fn =  os.path.join(USERHOME, '.prodyrc')
     settings = None
     if os.path.isfile(fn):
         inf = open(fn)
@@ -212,6 +217,7 @@ setup(
     url='http://www.csb.pitt.edu/ProDy',
     cmdclass={'install' : installProDy,},
     packages=PACKAGES,
+    package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
     license='GPLv3',
     keywords=('protein, dynamics, elastic network model, Gaussian network model, '

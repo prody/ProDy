@@ -6,22 +6,111 @@
 Changes
 *******************************************************************************
 
-Release 0.8.2 (in development)
+Release 0.8.3 (in development)
+===============================================================================
+
+**New Features**:
+
+  * `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files
+    can be retrieved using :func:`~proteins.fetchPDB` function.
+    
+  * :func:`~proteins.parsePDBHeader` is implemented for convenient parsing of
+    PDB header data from :file:`.pdb` files.
+
+
+Release 0.8.3 (Oct 16, 2011)
+===============================================================================
+
+**New Features**:
+
+  * Functions to read and write PQR files: :func:`~proteins.parsePQR` and
+    :func:`~proteins.writePQR`.
+    
+  * Added :meth:`~ensemble.PDBEnsemble.getIdentifiers` method that returns
+    identifiers of all conformations in the ensemble. 
+
+  * ProDy tests are incorporated to the package installer.  If you are using 
+    Python version 2.7, you can run the tests by calling ``prody.test()``.
+
+
+**Improvements**:
+
+  * :func:`~proteins.blastPDB` function and :class:`~proteins.PDBBlastRecord`
+    class are rewritten to use faster and more compact code.
+    
+  * New :class:`PackageLogger` function is implemented to unify logging
+    and reporting task progression.
+  
+  * Improvements in PDB ensemble support functions, e.g. 
+    :func:`~ensemble.trimEnsemble`, are made.
+   
+  * Improvements in ensemble concatenations are made.
+
+**Bug Fixes**:
+
+  * Bugfixes in :func:`~ensemble.PDBEnsemble` slicing operation.  This may
+    have affected users when slicing a PDB ensemble for plotting projections
+    in color for different forms of the protein.
+    
+Release 0.8.2 (Oct 14, 2011)
 ===============================================================================
 
 **New Features**:
 
   * :func:`~proteins.fetchPDBClusters`, :func:`~proteins.loadPDBClusters`, and
     :func:`~proteins.getPDBCluster` functions are implemented for handling
-    PDB sequence cluster data.
+    PDB sequence cluster data. These functions can be used instead of 
+    :func:`~proteins.blastPDB` function for fast access to structures of 
+    the same protein (at 95% sequence identity level) or similar proteins.
+    
+  * Perturbation response scanning method described in [CA09]_ is implemented 
+    as :func:`~dynamics.scanPerturbationResponse` based on the code provided 
+    by Ying Liu.
+  
 
 **Changes**:
 
   * :func:`~proteins.fetchLigandData` returns the URL of the XML file in the
     ligand data dictionary.
     
-  * Name of the ProDy configuration file save in user :file:`home` directory 
-    is renamed as :file:`.prodyrc` (used to be :file:`.prody`). 
+  * Name of the ProDy configuration file in user :file:`home` directory 
+    is renamed as :file:`.prodyrc` (used to be :file:`.prody`).
+    
+  * :func:`~proteins.applyBiomolecularTransformations` and
+    :func:`~proteins.assignSecondaryStructure` functions raise 
+    :class:`ValueError` when the function fails to perform its action
+    due to missing data in header dictionary.
+    
+  * :func:`~proteins.fetchPDB` decompresses PDB files found in the working
+    directory when user asks for decompressed files.
+
+  * :func:`~proteins.parsePDB` appends *chain* and *subset* arguments to
+    :func:`~atomic.AtomGroup` name.
+
+  * *chain* argument is added to :meth:`~proteins.PDBBlastRecord.getHits`.
+
+**Improvements**:
+
+  * Atom selection class :class:`~select.Select` is completely redesigned
+    to prevent breaking of the parser when evaluating invalid selection
+    strings.
+    
+  * Improved type checking in :func:`~proteins.parsePDB` function.
+    
+**Bug Fixes**:
+
+  * Bugfixes in :func:`~proteins.parseDSSP`: one emerged problems in lines
+    indicating chain breaks, another did not parse bridge-partners correctly.
+    Both fixes are contributed by Kian Ho.
+    
+  * Bugfix in :func:`~proteins.parsePDB` function. When only header is desired
+    (``header=True, model=0``), would return a tuple containing an empty 
+    atom group and the header.
+
+**Developmental**:
+
+  * Unit tests for :mod:`~prody.proteins` and :mod:`~prody.select` modules are 
+    developed. 
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================

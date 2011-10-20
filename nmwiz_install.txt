@@ -16,8 +16,8 @@ Downloads
 
 Plug-in files come in the following compressed archives:
  
-  * `ProDy-0.8.1.zip <http://pypi.python.org/packages/source/P/ProDy/ProDy-0.8.1.zip>`_
-  * `ProDy-0.8.1.tar.gz <http://pypi.python.org/packages/source/P/ProDy/ProDy-0.8.1.tar.gz>`_
+  * `ProDy-0.8.3.zip <http://pypi.python.org/packages/source/P/ProDy/ProDy-0.8.3.zip>`_
+  * `ProDy-0.8.3.tar.gz <http://pypi.python.org/packages/source/P/ProDy/ProDy-0.8.3.tar.gz>`_
 
 
 Installation

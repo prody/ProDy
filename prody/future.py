@@ -123,7 +123,7 @@ class MarkovModel(object):
         hv = prody.HierView(atoms)
         n_res = hv.getNumOfResidues()
 
-        rids = np.zeros(n_atoms, np.int64) # residue indices of atoms
+        rids = np.zeros(n_atoms, int) # residue indices of atoms
         rlen = np.zeros(n_res) # residue lengths
         resmap = {} # used for symmetry purposes
         for i, res in enumerate(hv.iterResidues()):
@@ -155,9 +155,9 @@ class MarkovModel(object):
                 affinity[(i,j)] += 1
         
         length = len(affinity)
-        i = np.zeros(length, np.int32) 
-        j = np.zeros(length, np.int32)
-        v = np.zeros(length, np.float64)
+        i = np.zeros(length, int) 
+        j = np.zeros(length, int)
+        v = np.zeros(length, float)
         k = 0
         for key, value in affinity.iteritems():
             i[k] = key[0]

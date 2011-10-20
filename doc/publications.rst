@@ -29,9 +29,19 @@ Using ProDy
      `ProDy: Protein Dynamics Inferred from Theory and Experiments  
      <http://bioinformatics.oxfordjournals.org/content/27/11/1575>`_
    | Bakan A, Meireles LM, Bahar I
-   | **2011** *Bioinformatics* doi: 10.1093/bioinformatics/btr168
+   | **2011** *Bioinformatics* 27(11):1575-1577 
 
    __ http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf
+   
+#. | |pdf|__
+     `Pre-existing soft modes of motion uniquely defined by native contact 
+     topology facilitate ligand binding to proteins  
+     <http://onlinelibrary.wiley.com/doi/10.1002/pro.711/abstract>`_
+   | Meireles L, Gur M, Bakan, A, Bahar I
+   | **2011** *Protein Science* 10(20):1645-1658
+
+   __ http://onlinelibrary.wiley.com/doi/10.1002/pro.711/pdf 
+   
 
 Servers
 ===============================================================================
@@ -51,7 +61,7 @@ Servers
     `Anisotropic network model: systematic evaluation and a new web interface 
     <http://bioinformatics.oxfordjournals.org/content/22/21/2619.long>`_
   | Eyal E, Yang LW, Bahar I 
-  | **2006** *Bioinformatics*  22:2619-27.
+  | **2006** *Bioinformatics* 22:2619-27.
 
   __ http://bioinformatics.oxfordjournals.org/content/22/21/2619.full.pdf
 

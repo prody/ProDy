@@ -1000,7 +1000,7 @@ class ModeSet(object):
             raise TypeError('model must be an NMA, not {0:s}'
                             .format(type(model)))
         self._model = model
-        self._indices = np.array(indices, np.int64)
+        self._indices = np.array(indices, int)
         
     def __len__(self):
         return len(self._indices)
@@ -1279,12 +1279,12 @@ class GNM(GNMBase):
             raise ValueError('coords must be a 2d array')
         elif coords.shape[1] != 3:
             raise ValueError('shape of coords must be (n_atoms,3)')
-        elif coords.dtype != np.float64:
+        elif coords.dtype != float:
             try:
-                coords = coords.astype(np.float64)
+                coords = coords.astype(float)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
+                                 '{0:s}'.format(float))
                                  
         cutoff = float(cutoff)
         assert cutoff > 0, 'cutoff distance must be greater than 0'
@@ -1504,12 +1504,12 @@ class ANM(GNMBase):
             raise ValueError('coords must be a 2d array')
         elif coords.shape[1] != 3:
             raise ValueError('shape of coords must be (n_atoms,3)')
-        elif coords.dtype != np.float64:
+        elif coords.dtype != float:
             try:
-                coords = coords.astype(np.float64)
+                coords = coords.astype(float)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(np.float64))
+                                 '{0:s}'.format(float))
         
         cutoff = float(cutoff)
         assert cutoff > 0, 'cutoff distance must be greater than 0'
@@ -1535,7 +1535,7 @@ class ANM(GNMBase):
             hessian = scipy_sparse.lil_matrix((dof, dof))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
-            hessian = np.zeros((dof, dof), np.float64)
+            hessian = np.zeros((dof, dof), float)
         if KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
@@ -1733,7 +1733,7 @@ class PCA(NMABase):
         weights = None
         if isinstance(coordsets, np.ndarray): 
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
-                coordsets.dtype not in (np.float32, np.float64):
+                coordsets.dtype not in (np.float32, float):
                 raise ValueError('coordsets is not a valid coordinate array')
         elif isinstance(coordsets, prody.Atomic):
             coordsets = coordsets._getCoordsets()
@@ -1754,15 +1754,15 @@ class PCA(NMABase):
             LOGGER.info('Covariance will be calculated using {0:d} frames.'
                             .format(n_frames))
             coordsum = np.zeros(dof)
-            progress = prody.ProDyProgress(n_frames)
+            LOGGER.progress(n_frames)
             for frame in coordsets:
                 frame.superpose()
                 coords = frame._getCoordinates().flatten()
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
-                progress.report(n_confs)
-            progress.clean()
+                LOGGER.report(n_confs)
+            LOGGER.clear()
             cov /= n_confs
             coordsum /= n_confs
             cov -= np.outer(coordsum, coordsum)
@@ -1780,20 +1780,20 @@ class PCA(NMABase):
             LOGGER.info('Covariance is calculated using {0:d} coordinate sets.'
                             .format(len(coordsets)))
             if weights is None:
-                if coordsets.dtype == np.float64:
+                if coordsets.dtype == float:
                     self._cov = np.cov(coordsets.reshape((n_confs, dof)).T, 
                                        bias=1)
                 else:
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
                     mean = coordsets.mean(0)
-                    progress = prody.ProDyProgress(n_confs)
+                    LOGGER.progress(n_confs)
                     for i, coords in enumerate(
                                             coordsets.reshape((n_confs, dof))):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        progress.report(n_confs)
-                    progress.clean()
+                        LOGGER.report(n_confs)
+                    LOGGER.clear()
                     cov /= n_confs 
                     self._cov = cov
             else:
@@ -1803,7 +1803,7 @@ class PCA(NMABase):
                     mean += coords * weights[i]
                 mean /= weights.sum(0)
                 d_xyz = ((coordsets - mean) * weights).reshape((n_confs, dof))
-                divide_by = weights.astype(np.float64).repeat(3, 
+                divide_by = weights.astype(float).repeat(3, 
                                                 axis=2).reshape((n_confs, dof))
                 self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T, 
                                                             divide_by)
@@ -1895,7 +1895,7 @@ class PCA(NMABase):
                             'array instance')
         if isinstance(coordsets, np.ndarray):
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
-                coordsets.dtype not in (np.float32, np.float64):
+                coordsets.dtype not in (np.float32, float):
                 raise ValueError('coordsets is not a valid coordinate array')
             deviations = coordsets - coordsets.mean(0)
         else:
@@ -2055,7 +2055,7 @@ class GammaStructureBased(Gamma):
     >>> from prody import *
     >>> ubi, header = parsePDB('1aar', chain='A', subset='calpha', header=True)
     >>> assignSecondaryStructure(header, ubi)
-    <AtomGroup: 1aar (76 atoms; 1 coordinate sets, active set index: 0)>
+    <AtomGroup: 1aar_A_ca (76 atoms; 1 coordinate sets, active set index: 0)>
 
     In the above we parsed only the atoms needed for this calculation, i.e.
     Cα atoms from chain A. 
@@ -2489,7 +2489,7 @@ def parseNMD(filename, type=NMA):
     coords = atomic.pop('coordinates', None)
     dof = None
     if coords is not None:
-        coords = np.fromstring( coords, dtype=np.float64, sep=' ')
+        coords = np.fromstring( coords, dtype=float, sep=' ')
         dof = coords.shape[0]
         ag = None
         n_atoms = dof / 3
@@ -2507,19 +2507,19 @@ def parseNMD(filename, type=NMA):
             ag.setChainIdentifiers(data.split())
         data = atomic.pop('resnums', None)
         if data is not None:
-            ag.setResidueNumbers(np.fromstring(data, np.int64, sep=' '))
+            ag.setResidueNumbers(np.fromstring(data, int, sep=' '))
         data = atomic.pop('resids', None)
         if data is not None:
-            ag.setResidueNumbers(np.fromstring(data, np.int64, sep=' '))
+            ag.setResidueNumbers(np.fromstring(data, int, sep=' '))
         data = atomic.pop('bfactors', None)
         if data is not None:
-            ag.setTempFactors(np.fromstring(data, np.float64, sep=' '))
+            ag.setTempFactors(np.fromstring(data, float, sep=' '))
     nma = type(name)
     for mode in modes:
         
         items = mode.split()
         diff = len(items) - dof
-        mode = np.array(items[diff:]).astype(np.float64)
+        mode = np.array(items[diff:]).astype(float)
         if len(mode) != dof:
             pass
         if diff == 1 and not items[0].isdigit():
@@ -2897,7 +2897,9 @@ def calcOverlapTable(rows, cols):
     for i in range(rlen):
         line = rname + (' #{0}'.format(rids[i]+1)).ljust(5)
         for j in range(clen):
-            if overlap[i, j] < 0: 
+            if abs(overlap[i, j]).round(2) == 0.00:
+                minplus = ' '
+            elif overlap[i, j] < 0: 
                 minplus = '-'
             else: 
                 minplus = '+'
@@ -3307,8 +3309,8 @@ def writeArray(filename, array, format='%d', delimiter=' '):
     np.savetxt(filename, array, format, delimiter)
     return filename
 
-def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
-               dtype=np.float64):
+def parseArray(filename, delimiter=None, skiprows=0, usecols=None, 
+               dtype=float):
     """Parse array data from a file.
     
     .. versionadded:: 0.5.3
@@ -3333,8 +3335,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
         The default, ``None``, results in all columns being read.
     :type usecols: list
     
-    :arg dtype: Data-type of the resulting array, default is 
-        :class:`numpy.float64`. 
+    :arg dtype: Data-type of the resulting array, default is :func:`float`. 
     :type dtype: :class:`numpy.dtype`.
     
     """
@@ -3386,7 +3387,7 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     :arg first: First index in the data file (0 or 1), default is ``1``. 
     :type first: int
 
-    Data-type of the resulting array, default is :class:`numpy.float64`. 
+    Data-type of the resulting array, default is :func:`float`. 
 
     """
     irow = int(irow)
@@ -3401,8 +3402,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     sparse = parseArray(filename, delimiter, skiprows)
     dof = sparse[:,[irow, icol]].max() 
     matrix = np.zeros((dof,dof))
-    irow = (sparse[:,irow] - first).astype(np.int64)
-    icol = (sparse[:,icol] - first).astype(np.int64)
+    irow = (sparse[:,irow] - first).astype(int)
+    icol = (sparse[:,icol] - first).astype(int)
     matrix[irow, icol] = sparse[:,idata]
     if symmetric:
         matrix[icol, irow] = sparse[:,idata]
@@ -3785,16 +3786,30 @@ def deform(atoms, mode, rmsd=None):
     else:     
         atoms.addCoordset( atoms.getCoordinates() + array)
 
-def scanPerturbationResponse(model, repeats=100):
+def scanPerturbationResponse(model, atoms=None, repeats=100):
     """|new| Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
-    The function implements the method described in [CA09]_. Columns of the 
-    matrix are average response profile obtained by perturbing the atom/node 
-    position at that column index. PRS is performed using the covariance 
-    matrix from *model*, e.t. :class:`ANM` instance. Each atom/node is 
-    perturbed *repeats* times with a random unit force vector.
+    The function implements the perturbation response scanning (PRS) method 
+    described in [CA09]_. Rows of the matrix are the average magnitude of the 
+    responses obtained by perturbing the atom/node position at that row index, 
+    i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to 
+    perturbations in residue/node *i*. PRS is performed using the covariance 
+    matrix from *model*, e.t. :class:`ANM` instance. Each residue/node is 
+    perturbed *repeats* times with a random unit force vector. When *atoms* 
+    instance is given, PRS profile for residues will be added as an attribute 
+    which then can be retrieved as ``atoms.getAttribute('prs_profile')``. 
+    *model* and *atoms* must have the same number of atoms. *atoms* must be
+    an :class:`~prody.atomic.AtomGroup` instance.
     
-    .. versionadded:: 0.8.2"""
+    .. versionadded:: 0.8.2
+    
+    The RPS matrix can be save as follows:
+        
+    >>> prs_matrix = scanPerturbationResponse(p38_anm)
+    >>> writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
+    'prs_matrix.txt'
+    
+    """
     
     if not isinstance(model, NMABase): 
         raise TypeError('model must be an NMA instance')
@@ -3802,41 +3817,50 @@ def scanPerturbationResponse(model, repeats=100):
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
-    
+    if atoms is not None:
+        if not isinstance(atoms, prody.AtomGroup):
+            raise TypeError('atoms must be an AtomGroup instance')
+        elif atoms.getNumOfAtoms() != model.getNumOfAtoms():
+            raise ValueError('model and atoms must have the same number atoms')
+            
+    assert isinstance(repeats, int), 'repeats must be an integer'
     cov = model.getCovariance()
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
     
     n_atoms = model.getNumOfAtoms()
-    response_matrix = None
-    progress = prody.ProDyProgress(n_atoms)
+    response_matrix = np.zeros((n_atoms, n_atoms))
+    LOGGER.progress(n_atoms)
+    i3 = -3
+    i3p3 = 0
+    LOGGER.info('Starting perturbation response scanning.')
+    start = time.time()
     for i in range(n_atoms):
-        response = np.zeros(n_atoms)
+        i3 += 3
+        i3p3 += 3
         forces = np.random.rand(repeats * 3).reshape((repeats, 3))
         forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
         for force in forces:
-            response += (np.dot(cov[:, i*3:i*3+3], force) ** 2
+            response_matrix[i] += (np.dot(cov[:, i3:i3p3], force) ** 2
                                             ).reshape((n_atoms, 3)).sum(1)
-        response /= repeats
-        if response_matrix is None:
-            response_matrix = response
-        else:
-            response_matrix = np.vstack((response_matrix, response))
-        progress.report(i)
+        LOGGER.report(i)
 
-    return response_matrix.transpose()
+    response_matrix /= repeats
+    LOGGER.clear()
+    LOGGER.info('Perturbation response scanning completed in {0:.1f}s.'
+                .format(time.time()-start))
+    if atoms is not None:
+        atoms.setAttribute('prs_profile', response_matrix)
+    return response_matrix
     
     # save the original PRS matrix
     np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
-    
     # calculate the normalized PRS matrix
- 
     self_dp = np.diag(response_matrix) # using self displacement (diagonal of
                                # the original matrix) as a
                                # normalization factor     
     self_dp = self_dp.reshape(n_atoms, 1)
     norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-
     # suppress the diagonal (self displacement) to facilitate
     # visualizing the response profile
     norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
@@ -4219,7 +4243,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
         projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
-        show = plt.plot(projection[:,0], projection[:,1], *args, **kwargs)
+        show = plt.plot(projection[:, 0], projection[:, 1], *args, **kwargs)
         modes = [m for m in modes]
         plt.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
         plt.ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
@@ -4246,7 +4270,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise ValueError('Projection onto upto 3 modes can be shown. '
                          'You have given {0:d} mode.'.format(len(modes)))
-    
     return show
 
 def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
@@ -4266,6 +4289,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     :arg scale: Scale width of the projection onto one of modes. 
                 ``x`` and ``y`` are accepted.
     :type scale: str
+    :arg scalar: Scalar factor for ``x`` or ``y``.  If ``scalar=None`` is 
+        passed, best scaling factor will be calculated and printed on the
+        console.
+    :type scalar: float
     
     .. versionchanged:: 0.8
        The projected values are by default converted to RMSD. 
@@ -4308,17 +4335,18 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                         .format(type(mode_y)))
     if not mode_y.is3d():
         raise ValueError('mode_y must be 3-dimensional')
-    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', True)) 
+    if scale is not None:
+        assert isinstance(scale, str), 'scale must be a string'
+        scale = scale.lower()
+        assert scale in ('x', 'y'), 'scale must be x or y'
+    if scalar is not None:
+        assert isinstance(scalar, float), 'scalar must be a float'
+    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', True))
     ycoords = calcProjection(ensemble, mode_y, kwargs.pop('rmsd', True))
-    if isinstance(scale, str) and scale.lower() in ('x', 'y'):
-        if scalar is not None:
-            scalar = float(scalar)
-        else:
-            xmin = xcoords.min()
-            xmax = xcoords.max()
-            ymin = ycoords.min()
-            ymax = ycoords.max()
-            scalar = ((ymax - ymin) / (xmax - xmin)) 
+    if scale:
+        if scalar is None:
+            scalar = ((ycoords.max() - ycoords.min()) / 
+                      (xcoords.max() - xcoords.min())) 
             scalar = scalar * np.sign(calcOverlap(mode_x, mode_y))
             if scale == 'x':
                 LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
@@ -4327,13 +4355,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                 scalar = 1 / scalar
                 LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
                             .format(mode_y, scalar))
-        if scale.lower() == 'x':
+        if scale == 'x':
             xcoords = xcoords * scalar  
         else:
             ycoords = ycoords * scalar
-    elif scale is not None:
-        LOGGER.warning('{0:s} is not a valid value for scale argument. '
-                       'Only "x" or "y" are accepted.'.format(str(scale)))
     if 'ls' not in kwargs:
         kwargs['ls'] = 'None'
     if 'marker' not in kwargs:
@@ -4710,14 +4735,12 @@ def resetTicks(x, y=None):
     """Reset X (and Y) axis ticks using values in given *array*.
     
     Ticks in the current figure should not be fractional values for this 
-    function to work as expected. 
-    
-    """
+    function to work as expected."""
     
     if x is not None:
         try:    
             xticks = plt.xticks()[0]
-            xlist = list(xticks.astype(np.int32))
+            xlist = list(xticks.astype(int))
             if xlist[-1] > len(x):
                 xlist.pop()
             if xlist:
@@ -4728,7 +4751,7 @@ def resetTicks(x, y=None):
     if y is not None:
         try:    
             yticks = plt.yticks()[0]
-            ylist = list(yticks.astype(np.int32))
+            ylist = list(yticks.astype(int))
             if ylist[-1] > len(y):
                 ylist.pop()
             if ylist:

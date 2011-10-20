@@ -21,6 +21,8 @@ For now, unit test development should follow these guidelines:
   #. All tests for functions and classes in a ProDy module should be in a 
      single test file named after the module, e.g. :file:`test_proteins.py`.
      
-  #. All test file should be stored in :file:`tests` folder in the ProDy 
+  #. All test files should be stored in :file:`tests` folder in the ProDy 
      package directory, i.e. :file:`prody`
      
+  #. If a test is parsing a file from :file:`tests/data` folder, it should
+     be able to find those files when it is run from any folder.

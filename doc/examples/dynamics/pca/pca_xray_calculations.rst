@@ -73,7 +73,7 @@ We use the same set of structures to reproduce the results.
 After we listed the PDB identifiers, we obtain them using 
 :func:`~prody.proteins.fetchPDB` function as follows:
  
->>> pdbfiles = fetchPDB(pdbids, folder='pdbfiles')
+>>> pdbfiles = fetchPDB(pdbids, folder='pdbfiles', compressed=False)
   
 ``pdbfiles`` variable contains the list of filenames of obtained PDB structures.
 
@@ -85,7 +85,7 @@ structure. We use 1p38 chain A. Note that we won't use
 all of the resolved residues in this structure. We select only those residues
 which are resolved in at least 90% of the dataset. 
 
->>> ref_structure = parsePDB('pdbfiles/1p38.pdb.gz')
+>>> ref_structure = parsePDB('pdbfiles/1p38.pdb')
 >>> ref_structure = ref_structure.copy('resnum 5 to 31 36 to 114 122 to 169 185 to 351 and calpha')
 >>> ref_structure.setName('p38 reference')
 

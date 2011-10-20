@@ -6,19 +6,25 @@
 How to Make a New Release
 *******************************************************************************
 
+#. Make sure ProDy imports and passes unit tests (Python 2.7)::
+     
+     $ python
+     >>> import prody
+     >>> prody.test()
+
 #. Clean the contents of the :file:`Documentation` folder::
 
      $ cd doc
      $ make clean
   
-#. Run tests::
+#. Make sure ProDy passes doctests::
 
      $ make doctest
   
 
 #. Update the version numbers in: 
     
-   * :file:`doc/conf.py`.
+   * :file:`doc/conf.py`
    * :file:`prody/__init__.py` 
 
 
@@ -49,7 +55,8 @@ How to Make a New Release
 
      $ python setup.py register
 
-#. Upload the new release files to the `PyPI <http://pypi.python.org/pypi/ProDy/>`_.
+#. Upload the new release files to the 
+   `PyPI <http://pypi.python.org/pypi/ProDy/>`_.
 
 #. Update the release download file names::
    
