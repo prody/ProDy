@@ -294,6 +294,7 @@ from .ensemble import *
 LOGGER = prody.LOGGER
 from prody import ProDyAtomSelect as SELECT
 from prody import ProDyException
+checkCoordsArray = prody.checkCoordsArray
 
 __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
            
@@ -1391,31 +1392,19 @@ class ANM(GNMBase):
             try:
                 coords = coords.getCoordinates()
             except AttributeError:
-                raise TypeError('coords must be an ndarray instance or '
-                                'must contain getCoordinates as an attribute')
+                raise TypeError('coords must be a Numpy array or must have '
+                                'getCoordinates attribute')
+        coords = checkCoordsArray(coords, 'coords')
 
-        
-        
-        if coords.ndim != 2:
-            raise ValueError('coords must be a 2d array')
-        elif coords.shape[1] != 3:
-            raise ValueError('shape of coords must be (n_atoms,3)')
-        elif coords.dtype != float:
-            try:
-                coords = coords.astype(float)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(float))
         if not isinstance(cutoff, (float, int)):
             raise TypeError('cutoff must be a float or an integer')
         elif cutoff < 4:
             raise ValueError('cutoff must be greater or equal to 4')
-        self._cutoff = cutoff
         if isinstance(gamma, Gamma):
-            self._gamma = gamma
+            g = gamma
             gamma = gamma.gamma
         elif isinstance(gamma, FunctionType):
-            self._gamma = gamma
+            g = gamma
         else:
             if not isinstance(gamma, (float, int)):
                 raise TypeError('gamma must be a float, an integer, derived '
@@ -1423,9 +1412,10 @@ class ANM(GNMBase):
             elif gamma <= 0:
                 raise ValueError('gamma must be greater than 0')
             g = float(gamma)
-            self._gamma = g
             gamma = lambda dist2, i, j: g 
         self._reset()
+        self._cutoff = cutoff
+        self._gamma = g
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
         start = time.time()
