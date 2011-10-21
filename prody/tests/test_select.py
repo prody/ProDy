@@ -289,7 +289,7 @@ class TestSelectMeta(type):
 
 class TestSelect(unittest.TestCase):
     
-    """Test :func:`~prody.proteins.fetchPDB` function."""
+    """Test :class:`~prody.select.select`."""
     __metaclass__ = TestSelectMeta
     
     '''
