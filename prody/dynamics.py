@@ -1362,13 +1362,13 @@ class ANM(GNMBase):
         :type coords: :class:`~numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
         :arg cutoff: Cutoff distance (Å) for pairwise interactions,
-            default is 15.0 Å. 
+            default is 15.0 Å, minimum is 4.0 Å 
         :type cutoff: float
         
-        :arg gamma: Spring constant, default is 1.0. 
+        :arg gamma: spring constant, default is 1.0 
         :type gamma: float, :class:`Gamma`
         
-        :arg sparse: Elect to use sparse matrices. Default is ``False``. If 
+        :arg sparse: slect to use sparse matrices. Default is ``False``. If 
             Scipy is not found, :class:`ImportError` is raised.
         :type sparse: bool
         
@@ -1394,6 +1394,8 @@ class ANM(GNMBase):
                 raise TypeError('coords must be an ndarray instance or '
                                 'must contain getCoordinates as an attribute')
 
+        
+        
         if coords.ndim != 2:
             raise ValueError('coords must be a 2d array')
         elif coords.shape[1] != 3:
@@ -1404,9 +1406,10 @@ class ANM(GNMBase):
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(float))
-        
-        cutoff = float(cutoff)
-        assert cutoff > 0, 'cutoff distance must be greater than 0'
+        if not isinstance(cutoff, (float, int)):
+            raise TypeError('cutoff must be a float or an integer')
+        elif cutoff < 4:
+            raise ValueError('cutoff must be greater or equal to 4')
         self._cutoff = cutoff
         if isinstance(gamma, Gamma):
             self._gamma = gamma
@@ -1414,8 +1417,12 @@ class ANM(GNMBase):
         elif isinstance(gamma, FunctionType):
             self._gamma = gamma
         else:
+            if not isinstance(gamma, (float, int)):
+                raise TypeError('gamma must be a float, an integer, derived '
+                                 'from Gamma, or a function')
+            elif gamma <= 0:
+                raise ValueError('gamma must be greater than 0')
             g = float(gamma)
-            assert g > 0, 'force constant (gamma) must be greater than 0'
             self._gamma = g
             gamma = lambda dist2, i, j: g 
          
@@ -1435,11 +1442,6 @@ class ANM(GNMBase):
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
             for i, j in kdtree.all_get_indices():
-                #if k < i:
-                #    j = i
-                #    i = k
-                #else:
-                #    j = k
                 i2j = coords[j] - coords[i]
                 dist2 = np.dot(i2j, i2j)
                 g = gamma(dist2, i, j)
@@ -1450,8 +1452,10 @@ class ANM(GNMBase):
                 res_j33 = res_j3+3
                 hessian[res_i3:res_i33, res_j3:res_j33] = super_element
                 hessian[res_j3:res_j33, res_i3:res_i33] = super_element
-                hessian[res_i3:res_i33, res_i3:res_i33] = hessian[res_i3:res_i33, res_i3:res_i33] - super_element
-                hessian[res_j3:res_j33, res_j3:res_j33] = hessian[res_j3:res_j33, res_j3:res_j33] - super_element
+                hessian[res_i3:res_i33, res_i3:res_i33] = \
+                    hessian[res_i3:res_i33, res_i3:res_i33] - super_element
+                hessian[res_j3:res_j33, res_j3:res_j33] = \
+                    hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
                 kirchhoff[i, i] = kirchhoff[i, i] - g
