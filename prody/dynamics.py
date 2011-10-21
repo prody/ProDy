@@ -1425,7 +1425,7 @@ class ANM(GNMBase):
             g = float(gamma)
             self._gamma = g
             gamma = lambda dist2, i, j: g 
-         
+        self._reset()
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
         start = time.time()
