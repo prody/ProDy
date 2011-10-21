@@ -36,6 +36,7 @@ RTOL = 0
 
 
 ATOMS = parseDatafile('1ubi')
+COORDS = ATOMS.getCoordinates() 
 
 ANM_HESSIAN = parseDatafile('anm1ubi_hessian', symmetric=True)
 ANM_EVALUES = parseDatafile('anm1ubi_evalues')[:,1].flatten()
@@ -48,62 +49,219 @@ GNM_EVECTORS = parseDatafile('gnm1ubi_vectors', usecols=range(3,23))
  
 anm = ANM() 
 anm.buildHessian(ATOMS)
-anm.calcModes(n_modes=30, zeros=True)
+anm.calcModes(n_modes=None, zeros=True)
 
 gnm = GNM() 
 gnm.buildKirchhoff(ATOMS)
 gnm.calcModes(n_modes=None, zeros=True)
 
-class TestANM(unittest.TestCase):
+class testGNMBase(unittest.TestCase):
+    
+    def setUp(self):
+        
+        self.model = gnm
+
+    
+    def testGetCutoff(self):
+        """Testing return type of :meth:`~prody.dynamics.GNMBase.getCutoff`."""
+        
+        self.assertIsInstance(self.model.getCutoff(), float,
+                              'getCutoff failed to return a float')
+        
+    def testGetGamma(self):
+        """Testing return type of :meth:`~prody.dynamics.GNMBase.getGamma`."""
+
+        self.assertIsInstance(self.model.getGamma(), float,
+                              'getCutoff failed to return a float')
+    
+
+class TestANMResults(testGNMBase):
+
+    def setUp(self):
+        
+        self.model = anm
 
     @unittest.skipIf(NONOSE, NONOSE_MSG)    
     def testEigenvalues(self):
+        """Test eigenvalues."""
         
-        assert_allclose(anm.getEigenvalues(), ANM_EVALUES, 
+        assert_allclose(anm[:len(ANM_EVALUES)].getEigenvalues(), ANM_EVALUES, 
                         rtol=RTOL, atol=ATOL*10,
-                        err_msg='failed when comparing eigenvalues')
+                        err_msg='failed to get correct eigenvalues')
 
 
     @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testEigenvectors(self):
-        _temp = np.abs(np.dot(anm[6:26].getEigenvectors().T, ANM_EVECTORS))
+        """Test eigenvectors."""
+        
+        _temp = np.abs(np.dot(anm[6:6+ANM_EVECTORS.shape[1]].getEigenvectors().T, 
+                              ANM_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
-                        err_msg='comparing eigenvectors')
+                        err_msg='failed to get correct eigenvectors')
 
     @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testHessian(self):
+        """Test Hessian matrix."""
+        
         assert_allclose(anm.getHessian(), ANM_HESSIAN, rtol=0, atol=ATOL,
-                        err_msg='comparing Hessian')
+                        err_msg='failed to get correct Hessian matrix')
 
     @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testVariances(self):
-        assert_allclose(anm[6:].getVariances(), 1/ANM_EVALUES[6:], 
+        """Test variances."""
+        
+        assert_allclose(anm[6:len(ANM_EVALUES)].getVariances(), 
+                        1/ANM_EVALUES[6:], 
                         rtol=0, atol=ATOL*100,
-                        err_msg='comparing variances')
+                        err_msg='failed to get correct variances')
 
-class TestGNM(unittest.TestCase):
+class TestANMSparse(unittest.TestCase):
     
+    """Test result from using sparse matrices."""
+    
+    @dec.slow
+    @unittest.skipIf(NONOSE, NONOSE_MSG)
+    @unittest.skipIf(True, 'not completed')
+    def testSparse(self):
+        
+        anm = ANM()
+        anm.buildHessian(COORDS, sparse=True)
+        assert_allclose(anm.getHessian().toarray(), ANM_HESSIAN, 
+                        rtol=0, atol=ATOL,
+                        err_msg='failed to get correct sparse Hessian matrix')
+        anm.calcModes(None)
+        assert_allclose(anm[:len(ANM_EVALUES)].getEigenvalues(), ANM_EVALUES, 
+                        rtol=RTOL, atol=ATOL*10,
+                        err_msg='failed to get correct eigenvalues')
+        _temp = np.abs(np.dot(anm[6:6+ANM_EVECTORS.shape[1]].getEigenvectors().T, 
+                              ANM_EVECTORS))
+        assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
+                        err_msg='failed to get correct eigenvectors')
+
+class TestGNMResults(testGNMBase):
+    
+    def setUp(self):
+        
+        self.model = anm
+
     @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testEigenvalues(self):
         assert_allclose(gnm[:21].getEigenvalues(), GNM_EVALUES[:21], 
                         rtol=RTOL, atol=ATOL*100,
-                        err_msg='failed when comparing gnm slow eigenvalues')
+                        err_msg='failed to get correct slow eigenvalues')
                         
         assert_allclose(gnm[-21:].getEigenvalues(), GNM_EVALUES[21:], 
                         rtol=RTOL, atol=ATOL*100,
-                        err_msg='failed when comparing gnm fast eigenvalues')
+                        err_msg='failed to get correct fast eigenvalues')
 
     @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testEigenvectors(self):
         _temp = np.abs(np.dot(gnm[1:21].getEigenvectors().T, GNM_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL*10,
-                       err_msg='comparing gnm eigenvectors')
+                       err_msg='failed to get correct eigenvectors')
 
     @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testKirchhoff(self):
         assert_allclose(gnm.getKirchhoff(), GNM_KIRCHHOFF, 
                         rtol=0, atol=ATOL,
-                        err_msg='comparing Kirchhoff')
+                        err_msg='failed to get correct Kirchhoff matrix')
+
+class TestGNM(unittest.TestCase): 
+    
+    def setUp(self):
+        
+        self.model = GNM()
+        self.buildMatrix = self.model.buildKirchhoff
+        self.setMatrix = self.model.setKirchhoff
+        self.getMatrix = self.model.getKirchhoff
+        self.getExpected = gnm.getKirchhoff
+    
+    def testBuildMatrixCoordsWrongType(self):
+        """Test response to wrong type *coords* argument."""
+    
+        self.assertRaises(TypeError, self.buildMatrix, 'nogood')
+
+    def testBuildMatrixWrongCoords(self):
+        """Test response to wrong coords.dtype."""
+    
+        array = np.array([['a','a','a'] for i in range(10)])
+        self.assertRaises(ValueError, self.buildMatrix, array)
+
+    @unittest.skipIf(NONOSE, NONOSE_MSG)
+    def testBuildMatrixCoordsArray(self):
+        """Test output when  *coords* is an array."""
+        
+        self.buildMatrix(COORDS)
+        assert_equal(self.getMatrix(), self.getExpected(),
+                     'failed to get correct matrix')
+    
+    def testBuildMatrixCutoffWrongType(self):
+        """Test response to cutoff of wrong type."""
+        
+        self.assertRaises(TypeError, self.buildMatrix, COORDS, 'none')
+
+    def testBuildMatrixCutoffInvalidValue(self):
+        """Test response to wrong *cutoff* argument."""
+        
+        self.assertRaises(ValueError, self.buildMatrix, COORDS, -1)
+
+    def testBuildKirchhoffInvalidGamma(self):
+        """Test response to invalid *gamma* argument."""
+        
+        self.assertRaises(TypeError, self.buildMatrix, COORDS, gamma='none')
+
+    def testBuildKirchhoffWrongGamma(self):
+        """Test response to wrong *gamma* argument."""
+        
+        self.assertRaises(ValueError, self.buildMatrix, COORDS, gamma=0)
+
+    def testSetMatrixWrongType(self):
+        """Test response to wrong matrix type argument."""
+
+        self.assertRaises(TypeError, self.setMatrix, list(np.ones((3,3))))
+
+    def testSetMatrixWrongDim(self):
+        """Test response to wrong dim *kirchhoff* argument."""
+
+        self.assertRaises(ValueError, self.setMatrix, np.ones((3,4,3)))
+        
+    def testSetMatrixNonSquare(self):
+        """Test response to non-square matrix."""
+
+        self.assertRaises(ValueError, self.setMatrix, np.ones((3,4)))
+
+    def testSetMatrixWrongDtype(self):
+        """Test response to wrong matrix.dtype."""
+
+        array = np.array([['a','a','a'] for i in range(3)])
+        self.assertRaises(ValueError, self.setMatrix, array)
+
+    def testSetMatrixAcceptableDtype(self):
+        """Test response to acceptable matrix.dtype."""
+
+        self.assertIsNone(self.setMatrix(np.ones((30,30), int)),
+                          'failed to set an acceptable array')
+
+class TestANM(TestGNM): 
+    
+    def setUp(self):
+        
+        self.model = ANM()
+        self.anm = self.model
+        self.buildMatrix = self.model.buildHessian
+        self.getMatrix = self.model.getHessian
+        self.setMatrix = self.model.setHessian
+        self.getExpected = anm.getHessian
+    
+    def testSetHessianWrongShape(self):
+        """Test response to wrong shape *hessian* argument."""
+
+        self.assertRaises(ValueError, self.model.setHessian, np.ones((5,5)))
+
+class TestGNMCalcModes(unittest.TestCase):
+    
+    def setUp():
+        pass
 
 if __name__ == '__main__':
     unittest.main()
