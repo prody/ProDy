@@ -1269,6 +1269,10 @@ class GNM(GNMBase):
         
         if self._kirchhoff is None:
             raise ProDyException('Kirchhoff matrix is not built or set')
+        assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
+            'n_modes must be a positive integer'
+        assert isinstance(zeros, bool), 'zeros must be a boolean'
+        assert isinstance(turbo, bool), 'turbo must be a boolean'
         if linalg is None:
             prody.importLA()
         start = time.time()
@@ -1278,7 +1282,6 @@ class GNM(GNMBase):
                 eigvals = None
                 n_modes = self._dof 
             else:
-                n_modes = int(n_modes)
                 if n_modes >= self._dof:
                     eigvals = None
                     n_modes = self._dof
@@ -1465,8 +1468,10 @@ class ANM(GNMBase):
                     super_element = np.outer(i2j, i2j) * (- g / dist2) 
                     hessian[res_i3:res_i33, res_j3:res_j33] = super_element 
                     hessian[res_j3:res_j33, res_i3:res_i33] = super_element
-                    hessian[res_i3:res_i33, res_i3:res_i33] = hessian[res_i3:res_i33, res_i3:res_i33] - super_element
-                    hessian[res_j3:res_j33, res_j3:res_j33] = hessian[res_j3:res_j33, res_j3:res_j33] - super_element
+                    hessian[res_i3:res_i33, res_i3:res_i33] = \
+                        hessian[res_i3:res_i33, res_i3:res_i33] - super_element
+                    hessian[res_j3:res_j33, res_j3:res_j33] = \
+                        hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
                     kirchhoff[i, i] = kirchhoff[i, i] - g
@@ -1495,9 +1500,13 @@ class ANM(GNMBase):
         
         if self._hessian is None:
             raise ProDyException('Hessian matrix is not built or set')
+        assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
+            'n_modes must be a positive integer'
+        assert isinstance(zeros, bool), 'zeros must be a boolean' 
+        assert isinstance(turbo, bool), 'turbo must be a boolean'
         if linalg is None:
             prody.importLA()
-            
+        
         start = time.time()
         shift = 5
         if scipyla:
@@ -1505,7 +1514,6 @@ class ANM(GNMBase):
                 eigvals = None
                 n_modes = self._dof 
             else: 
-                n_modes = int(n_modes)
                 if n_modes >= self._dof:
                     eigvals = None
                     n_modes = self._dof 
