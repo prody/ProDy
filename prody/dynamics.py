@@ -1108,13 +1108,12 @@ class GNMBase(NMABase):
     
     def getGamma(self):
         """Return spring constant (or the gamma function or :class:`Gamma`
-        instance).
+        instance)."""
         
-        """
         return self._gamma
 
     def getKirchhoff(self):
-        """Return Kirchhoff matrix."""
+        """Return a copy of the Kirchhoff matrix."""
         
         if self._kirchhoff is None: return None
         return self._kirchhoff.copy()    
@@ -1202,20 +1201,9 @@ class GNM(GNMBase):
             try:
                 coords = coords.getCoordinates()
             except AttributeError:
-                raise TypeError('coords must be an ndarray instance or '
-                                'must contain getCoordinates as an attribute')
-
-        if coords.ndim != 2:
-            raise ValueError('coords must be a 2d array')
-        elif coords.shape[1] != 3:
-            raise ValueError('shape of coords must be (n_atoms,3)')
-        elif coords.dtype != float:
-            try:
-                coords = coords.astype(float)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(float))
-                                 
+                raise TypeError('coords must be a Numpy array or must have '
+                                'getCoordinates attribute')
+        coords = checkCoordsArray(coords, 'coords')
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff
@@ -1358,7 +1346,7 @@ class ANM(GNMBase):
         GNMBase._reset(self)
         
     def getHessian(self):
-        """Return a copy of Hessian matrix."""
+        """Return a copy of the Hessian matrix."""
         
         if self._hessian is None: return None
         return self._hessian.copy()
@@ -1422,7 +1410,6 @@ class ANM(GNMBase):
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
         coords = checkCoordsArray(coords, 'coords')
-
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff
