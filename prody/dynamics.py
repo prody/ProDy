@@ -1119,6 +1119,27 @@ class GNMBase(NMABase):
         if self._kirchhoff is None: return None
         return self._kirchhoff.copy()    
 
+def checkENMParameters(cutoff, gamma):
+    """Check type and values of *cutoff* and *gamma*."""
+
+    if not isinstance(cutoff, (float, int)):
+        raise TypeError('cutoff must be a float or an integer')
+    elif cutoff < 4:
+        raise ValueError('cutoff must be greater or equal to 4')
+    if isinstance(gamma, Gamma):
+        gamma_func = gamma.gamma
+    elif isinstance(gamma, FunctionType):
+        gamma_func = gamma
+    else:
+        if not isinstance(gamma, (float, int)):
+            raise TypeError('gamma must be a float, an integer, derived '
+                             'from Gamma, or a function')
+        elif gamma <= 0:
+            raise ValueError('gamma must be greater than 0')
+        gamma = float(gamma)
+        gamma_func = lambda dist2, i, j: gamma 
+    return cutoff, gamma, gamma_func 
+
 class GNM(GNMBase):
     
     """A class for Gaussian Network Model (GNM) analysis of proteins 
@@ -1132,9 +1153,16 @@ class GNM(GNMBase):
         """Set Kirchhoff matrix."""
         
         if not isinstance(kirchhoff, np.ndarray):
-            raise TypeError('kirchhoff must be an ndarray')
-        elif not (kirchhoff.ndim == 2 and kirchhoff.shape[0] == kirchhoff.shape[1]):
-            raise TypeError('kirchhoff must be square matrix')
+            raise TypeError('kirchhoff must be a Numpy array')
+        elif not kirchhoff.ndim == 2 or \
+                 kirchhoff.shape[0] != kirchhoff.shape[1]:
+            raise ValueError('kirchhoff must be a square matrix')
+        elif kirchhoff.dtype != float:
+            try:
+                kirchhoff = kirchhoff.astype(float)
+            except:
+                raise ValueError('kirchhoff.dtype must be float')
+                
         self._reset()
         self._kirchhoff = kirchhoff
         self._n_atoms = kirchhoff.shape[0]
@@ -1146,11 +1174,11 @@ class GNM(GNMBase):
         :arg coords: a coordinate set or anything with getCoordinates method
         :type coords: :class:`~numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
-        :arg cutoff: Cutoff distance (Å) for pairwise interactions
-            default is 10.0 Å
+        :arg cutoff: cutoff distance (Å) for pairwise interactions
+            default is 10.0 Å, , minimum is 4.0 Å
         :type cutoff: float
         
-        :arg gamma: Spring constant, default is 1.0.
+        :arg gamma: spring constant, default is 1.0
         :type gamma: float
         
         :arg sparse: Elect to use sparse matrices. Default is ``False``. If 
@@ -1188,19 +1216,11 @@ class GNM(GNMBase):
                 raise ValueError('coords array cannot be assigned type '
                                  '{0:s}'.format(float))
                                  
-        cutoff = float(cutoff)
-        assert cutoff > 0, 'cutoff distance must be greater than 0'
+        cutoff, g, gamma = checkENMParameters(cutoff, gamma)
+        self._reset()
         self._cutoff = cutoff
-        if isinstance(gamma, Gamma):
-            self._gamma = gamma
-            gamma = gamma.gamma
-        elif isinstance(gamma, FunctionType):
-            self._gamma = gamma
-        else:
-            g = float(gamma)
-            assert g > 0, 'force constant (gamma) must be greater than 0'
-            self._gamma = g
-            gamma = lambda dist2, i, j: g
+        self._gamma = g
+                    
         n_atoms = coords.shape[0]
         start = time.time()
         if sparse:
@@ -1348,9 +1368,16 @@ class ANM(GNMBase):
         lower- or upper-triangular matrix."""
         
         if not isinstance(hessian, np.ndarray):
-            raise TypeError('hessian must be an ndarray')
-        elif not (hessian.ndim == 2 and hessian.shape[0] == hessian.shape[1]):
-            raise TypeError('hessian must be square matrix')
+            raise TypeError('hessian must be a Numpy array')
+        elif hessian.ndim != 2 or hessian.shape[0] != hessian.shape[1]:
+            raise ValueError('hessian must be square matrix')
+        elif hessian.shape[0] % 3:
+            raise ValueError('hessian.shape must be (3*n_atoms,3*n_atoms)')
+        elif hessian.dtype != float:
+            try:
+                hessian = hessian.astype(float)
+            except:
+                raise ValueError('hessian.dtype must be float')
         self._reset()
         self._hessian = hessian
         self._dof = hessian.shape[0]
@@ -1362,7 +1389,7 @@ class ANM(GNMBase):
         :arg coords: a coordinate set or anything with getCoordinates method
         :type coords: :class:`~numpy.ndarray` or :class:`~prody.atomic.Atomic`
         
-        :arg cutoff: Cutoff distance (Å) for pairwise interactions,
+        :arg cutoff: cutoff distance (Å) for pairwise interactions,
             default is 15.0 Å, minimum is 4.0 Å 
         :type cutoff: float
         
@@ -1396,23 +1423,7 @@ class ANM(GNMBase):
                                 'getCoordinates attribute')
         coords = checkCoordsArray(coords, 'coords')
 
-        if not isinstance(cutoff, (float, int)):
-            raise TypeError('cutoff must be a float or an integer')
-        elif cutoff < 4:
-            raise ValueError('cutoff must be greater or equal to 4')
-        if isinstance(gamma, Gamma):
-            g = gamma
-            gamma = gamma.gamma
-        elif isinstance(gamma, FunctionType):
-            g = gamma
-        else:
-            if not isinstance(gamma, (float, int)):
-                raise TypeError('gamma must be a float, an integer, derived '
-                                 'from Gamma, or a function')
-            elif gamma <= 0:
-                raise ValueError('gamma must be greater than 0')
-            g = float(gamma)
-            gamma = lambda dist2, i, j: g 
+        cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff
         self._gamma = g
