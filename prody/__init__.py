@@ -542,18 +542,16 @@ def checkCoordsArray(array, arg='array', cset=False, n_atoms=None,
 __all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
            'checkUpdates', 'plog']
 
-def test(verbosity=2, descriptions=True, stream=sys.stderr):
+def test(**kwargs):
+    """Run ProDy tests. See :mod:`prody.testing` documentation for more 
+    details, i.e. ``import prody.tests; help(prody.tests)``"""
     
-    if sys.version_info[:2] > (2,6):    
-        try:
-            import prody.tests
-        except ImportError:
-            LOGGER.warning('Could not import test modules.')
-        else:
-            tests.test(verbosity, descriptions, stream)
+    try:
+        import prody.tests
+    except ImportError:
+        LOGGER.warning('Could not import test modules.')
     else:
-        LOGGER.warning('Unit tests are compatible with Python 2.7 and later.')
-        
+        tests.test(**kwargs)
 
 from . import atomic 
 from atomic import *
@@ -564,33 +562,37 @@ from . import select
 from select import *
 __all__.extend(select.__all__)
 __all__.append('select')
+
 ProDyAtomSelect = Select()
 
 import proteins
 from proteins import *  
 __all__.extend(proteins.__all__)
+__all__.append('proteins')
 
 from . import measure
 from measure import *
 __all__.extend(measure.__all__)
+__all__.append('measure')
 
 from . import compare
 from compare import *
 __all__.extend(compare.__all__)
+__all__.append('compare')
 
 from . import dynamics
 from .dynamics import *
 __all__.extend(dynamics.__all__)
+__all__.append('dynamics')
 
 from . import ensemble
 from .ensemble import *
 __all__.extend(ensemble.__all__)
+__all__.append('ensemble')
 
 #from . import volume
 #from .volume import *
 #__all__.extend(volume.__all__)
 
-
 import prody
-
 __all__.append('prody')
