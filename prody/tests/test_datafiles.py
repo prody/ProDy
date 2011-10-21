@@ -26,6 +26,7 @@ import unittest
 import inspect
 import tempfile
 
+import numpy as np
 import prody
 
 
@@ -44,7 +45,15 @@ DATA_FILES = {
         'pdb': '2k39',
         'file': 'pdb2k39_truncated.pdb',
         'atoms': 167,
-        'models': 3
+        'models': 3,
+        'rmsd_all_aligned': np.array([0.000, 1.380, 1.745]),
+        'rmsd_bb_aligned': np.array([0.000, 0.367, 0.395]),
+        'rmsd_ca_aligned': np.array([0.000, 0.393, 0.411]),
+        'rmsd_noh_aligned': np.array([0.000, 0.985, 1.285]),
+        'rmsd_all': np.array([0.000, 1.539, 1.964]),
+        'rmsd_bb': np.array([0.000, 0.654, 0.678]),
+        'rmsd_ca': np.array([0.000, 0.680, 0.690]),
+        'rmsd_noh': np.array([0.000, 1.191, 1.543]),
     },
     'dssp': {
         'pdb': '1r19',

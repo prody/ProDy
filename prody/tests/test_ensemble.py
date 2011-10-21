@@ -35,8 +35,9 @@ ATOMS = parseDatafile('multi_model_truncated', subset='ca')
 
 ENSEMBLE = Ensemble(ATOMS)
 CONF = ENSEMBLE[0]
-ENSEMBLE_RMSD = parseDatafile('pdb2k39_truncated_RMSDca.dat')
-ENSEMBLE_SUPERPOSE = parseDatafile('pdb2k39_truncated_alignRMSDca.dat')
+DATA = DATA_FILES['multi_model_truncated']
+ENSEMBLE_RMSD = DATA['rmsd_ca']
+ENSEMBLE_SUPERPOSE = DATA['rmsd_ca_aligned']
 
 ENSEMBLEW = Ensemble(ATOMS)
 ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
