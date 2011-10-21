@@ -84,6 +84,7 @@ DATA_FILES = {
     },
 }
 
+
 PARSERS = {
     '.pdb': prody.parsePDB,
     '.coo': prody.parseSparseMatrix,
@@ -93,7 +94,7 @@ PARSERS = {
 TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
                                                    inspect.currentframe()))[0])
 __all__ = ['parseDatafile', 'getDatafilePath', 
-           'DATA_FILES', 'NONOSE', 'NONOSE_MSG']
+           'DATA_FILES', 'TEMPDIR', 'NONOSE', 'NONOSE_MSG']
 
 
 def getDatafilePath(filename):
@@ -110,6 +111,10 @@ def parseDatafile(filename, **kwargs):
         filename = DATA_FILES[filename]['file']
     fn = getDatafilePath(filename)
     return PARSERS[os.path.splitext(fn)[1]](fn, **kwargs)
+
+for name, value in DATA_FILES.iteritems():
+    value['path'] = getDatafilePath(value['file'])
+
 
 class TestDatafilesMeta(type):
     

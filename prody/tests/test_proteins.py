@@ -27,53 +27,27 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import os
-import os.path
-import sys
-import unittest
-import tempfile
-import inspect
-import prody
-import numpy as np
-from prody.proteins import *
-from prody import proteins
 
-TEMPDIR = tempfile.gettempdir()
-TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
-                                                   inspect.currentframe()))[0])
+import unittest
+import numpy as np
+from numpy.testing import *
+
+from prody import *
+from test_datafiles import *
 
 prody.changeVerbosity('none')
-
-PDB_FILES = {
-    'multi_model_truncated': {
-        'pdb': '2k39',
-        'path': os.path.join(TESTS_PATH, 'data/pdb2k39_truncated.pdb'),
-        'atoms': 167,
-        'models': 3
-    },
-    'dssp': {
-        'pdb': '1r19',
-        'path': os.path.join(TESTS_PATH, 'data/pdb1r19_dssp.pdb'),
-        'atoms': 8216,
-        'models': 1
-    },
-    'oneatom': {
-        'pdb': '1ejg',
-        'path': os.path.join(TESTS_PATH, 'data/pdb1ejg_oneatom.pdb'),
-        'atoms': 1,
-        'models': 1
-    },
-    
-}
 
 class TestFetchPDB(unittest.TestCase):
     
     """Test :func:`~prody.proteins.fetchPDB` function."""
     
+    @dec.slow
     def setUp(self):
         """Instantiate a list for storing downloaded file names."""
         
         self.filenames = []
     
+    @dec.slow
     def testFetchingSingleFile(self):
         """Test the outcome of fetching a single PDB file."""
         
@@ -82,6 +56,7 @@ class TestFetchPDB(unittest.TestCase):
             'fetching a single PDB file failed')
         self.filenames.append(fn)
         
+    @dec.slow
     def testFetchingMultipleFiles(self): 
         """Test the outcome of fetching multiple PDB files."""
         
@@ -91,7 +66,8 @@ class TestFetchPDB(unittest.TestCase):
         self.assertTrue(all([os.path.isfile(fn) for fn in fns]),
             'fetching multiple PDB files failed')
         self.filenames.extend(fns)
-        
+    
+    @dec.slow
     def testCompressedArgument(self):
         """Test decompressing fetched PDB files."""
         
@@ -102,6 +78,7 @@ class TestFetchPDB(unittest.TestCase):
             'decompressing PDB files failed')
         self.filenames.extend(fns)
 
+    
     def testInvalidPDBIdentifier(self):
         """Test outcome of passing invalid PDB identifiers."""
         
@@ -111,7 +88,7 @@ class TestFetchPDB(unittest.TestCase):
         self.assertFalse(all(fetchPDB(
                     ['XXXXX', '654654', '-/-*/+', ''], folder=TEMPDIR)),
             'failed to return None for invalid PDB identifiers')
-        
+    @dec.slow    
     def tearDown(self):
         """Remove downloaded files from disk."""
         
@@ -124,9 +101,9 @@ class TestParsePDB(unittest.TestCase):
     def setUp(self):
         """Set PDB file data and parse the PDB file."""
         
-        self.pdb = PDB_FILES['multi_model_truncated']
-        self.one = PDB_FILES['oneatom']
-        self.ag = parsePDB(self.pdb['path'])
+        self.pdb = DATA_FILES['multi_model_truncated']
+        self.one = DATA_FILES['oneatom']
+        self.ag = parseDatafile(self.pdb['file'])
          
     def testReturnType(self):
         """Test the outcome of a simple parsing scenario."""
@@ -152,19 +129,19 @@ class TestParsePDB(unittest.TestCase):
         instance."""
         
         self.assertEqual(self.ag.getName(), 
-             os.path.splitext(os.path.split(self.pdb['path'])[1])[0],
+             os.path.splitext(self.pdb['file'])[0],
             'failed to set AtomGroup name based on filename')
 
     def testPDBArgument(self):
         """Test outcome of invalid *pdb* arguments."""
         
-        self.assertRaises(IOError, parsePDB, self.pdb['path'] + '.gz')
+        self.assertRaises(IOError, parsePDB, self.pdb['file'] + '.gz')
         self.assertRaises(TypeError, parsePDB, None)
 
     def testModelArgument(self):
         """Test outcome of valid and invalid *model* arguments."""
         
-        path = self.pdb['path']
+        path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, model='0')
         self.assertRaises(ValueError, parsePDB, path, model=-1)
         self.assertRaises(proteins.PDBParserError, parsePDB, path, 
@@ -180,7 +157,7 @@ class TestParsePDB(unittest.TestCase):
     def testNameArgument(self):
         """Test outcome of *name* argument."""
         
-        path = self.pdb['path']
+        path = getDatafilePath(self.pdb['file'])
         name = 'small protein'    
         self.assertEqual(parsePDB(path, name=name).getName(), 
              name, 'parsePDB failed to set user given name')
@@ -192,7 +169,7 @@ class TestParsePDB(unittest.TestCase):
     def testChainArgument(self):
         """Test outcome of valid and invalid *chain* arguments."""
         
-        path = self.pdb['path']
+        path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, chain=['A'])
         self.assertRaises(ValueError, parsePDB, path, chain='')
         self.assertIsNone(parsePDB(path, chain='$'))
@@ -204,7 +181,7 @@ class TestParsePDB(unittest.TestCase):
     def testSubsetArgument(self):
         """Test outcome of valid and invalid *subset* arguments."""
 
-        path = self.pdb['path']
+        path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, subset=['A'])
         self.assertRaises(ValueError, parsePDB, path, subset='')
         self.assertEqual(parsePDB(path, subset='ca').getNumOfAtoms(), 10,
@@ -216,7 +193,7 @@ class TestParsePDB(unittest.TestCase):
         
         """Test outcome of valid and invalid *ag* arguments."""
 
-        path = self.pdb['path']
+        path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
         ag = prody.AtomGroup('One atom')
         ag.setCoordinates(prody.np.array([[0, 0, 0]]))
@@ -239,14 +216,17 @@ class TestParsePDB(unittest.TestCase):
 
 class TestWritePDB(unittest.TestCase):
     
+    @dec.slow
     def setUp(self):
         """Set PDB file data and parse the PDB file."""
         
-        self.pdb = PDB_FILES['multi_model_truncated']
+        self.pdb = DATA_FILES['multi_model_truncated']
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR) 
+    
+    @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
     def testParsingOutput(self):
         """Test if parsing output is the same as parsing original file."""
@@ -262,6 +242,7 @@ class TestWritePDB(unittest.TestCase):
         self.assertEqual(self.ag.getNumOfCoordsets(), out.getNumOfCoordsets(),
             'writePDB failed to write correct number of atoms')
             
+    @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
     def testModelArgument(self):
         """Test valid and invalid model arguments and if specified model
@@ -278,6 +259,7 @@ class TestWritePDB(unittest.TestCase):
                                     self.ag.getCoordsets(i)),
                 'writePDB failed to write coordinates correctly')
                 
+    @dec.slow
     def tearDown(self):
         """Remove test file."""
         
@@ -288,8 +270,7 @@ class TestWritePDB(unittest.TestCase):
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
     def setUp(self):
-        self.header = parsePDB(os.path.join(TESTS_PATH, 
-                                            'data/pdb2k39_truncated.pdb'), 
+        self.header = parsePDB(getDatafilePath('pdb2k39_truncated.pdb'), 
                                header=True, model=0)
 
     def testHeaderType(self):
@@ -320,8 +301,7 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
 
     def setUp(self):
         self.atomgroup, self.header = \
-            parsePDB(os.path.join(TESTS_PATH, 'data/pdb2k39_truncated.pdb'), 
-                           header=True)
+            parsePDB(getDatafilePath('pdb2k39_truncated.pdb'), header=True)
 
     def testAtomGroupType(self):
         self.assertIsInstance(self.header, dict,
@@ -346,7 +326,7 @@ class TestParsePDBAltloc(unittest.TestCase):
     
     def setUp(self):
         
-        self.pdbfile = os.path.join(TESTS_PATH, 'data/pdb1ejg.pdb')
+        self.pdbfile = getDatafilePath('pdb1ejg.pdb')
     
     def testAltlocNone(self):
         
@@ -385,19 +365,21 @@ class TestParsePSFandPDB(unittest.TestCase):
 
 class TestDSSPFunctions(unittest.TestCase):
     
+    @dec.slow
     def setUp(self):
         """Setup the testing framework."""
 
-        self.pdbs = [PDB_FILES['dssp']]
+        self.pdbs = [DATA_FILES['dssp']]
     
+    @dec.slow
     @unittest.skipIf(prody.which('dssp') is None, 'dssp is not found')
     def testDSSPBridgePartners(self):
         """Check if the DSSP bridge-partners were correctly parsed and 
         assigned."""
 
         for pdb in self.pdbs:
-            prot_ag = parsePDB(pdb['path'], folder=TEMPDIR)
-            dssp = execDSSP(pdb['path'], outputdir=TEMPDIR)
+            prot_ag = parseDatafile(pdb['file'], folder=TEMPDIR)
+            dssp = execDSSP(getDatafilePath(pdb['file']), outputdir=TEMPDIR)
             parseDSSP(dssp, prot_ag, parseall=True)
     
             # Map a dssp_resnum to its Residue object.

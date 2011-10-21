@@ -22,40 +22,21 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
-import os
-import os.path
-import sys
 import unittest
-import tempfile
-import inspect
-import prody
 import numpy as np
-from prody.ensemble import *
-from prody import ensemble
+from numpy.testing import *
 
-TEMPDIR = tempfile.gettempdir()
-TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
-                                                   inspect.currentframe()))[0])
+from prody import *
+from test_datafiles import *
 
 prody.changeVerbosity('none')
 
-PDB_FILES = {
-    'multi_model_truncated': {
-        'pdb': '2k39',
-        'path': os.path.join(TESTS_PATH, 'data/pdb2k39_truncated.pdb'),
-        'atoms': 167,
-        'models': 3
-    },
-}
-
-ATOMS = prody.parsePDB(PDB_FILES['multi_model_truncated']['path'], subset='ca')
+ATOMS = parseDatafile('multi_model_truncated', subset='ca')
 
 ENSEMBLE = Ensemble(ATOMS)
 CONF = ENSEMBLE[0]
-ENSEMBLE_RMSD = prody.parseArray(os.path.join(TESTS_PATH, 
-                                 'data/pdb2k39_truncated_RMSDca.dat'))
-ENSEMBLE_SUPERPOSE = prody.parseArray(os.path.join(TESTS_PATH, 
-                                     'data/pdb2k39_truncated_alignRMSDca.dat'))
+ENSEMBLE_RMSD = parseDatafile('pdb2k39_truncated_RMSDca.dat')
+ENSEMBLE_SUPERPOSE = parseDatafile('pdb2k39_truncated_alignRMSDca.dat')
 
 ENSEMBLEW = Ensemble(ATOMS)
 ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
@@ -78,104 +59,99 @@ WEIGHTS = np.array(WEIGHTS)
 WEIGHTS_BOOL = np.tile(WEIGHTS.astype(bool), (1,1,3))  
 WEIGHTS_BOOL_INVERSE = np.invert(WEIGHTS_BOOL)
 
+
 class TestEnsemble(unittest.TestCase):
     
     def testGetCoordinates(self):
+        """Test correctness of reference coordinates."""
         
-        self.assertTrue(np.all(ATOMS.getCoordinates() == 
-                               ENSEMBLE.getCoordinates()),
-                        'failed to set reference coordinates for Ensemble')
+        assert_equal(ATOMS.getCoordinates(), ENSEMBLE.getCoordinates(),
+                     'failed to get correct coordinates')
+    
     
     def testGetCoordsets(self):
+        """Test correctness of all coordinates."""
 
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ENSEMBLE.getCoordsets()),
-                        'failed to add coordinate sets for Ensemble')
+        assert_equal(ATOMS.getCoordsets(), ENSEMBLE.getCoordsets(),
+                     'failed to add coordinate sets for Ensemble')
+    
     
     def testGetWeights(self):
+        """Test correctness of all weights."""
 
-        self.assertEqual(ENSEMBLEW.getWeights().ndim, 2,
-                        'wrong ndim for weights of Ensemble')
-        self.assertTupleEqual(ENSEMBLEW.getWeights().shape, 
-                              (ENSEMBLEW.getNumOfAtoms(), 1),
-                               'wrong shape for weights of Ensemble')
-        self.assertTrue(np.all(ENSEMBLEW.getWeights() == 
-                               np.ones(ENSEMBLEW.getNumOfAtoms(), float)),
-                        'failed to set weights for Ensemble')
-
+        assert_equal(ENSEMBLEW.getWeights().ndim, 2,
+                     'failed to get correct weights ndim')
+        assert_equal(ENSEMBLEW.getWeights().shape, 
+                     (ENSEMBLEW.getNumOfAtoms(), 1),
+                    'failed to get correct weights shape')
+        assert_equal(ENSEMBLEW.getWeights(),
+                     np.ones((ENSEMBLEW.getNumOfAtoms(), 1), float),
+                     'failed to get expected weights')
 
     def testSlicingCopy(self):
+        """Test making a copy by slicing operation."""
         
         SLICE = ENSEMBLE[:]
-        self.assertTrue(np.all(SLICE.getCoordinates() == 
-                               ENSEMBLE.getCoordinates()),
-                        'slicing copy failed to set reference coordinates for '
-                        'Ensemble')
-        self.assertTrue(np.all(SLICE.getCoordsets() == 
-                               ENSEMBLE.getCoordsets()),
-                        'slicing copy failed to add coordinate sets for '
-                        'Ensemble')
+        assert_equal(SLICE.getCoordinates(), ENSEMBLE.getCoordinates(),
+                     'slicing copy failed to set reference coordinates')
+        assert_equal(SLICE.getCoordsets(), ENSEMBLE.getCoordsets(),
+                     'slicing copy failed to add coordinate sets')
 
     def testSlicing(self):
+        """Test slicing operation."""
         
         SLICE = ENSEMBLE[:2]
-        self.assertTrue(np.all(SLICE.getCoordinates() == 
-                               ENSEMBLE.getCoordinates()),
-                        'slicing failed to set reference coordinates for '
-                        'Ensemble')
-        self.assertTrue(np.all(SLICE.getCoordsets() == 
-                               ENSEMBLE.getCoordsets([0,1])),
-                        'slicing failed to add coordinate sets for Ensemble')
+        assert_equal(SLICE.getCoordinates(), ENSEMBLE.getCoordinates(),
+                     'slicing failed to set reference coordinates')
+        assert_equal(SLICE.getCoordsets(), ENSEMBLE.getCoordsets([0,1]),
+                     'slicing failed to add coordinate sets')
 
     def testSlicingList(self):
+        """Test slicing with a list."""
         
         SLICE = ENSEMBLE[[0,2]]
-        self.assertTrue(np.all(SLICE.getCoordinates() == 
-                               ENSEMBLE.getCoordinates()),
-                        'slicing failed to set reference coordinates for '
-                        'Ensemble')
-        self.assertTrue(np.all(SLICE.getCoordsets() == 
-                               ENSEMBLE.getCoordsets([0,2])),
-                        'slicing failed to add coordinate sets for Ensemble')
+        assert_equal(SLICE.getCoordinates(), ENSEMBLE.getCoordinates(),
+                     'slicing failed to set reference coordinates')
+        assert_equal(SLICE.getCoordsets(), ENSEMBLE.getCoordsets([0,2]),
+                     'slicing failed to add coordinate sets for Ensemble')
 
 
     def testSlicingWeights(self):
+        """Test slicing operation with weights."""
         
         SLICE = ENSEMBLEW[:2]
-        self.assertTrue(np.all(SLICE.getWeights() == 
-                               ENSEMBLEW.getWeights()),
-                        'slicing failed to set weights for ensemble')
+        assert_equal(SLICE.getWeights(), ENSEMBLEW.getWeights(),
+                     'slicing failed to set weights')
 
     def testIterCoordsets(self):
+        """Test coordinate iteration."""
         
         for i, xyz in enumerate(ENSEMBLE.iterCoordsets()):
-            self.assertTrue(np.all(xyz == ATOMS.getCoordsets(i)),
-                            'failed iterate coordinate sets for Ensemble')
+            assert_equal(xyz, ATOMS.getCoordsets(i),
+                         'failed yield correct coordinates')
             
     def testGetNumOfAtoms(self):
 
         self.assertEqual(ENSEMBLE.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
-                         'failed to get correct number of atoms for Ensemble')  
+                         'failed to get correct number of atoms')  
             
     def testGetNumOfCoordsets(self):
 
         self.assertEqual(ENSEMBLE.getNumOfCoordsets(), 
                          ATOMS.getNumOfCoordsets(),
-                         'failed to get correct number of coordinate sets for ' 
-                         'Ensemble')  
+                         'failed to get correct number of coordinate sets')  
 
     def testGetRMSDs(self):
         
-        self.assertTrue(np.all(ENSEMBLE_RMSD == ENSEMBLE.getRMSDs().round(3)),
-                        'failed to calculate RMSDs sets for Ensemble')
+        assert_equal(ENSEMBLE.getRMSDs().round(3), ENSEMBLE_RMSD,
+                     'failed to calculate RMSDs sets')
 
     def testSuperpose(self):
         
         ensemble = ENSEMBLE[:]
         ensemble.superpose()
-        self.assertTrue(np.all(ENSEMBLE_SUPERPOSE == 
-                               ensemble.getRMSDs().round(3)),
-                        'failed to superpose coordinate sets for Ensemble')
+        assert_equal(ensemble.getRMSDs().round(3), ENSEMBLE_SUPERPOSE,
+                     'failed to superpose coordinate sets')
 
     def testGetRMSDsWeights(self):
         
@@ -503,4 +479,6 @@ class TestCalcSumOfWeights(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    prody.changeVerbosity('none')
     unittest.main()
+    prody.changeVerbosity('debug')

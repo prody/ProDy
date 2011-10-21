@@ -81,7 +81,6 @@ class TestANMResults(testGNMBase):
         
         self.model = anm
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)    
     def testEigenvalues(self):
         """Test eigenvalues."""
         
@@ -90,7 +89,6 @@ class TestANMResults(testGNMBase):
                         err_msg='failed to get correct eigenvalues')
 
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testEigenvectors(self):
         """Test eigenvectors."""
         
@@ -99,14 +97,12 @@ class TestANMResults(testGNMBase):
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
                         err_msg='failed to get correct eigenvectors')
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testHessian(self):
         """Test Hessian matrix."""
         
         assert_allclose(anm.getHessian(), ANM_HESSIAN, rtol=0, atol=ATOL,
                         err_msg='failed to get correct Hessian matrix')
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testVariances(self):
         """Test variances."""
         
@@ -120,7 +116,6 @@ class TestANMSparse(unittest.TestCase):
     """Test result from using sparse matrices."""
     
     @dec.slow
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     @unittest.skipIf(True, 'not completed')
     def testSparse(self):
         
@@ -144,7 +139,6 @@ class TestGNMResults(testGNMBase):
         
         self.model = anm
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testEigenvalues(self):
         assert_allclose(gnm[:21].getEigenvalues(), GNM_EVALUES[:21], 
                         rtol=RTOL, atol=ATOL*100,
@@ -154,13 +148,11 @@ class TestGNMResults(testGNMBase):
                         rtol=RTOL, atol=ATOL*100,
                         err_msg='failed to get correct fast eigenvalues')
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testEigenvectors(self):
         _temp = np.abs(np.dot(gnm[1:21].getEigenvectors().T, GNM_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL*10,
                        err_msg='failed to get correct eigenvectors')
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testKirchhoff(self):
         assert_allclose(gnm.getKirchhoff(), GNM_KIRCHHOFF, 
                         rtol=0, atol=ATOL,
@@ -187,7 +179,6 @@ class TestGNM(unittest.TestCase):
         array = np.array([['a','a','a'] for i in range(10)])
         self.assertRaises(ValueError, self.buildMatrix, array)
 
-    @unittest.skipIf(NONOSE, NONOSE_MSG)
     def testBuildMatrixCoordsArray(self):
         """Test output when  *coords* is an array."""
         
