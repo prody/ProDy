@@ -24,11 +24,28 @@ Release 0.8.4 (in development)
 
 **Changes**:
 
-  * :func:`~proteins.applyBiomolecularTransformations` is renamed as 
-    :func:`~proteins.buildBiomolecules` and will be removed in v0.9.
+  * In an attempt to make function names more uniform (in length and use of
+    prefixes), the following changes are made.  Old functions names
+    will work until v0.9 released, which is expected to happen in 2012.
+    Using the old function names, will log a warning to remind user of the
+    name change.
 
-  * :func:`~proteins.assignSecondaryStructure` is renamed as 
-    :func:`~proteins.assignSecondaryStr` and will be removed in v0.9.
+    ========================================  =====================================
+    Old name                                  New name
+    ========================================  =====================================
+    :func:`applyBiomolecularTransformations`  :func:`~proteins.buildBiomolecules` 
+    :func:`assignSecondaryStructure`          :func:`~proteins.assignSecondaryStr`
+    :func:`scanPerturbationResponse`          :func:`~dynamics.calcPerturbResponse`
+    :func:`calcCrossCorrelations`             :func:`~dynamics.calcCrossCorr`
+    :func:`calcCumulativeOverlap`             :func:`~dynamics.calcCumOverlap`
+    :func:`calcCumulativeOverlapArray`        :func:`~dynamics.calcCumOverlapArray`
+    :func:`calcCovarianceOverlap`             :func:`~dynamics.calcCovOverlap`
+    :func:`showFractOfVariances`              :func:`~dynamics.showFractOfVar`
+    :func:`showCumFractOfVariances`           :func:`~dynamics.showCumFractOfVar`
+    :func:`showCrossCorrelations`             :func:`~dynamics.showCrossCorr`
+    :func:`showCumulativeOverlap`             :func:`~dynamics.showCumOverlap`
+    :func:`deform`                            :func:`~dynamics.deformAtoms`
+    ========================================  =====================================
 
 **Bug Fixes**:
 

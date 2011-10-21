@@ -1,3 +1,5 @@
+.. _proteins:
+
 **************
 prody proteins
 **************
