@@ -2568,11 +2568,10 @@ mapHelix = {
 }
 
 def assignSecondaryStructure(header, atoms, coil=False):
-    """This function will be removed in v0.9, use :func:`assignSecondaryStr` 
-    instead."""
+    """See :func:`assignSecondaryStr`."""
     
-    LOGGER.warning('assignSecondaryStructure will be removed in v0.9, '
-                   'use assignSecondaryStr instead')
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'assignSecondaryStr instead.')
     return assignSecondaryStr(header, atoms, coil)
 
 def assignSecondaryStr(header, atoms, coil=False):
@@ -2820,10 +2819,9 @@ def fetchLigandData(cci, save=False, folder='.'):
     return dict_      
 
 def applyBiomolecularTransformations(header, atoms, biomol=None):
-    """This function will be removed in v0.9, use :func:`buildBiomolecules` 
-    instead."""
+    """See :func:`buildBiomolecules`."""
     
-    LOGGER.warning('applyBiomolecularTransformations will be removed in v0.9, '
+    LOGGER.warning('this function will be removed in v0.9, '
                    'use buildBiomolecules instead')
     return buildBiomolecules(header, atoms, biomol)
 
