@@ -17,113 +17,168 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """This module defines classes and functions for protein dynamics analysis. 
 
-Classes
--------
+Protein dynamics
+===============================================================================
 
-  * :class:`ANM`
-  * :class:`GNM`
-  * :class:`PCA`
-  * :class:`EDA`
-  * :class:`NMA`
-  * :class:`Mode`
-  * :class:`ModeSet`
-  * :class:`Vector`
-  * :class:`GammaStructureBased`
-  * :class:`GammaVariableCutoff`
-  
-Base Classes
-------------
+Modeling and analysis 
+-------------------------------------------------------------------------------
 
-  * :class:`NMABase`
-  * :class:`GNMBase`
-  * :class:`VectorBase`
-  * :class:`Gamma` 
+Following classes are designed for modeling and analysis of protein dynamics:
 
-Inheritance Diagram
--------------------
+============  =================================================================
+Model         Description
+============  =================================================================
+:class:`ANM`  Anisotropic network model, for coarse-grained NMA
+:class:`GNM`  Gaussian network model, for coarse-grained dynamics analysis
+:class:`PCA`  Principal component analysis of conformation ensembles
+:class:`EDA`  Essential dynamics analysis of dynamics trajectories
+:class:`NMA`  Normal mode analysis, for analyzing data from external programs
+============  =================================================================
 
-.. inheritance-diagram:: prody.dynamics
-   :parts: 1
+Following classes are for supporting above dynamics models by allowing
+analysis of individual modes:
 
-Functions
----------
+================  =============================================================
+Class             Description
+================  =============================================================
+:class:`Mode`     analyze individual normal/principal/essential modes
+:class:`ModeSet`  analyze subset of modes from one of aforementioned models
+:class:`Vector`   analyze modified modes or deformation vectors
+================  =============================================================
 
-Many of the functions documented in this page accepts a *modes* argument (may 
-also appear in different names).  One of the following may be accepted as this 
-argument:
+Customize models 
+-------------------------------------------------------------------------------
 
-  * an NMA model, which may be an instance of one of :class:`ANM`, 
-    :class:`GNM`, :class:`NMA`, :class:`PCA`.
-  * a :class:`Mode` instance obtained by indexing an NMA model, e.g. ``nma[0]``
-  * a :class:`ModeSet` instance obtained by slicing an NMA model, 
-    e.g. ``nma[:10]``
+Following classes allow for using structure or distance based, or other custom 
+force constants and cutoff distances in :class:`ANM` and :class:`GNM` 
+calculations: 
+
+============================  =================================================
+Class                         Description
+============================  =================================================
+:class:`Gamma`                base class for developing property custom force 
+                              constant calculation methods
+:class:`GammaStructureBased`  secondary structure based force constatns
+:class:`GammaVariableCutoff`  atom type based variable cutoff function
+============================  =================================================
+
+Function library
+===============================================================================
+
+Dynamics of the functions described below accept a *modes* argument (may also 
+appear in different names), which may refer to one or more of the following:
+
+  * a dynamics model, :class:`ANM`, :class:`GNM`, :class:`NMA`, :class:`PCA`, 
+    or :class:`EDA` 
+  * a :class:`Mode` obtained by indexing an NMA model, e.g. ``anm[0]``
+  * a :class:`ModeSet` obtained by slicing an NMA model, e.g. ``anm[0:10]``
 
 Some of these functions may also accept :class:`Vector` instances as *mode* 
-argument. These are noted in function documentations. 
+argument.  These are noted in function documentations. 
 
-**Short-hand functions**:
 
-  * :func:`calcANM`
-  * :func:`calcGNM`
+Analyze models
+-------------------------------------------------------------------------------
 
-**Analysis**:
+Following functions are for calculating atomic properties using modes
+from dynamics models:
 
-  * :func:`calcCollectivity`
-  * :func:`calcCovariance`
-  * :func:`calcCrossCorrelations`
-  * :func:`calcSqFlucts`  
-  * :func:`calcProjection`
-  * :func:`calcTempFactors`
-  * :func:`scanPerturbationResponse`
+===========================  ==================================================
+Function                     Calculated data or property
+===========================  ==================================================
+:func:`calcCollectivity`     degree of collectivity of a mode
+:func:`calcCovariance`       covariance matrix for given modes
+:func:`calcCrossCorr`        cross-correlations of fluctuations
+:func:`calcPerturbResponse`  response to perturbations in positions
+:func:`calcProjection`       projection of conformations onto modes
+:func:`calcSqFlucts`         square-fluctuations
+:func:`calcTempFactors`      temperature factors fitted to exp. data
+===========================  ==================================================
 
-**Parse/write data**:
+Compare models
+-------------------------------------------------------------------------------
 
-  * :func:`parseArray`
-  * :func:`parseModes`
-  * :func:`parseSparseMatrix`
-  * :func:`parseNMD`
-  * :func:`writeArray`
-  * :func:`writeModes`
-  * :func:`writeNMD`
-  * :func:`writeOverlapTable`
-        
-**Save/load models**:
-    
-  * :func:`saveModel`
-  * :func:`loadModel`
-  * :func:`saveVector`
-  * :func:`loadVector`
+Following functions are for comparing normal modes or dynamics models:
 
-**Visualization**:
+===========================  ==================================================
+Function                      Output
+===========================  ==================================================
+:func:`calcOverlap`          overlap (correlation) between modes
+:func:`calcCumOverlap`       cumulative overlap between modes
+:func:`calcCumOverlapArray`  incremental cumulative overlap
+:func:`calcSubspaceOverlap`  overlap between normal mode subspaces 
+:func:`calcCovOverlap`       covariance overlap between models
+:func:`printOverlapTable`    formatted overlap table printed on screen
+===========================  ==================================================
 
-  * :func:`getVMDpath`
-  * :func:`setVMDpath`
-  * :func:`viewNMDinVMD`
-    
-**Comparative analysis**:
 
-  * :func:`calcOverlap`
-  * :func:`calcCumulativeOverlap`
-  * :func:`calcCumulativeOverlapArray`
-  * :func:`calcSubspaceOverlap`
-  * :func:`calcCovarianceOverlap`
-  * :func:`printOverlapTable`
+Generate conformers
+-------------------------------------------------------------------------------
+
+Following functions can be used to generate conformers along normal modes:
+
+====================  =========================================================
+Function              Method
+====================  =========================================================
+:func:`deformAtoms`   deform atoms along a mode
+:func:`sampleModes`   deform along random combination of a set of modes 
+:func:`traverseMode`  traverse a mode along both directions
+====================  =========================================================
+
+Edit model
+-------------------------------------------------------------------------------
+
+Following functions can be used to reduce, slice, or extrapolate models:
+
+========================  =====================================================
+Function                  Description
+========================  =====================================================
+:func:`sliceMode`         take a slice of the normal mode      
+:func:`sliceModel`        take a slice of a model
+:func:`sliceVector`       take a slice of a vector
+:func:`reduceModel`       reduce a model to a subset of atoms
+:func:`extrapolateModel`  extrapolate a coarse-grained model to all-atoms  
+========================  =====================================================
+
+Parse/write data
+-------------------------------------------------------------------------------
+
+Following functions are for calculating atomic properties using modes
+from dynamics models:
+
+=========================  ====================================================
+Function                   Input/output
+=========================  ====================================================
+:func:`parseArray`         numeric arrays, e.g. coordinates, eigenvectors
+:func:`parseModes`         normal modes
+:func:`parseNMD`           normal mode, coordinate, and atomic data for NMWiz
+:func:`parseSparseMatrix`  matrix data in sparse coordinate list format
+:func:`writeArray`         numeric arrays, e.g. coordinates, eigenvectors
+:func:`writeModes`         normal modes
+:func:`writeNMD`           normal mode, coordinate, and atomic data
+:func:`writeOverlapTable`  overlap between modes in a formatted table
+=========================  ====================================================
+
+Save/load models 
+-------------------------------------------------------------------------------
+
+The above models and objects can be efficiently saved and loaded in later
+Python sessions using the following functions:
+
+| :func:`loadModel`, :func:`saveModel` - load/save dynamics models
+| :func:`loadVector`, :func:`saveVector` - load/save normal modes and vectors
   
-**Sampling**:
 
-  * :func:`deform`
-  * :func:`sampleModes`
-  * :func:`traverseMode`
+Short-hand functions
+-------------------------------------------------------------------------------
 
-**Model extrapolation/reduction**:
-  
-  * :func:`extrapolateModel`  
-  * :func:`reduceModel`
-  * :func:`sliceVector`
-  * :func:`sliceMode`
-  * :func:`sliceModel`
+Following allow for performing some dynamics calculations in one function call:
 
-**Plotting Functions**:
+| :func:`calcANM` - perform ANM calculations
+| :func:`calcGNM` - perform GNM calculations
+
+Plotting functions
+-------------------------------------------------------------------------------
 
 Plotting functions are called by the name of the plotted data/property 
 and are prefixed with "show".  Function documentations refers to the 
@@ -131,25 +186,42 @@ and are prefixed with "show".  Function documentations refers to the
 Arguments and keyword arguments are passed to the Matplotlib functions.  
 
 
-  * :func:`showContactMap`
-  * :func:`showCrossCorrelations`
-  * :func:`showCumulativeOverlap`
-  * :func:`showCumFractOfVariances`
-  * :func:`showFractOfVariances`
-  * :func:`showMode`
-  * :func:`showOverlap`
-  * :func:`showOverlapTable`
-  * :func:`showProjection`
-  * :func:`showCrossProjection`
-  * :func:`showEllipsoid`
-  * :func:`showSqFlucts`
-  * :func:`showScaledSqFlucts`
-  * :func:`showNormedSqFlucts`
-  * :func:`resetTicks`
-    
+===========================  ==================================================
+Function                     Plotted data
+===========================  ==================================================
+:func:`showMode`             mode shape
+:func:`showOverlap`          overlap between modes
+:func:`showSqFlucts`         square-fluctuations
+:func:`showEllipsoid`        depict projection of a normal mode space on 
+                             another 
+:func:`showContactMap`       contact map based on a Kirchhoff matrix
+:func:`showProjection`       projection of conformations onto normal modes
+:func:`showOverlapTable`     overlaps between two models
+:func:`showScaledSqFlucts`   square-fluctuations fitted to experimental data
+:func:`showNormedSqFlucts`   normalized square-fluctuations
+:func:`showCrossProjection`  project conformations onto modes from different 
+                             models
+:func:`showFractOfVar`       fraction of variances
+:func:`showCrossCorr`        cross-correlations between fluctuations
+                             in atomic positions
+:func:`showCumOverlap`       cumulative overlap of a mode with multiple modes 
+                             from another model
+:func:`showCumFractOfVar`    cumulative fraction of variances 
+:func:`resetTicks`           change ticks in a plot
+===========================  ==================================================
+
+Visualize modes
+-------------------------------------------------------------------------------
+
+Finally, normal modes can be visualized and animated using VMD plugin 
+:ref:`nmwiz`. Following functions allow for running NMWiz from within Python: 
+ 
+| :func:`viewNMDinVMD` - run VMD and load normal mode data
+| :func:`getVMDpath`, :func:`setVMDpath` - get/set path to VMD executable
+
 
 Examples
---------
+-------------------------------------------------------------------------------
 
 Results from the example :ref:`pca-xray-calculations` will be used to
 illustrate class methods and functions in the module.
@@ -179,6 +251,23 @@ illustrate class methods and functions in the module.
    p38_anm = loadModel('1p38.anm.npz') 
    p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
    p38_structure = parsePDB('p38_ref_chain.pdb')
+
+:mod:`prody.dynamics`
+===============================================================================
+
+Base Classes
+------------
+
+  * :class:`NMABase`
+  * :class:`GNMBase`
+  * :class:`VectorBase`
+  * :class:`Gamma` 
+
+Inheritance Diagram
+-------------------
+
+.. inheritance-diagram:: prody.dynamics
+   :parts: 1
    
 """
 
@@ -214,11 +303,12 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'calcANM', 'calcGNM', 
            
-           'calcCollectivity', 'calcCovariance', 'calcCrossCorrelations', 
+           'calcCollectivity', 'calcCovariance', 'calcCrossCorr',
+           'calcCrossCorrelations', 
            
            'calcSqFlucts', 'calcTempFactors',
            
-           'calcProjection', 'scanPerturbationResponse',
+           'calcProjection', 'calcPerturbResponse', 'scanPerturbationResponse', 
            
            'parseArray', 'parseModes', 'parseNMD',
            
@@ -229,23 +319,26 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'getVMDpath', 'setVMDpath', 'viewNMDinVMD', 
            
-           'calcOverlap', 'calcCumulativeOverlap', 
-           'calcCumulativeOverlapArray', 'calcSubspaceOverlap', 
-           'calcCovarianceOverlap', 'printOverlapTable',
+           'calcOverlap', 'calcCumOverlap', 'calcCumulativeOverlap', 
+           'calcCumOverlapArray', 'calcCumulativeOverlapArray', 
+           'calcSubspaceOverlap', 
+           'calcCovOverlap', 'calcCovarianceOverlap', 'printOverlapTable',
            
-           'deform', 'sampleModes', 'traverseMode',
+           'deformAtoms', 'deform', 'sampleModes', 'traverseMode',
             
            'extrapolateModel', 'reduceModel', 'sliceVector', 
            'sliceMode', 'sliceModel',
             
-           'showContactMap', 'showCrossCorrelations', 'showCumulativeOverlap', 
-           'showCumFractOfVariances', 'showFractOfVariances', 'showMode', 
+           'showContactMap', 'showCrossCorr', 'showCrossCorrelations', 
+           'showCumOverlap', 'showCumulativeOverlap', 
+           'showFractOfVar', 'showFractOfVariances', 
+           'showCumFractOfVar', 'showCumFractOfVariances', 'showMode', 
            'showOverlap', 'showOverlapTable', 'showProjection', 
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks'
            ]
 
-ZERO = 1e-8
+ZERO = 1e-6
 
 class VectorBase(object):
     """A base class for :class:`Mode` and :class:`Vector`.
@@ -487,19 +580,9 @@ class Mode(VectorBase):
         return np.outer(array, array) * self.getVariance()
     
     def getSqFlucts(self):
-        """Return square fluctuations.
-        
-        Square fluctuations are obtained by multiplying the squared the mode 
-        array with the variance (:meth:`getVariance`) along the mode.
-        
-        >>> print( mode.getSqFlucts().round(3) ) # doctest: +ELLIPSIS
-        [ 0.058  0.066  0.096  0.081  0.102  0.112  0.122  0.135  0.113  0.138
-          0.171  0.122  0.109  0.071  0.069  0.045  0.047  0.066  0.043  0.027
-          ...
-          0.038  0.045  0.048  0.034  0.019  0.021  0.02   0.009  0.004  0.006
-          0.006  0.001  0.     0.001  0.007  0.006  0.004  0.01   0.01   0.01 ]
-
-        """
+        """Return square fluctuations.  Square fluctuations are obtained by 
+        multiplying the squared the mode array with the variance (:meth:`
+        getVariance`) along the mode."""
         
         if self.is3d():
             return (self._getArrayNx3()**2).sum(axis=1) * self.getVariance()
@@ -2315,7 +2398,7 @@ def parseNMD(filename, type=NMA):
 def writeNMD(filename, modes, atoms):
     """Writes an NMD file for given *modes* and includes applicable data from 
     *atoms*.  Returns *filename*, if file is successfully written.  NMD file 
-    format is described at :ref:`nmd`.
+    format is described at :ref:`nmd-format`.
     
     .. note:: 
        #. This function skips modes with zero eigenvalues.
@@ -3459,7 +3542,14 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
   
-def deform(atoms, mode, rmsd=None):  
+def deform(atoms, mode, rmsd=None):
+    """See :func:`deformAtoms`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'deformAtoms instead.')
+    return deformAtoms(atoms, mode, rmsd)
+
+def deformAtoms(atoms, mode, rmsd=None):
     """Generate a new coordinate set for *atoms* along the *mode*.
     
     .. versionadded:: 0.7
@@ -3472,11 +3562,11 @@ def deform(atoms, mode, rmsd=None):
     Below example shows how to deform a structure along a normal mode
     or linear combinations of normal modes:
     
-    >>> deform(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5)
-    >>> deform(p38_structure, -p38_pca[1] * p38_pca[1].getVariance()**0.5)
-    >>> deform(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 + 
-    ...                       p38_pca[1] * p38_pca[1].getVariance()**0.5)
-    >>> deform(p38_structure, p38_pca[0], rmsd=1.0)
+    >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5)
+    >>> deformAtoms(p38_structure, -p38_pca[1] * p38_pca[1].getVariance()**0.5)
+    >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 + 
+    ...                            p38_pca[1] * p38_pca[1].getVariance()**0.5)
+    >>> deformAtoms(p38_structure, p38_pca[0], rmsd=1.0)
     >>> print calcRMSD(p38_structure).round(3)
     [ 0.     0.41   0.308  0.513  1.   ]
     
@@ -3505,6 +3595,13 @@ def deform(atoms, mode, rmsd=None):
         atoms.addCoordset( atoms.getCoordinates() + array)
 
 def scanPerturbationResponse(model, atoms=None, repeats=100):
+    """See :func:`calcPerturbResponse`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'calcPerturbResponse instead.')
+    return calcPerturResponse(model, atoms, repeats) 
+
+def calcPerturbResponse(model, atoms=None, repeats=100):
     """|new| Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
     The function implements the perturbation response scanning (PRS) method 
@@ -3523,9 +3620,8 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
     
     The RPS matrix can be save as follows::
         
-     prs_matrix = scanPerturbationResponse(p38_anm)
+     prs_matrix = calcPerturbationResponse(p38_anm)
      writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
-    
     """
     
     if not isinstance(model, NMABase): 
@@ -3606,8 +3702,15 @@ def calcSqFlucts(modes):
         for mode in modes:
             square_fluctuations += mode.getSqFlucts()
         return square_fluctuations
- 
+
 def calcCrossCorrelations(modes, n_cpu=1):
+    """See :func:`calcCrossCorr`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'calcCrossCorr instead.')
+    return calcCrossCorr(modes, n_cpu)
+ 
+def calcCrossCorr(modes, n_cpu=1):
     """Return cross-correlations matrix.  For a 3-d model, cross-correlations 
     matrix is an NxN matrix, where N is the number of atoms.  Each element of 
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
@@ -3685,6 +3788,13 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 
 
 def calcCumulativeOverlap(modes1, modes2):
+    """See :func:`calcCumOverlap`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'calcCumOverlap instead.')
+    return calcCumOverlap(modes1, modes2) 
+    
+def calcCumOverlap(modes1, modes2):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
     Returns a number of *modes1* contains a single :class:`Mode` or a 
     :class:`Vector` instance. If *modes1* contains multiple modes, returns an
@@ -3696,6 +3806,14 @@ def calcCumulativeOverlap(modes1, modes2):
     return cumov
 
 def calcCumulativeOverlapArray(modes1, modes2):
+    """See :func:`calcCumOverlapArray`."""
+
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'calcCumOverlapArray instead.')
+    return calcCumOverlapArray(modes1, modes2) 
+
+
+def calcCumOverlapArray(modes1, modes2):
     """Return array of cumulative overlaps. Returned array has the shape 
     ``(len(modes1), len(modes2))``.  Each row corresponds to cumulative 
     overlaps calculated for modes in *modes1* with those in *modes2*.  
@@ -3722,6 +3840,13 @@ def calcSubspaceOverlap(modes1, modes2):
 
 
 def calcCovarianceOverlap(modelA, modelB):
+    """See :func:`calcCovOverlap`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'calcCovOverlap instead.')
+    return calcCovOverlap(modelA, modelB)
+    
+def calcCovOverlap(modelA, modelB):
     """Return overlap between covariances of *modelA* and *modelB*.
     
     .. versionadded:: 0.5.3
@@ -3770,7 +3895,15 @@ def calcTempFactors(modes, atoms):
     return sqf / ((sqf**2).sum()**0.5) * (
                                         (atoms.getTempFactors()**2).sum()**0.5)
     
+    
 def showFractOfVariances(modes, *args, **kwargs):
+    """See :func:`showFractOfVar`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'showFractOfVar instead.')
+    return showFractOfVar(modes, *args, **kwargs) 
+    
+def showFractOfVar(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
     bar`.  Note that mode indices are incremented by 1.
     
@@ -3779,8 +3912,8 @@ def showFractOfVariances(modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showFractOfVariances(p38_pca) 
-       showCumFractOfVariances(p38_pca)
+       showFractOfVar(p38_pca) 
+       showCumFractOfVar(p38_pca)
       
     .. plot::
        :context:
@@ -3808,13 +3941,18 @@ def showFractOfVariances(modes, *args, **kwargs):
     return show
 
 def showCumFractOfVariances(modes, *args, **kwargs):
+    """See :func:`showCumFractOfVar`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'showCumFractOfVar instead.')
+    return showCumFractOfVar(modes, *args, **kwargs)
+
+def showCumFractOfVar(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
     plot`.
     
     Note that mode indices are incremented by 1.
-    See :func:`showFractOfVariances` for an example.
-    
-    """
+    See :func:`showFractOfVar` for an example."""
     
     if plt is None: prody.importPyPlot()
     if not plt: return None
@@ -4081,10 +4219,17 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     return show
 
 def showCrossCorrelations(modes, *args, **kwargs):
+    """See :func:`showCrossCorr`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'showCrossCorr instead.')
+    return showCrossCorr(modes, *args, **kwargs)
+
+def showCrossCorr(modes, *args, **kwargs):
     """Show cross-correlations for given modes using :func:`~matplotlib.pyplot.
     imshow`.  By default, *origin=lower* and *interpolation=bilinear* keyword 
     arguments are passed to imshow function. User can overwrite these 
-    parameters.  See also :func:`getCrossCorrelations`.
+    parameters.  See also :func:`getCrossCorr`.
     
     .. plot::
        :context:
@@ -4092,7 +4237,7 @@ def showCrossCorrelations(modes, *args, **kwargs):
         
        plt.figure(figsize=(6,5))
        # Show cross-correlations for ANM modes 1-3
-       showCrossCorrelations( p38_anm[:3] )
+       showCrossCorr( p38_anm[:3] )
        
     .. plot::
        :context:
@@ -4107,7 +4252,7 @@ def showCrossCorrelations(modes, *args, **kwargs):
     arange = np.arange(modes.getNumOfAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
-                       arange[0]+1:] = calcCrossCorrelations(modes)
+                       arange[0]+1:] = calcCrossCorr(modes)
     if not kwargs.has_key('interpolation'):
         kwargs['interpolation'] = 'bilinear'
     if not kwargs.has_key('origin'):
@@ -4346,8 +4491,15 @@ def showOverlap(mode, modes, *args, **kwargs):
     plt.xlabel('{0:s} mode index'.format(modes))
     plt.ylabel('Overlap')
     return show
-    
+
 def showCumulativeOverlap(mode, modes, *args, **kwargs):
+    """See :func:`showCumOverlap`."""
+    
+    LOGGER.warning('This function will be removed in v0.9, use '
+                   'showCumOverlap instead.')
+    return showCumOverlap(mode, modes, *args, **kwargs)
+    
+def showCumOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
     
     :type mode: :class:`Mode`, :class:`Vector` 
@@ -4359,7 +4511,7 @@ def showCumulativeOverlap(mode, modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showCumulativeOverlap( p38_pca[0], p38_anm )
+       showCumOverlap( p38_pca[0], p38_anm )
        # Let's also show the overlap
        showOverlap( p38_pca[0], p38_anm )
 
