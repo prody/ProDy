@@ -28,7 +28,10 @@ import unittest
 import inspect
 import sys
 import numpy as np
-import prody
+
+from prody import *
+from test_datafiles import *
+
 
 prody.select.DEBUG = False
 prody.changeVerbosity('none')
@@ -42,7 +45,7 @@ TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
 
 SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': 3211,
-     'path': os.path.join(TESTS_PATH, 'data/pdb3mht.pdb'),
+     'path': getDatafilePath('pdb3mht.pdb'),
      'keyword':     [('none', 0),
                      ('all', 3211),
                      ('acidic', 334),
@@ -280,8 +283,8 @@ class TestSelectMeta(type):
                     count += 1
                     testFunction.__name__ = 'test{0:s}Selection{1:d}'.format(
                                                         type_.title(), count)
-                    testFunction.__doc__ = 'Test {0:s} selections.'.format(
-                                                                        type_)
+                    testFunction.__doc__ = 'Test {0:s} selections "{1:s}"'\
+                                            .format(type_, test[0])
                     setattr(cls, testFunction.__name__, testFunction)
 
 class TestSelect(unittest.TestCase):
@@ -374,5 +377,3 @@ class TestSelectionMacros(unittest.TestCase):
             prody.delSelectionMacro(name)
 
 
-if __name__ == '__main__':
-    unittest.main()
