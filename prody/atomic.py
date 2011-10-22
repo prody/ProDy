@@ -2433,14 +2433,6 @@ class HierView(object):
         
         return self._atoms
     
-    def build(self):
-        """Calls :meth:`update` method. This method will is deprecated and 
-        will be removed in v0.8."""
-        
-        LOGGER.warning('HierView.build() method is deprecated. '
-                       'Use HierView.update() method instead.')
-        self.update()
-    
     def update(self):
         """Rebuild hierarchical view of atoms.  This method is called at 
         instantiation, but can be used to rebuild the hierarchical view 
