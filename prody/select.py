@@ -1265,7 +1265,9 @@ class Select(object):
         if DEBUG: print('_isValid', token)
         
         if isinstance(token, str):
-            return isBooleanKeyword(token)
+            return isBooleanKeyword(token) or \
+                self._atoms.isAttribute(token) and \
+                self._atoms.getAttrType(token) == bool   
         elif isinstance(token, list):
             tkn = token[0]
             return isValuePairedKeyword(tkn) or tkn in self._kwargs or \
@@ -1288,6 +1290,8 @@ class Select(object):
         if isinstance(tokens, str):
             if isBooleanKeyword(tokens):
                 return self._evalBoolean(tokens, evalonly=evalonly)
+            elif self._ag.isAttribute(tokens):
+                return self._evalAttribute(tokens, evalonly=evalonly)
             else:
                 return None
         elif isinstance(tokens, (np.ndarray, float)):
@@ -1689,8 +1693,11 @@ class Select(object):
         if DEBUG: print('_evalAttribute', keyword, values)
         data = self._atoms.getAttribute(keyword)
         if values is None:
-            if isinstance(data.dtype, np.bool):
-                return data
+            if data.dtype == bool:
+                if evalonly is None:
+                    return data
+                else:
+                    return data[evalonly]
             else:
                 return None
         else:
