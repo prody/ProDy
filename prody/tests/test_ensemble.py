@@ -35,7 +35,8 @@ ATOL = 1e-5
 RTOL = 0
 
 ATOMS = parseDatafile('multi_model_truncated', subset='ca')
-
+COORDS = ATOMS.getCoordinates()
+COORDSETS = ATOMS.getCoordsets()
 ENSEMBLE = Ensemble(ATOMS)
 CONF = ENSEMBLE[0]
 DATA = DATA_FILES['multi_model_truncated']
@@ -47,7 +48,7 @@ ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
 CONFW = ENSEMBLEW[0]
 
 PDBENSEMBLE = PDBEnsemble('PDBEnsemble')
-PDBENSEMBLE.setCoordinates(ATOMS.getCoordinates())
+PDBENSEMBLE.setCoordinates(COORDS)
 WEIGHTS = []
 for i, xyz in enumerate(ATOMS.iterCoordsets()):
     weights = np.ones((len(ATOMS), 1), dtype=float)
@@ -69,7 +70,7 @@ class TestEnsemble(unittest.TestCase):
     def testGetCoordinates(self):
         """Test correctness of reference coordinates."""
         
-        assert_equal(ATOMS.getCoordinates(), ENSEMBLE.getCoordinates(),
+        assert_equal(ENSEMBLE.getCoordinates(), COORDS,
                      'failed to get correct coordinates')
     
     
@@ -186,52 +187,55 @@ class TestEnsemble(unittest.TestCase):
         ensemble.delCoordset(range(len(ENSEMBLE)))
         self.assertIsNone(ensemble.getCoordsets(),
                         'failed to delete all coordinate sets for Ensemble')
-        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+        assert_equal(ensemble.getCoordinates(), COORDS,
                      'failed when deleting all coordinate sets')
 
 
     def testConcatenation(self):
+        """Test concatenation of ensembles without weights."""
         
         ensemble = ENSEMBLE + ENSEMBLE
         assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
-                     'failed to concatenate coordinate sets')
+                     'concatenation failed')
         assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
-                     'failed to concatenate coordinate sets')
-        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
-                     'failed at concatenation for Ensemble')
+                     'concatenation failed')
+        assert_equal(ensemble.getCoordinates(), COORDS,
+                     'concatenation failed')
 
     def testConcatenationWeights(self):
+        """Test concatenation of ensembles with weights."""
         
         ensemble = ENSEMBLEW + ENSEMBLEW
         assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(), 
-                     'failed at concatenation for Ensemble')
+                     'concatenation failed')
         assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
-                     'failed at concatenation for Ensemble')
-        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
-                     'failed at concatenation for Ensemble')
+                     'concatenation failed')
+        assert_equal(ensemble.getCoordinates(), COORDS,
+                     'concatenation failed')
         assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(),
-                     'failed at concatenation for Ensemble')
+                     'concatenation failed')
 
     def testConcatenationNoweightsWeights(self):
+        """Test concatenation of ensembles without and with weights."""
         
         ensemble = ENSEMBLE + ENSEMBLEW
         assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
-                     'failed at concatenation for Ensemble')
+                     'concatenation failed')
         assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
-                    'failed at concatenation for Ensemble')
-        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
-                     'failed at concatenation for Ensemble')
-        self.assertIsNone(ensemble.getWeights(),
-                        'failed at concatenation for Ensemble')
+                    'concatenation failed')
+        assert_equal(ensemble.getCoordinates(), COORDS,
+                     'concatenation failed')
+        self.assertIsNone(ensemble.getWeights(), 'concatenation failed')
 
     def testConcatenationWeightsNoweights(self):
+        """Test concatenation of ensembles with and without weights."""
         
         ensemble = ENSEMBLEW + ENSEMBLE 
         assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
                      'failed at concatenation for Ensemble')
         assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
                      'failed at concatenation for Ensemble')
-        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+        assert_equal(ensemble.getCoordinates(), COORDS,
                      'failed at concatenation for Ensemble')
         assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(),
                      'failed at concatenation for Ensemble')
@@ -242,53 +246,52 @@ class TestConformation(unittest.TestCase):
     
     def testCoordinates(self):
         
-        self.assertTrue(np.all(ATOMS.getCoordinates() == 
-                               CONF.getCoordinates()),
-                        'failed to get coordinates for conformation')
+        assert_equal(CONF.getCoordinates(), COORDS,
+                     'failed to get coordinates for conformation')
                         
     def testWeights(self):
         
-        self.assertEqual(CONFW.getWeights().ndim, 2,
+        weights = CONFW.getWeights()
+        self.assertEqual(weights.ndim, 2,
                         'wrong ndim for weights of Conformation')
-        self.assertTupleEqual(CONFW.getWeights().shape, 
+        self.assertTupleEqual(weights.shape, 
                               (CONFW.getNumOfAtoms(), 1),
-                               'wrong shape for weights of Conformation')
-        self.assertTrue(np.all(CONFW.getWeights() == 
-                               np.ones(ATOMS.getNumOfAtoms(), float)),
-                        'failed to set weights for Conformation')
+                              'wrong shape for weights of Conformation')
+        assert_equal(weights, np.ones((ATOMS.getNumOfAtoms(), 1), float),
+                     'failed to set weights for Conformation')
                                                 
     def testCoordinatesForAll(self):
         
         for i, conf in enumerate(ENSEMBLE):
-            self.assertTrue(np.all(ATOMS.getCoordsets(i) == 
-                                   conf.getCoordinates()),
-                            'failed to get coordinates for Conformation')
+            assert_equal(conf.getCoordinates(), ATOMS.getCoordsets(i),
+                         'failed to get coordinates for Conformation')
+                         
     def testGetIndex(self):
+        """Test get index function."""
 
         for i, conf in enumerate(ENSEMBLE):
             self.assertEqual(conf.getIndex(), i,
-                             'failed to get correct index for Conformation')        
+                             'failed to get correct index')        
                         
     def testGetNumOfAtoms(self):
+        """Test get index function."""
 
         for i, conf in enumerate(ENSEMBLE):
             self.assertEqual(conf.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
-                             'failed to get correct number of atoms for ' 
-                             'Conformation')        
+                             'failed to get correct number of atoms')        
 
 class TestPDBEnsemble(unittest.TestCase):
     
     def testGetCoordinates(self):
         
-        self.assertTrue(np.all(ATOMS.getCoordinates() == 
-                               PDBENSEMBLE.getCoordinates()),
-                        'failed to set reference coordinates for PDBEnsemble')
+        assert_equal(PDBENSEMBLE.getCoordinates(), COORDS,
+                     'failed to set reference coordinates for PDBEnsemble')
     
     def testGetCoordsets(self):
 
-        self.assertTrue(np.all((ATOMS.getCoordsets() == 
-                               PDBENSEMBLE.getCoordsets())[WEIGHTS_BOOL]),
-                        'failed to add coordinate sets for PDBEnsemble')
+        assert_equal(PDBENSEMBLE.getCoordsets()[WEIGHTS_BOOL], 
+                     ATOMS.getCoordsets()[WEIGHTS_BOOL],
+                     'failed to add coordinate sets for PDBEnsemble')
     
     def testGetWeights(self):
 
@@ -298,159 +301,141 @@ class TestPDBEnsemble(unittest.TestCase):
                               (PDBENSEMBLE.getNumOfCoordsets(),
                                PDBENSEMBLE.getNumOfAtoms(), 1),
                                'wrong shape for weights of PDBEnsemble')
-        self.assertTrue(np.all(PDBENSEMBLE.getWeights() == WEIGHTS),
-                        'failed to set weights for PDBEnsemble')
+        assert_equal(PDBENSEMBLE.getWeights(), WEIGHTS,
+                     'failed to get correct weights')
 
 
     def testSlicingCopy(self):
         
         SLICE = PDBENSEMBLE[:]
-        self.assertTrue(np.all(SLICE.getCoordinates() == 
-                               PDBENSEMBLE.getCoordinates()),
-                        'slicing copy failed to set reference coordinates for '
-                        'PDBEnsemble')
-        self.assertTrue(np.all(SLICE.getCoordsets() == 
-                               PDBENSEMBLE.getCoordsets()),
-                        'slicing copy failed to add coordinate sets for '
-                        'Ensemble')
+        assert_equal(SLICE.getCoordinates(), PDBENSEMBLE.getCoordinates(),
+                     'slicing copy failed to set reference coordinates')
+        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE.getCoordsets(),
+                     'slicing copy failed to add coordinate sets')
 
     def testSlicing(self):
         
         SLICE = PDBENSEMBLE[:2]
-        self.assertTrue(np.all(SLICE.getCoordinates() == 
-                               PDBENSEMBLE.getCoordinates()),
-                        'slicing failed to set reference coordinates for '
-                        'PDBEnsemble')
-        self.assertTrue(np.all(SLICE.getCoordsets() == 
-                               PDBENSEMBLE.getCoordsets([0,1])),
-                       'slicing failed to add coordinate sets for PDBEnsemble')
+        assert_equal(SLICE.getCoordinates(), PDBENSEMBLE.getCoordinates(),
+                     'slicing failed to set reference coordinates')
+        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE.getCoordsets([0,1]),
+                     'slicing failed to add coordinate sets')
 
     def testSlicingList(self):
         
         SLICE = PDBENSEMBLE[[0,2]]
-        self.assertTrue(np.all(SLICE.getCoordinates() == 
-                               PDBENSEMBLE.getCoordinates()),
-                        'slicing failed to set reference coordinates for '
-                        'PDBEnsemble')
-        self.assertTrue(np.all(SLICE.getCoordsets() == 
-                               PDBENSEMBLE.getCoordsets([0,2])),
-                       'slicing failed to add coordinate sets for PDBEnsemble')
-
+        assert_equal(SLICE.getCoordinates(), PDBENSEMBLE.getCoordinates(),
+                     'slicing failed to set reference coordinates')
+        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE.getCoordsets([0,2]),
+                     'slicing failed to add coordinate sets')
 
     def testSlicingWeights(self):
         
         SLICE = PDBENSEMBLE[:2]
-        self.assertTrue(np.all(SLICE.getWeights() == 
-                               PDBENSEMBLE.getWeights()[:2]),
-                        'slicing failed to set weights for PDBEnsemble')
+        assert_equal(SLICE.getWeights(), PDBENSEMBLE.getWeights()[:2],
+                     'slicing failed to set weights')
 
     def testIterCoordsets(self):
         
         for i, xyz in enumerate(ENSEMBLE.iterCoordsets()):
-            self.assertTrue(np.all((xyz == ATOMS.getCoordsets(i))
-                                    [WEIGHTS_BOOL[i]]),
-                            'failed iterate coordinate sets for PDBEnsemble')
+            assert_equal(xyz[WEIGHTS_BOOL[i]], 
+                         ATOMS.getCoordsets(i)[WEIGHTS_BOOL[i]],
+                         'failed iterate coordinate sets')
             
     def testGetNumOfAtoms(self):
 
         self.assertEqual(PDBENSEMBLE.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
-                       'failed to get correct number of atoms for PDBEnsemble')  
+                         'failed to get correct number of atoms')  
             
     def testGetNumOfCoordsets(self):
 
         self.assertEqual(PDBENSEMBLE.getNumOfCoordsets(), 
                          ATOMS.getNumOfCoordsets(),
-                         'failed to get correct number of coordinate sets for ' 
-                         'PDBEnsemble')  
+                         'failed to get correct number of coordinate sets')  
 
     def testDelCoordsetMiddle(self):
         
         ensemble = PDBENSEMBLE[:]
         ensemble.delCoordset(1)
-        self.assertTrue(np.all((ATOMS.getCoordsets([0,2]) == 
-                               ensemble.getCoordsets())[WEIGHTS_BOOL[[0,2]]]),
-                      'failed to delete middle coordinate set for PDBEnsemble')
+        assert_equal(ensemble.getCoordsets()[WEIGHTS_BOOL[[0,2]]],
+                     ATOMS.getCoordsets([0,2])[WEIGHTS_BOOL[[0,2]]], 
+                    'failed to delete middle coordinate set')
         
     def testDelCoordsetAll(self):
+        """Test consequences of deleting all coordinate sets."""
         
         ensemble = PDBENSEMBLE[:]
         ensemble.delCoordset(range(len(PDBENSEMBLE)))
         self.assertIsNone(ensemble.getCoordsets(),
-                        'failed to delete all coordinate sets for PDBEnsemble')
+                        'failed to delete all coordinate sets')
         self.assertIsNone(ensemble.getWeights(), 'failed to delete weights '
-                          'with all coordinate sets for PDBEnsemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed to delete all coordinate sets for PDBEnsemble')
+                          'with all coordinate sets')
+        assert_equal(ensemble.getCoordinates(), COORDS,
+                     'failed to delete all coordinate sets')
 
 
     def testConcatenation(self):
+        """Test concatenation of PDB ensembles."""
         
         ensemble = PDBENSEMBLE + PDBENSEMBLE
-        self.assertTrue(np.all(PDBENSEMBLE.getCoordsets() == 
-                               ensemble.getCoordsets(range(3))),
-                        'failed at concatenation for PDBEnsemble')
-        self.assertTrue(np.all(PDBENSEMBLE.getCoordsets() == 
-                               ensemble.getCoordsets(range(3,6))),
-                        'failed at concatenation for PDBEnsemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed at concatenation for PDBEnsemble')
-
-    def testConcatenationWeights(self):
-        
-        ensemble = PDBENSEMBLE + PDBENSEMBLE
-        self.assertTrue(np.all(ensemble.getWeights()[range(3)] ==
-                               PDBENSEMBLE.getWeights()),
-                        'failed at concatenation for PDBEnsemble')
-        self.assertTrue(np.all(ensemble.getWeights()[range(3,6)] ==
-                               PDBENSEMBLE.getWeights()),
-                        'failed at concatenation for PDBEnsemble')
+        assert_equal(ensemble.getCoordsets(range(3)),
+                     PDBENSEMBLE.getCoordsets(), 
+                     'concatenation failed')
+        assert_equal(ensemble.getCoordsets(range(3,6)),
+                     PDBENSEMBLE.getCoordsets(), 
+                     'concatenation failed')
+        assert_equal(ensemble.getCoordinates(), COORDS,
+                     'concatenation failed')
+        assert_equal(ensemble.getWeights()[range(3)],
+                     PDBENSEMBLE.getWeights(),
+                     'concatenation failed')
+        assert_equal(ensemble.getWeights()[range(3,6)], 
+                     PDBENSEMBLE.getWeights(),
+                     'concatenation failed')
 
 class TestPDBConformation(unittest.TestCase): 
     
     
     def testCoordinates(self):
         
-        self.assertTrue(np.all(ATOMS.getCoordinates() == 
-                               PDBCONF.getCoordinates()),
-                        'failed to get coordinates for PDBConformation')
+        assert_equal(PDBCONF.getCoordinates(), COORDS,
+                     'failed to get correct coordinates')
                         
     def testWeights(self):
         
-        self.assertEqual(PDBCONF.getWeights().ndim, 2,
-                        'wrong ndim for weights of PDBConformation')
-        self.assertTupleEqual(PDBCONF.getWeights().shape, 
-                              (PDBCONF.getNumOfAtoms(), 1),
-                               'wrong shape for weights of PDBConformation')
-        self.assertTrue(np.all(PDBCONF.getWeights() == WEIGHTS[0]),
-                        'failed to set weights for PDBConformation')
+        weights = PDBCONF.getWeights()
+        self.assertEqual(weights.ndim, 2,
+                        'wrong ndim for weights')
+        self.assertTupleEqual(weights.shape, (PDBCONF.getNumOfAtoms(), 1),
+                              'wrong shape for weights')
+        assert_equal(PDBCONF.getWeights(), WEIGHTS[0],
+                     'failed to set weights')
 
     def testWeightsForAll(self):
 
         for i, conf in enumerate(PDBENSEMBLE):
-            self.assertTrue(np.all(conf.getWeights() == WEIGHTS[i]),
-                            'failed to set weights for PDBConformation')
+            assert_equal(conf.getWeights(), WEIGHTS[i],
+                         'failed to set weights')
 
                                                 
     def testCoordinatesForAll(self):
         
         for i, conf in enumerate(PDBENSEMBLE):
-            self.assertTrue(np.all((ATOMS.getCoordsets(i) == 
-                                   conf.getCoordinates())[WEIGHTS_BOOL[i]]),
-                            'failed to get coordinates for PDBConformation')
+            assert_equal(conf.getCoordinates()[WEIGHTS_BOOL[i]], 
+                         ATOMS.getCoordsets(i)[WEIGHTS_BOOL[i]],
+                         'failed to get coordinates')
+                         
     def testGetIndex(self):
 
         for i, conf in enumerate(PDBENSEMBLE):
             self.assertEqual(conf.getIndex(), i,
-                             'failed to get correct index for PDBConformation')        
+                             'failed to get correct index')        
                         
     def testGetNumOfAtoms(self):
 
         for i, conf in enumerate(PDBENSEMBLE):
             self.assertEqual(conf.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
-                             'failed to get correct number of atoms for ' 
-                             'PDBConformation')
+                             'failed to get correct number of atoms')
 
 class TestCalcSumOfWeights(unittest.TestCase):
 
