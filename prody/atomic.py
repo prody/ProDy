@@ -178,7 +178,7 @@ class Field(object):
         doc='Set the value of the variable to None.')
 
 ATOMIC_DATA_FIELDS = {
-    'name':      Field('name',      'names',       '|S6',  'atom name',                      'AtomName'),
+    'name':      Field('name',      'names',       '|S6', 'atom name',                      'AtomName'),
     'altloc':    Field('altloc',    'altlocs',     '|S1', 'alternate location indicator',   'AltLocIndicator'),
     'anisou':    Field('anisou',    'anisou',      float, 'anisotropic temperature factor', 'AnisoTempFactor', ndim=2),
     'chain':     Field('chain',     'chids',       '|S1', 'chain identifier',               'ChainIdentifier', none='hv'),
@@ -240,7 +240,8 @@ keys.sort()
 
 for key in keys:
     field = ATOMIC_DATA_FIELDS[key]
-    __doc__ += '``get/set{0:18s}  get/set {1:s}\n'.format(field.meth_pl+'``', field.doc_pl)
+    __doc__ += '``get/set{0:18s}  get/set {1:s}\n'.format(field.meth_pl+'``', 
+                                                          field.doc_pl)
 
 __doc__ += """
 ===========================  ==================================================
@@ -255,18 +256,18 @@ Other functions common to all atomic classes is given below:
 ===========================  ==================================================
 Method name                  Description
 ===========================  ==================================================
-``copy``                     returns a deep copy atomic data.
-``select``                   selects a subset of atoms (see :ref:`selections`).
-``getCoordinates``           changes the index of the active coordinate set.
-``getNumOfAtoms``            returns number of atoms.
-``getNumOfCoordset``         returns number of coordinate sets.
-``getCoordsets``             returns specified coordinate sets.
-``getActiveCoordsetIndex``   returns the index of the active coordinate set.
-``setActiveCoordsetIndex``   changes the index of the active coordinate set.
-``iterCoordsets``            iterate over coordinate sets.
-``isAttribute``              checks whether a user set attribute exists.
-``getAttribute``             returns user set attribute data.
-``setAttribute``             changes user set attribute data.
+``copy``                     returns a deep copy of atomic data
+``select``                   selects a subset of atoms (see :ref:`selections`)
+``getCoordinates``           changes the index of the active coordinate set
+``getNumOfAtoms``            returns number of atoms
+``getNumOfCoordsets``        returns number of coordinate sets
+``getCoordsets``             returns specified coordinate sets
+``getActiveCoordsetIndex``   returns the index of the active coordinate set
+``setActiveCoordsetIndex``   changes the index of the active coordinate set
+``iterCoordsets``            iterate over coordinate sets
+``isAttribute``              checks whether a user set attribute exists
+``getAttribute``             returns user set attribute data
+``setAttribute``             changes user set attribute data
 ===========================  ==================================================
 
 
@@ -280,56 +281,56 @@ Atomic classes also have the following class specific methods:
 Method                    Description
 ========================  =====================================================
 :class:`AtomGroup`  
-* ``getName``             returns name of the instance.
-* ``setName``             changes name of the instance.
-* ``delAttribute``        deletes a user set attribute from the instance.
+* ``getName``             returns name of the instance
+* ``setName``             changes name of the instance
+* ``delAttribute``        deletes a user set attribute from the instance
 * ``addCoordset``
-* ``getNumOfChains``      returns the number of chains.
-* ``iterChains``          iterates over chains.
-* ``getNumOfResidues``    returns the total number of residues from all chains.
-* ``iterResidues``        iterates over all residues.
+* ``getNumOfChains``      returns the number of chains
+* ``iterChains``          iterates over chains
+* ``getNumOfResidues``    returns the total number of residues from all chains
+* ``iterResidues``        iterates over all residues
 
                       
 :class:`Atom`              
-* ``getIndex``            returns atom index.
-* ``getName``             return atom name.
-* ``getSelectionString``  returns string that selects the atom.
+* ``getIndex``            returns atom index
+* ``getName``             return atom name
+* ``getSelectionString``  returns string that selects the atom
                     
 :class:`Selection`         
-* ``getIndices``          returns indices of atoms.
-* ``getSelectionString``  returns selection string of the instance.
+* ``getIndices``          returns indices of atoms
+* ``getSelectionString``  returns selection string of the instance
 
 :class:`Chain`
-* ``getIdentifier``       returns chain identifier.
-* ``setIdentifier``       changes chain identifier.
-* ``getResidue``          returns residue with given number.
-* ``iterResidues``        iterates over residues.
-* ``getNumOfResidues``    returns the number of residues in the instance.
-* ``getSequence``         returns single letter amino acid sequence. 
-* ``getSelectionString``  returns a string that selects chain atoms.
+* ``getIdentifier``       returns chain identifier
+* ``setIdentifier``       changes chain identifier
+* ``getResidue``          returns residue with given number
+* ``iterResidues``        iterates over residues
+* ``getNumOfResidues``    returns the number of residues in the instance
+* ``getSequence``         returns single letter amino acid sequence
+* ``getSelectionString``  returns a string that selects chain atoms
                       
 :class:`Residue`
-* ``getIndices``          returns indices of atoms.
-* ``getAtom``             returns :class:`Atom` with given name.
-* ``getChain``            returns :class:`Chain` of residue instance.
-* ``getChainIdentifier``  returns chain identifier.
-* ``getInsertionCode``    returns insertion code.
-* ``setInsertionCode``    changes insertion code.
-* ``getName``             returns residue name.
-* ``setName``             changes residue name.
-* ``getNumber``           returns residue number.
-* ``setNumber``           changes residue number.
-* ``getSelectionString``  returns a string that selects residue atoms.
+* ``getIndices``          returns indices of atoms
+* ``getAtom``             returns :class:`Atom` with given name
+* ``getChain``            returns :class:`Chain` of residue instance
+* ``getChainIdentifier``  returns chain identifier
+* ``getInsertionCode``    returns insertion code
+* ``setInsertionCode``    changes insertion code
+* ``getName``             returns residue name
+* ``setName``             changes residue name
+* ``getNumber``           returns residue number
+* ``setNumber``           changes residue number
+* ``getSelectionString``  returns a string that selects residue atoms
 
 :class:`AtomMap`
-* ``getIndices``          returns indices of atoms.
-* ``getName``             returns name of the instance.
-* ``setName``             changes name of the instance.
-* ``getNumOfMapped``      returns number of mapped atoms.
-* ``getNumOfUnmapped``    returns number of unmapped atoms.
-* ``getMapping``          returns mapping of indices.
-* ``getMappedFlags``      returns an boolean array indicating mapped atoms.
-* ``getUnmappedFlags``    returns an boolean array indicating unmapped atoms.
+* ``getIndices``          returns indices of atoms
+* ``getName``             returns name of the instance
+* ``setName``             changes name of the instance
+* ``getNumOfMapped``      returns number of mapped atoms
+* ``getNumOfUnmapped``    returns number of unmapped atoms
+* ``getMapping``          returns mapping of indices
+* ``getMappedFlags``      returns an boolean array indicating mapped atoms
+* ``getUnmappedFlags``    returns an boolean array indicating unmapped atoms
 ========================  =====================================================
 
 Functions common to :class:`Atom`, :class:`Selection`, :class:`Chain`,
@@ -338,8 +339,8 @@ Functions common to :class:`Atom`, :class:`Selection`, :class:`Chain`,
 ========================  =====================================================
 Method                    Description
 ========================  =====================================================  
-* ``getAtomGroup``        returns the associated :class:`AtomGroup`.
-* ``getIndices``          returns the indices of atoms.
+* ``getAtomGroup``        returns the associated :class:`AtomGroup`
+* ``getIndices``          returns the indices of atoms
 ========================  =====================================================
 
 
@@ -1237,7 +1238,7 @@ class AtomGroup(Atomic):
         integer greater than *start*.  ``getBySerialRange(i, j)`` will return
         atoms whose serial numbers are i+1, i+2, ..., j-1.  Atom with serial
         number *stop* will be excluded as in indexing a Python :func:`list`.
-        When *step* (default is 1) is given, it specified increment."""
+        *step* (default is 1) specifies increment."""
         
         sn2i = self._getSN2I()
         if not isinstance(start, int):
