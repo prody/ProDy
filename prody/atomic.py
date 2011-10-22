@@ -1096,6 +1096,16 @@ class AtomGroup(Atomic):
         
         return self._userdata.keys()
         
+    def getAttrType(self, name):
+        """Return type of the user attribute, ``None`` if attribute name is not 
+        present.
+        
+        .. versionadded:: 0.8.4"""
+        
+        try:
+            return self._userdata[name].dtype
+        except KeyError:
+            return None
 
     def setAttribute(self, name, data):
         """Set a new attribute called *name* storing atomic *data*.
@@ -1408,6 +1418,14 @@ class AtomPointer(Atomic):
         
         return self._ag.isAttribute(name)
 
+
+    def getAttrType(self, name):    
+        """Return type of the user attribute, ``None`` if attribute name is not 
+        present.
+        
+        .. versionadded:: 0.8.4"""
+        
+        return self._ag.getAttrType(name)
     
     def getAtomGroup(self):
         """Return associated atom group."""
