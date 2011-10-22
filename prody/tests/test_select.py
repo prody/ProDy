@@ -215,8 +215,12 @@ SELECTION_TESTS = {'pdb3mht':
                      ('resname ALA and +1', None)],
       'equivalent': [('temp < 10', 336, 'beta < 10'),
                      ('temp < 10 and chain D', 37, 'temp < 10 and chain D'),
-                     ('oc10 - 10 == 0', 3211, 'occupancy 1'),
-                     ('temp < 10', 336, 'temp + oc10 < 20'),],
+                     ('oc10 - 9 == 1', 3211, 'occupancy 1'),
+                     ('temp < 10', 336, 'temp + oc10 < 20'),
+                     ('occ', 3211, 'occupancy != 0'),
+                     ('occ and occupancy == 1', 3211, 'occupancy != 0'),
+                     ('occ and occupancy == 1 and oc10 - 9 == 1', 3211),
+                     ('occ and occupancy == 1 and temp < 10', 336),],
     }
 
 }
@@ -224,6 +228,7 @@ for key, item in SELECTION_TESTS.iteritems():
     ag = prody.parsePDB(item['path'], secondary=True)
     ag.setAttribute('temp', ag.getTempFactors())
     ag.setAttribute('oc10', ag.getOccupancies() * 10)
+    ag.setAttribute('occ', ag.getOccupancies().astype(bool))
     SELECTION_TESTS[key]['ag'] = ag
     
 SELECT = prody.Select()
@@ -290,33 +295,8 @@ class TestSelectMeta(type):
 class TestSelect(unittest.TestCase):
     
     """Test :class:`~prody.select.select`."""
-    __metaclass__ = TestSelectMeta
     
-    '''
-    def setUp(self):
-        """Instantiate a list for storing downloaded file names."""
-        self.count = 0
-        self.select = prody.Select()
-        self.atomgroups = {}
-        for pdb in SELECTION_TESTS.iterkeys(): 
-            self.atomgroups[pdb] = prody.parsePDB(pdb, secondary=True)
-        print 'Parsed {0:d} atomgroups.'.format(len(self.atomgroups))
-            
-    def testAtomGroups(self):    
-        
-        for key, atoms in self.atomgroups.iteritems():
-            self.assertEqual(
-                atoms.getNumOfAtoms(), SELECTION_TESTS[key]['n_atoms'],
-                'parsePDB failed to parse correct number of atoms from {0:s}'
-                .format(key))
-
-    def tearDown(self):
-        
-        print 'Tested {0:d} selections.'.format(self.count)
-        self.count = 0
-        self.select = None
-        self.atomgroups = None
-    '''
+    __metaclass__ = TestSelectMeta
 
 
 class TestGetSetFunctions(unittest.TestCase):
