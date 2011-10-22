@@ -31,6 +31,9 @@ from test_datafiles import *
 
 prody.changeVerbosity('none')
 
+ATOL = 1e-5
+RTOL = 0
+
 ATOMS = parseDatafile('multi_model_truncated', subset='ca')
 
 ENSEMBLE = Ensemble(ATOMS)
@@ -144,36 +147,38 @@ class TestEnsemble(unittest.TestCase):
 
     def testGetRMSDs(self):
         
-        assert_equal(ENSEMBLE.getRMSDs().round(3), ENSEMBLE_RMSD,
-                     'failed to calculate RMSDs sets')
+        assert_allclose(ENSEMBLE.getRMSDs(), ENSEMBLE_RMSD,
+                        rtol=0, atol=1e-3,  
+                        err_msg='failed to calculate RMSDs sets')
 
     def testSuperpose(self):
         
         ensemble = ENSEMBLE[:]
         ensemble.superpose()
-        assert_equal(ensemble.getRMSDs().round(3), ENSEMBLE_SUPERPOSE,
-                     'failed to superpose coordinate sets')
+        assert_allclose(ensemble.getRMSDs(), ENSEMBLE_SUPERPOSE,
+                        rtol=0, atol=1e-3,
+                        err_msg='failed to superpose coordinate sets')
 
     def testGetRMSDsWeights(self):
         
-        self.assertTrue(np.all(ENSEMBLE_RMSD == ENSEMBLEW.getRMSDs().round(3)),
-                        'failed to calculate RMSDs sets for Ensemble')
+        assert_allclose(ENSEMBLEW.getRMSDs(), ENSEMBLE_RMSD,
+                        rtol=0, atol=1e-3,
+                        err_msg='failed to calculate RMSDs')
 
     def testSuperposeWeights(self):
         
         ensemble = ENSEMBLEW[:]
         ensemble.superpose()
-        self.assertTrue(np.all(ENSEMBLE_SUPERPOSE == 
-                               ensemble.getRMSDs().round(3)),
-                        'failed to superpose coordinate sets for Ensemble')
+        assert_allclose(ensemble.getRMSDs(), ENSEMBLE_SUPERPOSE,
+                        rtol=0, atol=1e-3,
+                        err_msg='failed to superpose coordinate sets')
 
     def testDelCoordsetMiddle(self):
         
         ensemble = ENSEMBLE[:]
         ensemble.delCoordset(1)
-        self.assertTrue(np.all(ATOMS.getCoordsets([0,2]) == 
-                               ensemble.getCoordsets()),
-                        'failed to delete middle coordinate set for Ensemble')
+        assert_equal(ensemble.getCoordsets(), ATOMS.getCoordsets([0,2]),
+                     'failed to delete middle coordinate set for Ensemble')
         
     def testDelCoordsetAll(self):
         
@@ -181,70 +186,55 @@ class TestEnsemble(unittest.TestCase):
         ensemble.delCoordset(range(len(ENSEMBLE)))
         self.assertIsNone(ensemble.getCoordsets(),
                         'failed to delete all coordinate sets for Ensemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed to delete all coordinate sets for Ensemble')
+        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+                     'failed when deleting all coordinate sets')
 
 
     def testConcatenation(self):
         
         ensemble = ENSEMBLE + ENSEMBLE
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3,6))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
+                     'failed to concatenate coordinate sets')
+        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+                     'failed to concatenate coordinate sets')
+        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+                     'failed at concatenation for Ensemble')
 
     def testConcatenationWeights(self):
         
         ensemble = ENSEMBLEW + ENSEMBLEW
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3,6))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ensemble.getWeights() ==
-                               ENSEMBLEW.getWeights()),
-                        'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(), 
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(),
+                     'failed at concatenation for Ensemble')
 
     def testConcatenationNoweightsWeights(self):
         
         ensemble = ENSEMBLE + ENSEMBLEW
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3,6))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+                    'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+                     'failed at concatenation for Ensemble')
         self.assertIsNone(ensemble.getWeights(),
                         'failed at concatenation for Ensemble')
 
     def testConcatenationWeightsNoweights(self):
         
         ensemble = ENSEMBLEW + ENSEMBLE 
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ATOMS.getCoordsets() == 
-                               ensemble.getCoordsets(range(3,6))),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ensemble.getCoordinates() ==
-                               ATOMS.getCoordinates()),
-                        'failed at concatenation for Ensemble')
-        self.assertTrue(np.all(ensemble.getWeights() ==
-                               ENSEMBLEW.getWeights()),
-                        'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getCoordinates(), ATOMS.getCoordinates(),
+                     'failed at concatenation for Ensemble')
+        assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(),
+                     'failed at concatenation for Ensemble')
 
 
 class TestConformation(unittest.TestCase): 
@@ -465,9 +455,8 @@ class TestPDBConformation(unittest.TestCase):
 class TestCalcSumOfWeights(unittest.TestCase):
 
     def testResults(self):
-        self.assertTrue(np.all(WEIGHTS.sum(0).flatten() == 
-                                calcSumOfWeights(PDBENSEMBLE)),
-                        'calcSumOfWeights failed')
+        assert_equal(calcSumOfWeights(PDBENSEMBLE), WEIGHTS.sum(0).flatten(),
+                     'calcSumOfWeights failed')
 
     def testInvalidType(self):
         
