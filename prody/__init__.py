@@ -19,6 +19,8 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 __version__ = '0.8.3'
 
+release = tuple([int(x) for x in __version__.split('.')])
+
 import logging
 import logging.handlers
 import os
@@ -28,6 +30,22 @@ import sys
 import time
 import math
 import platform
+
+import warnings
+warnings.filterwarnings('default', category=DeprecationWarning)
+
+def deprecate(dep, alt, rel=release):
+    """Issue a deprecation warning for *dep* and recommend using *alt*, if 
+    *rel* is greater or equal to the current release."""
+    
+    if release >= rel:
+        # Assume that the deprecated method or function will be removed
+        # when the next major release is made
+        rel = float('.'.join((str(x) for x in rel[:2])))
+        warnings.warn('{0:s} is deprecated and will be removed in v{1:.1f}, '
+                      'use {2:s}'.format(dep, rel, alt), 
+                      DeprecationWarning, stacklevel=2)
+
 
 PLATFORM = platform.system()
 _PY3K = sys.version_info[0] > 2
