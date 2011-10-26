@@ -1588,6 +1588,7 @@ class Select(object):
                 result = BINOP_MAP[comp](left, right)
             else:
                 result *= BINOP_MAP[comp](left, right)
+            left = right
             i += 2
         return result
 
