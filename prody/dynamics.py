@@ -463,7 +463,7 @@ class VectorBase(object):
         """Return a copy of array with shape (N, 3)."""
         
         if self.is3d():
-            return self.getArray().reshape((len(self)/3, 3))
+            return self.getArray().reshape((self.numAtoms(), 3))
         else:
             return self.getArray()
     
@@ -471,7 +471,7 @@ class VectorBase(object):
         """Return a copy of array with shape (N, 3)."""
         
         if self.is3d():
-            return self._getArray().reshape((len(self)/3, 3))
+            return self._getArray().reshape((self.numAtoms(), 3))
         else:
             return self._getArray()
         
@@ -1198,6 +1198,7 @@ class GNMBase(NMABase):
         self._cutoff = None
         self._gamma = None
         self._kirchhoff = None
+        self._is3d = False
     
     def getCutoff(self):
         """Return cutoff distance."""
@@ -1445,6 +1446,8 @@ class ANM(GNMBase):
 
     def _reset(self):
         GNMBase._reset(self)
+        self._hessian = None
+        self._is3d = True
         
     def getHessian(self):
         """Return a copy of the Hessian matrix."""
@@ -3846,8 +3849,8 @@ def calcCrossCorr(modes, n_cpu=1):
         n_atoms = model._n_atoms
         variances = model._vars
         if n_cpu == 1:
-            arvar = (array[:, indices]*variances[indices]).T.reshape((n_modes,
-                                                                   n_atoms, 3))
+            arvar = (array[:, indices]*variances[indices]).T.reshape(
+                                                        (n_modes, n_atoms, 3))
             array = array[:, indices].T.reshape((n_modes, n_atoms, 3))
             covariance = np.tensordot(array.transpose(2, 0, 1),
                                       arvar.transpose(0, 2, 1),
