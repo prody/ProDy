@@ -436,20 +436,19 @@ class TestPDBConformation(unittest.TestCase):
             self.assertEqual(conf.numAtoms(), ATOMS.numAtoms(),
                              'failed to get correct number of atoms')
 
-class TestCalcSumOfWeights(unittest.TestCase):
+class TestCalcOccupancies(unittest.TestCase):
 
     def testResults(self):
-        assert_equal(calcSumOfWeights(PDBENSEMBLE), WEIGHTS.sum(0).flatten(),
-                     'calcSumOfWeights failed')
+        assert_equal(calcOccupancies(PDBENSEMBLE), WEIGHTS.sum(0).flatten(),
+                     'calcOccupancies failed')
 
     def testInvalidType(self):
         
-        self.assertRaises(TypeError, calcSumOfWeights, ENSEMBLE)
+        self.assertRaises(TypeError, calcOccupancies, ENSEMBLE)
         
     def testWeightsNone(self):
         
-        self.assertIsNone(calcSumOfWeights(PDBEnsemble()),
-                          'calcSumOfWeights failed')
+        self.assertRaises(ValueError, calcOccupancies, PDBEnsemble())
 
 
 if __name__ == '__main__':
