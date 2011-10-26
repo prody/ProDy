@@ -112,7 +112,7 @@ records:
 =========================  ====================================================
 Function                   Description
 =========================  ====================================================
-:func:`assignSecondstr`    add secondary structure data from header to atoms
+:func:`assignSecstr`       add secondary structure data from header to atoms
 :func:`buildBiomolecules`  build biomolecule data based on header records
 =========================  ====================================================
 
@@ -155,7 +155,7 @@ PDB_CLUSTERS_UPDATE_WARNING = True
 
 
 __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
-           'assignSecondaryStructure', 'assignSecondstr',
+           'assignSecondaryStructure', 'assignSecstr',
            'applyBiomolecularTransformations', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
            'getPDBLocalFolder', 'getPDBMirrorPath', 'getWWPDBFTPServer', 
@@ -804,7 +804,7 @@ def parsePDBStream(stream, **kwargs):
 
     if secondary:
         try:
-            ag = assignSecondstr(hd, ag)
+            ag = assignSecstr(hd, ag)
         except:
             raise PDBParseError('secondary structure assignments could not '
                                  'be made, check input file')
@@ -2573,12 +2573,12 @@ mapHelix = {
 }
 
 def assignSecondaryStructure(header, atoms, coil=False):
-    """Deprecated, use :func:`assignSecondstr`."""
+    """Deprecated, use :func:`assignSecstr`."""
     
-    prody.deprecate('assignSecondaryStructure', 'assignSecondstr', (0,8))
-    return assignSecondstr(header, atoms, coil)
+    prody.deprecate('assignSecondaryStructure', 'assignSecstr', (0,8))
+    return assignSecstr(header, atoms, coil)
 
-def assignSecondstr(header, atoms, coil=False):
+def assignSecstr(header, atoms, coil=False):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
