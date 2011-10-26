@@ -1237,7 +1237,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     altloc_keys.sort()
     indices = {}
     for key in altloc_keys:
-        xyz = atomgroup.getCoords()
+        xyz = atomgroup.getCoordinates()
         success = 0
         lines = altloc[key]
         for line, i in lines:
