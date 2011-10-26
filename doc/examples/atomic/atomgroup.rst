@@ -63,13 +63,13 @@ Set attributes
 Attributes must be passed in a list or an array whose size is the same
 as the number of atoms.
 
->>> wtr1.setAtomNames( ['H', 'O', 'H'] )
->>> wtr1.setResidueNumbers( [1, 1, 1] )
->>> wtr1.setResidueNames( ['WAT', 'WAT', 'WAT'] )
+>>> wtr1.setNames( ['H', 'O', 'H'] )
+>>> wtr1.setResnums( [1, 1, 1] )
+>>> wtr1.setResnames( ['WAT', 'WAT', 'WAT'] )
 
 Accessing data will return a copy of the data:
 
->>> print( wtr1.getAtomNames() )
+>>> print( wtr1.getNames() )
 ['H' 'O' 'H']
 
 Individual atoms
@@ -109,7 +109,7 @@ Let's add another coordinate set to the atom group:
 Note that number of coordinate sets is now 2, but active coordinate set index
 is still 0. Active coordinate set incex can be changed for :class:`AtomGroup`
 
->>> a.setActiveCoordsetIndex(1)
+>>> a.setACSI(1)
 >>> a
 <Atom: H from Water (index 0; 2 coordinate sets, active set index: 1)>
 
@@ -155,7 +155,7 @@ Let's translate the coordinates of wtr2 so that it does not overlap with wtr1
 
 Above operation only translated the coordinate set at index 0
 
->>> wtr2.setActiveCoordsetIndex(1)
+>>> wtr2.setACSI(1)
 >>> print( wtr2.getCoordinates() )
 [[ 0.  1.  0.]
  [ 0.  0.  0.]
@@ -166,19 +166,19 @@ Above operation only translated the coordinate set at index 0
 
 Before we merge wtr1 and wtr2, let's change resid's of wtr2:
 
->>> wtr2.setResidueNumbers( [2, 2, 2] )
->>> print( wtr2.getResidueNumbers() )
+>>> wtr2.setResnums( [2, 2, 2] )
+>>> print( wtr2.getResnums() )
 [2 2 2]
 
 We can do this in an alternate way too:
 
->>> wtr2.select('all').setResidueNumbers(2)
->>> print( wtr2.getResidueNumbers() )
+>>> wtr2.select('all').setResnums(2)
+>>> print( wtr2.getResnums() )
 [2 2 2]
 
 Note that the following won't work:
 
->>> wtr2.setResidueNumbers(2)
+>>> wtr2.setResnums(2)
 Traceback (most recent call last):
   File "/usr/lib/python2.6/doctest.py", line 1248, in __run
     compileflags, 1) in test.globs
@@ -203,9 +203,9 @@ Let's merge two water atom groups:
  [ 3.  2.  2.]
  [ 2.  2.  2.]
  [ 2.  2.  3.]]
->>> print( wtrs.getAtomNames() )
+>>> print( wtrs.getNames() )
 ['H' 'O' 'H' 'H' 'O' 'H']
->>> print( wtrs.getResidueNumbers() )
+>>> print( wtrs.getResnums() )
 [1 1 1 2 2 2]
 
 .. note::
@@ -229,7 +229,7 @@ Residues (and also chains) in an atom group can also be iterated over
 Finally, it's is possible to change the name of *wtrs* from 
 "Water + Copy of Water" to something shorter:
 
->>> wtrs.setName('2Waters')
+>>> wtrs.setTitle('2Waters')
 >>> wtrs
 <AtomGroup: 2Waters (6 atoms; 2 coordinate sets, active set index: 0)>
 

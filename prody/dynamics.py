@@ -511,18 +511,36 @@ class Mode(VectorBase):
         return self._model._is3d
     
     def getNumOfAtoms(self):
+        """Deprecated, use :meth:`numAtoms`."""
+        
+        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        return self.numAtoms()
+        
+    def numAtoms(self):
         """Return number of atoms."""
         
         return self._model._n_atoms
     
     def getNumOfDegOfFreedom(self):
+        """Deprecated, use :meth:`numDOF`."""
+        
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        return self.numDOF()
+        
+    def numDOF(self):
         """Return number of degrees of freedom (three times the number of 
         atoms)."""
         
         return self._model._dof
     
     def getName(self):
-        """A descriptive name for the mode instance."""
+        """Deprecated, use :meth:`getTitle`."""
+        
+        prody.deprecate('getName', 'getTitle', (0,9))
+        return self.getTitle()
+        
+    def getTitle(self):
+        """A descriptive title for the mode instance."""
         
         return str(self)
     
@@ -601,16 +619,16 @@ class Vector(VectorBase):
     
     """
     
-    __slots__ = ['_name', '_array', '_is3d']
+    __slots__ = ['_title', '_array', '_is3d']
     
-    def __init__(self, array, name='Unknown', is_3d=True):
+    def __init__(self, array, title='Unknown', is_3d=True):
         """Instantiate with a name, an array, and a 3d flag."""
         
         if not isinstance(array, np.ndarray) or array.ndim != 1:
             raise TypeError('array must be a 1-dimensional numpy.ndarray')
         if not isinstance(is_3d, bool):
             raise TypeError('is_3d must be a boolean')
-        self._name = str(name)
+        self._title = str(title)
         self._array = array
         self._is3d = is_3d
         
@@ -618,23 +636,35 @@ class Vector(VectorBase):
         return len(self._array)
     
     def __repr__(self):
-        return '<Vector: {0:s}>'.format(self._name)
+        return '<Vector: {0:s}>'.format(self._title)
     
     def __str__(self):
-        return self._name 
+        return self._title 
     
     def is3d(self):
         return self._is3d
     
     def getName(self):
-        """Get the descriptive name for the vector instance."""
+        """Deprecated, use :meth:`getTitle`."""
+
+        prody.deprecate('getName', 'getTitle', (0,9))
+        return self.getTitle()
         
-        return self._name
+    def getTitle(self):
+        """Get the descriptive title for the vector instance."""
+        
+        return self._title
     
     def setName(self, name):
-        """Set the descriptive name for the vector instance."""
+        """Deprecated, use :meth:`setTitle`."""
+
+        prody.deprecate('setName', 'setTitle', (0,9))
+        return self.setTitle(name)
         
-        self._name = str(name) 
+    def setTitle(self, title):
+        """Set the descriptive title for the vector instance."""
+        
+        self._title = str(title) 
     
     def getArray(self):
         """Return a copy of array."""
@@ -650,13 +680,26 @@ class Vector(VectorBase):
         """Return mode after normalizing it."""
         
         return Vector(self._array/(self._array**2).sum()**0.5, 
-                      '({0:s})/||{0:s}||'.format(self._name), self._is3d)
+                      '({0:s})/||{0:s}||'.format(self._title), self._is3d)
 
     def getNumOfDegOfFreedom(self):
+        """Deprecated, use :meth:`numDOF`."""
+        
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        return self.numDOF()
+        
+    def numDOF(self):
+
         """Return number of degrees of freedom."""
         return len(self._array)
 
     def getNumOfAtoms(self):
+        """Deprecated, use :meth:`numAtoms`."""
+        
+        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        return self.numAtoms()
+        
+    def numAtoms(self):
         """Return number of atoms.  For a 3-dimensional vector, returns length 
         of the vector divided by 3."""
         
@@ -678,19 +721,19 @@ class NMABase(object):
         
     """
     
-    def __init__(self, name='Unnamed'):
+    def __init__(self, title='Unknown'):
         """Initialize a Normal Mode analysis with a given name.
         
         .. versionchanged:: 0.7
-           When an empty string is passed as *name* argument, NMA instance 
-           is called "Unnamed".
+           When an empty string is passed as *title* argument, NMA instance 
+           is called "Unknown".
         
         """
         
-        name = str(name)
-        if name == '':
-            name = 'Unnamed'
-        self._name = name 
+        title = str(title)
+        if title == '':
+            title = 'Unknown'
+        self._title = title
         self._n_modes = 0
         self._cov = None
         self._n_atoms = 0
@@ -733,10 +776,10 @@ class NMABase(object):
     
     def __repr__(self):
         return '<NMA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
-                self._name, self._n_modes, self._n_atoms)
+                self._title, self._n_modes, self._n_atoms)
 
     def __str__(self):
-        return 'NMA {0:s}'.format(self._name)
+        return 'NMA {0:s}'.format(self._title)
 
     def _reset(self):
         self._n_modes = 0        
@@ -763,30 +806,60 @@ class NMABase(object):
         return self._is3d
     
     def getNumOfAtoms(self):
-        """Return number of modes."""
+        """Deprecated, use :meth:`numAtoms`."""
+        
+        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        return self.numAtoms()
+        
+    def numAtoms(self):
+        """Return number of atoms."""
         
         return self._n_atoms
     
     def getNumOfModes(self):
+        """Deprecated, use :meth:`numModes`."""
+        
+        prody.deprecate('getNumOfModes', 'numModes', (0,9))
+        return self.numModes()
+        
+    def numModes(self):
         """Return number of modes in the instance (not necessarily maximum 
         number of possible modes)."""
         
         return self._n_modes
     
     def getNumOfDegOfFreedom(self):
+        """Deprecated, use :meth:`numDOF`."""
+        
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        return self.numDOF()
+        
+    def numDOF(self):
         """Return number of degrees of freedom."""
         
         return self._dof
         
     def getName(self):
-        """Return name."""
+        """Deprecated, use :meth:`getTitle`."""
+
+        prody.deprecate('getName', 'getTitle', (0,9))
+        return self.getTitle()
         
-        return self._name
+    def getTitle(self):
+        """Return title of the model."""
+        
+        return self._title
     
     def setName(self, name):
-        """Set name."""
+        """Deprecated, use :meth:`setTitle`."""
+
+        prody.deprecate('setName', 'setTitle', (0,9))
+        return self.setTitle(name)
         
-        self._name = str(name)
+    def setTitle(self, title):
+        """Set title of the model."""
+        
+        self._title = str(title)
     
     def getMode(self, index):
         """Return mode at given index."""
@@ -965,7 +1038,7 @@ class NMA(NMABase):
     
     """
     
-    def __init__(self, name='Unnamed'):
+    def __init__(self, name='Unknown'):
         NMABase.__init__(self, name)
 
         
@@ -1009,17 +1082,35 @@ class ModeSet(object):
         return self._model._is3d
     
     def getNumOfAtoms(self):
-        """Return number of nodes."""
+        """Deprecated, use :meth:`numAtoms`."""
+        
+        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        return self.numAtoms()
+        
+    def numAtoms(self):
+        """Return number of atoms."""
         
         return self._model._n_atoms
     
     def getNumOfModes(self):
+        """Deprecated, use :meth:`numModes`."""
+        
+        prody.deprecate('getNumOfModes', 'numModes', (0,9))
+        return self.numModes()
+        
+    def numModes(self):
         """Return number of modes in the instance (not necessarily maximum 
         number of possible modes)."""
         
         return len(self._indices)
     
     def getNumOfDegOfFreedom(self):
+        """Deprecated, use :meth:`numDOF`."""
+        
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        return self.numDOF()
+        
+    def numDOF(self):
         """Return number of degrees of freedom."""
         
         return self._model._dof
@@ -1031,9 +1122,16 @@ class ModeSet(object):
         return [getMode(i) for i in self._indices]
     
     def getName(self):
-        """Return name."""
+        """Deprecated, use :meth:`getTitle`."""
+        
+        prody.deprecate('getName', 'getTitle', (0,9))
+        return self.getTitle()
+    
+    def getTitle(self):
+        """Return title of the mode set."""
         
         return str(self)
+    
     
     def getModel(self):
         """Return the model that the modes belongs to."""
@@ -1081,7 +1179,7 @@ class GNMBase(NMABase):
 
     """Class for Gaussian Network Model analysis of proteins."""
 
-    def __init__(self, name='Unnamed'):
+    def __init__(self, name='Unknown'):
         NMABase.__init__(self, name)
         self._is3d = False
         self._cutoff = None
@@ -1090,10 +1188,10 @@ class GNMBase(NMABase):
         
     def __repr__(self):
         return '<GNM: {0:s} ({1:d} modes, {2:d} nodes)>'.format(
-                                    self._name, self.__len__(), self._n_atoms)
+                                    self._title, self.__len__(), self._n_atoms)
     
     def __str__(self):
-        return 'GNM {0:s}'.format(self._name)
+        return 'GNM {0:s}'.format(self._title)
     
     def _reset(self):
         NMABase._reset(self)
@@ -1329,7 +1427,7 @@ class ANM(GNMBase):
     
     """
 
-    def __init__(self, name='Unnamed'):
+    def __init__(self, name='Unknown'):
         GNMBase.__init__(self, name)
         self._is3d = True
         self._cutoff = None
@@ -1340,10 +1438,10 @@ class ANM(GNMBase):
 
     def __repr__(self):
         return '<ANM: {0:s} ({1:d} modes, {2:d} nodes)>'.format(
-                                    self._name, self.__len__(), self._n_atoms)
+                                    self._title, self.__len__(), self._n_atoms)
                                     
     def __str__(self):
-        return 'ANM {0:s}'.format(self._name)
+        return 'ANM {0:s}'.format(self._title)
 
     def _reset(self):
         GNMBase._reset(self)
@@ -1561,15 +1659,15 @@ class PCA(NMABase):
     |example| See examples in :ref:`pca`.
     """
 
-    def __init__(self, name='Unnamed'):
+    def __init__(self, name='Unknown'):
         NMABase.__init__(self, name)
     
     def __repr__(self):
         return '<PCA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
-                self._name, self._n_modes, self._n_atoms)
+                self._title, self._n_modes, self._n_atoms)
 
     def __str__(self):
-        return 'PCA {0:s}'.format(self._name)
+        return 'PCA {0:s}'.format(self._title)
     
     def setCovariance(self, covariance):
         """Set covariance matrix."""
@@ -1636,7 +1734,7 @@ class PCA(NMABase):
         if isinstance(coordsets, prody.TrajectoryBase):
             nfi = coordsets.getNextFrameIndex()
             coordsets.reset()
-            n_atoms = coordsets.getNumOfSelected()
+            n_atoms = coordsets.numSelected()
             dof = n_atoms * 3
             cov = np.zeros((dof, dof))
             mean = coordsets._getCoordinates().flatten()
@@ -1856,10 +1954,10 @@ class EDA(PCA):
 
     def __repr__(self):
         return '<EDA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
-                self._name, self._n_modes, self._n_atoms)
+                self._title, self._n_modes, self._n_atoms)
 
     def __str__(self):
-        return 'EDA {0:s}'.format(self._name)
+        return 'EDA {0:s}'.format(self._title)
 
 class Gamma(object):
     
@@ -1935,7 +2033,7 @@ class GammaStructureBased(Gamma):
         
     >>> from prody import *
     >>> ubi, header = parsePDB('1aar', chain='A', subset='calpha', header=True)
-    >>> assignSecondaryStructure(header, ubi)
+    >>> assignSecondstr(header, ubi)
     <AtomGroup: 1aar_A_ca (76 atoms; 1 coordinate sets, active set index: 0)>
 
     In the above we parsed only the atoms needed for this calculation, i.e.
@@ -1985,12 +2083,12 @@ class GammaStructureBased(Gamma):
         
         if not isinstance(atoms, prody.Atomic):
             raise TypeError('atoms must be an Atomic instance')
-        n_atoms = atoms.getNumOfAtoms()
-        sstr = atoms.getSecondaryStrs()
+        n_atoms = atoms.numAtoms()
+        sstr = atoms.getSecstrs()
         assert sstr is not None, 'secondary structure assignments must be set'
-        chid = atoms.getChainIdentifiers()
+        chid = atoms.getChids()
         assert chid is not None, 'chain identifiers must be set'
-        rnum = atoms.getResidueNumbers()
+        rnum = atoms.getResnums()
         assert rnum is not None, 'residue numbers must be set'
         gamma = float(gamma)
         assert gamma > 0, 'gamma must be greater than 0'
@@ -2072,7 +2170,7 @@ class GammaVariableCutoff(Gamma):
 
     >>> hhai = parsePDB('1mht')
     >>> ca_p = hhai.select('(protein and name CA) or (nucleic and name P)')
-    >>> print( ca_p.getAtomNames() ) # doctest: +ELLIPSIS
+    >>> print( ca_p.getNames() ) # doctest: +ELLIPSIS
     ['P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P' 'P'
      'P' 'P' 'P' 'P' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA' 'CA'
      ...
@@ -2081,7 +2179,7 @@ class GammaVariableCutoff(Gamma):
          
     We set the radii of atoms: 
      
-    >>> variableCutoff = GammaVariableCutoff(ca_p.getAtomNames(), gamma=1,  
+    >>> variableCutoff = GammaVariableCutoff(ca_p.getNames(), gamma=1,  
     ... default_radius=7.5, debug=True, P=10)
     >>> print( variableCutoff.getRadii() ) # doctest: +ELLIPSIS
     [ 10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.
@@ -2206,10 +2304,10 @@ def saveModel(nma, filename=None, matrices=False):
         raise ValueError('nma instance does not contain data')
     
     dict_ = nma.__dict__
-    attr_list = ['_name', '_trace', '_array', '_eigvals', '_vars', '_n_atoms',
+    attr_list = ['_title', '_trace', '_array', '_eigvals', '_vars', '_n_atoms',
                  '_dof', '_n_modes']
     if filename is None:
-        filename = nma.getName().replace(' ', '_')
+        filename = nma.getTitle().replace(' ', '_')
     if isinstance(nma, GNMBase):
         attr_list.append('_cutoff')
         attr_list.append('_gamma')
@@ -2253,21 +2351,25 @@ def loadModel(filename):
         type_ = attr_dict['type']
     except KeyError:
         raise IOError('{0:s} is not a valid NMA model file'.format(filename))
+    try:
+        title = str(attr_dict['_title'])
+    except KeyError: 
+        title = str(attr_dict['_name'])
     if type_ == 'ANM':
-        nma = ANM(str(attr_dict['_name']))
+        nma = ANM(title)
     elif type_ == 'PCA':
-        nma = PCA(str(attr_dict['_name']))
+        nma = PCA(title)
     elif type_ == 'EDA':
-        nma = EDA(str(attr_dict['_name']))
+        nma = EDA(title)
     elif type_ == 'GNM':
-        nma = GNM(str(attr_dict['_name']))
+        nma = GNM(title)
     elif type_ == 'NMA':
-        nma = NMA(str(attr_dict['_name']))
+        nma = NMA(title)
     else:
         raise IOError('NMA model type is not recognized'.format(type_))
     dict_ = nma.__dict__ 
     for attr in attr_dict.files:
-        if attr in ('type', '_name'): 
+        if attr in ('type', '_name', '_title'): 
             continue
         elif attr in ('_trace', '_cutoff', '_gamma'):
             dict_[attr] = float(attr_dict[attr])
@@ -2285,7 +2387,7 @@ def saveVector(vector, filename):
     if not isinstance(vector, Vector):
         raise TypeError('invalid type for vector, {0:s}'.format(type(vector)))
     attr_dict = {}
-    attr_dict['name'] = vector.getName()
+    attr_dict['title'] = vector.getTitle()
     attr_dict['array'] = vector._getArray()
     attr_dict['is3d'] = vector.is3d()
     filename += '.vec.npz'
@@ -2298,8 +2400,11 @@ def loadVector(filename):
     :func:`saveVector`."""
     
     attr_dict = np.load(filename)
-    return Vector(attr_dict['array'], str(attr_dict['name']), 
-                  bool(attr_dict['is3d']))
+    try:
+        title = str(attr_dict['title'])
+    except KeyError:
+        title = str(attr_dict['name'])
+    return Vector(attr_dict['array'], title, bool(attr_dict['is3d']))
 
 def getVMDpath():
     """Return path to the VMD executable."""
@@ -2358,22 +2463,22 @@ def parseNMD(filename, type=NMA):
         ag.setCoordinates(coords)
         data = atomic.pop('atomnames', None)
         if data is not None:
-            ag.setAtomNames(data.split())
+            ag.setNames(data.split())
         data = atomic.pop('resnames', None)
         if data is not None:
-            ag.setResidueNames(data.split())
+            ag.setResnames(data.split())
         data = atomic.pop('chainids', None)
         if data is not None:
-            ag.setChainIdentifiers(data.split())
+            ag.setChids(data.split())
         data = atomic.pop('resnums', None)
         if data is not None:
-            ag.setResidueNumbers(np.fromstring(data, int, sep=' '))
+            ag.setResnums(np.fromstring(data, int, sep=' '))
         data = atomic.pop('resids', None)
         if data is not None:
-            ag.setResidueNumbers(np.fromstring(data, int, sep=' '))
+            ag.setResnums(np.fromstring(data, int, sep=' '))
         data = atomic.pop('bfactors', None)
         if data is not None:
-            ag.setTempFactors(np.fromstring(data, float, sep=' '))
+            ag.setBetas(np.fromstring(data, float, sep=' '))
     nma = type(name)
     for mode in modes:
         
@@ -2410,13 +2515,13 @@ def writeNMD(filename, modes, atoms):
     if not isinstance(modes, (NMABase, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
                         'not {0:s}'.format(type(modes)))
-    if modes.getNumOfAtoms() != atoms.getNumOfAtoms():
+    if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
     out = open(filename, 'w')
     
     #out.write('#!{0:s} -e\n'.format(VMDPATH))
     out.write('nmwiz_load {0:s}\n'.format(os.path.abspath(filename)))
-    name = modes.getName()
+    name = modes.getTitle()
     name = name.replace(' ', '_').replace('.', '_')
     if not name.replace('_', '').isalnum() or len(name) > 30:
         name = str(atoms)
@@ -2434,32 +2539,32 @@ def writeNMD(filename, modes, atoms):
                              'from atoms instance')
     
     try:
-        data = atoms.getAtomNames()
+        data = atoms.getNames()
         if data is not None:
             out.write('atomnames {0:s}\n'.format(' '.join(data)))
     except:
         pass
     try:
-        data = atoms.getResidueNames()
+        data = atoms.getResnames()
         if data is not None:
             out.write('resnames {0:s}\n'.format(' '.join(data)))
     except:
         pass
     try:
-        data = atoms.getResidueNumbers()
+        data = atoms.getResnums()
         if data is not None:
             out.write('resids {0:s}\n'.format(' '.join(data.astype('|S5'))))
     except:
         pass
     try:
-        data = atoms.getChainIdentifiers()
+        data = atoms.getChids()
         if data is not None:
             out.write('chainids {0:s}\n'.format(' '.join(data)))
     except:
         pass
     
     try:
-        data = atoms.getTempFactors()
+        data = atoms.getBetas()
         if data is not None:
             out.write('bfactors {0:s}\n'.format(' '.join(
                             ['{0:.3f}'.format(x) for x in data.flatten()])))
@@ -2510,17 +2615,17 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
-        name = ag.getName()
+        title = ag.getTitle()
     elif isinstance(pdb, Atomic):
         ag = pdb
         if isinstance(pdb, AtomGroup):
-            name = ag.getName()
+            title = ag.getTitle()
         else: 
-            name = ag.getAtomGroup().getName()
+            title = ag.getAtomGroup().getTitle()
     else:
-        raise TypeError('pdb must be an atom container, not {0:s}'
+        raise TypeError('pdb must be an atomic class, not {0:s}'
                         .format(type(pdb)))
-    anm = ANM(name)
+    anm = ANM(title)
     sel = ag.select(selstr)
     anm.buildHessian(sel, cutoff, gamma)
     anm.calcModes(n_modes)
@@ -2540,17 +2645,17 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
-        name = ag.getName()
+        title = ag.getTitle()
     elif isinstance(pdb, Atomic):
         ag = pdb
         if isinstance(pdb, AtomGroup):
-            name = ag.getName()
+            title = ag.getTitle()
         else: 
-            name = ag.getAtomGroup().getName()
+            title = ag.getAtomGroup().getTitle()
     else:
         raise TypeError('pdb must be an atom container, not {0:s}'
                         .format(type(pdb)))
-    gnm = GNM(name)
+    gnm = GNM(title)
     sel = ag.select(selstr)
     gnm.buildKirchhoff(sel, cutoff, gamma)
     gnm.calcModes(n_modes)
@@ -2571,7 +2676,7 @@ def calcCollectivity(mode, masses=None):
     
     is3d = mode.is3d()
     if masses is not None:
-        if len(masses) != mode.getNumOfAtoms(): 
+        if len(masses) != mode.numAtoms(): 
             raise ValueError('length of massesmust be equal to number of atoms')
         if is3d:
             u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
@@ -2581,7 +2686,7 @@ def calcCollectivity(mode, masses=None):
         else:
             u2in = (mode.getArrayNx3() ** 2 )
     u2in = u2in * (1 / u2in.sum() ** 0.5)
-    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.getNumOfAtoms()
+    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
     return coll
     
 
@@ -2606,10 +2711,10 @@ def calcProjection(ensemble, modes, rmsd=True):
     if not modes.is3d(): 
         raise ValueError('modes must be 3-dimensional')
     if isinstance(ensemble, Vector):
-        n_atoms = ensemble.getNumOfAtoms()
+        n_atoms = ensemble.numAtoms()
     else:
-        n_atoms = ensemble.getNumOfSelected()
-    if n_atoms != modes.getNumOfAtoms():
+        n_atoms = ensemble.numSelected()
+    if n_atoms != modes.numAtoms():
         raise ValueError('number of atoms are not the same')
     if isinstance(ensemble, Vector):
         if not ensemble.is3d(): 
@@ -2646,7 +2751,7 @@ def calcOverlap(rows, cols):
         raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0:s}'
                         .format(type(cols)))
     
-    if rows.getNumOfDegOfFreedom() != cols.getNumOfDegOfFreedom(): 
+    if rows.numDOF() != cols.numDOF(): 
         raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
     rows = rows.getArray()
@@ -2750,7 +2855,7 @@ def extrapolateModel(enm, nodes, atoms):
         raise TypeError('enm must be an NMABase instance')
     if not isinstance(nodes, Atomic):
         raise TypeError('nodes must be an Atomic instance')
-    if enm.getNumOfAtoms() != nodes.getNumOfAtoms():
+    if enm.numAtoms() != nodes.numAtoms():
         raise ValueError('enm and nodes must have same number of atoms')
     
     if isinstance(atoms, Atomic):
@@ -2759,8 +2864,7 @@ def extrapolateModel(enm, nodes, atoms):
         indices = []
         hierview = atoms.getHierView()
         for i, node in enumerate(nodes):
-            res = hierview[node.getChainIdentifier(), node.getResidueNumber(), 
-                           node.getInsertionCode()]
+            res = hierview[node.getChid(), node.getResnum(), node.getIcode()]
             if res is None:
                 raise ValueError('hierview must contain a residue for all atoms')
             atom_indices.append(res.getIndices())
@@ -2780,7 +2884,7 @@ def extrapolateModel(enm, nodes, atoms):
             ag = atoms.getAtomGroup()
         atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
                           np.array([]), str(atoms), 
-                          atoms.getActiveCoordsetIndex())
+                          atoms.getACSI())
         return extra, atommap
     else:
         raise TypeError('atoms must be an Atomic instance')
@@ -2814,7 +2918,7 @@ def sliceVector(vector, atoms, selstr):
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'
                         .format(type(atoms)))
-    if atoms.getNumOfAtoms() != vector.getNumOfAtoms(): 
+    if atoms.numAtoms() != vector.numAtoms(): 
         raise ValueError('number of atoms in *vector* and *atoms* must be '
                          'equal')
     if isinstance(atoms, AtomGroup):
@@ -2823,7 +2927,7 @@ def sliceVector(vector, atoms, selstr):
     else:
         which = SELECT.getIndices(atoms, selstr)
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getActiveCoordsetIndex())
+                        selstr, atoms.getACSI())
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
                  '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
@@ -2864,7 +2968,7 @@ def sliceMode(mode, atoms, selstr):
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'
                         .format(type(atoms)))
-    if atoms.getNumOfAtoms() != mode.getNumOfAtoms(): 
+    if atoms.numAtoms() != mode.numAtoms(): 
         raise ValueError('number of atoms in *mode* and *atoms* must be equal')
     if isinstance(atoms, AtomGroup):
         sel = atoms.select(selstr)
@@ -2872,7 +2976,7 @@ def sliceMode(mode, atoms, selstr):
     else:
         which = SELECT.getIndices(atoms, selstr)
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getActiveCoordsetIndex())
+                        selstr, atoms.getACSI())
     vec = Vector(mode.getArrayNx3()[
                  which,:].flatten() * mode.getVariance()**0.5,
                  '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
@@ -2904,7 +3008,7 @@ def sliceModel(model, atoms, selstr):
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'
                         .format(type(atoms)))
-    if atoms.getNumOfAtoms() != model.getNumOfAtoms(): 
+    if atoms.numAtoms() != model.numAtoms(): 
         raise ValueError('number of atoms in *model* and *atoms* must be '
                          'equal')
     
@@ -2915,9 +3019,9 @@ def sliceModel(model, atoms, selstr):
     else:
         which = SELECT.getIndices(atoms, selstr)
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getActiveCoordsetIndex())
+                        selstr, atoms.getACSI())
 
-    nma = type(model)('{0:s} slice "{1:s}"'.format(model.getName(), selstr))
+    nma = type(model)('{0:s} slice "{1:s}"'.format(model.getTitle(), selstr))
     if model.is3d():
         which = [which.reshape((len(which),1))*3]
         which.append(which[0]+1)
@@ -2986,7 +3090,7 @@ def reduceModel(model, atoms, selstr):
         other = np.tile(other, (3,1)).transpose().flatten()
     ss = matrix[system,:][:,system]
     if isinstance(model, PCA):
-        eda = PCA(model.getName()+' reduced')
+        eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(ss)
         return eda, system
     so = matrix[system,:][:,other]
@@ -2995,15 +3099,15 @@ def reduceModel(model, atoms, selstr):
     matrix = ss - np.dot(so, np.dot(linalg.inv(oo), os))
     
     if isinstance(model, GNM):
-        gnm = GNM(model.getName()+' reduced')
+        gnm = GNM(model.getTitle() + ' reduced')
         gnm.setKirchhoff(matrix)
         return gnm, system
     elif isinstance(model, ANM):
-        anm = ANM(model.getName()+' reduced')
+        anm = ANM(model.getTitle() + ' reduced')
         anm.setHessian(matrix)
         return anm, system
     elif isinstance(model, PCA):
-        eda = PCA(model.getName()+' reduced')
+        eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(matrix)
         return eda, system
 
@@ -3295,13 +3399,13 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     if not modes.is3d():
         raise ValueError('modes must be from a 3-dimensional model')
     n_confs = int(n_confs)
-    n_atoms = modes.getNumOfAtoms()
+    n_atoms = modes.numAtoms()
     initial = None
     if atoms is not None:
         if not isinstance(atoms, (Atomic)):
             raise TypeError('{0:s} is not correct type for atoms'
                             .format(type(atoms)))
-        if atoms.getNumOfAtoms() != n_atoms:
+        if atoms.numAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
         initial = atoms.getCoordinates()
 
@@ -3403,7 +3507,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             raise ValueError('onto must be from a 3-dimensional model')
         if len(onto) != 3:
             raise ValueError('length of onto is not equal to 3')
-        if onto.getNumOfAtoms() != modes.getNumOfAtoms():
+        if onto.numAtoms() != modes.numAtoms():
             raise ValueError('modes and onto does not have same number of atoms')
         
     u = np.linspace(0, 2 * np.pi, 100)
@@ -3413,9 +3517,9 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     var = modes.getVariances()
     #randn = np.random.standard_normal((1000, 3))
     #coef = ((randn ** 2 * var).sum(1) ** 0.5).mean()
-    #scale = float(n_std) * modes.getNumOfAtoms()**0.5 * float(rmsd) / coef * var ** 0.5
+    #scale = float(n_std) * modes.numAtoms()**0.5 * float(rmsd) / coef * var ** 0.5
     scale = float(n_std) * scale * var ** 0.5
-    #scale = float(n_std) * modes.getNumOfAtoms() ** 0.5 * float(rmsd) / var.sum() ** 0.5 * var ** 0.5   
+    #scale = float(n_std) * modes.numAtoms() ** 0.5 * float(rmsd) / var.sum() ** 0.5 * var ** 0.5   
 
     x = scale[0] * np.outer(np.cos(u), np.sin(v))
     y = scale[1] * np.outer(np.sin(u), np.sin(v))
@@ -3506,13 +3610,13 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
                         'not {0:s}'.format(type(mode)))
     if not mode.is3d():
         raise ValueError('mode must be from a 3-dimensional model.')
-    n_atoms = mode.getNumOfAtoms()
+    n_atoms = mode.numAtoms()
     initial = None
     if atoms is not None:
         if not isinstance(atoms, Atomic):
             raise TypeError('{0:s} is not correct type for atoms'
                             .format(type(atoms)))
-        if atoms.getNumOfAtoms() != n_atoms:
+        if atoms.numAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
         initial = atoms.getCoordinates()
 
@@ -3580,7 +3684,7 @@ def deformAtoms(atoms, mode, rmsd=None):
                         'not {0:s}'.format(type(mode)))
     if not mode.is3d():
         raise ValueError('mode must be from a 3-dimensional model.')
-    if atoms.getNumOfAtoms() != mode.getNumOfAtoms():
+    if atoms.numAtoms() != mode.numAtoms():
         raise ValueError('number of atoms do not match')
     
     array = mode.getArrayNx3()
@@ -3588,7 +3692,7 @@ def deformAtoms(atoms, mode, rmsd=None):
     if rmsd is not None:
         rmsd = float(rmsd)
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
-        scalar = (atoms.getNumOfAtoms() * rmsd**2 / (array**2).sum())**0.5
+        scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
         LOGGER.info('Mode is scaled by {0:g}.'.format(scalar))
         atoms.addCoordset( atoms.getCoordinates() + array * scalar)
     else:     
@@ -3612,9 +3716,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     matrix from *model*, e.t. :class:`ANM` instance.  Each residue/node is 
     perturbed *repeats* times with a random unit force vector.  When *atoms* 
     instance is given, PRS profile for residues will be added as an attribute 
-    which then can be retrieved as ``atoms.getAttribute('prs_profile')``. 
-    *model* and *atoms* must have the same number of atoms. *atoms* must be
-    an :class:`~prody.atomic.AtomGroup` instance.
+    which then can be retrieved as ``atoms.getData('prs_profile')``.  *model* 
+    and *atoms* must have the same number of atoms. *atoms* must be an :class:`
+    ~prody.atomic.AtomGroup` instance.
     
     .. versionadded:: 0.8.2
     
@@ -3633,7 +3737,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     if atoms is not None:
         if not isinstance(atoms, prody.AtomGroup):
             raise TypeError('atoms must be an AtomGroup instance')
-        elif atoms.getNumOfAtoms() != model.getNumOfAtoms():
+        elif atoms.numAtoms() != model.numAtoms():
             raise ValueError('model and atoms must have the same number atoms')
             
     assert isinstance(repeats, int), 'repeats must be an integer'
@@ -3641,7 +3745,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
     
-    n_atoms = model.getNumOfAtoms()
+    n_atoms = model.numAtoms()
     response_matrix = np.zeros((n_atoms, n_atoms))
     LOGGER.progress(n_atoms)
     i3 = -3
@@ -3663,7 +3767,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     LOGGER.info('Perturbation response scanning completed in {0:.1f}s.'
                 .format(time.time()-start))
     if atoms is not None:
-        atoms.setAttribute('prs_profile', response_matrix)
+        atoms.setData('prs_profile', response_matrix)
     return response_matrix
     
     # save the original PRS matrix
@@ -3696,7 +3800,7 @@ def calcSqFlucts(modes):
         else:
             return (modes._getArray() ** 2)
     else:
-        square_fluctuations = np.zeros(modes.getNumOfAtoms()) 
+        square_fluctuations = np.zeros(modes.numAtoms()) 
         if isinstance(modes, VectorBase):
             modes = [modes]
         for mode in modes:
@@ -3860,7 +3964,7 @@ def calcCovOverlap(modelA, modelB):
     if len(modelA) == 0 or len(modelB) == 0:  
         raise TypeError('modes must be calculated for both models, '
                         'try calcModes method')
-    if modelA.getNumOfAtoms() != modelB.getNumOfAtoms(): 
+    if modelA.numAtoms() != modelB.numAtoms(): 
         raise ValueError('modelA and modelB must have same number of atoms')
     arrayA = modelA._getArray()
     varA = modelA.getVariances()
@@ -3889,11 +3993,10 @@ def calcTempFactors(modes, atoms):
     model = modes.getModel()
     if not isinstance(model, GNMBase):
         raise TypeError('modes must come from GNM or ANM')
-    if model.getNumOfAtoms() != atoms.getNumOfAtoms():
+    if model.numAtoms() != atoms.numAtoms():
         raise ValueError('modes and atoms must have same number of nodes')
     sqf = calcSqFlucts(modes)
-    return sqf / ((sqf**2).sum()**0.5) * (
-                                        (atoms.getTempFactors()**2).sum()**0.5)
+    return sqf / ((sqf**2).sum()**0.5) * (atoms.getBetas()**2).sum()**0.5
     
     
 def showFractOfVariances(modes, *args, **kwargs):
@@ -4249,7 +4352,7 @@ def showCrossCorr(modes, *args, **kwargs):
     
     if plt is None: prody.importPyPlot()
     if not plt: return None
-    arange = np.arange(modes.getNumOfAtoms())
+    arange = np.arange(modes.numAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
                        arange[0]+1:] = calcCrossCorr(modes)
@@ -4445,7 +4548,7 @@ def showContactMap(enm, *args, **kwargs):
         LOGGER.warning('kirchhoff matrix is not set')
         return None
     show = plt.spy(kirchhoff, *args, **kwargs)
-    plt.title('{0:s} contact map'.format(enm.getName())) 
+    plt.title('{0:s} contact map'.format(enm.getTitle())) 
     plt.xlabel('Residue index')
     plt.ylabel('Residue index')
     return show

@@ -10,11 +10,11 @@ How AtomMap's work
 First let's see how an instance of :class:`Selection` 
 (or :class:`Chain`\/:class:`Residue`) works. Below table shows 
 indices for a selection of atoms in an :class:`AtomGroup` and values returned when 
-:meth:`Selection.getAtomNames`, :meth:`Selection.getResidueNames` and
-:meth:`Selection.getResidueNumbers` methods are called.
+:meth:`~Selection.getNames`, :meth:`~Selection.getResnames` and
+:meth:`~Selection.getResnums` methods are called.
 
 .. csv-table:: **Atom Subset** 
-   :header: "Indices", ":meth:`getAtomNames`", ":meth:`getResidueNames`", ":meth:`getResidueNumbers`"
+   :header: "Indices", ":meth:`getNames`", ":meth:`getResnames`", ":meth:`getResnums`"
 
    0, N, PHE, 1
    1, CA, PHE, 1
@@ -43,7 +43,7 @@ The size of the AtomMap based on this mapping is 8, since the larger mapping is 
 Calling the same functions for this AtomMap instance would result in the following:
 
 .. csv-table:: **Atom Map**
-   :header: "Mapping", "Indices", ":meth:`getAtomNames`", ":meth:`getResidueNames`", ":meth:`getResidueNumbers`", ":meth:`getMappedFlags`", ":meth:`getUnmappedFlags`"
+   :header: "Mapping", "Indices", ":meth:`getNames`", ":meth:`getResnames`", ":meth:`getResnums`", ":meth:`getMappedFlags`", ":meth:`getUnmappedFlags`"
 
    0, 8, CE1, PHE, 1, 1, 0
    1, 8, CE1, PHE, 1, 1, 0

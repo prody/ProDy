@@ -38,7 +38,7 @@ We use 1joy that contains 21 models homodimeric domain of EnvZ protein
 from E. coli.
 
 >>> pdb = parsePDB('1joy')
->>> print( pdb.getNumOfCoordsets() )
+>>> print( pdb.numCoordsets() )
 21
 
 Calculate RMSD

@@ -138,8 +138,8 @@ SELECTION_TESTS = {'pdb3mht':
                      ('x 6.665', 1),
                      ('y 69.99 13.314', 2),
                      ('z 115.246 45.784', 2),
-                     ('charge 0', None),
-                     ('mass 1', None),
+                     ('charge 0', 0),
+                     ('mass 1', 0),
                      ('radius 0', None),],
      'comparison':  [('x = -51.659', 1),
                      ('x != -51.659', 3210),
@@ -221,14 +221,34 @@ SELECTION_TESTS = {'pdb3mht':
                      ('occ and occupancy == 1', 3211, 'occupancy != 0'),
                      ('occ and occupancy == 1 and oc10 - 9 == 1', 3211),
                      ('occ and occupancy == 1 and temp < 10', 336),],
+      'synonyms':   [('chain C', 248, 'chid C'),
+                     ('chain C D', 521, 'chid C D'),],
+      'docexamples':[('serial 1 2 3', 3),
+                     ('serial 1 to 10', 10),
+                     ('serial 1:10:2', 5),
+                     ('serial < 10', 9),
+                     ('beta 555.55', 0),
+                     ('beta 1 to 500', 3211),
+                     ('beta 1:500', 3211),
+                     ('beta < 500', 3211),
+                     ('resnum 120A 120B', 0),
+                     ('icode A', 0),
+                     ('icode _', 3211),
+                     ('charge 1', 3211),
+                     ('abs(charge) == 1', 3211),
+                     ('charge < 0', 0),
+                     ('0 < mass < 500', 3211),
+                     ('abs(mass) <= mass <= 10', 337),],
     }
 
 }
 for key, item in SELECTION_TESTS.iteritems():
     ag = prody.parsePDB(item['path'], secondary=True)
-    ag.setAttribute('temp', ag.getTempFactors())
-    ag.setAttribute('oc10', ag.getOccupancies() * 10)
-    ag.setAttribute('occ', ag.getOccupancies().astype(bool))
+    ag.setCharges(ag.getOccupancies())
+    ag.setMasses(ag.getBetas())
+    ag.setData('temp', ag.getBetas())
+    ag.setData('oc10', ag.getOccupancies() * 10)
+    ag.setData('occ', ag.getOccupancies().astype(bool))
     SELECTION_TESTS[key]['ag'] = ag
     
 SELECT = prody.Select()

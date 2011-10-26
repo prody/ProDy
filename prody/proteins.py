@@ -28,22 +28,22 @@ Access databases
 
 Following functions are provided for access to protein structural data:
 
-========================= =====================================================
-Function                  Description
-========================= =====================================================
-:func:`blastPDB`          blast search NCBI PDB database
-:func:`fetchPDB`          retrieve PDB/PDBML/mmCIF files from wwPDB servers
-:func:`fetchLigandData`   retrieve ligand from Ligand-Expo 
-:func:`fetchPDBClusters`  retrieve PDB sequence cluster data from wwPDB servers
-:func:`loadPDBClusters`   load PDB sequence cluster data to memory
-:func:`getPDBCluster`     access PDB sequence clusters
-:func:`setPDBLocalFolder` set a local folder for reading/writing PDB files
-:func:`setPDBMirrorPath`  set a local PDB mirror path
-:func:`setWWPDBFTPServer` set a wwPDB FTP server for downloading structures 
-:func:`getPDBLocalFolder` get preset local PDB folder
-:func:`getPDBMirrorPath`  get preset local PDB mirror path
-:func:`getWWPDBFTPServer` get preset wwPDB FTP server
-========================= =====================================================
+=========================  ====================================================
+Function                   Description
+=========================  ====================================================
+:func:`blastPDB`           blast search NCBI PDB database
+:func:`fetchPDB`           retrieve PDB/PDBML/mmCIF files from wwPDB servers
+:func:`fetchLigandData`    retrieve ligand from Ligand-Expo 
+:func:`fetchPDBClusters`   retrieve PDB sequence cluster data from wwPDB
+:func:`loadPDBClusters`    load PDB sequence cluster data to memory
+:func:`getPDBCluster`      access PDB sequence clusters
+:func:`setPDBLocalFolder`  set a local folder for reading/writing PDB files
+:func:`setPDBMirrorPath`   set a local PDB mirror path
+:func:`setWWPDBFTPServer`  set a wwPDB FTP server for downloading structures 
+:func:`getPDBLocalFolder`  get preset local PDB folder
+:func:`getPDBMirrorPath`   get preset local PDB mirror path
+:func:`getWWPDBFTPServer`  get preset wwPDB FTP server
+=========================  ====================================================
 
 
 Parse/write files
@@ -51,20 +51,20 @@ Parse/write files
 
 Following ProDy functions are for parsing and writing atomic data:
 
-====================== ========================================================
-Function               Description
-====================== ========================================================
-:func:`parsePDB`       parse atomic data from files in :file:`.pdb` format
-:func:`parsePSF`       parse atomic data from files in :file:`.psf` format
-:func:`parsePQR`       parse atomic data from files in :file:`.pqr` format
-:func:`parsePDBHeader` parse header data from :file:`.pdb` files 
-:func:`parsePDBStream` parse atomic data from a stream in :file:`.pdb` format
-:func:`parseDSSP`      parse structural data from :program:`dssp` output
-:func:`parseSTRIDE`    parse structural data from :program:`stride` output
-:func:`writePDB`       write atomic data to a file in :file:`.pdb` format
-:func:`writePQR`       write atomic data to a file in :file:`.pqr` format
-:func:`writePDBStream` write atomic data in :file:`.pdb` format to a stream
-====================== ========================================================
+======================  =======================================================
+Function                Description
+======================  =======================================================
+:func:`parsePDB`        parse atomic data from files in :file:`.pdb` format
+:func:`parsePSF`        parse atomic data from files in :file:`.psf` format
+:func:`parsePQR`        parse atomic data from files in :file:`.pqr` format
+:func:`parsePDBHeader`  parse header data from :file:`.pdb` files 
+:func:`parsePDBStream`  parse atomic data from a stream in :file:`.pdb` format
+:func:`parseDSSP`       parse structural data from :program:`dssp` output
+:func:`parseSTRIDE`     parse structural data from :program:`stride` output
+:func:`writePDB`        write atomic data to a file in :file:`.pdb` format
+:func:`writePQR`        write atomic data to a file in :file:`.pqr` format
+:func:`writePDBStream`  write atomic data in :file:`.pdb` format to a stream
+======================  =======================================================
 
 .. seealso::
    
@@ -78,13 +78,13 @@ Store data
 
 Following classes are for storing meta, structural, and/or search data: 
 
-======================== ======================================================
+=======================  ======================================================
 Function                 Description
-======================== ======================================================
+=======================  ======================================================
 :class:`Chemical`        store PDB chemical (heterogen) component data
 :class:`Polymer`         store PDB polymer (macromolecule) component data
 :class:`PDBBlastRecord`  store and evaluate NCBI PDB blast search results 
-======================== ======================================================
+=======================  ======================================================
 
 Execute programs
 -------------------------------------------------------------------------------
@@ -92,14 +92,14 @@ Execute programs
 Following functions can be used to execute structural analysis programs from 
 within Python:
 
-========================= =====================================================
+========================  =====================================================
 Function                  Description
-========================= =====================================================
+========================  =====================================================
 :func:`execDSSP`          execute :program:`dssp`
 :func:`execSTRIDE`        execute :program:`stride`
 :func:`performDSSP`       execute :program:`dssp` and parse results
 :func:`performSTRIDE`     execute :program:`stride` and parse results
-========================= =====================================================
+========================  =====================================================
 
 
 Edit structures
@@ -109,12 +109,12 @@ Following functions allow editing structures, or to be exact instances of
 :class:`~prody.atomic.AtomGroup` class, using structural data from PDB header 
 records:
 
-========================== ====================================================
+=========================  ====================================================
 Function                   Description
-========================== ====================================================
-:func:`assignSecondaryStr` add secondary structure data from header to atoms
+=========================  ====================================================
+:func:`assignSecondstr`    add secondary structure data from header to atoms
 :func:`buildBiomolecules`  build biomolecule data based on header records
-========================== ====================================================
+=========================  ====================================================
 
 
 :mod:`prody.proteins`
@@ -155,7 +155,7 @@ PDB_CLUSTERS_UPDATE_WARNING = True
 
 
 __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
-           'assignSecondaryStructure', 'assignSecondaryStr',
+           'assignSecondaryStructure', 'assignSecondstr',
            'applyBiomolecularTransformations', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
            'getPDBLocalFolder', 'getPDBMirrorPath', 'getWWPDBFTPServer', 
@@ -169,7 +169,7 @@ __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
            'fetchPDBClusters', 'loadPDBClusters', 'getPDBCluster',
            ]
 
-class PDBParserError(Exception):    
+class PDBParseError(Exception):    
     pass
 
 
@@ -620,9 +620,9 @@ def gunzip(filename, outname=None):
     return outname
 
 _parsePQRdoc = """
-    :arg name: Name of the AtomGroup instance.  When ``None`` is passed,
+    :arg title: Title of the AtomGroup instance.  When ``None`` is passed,
         AtomGroup is named after the PDB filename.  
-    :type name: str
+    :type title: str
     
     :arg ag: :class:`~prody.atomic.AtomGroup` instance for storing data parsed 
         from PDB file.  Number of atoms in *ag* and number of atoms parsed from
@@ -685,6 +685,10 @@ _parsePDBdoc = _parsePQRdoc + """
        *chain* and *subset* arguments are appended to atom group name, e.g. for 
        ``('1mkp', chain='A', subset='calpha')`` name will be ``"1mkp_A_ca"``.
 
+    .. versionchanged:: 0.8.4
+       *name* keyword argument is renamed as *title* argument..
+
+
     Note that this function does not evaluate ``CONECT`` records.
     
     """
@@ -703,12 +707,12 @@ def parsePDB(pdb, **kwargs):
         If needed, PDB files are downloaded using :func:`fetchPDB()` function.
     """
     
-    name = kwargs.get('name', None)
+    title = kwargs.get('title', kwargs.get('name'))
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
-            if name is None:
-                name = pdb.lower()
-                kwargs['name'] = name
+            if title is None:
+                title = pdb.lower()
+                kwargs['title'] = title
             filename = fetchPDB(pdb)
             if filename is None:
                 raise IOError('PDB file for {0:s} could not be downloaded.'
@@ -717,12 +721,12 @@ def parsePDB(pdb, **kwargs):
         else:
             raise IOError('{0:s} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
-    if name is None:
+    if title is None:
         fn, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
             fn, ext = os.path.splitext(fn)
-        name = fn.lower()
-        kwargs['name'] = name
+        title = fn.lower()
+        kwargs['title'] = title
     if pdb.endswith('.gz'):
         pdb = gzip.open(pdb)
     else:
@@ -754,26 +758,27 @@ def parsePDBStream(stream, **kwargs):
         else:
             raise TypeError('model must be an integer, {0:s} is invalid'
                             .format(str(model)))
-    name_suffix = ''
+    title_suffix = ''
     if subset is not None: 
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
-        name_suffix = '_' + _PDBSubsets[subset]
+        title_suffix = '_' + _PDBSubsets[subset]
     if chain is not None:
         if not isinstance(chain, str):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        name_suffix = '_' + chain + name_suffix
+        title_suffix = '_' + chain + title_suffix
     if 'ag' in kwargs:
         ag = kwargs['ag']
         if not isinstance(ag, prody.AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
-        n_csets = ag.getNumOfCoordsets()
+        n_csets = ag.numCoordsets()
     else:
-        ag = prody.AtomGroup(str(kwargs.get('name', 'unknown')) + name_suffix)
+        ag = prody.AtomGroup(str(kwargs.get('title', kwargs.get('name', 
+                                                'Unknown'))) + title_suffix)
         n_csets = 0
     
     biomol = kwargs.get('biomol', False)
@@ -786,10 +791,10 @@ def parsePDBStream(stream, **kwargs):
             hd, split = _getHeaderDict(lines)
         start = time.time()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
-        if ag.getNumOfAtoms() > 0:
+        if ag.numAtoms() > 0:
             LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                        'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
-                         ag.getNumOfCoordsets() - n_csets, time.time()-start))
+                        'parsed in {2:.2f}s.'.format(ag.numAtoms(), 
+                         ag.numCoordsets() - n_csets, time.time()-start))
         else:
             ag = None
             LOGGER.warning('Atomic data could not be parsed, please '
@@ -799,15 +804,15 @@ def parsePDBStream(stream, **kwargs):
 
     if secondary:
         try:
-            ag = assignSecondaryStr(hd, ag)
+            ag = assignSecondstr(hd, ag)
         except:
-            raise PDBParserError('secondary structure assignments could not '
+            raise PDBParseError('secondary structure assignments could not '
                                  'be made, check input file')
     if biomol:
         try:
             ag = buildBiomolecules(hd, ag)
         except:
-            raise PDBParserError('biomolecule could not be generated, check'
+            raise PDBParseError('biomolecule could not be generated, check'
                                  'input file')
         else:
             if isinstance(ag, list):
@@ -835,7 +840,7 @@ def parsePQR(filename, **kwargs):
     :type filename: str
     """
     
-    name = kwargs.get('name', None)
+    title = kwargs.get('title', kwargs.get('name'))
     model = 1
     header = False
     chain = kwargs.get('chain')
@@ -843,31 +848,31 @@ def parsePQR(filename, **kwargs):
     altloc = kwargs.get('altloc', 'A')
     if not os.path.isfile(filename):
         raise IOError('No such file: "{0:s}"'.format(filename))
-    if name is None:
+    if title is None:
         fn, ext = os.path.splitext(os.path.split(filename)[1])
         if ext == '.gz':
             fn, ext = os.path.splitext(fn)
-        name = fn.lower()
-    name_suffix = ''
+        title = fn.lower()
+    title_suffix = ''
     if subset is not None:
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
             raise ValueError('"{0:s}" is not a valid subset'.format(subset))
-        name_suffix = '_' + _PDBSubsets[subset]
+        title_suffix = '_' + _PDBSubsets[subset]
     if chain is not None:
         if not isinstance(chain, str):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        name_suffix = '_' + chain + name_suffix
+        title_suffix = '_' + chain + title_suffix
     if 'ag' in kwargs:
         ag = kwargs['ag']
         if not isinstance(ag, prody.AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
-        n_csets = ag.getNumOfCoordsets()
+        n_csets = ag.numCoordsets()
     else:
-        ag = prody.AtomGroup(name + name_suffix)
+        ag = prody.AtomGroup(title + title_suffix)
         n_csets = 0
         
     if filename.endswith('.gz'):
@@ -879,10 +884,10 @@ def parsePQR(filename, **kwargs):
     start = time.time()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain, 
                         subset=subset, altloc_torf=False, format='pqr')
-    if ag.getNumOfAtoms() > 0:
+    if ag.numAtoms() > 0:
         LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                    'parsed in {2:.2f}s.'.format(ag.getNumOfAtoms(), 
-                     ag.getNumOfCoordsets() - n_csets, time.time()-start))
+                    'parsed in {2:.2f}s.'.format(ag.numAtoms(), 
+                     ag.numCoordsets() - n_csets, time.time()-start))
         return ag
     else:
         return None
@@ -917,7 +922,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     else:
         only_chains = True
     onlycoords = False
-    n_atoms = atomgroup.getNumOfAtoms()
+    n_atoms = atomgroup.numAtoms()
     if n_atoms > 0:
         asize = n_atoms
     else:
@@ -961,7 +966,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     stop = len(lines)
                     break
         if nmodel != model:
-            raise PDBParserError('model {0:d} is not found'.format(model))
+            raise PDBParseError('model {0:d} is not found'.format(model))
     if isinstance(altloc_torf, str): 
         if altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0:s}.'
@@ -1016,7 +1021,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     while lines[i][:6] != 'ENDMDL':
                         i += 1
                 else:
-                    raise PDBParserError('invalid or missing coordinate(s) at '
+                    raise PDBParseError('invalid or missing coordinate(s) at '
                                          'line {0:d}.'.format(i+1))
             if onlycoords:
                 acount += 1
@@ -1128,23 +1133,23 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     raise ValueError('PDB file and AtomGroup ag must have '
                                     'same number of atoms')
                 atomgroup.addCoordset(coordinates[:acount])
-                atomgroup.setAtomNames(atomnames[:acount])
-                atomgroup.setResidueNames(resnames[:acount])
-                atomgroup.setResidueNumbers(resnums[:acount])
-                atomgroup.setChainIdentifiers(chainids[:acount])
-                atomgroup.setHeteroFlags(hetero[:acount])
-                atomgroup.setAltLocIndicators(altlocs[:acount])
-                atomgroup.setInsertionCodes(icodes[:acount])
-                atomgroup.setSerialNumbers(serials[:acount])
+                atomgroup.setNames(atomnames[:acount])
+                atomgroup.setResnames(resnames[:acount])
+                atomgroup.setResnums(resnums[:acount])
+                atomgroup.setChids(chainids[:acount])
+                atomgroup.setHeteros(hetero[:acount])
+                atomgroup.setAltlocs(altlocs[:acount])
+                atomgroup.setIcodes(icodes[:acount])
+                atomgroup.setSerials(serials[:acount])
                 if isPDB:
-                    atomgroup.setTempFactors(bfactors[:acount])
+                    atomgroup.setBetas(bfactors[:acount])
                     atomgroup.setOccupancies(occupancies[:acount])
-                    atomgroup.setSegmentNames(segnames[:acount])
-                    atomgroup.setElementSymbols(elements[:acount])
+                    atomgroup.setSegnames(segnames[:acount])
+                    atomgroup.setElements(elements[:acount])
                     if anisou is not None:
-                        atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
+                        atomgroup.setAnisous(anisou[:acount] / 10000)
                     if siguij is not None:
-                        atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
+                        atomgroup.setAnistds(siguij[:acount] / 10000)
                 else:
                     atomgroup.setCharges(charges[:acount])
                     atomgroup.setRadii(radii[:acount])
@@ -1196,26 +1201,26 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             pass
         i += 1
     if onlycoords:
-        if acount == atomgroup.getNumOfAtoms():
+        if acount == atomgroup.numAtoms():
             atomgroup.addCoordset(coordinates)
     else:            
         atomgroup.setCoordinates(coordinates[:acount])
-        atomgroup.setAtomNames(atomnames[:acount])
-        atomgroup.setResidueNames(resnames[:acount])
-        atomgroup.setResidueNumbers(resnums[:acount])
-        atomgroup.setChainIdentifiers(chainids[:acount])
-        atomgroup.setHeteroFlags(hetero[:acount])
-        atomgroup.setAltLocIndicators(altlocs[:acount])
-        atomgroup.setInsertionCodes(icodes[:acount])
-        atomgroup.setSerialNumbers(serials[:acount])
+        atomgroup.setNames(atomnames[:acount])
+        atomgroup.setResnames(resnames[:acount])
+        atomgroup.setResnums(resnums[:acount])
+        atomgroup.setChids(chainids[:acount])
+        atomgroup.setHeteros(hetero[:acount])
+        atomgroup.setAltlocs(altlocs[:acount])
+        atomgroup.setIcodes(icodes[:acount])
+        atomgroup.setSerials(serials[:acount])
         if isPDB:
             if anisou is not None:
-                atomgroup.setAnisoTempFactors(anisou[:acount] / 10000)
+                atomgroup.setAnisous(anisou[:acount] / 10000)
             if siguij is not None:
-                atomgroup.setAnisoStdDevs(siguij[:acount] / 10000)
-            atomgroup.setSegmentNames(segnames[:acount])
-            atomgroup.setElementSymbols(elements[:acount])
-            atomgroup.setTempFactors(bfactors[:acount])
+                atomgroup.setAnistds(siguij[:acount] / 10000)
+            atomgroup.setSegnames(segnames[:acount])
+            atomgroup.setElements(elements[:acount])
+            atomgroup.setBetas(bfactors[:acount])
             atomgroup.setOccupancies(occupancies[:acount])
         else:
             atomgroup.setCharges(charges[:acount])
@@ -1232,7 +1237,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     altloc_keys.sort()
     indices = {}
     for key in altloc_keys:
-        xyz = atomgroup.getCoordinates()
+        xyz = atomgroup.getCoords()
         success = 0
         lines = altloc[key]
         for line, i in lines:
@@ -1283,7 +1288,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         if success > 0:
             LOGGER.info('Alternate location {0:s} is appended as a coordinate '
                         'set to the atom group.'
-                        .format(key, atomgroup.getName()))
+                        .format(key, atomgroup.getTitle()))
             atomgroup.addCoordset(xyz)
 
 class Chemical(object):
@@ -1935,7 +1940,7 @@ def _getVersion(lines):
             except:
                 return None
 
-def _getNumOfModels(lines):
+def _getNumModels(lines):
 
     # "NUMMDL", Integer, 11 - 14: Number of models.
     line = lines['NUMMDL']
@@ -1977,14 +1982,14 @@ _PDB_HEADER_MAP = {
     'model_type': lambda lines: cleanString(
                    ''.join([line[1][10:].rstrip() for line in lines['MDLTYP']])
                    ) if lines['MDLTYP'] else None,
-    'n_models': _getNumOfModels,
+    'n_models': _getNumModels,
 }
 
 
-def parsePSF(filename, name=None, ag=None):
+def parsePSF(filename, title=None, ag=None):
     """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
-    parsed from X-PLOR format PSF file *filename*.  If *name* is not given, 
-    *filename* will be set as the name of the :class:`AtomGroup` instance.  
+    parsed from X-PLOR format PSF file *filename*.  If *title* is not given, 
+    *filename* will be set as the title of the :class:`AtomGroup` instance.  
     An :class:`AtomGroup` instance may be provided as *ag* argument.  When 
     provided, *ag* must have the same number of atoms in the same order as 
     the file.  Data from PSF file will be added to *ag*.  This may overwrite 
@@ -2011,14 +2016,14 @@ def parsePSF(filename, name=None, ag=None):
             break
         line = psf.readline()
         i_line += 1
-    if name is None:
-        name = os.path.splitext(os.path.split(filename)[1])[0]
+    if title is None:
+        title = os.path.splitext(os.path.split(filename)[1])[0]
     else:
-        name = str(name)
+        title = str(title)
     if ag is None:
-        ag = prody.AtomGroup(name)
+        ag = prody.AtomGroup(title)
     else:
-        if n_atoms != ag.getNumOfAtoms():
+        if n_atoms != ag.numAtoms():
             raise ValueError('ag and PSF file must have same number of atoms')
         
     serials = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['serial'].dtype)
@@ -2072,12 +2077,12 @@ def parsePSF(filename, name=None, ag=None):
                 IOError('line {0:d} in {1:s} could not be parsed. Please '
                         'report this error.'.format(i_line, filename))
     psf.close()
-    ag.setSerialNumbers(serials)
-    ag.setSegmentNames(segnames)
-    ag.setResidueNumbers(resnums)
-    ag.setResidueNames(resnames)
-    ag.setAtomNames(atomnames)
-    ag.setAtomTypes(atomtypes)
+    ag.setSerials(serials)
+    ag.setSegnames(segnames)
+    ag.setResnums(resnums)
+    ag.setResnames(resnames)
+    ag.setNames(atomnames)
+    ag.setTypes(atomtypes)
     ag.setCharges(charges)
     ag.setMasses(masses)
     return ag
@@ -2389,22 +2394,22 @@ def writePDBStream(stream, atoms, model=None):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
-                                atoms.getActiveCoordsetIndex(), 
+                                atoms.getACSI(), 
                                 'index ' + str(atoms.getIndex()))
 
     if model is None:
-        model = np.arange(atoms.getNumOfCoordsets(), dtype=np.int)
+        model = np.arange(atoms.numCoordsets(), dtype=np.int)
     elif isinstance(model, int):
         model = np.array([model], np.int) -1
     elif isinstance(model, list):
         model = np.array(model, np.int) -1
     else:
         raise TypeError('model must be an integer or a list of integers')
-    if model.min() < 0 or model.max() >= atoms.getNumOfCoordsets():
+    if model.min() < 0 or model.max() >= atoms.numCoordsets():
         raise ValueError('model index or indices is not valid')
         
-    n_atoms = atoms.getNumOfAtoms()
-    atomnames = atoms.getAtomNames()
+    n_atoms = atoms.numAtoms()
+    atomnames = atoms.getNames()
     if atomnames is None:
         raise RuntimeError('atom names are not set')
     for i, an in enumerate(atomnames):
@@ -2413,40 +2418,40 @@ def writePDBStream(stream, atoms, model=None):
             atomnames[i] = ' ' + an
         elif lenan > 4:
             atomnames[i] = an[:4]
-    resnames = atoms._getResidueNames()
+    resnames = atoms._getResnames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
-    resnums = atoms._getResidueNumbers()
+    resnums = atoms._getResnums()
     if resnums is None:
         resnums = np.ones(n_atoms, int)
-    chainids = atoms._getChainIdentifiers()
+    chainids = atoms._getChids()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
     occupancies = atoms._getOccupancies()
     if occupancies is None:
         occupancies = np.zeros(n_atoms, float)
-    bfactors = atoms._getTempFactors()
+    bfactors = atoms._getBetas()
     if bfactors is None:
         bfactors = np.zeros(n_atoms, float)
-    icodes = atoms._getInsertionCodes()
+    icodes = atoms._getIcodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
     hetero = ['ATOM'] * n_atoms 
-    heteroflags = atoms._getHeteroFlags()
+    heteroflags = atoms._getHeteros()
     if heteroflags is not None:
         hetero = np.array(hetero, '|S6')
         hetero[heteroflags] = 'HETATM'
-    elements = atoms._getElementSymbols()
+    elements = atoms._getElements()
     if elements is None:
         elements = np.zeros(n_atoms, '|S1')
-    altlocs = atoms._getAltLocIndicators()
+    altlocs = atoms._getAltlocs()
     if altlocs is None:
         altlocs = np.zeros(n_atoms, '|S1')
-    segments = atoms._getSegmentNames()
+    segments = atoms._getSegnames()
     if segments is None:
         segments = np.zeros(n_atoms, '|S6')
     
-    acsi = atoms.getActiveCoordsetIndex()
+    acsi = atoms.getACSI()
     multi = False
     if len(model) > 1:
         multi = True
@@ -2459,7 +2464,7 @@ def writePDBStream(stream, atoms, model=None):
     for m in model:
         if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
-        atoms.setActiveCoordsetIndex(m)
+        atoms.setACSI(m)
         coords = atoms._getCoordinates()
         for i, xyz in enumerate(coords):
             write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
@@ -2471,7 +2476,7 @@ def writePDBStream(stream, atoms, model=None):
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, '|S1')
-    atoms.setActiveCoordsetIndex(acsi)
+    atoms.setACSI(acsi)
 
 writePDBStream.__doc__ += _writePDBdoc
 
@@ -2499,11 +2504,11 @@ def writePQR(filename, atoms):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
-                                atoms.getActiveCoordsetIndex(), 
+                                atoms.getACSI(), 
                                 'index ' + str(atoms.getIndex()))
 
-    n_atoms = atoms.getNumOfAtoms()
-    atomnames = atoms.getAtomNames()
+    n_atoms = atoms.numAtoms()
+    atomnames = atoms.getNames()
     if atomnames is None:
         raise RuntimeError('atom names are not set')
     for i, an in enumerate(atomnames):
@@ -2512,13 +2517,13 @@ def writePQR(filename, atoms):
             atomnames[i] = ' ' + an
         elif lenan > 4:
             atomnames[i] = an[:4]
-    resnames = atoms._getResidueNames()
+    resnames = atoms._getResnames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
-    resnums = atoms._getResidueNumbers()
+    resnums = atoms._getResnums()
     if resnums is None:
         resnums = np.ones(n_atoms, int)
-    chainids = atoms._getChainIdentifiers()
+    chainids = atoms._getChids()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
     charges = atoms._getCharges()
@@ -2527,15 +2532,15 @@ def writePQR(filename, atoms):
     radii = atoms._getRadii()
     if radii is None:
         radii = np.zeros(n_atoms, float)
-    icodes = atoms._getInsertionCodes()
+    icodes = atoms._getIcodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
     hetero = ['ATOM'] * n_atoms 
-    heteroflags = atoms._getHeteroFlags()
+    heteroflags = atoms._getHeteros()
     if heteroflags is not None:
         hetero = np.array(hetero, '|S6')
         hetero[heteroflags] = 'HETATM'
-    altlocs = atoms._getAltLocIndicators()
+    altlocs = atoms._getAltlocs()
     if altlocs is None:
         altlocs = np.zeros(n_atoms, '|S1')
     
@@ -2568,13 +2573,12 @@ mapHelix = {
 }
 
 def assignSecondaryStructure(header, atoms, coil=False):
-    """See :func:`assignSecondaryStr`."""
+    """Deprecated, use :func:`assignSecondstr`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'assignSecondaryStr instead.')
-    return assignSecondaryStr(header, atoms, coil)
+    prody.deprecate('assignSecondaryStructure', 'assignSecondstr', (0,8))
+    return assignSecondstr(header, atoms, coil)
 
-def assignSecondaryStr(header, atoms, coil=False):
+def assignSecondstr(header, atoms, coil=False):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
     *header* must be a dictionary parsed using the :func:`parsePDB`.
@@ -2632,28 +2636,28 @@ def assignSecondaryStr(header, atoms, coil=False):
     if len(helix) == 0 and len(sheet) == 0:
         raise ValueError('header does not contain secondary structure data')
 
-    ssa = atoms.getSecondaryStrs()
+    ssa = atoms.getSecstrs()
     if ssa is None:
         if isinstance(atoms, prody.AtomGroup):
             ag = atoms
         else:
             ag = atoms.getAtomGroup()
-        ag.setSecondaryStrs(np.zeros(ag.getNumOfAtoms(), 
+        ag.setSecstrs(np.zeros(ag.numAtoms(), 
                             ATOMIC_DATA_FIELDS['secondary'].dtype))
-    atoms.select('protein').setSecondaryStrs('C')
+    atoms.select('protein').setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
     for key, value in helix.iteritems():
         res = hierview.getResidue(*key)
         if res is None:
             continue
-        res.setSecondaryStrs(mapHelix[value[0]])
+        res.setSecstrs(mapHelix[value[0]])
         count += 1
     for key, res in sheet.iteritems():
         res = hierview.getResidue(*key)
         if res is None:
             continue
-        res.setSecondaryStrs('E')
+        res.setSecstrs('E')
         count += 1
     LOGGER.info('Secondary structures were assigned to {0:d} residues.'
                 .format(count))
@@ -2800,29 +2804,29 @@ def fetchLigandData(cci, save=False, folder='.'):
 
     model = AtomGroup(cci + ' model')
     model.setCoordinates(model_coords)
-    model.setAtomNames(atomnames)
-    model.setResidueNames(resnames)
-    model.setResidueNames(resnums)
-    model.setElementSymbols(elements)
+    model.setNames(atomnames)
+    model.setResnames(resnames)
+    model.setResnums(resnums)
+    model.setElements(elements)
     model.setCharges(charges)
-    model.setAttribute('leaving_atom_flags', leaving_atom_flags)
-    model.setAttribute('aromatic_flags', aromatic_flags)
-    model.setAttribute('stereo_configs', stereo_configs)
-    model.setAttribute('ordinals', ordinals)
-    model.setAttribute('alternate_atomnames', alternate_atomnames)
+    model.setData('leaving_atom_flags', leaving_atom_flags)
+    model.setData('aromatic_flags', aromatic_flags)
+    model.setData('stereo_configs', stereo_configs)
+    model.setData('ordinals', ordinals)
+    model.setData('alternate_atomnames', alternate_atomnames)
     dict_['model'] = model
     ideal = model.copy()
-    ideal.setName(cci + ' ideal')
+    ideal.setTitle(cci + ' ideal')
     ideal.setCoordinates(ideal_coords)
     dict_['ideal'] = ideal
 
     return dict_      
 
 def applyBiomolecularTransformations(header, atoms, biomol=None):
-    """See :func:`buildBiomolecules`."""
+    """Deprecated, use :func:`buildBiomolecules`."""
     
-    LOGGER.warning('this function will be removed in v0.9, '
-                   'use buildBiomolecules instead')
+    prody.deprecate('applyBiomolecularTransformations', 'buildBiomolecules', 
+                    (0,9))
     return buildBiomolecules(header, atoms, biomol)
 
 def buildBiomolecules(header, atoms, biomol=None):
@@ -2910,17 +2914,17 @@ def buildBiomolecules(header, atoms, biomol=None):
                 if newag is None:
                     continue
                 
-                for acsi in range(newag.getNumOfCoordsets()):
-                    newag.setActiveCoordsetIndex(acsi)
+                for acsi in range(newag.numCoordsets()):
+                    newag.setACSI(acsi)
                     newag = t.apply(newag)
-                newag.setActiveCoordsetIndex(0)
+                newag.setACSI(0)
                 ags.append(newag)
         if ags:
             # Handles the case when there is more atom groups than the number
             # of chain identifiers
             if len(chids_used) != len(set(chids_used)):
                 for newag in ags:
-                    newag.select('all').setChainIdentifiers(chids.pop(0))
+                    newag.select('all').setChids(chids.pop(0))
             if len(ags) <= c_max:
                 ags_ = [ags]
             else:
@@ -2935,11 +2939,11 @@ def buildBiomolecules(header, atoms, biomol=None):
                 while ags:
                     newag += ags.pop(0)
                 if len(ags_) > 1:
-                    newag.setName('{0:s} biomolecule {1:s} part {2:d}'
-                                  .format(atoms.getName(), i, k+1))
+                    newag.setTitle('{0:s} biomolecule {1:s} part {2:d}'
+                                   .format(atoms.getTitle(), i, k+1))
                 else:
-                    newag.setName('{0:s} biomolecule {1:s}'
-                                  .format(atoms.getName(), i))
+                    newag.setTitle('{0:s} biomolecule {1:s}'
+                                   .format(atoms.getTitle(), i))
                 parts.append(newag)
             if len(parts) == 1:
                 biomols.append(newag)
@@ -3045,7 +3049,7 @@ def parseDSSP(dssp, ag, parseall=False):
         
     dssp = open(dssp)
     
-    n_atoms = ag.getNumOfAtoms()
+    n_atoms = ag.numAtoms()
     NUMBER = np.zeros(n_atoms, int)
     SHEETLABEL = np.zeros(n_atoms, '|S1')
     ACC = np.zeros(n_atoms, float)
@@ -3067,7 +3071,8 @@ def parseDSSP(dssp, ag, parseall=False):
         O_HN_2_nrg = np.zeros(n_atoms, float)
         TCO = np.zeros(n_atoms, float)
 
-    ag.setSecondaryStrs(np.zeros(n_atoms))
+    ag.setSecstrs(np.zeros(n_atoms, 
+                              dtype=ATOMIC_DATA_FIELDS['secondary'].dtype))
     for line in dssp:
         if line.startswith('  #  RESIDUE'):
             break
@@ -3078,7 +3083,7 @@ def parseDSSP(dssp, ag, parseall=False):
         if res is None:
             continue
         indices = res.getIndices()
-        res.setSecondaryStrs(line[16].strip())
+        res.setSecstrs(line[16].strip())
         NUMBER[indices] = int(line[:5])
         SHEETLABEL[indices] = line[33].strip()
         ACC[indices] = int(line[35:38])
@@ -3100,26 +3105,26 @@ def parseDSSP(dssp, ag, parseall=False):
             O_HN_2_nrg[indices] = float(line[79:83])
             TCO[indices] = float(line[85:91])
     
-    ag.setAttribute('dssp_resnum', NUMBER)
-    ag.setAttribute('dssp_sheet_label', SHEETLABEL)
-    ag.setAttribute('dssp_acc', ACC)
-    ag.setAttribute('dssp_kappa', KAPPA)
-    ag.setAttribute('dssp_alpha', ALPHA)
-    ag.setAttribute('dssp_phi', PHI)
-    ag.setAttribute('dssp_psi', PSI)
+    ag.setData('dssp_resnum', NUMBER)
+    ag.setData('dssp_sheet_label', SHEETLABEL)
+    ag.setData('dssp_acc', ACC)
+    ag.setData('dssp_kappa', KAPPA)
+    ag.setData('dssp_alpha', ALPHA)
+    ag.setData('dssp_phi', PHI)
+    ag.setData('dssp_psi', PSI)
 
     if parseall:
-        ag.setAttribute('dssp_bp1', BP1)
-        ag.setAttribute('dssp_bp2', BP2)
-        ag.setAttribute('dssp_NH_O_1_index', NH_O_1)
-        ag.setAttribute('dssp_NH_O_1_energy', NH_O_1_nrg)
-        ag.setAttribute('dssp_O_NH_1_index', O_HN_1)
-        ag.setAttribute('dssp_O_NH_1_energy', O_HN_1_nrg)    
-        ag.setAttribute('dssp_NH_O_2_index', NH_O_2)
-        ag.setAttribute('dssp_NH_O_2_energy', NH_O_2_nrg)
-        ag.setAttribute('dssp_O_NH_2_index', O_HN_2)
-        ag.setAttribute('dssp_O_NH_2_energy', O_HN_2_nrg)
-        ag.setAttribute('dssp_tco', TCO)
+        ag.setData('dssp_bp1', BP1)
+        ag.setData('dssp_bp2', BP2)
+        ag.setData('dssp_NH_O_1_index', NH_O_1)
+        ag.setData('dssp_NH_O_1_energy', NH_O_1_nrg)
+        ag.setData('dssp_O_NH_1_index', O_HN_1)
+        ag.setData('dssp_O_NH_1_energy', O_HN_1_nrg)    
+        ag.setData('dssp_NH_O_2_index', NH_O_2)
+        ag.setData('dssp_NH_O_2_energy', NH_O_2_nrg)
+        ag.setData('dssp_O_NH_2_index', O_HN_2)
+        ag.setData('dssp_O_NH_2_energy', O_HN_2_nrg)
+        ag.setData('dssp_tco', TCO)
     return ag
 
 def performDSSP(pdb, parseall=False):
@@ -3199,13 +3204,14 @@ def parseSTRIDE(stride, ag):
         
     stride = open(stride)
     
-    n_atoms = ag.getNumOfAtoms()
+    n_atoms = ag.numAtoms()
     NUMBER = np.zeros(n_atoms, int)
     AREA = np.zeros(n_atoms, float)
     PHI = np.zeros(n_atoms, float)
     PSI = np.zeros(n_atoms, float)
 
-    ag.setSecondaryStrs(np.zeros(n_atoms))
+    ag.setSecstrs(np.zeros(n_atoms),
+                     dtype=ATOMIC_DATA_FIELDS['secondary'].dtype)
     for line in stride:
         if not line.startswith('ASG '):
             continue
@@ -3213,15 +3219,15 @@ def parseSTRIDE(stride, ag):
         if res is None:
             continue
         indices = res.getIndices()
-        res.setSecondaryStrs(line[24].strip())
+        res.setSecstrs(line[24].strip())
         NUMBER[indices] = int(line[16:20])
         PHI[indices] = float(line[42:49])
         PSI[indices] = float(line[52:59])
         AREA[indices] = float(line[64:69])
-    ag.setAttribute('stride_resnum', NUMBER)
-    ag.setAttribute('stride_phi', PHI)
-    ag.setAttribute('stride_psi', PSI)
-    ag.setAttribute('stride_area', AREA)
+    ag.setData('stride_resnum', NUMBER)
+    ag.setData('stride_phi', PHI)
+    ag.setData('stride_psi', PSI)
+    ag.setData('stride_area', AREA)
     return ag
 
 def performSTRIDE(pdb):

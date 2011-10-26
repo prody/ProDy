@@ -78,7 +78,7 @@ The length of the *hv* variable gives the number of chains in the structure:
 
 >>> len(hv)
 4
->>> hv.getNumOfChains()
+>>> hv.numChains()
 4
 
 It is also possible to get a :class:`Residue` by directly indexing the
@@ -135,7 +135,7 @@ Length of the chain equals to the number of residues in it:
 
 >>> len(chA)
 254
->>> chA.getNumOfResidues()
+>>> chA.numResidues()
 254
 
 *Indexing*
@@ -190,7 +190,7 @@ All methods defined for :class:`AtomGroup` class are also defined for
  [ -5.843  17.181 -16.86 ]
  [-13.199  -9.21  -49.692]
  [ -0.459   0.378 -46.156]]
->>> print( chA.getTempFactors() )
+>>> print( chA.getBetas() )
 [ 59.35  59.14  58.5  ...,  57.79  47.77  40.77]
 
 *Select atoms*
@@ -200,14 +200,14 @@ Finally, you can select atoms from a :class:`Chain` instance:
 >>> chA_backbone = chA.select('backbone')
 >>> chA_backbone
 <Selection: "(backbone) and (chain A)" from 3mkb (560 atoms; 1 coordinate sets, active set index: 0)>
->>> chA_backbone.getSelectionString()
+>>> chA_backbone.getSelstr()
 '(backbone) and (chain A)'
 
 As you see, the selection string passed by the user is augmented with 
 "chain" keyword and identifier automatically to provide internal
 consistency:
 
->>> structure.select( chA_backbone.getSelectionString() )
+>>> structure.select( chA_backbone.getSelstr() )
 <Selection: "(backbone) and (chain A)" from 3mkb (560 atoms; 1 coordinate sets, active set index: 0)>
  
 
@@ -258,7 +258,7 @@ All methods defined for :class:`AtomGroup` class are also defined for
  [ -0.296  15.257 -13.467]
  [  0.199  14.155 -13.155]
  [ -2.752  14.639 -13.898]]
->>> print( chA_res1.getTempFactors() )
+>>> print( chA_res1.getBetas() )
 [ 59.35  59.14  58.5   59.13  59.02]
 
 *Select atoms*
@@ -268,7 +268,7 @@ Finally, you can select atoms from a :class:`Residue` instance:
 >>> chA_res1_bb = chA_res1.select('backbone')
 >>> chA_res1_bb
 <Selection: "(backbone) and ...A and resnum 1)" from 3mkb (4 atoms; 1 coordinate sets, active set index: 0)>
->>> chA_res1_bb.getSelectionString()
+>>> chA_res1_bb.getSelstr()
 '(backbone) and (chain A and resnum 1)'
 
 Again, the selection string is augmented with the chain identifier and 
@@ -292,7 +292,7 @@ All methods defined for :class:`AtomGroup` class are also defined for
 
 >>> print( chA_res1_CA.getCoordinates() )
 [ -1.769  15.572 -13.111]
->>> print( chA_res1_CA.getTempFactor() )
+>>> print( chA_res1_CA.getBeta() )
 59.14
 
 

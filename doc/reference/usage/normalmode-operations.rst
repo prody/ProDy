@@ -40,8 +40,8 @@ Mode 1 from ANM 1p38
 
 Let's rename these :class:`ANM` instances, so that they print short: 
 
->>> anm_one.setName('1p38_anm')
->>> anm_two.setName('1r39_anm')
+>>> anm_one.setTitle('1p38_anm')
+>>> anm_two.setTitle('1r39_anm')
 
 This is how they print now:
 
@@ -120,7 +120,7 @@ Or, we could use eigenvalues for linear combination:
 
 It is the name of the :class:`Vector` instance that keeps track of operations.
 
->>> print( lincomb.getName() )  
+>>> print( lincomb.getTitle() )  
 0.148971269751*(Mode 1 from ANM 1p38_anm) + 0.24904210757*(Mode 2 from ANM 1p38_anm)
 
 Approximate a deformation vector

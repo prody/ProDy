@@ -24,28 +24,138 @@ Release 0.8.4 (in development)
 
 **Changes**:
 
-  * In an attempt to make function names more uniform (in length and use of
-    prefixes), the following changes are made.  Old functions names
-    will work until v0.9 released, which is expected to happen in 2012.
-    Using the old function names, will log a warning to remind user of the
-    name change.
+  In an attempt to make function and method names more intuitive and uniform, 
+  the changes listed in below tables are made.  Old function/method names are 
+  proposed to be available until release of 1.0, which is expected to be in
+  around March 2012.  After v0.9 is released, ProDy will start issuing 
+  :class:`DeprecationWarning` upon calls using old names to remind user of the
+  name change.
 
-    ========================================  =====================================
-    Old name                                  New name
-    ========================================  =====================================
-    :func:`applyBiomolecularTransformations`  :func:`~proteins.buildBiomolecules` 
-    :func:`assignSecondaryStructure`          :func:`~proteins.assignSecondaryStr`
-    :func:`scanPerturbationResponse`          :func:`~dynamics.calcPerturbResponse`
-    :func:`calcCrossCorrelations`             :func:`~dynamics.calcCrossCorr`
-    :func:`calcCumulativeOverlap`             :func:`~dynamics.calcCumOverlap`
-    :func:`calcCumulativeOverlapArray`        :func:`~dynamics.calcCumOverlapArray`
-    :func:`calcCovarianceOverlap`             :func:`~dynamics.calcCovOverlap`
-    :func:`showFractOfVariances`              :func:`~dynamics.showFractOfVar`
-    :func:`showCumFractOfVariances`           :func:`~dynamics.showCumFractOfVar`
-    :func:`showCrossCorrelations`             :func:`~dynamics.showCrossCorr`
-    :func:`showCumulativeOverlap`             :func:`~dynamics.showCumOverlap`
-    :func:`deform`                            :func:`~dynamics.deformAtoms`
-    ========================================  =====================================
+  **Functions**:
+  
+  The following function name changes were made mostly to reduce the length
+  of the name so to make using them more suitable in interactive sessions:
+
+  ========================================  =====================================
+  Old name                                  New name
+  ========================================  =====================================
+  :func:`applyBiomolecularTransformations`  :func:`~proteins.buildBiomolecules` 
+  :func:`assignSecondaryStructure`          :func:`~proteins.assignSecondstr`
+  :func:`scanPerturbationResponse`          :func:`~dynamics.calcPerturbResponse`
+  :func:`calcCrossCorrelations`             :func:`~dynamics.calcCrossCorr`
+  :func:`calcCumulativeOverlap`             :func:`~dynamics.calcCumOverlap`
+  :func:`calcCumulativeOverlapArray`        :func:`~dynamics.calcCumOverlapArray`
+  :func:`calcCovarianceOverlap`             :func:`~dynamics.calcCovOverlap`
+  :func:`showFractOfVariances`              :func:`~dynamics.showFractOfVar`
+  :func:`showCumFractOfVariances`           :func:`~dynamics.showCumFractOfVar`
+  :func:`showCrossCorrelations`             :func:`~dynamics.showCrossCorr`
+  :func:`showCumulativeOverlap`             :func:`~dynamics.showCumOverlap`
+  :func:`deform`                            :func:`~dynamics.deformAtoms`
+  ========================================  =====================================
+
+  ``getNumOf`` **methods**:
+  
+  All method names starting with ``getNumOf`` now start with ``num``.  This
+  change brought two advantages: method names (i) became considerably shorter, 
+  and (ii) do not suggest that there might also be corresponding ``set``
+  methods. 
+  
+  ============================  ====================  =========================
+  Old name                      New name              Affected modules
+  ============================  ====================  =========================
+  :meth:`getNumOfAtoms`         :meth:`numAtoms`      :mod:`~prody.atomic`, 
+                                                      :mod:`~prody.ensemble`, 
+                                                      :mod:`~prody.dynamics`
+  :meth:`getNumOfChains`        :meth:`numChains`     :mod:`~prody.atomic`
+  :meth:`getNumOfConfs`         :meth:`numConfs`      :mod:`~prody.ensemble`
+  :meth:`getNumOfCoordsets`     :meth:`numCoordsets`  :mod:`~prody.atomic`, 
+                                                      :mod:`~prody.ensemble`
+  :meth:`getNumOfDegOfFreedom`  :meth:`numDOF`        :mod:`~prody.dynamics`
+  :meth:`getNumOfFixed`         :meth:`numFixed`      :mod:`~prody.ensemble`
+  :meth:`getNumOfFrames`        :meth:`numFrames`     :mod:`~prody.ensemble`
+  :meth:`getNumOfResidues`      :meth:`numResidues`   :mod:`~prody.atomic`
+  :meth:`getNumOfMapped`        :meth:`numMapped`     :mod:`~prody.atomic`
+  :meth:`getNumOfModes`         :meth:`numModes`      :mod:`~prody.dynamics`
+  :meth:`getNumOfSelected`      :meth:`numSelected`   :mod:`~prody.ensemble`
+  :meth:`getNumOfUnmapped`      :meth:`numUnmapped`   :mod:`~prody.atomic`
+  ============================  ====================  =========================
+    
+  ``getName`` **method**:
+  
+  :meth:`getName` methods are renamed as :meth:`getTitle` to avoid confusions 
+  that might arise due to changes in :mod:`~prody.atomic` method names listed 
+  below.  All classes in :mod:`~prody.atomic`, :mod:`~prody.ensemble`, and 
+  :mod:`~prody.dynamics` are affected from this change. 
+  
+  In line with this change, :func:`~proteins.parsePDB` and 
+  :func:`~proteins.parsePQR` *name* arguments are changed to *title*, but 
+  *name* argument will also work until release 1.0.
+  
+  This name change conflicted with :meth:`getTitle` method of :class:`~ensemble
+  .DCDFile`.  The conflict is resolved in favor of the general :meth:`getTitle`
+  method.  An alternative method will be implemented to handle title strings 
+  in :file:`DCD` files.   
+  
+  ``get/set`` **methods of atomic classes**:
+  
+  Names of ``get`` and ``set`` methods allowing access to atomic data are all
+  shortened as follows:
+  
+  ===========================  =======================
+  Old name                     New name
+  ===========================  =======================
+  :meth:`getAtomNames`	       :meth:`getNames`
+  :meth:`getAtomTypes`	       :meth:`getTypes`
+  :meth:`getAltLocIndicators`	 :meth:`getAltlocs`
+  :meth:`getAnisoTempFactors`  :meth:`getAnisos`
+  :meth:`getAnisoStdDevs`      :meth:`getAnistds`
+  :meth:`getChainIdentifiers`  :meth:`getChains`
+  :meth:`getElementSymbols`    :meth:`getElements`
+  :meth:`getHeteroFlags`       :meth:`getHeteros`
+  :meth:`getInsertionCodes`    :meth:`getIcodes`
+  :meth:`getResidueNames`      :meth:`getResnames`
+  :meth:`getResidueNumbers`    :meth:`getResnums`
+  :meth:`getSecondaryStrs`     :meth:`getSecstrs`            
+  :meth:`getSegmentNames`      :meth:`getSegnames`
+  :meth:`getSerialNumbers`     :meth:`getSerials`
+  :meth:`getTempFactors`	     :meth:`getBetas`
+  ===========================  =======================
+                       
+  This change affects all :mod:`~prody.atomic` classes, 
+  :class:`~atomic.AtomGroup`, :class:`~atomic.Atom`, :class:`~atomic.Chain`, 
+  :class:`~atomic.Residue`, :class:`~atomic.Selection` and 
+  :class:`~atomic.AtomMap`.     
+
+
+  **Other changes in atomic methods**:
+  
+  The following changes are made to shorten method names:
+  
+    * :meth:`getSelectionString` renamed as :meth:`getSelstr`
+    * :meth:`getActiveCoordsetIndex` renamed as :meth:`getACSI`
+    * :meth:`setActiveCoordsetIndex` renamed as :meth:`setACSI`
+
+  The following changes are made give more intuitive name: 
+
+  ====================  =======================
+  Old name              New name
+  ====================  =======================
+  :meth:`getAttribute`  :meth:`getData`
+  :meth:`getAttrNames`  :meth:`getDataLabels`
+  :meth:`getAttrType`   :meth:`getDataType`
+  :meth:`delAttribute`  :meth:`delData`
+  :meth:`isAttribute`	  :meth:`isData`
+  :meth:`setAttribute`  :meth:`setData`
+  ====================  =======================
+  
+  Finally, the following methods are removed, but their functions are
+  overloaded to other suitable functions: 
+  
+    * removed :meth:`~atomic.AtomGroup.getBySerialRange`, overloaded 
+      :meth:`~atomic.AtomGroup.getBySerial`
+    * removed :meth:`~atomic.AtomGroup.skipFrame`, overloaded 
+      :meth:`~atomic.AtomGroup.nextFrame`
+
 
 **Bug Fixes**:
 
@@ -307,13 +417,13 @@ Release 0.8 (Aug 24, 2011)
 
 **Bug Fixes**:
   
-  * A bug in :mod:`select` module causing exceptions when regular expressions
-    are used is fixed.
+  * A bug in :mod:`~prody.select` module causing exceptions when regular 
+    expressions are used is fixed.
   
   * Another bug in :mod:`select` module raising exception when "(not ..," is
     passed is fixed.
 
-  * Various bugfixes in :mod:`ensemble` module.
+  * Various bugfixes in :mod:`~prody.ensemble` module.
   
   * Problem in :file:`fetchpdb.py` that occurred when a file is found in a
     local mirror is fixed.
@@ -364,7 +474,7 @@ Release 0.7.2 (Jun 21, 2011)
 
   * A bug in :func:`~dynamics.writeNMD` function causing problems when writing
     a single mode is fixeed.
-  * Other bugfixes in :mod:`~dynamics` module functions.
+  * Other bugfixes in :mod:`~prody.dynamics` module functions.
 
 
 Release 0.7.1 (Apr 28, 2011)
@@ -419,7 +529,7 @@ Release 0.7.1 (Apr 28, 2011)
 
   * A in :class:`~ensemble.Ensemble` slicing operations is fixed. Weights are
     now copied to the new instances obtained by slicing.
-  * Bug fixes in :mod:`dynamics` plotting functions 
+  * Bug fixes in :mod:`~prody.dynamics` plotting functions 
     :func:`~dynamics.showScaledSqFlucts`, :func:`~dynamics.showNormedSqFlucts`, 
 
 Release 0.7 (Apr 4, 2011)

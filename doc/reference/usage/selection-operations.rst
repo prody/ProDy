@@ -43,7 +43,7 @@ Selection "(name CB and pr...nd resname GLY)" from 1p38
 
 The selection string for the union of selections becomes:
 
->>> print( betas_gly_alphas.getSelectionString() )
+>>> print( betas_gly_alphas.getSelstr() )
 (name CB and protein) or (name CA and resname GLY)
 
 Note that it is also possible to yield the same selection using selection 
@@ -66,17 +66,17 @@ Selection "medium" from 1p38
 >>> medium_charged = medium & charged
 >>> print( medium_charged )
 Selection "(medium) and (charged)" from 1p38
->>> print( medium_charged.getSelectionString() )
+>>> print( medium_charged.getSelstr() )
 (medium) and (charged)
 
 Let's see which amino acids are considered charged and medium:
 
->>> print( set(medium_charged.getResidueNames()) )
+>>> print( set(medium_charged.getResnames()) )
 set(['ASP'])
 
 What about amino acids that are medium or charged:
 
->>> print( set((medium | charged).getResidueNames()) )
+>>> print( set((medium | charged).getResnames()) )
 set(['CYS', 'ASP', 'VAL', 'LYS', 'PRO', 'THR', 'GLU', 'HIS', 'ARG', 'ASN'])
 
 

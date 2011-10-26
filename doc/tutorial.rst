@@ -144,7 +144,7 @@ The above shows that atom group object contains 2962 atoms.
 All atomic data from this object can be retrieved using ``get`` methods. 
 For example:
 
->>> print( prot.getResidueNames() )
+>>> print( prot.getResnames() )
 ['GLU' 'GLU' 'GLU' ..., 'HOH' 'HOH' 'HOH']
 >>> print( prot.getCoordinates() ) # doctest: +ELLIPSIS
 [[ 28.492   3.212  23.465]
@@ -169,7 +169,7 @@ Not that all ``get/set`` functions defined for :class:`~atomic.AtomGroup`
 instances are also defined for :class:`~atomic.Atom` instances, using singular
 form of the function name.  
 
->>> atom.getResidueName()
+>>> atom.getResname()
 'GLU'
 
 *Slicing atom groups*:
@@ -223,7 +223,7 @@ instance. Note that all ``get`` and ``set`` methods defined for
 the :class:`~atomic.AtomGroup` class are also defined for 
 :class:`~atomic.Selection` class. For example:
 
->>> print( protein.getResidueNames() )
+>>> print( protein.getResnames() )
 ['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
 
 *Select atoms by* "name":
@@ -251,7 +251,7 @@ Alternatively, we can use predefined keywords "acidic" and "basic".
 >>> charged = prot.select('acidic or basic')
 >>> charged
 <Selection: "acidic or basic" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
->>> set(charged.getResidueNames())
+>>> set(charged.getResnames())
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
 *A composite selection*:
@@ -472,7 +472,7 @@ or obtain them for another protein from the ANM server.
 ...                  ev_usecols=[1], ev_usevalues=range(6,26))
 >>> nma
 <NMA: oanm_slwevs (20 modes, 351 atoms)>
->>> nma.setName('1p38 ANM')
+>>> nma.setTitle('1p38 ANM')
 >>> slowmode = nma[0]
 >>> print( slowmode.getEigenvalue().round(2) )
 0.18
@@ -484,7 +484,7 @@ or obtain them for another protein from the ANM server.
    from prody import *
    nma = parseModes(normalmodes='oanm_slwevs.txt', eigenvalues='oanm_eigvals.txt', 
                   nm_usecols=range(1,21), ev_usecols=[1], ev_usevalues=range(6,26))
-   nma.setName('1p38 ANM')
+   nma.setTitle('1p38 ANM')
    slowmode = nma[0]
 
 Plotting data 

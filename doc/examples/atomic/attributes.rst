@@ -49,17 +49,17 @@ Set a new attribute
 For the purposes of this example, we will manufacture atomic data by
 dividing the residue number of each atom by 10:
 
->>> myresnum = ag.getResidueNumbers() / 10.0
+>>> myresnum = ag.getResnums() / 10.0
 
-We will add this to the atom group using :meth:`~AtomGroup.setAttribute`
+We will add this to the atom group using :meth:`~AtomGroup.setData`
 method by passing a name for the attribute and the data:
 
->>> ag.setAttribute('myresnum', myresnum)
+>>> ag.setData('myresnum', myresnum)
 
 We can check if a custom atomic attribute exists using 
-:meth:`~AtomGroup.isAttribute` method:
+:meth:`~AtomGroup.isData` method:
 
->>> ag.isAttribute('myresnum')
+>>> ag.isData('myresnum')
 True
 
 
@@ -69,7 +69,7 @@ Access data from selections
 Custom attributes can be accessed from selections:
 
 >>> calpha = ag.calpha
->>> print( calpha.getAttribute('myresnum') ) # doctest: +ELLIPSIS
+>>> print( calpha.getData('myresnum') ) # doctest: +ELLIPSIS
 [  0.4   0.5   0.6   0.7   0.8   0.9   1.    1.1   1.2   1.3   1.4   1.5
    1.6   1.7   1.8   1.9   2.    2.1   2.2   2.3   2.4   2.5   2.6   2.7
   ...
@@ -104,7 +104,7 @@ It is not possible to save custom attributes in PDB files, but
 Let's load it using :func:`loadAtoms` function:
 
 >>> ag = loadAtoms('1p38.ag.npz')
->>> ag.getAttribute('myresnum')
+>>> ag.getData('myresnum')
 array([  0.4,   0.4,   0.4, ...,  77.1,  77.3,  77.6])
 
 
@@ -112,9 +112,9 @@ Delete an attribute
 -------------------------------------------------------------------------------
 
 Finally, when done with an attribute, it can be deleted using 
-:meth:`~AtomGroup.delAttribute` method:
+:meth:`~AtomGroup.delData` method:
 
->>> ag.delAttribute('myresnum')
+>>> ag.delData('myresnum')
 array([  0.4,   0.4,   0.4, ...,  77.1,  77.3,  77.6])
 
 |questions|

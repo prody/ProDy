@@ -208,7 +208,7 @@ to plot data:
    :include-source:
    
    plt.figure(figsize=(5,4))
-   showCrossCorrelations(gnm)
+   showCrossCorr(gnm)
    
 .. plot::
    :context:

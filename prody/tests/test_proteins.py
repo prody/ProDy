@@ -114,23 +114,23 @@ class TestParsePDB(unittest.TestCase):
     def testNumOfAtoms(self):
         """Test the number of parsed atoms."""
         
-        self.assertEqual(self.ag.getNumOfAtoms(), self.pdb['atoms'],
+        self.assertEqual(self.ag.numAtoms(), self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')
     
     def testNumOfCoordsets(self):
         """Test the number of parsed coordinate sets."""
         
-        self.assertEqual(self.ag.getNumOfCoordsets(), self.pdb['models'],
+        self.assertEqual(self.ag.numCoordsets(), self.pdb['models'],
             'parsePDB failed to parse correct number of coordinate sets '
             '(models)')
 
-    def testAtomGroupName(self):
-        """Test the name of the parsed :class:`~prody.atomic.AtomGroup` 
+    def testAtomGroupTitle(self):
+        """Test the title of the parsed :class:`~prody.atomic.AtomGroup` 
         instance."""
         
-        self.assertEqual(self.ag.getName(), 
+        self.assertEqual(self.ag.getTitle(), 
              os.path.splitext(self.pdb['file'])[0],
-            'failed to set AtomGroup name based on filename')
+            'failed to set AtomGroup title based on filename')
 
     def testPDBArgument(self):
         """Test outcome of invalid *pdb* arguments."""
@@ -144,27 +144,27 @@ class TestParsePDB(unittest.TestCase):
         path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, model='0')
         self.assertRaises(ValueError, parsePDB, path, model=-1)
-        self.assertRaises(proteins.PDBParserError, parsePDB, path, 
+        self.assertRaises(proteins.PDBParseError, parsePDB, path, 
                           model=self.pdb['models']+1)
         self.assertIsNone(parsePDB(path, model=0),
             'parsePDB failed to parse no coordinate sets')
-        self.assertEqual(parsePDB(path, model=1).getNumOfCoordsets(), 1,
+        self.assertEqual(parsePDB(path, model=1).numCoordsets(), 1,
             'parsePDB failed to parse the first coordinate set')
         self.assertEqual(parsePDB(path, model=self.pdb['models'])
-            .getNumOfCoordsets(), 1,
+            .numCoordsets(), 1,
             'parsePDB failed to parse the last coordinate set')
 
-    def testNameArgument(self):
-        """Test outcome of *name* argument."""
+    def testTitleArgument(self):
+        """Test outcome of *title* argument."""
         
         path = getDatafilePath(self.pdb['file'])
-        name = 'small protein'    
-        self.assertEqual(parsePDB(path, name=name).getName(), 
-             name, 'parsePDB failed to set user given name')
+        title = 'small protein'    
+        self.assertEqual(parsePDB(path, title=title).getTitle(), 
+             title, 'parsePDB failed to set user given title')
 
         name = 1999
-        self.assertEqual(parsePDB(path, name=name).getName(), 
-             str(name), 'parsePDB failed to set user given non-string name')
+        self.assertEqual(parsePDB(path, title=title).getTitle(), 
+             str(title), 'parsePDB failed to set user given non-string name')
             
     def testChainArgument(self):
         """Test outcome of valid and invalid *chain* arguments."""
@@ -174,7 +174,7 @@ class TestParsePDB(unittest.TestCase):
         self.assertRaises(ValueError, parsePDB, path, chain='')
         self.assertIsNone(parsePDB(path, chain='$'))
         self.assertEqual(parsePDB(path, chain='A')
-            .getNumOfAtoms(), self.pdb['atoms'],
+            .numAtoms(), self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms when chain is '
             'specified')
 
@@ -184,9 +184,9 @@ class TestParsePDB(unittest.TestCase):
         path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, subset=['A'])
         self.assertRaises(ValueError, parsePDB, path, subset='')
-        self.assertEqual(parsePDB(path, subset='ca').getNumOfAtoms(), 10,
+        self.assertEqual(parsePDB(path, subset='ca').numAtoms(), 10,
                         'failed to parse correct number of "ca" atoms')
-        self.assertEqual(parsePDB(path, subset='bb').getNumOfAtoms(), 40,
+        self.assertEqual(parsePDB(path, subset='bb').numAtoms(), 40,
                         'failed to parse correct number of "bb" atoms')
 
     def testAgArgument(self):
@@ -199,19 +199,19 @@ class TestParsePDB(unittest.TestCase):
         ag.setCoordinates(prody.np.array([[0, 0, 0]]))
         self.assertRaises(ValueError, parsePDB, path, ag=ag)
         ag = prody.AtomGroup('Test')
-        self.assertEqual(parsePDB(path, ag=ag).getNumOfAtoms(), 
+        self.assertEqual(parsePDB(path, ag=ag).numAtoms(), 
             self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')
     
     def testBiomolArgument(self):
         
-        self.assertRaises(proteins.PDBParserError, parsePDB, self.one['path'], 
+        self.assertRaises(proteins.PDBParseError, parsePDB, self.one['path'], 
                           biomol=True)
 
 
     def testSecondaryArgument(self):
 
-        self.assertRaises(proteins.PDBParserError, parsePDB, self.one['path'], 
+        self.assertRaises(proteins.PDBParseError, parsePDB, self.one['path'], 
                           secondary=True)
 
 class TestWritePDB(unittest.TestCase):
@@ -237,9 +237,9 @@ class TestWritePDB(unittest.TestCase):
         self.assertTrue(os.path.isfile(out),
             'writePDB failed to write output')
         out = parsePDB(out)
-        self.assertEqual(self.ag.getNumOfAtoms(), out.getNumOfAtoms(),
+        self.assertEqual(self.ag.numAtoms(), out.numAtoms(),
             'writePDB failed to write correct number of atoms')                
-        self.assertEqual(self.ag.getNumOfCoordsets(), out.getNumOfCoordsets(),
+        self.assertEqual(self.ag.numCoordsets(), out.numCoordsets(),
             'writePDB failed to write correct number of atoms')
             
     @dec.slow
@@ -251,9 +251,9 @@ class TestWritePDB(unittest.TestCase):
         self.assertRaises(TypeError, writePDB, self.tmp, self.ag, model='s')
         self.assertRaises(ValueError, writePDB, self.tmp, self.ag, model=-1)
         self.assertRaises(ValueError, writePDB, self.tmp, self.ag, model=0)
-        for i in range(self.ag.getNumOfCoordsets()):
+        for i in range(self.ag.numCoordsets()):
             out = parsePDB(writePDB(self.tmp, self.ag, model=i+1))
-            self.assertEqual(out.getNumOfCoordsets(), 1,
+            self.assertEqual(out.numCoordsets(), 1,
                 'writePDB failed to write correct number of models')
             self.assertTrue(np.all(out.getCoordinates() == 
                                     self.ag.getCoordsets(i)),
@@ -311,9 +311,9 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
         
     def testAtomGroupContent(self):
         
-        self.assertEqual(self.atomgroup.getNumOfAtoms(), 167,
+        self.assertEqual(self.atomgroup.numAtoms(), 167,
             'incorrect number of atoms')
-        self.assertEqual(self.atomgroup.getNumOfCoordsets(), 3,
+        self.assertEqual(self.atomgroup.numCoordsets(), 3,
             'incorrect number of coordinate sets (models)')
 
     def tearDown(self):
@@ -387,12 +387,12 @@ class TestDSSPFunctions(unittest.TestCase):
 
             for chain in prot_ag.select("protein").getHierView():
                 for res in chain:
-                    dssp_resnum = res.getAttribute("dssp_resnum")[0]
+                    dssp_resnum = res.getData("dssp_resnum")[0]
                     dssp_dict[dssp_resnum] = res
 
             for res in dssp_dict.itervalues():
-                bp1 = res.getAttribute("dssp_bp1")[0]
-                bp2 = res.getAttribute("dssp_bp2")[0]
+                bp1 = res.getData("dssp_bp1")[0]
+                bp2 = res.getData("dssp_bp2")[0]
 
                 if bp1 != 0:
                     msg_ = "BP1 (dssp_resnum: %d) of %s is missing" % \

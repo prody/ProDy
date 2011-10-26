@@ -75,20 +75,24 @@ GAPCHARS = ['-', '.']
 NONE_A = '_'
 
 _aaa2a = {
-'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q', 'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 
-'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V',
+'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q', 
+'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 
+'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 
+'TYR': 'Y', 'VAL': 'V',
 'HSD': 'H', 'HSP': 'H', 'HSE': 'H',
 'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J'
 }
 
 _a2aaa = {
-'A': 'ALA', 'R': 'ARG', 'N': 'ASN', 'D': 'ASP', 'C': 'CYS', 'Q': 'GLN', 'E': 'GLU', 'G': 'GLY', 'H': 'HIS', 'I': 'ILE', 
-'L': 'LEU', 'K': 'LYS', 'M': 'MET', 'F': 'PHE', 'P': 'PRO', 'S': 'SER', 'T': 'THR', 'W': 'TRP', 'Y': 'TYR', 'V': 'VAL'
+'A': 'ALA', 'R': 'ARG', 'N': 'ASN', 'D': 'ASP', 'C': 'CYS', 'Q': 'GLN', 
+'E': 'GLU', 'G': 'GLY', 'H': 'HIS', 'I': 'ILE', 'L': 'LEU', 'K': 'LYS', 
+'M': 'MET', 'F': 'PHE', 'P': 'PRO', 'S': 'SER', 'T': 'THR', 'W': 'TRP', 
+'Y': 'TYR', 'V': 'VAL'
 }
 
 def getSequence(resnames):
-    """Return sequence of 1-letter codes for a given list of 3-letter amino acid 
-    codes."""
+    """Return sequence of 1-letter codes for a given list of 3-letter amino 
+    acid codes."""
     
     sequence = ''
     for rn in resnames:
@@ -105,11 +109,13 @@ def getPairwiseMatchScore():
 def setPairwiseMatchScore(pairwise_match_score):
     """Set match score used to align sequences."""
     
-    if isinstance(pairwise_match_score, (float, int)) and pairwise_match_score >= 0:
+    if isinstance(pairwise_match_score, (float, int)) and \
+       pairwise_match_score >= 0:
         global PAIRWISE_MATCH_SCORE 
         PAIRWISE_MATCH_SCORE = pairwise_match_score
     else:
-        raise TypeError('pairwise_match_score must be a positive number or zero')
+        raise TypeError('pairwise_match_score must be a positive number or '
+                        'zero')
 
 
 def getPairwiseMismatchScore():
@@ -121,11 +127,13 @@ def getPairwiseMismatchScore():
 def setPairwiseMismatchScore(pairwise_mismatch_score):
     """Set mismatch score used to align sequences."""
     
-    if isinstance(pairwise_mismatch_score, (float, int)) and pairwise_mismatch_score >= 0:
+    if isinstance(pairwise_mismatch_score, (float, int)) and \
+       pairwise_mismatch_score >= 0:
         global PAIRWISE_MISMATCH_SCORE
         PAIRWISE_MISMATCH_SCORE = pairwise_mismatch_score
     else:
-        raise TypeError('pairwise_mismatch_score must be a positive number or zero')
+        raise TypeError('pairwise_mismatch_score must be a positive number or '
+                        'zero')
 
 
 def getPairwiseGapOpeningPenalty():
@@ -137,11 +145,13 @@ def getPairwiseGapOpeningPenalty():
 def setPairwiseGapOpeningPenalty(pairwise_gap_opening_penalty):
     """Set gap opening penalty used for pairwise alignment."""
     
-    if isinstance(pairwise_gap_opening_penalty, (float, int)) and pairwise_gap_opening_penalty <= 0:
+    if isinstance(pairwise_gap_opening_penalty, (float, int)) and \
+       pairwise_gap_opening_penalty <= 0:
         global PAIRWISE_GAP_OPENING_PENALTY
         PAIRWISE_GAP_OPENING_PENALTY = pairwise_gap_opening_penalty
     else:
-        raise TypeError('pairwise_gap_opening_penalty must be a negative number or zero')
+        raise TypeError('pairwise_gap_opening_penalty must be a negative '
+                        'number or zero')
 
 
 def getPairwiseGapExtensionPenalty():
@@ -153,11 +163,13 @@ def getPairwiseGapExtensionPenalty():
 def setPairwiseGapExtensionPenalty(pairwise_gap_extension_penalty):
     """Set gap extension penalty used for pairwise alignment"""
     
-    if isinstance(pairwise_gap_extension_penalty, (float, int)) and pairwise_gap_extension_penalty <= 0:
+    if isinstance(pairwise_gap_extension_penalty, (float, int)) and \
+       pairwise_gap_extension_penalty <= 0:
         global PAIRWISE_GAP_EXTENSION_PENALTY
         PAIRWISE_GAP_EXTENSION_PENALTY = pairwise_gap_extension_penalty
     else:
-        raise TypeError('pairwise_gap_extension_penalty must be a negative number or zero')
+        raise TypeError('pairwise_gap_extension_penalty must be a negative '
+                        'number or zero')
 
 
 def getPairwiseAlignmentMethod():
@@ -229,7 +241,7 @@ class SimpleResidue(object):
     def getNumber(self):
         return self._num
     
-    def getInsertionCode(self):
+    def getIcode(self):
         return self._inc
 
     def getName(self):
@@ -337,7 +349,7 @@ class SimpleChain(object):
             if not res.getName() in protein_resnames:
                 continue
             resid = res.getNumber()
-            incod = res.getInsertionCode()
+            incod = res.getIcode()
             aa = _aaa2a.get(res.getName(), 'X')
             simpres = SimpleResidue(resid, aa, incod, res)
             if gaps:
@@ -349,7 +361,7 @@ class SimpleChain(object):
             self._list.append(simpres)
             self._dict[(resid, incod)] = simpres
         self._name = 'Chain {0:s} from {1:s}'.format(chain.getIdentifier(),
-                                             chain.getAtomGroup().getName())
+                                             chain.getAtomGroup().getTitle())
 
 
 _SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
@@ -559,11 +571,11 @@ def matchChains(atoms1, atoms2, **kwargs):
 
             if subset == 'ca':
                 try:
-                    aid = ares.getAtomNames().tolist().index('CA')
+                    aid = ares.getNames().tolist().index('CA')
                 except ValueError:
                     aid = None
                 try:
-                    bid = bres.getAtomNames().tolist().index('CA')
+                    bid = bres.getNames().tolist().index('CA')
                     if aid is not None:
                         indices1.append(ares._indices[aid])
                         indices2.append(bres._indices[bid])
@@ -572,18 +584,18 @@ def matchChains(atoms1, atoms2, **kwargs):
             elif subset == 'bb':
                 for bban in ('N', 'CA', 'C', 'O'):
                     try:
-                        aid = ares.getAtomNames().tolist().index(bban)
+                        aid = ares.getNames().tolist().index(bban)
                     except ValueError:
                         continue
                     try:
-                        bid = bres.getAtomNames().tolist().index(bban)
+                        bid = bres.getNames().tolist().index(bban)
                         indices1.append(ares._indices[aid])
                         indices2.append(bres._indices[bid])
                     except ValueError:
                         continue
             elif subset is None or subset is 'all':
-                aans = ares.getAtomNames()
-                bans = bres.getAtomNames().tolist()
+                aans = ares.getNames()
+                bans = bres.getNames().tolist()
 
                 aids = ares.getIndices()
                 #bids = bres.getIndices()
@@ -601,11 +613,11 @@ def matchChains(atoms1, atoms2, **kwargs):
         lengh = len(indices1)
         match1 = AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
                                simpch1.getName() + ' -> ' + simpch2.getName(),
-                               atoms1.getActiveCoordsetIndex()) 
+                               atoms1.getACSI()) 
                                  
         match2 = AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
                                simpch2.getName() + ' -> ' + simpch1.getName(),
-                               atoms2.getActiveCoordsetIndex()) 
+                               atoms2.getACSI()) 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
@@ -626,7 +638,7 @@ def getTrivialMatch(ach, bch):
     bmatch = []
     match = 0.0
     for ares in ach:
-        bres = bch[(ares.getNumber(), ares.getInsertionCode())]
+        bres = bch[(ares.getNumber(), ares.getIcode())]
         if bres is not None:
             if ares.getName() == bres.getName():
                 match += 1
@@ -886,7 +898,7 @@ def getTrivialMapping(target, chain):
         append(target_residue.getResidue())
 
         chain_residue = chain_dict_get((target_residue.getNumber(), 
-                                        target_residue.getInsertionCode()))
+                                        target_residue.getIcode()))
         if chain_residue is None:
             chain_list.append(chain_residue)
         else:

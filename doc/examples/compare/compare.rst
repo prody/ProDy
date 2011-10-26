@@ -160,8 +160,8 @@ Let's map bound structure onto unbound chain A (subunit p66):
 ...     print 'Mapped chain       :', mapping[0]      
 ...     print 'Target chain       :', mapping[1]
 ...     print 'Mapping length     :', len(mapping[0])
-...     print '# of mapped atoms  :', mapping[0].getNumOfMapped()
-...     print '# of unmapped atoms:', mapping[0].getNumOfUnmapped()
+...     print '# of mapped atoms  :', mapping[0].numMapped()
+...     print '# of unmapped atoms:', mapping[0].numUnmapped()
 ...     print 'Sequence identity  :', mapping[2]
 ...     print 'Sequence overlap   :', mapping[3]
 Mapped chain       : AtomMap Chain B from 1vrt -> Chain A from 1dlo
@@ -180,8 +180,8 @@ matching larger numbers of atoms. We can map backbone atoms as follows:
 ...     print 'Mapped chain       :', mapping[0]      
 ...     print 'Target chain       :', mapping[1]
 ...     print 'Mapping length     :', len(mapping[0])
-...     print '# of mapped atoms  :', mapping[0].getNumOfMapped()
-...     print '# of unmapped atoms:', mapping[0].getNumOfUnmapped()
+...     print '# of mapped atoms  :', mapping[0].numMapped()
+...     print '# of unmapped atoms:', mapping[0].numUnmapped()
 ...     print 'Sequence identity  :', mapping[2]
 ...     print 'Sequence overlap   :', mapping[3]
 Mapped chain       : AtomMap Chain B from 1vrt -> Chain A from 1dlo
@@ -199,8 +199,8 @@ Or, we can map all atoms as follows:
 ...     print 'Mapped chain       :', mapping[0]      
 ...     print 'Target chain       :', mapping[1]
 ...     print 'Mapping length     :', len(mapping[0])
-...     print '# of mapped atoms  :', mapping[0].getNumOfMapped()
-...     print '# of unmapped atoms:', mapping[0].getNumOfUnmapped()
+...     print '# of mapped atoms  :', mapping[0].numMapped()
+...     print '# of unmapped atoms:', mapping[0].numUnmapped()
 ...     print 'Sequence identity  :', mapping[2]
 ...     print 'Sequence overlap   :', mapping[3]
 Mapped chain       : AtomMap Chain B from 1vrt -> Chain A from 1dlo

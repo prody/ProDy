@@ -72,7 +72,7 @@ as follows:
    
    import matplotlib.pyplot as plt
    plt.figure(figsize=(5,4))
-   showCrossCorrelations(anm)
+   showCrossCorr(anm)
 
    
 .. plot::
@@ -128,7 +128,7 @@ without any change:
    :include-source:
    
    plt.figure(figsize=(5,4))
-   showCrossCorrelations(anm_slc_p66) 
+   showCrossCorr(anm_slc_p66) 
    
    # If title does not fit the figure, can be changed as follows
    plt.title('Cross-correlations for ANM slice')
@@ -184,7 +184,7 @@ full model:
    :include-source:
    
    plt.figure(figsize=(5,4))
-   showCrossCorrelations(anm_red_p66) 
+   showCrossCorr(anm_red_p66) 
    
 .. plot::
    :context:

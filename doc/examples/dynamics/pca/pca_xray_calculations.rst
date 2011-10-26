@@ -87,7 +87,7 @@ which are resolved in at least 90% of the dataset.
 
 >>> ref_structure = parsePDB('pdbfiles/1p38.pdb')
 >>> ref_structure = ref_structure.copy('resnum 5 to 31 36 to 114 122 to 169 185 to 351 and calpha')
->>> ref_structure.setName('p38 reference')
+>>> ref_structure.setTitle('p38 reference')
 
 Select chain A from the reference structure
 

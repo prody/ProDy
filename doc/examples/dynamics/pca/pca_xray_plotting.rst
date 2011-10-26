@@ -93,7 +93,7 @@ Let's also plot the cumulative overlap in the same figure:
    :include-source:
    
    # plt.figure(figsize=(5,4)) # Note that we don't want to call this function in this case
-   showCumulativeOverlap(pca[0], anm)
+   showCumOverlap(pca[0], anm)
 
 .. plot::
    :context:

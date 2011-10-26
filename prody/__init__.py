@@ -32,19 +32,24 @@ import math
 import platform
 
 import warnings
-warnings.filterwarnings('default', category=DeprecationWarning)
 
-def deprecate(dep, alt, rel=release):
+WARNINGS_TURNEDON = False
+
+def deprecate(dep, alt, rel=(0,9)):
     """Issue a deprecation warning for *dep* and recommend using *alt*, if 
     *rel* is greater or equal to the current release."""
-    
-    if release >= rel:
+
+    global WARNINGS_TURNEDON
+    if True or release >= rel:
+        if not WARNINGS_TURNEDON:
+            WARNINGS_TURNEDON = True
+            warnings.filterwarnings('always', category=DeprecationWarning)
         # Assume that the deprecated method or function will be removed
         # when the next major release is made
-        rel = float('.'.join((str(x) for x in rel[:2])))
-        warnings.warn('{0:s} is deprecated and will be removed in v{1:.1f}, '
-                      'use {2:s}'.format(dep, rel, alt), 
-                      DeprecationWarning, stacklevel=2)
+        rel = float('.'.join((str(x) for x in rel[:2]))) + 0.1
+        warnings.warn('`{0:s}` is deprecated and will be removed in v{1:.1f}, '
+                      'use `{2:s}`.'.format(dep, rel, alt), 
+                      DeprecationWarning, stacklevel=3)
 
 
 PLATFORM = platform.system()
@@ -290,7 +295,7 @@ class PackageLogger(object):
 
     def info(self, msg):
         """Log *msg* with severity 'INFO'."""
-        
+
         self._logger.info(msg)
 
     def critical(self, msg):
@@ -300,7 +305,7 @@ class PackageLogger(object):
 
     def debug(self, msg):
         """Log *msg* with severity 'DEBUG'."""
-        
+
         self._logger.debug(msg)
         
     def warning(self, msg):
@@ -422,7 +427,8 @@ def startLogfile(filename, **kwargs):
     
     :keyword mode: mode in which logfile will be opened, default is "w" 
     
-    :keyword backupcount: number of old *filename.log* files to save, default is 1
+    :keyword backupcount: number of old *filename.log* files to save, 
+        default is 1
 
     """
     
@@ -446,11 +452,11 @@ def startLogfile(filename, **kwargs):
         logfile.setFormatter(logging.Formatter('%(message)s'))
         LOGGER.addHandler(logfile)
         if rollover:
-            LOGGER.info('Saving existing logfile "{0:s}" and starting a new one.'
-                         .format(filename))
+            LOGGER.info("Saving existing logfile '{0:s}' and starting a new "
+                        "one.".format(filename))
             logfile.doRollover()
         else:
-            LOGGER.info('Logfile "{0:s}" has been started.'.format(filename))
+            LOGGER.info("Logfile '{0:s}' has been started.".format(filename))
 
 
 def closeLogfile(filename):
@@ -477,7 +483,7 @@ def changeVerbosity(level):
     ======== ===========
     Level    Description
     ======== ===========
-    debug    Eveything will be printed on the colsole or written into logfile.
+    debug    Everything will be printed on the console or written into logfile.
     info     Only brief information will be printed or written.
     warning  Only warning information will be printed or written.
     none     ProDy will not log any messages.
@@ -614,3 +620,4 @@ __all__.append('ensemble')
 
 import prody
 __all__.append('prody')
+

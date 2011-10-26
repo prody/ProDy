@@ -134,10 +134,10 @@ class EnsembleBase(object):
     This class provides methods for associating instances with an 
     :class:`~prody.atomic.AtomGroup` and handling reference coordinates."""
 
-    def __init__(self, name):
-        self._name = str(name)
-        if self._name == '':
-            self._name = 'Unnamed'
+    def __init__(self, title):
+        self._title = str(title).strip()
+        if self._title == '':
+            self._title = 'Unknown'
         self._coords = None         # reference
         self._n_atoms = 0
         self._n_csets = 0 # number of conformations/frames/coordinate sets
@@ -150,26 +150,56 @@ class EnsembleBase(object):
         return self._n_csets
 
     def getName(self):
-        """Return name of the instance."""
+        """Deprecated, use :meth:`getTitle`."""
         
-        return self._name
+        prody.deprecate('getName', 'getTitle', (0,9))
+        return self.getTitle()
+        
+    def getTitle(self):
+        """Return title of the ensemble."""
+        
+        return self._title
 
     def setName(self, name):
-        """Set name of the instance."""
+        """Deprecated, use :meth:`setTitle`."""
         
-        self._name = str(name)
+        prody.deprecate('setName', 'setTitle', (0,9))
+        return self.setTitle(name)
+        
+    def setTitle(self, title):
+        """Set title of the ensemble."""
+        
+        self._title = str(title)
     
     def getNumOfAtoms(self):
+        """Deprecated, use :meth:`numAtoms`."""
+
+        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        return self.numAtoms()
+        
+    def numAtoms(self):
         """Return number of atoms."""
         
         return self._n_atoms
    
     def getNumOfCoordsets(self):
+        """Deprecated, use :meth:`numCoordsets`."""
+        
+        prody.deprecate('getNumOfCoordsets', 'numCoordsets', (0,9))
+        return self.numCoordsets()
+        
+    def numCoordsets(self):
         """Return number of coordinate sets, i.e conformations or frames."""
         
         return self._n_csets
     
     def getNumOfSelected(self):
+        """Deprecated, use :meth:`numSelected`."""
+        
+        prody.deprecate('getNumOfSelected', 'numSelected', (0,9))
+        return self.numSelected()
+        
+    def numSelected(self):  
         """Return number of selected atoms."""
         
         if self._sel is None:
@@ -183,22 +213,19 @@ class EnsembleBase(object):
     
     def setAtomGroup(self, ag, setref=True):
         """Associate the instance with an :class:`~prody.atomic.AtomGroup`.
-        
         Note that at association, active coordinate set of the 
         :class:`~prody.atomic.AtomGroup`, if it has one, will be set as 
         the reference coordinates for the ensemble or trajectory. Changes in 
         :class:`~prody.atomicAtomGroup` active coordinate set will not be
         reflected to the reference coordinates. If you want to preserve the 
-        present reference coordinates, pass ``setref=False``. 
-        
-        """
+        present reference coordinates, pass ``setref=False``."""
         
         if ag is None:
             self._ag = None
         else:
             if not isinstance(ag, prody.AtomGroup):
                 raise TypeError('ag must be an AtomGroup instance')
-            if self._n_atoms != 0 and ag.getNumOfAtoms() != self._n_atoms:
+            if self._n_atoms != 0 and ag.numAtoms() != self._n_atoms:
                 raise ValueError('AtomGroup must have same number of atoms')
             self._ag = ag
             if setref:
@@ -206,7 +233,7 @@ class EnsembleBase(object):
                 if coords is not None:
                     self._coords = coords 
                     LOGGER.info('Coordinates of {0:s} is set as the reference '
-                                'for {1:s}.'.format(ag.getName(), self._name))
+                               'for {1:s}.'.format(ag.getTitle(), self._title))
         self._sel = None
         self._indices = None
         
@@ -240,7 +267,7 @@ class EnsembleBase(object):
             return sel
     
     def getCoordinates(self):
-        """Return a copy of reference coordinates of selected atoms."""
+        """Return a copy of reference coordinates for selected atoms."""
         
         if self._coords is None:
             return None
@@ -249,7 +276,7 @@ class EnsembleBase(object):
         return self._coords[self._indices]
     
     def _getCoordinates(self):
-        """Return a view of reference coordinates of selected atoms."""
+        """Return a view of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
@@ -312,45 +339,46 @@ class Ensemble(EnsembleBase):
 
     """
 
-    def __init__(self, name='Unnamed'):
-        """Instantiate with a name.
+    def __init__(self, title='Unknown'):
+        """Instantiate with a title.
         
         .. versionchanged:: 0.6
            At instantiation, :class:`~prody.atomic.Atomic` instances are 
-           accepted as *name* argument. All coordinate sets from *name* will be
-           added to the ensemble automatically. 
+           accepted as *title* argument. All coordinate sets from *title* 
+           will be added to the ensemble automatically. 
            
         .. versionchanged:: 0.7
-           When an empty string is passed as *name* argument, Ensemble instance
-           is called "Unnamed". 
+           When an empty string is passed as *title* argument, Ensemble 
+           instance is called "Unknown". 
           
-        :arg name: A name (:class:`str`) or an :class:`~prody.atomic.Atomic`
+        :arg title: a title (:class:`str`) or an :class:`~prody.atomic.Atomic`
             instance.
-        
         """
-        EnsembleBase.__init__(self, name)
+        
+        EnsembleBase.__init__(self, title)
         self._confs = None       # coordinate sets
         
-        if isinstance(name, (prody.Atomic, prody.Ensemble)):
-            self.setCoordinates(name.getCoordinates())
-            self.addCoordset(name)
+        if isinstance(title, (prody.Atomic, prody.Ensemble)):
+            self.setCoordinates(title.getCoordinates())
+            self.addCoordset(title)
         
     def __getitem__(self, index):
         """Return a conformation at given index."""
+        
         if self._confs is None:
             return None
         if isinstance(index, int):
             return self.getConformation(index) 
         elif isinstance(index, slice):
             ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                self._name, index.indices(len(self))))
+                                self._title, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self.getCoordsets(index))
             if self._weights is not None:
                 ens.setWeights(self.getWeights())
             return ens
         elif isinstance(index, (list, np.ndarray)):
-            ens = Ensemble('Conformations of {0:s}'.format(self._name))
+            ens = Ensemble('Conformations of {0:s}'.format(self._title))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self.getCoordsets(index))
             if self._weights is not None:
@@ -358,7 +386,6 @@ class Ensemble(EnsembleBase):
             return ens
         else:
             raise IndexError('invalid index')
-            
     
     def __add__(self, other):
         """Concatenate ensembles. The reference coordinates and weights of 
@@ -367,17 +394,17 @@ class Ensemble(EnsembleBase):
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0:s} '
                             'instance'.format(type(other)))
-        elif self.getNumOfAtoms() != other.getNumOfAtoms():
+        elif self.numAtoms() != other.numAtoms():
             raise ValueError('Ensembles must have same number of atoms.')
     
-        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getName(), 
-                                                   other.getName()))
+        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getTitle(), 
+                                                   other.getTitle()))
         ensemble.setCoordinates(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
         ensemble.addCoordset(other.getCoordsets())
         if self._weights is not None: 
             LOGGER.info('Atom weights from "{0:s}" are used in "{1:s}".'
-                        .format(self._name, ensemble.getName()))
+                        .format(self._title, ensemble.getTitle()))
             ensemble.setWeights(self._weights)
         return ensemble
     
@@ -391,25 +418,29 @@ class Ensemble(EnsembleBase):
     
     def __repr__(self):
         return ('<Ensemble: {0:s} ({1:d} conformations, {2:d} atoms, {3:d} '
-               'selected)>').format(self._name, len(self), self._n_atoms, 
-                                    self.getNumOfSelected())
+               'selected)>').format(self._title, len(self), self._n_atoms, 
+                                    self.numSelected())
 
     def __str__(self):
-        return 'Ensemble {0:s}'.format(self._name)
+        return 'Ensemble {0:s}'.format(self._title)
 
     def getNumOfConfs(self):
+        """Deprecated, use :meth:`numConfs`."""
+        
+        prody.deprecate('getNumOfConfs', 'numConfs', (0,9))
+        return self.numConfs()
+        
+    def numConfs(self):  
         """Return number of conformations."""
 
         return self._n_csets
 
     def addCoordset(self, coords, allcoordsets=True):
         """Add coordinate set(s) as conformation(s).
-        
         :class:`~prody.atomic.Atomic` instances are accepted as *coords* 
         argument. If *allcoordsets* is ``True``, all coordinate sets from
         the :class:`~prody.atomic.Atomic` instance will be appended to the 
         ensemble. Otherwise, only the active coordinate set will be appended.
-        
         """
         
         assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
@@ -426,7 +457,6 @@ class Ensemble(EnsembleBase):
             else:
                 raise TypeError('coords must be a Numpy array or '
                                 'ProDy Atomic or Ensemble instance')
-            
         
         coords = checkCoordsArray(coords, arg='coords', cset=True, 
                                   n_atoms=self._n_atoms, reshape=True)
@@ -442,64 +472,52 @@ class Ensemble(EnsembleBase):
         self._n_csets += n_confs
 
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate sets at given indices.
-        
-        *indices* may be an integer, a list of integers or ``None``. ``None``
-        returns all coordinate sets. 
-    
-        For reference coordinates, use :meth:`getCoordinates` method.
-
-        """
+        """Return a copy of coordinate set(s) at given *indices*, which may be
+        an integer, a list of integers or ``None``. ``None`` returns all 
+        coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
+        method."""
         
         if self._confs is None:
             return None
-        elif self._indices is None:
+        if self._indices is None:
             if indices is None:
                 return self._confs.copy()
-            elif isinstance(indices, (int, long, slice)): 
+            if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices].copy()
-            elif isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, np.ndarray)):        
                 return self._confs[indices]
-            else:
-                raise IndexError('indices must be an integer, a list/array of '
-                                 'integers, a slice, or None')
         else:
             selids = self._indices
             if indices is None:
                 return self._confs[:,selids]
-            elif isinstance(indices, (int, long, slice)): 
+            if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices, selids]
-            elif isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, np.ndarray)):        
                 return self._confs[indices, selids]
-            else:
-                raise IndexError('indices must be an integer, a list/array of '
-                                 'integers, a slice, or None')
+        raise IndexError('indices must be an integer, a list/array of '
+                         'integers, a slice, or None')
 
     def _getCoordsets(self, indices=None):
 
         if self._confs is None:
             return None
-        elif self._indices is None:
+        if self._indices is None:
             if indices is None:
                 return self._confs
-            elif isinstance(indices, (int, long, slice)): 
+            if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices]
-            elif isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, np.ndarray)):        
                 return self._confs[indices]
-            else:
-                raise IndexError('indices must be an integer, a list/array of '
-                                 'integers, a slice, or None')
         else:
             selids = self._indices
             if indices is None:
                 return self._confs[:,selids]
-            elif isinstance(indices, (int, long, slice)): 
+            if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices, selids]
-            elif isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, np.ndarray)):        
                 return self._confs[indices, selids]
-            else:
-                raise IndexError('indices must be an integer, a list/array of '
-                                 'integers, a slice, or None')
+        raise IndexError('indices must be an integer, a list/array of '
+                         'integers, a slice, or None')
     
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
@@ -704,9 +722,9 @@ class PDBEnsemble(Ensemble):
 
     """
 
-    def __init__(self, name='Unnamed'):
+    def __init__(self, title='Unknown'):
         self._identifiers = []
-        Ensemble.__init__(self, name)
+        Ensemble.__init__(self, title)
         
     def __repr__(self):
         return '<PDB ' + Ensemble.__repr__(self)[1:]
@@ -721,11 +739,11 @@ class PDBEnsemble(Ensemble):
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0:s} '
                             'instance'.format(type(other)))
-        elif self.getNumOfAtoms() != other.getNumOfAtoms():
+        elif self.numAtoms() != other.numAtoms():
             raise ValueError('Ensembles must have same number of atoms.')
     
-        ensemble = PDBEnsemble('{0:s} + {1:s}'.format(self.getName(), 
-                                                   other.getName()))
+        ensemble = PDBEnsemble('{0:s} + {1:s}'.format(self.getTitle(), 
+                                                   other.getTitle()))
         ensemble.setCoordinates(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
         if other._weights is None:
@@ -749,13 +767,13 @@ class PDBEnsemble(Ensemble):
             return self.getConformation(index) 
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                self._name, index.indices(len(self))))
+                                self._title, index.indices(len(self))))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy())
             return ens
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0:s}'.format(self._name))
+            ens = PDBEnsemble('Conformations of {0:s}'.format(self._title))
             ens.setCoordinates(self.getCoordinates())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy())
@@ -785,7 +803,7 @@ class PDBEnsemble(Ensemble):
 
     def addCoordset(self, coords, weights=None, allcoordsets=True):
         """Add coordinate set(s) as conformation(s).
-        
+
         :class:`~prody.atomic.Atomic` instances are accepted as *coords* 
         argument. If *allcoordsets* is ``True``, all coordinate sets from
         the :class:`~prody.atomic.Atomic` instance will be appended to the 
@@ -812,11 +830,11 @@ class PDBEnsemble(Ensemble):
                 coords = atoms.getCoordsets()
             else: 
                 coords = atoms.getCoordinates()
-            name = ag.getName()
+            title = ag.getTitle() 
         elif isinstance(coords, np.ndarray):
-            name = 'Unnamed'
+            title = 'Unknown'
         else:
-            name = str(coords)
+            title = str(coords)
             try:
                 if allcoordsets:
                     coords = coords.getCoordsets()
@@ -836,19 +854,19 @@ class PDBEnsemble(Ensemble):
         else:
             weights = checkWeightsArray(weights, n_atoms, n_csets)
 
-        while '  ' in name:
-            name = name.replace('  ', ' ')
-        name = name.replace(' ', '_')
+        while '  ' in title:
+            title = title.replace('  ', ' ')
+        title = title.replace(' ', '_')
         
         if n_csets > 1:
             self._identifiers += ['{0:s}_{1:d}'
-                                  .format(name, i+1) for i in range(n_csets)]
+                                  .format(title, i+1) for i in range(n_csets)]
         else:
-            if ag is not None and ag.getNumOfCoordsets() > 1:
-                self._identifiers.append('{0:s}_{1:d}'.format(name, 
-                                         atoms.getActiveCoordsetIndex()))
+            if ag is not None and ag.numCoordsets() > 1:
+                self._identifiers.append('{0:s}_{1:d}'.format(title, 
+                                         atoms.getACSI()))
             else:                
-                self._identifiers.append(name)
+                self._identifiers.append(title)
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
@@ -865,20 +883,18 @@ class PDBEnsemble(Ensemble):
         """Return identifiers of the conformations in the ensemble.
         
         .. versionadded:: 0.8.3
-        
         """
         
         return list(self._identifiers)
     
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate sets at given *indices* for selected 
+        """Return a copy of coordinate set(s) at given *indices* for selected 
         atoms. *indices* may be an integer, a list of integers or ``None``. 
         ``None`` returns all coordinate sets. 
     
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
            ensemble reference coordinate set.
-
         """
         
         if self._confs is None:
@@ -1021,19 +1037,11 @@ class PDBEnsemble(Ensemble):
 
 
 def saveEnsemble(ensemble, filename=None):
-    """Save *ensemble* model data as :file:`filename.ens.npz`. 
-    
-    If *filename* is ``None``, name of the *ensemble* will be used as 
-    the filename, after " " (blank spaces) in the name are replaced with "_" 
-    (underscores).  
-    
-    Extension is :file:`.ens.npz`.
-    
-    Upon successful completion of saving, filename is returned.
-    
-    This function makes use of :func:`numpy.savez` function.
-    
-    """
+    """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename* 
+    is ``None``, title of the *ensemble* will be used as the filename, after 
+    white spaces in the title are replaced with underscores.  Extension is 
+    :file:`.ens.npz`. Upon successful completion of saving, filename is 
+    returned. This function makes use of :func:`numpy.savez` function."""
     
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0:s}'
@@ -1042,11 +1050,11 @@ def saveEnsemble(ensemble, filename=None):
         raise ValueError('ensemble instance does not contain data')
     
     dict_ = ensemble.__dict__
-    attr_list = ['_name', '_confs', '_weights', '_coords']
+    attr_list = ['_title', '_confs', '_weights', '_coords']
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_identifiers')
     if filename is None:
-        filename = ensemble.getName().replace(' ', '_')
+        filename = ensemble.getTitle().replace(' ', '_')
     attr_dict = {}
     for attr in attr_list:
         value = dict_[attr]
@@ -1057,22 +1065,21 @@ def saveEnsemble(ensemble, filename=None):
     return filename
 
 def loadEnsemble(filename):
-    """Return ensemble instance after loading it from file (*filename*).
-    
-    .. seealso: :func:`saveEnsemble`
-    
-    This function makes use of :func:`numpy.load` function.
-    
-    """
+    """Return ensemble instance loaded from *filename*.  This function makes 
+    use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
     
     attr_dict = np.load(filename)
     weights = attr_dict['_weights']
     isPDBEnsemble = False
+    try:
+        title = str(attr_dict['_title'])
+    except KeyError:
+        title = str(attr_dict['_name'])
     if weights.ndim == 3:
         isPDBEnsemble = True
-        ensemble = PDBEnsemble(str(attr_dict['_name']))
+        ensemble = PDBEnsemble(title)
     else:
-        ensemble = Ensemble(str(attr_dict['_name']))
+        ensemble = Ensemble(title)
     ensemble.setCoordinates(attr_dict['_coords'])
     if isPDBEnsemble:
         ensemble.addCoordset(attr_dict['_confs'], weights)
@@ -1099,23 +1106,35 @@ class ConformationBase(object):
     def __repr__(self):
         return ('<{0:s}: {1:d} from {2:s} (selected {3:d} of {4:d} atoms)>'
                ).format(self.__class__.__name__, self._index, 
-                        self._ensemble.getName(), self.getNumOfSelected(), 
-                        self._ensemble.getNumOfAtoms())
+                        self._ensemble.getTitle(), self.numSelected(), 
+                        self._ensemble.numAtoms())
 
     def __str__(self):
         return '{0:s} {1:d} from {2:s}'.format(
-                    self._index, self._ensemble.getName())
+                    self._index, self._ensemble.getTitle())
 
     def getNumOfAtoms(self):
+        """Deprecated, use :meth:`numAtoms`."""
+
+        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        return self.numAtoms()
+        
+    def numAtoms(self):
         """Return number of atoms."""
         
-        return self._ensemble.getNumOfAtoms()
+        return self._ensemble.numAtoms()
     
     def getNumOfSelected(self):
+        """Deprecated, use :meth:`numSelected`."""
+        
+        prody.deprecate('getNumOfSelected', 'numSelected', (0,9))
+        return self.numSelected()
+        
+    def numSelected(self):
         """Return number of selected atoms."""
         
         if self._sel is None:
-            return self._ensemble.getNumOfAtoms()
+            return self._ensemble.numAtoms()
         else:
             return len(self._indices)
     
@@ -1226,13 +1245,13 @@ class PDBConformation(Conformation):
         return ('<PDB Conformation: {0:s} from {1:s} (index: {2:d}; '
                 'selected {3:d} of {4:d} atoms)>').format(
                     self._ensemble._identifiers[self._index], 
-                    self._ensemble.getName(), self._index, 
-                    self.getNumOfSelected(), self.getNumOfAtoms())
+                    self._ensemble.getTitle(), self._index, 
+                    self.numSelected(), self.numAtoms())
     
     def __str__(self):
         return 'PDB Conformation {0:s} from {1:s}'.format(
                     self._ensemble._identifiers[self._index], 
-                    self._ensemble.getName())
+                    self._ensemble.getTitle())
     
     def getIdentifier(self):
         """Return the identifier of the conformation instance.
@@ -1249,9 +1268,7 @@ class PDBConformation(Conformation):
         
         >>> conf.setIdentifier('1a9u')
         >>> print( conf.getIdentifier() )
-        1a9u
-        
-        """
+        1a9u"""
         
         self._ensemble._identifiers[self._index] = str(identifier)
         
@@ -1263,7 +1280,6 @@ class PDBConformation(Conformation):
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
            ensemble reference coordinate set.
-
         """
         
         ensemble = self._ensemble
@@ -1299,7 +1315,6 @@ class PDBConformation(Conformation):
         
         >>> print( conf.getRMSD().round(2) )
         0.74
-
         """
         
         ensemble = self._ensemble
@@ -1443,7 +1458,7 @@ def trimEnsemble(pdbensemble, **kwargs):
     
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble argument must be a PDBEnsemble')
-    if pdbensemble.getNumOfConfs() == 0 or pdbensemble.getNumOfAtoms() == 0:
+    if pdbensemble.numConfs() == 0 or pdbensemble.numAtoms() == 0:
         raise ValueError('coordinates or conformations must be set for '
                          'pdbensemble')
     
@@ -1451,7 +1466,7 @@ def trimEnsemble(pdbensemble, **kwargs):
         occupancy = float(kwargs['occupancy'])
         assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
                                    '{0:s}'.format(repr(occupancy)))
-        n_confs = pdbensemble.getNumOfConfs()
+        n_confs = pdbensemble.numConfs()
         assert n_confs > 0, 'pdbensemble does not contain any conformations'
         weights = calcSumOfWeights(pdbensemble)
         assert weights is not None, 'weights must be set for pdbensemble'
@@ -1463,7 +1478,7 @@ def trimEnsemble(pdbensemble, **kwargs):
     else:
         return None
     
-    trimmed = PDBEnsemble(pdbensemble.getName())
+    trimmed = PDBEnsemble(pdbensemble.getTitle())
     coords = pdbensemble.getCoordinates()
     if coords is not None:
         trimmed.setCoordinates( coords[torf] )
@@ -1491,9 +1506,7 @@ def calcSumOfWeights(pdbensemble):
             
     Each number in the above example corresponds to a residue (or atoms) and 
     shows the number of structures in which the corresponding residue is 
-    resolved. 
-    
-    """
+    resolved."""
     
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
@@ -1566,9 +1579,9 @@ class TrajectoryBase(EnsembleBase):
         elif isinstance(index, (slice, list, np.ndarray)):
             if isinstance(index, slice):
                 ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                    self._name, index.indices(len(self))))
+                                    self._title, index.indices(len(self))))
             else:
-                ens = Ensemble('{0:s} slice'.format(self._name))
+                ens = Ensemble('{0:s} slice'.format(self._title))
             ens.setCoordinates(self.getCoordinates())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -1578,6 +1591,12 @@ class TrajectoryBase(EnsembleBase):
             raise IndexError('invalid index')
     
     def getNumOfFrames(self):
+        """Deprecated, use :meth:`numFrames`."""
+        
+        prody.deprecate('getNumOfFrames', 'numFrames', (0,9))
+        return self.numFrames()
+        
+    def numFrames(self):
         """Return number of frames."""
         
         return self._n_csets
@@ -1674,16 +1693,16 @@ class TrajectoryFile(TrajectoryBase):
     def __repr__(self):
         if self._closed:
             return ('<{0:s}: {1:s} (closed)>').format(
-                        self.__class__.__name__, self._name)
+                        self.__class__.__name__, self._title)
         else:
             return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames, '
                     'selected {4:d} of {5:d} atoms)>').format(
-                    self.__class__.__name__, self._name, 
-                    self._nfi, self._n_csets, self.getNumOfSelected(),
+                    self.__class__.__name__, self._title, 
+                    self._nfi, self._n_csets, self.numSelected(),
                     self._n_atoms)
     
     def __str__(self):
-        return '{0:s} {1:s}'.format(self.__class__.__name__, self._name)
+        return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
     
        
     def getFilename(self, absolute=False):
@@ -1732,7 +1751,7 @@ class TrajectoryFile(TrajectoryBase):
         nfi = self._nfi
         self.reset()
 
-        n_atoms = self.getNumOfSelected() 
+        n_atoms = self.numSelected() 
         coords = np.zeros((len(indices), n_atoms, 3), self._dtype)
 
         prev = 0
@@ -1821,6 +1840,12 @@ class TrajectoryFile(TrajectoryBase):
         return self._framefreq
     
     def getNumOfFixed(self):
+        """Deprecated, use :meth:`numFixed`."""
+        
+        prody.deprecate('getNumOfFixed', 'numFixed', (0,9))
+        return self.numFixed()
+        
+    def numFixed(self):
         """Return number of fixed atoms."""
         
         return self._n_fixed
@@ -1950,8 +1975,8 @@ class DCDFile(TrajectoryFile):
         # Read NTITLE, the number of 80 character title strings there are
         temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
         if DEBUG: print len(temp), temp
-        self._title = dcd.read(80)
-        if DEBUG: print self._title
+        self._dcdtitle = dcd.read(80)
+        if DEBUG: print self._dcdtitle
         self._remarks = dcd.read(80)
         if DEBUG: print self._remarks
         # Get the ending size for this block
@@ -2008,10 +2033,6 @@ class DCDFile(TrajectoryFile):
     
     hasUnitcell.__doc__ = TrajectoryBase.hasUnitcell.__doc__ 
    
-    def getTitle(self):
-        """Return title parsed from DCD file."""
-        
-        return self._title
     
     def getRemarks(self):
         """Return remarks parsed from DCD file."""
@@ -2125,15 +2146,15 @@ class Trajectory(TrajectoryBase):
         
     def __repr__(self):
         if self._closed:
-            return ('<Trajectory: {0:s} (closed)>').format(self._name)
+            return ('<Trajectory: {0:s} (closed)>').format(self._title)
         else:
             return ('<Trajectory: {0:s} ({1:d} files, next {2:d} of {3:d} '
                     'frames, selected {4:d} of {5:d} atoms)>').format(
-                    self._name, self._n_files, self._nfi, 
-                    self._n_csets, self.getNumOfSelected(), self._n_atoms)
+                    self._title, self._n_files, self._nfi, 
+                    self._n_csets, self.numSelected(), self._n_atoms)
     
     def __str__(self):
-        return '{0:s} {1:s}'.format(self.__class__.__name__, self._name)
+        return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
 
     def _nextFile(self):
         self._cfi += 1
@@ -2166,21 +2187,27 @@ class Trajectory(TrajectoryBase):
                              .format(ext))
         
         n_atoms = self._n_atoms
-        if n_atoms != 0 and n_atoms != traj.getNumOfAtoms():
+        if n_atoms != 0 and n_atoms != traj.numAtoms():
             raise IOError('{0:s} must have same number of atoms as previously '
-                          'loaded files'.format(traj.getName()))
+                          'loaded files'.format(traj.getTitle()))
          
         if self._n_files == 0:
             self._trajectory = traj                
-            self._name = traj.getName()
+            self._title = traj.getTitle()
         if n_atoms == 0:
-            self._n_atoms = traj.getNumOfAtoms()
+            self._n_atoms = traj.numAtoms()
             self._coords = traj._coords
         self._trajectories.append(traj)
-        self._n_csets += traj.getNumOfFrames()
+        self._n_csets += traj.numFrames()
         self._n_files += 1
    
     def getNumOfFiles(self):
+        """Deprecated, use :meth:`numFiles`."""
+        
+        prody.deprecate('getNumOfFiles', 'numFiles', (0,9))
+        return self.numFiles()
+        
+    def numFiles(self):
         """Return number of open trajectory files."""
         
         return self._n_files
@@ -2211,7 +2238,7 @@ class Trajectory(TrajectoryBase):
 
         nfi = self._nfi
         self.reset()
-        coords = np.zeros((len(indices), self.getNumOfSelected(), 3), 
+        coords = np.zeros((len(indices), self.numSelected(), 3), 
                           self._trajectories[0]._dtype)
         prev = 0
         next = self.nextCoordset
@@ -2299,7 +2326,7 @@ class Trajectory(TrajectoryBase):
             n = left
         while not self._closed and self._nfi < self._n_csets and n > 0:
             traj = self._trajectory
-            skip = min(n, traj.getNumOfFrames() - traj.getNextFrameIndex())
+            skip = min(n, traj.numFrames() - traj.getNextFrameIndex())
             traj.skip(skip)
             if n > skip:
                 self._nextFile()
@@ -2349,9 +2376,15 @@ class Trajectory(TrajectoryBase):
         return [traj.getFrameFreq() for traj in self._trajectories]
     
     def getNumOfFixed(self):
+        """Deprecated, use :meth:`numFixed`."""
+        
+        prody.deprecate('getNumOfFixed', 'numFixed', (0,9))
+        return self.numFixed()
+        
+    def numFixed(self):
         """Return a list of fixed atom numbers, one from each file."""
         
-        return [traj.getNumOfFixed() for traj in self._trajectories]
+        return [traj.numFixed() for traj in self._trajectories]
     
 def parseDCD(filename, start=None, stop=None, step=None):
     """Parse CHARMM format DCD files (also NAMD 2.1 and later).
@@ -2380,13 +2413,13 @@ def parseDCD(filename, start=None, stop=None, step=None):
     
     dcd = DCDFile(filename)
     time_ = time()
-    n_frames = dcd.getNumOfFrames()
+    n_frames = dcd.numFrames()
     LOGGER.info('DCD file contains {0:d} coordinate sets for {1:d} atoms.'
-                .format(n_frames, dcd.getNumOfAtoms()))
+                .format(n_frames, dcd.numAtoms()))
     ensemble = dcd[slice(start,stop,step)]    
     dcd.close()
     time_ = time() - time_
-    dcd_size = 1.0 * dcd.getNumOfFrames() * dcd._bytes_per_frame / (1024*1024)
+    dcd_size = 1.0 * dcd.numFrames() * dcd._bytes_per_frame / (1024*1024)
     LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB parsed at input rate {1:.2f} MB/s.'
                 .format(dcd_size, dcd_size/time_))
@@ -2414,7 +2447,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if n_csets == 0:
         raise ValueError('trajectory does not have any coordinate sets, or '
                          'no coordinate sets are selected')
-    n_atoms = trajectory.getNumOfSelected()
+    n_atoms = trajectory.numSelected()
     if n_atoms == 0:
         raise ValueError('no atoms are selected in the trajectory')
     if isinstance(trajectory, TrajectoryBase):
@@ -2427,12 +2460,12 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
             timestep = trajectory.getTimestep()[0]
             first_ts = trajectory.getFirstTimestep()[0]
             framefreq = trajectory.getFrameFreq()[0]
-            n_fixed = trajectory.getNumOfFixed()[0]
+            n_fixed = trajectory.numFixed()[0]
         else:
             timestep = trajectory.getTimestep()
             first_ts = trajectory.getFirstTimestep()
             framefreq = trajectory.getFrameFreq()
-            n_fixed = trajectory.getNumOfFixed()
+            n_fixed = trajectory.numFixed()
     else:
         isTrajectory = False
         unitcell = False
@@ -2535,10 +2568,10 @@ if __name__ == '__main__':
     import prody
     dcd = DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
     writeDCD('/home/abakan/dene.dcd', dcd)
-    print dcd.getTitle()
+    print dcd.getDCDTitle()
     print dcd.getFrame(852).getUnitcell()
     new = DCDFile('/home/abakan/dene.dcd')
-    print new.getTitle()
+    print new.getDCDTitle()
     print new.getFrame(852).getUnitcell()
     stop
     ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')

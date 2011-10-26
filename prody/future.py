@@ -45,11 +45,11 @@ class MarkovModel(object):
     
     """
     
-    def __init__(self, name):
-        name = str(name)
-        if name == '':
-            name = 'Unnamed'
-        self._name = name 
+    def __init__(self, title):
+        title = str(title)
+        if title == '':
+            title = 'Unknown'
+        self._title = title 
         
         self._affinity = None
         self._stationary = None
@@ -61,15 +61,15 @@ class MarkovModel(object):
     
     def __repr__(self):
         return '<MarkovModel: {0:s} ({1:d} nodes at level {2:d})>'.format(
-                self._name, self._n_nodes, self._level)
+                self._title, self._n_nodes, self._level)
 
     def __str__(self):
-        return 'MarkovModel {0:s}'.format(self._name)
+        return 'MarkovModel {0:s}'.format(self._title)
     
-    def getName(self):
-        """Return the name of the model."""
+    def getTitle(self):
+        """Return the title of the model."""
         
-        return self._name
+        return self._title
     
     def getLevelNumber(self):
         """Return the level number."""
@@ -119,9 +119,9 @@ class MarkovModel(object):
         start = time.time()
         if not isinstance(atoms, prody.AtomGroup):
             atoms = atoms.getAtomGroup().copy(atoms)
-        n_atoms = atoms.getNumOfAtoms()
+        n_atoms = atoms.numAtoms()
         hv = prody.HierView(atoms)
-        n_res = hv.getNumOfResidues()
+        n_res = hv.numResidues()
 
         rids = np.zeros(n_atoms, int) # residue indices of atoms
         rlen = np.zeros(n_res) # residue lengths
@@ -129,8 +129,7 @@ class MarkovModel(object):
         for i, res in enumerate(hv.iterResidues()):
             rids[ res.getIndices() ] = i
             rlen[ i ] = len(res)
-            res = (res.getChainIdentifier(), res.getNumber(), 
-                   res.getInsertionCode())
+            res = (res.getChid(), res.getNumber(), res.getIcode())
             resmap[i] = res
             resmap[res] = i
         self._resmap = resmap

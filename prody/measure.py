@@ -256,8 +256,8 @@ def applyTransformation(transformation, coords):
         atoms = coords
         if isinstance(atoms, prody.AtomPointer):
             ag = atoms.getAtomGroup()
-            acsi = ag.getActiveCoordsetIndex()
-            ag.setActiveCoordsetIndex(atoms.getActiveCoordsetIndex())
+            acsi = ag.getACSI()
+            ag.setACSI(atoms.getACSI())
             coords = ag._getCoordinates()
         else:
             try:
@@ -272,7 +272,7 @@ def applyTransformation(transformation, coords):
             atoms.setCoordinates(_applyTransformation(transformation, coords))
         else: 
             ag.setCoordinates(_applyTransformation(transformation, coords))
-            ag.setActiveCoordsetIndex(acsi)
+            ag.setACSI(acsi)
         return atoms
 
 def _applyTransformation(t, coords):
@@ -430,28 +430,28 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
     if not isinstance(selstr, str):
         raise TypeError('selstr must have type str, not {0:s}'
                         .format(type(selstr)))
-    n_coordsets = atoms.getNumOfCoordsets()
+    n_coordsets = atoms.numCoordsets()
     if n_coordsets < 2:
         LOGGER.warning('{0:s} contains only one coordinate set, '
                        'superposition not performed.'.format(str(atoms)))
         return None
     
-    acsi = atoms.getActiveCoordsetIndex()
+    acsi = atoms.getACSI()
     if isinstance(atoms, prody.AtomGroup):
         ag = atoms
     else: 
         ag = atoms.getAtomGroup()
-    agacsi = ag.getActiveCoordsetIndex()
+    agacsi = ag.getACSI()
     tar = atoms.select(selstr)
     mob = prody.AtomSubset(ag, tar.getIndices(), 0)
-    assert tar.getActiveCoordsetIndex() == acsi
+    assert tar.getACSI() == acsi
     for i in range(n_coordsets):
         if i == acsi:
             continue
-        mob.setActiveCoordsetIndex(i)
-        ag.setActiveCoordsetIndex(i)
+        mob.setACSI(i)
+        ag.setACSI(i)
         calcTransformation(mob, tar, weights).apply(ag)
-    ag.setActiveCoordsetIndex(agacsi)
+    ag.setACSI(agacsi)
 
     
 def calcAngle():
@@ -576,10 +576,10 @@ def calcADPAxes(atoms, **kwargs):
         prody.importLA()
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
-    anisous = atoms.getAnisoTempFactors()
+    anisous = atoms.getAnisous()
     if anisous is None:
         raise ValueError('anisotropic temperature factors are not set')
-    n_atoms = atoms.getNumOfAtoms()
+    n_atoms = atoms.numAtoms()
 
     axes = np.zeros((n_atoms*3, 3))    
     variances = np.zeros((n_atoms, 3))
@@ -657,7 +657,7 @@ def calcADPs(atom):
         prody.importLA()
     if not isinstance(atom, prody.Atom):
         raise TypeError('atom must be of type Atom, not {0:s}'.type(atom))
-    anisou = atom.getAnisoTempFactor()
+    anisou = atom.getAnisou()
     if anisou is None:
         raise ValueError('atom does not have anisotropic temperature factors')
     element = np.zeros((3,3))
@@ -684,10 +684,10 @@ def buildADPMatrix(atoms):
     
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
-    anisous = atoms.getAnisoTempFactors()
+    anisous = atoms.getAnisous()
     if anisous is None:
         raise ValueError('anisotropic temperature factors are not set')
-    n_atoms = atoms.getNumOfAtoms()
+    n_atoms = atoms.numAtoms()
     n_dof = n_atoms * 3
     adp = np.zeros((n_dof, n_dof))
     

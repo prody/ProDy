@@ -61,12 +61,16 @@ type [*]         string           atom type
 altloc [†‡]      string           one-character alternate location identifier
 resname          string           residue name
 chain [‡]        string           one-character chain identifier
+chid [‡]         string           same as *chain*
+icode [‡]        string           single letter insertion code
 segment [‡]      string           segment name
+segname [‡]      string           same as *segment*
 secondary [*‡]   string           one-character secondary structure identifier
+seconstr [*‡]    string           same as *secondary*
 index            integer, range   internal atom number (starts from 0) 
 serial           integer, range   atom serial number (parsed from file)
 resnum [§]       integer, range   residue number
-resid [§]        integer, range   residue number
+resid [§]        integer, range   same as *resnum*
 x                float, range     x coordinate
 y                float, range     y coordinate
 z                float, range     z coordinate
@@ -80,14 +84,14 @@ radius [*]       float, range     atomic radius
 **[*]** These atomic attributes are not set by the PDB parser when a PDB file 
 is parsed. Using them before they are set will raise selection error. 
 Secondary structure assignments can be made using 
-:func:`~prody.proteins.assignSecondaryStructure` function.
+:func:`~prody.proteins.assignSecondstr` function.
 
 **[†]** Alternate locations are parsed as alternate coordinate sets. This
 keyword will work for alternate location specified by "A". This to work for
 alternate locations indicated by other letters, they must be parsed 
 specifically by passing the identifier to the :func:`~prody.proteins.parsePDB`.
 
-**[‡]** Atoms with unspecified alternate location/chain/segment/secondary 
+**[‡]** Atoms with unspecified alternate location/chain/segment/icode/secondary 
 structure identifiers can be selected using "_". This character is replaced 
 with a whitespace.
 
@@ -196,14 +200,18 @@ __all__ = ['Select', 'Contacts',
            ]
 
 KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
-                       'segment', 'altloc', 'secondary'))
+                       'segment', 'altloc', 'secondary', 'icode',
+                       'chid', 'secstr', 'segname'))
 KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
 KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
                       'radius', 'charge'))
 KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
 
-KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING) 
-
+KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING)
+KEYWORDS_SYNONYMS = {}
+for key, field in ATOMIC_DATA_FIELDS.iteritems(): 
+    if field.synonym:
+        KEYWORDS_SYNONYMS[field.synonym] = key
 
 # 21st and 22nd amino acids	    3-Letter	1-Letter
 # Selenocysteine	            Sec	        U
@@ -629,21 +637,21 @@ COMPARISONS = set(('<', '>', '>=', '<=', '==', '=', '!='))
 n_atoms = 10
 ATOMGROUP = prody.AtomGroup('Test')
 ATOMGROUP.setCoordinates(np.random.random((n_atoms,3)))
-ATOMGROUP.setAtomNames(['CA']*n_atoms)
-ATOMGROUP.setResidueNames(['GLY']*n_atoms)
-ATOMGROUP.setResidueNumbers(np.arange(1,n_atoms+1))
-ATOMGROUP.setChainIdentifiers(['A']*n_atoms)
-ATOMGROUP.setAltLocIndicators([' ']*n_atoms)
-ATOMGROUP.setElementSymbols(['C']*n_atoms)
-ATOMGROUP.setHeteroFlags([False]*n_atoms)
+ATOMGROUP.setNames(['CA']*n_atoms)
+ATOMGROUP.setResnames(['GLY']*n_atoms)
+ATOMGROUP.setResnums(np.arange(1,n_atoms+1))
+ATOMGROUP.setChids(['A']*n_atoms)
+ATOMGROUP.setAltlocs([' ']*n_atoms)
+ATOMGROUP.setElements(['C']*n_atoms)
+ATOMGROUP.setHeteros([False]*n_atoms)
 ATOMGROUP.setOccupancies([1]*n_atoms)
-ATOMGROUP.setSecondaryStrs(['H']*n_atoms)
-ATOMGROUP.setSegmentNames(['PDB']*n_atoms)
-ATOMGROUP.setAnisoTempFactors(np.random.random((n_atoms,6)))
-ATOMGROUP.setAnisoStdDevs(np.random.random((n_atoms,6)))
-ATOMGROUP.setInsertionCodes([' ']*n_atoms)
-ATOMGROUP.setAtomTypes(['CH2']*n_atoms)
-ATOMGROUP.setTempFactors([0]*n_atoms)
+ATOMGROUP.setSecstrs(['H']*n_atoms)
+ATOMGROUP.setSegnames(['PDB']*n_atoms)
+ATOMGROUP.setAnisous(np.random.random((n_atoms,6)))
+ATOMGROUP.setAnistds(np.random.random((n_atoms,6)))
+ATOMGROUP.setIcodes([' ']*n_atoms)
+ATOMGROUP.setTypes(['CH2']*n_atoms)
+ATOMGROUP.setBetas([0]*n_atoms)
 ATOMGROUP.setCharges([0]*n_atoms)
 ATOMGROUP.setMasses([12]*n_atoms)
 ATOMGROUP.setRadii([1.4]*n_atoms)
@@ -930,7 +938,7 @@ def isReserved(word):
     return isKeyword(word) or word in FUNCTION_MAP or \
         word in RESERVED_WORDS
 
-_specialKeywords = set(['secondary', 'chain', 'altloc', 'segment'])
+_specialKeywords = set(['secondary', 'chain', 'altloc', 'segment', 'icode'])
 
 def tkn2str(token):
     
@@ -1066,7 +1074,7 @@ class Select(object):
                             .format(type(selstr)))
         if self._atoms is atoms:
             if DEBUG: print('atoms is the same')
-            if self._acsi != atoms.getActiveCoordsetIndex():
+            if self._acsi != atoms.getACSI():
                 self._coordinates = None
                 self._kdtree = None
             elif self._timestamp != atoms._getTimeStamp(self._acsi):
@@ -1077,7 +1085,7 @@ class Select(object):
                 self._ag = atoms
                 self._atoms = atoms
                 self._indices = None
-                self._n_atoms = atoms.getNumOfAtoms()
+                self._n_atoms = atoms.numAtoms()
             else:
                 self._ag = atoms.getAtomGroup()
                 self._indices = atoms.getIndices()
@@ -1088,7 +1096,7 @@ class Select(object):
                     self._atoms = atoms
                 self._n_atoms = len(self._indices)
         self._selstr = selstr
-        self._acsi = atoms.getActiveCoordsetIndex()
+        self._acsi = atoms.getACSI()
         self._timestamp = atoms._getTimeStamp(self._acsi)
             
         self._kwargs = kwargs
@@ -1171,18 +1179,17 @@ class Select(object):
             return prody.AtomMap(ag, indices, np.arange(len(indices)), 
                                  np.array([]),
                                  'Selection "{0:s}" from AtomMap {1:s}'.format(
-                                 selstr, atoms.getName()),
-                                 atoms.getActiveCoordsetIndex())
+                                 selstr, atoms.getTitle()),
+                                 atoms.getACSI())
         else:
             
             if self._selstr2indices:
                 selstr = 'index {0:s}'.format(prody.rangeString(indices))
             elif isinstance(atoms, prody.AtomPointer):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, 
-                                                    atoms.getSelectionString())
+                                                      atoms.getSelstr())
             
-            return prody.Selection(ag, indices, selstr, 
-                                                atoms.getActiveCoordsetIndex())
+            return prody.Selection(ag, indices, selstr, atoms.getACSI())
         
     def _reset(self):
         if DEBUG: print('_reset')
@@ -1238,8 +1245,8 @@ class Select(object):
            ')' not in selstr and selstr not in MACROS:
             if isBooleanKeyword(selstr):
                 return self._evalBoolean(selstr)
-            elif self._ag.isAttribute(selstr):
-                return self._evalAttribute(selstr)
+            elif self._ag.isData(selstr):
+                return self._evalUserdata(selstr)
             elif isValuePairedKeyword(selstr):
                 raise SelectionError(selstr, '"{0:s}" must be followed by '
                                      'values.'.format(selstr))
@@ -1266,12 +1273,11 @@ class Select(object):
         
         if isinstance(token, str):
             return isBooleanKeyword(token) or \
-                self._atoms.isAttribute(token) and \
-                self._atoms.getAttrType(token) == bool   
+                   self._atoms.getDataType(token) == bool   
         elif isinstance(token, list):
             tkn = token[0]
             return isValuePairedKeyword(tkn) or tkn in self._kwargs or \
-                    self._atoms.isAttribute(tkn) or tkn == NOT
+                    self._atoms.isData(tkn) or tkn == NOT
         return False
         
     def _defaultAction(self, tokens):
@@ -1281,7 +1287,11 @@ class Select(object):
             return tokens[0]
         torf = self._evaluate(tokens)
         if torf is None:
-            raise SelectionError(tokens[0])
+            try:
+                selstr = ' '.join(tokens)
+            except:
+                selstr = tokens[0]
+            raise SelectionError(selstr)
         return torf
     
     def _evaluate(self, tokens, evalonly=None):
@@ -1290,8 +1300,8 @@ class Select(object):
         if isinstance(tokens, str):
             if isBooleanKeyword(tokens):
                 return self._evalBoolean(tokens, evalonly=evalonly)
-            elif self._ag.isAttribute(tokens):
-                return self._evalAttribute(tokens, evalonly=evalonly)
+            elif self._ag.isData(tokens):
+                return self._evalUserdata(tokens, evalonly=evalonly)
             else:
                 return None
         elif isinstance(tokens, (np.ndarray, float)):
@@ -1303,8 +1313,8 @@ class Select(object):
                 return self._evalBoolean(keyword, evalonly=evalonly)
             elif isNumericKeyword(keyword):
                 return self._evalNumeric(keyword)
-            elif self._ag.isAttribute(keyword):
-                return self._evalAttribute(keyword, evalonly=evalonly)
+            elif self._ag.isData(keyword):
+                return self._evalUserdata(keyword, evalonly=evalonly)
             elif isinstance(keyword, np.ndarray):
                 return keyword
             else:
@@ -1324,8 +1334,8 @@ class Select(object):
             return self._serial(tokens[1:], evalonly=evalonly)
         elif keyword == NOT:
             return self._not(tokens, evalonly=evalonly)
-        elif self._ag.isAttribute(keyword):
-            return self._evalAttribute(keyword, tokens[1:], evalonly=evalonly)
+        elif self._ag.isData(keyword):
+            return self._evalUserdata(keyword, tokens[1:], evalonly=evalonly)
         return None
 
     def _or(self, selstr, location, tokens):
@@ -1560,18 +1570,26 @@ class Select(object):
         
         if DEBUG: print('_comp', tokens)
         tokens = tokens[0]
-        if len(tokens) > 3:
+        if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(selstr)
-        comp = tokens[1]
+        i = 1
         left = self._evalNumeric(tokens[0])
         if DEBUG: print('_comp left', left)
         if left is None:
             raise SelectionError(selstr)
-        right = self._evalNumeric(tokens[2])
-        if DEBUG: print('_comp right', right)
-        if right is None:
-            raise SelectionError(selstr)
-        return BINOP_MAP[comp](left, right)
+        result = None
+        while i < len(tokens): 
+            comp = tokens[i]
+            right = self._evalNumeric(tokens[i + 1])
+            if DEBUG: print('_comp right', right)
+            if right is None:
+                raise SelectionError(selstr)
+            if result is None:
+                result = BINOP_MAP[comp](left, right)
+            else:
+                result *= BINOP_MAP[comp](left, right)
+            i += 2
+        return result
 
     def _pow(self, selstr, location, tokens):
         """Perform power operation. Expected operands are numbers 
@@ -1649,7 +1667,7 @@ class Select(object):
             return self._index()
         elif token == 'serial':
             return self._serial()
-        elif self._ag.isAttribute(token):
+        elif self._ag.isData(token):
             data = self._getAtomicData(token)
             if data.dtype in (np.float, np.int):
                 return data
@@ -1689,9 +1707,9 @@ class Select(object):
         else:
             raise SelectionError(selstr)
 
-    def _evalAttribute(self, keyword, values=None, evalonly=None):
+    def _evalUserdata(self, keyword, values=None, evalonly=None):
         if DEBUG: print('_evalAttribute', keyword, values)
-        data = self._atoms.getAttribute(keyword)
+        data = self._atoms.getData(keyword)
         if values is None:
             if data.dtype == bool:
                 if evalonly is None:
@@ -1734,6 +1752,7 @@ class Select(object):
         names, atom names, etc."""
         
         if DEBUG: print('_evalAlnum', keyword, values)
+        keyword = KEYWORDS_SYNONYMS.get(keyword, keyword)
         data = self._getAtomicData(keyword)
         if keyword in _specialKeywords:
             for i, value in enumerate(values):
@@ -1827,7 +1846,7 @@ class Select(object):
         torf = np.zeros(n_atoms, np.bool)
         
         if numRange:
-            token = self._getNumRange(token)
+            token = self._getNumRange(token, False)
             if token is None:
                 return None
         
@@ -1841,7 +1860,11 @@ class Select(object):
                 icode = str(item[-1])
                 if icode == '_':
                     icode = ''
-                torf[(resids == int(item[:-1])) * (icodes == icode)] = True
+                try:
+                    number = int(item[:-1])
+                except ValueError:
+                    return None
+                torf[(resids == number) * (icodes == icode)] = True
             elif isinstance(item, list):
                 torf[(item[0] <= resids) * (resids <= item[1])] = True
             elif isinstance(item, tuple):
@@ -1922,7 +1945,7 @@ class Select(object):
             else:
                 return torf[self._indices][evalonly]
 
-    def _getNumRange(self, token):
+    def _getNumRange(self, token, intfloat=True):
         """Evaluate numeric values. Identify ranges, integers, and floats,
         put them in a list and return."""
         
@@ -1973,7 +1996,8 @@ class Select(object):
                     try:
                         item = float(item)
                     except ValueError:
-                        return None
+                        if intfloat:
+                            return None
                 token.append(item)
         if DEBUG: print('_getNumRange', token)            
         return token
@@ -1984,7 +2008,7 @@ class Select(object):
         field = ATOMIC_DATA_FIELDS.get(keyword, None)
         indices = self._indices
         if field is None:
-            data = self._atoms.getAttribute(keyword)
+            data = self._atoms.getData(keyword)
             if data is None:
                 raise SelectionError('"{0:s}" is not a valid keyword or '
                                      'attribute.'.format(keyword))
@@ -2050,9 +2074,9 @@ class Contacts(object):
             raise TypeError('{0:s} is not a valid type for atoms'
                             .format(type(atoms)))
         self._atoms = atoms
-        self._acsi = atoms.getActiveCoordsetIndex()
-        self._timestamps = np.zeros(atoms.getNumOfCoordsets()) 
-        self._kdtrees = [None] * atoms.getNumOfCoordsets()
+        self._acsi = atoms.getACSI()
+        self._timestamps = np.zeros(atoms.numCoordsets()) 
+        self._kdtrees = [None] * atoms.numCoordsets()
         if not isinstance(atoms, AtomGroup):
             self._indices = atoms.getIndices()
             self._ag = atoms.getAtomGroup()
@@ -2085,12 +2109,12 @@ class Contacts(object):
         else:
             return self._kdtrees[acsi]
 
-    def getActiveCoordsetIndex(self):
+    def getACSI(self):
         """Return active coordinate set index."""
         
         return self._acsi
     
-    def setActiveCoordsetIndex(self, acsi):
+    def setACSI(self, acsi):
         """Set active coordinate set index.
         
         .. note:: Changing active coordinate set index effects only 
@@ -2102,7 +2126,7 @@ class Contacts(object):
         ts = self._timestamps
         ag = self._ag
         if acsi >= len(ts):
-            n_csets = ag.getNumOfCoordsets() 
+            n_csets = ag.numCoordsets() 
             diff = n_csets - len(ts)
             self._kdtrees += [None] * diff
             self._timestamps = np.zeros(n_csets)

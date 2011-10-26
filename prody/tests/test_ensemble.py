@@ -46,7 +46,7 @@ ENSEMBLE_SUPERPOSE = DATA['rmsd_ca_aligned']
 ENSEMBLEW = Ensemble(ATOMS)
 ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
 CONFW = ENSEMBLEW[0]
-
+        
 PDBENSEMBLE = PDBEnsemble('PDBEnsemble')
 PDBENSEMBLE.setCoordinates(COORDS)
 WEIGHTS = []
@@ -87,10 +87,10 @@ class TestEnsemble(unittest.TestCase):
         assert_equal(ENSEMBLEW.getWeights().ndim, 2,
                      'failed to get correct weights ndim')
         assert_equal(ENSEMBLEW.getWeights().shape, 
-                     (ENSEMBLEW.getNumOfAtoms(), 1),
+                     (ENSEMBLEW.numAtoms(), 1),
                     'failed to get correct weights shape')
         assert_equal(ENSEMBLEW.getWeights(),
-                     np.ones((ENSEMBLEW.getNumOfAtoms(), 1), float),
+                     np.ones((ENSEMBLEW.numAtoms(), 1), float),
                      'failed to get expected weights')
 
     def testSlicingCopy(self):
@@ -135,15 +135,14 @@ class TestEnsemble(unittest.TestCase):
             assert_equal(xyz, ATOMS.getCoordsets(i),
                          'failed yield correct coordinates')
             
-    def testGetNumOfAtoms(self):
+    def testGetNumAtoms(self):
 
-        self.assertEqual(ENSEMBLE.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
+        self.assertEqual(ENSEMBLE.numAtoms(), ATOMS.numAtoms(),
                          'failed to get correct number of atoms')  
             
-    def testGetNumOfCoordsets(self):
+    def testGetNumCsets(self):
 
-        self.assertEqual(ENSEMBLE.getNumOfCoordsets(), 
-                         ATOMS.getNumOfCoordsets(),
+        self.assertEqual(ENSEMBLE.numCoordsets(), ATOMS.numCoordsets(),
                          'failed to get correct number of coordinate sets')  
 
     def testGetRMSDs(self):
@@ -255,9 +254,9 @@ class TestConformation(unittest.TestCase):
         self.assertEqual(weights.ndim, 2,
                         'wrong ndim for weights of Conformation')
         self.assertTupleEqual(weights.shape, 
-                              (CONFW.getNumOfAtoms(), 1),
+                              (CONFW.numAtoms(), 1),
                               'wrong shape for weights of Conformation')
-        assert_equal(weights, np.ones((ATOMS.getNumOfAtoms(), 1), float),
+        assert_equal(weights, np.ones((ATOMS.numAtoms(), 1), float),
                      'failed to set weights for Conformation')
                                                 
     def testCoordinatesForAll(self):
@@ -273,11 +272,11 @@ class TestConformation(unittest.TestCase):
             self.assertEqual(conf.getIndex(), i,
                              'failed to get correct index')        
                         
-    def testGetNumOfAtoms(self):
+    def testGetNumAtoms(self):
         """Test get index function."""
 
         for i, conf in enumerate(ENSEMBLE):
-            self.assertEqual(conf.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
+            self.assertEqual(conf.numAtoms(), ATOMS.numAtoms(),
                              'failed to get correct number of atoms')        
 
 class TestPDBEnsemble(unittest.TestCase):
@@ -298,8 +297,8 @@ class TestPDBEnsemble(unittest.TestCase):
         self.assertEqual(PDBENSEMBLE.getWeights().ndim, 3,
                         'wrong ndim for weights of PDBEnsemble')
         self.assertTupleEqual(PDBENSEMBLE.getWeights().shape, 
-                              (PDBENSEMBLE.getNumOfCoordsets(),
-                               PDBENSEMBLE.getNumOfAtoms(), 1),
+                              (PDBENSEMBLE.numCoordsets(),
+                               PDBENSEMBLE.numAtoms(), 1),
                                'wrong shape for weights of PDBEnsemble')
         assert_equal(PDBENSEMBLE.getWeights(), WEIGHTS,
                      'failed to get correct weights')
@@ -342,15 +341,15 @@ class TestPDBEnsemble(unittest.TestCase):
                          ATOMS.getCoordsets(i)[WEIGHTS_BOOL[i]],
                          'failed iterate coordinate sets')
             
-    def testGetNumOfAtoms(self):
+    def testGetNumAtoms(self):
 
-        self.assertEqual(PDBENSEMBLE.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
+        self.assertEqual(PDBENSEMBLE.numAtoms(), ATOMS.numAtoms(),
                          'failed to get correct number of atoms')  
             
-    def testGetNumOfCoordsets(self):
+    def testGetNumCsets(self):
 
-        self.assertEqual(PDBENSEMBLE.getNumOfCoordsets(), 
-                         ATOMS.getNumOfCoordsets(),
+        self.assertEqual(PDBENSEMBLE.numCoordsets(), 
+                         ATOMS.numCoordsets(),
                          'failed to get correct number of coordinate sets')  
 
     def testDelCoordsetMiddle(self):
@@ -406,7 +405,7 @@ class TestPDBConformation(unittest.TestCase):
         weights = PDBCONF.getWeights()
         self.assertEqual(weights.ndim, 2,
                         'wrong ndim for weights')
-        self.assertTupleEqual(weights.shape, (PDBCONF.getNumOfAtoms(), 1),
+        self.assertTupleEqual(weights.shape, (PDBCONF.numAtoms(), 1),
                               'wrong shape for weights')
         assert_equal(PDBCONF.getWeights(), WEIGHTS[0],
                      'failed to set weights')
@@ -431,10 +430,10 @@ class TestPDBConformation(unittest.TestCase):
             self.assertEqual(conf.getIndex(), i,
                              'failed to get correct index')        
                         
-    def testGetNumOfAtoms(self):
+    def testGetNumAtoms(self):
 
         for i, conf in enumerate(PDBENSEMBLE):
-            self.assertEqual(conf.getNumOfAtoms(), ATOMS.getNumOfAtoms(),
+            self.assertEqual(conf.numAtoms(), ATOMS.numAtoms(),
                              'failed to get correct number of atoms')
 
 class TestCalcSumOfWeights(unittest.TestCase):

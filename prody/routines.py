@@ -216,7 +216,7 @@ graphical output files:
     
     pdb = parsePDB(pdb, model=model)
     if prefix == '_anm':
-        prefix = pdb.getName() + '_anm'
+        prefix = pdb.getTitle() + '_anm'
 
     select = pdb.select(selstr)
     if select is None:
@@ -226,7 +226,7 @@ graphical output files:
     LOGGER.info('{0:d} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
-    anm = ANM(pdb.getName())
+    anm = ANM(pdb.getTitle())
     anm.buildHessian(select, cutoff, gamma)
     anm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
@@ -246,9 +246,9 @@ graphical output files:
         fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
-        for data in zip(select.getChainIdentifiers(),
-                    select.getResidueNames(), select.getResidueNumbers(),
-                    select.getTempFactors(), calcTempFactors(anm, select)):
+        for data in zip(select.getChids(), select.getResnames(), 
+                        select.getResnums(), select.getBetas(), 
+                        calcTempFactors(anm, select)):
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
@@ -257,7 +257,7 @@ graphical output files:
             anm.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
         writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
-            calcCrossCorrelations(anm), delimiter=delim, format=format)
+            calcCrossCorr(anm), delimiter=delim, format=format)
     if outall or opt.hessian:
         writeArray(os.path.join(outdir, prefix + '_hessian'+ext), 
             anm.getHessian(), delimiter=delim, format=format)
@@ -285,7 +285,7 @@ graphical output files:
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                showCrossCorrelations(anm)
+                showCrossCorr(anm)
                 plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -303,7 +303,7 @@ graphical output files:
                 plt.close('all')
             if figall or bf:
                 plt.figure(figsize=(width, height))
-                bexp = select.getTempFactors()
+                bexp = select.getBetas()
                 bcal = calcTempFactors(anm, select)
                 plt.plot(bexp, label='Experimental')
                 plt.plot(bcal, label=('Theoretical (R={0:.2f})'
@@ -311,7 +311,7 @@ graphical output files:
                 plt.legend()
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
-                plt.title(pdb.getName() + ' B-factors')
+                plt.title(pdb.getTitle() + ' B-factors')
                 plt.savefig(os.path.join(outdir, prefix + '_bf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -410,7 +410,7 @@ save all of the graphical output files:
     
     pdb = parsePDB(pdb, model=model)
     if prefix == '_gnm':
-        prefix = pdb.getName() + '_gnm'
+        prefix = pdb.getTitle() + '_gnm'
 
     select = pdb.select(selstr)
     if select is None:
@@ -420,7 +420,7 @@ save all of the graphical output files:
     LOGGER.info('{0:d} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
-    gnm = GNM(pdb.getName())
+    gnm = GNM(pdb.getTitle())
     gnm.buildKirchhoff(select, cutoff, gamma)
     gnm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
@@ -440,9 +440,9 @@ save all of the graphical output files:
         fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
-        for data in zip(select.getChainIdentifiers(),
-                    select.getResidueNames(), select.getResidueNumbers(),
-                    select.getTempFactors(), calcTempFactors(gnm, select)):
+        for data in zip(select.getChids(), select.getResnames(), 
+                        select.getResnums(), select.getBetas(), 
+                        calcTempFactors(gnm, select)):
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
@@ -451,7 +451,7 @@ save all of the graphical output files:
             gnm.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
         writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
-                   calcCrossCorrelations(gnm), 
+                   calcCrossCorr(gnm), 
                    delimiter=delim, format=format)
     if outall or opt.kirchhoff:
         writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
@@ -478,7 +478,7 @@ save all of the graphical output files:
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                showCrossCorrelations(gnm)
+                showCrossCorr(gnm)
                 plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -496,7 +496,7 @@ save all of the graphical output files:
                 plt.close('all')
             if figall or bf:
                 plt.figure(figsize=(width, height))
-                bexp = select.getTempFactors()
+                bexp = select.getBetas()
                 bcal = calcTempFactors(gnm, select)
                 plt.plot(bexp, label='Experimental')
                 plt.plot(bcal, label=('Theoretical (corr coef = {0:.2f})'
@@ -504,7 +504,7 @@ save all of the graphical output files:
                 plt.legend()
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
-                plt.title(pdb.getName() + ' B-factors')
+                plt.title(pdb.getTitle() + ' B-factors')
                 plt.savefig(os.path.join(outdir, prefix + '_bf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -625,11 +625,11 @@ and save all output and figure files:
         select.setCoordinates(coords[0])
     else:
         pdb = parsePDB(pdb)
-        if pdb.getNumOfCoordsets() < 2:
+        if pdb.numCoordsets() < 2:
             print "\nError: PDB file must contain multiple models.\n"
             sys.exit(-1)
         if prefix == '_pca':
-            prefix = pdb.getName() + '_pca'
+            prefix = pdb.getTitle() + '_pca'
         select = pdb.select(selstr)
         if select is None:
             LOGGER.warning('Selection "{0:s}" do not match any atoms.'
@@ -638,7 +638,7 @@ and save all output and figure files:
         LOGGER.info('{0:d} atoms will be used for PCA calculations.'
                     .format(len(select)))
         ensemble = Ensemble(select)
-        pca = PCA(pdb.getName())
+        pca = PCA(pdb.getTitle())
     ensemble.iterpose()
     
     pca.performSVD(ensemble)
@@ -661,7 +661,7 @@ and save all output and figure files:
             pca.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
         writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
-                   calcCrossCorrelations(pca), 
+                   calcCrossCorr(pca), 
                    delimiter=delim, format=format)
     if outall or opt.sqflucts:
         writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
@@ -688,7 +688,7 @@ and save all output and figure files:
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                showCrossCorrelations(pca)
+                showCrossCorr(pca)
                 plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -777,7 +777,7 @@ than 71:
     selstr, prefix, model = opt.select, opt.prefix, opt.model
     pdb = parsePDB(pdb)
     if prefix == '':
-        prefix = pdb.getName() + '_aligned'
+        prefix = pdb.getTitle() + '_aligned'
     pdbselect = pdb.select(selstr)
     if pdbselect is None:
         LOGGER.warning('Selection "{0:s}" do not match any atoms.'
@@ -785,7 +785,7 @@ than 71:
         sys.exit(-1)
     LOGGER.info('{0:d} atoms will be used for alignment.'
                            .format(len(pdbselect)))
-    pdb.setActiveCoordsetIndex(model-1)
+    pdb.setACSI(model-1)
     alignCoordsets(pdb, selstr=selstr)
     rmsd = calcRMSD(pdb)
     LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'
@@ -834,9 +834,9 @@ Fetch pdb 2bfu and generate the biomolecular assembly:
         
     pdb, header = parsePDB(pdb, header=True)
     if prefix == '':
-        prefix = pdb.getName()
+        prefix = pdb.getTitle()
         
-    biomols = applyBiomolecularTransformations(header, pdb, biomol=biomol)
+    biomols = buildBiomolecules(header, pdb, biomol=biomol)
     if not isinstance(biomols, list):
         biomols = [biomols]
     
@@ -1043,7 +1043,7 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
 
     pdb = parsePDB(args[0])
     if prefix == '':
-        prefix = pdb.getName() + '_selected'
+        prefix = pdb.getTitle() + '_selected'
     pdbselect = pdb.select(args[1])
     if pdbselect is None:
         LOGGER.warning('Selection "{0:s}" do not match any atoms.'
