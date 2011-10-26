@@ -69,8 +69,8 @@ Function                Description
 .. seealso::
    
    Atom data (coordinates, atom names, residue names, etc.) parsed from 
-   PDB files are stored in :class:`~prody.atomic.AtomGroup` instances.  
-   See :mod:`atomic` module documentation for more details. 
+   PDB/PSF/PQR files are stored in :class:`~prody.atomic.AtomGroup` instances.  
+   See :mod:`~prody.atomic` module documentation for more details. 
 
 
 Store data

@@ -19,6 +19,11 @@
 
 """ProDy test suite.  Usage::
 
+  from prody import *
+  prody.test()
+  
+or::
+
   import prody.tests
   prody.tests.test()
 
