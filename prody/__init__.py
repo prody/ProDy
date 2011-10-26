@@ -416,6 +416,51 @@ class PackageLogger(object):
             time.sleep(1)
             self.clear()
             
+    def startLogfile(self, filename, **kwargs):
+        """Start a file to save logs.
+        
+        :keyword filename: name of the logfile
+        :keyword mode: mode in which logfile will be opened, default is "w" 
+        :keyword backupcount: number of old *filename.log* files to save, 
+            default is 1
+        """
+
+        assert isinstance(filename, str), 'filename must be a string'
+        logfilename = filename
+        if not logfilename.endswith('.log'):
+            logfilename += '.log'
+        rollover = False 
+        # if filemode='a' is provided, rollover is not performed
+        if os.path.isfile(logfilename) and kwargs.get('filemode', None) != 'a':
+            rollover = True
+        logfile = logging.handlers.RotatingFileHandler(logfilename, 
+                    mode=kwargs.get('mode', 'a'), maxBytes=0,
+                    backupCount=kwargs.get('backupcount', 1))
+        logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
+        logfile.setFormatter(logging.Formatter('%(message)s'))
+        self._logger.addHandler(logfile)
+        if rollover:
+            self.info("Saving existing logfile '{0:s}' and starting a new "
+                      "one.".format(filename))
+            logfile.doRollover()
+        else:
+            self.info("Logfile '{0:s}' has been started.".format(filename))
+
+    def closeLogfile(self, filename):
+        """Close log file *filename*."""
+        
+        filename = str(filename)
+        if not filename.endswith('.log'):
+            filename += '.log'
+        for index, handler in enumerate(LOGGER.getHandlers()):
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                if handler.stream.name in (filename, os.path.abspath(filename)):
+                    self.info('Closing logfile {0:s}'.format(filename))
+                    handler.close()
+                    self.delHandler(index)
+                    return
+        self.warning("Logfile '{0:s}' was not found.".format(filename))
+            
 LOGGER = PackageLogger()
 
 def plog(*text):
@@ -432,57 +477,15 @@ def plog(*text):
     LOGGER.info(' '.join([str(s) for s in text]))
 
 def startLogfile(filename, **kwargs):
-    """Start a file to save ProDy logs.
     
-    :keyword filename: name of the logfile
+    LOGGER.startLogfile(filename, **kwargs)
     
-    :keyword mode: mode in which logfile will be opened, default is "w" 
+startLogfile.__doc__ = PackageLogger.startLogfile.__doc__
     
-    :keyword backupcount: number of old *filename.log* files to save, 
-        default is 1
-
-    """
-    
-    """
-    :keyword loglevel: loglevel for logfile verbosity
-    :type loglevel: str, default is *debug*
-    """
-    
-    logfilename = filename
-    if not logfilename.endswith('.log'):
-        logfilename += '.log'
-    if isinstance(logfilename, str):
-        rollover = False 
-        # if filemode='a' is provided, rollover is not performed
-        if os.path.isfile(logfilename) and kwargs.get('filemode', None) != 'a':
-            rollover = True
-        logfile = logging.handlers.RotatingFileHandler(logfilename, 
-                    mode=kwargs.get('mode', 'a'), maxBytes=0,
-                    backupCount=kwargs.get('backupcount', 1))
-        logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
-        logfile.setFormatter(logging.Formatter('%(message)s'))
-        LOGGER.addHandler(logfile)
-        if rollover:
-            LOGGER.info("Saving existing logfile '{0:s}' and starting a new "
-                        "one.".format(filename))
-            logfile.doRollover()
-        else:
-            LOGGER.info("Logfile '{0:s}' has been started.".format(filename))
-
-
 def closeLogfile(filename):
     """Close logfile with *filename*."""
-    filename = str(filename)
-    if not filename.endswith('.log'):
-        filename += '.log'
-    for index, handler in enumerate(LOGGER.getHandlers()):
-        if isinstance(handler, logging.handlers.RotatingFileHandler):
-            if handler.stream.name in (filename, os.path.abspath(filename)):
-                LOGGER.info('Closing logfile {0:s}'.format(filename))
-                handler.close()
-                LOGGER.delHandler(index)
-                return
-    LOGGER.warning('Logfile "{0:s}" was not found.'.format(filename))
+
+    LOGGER.closeLogfile(filename)
 
 
 def changeVerbosity(level):
