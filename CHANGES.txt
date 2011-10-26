@@ -24,12 +24,12 @@ Release 0.8.4 (in development)
 
 **Changes**:
 
-  In an attempt to make function and method names more intuitive and uniform, 
-  the changes listed in below tables are made.  Old function/method names are 
-  proposed to be available until release of 1.0, which is expected to be in
-  around March 2012.  After v0.9 is released, ProDy will start issuing 
-  :class:`DeprecationWarning` upon calls using old names to remind user of the
-  name change.
+  .. warning:: In an attempt to make function and method names more intuitive 
+     and uniform, the changes listed in below tables are made.  Old function/
+     method names are proposed to be available until release of 1.0, which is 
+     expected to be in Spring of 2012.  After v0.9 is released, ProDy will 
+     start issuing :class:`DeprecationWarning` upon calls using old names to 
+     remind the user of the name change.
 
   **Functions**:
   

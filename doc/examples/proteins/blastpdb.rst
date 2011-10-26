@@ -22,8 +22,7 @@ Input
 Amino acid sequence of a protein, e.g. 
 ``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLF...YDIVKMKKSNISPNFNFMGQLLDFERTL``
 
-The :func:`blastPDB` function accepts sequence as a Python :class:`str`
-or Biopython :class:`Bio.SeqRecord.SeqRecord` or :class:`Bio.Seq.Seq` objects. 
+The :func:`blastPDB` function accepts sequence as a Python :class:`str`. 
 
 Output
 -------------------------------------------------------------------------------
@@ -55,7 +54,7 @@ hits from this record:
 Best match
 -------------------------------------------------------------------------------
 
-To get the best match, :meth:`PDBBlastRecord.getBest` method can be used:
+To get the best match, :meth:`PDBBlastRecord.getBest` method can be used::
 
   best = blast_record.getBest()
   print best['pdb_id']
