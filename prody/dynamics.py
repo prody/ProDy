@@ -3647,10 +3647,9 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     return ensemble
   
 def deform(atoms, mode, rmsd=None):
-    """See :func:`deformAtoms`."""
+    """Deprecated, use :func:`deformAtoms`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'deformAtoms instead.')
+    prody.deprecate('deform', 'deformAtoms', (0,9))
     return deformAtoms(atoms, mode, rmsd)
 
 def deformAtoms(atoms, mode, rmsd=None):
@@ -3701,8 +3700,7 @@ def deformAtoms(atoms, mode, rmsd=None):
 def scanPerturbationResponse(model, atoms=None, repeats=100):
     """See :func:`calcPerturbResponse`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'calcPerturbResponse instead.')
+    prody.deprecate('scanPerturbationResponse', 'calcPerturResponse', (0,9))
     return calcPerturResponse(model, atoms, repeats) 
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
@@ -3808,10 +3806,9 @@ def calcSqFlucts(modes):
         return square_fluctuations
 
 def calcCrossCorrelations(modes, n_cpu=1):
-    """See :func:`calcCrossCorr`."""
+    """Deprecated, use :func:`calcCrossCorr`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'calcCrossCorr instead.')
+    prody.deprecate('calcCrossCorrelations', 'calcCrossCorr', (0,9))
     return calcCrossCorr(modes, n_cpu)
  
 def calcCrossCorr(modes, n_cpu=1):
@@ -3892,10 +3889,9 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 
 
 def calcCumulativeOverlap(modes1, modes2):
-    """See :func:`calcCumOverlap`."""
+    """Deprecated, use :func:`calcCumOverlap`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'calcCumOverlap instead.')
+    prody.deprecate('calcCumulativeOverlap', 'calcCumOverlap', (0,9))
     return calcCumOverlap(modes1, modes2) 
     
 def calcCumOverlap(modes1, modes2):
@@ -3910,10 +3906,9 @@ def calcCumOverlap(modes1, modes2):
     return cumov
 
 def calcCumulativeOverlapArray(modes1, modes2):
-    """See :func:`calcCumOverlapArray`."""
+    """Deprecated, use :func:`calcCumOverlapArray`."""
 
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'calcCumOverlapArray instead.')
+    prody.deprecate('calcCumulativeOverlapArray', 'calcCumOverlapArray', (0,9))
     return calcCumOverlapArray(modes1, modes2) 
 
 
@@ -3944,10 +3939,9 @@ def calcSubspaceOverlap(modes1, modes2):
 
 
 def calcCovarianceOverlap(modelA, modelB):
-    """See :func:`calcCovOverlap`."""
-    
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'calcCovOverlap instead.')
+    """Deprecated, use :func:`calcCovOverlap`."""
+
+    prody.deprecate('calcCovarianceOverlap', 'calcCovOverlap', (0,9))    
     return calcCovOverlap(modelA, modelB)
     
 def calcCovOverlap(modelA, modelB):
@@ -4000,10 +3994,9 @@ def calcTempFactors(modes, atoms):
     
     
 def showFractOfVariances(modes, *args, **kwargs):
-    """See :func:`showFractOfVar`."""
+    """Deprecated, use :func:`showFractOfVar`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'showFractOfVar instead.')
+    prody.deprecate('showFractOfVariances', 'showFractOfVar', (0,9))
     return showFractOfVar(modes, *args, **kwargs) 
     
 def showFractOfVar(modes, *args, **kwargs):
@@ -4044,10 +4037,9 @@ def showFractOfVar(modes, *args, **kwargs):
     return show
 
 def showCumFractOfVariances(modes, *args, **kwargs):
-    """See :func:`showCumFractOfVar`."""
+    """Deprecated, use :func:`showCumFractOfVar`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'showCumFractOfVar instead.')
+    prody.deprecate('showCumFractOfVariances', 'showCumFractOfVar', (0,9))
     return showCumFractOfVar(modes, *args, **kwargs)
 
 def showCumFractOfVar(modes, *args, **kwargs):
@@ -4322,10 +4314,9 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     return show
 
 def showCrossCorrelations(modes, *args, **kwargs):
-    """See :func:`showCrossCorr`."""
+    """Deprecated, use :func:`showCrossCorr`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'showCrossCorr instead.')
+    prody.deprecate('showCrossCorrelations', 'showCrossCorr', (0,9))
     return showCrossCorr(modes, *args, **kwargs)
 
 def showCrossCorr(modes, *args, **kwargs):
@@ -4596,10 +4587,9 @@ def showOverlap(mode, modes, *args, **kwargs):
     return show
 
 def showCumulativeOverlap(mode, modes, *args, **kwargs):
-    """See :func:`showCumOverlap`."""
+    """Deprecated, use :func:`showCumOverlap`."""
     
-    LOGGER.warning('This function will be removed in v0.9, use '
-                   'showCumOverlap instead.')
+    prody.deprecate('showCumulativeOverlap', 'showCumOverlap', (0,9))
     return showCumOverlap(mode, modes, *args, **kwargs)
     
 def showCumOverlap(mode, modes, *args, **kwargs):
