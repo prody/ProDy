@@ -84,7 +84,7 @@ radius [*]       float, range     atomic radius
 **[*]** These atomic attributes are not set by the PDB parser when a PDB file 
 is parsed. Using them before they are set will raise selection error. 
 Secondary structure assignments can be made using 
-:func:`~prody.proteins.assignSecondstr` function.
+:func:`~prody.proteins.assignSecstr` function.
 
 **[†]** Alternate locations are parsed as alternate coordinate sets. This
 keyword will work for alternate location specified by "A". This to work for
