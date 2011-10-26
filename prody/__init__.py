@@ -33,25 +33,27 @@ import platform
 
 import warnings
 
-WARNINGS_TURNEDON = False
+DEPRECATION_WARNINGS = False
+if release >= (0,9):
+    warnings.filterwarnings('default', category=DeprecationWarning)
 
 def deprecate(dep, alt, rel=(0,9)):
     """Issue a deprecation warning for *dep* and recommend using *alt*, if 
     *rel* is greater or equal to the current release."""
 
-    global WARNINGS_TURNEDON
-    if True or release >= rel:
-        if not WARNINGS_TURNEDON:
-            WARNINGS_TURNEDON = True
-            warnings.filterwarnings('always', category=DeprecationWarning)
+    if DEPRECATION_WARNINGS or release >= rel:
         # Assume that the deprecated method or function will be removed
         # when the next major release is made
         rel = float('.'.join((str(x) for x in rel[:2]))) + 0.1
         warnings.warn('`{0:s}` is deprecated and will be removed in v{1:.1f}, '
                       'use `{2:s}`.'.format(dep, rel, alt), 
-                      DeprecationWarning, stacklevel=3)
+                      DeprecationWarning, stacklevel=2)
 
-
+def turnonDepracationWarnings():
+    global DEPRECATION_WARNINGS
+    DEPRECATION_WARNINGS = True
+    warnings.filterwarnings('always', category=DeprecationWarning)
+    
 PLATFORM = platform.system()
 _PY3K = sys.version_info[0] > 2
 
