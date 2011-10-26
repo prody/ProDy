@@ -173,6 +173,46 @@ class Field(object):
         return self._synonym
     synonym = property(synonym, doc='Synonym used in atom selections.')
 
+    def getDocstr(self, meth, plural=True, selex=True):
+        """Return documentation string for the field."""
+        
+        assert meth in ('set', 'get', '_get'), "meth must be 'set' or 'get'"
+        assert isinstance(plural, bool), 'plural must be a boolean'
+        assert isinstance(selex, bool), 'selex must be a boolean'
+        
+        if meth == 'get':
+            if plural:
+                docstr = 'Return a copy of {0:s}.'.format(self.doc_pl)
+            else:
+                docstr = 'Return {0:s} of the atom.'.format(self.doc)
+        elif meth == 'set':
+            if plural:
+                docstr = 'Set {0:s}.'.format(self.doc_pl)
+            else:
+                docstr = 'Set {0:s} of the atom.'.format(self.doc)
+        else:
+            selex = False
+            if plural:
+                docstr = 'Return {0:s} array.'.format(self.doc_pl) 
+            
+        selstr = self.selstr
+        if selex and selstr:
+            if plural:
+                doc = self.doc_pl
+            else:
+                doc = self.doc
+            if '(' in doc:
+                doc = doc[:doc.index('(')]
+            selex = "'``, ``'".join(selstr)
+            selex = ("  {0:s} can be used in atom selections, e.g. "
+                     "``'{1:s}'``.").format(doc.capitalize(), selex)
+            if self.synonym is not None:
+                selex = selex + ('  Note that *{0:s}* is a synonym for '
+                    '*{1:s}*.').format(self.synonym, self.name)
+            return docstr + selex
+        else:
+            return docstr
+
 ATOMIC_DATA_FIELDS = {
     'name':      Field('name', '|S6', selstr=('name CA CB',), depr='AtomName'),
     'altloc':    Field('altloc', '|S1', doc='alternate location indicator', 
@@ -578,18 +618,7 @@ class AtomGroupMeta(type):
     def __init__(cls, name, bases, dict):
     
         for field in ATOMIC_DATA_FIELDS.values():
-            if field.selstr is None:
-                selex = ''
-            else:
-                doc = field.doc_pl
-                if '(' in doc:
-                    doc = doc[:doc.index('(')]
-                selex = "'``, ``'".join(field.selstr)
-                selex = ("  {0:s} can be used in atom selections, e.g. "
-                         "``'{1:s}'``.").format(doc.capitalize(), selex)
-                if field.synonym is not None:
-                    selex = selex + ('  Note that *{0:s}* is a synonym for '
-                        '*{1:s}*.').format(field.synonym, field.name)
+
             # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._data[var]
@@ -598,8 +627,7 @@ class AtomGroupMeta(type):
                 return array.copy() 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth_pl
-            getData.__doc__ = 'Return a copy of {0:s} array.  {1:s}'.format(
-                                                        field.doc_pl, selex) 
+            getData.__doc__ = field.getDocstr('get')
             setattr(cls, 'get'+field.meth_pl, getData)
             
             # Define private method for retrieving actual data array
@@ -607,58 +635,37 @@ class AtomGroupMeta(type):
                 return self._data[var]
             _getData = wrapGetMethod(_getData)
             _getData.__name__ = field.meth_pl
-            _getData.__doc__ = ('Return {0:s} array.').format(field.doc_pl)
+            _getData.__doc__ = field.getDocstr('_get')
             setattr(cls, '_get'+field.meth_pl, _getData)
             
             # Define public method for setting values in data array
-            if field.none:
-                def setData(self, array, var=field.var, dtype=field.dtype, 
-                            ndim=field.ndim, none=field.none):
-                    if self._n_atoms == 0:
-                        self._n_atoms = len(array)
-                    elif len(array) != self._n_atoms:
-                        raise ValueError('length of array must match n_atoms')
-                        
-                    if isinstance(array, list):
-                        array = np.array(array, dtype)
-                    elif not isinstance(array, np.ndarray):
-                        raise TypeError('array must be a NumPy array or a list')
-                    elif array.ndim != ndim:
-                            raise ValueError('array must be {0:d} dimensional'
-                                             .format(ndim))
-                    elif array.dtype != dtype:
-                        try:
-                            array = array.astype(dtype)
-                        except ValueError:
-                            raise ValueError('array cannot be assigned type '
-                                             '{0:s}'.format(dtype))
-                    self._data[var] = array
+            #if field.none:
+            def setData(self, array, var=field.var, dtype=field.dtype, 
+                        ndim=field.ndim, none=field.none):
+                if self._n_atoms == 0:
+                    self._n_atoms = len(array)
+                elif len(array) != self._n_atoms:
+                    raise ValueError('length of array must match numAtoms')
+                    
+                if isinstance(array, list):
+                    array = np.array(array, dtype)
+                elif not isinstance(array, np.ndarray):
+                    raise TypeError('array must be an ndarray or a list')
+                elif array.ndim != ndim:
+                        raise ValueError('array must be {0:d} dimensional'
+                                         .format(ndim))
+                elif array.dtype != dtype:
+                    try:
+                        array = array.astype(dtype)
+                    except ValueError:
+                        raise ValueError('array cannot be assigned type '
+                                         '{0:s}'.format(dtype))
+                self._data[var] = array
+                if none:
                     self.__setattr__('_'+none,  None)
-            else:
-                def setData(self, array, var=field.var, dtype=field.dtype, 
-                            ndim=field.ndim):
-                    if self._n_atoms == 0:
-                        self._n_atoms = len(array)
-                    elif len(array) != self._n_atoms:
-                        raise ValueError('length of array must match n_atoms')
-                        
-                    if isinstance(array, list):
-                        array = np.array(array, dtype)
-                    elif not isinstance(array, np.ndarray):
-                        raise TypeError('array must be a NumPy array or a list')
-                    elif array.ndim != ndim:
-                            raise ValueError('array must be {0:d} dimensional'
-                                             .format(ndim))
-                    elif array.dtype != dtype:
-                        try:
-                            array = array.astype(dtype)
-                        except ValueError:
-                            raise ValueError('array cannot be assigned type '
-                                             '{0:s}'.format(dtype))
-                    self._data[var] = array
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
-            setData.__doc__ = 'Set {0:s}.  {1:s}'.format(field.doc_pl, selex)
+            setData.__doc__ = field.getDocstr('set')
             setattr(cls, 'set'+field.meth_pl, setData)
 
 
@@ -675,9 +682,9 @@ class AtomGroup(Atomic):
 
     **Get and Set Methods**
     
-    ``get()`` methods return copies of the data arrays. 
+    :meth:`get` methods return copies of the data arrays. 
     
-    ``set()`` methods accepts data in :func:`list` or :class:`~numpy.ndarray` 
+    :meth:`set` methods accept data in :class:`list` or :class:`~numpy.ndarray` 
     instances. The length of the list or array must match the number of atoms 
     in the atom group. Set method sets attributes of all atoms at once.
     
@@ -1636,18 +1643,6 @@ class AtomMeta(type):
     def __init__(cls, name, bases, dict):
         
         for field in ATOMIC_DATA_FIELDS.values():
-            if field.selstr is None:
-                selex = ''
-            else:
-                doc = field.doc
-                if '(' in doc:
-                    docl = doc[:doc.index('(')]
-                selex = "'``, ``'".join(field.selstr)
-                selex = ("  {0:s} can be used in atom selections, e.g. "
-                         "``'{1:s}'``.").format(doc.capitalize(), selex)
-                if field.synonym is not None:
-                    selex = selex + ('  Note that *{0:s}* is a synonym for '
-                        '*{1:s}*.').format(field.synonym, field.name)
             
             # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
@@ -1657,8 +1652,7 @@ class AtomMeta(type):
                 return array[self._index] 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth
-            getData.__doc__ = 'Return {0:s} of the atom.  {1:s}'.format(
-                                                            field.doc, selex)
+            getData.__doc__ = field.getDocstr('set', False)
             setattr(cls, 'get'+field.meth, getData)
             setattr(cls, '_get'+field.meth, getData)
             
@@ -1680,8 +1674,7 @@ class AtomMeta(type):
                     array[self._index] = value
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth 
-            setData.__doc__ = 'Set {0:s} of the atom.  {1:s}'.format(
-                                                    field.doc, selex)
+            setData.__doc__ = field.getDocstr('set', False)
             setattr(cls, 'set'+field.meth, setData)
 
 
@@ -1858,20 +1851,10 @@ class Atom(AtomPointer):
 
 
 class AtomSubsetMeta(type):
+
     def __init__(cls, name, bases, dict):
+
         for field in ATOMIC_DATA_FIELDS.values():
-            if field.selstr is None:
-                selex = ''
-            else:
-                doc = field.doc_pl
-                if '(' in doc:
-                    doc = doc[:doc.index('(')]
-                selex = "'``, ``'".join(field.selstr)
-                selex = ("  {0:s} can be used in atom selections, e.g. "
-                         "``'{1:s}'``.").format(doc.capitalize(), selex)
-                if field.synonym is not None:
-                    selex = selex + ('  Note that *{0:s}* is a synonym for '
-                        '*{1:s}*.').format(field.synonym, field.name)
             # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._ag._data[var]
@@ -1880,8 +1863,7 @@ class AtomSubsetMeta(type):
                 return array[self._indices] 
             getData = wrapGetMethod(getData)
             getData.__name__ = field.meth_pl
-            getData.__doc__ = ('Return a copy of {0:s} of the atoms.  {1:s}'
-                               .format(field.doc_pl, selex))
+            getData.__doc__ = field.getDocstr('get')
             setattr(cls, 'get'+field.meth_pl, getData)
             setattr(cls, '_get'+field.meth_pl, getData)
             
@@ -1903,8 +1885,7 @@ class AtomSubsetMeta(type):
                     array[self._indices] = value
             setData = wrapSetMethod(setData)
             setData.__name__ = field.meth_pl 
-            setData.__doc__ = ('Set {0:s} of the atoms.  {1:s}'
-                               .format(field.doc_pl, selex))  
+            setData.__doc__ = field.getDocstr('set')  
             setattr(cls, 'set'+field.meth_pl, setData)
         
 class AtomSubset(AtomPointer):
@@ -2433,9 +2414,8 @@ class AtomMapMeta(type):
                 zero = 'True'
             else:
                 zero = '""'
-            getData.__doc__ = ('Return {0:s} of the atoms.  Entries for '
-                              'unmapped atoms will be ``{1:s}``.'
-                               .format(field.doc_pl, zero)) 
+            getData.__doc__ = field.getDocstr('get', selex=False) + \
+                   'Entries for unmapped atoms will be ``{0:s}``.'.format(zero) 
             setattr(cls, 'get'+field.meth_pl, getData)
             setattr(cls, '_get'+field.meth_pl, getData)
 
