@@ -320,7 +320,7 @@ class MarkovModel(object):
         self._kernel = kernel
         self._delta = delta
         
-        model = MarkovModel(self.getName())
+        model = MarkovModel(self.getTitle())
         delta_diag = sparse.dia_matrix((delta, 0), shape=(length, length))
         transition = delta_diag * kernel.T * \
             sparse.dia_matrix((1 / (kernel * delta), 0), shape=(n_res, n_res)) * \
