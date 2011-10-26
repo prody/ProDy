@@ -49,8 +49,8 @@ Functions
 
     * :func:`saveEnsemble`
     * :func:`loadEnsemble`
-    * :func:`calcSumOfWeights`
-    * :func:`showSumOfWeights`
+    * :func:`calcOccupancies`
+    * :func:`showOccupancies`
     * :func:`trimEnsemble`
     * :func:`parseDCD`
     * :func:`writeDCD`
@@ -75,7 +75,6 @@ from time import time
 import os.path
 import datetime
 from struct import calcsize, unpack, pack
-import math
 
 import numpy as np
 import prody
@@ -89,8 +88,10 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'Trajectory', 'DCDFile', 'Frame',
            'EnsembleBase', 'TrajectoryBase', 'TrajectoryFile', 
            'ConformationBase',
-           'saveEnsemble', 'loadEnsemble', 
-           'calcSumOfWeights', 'showSumOfWeights', 'trimEnsemble',
+           'saveEnsemble', 'loadEnsemble',
+           'calcOccupancies', 'showOccupancies', 
+           'calcSumOfWeights', 'showSumOfWeights', 'trimPDBEnsemble',
+           'trimEnsemble',
            'parseDCD', 'writeDCD']
         
 plt = None
@@ -1434,7 +1435,14 @@ class Frame(ConformationBase):
                                                  ensemble._weights[indices])
     
 def trimEnsemble(pdbensemble, **kwargs):
-    """Return a PDB ensemble obtained by trimming given *pdbensemble*.
+    """Deprecated, use :meth:`trimPDBEnsemble`."""
+    
+    prody.deprecate('trimEnsemble', 'trimPDBEnsemble', (0,9))
+    return trimPDBEnsemble(pdbensemble, **kwargs)
+
+
+def trimPDBEnsemble(pdb_ensemble, **kwargs):
+    """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     
     .. versionadded:: 0.5.3
     
@@ -1444,103 +1452,100 @@ def trimEnsemble(pdbensemble, **kwargs):
         
     **Occupancy**
     
-    If weights in the ensemble correspond to atomic occupancies, then this 
-    option may be used to select atoms with average occupancy values higher
-    than the argument *occupancy*.  Function will calculate average occupancy 
-    by dividing the sum of weights for each atom to the number of conformations
-    in the ensemble.
+    Resulting PDB ensemble will contain atoms whose occupancies are greater 
+    or equal to *occupancy* keyword argument.  Occupancies for atoms will be
+    calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
     
-    :arg occupancy: average occupancy for selection atoms in a pdb ensemble, 
-                    must be 0 < *occupancy* <= 1
+    :arg occupancy: occupancy for selecting atoms, must satisfy
+        ``0 < occupancy <= 1``
     :type occupancy: float
     
     """
     
-    if not isinstance(pdbensemble, PDBEnsemble):
-        raise TypeError('pdbensemble argument must be a PDBEnsemble')
-    if pdbensemble.numConfs() == 0 or pdbensemble.numAtoms() == 0:
-        raise ValueError('coordinates or conformations must be set for '
-                         'pdbensemble')
+    if not isinstance(pdb_ensemble, PDBEnsemble):
+        raise TypeError('pdb_ensemble argument must be a PDBEnsemble')
+    if pdb_ensemble.numConfs() == 0 or pdb_ensemble.numAtoms() == 0:
+        raise ValueError('conformations must be set for pdb_ensemble')
     
     if 'occupancy' in kwargs:
         occupancy = float(kwargs['occupancy'])
         assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
                                    '{0:s}'.format(repr(occupancy)))
-        n_confs = pdbensemble.numConfs()
-        assert n_confs > 0, 'pdbensemble does not contain any conformations'
-        weights = calcSumOfWeights(pdbensemble)
-        assert weights is not None, 'weights must be set for pdbensemble'
-        weights = weights.flatten()
-        mean_weights = weights / n_confs
-        
-        torf = mean_weights >= occupancy
-        
+        n_confs = pdb_ensemble.numConfs()
+        assert n_confs > 0, 'pdb_ensemble does not contain any conformations'
+        occupancies = calcOccupancies(pdb_ensemble, normed=True)
+        #assert weights is not None, 'weights must be set for pdb_ensemble'
+        #weights = weights.flatten()
+        #mean_weights = weights / n_confs
+        torf = occupancies >= occupancy
     else:
         return None
     
-    trimmed = PDBEnsemble(pdbensemble.getTitle())
-    coords = pdbensemble.getCoordinates()
+    trimmed = PDBEnsemble(pdb_ensemble.getTitle())
+    coords = pdb_ensemble.getCoordinates()
     if coords is not None:
         trimmed.setCoordinates( coords[torf] )
-    confs = pdbensemble.getCoordsets()
+    confs = pdb_ensemble.getCoordsets()
     if confs is not None:
-        weights = pdbensemble.getWeights()
+        weights = pdb_ensemble.getWeights()
         trimmed.addCoordset( confs[:, torf], weights[:, torf] )
     return trimmed
 
 def calcSumOfWeights(pdbensemble):
-    """Return sum of weights from a PDB ensemble.
+    """Deprecated, use :meth:`calcOccupancies`."""
     
-    Weights are summed for each atom over conformations in the ensemble.
-    Size of the plotted array will be equal to the number of atoms.
+    prody.deprecate('calcSumOfWeights', 'calcOccupancies', (0,9))
+    return calcOccupancies(pdbensemble)
+    
+def calcOccupancies(pdb_ensemble, normed=False):
+    """Return occupancy calculated from weights of a :class:`PDBEnsemble`.
+    Any non-zero weight will be considered equal to one.  Occupancies are 
+    calculated by binary weights for each atom over the conformations in 
+    the ensemble. When *normed* is ``True``, total weights will be divided 
+    by the number of atoms.
     
     When analyzing an ensemble of X-ray structures, this function can be used 
     to see how many times a residue is resolved.
     
-    >>> print( calcSumOfWeights(ensemble) ) # doctest: +ELLIPSIS
+    >>> print( calcOccupancies(ensemble) ) # doctest: +ELLIPSIS
     [ 74.  75.  75.  75.  75.  75.  75.  75.  75.  73.  73.  74.  75.  75.  75.
-      75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  70.  73.  75.  75.
       ...
-      75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.  75.
       75.  75.  75.  75.  75.  75.]
             
     Each number in the above example corresponds to a residue (or atoms) and 
     shows the number of structures in which the corresponding residue is 
     resolved."""
     
-    if not isinstance(pdbensemble, PDBEnsemble):
-        raise TypeError('pdbensemble must be a PDBEnsemble instance')
-    
-    weights = pdbensemble.getWeights()
-    
+    if not isinstance(pdb_ensemble, PDBEnsemble):
+        raise TypeError('pdb_ensemble must be a PDBEnsemble instance')
+    if len(pdb_ensemble) == 0:
+        raise ValueError('pdb_ensemble does not contain any conformations')
+    assert isinstance(normed, bool), 'normed must be a boolean'
+    weights = pdb_ensemble.getWeights()
     if weights is None:
-        return None
-    
-    return weights.sum(0).flatten()
-    
+        raise ValueError('pdb_ensemble weights are not set')
+
+    occupancies = weights.astype(bool).sum(0).astype(float).flatten()
+    if normed:
+        return occupancies / len(pdb_ensemble)
+    else:
+        return occupancies
     
 def showSumOfWeights(pdbensemble, *args, **kwargs):
-    """Show sum of weights for a PDB ensemble using 
-    :func:`~matplotlib.pyplot.plot`.
+    """Deprecated, use :meth:`showOccupancies`."""
     
-    Weights are summed for each atom over conformations in the ensemble.
-    Size of the plotted array will be equal to the number of atoms.
-    
-    When analyzing an ensemble of X-ray structures, this function can be used 
-    to see how many times a residue is resolved.
-    
-    """
-    """
-    *indices*, if given, will be used as X values. Otherwise, X axis will
-    start from 0 and increase by 1 for each atom. 
-    
-    """
+    prody.deprecate('showSumOfWeights', 'showOccupancies', (0,9))
+    return showOccupancies(pdbensemble, *args, **kwargs)
+
+def showOccupancies(pdb_ensemble, *args, **kwargs):
+    """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
+    plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
     
     if plt is None: prody.importPyPlot()
     if not plt: return None
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
-    weights = calcSumOfWeights(pdbensemble)
+    weights = calcOccupancies(pdbensemble)
     if weights is None:
         return None
     show = plt.plot(weights, *args, **kwargs)
@@ -1551,7 +1556,6 @@ def showSumOfWeights(pdbensemble, *args, **kwargs):
     plt.xlabel('Atom index')
     plt.ylabel('Sum of weights')
     return show
-
 
 RECSCALE32BIT = 1
 RECSCALE64BIT = 2
