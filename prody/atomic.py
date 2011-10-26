@@ -285,13 +285,13 @@ for field in ATOMIC_DATA_FIELDS.values():
     ATOMIC_ATTRIBUTES[field.var] = field
 
 def wrapGetMethod(fn):
-    def wrapped(self):
+    def getMethod(self):
         return fn(self)
-    return wrapped
+    return getMethod
 def wrapSetMethod(fn):
-    def wrapped(self, data):
+    def setMethod(self, data):
         return fn(self, data)
-    return wrapped
+    return setMethod
 
 __doc__ += """
 
@@ -682,48 +682,21 @@ class AtomGroupMeta(type):
                 getDepr = 'get' + depr
                 setDepr = 'set' + depr
                 # Define public method for retrieving a copy of data array
-                def getData(self, var=field.var, old=getDepr, new=getMeth):
+                def getData(self, old=getDepr, new=getMeth):
                     prody.deprecate(old, new)
-                    array = self._data[var]
-                    if array is None:
-                        return None
-                    return array.copy() 
+                    return self.__getattribute__(new)() 
                 getData = wrapGetMethod(getData)
-                getData.__name__ = ''
-                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(
-                                                                        getMeth)
+                getData.__name__ = getDepr
+                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth)
                 setattr(cls, getDepr, getData)
                 
                 # Define public method for setting values in data array
-                def setData(self, array, var=field.var, dtype=field.dtype, 
-                            ndim=field.ndim, none=field.none, 
-                            old=setDepr, new=setMeth):
+                def setData(self, old=setDepr, new=setMeth):
                     prody.deprecate(old, new)
-                    if self._n_atoms == 0:
-                        self._n_atoms = len(array)
-                    elif len(array) != self._n_atoms:
-                        raise ValueError('length of array must match numAtoms')
-                        
-                    if isinstance(array, list):
-                        array = np.array(array, dtype)
-                    elif not isinstance(array, np.ndarray):
-                        raise TypeError('array must be an ndarray or a list')
-                    elif array.ndim != ndim:
-                            raise ValueError('array must be {0:d} dimensional'
-                                             .format(ndim))
-                    elif array.dtype != dtype:
-                        try:
-                            array = array.astype(dtype)
-                        except ValueError:
-                            raise ValueError('array cannot be assigned type '
-                                             '{0:s}'.format(dtype))
-                    self._data[var] = array
-                    if none:
-                        self.__setattr__('_'+none,  None)
+                    self.__getattribute__(new)(value) 
                 setData = wrapSetMethod(setData)
                 setData.__name__ = setDepr 
-                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(
-                                                                       setMeth)
+                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(setMeth)
                 setattr(cls, setDepr, setData)
 
 
@@ -1702,6 +1675,9 @@ class AtomMeta(type):
         
         for field in ATOMIC_DATA_FIELDS.values():
             
+            meth = field.meth
+            getMeth = 'get' + meth
+            setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._ag._data[var]
@@ -1709,32 +1685,48 @@ class AtomMeta(type):
                     return None
                 return array[self._index] 
             getData = wrapGetMethod(getData)
-            getData.__name__ = field.meth
+            getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('set', False)
-            setattr(cls, 'get'+field.meth, getData)
-            setattr(cls, '_get'+field.meth, getData)
+            setattr(cls, getMeth, getData)
+            setattr(cls, '_' + getMeth, getData)
             
             # Define public method for setting values in data array
-            if field.none:
-                def setData(self, value, var=field.var, none=field.none):
-                    array = self._ag._data[var]
-                    if array is None:
-                        raise AttributeError('attribute of the AtomGroup is '
-                                             'not set')
-                    array[self._index] = value
-                    self._ag.__setattr__('_'+none,  None)
-            else:
-                def setData(self, value, var=field.var):
-                    array = self._ag._data[var]
-                    if array is None:
-                        raise AttributeError('attribute of the AtomGroup is '
-                                             'not set')
-                    array[self._index] = value
+            def setData(self, value, var=field.var, none=field.none):
+                array = self._ag._data[var]
+                if array is None:
+                    raise AttributeError('attribute of the AtomGroup is '
+                                         'not set')
+                array[self._index] = value
+                if None:
+                    self._ag.__setattr__('_' + none,  None)
             setData = wrapSetMethod(setData)
-            setData.__name__ = field.meth 
+            setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set', False)
-            setattr(cls, 'set'+field.meth, setData)
-
+            setattr(cls, setMeth, setData)
+            
+            if field.depr:
+                depr = field.depr
+                getDepr = 'get' + depr
+                setDepr = 'set' + depr
+                
+                # Define public method for retrieving a copy of data array
+                def getData(self, old=getDepr, new=getMeth):
+                    prody.deprecate(old, new)
+                    return self.__getattribute__(new)() 
+                getData = wrapGetMethod(getData)
+                getData.__name__ = getDepr
+                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth)
+                setattr(cls, getDepr, getData)
+                
+                # Define public method for setting values in data array
+                def setData(self, old=setDepr, new=setMeth):
+                    prody.deprecate(old, new)
+                    self.__getattribute__(new)(value)
+                setData = wrapSetMethod(setData)
+                setData.__name__ = setDepr 
+                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(setMeth)
+                setattr(cls, setDepr, setData)
+                
 
 class Atom(AtomPointer):
     
@@ -1913,6 +1905,9 @@ class AtomSubsetMeta(type):
     def __init__(cls, name, bases, dict):
 
         for field in ATOMIC_DATA_FIELDS.values():
+            meth = field.meth_pl
+            getMeth = 'get' + meth
+            setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._ag._data[var]
@@ -1920,32 +1915,48 @@ class AtomSubsetMeta(type):
                     return None
                 return array[self._indices] 
             getData = wrapGetMethod(getData)
-            getData.__name__ = field.meth_pl
+            getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get')
-            setattr(cls, 'get'+field.meth_pl, getData)
-            setattr(cls, '_get'+field.meth_pl, getData)
+            setattr(cls, getMeth, getData)
+            setattr(cls, '_' + getMeth, getData)
             
             # Define public method for setting values in data array
-            if field.none:
-                def setData(self, value, var=field.var, none=field.none):
-                    array = self._ag._data[var]
-                    if array is None:
-                        raise AttributeError('attribute of the AtomGroup is '
-                                             'not set')
-                    array[self._indices] = value
+            def setData(self, value, var=field.var, none=field.none):
+                array = self._ag._data[var]
+                if array is None:
+                    raise AttributeError(var + ' data is not set')
+                array[self._indices] = value
+                if none:
                     self._ag.__setattr__('_'+none,  None)
-            else:
-                def setData(self, value, var=field.var):
-                    array = self._ag._data[var]
-                    if array is None:
-                        raise AttributeError('attribute of the AtomGroup is '
-                                             'not set')
-                    array[self._indices] = value
             setData = wrapSetMethod(setData)
-            setData.__name__ = field.meth_pl 
+            setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set')  
-            setattr(cls, 'set'+field.meth_pl, setData)
-        
+            setattr(cls, setMeth, setData)
+
+            # DEPRECATIONS
+            if field.depr:
+                depr = field.depr_pl
+                getDepr = 'get' + depr
+                setDepr = 'set' + depr
+                # Define public method for retrieving a copy of data array
+                def getData(self, old=getDepr, new=getMeth):
+                    prody.deprecate(old, new)
+                    return self.__getattribute__(new)() 
+                getData = wrapGetMethod(getData)
+                getData.__name__ = getDepr
+                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth)
+                setattr(cls, getDepr, getData)
+                setattr(cls, '_' + getDepr, getData)
+                
+                # Define public method for setting values in data array
+                def setData(self, old=setDepr, new=setMeth):
+                    prody.deprecate(old, new)
+                    self.__getattribute__(new)(value)
+                setData = wrapSetMethod(setData)
+                setData.__name__ = setDepr 
+                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(setMeth)
+                setattr(cls, setDepr, setData)
+                        
 class AtomSubset(AtomPointer):
     
     """A class for manipulating subset of atomic data in an :class:`AtomGroup`.
@@ -2455,17 +2466,18 @@ class AtomMapMeta(type):
     
     def __init__(cls, name, bases, dict):
         for field in ATOMIC_DATA_FIELDS.values():
-            def getData(self, name=field.name, var=field.var):
+            meth = field.meth_pl
+            getMeth = 'get' + meth
+            def getData(self, var=field.var, dtype=field.dtype):
                 array = self._ag._data[var]
                 if array is None:
                     return None
                 data = self._ag._data[var][self._indices]
-                result = np.zeros((self._len,) + data.shape[1:], 
-                                 ATOMIC_DATA_FIELDS[name].dtype)
+                result = np.zeros((self._len,) + data.shape[1:], dtype)
                 result[self._mapping] = data
                 return result 
             getData = wrapGetMethod(getData)
-            getData.__name__ = field.meth_pl
+            getData.__name__ = getMeth
             if field.dtype in (int, float):
                 zero = '0'
             elif field.dtype == bool:
@@ -2474,8 +2486,20 @@ class AtomMapMeta(type):
                 zero = '""'
             getData.__doc__ = field.getDocstr('get', selex=False) + \
                    'Entries for unmapped atoms will be ``{0:s}``.'.format(zero) 
-            setattr(cls, 'get'+field.meth_pl, getData)
-            setattr(cls, '_get'+field.meth_pl, getData)
+            setattr(cls, getMeth, getData)
+            setattr(cls, '_' + getMeth, getData)
+        
+            if field.depr:
+                depr = field.depr_pl
+                getDepr = 'get' + depr
+                def getData(self, old=getDepr, new=getMeth):
+                    prody.deprecate(old, new)
+                    return self.__getattribute__(new)()
+                getData = wrapGetMethod(getData)
+                getData.__name__ = getDepr
+                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth) 
+                setattr(cls, getDepr, getData)
+             
 
 
 class AtomMap(AtomPointer):
