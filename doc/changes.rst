@@ -24,12 +24,26 @@ Release 0.8.4 (in development)
 
 **Changes**:
 
-  .. warning:: In an attempt to make function and method names more intuitive 
-     and uniform, the changes listed in below tables are made.  Old function/
-     method names are proposed to be available until release of 1.0, which is 
-     expected to be in Spring of 2012.  After v0.9 is released, ProDy will 
-     start issuing :class:`DeprecationWarning` upon calls using old names to 
-     remind the user of the name change.
+  .. warning::  This maintenance release introduces numerous changes in method 
+     and function names all aiming to improve the interactive usage experience.
+     The changes will take place slowly, and your code using ProDy must not 
+     be affected until version 1.0 is released, which is expected to happen
+     after the first quarter of 2012.
+      
+     Until release v1.0, both old and new function/method names will be 
+     available.  After v0.9 is released, ProDy will start issuing 
+     :class:`DeprecationWarning` upon calls using old names to remind the user
+     of the name change.  With the release of v1.0, old function and method 
+     names will be removed from ProDy.
+     
+     All the changes are listed below.  Note that when a method is present
+     in multiple classes, all of them are not listed, only affected modules
+     are listed.
+     
+  .. note::  When changing your code to adapt the following changes, you can 
+     use :meth:`prody.turnonDepracationWarnings` function to turn on 
+     deprecation warnings. This will help you locate where old function/method
+     names are used.
 
   **Functions**:
   
@@ -40,7 +54,7 @@ Release 0.8.4 (in development)
   Old name                                  New name
   ========================================  =====================================
   :func:`applyBiomolecularTransformations`  :func:`~proteins.buildBiomolecules` 
-  :func:`assignSecondaryStructure`          :func:`~proteins.assignSecondstr`
+  :func:`assignSecondaryStructure`          :func:`~proteins.assignSecstr`
   :func:`scanPerturbationResponse`          :func:`~dynamics.calcPerturbResponse`
   :func:`calcCrossCorrelations`             :func:`~dynamics.calcCrossCorr`
   :func:`calcCumulativeOverlap`             :func:`~dynamics.calcCumOverlap`
@@ -51,6 +65,9 @@ Release 0.8.4 (in development)
   :func:`showCrossCorrelations`             :func:`~dynamics.showCrossCorr`
   :func:`showCumulativeOverlap`             :func:`~dynamics.showCumOverlap`
   :func:`deform`                            :func:`~dynamics.deformAtoms`
+  :meth:`calcSumOfWeights`                  :meth:`~ensemble.calcOccupancies`
+  :meth:`showSumOfWeights`                  :meth:`~ensemble.showOccupancies`
+  :meth:`trimEnsemble`                      :meth:`~ensemble.trimPDBEnsemble`
   ========================================  =====================================
 
   ``getNumOf`` **methods**:
@@ -131,9 +148,9 @@ Release 0.8.4 (in development)
   
   The following changes are made to shorten method names:
   
-    * :meth:`getSelectionString` renamed as :meth:`getSelstr`
-    * :meth:`getActiveCoordsetIndex` renamed as :meth:`getACSI`
-    * :meth:`setActiveCoordsetIndex` renamed as :meth:`setACSI`
+  * :meth:`getSelectionString` renamed as :meth:`getSelstr`
+  * :meth:`getActiveCoordsetIndex` renamed as :meth:`getACSI`
+  * :meth:`setActiveCoordsetIndex` renamed as :meth:`setACSI`
 
   The following changes are made give more intuitive name: 
 
@@ -148,13 +165,15 @@ Release 0.8.4 (in development)
   :meth:`setAttribute`  :meth:`setData`
   ====================  =======================
   
+  **To be removed**:
+  
   Finally, the following methods are removed, but their functions are
   overloaded to other suitable functions: 
   
-    * removed :meth:`~atomic.AtomGroup.getBySerialRange`, overloaded 
-      :meth:`~atomic.AtomGroup.getBySerial`
-    * removed :meth:`~atomic.AtomGroup.skipFrame`, overloaded 
-      :meth:`~atomic.AtomGroup.nextFrame`
+  * removed :meth:`~atomic.AtomGroup.getBySerialRange`, overloaded 
+    :meth:`~atomic.AtomGroup.getBySerial`
+  * removed :meth:`~atomic.AtomGroup.skipFrame`, overloaded 
+    :meth:`~atomic.AtomGroup.nextFrame`
 
 
 **Bug Fixes**:

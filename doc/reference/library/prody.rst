@@ -7,7 +7,7 @@ prody
 :mod:`prody`
 =====================
 
-This module defines functions for aiding interaction ProDy experience. 
+This module defines functions for aiding interactive ProDy experience. 
 
 Functions
 ---------
@@ -17,6 +17,8 @@ Functions
   * :func:`startLogfile`
   * :func:`closeLogfile`
   * :func:`plog`
+  * :func:`test`
+  * :func:`turnonDepracationWarnings`
     
 .. autofunction:: changeVerbosity
 
@@ -27,3 +29,7 @@ Functions
 .. autofunction:: closeLogfile
 
 .. autofunction:: plog
+
+.. autofunction:: test
+
+.. autofunction:: turnonDepracationWarnings

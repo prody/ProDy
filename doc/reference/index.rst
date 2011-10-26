@@ -36,4 +36,4 @@ Library reference
    library/proteins
    library/routines
    library/select
-
+   library/tests
