@@ -47,12 +47,21 @@ def deprecate(dep, alt, rel=(0,9)):
         rel = float('.'.join((str(x) for x in rel[:2]))) + 0.1
         warnings.warn('`{0:s}` is deprecated and will be removed in v{1:.1f}, '
                       'use `{2:s}`.'.format(dep, rel, alt), 
-                      DeprecationWarning, stacklevel=2)
+                      DeprecationWarning, stacklevel=3)
 
-def turnonDepracationWarnings():
+def turnonDepracationWarnings(action='always'):
+    """Turn on deprecation warnings for the current session.  By default
+     (``action='always'``), deprecation warnings will be printed every time
+     a function is called to help identification of multiple occurrence 
+     of deprecated function and method names.  When ``action='default'``
+     is passed, warning will be issued at the first call of a function.
+     The latter behavior will automatically kick in when v0.9 is released.
+     Until v0.9 is released, restarting the session will turn of warnings.
+     This function must be called as ``prody.turnonDepracationWarnings``. """
+    
     global DEPRECATION_WARNINGS
     DEPRECATION_WARNINGS = True
-    warnings.filterwarnings('always', category=DeprecationWarning)
+    warnings.filterwarnings(action, category=DeprecationWarning)
     
 PLATFORM = platform.system()
 _PY3K = sys.version_info[0] > 2
