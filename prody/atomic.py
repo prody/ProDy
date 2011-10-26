@@ -172,7 +172,12 @@ class Field(object):
     def synonym(self):
         return self._synonym
     synonym = property(synonym, doc='Synonym used in atom selections.')
-
+    def depr(self):
+        return self._depr
+    depr = property(depr, doc='Deprecated method name.')
+    def depr_pl(self):
+        return self._depr_pl
+    depr_pl = property(depr_pl, doc='Deprecated method name in plural form.')
     def getDocstr(self, meth, plural=True, selex=True):
         """Return documentation string for the field."""
         
@@ -619,6 +624,9 @@ class AtomGroupMeta(type):
     
         for field in ATOMIC_DATA_FIELDS.values():
 
+            meth = field.meth_pl
+            getMeth = 'get' + meth
+            setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
             def getData(self, var=field.var):
                 array = self._data[var]
@@ -626,20 +634,19 @@ class AtomGroupMeta(type):
                     return None
                 return array.copy() 
             getData = wrapGetMethod(getData)
-            getData.__name__ = field.meth_pl
+            getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get')
-            setattr(cls, 'get'+field.meth_pl, getData)
+            setattr(cls, getMeth, getData)
             
             # Define private method for retrieving actual data array
             def _getData(self, var=field.var):
                 return self._data[var]
             _getData = wrapGetMethod(_getData)
-            _getData.__name__ = field.meth_pl
+            _getData.__name__ = '_' + getMeth
             _getData.__doc__ = field.getDocstr('_get')
-            setattr(cls, '_get'+field.meth_pl, _getData)
+            setattr(cls, '_' + getMeth, _getData)
             
             # Define public method for setting values in data array
-            #if field.none:
             def setData(self, array, var=field.var, dtype=field.dtype, 
                         ndim=field.ndim, none=field.none):
                 if self._n_atoms == 0:
@@ -664,9 +671,60 @@ class AtomGroupMeta(type):
                 if none:
                     self.__setattr__('_'+none,  None)
             setData = wrapSetMethod(setData)
-            setData.__name__ = field.meth_pl 
+            setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set')
-            setattr(cls, 'set'+field.meth_pl, setData)
+            setattr(cls, setMeth, setData)
+            
+            
+            # DEPRECATIONS
+            if field.depr:
+                depr = field.depr_pl
+                getDepr = 'get' + depr
+                setDepr = 'set' + depr
+                # Define public method for retrieving a copy of data array
+                def getData(self, var=field.var, old=getDepr, new=getMeth):
+                    prody.deprecate(old, new)
+                    array = self._data[var]
+                    if array is None:
+                        return None
+                    return array.copy() 
+                getData = wrapGetMethod(getData)
+                getData.__name__ = ''
+                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(
+                                                                        getMeth)
+                setattr(cls, getDepr, getData)
+                
+                # Define public method for setting values in data array
+                def setData(self, array, var=field.var, dtype=field.dtype, 
+                            ndim=field.ndim, none=field.none, 
+                            old=setDepr, new=setMeth):
+                    prody.deprecate(old, new)
+                    if self._n_atoms == 0:
+                        self._n_atoms = len(array)
+                    elif len(array) != self._n_atoms:
+                        raise ValueError('length of array must match numAtoms')
+                        
+                    if isinstance(array, list):
+                        array = np.array(array, dtype)
+                    elif not isinstance(array, np.ndarray):
+                        raise TypeError('array must be an ndarray or a list')
+                    elif array.ndim != ndim:
+                            raise ValueError('array must be {0:d} dimensional'
+                                             .format(ndim))
+                    elif array.dtype != dtype:
+                        try:
+                            array = array.astype(dtype)
+                        except ValueError:
+                            raise ValueError('array cannot be assigned type '
+                                             '{0:s}'.format(dtype))
+                    self._data[var] = array
+                    if none:
+                        self.__setattr__('_'+none,  None)
+                setData = wrapSetMethod(setData)
+                setData.__name__ = setDepr 
+                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(
+                                                                       setMeth)
+                setattr(cls, setDepr, setData)
 
 
 class AtomGroup(Atomic):
