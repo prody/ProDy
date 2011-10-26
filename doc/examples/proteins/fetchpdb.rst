@@ -29,27 +29,27 @@ or a target folder.
 ProDy Code
 ===============================================================================
 
-We start by importing everything from the ProDy package::
+We start by importing everything from the ProDy package:
 
-  from prody import *
+>>> from prody import *
 
 Single file
 -------------------------------------------------------------------------------
 
-The function will return a filename if the download is successful::
+The function will return a filename if the download is successful.
  
-  filename = fetchPDB('1p38')
-  print( filename ) # doctest: +SKIP
-  # 1p38.pdb.gz
+>>> filename = fetchPDB('1p38')
+>>> print( filename ) # doctest: +SKIP
+1p38.pdb.gz
 
 Multiple files
 -------------------------------------------------------------------------------
 
-This function also accepts a list of PDB identifiers::
+This function also accepts a list of PDB identifiers:
 
-  filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='temp')
-  print( filenames ) # doctest: +SKIP
-  # ['1p38.pdb.gz', '1r39.pdb.gz', None]
+>>> filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='temp')
+>>> print( filenames ) # doctest: +SKIP
+['1p38.pdb.gz', '1r39.pdb.gz', None]
 
 For failed downloads, ``None`` will be returned (or the list will contain 
 ``None`` item).

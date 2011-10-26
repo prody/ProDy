@@ -28,22 +28,26 @@ plotting functions.
 ProDy Code
 ===============================================================================
 
-We start by importing everything from the ProDy package::
+We start by importing everything from the ProDy package:
 
-  from prody import *
+>>> from prody import *
 
 ANM calculations
 -------------------------------------------------------------------------------
 
 We start with parsing the Cα atoms of the RT structure 1DLO and performing ANM
-calculations for them::
+calculations for them:
 
-  rt = parsePDB('1dlo', subset="ca")
-  anm, sel = calcANM(rt)
-  print anm[:5].getEigenvalues() 
-  # [ 0.039  0.063  0.126  0.181  0.221]
-  abs(anm[0])
-  # 1.000
+>>> rt = parsePDB('1dlo', subset="ca")
+>>> anm, sel = calcANM(rt)
+>>> anm
+<ANM: 1dlo_ca (20 modes, 971 nodes)>
+>>> saveModel(anm, 'rt_anm')
+'rt_anm.anm.npz'
+>>> anm[:5].getEigenvalues()
+array([ 0.039,  0.063,  0.126,  0.181,  0.221])
+>>> '%.3f' % (anm[0].getArray() ** 2).sum() ** 0.5
+'1.000'
 
 
 .. plot::
@@ -102,13 +106,17 @@ Slicing a model
 -------------------------------------------------------------------------------
 
 We take the slice of the ANM model corresponding to subunit p66, which is 
-``"chain A"`` in the structure, using :func:`sliceModel` function::
+chain A in the structure, using :func:`sliceModel` function:
 
-  anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
-  print anm_slc_p66[:5].getEigenvalues()
-  # [ 0.039  0.063  0.126  0.181  0.221]
-  print abs(anm_slc_p66[0])
-  # 0.895
+>>> anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
+>>> anm_slc_p66
+<ANM: 1dlo_ca slice "chain A" (20 modes, 556 nodes)>
+>>> saveModel(anm_slc_p66, 'rt_anm_sliced')
+'rt_anm_sliced.anm.npz'
+>>> anm_slc_p66[:5].getEigenvalues()
+array([ 0.039,  0.063,  0.126,  0.181,  0.221])
+>>> '%.3f' % (anm_slc_p66[0].getArray() ** 2).sum() ** 0.5
+'0.895'
 
 Slicing do not change anything in the model apart from taking parts of the 
 modes matching the selection. Note that the sliced model contains fewer nodes, 
@@ -158,16 +166,19 @@ without any change:
 Reducing a model
 -------------------------------------------------------------------------------
 
-We reduce the ANM model to subunit p66 using :func:`reduceModel` function.  
-This function implements the method described in 2000 paper of Hinsen et al. 
-[KH00]_::
+We reduce the ANM model to subunit p66 using :func:`reduceModel` function. This
+function implements the method described in 2000 paper of Hinsen et al. [KH00]_
 
-  anm_red_p66, sel_p66 = reduceModel(anm, rt, 'chain A')
-  anm_red_p66.calcModes()
-  print anm_red_p66[:5].getEigenvalues()
-  # [ 0.05   0.098  0.214  0.289  0.423]
-  print abs(anm_red_p66[0])
-  # 1.000
+>>> anm_red_p66, sel_p66 = reduceModel(anm, rt, 'chain A')
+>>> anm_red_p66.calcModes()
+>>> anm_red_p66
+<ANM: 1dlo_ca reduced (20 modes, 556 nodes)>
+>>> saveModel(anm_red_p66, 'rt_anm_reduced')
+'rt_anm_reduced.anm.npz'
+>>> anm_red_p66[:5].getEigenvalues()
+array([ 0.05 ,  0.098,  0.214,  0.289,  0.423])
+>>> '%.3f' % (anm_red_p66[0].getArray() ** 2).sum() ** 0.5
+'1.000'
 
 
 Analysis of the slice
@@ -219,7 +230,7 @@ between modes:
    :include-source:
    
    plt.figure(figsize=(5,4))
-   showOverlapTable(anm_slc_p66[:10], anm_red_p66[:10])
+   showOverlapTable(anm_slc_p66, anm_red_p66)
    
 .. plot::
    :context:
