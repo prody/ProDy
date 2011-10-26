@@ -691,7 +691,7 @@ class AtomGroupMeta(type):
                 setattr(cls, getDepr, getData)
                 
                 # Define public method for setting values in data array
-                def setData(self, old=setDepr, new=setMeth):
+                def setData(self, value, old=setDepr, new=setMeth):
                     prody.deprecate(old, new)
                     self.__getattribute__(new)(value) 
                 setData = wrapSetMethod(setData)
@@ -1719,7 +1719,7 @@ class AtomMeta(type):
                 setattr(cls, getDepr, getData)
                 
                 # Define public method for setting values in data array
-                def setData(self, old=setDepr, new=setMeth):
+                def setData(self, value, old=setDepr, new=setMeth):
                     prody.deprecate(old, new)
                     self.__getattribute__(new)(value)
                 setData = wrapSetMethod(setData)
@@ -1949,7 +1949,7 @@ class AtomSubsetMeta(type):
                 setattr(cls, '_' + getDepr, getData)
                 
                 # Define public method for setting values in data array
-                def setData(self, old=setDepr, new=setMeth):
+                def setData(self, value, old=setDepr, new=setMeth):
                     prody.deprecate(old, new)
                     self.__getattribute__(new)(value)
                 setData = wrapSetMethod(setData)
