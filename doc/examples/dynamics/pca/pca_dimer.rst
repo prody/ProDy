@@ -181,9 +181,9 @@ This is a heterogeneous dataset, i.e. many structures had missing residues.
 We want to make sure that we include residues in PCA analysis if they
 are resolved in more than 94% of the time.
 
-We can find out this using :func:`~prody.ensemble.calcSumOfWeights` function:
+We can find out this using :func:`~prody.ensemble.calcOccupancies` function:
 
->>> print( (calcSumOfWeights(ensemble).min() / len(ensemble)).round(3) )
+>>> print( calcOccupancies(ensemble, normed=True).min().round(3) )
 0.252
 
 
@@ -191,7 +191,7 @@ This shows that some residues were resolved in only 24% of the dataset.
 We trim the ensemble to contain residues resolved in more than 94% of the 
 ensemble:
 
->>> ensemble = trimEnsemble(ensemble, occupancy=0.94)
+>>> ensemble = trimPDBEnsemble(ensemble, occupancy=0.94)
 
 After trimmin, another round of iterative superposition may be useful:
 
