@@ -957,6 +957,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     start = split
     stop = len(lines)
     nmodel = 0
+    # if a specific model is requested, skip lines until that one
     if isPDB and model is not None and model != 1:
         for i in range(split, len(lines)):
             if lines[i][:5] == 'MODEL':
@@ -982,6 +983,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     acount = 0
     altloc = defaultdict(list)
     i = start
+    END = False
     while i < stop:
         line = lines[i]
         startswith = line[0:6]
@@ -1069,6 +1071,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                    .format(i))
             acount += 1
             if n_atoms == 0 and acount >= alength:
+                # if arrays are short extend them with zeros
                 alength += asize
                 coordinates = np.concatenate(
                     (coordinates, np.zeros((asize, 3), float)))
@@ -1108,33 +1111,41 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         np.zeros(asize, ATOMIC_DATA_FIELDS['charge'].dtype)))
                     radii = np.concatenate((radii,
                         np.zeros(asize, ATOMIC_DATA_FIELDS['radius'].dtype)))
-                    
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
         elif startswith == 'ENDMDL' or startswith[:3] == 'END':
             if acount == 0:
-                # If there is no atom record between ENDMDL and END skip to next
+                # If there is no atom record between ENDMDL & END skip to next
                 i += 1
                 continue
-            elif model is not None:
+            if model is not None:
                 i += 1
                 break
-            elif onlycoords:
+            diff = stop - i - 1
+            if diff < acount:
+                END = True
+            if onlycoords:
                 if acount < n_atoms:
                     LOGGER.warning('Discarding model {0:d}, which contains '
                                    '{1:d} fewer atoms than the first model '
                                    'does.'.format(nmodel+1, n_atoms-acount))
                 else:
-                    atomgroup.addCoordset(coordinates)
-                nmodel += 1
+                    coordsets[nmodel] = coordinates
+                    nmodel += 1
                 acount = 0
                 coordinates = np.zeros((n_atoms, 3), dtype=float)
             else:
                 if acount != n_atoms > 0:
                     raise ValueError('PDB file and AtomGroup ag must have '
                                     'same number of atoms')
-                atomgroup.addCoordset(coordinates[:acount])
+                # this is where to decide if more coordsets should be expected
+                if END: 
+                    atomgroup.setCoordinates(coordinates[:acount])
+                else:
+                    coordsets = np.zeros((diff/acount+1, acount, 3))
+                    coordsets[0] = coordinates[:acount]
+                    onlycoords = True
                 if not only_subset:
                     atomnames = np.char.strip(atomnames[:acount])
                     resnames = np.char.strip(resnames[:acount])
@@ -1159,7 +1170,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.setCharges(charges[:acount])
                     atomgroup.setRadii(radii[:acount])
                     
-                onlycoords = True
                 nmodel += 1
                 n_atoms = acount 
                 acount = 0
@@ -1168,6 +1178,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     _evalAltlocs(atomgroup, altloc, chainids, resnums, 
                                  resnames, atomnames)
                     altloc = defaultdict(list)
+                if END:
+                    break
         elif isPDB and startswith == 'ANISOU':
             if anisou is None:
                 anisou = True
@@ -1204,8 +1216,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         i += 1
     if onlycoords:
         if acount == atomgroup.numAtoms():
-            atomgroup.addCoordset(coordinates)
-    else:            
+            coordsets[nmodel] = coordinates
+            nmodel += 1
+        atomgroup.setCoordinates(coordsets[:nmodel])
+    elif not END:
+        # this means last line wast an ATOM line, so atomgroup is not decorated
         atomgroup.setCoordinates(coordinates[:acount])
         if not only_subset:
             atomnames = np.char.strip(atomnames[:acount])
