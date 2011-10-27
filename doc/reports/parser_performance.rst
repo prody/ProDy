@@ -14,7 +14,7 @@ Dataset
 -------------------------------------------------------------------------------
 A non-redundant set of PDB structures was used. A list of PDB identifiers was 
 obtained from http://bioinfo.tg.fh-giessen.de/pdbselect 
-(:download:`pdb_select25`). The dataset contained 4701 uncompressed files. 
+(:download:`pdb_select25.txt`). The dataset contained 4701 uncompressed files. 
 
 Results
 -------------------------------------------------------------------------------
