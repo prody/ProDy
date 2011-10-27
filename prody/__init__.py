@@ -45,7 +45,7 @@ def deprecate(dep, alt, rel=(0,9)):
         # Assume that the deprecated method or function will be removed
         # when the next major release is made
         rel = float('.'.join((str(x) for x in rel[:2]))) + 0.1
-        warnings.warn('`{0:s}` is deprecated and will be removed in v{1:.1f}, '
+        warnings.warn('`{0:s}` is deprecated for removal in v{1:.1f}, '
                       'use `{2:s}`.'.format(dep, rel, alt), 
                       DeprecationWarning, stacklevel=3)
 
