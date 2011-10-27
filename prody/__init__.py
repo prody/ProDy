@@ -566,7 +566,7 @@ def checkCoordsArray(array, arg='array', cset=False, n_atoms=None,
     elif array.shape[-1] != 3:
         raise ValueError(arg + '.shape[-1] of 3, i.e. ([n_csets,]n_atoms,3)')
     if n_atoms is not None and n_atoms != 0 and array.shape[-2] != n_atoms:
-        raise ValueError(arg + ' size do nut match number of atoms')
+        raise ValueError(arg + ' size do not match number of atoms')
     if array.dtype != float:
         try:
             array = array.astype(float)
