@@ -3,8 +3,6 @@ include LICENSE.txt
 include README.txt
 include CHANGES.txt
 include setup.py
-include nmwiz_install.py
-include nmwiz_install.txt
 include prody/__init__.py
 include prody/atomic.py
 include prody/compare.py
@@ -50,5 +48,3 @@ include scripts/fetchpdb.py
 include scripts/gnm.py
 include scripts/pca.py
 include scripts/pdbselect.py
-include nmwiz0.8/nmwiz.tcl
-include nmwiz0.8/pkgIndex.tcl

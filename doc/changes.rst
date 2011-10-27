@@ -181,6 +181,15 @@ Release 0.9 (Nov 7, 2011)
   * Bugs in :func:`~proteins.execDSSP` and :func:`~proteins.execSTRIDE`
     functions that caused exceptions when compressed files were passed 
     is fixed.
+    
+  
+:ref:`nmwiz`
+-------------------------------------------------------------------------------
+
+Development of NMWiz is finalized and it will not be distributed in the ProDy
+installation package anymore.  See :ref:`nmwiz` pages for instructions on
+installing it. 
+
 
 Release 0.8.3 (Oct 16, 2011)
 ===============================================================================
