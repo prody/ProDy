@@ -1969,7 +1969,7 @@ class AtomSubset(AtomPointer):
     __metaclass__ = AtomSubsetMeta    
     __slots__ = ['_ag', '_indices', '_acsi']
     
-    def __init__(self, atomgroup, indices, acsi=None):
+    def __init__(self, atomgroup, indices, acsi=None, **kwargs):
         """Instantiate atom group base class. 
         
         :arg atomgroup: an atom group
@@ -1987,7 +1987,10 @@ class AtomSubset(AtomPointer):
             indices = np.array(indices, int)
         elif not indices.dtype == int:
             indices = indices.astype(int)
-        self._indices = np.unique(indices)
+        if kwargs.get('unique'):
+            self._indices = indices
+        else:
+            self._indices = np.unique(indices)
     
     def __iter__(self):
         """Iterate over atoms."""
@@ -2179,8 +2182,8 @@ class Chain(AtomSubset):
         
     __slots__ = AtomSubset.__slots__ + ['_seq', '_dict']
     
-    def __init__(self, atomgroup, indices, acsi=None):
-        AtomSubset.__init__(self, atomgroup, indices, acsi)
+    def __init__(self, atomgroup, indices, acsi=None, **kwargs):
+        AtomSubset.__init__(self, atomgroup, indices, acsi, **kwargs)
         self._seq = None
         self._dict = dict()
         
@@ -2299,8 +2302,8 @@ class Residue(AtomSubset):
      
     __slots__ = AtomSubset.__slots__ + ['_chain']
     
-    def __init__(self, atomgroup, indices, chain, acsi=None):
-        AtomSubset.__init__(self, atomgroup, indices, acsi)
+    def __init__(self, atomgroup, indices, chain, acsi=None, **kwargs):
+        AtomSubset.__init__(self, atomgroup, indices, acsi, **kwargs)
         self._chain = chain
 
     def __repr__(self):
@@ -2419,8 +2422,8 @@ class Selection(AtomSubset):
     
     __slots__ = AtomSubset.__slots__ + ['_selstr']
     
-    def __init__(self, atomgroup, indices, selstr, acsi=None):
-        AtomSubset.__init__(self, atomgroup, indices, acsi)
+    def __init__(self, atomgroup, indices, selstr, acsi=None, **kwargs):
+        AtomSubset.__init__(self, atomgroup, indices, acsi, **kwargs)
         self._selstr = str(selstr)
         
     def __repr__(self):
@@ -2777,72 +2780,71 @@ class HierView(object):
         
         return self._atoms
     
+    
     def update(self):
         """Rebuild hierarchical view of atoms.  This method is called at 
         instantiation, but can be used to rebuild the hierarchical view 
         when attributes of atoms change."""
         
-        what = 'built'
-        if self._chains:
-            what = 'updated'
-        #start = time.time()
+        array = np.array
         acsi = self._atoms.getACSI()
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
             atomgroup = atoms
             _indices = np.arange(atomgroup._n_atoms)
-            chainids = atomgroup.getChids() 
-            if chainids is None:
-                chainids = np.zeros(atomgroup._n_atoms, 
-                                    dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
-                atomgroup.setChids(chainids)
+            chids = atomgroup._getChids() 
+            if chids is None:
+                chids = np.zeros(atomgroup._n_atoms, 
+                                 dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+                atomgroup.setChids(chids)
         else:
             atomgroup = atoms._ag
             _indices = atoms._indices
-            chainids = atomgroup.getChids() 
-            if chainids is None:
-                chainids = np.zeros(atomgroup._n_atoms, 
-                                    dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
-                atomgroup.setChids(chainids)
-            chainids = chainids[_indices]
+            chids = atomgroup._getChids() 
+            if chids is None:
+                chids = np.zeros(atomgroup._n_atoms, 
+                                 dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
+                atomgroup.setChids(chids)
+            chids = chids[_indices]
 
-
-        for chid in np.unique(chainids):
-            ch = Chain(atomgroup, _indices[chainids == chid], acsi)
+        for chid in set(chids):
+            ch = Chain(atomgroup, _indices[chids == chid], acsi, unique=True)
             self._chains[chid] = ch
         
-        if atomgroup.getResnums() is None:
-            atomgroup.setResnums(np.zeros(atomgroup._n_atoms, 
-                                 dtype=ATOMIC_DATA_FIELDS['resnum'].dtype))
-        if atomgroup.getResnames() is None:
-            atomgroup.setResnames(np.zeros(atomgroup._n_atoms, 
-                                  dtype=ATOMIC_DATA_FIELDS['resname'].dtype))
-        if atomgroup.getIcodes() is None:
-            atomgroup.setIcodes(np.zeros(atomgroup._n_atoms, 
-                                dtype=ATOMIC_DATA_FIELDS['icode'].dtype))
+        _resnums = atomgroup._getResnums()
+        if _resnums is None:
+            _resnums = np.zeros(atomgroup._n_atoms, 
+                                dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
+            atomgroup.setResnums(_resnums)
+        
+        _icodes = atomgroup._getIcodes()
+        skip_icodes = False
+        if _icodes is None:
+            skip_icodes = True
+            _icodes = np.zeros(atomgroup._n_atoms, 
+                              dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
+            atomgroup.setIcodes(_icodes)
+        elif np.all(_icodes == ''):
+            skip_icodes = True
 
-        icodes = atomgroup.getIcodes()
-
-        for chain in self.iterChains():
-            chid = chain.getIdentifier()
+        
+        for chain in self._chains.itervalues():
+            _dict = chain._dict
             rd = defaultdict(list)
-            indices = chain.getIndices()
-            resnums = chain.getResnums()
-            for i in xrange(len(resnums)):
-                rd[resnums[i]].append(indices[i])
-            resnums = rd.keys()
-            resnums.sort()
-            for resnum in resnums:
-                resindices = np.array(rd[resnum])
-                res_icodes = icodes[resindices]
-                
-                for ic in np.unique(res_icodes): 
-                    subindices = resindices[res_icodes == ic]
-                    temp = subindices[0]
-                    res = Residue(atomgroup, subindices, chain, acsi)   
-                    chain._dict[(resnum, ic)] = res
-        #LOGGER.debug('Hierarchical view was {0:s} in {1:.2f}s.'
-        #             .format(what, time.time()-start))
+            idx = chain._indices
+            for i in idx:
+                rd[_resnums[i]].append(i)
+            for resnum, resindices in rd.iteritems():
+                resindices = array(resindices)
+                if skip_icodes:                    
+                    _dict[(resnum, '')] = Residue(atomgroup, resindices, 
+                                                  chain, acsi, unique=True)
+                else:
+                    icodes = _icodes[resindices]
+                    for ic in set(icodes): 
+                        _dict[(resnum, ic)] = Residue(atomgroup, 
+                                                      resindices[icodes == ic], 
+                                                      chain, acsi, unique=True)        
         
     def __repr__(self):
         return '<HierView: {0:s}>'.format(str(self._atoms))
