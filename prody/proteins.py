@@ -1037,7 +1037,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
-            resnums[acount] = int(line[22:26].split()[0])
+            resnums[acount] = int(line[22:26])#.split()[0])
             icodes[acount] = line[26]
             if isPDB:
                 try:
