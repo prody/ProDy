@@ -1145,7 +1145,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.setCoordinates(coordinates[:acount])
                 else:
                     coordsets = np.zeros((diff/acount+1, acount, 3))
-                    print coordsets.shape
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
                 if not only_subset:
@@ -1220,7 +1219,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         if acount == atomgroup.numAtoms():
             coordsets[nmodel] = coordinates
             nmodel += 1
-        atomgroup.setCoordinates(coordsets[:nmodel])
+        if nmodel == coordsets.shape[0]:
+            atomgroup.setCoordinates(coordsets)
+        else:
+            atomgroup.setCoordinates(coordsets[:nmodel])
     elif not END:
         # this means last line wast an ATOM line, so atomgroup is not decorated
         atomgroup.setCoordinates(coordinates[:acount])
