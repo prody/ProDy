@@ -987,12 +987,16 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         startswith = line[0:6]
         
         if startswith == 'ATOM  ' or startswith == 'HETATM':
-            atomname = line[12:16].strip()
-            resname = line[17:21].strip()
             if only_subset:
+                atomname = line[12:16].strip()
+                resname = line[17:21].strip()
                 if not (atomname in subset and resname in protein_resnames): 
                     i += 1
                     continue
+            else:
+                atomname = line[12:16]
+                resname = line[17:21]
+                
             chid = line[21]
             if only_chains:
                 if not chid in chain:
@@ -1031,12 +1035,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             serials[acount] = int(line[6:11])
             altlocs[acount] = alt 
             atomnames[acount] = atomname
-            
-            # resname = line[17:21], but some are 4 chars long
             resnames[acount] = resname
             chainids[acount] = chid
             resnums[acount] = int(line[22:26].split()[0])
-            icodes[acount] = line[26].strip()
+            icodes[acount] = line[26]
             if isPDB:
                 try:
                     occupancies[acount] = float(line[54:60])
@@ -1052,8 +1054,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if startswith[0] == 'H':
                     hetero[acount] = True
 
-                segnames[acount] = line[72:76].strip()
-                elements[acount] = line[76:78].strip()
+                segnames[acount] = line[72:76]
+                elements[acount] = line[76:78]
             else:
                 try:
                     charges[acount] = float(line[54:62])
@@ -1133,19 +1135,22 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     raise ValueError('PDB file and AtomGroup ag must have '
                                     'same number of atoms')
                 atomgroup.addCoordset(coordinates[:acount])
+                if not only_subset:
+                    atomnames = np.char.strip(atomnames[:acount])
+                    resnames = np.char.strip(resnames[:acount])
                 atomgroup.setNames(atomnames[:acount])
                 atomgroup.setResnames(resnames[:acount])
                 atomgroup.setResnums(resnums[:acount])
                 atomgroup.setChids(chainids[:acount])
                 atomgroup.setHeteros(hetero[:acount])
                 atomgroup.setAltlocs(altlocs[:acount])
-                atomgroup.setIcodes(icodes[:acount])
+                atomgroup.setIcodes(np.char.strip(icodes[:acount]))
                 atomgroup.setSerials(serials[:acount])
                 if isPDB:
                     atomgroup.setBetas(bfactors[:acount])
                     atomgroup.setOccupancies(occupancies[:acount])
-                    atomgroup.setSegnames(segnames[:acount])
-                    atomgroup.setElements(elements[:acount])
+                    atomgroup.setSegnames(np.char.strip(segnames[:acount]))
+                    atomgroup.setElements(np.char.strip(elements[:acount]))
                     if anisou is not None:
                         atomgroup.setAnisous(anisou[:acount] / 10000)
                     if siguij is not None:
@@ -1154,7 +1159,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.setCharges(charges[:acount])
                     atomgroup.setRadii(radii[:acount])
                     
-                
                 onlycoords = True
                 nmodel += 1
                 n_atoms = acount 
@@ -1184,8 +1188,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if siguij is None:
                 siguij = np.zeros((alength, 6), 
                     dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
-
-
             try:
                 index = acount - 1
                 siguij[index, 0] = float(line[28:35])
@@ -1205,21 +1207,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomgroup.addCoordset(coordinates)
     else:            
         atomgroup.setCoordinates(coordinates[:acount])
+        if not only_subset:
+            atomnames = np.char.strip(atomnames[:acount])
+            resnames = np.char.strip(resnames[:acount])
         atomgroup.setNames(atomnames[:acount])
         atomgroup.setResnames(resnames[:acount])
         atomgroup.setResnums(resnums[:acount])
         atomgroup.setChids(chainids[:acount])
         atomgroup.setHeteros(hetero[:acount])
         atomgroup.setAltlocs(altlocs[:acount])
-        atomgroup.setIcodes(icodes[:acount])
+        atomgroup.setIcodes(np.char.strip(icodes[:acount]))
         atomgroup.setSerials(serials[:acount])
         if isPDB:
             if anisou is not None:
                 atomgroup.setAnisous(anisou[:acount] / 10000)
             if siguij is not None:
                 atomgroup.setAnistds(siguij[:acount] / 10000)
-            atomgroup.setSegnames(segnames[:acount])
-            atomgroup.setElements(elements[:acount])
+            atomgroup.setSegnames(np.char.strip(segnames[:acount]))
+            atomgroup.setElements(np.char.strip(elements[:acount]))
             atomgroup.setBetas(bfactors[:acount])
             atomgroup.setOccupancies(occupancies[:acount])
         else:
@@ -1253,24 +1258,24 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                     indices[ach] = ids
                 ids = ids[resnums[ids] == ari]
                 if len(ids) == 0:
-                    LOGGER.warning('failed to parse alternate location {0:s} '
-                                   'at line {1:d}, residue does not exist as '
-                                   'altloc A'.format(key, i+1))
+                    LOGGER.warning("failed to parse alternate location '{0:s}'" 
+                                   " at line {1:d}, residue does not exist as "
+                                   "altloc 'A'".format(key, i+1))
                     continue
                 rn = resnames[ids[0]]
                 ans = atomnames[ids]
                 indices[(ach, ari)] = (rn, ids, ans)
             if rn != arn:
-                LOGGER.warning('failed to parse alternate location {0:s} at '
-                               'line {1:d}, residue names do not match '
-                               '(expected {2:s}, parsed {3:s})'
+                LOGGER.warning("failed to parse alternate location '{0:s}' at "
+                               "line {1:d}, residue names do not match" 
+                               "(expected '{2:s}', parsed '{3:s}')"
                                .format(key, i+1, rn, arn))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
-                LOGGER.warning('failed to parse alternate location {0:s} at '
-                               'line {1:d}, could not identify matching atom '
-                               '({2:s} not found in the residue)'
+                LOGGER.warning("failed to parse alternate location '{0:s}' at "
+                               "line {1:d}, could not identify matching atom "
+                               "('{2:s}' not found in the residue)"
                                .format(key, i+1, aan))
                 continue
             try:
