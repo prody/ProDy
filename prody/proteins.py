@@ -1134,7 +1134,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     coordsets[nmodel] = coordinates
                     nmodel += 1
                 acount = 0
-                coordinates = np.zeros((n_atoms, 3), dtype=float)
+                if not END:
+                    coordinates = coordsets[nmodel]
             else:
                 if acount != n_atoms > 0:
                     raise ValueError('PDB file and AtomGroup ag must have '
@@ -1144,6 +1145,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.setCoordinates(coordinates[:acount])
                 else:
                     coordsets = np.zeros((diff/acount+1, acount, 3))
+                    print coordsets.shape
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
                 if not only_subset:
