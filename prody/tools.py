@@ -35,7 +35,7 @@ __all__ = ['PackageLogger',
            'checkCoordsArray', 
            'gunzip', 'openFile',
            'isExecutable', 'which', 'relpath', 
-           'pickleObject', 'unpickleObject',
+           'pickle', 'unpickle',
            ]
 
 
@@ -348,13 +348,13 @@ def which(program):
                 return path
     return None
 
-def pickleObject(obj, filename):
+def pickle(obj, filename):
     out = openFile(filename, 'wb')
     cPickle.dump(obj, out)
     out.close()
     return filename
 
-def unpickleObject(filename):
+def unpickle(filename):
     inf = openFile(filename, 'rb')
     obj = cPickle.load(inf)
     inf.close()

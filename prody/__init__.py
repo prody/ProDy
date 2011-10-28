@@ -146,7 +146,7 @@ def importBioPairwise2():
 
 def _loadProDySettings():
     if os.path.isfile(PACKAGE_CONF):
-        settings = unpickleObject(PACKAGE_CONF)
+        settings = unpickle(PACKAGE_CONF)
     if not isinstance(settings, dict):
         settings = {
             'loglevel': 'debug',
@@ -156,7 +156,7 @@ def _loadProDySettings():
 _ProDySettings = _loadProDySettings() 
 
 def _saveProDySettings():
-    pickleObject(_ProDySettings, PACKAGE_CONF)
+    pickle(_ProDySettings, PACKAGE_CONF)
 
 def setPackagePath(path):
     if not os.path.isdir(path):
