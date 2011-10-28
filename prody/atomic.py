@@ -108,9 +108,9 @@ import time
 
 import numpy as np
 
+from tools import *
 import prody
 LOGGER = prody.LOGGER
-checkCoordsArray = prody.checkCoordsArray 
 
 __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
            'Selection', 'Chain',

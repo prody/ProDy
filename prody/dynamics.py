@@ -289,12 +289,13 @@ scipy_sparse = None
 scipy_sparse_la = None
 
 import prody
-from .atomic import *
-from .ensemble import *
+from atomic import *
+from ensemble import *
+from tools import *
 LOGGER = prody.LOGGER
 from prody import ProDyAtomSelect as SELECT
 from prody import ProDyException
-checkCoordsArray = prody.checkCoordsArray
+
 
 __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector', 
            

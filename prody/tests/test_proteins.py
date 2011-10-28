@@ -33,6 +33,7 @@ import numpy as np
 from numpy.testing import *
 
 from prody import *
+from prody.tools import *
 from test_datafiles import *
 
 prody.changeVerbosity('none')
@@ -372,7 +373,7 @@ class TestDSSPFunctions(unittest.TestCase):
         self.pdbs = [DATA_FILES['dssp']]
     
     @dec.slow
-    @unittest.skipIf(prody.which('dssp') is None, 'dssp is not found')
+    @unittest.skipIf(which('dssp') is None, 'dssp is not found')
     def testDSSPBridgePartners(self):
         """Check if the DSSP bridge-partners were correctly parsed and 
         assigned."""

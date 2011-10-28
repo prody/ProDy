@@ -130,7 +130,6 @@ Function                   Description
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
-import gzip
 import os.path
 import time
 import os
@@ -140,6 +139,8 @@ from glob import glob
 from collections import defaultdict
 
 import numpy as np
+
+from tools import *
 
 BioBlast = None
 
@@ -176,7 +177,7 @@ class PDBParseError(Exception):
 def _makePath(path):
     """Make all directories that does not exist in a given path."""
     if os.path.isabs(path):
-        path = prody.relpath(path)
+        path = relpath(path)
     if not os.path.isdir(path):
         dirs = path.split(os.sep)
         for i in range(len(dirs)):
@@ -460,7 +461,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
         else:
             fn = pdbfnmap.get(pdbid, None) or pdbfnmap.get('pdb'+pdbid, None)
         if fn:
-            fn = prody.relpath(fn)
+            fn = relpath(fn)
             if not compressed:
                 temp, ext = os.path.splitext(fn) 
                 if ext == '.gz':
@@ -586,7 +587,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                     pdbfile.close()
                     if not compressed:
                         gunzip(filename)
-                    filename = prody.relpath(filename)
+                    filename = relpath(filename)
                     LOGGER.debug('{0:s} downloaded ({1:s})'
                                  .format(pdbid, filename))
                     success += 1
@@ -599,25 +600,6 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                     '{0:d} downloaded, {1:d} failed).'
                     .format(success, failure, exists))
         return filenames
-
-def gunzip(filename, outname=None):
-    """Decompresses *filename* and saves as *outname*.  When *outname* is 
-    ``None``, *filename* is used as the output name.  Returns output filename 
-    upon successful completion."""
-
-    if not isinstance(filename, str):
-        raise TypeError('filename must be a string')
-    if not os.path.isfile(filename):
-        raise ValueError('{0:s} does not exist'.format(filename))
-    if outname is None: 
-        outname = filename
-    inp = gzip.open(filename, 'rb')
-    data = inp.read()
-    inp.close()
-    out = open(outname, 'w')
-    out.write(data)
-    out.close()
-    return outname
 
 _parsePQRdoc = """
     :arg title: Title of the AtomGroup instance.  When ``None`` is passed,
@@ -727,10 +709,7 @@ def parsePDB(pdb, **kwargs):
             fn, ext = os.path.splitext(fn)
         title = fn.lower()
         kwargs['title'] = title
-    if pdb.endswith('.gz'):
-        pdb = gzip.open(pdb)
-    else:
-        pdb = open(pdb)
+    pdb = openFile(pdb)
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
@@ -875,10 +854,7 @@ def parsePQR(filename, **kwargs):
         ag = prody.AtomGroup(title + title_suffix)
         n_csets = 0
         
-    if filename.endswith('.gz'):
-        pqr = gzip.open(filename)
-    else:
-        pqr = open(filename)
+    pqr = openFile(filename)
     lines = pqr.readlines()
     pqr.close()
     start = time.time()
@@ -1605,10 +1581,7 @@ def parsePDBHeader(pdb, *keys):
         else:
             raise IOError('{0:s} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
-    if pdb.endswith('.gz'):
-        pdb = gzip.open(pdb)
-    else:
-        pdb = open(pdb)
+    pdb = openFile(pdb)
     header, _ = _getHeaderDict(pdb, *keys)
     pdb.close()
     return header
@@ -2030,7 +2003,7 @@ def parsePSF(filename, title=None, ag=None):
         if not isinstance(ag, prody.AtomGroup):
             raise TypeError('ag must be an AtomGroup instance') 
     
-    psf = open(filename)
+    psf = openFile(filename)
     line = psf.readline()
     i_line = 1
     while line:
@@ -2505,13 +2478,11 @@ def writePDBStream(stream, atoms, model=None):
 writePDBStream.__doc__ += _writePDBdoc
 
 def writePDB(filename, atoms, model=None):
-    """Write *atoms* in PDB format to a file with name *filename*.
+    """Write *atoms* in PDB format to a file with name *filename*.  Returns 
+    *filename* upon success.  If *filename* ends with :file:`.gz`, a compressed
+    file will be written."""
     
-    Returns *filename* if file is successfully written. 
-    """
-    
-    assert isinstance(filename, str), 'filename must be a string instance'
-    out = open(filename, 'w')
+    out = openFile(filename, 'w')
     writePDBStream(out, atoms, model)
     out.close()
     return filename
@@ -2520,17 +2491,16 @@ writePDB.__doc__ += _writePDBdoc
 
 def writePQR(filename, atoms):
     """|new| Write *atoms* in PQR format to a file with name *filename*.  Only 
-    current coordinate set is written.  Returns *filename* if file is 
-    successfully written."""
+    current coordinate set is written.  Returns *filename* upon success.  If 
+    *filename* ends with :file:`.gz`, a compressed file will be written.."""
     
-    assert isinstance(filename, str), 'filename must be a string instance'
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
                                 atoms.getACSI(), 
                                 'index ' + str(atoms.getIndex()))
-
+    stream = openFile(filename, 'w')
     n_atoms = atoms.numAtoms()
     atomnames = atoms.getNames()
     if atomnames is None:
@@ -2572,7 +2542,6 @@ def writePQR(filename, atoms):
               '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
               '{8:8.3f}{9:8.3f}{10:8.3f}' +
               '{11:8.4f}{12:7.4f}\n').format
-    stream = open(filename, 'w')
     coords = atoms._getCoordinates()
     write = stream.write
     for i, xyz in enumerate(coords):
@@ -2728,8 +2697,8 @@ def fetchLigandData(cci, save=False, folder='.'):
     
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
-    elif os.path.isfile(cci):
-        inp = open(cci)
+    if os.path.isfile(cci):
+        inp = openFile(cci)
         xml = inp.read()
         inp.close()
     elif len(cci) > 4 or not cci.isalnum(): 
@@ -2748,7 +2717,7 @@ def fetchLigandData(cci, save=False, folder='.'):
             xml = inp.read()
             inp.close()
         if save:
-            out = open(os.path.join(folder, cci+'.xml'), 'w')
+            out = openFile(cci+'.xml', mode='w', folder=folder)
             out.write(xml)
             out.close()
 
@@ -2996,7 +2965,7 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     
     .. versionadded:: 0.8"""
     
-    dssp = prody.which('dssp')
+    dssp = which('dssp')
     if dssp is None:
         raise EnvironmentError('command not found: dssp executable is not '
                                'found in one of system paths')
@@ -3176,7 +3145,7 @@ def execSTRIDE(pdb, outputname=None, outputdir=None):
     
     .. versionadded:: 0.8"""
     
-    stride = prody.which('stride')
+    stride = which('stride')
     if stride is None:
         raise EnvironmentError('command not found: stride executable is not '
                                'found in one of system paths')
@@ -3292,8 +3261,7 @@ def fetchPDBClusters():
                            'not be downloaded.')
             continue
         else:
-            out = gzip.open(os.path.join(PDB_CLUSTERS_PATH, 
-                                         filename+'.gz'), 'w')
+            out = openFile(filename+'.gz', 'w', folder=PDB_CLUSTERS_PATH) 
             out.write(inp.read())
             inp.close()
             out.close()
@@ -3334,7 +3302,7 @@ def loadPDBClusters(sqid=None):
                                'call `fetchPDBClusters` to receive updates.'
                                .format(diff))
                 PDB_CLUSTERS_UPDATE_WARNING = False
-        inp = gzip.open(filename)
+        inp = openFile(filename)
         
         clusters = {}
         for line in inp.readlines():

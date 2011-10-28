@@ -79,8 +79,8 @@ from struct import calcsize, unpack, pack
 import numpy as np
 import prody
 from prody import measure
+from tools import *
 LOGGER = prody.LOGGER
-checkCoordsArray = prody.checkCoordsArray
 
 PISQUARE = np.pi ** 2
 
@@ -1715,7 +1715,7 @@ class TrajectoryFile(TrajectoryBase):
         
         if absolute:
             return os.path.abspath(self._filename)    
-        return prody.relpath(self._filename)
+        return relpath(self._filename)
     
     def getFrame(self, index):
         """Return frame at given *index*."""

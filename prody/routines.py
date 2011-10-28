@@ -26,6 +26,7 @@ import os.path
 import numpy as np
 
 from prody import *
+from tools import *
 LOGGER = prody.LOGGER
 
 __all__ = ['anm', 'gnm', 'pca', 'alignmodels', 'biomolecule', 'blastpdb',
@@ -243,7 +244,7 @@ graphical output files:
         writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
             anm.getEigenvalues(), delimiter=delim, format=format)
     if outall or opt.beta:
-        fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
+        fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChids(), select.getResnames(), 
@@ -437,7 +438,7 @@ save all of the graphical output files:
             gnm.getEigenvalues(), delimiter=delim, format=format)
     
     if outall or opt.beta:
-        fout = open(os.path.join(outdir, prefix + '_beta.txt'), 'w')
+        fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChids(), select.getResnames(), 
@@ -854,7 +855,7 @@ Fetch pdb 2bfu and generate the biomolecular assembly:
 
 def readFirstSequenceFasta(seqfn):
     """Return first sequence from a file."""
-    f = open(seqfn)
+    f = openFile(seqfn)
     lines = []
     n = 0
     for line in f.xreadlines():
@@ -995,7 +996,7 @@ Fetch PDB files for given identifiers:
     pdblist = []
     pdblist += args
     if opt.listfn != '':
-        f = open(listfn)
+        f = openFile(listfn)
         for line in f.xreadlines():
             line = line.strip()
             for s in line.split(','):
