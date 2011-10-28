@@ -1189,7 +1189,8 @@ class Select(object):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                       atoms.getSelstr())
             
-            return prody.Selection(ag, indices, selstr, atoms.getACSI())
+            return prody.Selection(ag, indices, selstr, atoms.getACSI(),
+                                   unique=True)
         
     def _reset(self):
         if DEBUG: print('_reset')
@@ -2170,5 +2171,5 @@ class Contacts(object):
         if len(indices) != 0:
             return Selection(self._ag, np.array(indices), 
                 'index {0:s}'.format(' '.join(np.array(indices, '|S'))), 
-                                     self._acsi)
+                                     self._acsi, unique=True)
         return None
