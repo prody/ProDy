@@ -68,12 +68,6 @@ NMWiz is available under the `University of Illinois/NCSA Open Source License
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH 
   THE SOFTWARE.
 
-MultiPlot
-===============================================================================
-NMWiz makes use of a modified version of VMD plug-in 
-`MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_, 
-which is also distributed under UIUC Open Source License.
-
 Biopython
 ===============================================================================
 
