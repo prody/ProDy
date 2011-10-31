@@ -78,7 +78,8 @@ def addOutput(parser):
 def addNumericalOptions(parser, prefix):
     parser.add_option('-p', '--file-prefix', dest='prefix', type='string', 
                       default=prefix, metavar='STRING', 
-                      help=('prefix for output files, default is "PDB%default"'))
+                      help=('prefix for output files, default is '
+                            '"PDB%default"'))
     parser.add_option('-f', '--number-format', dest='numformat', type='string', 
                      default=DEFAULT_NUMBER_FORMAT, metavar='STRING',
                      help=('delimiter, default is "%default"'))
@@ -169,18 +170,17 @@ downloaded."""
     addFigureOptions(group)
     parser.add_option_group(group)
     
-    usage_examples="""
-Fetch PDB 1p38, run ANM calculations using default parameters, and write 
+    usage_examples="""Fetch PDB 1p38, run ANM calculations using default \
+parameters, and write 
 NMD file:
     
-  $ anm.py 1p38
+  $ prody anm 1p38
     
 Fetch PDB 1aar, run ANM calculations using default parameters for chain A 
 carbon alpha atoms with residue numbers less than 70, and save all of the
 graphical output files:
 
-  $ anm.py 1aar -s "calpha and chain A and resnum < 70" -A
-"""
+  $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A"""
     
     opt, args = parser.parse_args()
     if opt.examples:
@@ -365,17 +365,16 @@ downloaded."""
     addFigureOptions(group)
     parser.add_option_group(group)
     
-    usage_examples="""
-Fetch PDB 1p38, run GNM calculations using default parameters, and results:
+    usage_examples="""Fetch PDB 1p38, run GNM calculations using default \
+parameters, and results:
     
-  $ gnm.py 1p38
+  $ prody gnm 1p38
     
 Fetch PDB 1aar, run GNM calculations with cutoff distance 7 angstrom for 
 chain A carbon alpha atoms with residue numbers less than 70, and 
 save all of the graphical output files:
 
-  $ gnm.py 1aar -c 7 -s "calpha and chain A and resnum < 70" -A
-"""
+  $ prody gnm 1aar -c 7 -s "calpha and chain A and resnum < 70" -A"""
     opt, args = parser.parse_args()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
@@ -569,16 +568,15 @@ from a wwPDB FTP server."""
     addFigureOptions(group)
     parser.add_option_group(group)
     
-    usage_examples="""
-Fetch pdb 2k39, perform PCA calculations, and output NMD file:
+    usage_examples="""Fetch pdb 2k39, perform PCA calculations, and output \
+NMD file:
     
-    $ pca.py 2k39
+    $ prody pca 2k39
     
 Fetch pdb 2k39 and perform calculations for backbone of residues up to 71,
 and save all output and figure files:
 
-    $ pca.py 2k39 --select "backbone and resnum < 71" -a -A
-"""
+    $ prody pca 2k39 --select "backbone and resnum < 71" -a -A"""
     
     opt, args = parser.parse_args()
     if opt.examples:
@@ -722,7 +720,8 @@ def alignmodels():
     
     usage = """prody %prog [options] PDB  
 
-Align models in PDB file using selected atoms and save aligned coordinate sets."""
+Align models in PDB file using selected atoms and save aligned coordinate \
+sets."""
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -736,16 +735,14 @@ Align models in PDB file using selected atoms and save aligned coordinate sets."
                       default=1, metavar='INT',
                       help=('model index onto which other models will be ' 
                             'superposed, default is %default'))
-    usage_examples="""
-Fetch pdb 2k39 and align models:
+    usage_examples="""Fetch pdb 2k39 and align models:
     
-    $ alignmodels.py 2k39
+    $ prody align 2k39
     
 Fetch pdb 2k39 and align models using backbone of residues with number smaller
 than 71:
 
-    $ alignmodels.py 2k39 --select "backbone and resnum < 71"
-"""
+    $ prody align 2k39 --select "backbone and resnum < 71" """
         
     opt, args = parser.parse_args()
     if opt.examples:
@@ -799,11 +796,9 @@ Generate biomolecule coordinates."""
     parser.add_option('-b', '--biomol', dest='biomol', type='int', 
                       default=None, metavar='INT',
                       help='index of the biomolecule, default is "%default"')
-    usage_examples="""
-Fetch pdb 2bfu and generate the biomolecular assembly:
+    usage_examples="""Fetch pdb 2bfu and generate the biomolecular assembly:
     
-  $ biomolecule.py 2bfu
-"""
+  $ prody biomol 2bfu"""
         
     opt, args = parser.parse_args()
     if opt.examples:
@@ -877,15 +872,14 @@ in fasta format."""
     parser.add_option('-i', '--identity', dest='identity', type='float', 
                       default=90.0, metavar='FLOAT', 
                       help='percent sequence identity, default is %default%')
-    usage_examples="""
-Blast search PDB for the first sequence in a fasta file:
+    usage_examples="""Blast search PDB for the first sequence in a fasta file:
     
   $ prody blast seq.fasta -i 70
 
 Blast search PDB for the sequence argument:
 
-  $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
-"""
+  $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQ\
+KESTLHLVLRLRGG"""
         
     opt, args = parser.parse_args()
     if opt.examples:
@@ -961,11 +955,9 @@ Download PDB files specified by their identifiers."""
                       help='file that contains PDB identifiers')
     parser.add_option('-z', '--gzip', dest='gzip', action='store_true', 
                      default=False, help='write compressed PDB file')
-    usage_examples="""
-Fetch PDB files for given identifiers:
+    usage_examples="""Fetch PDB files for given identifiers:
     
-  $ fetchpdb.py 1mkp 1p38
-"""
+  $ prody fetch 1mkp 1p38"""
     
     opt, args = parser.parse_args()
     if opt.examples:
@@ -1009,12 +1001,12 @@ Select atoms specified by SELECTION from PDB and write them in a file."""
     addOptions(parser)
     parser.add_option('-p', '--prefix', dest='prefix', type='string', 
                       default='', metavar='STRING', 
-                      help=('prefix for output files, default is "PDB_selected"'))
-    usage_examples="""
-Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
+                      help=('prefix for output files, default is '
+                            '"PDB_selected"'))
+    usage_examples="""Fetch PDB 1aar and write chain A carbon alpha atoms in \
+a file:
         
-  $ pdbselect.py 2bfu "backbone"
-"""
+  $ prody select 2bfu "backbone" """
     
     opt, args = parser.parse_args()
     if opt.examples:
@@ -1046,7 +1038,7 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
     prody.writePDB(prefix + '.pdb', pdbselect)
     
 
-PRODY_ROUTINES = {
+PRODY_COMMANDS = {
     'anm': anm,
     'gnm': gnm,
     'pca': pca,
@@ -1083,7 +1075,7 @@ def routines():
             print(USAGE)
             sys.exit()
         try:
-            PRODY_ROUTINES[arg]()
+            PRODY_COMMANDS[arg]()
         except KeyError:
             sys.stderr.write("prody: '{0:s}' is not a prody command. "
                              "See 'prody --help'.\n".format(arg)) 
