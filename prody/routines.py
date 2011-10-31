@@ -604,16 +604,13 @@ and save all output and figure files:
 
     if pdb.endswith('.dcd') or pdb.endswith('.DCD'):     
         LOGGER.info('A DCD file is detected, using all atoms for calculation.')
-        coords = prody.parseDCD(pdb).astype(float)
-        if len(coords) < 2:
+        ensemble = prody.parseDCD(pdb)
+        if len(ensemble) < 2:
             print "\nError: DCD file must contain multiple frames.\n"
             sys.exit(-1)
         pca = prody.PCA(pdb[:-4])
-        ensemble = prody.Ensemble(pdb[:-4])
-        ensemble.setCoordinates(coords[0])
-        ensemble.addCoordset(coords)
         select = prody.AtomGroup(pdb[:-4])
-        select.setCoordinates(coords[0])
+        select.setCoordinates(ensemble.getCoordinates())
     else:
         pdb = prody.parsePDB(pdb)
         if pdb.numCoordsets() < 2:
@@ -633,8 +630,6 @@ and save all output and figure files:
     ensemble.iterpose()
     
     pca.performSVD(ensemble)
-    #pca.buildCovariance(ensemble)
-    #pca.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
     if opt.npz:
         prody.saveModel(pca)
