@@ -154,14 +154,14 @@ def updateMonthlyStats():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        if sys.argv[1] == 'monthly':
+        if sys.argv[1].lower().startswith('m'):
             updateMonthlyStats()
-        elif sys.argv[1] == 'print':
-            stats = loadStats()
-            keys = stats.keys()
-            keys.sort(reverse=True)
-            for key in keys: 
-                print key, stats[key]
+        elif sys.argv[1].lower().startswith('d'):
+            updateReleaseStats()
     else:
-        updateReleaseStats()
+        stats = loadStats()
+        keys = stats.keys()
+        keys.sort(reverse=True)
+        for key in keys: 
+            print key, stats[key]
         
