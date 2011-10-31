@@ -918,8 +918,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
         elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
         bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
-        occupancies = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['occupancy']
-                               .dtype)
+        occupancies = np.zeros(asize, 
+                               dtype=ATOMIC_DATA_FIELDS['occupancy'].dtype)
         secondary = None
         anisou = None
         siguij = None
@@ -986,9 +986,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
             try:
-                coordinates[acount, 0] = float(line[30:38])
-                coordinates[acount, 1] = float(line[38:46])
-                coordinates[acount, 2] = float(line[46:54])
+                coordinates[acount, 0] = line[30:38]
+                coordinates[acount, 1] = line[38:46]
+                coordinates[acount, 2] = line[46:54]
             except:
                 if acount >= n_atoms > 0:
                     if nmodel ==0:
@@ -1010,38 +1010,35 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
             
-            serials[acount] = int(line[6:11])
+            serials[acount] = line[6:11]
             altlocs[acount] = alt 
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
-            resnums[acount] = int(line[22:26])#.split()[0])
+            resnums[acount] = line[22:26]#.split()[0])
             icodes[acount] = line[26]
             if isPDB:
                 try:
-                    occupancies[acount] = float(line[54:60])
+                    occupancies[acount] = line[54:60]
                 except:
                     LOGGER.warning('failed to parse occupancy at line {0:d}'
                                    .format(i))
                 try:
-                    bfactors[acount] = float(line[60:66])
+                    bfactors[acount] = line[60:66]
                 except:
                     LOGGER.warning('failed to parse beta-factor at line {0:d}'
                                    .format(i))
-                
-                if startswith[0] == 'H':
-                    hetero[acount] = True
-
+                hetero[acount] = startswith[0] == 'H'
                 segnames[acount] = line[72:76]
                 elements[acount] = line[76:78]
             else:
                 try:
-                    charges[acount] = float(line[54:62])
+                    charges[acount] = line[54:62]
                 except:
                     LOGGER.warning('failed to parse charge at line {0:d}'
                                    .format(i))
                 try:
-                    radii[acount] = float(line[62:69])
+                    radii[acount] = line[62:69]
                 except:
                     LOGGER.warning('failed to parse radius at line {0:d}'
                                    .format(i))
@@ -1164,12 +1161,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
             try:
                 index = acount - 1
-                anisou[index, 0] = float(line[28:35])
-                anisou[index, 1] = float(line[35:42])
-                anisou[index, 2] = float(line[43:49])
-                anisou[index, 3] = float(line[49:56])
-                anisou[index, 4] = float(line[56:63])
-                anisou[index, 5] = float(line[63:70])
+                anisou[index, 0] = line[28:35]
+                anisou[index, 1] = line[35:42]
+                anisou[index, 2] = line[43:49]
+                anisou[index, 3] = line[49:56]
+                anisou[index, 4] = line[56:63]
+                anisou[index, 5] = line[63:70]
             except:
                 LOGGER.warning('failed to parse anisotropic temperature '
                     'factors at line {0:d}'.format(i))
@@ -1179,12 +1176,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
             try:
                 index = acount - 1
-                siguij[index, 0] = float(line[28:35])
-                siguij[index, 1] = float(line[35:42])
-                siguij[index, 2] = float(line[43:49])
-                siguij[index, 3] = float(line[49:56])
-                siguij[index, 4] = float(line[56:63])
-                siguij[index, 5] = float(line[63:70])
+                siguij[index, 0] = line[28:35]
+                siguij[index, 1] = line[35:42]
+                siguij[index, 2] = line[43:49]
+                siguij[index, 3] = line[49:56]
+                siguij[index, 4] = line[56:63]
+                siguij[index, 5] = line[63:70]
             except:
                 LOGGER.warning('failed to parse standard deviations of '
                     'anisotropic temperature factors at line {0:d}'.format(i))
