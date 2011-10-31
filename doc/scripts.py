@@ -6,7 +6,8 @@ from os import system
 from glob import glob
 from os import path
 
-for script in glob('../scripts/*py'): 
-    name = path.splitext(path.split(script)[1])[0]
-    system(script + ' -h > ' + path.join('scripts', name + '.txt'))
-    system(script + ' --examples > ' + path.join('scripts', name + '_eg.txt'))
+from prody import routines
+
+for cmd in routines.PRODY_COMMANDS: 
+    system('prody ' + cmd + ' -h > ' + path.join('scripts', 'prody_' + cmd + '.txt'))
+    system('prody ' + cmd + ' --examples > ' + path.join('scripts', 'prody_' + cmd + '_eg.txt'))
