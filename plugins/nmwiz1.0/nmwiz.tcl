@@ -1591,12 +1591,14 @@ orange3"
     set dof 0
     foreach nmdline $nmdlist {
       switch -exact [lindex $nmdline 0] {
-        name {
+        name -
+        title {
           set title [lrange $nmdline 1 end]
         }
         coordinates {
         }
-        atomnames {
+        atomnames -
+        names {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
             vmdcon -info "NMWiz WARNING: Length of atomnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
@@ -1610,21 +1612,25 @@ orange3"
             set resnames [lrange $nmdline 1 end]
           }
         }
-        chainids {
+        chainids -
+        chids -
+        chains {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
             vmdcon -info "NMWiz WARNING: Length of chainids array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set chainids [lrange $nmdline 1 end]
           }
         }
-        resids {
+        resids -
+        resnums {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
             vmdcon -info "NMWiz WARNING: Length of resids array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set resids [lrange $nmdline 1 end]
           }
         }
-        bfactors {
+        bfactors -
+        betas {
           if {[llength $nmdline] != [expr $n_atoms + 1]} {
             vmdcon -info "NMWiz WARNING: Length of bfactors array must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
@@ -2126,8 +2132,8 @@ orange3"
             -xsize [subst $${ns}::plotwidth] -ysize [subst $${ns}::plotheight] \
             -radius [subst $${ns}::mradius] \
             -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
-            -xlabel "Residue #" \
-            -ns $ns \
+            -xlabel "Atom/Residue #" \
+            -nmwiz $ns \
             -plot
              
         } else {
@@ -2140,8 +2146,8 @@ orange3"
             -xsize [subst $${ns}::plotwidth] -ysize [subst $${ns}::plotheight] \
             -radius [subst $${ns}::mradius] \
             -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
-            -xlabel "Residue #" \
-            -ns $ns \
+            -xlabel "Atom/Residue #" \
+            -nmwiz $ns \
             -plot]
         }
         vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
