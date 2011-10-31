@@ -23,14 +23,8 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan, Lidio Meireles'
 import sys
 import os.path
 
-import numpy as np
-
-from prody import *
-from tools import *
-LOGGER = prody.LOGGER
-
-__all__ = ['anm', 'gnm', 'pca', 'alignmodels', 'biomolecule', 'blastpdb',
-           'fetchpdb', 'pdbselect']
+__all__ = ['routines', 'anm', 'gnm', 'pca', 'alignmodels', 'biomolecule',
+           'blastpdb', 'fetchpdb', 'pdbselect']
 
 PY3K = sys.version_info[0] > 2
 
@@ -44,16 +38,14 @@ DEFAULT_FILE_EXT = '.txt'
 DEFAULT_NUMBER_FORMAT = '%12g'
 DEFAULT_DELIMITER = ' '
 
+
 def addOptions(parser):
     parser.add_option('', '--examples', dest='examples', action='store_true', 
                       default=False, 
                       help='show usage examples and exit')
     parser.add_option('', '--quiet', dest='silent', action='store_true', 
                       default=False, 
-                      help='don\'t print status messages to stdout')
-    parser.add_option('', '--version', dest='version', action='store_true', 
-                      default=False, 
-                      help='print ProDy version and exit')
+                      help='don\'t print log messages to stderr')
 
 def addParameters(parser):
     parser.add_option('-n', '--number-of-modes', dest='nmodes', type='int', 
@@ -127,13 +119,11 @@ def addFigureOptions(parser):
 def anm():
     """Perform ANM calculations based on command line arguments."""
     
-    usage = """%prog [options] PDB
-
-ProDy v{0:s} - Anisotropic Network Model
+    usage = """prody %prog [options] PDB
 
 Perform ANM calculations for given PDB structure and output results in NMD 
 format. If an identifier is passed, file from the PDB FTP server will be 
-downloaded.""".format(prody.__version__)
+downloaded."""
  
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -193,9 +183,6 @@ graphical output files:
 """
     
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print('Usage Examples:\n' + usage_examples)
         sys.exit(-1)
@@ -207,15 +194,20 @@ graphical output files:
     if not os.path.isdir(outdir):
         print('Error: {0:s} is not a valid path'.format(outdir))
         sys.exit(-1)
+
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
     
     pdb = args[0]
     prefix = opt.prefix
     cutoff, gamma = opt.cutoff, opt.gamma, 
     nmodes, selstr, model = opt.nmodes, opt.select, opt.model
     
-    pdb = parsePDB(pdb, model=model)
+    pdb = prody.parsePDB(pdb, model=model)
     if prefix == '_anm':
         prefix = pdb.getTitle() + '_anm'
 
@@ -227,49 +219,50 @@ graphical output files:
     LOGGER.info('{0:d} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
-    anm = ANM(pdb.getTitle())
+    anm = prody.ANM(pdb.getTitle())
     anm.buildHessian(select, cutoff, gamma)
     anm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
     if opt.npz:
-        saveModel(anm)
-    writeNMD(os.path.join(outdir, prefix + '.nmd'), anm, select)
+        prody.saveModel(anm)
+    prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), anm, select)
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
 
     if outall or opt.eigen:
-        writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
-            anm.getArray(), delimiter=delim, format=format)
-        writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-            anm.getEigenvalues(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+                         anm.getArray(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+                         anm.getEigenvalues(), delimiter=delim, format=format)
     if outall or opt.beta:
-        fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
+        fout = prody.openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChids(), select.getResnames(), 
                         select.getResnums(), select.getBetas(), 
-                        calcTempFactors(anm, select)):
+                        prody.calcTempFactors(anm, select)):
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
     if outall or opt.covar:
-        writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
-            anm.getCovariance(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+                         anm.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
-        writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
-            calcCrossCorr(anm), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_cross-correlations' 
+                                                     + ext), 
+                         prody.calcCrossCorr(anm), delimiter=delim, 
+                         format=format)
     if outall or opt.hessian:
-        writeArray(os.path.join(outdir, prefix + '_hessian'+ext), 
-            anm.getHessian(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_hessian'+ext), 
+                         anm.getHessian(), delimiter=delim, format=format)
     if outall or opt.kirchhoff:
-        writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
-            anm.getKirchhoff(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
+                         anm.getKirchhoff(), delimiter=delim, format=format)
     if outall or opt.sqflucts:
-        writeArray(os.path.join(outdir, prefix + '_sqflucts'+ext), 
-            calcSqFlucts(anm), delimiter=delim, format=format)
-    #if outall or opt.npz:
-    #    saveModel(anm)
+        prody.writeArray(os.path.join(outdir, prefix + '_sqflucts'+ext), 
+                         prody.calcSqFlucts(anm), delimiter=delim, 
+                         format=format)
           
     figall, cc, sf, bf, cm = opt.figures, opt.cc, opt.sf, opt.bf, opt.cm
 
@@ -286,26 +279,26 @@ graphical output files:
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                showCrossCorr(anm)
+                prody.showCrossCorr(anm)
                 plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or cm:
                 plt.figure(figsize=(width, height))
-                showContactMap(anm)
+                prody.showContactMap(anm)
                 plt.savefig(os.path.join(outdir, prefix + '_cm.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
-                showSqFlucts(anm)
+                prody.showSqFlucts(anm)
                 plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or bf:
                 plt.figure(figsize=(width, height))
                 bexp = select.getBetas()
-                bcal = calcTempFactors(anm, select)
+                bcal = prody.calcTempFactors(anm, select)
                 plt.plot(bexp, label='Experimental')
                 plt.plot(bcal, label=('Theoretical (R={0:.2f})'
                                         .format(np.corrcoef(bcal, bexp)[0,1])))
@@ -320,13 +313,11 @@ graphical output files:
 def gnm():
     """Perform GNM calculations based on command line arguments."""
 
-    usage = """%prog [options] PDB
-
-ProDy v{0:s} - Gaussian Network Model
+    usage = """prody %prog [options] PDB
 
 Perform GNM calculations for given PDB structure and output results in NMD 
 format. If an identifier is passed, file from the PDB FTP server will be 
-downloaded.""".format(prody.__version__)
+downloaded."""
  
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -386,9 +377,6 @@ save all of the graphical output files:
   $ gnm.py 1aar -c 7 -s "calpha and chain A and resnum < 70" -A
 """
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -400,8 +388,13 @@ save all of the graphical output files:
     if not os.path.isdir(outdir):
         print('Error: {0:s} is not a valid path'.format(outdir))
         sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
         
     pdb = args[0]
     prefix = opt.prefix
@@ -409,7 +402,7 @@ save all of the graphical output files:
     cutoff, gamma = opt.cutoff, opt.gamma, 
     nmodes, selstr, model = opt.nmodes, opt.select, opt.model
     
-    pdb = parsePDB(pdb, model=model)
+    pdb = prody.parsePDB(pdb, model=model)
     if prefix == '_gnm':
         prefix = pdb.getTitle() + '_gnm'
 
@@ -421,48 +414,47 @@ save all of the graphical output files:
     LOGGER.info('{0:d} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
-    gnm = GNM(pdb.getTitle())
+    gnm = prody.GNM(pdb.getTitle())
     gnm.buildKirchhoff(select, cutoff, gamma)
     gnm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
     if opt.npz:
-        saveModel(gnm)
-    writeNMD(os.path.join(outdir, prefix + '.nmd'), gnm, select)
+        prody.saveModel(gnm)
+    prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), gnm, select)
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     
     if outall or opt.eigen:
-        writeArray(os.path.join(outdir, prefix + '_evectors'+ext), gnm.getArray(), 
-            delimiter=delim, format=format)
-        writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-            gnm.getEigenvalues(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+                         gnm.getArray(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+                         gnm.getEigenvalues(), delimiter=delim, format=format)
     
     if outall or opt.beta:
-        fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
+        fout = prody.openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChids(), select.getResnames(), 
                         select.getResnums(), select.getBetas(), 
-                        calcTempFactors(gnm, select)):
+                        prody.calcTempFactors(gnm, select)):
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
     if outall or opt.covar:
-        writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
-            gnm.getCovariance(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+                         gnm.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
-        writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
-                   calcCrossCorr(gnm), 
-                   delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_cross-correlations' 
+                                                     + ext), 
+                         prody.calcCrossCorr(gnm), delimiter=delim, 
+                         format=format)
     if outall or opt.kirchhoff:
-        writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
-            gnm.getKirchhoff(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
+                         gnm.getKirchhoff(), delimiter=delim, format=format)
     if outall or opt.sqflucts:
-        writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
-            calcSqFlucts(gnm), delimiter=delim, format=format)
-    #if outall or opt.npz:
-    #    saveModel(gnm)
-
+        prody.writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
+                         prody.calcSqFlucts(gnm), delimiter=delim, 
+                         format=format)
           
     figall, cc, sf, bf, cm, modes = \
         opt.figures, opt.cc, opt.sf, opt.bf, opt.cm, opt.modes
@@ -479,26 +471,26 @@ save all of the graphical output files:
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                showCrossCorr(gnm)
+                prody.showCrossCorr(gnm)
                 plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or cm:
                 plt.figure(figsize=(width, height))
-                showContactMap(gnm)
+                prody.showContactMap(gnm)
                 plt.savefig(os.path.join(outdir, prefix + '_cm.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
-                showSqFlucts(gnm)
+                prody.showSqFlucts(gnm)
                 plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or bf:
                 plt.figure(figsize=(width, height))
                 bexp = select.getBetas()
-                bcal = calcTempFactors(gnm, select)
+                bcal = prody.calcTempFactors(gnm, select)
                 plt.plot(bexp, label='Experimental')
                 plt.plot(bcal, label=('Theoretical (corr coef = {0:.2f})'
                                         .format(np.corrcoef(bcal, bexp)[0,1])))
@@ -529,7 +521,7 @@ save all of the graphical output files:
                         pass
                     else:
                         plt.figure(figsize=(width, height))
-                        showMode(mode)
+                        prody.showMode(mode)
                         plt.grid()
                         plt.savefig(os.path.join(outdir, prefix + '_mode_' + 
                             str(mode.getIndex()+1) + '.' + format), 
@@ -540,13 +532,11 @@ save all of the graphical output files:
 def pca():
     """Perform PCA calculations based on command line arguments."""
     
-    usage = """%prog [options] PDB
-
-ProDy v{0:s} - Principal Component Analysis
+    usage = """prody %prog [options] PDB
 
 Perform PCA calculations for given PDB structure with multiple models and save 
-results in NMD format. If an identifier is passed, file from the PDB FTP 
-server will be downloaded.""".format(prody.__version__)
+results in NMD format. If an identifier is given, PDB file will be downloaded
+from a wwPDB FTP server."""
  
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -591,9 +581,6 @@ and save all output and figure files:
 """
     
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -605,8 +592,13 @@ and save all output and figure files:
     if not os.path.isdir(outdir):
         print('Error: {0:s} is not a valid path'.format(outdir))
         sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+        
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
         
     pdb = args[0]
     prefix = opt.prefix
@@ -614,18 +606,18 @@ and save all output and figure files:
 
     if pdb.endswith('.dcd') or pdb.endswith('.DCD'):     
         LOGGER.info('A DCD file is detected, using all atoms for calculation.')
-        coords = parseDCD(pdb).astype(float)
+        coords = prody.parseDCD(pdb).astype(float)
         if len(coords) < 2:
             print "\nError: DCD file must contain multiple frames.\n"
             sys.exit(-1)
-        pca = PCA(pdb[:-4])
-        ensemble = Ensemble(pdb[:-4])
+        pca = prody.PCA(pdb[:-4])
+        ensemble = prody.Ensemble(pdb[:-4])
         ensemble.setCoordinates(coords[0])
         ensemble.addCoordset(coords)
-        select = AtomGroup(pdb[:-4])
+        select = prody.AtomGroup(pdb[:-4])
         select.setCoordinates(coords[0])
     else:
-        pdb = parsePDB(pdb)
+        pdb = prody.parsePDB(pdb)
         if pdb.numCoordsets() < 2:
             print "\nError: PDB file must contain multiple models.\n"
             sys.exit(-1)
@@ -638,8 +630,8 @@ and save all output and figure files:
             sys.exit(-1)
         LOGGER.info('{0:d} atoms will be used for PCA calculations.'
                     .format(len(select)))
-        ensemble = Ensemble(select)
-        pca = PCA(pdb.getTitle())
+        ensemble = prody.Ensemble(select)
+        pca = prody.PCA(pdb.getTitle())
     ensemble.iterpose()
     
     pca.performSVD(ensemble)
@@ -647,31 +639,31 @@ and save all output and figure files:
     #pca.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
     if opt.npz:
-        saveModel(pca)
-    writeNMD(os.path.join(outdir, prefix + '.nmd'), pca[:nmodes], select)
+        prody.saveModel(pca)
+    prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), pca[:nmodes], select)
 
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     if outall or opt.eigen:
-        writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
-            pca.getArray(), delimiter=delim, format=format)
-        writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-            pca.getEigenvalues(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+                         pca.getArray(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+                         pca.getEigenvalues(), delimiter=delim, format=format)
     if outall or opt.covar:
-        writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
-            pca.getCovariance(), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+                         pca.getCovariance(), delimiter=delim, format=format)
     if outall or opt.ccorr:
-        writeArray(os.path.join(outdir, prefix + '_cross-correlations'+ext), 
-                   calcCrossCorr(pca), 
-                   delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_cross-correlations' + 
+                                              ext), prody.calcCrossCorr(pca), 
+                         delimiter=delim, format=format)
     if outall or opt.sqflucts:
-        writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
-            calcSqFlucts(pca), delimiter=delim, format=format)
+        prody.writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
+                         prody.calcSqFlucts(pca), delimiter=delim, 
+                         format=format)
     if outall or opt.proj:
-        writeArray(os.path.join(outdir, prefix + '_proj'+ext), 
-            calcProjection(ensemble, pca), delimiter=delim, format=format)
-    #if outall or opt.npz:
-    #    saveModel(gnm)
+        prody.writeArray(os.path.join(outdir, prefix + '_proj'+ext), 
+                         prody.calcProjection(ensemble, pca), delimiter=delim, 
+                         format=format)
           
     figall, cc, sf, sp = opt.figures, opt.cc, opt.sf, opt.sp
 
@@ -689,13 +681,13 @@ and save all output and figure files:
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                showCrossCorr(pca)
+                prody.showCrossCorr(pca)
                 plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
-                showSqFlucts(pca)
+                prody.showSqFlucts(pca)
                 plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')                    
@@ -716,7 +708,7 @@ and save all output and figure files:
                         pass
                 for index in indices:
                         plt.figure(figsize=(width, height))
-                        showProjection(ensemble, pca[index])
+                        prody.showProjection(ensemble, pca[index])
                         if isinstance(index, int):
                             index = [index]
                         index = [str(i+1) for i in index]
@@ -728,14 +720,9 @@ and save all output and figure files:
 def alignmodels():
     """Align models in a PDB file based on command line arguments."""
     
-    usage = """Usage: {0:s} [options] PDB  
+    usage = """prody %prog [options] PDB  
 
-ProDy v{1:s} - Align Models
-
-Align models in the PDB file using selected atoms and save aligned coordinate
-sets.
-
-""".format(sys.argv[0], prody.__version__)
+Align models in PDB file using selected atoms and save aligned coordinate sets."""
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -761,9 +748,6 @@ than 71:
 """
         
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -771,12 +755,17 @@ than 71:
         parser.print_help()
         print "\nError: PDB missing\n"
         sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
         
     pdb = args[0]
     selstr, prefix, model = opt.select, opt.prefix, opt.model
-    pdb = parsePDB(pdb)
+    pdb = prody.parsePDB(pdb)
     if prefix == '':
         prefix = pdb.getTitle() + '_aligned'
     pdbselect = pdb.select(selstr)
@@ -787,20 +776,20 @@ than 71:
     LOGGER.info('{0:d} atoms will be used for alignment.'
                            .format(len(pdbselect)))
     pdb.setACSI(model-1)
-    alignCoordsets(pdb, selstr=selstr)
-    rmsd = calcRMSD(pdb)
+    prody.alignCoordsets(pdb, selstr=selstr)
+    rmsd = prody.calcRMSD(pdb)
     LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'
           .format(rmsd.max(), rmsd.mean()))
     outfn = prefix + '.pdb'
     LOGGER.info('Writing file: ' + outfn)
-    writePDB(outfn, pdb)
+    prody.writePDB(outfn, pdb)
 
 def biomolecule():
     """Generate biomolecule coordinates based on command line arguments."""
     
-    usage = """Usage: {0:s} [options] PDB  
+    usage = """prody %prog [options] PDB  
 
-ProDy v{1:s} - Generate Biomolecule Coordinates""".format(sys.argv[0], prody.__version__)
+Generate biomolecule coordinates."""
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -817,9 +806,6 @@ Fetch pdb 2bfu and generate the biomolecular assembly:
 """
         
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -827,35 +813,41 @@ Fetch pdb 2bfu and generate the biomolecular assembly:
         parser.print_help()
         print "\nError: PDB missing\n"
         sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+        
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
 
     pdb = args[0]
     prefix, biomol = opt.prefix, opt.biomol
         
-    pdb, header = parsePDB(pdb, header=True)
+    pdb, header = prody.parsePDB(pdb, header=True)
     if prefix == '':
         prefix = pdb.getTitle()
         
-    biomols = buildBiomolecules(header, pdb, biomol=biomol)
+    biomols = prody.buildBiomolecules(header, pdb, biomol=biomol)
     if not isinstance(biomols, list):
         biomols = [biomols]
     
     for i, biomol in enumerate(biomols):
-        if isinstance(biomol, Atomic):
+        if isinstance(biomol, prody.Atomic):
             outfn = '{0:s}_biomol_{1:d}.pdb'.format(prefix, i+1)
             LOGGER.info('Writing {0:s}'.format(outfn))
-            writePDB(outfn, biomol)
+            prody.writePDB(outfn, biomol)
         elif isinstance(biomol, tuple):
             for j, part in enumerate(biomol):
                 outfn = ('{0:s}_biomol_{1:d}_part_{2:d}.pdb'
                          .format(prefix, i+1, j+1))
                 LOGGER.info('Writing {0:s}'.format(outfn))
-                writePDB(outfn, part)
+                prody.writePDB(outfn, part)
 
 def readFirstSequenceFasta(seqfn):
     """Return first sequence from a file."""
-    f = openFile(seqfn)
+    
+    f = open(seqfn)
     lines = []
     n = 0
     for line in f.xreadlines():
@@ -869,12 +861,10 @@ def readFirstSequenceFasta(seqfn):
 def blastpdb():
     """Blast search PDB based on command line arguments."""
     
-    usage = """Usage: {0:s} [options] SEQUENCE
+    usage = """prody %prog {0:s} [options] SEQUENCE
     
-ProDy v{1:s} - Blast PDB
-
-SEQUENCE can be a sequence string or a file in fasta format.  
-""".format(sys.argv[0], prody.__version__)
+Blast search PDB for query SEQUENCE, which can be a sequence string or a file 
+in fasta format."""
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -890,17 +880,14 @@ SEQUENCE can be a sequence string or a file in fasta format.
     usage_examples="""
 Blast search PDB for the first sequence in a fasta file:
     
-  $ blastpdb.py seq.fasta -i 70
+  $ prody blast seq.fasta -i 70
 
 Blast search PDB for the sequence argument:
 
-  $ blastpdb.py MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
+  $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
 """
         
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -908,8 +895,13 @@ Blast search PDB for the sequence argument:
         parser.print_help()
         print "\nError: SEQUENCE missing\n"
         sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+        
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
         
     seqfn = args[0]
     seq = seqfn
@@ -926,9 +918,9 @@ Blast search PDB for the sequence argument:
     assert 0 < identity < 100, 'identity must be between 0 and 100'
     assert 0 < coverage < 100, 'coverage must be between 0 and 100'
     if silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
     
-    blast_results = blastPDB(seq)
+    blast_results = prody.blastPDB(seq)
     hits = blast_results.getHits(percent_identity=identity, 
                                  percent_coverage=coverage)
     
@@ -943,7 +935,8 @@ Blast search PDB for the sequence argument:
         chain = hits[pdb]['chain_id']
         percent_identity = hits[pdb]['percent_identity']
         title = hits[pdb]['pdb_title']
-        LOGGER.info(pdb + ' ' + chain + ' ' + ('%5.1f%%' % (percent_identity)) + ' ' + title)
+        LOGGER.info(pdb + ' ' + chain + ' ' + ('%5.1f%%' % (percent_identity)) 
+                    + ' ' + title)
     
     # download hits if --folder is given
     if opt.folder != '':
@@ -954,12 +947,9 @@ Blast search PDB for the sequence argument:
 def fetchpdb():
     """Fetch PDB files from PDB FTP server."""
     
-    usage = """Usage: {0:s} [options] PDB PDB2 PDB3 ...  
+    usage = """prody %prog [options] PDB PDB2 PDB3 ...  
 
-ProDy v{1:s} - Fetch PDB
-
-Download PDB files specified by their identifiers.
-""".format(sys.argv[0], prody.__version__)
+Download PDB files specified by their identifiers."""
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -978,25 +968,27 @@ Fetch PDB files for given identifiers:
 """
     
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
     if len(args) == 0 and opt.listfn == '':
         parser.print_help()
         print "\nError: PDB missing\n"
-        sys.exit(-1)    
+        sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+       
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
     
     folder, listfn = opt.folder, opt.listfn
 
     pdblist = []
     pdblist += args
     if opt.listfn != '':
-        f = openFile(listfn)
+        f = prody.openFile(listfn)
         for line in f.xreadlines():
             line = line.strip()
             for s in line.split(','):
@@ -1004,17 +996,15 @@ Fetch PDB files for given identifiers:
                     if len(pdb) == 4: pdblist.append(pdb)
         f.close()
     
-    pdblist2 = fetchPDB(pdblist, folder, compressed=opt.gzip, copy=True)
+    pdblist2 = prody.fetchPDB(pdblist, folder, compressed=opt.gzip, copy=True)
     
 def pdbselect():
     """Write selected atoms from a PDB file in PDB format."""
     
-    usage = """Usage: {0:s} [options] PDB SELECTION  
+    usage = """prody %prog [options] PDB SELECTION  
 
-ProDy v{1:s} - PDB Select
+Select atoms specified by SELECTION from PDB and write them in a file."""
 
-Select atoms specified by SELECTION from PDB and write them in a file.
-""".format(sys.argv[0], prody.__version__)
     parser = OptionParser(usage=usage)
     addOptions(parser)
     parser.add_option('-p', '--prefix', dest='prefix', type='string', 
@@ -1027,9 +1017,6 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
 """
     
     opt, args = parser.parse_args()
-    if opt.version:
-        print("ProDy " + prody.__version__)
-        sys.exit()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
@@ -1037,12 +1024,17 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
         parser.print_help()
         print "\nError: PDB or SELECTION missing\n"
         sys.exit(-1)
+        
+    import numpy as np
+    import prody
+    LOGGER = prody.LOGGER
+        
     if opt.silent:
-        changeVerbosity('warning')
+        prody.changeVerbosity('warning')
         
     prefix = opt.prefix
 
-    pdb = parsePDB(args[0])
+    pdb = prody.parsePDB(args[0])
     if prefix == '':
         prefix = pdb.getTitle() + '_selected'
     pdbselect = pdb.select(args[1])
@@ -1051,5 +1043,49 @@ Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
                        .format(args[1]))
         sys.exit(-1)
     LOGGER.info('Writing ' + prefix + '.pdb')
-    writePDB(prefix + '.pdb', pdbselect)
+    prody.writePDB(prefix + '.pdb', pdbselect)
     
+
+PRODY_ROUTINES = {
+    'anm': anm,
+    'gnm': gnm,
+    'pca': pca,
+    'align': alignmodels, 
+    'biomol': biomolecule,
+    'blast': blastpdb, 
+    'fetch': fetchpdb, 
+    'select': pdbselect,
+}
+
+USAGE = """Usage: prody [--version] <command> [<args>]
+
+ProDy commands are:
+  anm      Perform Anisotropic Network Model calculations
+  gnm      Perform Gaussian Network Model calculations
+  pca      Perform Principal Component Analysis calculations
+  align    Align models in a PDB file
+  biomol   Build biomolecules
+  blast    Blast search ProteinDataBank
+  fetch    Fetch a PDB file
+  select   Select atoms and write a PDB file 
+  
+See 'prody <command>' for more information on a specific command."""
+
+def routines():
+    script = sys.argv.pop(0)
+
+    if sys.argv:
+        arg = sys.argv[0]
+        if arg == '--version':
+            print('prody version ' + prody.__version__)
+            sys.exit()
+        if arg == '--help':
+            print(USAGE)
+            sys.exit()
+        try:
+            PRODY_ROUTINES[arg]()
+        except KeyError:
+            sys.stderr.write("prody: '{0:s}' is not a prody command. "
+                             "See 'prody --help'.\n".format(arg)) 
+    else:
+        print(USAGE)
