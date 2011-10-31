@@ -31,13 +31,14 @@ import logging.handlers
 
 import numpy as np
 
-__all__ = ['PackageLogger', 
+__all__ = ['PackageLogger', 'PackageSettings',
            'checkCoordsArray', 
            'gunzip', 'openFile',
            'isExecutable', 'which', 'relpath', 
            'pickle', 'unpickle',
            ]
 
+USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
 PLATFORM = platform.system()
 LOGGING_LEVELS = {'debug': logging.DEBUG,
@@ -255,6 +256,53 @@ class PackageLogger(object):
                     self.delHandler(index)
                     return
         self.warning("Logfile '{0:s}' was not found.".format(filename))
+
+
+class PackageSettings(object):
+    
+    def __init__(self, pkg=__package__, rcfile=None):
+        
+        
+        self._package = pkg
+        if rcfile is None:
+            self._rcfile = os.path.join(USERHOME, '.' + pkg + 'rc')
+        else:
+            self._rcfile = rcfile
+        
+        self._settings = None
+        self.load()
+        
+    def __getitem__(self, key):
+        
+        return self._settings.get(key, None)
+        
+    def __setitem__(self, key, value):
+        """Automatically save settings after changes."""
+        
+        self._settings[key] = value
+        self.save()
+        
+    def get(self, key, default=None):
+        
+        try:
+            return self._settings(key)
+        except KeyError:
+            return default
+        
+    def load(self):
+        
+        if os.path.isfile(self._rcfile):
+            settings = unpickle(self._rcfile)
+        if not isinstance(settings, dict):
+            settings = {
+                'loglevel': 'debug',
+            }
+        self._settings = settings
+
+    def save(self):
+        
+        pickle(self._settings, self._rcfile)
+
         
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
                      reshape=None):
