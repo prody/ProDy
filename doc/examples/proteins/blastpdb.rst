@@ -40,13 +40,13 @@ We start by importing everything from the ProDy package:
 Perform search
 -------------------------------------------------------------------------------
 
-Let's search for structures similar to that of MKP-3, using its sequence::
+Let's search for structures similar to that of MKP-3, using its sequence:
 
-  from prody import *
-  blast_record = blastPDB('''
-  ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPIS
-  DHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDA
-  YDIVKMKKSNISPNFNFMGQLLDFERTL''')
+>>> from prody import *
+>>> blast_record = blastPDB('''
+... ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPIS
+... DHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMNDA
+... YDIVKMKKSNISPNFNFMGQLLDFERTL''')
 
 :func:`blastPDB` function returns a :class:`PDBBlastRecord`. Let's retrieve 
 hits from this record:
