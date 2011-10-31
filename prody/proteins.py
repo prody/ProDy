@@ -220,7 +220,7 @@ def getPDBLocalFolder():
     
     .. versionadded:: 0.8.4"""
 
-    folder = prody._ProDySettings.get('pdb_local_folder')
+    folder = prody._ProDySettings['pdb_local_folder']
     if isinstance(folder, str):
         if os.path.isdir(folder):
             return folder, prody._ProDySettings.get('pdb_local_divided', True)
@@ -264,7 +264,6 @@ def setPDBLocalFolder(folder, divided=False):
                         'will be assumed.')
         prody._ProDySettings['pdb_local_folder'] = folder
         prody._ProDySettings['pdb_local_divided'] = divided
-        prody._saveProDySettings()
     else:
         raise IOError('No such directory: "{0:s}"'.format(folder))
 
@@ -274,7 +273,7 @@ def getPDBMirrorPath():
     
     .. versionadded:: 0.6.1"""
 
-    path = prody._ProDySettings.get('pdb_mirror_path')
+    path = prody._ProDySettings['pdb_mirror_path']
     if isinstance(path, str):
         if os.path.isdir(path):
             return path
@@ -293,7 +292,6 @@ def setPDBMirrorPath(path):
         path = os.path.abspath(path)
         LOGGER.info('Local PDB mirror path is set: "{0:s}"'.format(path))
         prody._ProDySettings['pdb_mirror_path'] = path
-        prody._saveProDySettings()
     else:
         raise IOError('No such directory: "{0:s}"'.format(path))
 
@@ -319,7 +317,6 @@ def setWWPDBFTPServer(key):
     server = WWPDB_FTP_SERVERS.get(key.lower())
     if server is not None:
         prody._ProDySettings['wwpdb_ftp'] = server
-        prody._saveProDySettings()
     else:
         LOGGER.warning('{0:s} is not a valid key.'.format(key))
 
@@ -329,7 +326,7 @@ def getWWPDBFTPServer():
     
     .. versionadded:: 0.6.1"""
     
-    server = prody._ProDySettings.get('wwpdb_ftp')
+    server = prody._ProDySettings['wwpdb_ftp']
     if server is None:
         LOGGER.warning('A wwPDB FTP server is not set by the user. '
                        'Default FTP server RCSB PDB is returned. Use '

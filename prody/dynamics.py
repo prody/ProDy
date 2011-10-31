@@ -58,7 +58,7 @@ Class                         Description
 ============================  =================================================
 :class:`Gamma`                base class for developing property custom force 
                               constant calculation methods
-:class:`GammaStructureBased`  secondary structure based force constatns
+:class:`GammaStructureBased`  secondary structure based force constants
 :class:`GammaVariableCutoff`  atom type based variable cutoff function
 ============================  =================================================
 
@@ -2413,7 +2413,7 @@ def loadVector(filename):
 def getVMDpath():
     """Return path to the VMD executable."""
     
-    path = prody._ProDySettings.get('vmd')
+    path = prody._ProDySettings['vmd']
     if path is None:
         LOGGER.warning('VMD path is not set.')
     return path
@@ -2425,9 +2425,6 @@ def setVMDpath(path):
         LOGGER.warning('{0:s} is not a file.'.format(path))
         return
     prody._ProDySettings['vmd'] = path
-    prody._saveProDySettings()
-    
-    
 
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
