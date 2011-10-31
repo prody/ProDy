@@ -1,0 +1,13 @@
+Usage: prody [--version] <command> [<args>]
+
+ProDy commands are:
+  anm      Perform Anisotropic Network Model calculations
+  gnm      Perform Gaussian Network Model calculations
+  pca      Perform Principal Component Analysis calculations
+  align    Align models in a PDB file
+  biomol   Build biomolecules
+  blast    Blast search ProteinDataBank
+  fetch    Fetch a PDB file
+  select   Select atoms and write a PDB file 
+  
+See 'prody <command>' for more information on a specific command.

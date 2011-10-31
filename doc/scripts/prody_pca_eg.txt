@@ -1,0 +1,9 @@
+Usage Examples:
+Fetch pdb 2k39, perform PCA calculations, and output NMD file:
+    
+    $ prody pca 2k39
+    
+Fetch pdb 2k39 and perform calculations for backbone of residues up to 71,
+and save all output and figure files:
+
+    $ prody pca 2k39 --select "backbone and resnum < 71" -a -A

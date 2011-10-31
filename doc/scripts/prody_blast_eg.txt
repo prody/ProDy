@@ -1,0 +1,8 @@
+Usage Examples:
+Blast search PDB for the first sequence in a fasta file:
+    
+  $ prody blast seq.fasta -i 70
+
+Blast search PDB for the sequence argument:
+
+  $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG

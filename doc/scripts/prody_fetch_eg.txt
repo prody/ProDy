@@ -1,0 +1,4 @@
+Usage Examples:
+Fetch PDB files for given identifiers:
+    
+  $ prody fetch 1mkp 1p38

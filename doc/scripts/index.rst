@@ -7,22 +7,36 @@ Scripts
 Command line usage
 ===============================================================================
 
-ProDy scripts come with both the source and the binary distributions.
-On Linux, when installing ProDy from source, the scripts are placed into a 
-default folder that is included in the environment variable :envvar:`PATH`, 
-e.g. :file:`/usr/local/bin/`. 
-On Windows, installer places the scripts into the :file:`Scripts` folder 
-under the path to the corresponding Python distribution, 
-e.g. :file:`C:\Python27\Scripts` if you used Python 2.7. 
+ProDy scripts, command line programs, come with both the source and the binary 
+distributions.  On Linux, when installing ProDy from source, the scripts are 
+placed into a default folder that is included in the environment variable 
+:envvar:`PATH`, e.g. :file:`/usr/local/bin/`.  On Windows, installer places the
+scripts into the :file:`Scripts` folder under the path to the corresponding 
+Python distribution, e.g. :file:`C:\Python27\Scripts` if you used Python 2.7. 
 You may need to add this path to the environment variable :envvar:`PATH` 
 yourself. 
+
+.. versionchanged:: 0.9
+   The usage of scripts have changed, all commands must be prefixed with
+   :command:`prody`. 
+
+A list of ProDy commands can be obtained by running :command:`prody`::
   
+  $ prody 
+  
+This will display available commands and short descriptions:
 
-ProDy scripts cane used as command line programs. Running the following 
-command will perform ANM calculations for the p38 MAP kinase structure, and 
-will write eigenvalues/vectors in plain text and :term:`NMD` formats::
+.. literalinclude:: prody.txt
 
-  $ anm.py 1p38
+To get more information on a specific command, type in command name, e.g.
+:command:`prody anm`.
+
+
+Running the following command will perform ANM calculations for the p38 MAP 
+kinase structure, and will write eigenvalues/vectors in plain text and 
+:term:`NMD` formats::
+
+  $ prody anm 1p38
   
 In the above example, the default parameters (``cutoff=15.`` and ``gamma=1.``)
 and all of the Cα atoms of the protein structure 1p38 are used.
@@ -31,14 +45,14 @@ In the example below, the *cutoff* distance is changed to 14 Å,
 and the Cα atoms of residues with numbers smaller than 340 are used, 
 the output files are prefixed with :file:`p38_anm`::
 
-  $ anm.py -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
+  $ prody anm -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
 
 The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|). 
 
 .. _scripts-anm:
 
 
-anm.py
+ANM
 ===============================================================================
 
 Perform ANM calculations and output the results in plain text, NMD, and 
@@ -47,21 +61,21 @@ graphical formats.
 Usage
 -------------------------------------------------------------------------------
 
-Running :command:`anm.py -h` displays:
+Running :command:`prody anm -h` displays:
 
-.. literalinclude:: anm.txt
+.. literalinclude:: prody_anm.txt
 
 Examples
 -------------------------------------------------------------------------------
 
-Running :command:`anm.py --examples` displays:
+Running :command:`prody anm --examples` displays:
 
-.. literalinclude:: anm_eg.txt
+.. literalinclude:: prody_anm_eg.txt
 
 
 .. _scripts-gnm:
 
-gnm.py
+GNM
 ===============================================================================
 
 Perform GNM calculations and output the results in plain text and graphical 
@@ -71,21 +85,21 @@ formats.
 Usage
 -------------------------------------------------------------------------------
 
-Running :command:`gnm.py -h` displays:
+Running :command:`prody gnm -h` displays:
 
-.. literalinclude:: gnm.txt
+.. literalinclude:: prody_gnm.txt
 
 Examples
 -------------------------------------------------------------------------------
 
-Running :command:`gnm.py --examples` displays:
+Running :command:`prody gnm --examples` displays:
 
-.. literalinclude:: gnm_eg.txt
+.. literalinclude:: prody_gnm_eg.txt
 
 
 .. _scripts-pca:
 
-pca.py
+PCA
 ===============================================================================
 
 Perform PCA calculations and output the results in plain text, NMD formats,
@@ -94,16 +108,16 @@ and graphical formats.
 Usage
 -------------------------------------------------------------------------------
 
-Running :command:`pca.py -h` displays:
+Running :command:`prody pca -h` displays:
 
-.. literalinclude:: pca.txt
+.. literalinclude:: prody_pca.txt
 
 Examples
 -------------------------------------------------------------------------------
 
-Running :command:`pca.py --examples` displays:
+Running :command:`prody pca --examples` displays:
 
-.. literalinclude:: pca_eg.txt
+.. literalinclude:: prody_pca_eg.txt
 
 
 .. _scripts-alignmodels:
@@ -116,16 +130,16 @@ Align models in a PDB file.
 Usage
 -------------------------------------------------------------------------------
 
-Running :command:`alignmodels.py -h` displays:
+Running :command:`prody align -h` displays:
 
-.. literalinclude:: alignmodels.txt
+.. literalinclude:: prody_align.txt
 
 Examples
 -------------------------------------------------------------------------------
 
-Running :command:`alignmodels.py --examples` displays:
+Running :command:`prody align --examples` displays:
 
-.. literalinclude:: alignmodels_eg.txt
+.. literalinclude:: prody_align_eg.txt
 
 
 .. _scripts-biomolecule:
@@ -139,16 +153,16 @@ section of the PDB file.
 Usage
 -------------------------------------------------------------------------------
  
-Running :command:`biomolecule.py -h` displays:
+Running :command:`prody biomol -h` displays:
 
-.. literalinclude:: biomolecule.txt
+.. literalinclude:: prody_biomol.txt
 
 Examples
 -------------------------------------------------------------------------------
  
-Running :command:`biomolecule.py --examples` displays:
+Running :command:`prody biomol --examples` displays:
 
-.. literalinclude:: biomolecule_eg.txt
+.. literalinclude:: prody_biomol_eg.txt
 
 .. _scripts-blastpdb:
 
@@ -161,16 +175,16 @@ Search Protein Data Bank for structures matching a user given sequence.
 Usage
 -------------------------------------------------------------------------------
 
-Running :command:`blastpdb.py -h` displays:
+Running :command:`prody blast -h` displays:
 
-.. literalinclude:: blastpdb.txt
+.. literalinclude:: prody_blast.txt
 
 Examples
 -------------------------------------------------------------------------------
 
-Running :command:`blastpdb.py --examples` displays:
+Running :command:`prody blast --examples` displays:
 
-.. literalinclude:: blastpdb_eg.txt
+.. literalinclude:: prody_blast_eg.txt
 
 .. _scripts-fetchpdb:
 
@@ -182,16 +196,16 @@ Download PDB for given identifiers.
 Usage
 -------------------------------------------------------------------------------
 
-Running :command:`fetchpdb.py -h` displays:
+Running :command:`prody fetch -h` displays:
 
-.. literalinclude:: fetchpdb.txt
+.. literalinclude:: prody_fetch.txt
 
 Examples
 -------------------------------------------------------------------------------
 
-Running :command:`fetchpdb.py --examples` displays:
+Running :command:`prody fetch --examples` displays:
 
-.. literalinclude:: fetchpdb_eg.txt
+.. literalinclude:: prody_fetch_eg.txt
 
 .. _scripts-pdbselect:
 
@@ -203,13 +217,13 @@ Extract a selection of atoms from a PDB file.
 Usage
 -------------------------------------------------------------------------------
  
-Running :command:`pdbselect.py -h` displays:
+Running :command:`prody select -h` displays:
 
-.. literalinclude:: pdbselect.txt
+.. literalinclude:: prody_select.txt
 
 Examples
 -------------------------------------------------------------------------------
  
-Running :command:`pdbselect.py --examples` displays:
+Running :command:`prody select --examples` displays:
 
-.. literalinclude:: pdbselect_eg.txt
+.. literalinclude:: prody_select_eg.txt

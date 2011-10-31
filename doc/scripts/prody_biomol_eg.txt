@@ -1,0 +1,4 @@
+Usage Examples:
+Fetch pdb 2bfu and generate the biomolecular assembly:
+    
+  $ prody biomol 2bfu

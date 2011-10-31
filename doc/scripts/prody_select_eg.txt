@@ -1,0 +1,4 @@
+Usage Examples:
+Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
+        
+  $ prody select 2bfu "backbone" 
