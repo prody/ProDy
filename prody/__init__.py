@@ -197,8 +197,8 @@ def plog(*text):
     .. versionadded:: 0.6.2
     
     .. versionchanged:: 0.7
-       Multiple arguments are accepted. They will converted to string and
-       joined using a white space as delimiter. """
+       Multiple arguments are accepted. Each argument will be converted to 
+       string and joined using a white space as delimiter. """
     
     LOGGER.info(' '.join([str(s) for s in text]))
 
