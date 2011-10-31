@@ -144,19 +144,7 @@ def importBioPairwise2():
     compare.pairwise2 = pairwise2
 
 
-def _loadProDySettings():
-    if os.path.isfile(PACKAGE_CONF):
-        settings = unpickle(PACKAGE_CONF)
-    if not isinstance(settings, dict):
-        settings = {
-            'loglevel': 'debug',
-        }
-    return settings
-
-_ProDySettings = _loadProDySettings() 
-
-def _saveProDySettings():
-    pickle(_ProDySettings, PACKAGE_CONF)
+_ProDySettings = PackageSettings() 
 
 def setPackagePath(path):
     if not os.path.isdir(path):
@@ -167,12 +155,11 @@ def setPackagePath(path):
                            .format(path, err.strerror))
             return False
     _ProDySettings['package_path'] = path
-    _saveProDySettings()
     return path    
 
 def getPackagePath():
     
-    path = _ProDySettings.get('package_path', None)
+    path = _ProDySettings['package_path']
     
     update = False
     if path is None:
