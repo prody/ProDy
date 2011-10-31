@@ -1,6 +1,0 @@
-Usage Examples:
-
-Fetch pdb 2bfu and generate the biomolecular assembly:
-    
-  $ biomolecule.py 2bfu
-

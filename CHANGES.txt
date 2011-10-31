@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.8.4 (in development)
+Release 0.9 (Nov 7, 2011)
 ===============================================================================
 
 **New Features**:
@@ -24,31 +24,30 @@ Release 0.8.4 (in development)
 
 **Changes**:
 
-  .. warning::  This maintenance release introduces numerous changes in method 
-     and function names all aiming to improve the interactive usage experience.
-     The changes will take place slowly, and your code using ProDy must not 
-     be affected until version 1.0 is released, which is expected to happen
-     after the first quarter of 2012.
+  .. warning::  This release introduces numerous changes in method and function
+     names all aiming to improve the interactive usage experience.  All changes
+     are listed below.  Currently these functions and methods are present in
+     both old and new names, so code using ProDy must not be affected.  Old
+     function names will be removed from version 1.0, which is expected to 
+     happen late in the first quarter of 2012.
       
-     Until release v1.0, both old and new function/method names will be 
-     available.  After v0.9 is released, ProDy will start issuing 
-     :class:`DeprecationWarning` upon calls using old names to remind the user
-     of the name change.  With the release of v1.0, old function and method 
-     names will be removed from ProDy.
+     Old function names are marked as deprecated, but ProDy will not issue any
+     warnings until the end of 2011.  In 2012, ProDy will will automatically 
+     start issuing :class:`DeprecationWarning` upon calls using old names to 
+     remind the user of the name change.  
      
-     All the changes are listed below.  Note that when a method is present
-     in multiple classes, all of them are not listed, only affected modules
-     are listed.
+     For deprecated methods that are present in multiple classes, only the 
+     affected modules are listed for brevity.
      
-  .. note::  When changing your code to adapt the following changes, you can 
-     use :meth:`prody.turnonDepracationWarnings` function to turn on 
-     deprecation warnings. This will help you locate where old function/method
-     names are used.
+  .. note::  When modifying code using ProDy to adjust the name changes, 
+     turning on deprecation warnings may help locating all use cases of the 
+     deprecated names.  See :meth:`prody.turnonDepracationWarnings` for this
+     purpose.
 
   **Functions**:
   
-  The following function name changes were made mostly to reduce the length
-  of the name so to make using them more suitable in interactive sessions:
+  The following function name changes are mainly to reduce the length of the 
+  name in order to make them more suitable for interactive sessions:
 
   ========================================  =====================================
   Old name                                  New name
@@ -73,7 +72,7 @@ Release 0.8.4 (in development)
   ``getNumOf`` **methods**:
   
   All method names starting with ``getNumOf`` now start with ``num``.  This
-  change brought two advantages: method names (i) became considerably shorter, 
+  change brings two advantages: method names (i) are considerably shorter, 
   and (ii) do not suggest that there might also be corresponding ``set``
   methods. 
   
@@ -100,7 +99,7 @@ Release 0.8.4 (in development)
   ``getName`` **method**:
   
   :meth:`getName` methods are renamed as :meth:`getTitle` to avoid confusions 
-  that might arise due to changes in :mod:`~prody.atomic` method names listed 
+  that might arise from changes in :mod:`~prody.atomic` method names listed 
   below.  All classes in :mod:`~prody.atomic`, :mod:`~prody.ensemble`, and 
   :mod:`~prody.dynamics` are affected from this change. 
   
@@ -152,7 +151,8 @@ Release 0.8.4 (in development)
   * :meth:`getActiveCoordsetIndex` renamed as :meth:`getACSI`
   * :meth:`setActiveCoordsetIndex` renamed as :meth:`setACSI`
 
-  The following changes are made give more intuitive name: 
+  Methods handling user data (which was previously called attribute) are 
+  renamed as follows: 
 
   ====================  =======================
   Old name              New name
@@ -167,8 +167,8 @@ Release 0.8.4 (in development)
   
   **To be removed**:
   
-  Finally, the following methods are removed, but their functions are
-  overloaded to other suitable functions: 
+  Finally, the following methods will be removed, but other suitable methods
+  are overloaded to perform their action:
   
   * removed :meth:`~atomic.AtomGroup.getBySerialRange`, overloaded 
     :meth:`~atomic.AtomGroup.getBySerial`
@@ -181,6 +181,15 @@ Release 0.8.4 (in development)
   * Bugs in :func:`~proteins.execDSSP` and :func:`~proteins.execSTRIDE`
     functions that caused exceptions when compressed files were passed 
     is fixed.
+    
+  
+:ref:`nmwiz`
+-------------------------------------------------------------------------------
+
+Development of NMWiz is finalized and it will not be distributed in the ProDy
+installation package anymore.  See :ref:`nmwiz` pages for instructions on
+installing it. 
+
 
 Release 0.8.3 (Oct 16, 2011)
 ===============================================================================
