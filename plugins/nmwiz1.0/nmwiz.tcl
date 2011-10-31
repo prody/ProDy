@@ -183,7 +183,7 @@ namespace eval ::nmwiz:: {
       $log.text insert end "Coordinate data for selected atoms and the NMD data after calculations will be written into the 'Output directory'. "
       $log.text insert end "All output files will named after 'Output filename'.\n\n"
       $log.text insert end "**ProDy Scripts**\n\n"
-      $log.text insert end "Note that you need to specify the path to the individual ProDy scripts in 'Settings' NMWiz will save and reload the path in the future sessions."
+      $log.text insert end "NMWiz will try to find the path to Python executable ('python' or 'python.exe') and ProDy script ('prody'). For this to work, both of these files must be in you PATH environment variable. If they are not found, you will be prompted to specify the path."
       $log.text insert end "\n\n\n"
       $log.text insert end "ANM/GNM Settings\n"
       $log.text insert end "----------------\n\n"
@@ -277,7 +277,6 @@ namespace eval ::nmwiz:: {
       raise .nmwizgui
       return 
     }
-    ::nmwiz::loadSettings
     set w [toplevel .nmwizgui]
     wm title $w "NMWiz 1.0 - Main"
     wm resizable $w 0 0
@@ -288,27 +287,24 @@ namespace eval ::nmwiz:: {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
         if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
-      -row 3 -column 0 -columnspan 3 -sticky we
+      -row 3 -column 0 -columnspan 2 -sticky we
 
     grid [button $wmf.fromol -width 20 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
-      -row 5 -column 0 -columnspan 3 -sticky we
+      -row 5 -column 0 -columnspan 2 -sticky we
 
     grid [button $wmf.prody -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
-      -row 6 -column 0 -columnspan 3 -sticky we
+      -row 6 -column 0 -columnspan 2 -sticky we
 
     grid [button $wmf.compare -width 20 -text "Structure Comparison" -command ::nmwiz::initStrComp] \
-      -row 7 -column 0 -columnspan 3 -sticky we
+      -row 7 -column 0 -columnspan 2 -sticky we
 
    
     grid [button $wmf.showhelp -text "Help" \
         -command {::nmwiz::showHelp main}] \
       -row 8 -column 0 -sticky we
-    grid [button $wmf.settings -text "Settings" \
-        -command ::nmwiz::initSettingsGUI] \
-      -row 8 -column 1 -sticky we
     grid [button $wmf.website -text "Website" \
         -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
-      -row 8 -column 2 -sticky we
+      -row 8 -column 1 -sticky we
     
     if {[molinfo num] > 0} {
       set ::nmwiz::preserview 1
@@ -326,7 +322,7 @@ namespace eval ::nmwiz:: {
         set ns "::nmgui$i"
         if {[namespace exists $ns]} {      
           set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
-          grid [button $wgf.show -text "Show GUI" \
+          grid [button $wgf.show -text "GUI" \
               -command "${ns}::nmwizgui" ] \
             -row 0 -column 0 -sticky we
           grid [button $wgf.remove -text "Remove" \
@@ -350,169 +346,15 @@ orange3"
     WIN64 -
     WIN32 {
       variable pybin "[::ExecTool::find python.exe]"
-      variable pyANM ""
-      variable pyPCA ""
-      variable pyGNM ""
     }
     default {
       variable pybin "[::ExecTool::find python]"
-      variable pyANM "[::ExecTool::find anm.py]"
-      variable pyPCA "[::ExecTool::find pca.py]"
-      variable pyGNM "[::ExecTool::find gnm.py]"
     }
   }
+  
+  variable prody "[::ExecTool::find prody]"
   variable outputdir [pwd]
-  variable defaultColor "purple"
-  variable settings [dict create anm $pyANM gnm $pyGNM pca $pyPCA color $defaultColor outputdir $outputdir pybin $pybin]
-  proc saveSettings {} {
-    vmdcon -info "Saving NMWiz settings"
-    dict set ::nmwiz::settings anm $::nmwiz::pyANM
-    dict set ::nmwiz::settings gnm $::nmwiz::pyGNM
-    dict set ::nmwiz::settings pca $::nmwiz::pyPCA
-    dict set ::nmwiz::settings color $::nmwiz::defaultColor
-    dict set ::nmwiz::settings outputdir $::nmwiz::outputdir
-    dict set ::nmwiz::settings pybin $::nmwiz::pybin
-    global env
-    set outf [open [file join $env(HOME) .nmwiz] w]
-    puts $outf "$::nmwiz::settings"
-    close $outf
-  }
-  
-  proc loadSettings {} {
-    vmdcon -info "Loading NMWiz settings"
-    global env
-    if {[file exists [file join $env(HOME) .nmwiz]]} {
-      set inf [open [file join $env(HOME) .nmwiz]]
-      gets $inf line
-      close $inf
-      foreach {key value} [split $line] {
-        if {[dict exists $::nmwiz::settings $key]} {
-          dict set ::nmwiz::settings $key $value
-        }
-      }
-      variable ::nmwiz::pyANM "[dict get $::nmwiz::settings anm]"
-      variable ::nmwiz::pyGNM "[dict get $::nmwiz::settings gnm]"
-      variable ::nmwiz::pyPCA "[dict get $::nmwiz::settings pca]"
-      variable ::nmwiz::defaultColor [dict get $::nmwiz::settings color]
-      variable ::nmwiz::outputdir "[dict get $::nmwiz::settings outputdir]"
-      variable ::nmwiz::pybin "[dict get $::nmwiz::settings pybin]"
-    }
-  }
-  
-
-  proc initSettingsGUI {} {
-    variable settingsGUI
-    # If already initialized, just turn on
-    if [winfo exists .nmwizsettings] {
-      wm deiconify .nmwizsettings
-      raise .nmwizsettings
-      return 
-    }    
-    set settingsGUI [toplevel .nmwizsettings]
-    wm title $settingsGUI "NMWiz - Settings"
-    wm resizable $settingsGUI 0 0
-    
-    set wf [labelframe $settingsGUI.mainFrame -text "NMWiz Settings" -bd 2]
-
-    grid [button $wf.clrHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "The default color for arrow graphics."}] \
-      -row 0 -column 0 -sticky w
-    grid [label $wf.scriptLabel -text "Default color:"] \
-      -row 0 -column 1 -sticky w
-    grid [frame $wf.colorFrame] \
-      -row 0 -column 2 -sticky ew
-    tk_optionMenu $wf.colorFrame.list ::nmwiz::defaultColor "" 
-    $wf.colorFrame.list.menu delete 0 last
-    foreach acolor $::nmwiz::nmwizColors {
-      $wf.colorFrame.list.menu add radiobutton -label $acolor \
-          -variable ::nmwiz::defaultColor \
-          -command ::nmwiz::saveSettings
-    }
-    pack $wf.colorFrame.list -side left -anchor w -fill x
-
-    grid [button $wf.pyHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Specify the path to the Python executable. If the folder\
-                    that contains \"python\" or \"python.exe\"\
-                    is included in your environment variable PATH, you may\
-                    keep this as \"python\", otherwise\
-                    specify the path to the executable,\
-                    e.g. \"C:\\python27\\python.exe\""}] \
-      -row 1 -column 0 -sticky w
-    grid [label $wf.pyLabel -text "Python:"] \
-      -row 1 -column 1 -sticky w
-    grid [entry $wf.pyEntry -width 20 -textvariable ::nmwiz::pybin] \
-      -row 1 -column 2 -sticky ew
-    grid [button $wf.pyBrowse -text "Browse" \
-        -command {
-      set tempfile [tk_getOpenFile \
-        -filetypes {{"All files" *}}]
-        if {![string equal $tempfile ""]} {set ::nmwiz::python $tempfile}
-        ::nmwiz::saveSettings
-        }] \
-      -row 1 -column 3 -sticky ew
-      
-    grid [button $wf.anmHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Full path to ProDy ANM script (anm.py),\
-                    e.g. C:\\python27\\Scripts\\anm.py"}] \
-      -row 3 -column 0 -sticky w
-    grid [label $wf.anmLabel -text "ANM script:"] \
-      -row 3 -column 1 -sticky w
-    grid [entry $wf.anmEntry -width 20 -textvariable ::nmwiz::pyANM] \
-      -row 3 -column 2 -sticky ew
-    grid [button $wf.anmBrowse -text "Browse" \
-        -command {
-      set tempfile [tk_getOpenFile \
-        -filetypes {{"ANM Script" { anm.py }}}]
-        if {![string equal $tempfile ""]} {set ::nmwiz::pyANM $tempfile}
-        ::nmwiz::saveSettings
-        }] \
-      -row 3 -column 3 -sticky ew
-      
-    grid [button $wf.gnmHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Full path to ProDy GNM script (gnm.py),\
-                    e.g. C:\\python27\\Scripts\\gnm.py"}] \
-      -row 4 -column 0 -sticky w
-    grid [label $wf.gnmLabel -text "GNM script:"] \
-      -row 4 -column 1 -sticky w
-    grid [entry $wf.gnmEntry -width 20 -textvariable ::nmwiz::pyGNM] \
-      -row 4 -column 2 -sticky ew
-    grid [button $wf.gnmBrowse -text "Browse" \
-        -command {
-      set tempfile [tk_getOpenFile \
-        -filetypes {{"GNM Script" { gnm.py }}}]
-        if {![string equal $tempfile ""]} {set ::nmwiz::pyGNM $tempfile}
-        ::nmwiz::saveSettings
-        }] \
-      -row 4 -column 3 -sticky ew
-
-    grid [button $wf.pcaHelp -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Full path to the ProDy PCA script (pca.py),\
-                    e.g. C:\\python27\\Scripts\\pca.py"}] \
-      -row 5 -column 0 -sticky w
-    grid [label $wf.pcaLabel -text "PCA script:"] \
-      -row 5 -column 1 -sticky w
-    grid [entry $wf.pcaEntry -width 20 -textvariable ::nmwiz::pyPCA] \
-      -row 5 -column 2 -sticky ew
-    grid [button $wf.pcaBrowse -text "Browse" \
-        -command {
-      set tempfile [tk_getOpenFile \
-        -filetypes {{"PCA Script" { pca.py }}}]
-        if {![string equal $tempfile ""]} {set ::nmwiz::pyPCA $tempfile}
-        ::nmwiz::saveSettings
-        }] \
-      -row 5 -column 3 -sticky ew
-
-    grid [button $wf.prodySubmit -text "Save and Close" \
-        -command "::nmwiz::saveSettings; destroy .nmwizsettings"] \
-      -row 15 -column 0 -columnspan 4 -sticky we
-
-    pack $wf -side top -fill x -expand 1
-  }
+  variable defaultColor "yellow3"
   
   variable prodyMolecule
   variable prodyMolid -1
@@ -753,7 +595,7 @@ orange3"
     grid [label $wf.scriptLabel -text "ProDy job:"] \
       -row 7 -column 1 -sticky w
     grid [frame $wf.scriptFrame] \
-      -row 7 -column 2 -sticky ew
+      -row 7 -column 2 -columnspan 2 -sticky ew
     tk_optionMenu $wf.scriptFrame.list ::nmwiz::prodyTask "ANM calculation" 
     $wf.scriptFrame.list.menu delete 0 last
     foreach script "ANM GNM PCA" {
@@ -764,9 +606,6 @@ orange3"
     }
     pack $wf.scriptFrame.list -side left -anchor w -fill x
     variable prodyTask "ANM calculation"
-    grid [button $wf.nmwizSettings -text "Settings" \
-        -command "::nmwiz::initSettingsGUI"] \
-      -row 7 -column 3 -sticky ew
 
     grid [label $wf.outdLabel -text "Output directory:"] \
       -row 8 -column 1 -sticky w
@@ -776,7 +615,6 @@ orange3"
         -command {
       set tempdir [tk_chooseDirectory -initialdir $::nmwiz::outputdir ]
         if {![string equal $tempdir ""]} {set ::nmwiz::outputdir $tempdir}
-        ::nmwiz::saveSettings
         }] \
       -row 8 -column 3 -sticky ew
 
@@ -883,7 +721,7 @@ orange3"
     set wf [frame $prodyGUI.submitFrame -bd 2]
       
     grid [button $wf.showHelp -text "Help" \
-        -command {::nmwiz::prodySubmitJob prody}] \
+        -command {::nmwiz::showHelp prody}] \
       -row 0 -column 0 -sticky we
     grid [button $wf.prodySubmit -text "Submit Job" \
         -command ::nmwiz::prodySubmitJob] \
@@ -1183,6 +1021,17 @@ orange3"
   }
   
   proc prodySubmitJob {} {
+    if {![file isfile $::nmwiz::pybin]} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "Python executable is not found, please specify the path."
+      variable ::nmwiz::pybin [tk_getOpenFile -filetypes {{"Python" python*}}]
+    }
+    if {![file isfile $::nmwiz::prody]} {
+      tk_messageBox -type ok -title "ERROR" \
+        -message "ProDy script is not found, please specify the path."
+      variable ::nmwiz::prody [tk_getOpenFile -filetypes {{"Prody" prody*}}]
+    }
+  
     if {$::nmwiz::prodySelAtoms == 0} {
       tk_messageBox -type ok -title "ERROR" \
         -message "You need to make an atom selection before you can submit a job."
@@ -1198,10 +1047,7 @@ orange3"
         -message "$::nmwiz::outputdir is not a valid directory."
       return 
     }
-    if {$::nmwiz::pybin == "" || $::nmwiz::pybin == {}} {
-      variable ::nmwiz::pybin "[::ExecTool::find -interactive python.exe]"
-      ::nmwiz::saveSettings
-    }
+    
     if {$::nmwiz::prodyScript == "ANM"} {
       ::nmwiz::prodySubmitANMjob
     } elseif {$::nmwiz::prodyScript == "GNM"} {
@@ -1211,13 +1057,6 @@ orange3"
     }
   }
   proc prodySubmitANMjob {} {
-    if {$::nmwiz::pyANM == "" || $::nmwiz::pyANM == {} || $::nmwiz::pyANM == "{}" ||
-        ![file exists $::nmwiz::pyANM]} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Please specify the path to the ProDy ANM Script (anm.py) script."
-      ::nmwiz::initSettingsGUI
-      return
-    }
     set n_frames [molinfo $::nmwiz::prodyMolid get numframes]
     if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
         $::nmwiz::prodyFrame < $n_frames)} {
@@ -1250,8 +1089,8 @@ orange3"
       set allfig "-A"
     }    
     set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
-    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::pyANM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
-    set status [exec $::nmwiz::pybin $::nmwiz::pyANM --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
+    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::prody anm --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
+    set status [exec $::nmwiz::pybin $::nmwiz::prody anm --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
 
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
@@ -1267,13 +1106,6 @@ orange3"
     }
   }  
   proc prodySubmitGNMjob {} {
-    if {$::nmwiz::pyGNM == "" || $::nmwiz::pyGNM == {} || $::nmwiz::pyGNM == "{}" ||
-        ![file exists $::nmwiz::pyGNM]} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Please specify the path to the ProDy GNM Script (gnm.py) script."
-      ::nmwiz::initSettingsGUI
-      return
-    }
     set n_frames [molinfo $::nmwiz::prodyMolid get numframes]
     if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
         $::nmwiz::prodyFrame < $n_frames)} {
@@ -1306,8 +1138,8 @@ orange3"
       set allfig "-A"
     }    
     set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
-    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
-    set status [exec $::nmwiz::pybin $::nmwiz::pyGNM --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
+    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::prody gnm --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
+    set status [exec $::nmwiz::pybin $::nmwiz::prody gnm --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
 
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
@@ -1323,13 +1155,6 @@ orange3"
     }
   }  
   proc prodySubmitPCAjob {} {
-    if {$::nmwiz::pyPCA == "" || $::nmwiz::pyPCA == {} || $::nmwiz::pyPCA == "{}" ||
-        ![file exists $::nmwiz::pyPCA]} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Please specify the path to the ProDy PCA Script (pca.py) script."
-      ::nmwiz::initSettingsGUI
-      return
-    }
     if {$::nmwiz::prodyNFrames < 2} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Selected molecule must have more than 1 frames for PCA calculations."
@@ -1377,8 +1202,8 @@ orange3"
       set allfig "-A"
     } 
     set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]
-    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::pyPCA --quiet -s all -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes \"$pdbfn\""
-    set status [exec $::nmwiz::pybin $::nmwiz::pyPCA --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes "$pdbfn"]
+    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::prody pca --quiet -s all -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes \"$pdbfn\""
+    set status [exec $::nmwiz::pybin $::nmwiz::prody pca --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes "$pdbfn"]
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy PCA calculation is finished and results are being loaded."
@@ -1825,7 +1650,7 @@ orange3"
     set w .nmwizgui
     set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
     
-    grid [button $wgf.show -text "Show GUI" \
+    grid [button $wgf.show -text "GUI" \
         -command "${ns}::nmwizgui" ] \
       -row 0 -column 0 -sticky we
     grid [button $wgf.remove -text "Remove" \
@@ -2123,6 +1948,7 @@ orange3"
           
         }
         if {$plothandle != 0} {
+          # MULTIPLOT "-nmwiz $ns" binds clickAction method to plots
           $plothandle add \
             [subst $${ns}::plotrids] [subst $${ns}::betalist] \
             -title "[subst $${ns}::title] square fluctuations" \
@@ -2137,6 +1963,7 @@ orange3"
             -plot
              
         } else {
+          # MULTIPLOT "-nmwiz $ns" binds clickAction method to plots
           lappend ${ns}::plothandles [multiplot \
             -x [subst $${ns}::plotrids] -y [subst $${ns}::betalist] \
             -title "[subst $${ns}::title] square fluctuations" \
