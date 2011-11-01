@@ -285,7 +285,7 @@ class PackageSettings(object):
     def get(self, key, default=None):
         
         try:
-            return self._settings(key)
+            return self._settings[key]
         except KeyError:
             return default
         
