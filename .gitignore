@@ -5,3 +5,6 @@
 *.pdb.gz
 .unison*
 *.pdf
+*.zip
+*.gz
+*.tgz

@@ -176,6 +176,11 @@ Release 0.9 (Nov 7, 2011)
     :meth:`~atomic.AtomGroup.nextFrame`
 
 
+**Scripts**:
+  
+  The way ProDy scripts work has changed. See :ref:`scripts` for details.
+  Using older scripts will start issuing deprecation warnings in 2012.
+
 **Bug Fixes**:
 
   * Bugs in :func:`~proteins.execDSSP` and :func:`~proteins.execSTRIDE`

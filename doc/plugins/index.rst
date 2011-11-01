@@ -11,11 +11,10 @@ analysis.
 
 NMWiz can be used for:
 
-  * visualizing normal modes with arrows
-  * generating alternate conformations along a normal mode (animation)
-  * plotting squared-fluctuations (allows labeling and highlighting residues)
-  * comparative analysis of normal modes from different sources/methods
-  * preparing publication quality images of normal modes with the power of VMD
+  * drawing normal modes arrows
+  * making animations (conformations along a normal mode)
+  * plotting square-fluctuations (labeling and highlighting residues)
+  * comparing two structures and drawing deformation arrows
   
 +--------------------------------------------------+------------------------------------------------+------------------------------------------------+
 |                                                  | Example figures                                |                                                |
@@ -32,7 +31,7 @@ For **downloads** and **installation** instructions see :ref:`getnmwiz`.
    :local:
    :backlinks: none
 
-Input for NMWiz
+How to use NMWiz
 ===============================================================================
 
 NMWiz recognizes :ref:`nmd-format` (:file:`.nmd`). NMD files can be 
@@ -150,15 +149,6 @@ Plot Window
                           |bulb| Clicking on the plot will label and highlight the residue (or atom) in the VMD
                           display.
 ========================= ====================================================================================================================================
-
-Settings Window
--------------------------------------------------------------------------------
-
-|
-
-============================= ====================================================================================================================================
-.. image:: nmwiz/settings.png Settings window allows users to specify the path to ProDy scripts and select the default color for displaying arrows.
-============================= ====================================================================================================================================
 
 |
 
