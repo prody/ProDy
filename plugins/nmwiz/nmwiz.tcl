@@ -342,17 +342,8 @@ namespace eval ::nmwiz:: {
 cyan purple black yellow2 yellow3 green2 green3 \
 cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
 orange3"
-  switch [vmdinfo arch] {
-    WIN64 -
-    WIN32 {
-      variable pybin "[::ExecTool::find python.exe]"
-    }
-    default {
-      variable pybin "[::ExecTool::find python]"
-    }
-  }
-  
-  variable prody "[::ExecTool::find prody]"
+
+
   variable outputdir [pwd]
   variable defaultColor "yellow3"
   
@@ -1021,16 +1012,9 @@ orange3"
   }
   
   proc prodySubmitJob {} {
-    if {![file isfile $::nmwiz::pybin]} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Python executable is not found, please specify the path."
-      variable ::nmwiz::pybin [tk_getOpenFile -filetypes {{"Python" python*}}]
-    }
-    if {![file isfile $::nmwiz::prody]} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "ProDy script is not found, please specify the path."
-      variable ::nmwiz::prody [tk_getOpenFile -filetypes {{"Prody" prody*}}]
-    }
+    
+    set ::nmwiz::pybin [::ExecTool::find -interactive -description "Python executable" python]
+    set ::nmwiz::prody [::ExecTool::find -interactive -description "ProDy script" prody]
   
     if {$::nmwiz::prodySelAtoms == 0} {
       tk_messageBox -type ok -title "ERROR" \
