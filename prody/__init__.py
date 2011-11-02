@@ -109,12 +109,14 @@ def importPyPlot():
     try:
         import matplotlib.pyplot as pyplot
         from mpl_toolkits.mplot3d import Axes3D
-        dynamics.Axes3D = Axes3D 
+        dynamics.Axes3D = Axes3D
+        proteins.Axes3D = Axes3D 
     except ImportError:
         pyplot = False 
         LOGGER.warning('Matplotlib is required for plotting.')
-    dynamics.plt = False
-    ensemble.plt = False
+    dynamics.plt = pyplot
+    ensemble.plt = pyplot
+    proteins.plt = pyplot
 
 def importBioKDTree():
     try:
