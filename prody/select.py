@@ -193,7 +193,9 @@ DEBUG = False
 
 __all__ = ['Select', 'Contacts',
            'getProteinResidueNames', 'setProteinResidueNames',
+           'getKeywordResinames', 'setKeywordResnames',
            'getKeywordResidueNames', 'setKeywordResidueNames',
+           'getBackboneAtomNames', 'setBackboneAtomNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
            'getAtomNameRegex', 'setAtomNameRegex',
            'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
@@ -290,7 +292,7 @@ Keywords without arguments
 
 Below is the list of keywords defined based on residue type and/or property.
 These definitions can be retrieved or altered using 
-:func:`getKeywordResidueNames` and :func:`setKeywordResidueNames`, 
+:func:`getKeywordResnames` and :func:`setKeywordResnames`, 
 respectively.
 
 ============= =================================================================
@@ -326,7 +328,7 @@ __doc__ += """
    XLE (leucine or isoleucine), SEC (selenocysteine), and PYL
    (pyrrolysine) has been added to the standard definition of "protein" 
    keyword. Note that this list of residue names can be changed using
-   :func:`setProteinResidueNames` function.
+   :func:`setKeywordResnames` function.
 
 The following are additional keywords whose definitions are more restricted:
 
@@ -578,15 +580,15 @@ some selection keywords:
     
     * :func:`getAtomNameRegex`
     * :func:`getBackboneAtomNames`
-    * :func:`getKeywordResidueNames` 
-    * :func:`getProteinResidueNames`
+    * :func:`getKeywordResnames` 
+    * :func:`getProteinResnames`
     
   * Change keyword definitions:
     
     * :func:`setAtomNameRegex`
     * :func:`setBackboneAtomNames`
-    * :func:`setKeywordResidueNames`
-    * :func:`setProteinResidueNames`
+    * :func:`setKeywordResnames`
+    * :func:`setProteinResnames`
 
 Below functions are for manipulating selection macros:
     
@@ -742,11 +744,17 @@ for field in ATOMIC_DATA_FIELDS.values():
     mapField2Var[field.name] = field.var
 
 def getKeywordResidueNames(keyword):
+    """Deprecated, use :func:`getKeywordResnames`."""
+    
+    prody.deprecate('getKeywordResidueNames', 'getKeywordResnames')
+    return getKeywordResnames(keyword) 
+    
+def getKeywordResnames(keyword):
     """Return residue names associated with a keyword.
     
     .. versionadded:: 0.7
     
-    >>> getKeywordResidueNames('acidic')
+    >>> getKeywordResnames('acidic')
     ['ASP', 'GLU']
     
     """
@@ -764,17 +772,19 @@ def getKeywordResidueNames(keyword):
             LOGGER.warning('"{0:s}" is not a keyword'.format(keyword))
 
 def setKeywordResidueNames(keyword, resnames):
-    """Change the list of residue names associated with a keyword.
+    """Deprecated, use :func:`setKeywordResnames`."""
     
-    .. versionadded:: 0.7
+    prody.deprecate('setKeywordResidueNames', 'setKeywordResnames')
+    return setKeywordResnames(keyword, resnames)
     
-    *keyword* must be a string, and *resnames* may be a list, tuple, or set of
-    strings. The existing list of residue names will be overwritten with the
-    given residue names. Note that changes in keyword definitions are not 
-    saved permanently.
+def setKeywordResnames(keyword, resnames):
+    """Change the list of residue names associated with a keyword.  *keyword* 
+    must be a string, and *resnames* may be a list, tuple, or set of strings. 
+    The existing list of residue names will be overwritten with the given 
+    residue names.  Note that changes in keyword definitions are not saved 
+    permanently.
     
-    >>> setKeywordResidueNames('acidic', ['ASP', 'GLU'])
-    
+    >>> setKeywordResnames('acidic', ['ASP', 'GLU'])
     """
     
     if not isinstance(keyword, str):
@@ -884,19 +894,17 @@ def setBackboneAtomNames(backbone_atom_names, full=False):
     _buildKeywordMap()
 
 def getProteinResidueNames():
-    """Return list of protein residue names."""
+    """Deprecated, use :func:`getProteinResnames`."""
     
-    return KEYWORD_RESNAMES['protein']
-
+    prody.deprecate('getProteinResidueNames', 'getKeywordResnames')
+    return getKeywordResnames('protein')
+    
 def setProteinResidueNames(resnames):
-    """Set list of protein residue names.
+    """Deprecated, use :func:`setProteinResnames`."""
     
-    Note that changes in keyword definitions are not saved permanently.
+    prody.deprecate('setProteinResidueNames', 'setKeywordResnames')
+    return setKeywordResidueNames('protein', resnames)
     
-    """
-
-    setKeywordResidueNames('protein', resnames)
-
 class SelectionError(Exception):    
     
     def __init__(self, selstr, *args):
