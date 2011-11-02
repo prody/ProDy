@@ -17,6 +17,9 @@ Release 0.9 (Nov 7, 2011)
   * :func:`~proteins.parsePDBHeader` is implemented for convenient parsing of
     header data from :file:`.pdb` files.
     
+  * :func:`~proteins.showProtein` is implemented to allow taking a quick look
+    at protein structure.
+
   * :class:`~proteins.Chemical` and :class:`~proteins.Polymer` classes are 
     implemented for storing chemical and polymer component data parsed from
     PDB header records.
@@ -64,9 +67,21 @@ Release 0.9 (Nov 7, 2011)
   :func:`showCrossCorrelations`             :func:`~dynamics.showCrossCorr`
   :func:`showCumulativeOverlap`             :func:`~dynamics.showCumOverlap`
   :func:`deform`                            :func:`~dynamics.deformAtoms`
-  :meth:`calcSumOfWeights`                  :meth:`~ensemble.calcOccupancies`
-  :meth:`showSumOfWeights`                  :meth:`~ensemble.showOccupancies`
-  :meth:`trimEnsemble`                      :meth:`~ensemble.trimPDBEnsemble`
+  :func:`calcSumOfWeights`                  :func:`~ensemble.calcOccupancies`
+  :func:`showSumOfWeights`                  :func:`~ensemble.showOccupancies`
+  :func:`trimEnsemble`                      :func:`~ensemble.trimPDBEnsemble`
+  :func:`getKeywordResidueNames`            :func:`~select.getKeywordResnames`
+  :func:`setKeywordResidueNames`            :func:`~select.setKeywordResnames`
+  :func:`getPairwiseAlignmentMethod`        :func:`~compare.getAlignmentMethod`
+  :func:`setPairwiseAlignmentMethod`        :func:`~compare.setAlignmentMethod`
+  :func:`getPairwiseMatchScore`             :func:`~compare.getMatchScore`
+  :func:`setPairwiseMatchScore`             :func:`~compare.setMatchScore`
+  :func:`getPairwiseMismatchScore`          :func:`~compare.getMismatchScore`
+  :func:`setPairwiseMismatchScore`          :func:`~compare.setMismatchScore`
+  :func:`getPairwiseGapOpeningPenalty`      :func:`~compare.getGapPenalty`
+  :func:`setPairwiseGapOpeningPenalty`      :func:`~compare.setGapPenalty`
+  :func:`getPairwiseGapExtensionPenalty`    :func:`~compare.getGapExtPenalty`
+  :func:`setPairwiseGapExtensionPenalty`    :func:`~compare.setGapExtPenalty`
   ========================================  =====================================
 
   ``getNumOf`` **methods**:
@@ -174,6 +189,10 @@ Release 0.9 (Nov 7, 2011)
     :meth:`~atomic.AtomGroup.getBySerial`
   * removed :meth:`~atomic.AtomGroup.skipFrame`, overloaded 
     :meth:`~atomic.AtomGroup.nextFrame`
+  * removed :func:`~select.getProteinResidueNames`, overloaded
+    :func:`~select.getKeywordResnames` 
+  * removed :func:`~select.setProteinResidueNames`, overloaded
+    :func:`~select.setKeywordResnames` 
 
 
 **Scripts**:
