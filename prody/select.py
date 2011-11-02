@@ -188,7 +188,8 @@ KDTree = None
 
 import prody
 LOGGER = prody.LOGGER
-from prody.atomic import *
+from atomic import *
+from tools import *
 DEBUG = False
 
 __all__ = ['Select', 'Contacts',
@@ -1190,7 +1191,7 @@ class Select(object):
         else:
             
             if self._selstr2indices:
-                selstr = 'index {0:s}'.format(prody.rangeString(indices))
+                selstr = 'index {0:s}'.format(rangeString(indices))
             elif isinstance(atoms, prody.AtomPointer):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                       atoms.getSelstr())
