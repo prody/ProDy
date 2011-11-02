@@ -125,9 +125,12 @@ def updateMonthlyStats():
         key = month.isoformat()[:7]
         if not key in STATS:
             count = 0
-            stats = bz2.decompress(urllib.urlopen(
+            try:
+                stats = bz2.decompress(urllib.urlopen(
                                'http://pypi.python.org/stats/months/{0:s}.bz2'
                                .format(key)).read()).split('\n')
+            except:
+                break
             for line in stats:
                 if line.startswith(package_name):
                     count += int(line.split(',')[-1])
@@ -156,7 +159,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1].lower().startswith('m'):
             updateMonthlyStats()
-        elif sys.argv[1].lower().startswith('d'):
+        elif sys.argv[1].lower().startswith('r'):
             updateReleaseStats()
     else:
         stats = loadStats()
