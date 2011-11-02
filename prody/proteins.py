@@ -893,7 +893,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elif subset in ('backbone', 'bb'):
             subset = set(prody.getBackboneAtomNames())
         only_subset = True
-        protein_resnames = set(prody.getProteinResidueNames())
+        protein_resnames = set(prody.getKeywordResnames('protein'))
     else:
         only_subset = False
     if chain is None:

@@ -344,7 +344,7 @@ class SimpleChain(object):
         gaps = self._gaps
         residues = list(chain.iterResidues())
         temp = residues[0].getNumber()-1
-        protein_resnames = set(prody.getProteinResidueNames())
+        protein_resnames = set(prody.getKeywordResnames('protein'))
         for res in chain:
             if not res.getName() in protein_resnames:
                 continue
