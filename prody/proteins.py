@@ -105,9 +105,8 @@ Function                  Description
 Edit structures
 -------------------------------------------------------------------------------
 
-Following functions allow editing structures, or to be exact instances of 
-:class:`~prody.atomic.AtomGroup` class, using structural data from PDB header 
-records:
+Following functions allow editing structures using structural data from PDB 
+header records:
 
 =========================  ====================================================
 Function                   Description
@@ -116,6 +115,12 @@ Function                   Description
 :func:`buildBiomolecules`  build biomolecule data based on header records
 =========================  ====================================================
 
+
+Visualization
+-------------------------------------------------------------------------------
+
+:func:`showProtein` function can be used to take a quick look at the protein 
+structures. 
 
 :mod:`prody.proteins`
 ===============================================================================
@@ -138,6 +143,7 @@ import sys
 from glob import glob
 from collections import defaultdict
 
+plt = None
 import numpy as np
 
 from tools import *
@@ -168,7 +174,7 @@ __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
            'execDSSP', 'parseDSSP', 'performDSSP',
            'execSTRIDE', 'parseSTRIDE', 'performSTRIDE',
            'fetchPDBClusters', 'loadPDBClusters', 'getPDBCluster',
-           ]
+           'showProtein']
 
 class PDBParseError(Exception):    
     pass
@@ -3338,3 +3344,60 @@ def getPDBCluster(pdb, ch, sqid=95):
         loadPDBClusters(sqid)
         clusters = PDB_CLUSTERS[sqid]
     return list(clusters[(pdb.upper(), ch.upper())])
+
+def showProtein(atoms, *args, **kwargs):
+    """Show protein representation using  :meth:`~mpl_toolkits.mplot3d.Axes3D`.
+    
+    .. versionadded:: 0.9
+    
+    ProDy will set the size of axis so the representation is not distorted when
+    the figure window is close to a square.  Colors are picked randomly,
+    except for water which will always be colored red."""
+    
+    if not plt: prody.importPyPlot()
+
+    cf = plt.gcf()
+    show = None
+    for child in cf.get_children():
+        if isinstance(child, Axes3D):
+            show = child
+            break 
+    if show is None:
+        show = Axes3D(cf)
+    from matplotlib import colors
+    cnames = dict(colors.cnames)
+    cnames.pop('red')
+    for cn, val in cnames.items():
+        if sum(colors.hex2color(val)) > 2.4:
+            cnames.pop(cn)
+    cnames = cnames.keys()
+    import random
+    random.shuffle(cnames)
+    for ch in prody.HierView(atoms.select('calpha'), chain=True):
+        xyz = ch._getCoordinates()
+        chid = ch.getIdentifier()
+        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label=chid,
+                  color=kwargs.get(chid, cnames.pop()))
+    water = atoms.select('water')
+    if water: 
+        xyz = atoms.select('water')._getCoordinates()
+        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label='water',
+                  color=kwargs.get('water', 'red'), ls='None', marker='o',)
+    for res in prody.HierView(atoms.select('not protein and not nucleic and '
+                                           'not water')).iterResidues():
+        xyz = res._getCoordinates()
+        resname = res.getName()
+        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None', marker='o',
+                  color=kwargs.get(resname, cnames.pop()), label=resname)
+    show.set_xlabel('x')
+    show.set_ylabel('y')
+    show.set_zlabel('z')
+    xyz = atoms._getCoordinates()
+    min_ = xyz.min(0)
+    max_ = xyz.max(0)
+    center = (max_ + min_) / 2
+    half = (max_ - min_).max() / 2
+    show.set_xlim3d(center[0]-half, center[0]+half)
+    show.set_ylim3d(center[1]-half, center[1]+half)
+    show.set_zlim3d(center[2]-half, center[2]+half)
+    return show
