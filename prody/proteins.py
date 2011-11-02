@@ -3345,14 +3345,43 @@ def getPDBCluster(pdb, ch, sqid=95):
         clusters = PDB_CLUSTERS[sqid]
     return list(clusters[(pdb.upper(), ch.upper())])
 
-def showProtein(atoms, *args, **kwargs):
-    """Show protein representation using  :meth:`~mpl_toolkits.mplot3d.Axes3D`.
+def showProtein(atoms, **kwargs):
+    """Show protein representation using :meth:`~mpl_toolkits.mplot3d.Axes3D`::
+        
+      p = parsePDB('1zzw')
+      s = showProtein(p)
     
     .. versionadded:: 0.9
     
+    Protein atoms matching ``"calpha"`` selection are displayed using solid 
+    lines by picking a random and unique color per chain.  Line with can 
+    be adjusted using *lw* argument, e.g. ``lw=12``. Default width is 4.  
+    Chain colors can be overwritten using chain identifier as in ``A='green'``.  
+      
+    Water molecule oxygen atoms are represented by red colored circles.  Color 
+    can be changed using *water* keyword argument, e.g. ``water='turquoise'``.
+    Water representation can be changed using *marker* keyword, e.g. 
+    ``marker='*'``.
+    
+    Hetero atoms matching ``"hetero and noh"`` selection are represented by 
+    circles and unique colors are picked at random on a per residue basis.  
+    Colors can be customized using residue name as in ``NAH='purple'.  Note 
+    that this will color all distinct residues with the same name in the same 
+    color.  *marker* keyword argument affects hereto atom representation as 
+    well.
+    
     ProDy will set the size of axis so the representation is not distorted when
-    the figure window is close to a square.  Colors are picked randomly,
-    except for water which will always be colored red."""
+    the figure window is close to a square.  Colors are picked at random,
+    except for water oxygens which will always be colored red.
+    
+    Legend can be displayed as follows::
+        
+      s = showProtein(p, legend=True)
+    
+    or::
+        
+      s.legend()
+    """
     
     if not plt: prody.importPyPlot()
 
@@ -3377,18 +3406,21 @@ def showProtein(atoms, *args, **kwargs):
         xyz = ch._getCoordinates()
         chid = ch.getIdentifier()
         show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label=chid,
-                  color=kwargs.get(chid, cnames.pop()))
-    water = atoms.select('water')
+                  color=kwargs.get(chid, cnames.pop()).lower(),
+                  lw=kwargs.get('lw', 4))
+    water = atoms.select('water and noh')
     if water: 
         xyz = atoms.select('water')._getCoordinates()
         show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label='water',
-                  color=kwargs.get('water', 'red'), ls='None', marker='o',)
+                  color=kwargs.get('water', 'red').lower(), 
+                  ls='None', marker=kwargs.get('marker', 'o'),)
     for res in prody.HierView(atoms.select('not protein and not nucleic and '
                                            'not water')).iterResidues():
         xyz = res._getCoordinates()
         resname = res.getName()
-        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None', marker='o',
-                  color=kwargs.get(resname, cnames.pop()), label=resname)
+        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None',
+                  color=kwargs.get(resname, cnames.pop()).lower(), 
+                  label=resname, marker=kwargs.get('marker', 'o'))
     show.set_xlabel('x')
     show.set_ylabel('y')
     show.set_zlabel('z')
