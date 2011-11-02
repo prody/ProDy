@@ -28,16 +28,16 @@ Functions
         
 **Adjust settings**:
         
-  * :func:`getPairwiseAlignmentMethod`
-  * :func:`setPairwiseAlignmentMethod`
-  * :func:`getPairwiseMatchScore`
-  * :func:`setPairwiseMatchScore`
-  * :func:`getPairwiseMismatchScore`
-  * :func:`setPairwiseMismatchScore`
-  * :func:`getPairwiseGapOpeningPenalty`
-  * :func:`setPairwiseGapOpeningPenalty`
-  * :func:`getPairwiseGapExtensionPenalty`
-  * :func:`setPairwiseGapExtensionPenalty`
+  * :func:`getAlignmentMethod`
+  * :func:`setAlignmentMethod`
+  * :func:`getMatchScore`
+  * :func:`setMatchScore`
+  * :func:`getMismatchScore`
+  * :func:`setMismatchScore`
+  * :func:`getGapPenalty`
+  * :func:`setGapPenalty`
+  * :func:`getGapExtPenalty`
+  * :func:`setGapExtPenalty`
     
 """
 
@@ -47,6 +47,7 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 import numpy as np
 pairwise2 = None
 
+from tools import *
 import prody
 LOGGER = prody.LOGGER
 
@@ -55,20 +56,23 @@ from . import AtomMap, select
 __all__ = ['matchChains',
            'matchAlign',
            'mapOntoChain',
+           'getMatchScore', 'setMatchScore',
            'getPairwiseMatchScore', 'setPairwiseMatchScore',
+           'getMismatchScore', 'setMismatchScore',
            'getPairwiseMismatchScore', 'setPairwiseMismatchScore',
+           'getGapPenalty', 'setGapPenalty',
            'getPairwiseGapOpeningPenalty', 'setPairwiseGapOpeningPenalty',
+           'getGapExtPenalty', 'setGapExtPenalty',
            'getPairwiseGapExtensionPenalty', 'setPairwiseGapExtensionPenalty',
-           'getPairwiseAlignmentMethod', 'setPairwiseAlignmentMethod',
-           'rangeString',
-           ]
+           'getAlignmentMethod', 'setAlignmentMethod',
+           'getPairwiseAlignmentMethod', 'setPairwiseAlignmentMethod',]
 
-PAIRWISE_MATCH_SCORE = 1.0
-PAIRWISE_MISMATCH_SCORE = 0.0
-PAIRWISE_GAP_OPENING_PENALTY = -1.
-PAIRWISE_GAP_EXTENSION_PENALTY = -0.1
-PAIRWISE_ALIGNMENT_METHOD = 'global'
-PAIRWISE_ALIGNMENT_GAP = '-'
+MATCH_SCORE = 1.0
+MISMATCH_SCORE = 0.0
+GAP_PENALTY = -1.
+GAP_EXT_PENALTY = -0.1
+ALIGNMENT_METHOD = 'global'
+GAP = '-'
 
 
 GAPCHARS = ['-', '.']
@@ -101,126 +105,136 @@ def getSequence(resnames):
 
 
 def getPairwiseMatchScore():
+    """Deprecated, use :func:`getMatchScore`."""
+    
+    prody.deprecate('getPairwiseMatchScore', 'getMatchScore')
+    return getMatchScore() 
+
+def getMatchScore():
     """Return match score used to align sequences."""
     
-    return PAIRWISE_MATCH_SCORE
-
+    return MATCH_SCORE
 
 def setPairwiseMatchScore(pairwise_match_score):
+    """Deprecated, use :func:`setMatchScore`."""
+    
+    prody.deprecate('setPairwiseMatchScore', 'setMatchScore')
+    return setMatchScore(pairwise_match_score)
+
+def setMatchScore(match_score):
     """Set match score used to align sequences."""
     
-    if isinstance(pairwise_match_score, (float, int)) and \
-       pairwise_match_score >= 0:
-        global PAIRWISE_MATCH_SCORE 
-        PAIRWISE_MATCH_SCORE = pairwise_match_score
+    if isinstance(match_score, (float, int)) and match_score >= 0:
+        global MATCH_SCORE 
+        MATCH_SCORE = match_score
     else:
-        raise TypeError('pairwise_match_score must be a positive number or '
-                        'zero')
+        raise TypeError('match_score must be a positive number or zero')
 
 
 def getPairwiseMismatchScore():
+    """Deprecated, use :func:`getMismatchScore`."""
+    
+    prody.deprecate('getPairwiseMismatchScore', 'getMismatchScore')
+    return getMismatchScore()
+    
+def getMismatchScore():
     """Return mismatch score used to align sequences."""
     
-    return PAIRWISE_MISMATCH_SCORE
-
+    return MISMATCH_SCORE
 
 def setPairwiseMismatchScore(pairwise_mismatch_score):
+    """Deprecated, use :func:`setMismatchScore`."""
+    
+    prody.deprecate('setPairwiseMismatchScore', 'setMismatchScore')
+    return setMismatchScore(pairwise_mismatch_score)
+
+def setMismatchScore(mismatch_score):
     """Set mismatch score used to align sequences."""
     
-    if isinstance(pairwise_mismatch_score, (float, int)) and \
-       pairwise_mismatch_score >= 0:
-        global PAIRWISE_MISMATCH_SCORE
-        PAIRWISE_MISMATCH_SCORE = pairwise_mismatch_score
+    if isinstance(mismatch_score, (float, int)) and mismatch_score >= 0:
+        global MISMATCH_SCORE
+        MISMATCH_SCORE = mismatch_score
     else:
-        raise TypeError('pairwise_mismatch_score must be a positive number or '
-                        'zero')
-
+        raise TypeError('mismatch_score must be a positive number or zero')
 
 def getPairwiseGapOpeningPenalty():
+    """Deprecated, use :func:`getGapPenalty`."""
+    
+    prody.deprecate('getPairwiseGapOpeningPenalty', 'getGapPenalty')
+    return getGapPenalty() 
+
+def getGapPenalty():
     """Return gap opening penalty used for pairwise alignment."""
     
-    return PAIRWISE_GAP_OPENING_PENALTY
-
+    return GAP_PENALTY
 
 def setPairwiseGapOpeningPenalty(pairwise_gap_opening_penalty):
+    """Deprecated, use :func:`setGapPenalty`."""
+    
+    prody.deprecate('setPairwiseGapOpeningPenalty', 'setGapPenalty')
+    return setGapPenalty(pairwise_gap_opening_penalty)
+
+def setGapPenalty(gap_penalty):
     """Set gap opening penalty used for pairwise alignment."""
     
-    if isinstance(pairwise_gap_opening_penalty, (float, int)) and \
-       pairwise_gap_opening_penalty <= 0:
-        global PAIRWISE_GAP_OPENING_PENALTY
-        PAIRWISE_GAP_OPENING_PENALTY = pairwise_gap_opening_penalty
+    if isinstance(gap_penalty, (float, int)) and gap_penalty <= 0:
+        global GAP_PENALTY
+        GAP_PENALTY = gap_penalty
     else:
-        raise TypeError('pairwise_gap_opening_penalty must be a negative '
-                        'number or zero')
+        raise TypeError('gap_penalty must be a negative number')
 
 
 def getPairwiseGapExtensionPenalty():
-    """Return gap extension penalty used for pairwise alignment"""
+    """Deprecated, use :func:`getGapExtPenalty`."""
     
-    return PAIRWISE_GAP_EXTENSION_PENALTY
-
+    prody.deprecate('getPairwiseGapExtensionPenalty', 'getGapExtPenalty')
+    return getGapExtPenalty()
+    
+def getGapExtPenalty():
+    """Return gap extension penalty used for pairwise alignment."""
+    
+    return GAP_EXT_PENALTY
 
 def setPairwiseGapExtensionPenalty(pairwise_gap_extension_penalty):
-    """Set gap extension penalty used for pairwise alignment"""
+    """Deprecated, use :func:`setGapExtPenalty`."""
     
-    if isinstance(pairwise_gap_extension_penalty, (float, int)) and \
-       pairwise_gap_extension_penalty <= 0:
-        global PAIRWISE_GAP_EXTENSION_PENALTY
-        PAIRWISE_GAP_EXTENSION_PENALTY = pairwise_gap_extension_penalty
-    else:
-        raise TypeError('pairwise_gap_extension_penalty must be a negative '
-                        'number or zero')
+    prody.deprecate('setPairwiseGapExtensionPenalty', 'setGapExtPenalty')
+    return setGapExtPenalty(pairwise_gap_extension_penalty)
 
+def setGapExtPenalty(gap_ext_penalty):
+    """Set gap extension penalty used for pairwise alignment."""
+    
+    if isinstance(gap_ext_penalty, (float, int)) and gap_ext_penalty <= 0:
+        global GAP_EXT_PENALTY
+        GAP_EXT_PENALTY = gap_ext_penalty
+    else:
+        raise TypeError('gap_ext_penalty must be a negative number or zero')
 
 def getPairwiseAlignmentMethod():
+    """Deprecated, use :func:`getAlignmentMethod`."""
+    
+    prody.deprecate('getPairwiseAlignmentMethod', 'getAlignmentMethod')
+    return getAlignmentMethod()
+    
+def getAlignmentMethod():
     """Return pairwise alignment method."""
     
-    return PAIRWISE_ALIGNMENT_METHOD
-
+    return ALIGNMENT_METHOD
 
 def setPairwiseAlignmentMethod(method):
-    """Set pairwise alignment method ("global" or "local")."""
+    """Deprecated, use :func:`setAlignmentMethod`."""
+    
+    prody.deprecate('setPairwiseAlignmentMethod', 'setAlignmentMethod')
+    return setAlignmentMethod(method)
+
+def setAlignmentMethod(method):
+    """Set pairwise alignment method (global or local)."""
     
     if method in ('local', 'global'):
-        global PAIRWISE_ALIGNMENT_METHOD
-        PAIRWISE_ALIGNMENT_METHOD = method
+        global ALIGNMENT_METHOD
+        ALIGNMENT_METHOD = method
     else:
         raise ValueError('method must be "local" or "global"')
-
-
-def rangeString(lint, sep=' ', rng=' to '):
-    """Return a structured string for a given list of integers.
-    
-    :arg lint: list of integers
-    :arg sep: range or number separator         
-    :arg rng: inclusive range symbol
-
-    E.g. for sep=' ' and rng = ' to ' 
-        [1, 2, 3, 4, 10, 15, 16, 17] -> "1 to 4 10 15 to 17"
-    for sep=',' and rng = '-'
-        [1, 2, 3, 4, 10, 15, 16, 17] -> "1-4,10,15-17"
-    
-    """
-    lint = np.unique(lint)
-    strint = ''
-    i = -1
-    for j in lint:
-        if j < 0:
-            continue
-        if i < 0:
-            i = j
-        diff = j - i
-        if diff == 0:
-            strint += str(j)
-        elif diff > 1: 
-            strint += rng + str(i) + sep + str(j)
-            k = j 
-        i = j
-    if diff == 1: 
-        strint += rng + str(i)
-    elif diff > 1 and k != j: 
-        strint += rng + str(i) + sep + str(j)
-    return strint
 
 class SimpleResidue(object):
     
@@ -533,7 +547,7 @@ def matchChains(atoms1, atoms2, **kwargs):
         if pairwise2 is None: prody.importBioPairwise2()
         if pairwise2:
             LOGGER.debug('Trying to match chains based on {0:s} sequence '
-                         'alignment:'.format(PAIRWISE_ALIGNMENT_METHOD))
+                         'alignment:'.format(ALIGNMENT_METHOD))
             for simpch1, simpch2 in unmatched:
                 LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} '
                              '(len={3:d}):'
@@ -654,20 +668,18 @@ def getAlignedMatch(ach, bch):
     
     if pairwise2 is None: prody.importBioPairwise2()
     if not pairwise2: return None
-    if PAIRWISE_ALIGNMENT_METHOD == 'local':
-        alignment = pairwise2.align.localms(ach.getSequence(), bch.getSequence(), 
-                                                PAIRWISE_MATCH_SCORE, 
-                                                PAIRWISE_MISMATCH_SCORE,
-                                                PAIRWISE_GAP_OPENING_PENALTY, 
-                                                PAIRWISE_GAP_EXTENSION_PENALTY,
-                                                one_alignment_only=1)
+    if ALIGNMENT_METHOD == 'local':
+        alignment = pairwise2.align.localms(ach.getSequence(), 
+                                            bch.getSequence(), 
+                                            MATCH_SCORE, MISMATCH_SCORE,
+                                            GAP_PENALTY, GAP_EXT_PENALTY,
+                                            one_alignment_only=1)
     else:
-        alignment = pairwise2.align.globalms(ach.getSequence(), bch.getSequence(), 
-                                                 PAIRWISE_MATCH_SCORE, 
-                                                 PAIRWISE_MISMATCH_SCORE,
-                                                 PAIRWISE_GAP_OPENING_PENALTY, 
-                                                 PAIRWISE_GAP_EXTENSION_PENALTY,
-                                                 one_alignment_only=1)
+        alignment = pairwise2.align.globalms(ach.getSequence(), 
+                                             bch.getSequence(), 
+                                             MATCH_SCORE, MISMATCH_SCORE,
+                                             GAP_PENALTY, GAP_EXT_PENALTY,
+                                             one_alignment_only=1)
                
     this = alignment[0][0]
     that = alignment[0][1]
@@ -679,11 +691,11 @@ def getAlignedMatch(ach, bch):
     for i in xrange(len(this)):
         a = this[i]
         b = that[i]
-        if a != PAIRWISE_ALIGNMENT_GAP:
+        if a != GAP:
             ares = next(aiter)
-        if b != PAIRWISE_ALIGNMENT_GAP:
+        if b != GAP:
             bres = next(biter)
-            if a != PAIRWISE_ALIGNMENT_GAP:
+            if a != GAP:
                 amatch.append(ares.getResidue())
                 bmatch.append(bres.getResidue())
                 if a == b:
@@ -813,7 +825,7 @@ def mapOntoChain(atoms, chain, **kwargs):
 
     if pwalign or (not mappings and (pwalign is None or pwalign)): 
         LOGGER.debug('Trying to map atoms based on {0:s} sequence alignment:'
-                     .format(PAIRWISE_ALIGNMENT_METHOD))
+                     .format(ALIGNMENT_METHOD))
         for simple_chain in unmapped:
             LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
                          .format(simple_chain.getName(), len(simple_chain), 
@@ -912,21 +924,17 @@ def getTrivialMapping(target, chain):
 def getAlignedMapping(target, chain):
     if pairwise2 is None: prody.importBioPairwise2()
     if not pairwise2: return None
-    if PAIRWISE_ALIGNMENT_METHOD == 'local':
+    if ALIGNMENT_METHOD == 'local':
         alignment = pairwise2.align.localms(target.getSequence(), 
                                             chain.getSequence(), 
-                                            PAIRWISE_MATCH_SCORE, 
-                                            PAIRWISE_MISMATCH_SCORE,
-                                            PAIRWISE_GAP_OPENING_PENALTY, 
-                                            PAIRWISE_GAP_EXTENSION_PENALTY,
+                                            MATCH_SCORE, MISMATCH_SCORE,
+                                            GAP_PENALTY,  GAP_EXT_PENALTY,
                                             one_alignment_only=1)
     else:
         alignment = pairwise2.align.globalms(target.getSequence(), 
                                              chain.getSequence(), 
-                                             PAIRWISE_MATCH_SCORE,
-                                             PAIRWISE_MISMATCH_SCORE,
-                                             PAIRWISE_GAP_OPENING_PENALTY, 
-                                             PAIRWISE_GAP_EXTENSION_PENALTY,
+                                             MATCH_SCORE, MISMATCH_SCORE,
+                                             GAP_PENALTY, GAP_EXT_PENALTY,
                                              one_alignment_only=1)
                
     this = alignment[0][0]
@@ -941,10 +949,10 @@ def getAlignedMapping(target, chain):
     for i in xrange(len(this)):
         a = this[i]
         b = that[i]
-        if a not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
+        if a not in (GAP, NONE_A):
             ares = next(aiter)
             amatch.append(ares.getResidue())
-            if b not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
+            if b not in (GAP, NONE_A):
                 bres = next(biter)
                 bmatch.append(bres.getResidue())
                 if a == b:
@@ -952,6 +960,6 @@ def getAlignedMapping(target, chain):
                 n_mapped += 1
             else:
                 bmatch.append(None)
-        elif b not in (PAIRWISE_ALIGNMENT_GAP, NONE_A):
+        elif b not in (GAP, NONE_A):
                 bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
