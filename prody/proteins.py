@@ -1579,6 +1579,7 @@ def _getHeaderDict(stream, *keys):
     for i, line in lines['REMARK']:
         lines[line[:10]].append((i, line))
     
+    pdbid = _PDB_HEADER_MAP['identifier'](lines)
     if keys:
         keys = list(keys)
         for k, key in enumerate(keys):
@@ -1588,10 +1589,9 @@ def _getHeaderDict(stream, *keys):
             else:
                 raise KeyError('"{0:s}" is not a valid header data identifier'
                                .format(key))
-            if key == 'chemicals':
-                pdbentry = _PDB_HEADER_MAP['identifier'](lines)
-                for chem in value:
-                    chem.pdbentry = pdbentry
+            if key in ('chemicals', 'polymers'):
+                for component in value:
+                    component.pdbentry = pdbid
         if len(keys) == 1:
             return keys[0], loc
         else:
@@ -1603,13 +1603,11 @@ def _getHeaderDict(stream, *keys):
             value = func(lines)
             if value is not None:
                 header[key] = value        
-        pdbentry = header.get('identifier', '')
         for chem in header.get('chemicals', []):
-            chem.pdbentry = pdbentry
+            chem.pdbentry = pdbid
         for poly in header.get('polymers', []):
-            poly.pdbentry = pdbentry
+            poly.pdbentry = pdbid
         return header, loc
-
 
 def _getBiomoltrans(lines): 
 
