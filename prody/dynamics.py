@@ -3489,10 +3489,9 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
        :nofigs:
         
        plt.close('all')
-
     """
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    
+    if not plt: prody.importPyPlot()
     if not isinstance(modes, (NMABase, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -4020,8 +4019,7 @@ def showFractOfVar(modes, *args, **kwargs):
     
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(modes, (ModeSet, NMABase)):
         raise TypeError('modes must be NMABase, or ModeSet, not {0:s}'.format(type(modes)))
     
@@ -4050,8 +4048,7 @@ def showCumFractOfVar(modes, *args, **kwargs):
     Note that mode indices are incremented by 1.
     See :func:`showFractOfVar` for an example."""
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMABase, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -4120,8 +4117,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
        
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
                                  prody.Vector)):
         raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
@@ -4221,8 +4217,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     |example| See :ref:`pca-xray-plotting` for a more elaborate example.
        
     """
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
                                  prody.Vector)):
         raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
@@ -4291,8 +4286,7 @@ def showOverlapTable(rows, cols, *args, **kwargs):
        plt.close('all') 
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(rows, (NMABase, ModeSet)):
         raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'
                         .format(type(rows)))
@@ -4342,8 +4336,7 @@ def showCrossCorr(modes, *args, **kwargs):
     
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     arange = np.arange(modes.numAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
@@ -4379,8 +4372,7 @@ def showMode(mode, *args, **kwargs):
        
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
                         'not {0:s}'.format(type(mode)))
@@ -4415,8 +4407,7 @@ def showSqFlucts(modes, *args, **kwargs):
     
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes) 
@@ -4447,8 +4438,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
        
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     sqf = calcSqFlucts(modes)
     mean = sqf.mean()
     args = list(args)
@@ -4490,8 +4480,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
        
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
@@ -4531,8 +4520,7 @@ def showContactMap(enm, *args, **kwargs):
        
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(enm, GNMBase):
         raise TypeError('model argument must be an ENM instance')
     kirchhoff = enm.getKirchhoff()
@@ -4568,8 +4556,7 @@ def showOverlap(mode, modes, *args, **kwargs):
        
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be Mode or Vector, not {0:s}'
                         .format(type(mode)))
@@ -4617,8 +4604,7 @@ def showCumOverlap(mode, modes, *args, **kwargs):
           
     """
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    if not plt: prody.importPyPlot()
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'
                         .format(type(mode)))
