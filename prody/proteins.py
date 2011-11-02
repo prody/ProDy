@@ -136,7 +136,6 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import os.path
-import time
 import os
 import shutil
 import sys
@@ -149,7 +148,6 @@ import numpy as np
 from tools import *
 
 BioBlast = None
-
 
 import prody
 LOGGER = prody.LOGGER
@@ -178,24 +176,6 @@ __all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
 
 class PDBParseError(Exception):    
     pass
-
-
-def _makePath(path):
-    """Make all directories that does not exist in a given path."""
-    if os.path.isabs(path):
-        path = relpath(path)
-    if not os.path.isdir(path):
-        dirs = path.split(os.sep)
-        for i in range(len(dirs)):
-            dirname = os.sep.join(dirs[:i+1])
-            try:
-                if not os.path.isdir(dirname): 
-                    os.mkdir(dirname)
-            except OSError:
-                raise OSError('{0:s} could not be created, please '
-                              'specify another path'.format(path))
-                return os.getcwd()
-    return os.path.join(os.getcwd(), path)
 
 _PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
                        '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ',
@@ -404,7 +384,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
         raise TypeError('"{0:s}" is not a valid keyword argument for this' 
                         'function'.format(kwargs.iterkeys().next()))
     if folder != '.':
-        folder = _makePath(folder)
+        folder = makePath(folder)
     if not os.access(folder, os.W_OK):
         raise IOError('permission to write in {0:s} is denied, please '
                       'specify another folder'.format(folder))
@@ -543,7 +523,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             compressed = True
             if is_divided:
                 getfn = lambda folder, pdbid, ext: \
-                    os.path.join(_makePath(os.path.join(local_folder, 
+                    os.path.join(makePath(os.path.join(local_folder, 
                                             pdbid[1:3])), 'pdb' + pdbid + ext)
             else:
                 getfn = lambda folder, pdbid, ext: os.path.join(folder,
@@ -771,12 +751,12 @@ def parsePDBStream(stream, **kwargs):
         lines = stream.readlines()
         if header or biomol or secondary:
             hd, split = _getHeaderDict(lines)
-        start = time.time()
+        LOGGER.startTimer()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                        'parsed in {2:.2f}s.'.format(ag.numAtoms(), 
-                         ag.numCoordsets() - n_csets, time.time()-start))
+            LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate sets were '
+                        'parsed in %.2fs.'.format(ag.numAtoms(), 
+                         ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warning('Atomic data could not be parsed, please '
@@ -860,13 +840,13 @@ def parsePQR(filename, **kwargs):
     pqr = openFile(filename)
     lines = pqr.readlines()
     pqr.close()
-    start = time.time()
+    LOGGER.startTimer()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain, 
                         subset=subset, altloc_torf=False, format='pqr')
     if ag.numAtoms() > 0:
-        LOGGER.info('{0:d} atoms and {1:d} coordinate sets were '
-                    'parsed in {2:.2f}s.'.format(ag.numAtoms(), 
-                     ag.numCoordsets() - n_csets, time.time()-start))
+        LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate sets were '
+                         'parsed in %.2fs.'.format(ag.numAtoms(), 
+                         ag.numCoordsets() - n_csets))
         return ag
     else:
         return None
@@ -2283,7 +2263,13 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     """
     
-    sequence = checkSequence(sequence)
+    if kwargs.pop('runexample', False):
+        sequence = 'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'\
+                   'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'\
+                   'DAYDIVKMKKSNISPNFNFMGQLLDFERTL'
+    else:
+        sequence = checkSequence(sequence)
+        
     if not sequence:
         raise ValueError('not a valid protein sequence')
 
@@ -2312,7 +2298,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
     
     data = urllib.urlencode(query)
-    start = time.time()
+    LOGGER.startTimer()
     LOGGER.info('Blast searching NCBI PDB database for "{0:s}..."'
                 .format(sequence[:5]))
     request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
@@ -2352,12 +2338,11 @@ def blastPDB(sequence, filename=None, **kwargs):
         if status.upper() == 'READY':
             break
         sleep *= 2
-        if time.time() - start > timeout:
+        if LOGGER.getTime() > timeout:
             LOGGER.warning('Blast search time out.')
             return None
     LOGGER.clear()
-    LOGGER.info('Blast search completed in {0:.1f}s.'
-                .format(time.time()-start))
+    LOGGER.stopTimer('Blast search completed in %.1fs.')
     if filename is not None:
         filename = str(filename)
         if not filename.lower().endswith('.xml'):
@@ -3305,6 +3290,7 @@ def loadPDBClusters(sqid=None):
             raise IOError('Local copy of PDB sequence clusters is not found, '
                           'call `fetchPDBClusters` function.')
         if PDB_CLUSTERS_UPDATE_WARNING:
+            import time
             diff = (time.time() - os.path.getmtime(filename)) / 604800.
             if diff > 1.:
                 LOGGER.warning('PDB sequence clusters are {0:.1f} week(s) old,'
