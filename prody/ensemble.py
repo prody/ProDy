@@ -153,7 +153,7 @@ class EnsembleBase(object):
     def getName(self):
         """Deprecated, use :meth:`getTitle`."""
         
-        prody.deprecate('getName', 'getTitle', (0,9))
+        prody.deprecate('getName', 'getTitle')
         return self.getTitle()
         
     def getTitle(self):
@@ -164,7 +164,7 @@ class EnsembleBase(object):
     def setName(self, name):
         """Deprecated, use :meth:`setTitle`."""
         
-        prody.deprecate('setName', 'setTitle', (0,9))
+        prody.deprecate('setName', 'setTitle')
         return self.setTitle(name)
         
     def setTitle(self, title):
@@ -175,7 +175,7 @@ class EnsembleBase(object):
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
 
-        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        prody.deprecate('getNumOfAtoms', 'numAtoms')
         return self.numAtoms()
         
     def numAtoms(self):
@@ -186,7 +186,7 @@ class EnsembleBase(object):
     def getNumOfCoordsets(self):
         """Deprecated, use :meth:`numCoordsets`."""
         
-        prody.deprecate('getNumOfCoordsets', 'numCoordsets', (0,9))
+        prody.deprecate('getNumOfCoordsets', 'numCoordsets')
         return self.numCoordsets()
         
     def numCoordsets(self):
@@ -197,7 +197,7 @@ class EnsembleBase(object):
     def getNumOfSelected(self):
         """Deprecated, use :meth:`numSelected`."""
         
-        prody.deprecate('getNumOfSelected', 'numSelected', (0,9))
+        prody.deprecate('getNumOfSelected', 'numSelected')
         return self.numSelected()
         
     def numSelected(self):  
@@ -428,7 +428,7 @@ class Ensemble(EnsembleBase):
     def getNumOfConfs(self):
         """Deprecated, use :meth:`numConfs`."""
         
-        prody.deprecate('getNumOfConfs', 'numConfs', (0,9))
+        prody.deprecate('getNumOfConfs', 'numConfs')
         return self.numConfs()
         
     def numConfs(self):  
@@ -1117,7 +1117,7 @@ class ConformationBase(object):
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
 
-        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        prody.deprecate('getNumOfAtoms', 'numAtoms')
         return self.numAtoms()
         
     def numAtoms(self):
@@ -1128,7 +1128,7 @@ class ConformationBase(object):
     def getNumOfSelected(self):
         """Deprecated, use :meth:`numSelected`."""
         
-        prody.deprecate('getNumOfSelected', 'numSelected', (0,9))
+        prody.deprecate('getNumOfSelected', 'numSelected')
         return self.numSelected()
         
     def numSelected(self):
@@ -1437,7 +1437,7 @@ class Frame(ConformationBase):
 def trimEnsemble(pdbensemble, **kwargs):
     """Deprecated, use :meth:`trimPDBEnsemble`."""
     
-    prody.deprecate('trimEnsemble', 'trimPDBEnsemble', (0,9))
+    prody.deprecate('trimEnsemble', 'trimPDBEnsemble')
     return trimPDBEnsemble(pdbensemble, **kwargs)
 
 
@@ -1494,7 +1494,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
 def calcSumOfWeights(pdbensemble):
     """Deprecated, use :meth:`calcOccupancies`."""
     
-    prody.deprecate('calcSumOfWeights', 'calcOccupancies', (0,9))
+    prody.deprecate('calcSumOfWeights', 'calcOccupancies')
     return calcOccupancies(pdbensemble)
     
 def calcOccupancies(pdb_ensemble, normed=False):
@@ -1534,7 +1534,7 @@ def calcOccupancies(pdb_ensemble, normed=False):
 def showSumOfWeights(pdbensemble, *args, **kwargs):
     """Deprecated, use :meth:`showOccupancies`."""
     
-    prody.deprecate('showSumOfWeights', 'showOccupancies', (0,9))
+    prody.deprecate('showSumOfWeights', 'showOccupancies')
     return showOccupancies(pdbensemble, *args, **kwargs)
 
 def showOccupancies(pdb_ensemble, *args, **kwargs):
@@ -1597,7 +1597,7 @@ class TrajectoryBase(EnsembleBase):
     def getNumOfFrames(self):
         """Deprecated, use :meth:`numFrames`."""
         
-        prody.deprecate('getNumOfFrames', 'numFrames', (0,9))
+        prody.deprecate('getNumOfFrames', 'numFrames')
         return self.numFrames()
         
     def numFrames(self):
@@ -1846,7 +1846,7 @@ class TrajectoryFile(TrajectoryBase):
     def getNumOfFixed(self):
         """Deprecated, use :meth:`numFixed`."""
         
-        prody.deprecate('getNumOfFixed', 'numFixed', (0,9))
+        prody.deprecate('getNumOfFixed', 'numFixed')
         return self.numFixed()
         
     def numFixed(self):
@@ -2208,7 +2208,7 @@ class Trajectory(TrajectoryBase):
     def getNumOfFiles(self):
         """Deprecated, use :meth:`numFiles`."""
         
-        prody.deprecate('getNumOfFiles', 'numFiles', (0,9))
+        prody.deprecate('getNumOfFiles', 'numFiles')
         return self.numFiles()
         
     def numFiles(self):
@@ -2382,7 +2382,7 @@ class Trajectory(TrajectoryBase):
     def getNumOfFixed(self):
         """Deprecated, use :meth:`numFixed`."""
         
-        prody.deprecate('getNumOfFixed', 'numFixed', (0,9))
+        prody.deprecate('getNumOfFixed', 'numFixed')
         return self.numFixed()
         
     def numFixed(self):

@@ -514,7 +514,7 @@ class Mode(VectorBase):
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
         
-        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        prody.deprecate('getNumOfAtoms', 'numAtoms')
         return self.numAtoms()
         
     def numAtoms(self):
@@ -525,7 +525,7 @@ class Mode(VectorBase):
     def getNumOfDegOfFreedom(self):
         """Deprecated, use :meth:`numDOF`."""
         
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
         return self.numDOF()
         
     def numDOF(self):
@@ -537,7 +537,7 @@ class Mode(VectorBase):
     def getName(self):
         """Deprecated, use :meth:`getTitle`."""
         
-        prody.deprecate('getName', 'getTitle', (0,9))
+        prody.deprecate('getName', 'getTitle')
         return self.getTitle()
         
     def getTitle(self):
@@ -648,7 +648,7 @@ class Vector(VectorBase):
     def getName(self):
         """Deprecated, use :meth:`getTitle`."""
 
-        prody.deprecate('getName', 'getTitle', (0,9))
+        prody.deprecate('getName', 'getTitle')
         return self.getTitle()
         
     def getTitle(self):
@@ -659,7 +659,7 @@ class Vector(VectorBase):
     def setName(self, name):
         """Deprecated, use :meth:`setTitle`."""
 
-        prody.deprecate('setName', 'setTitle', (0,9))
+        prody.deprecate('setName', 'setTitle')
         return self.setTitle(name)
         
     def setTitle(self, title):
@@ -686,7 +686,7 @@ class Vector(VectorBase):
     def getNumOfDegOfFreedom(self):
         """Deprecated, use :meth:`numDOF`."""
         
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
         return self.numDOF()
         
     def numDOF(self):
@@ -697,7 +697,7 @@ class Vector(VectorBase):
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
         
-        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        prody.deprecate('getNumOfAtoms', 'numAtoms')
         return self.numAtoms()
         
     def numAtoms(self):
@@ -809,7 +809,7 @@ class NMABase(object):
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
         
-        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        prody.deprecate('getNumOfAtoms', 'numAtoms')
         return self.numAtoms()
         
     def numAtoms(self):
@@ -820,7 +820,7 @@ class NMABase(object):
     def getNumOfModes(self):
         """Deprecated, use :meth:`numModes`."""
         
-        prody.deprecate('getNumOfModes', 'numModes', (0,9))
+        prody.deprecate('getNumOfModes', 'numModes')
         return self.numModes()
         
     def numModes(self):
@@ -832,7 +832,7 @@ class NMABase(object):
     def getNumOfDegOfFreedom(self):
         """Deprecated, use :meth:`numDOF`."""
         
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
         return self.numDOF()
         
     def numDOF(self):
@@ -843,7 +843,7 @@ class NMABase(object):
     def getName(self):
         """Deprecated, use :meth:`getTitle`."""
 
-        prody.deprecate('getName', 'getTitle', (0,9))
+        prody.deprecate('getName', 'getTitle')
         return self.getTitle()
         
     def getTitle(self):
@@ -854,7 +854,7 @@ class NMABase(object):
     def setName(self, name):
         """Deprecated, use :meth:`setTitle`."""
 
-        prody.deprecate('setName', 'setTitle', (0,9))
+        prody.deprecate('setName', 'setTitle')
         return self.setTitle(name)
         
     def setTitle(self, title):
@@ -1085,7 +1085,7 @@ class ModeSet(object):
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
         
-        prody.deprecate('getNumOfAtoms', 'numAtoms', (0,9))
+        prody.deprecate('getNumOfAtoms', 'numAtoms')
         return self.numAtoms()
         
     def numAtoms(self):
@@ -1096,7 +1096,7 @@ class ModeSet(object):
     def getNumOfModes(self):
         """Deprecated, use :meth:`numModes`."""
         
-        prody.deprecate('getNumOfModes', 'numModes', (0,9))
+        prody.deprecate('getNumOfModes', 'numModes')
         return self.numModes()
         
     def numModes(self):
@@ -1108,7 +1108,7 @@ class ModeSet(object):
     def getNumOfDegOfFreedom(self):
         """Deprecated, use :meth:`numDOF`."""
         
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF', (0,9))
+        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
         return self.numDOF()
         
     def numDOF(self):
@@ -1125,7 +1125,7 @@ class ModeSet(object):
     def getName(self):
         """Deprecated, use :meth:`getTitle`."""
         
-        prody.deprecate('getName', 'getTitle', (0,9))
+        prody.deprecate('getName', 'getTitle')
         return self.getTitle()
     
     def getTitle(self):
@@ -3649,7 +3649,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
 def deform(atoms, mode, rmsd=None):
     """Deprecated, use :func:`deformAtoms`."""
     
-    prody.deprecate('deform', 'deformAtoms', (0,9))
+    prody.deprecate('deform', 'deformAtoms')
     return deformAtoms(atoms, mode, rmsd)
 
 def deformAtoms(atoms, mode, rmsd=None):
@@ -3700,7 +3700,7 @@ def deformAtoms(atoms, mode, rmsd=None):
 def scanPerturbationResponse(model, atoms=None, repeats=100):
     """See :func:`calcPerturbResponse`."""
     
-    prody.deprecate('scanPerturbationResponse', 'calcPerturResponse', (0,9))
+    prody.deprecate('scanPerturbationResponse', 'calcPerturResponse')
     return calcPerturResponse(model, atoms, repeats) 
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
@@ -3808,7 +3808,7 @@ def calcSqFlucts(modes):
 def calcCrossCorrelations(modes, n_cpu=1):
     """Deprecated, use :func:`calcCrossCorr`."""
     
-    prody.deprecate('calcCrossCorrelations', 'calcCrossCorr', (0,9))
+    prody.deprecate('calcCrossCorrelations', 'calcCrossCorr')
     return calcCrossCorr(modes, n_cpu)
  
 def calcCrossCorr(modes, n_cpu=1):
@@ -3891,7 +3891,7 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 def calcCumulativeOverlap(modes1, modes2):
     """Deprecated, use :func:`calcCumOverlap`."""
     
-    prody.deprecate('calcCumulativeOverlap', 'calcCumOverlap', (0,9))
+    prody.deprecate('calcCumulativeOverlap', 'calcCumOverlap')
     return calcCumOverlap(modes1, modes2) 
     
 def calcCumOverlap(modes1, modes2):
@@ -3908,7 +3908,7 @@ def calcCumOverlap(modes1, modes2):
 def calcCumulativeOverlapArray(modes1, modes2):
     """Deprecated, use :func:`calcCumOverlapArray`."""
 
-    prody.deprecate('calcCumulativeOverlapArray', 'calcCumOverlapArray', (0,9))
+    prody.deprecate('calcCumulativeOverlapArray', 'calcCumOverlapArray')
     return calcCumOverlapArray(modes1, modes2) 
 
 
@@ -3941,7 +3941,7 @@ def calcSubspaceOverlap(modes1, modes2):
 def calcCovarianceOverlap(modelA, modelB):
     """Deprecated, use :func:`calcCovOverlap`."""
 
-    prody.deprecate('calcCovarianceOverlap', 'calcCovOverlap', (0,9))    
+    prody.deprecate('calcCovarianceOverlap', 'calcCovOverlap')    
     return calcCovOverlap(modelA, modelB)
     
 def calcCovOverlap(modelA, modelB):
@@ -3996,7 +3996,7 @@ def calcTempFactors(modes, atoms):
 def showFractOfVariances(modes, *args, **kwargs):
     """Deprecated, use :func:`showFractOfVar`."""
     
-    prody.deprecate('showFractOfVariances', 'showFractOfVar', (0,9))
+    prody.deprecate('showFractOfVariances', 'showFractOfVar')
     return showFractOfVar(modes, *args, **kwargs) 
     
 def showFractOfVar(modes, *args, **kwargs):
@@ -4038,7 +4038,7 @@ def showFractOfVar(modes, *args, **kwargs):
 def showCumFractOfVariances(modes, *args, **kwargs):
     """Deprecated, use :func:`showCumFractOfVar`."""
     
-    prody.deprecate('showCumFractOfVariances', 'showCumFractOfVar', (0,9))
+    prody.deprecate('showCumFractOfVariances', 'showCumFractOfVar')
     return showCumFractOfVar(modes, *args, **kwargs)
 
 def showCumFractOfVar(modes, *args, **kwargs):
@@ -4311,7 +4311,7 @@ def showOverlapTable(rows, cols, *args, **kwargs):
 def showCrossCorrelations(modes, *args, **kwargs):
     """Deprecated, use :func:`showCrossCorr`."""
     
-    prody.deprecate('showCrossCorrelations', 'showCrossCorr', (0,9))
+    prody.deprecate('showCrossCorrelations', 'showCrossCorr')
     return showCrossCorr(modes, *args, **kwargs)
 
 def showCrossCorr(modes, *args, **kwargs):
@@ -4577,7 +4577,7 @@ def showOverlap(mode, modes, *args, **kwargs):
 def showCumulativeOverlap(mode, modes, *args, **kwargs):
     """Deprecated, use :func:`showCumOverlap`."""
     
-    prody.deprecate('showCumulativeOverlap', 'showCumOverlap', (0,9))
+    prody.deprecate('showCumulativeOverlap', 'showCumOverlap')
     return showCumOverlap(mode, modes, *args, **kwargs)
     
 def showCumOverlap(mode, modes, *args, **kwargs):
