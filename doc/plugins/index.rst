@@ -5,7 +5,7 @@ NMWiz
 *******************************************************************************
 
 Normal Mode Wizard (NMWiz) is a `VMD <www.ks.uiuc.edu/Research/vmd/>`_ 
-plug-in designed for visual and comparative analysis of normal mode data, 
+plugin designed for visual and comparative analysis of normal mode data, 
 i.e. modes from principal component, essential dynamics, or normal mode 
 analysis. 
 
@@ -142,7 +142,7 @@ Plot Window
 ========================= ====================================================================================================================================
 .. image:: nmwiz/plot.png User can plot squared-fluctuations along the active normal mode by clicking on
                           the :guilabel:`Plot` button. Plots will be generated using a modified version of
-                          `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plug-in.
+                          `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plugin.
                           
                           |bulb| Clicking on the plot will label and highlight the residue (or atom) in the VMD
                           display.

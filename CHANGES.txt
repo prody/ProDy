@@ -755,7 +755,7 @@ Release 0.6 (Feb 22, 2011)
     installed before ProDy can be used. For plotting, Matplotlib is still 
     required.
   * :ref:`nmwiz` is distributed with ProDy source. On Linux, if VMD is 
-    installed, ProDy installer locates VMD plug-ins folder and installs NMWiz.
+    installed, ProDy installer locates VMD plugins folder and installs NMWiz.
     On Windows, user needs to follow a separate set of instructions (see
     :ref:`getnmwiz`).
   * :class:`~dynamics.Gamma` class is implemented for facilitating use of  
