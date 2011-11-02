@@ -1626,6 +1626,8 @@ def _getHeaderDict(stream, *keys):
         pdbentry = header.get('identifier', '')
         for chem in header.get('chemicals', []):
             chem.pdbentry = pdbentry
+        for poly in header.get('polymers', []):
+            poly.pdbentry = pdbentry
         return header, loc
 
 
@@ -1633,6 +1635,7 @@ def _getBiomoltrans(lines):
 
     applyToChains = (' ')
     biomolecule = defaultdict(list)
+    currentBiomolecule = '1'
     for i, line in lines['REMARK 350']:
         
         if line[13:18] == 'BIOMT':
@@ -1766,7 +1769,6 @@ def _getPolymers(lines):
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.pdbentry = line[7:11]
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
         poly.dbaccession = line[33:41].strip()
@@ -1791,7 +1793,6 @@ def _getPolymers(lines):
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.pdbentry = line[7:11]
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
         poly.dbidentifier = line[47:67].strip()
@@ -1859,7 +1860,9 @@ def _getPolymers(lines):
         for token in molecule.strip().split(';'):
             if not token:
                 continue
-            key, value = token.split(':', 1)
+            items = token.split(':', 1)
+            if len(items) == 2:
+                key, value = items 
             dict_[key.strip()] = value.strip()
         chains = dict_.pop('CHAIN', '').strip()
         if not chains:
@@ -3251,6 +3254,7 @@ def fetchPDBClusters():
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)
     LOGGER.progress(len(PDB_CLUSTERS))
+    count = 0
     for i, x in enumerate(PDB_CLUSTERS.keys()):
         filename = 'bc-{0:d}.out'.format(x)
         url = ('ftp://resources.rcsb.org/sequence/clusters/' + filename)
@@ -3265,8 +3269,13 @@ def fetchPDBClusters():
             out.write(inp.read())
             inp.close()
             out.close()
+            count += 1
         LOGGER.report(i)
     LOGGER.clear()
+    if len(PDB_CLUSTERS) == count:
+        LOGGER.info('All PDB clusters were downloaded successfully.')
+    elif count == 0:
+        LOGGER.warning('PDB clusters could not be downloaded.')
 
 def loadPDBClusters(sqid=None):
     """Load previously fetched PDB sequence clusters from disk to memory.
@@ -3298,8 +3307,8 @@ def loadPDBClusters(sqid=None):
         if PDB_CLUSTERS_UPDATE_WARNING:
             diff = (time.time() - os.path.getmtime(filename)) / 604800.
             if diff > 1.:
-                LOGGER.warning('PDB sequence clusters are {0:.1f} week old, '
-                               'call `fetchPDBClusters` to receive updates.'
+                LOGGER.warning('PDB sequence clusters are {0:.1f} week(s) old,'
+                               ' call `fetchPDBClusters` to receive updates.'
                                .format(diff))
                 PDB_CLUSTERS_UPDATE_WARNING = False
         inp = openFile(filename)
