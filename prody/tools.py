@@ -36,7 +36,7 @@ __all__ = ['PackageLogger', 'PackageSettings',
            'gunzip', 'openFile',
            'isExecutable', 'which', 'relpath', 
            'pickle', 'unpickle',
-           ]
+           'rangeString',]
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -260,8 +260,15 @@ class PackageLogger(object):
 
 class PackageSettings(object):
     
+    """A class for managing package settings.  Settings are saved in user's 
+    home director.  When settings are changed by the users, the changes are 
+    automatically saved.  Settings are stored in a :class:`dict` instance. 
+    The dictionary is pickled in user's home directory for permanent storage.
+    """
+    
     def __init__(self, pkg=__package__, rcfile=None):
-        
+        """*rcfile* is the filename for pickled settings dictionary, and by 
+        default is set to :file:`.pkgrc`."""
         
         self._package = pkg
         if rcfile is None:
@@ -290,16 +297,16 @@ class PackageSettings(object):
             return default
         
     def load(self):
+        """Load settings by unpickling the settings dictionary."""
         
         if os.path.isfile(self._rcfile):
             settings = unpickle(self._rcfile)
         if not isinstance(settings, dict):
-            settings = {
-                'loglevel': 'debug',
-            }
+            settings = {}
         self._settings = settings
 
     def save(self):
+        """Save settings by pickling the settings dictionary."""
         
         pickle(self._settings, self._rcfile)
 
@@ -372,6 +379,8 @@ def gunzip(filename, outname=None):
     return outname
 
 def isExecutable(path):
+    """Return true is *path* is an executable."""
+    
     return os.path.exists(path) and os.access(path, os.X_OK)
 
 def relpath(path):
@@ -397,13 +406,50 @@ def which(program):
     return None
 
 def pickle(obj, filename):
+    """Pickle *obj* using :mod:`cPickle` and dump in *filename*."""
+    
     out = openFile(filename, 'wb')
     cPickle.dump(obj, out)
     out.close()
     return filename
 
 def unpickle(filename):
+    """Unpickle object in *filename* using :mod:`cPickle`."""
+    
     inf = openFile(filename, 'rb')
     obj = cPickle.load(inf)
     inf.close()
     return obj
+
+def rangeString(lint, sep=' ', rng=' to '):
+    """Return a structured string for a given list of integers.
+    
+    :arg lint: integer list or array
+    :arg sep: range or number separator         
+    :arg rng: inclusive range symbol
+
+    E.g. for ``sep=' '`` and ``rng=' to '``: 
+        ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1 to 4 10 15 to 17"``
+    for ``sep=','`` and ``rng='-'``:
+        ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1-4,10,15-17"``
+    """
+    lint = np.unique(lint)
+    strint = ''
+    i = -1
+    for j in lint:
+        if j < 0:
+            continue
+        if i < 0:
+            i = j
+        diff = j - i
+        if diff == 0:
+            strint += str(j)
+        elif diff > 1: 
+            strint += rng + str(i) + sep + str(j)
+            k = j 
+        i = j
+    if diff == 1: 
+        strint += rng + str(i)
+    elif diff > 1 and k != j: 
+        strint += rng + str(i) + sep + str(j)
+    return strint
