@@ -3361,7 +3361,7 @@ def showProtein(atoms, **kwargs):
     Water molecule oxygen atoms are represented by red colored circles.  Color 
     can be changed using *water* keyword argument, e.g. ``water='turquoise'``.
     Water representation can be changed using *marker* keyword, e.g. 
-    ``marker='*'``.
+    ``marker='v'``.
     
     Hetero atoms matching ``"hetero and noh"`` selection are represented by 
     circles and unique colors are picked at random on a per residue basis.  
@@ -3432,4 +3432,6 @@ def showProtein(atoms, **kwargs):
     show.set_xlim3d(center[0]-half, center[0]+half)
     show.set_ylim3d(center[1]-half, center[1]+half)
     show.set_zlim3d(center[2]-half, center[2]+half)
+    if kwargs.get('legend', False):
+        show.legend()
     return show
