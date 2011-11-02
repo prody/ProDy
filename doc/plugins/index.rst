@@ -58,9 +58,7 @@ NMWiz GUI
 ===============================================================================
 
 This section describes NMWiz Interfaces briefly. Click :guilabel:`Help` on the 
-GUI to get instant help. In addition, a tutorial that was developed for an 
-earlier version of the plug-in can be obtained from here:
-:download:`Tutorial <nmwiz/NMWiz_tutorial.pdf>`. 
+GUI to get instant help. 
 
 Main Window
 -------------------------------------------------------------------------------
