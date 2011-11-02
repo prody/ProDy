@@ -2766,12 +2766,12 @@ class HierView(object):
     
     __slots__ = ['_atoms', '_chains']
 
-    def __init__(self, atoms):
+    def __init__(self, atoms, **kwargs):
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an atomic instance')
         self._atoms = atoms
         self._chains = dict()
-        self.update()
+        self.update(**kwargs)
 
     def getAtoms(self):
         """Return atoms for which the hierarchical view is built.
@@ -2781,7 +2781,7 @@ class HierView(object):
         return self._atoms
     
     
-    def update(self):
+    def update(self, **kwargs):
         """Rebuild hierarchical view of atoms.  This method is called at 
         instantiation, but can be used to rebuild the hierarchical view 
         when attributes of atoms change."""
@@ -2810,7 +2810,8 @@ class HierView(object):
         for chid in set(chids):
             ch = Chain(atomgroup, _indices[chids == chid], acsi, unique=True)
             self._chains[chid] = ch
-        
+        if kwargs.get('chain', False):
+            return
         _resnums = atomgroup._getResnums()
         if _resnums is None:
             _resnums = np.zeros(atomgroup._n_atoms, 
