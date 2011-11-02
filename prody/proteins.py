@@ -3365,7 +3365,7 @@ def showProtein(atoms, **kwargs):
     
     Hetero atoms matching ``"hetero and noh"`` selection are represented by 
     circles and unique colors are picked at random on a per residue basis.  
-    Colors can be customized using residue name as in ``NAH='purple'.  Note 
+    Colors can be customized using residue name as in ``NAH='purple'``.  Note 
     that this will color all distinct residues with the same name in the same 
     color.  *marker* keyword argument affects hereto atom representation as 
     well.
