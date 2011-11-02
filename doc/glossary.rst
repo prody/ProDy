@@ -15,7 +15,7 @@ Glossary
    NMD
      NMD stands for Normal Mode Data, and it is the extension used by files
      containing NMD. It is a plain-text file format recognized 
-     by the Normal Mode Wizard (NMWiz), a VMD plug-in for visualizing NMD.
+     by the Normal Mode Wizard (NMWiz), a VMD plugin for visualizing NMD.
      For a description of this file format see: 
      :ref:`nmd-format`
      

@@ -71,7 +71,7 @@ def getVMDpaths():
     return None, None
 
 def installNMWiz(vmddir):
-    """Copy NMWiz plug-in files to $VMDDIR/plugins/noarch/tcl folder."""
+    """Copy NMWiz plugin files to $VMDDIR/plugins/noarch/tcl folder."""
     plugindir = os.path.join(vmddir, 'plugins', 'noarch', 'tcl')
     nmwiz = 'nmwiz' + __version__[:3]
     nmwizdir = os.path.join(plugindir, nmwiz)
