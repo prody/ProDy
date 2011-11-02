@@ -193,7 +193,7 @@ DEBUG = False
 
 __all__ = ['Select', 'Contacts',
            'getProteinResidueNames', 'setProteinResidueNames',
-           'getKeywordResinames', 'setKeywordResnames',
+           'getKeywordResnames', 'setKeywordResnames',
            'getKeywordResidueNames', 'setKeywordResidueNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
