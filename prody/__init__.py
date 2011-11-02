@@ -37,20 +37,19 @@ import warnings
 
 DEPRECATION_WARNINGS = False
 
-if release >= (0,9):
+from datetime import date
+today = date.today()
+
+if today.year == 2012:
     warnings.filterwarnings('default', category=DeprecationWarning)
 
-def deprecate(dep, alt, rel=(0,9)):
+def deprecate(dep, alt, sl=3):
     """Issue a deprecation warning for *dep* and recommend using *alt*, if 
-    *rel* is greater or equal to the current release."""
+    current year is 2012."""
 
-    if DEPRECATION_WARNINGS or release >= rel:
-        # Assume that the deprecated method or function will be removed
-        # when the next major release is made
-        rel = float('.'.join((str(x) for x in rel[:2]))) + 0.1
-        warnings.warn('`{0:s}` is deprecated for removal in v{1:.1f}, '
-                      'use `{2:s}`.'.format(dep, rel, alt), 
-                      DeprecationWarning, stacklevel=3)
+    if DEPRECATION_WARNINGS or today.year >= 2012:
+        warnings.warn('`{0:s}` is deprecated for removal in v1.0, use `{1:s}`.'
+                      .format(dep, alt), DeprecationWarning, stacklevel=sl)
 
 def turnonDepracationWarnings(action='always'):
     """Turn on deprecation warnings for the current session.  By default
