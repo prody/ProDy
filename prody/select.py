@@ -65,8 +65,8 @@ chid [‡]         string           same as *chain*
 icode [‡]        string           single letter insertion code
 segment [‡]      string           segment name
 segname [‡]      string           same as *segment*
-secondary [*‡]   string           one-character secondary structure identifier
-seconstr [*‡]    string           same as *secondary*
+secondary [\*‡]  string           one-character secondary structure identifier
+secstr [\*‡]     string           same as *secondary*
 index            integer, range   internal atom number (starts from 0) 
 serial           integer, range   atom serial number (parsed from file)
 resnum [§]       integer, range   residue number
