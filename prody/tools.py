@@ -258,12 +258,12 @@ class PackageLogger(object):
         self.warning("Logfile '{0:s}' was not found.".format(filename))
 
     def startTimer(self):
-        """Start timing an action.  Use :meth:`stopTimer` to report time."""
+        """Start timing a process.  Use :meth:`stopTimer` to report time."""
         
         self._start = time.time()
         
     def stopTimer(self, msg="Completed in %.2fs."):
-        """Stop timer and report the time it took to complete the action."""
+        """Stop timer and report the time it took to complete the process."""
         
         self.info(msg % (time.time() - self._start))
 
