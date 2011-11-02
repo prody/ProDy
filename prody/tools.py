@@ -35,7 +35,7 @@ import numpy as np
 __all__ = ['PackageLogger', 'PackageSettings',
            'checkCoordsArray', 
            'gunzip', 'openFile',
-           'isExecutable', 'which', 'relpath', 
+           'isExecutable', 'makePath', 'relpath', 'which', 
            'pickle', 'unpickle',
            'rangeString',]
 
@@ -99,7 +99,6 @@ class PackageLogger(object):
         """Return string prefixed to console messages."""
         
         return self._prefix
-        
 
     def info(self, msg):
         """Log *msg* with severity 'INFO'."""
@@ -195,7 +194,7 @@ class PackageLogger(object):
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
 
     def write(self, line):
-        """Write a line to sys.stderr."""
+        """Write *line* to sys.stderr."""
         
         self._line = str(line)
         if self._level < logging.WARNING:
@@ -258,6 +257,21 @@ class PackageLogger(object):
                     return
         self.warning("Logfile '{0:s}' was not found.".format(filename))
 
+    def startTimer(self):
+        """Start timing an action.  Use :meth:`stopTimer` to report time."""
+        
+        self._start = time.time()
+        
+    def stopTimer(self, msg="Completed in %.2fs."):
+        """Stop timer and report the time it took to complete the action."""
+        
+        self.info(msg % (time.time() - self._start))
+
+    def getTime(self):
+        """Return the time in seconds since last call of :meth:`startTimer`
+        or :meth:`progress`."""
+        
+        return time.time() - self._start
 
 class PackageSettings(object):
     
@@ -311,7 +325,7 @@ class PackageSettings(object):
         
         pickle(self._settings, self._rcfile)
 
-        
+
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
                      reshape=None):
     """Return array if checks pass, otherwise raise an exception."""
@@ -392,6 +406,25 @@ def relpath(path):
     else:
         return os.path.relpath(path)
 
+def makePath(path):
+    """Make all directories that does not exist in a given path."""
+    
+    if os.path.isabs(path):
+        path = relpath(path)
+    if not os.path.isdir(path):
+        dirs = path.split(os.sep)
+        for i in range(len(dirs)):
+            dirname = os.sep.join(dirs[:i+1])
+            try:
+                if not os.path.isdir(dirname): 
+                    os.mkdir(dirname)
+            except OSError:
+                raise OSError('{0:s} could not be created, please '
+                              'specify another path'.format(path))
+                return os.getcwd()
+    return os.path.join(os.getcwd(), path)
+
+
 def which(program):
     """This function is based on the example in:
     http://stackoverflow.com/questions/377017/"""
@@ -454,3 +487,4 @@ def rangeString(lint, sep=' ', rng=' to '):
     elif diff > 1 and k != j: 
         strint += rng + str(i) + sep + str(j)
     return strint
+
