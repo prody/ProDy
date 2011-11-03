@@ -127,18 +127,18 @@ def calcTransformation(mobile, target, weights=None):
     name = ''
     if not isinstance(mobile, np.ndarray): 
         try:
-            mob = mobile._getCoordinates()
+            mob = mobile._getCoords()
         except AttributeError:
             raise TypeError('mobile must be a numpy array or an object '
-                            'with getCoordinates method')
+                            'with getCoords method')
     else:
         mob = mobile
     if not isinstance(target, np.ndarray): 
         try:
-            tar = target._getCoordinates()
+            tar = target._getCoords()
         except AttributeError:
             raise TypeError('target must be a numpy array or an object '
-                            'with getCoordinates method')
+                            'with getCoords method')
     else:
         tar = target
     
@@ -258,10 +258,10 @@ def applyTransformation(transformation, coords):
             ag = atoms.getAtomGroup()
             acsi = ag.getACSI()
             ag.setACSI(atoms.getACSI())
-            coords = ag._getCoordinates()
+            coords = ag._getCoords()
         else:
             try:
-                coords = atoms._getCoordinates()
+                coords = atoms._getCoords()
             except AttributeError:
                 raise TypeError('coords is not an array of coordinates '
                                 'and do not contain a coordinate set')
@@ -269,9 +269,9 @@ def applyTransformation(transformation, coords):
         return _applyTransformation(transformation, coords)
     else:
         if ag is None:
-            atoms.setCoordinates(_applyTransformation(transformation, coords))
+            atoms.setCoords(_applyTransformation(transformation, coords))
         else: 
-            ag.setCoordinates(_applyTransformation(transformation, coords))
+            ag.setCoords(_applyTransformation(transformation, coords))
             ag.setACSI(acsi)
         return atoms
 
@@ -286,7 +286,7 @@ def calcDeformVector(from_atoms, to_atoms):
     name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
     if len(name) > 30: 
         name = 'Deformation'
-    array = (to_atoms.getCoordinates() - from_atoms.getCoordinates()).flatten()
+    array = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
     return prody.Vector(array, name)
 
 def calcRMSD(reference, target=None, weights=None):
@@ -302,7 +302,7 @@ def calcRMSD(reference, target=None, weights=None):
     [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
       0.58  0.66  0.83]
-    >>> print calcRMSD(ens.getCoordinates(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
+    >>> print calcRMSD(ens.getCoords(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
     [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
       0.58  0.66  0.83]
@@ -313,10 +313,10 @@ def calcRMSD(reference, target=None, weights=None):
         ref = reference
     else:
         try:
-            ref = reference._getCoordinates()
+            ref = reference._getCoords()
         except AttributeError:
             raise TypeError('reference must be a numpy array or an object '
-                            'with getCoordinates method')
+                            'with getCoords method')
         if target is None:
             try:
                 target = reference._getCoordsets()
@@ -334,10 +334,10 @@ def calcRMSD(reference, target=None, weights=None):
         tar = target
     else:
         try:
-            tar = target._getCoordinates()
+            tar = target._getCoords()
         except AttributeError:
             raise TypeError('target must be a numpy array or an object '
-                            'with getCoordinates method')
+                            'with getCoords method')
     if tar.ndim not in (2, 3) or tar.shape[-1] != 3:
         raise ValueError('target must have shape ([n_confs,] n_atoms, 3)')
 
@@ -397,12 +397,12 @@ def calcDistance(one, two):
     
     if not isinstance(one, np.ndarray):
         try:
-            one = one.getCoordinates()
+            one = one.getCoords()
         except AttributeError:
             raise ValueError('one must be Atom instance or a coordinate array')
     if not isinstance(two, np.ndarray):
         try:
-            two = two.getCoordinates()
+            two = two.getCoords()
         except AttributeError:
             raise ValueError('one must be Atom instance or a coordinate array')
     if one.shape[-1] != 3 or two.shape[-1] != 3:
@@ -465,7 +465,7 @@ def calcRadiusOfGyration(coords, weights=None):
     
     if isinstance(coords, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap, 
                            prody.ConformationBase)):
-        coords = coords._getCoordinates()
+        coords = coords._getCoords()
     if not isinstance(coords, np.ndarray):
         raise TypeError('coords must be a array or atomic')
     elif not coords.ndim in (2, 3):

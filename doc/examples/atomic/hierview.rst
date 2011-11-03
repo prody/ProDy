@@ -182,7 +182,7 @@ This enables getting a :func:`list` of residues simply as follows:
 All methods defined for :class:`AtomGroup` class are also defined for 
 :class:`Chain` (and also :class:`Residue`) class:
 
->>> print( chA.getCoordinates() ) # doctest: +ELLIPSIS
+>>> print( chA.getCoords() ) # doctest: +ELLIPSIS
 [[ -2.139  17.026 -13.287]
  [ -1.769  15.572 -13.111]
  [ -0.296  15.257 -13.467]
@@ -252,7 +252,7 @@ This makes it easy to get a :func:`list` of atoms:
 All methods defined for :class:`AtomGroup` class are also defined for 
 :class:`Residue` class:
 
->>> print( chA_res1.getCoordinates() )
+>>> print( chA_res1.getCoords() )
 [[ -2.139  17.026 -13.287]
  [ -1.769  15.572 -13.111]
  [ -0.296  15.257 -13.467]
@@ -290,7 +290,7 @@ All methods defined for :class:`AtomGroup` class are also defined for
 :class:`Atom` class with the difference that method names are singular 
 (except for coordinates):
 
->>> print( chA_res1_CA.getCoordinates() )
+>>> print( chA_res1_CA.getCoords() )
 [ -1.769  15.572 -13.111]
 >>> print( chA_res1_CA.getBeta() )
 59.14

@@ -1098,7 +1098,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                     'same number of atoms')
                 # this is where to decide if more coordsets should be expected
                 if END: 
-                    atomgroup.setCoordinates(coordinates[:acount])
+                    atomgroup.setCoords(coordinates[:acount])
                 else:
                     coordsets = np.zeros((diff/acount+1, acount, 3))
                     coordsets[0] = coordinates[:acount]
@@ -1176,12 +1176,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             coordsets[nmodel] = coordinates
             nmodel += 1
         if nmodel == coordsets.shape[0]:
-            atomgroup.setCoordinates(coordsets)
+            atomgroup.setCoords(coordsets)
         else:
-            atomgroup.setCoordinates(coordsets[:nmodel])
+            atomgroup.setCoords(coordsets[:nmodel])
     elif not END:
         # this means last line wast an ATOM line, so atomgroup is not decorated
-        atomgroup.setCoordinates(coordinates[:acount])
+        atomgroup.setCoords(coordinates[:acount])
         if not only_subset:
             atomnames = np.char.strip(atomnames[:acount])
             resnames = np.char.strip(resnames[:acount])
@@ -1217,7 +1217,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     altloc_keys.sort()
     indices = {}
     for key in altloc_keys:
-        xyz = atomgroup.getCoordinates()
+        xyz = atomgroup.getCoords()
         success = 0
         lines = altloc[key]
         for line, i in lines:
@@ -2448,7 +2448,7 @@ def writePDBStream(stream, atoms, model=None):
         if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
         atoms.setACSI(m)
-        coords = atoms._getCoordinates()
+        coords = atoms._getCoords()
         for i, xyz in enumerate(coords):
             write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
                          resnames[i], chainids[i], int(resnums[i]), 
@@ -2528,7 +2528,7 @@ def writePQR(filename, atoms):
               '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
               '{8:8.3f}{9:8.3f}{10:8.3f}' +
               '{11:8.4f}{12:7.4f}\n').format
-    coords = atoms._getCoordinates()
+    coords = atoms._getCoords()
     write = stream.write
     for i, xyz in enumerate(coords):
         write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
@@ -2782,7 +2782,7 @@ def fetchLigandData(cci, save=False, folder='.'):
         ideal_coords[i, 2] = float(data.get('pdbx_model_Cartn_z_ideal', 0))
 
     model = AtomGroup(cci + ' model')
-    model.setCoordinates(model_coords)
+    model.setCoords(model_coords)
     model.setNames(atomnames)
     model.setResnames(resnames)
     model.setResnums(resnums)
@@ -2796,7 +2796,7 @@ def fetchLigandData(cci, save=False, folder='.'):
     dict_['model'] = model
     ideal = model.copy()
     ideal.setTitle(cci + ' ideal')
-    ideal.setCoordinates(ideal_coords)
+    ideal.setCoords(ideal_coords)
     dict_['ideal'] = ideal
 
     return dict_      
@@ -3396,20 +3396,20 @@ def showProtein(atoms, **kwargs):
     import random
     random.shuffle(cnames)
     for ch in prody.HierView(atoms.select('calpha'), chain=True):
-        xyz = ch._getCoordinates()
+        xyz = ch._getCoords()
         chid = ch.getIdentifier()
         show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label=chid,
                   color=kwargs.get(chid, cnames.pop()).lower(),
                   lw=kwargs.get('lw', 4))
     water = atoms.select('water and noh')
     if water: 
-        xyz = atoms.select('water')._getCoordinates()
+        xyz = atoms.select('water')._getCoords()
         show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label='water',
                   color=kwargs.get('water', 'red').lower(), 
                   ls='None', marker=kwargs.get('marker', 'o'),)
     for res in prody.HierView(atoms.select('not protein and not nucleic and '
                                            'not water')).iterResidues():
-        xyz = res._getCoordinates()
+        xyz = res._getCoords()
         resname = res.getName()
         show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None',
                   color=kwargs.get(resname, cnames.pop()).lower(), 
@@ -3417,7 +3417,7 @@ def showProtein(atoms, **kwargs):
     show.set_xlabel('x')
     show.set_ylabel('y')
     show.set_zlabel('z')
-    xyz = atoms._getCoordinates()
+    xyz = atoms._getCoords()
     min_ = xyz.min(0)
     max_ = xyz.max(0)
     center = (max_ + min_) / 2

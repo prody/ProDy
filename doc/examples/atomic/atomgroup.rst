@@ -53,7 +53,7 @@ the size of the coordinate data array:
 [[1 0 0]
  [0 0 0]
  [0 0 1]]
->>> wtr1.setCoordinates( coords )
+>>> wtr1.setCoords( coords )
 >>> wtr1
 <AtomGroup: Water (3 atoms; 1 coordinate sets, active set index: 0)>
 
@@ -94,7 +94,7 @@ Atoms in an atom group can be accessed via indexing:
 >>> a = wtr1[0]
 >>> a
 <Atom: H from Water (index 0; 1 coordinate sets, active set index: 0)>
->>> print( a.getCoordinates() )
+>>> print( a.getCoords() )
 [ 1.  0.  0.]
 
 Coordinate sets
@@ -121,7 +121,7 @@ coordinate set of the atom group:
 
 Coordinates for the atom group will be returned from the active coordinate set
 
->>> print( a.getCoordinates() )
+>>> print( a.getCoords() )
 [ 0.  1.  0.]
 
 **Iterations**
@@ -147,8 +147,8 @@ Now let's make another copy of this water:
 
 Let's translate the coordinates of wtr2 so that it does not overlap with wtr1
 
->>> wtr2.setCoordinates( wtr2.getCoordinates() + 2 )
->>> print( wtr2.getCoordinates() )
+>>> wtr2.setCoords( wtr2.getCoords() + 2 )
+>>> print( wtr2.getCoords() )
 [[ 3.  2.  2.]
  [ 2.  2.  2.]
  [ 2.  2.  3.]]
@@ -156,11 +156,11 @@ Let's translate the coordinates of wtr2 so that it does not overlap with wtr1
 Above operation only translated the coordinate set at index 0
 
 >>> wtr2.setACSI(1)
->>> print( wtr2.getCoordinates() )
+>>> print( wtr2.getCoords() )
 [[ 0.  1.  0.]
  [ 0.  0.  0.]
  [ 0.  0.  1.]]
->>> wtr2.setCoordinates( wtr2.getCoordinates() + 2 ) # translate the second coordinate set as well
+>>> wtr2.setCoords( wtr2.getCoords() + 2 ) # translate the second coordinate set as well
 
 **Change clone attributes**
 
@@ -196,7 +196,7 @@ Let's merge two water atom groups:
 >>> wtrs = wtr1 + wtr2
 >>> wtrs
 <AtomGroup: Water + Copy of Water (6 atoms; 2 coordinate sets, active set index: 0)>
->>> print( wtrs.getCoordinates() )
+>>> print( wtrs.getCoords() )
 [[ 1.  0.  0.]
  [ 0.  0.  0.]
  [ 0.  0.  1.]

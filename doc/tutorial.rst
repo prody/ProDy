@@ -146,7 +146,7 @@ For example:
 
 >>> print( prot.getResnames() )
 ['GLU' 'GLU' 'GLU' ..., 'HOH' 'HOH' 'HOH']
->>> print( prot.getCoordinates() ) # doctest: +ELLIPSIS
+>>> print( prot.getCoords() ) # doctest: +ELLIPSIS
 [[ 28.492   3.212  23.465]
  [ 27.552   4.354  23.629]
  ...
@@ -260,7 +260,7 @@ Let's try a more sophisticated selection. We first calculate the geometric
 center of the protein atoms. Then, we select the Cα and Cβ atoms of residues 
 that have at least one atom within 10 Å away from the geometric center.
 
->>> print( protein.getCoordinates().mean(0).round(3) ) # doctest: +ELLIPSIS
+>>> print( protein.getCoords().mean(0).round(3) ) # doctest: +ELLIPSIS
 [  1.005  17.533  40.052]
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>

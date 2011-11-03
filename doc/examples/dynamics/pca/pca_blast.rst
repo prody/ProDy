@@ -132,7 +132,7 @@ Step 3: Prepare ensemble
 >>> # Instantiate a PDB ensemble
 >>> ensemble = PDBEnsemble(name)
 >>> # Set reference coordinates
->>> ensemble.setCoordinates(reference_chain.getCoordinates())
+>>> ensemble.setCoords(reference_chain.getCoords())
    
 >>> # Parse hits 
 >>> for pdb_hit, pdb_file in zip(pdb_hits, pdb_files):

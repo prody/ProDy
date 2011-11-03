@@ -84,6 +84,12 @@ Release 0.9 (Nov 7, 2011)
   :func:`setPairwiseGapExtensionPenalty`    :func:`~compare.setGapExtPenalty`
   ========================================  =====================================
 
+  **Coordinate methods**:
+  
+  All :meth:`getCoordinates` and :meth:`setCoordinates` methods in 
+  :mod:`~prody.atomic` and :mod:`~prody.ensemble` classes are renamed as 
+  :meth:`getCoords` and :meth:`setCoords`, respectively.
+  
   ``getNumOf`` **methods**:
   
   All method names starting with ``getNumOf`` now start with ``num``.  This

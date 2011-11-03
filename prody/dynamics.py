@@ -1304,7 +1304,7 @@ class GNM(GNMBase):
                              'Kirchhoff matrix.')
         if not isinstance(coords, np.ndarray):
             try:
-                coords = coords.getCoordinates()
+                coords = coords.getCoords()
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
@@ -1520,7 +1520,7 @@ class ANM(GNMBase):
                              'Hessian matrix.')
         if not isinstance(coords, np.ndarray):
             try:
-                coords = coords.getCoordinates()
+                coords = coords.getCoords()
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
@@ -1751,7 +1751,7 @@ class PCA(NMABase):
             n_atoms = coordsets.numSelected()
             dof = n_atoms * 3
             cov = np.zeros((dof, dof))
-            mean = coordsets._getCoordinates().flatten()
+            mean = coordsets._getCoords().flatten()
             n_confs = 0
             n_frames = len(coordsets)
             LOGGER.info('Covariance will be calculated using {0:d} frames.'
@@ -1760,7 +1760,7 @@ class PCA(NMABase):
             LOGGER.progress(n_frames)
             for frame in coordsets:
                 frame.superpose()
-                coords = frame._getCoordinates().flatten()
+                coords = frame._getCoords().flatten()
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
@@ -1901,7 +1901,7 @@ class PCA(NMABase):
                 deviations = coordsets.getDeviations()
             elif isinstance(coordsets, prody.Atomic):
                 deviations = coordsets._getCoordsets() - \
-                             coordsets._getCoordinates()
+                             coordsets._getCoords()
 
         n_confs = deviations.shape[0]
         if n_confs < 3:
@@ -2471,7 +2471,7 @@ def parseNMD(filename, type=NMA):
         n_atoms = dof / 3
         coords = coords.reshape((n_atoms, 3))
         ag = AtomGroup(name)
-        ag.setCoordinates(coords)
+        ag.setCoords(coords)
         data = atomic.pop('atomnames', None)
         if data is not None:
             ag.setNames(data.split())
@@ -2541,7 +2541,7 @@ def writeNMD(filename, modes, atoms):
         name = os.path.splitext(os.path.split(filename)[1])[0]
     out.write('name {0:s}\n'.format(name))
     try:
-        coords = atoms.getCoordinates()
+        coords = atoms.getCoords()
     except:
         raise ProDyException('coordinates could not be retrived '
                              'from atoms instance')
@@ -3418,7 +3418,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
                             .format(type(atoms)))
         if atoms.numAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
-        initial = atoms.getCoordinates()
+        initial = atoms.getCoords()
 
     rmsd = float(rmsd)
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
@@ -3453,10 +3453,10 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
 
     ensemble = Ensemble('Conformations along {0:s}'.format(modes))
     if initial is None:
-        ensemble.setCoordinates(np.zeros((n_atoms, 3)))
+        ensemble.setCoords(np.zeros((n_atoms, 3)))
         ensemble.addCoordset(np.array(confs))
     else:    
-        ensemble.setCoordinates(initial)
+        ensemble.setCoords(initial)
         ensemble.addCoordset(np.array(confs) + initial)
     return ensemble  
 
@@ -3628,7 +3628,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
                             .format(type(atoms)))
         if atoms.numAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
-        initial = atoms.getCoordinates()
+        initial = atoms.getCoords()
 
     name = str(mode)
     
@@ -3652,7 +3652,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
         confs_sub.append( confs_sub[-1] - array)
     confs_sub.reverse()
     ensemble = Ensemble('Conformations along {0:s}'.format(name))
-    ensemble.setCoordinates(initial)    
+    ensemble.setCoords(initial)    
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
   
@@ -3703,9 +3703,9 @@ def deformAtoms(atoms, mode, rmsd=None):
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
         scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
         LOGGER.info('Mode is scaled by {0:g}.'.format(scalar))
-        atoms.addCoordset( atoms.getCoordinates() + array * scalar)
+        atoms.addCoordset( atoms.getCoords() + array * scalar)
     else:     
-        atoms.addCoordset( atoms.getCoordinates() + array)
+        atoms.addCoordset( atoms.getCoords() + array)
 
 def scanPerturbationResponse(model, atoms=None, repeats=100):
     """See :func:`calcPerturbResponse`."""

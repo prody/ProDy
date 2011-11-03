@@ -255,8 +255,7 @@ class TestWritePDB(unittest.TestCase):
             out = parsePDB(writePDB(self.tmp, self.ag, model=i+1))
             self.assertEqual(out.numCoordsets(), 1,
                 'writePDB failed to write correct number of models')
-            self.assertTrue(np.all(out.getCoordinates() == 
-                                    self.ag.getCoordsets(i)),
+            self.assertTrue(np.all(out.getCoords() == self.ag.getCoordsets(i)),
                 'writePDB failed to write coordinates correctly')
                 
     @dec.slow

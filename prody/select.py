@@ -639,7 +639,7 @@ COMPARISONS = set(('<', '>', '>=', '<=', '==', '=', '!='))
 
 n_atoms = 10
 ATOMGROUP = prody.AtomGroup('Test')
-ATOMGROUP.setCoordinates(np.random.random((n_atoms,3)))
+ATOMGROUP.setCoords(np.random.random((n_atoms,3)))
 ATOMGROUP.setNames(['CA']*n_atoms)
 ATOMGROUP.setResnames(['GLY']*n_atoms)
 ATOMGROUP.setResnums(np.arange(1,n_atoms+1))
@@ -1503,7 +1503,7 @@ class Select(object):
                     return None
             else:
                 try:
-                    coordinates = coordinates.getCoordinates()
+                    coordinates = coordinates.getCoords()
                 except:
                     return None
                 if not isinstance(coordinates, np.ndarray):
@@ -1513,7 +1513,7 @@ class Select(object):
             which = np.arange(len(coordinates))
         elif isinstance(which, np.ndarray) and which.dtype == np.bool: 
             which = which.nonzero()[0]
-            coordinates = self._getCoordinates()
+            coordinates = self._getCoords()
         else:
             return None
         selection = []
@@ -1806,11 +1806,11 @@ class Select(object):
         
         if DEBUG: print('_evalFloat', keyword, values)
         if keyword == 'x':
-            data = self._getCoordinates()[:,0]
+            data = self._getCoords()[:,0]
         elif keyword == 'y':
-            data = self._getCoordinates()[:,1]
+            data = self._getCoords()[:,1]
         elif keyword == 'z':
-            data = self._getCoordinates()[:,2]
+            data = self._getCoords()[:,2]
         else:
             data = self._getAtomicData(keyword)
         
@@ -2043,14 +2043,14 @@ class Select(object):
             else:
                 return data[indices]
     
-    def _getCoordinates(self):
+    def _getCoords(self):
         """Return atomic coordinates."""
         
         if self._coordinates is None:
             if self._indices is None:
-                self._coordinates = self._ag._getCoordinates()
+                self._coordinates = self._ag._getCoords()
             else:
-                self._coordinates = self._atoms._getCoordinates()
+                self._coordinates = self._atoms._getCoords()
         if self._coordinates is None:
             raise AttributeError('coordinates are not set')
         return self._coordinates
@@ -2065,7 +2065,7 @@ class Select(object):
         if self._kdtree is None:
             if DEBUG: print('kdtree')
             kdtree = KDTree(3)
-            kdtree.set_coords(self._getCoordinates())
+            kdtree.set_coords(self._getCoords())
             self._kdtree = kdtree
             return kdtree
         return self._kdtree
@@ -2109,9 +2109,9 @@ class Contacts(object):
         if ag._getTimeStamp(acsi) != self._timestamps[acsi]:    
             kdtree = KDTree(3)
             if self._indices == None:
-                kdtree.set_coords(self._ag._getCoordinates())
+                kdtree.set_coords(self._ag._getCoords())
             else:
-                kdtree.set_coords(self._ag._getCoordinates()[self._indices])
+                kdtree.set_coords(self._ag._getCoords()[self._indices])
             self._kdtrees[acsi] = kdtree
             self._timestamps[acsi] = ag._getTimeStamp(acsi) 
             return kdtree
@@ -2157,12 +2157,12 @@ class Contacts(object):
                                      'shape (N, 3) or (3,).')
         else:
             try:
-                what = what._getCoordinates()
+                what = what._getCoords()
             except:
                 raise SelectionError('*what* must have a getCoordinates() '
                                      'method.')
             if not isinstance(what, np.ndarray):
-                raise SelectionError('what.getCoordinates() method must '
+                raise SelectionError('what.getCoords() method must '
                                      'return a numpy.ndarray instance.')
         kdtree = self._getKDTree()
         search = kdtree.search

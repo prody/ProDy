@@ -610,7 +610,7 @@ and save all output and figure files:
             sys.exit(-1)
         pca = prody.PCA(pdb[:-4])
         select = prody.AtomGroup(pdb[:-4])
-        select.setCoordinates(ensemble.getCoordinates())
+        select.setCoords(ensemble.getCoords())
     else:
         pdb = prody.parsePDB(pdb)
         if pdb.numCoordsets() < 2:

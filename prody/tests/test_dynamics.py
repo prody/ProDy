@@ -36,7 +36,7 @@ RTOL = 0
 
 
 ATOMS = parseDatafile('1ubi')
-COORDS = ATOMS.getCoordinates() 
+COORDS = ATOMS.getCoords() 
 
 ANM_HESSIAN = parseDatafile('anm1ubi_hessian', symmetric=True)
 ANM_EVALUES = parseDatafile('anm1ubi_evalues')[:,1].flatten()

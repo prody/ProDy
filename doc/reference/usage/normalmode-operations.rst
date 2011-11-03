@@ -147,7 +147,7 @@ We can use these numbers to combine ANM modes:
 Let's deform 1r39 chain along this approximate deformation vector and see
 how RMSD changes:
 
->>> ch_two.setCoordinates(ch_two.getCoordinates() - approximate_defvec.getArrayNx3())
+>>> ch_two.setCoords(ch_two.getCoords() - approximate_defvec.getArrayNx3())
 >>> rmsd = calcRMSD(ch_one, ch_two)
 >>> print( '{0:.2f}'.format(rmsd) )
 0.82

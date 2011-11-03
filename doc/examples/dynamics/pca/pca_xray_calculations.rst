@@ -124,7 +124,7 @@ Instantiate an :class:`~prody.ensemble.PDBEnsemble` object:
   
 Set the reference coordinates:
 
->>> ensemble.setCoordinates(ref_chain) 
+>>> ensemble.setCoords(ref_chain) 
       
 For each PDB file, we find the matching chain and add it to the ensemble:
 

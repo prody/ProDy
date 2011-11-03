@@ -55,7 +55,7 @@ The following code was used for evaluation::
   import numpy as np
 
   def getCAcoords_ProDy(pdb):
-      return pdb.select('name CA').getCoordinates()
+      return pdb.select('name CA').getCoords()
 
   def timeProDy(subset=None, model=None, hv=False):
       pdbfiles = glob('pdb_select/*pdb')

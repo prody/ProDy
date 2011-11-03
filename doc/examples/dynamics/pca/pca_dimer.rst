@@ -122,7 +122,7 @@ We now combine the reference chains and set the reference coordinates
 of the ensemble.
 
 >>> reference_chain = reference_chains[0] + reference_chains[1]
->>> ensemble.setCoordinates(reference_chain.getCoordinates())
+>>> ensemble.setCoords(reference_chain.getCoords())
 
 We also start a log file using :func:`prody.startLogfile`. 
 Screen output will be save in this file, and can be

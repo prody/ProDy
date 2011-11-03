@@ -59,7 +59,7 @@ them skews the results.
 >>> ubi = ubi.copy('resnum < 71')
 
 >>> ensemble = Ensemble('Ubiquitin NMR ensemble')
->>> ensemble.setCoordinates( ubi.getCoordinates() )
+>>> ensemble.setCoords( ubi.getCoords() )
 	
 Then, we add all of the coordinate sets to the ensemble, and perform an
 iterative superposition: 

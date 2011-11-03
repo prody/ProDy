@@ -313,7 +313,7 @@ The list of methods are below (they link to the documentation of the
 ======================  =======================================================
 Get/set method          Description
 ======================  =======================================================
-``get/setCoordinates``  get/set coordinates of atoms
+``get/setCoords``       get/set coordinates of atoms
 """
 
 keys = ATOMIC_DATA_FIELDS.keys()
@@ -321,7 +321,7 @@ keys.sort()
 
 for key in keys:
     field = ATOMIC_DATA_FIELDS[key]
-    __doc__ += '``get/set{0:18s}  get/set {1:s}\n'.format(field.meth_pl+'``', 
+    __doc__ += '``get/set{0:13s}  get/set {1:s}\n'.format(field.meth_pl+'``', 
                                                           field.doc_pl)
 
 __doc__ += """
@@ -334,21 +334,21 @@ __doc__ += """
 
 Other functions common to all atomic classes is given below:
 
-===================  ==========================================================
-Method name          Description
-===================  ==========================================================
-``copy``             returns a deep copy of atomic data
-``select``           selects a subset of atoms (see :ref:`selections`)
-``numAtoms``         returns number of atoms
-``numCoordsets``     returns number of coordinate sets
-``getCoordsets``     returns specified coordinate sets
-``getACSI``          returns the index of the active coordinate set
-``setACSI``          changes the index of the active coordinate set
-``iterCoordsets``    iterate over coordinate sets
-``isData``           checks whether a user set attribute exists
-``getData``          returns user set attribute data
-``setData``          changes user set attribute data
-===================  ==========================================================
+=================  ==========================================================
+Method name        Description
+=================  ==========================================================
+``copy``           returns a deep copy of atomic data
+``select``         selects a subset of atoms (see :ref:`selections`)
+``numAtoms``       returns number of atoms
+``numCoordsets``   returns number of coordinate sets
+``getCoordsets``   returns specified coordinate sets
+``getACSI``        returns the index of the active coordinate set
+``setACSI``        changes the index of the active coordinate set
+``iterCoordsets``  iterate over coordinate sets
+``isData``         checks whether a user set attribute exists
+``getData``        returns user set attribute data
+``setData``        changes user set attribute data
+=================  ==========================================================
 
 
 Special methods
@@ -721,8 +721,8 @@ class AtomGroup(Atomic):
     
     Atom groups with multiple coordinate sets may have one of these sets as 
     the active coordinate set. The active coordinate set may be changed using
-    :meth:`setACSI()` method. :meth:`getCoordinates` returns coordinates from 
-    the active set.
+    :meth:`setACSI()` method. :meth:`getCoors` returns coordinates from the 
+    active set.
     
     To access and modify data associated with a subset of atoms in an atom 
     group, :class:`Selection` instances may be used. A selection from an atom 
@@ -858,7 +858,7 @@ class AtomGroup(Atomic):
                   .format(str(self._title), str(other._title), n_coordsets))
                 n_coordsets = 1
             coordset_range = range(n_coordsets)
-            new.setCoordinates(np.concatenate((self._coordinates[coordset_range],
+            new.setCoords(np.concatenate((self._coordinates[coordset_range],
                                         other._coordinates[coordset_range]), 1))
             for field in ATOMIC_DATA_FIELDS.values():
                 var = field.var
@@ -931,13 +931,19 @@ class AtomGroup(Atomic):
         return self._n_atoms
     
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of coordinates from active coordinate set."""
         
         if self._coordinates is None:
             return None
         return self._coordinates[self._acsi].copy()
     
-    def _getCoordinates(self): 
+    def _getCoords(self): 
         """Return a view of coordinates from active coordinate set."""
         
         if self._coordinates is None:
@@ -945,6 +951,12 @@ class AtomGroup(Atomic):
         return self._coordinates[self._acsi]
 
     def setCoordinates(self, coordinates):
+        """Deprecated, use :meth:`setCoords`."""
+        
+        prody.deprecate('setCoordinates', 'setCoords')
+        return self.setCoords(coordinates)
+        
+    def setCoords(self, coords):
         """Set coordinates.  Coordinates must be a :class:`numpy.ndarray` 
         instance.  If the shape of the coordinates array is 
         (n_coordsets,n_atoms,3), the given array will replace all coordinate 
@@ -954,7 +966,7 @@ class AtomGroup(Atomic):
         the coordinate set will replace the coordinates of the currently active
         coordinate set."""
 
-        coordinates = checkCoordsArray(coordinates, 'coordinates',
+        coordinates = checkCoordsArray(coords, 'coords',
                                        cset=True, n_atoms=self._n_atoms,
                                        reshape=True)
         if self._n_atoms == 0:
@@ -992,7 +1004,7 @@ class AtomGroup(Atomic):
             coords = coords.getCoordsets()
 
         if self._coordinates is None:
-            self.setCoordinates(coords)
+            self.setCoords(coords)
             return
 
         coords = checkCoordsArray(coords, 'coords', cset=True, 
@@ -1122,7 +1134,7 @@ class AtomGroup(Atomic):
         if which is None:
             indices = None
             newmol = AtomGroup('Copy of {0:s}'.format(title))
-            newmol.setCoordinates(self._coordinates.copy())
+            newmol.setCoords(self._coordinates.copy())
             for field in ATOMIC_DATA_FIELDS.values():
                 var = field.var
                 array = self._data[var]
@@ -1157,7 +1169,7 @@ class AtomGroup(Atomic):
             newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(title, 
                                                                 str(which)))
         if indices is not None:
-            newmol.setCoordinates(self._coordinates[:, indices])
+            newmol.setCoords(self._coordinates[:, indices])
         for field in ATOMIC_DATA_FIELDS.values():
             var = field.var
             array = self._data[var]
@@ -1823,6 +1835,12 @@ class Atom(AtomPointer):
         return np.array([self._index])
     
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of coordinates of the atom from the active coordinate 
         set."""
         
@@ -1830,7 +1848,7 @@ class Atom(AtomPointer):
             return None
         return self._ag._coordinates[self._acsi, self._index].copy()
     
-    def _getCoordinates(self):
+    def _getCoords(self):
         """Return a view of coordinates of the atom from the active coordinate 
         set."""
         
@@ -1839,9 +1857,15 @@ class Atom(AtomPointer):
         return self._ag._coordinates[self._acsi, self._index]
     
     def setCoordinates(self, coordinates):
+        """Deprecated, use :meth:`setCoords`."""
+        
+        prody.deprecate('setCoordinates', 'setCoords')
+        return self.setCoords(coordinates)
+        
+    def setCoords(self, coords):
         """Set coordinates of the atom in the active coordinate set."""
         
-        self._ag._coordinates[self._acsi, self._index] = coordinates
+        self._ag._coordinates[self._acsi, self._index] = coords
         self._ag._setTimeStamp(self._acsi)
         
     def getCoordsets(self, indices=None):
@@ -2113,6 +2137,12 @@ class AtomSubset(AtomPointer):
         return self._indices.__len__()
 
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of coordinates from the active coordinate set."""
         
         if self._ag._coordinates is None:
@@ -2120,12 +2150,18 @@ class AtomSubset(AtomPointer):
         # Since this is not slicing, a view is not returned
         return self._ag._coordinates[self._acsi, self._indices]
     
-    _getCoordinates = getCoordinates
+    _getCoords = getCoords
     
     def setCoordinates(self, coordinates):
+        """Deprecated, use :meth:`setCoords`."""
+        
+        prody.deprecate('setCoordinates', 'setCoords')
+        return self.setCoords(coordinates)
+        
+    def setCoords(self, coords):
         """Set coordinates in the active coordinate set."""
         
-        self._ag._coordinates[self._acsi, self._indices] = coordinates
+        self._ag._coordinates[self._acsi, self._indices] = coords
         self._ag._setTimeStamp(self._acsi)
         
     def getCoordsets(self, indices=None):
@@ -2690,6 +2726,12 @@ class AtomMap(AtomPointer):
     _iterCoordsets = iterCoordsets
 
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return coordinates from the active coordinate set."""
         
         if self._ag._coordinates is None:
@@ -2699,13 +2741,19 @@ class AtomMap(AtomPointer):
                                                            self._indices] 
         return coordinates
     
-    _getCoordinates = getCoordinates
+    _getCoords = getCoords
     
     def setCoordinates(self, coordinates):
+        """Deprecated, use :meth:`setCoords`."""
+        
+        prody.deprecate('setCoordinates', 'setCoords')
+        return self.setCoords(coordinates)
+        
+    def setCoords(self, coords):
         """Set coordinates in the active coordinate set.  Length of the 
         *coordinates* array must match the number of mapped atoms."""
         
-        self._ag._coordinates[self._acsi, self._indices] = coordinates
+        self._ag._coordinates[self._acsi, self._indices] = coords
     
 
     def getCoordsets(self, indices=None):
@@ -2995,7 +3043,7 @@ def loadAtoms(filename):
         elif attr == '_coordinates':
             data = attr_dict[attr]
             if data.ndim > 0:
-                ag.setCoordinates(data)
+                ag.setCoords(data)
         elif attr in ATOMIC_ATTRIBUTES: 
             field = ATOMIC_ATTRIBUTES[attr]
             data = attr_dict[attr]

@@ -138,7 +138,7 @@ class MarkovModel(object):
 
         start = time.time()
         kdtree = prody.dynamics.KDTree(3)
-        kdtree.set_coords(atoms.getCoordinates())
+        kdtree.set_coords(atoms.getCoords())
         kdtree.all_search(cutoff)
         LOGGER.debug('KDTree was built in {0:.2f}s.'
                      .format(time.time()-start))

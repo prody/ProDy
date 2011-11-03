@@ -230,7 +230,7 @@ class EnsembleBase(object):
                 raise ValueError('AtomGroup must have same number of atoms')
             self._ag = ag
             if setref:
-                coords = ag.getCoordinates()
+                coords = ag.getCoords()
                 if coords is not None:
                     self._coords = coords 
                     LOGGER.info('Coordinates of {0:s} is set as the reference '
@@ -268,6 +268,12 @@ class EnsembleBase(object):
             return sel
     
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of reference coordinates for selected atoms."""
         
         if self._coords is None:
@@ -276,7 +282,7 @@ class EnsembleBase(object):
             return self._coords.copy()
         return self._coords[self._indices]
     
-    def _getCoordinates(self):
+    def _getCoords(self):
         """Return a view of reference coordinates for selected atoms."""
 
         if self._coords is None:
@@ -286,11 +292,17 @@ class EnsembleBase(object):
         return self._coords[self._indices]
 
     def setCoordinates(self, coords):
+        """Deprecated, use :meth:`setCoords`."""
+        
+        prody.deprecate('setCoordinates', 'setCoords')
+        return self.setCoords(coords)
+        
+    def setCoords(self, coords):
         """Set reference coordinates."""
 
         if not isinstance(coords, np.ndarray):
             try:
-                coords = coords.getCoordinates()
+                coords = coords.getCoords()
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
@@ -360,7 +372,7 @@ class Ensemble(EnsembleBase):
         self._confs = None       # coordinate sets
         
         if isinstance(title, (prody.Atomic, prody.Ensemble)):
-            self.setCoordinates(title.getCoordinates())
+            self.setCoords(title.getCoords())
             self.addCoordset(title)
         
     def __getitem__(self, index):
@@ -373,14 +385,14 @@ class Ensemble(EnsembleBase):
         elif isinstance(index, slice):
             ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._title, index.indices(len(self))))
-            ens.setCoordinates(self.getCoordinates())
+            ens.setCoords(self.getCoords())
             ens.addCoordset(self.getCoordsets(index))
             if self._weights is not None:
                 ens.setWeights(self.getWeights())
             return ens
         elif isinstance(index, (list, np.ndarray)):
             ens = Ensemble('Conformations of {0:s}'.format(self._title))
-            ens.setCoordinates(self.getCoordinates())
+            ens.setCoords(self.getCoords())
             ens.addCoordset(self.getCoordsets(index))
             if self._weights is not None:
                 ens.setWeights(self.getWeights())
@@ -400,7 +412,7 @@ class Ensemble(EnsembleBase):
     
         ensemble = Ensemble('{0:s} + {1:s}'.format(self.getTitle(), 
                                                    other.getTitle()))
-        ensemble.setCoordinates(self._coords.copy())
+        ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
         ensemble.addCoordset(other.getCoordsets())
         if self._weights is not None: 
@@ -451,7 +463,7 @@ class Ensemble(EnsembleBase):
                 if allcoordsets:
                     coords = atoms.getCoordsets()
                 else:
-                    coords = atoms.getCoordinates()
+                    coords = atoms.getCoords()
                 if coords is None:
                     raise ValueError('{0:s} must contain coordinate data'
                                      .format(atoms))
@@ -745,7 +757,7 @@ class PDBEnsemble(Ensemble):
     
         ensemble = PDBEnsemble('{0:s} + {1:s}'.format(self.getTitle(), 
                                                    other.getTitle()))
-        ensemble.setCoordinates(self._coords.copy())
+        ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
         if other._weights is None:
             ensemble.addCoordset(other.getCoordsets())
@@ -769,13 +781,13 @@ class PDBEnsemble(Ensemble):
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._title, index.indices(len(self))))
-            ens.setCoordinates(self.getCoordinates())
+            ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy())
             return ens
         elif isinstance(index, (list, np.ndarray)):
             ens = PDBEnsemble('Conformations of {0:s}'.format(self._title))
-            ens.setCoordinates(self.getCoordinates())
+            ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy())
             return ens
@@ -830,7 +842,7 @@ class PDBEnsemble(Ensemble):
             if allcoordsets:
                 coords = atoms.getCoordsets()
             else: 
-                coords = atoms.getCoordinates()
+                coords = atoms.getCoords()
             title = ag.getTitle() 
         elif isinstance(coords, np.ndarray):
             title = 'Unknown'
@@ -840,7 +852,7 @@ class PDBEnsemble(Ensemble):
                 if allcoordsets:
                     coords = coords.getCoordsets()
                 else: 
-                    coords = coords.getCoordinates()
+                    coords = coords.getCoords()
             except AttributeError:            
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
@@ -929,7 +941,7 @@ class PDBEnsemble(Ensemble):
         conf = PDBConformation(self, 0)
         for i in range(self._n_csets):
             conf._index = i
-            yield conf.getCoordinates()
+            yield conf.getCoords()
    
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
@@ -1081,7 +1093,7 @@ def loadEnsemble(filename):
         ensemble = PDBEnsemble(title)
     else:
         ensemble = Ensemble(title)
-    ensemble.setCoordinates(attr_dict['_coords'])
+    ensemble.setCoords(attr_dict['_coords'])
     if isPDBEnsemble:
         ensemble.addCoordset(attr_dict['_confs'], weights)
         if '_identifiers' in attr_dict.files:
@@ -1177,6 +1189,12 @@ class Conformation(ConformationBase):
         return self._ensemble
     
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected
         atoms will be returned."""
@@ -1189,7 +1207,7 @@ class Conformation(ConformationBase):
         else:
             return self._ensemble._confs[self._index, indices].copy()
     
-    def _getCoordinates(self):
+    def _getCoords(self):
 
         if self._ensemble._confs is None:
             return None
@@ -1274,6 +1292,12 @@ class PDBConformation(Conformation):
         self._ensemble._identifiers[self._index] = str(identifier)
         
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected
         atoms will be returned.
@@ -1298,7 +1322,7 @@ class PDBConformation(Conformation):
             coords[which] = ensemble._coords[indices][which]
         return coords
     
-    _getCoordinates = getCoordinates
+    _getCoords = getCoords
     
     def getDeviations(self):
         """Return deviations from the ensemble reference coordinates. 
@@ -1306,9 +1330,9 @@ class PDBConformation(Conformation):
         
         indices = self._indices
         if indices is None:
-            return self.getCoordinates() - self._ensemble._coords
+            return self.getCoords() - self._ensemble._coords
         else:
-            return self.getCoordinates() - self._ensemble._coords[indices]
+            return self.getCoords() - self._ensemble._coords[indices]
     
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates. RMSD is
@@ -1371,11 +1395,17 @@ class Frame(ConformationBase):
         return self._ensemble
     
     def getCoordinates(self):
+        """Deprecated, use :meth:`getCoords`."""
+        
+        prody.deprecate('getCoordinates', 'getCoords')
+        return self.getCoords()
+        
+    def getCoords(self):
         """Return a copy of coordinates for selected atoms."""
         
         return self._coords.copy()
     
-    def _getCoordinates(self):
+    def _getCoords(self):
         """Return coordinates for selected atoms."""
         
         return self._coords
@@ -1482,9 +1512,9 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         return None
     
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
-    coords = pdb_ensemble.getCoordinates()
+    coords = pdb_ensemble.getCoords()
     if coords is not None:
-        trimmed.setCoordinates( coords[torf] )
+        trimmed.setCoords( coords[torf] )
     confs = pdb_ensemble.getCoordsets()
     if confs is not None:
         weights = pdb_ensemble.getWeights()
@@ -1586,7 +1616,7 @@ class TrajectoryBase(EnsembleBase):
                                     self._title, index.indices(len(self))))
             else:
                 ens = Ensemble('{0:s} slice'.format(self._title))
-            ens.setCoordinates(self.getCoordinates())
+            ens.setCoords(self.getCoords())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
             ens.addCoordset(self.getCoordsets(index))
@@ -2536,7 +2566,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
             frame._index = i
         if align:
             frame.superpose()
-        coords = frame._getCoordinates().T
+        coords = frame._getCoords().T
         dcd.write(pack_i_4N)
         coords[0].tofile(dcd)
         dcd.write(pack_i_4N)
