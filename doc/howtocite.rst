@@ -20,12 +20,11 @@ corresponding article.
 Biopython
 ===============================================================================
 
-When using pairwise2, KDTree, or blast modules in published work, please 
-cite:
+When using pairwise2 or KDTree modules in published work, please cite:
   
   | Cock PJ, Antao T, Chang JT, Chapman BA, Cox CJ, Dalke A, Friedberg I, 
     Hamelryck T, Kauff F, Wilczynski B, de Hoon MJ.
-  | Biopython: freely available Python tools for computational molecular biology 
-    and bioinformatics.
+  | Biopython: freely available Python tools for computational molecular 
+    biology and bioinformatics.
   | *Bioinformatics* **2009** 25(11):1422-3.
 
