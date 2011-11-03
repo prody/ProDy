@@ -14,7 +14,7 @@ Required Software
 When compiling from source, on Linux for example, you will need a C compiler 
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).  
 If you don't have Python developer libraries installed on your machine,
-use your package manager to install "python-dev" package. 
+use your package manager to install :file:`python-dev` package. 
 
 In addition, `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required
 for using plotting functions. ProDy and :ref:`scripts` can be operated without
@@ -65,9 +65,7 @@ Download :file:`ProDy-0.{x}.{y}.tar.gz`. Extract tarball contents and run
     $ python setup.py build
     $ python setup.py install
 
-You may need root access for the last step.  Following these steps will
-also install :ref:`nmwiz`, if VMD is installed on your machine. 
-  
+You may need root access for the last step.  
 
 If you don't have root access, you can edit :envvar:`PYTHONPATH` system 
 variable to specify the path to this package:
@@ -77,23 +75,23 @@ variable to specify the path to this package:
 #. Add a line to your :file:`.bashrc` (or similar) script as follows
    ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
 
-In this case you will need to install :ref:`nmwiz` separately.
-
 Mac OS
 -------------------------------------------------------------------------------
 
 For installing ProDy, please follow the Linux installation instructions.
-For installing NMWiz, please follow the manual installation instructions in
-:ref:`getnmwiz`.
-
 
 Windows
 -------------------------------------------------------------------------------
 
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
-Windows installers do not install :ref:`nmwiz`.  Please follow the steps in
-:ref:`getnmwiz`.
+Plugins
+===============================================================================
+
+:ref:`nmwiz` is a VMD plugin for comparative analysis normal mode data.  
+It will be distributed with VMD 1.9.1. For now see :ref:`nmwiz` for 
+installation instructions. 
+
 
 Recommended Software
 ===============================================================================
@@ -116,8 +114,8 @@ The following software is included in the ProDy installation packages:
 
   Pyparsing is used to define the atom selection grammar.
 
-* `Biopython 1.56 <http://biopython.org/>`_ - Blast and KDTree packages,
-  and pairwise2 module
+* `Biopython 1.56 <http://biopython.org/>`_ - KDTree package and pairwise2 
+  module
    
   KDTree and pairwise2 components are used for distance based atom selections 
   and pairwise sequence alignment, respectively. 
