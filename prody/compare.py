@@ -97,7 +97,7 @@ _a2aaa = {
 def importBioPairwise2():
 
     global PW2
-    if pairwise is None:    
+    if PW2 is None:    
         try:
             import pairwise2
         except ImportError:
