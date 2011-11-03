@@ -37,7 +37,7 @@ Using ProDy
      `Pre-existing soft modes of motion uniquely defined by native contact 
      topology facilitate ligand binding to proteins  
      <http://onlinelibrary.wiley.com/doi/10.1002/pro.711/abstract>`_
-   | Meireles L, Gur M, Bakan, A, Bahar I
+   | Meireles L, Gur M, Bakan A, Bahar I
    | **2011** *Protein Science* 10(20):1645-1658
 
    __ http://onlinelibrary.wiley.com/doi/10.1002/pro.711/pdf 
