@@ -219,9 +219,7 @@ def changeVerbosity(level):
     >>> changeVerbosity('none')
     >>> plog('test')
     >>> changeVerbosity('debug')
-    >>> plog('test')
-    
-    """
+    >>> plog('test')"""
 
     LOGGER.setVerbosityLevel(level)
 
@@ -235,7 +233,6 @@ def checkUpdates():
     
     import xmlrpclib
     pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
-    print __package__
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
         LOGGER.info('You are using the latest ProDy release ({0:s}).'
