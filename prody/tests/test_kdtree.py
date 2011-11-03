@@ -25,8 +25,7 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 import unittest
 import numpy as np
 from numpy.testing import *
-#from prody.KDTree import KDTree
-from Bio.KDTree import KDTree
+from prody.KDTree import KDTree
 ATOL = 1e-5
 RTOL = 0
 

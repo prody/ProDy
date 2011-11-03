@@ -20,8 +20,7 @@
 """This module contains unit tests for :mod:`~prody.proteins` module.
 Data files used in tests are truncated PDB files, e.g. most of atoms and/or
 models and/or header sections are removed for having a compact installation
-package that contains test modules and files as well.  
-"""
+package that contains test modules and files as well."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
