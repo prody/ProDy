@@ -96,7 +96,8 @@ The results are displayed for following list of structures:
 ...  ('1s6v', 'B'), ('1yea', 'A'), ('1yeb', 'A'), ('1lfm', 'A'), ('2b10', 'B'),
 ...  ('1u74', 'B'), ('1j3s', 'A'), ('1chi', 'A'),]
 
-List of PDB structures can be updated using :func:`blastPDB` as follows::
+List of PDB structures can be updated using :func:`~prody.proteins.blastPDB` 
+as follows::
 
   blast_record = blastPDB(sequence)
   pdb_hits = []
