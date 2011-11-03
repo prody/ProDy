@@ -45,7 +45,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import numpy as np
-pairwise2 = None
+PW2 = None
 
 from tools import *
 import prody
@@ -93,6 +93,22 @@ _a2aaa = {
 'M': 'MET', 'F': 'PHE', 'P': 'PRO', 'S': 'SER', 'T': 'THR', 'W': 'TRP', 
 'Y': 'TYR', 'V': 'VAL'
 }
+
+def importBioPairwise2():
+
+    global PW2
+    if pairwise is None:    
+        try:
+            import pairwise2
+        except ImportError:
+            try:
+                from Bio import pairwise2
+            except ImportError:
+                raise ImportError('pairwise2 module could not be imported. '
+                                  'Reinstall ProDy or install BioPython '
+                                  'to solve the problem.')
+        PW2 = pairwise2
+    return PW2
 
 def getSequence(resnames):
     """Return sequence of 1-letter codes for a given list of 3-letter amino 
@@ -544,7 +560,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             
 
     if pwalign or (not matches and (pwalign is None or pwalign)): 
-        if pairwise2 is None: prody.importBioPairwise2()
+        pairwise2 = importBioPairwise2()
         if pairwise2:
             LOGGER.debug('Trying to match chains based on {0:s} sequence '
                          'alignment:'.format(ALIGNMENT_METHOD))
@@ -666,8 +682,7 @@ def getAlignedMatch(ach, bch):
     
     """
     
-    if pairwise2 is None: prody.importBioPairwise2()
-    if not pairwise2: return None
+    pairwise2 = importBioPairwise2()
     if ALIGNMENT_METHOD == 'local':
         alignment = pairwise2.align.localms(ach.getSequence(), 
                                             bch.getSequence(), 
@@ -922,8 +937,7 @@ def getTrivialMapping(target, chain):
     return target_list, chain_list, n_match, n_mapped
 
 def getAlignedMapping(target, chain):
-    if pairwise2 is None: prody.importBioPairwise2()
-    if not pairwise2: return None
+    pairwise2 = importBioPairwise2()
     if ALIGNMENT_METHOD == 'local':
         alignment = pairwise2.align.localms(target.getSequence(), 
                                             chain.getSequence(), 

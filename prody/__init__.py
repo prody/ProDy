@@ -131,20 +131,6 @@ def importBioKDTree():
     dynamics.KDTree = KDTree
     select.KDTree = KDTree
 
-def importBioPairwise2():
-    try:
-        import pairwise2
-    except ImportError:
-        try:
-            from Bio import pairwise2
-        except ImportError:
-            pairwise2 = False
-            LOGGER.warning('pairwise2 module could not be imported. '
-                           'Reinstalling ProDy or installing BioPython '
-                           'can resolve the problem.')
-    compare.pairwise2 = pairwise2
-
-
 _ProDySettings = PackageSettings() 
 
 def setPackagePath(path):
