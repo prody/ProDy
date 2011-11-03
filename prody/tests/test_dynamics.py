@@ -111,6 +111,24 @@ class TestANMResults(testGNMBase):
                         rtol=0, atol=ATOL*100,
                         err_msg='failed to get correct variances')
 
+    def testGetHessian(self):
+        assert_equal(anm.getHessian(), anm._getHessian(), 
+                     err_msg='failed to _get correct Hessian matrix')
+
+    def testHessianSymmetry(self):
+        hessian = anm._getHessian()
+        assert_equal(hessian, hessian.T, 'hessian is not symmetric')
+
+    def testHessianSums(self):
+        hessian = anm._getHessian()
+        zeros = np.zeros(hessian.shape[0])
+        assert_allclose(hessian.sum(0), zeros, 
+                        rtol=0, atol=ATOL,
+                        err_msg='hessian columns do not add up to zero')
+        assert_allclose(hessian.sum(1), zeros, 
+                        rtol=0, atol=ATOL,
+                        err_msg='hessian rows do not add up to zero')
+
 '''
 class TestANMSparse(unittest.TestCase):
     
@@ -156,9 +174,26 @@ class TestGNMResults(testGNMBase):
                        err_msg='failed to get correct eigenvectors')
 
     def testKirchhoff(self):
-        assert_allclose(gnm.getKirchhoff(), GNM_KIRCHHOFF, 
+        assert_allclose(gnm._getKirchhoff(), GNM_KIRCHHOFF, 
                         rtol=0, atol=ATOL,
                         err_msg='failed to get correct Kirchhoff matrix')
+
+    def testGetKirchoff(self):
+        assert_equal(gnm.getKirchhoff(), gnm._getKirchhoff(), 
+                     err_msg='failed to _get correct Kirchhoff matrix')
+
+    def testKirchhoffSymmetry(self):
+        kirchhoff = gnm._getKirchhoff()
+        assert_equal(kirchhoff, kirchhoff.T, 'kirchhoff is not symmetric')
+
+    def testKirchhoffSums(self):
+        kirchhoff = gnm._getKirchhoff()
+        zeros = np.zeros(kirchhoff.shape[0])
+        assert_equal(kirchhoff.sum(0), zeros, 
+                     'kirchhoff columns do not add up to zero')
+        assert_equal(kirchhoff.sum(1), zeros, 
+                     'kirchhoff rows do not add up to zero')
+
 
 class TestGNM(unittest.TestCase): 
     
