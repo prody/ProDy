@@ -27,17 +27,23 @@ import cPickle
 import logging
 import os.path
 import zipfile
+import datetime
 import platform
 import logging.handlers
 
+today = datetime.date.today
+getsize = os.path.getsize
+
 import numpy as np
+
 
 __all__ = ['PackageLogger', 'PackageSettings',
            'checkCoordsArray', 
-           'gunzip', 'openFile',
+           'gunzip', 'openFile', 'openDB',
            'isExecutable', 'makePath', 'relpath', 'which', 
            'pickle', 'unpickle',
-           'rangeString',]
+           'rangeString',
+           'today', 'getsize']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -488,3 +494,6 @@ def rangeString(lint, sep=' ', rng=' to '):
         strint += rng + str(i) + sep + str(j)
     return strint
 
+def openDB(filename, *args):
+    import anydbm
+    return anydbm.open(filename, *args)
