@@ -1216,7 +1216,12 @@ class GNMBase(NMABase):
         """Return a copy of the Kirchhoff matrix."""
         
         if self._kirchhoff is None: return None
-        return self._kirchhoff.copy()    
+        return self._kirchhoff.copy()
+
+    def _getKirchhoff(self):
+        """Return the Kirchhoff matrix."""
+        
+        return self._kirchhoff
 
 def checkENMParameters(cutoff, gamma):
     """Check type and values of *cutoff* and *gamma*."""
@@ -1455,6 +1460,11 @@ class ANM(GNMBase):
         
         if self._hessian is None: return None
         return self._hessian.copy()
+    
+    def _getHessian(self):
+        """Return the Hessian matrix."""
+        
+        return self._hessian
     
     def setHessian(self, hessian):
         """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a 
