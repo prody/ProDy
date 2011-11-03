@@ -12,7 +12,7 @@ DOCDIR        = ../Documentation
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d ../$(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) ..
 
 .PHONY: help clean both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest testdist copytxt
 
@@ -128,7 +128,7 @@ latex:
 
 latexpdf:
 	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex; \
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex; \
 	cd ..
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
