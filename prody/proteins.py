@@ -37,7 +37,7 @@ Function                   Description
 :func:`fetchPDBClusters`   retrieve PDB sequence cluster data from wwPDB
 :func:`loadPDBClusters`    load PDB sequence cluster data to memory
 :func:`getPDBCluster`      access PDB sequence clusters
-:func:`setPDBLocalFolder`  set a local folder for reading/writing PDB files
+:func:`setPDBLocalFolder`  set a local folder for storing PDB files
 :func:`setPDBMirrorPath`   set a local PDB mirror path
 :func:`setWWPDBFTPServer`  set a wwPDB FTP server for downloading structures 
 :func:`getPDBLocalFolder`  get preset local PDB folder
@@ -3304,17 +3304,8 @@ def loadPDBClusters(sqid=None):
                                .format(diff))
                 PDB_CLUSTERS_UPDATE_WARNING = False
         inp = openFile(filename)
-        
-        clusters = {}
-        for line in inp.readlines():
-            cluster = []
-            for item in line.split():
-                item = tuple(item.split('_'))
-                cluster.append(item) 
-                clusters[item] = cluster
+        PDB_CLUSTERS[sqid] = inp.read()
         inp.close()
-
-        PDB_CLUSTERS[sqid] = clusters
 
 def getPDBCluster(pdb, ch, sqid=95):
     """Return the PDB sequence cluster for chain *ch* in structure *pdb*
@@ -3330,8 +3321,10 @@ def getPDBCluster(pdb, ch, sqid=95):
     
     .. versionadded:: 0.8.2"""
 
-    assert isinstance(pdb, str), 'pdb must be a string'
-    assert isinstance(ch, str), 'pdb must be a string'
+    assert isinstance(pdb, str) and len(pdb) == 4, \
+        'pdb must be 4 char long string'
+    assert isinstance(ch, str) and len(ch) == 1, \
+        'ch must be a one char long string'
     assert isinstance(sqid, int), 'sqid must be an integer'
     PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if sqid not in PDB_CLUSTERS:
@@ -3344,7 +3337,13 @@ def getPDBCluster(pdb, ch, sqid=95):
     if clusters is None: 
         loadPDBClusters(sqid)
         clusters = PDB_CLUSTERS[sqid]
-    return list(clusters[(pdb.upper(), ch.upper())])
+    pdb_ch = pdb.upper() + '_' + ch.upper()
+    index = clusters.index(pdb_ch)
+    maxlen = clusters.index('\n') 
+    end = clusters.find('\n', index)
+    start = clusters.rfind('\n', index-maxlen, end)+1
+    cluster = clusters[start:end]
+    return [tuple(item.split('_')) for item in cluster.split()] 
 
 def showProtein(atoms, **kwargs):
     """Show protein representation using :meth:`~mpl_toolkits.mplot3d.Axes3D`::
