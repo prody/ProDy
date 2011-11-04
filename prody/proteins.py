@@ -118,7 +118,7 @@ Function                   Description
 Visualization
 -------------------------------------------------------------------------------
 
-:func:`showProtein` function can be used to take a quick look at the protein 
+:func:`showProtein` function can be used to take a quick look at protein 
 structures. 
 
 :mod:`prody.proteins`
