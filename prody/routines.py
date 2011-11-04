@@ -1064,6 +1064,7 @@ def routines():
     if sys.argv:
         arg = sys.argv[0]
         if arg == '--version':
+            import prody
             print('prody version ' + prody.__version__)
             sys.exit()
         if arg == '--help':
