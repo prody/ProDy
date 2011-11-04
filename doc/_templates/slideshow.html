@@ -62,6 +62,13 @@ ss_caption[ss_index] = "Depict normal modes with arrows and animate motions usin
 ss_linktext[ss_index] = "Get NMWiz.";
 ss_linkhref[ss_index] = "{{ pathto("plugins/getnmwiz") }}";
 ss_linktarget[ss_index] = "_self";
+ss_index = 8
+ss_image[ss_index] = "{{ pathto("_static/gallery/showprotein_sm.png", 1) }}";
+ss_title[ss_index] = "Quick protein visualization";
+ss_caption[ss_index] = "Quick alignment and visualization of protein structures.";
+ss_linktext[ss_index] = "See how.";
+ss_linkhref[ss_index] = "{{ pathto("reference/library/proteins") }}#prody.proteins.showProtein";
+ss_linktarget[ss_index] = "_self";
 
 ss_which = Math.floor(Math.random()*ss_image.length)
 function changeSlide() {
