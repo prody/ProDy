@@ -302,7 +302,7 @@ graphical output files:
                 plt.plot(bexp, label='Experimental')
                 plt.plot(bcal, label=('Theoretical (R={0:.2f})'
                                         .format(np.corrcoef(bcal, bexp)[0,1])))
-                plt.legend()
+                plt.legend(prop={'size': 10})
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
                 plt.title(pdb.getTitle() + ' B-factors')
@@ -493,7 +493,7 @@ save all of the graphical output files:
                 plt.plot(bexp, label='Experimental')
                 plt.plot(bcal, label=('Theoretical (corr coef = {0:.2f})'
                                         .format(np.corrcoef(bcal, bexp)[0,1])))
-                plt.legend()
+                plt.legend(prop={'size': 10})
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
                 plt.title(pdb.getTitle() + ' B-factors')
