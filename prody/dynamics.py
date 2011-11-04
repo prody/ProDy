@@ -1272,7 +1272,7 @@ class GNM(GNMBase):
         self._n_atoms = kirchhoff.shape[0]
         self._dof = kirchhoff.shape[0]
     
-    def buildKirchhoff(self, coords, cutoff=10., gamma=1., sparse=False):
+    def buildKirchhoff(self, coords, cutoff=10., gamma=1., **kwargs):
         """Build Kirchhoff matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
@@ -1297,7 +1297,8 @@ class GNM(GNMBase):
            When Scipy is available, user can select to use sparse matrices for
            efficient usage of memory at the cost of computation speed."""
         
-        if KDTree is None: 
+        slow = kwargs.get('slow', False)
+        if not slow and KDTree is None: 
             prody.importBioKDTree()
             if not KDTree:
                 LOGGER.debug('Using a slower method for building the '
@@ -1316,13 +1317,13 @@ class GNM(GNMBase):
                     
         n_atoms = coords.shape[0]
         start = time.time()
-        if sparse:
+        if kwargs.get('sparse', False):
             prody.importScipySparse()
             kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         
-        if KDTree:
+        if not slow and KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
@@ -1486,7 +1487,7 @@ class ANM(GNMBase):
         self._dof = hessian.shape[0]
         self._n_atoms = self._dof / 3 
 
-    def buildHessian(self, coords, cutoff=15., gamma=1., sparse=False):
+    def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
@@ -1513,7 +1514,8 @@ class ANM(GNMBase):
                        
         """
         
-        if KDTree is None: 
+        slow = kwargs.get('slow', False)
+        if not slow and KDTree is None: 
             prody.importBioKDTree()
             if not KDTree:
                 LOGGER.debug('Using a slower method for building the '
@@ -1533,14 +1535,14 @@ class ANM(GNMBase):
         dof = n_atoms * 3
         start = time.time()
         
-        if sparse:
+        if kwargs.get('sparse', False):
             prody.importScipySparse()
             kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
             hessian = scipy_sparse.lil_matrix((dof, dof))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
             hessian = np.zeros((dof, dof), float)
-        if KDTree:
+        if not slow and KDTree:
             kdtree = KDTree(3)
             kdtree.set_coords(coords) 
             kdtree.all_search(cutoff)
