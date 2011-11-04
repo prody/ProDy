@@ -65,7 +65,7 @@ html:
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 	cp -f license.rst ../LICENSE.txt
-	cp -f plugins/getnmwiz.rst ../nmwiz_install.txt
+	cp -f plugins/getnmwiz.rst ../plugins/nmwiz_install.txt
 	
 spelling:
 	$(SPHINXBUILD) -b spelling $(ALLSPHINXOPTS) $(BUILDDIR)/spelling
