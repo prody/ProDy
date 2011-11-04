@@ -1580,6 +1580,7 @@ def _getHeaderDict(stream, *keys):
         lines[line[:10]].append((i, line))
     
     pdbid = _PDB_HEADER_MAP['identifier'](lines)
+    lines['pdbid'] = pdbid
     if keys:
         keys = list(keys)
         for k, key in enumerate(keys):
@@ -1737,6 +1738,7 @@ def _getReference(lines):
 def _getPolymers(lines):
     """Return list of polymers (macromolecules)."""
     
+    pdbid = lines['pdbid']
     polymers = dict()
     for i, line in lines['SEQRES']:
         ch = line[11]
@@ -1754,19 +1756,23 @@ def _getPolymers(lines):
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
-            LOGGER.warning('failed to parse first residue number for sequence')
+            LOGGER.warning('failed to parse first residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i))
         try:
             poly.sqlast = (int(line[20:24]), line[24])
         except:
-            LOGGER.warning('failed to parse last residue number for sequence')
+            LOGGER.warning('failed to parse last residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i))
         try:
             poly.dbfirst = (int(line[56:60]), line[60])
         except:
-            LOGGER.warning('failed to parse first residue number for database')
+            LOGGER.warning('failed to parse first residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i))
         try:
             poly.dblast = (int(line[62:67]), line[67])
         except:
-            LOGGER.warning('failed to parse last residue number for database')
+            LOGGER.warning('failed to parse last residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i))
     for i, line in lines['DBREF1']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
@@ -1777,13 +1783,13 @@ def _getPolymers(lines):
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
-            LOGGER.warning('failed to parse first residue number for sequence'
-                           ' at line {0:d}'.format(i))
+            LOGGER.warning('failed to parse first residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i))
         try:
             poly.sqlast = (int(line[20:24]), line[24])
         except:
-            LOGGER.warning('failed to parse last residue number for sequence'
-                           ' at line {0:d}'.format(i))
+            LOGGER.warning('failed to parse last residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i))
     for i, line in lines['DBREF2']:
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
@@ -1792,13 +1798,13 @@ def _getPolymers(lines):
         try:
             poly.dbfirst = (int(line[45:55]), '')
         except:
-            LOGGER.warning('failed to parse first residue number for database'
-                           ' at line {0:d}'.format(i))
+            LOGGER.warning('failed to parse first residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i))
         try:
             poly.dblast = (int(line[57:67]), '')
         except:
-            LOGGER.warning('failed to parse last residue number for database'
-                           ' at line {0:d}'.format(i))
+            LOGGER.warning('failed to parse last residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i))
 
     for i, line in lines['MODRES']:
         ch = line[16]
@@ -1816,13 +1822,15 @@ def _getPolymers(lines):
             poly.different = []
         dbabbr = line[24:28].strip()
         if poly.dbabbr != dbabbr:
-            LOGGER.warning('sequence database do not match in SEQADV record '
-                           'at line {0:d}'.format(i))
+            LOGGER.warning("reference database mismatch in SEQADV, expected "
+                           "'{0:s}' parsed '{1:s}' ({2:s}:{3:d})"
+                           .format(poly.dbabbr, dbabbr, pdbid, i))
             continue
         dbaccession = line[29:38].strip() 
         if poly.dbaccession != dbaccession:
-            LOGGER.warning('database identifier code do not match in SEQADV '
-                           'record at line {0:d}'.format(i))
+            LOGGER.warning("database idcode mismatch in SEQADV, expected "
+                           "'{0:s}' parsed '{1:s}' ({2:s}:{3:d})"
+                           .format(poly.dbaccession, dbaccession, pdbid, i))
             continue
         poly.different.append((line[12:15].strip(), line[18:22].strip() + 
             line[22].strip(), line[39:42].strip(), line[43:48].strip(), 
