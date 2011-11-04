@@ -591,7 +591,8 @@ class Atomic(object):
         except AttributeError:
             selstr = name
             items = name.split('_')
-            if prody.select.isKeyword(items[0]) or items[0] == 'not':
+            if prody.select.isKeyword(items[0]) or items[0] == 'not' or \
+               items[0] in prody.select.MACROS:
                 selstr = ' '.join(items)
                 return prody.ProDyAtomSelect.select(self, selstr)
         raise AttributeError("'{0:s}' object has no attribute '{1:s}' "

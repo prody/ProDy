@@ -32,14 +32,13 @@ Following functions are provided for access to protein structural data:
 Function                   Description
 =========================  ====================================================
 :func:`blastPDB`           blast search NCBI PDB database
-:func:`fetchPDB`           retrieve PDB/PDBML/mmCIF files from wwPDB servers
+:func:`fetchPDB`           retrieve PDB/PDBML/mmCIF files from wwPDB
 :func:`fetchLigandData`    retrieve ligand from Ligand-Expo 
 :func:`fetchPDBClusters`   retrieve PDB sequence cluster data from wwPDB
-:func:`loadPDBClusters`    load PDB sequence cluster data to memory
 :func:`getPDBCluster`      access PDB sequence clusters
 :func:`setPDBLocalFolder`  set a local folder for storing PDB files
 :func:`setPDBMirrorPath`   set a local PDB mirror path
-:func:`setWWPDBFTPServer`  set a wwPDB FTP server for downloading structures 
+:func:`setWWPDBFTPServer`  set a wwPDB FTP server for downloads 
 :func:`getPDBLocalFolder`  get preset local PDB folder
 :func:`getPDBMirrorPath`   get preset local PDB mirror path
 :func:`getWWPDBFTPServer`  get preset wwPDB FTP server
