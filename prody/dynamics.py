@@ -3716,7 +3716,7 @@ def scanPerturbationResponse(model, atoms=None, repeats=100):
     return calcPerturResponse(model, atoms, repeats) 
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
-    """|new| Return a matrix of profiles from scanning of the response of the 
+    """Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
     The function implements the perturbation response scanning (PRS) method 
     described in [CA09]_.  Rows of the matrix are the average magnitude of the 
@@ -4374,7 +4374,7 @@ def showMode(mode, *args, **kwargs):
        plt.figure(figsize=(6,4))
        showMode( p38_anm[0] )
        plt.grid()
-       plt.legend(loc='lower right')
+       plt.legend(loc='lower right', prop={'size': 10})
        
     .. plot::
        :context:
@@ -4409,7 +4409,7 @@ def showSqFlucts(modes, *args, **kwargs):
        plt.figure(figsize=(6,4))
        showSqFlucts( p38_anm[0] )
        showSqFlucts( p38_anm[1] )
-       plt.legend()
+       plt.legend(prop={'size': 10})
        
     .. plot::
        :context:
@@ -4440,7 +4440,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
        
        plt.figure(figsize=(5,4))
        showScaledSqFlucts(p38_pca[0], p38_anm[2])
-       plt.legend()
+       plt.legend(prop={'size': 10})
 
     .. plot::
        :context:
@@ -4482,7 +4482,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
        
        plt.figure(figsize=(5,4))
        showNormedSqFlucts(p38_pca[0], p38_anm[2])
-       plt.legend()
+       plt.legend(prop={'size': 10})
 
     .. plot::
        :context:
