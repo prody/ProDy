@@ -201,10 +201,8 @@ def closeLogfile(filename):
     LOGGER.closeLogfile(filename)
 
 def changeVerbosity(level):
-    """Set ProDy console verbosity *level*.
-    
-    By default, console verbosity *level* is debug. This function accepts
-    one of the following:
+    """Change ProDy console verbosity *level*.  By default, console verbosity 
+    *level* is set to debug. This function accepts one of the following:
     
     ======== ===========
     Level    Description
