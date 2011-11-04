@@ -67,6 +67,7 @@ if os.name != 'java' and sys.version_info[0] == 2:
         PACKAGES.append('prody.KDTree')
 
 SCRIPTS = glob.glob('scripts/*py')
+SCRIPTS.append('scripts/prody')
 
 class installProDy(install):
     """Override the standard install to install VMD plug-in NMWiz."""
