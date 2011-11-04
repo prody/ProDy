@@ -2430,13 +2430,60 @@ def getVMDpath():
         LOGGER.warning('VMD path is not set.')
     return path
 
-def setVMDpath(path):
-    """Set the path to VMD executable."""
+def setVMDpath(path=None):
+    """Set path to the VMD executable automatically."""
     
+    if path is None:
+        path = which('vmd')
+    if path is None:
+        from types import StringType, UnicodeType
+        vmdbin = None
+        vmddir = None
+        if sys.platform == 'win32': 
+            if PY3K:
+                import winreg as _winreg
+            else:
+                import _winreg
+            for vmdversion in ('1.8.7', '1.9', '1.9.1'): 
+                try:
+                    key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
+                        'Software\\University of Illinois\\VMD\\' + vmdversion)
+                    vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
+                    vmdbin = os.path.join(vmddir, 'vmd.exe') 
+                except:    
+                    pass
+                try:
+                    key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
+                        'Software\\WOW6432node\\University of Illinois\\VMD\\' + 
+                        vmdversion)
+                    vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
+                    vmdbin = os.path.join(vmddir, 'vmd.exe') 
+                except:    
+                    pass
+        else:
+            try:
+                pipe = os.popen('which vmd')
+                vmdbin = pipe.next().strip()
+                vmdfile = open(vmdbin)
+                for line in vmdfile:
+                    if 'defaultvmddir' in line:
+                        exec(line.strip())
+                        vmddir = defaultvmddir
+                        break
+                vmdfile.close()
+            except:
+                pass
+        if isinstance(vmdbin, (StringType, UnicodeType)) and \
+           isinstance(vmddir, (StringType, UnicodeType)) and \
+           os.path.isfile(vmdbin) and os.path.isdir(vmddir): 
+            pass#return vmdbin, vmddir
+        path = vmdbin
     if not os.path.isfile(path):
-        LOGGER.warning('{0:s} is not a file.'.format(path))
-        return
+        raise Exception('{0:s} is not a file.'.format(path))
+    if not isExecutable(path):
+        raise Exception('{0:s} is not executable.'.format(path))
     prody._ProDySettings['vmd'] = path
+    LOGGER.info("VMD path is set to '{0:s}'.".format(path))
 
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
