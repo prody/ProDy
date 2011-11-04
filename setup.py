@@ -11,7 +11,6 @@ from distutils.extension import Extension
 from distutils.command.install import install
 
 PY3K = sys.version_info[0] > 2
-USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
 readme = open('README.txt')
 long_description = ''.join(readme.readlines())
