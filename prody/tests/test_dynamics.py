@@ -77,10 +77,6 @@ class testGNMBase(unittest.TestCase):
 
 class TestANMResults(testGNMBase):
 
-    def setUp(self):
-        
-        self.model = anm
-
     def testEigenvalues(self):
         """Test eigenvalues."""
         
@@ -155,10 +151,6 @@ class TestANMSparse(unittest.TestCase):
 
 class TestGNMResults(testGNMBase):
     
-    def setUp(self):
-        
-        self.model = anm
-
     def testEigenvalues(self):
         assert_allclose(gnm[:21].getEigenvalues(), GNM_EVALUES[:21], 
                         rtol=RTOL, atol=ATOL*100,
@@ -194,6 +186,12 @@ class TestGNMResults(testGNMBase):
         assert_equal(kirchhoff.sum(1), zeros, 
                      'kirchhoff rows do not add up to zero')
 
+    def testBuildKirchoffSlow(self):
+        slow = GNM() 
+        slow.buildKirchhoff(ATOMS)
+        assert_equal(slow._getKirchhoff(), gnm._getKirchhoff(),
+                     'slow method does not reproduce same Kirchhoff')
+        
 
 class TestGNM(unittest.TestCase): 
     
@@ -233,12 +231,12 @@ class TestGNM(unittest.TestCase):
         
         self.assertRaises(ValueError, self.buildMatrix, COORDS, -1)
 
-    def testBuildKirchhoffInvalidGamma(self):
+    def testBuildMatrixInvalidGamma(self):
         """Test response to invalid *gamma* argument."""
         
         self.assertRaises(TypeError, self.buildMatrix, COORDS, gamma='none')
 
-    def testBuildKirchhoffWrongGamma(self):
+    def testBuildMatrixWrongGamma(self):
         """Test response to wrong *gamma* argument."""
         
         self.assertRaises(ValueError, self.buildMatrix, COORDS, gamma=0)
@@ -285,6 +283,16 @@ class TestANM(TestGNM):
         """Test response to wrong shape *hessian* argument."""
 
         self.assertRaises(ValueError, self.model.setHessian, np.ones((5,5)))
+
+    def testBuildHessianSlow(self):
+        slow = ANM() 
+        slow.buildHessian(ATOMS, slow=True)
+        assert_allclose(slow._getHessian(), anm._getHessian(),
+                        rtol=0, atol=ATOL,        
+                        err_msg='slow method does not reproduce same Hessian')
+        assert_equal(slow._getKirchhoff(), anm._getKirchhoff(),
+                     'slow method does not reproduce same Kirchhoff')
+
 
 class TestGNMCalcModes(unittest.TestCase):
     
