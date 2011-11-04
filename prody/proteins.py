@@ -806,7 +806,7 @@ parsePDBStream.__doc__ += _parsePDBdoc
 
 
 def parsePQR(filename, **kwargs):
-    """|new| Return an :class:`~prody.atomic.AtomGroup` containing data parsed 
+    """Return an :class:`~prody.atomic.AtomGroup` containing data parsed 
     from PDB lines. 
     
     :arg filename: a PQR filename
@@ -1284,8 +1284,8 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 
 class Chemical(object):
     
-    """A data structure for storing information on chemical components (or 
-    heterogens) in PDB structures.
+    """|new| A data structure for storing information on chemical components 
+    (or heterogens) in PDB structures.
     
     .. versionadded:: 0.8.4
     
@@ -1366,8 +1366,8 @@ _PDB_DBREF = {
 
 class Polymer(object):
     
-    """A data structure for storing information on polymer components (protein
-    or nucleic) of PDB structures.
+    """|new| A data structure for storing information on polymer components 
+    (protein or nucleic) of PDB structures.
     
     .. versionadded:: 0.8.4
     
@@ -3390,8 +3390,9 @@ def showProtein(*atoms, **kwargs):
        p38 = parsePDB('1p38')
        p38inh = parsePDB('1zz2')
        matchAlign(p38inh, p38)
+       plt.figure(figsize=(5,4))
        showProtein(p38, p38inh)
-       plt.legend()
+       plt.legend(prop={'size': 10})
         
     .. plot::
        :context:
@@ -3472,5 +3473,5 @@ def showProtein(*atoms, **kwargs):
     show.set_ylim3d(center[1]-half, center[1]+half)
     show.set_zlim3d(center[2]-half, center[2]+half)
     if kwargs.get('legend', False):
-        show.legend()
+        show.legend(prop={'size': 10})
     return show
