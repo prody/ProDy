@@ -211,6 +211,8 @@ Release 0.9 (Nov 7, 2011)
   * Bugs in :func:`~proteins.execDSSP` and :func:`~proteins.execSTRIDE`
     functions that caused exceptions when compressed files were passed 
     is fixed.
+  
+  * A problem in scripts for PCA of DCD files is fixed. 
     
   
 :ref:`nmwiz`
