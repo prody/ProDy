@@ -129,6 +129,18 @@ structures.
         
     >>> from prody import *
     >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    
+
+.. plot::
+   :nofigs: 
+   :context: 
+    
+   from prody import *
+   import matplotlib.pyplot as plt
+   import numpy as np
+    
+   plt.close('all')    
 """
 
 __author__ = 'Ahmet Bakan'
@@ -3344,12 +3356,9 @@ def getPDBCluster(pdb, ch, sqid=95):
     cluster = clusters[start:end]
     return [tuple(item.split('_')) for item in cluster.split()] 
 
-def showProtein(atoms, **kwargs):
-    """Show protein representation using :meth:`~mpl_toolkits.mplot3d.Axes3D`::
+def showProtein(*atoms, **kwargs):
+    """Show protein representation using :meth:`~mpl_toolkits.mplot3d.Axes3D`.
         
-      p = parsePDB('1zzw')
-      s = showProtein(p)
-    
     .. versionadded:: 0.9
     
     Protein atoms matching ``"calpha"`` selection are displayed using solid 
@@ -3359,31 +3368,43 @@ def showProtein(atoms, **kwargs):
       
     Water molecule oxygen atoms are represented by red colored circles.  Color 
     can be changed using *water* keyword argument, e.g. ``water='turquoise'``.
-    Water representation can be changed using *marker* keyword, e.g. 
-    ``marker='v'``.
+    Water marker and size can be changed using *wmarker* and *wsize* keywords, 
+    defaults values are ``wmarker='.', wsize=4``.
     
     Hetero atoms matching ``"hetero and noh"`` selection are represented by 
     circles and unique colors are picked at random on a per residue basis.  
     Colors can be customized using residue name as in ``NAH='purple'``.  Note 
     that this will color all distinct residues with the same name in the same 
-    color.  *marker* keyword argument affects hereto atom representation as 
-    well.
-    
+    color.  Hetero atom marker and size can be changed using *hmarker* and 
+    *hsize* keywords, default values are ``hmarker='o', hsize=6``. 
+
     ProDy will set the size of axis so the representation is not distorted when
     the figure window is close to a square.  Colors are picked at random,
     except for water oxygens which will always be colored red.
     
-    Legend can be displayed as follows::
+
+    .. plot::
+       :context:
+       :include-source:
+       
+       p38 = parsePDB('1p38')
+       p38inh = parsePDB('1zz2')
+       matchAlign(p38inh, p38)
+       showProtein(p38, p38inh)
+       plt.legend()
         
-      s = showProtein(p, legend=True)
-    
-    or::
+    .. plot::
+       :context:
+       :nofigs:
         
-      s.legend()
+       plt.close('all')
     """
     
+    alist = atoms
+    for atoms in alist:    
+        if not isinstance(atoms, prody.Atomic):
+            raise TypeError('atoms must be an Atomic instance')
     if not plt: prody.importPyPlot()
-
     cf = plt.gcf()
     show = None
     for child in cf.get_children():
@@ -3401,31 +3422,50 @@ def showProtein(atoms, **kwargs):
     cnames = cnames.keys()
     import random
     random.shuffle(cnames)
-    for ch in prody.HierView(atoms.select('calpha'), chain=True):
-        xyz = ch._getCoords()
-        chid = ch.getIdentifier()
-        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label=chid,
-                  color=kwargs.get(chid, cnames.pop()).lower(),
-                  lw=kwargs.get('lw', 4))
-    water = atoms.select('water and noh')
-    if water: 
-        xyz = atoms.select('water')._getCoords()
-        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label='water',
-                  color=kwargs.get('water', 'red').lower(), 
-                  ls='None', marker=kwargs.get('marker', 'o'),)
-    for res in prody.HierView(atoms.select('not protein and not nucleic and '
-                                           'not water')).iterResidues():
-        xyz = res._getCoords()
-        resname = res.getName()
-        show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None',
-                  color=kwargs.get(resname, cnames.pop()).lower(), 
-                  label=resname, marker=kwargs.get('marker', 'o'))
+    min_ = list()
+    max_ = list()
+    for atoms in alist:
+        if isinstance(atoms, prody.AtomGroup):
+            title = atoms.getTitle()
+        else:
+            title = atoms.getAtomGroup().getTitle()
+        calpha = atoms.select('calpha')
+        if calpha:
+            for ch in prody.HierView(calpha, chain=True):
+                xyz = ch._getCoords()
+                chid = ch.getIdentifier()
+                show.plot(xyz[:,0], xyz[:,1], xyz[:,2], 
+                          label=title + '_' + chid,
+                          color=kwargs.get(chid, cnames.pop()).lower(),
+                          lw=kwargs.get('lw', 4))
+        water = atoms.select('water and noh')
+        if water: 
+            xyz = atoms.select('water')._getCoords()
+            show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label=title + '_water',
+                      color=kwargs.get('water', 'red').lower(), 
+                      ls='None', marker=kwargs.get('wmarker', '.'), 
+                      ms=kwargs.get('wsize', 2))
+        hetero = atoms.select('not protein and not nucleic and not water')
+        if hetero:
+            for res in prody.HierView(hetero).iterResidues():
+                xyz = res._getCoords()
+                resname = res.getName()
+                resnum = str(res.getNumber())
+                chid = res.getChid()
+                show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None',
+                          color=kwargs.get(resname, cnames.pop()).lower(), 
+                          label=title + '_' + chid + '_' + resname + resnum, 
+                          marker=kwargs.get('hmarker', 'o'), 
+                          ms=kwargs.get('hsize', 6))
+        xyz = atoms._getCoords()
+        min_.append(xyz.min(0))
+        max_.append(xyz.max(0))
+
     show.set_xlabel('x')
     show.set_ylabel('y')
     show.set_zlabel('z')
-    xyz = atoms._getCoords()
-    min_ = xyz.min(0)
-    max_ = xyz.max(0)
+    min_ = np.array(min_).min(0)
+    max_ = np.array(max_).max(0)
     center = (max_ + min_) / 2
     half = (max_ - min_).max() / 2
     show.set_xlim3d(center[0]-half, center[0]+half)
