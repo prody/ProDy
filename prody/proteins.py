@@ -3358,7 +3358,9 @@ def getPDBCluster(pdb, ch, sqid=95):
 
 def showProtein(*atoms, **kwargs):
     """Show protein representation using :meth:`~mpl_toolkits.mplot3d.Axes3D`.
-        
+    This function is designed for generating a quick view of the contents of a 
+    :class:`~prody.atomic.AtomGroup` or :class:`~prody.atomic.Selection`.
+           
     .. versionadded:: 0.9
     
     Protein atoms matching ``"calpha"`` selection are displayed using solid 
