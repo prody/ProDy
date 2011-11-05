@@ -2423,20 +2423,15 @@ def loadVector(filename):
     return Vector(attr_dict['array'], title, bool(attr_dict['is3d']))
 
 def getVMDpath():
-    """Return path to the VMD executable."""
+    """Return VMD path set by user or one identified automatically."""
     
-    path = prody._ProDySettings['vmd']
-    if path is None:
-        LOGGER.warning('VMD path is not set.')
-    return path
+    path = prody._ProDySettings.get('vmd', None)
+    if isExecutable(path):
+        return path   
+    else:
+        LOGGER.warning('VMD path is not set by user, looking for it.')    
 
-def setVMDpath(path=None):
-    """Set path to the VMD executable automatically."""
-    
-    if path is None:
-        path = which('vmd')
-    if path is None:
-        from types import StringType, UnicodeType
+        #from types import StringType, UnicodeType
         vmdbin = None
         vmddir = None
         if sys.platform == 'win32': 
@@ -2447,21 +2442,23 @@ def setVMDpath(path=None):
             for vmdversion in ('1.8.7', '1.9', '1.9.1'): 
                 try:
                     key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
-                        'Software\\University of Illinois\\VMD\\' + vmdversion)
+                            'Software\\University of Illinois\\VMD\\' + 
+                            vmdversion)
                     vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
                     vmdbin = os.path.join(vmddir, 'vmd.exe') 
                 except:    
                     pass
                 try:
                     key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
-                        'Software\\WOW6432node\\University of Illinois\\VMD\\' + 
-                        vmdversion)
+                'Software\\WOW6432node\\University of Illinois\\VMD\\' + 
+                vmdversion)
                     vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
                     vmdbin = os.path.join(vmddir, 'vmd.exe') 
                 except:    
                     pass
         else:
-            try:
+            vmdbin = which('vmd')
+            if False:
                 pipe = os.popen('which vmd')
                 vmdbin = pipe.next().strip()
                 vmdfile = open(vmdbin)
@@ -2471,19 +2468,24 @@ def setVMDpath(path=None):
                         vmddir = defaultvmddir
                         break
                 vmdfile.close()
-            except:
-                pass
-        if isinstance(vmdbin, (StringType, UnicodeType)) and \
+        if False and \
+           isinstance(vmdbin, (StringType, UnicodeType)) and \
            isinstance(vmddir, (StringType, UnicodeType)) and \
            os.path.isfile(vmdbin) and os.path.isdir(vmddir): 
             pass#return vmdbin, vmddir
-        path = vmdbin
-    if not os.path.isfile(path):
-        raise Exception('{0:s} is not a file.'.format(path))
-    if not isExecutable(path):
-        raise Exception('{0:s} is not executable.'.format(path))
-    prody._ProDySettings['vmd'] = path
-    LOGGER.info("VMD path is set to '{0:s}'.".format(path))
+        if isExecutable(vmdbin):
+            setVMDpath(vmdbin)
+            return vmdbin
+        
+
+def setVMDpath(path):
+    """Set path to a VMD executable."""
+    
+    if isExecutable(path):
+        prody._ProDySettings['vmd'] = path
+        LOGGER.info("VMD path is set to '{0:s}'.".format(path))
+    else:
+        raise OSError('{0:s} is not executable.'.format(str(path)))
 
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
@@ -2659,8 +2661,9 @@ def writeNMD(filename, modes, atoms):
 def viewNMDinVMD(filename):
     """Start VMD in the current Python session and load NMD data."""
     
-    os.system('{0:s} -e {1:s}'.format(prody._ProDySettings['vmd'], 
-                                      os.path.abspath(filename)))
+    vmd = prody._ProDySettings.get('vmd')
+    if vmd:
+        os.system('{0:s} -e {1:s}'.format(vmd, os.path.abspath(filename)))
     
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
             zeros=False):
