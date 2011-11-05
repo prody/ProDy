@@ -188,6 +188,7 @@ KDTree = None
 
 import prody
 LOGGER = prody.LOGGER
+SETTINGS = prody.SETTINGS
 from atomic import *
 from tools import *
 DEBUG = False
@@ -659,7 +660,7 @@ ATOMGROUP.setCharges([0]*n_atoms)
 ATOMGROUP.setMasses([12]*n_atoms)
 ATOMGROUP.setRadii([1.4]*n_atoms)
 
-MACROS = prody._ProDySettings.get('selection_macros', {})
+MACROS = SETTINGS.get('selection_macros', {})
 
 def areAllStrings(container):
     """Return ``True`` if all items in *container* are instances of 
@@ -702,7 +703,7 @@ def defSelectionMacro(name, selstr):
         LOGGER.info('Macro "{0:s}" is defined as "{1:s}".'
                     .format(name, selstr))
         MACROS[name] = selstr
-        prody._ProDySettings['selection_macros'] = MACROS
+        SETTINGS['selection_macros'] = MACROS
 
 def delSelectionMacro(name):
     """Delete the macro *name*.
@@ -719,7 +720,7 @@ def delSelectionMacro(name):
         LOGGER.warning('Macro "{0:s}" is not found.'.format(name))
     else:
         LOGGER.info('Macro "{0:s}" is deleted.'.format(name))
-        prody._ProDySettings['selection_macros'] = MACROS
+        SETTINGS['selection_macros'] = MACROS
 
 def getSelectionMacro(name=None):
     """Return the definition of the macro *name*. 

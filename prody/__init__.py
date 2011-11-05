@@ -131,7 +131,7 @@ def importBioKDTree():
     dynamics.KDTree = KDTree
     select.KDTree = KDTree
 
-_ProDySettings = PackageSettings() 
+SETTINGS = PackageSettings() 
 
 def setPackagePath(path):
     if not os.path.isdir(path):
@@ -141,12 +141,12 @@ def setPackagePath(path):
             LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
                            .format(path, err.strerror))
             return False
-    _ProDySettings['package_path'] = path
+    SETTINGS['package_path'] = path
     return path    
 
 def getPackagePath():
     
-    path = _ProDySettings.get('package_path', None)
+    path = SETTINGS.get('package_path', None)
     
     update = False
     if path is None:

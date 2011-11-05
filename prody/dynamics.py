@@ -293,6 +293,7 @@ from atomic import *
 from ensemble import *
 from tools import *
 LOGGER = prody.LOGGER
+SETTINGS = prody.SETTINGS
 from prody import ProDyAtomSelect as SELECT
 from prody import ProDyException
 
@@ -2425,7 +2426,7 @@ def loadVector(filename):
 def getVMDpath():
     """Return VMD path set by user or one identified automatically."""
     
-    path = prody._ProDySettings.get('vmd', None)
+    path = SETTINGS.get('vmd', None)
     if isExecutable(path):
         return path   
     else:
@@ -2482,7 +2483,7 @@ def setVMDpath(path):
     """Set path to a VMD executable."""
     
     if isExecutable(path):
-        prody._ProDySettings['vmd'] = path
+        SETTINGS['vmd'] = path
         LOGGER.info("VMD path is set to '{0:s}'.".format(path))
     else:
         raise OSError('{0:s} is not executable.'.format(str(path)))
@@ -2661,7 +2662,7 @@ def writeNMD(filename, modes, atoms):
 def viewNMDinVMD(filename):
     """Start VMD in the current Python session and load NMD data."""
     
-    vmd = prody._ProDySettings.get('vmd')
+    vmd = SETTINGS.get('vmd')
     if vmd:
         os.system('{0:s} -e {1:s}'.format(vmd, os.path.abspath(filename)))
     

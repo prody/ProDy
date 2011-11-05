@@ -162,6 +162,7 @@ BioBlast = None
 
 import prody
 LOGGER = prody.LOGGER
+SETTINGS = prody.SETTINGS
 from prody.atomic import *
 
 
@@ -217,9 +218,9 @@ def getPDBLocalFolder():
     
     .. versionadded:: 0.8.4"""
 
-    folder = prody._ProDySettings.get('pdb_local_folder')
+    folder = SETTINGS.get('pdb_local_folder')
     if isinstance(folder, str) and os.path.isdir(folder):
-        return folder, prody._ProDySettings.get('pdb_local_divided', True)
+        return folder, SETTINGS.get('pdb_local_divided', True)
     else:
         LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
                        .format(folder))
@@ -258,8 +259,8 @@ def setPDBLocalFolder(folder, divided=False):
         else:
             LOGGER.info('When using local PDB folder, a plain folder structure '
                         'will be assumed.')
-        prody._ProDySettings['pdb_local_folder'] = folder
-        prody._ProDySettings['pdb_local_divided'] = divided
+        SETTINGS['pdb_local_folder'] = folder
+        SETTINGS['pdb_local_divided'] = divided
     else:
         raise IOError('No such directory: "{0:s}"'.format(folder))
 
@@ -269,7 +270,7 @@ def getPDBMirrorPath():
     
     .. versionadded:: 0.6.1"""
 
-    path = prody._ProDySettings.get('pdb_mirror_path')
+    path = SETTINGS.get('pdb_mirror_path')
     if isinstance(path, str) and os.path.isdir(path):
         return path
     else:
@@ -286,7 +287,7 @@ def setPDBMirrorPath(path):
     if os.path.isdir(path):
         path = os.path.abspath(path)
         LOGGER.info('Local PDB mirror path is set: "{0:s}"'.format(path))
-        prody._ProDySettings['pdb_mirror_path'] = path
+        SETTINGS['pdb_mirror_path'] = path
     else:
         raise IOError('No such directory: "{0:s}"'.format(path))
 
@@ -311,7 +312,7 @@ def setWWPDBFTPServer(key):
     
     server = WWPDB_FTP_SERVERS.get(key.lower())
     if server is not None:
-        prody._ProDySettings['wwpdb_ftp'] = server
+        SETTINGS['wwpdb_ftp'] = server
     else:
         LOGGER.warning('{0:s} is not a valid key.'.format(key))
 
@@ -321,7 +322,7 @@ def getWWPDBFTPServer():
     
     .. versionadded:: 0.6.1"""
     
-    server = prody._ProDySettings.get('wwpdb_ftp', None)
+    server = SETTINGS.get('wwpdb_ftp', None)
     if server is None:
         LOGGER.warning('A wwPDB FTP server is not set by the user. '
                        'Default FTP server RCSB PDB is returned. Use '
