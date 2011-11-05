@@ -3368,9 +3368,9 @@ def showProtein(*atoms, **kwargs):
     Chain colors can be overwritten using chain identifier as in ``A='green'``.  
       
     Water molecule oxygen atoms are represented by red colored circles.  Color 
-    can be changed using *water* keyword argument, e.g. ``water='turquoise'``.
+    can be changed using *water* keyword argument, e.g. ``water='aqua'``.
     Water marker and size can be changed using *wmarker* and *wsize* keywords, 
-    defaults values are ``wmarker='.', wsize=4``.
+    defaults values are ``wmarker='.', wsize=6``.
     
     Hetero atoms matching ``"hetero and noh"`` selection are represented by 
     circles and unique colors are picked at random on a per residue basis.  
@@ -3417,9 +3417,13 @@ def showProtein(*atoms, **kwargs):
         show = Axes3D(cf)
     from matplotlib import colors
     cnames = dict(colors.cnames)
-    cnames.pop('red')
+    wcolor = kwargs.get('water', 'red').lower()
+    avoid = np.array(colors.hex2color(cnames.pop(wcolor, cnames.pop('red'))))
     for cn, val in cnames.items():
-        if sum(colors.hex2color(val)) > 2.4:
+        clr = np.array(colors.hex2color(val))
+        if clr.sum() > 2.4:
+            cnames.pop(cn)
+        elif np.abs(avoid - clr).sum() <= 0.6:
             cnames.pop(cn)
     cnames = cnames.keys()
     import random
@@ -3444,9 +3448,9 @@ def showProtein(*atoms, **kwargs):
         if water: 
             xyz = atoms.select('water')._getCoords()
             show.plot(xyz[:,0], xyz[:,1], xyz[:,2], label=title + '_water',
-                      color=kwargs.get('water', 'red').lower(), 
+                      color=wcolor, 
                       ls='None', marker=kwargs.get('wmarker', '.'), 
-                      ms=kwargs.get('wsize', 2))
+                      ms=kwargs.get('wsize', 6))
         hetero = atoms.select('not protein and not nucleic and not water')
         if hetero:
             for res in prody.HierView(hetero).iterResidues():
