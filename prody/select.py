@@ -659,10 +659,7 @@ ATOMGROUP.setCharges([0]*n_atoms)
 ATOMGROUP.setMasses([12]*n_atoms)
 ATOMGROUP.setRadii([1.4]*n_atoms)
 
-try:
-    MACROS = prody._ProDySettings['selection_macros']
-except KeyError:
-    MACROS = {}
+MACROS = prody._ProDySettings.get('selection_macros', {})
 
 def areAllStrings(container):
     """Return ``True`` if all items in *container* are instances of 
