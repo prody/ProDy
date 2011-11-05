@@ -146,7 +146,7 @@ def setPackagePath(path):
 
 def getPackagePath():
     
-    path = _ProDySettings['package_path']
+    path = _ProDySettings.get('package_path', None)
     
     update = False
     if path is None:
