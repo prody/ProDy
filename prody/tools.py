@@ -302,7 +302,7 @@ class PackageSettings(object):
         
     def __getitem__(self, key):
         
-        return self._settings.get(key, None)
+        return self._settings[key]
         
     def __setitem__(self, key, value):
         """Automatically save settings after changes."""
@@ -312,10 +312,7 @@ class PackageSettings(object):
         
     def get(self, key, default=None):
         
-        try:
-            return self._settings[key]
-        except KeyError:
-            return default
+        return self._settings.get(key, None)
         
     def load(self):
         """Load settings by unpickling the settings dictionary."""
