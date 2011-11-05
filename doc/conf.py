@@ -153,7 +153,7 @@ html_index = 'index.html'
 # 'sourcelink.html'
 generic_sidebars = ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'getintouch.html', 'relatedstuff.html', 'searchbox.html'], 
+    'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'getintouch.html', 'searchbox.html'], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],

@@ -765,7 +765,7 @@ Release 0.6 (Feb 22, 2011)
   * :ref:`nmwiz` is distributed with ProDy source. On Linux, if VMD is 
     installed, ProDy installer locates VMD plugins folder and installs NMWiz.
     On Windows, user needs to follow a separate set of instructions (see
-    :ref:`getnmwiz`).
+    :ref:`nmwiz`).
   * :class:`~dynamics.Gamma` class is implemented for facilitating use of  
     force constants based on atom type, residue type, or property. An
     example derived classes are :class:`~dynamics.GammaStructureBased` and 
