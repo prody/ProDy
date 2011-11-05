@@ -271,11 +271,12 @@ def getPDBMirrorPath():
     .. versionadded:: 0.6.1"""
 
     path = SETTINGS.get('pdb_mirror_path')
-    if isinstance(path, str) and os.path.isdir(path):
-        return path
-    else:
-        LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
-                       .format(path))
+    if isinstance(path, str):
+        if os.path.isdir(path):
+            return path
+        else:
+            LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
+                           .format(path))
 
 def setPDBMirrorPath(path):
     """Set the path to a local PDB mirror.  
@@ -333,7 +334,7 @@ def getWWPDBFTPServer():
         return server
     
 # The following is to prevent breaking users code due to changes in fetchPDB
-# Remove this in v0.9.2
+# Remove this in v1.0
 _ = getWWPDBFTPServer()
 if isinstance(_, tuple) and len(_) == 3:
     setWWPDBFTPServer(_[0].split()[0])
@@ -510,14 +511,14 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                         filename = os.path.join(folder, pdbid + extension)
                         gunzip(fn, filename)
                     filenames.append(filename)
-                    LOGGER.debug('{0:s} copied from local folder ({1:s})'
+                    LOGGER.debug('{0:s} copied from local PDB folder ({1:s})'
                                  .format(pdbid, filename))
                     success += 1
                 else:
                     filenames.append(fn)
                     
-                    LOGGER.debug('{0:s} ({1:s}...{2:s}) is found in the local '
-                                'folder.'.format(pdbid, 
+                    LOGGER.debug('{0:s} ({1:s}...{2:s}) is found in the PDB '
+                                'local folder.'.format(pdbid, 
                                 fn[:fn[1:].index(os.path.sep)+2], fn[-15:]))
                     exists += 1
                 continue
