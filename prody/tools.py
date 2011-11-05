@@ -399,7 +399,8 @@ def gunzip(filename, outname=None):
 def isExecutable(path):
     """Return true is *path* is an executable."""
     
-    return os.path.exists(path) and os.access(path, os.X_OK)
+    return isinstance(path, str) and os.path.exists(path) and \
+           os.access(path, os.X_OK)
 
 def relpath(path):
     """Return *path* on Windows, and relative path elsewhere."""
