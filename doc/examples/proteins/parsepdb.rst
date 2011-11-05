@@ -15,7 +15,7 @@ models (in NMR structures) to boost the performance. This example shows how to
 use the flexible parsing options. 
 
 |more| For performance benchmarks of ProDy PDB parser see 
-:ref:`pdbparser-performance`.
+:ref:`pdbparser-performance` and :ref:`pdbparser-performance-2`.
 
 Input
 -------------------------------------------------------------------------------

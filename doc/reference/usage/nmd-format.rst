@@ -33,9 +33,9 @@ single line and items must be separated by one or more space characters.
   in the same line as a mode array. Both of these must precede the mode array.
   Providing a scaling factor enables relative scaling of the mode arrows and
   the amplitude of the fluctuations in animations. For NMA, scaling factors
-  may be choosen to be the square-root of the inverse-eigenvalue associated
-  with the mode. Analogously, for PCA data, scaling factor would be the square-root of the
-  eigenavlue.
+  may be chosen to be the square-root of the inverse-eigenvalue associated
+  with the mode. Analogously, for PCA data, scaling factor would be the 
+  square-root of the eigenvalue.
   
   If a mode line contains numbers preceding the mode array, they are evaluated 
   based on their type. If an integer is encountered, it is considered the mode 
@@ -76,8 +76,8 @@ loading coordinate data into VMD.
   for each atom.
 
 *bfactors*: list of experimental beta-factors
-  If not provided, all beta-factors are set to zero.
-  BFactors can be used to color the protein representation.
+  If not provided, all beta-factors are set to zero. 
+  Beta-actors can be used to color the protein representation.
   
 NMD files may contain additional lines. Only lines that start with one of the 
 above field names are evaluated by NMWiz.
@@ -89,7 +89,7 @@ Examples
 Example 1
 -------------------------------------------------------------------------------
 
-File: :download:`p38_MAPK_1p38_anm_modes.nmd </plugins/nmwiz/p38_MAPK_1p38_anm_modes.nmd>`
+File: :download:`p38anm.nmd <p38anm.nmd>`
 
 This example contains normal modes from Anisotropic Network Model calculations
 for p38 MAP kinase (PDB identifier 1P38). This example
@@ -115,11 +115,11 @@ mode indices and square-root of inverse eigenvalues.
 Example 2 
 -------------------------------------------------------------------------------
 
-File: :download:`xyzeros.nmd </plugins/nmwiz/xyzeros.nmd>`
+File: :download:`xyzeros.nmd <xyzeros.nmd>`
 
 This example contains minimal amount of data sufficient for visualizing modes.
-Mode data comes from *Example 1*. Coordinates are set to zero. NMWiz Logo on the 
-upper left corner of this documentation is generated using this NMD file.
+Mode data comes from *Example 1*.  Coordinates are set to zero. NMWiz Logo on 
+the upper left corner of this documentation is generated using this NMD file.
 
 ::
 
@@ -145,4 +145,5 @@ file itself (:file:`xyzeros.nmd`).
   mode 0.007 -0.044 0.080 0.015 -0.037 0.062 ...
 
 
-In this case, VMD must be started from the command line by typing :program:`vmd -e xyzeros.nmd`.
+In this case, VMD must be started from the command line by typing 
+:program:`vmd -e xyzeros.nmd`.

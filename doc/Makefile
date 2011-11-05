@@ -47,7 +47,6 @@ both:
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 	cp -f license.rst ../LICENSE.txt
-	cp -f plugins/getnmwiz.rst ../nmwiz_install.txt
 	cd $(DOCTESTDIR); \
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex .. ../$(DOCDIR); \
 	cd ..
@@ -65,7 +64,6 @@ html:
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 	cp -f license.rst ../LICENSE.txt
-	cp -f plugins/getnmwiz.rst ../plugins/nmwiz_install.txt
 	
 spelling:
 	$(SPHINXBUILD) -b spelling $(ALLSPHINXOPTS) $(BUILDDIR)/spelling
@@ -176,4 +174,3 @@ copytxt:
 	cp -f changes.rst ../CHANGES.txt
 	cp -f getprody.rst ../INSTALL.txt
 	cp -f license.rst ../LICENSE.txt
-	cp -f plugins/getnmwiz.rst ../nmwiz_install.txt

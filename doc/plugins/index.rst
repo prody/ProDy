@@ -24,157 +24,79 @@ NMWiz can be used for:
 | ANM modes 1-3 for p38 MAPK                       | ANM and PCA modes for p38                      | p38 network model                              |
 +--------------------------------------------------+------------------------------------------------+------------------------------------------------+
 
-For **downloads** and **installation** instructions see :ref:`getnmwiz`.
 
-
-.. contents:: NMWiz User Guide
-   :local:
-   :backlinks: none
-
-How to use NMWiz
+Downloads
 ===============================================================================
 
-NMWiz recognizes :ref:`nmd-format` (:file:`.nmd`). NMD files can be 
-generated using ProDy or obtained from the 
-`ANM server <http:/www.csb.pitt.edu/ANM/>`_.  Alternatively, you can prepare 
-your results in NMD format for analysis with NMWiz. NMD is a simple plain text 
-format and can be easily prepared using a text editor. See 
-:ref:`nmd-format` for details.
+.. note:: NMWiz is incorporated into VMD and will be available in VMD version
+   1.9.1. Until this version is released, NMWiz files can be obtained from here.
 
-NMWiz can retrieve coordinate and normal mode data from molecules
-loaded in VMD. See the :guilabel:`From Molecule` interface.
+NMWiz is written in `TCL <http://tcl.tk/>`_. To be able to use it, 
+you need to have VMD version 1.8.7 or higher installed on your computer.
+NMWiz works on all platforms that VMD is available for, including Linux, 
+Mac OS, and Windows.
 
-Example Input
+See |vmd| for obtaining VMD.
+
+NMWiz files are available in the following:
+ 
+  * :download:`NMWiz1.0.tar.gz <NMWiz1.0.tar.gz>`
+  * :download:`NMWiz1.0.zip <NMWiz1.0.zip>`
+
+
+Installation
 ===============================================================================
 
-Examples :term:`nmd` files (*right click* and select *save as* option):
-
-  * :download:`p38 MAP kinase <nmwiz/p38_MAPK_1p38_anm_modes.nmd.zip>`
-  * :download:`p38 modes with zero coordinates <nmwiz/xyzeros.nmd.zip>` 
-    that was used to make :download:`NMWiz logo </_static/nm.png>`.
-
-
-NMWiz GUI
-===============================================================================
-
-This section describes NMWiz Interfaces briefly. Click :guilabel:`Help` on the 
-GUI to get instant help. 
-
-Main Window
+Manual Installation
 -------------------------------------------------------------------------------
 
-|
+Following instructions apply to all computer architectures and operating 
+systems that VMD runs on, but may require root (or administrator) access.
 
-========================= ====================================================================================================================================
-.. image:: nmwiz/main.png Main window enables loading :term:`nmd` files and submitting ProDy and ANM server jobs. 
-                          Settings and online documentation (at ProDy website) can also be accessed from this window.
-                                     
-                          Additionally, for each loaded nmd file two buttons will appear in the main window. 
-                          :guilabel:`Show GUI` button recovers a closed interface for a dataset.
-                          :guilabel:`Remove` button completely removes the dataset from the VMD session.
-                                     
-                          |bulb| Normal mode data can be saved in NMD format from this window, which then can be parsed with ProDy for further analysis. 
-========================= ====================================================================================================================================
+#. Extract tarball/zip (:file:`ProDy-0.{x}.tar.gz`) contents.
 
-|
+#. Copy :file:`nmwiz0.{x}` folder into VMD plugins directory 
+   (:file:`$VMDDIR/plugins/noarch/tcl/`).
 
-From Molecule Window
+#. Insert the following line to :file:`$VMDDIR/scripts/vmd/loadplugins.tcl` 
+   file in VMD directory at line number 143 (or wherever you like)::
+
+    vmd_install_extension nmwiz nmwiz_tk "Analysis/Normal Mode Wizard"
+
+
+If you are not sure where VMD directory is located, run :program:`vmd`, and 
+type the following command line in the VMD console::
+
+    global env; puts $env(VMDDIR)
+
+Once you perform these steps, NMWiz GUI will show up in 
+:menuselection:`Extensions --> Analysis` menu of VMD main window. 
+It is also possible to make it appear in another :menuselection:`Extensions` 
+submenu by replacing *Analysis* in step 3 with another submenu name.
+
+Using Installer Script
 -------------------------------------------------------------------------------
 
-|
-
-============================ ====================================================================================================================================
-.. image:: nmwiz/frommol.png Use this interface to retrieve data from a molecule which contains normal modes as frames.
-                             In the following two examples mode data are provided in Gromacs TRR or PDB formats. 
-                             
-                             |example| Lysozyme example contains 10 modes from all-atom NMA calculations (courtesy of Guang Hu). Coordinate data is in GRO format
-                             and mode data is in TRR format.
-                             
-                             * :download:`Lysozyme dataset <nmwiz/lysozyme.zip>`
-                             
-                             |example| Ubiquitin example contains 10 modes from all-atom PCA calculations for the structure 2K39. Both coordinate and mode data 
-                             are in PDB format. The zip archive also contains the same data in NMD format. 
-                             
-                             * :download:`Ubiquitin dataset <nmwiz/ubiquitin.zip>`
-          
-                             |bulb| When loading data from a large molecular system, you can choose to get data for select atoms, e.g. 
-                             ``name CA and protein`` will obtain parts of normal modes matching carbon alpha atoms.    
-                             
-============================ ====================================================================================================================================
-
-|
-
-NMWiz Window
+Alternatively, you can use :file:`install_nmwiz.py` script. This script
+will locate VMD plugins directory, copy the files, remove older versions if 
+found, and update the :file:`loadplugins.tcl` file. Again, this script
+also requires write access to the VMD folders. On Linux, following command
+should work:: 
+ 
+  $ sudo python install_nmwiz.py
+  
+This installer script works in Linux and Windows. Mac OS users, please
+follow the manual installation instructions.
+  
+Updates
 -------------------------------------------------------------------------------
 
-|
+To install a newer version, you will need to delete the existing plugin 
+directory and copy the new release to the same location.
 
-======================== ====================================================================================================================================
-.. image:: nmwiz/gui.png NMWiz interface is generated for all datasets loaded into NMWiz. These
-                         interfaces are independent of each other, hence allows comparison of different data sets.
-                                     
-                         NMWiz interfaces allow visualizing, animating, and plotting modes.
-                         At startup, settings panels are hidden from user.
-                         Arrow size, animation length, graphics quality etc. can be
-                         adjusted using option frames after they are switched on.
-                                     
-                         *Active Mode and Color*
-                         
-                         The top panel enables choosing the active mode and
-                         color. When the active mode is changed, previously drawn mode arrows will
-                         be undisplayed. This behavior and other graphics options can be
-                         changed from the "Arrow Graphics Option" panel.
-                         
-                         |bulb| Are you visualizing a large system? Keep the resolution low to draw arrows faster.
-                         
-                         |bulb| Are the arrow graphics too crowded? Draw arrows for a subset of residues that are evenly spaced, e.g try 
-                         the selection string ``residue % 4 == 0``, which will draw an arrow for every fourth residue.
-======================== ====================================================================================================================================
-
-|
-
-
-Plot Window
--------------------------------------------------------------------------------
-
-|
-
-========================= ====================================================================================================================================
-.. image:: nmwiz/plot.png User can plot squared-fluctuations along the active normal mode by clicking on
-                          the :guilabel:`Plot` button. Plots will be generated using a modified version of
-                          `MultiPlot <http://www.ks.uiuc.edu/Research/vmd/plugins/multiplot/>`_ plugin.
-                          
-                          |bulb| Clicking on the plot will label and highlight the residue (or atom) in the VMD
-                          display.
-========================= ====================================================================================================================================
-
-|
-
-ProDy Interface
--------------------------------------------------------------------------------
-
-|
-
-========================== ====================================================================================================================================
-.. image:: nmwiz/prody.png ProDy interface allows users to submit ProDy ANM and PCA jobs for proteins 
-                           loaded in VMD. Upon completion of the calculations, NMWiz automatically loads the results.
-========================== ====================================================================================================================================
-
-|
-
-Structure Comparison 
--------------------------------------------------------------------------------
-
-|
-
-============================ ====================================================================================================================================
-.. image:: nmwiz/compare.png NMWiz can be used to generate arrows for a pair related molecules from this panel. User needs to make a selections for both 
-                             molecules that will result in selecting the same number of atoms. NMWiz will generate arrows between atoms in these selections.   
-============================ ====================================================================================================================================
 
 .. toctree::
    :glob:
    :maxdepth: 2
    :hidden:
 
-   *
