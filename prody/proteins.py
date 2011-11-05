@@ -217,13 +217,12 @@ def getPDBLocalFolder():
     
     .. versionadded:: 0.8.4"""
 
-    folder = prody._ProDySettings['pdb_local_folder']
-    if isinstance(folder, str):
-        if os.path.isdir(folder):
-            return folder, prody._ProDySettings.get('pdb_local_divided', True)
-        else:
-            LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
-                           .format(folder))
+    folder = prody._ProDySettings.get('pdb_local_folder')
+    if isinstance(folder, str) and os.path.isdir(folder):
+        return folder, prody._ProDySettings.get('pdb_local_divided', True)
+    else:
+        LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
+                       .format(folder))
 
 def setPDBLocalFolder(folder, divided=False):
     """Set a local PDB folder.  Setting a local PDB folder will make 
@@ -270,13 +269,12 @@ def getPDBMirrorPath():
     
     .. versionadded:: 0.6.1"""
 
-    path = prody._ProDySettings['pdb_mirror_path']
-    if isinstance(path, str):
-        if os.path.isdir(path):
-            return path
-        else:
-            LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
-                           .format(path))
+    path = prody._ProDySettings.get('pdb_mirror_path')
+    if isinstance(path, str) and os.path.isdir(path):
+        return path
+    else:
+        LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
+                       .format(path))
 
 def setPDBMirrorPath(path):
     """Set the path to a local PDB mirror.  
@@ -323,7 +321,7 @@ def getWWPDBFTPServer():
     
     .. versionadded:: 0.6.1"""
     
-    server = prody._ProDySettings['wwpdb_ftp']
+    server = prody._ProDySettings.get('wwpdb_ftp', None)
     if server is None:
         LOGGER.warning('A wwPDB FTP server is not set by the user. '
                        'Default FTP server RCSB PDB is returned. Use '
