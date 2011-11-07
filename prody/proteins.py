@@ -2955,7 +2955,7 @@ def buildBiomolecules(header, atoms, biomol=None):
     else:
         return None
 
-def execDSSP(pdb, outputname=None, outputdir=None):
+def execDSSP(pdb, outputname=None, outputdir=None, silent=False):
     """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 
     file path.  If *pdb* is a compressed file, it will be decompressed using
     Python :mod:`gzip` library.  When no *outputname* is given, output name 
@@ -2996,7 +2996,13 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     else:
         out = os.path.join(outputdir, outputname + '.dssp')
         
-    status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
+    cmd_str = '{0:s} {1:s} {2:s}'.format(dssp, pdb, out)
+
+    if silent:
+        cmd_str += " 2> /dev/null"
+
+    status = os.system(cmd_str)
+
     if status == 0:
         return out
     
