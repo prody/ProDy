@@ -91,8 +91,8 @@ follow the manual installation instructions.
 Updates
 -------------------------------------------------------------------------------
 
-To install a newer version, you will need to delete the existing plugin 
-directory and copy the new release to the same location.
+To install a newer version, you need to run the installer script again or
+delete the existing version and repeat the manual instructions.
 
 
 .. toctree::
