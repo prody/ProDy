@@ -574,7 +574,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                                      str(error)))
                     else:
                         LOGGER.debug('{0:s} download failed. {0:s} does not '
-                                     'exist on ftp.wwpdb.org.'.format(fn))
+                                     'exist on {1:s}.'.format(fn, ftp_host))
                     failure += 1
                     filenames[i] = None 
                 else:
