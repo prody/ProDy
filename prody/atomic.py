@@ -1259,7 +1259,7 @@ class AtomGroup(Atomic):
         """Return type of the user data (i.e. data.dtype) associated with
         *label*, or ``None`` label is not used.
         
-        .. versionadded:: 0.8.4"""
+        .. versionadded:: 0.9"""
         
         try:
             return self._userdata[label].dtype
@@ -1605,7 +1605,7 @@ class AtomPointer(Atomic):
     def getDataType(self, label):
         """Return type of the user data, ``None`` if data label is not present.
         
-        .. versionadded:: 0.8.4"""
+        .. versionadded:: 0.9"""
         
         return self._ag.getDataType(label)
     

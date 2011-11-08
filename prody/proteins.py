@@ -216,7 +216,7 @@ def getPDBLocalFolder():
     """Return the path to a local PDB folder and folder structure specifier. 
     If a local folder is not set, ``None`` will be returned.
     
-    .. versionadded:: 0.8.4"""
+    .. versionadded:: 0.9"""
 
     folder = SETTINGS.get('pdb_local_folder')
     if folder is not None:
@@ -234,7 +234,7 @@ def setPDBLocalFolder(folder, divided=False):
     PDB files in a single place and have access to them in different working 
     directories.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     If *divided* is ``True``, the divided folder structure of wwPDB servers 
     will be assumed when reading from and writing to the local folder.  For 
@@ -352,12 +352,10 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
        When *compressed* is false, compressed files found in *folder* or 
        local PDB mirror are decompressed.
     
-    .. versionadded:: 0.8.4
-       *format* and *noatom* keyword arguments are added.
-       
-    .. versionchanged:: 0.8.4
+    .. versionadded:: 0.9
        File discovery is improved to handle a local PDB folder. See 
        :func:`setPDBLocalFolder` method for details.  
+       *format* and *noatom* keyword arguments are added.
 
     If *compressed* is ``False``, all files will be decompressed.  If *copy* is 
     ``True``, all files from local PDB mirror will copied to the user specified 
@@ -664,7 +662,7 @@ _parsePDBdoc = _parsePQRdoc + """
        *chain* and *subset* arguments are appended to atom group name, e.g. for 
        ``('1mkp', chain='A', subset='calpha')`` name will be ``"1mkp_A_ca"``.
 
-    .. versionchanged:: 0.8.4
+    .. versionchanged:: 0.9
        *name* keyword argument is renamed as *title* argument..
 
 
@@ -1290,7 +1288,7 @@ class Chemical(object):
     """|new| A data structure for storing information on chemical components 
     (or heterogens) in PDB structures.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     A :class:`Chemical` instance has the following attributes:
         
@@ -1372,7 +1370,7 @@ class Polymer(object):
     """|new| A data structure for storing information on polymer components 
     (protein or nucleic) of PDB structures.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     A :class:`Polymer` instance has the following attributes:
         
@@ -1511,7 +1509,7 @@ def parsePDBHeader(pdb, *keys):
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be 
     an identifier or a filename.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     List of header records that are parsed. 
     
