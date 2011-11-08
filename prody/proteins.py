@@ -549,7 +549,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             raise type(error)('FTP connection problem, potential reason: '
                               'no internet connectivity')
         else:
-            ftp_path = os.path.join(ftp_path, divided)
+            #ftp_path = os.path.join(ftp_path, divided)
             ftp.login('')
             for i, pdbid in enumerate(identifiers):
                 if pdbid != filenames[i]:
@@ -561,7 +561,9 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                 pdbfile = open(filename, 'w+b')
                 fn = prefix + pdbid + pdbext
                 try:
-                    ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
+                    ftp.cwd(ftp_path)
+                    ftp.cwd(divided)
+                    ftp.cwd(pdbid[1:3])
                     ftp.retrbinary('RETR ' + fn, pdbfile.write)
                 except Exception as error:
                     pdbfile.close()
@@ -574,7 +576,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                                      str(error)))
                     else:
                         LOGGER.debug('{0:s} download failed. {0:s} does not '
-                                     'exist on {1:s}.'.format(fn, ftp_host))
+                                     'exist on {1:s}.'.format(fn, ftphost))
                     failure += 1
                     filenames[i] = None 
                 else:
