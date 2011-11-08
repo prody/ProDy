@@ -2999,28 +2999,27 @@ def saveAtoms(atoms, filename=None):
     else:
         ag = atoms.getAtomGroup()
         title = str(atoms)
-    singular = False
-    if isinstance(atoms, Atom):
-        singular = True
-    
     
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
     filename += '.ag.npz'
-    attr_dict = {'_title': title}
-    attr_dict['_coordinates'] = atoms._getCoordsets()
-    for name, field in ATOMIC_DATA_FIELDS.items():
-        if singular:
-            data = atoms.__getattribute__('_get'+field.meth)()
-        else:
-            data = atoms.__getattribute__('_get'+field.meth_pl)()
+    attr_dict = {'title': title}
+    attr_dict['n_atoms'] = atoms.numAtoms()
+    attr_dict['n_csets'] = atoms.numCoordsets()
+    coords = atoms._getCoordsets()
+    if coords is None:
+        attr_dict['coordinates'] = atoms._getCoordsets()
+    for key, data in ag._data.iteritems():
         if data is not None:
-            attr_dict[field.var] = data 
-    for label in ag._userdata.keys():
-        attr_dict[label] = atoms._getData(label)
+            attr_dict[key] = data 
+    for key, data in ag._userdata.iteritems():
+        if data is not None:
+            attr_dict[key] = data
     np.savez(filename, **attr_dict)
     return filename
 
+SKIP = set(['_name', '_title', 'title', 'n_atoms', 'n_csets', 
+            'coordinates', '_coordinates'])
 
 def loadAtoms(filename):
     """Return :class:`AtomGroup` instance from *filename*.  This function makes
@@ -3028,38 +3027,52 @@ def loadAtoms(filename):
     
     .. versionadded:: 0.7.1"""
     
-    start = time.time()
+    LOGGER.startTimer()
     attr_dict = np.load(filename)
-    if not '_coordinates' in attr_dict.files:
+    files = set(attr_dict.files)
+    # REMOVE support for _coordinates IN v1.0
+    if not '_coordinates' in files and not 'n_atoms' in files:
         raise ValueError("'{0:s}' is not a valid atomic data file"
                          .format(filename))
-    try:
-        title = str(attr_dict['_title'])
-    except KeyError:
-        title = str(attr_dict['_name'])
-    ag = AtomGroup(title)
-    for attr in attr_dict.files:
-        if attr == '_name' or attr == '_title':
-            continue  
-        elif attr == '_coordinates':
-            data = attr_dict[attr]
-            if data.ndim > 0:
-                ag.setCoords(data)
-        elif attr in ATOMIC_ATTRIBUTES: 
-            field = ATOMIC_ATTRIBUTES[attr]
-            data = attr_dict[attr]
-            if data.ndim > 0:
-               ag.__getattribute__('set' + field.meth_pl)(data)
+    if '_coordinates' in files:
+        ag = AtomGroup(str(attr_dict['_name']))
+        for attr in attr_dict.files:
+            if attr == '_name':
+                continue
+            elif attr == '_coordinates':
+                data = attr_dict[attr]
+                if data.ndim > 0:
+                    ag.setCoords(data)
+            elif attr in ATOMIC_ATTRIBUTES: 
+                field = ATOMIC_ATTRIBUTES[attr]
+                data = attr_dict[attr]
+                if data.ndim > 0:
+                   ag.__getattribute__('set' + field.meth_pl)(data)
+                else:
+                    ag.__getattribute__('set' + field.meth_pl)([data])
+            else:            
+                data = attr_dict[attr]
+                if data.ndim > 0:
+                    ag.setData(attr, data)
+                else:
+                    ag.setData(attr, [data])
+    else:        
+        ag = AtomGroup(str(attr_dict['title']))
+        if 'coordinates' in files:
+            ag._coordinates = attr_dict['coordinates']
+        ag._n_atoms = int(attr_dict['n_atoms'])
+        ag._n_csets = int(attr_dict['n_csets'])
+        for key, data in attr_dict.iteritems():
+            if key in SKIP:
+                continue
+            if key in ATOMIC_DATA_FIELDS:
+                ag._data[key] = data
             else:
-                ag.__getattribute__('set' + field.meth_pl)([data])
-        else:            
-            data = attr_dict[attr]
-            if data.ndim > 0:
-                ag.setData(attr, data)
-            else:
-                ag.setData(attr, [data])
+                ag.setData(key, data)
+        if ag.numCoordsets() > 0:
+            ag._acsi = 0
             
-    LOGGER.debug('Atoms were loaded in {0:.2f}s.'.format(time.time() - start))
+    LOGGER.stopTimer('Atom group was loaded in %.2fs.')
     return ag
 
 if __name__ == '__main__':
