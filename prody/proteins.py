@@ -219,11 +219,12 @@ def getPDBLocalFolder():
     .. versionadded:: 0.8.4"""
 
     folder = SETTINGS.get('pdb_local_folder')
-    if isinstance(folder, str) and os.path.isdir(folder):
-        return folder, SETTINGS.get('pdb_local_divided', True)
-    else:
-        LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
-                       .format(folder))
+    if folder is not None:
+        if isinstance(folder, str) and os.path.isdir(folder):
+            return folder, SETTINGS.get('pdb_local_divided', True)
+        else:
+            LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
+                           .format(folder))
 
 def setPDBLocalFolder(folder, divided=False):
     """Set a local PDB folder.  Setting a local PDB folder will make 
