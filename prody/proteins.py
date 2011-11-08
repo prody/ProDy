@@ -759,13 +759,13 @@ def parsePDBStream(stream, **kwargs):
     split = 0
     hd = None
     if model != 0:
+        LOGGER.startTimer()
         lines = stream.readlines()
         if header or biomol or secondary:
             hd, split = _getHeaderDict(lines)
-        LOGGER.startTimer()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate sets were '
+            LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate set(s) were '
                         'parsed in %.2fs.'.format(ag.numAtoms(), 
                          ag.numCoordsets() - n_csets))
         else:
