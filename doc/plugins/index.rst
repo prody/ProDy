@@ -53,9 +53,9 @@ Manual Installation
 Following instructions apply to all computer architectures and operating 
 systems that VMD runs on, but may require root (or administrator) access.
 
-#. Extract tarball/zip (:file:`ProDy-0.{x}.tar.gz`) contents.
+#. Extract tarball/zip (:file:`NMWiz1.{x}.tar.gz`) contents.
 
-#. Copy :file:`nmwiz0.{x}` folder into VMD plugins directory 
+#. Copy :file:`nmwiz1.{x}` folder into VMD plugins directory 
    (:file:`$VMDDIR/plugins/noarch/tcl/`).
 
 #. Insert the following line to :file:`$VMDDIR/scripts/vmd/loadplugins.tcl` 
