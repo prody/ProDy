@@ -312,7 +312,7 @@ class PackageSettings(object):
         
     def get(self, key, default=None):
         
-        return self._settings.get(key, None)
+        return self._settings.get(key, default)
         
     def load(self):
         """Load settings by unpickling the settings dictionary."""
