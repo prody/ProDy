@@ -271,7 +271,7 @@ class PackageLogger(object):
     def stopTimer(self, msg="Completed in %.2fs."):
         """Stop timer and report the time it took to complete the process."""
         
-        self.info(msg % (time.time() - self._start))
+        self.debug(msg % (time.time() - self._start))
 
     def getTime(self):
         """Return the time in seconds since last call of :meth:`startTimer`
