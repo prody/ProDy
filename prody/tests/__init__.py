@@ -38,6 +38,7 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import sys
 import prody
+LOGGER = prody.LOGGER
 
 try:
     import nose
