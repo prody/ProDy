@@ -41,7 +41,7 @@ import prody
 LOGGER = prody.LOGGER
 
 try:
-    import nose
+    import nosea
     
 except ImportError:
     LOGGER.warning('Failed to import nose, using unittest for testing.')
@@ -51,10 +51,11 @@ except ImportError:
         def test(verbosity=2, descriptions=True, stream=sys.stderr):
             testrunner = unittest.TextTestRunner(stream, descriptions, 
                                                  verbosity)
-            for module in ['test_dynamics', 'test_proteins', 'test_select', 
-                           'test_ensemble']:
+            for module in ['test_datafiles', 'test_dynamics', 'test_ensemble', 
+                           'test_kdtree', 'test_pairwise2', 'test_proteins', 
+                           'test_select',]:
                 testrunner.run(unittest.defaultTestLoader.
-                               loadTestsFromModule(__import__(module)))
+                               loadTestsFromName('prody.tests.' + module))
     else:
         LOGGER.warning('Unit tests are compatible with Python 2.7 and later.')
 
