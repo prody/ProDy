@@ -46,7 +46,7 @@ try:
 except ImportError:
     LOGGER.warning('Failed to import nose, using unittest for testing.')
     LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
-    
+    import unittest
     if sys.version_info[:2] > (2,6):
         def test(verbosity=2, descriptions=True, stream=sys.stderr):
             testrunner = unittest.TextTestRunner(stream, descriptions, 
