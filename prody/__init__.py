@@ -246,7 +246,8 @@ def test(**kwargs):
     try:
         import prody.tests
     except ImportError:
-        LOGGER.warning('Could not import test modules.')
+        LOGGER.warning('Could not import test modules. '
+                       'Tests are available for Python 2.7')
     else:
         tests.test(**kwargs)
 
