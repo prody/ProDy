@@ -6,6 +6,14 @@
 Changes
 *******************************************************************************
 
+Release 0.9.1 (Nov 9, 2011)
+===============================================================================
+
+**Bug Fixes**:
+
+  * Fixed problems with reading and writing configuration files.
+  * Fixed problem with importing nose for testing.
+
 Release 0.9 (Nov 8, 2011)
 ===============================================================================
 
