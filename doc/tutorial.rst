@@ -193,6 +193,9 @@ files:
   * a local folder can be set for storing downloaded files for later access
     using :func:`~proteins.setPDBLocalFolder` 
 
+Note that when these functions are used, ProDy will save your settings as 
+:file:`.prodyrc` in your home folder.
+
 
 Quick visualization
 -------------------------------------------------------------------------------
