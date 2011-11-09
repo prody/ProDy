@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
-__version__ = '0.9'
+__version__ = '0.9.1'
 
 release = tuple([int(x) for x in __version__.split('.')])
 
@@ -73,6 +73,8 @@ PACKAGE_PATH = os.path.join(USERHOME, '.' + __package__)
 PACKAGE_CONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
 if not os.path.isfile(PACKAGE_CONF) and os.path.isfile(PACKAGE_CONF[:-2]):
     os.rename(PACKAGE_CONF[:-2], PACKAGE_CONF)
+
+LOGGER = PackageLogger('.prody')
 
 def importLA():
     try:
@@ -131,7 +133,7 @@ def importBioKDTree():
     dynamics.KDTree = KDTree
     select.KDTree = KDTree
 
-SETTINGS = PackageSettings() 
+SETTINGS = PackageSettings(logger=LOGGER) 
 
 def setPackagePath(path):
     if not os.path.isdir(path):
@@ -173,8 +175,6 @@ def getPackagePath():
                              'access:')
     return path
     
-LOGGER = PackageLogger('.prody')
-
 class ProDyException(Exception):
     pass
 
