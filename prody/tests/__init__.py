@@ -41,7 +41,7 @@ import prody
 LOGGER = prody.LOGGER
 
 try:
-    import nosea
+    import nose
     
 except ImportError:
     LOGGER.warning('Failed to import nose, using unittest for testing.')
