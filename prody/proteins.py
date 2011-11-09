@@ -326,19 +326,16 @@ def getWWPDBFTPServer():
     
     server = SETTINGS.get('wwpdb_ftp', None)
     if server is None:
-        LOGGER.warning('A wwPDB FTP server is not set by the user. '
-                       'Default FTP server RCSB PDB is returned. Use '
-                       'setWWPDBFTPServer function for choosing a server '
-                       'physically close to your location.')
+        LOGGER.warning('A wwPDB FTP server is not set, default FTP server '
+                       'RCSB PDB is used. Use `setWWPDBFTPServer` function '
+                       'to set a server close to your location.')
         return _WWPDB_RCSB
     else:
-        return server
-    
-# The following is to prevent breaking users code due to changes in fetchPDB
-# Remove this in v1.0
-_ = getWWPDBFTPServer()
-if isinstance(_, tuple) and len(_) == 3:
-    setWWPDBFTPServer(_[0].split()[0])
+        if server[2].endswith('data/structures/divided/pdb/'):
+            return (server[0], server[1], 
+                    server[2][:-len('data/structures/divided/pdb/')])
+        else:
+            return server
 
 def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     """Retrieve PDB, PDBML, or mmCIF file(s) for specified *pdb* identifier(s).  
