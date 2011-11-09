@@ -40,7 +40,8 @@ import numpy as np
 __all__ = ['PackageLogger', 'PackageSettings',
            'checkCoordsArray', 
            'gunzip', 'openFile', 'openDB',
-           'isExecutable', 'makePath', 'relpath', 'which', 
+           'isExecutable', 'isReadable', 'isWritable', 
+           'makePath', 'relpath', 'which', 
            'pickle', 'unpickle',
            'rangeString',
            'today', 'getsize']
@@ -287,7 +288,7 @@ class PackageSettings(object):
     The dictionary is pickled in user's home directory for permanent storage.
     """
     
-    def __init__(self, pkg=__package__, rcfile=None):
+    def __init__(self, pkg=__package__, rcfile=None, logger=None):
         """*rcfile* is the filename for pickled settings dictionary, and by 
         default is set to :file:`.pkgrc`."""
         
@@ -296,6 +297,10 @@ class PackageSettings(object):
             self._rcfile = os.path.join(USERHOME, '.' + pkg + 'rc')
         else:
             self._rcfile = rcfile
+        if isinstance(logger, PackageLogger):
+            self._logger = logger
+        else:
+            self._logger = None
         
         self._settings = None
         self.load()
@@ -316,9 +321,18 @@ class PackageSettings(object):
         
     def load(self):
         """Load settings by unpickling the settings dictionary."""
-        
+
+        settings = None        
         if os.path.isfile(self._rcfile):
-            settings = unpickle(self._rcfile)
+            try:
+                settings = unpickle(self._rcfile)
+            except:
+                if self._logger:
+                    self._logger.warning("{0:s} configuration file '{1:s}' "
+                                         "was corrupt, settings could not be "
+                                         "loaded."
+                                         .format(self._package, self._rcfile))
+                    
         if not isinstance(settings, dict):
             settings = {}
         self._settings = settings
@@ -326,7 +340,20 @@ class PackageSettings(object):
     def save(self):
         """Save settings by pickling the settings dictionary."""
         
-        pickle(self._settings, self._rcfile)
+        if isWritable(USERHOME):
+            try:
+                pickle(self._settings, self._rcfile)
+            except:
+                if self._logger:
+                    self._logger.warning("{0:s} cannot write configuration "
+                                         "file '{1:s}', make sure a file with "
+                                         "this name owned by root does not "
+                                         "exist."
+                                         .format(self._package, self._rcfile))
+        elif self._logger:
+            self._logger.warning("{0:s} cannot write configuration "
+                                 "file to '{1:s}', no write access."
+                                 .format(self._package, USERHOME))
 
 
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
@@ -397,10 +424,24 @@ def gunzip(filename, outname=None):
     return outname
 
 def isExecutable(path):
-    """Return true is *path* is an executable."""
+    """Return true if *path* is an executable."""
     
     return isinstance(path, str) and os.path.exists(path) and \
            os.access(path, os.X_OK)
+
+def isReadable(path):
+    """Return true if *path* is readable by the user."""
+    
+    return isinstance(path, str) and os.path.exists(path) and \
+           os.access(path, os.R_OK)
+
+
+def isWritable(path):
+    """Return true if *path* is writable by the user."""
+    
+    return isinstance(path, str) and os.path.exists(path) and \
+           os.access(path, os.W_OK)
+
 
 def relpath(path):
     """Return *path* on Windows, and relative path elsewhere."""
