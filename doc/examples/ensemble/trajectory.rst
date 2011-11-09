@@ -21,9 +21,7 @@ corresponding PDB structure file is needed for this example.
 
 Example input:
  
-* :download:`MDM2 reference structure </doctest/mdm2.pdb>` 
-* :download:`MDM2 trajectory </doctest/mdm2.dcd>`
-* :download:`MDM2 trajectory </doctest/mdm2sim2.dcd>`  
+* :download:`MDM2 files </doctest/mdm2.tar.gz>` 
 
 Output
 -------------------------------------------------------------------------------
