@@ -329,9 +329,8 @@ class PackageSettings(object):
             except:
                 if self._logger:
                     self._logger.warning("{0:s} configuration file '{1:s}' "
-                                         "was corrupt, settings could not be "
-                                         "loaded."
-                                         .format(self._package, self._rcfile))
+                                 "is corrupt, settings could not be loaded."
+                                 .format(self._package, self._rcfile))
                     
         if not isinstance(settings, dict):
             settings = {}
@@ -346,13 +345,12 @@ class PackageSettings(object):
             except:
                 if self._logger:
                     self._logger.warning("{0:s} cannot write configuration "
-                                         "file '{1:s}', make sure a file with "
-                                         "this name owned by root does not "
-                                         "exist."
-                                         .format(self._package, self._rcfile))
+                                 "file '{1:s}', make sure a file with this "
+                                 "name owned by root does not exist."
+                                 .format(self._package, self._rcfile))
         elif self._logger:
-            self._logger.warning("{0:s} cannot write configuration "
-                                 "file to '{1:s}', no write access."
+            self._logger.warning("{0:s} cannot write configuration file to "
+                                 "'{1:s}', user does not have write access."
                                  .format(self._package, USERHOME))
 
 
