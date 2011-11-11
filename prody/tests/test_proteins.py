@@ -378,7 +378,8 @@ class TestDSSPFunctions(unittest.TestCase):
 
         for pdb in self.pdbs:
             prot_ag = parseDatafile(pdb['file'], folder=TEMPDIR)
-            dssp = execDSSP(getDatafilePath(pdb['file']), outputdir=TEMPDIR)
+            dssp = execDSSP(getDatafilePath(pdb['file']), outputdir=TEMPDIR, 
+                            stderr=False)
             parseDSSP(dssp, prot_ag, parseall=True)
     
             # Map a dssp_resnum to its Residue object.
