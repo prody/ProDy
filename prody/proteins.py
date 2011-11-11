@@ -2954,7 +2954,7 @@ def buildBiomolecules(header, atoms, biomol=None):
     else:
         return None
 
-def execDSSP(pdb, outputname=None, outputdir=None):
+def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
     """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 
     file path.  If *pdb* is a compressed file, it will be decompressed using
     Python :mod:`gzip` library.  When no *outputname* is given, output name 
@@ -2962,12 +2962,18 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     automatically to *outputname*.  If :file:`outputdir` is given, DSSP 
     output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`dssp pdb > out` command, output
-    filename is returned. 
+    filename is returned.  On Linux platforms, when *stderr* is false, 
+    standard error messages are suppressed, i.e.
+    ``dssp pdb > outputname 2> /dev/null``.
     
     For more information on DSSP see http://swift.cmbi.ru.nl/gv/dssp/.
     If you benefited from DSSP, please consider citing [WK83]_.
     
-    .. versionadded:: 0.8"""
+    .. versionadded:: 0.8
+    
+    .. versionchanged:: 0.9.2
+       *stderr* keyword argument is added. 
+    """
     
     dssp = which('dssp')
     if dssp is None:
@@ -2995,7 +3001,11 @@ def execDSSP(pdb, outputname=None, outputdir=None):
     else:
         out = os.path.join(outputdir, outputname + '.dssp')
         
-    status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
+    if not stderr and PLATFORM != 'Windows':
+        status = os.system('{0:s} {1:s} > {2:s} 2> /dev/null'.format(
+                            dssp, pdb, out))
+    else:
+        status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
     if status == 0:
         return out
     
@@ -3124,15 +3134,18 @@ def parseDSSP(dssp, ag, parseall=False):
         ag.setData('dssp_tco', TCO)
     return ag
 
-def performDSSP(pdb, parseall=False):
+def performDSSP(pdb, parseall=False, stderr=True):
     """Perform DSSP calculations and parse results.  DSSP data is returned 
     in an :class:`~prody.atomic.AtomGroup` instance.  See also :func:`execDSSP` 
     and :func:`parseDSSP`.
     
-    .. versionadded:: 0.8"""
+    .. versionadded:: 0.8
+    
+    .. versionchanged:: 0.9.2
+       Added *stderr* argument, see :func:`execDSSP` for details."""
     
     pdb = fetchPDB(pdb, compressed=False)
-    return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
+    return parseDSSP(execDSSP(pdb, stderr=stderr), parsePDB(pdb), parseall)
     
 def execSTRIDE(pdb, outputname=None, outputdir=None):
     """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier or 
