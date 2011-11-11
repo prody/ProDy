@@ -44,7 +44,8 @@ __all__ = ['PackageLogger', 'PackageSettings',
            'makePath', 'relpath', 'which', 
            'pickle', 'unpickle',
            'rangeString',
-           'today', 'getsize']
+           'today', 'getsize',
+           'PLATFORM']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -355,7 +356,7 @@ class PackageSettings(object):
 
 
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
-                     reshape=None):
+                     reshape=None, dtypes=(float,)):
     """Return array if checks pass, otherwise raise an exception."""
 
     assert isinstance(arg, str), 'arg must be a string'
@@ -375,7 +376,7 @@ def checkCoordsArray(array, arg='array', cset=False, n_atoms=None,
         raise ValueError(arg + '.shape[-1] of 3, i.e. ([n_csets,]n_atoms,3)')
     if n_atoms is not None and n_atoms != 0 and array.shape[-2] != n_atoms:
         raise ValueError(arg + ' size do not match number of atoms')
-    if array.dtype != float:
+    if array.dtype not in dtypes:
         try:
             array = array.astype(float)
         except ValueError:
