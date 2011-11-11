@@ -32,6 +32,7 @@ import platform
 import logging.handlers
 
 today = datetime.date.today
+now = datetime.datetime.now
 getsize = os.path.getsize
 
 import numpy as np
@@ -44,7 +45,7 @@ __all__ = ['PackageLogger', 'PackageSettings',
            'makePath', 'relpath', 'which', 
            'pickle', 'unpickle',
            'rangeString',
-           'today', 'getsize',
+           'today', 'now', 'getsize',
            'PLATFORM']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
