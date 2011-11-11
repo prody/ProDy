@@ -82,6 +82,10 @@ class PackageLogger(object):
         logger.addHandler(console)
         self._logger = logger
         
+        self._info = kwargs.get('info', '')
+        self._warning = kwargs.get('warning', 'Warning: ')
+        self._error = kwargs.get('error', 'Error: ')
+        
         self._n = None
         self._last = None
         self._start = None
@@ -127,12 +131,12 @@ class PackageLogger(object):
     def warning(self, msg):
         """Log *msg* with severity 'WARNING'."""
         
-        self._logger.warning(msg)
+        self._logger.warning(self._warning + msg)
 
     def error(self, msg):
         """Log *msg* with severity 'ERROR'."""
         
-        self._logger.error(msg)
+        self._logger.error(self._error + msg)
     
     def addHandler(self, hdlr):
         """Add the specified handler to this logger."""
@@ -357,7 +361,7 @@ class PackageSettings(object):
 
 
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
-                     reshape=None, dtypes=(float,)):
+                     reshape=None, dtype=(float,)):
     """Return array if checks pass, otherwise raise an exception."""
 
     assert isinstance(arg, str), 'arg must be a string'
@@ -366,6 +370,8 @@ def checkCoordsArray(array, arg='array', cset=False, n_atoms=None,
         'n_atoms must be a positive integer'
     assert reshape is None or isinstance(reshape, bool), \
         'reshape must be a boolean'
+    if not isinstance(dtype, tuple):
+        dtype = (dtype, )
 
     if not isinstance(array, np.ndarray):
         raise TypeError(arg + ' must be a Numpy array')
@@ -377,12 +383,12 @@ def checkCoordsArray(array, arg='array', cset=False, n_atoms=None,
         raise ValueError(arg + '.shape[-1] of 3, i.e. ([n_csets,]n_atoms,3)')
     if n_atoms is not None and n_atoms != 0 and array.shape[-2] != n_atoms:
         raise ValueError(arg + ' size do not match number of atoms')
-    if array.dtype not in dtypes:
+    if array.dtype not in dtype:
         try:
-            array = array.astype(float)
+            array = array.astype(dtype[0])
         except ValueError:
-            raise ValueError(arg + '.astype(float) fails, float type could '
-                             'not be assigned')
+            raise ValueError(arg + '.astype(' + str(dtype[0]) + ') fails, '
+                             'float type could not be assigned')
     if cset and reshape and array.ndim == 2:
         array = array.reshape([1, array.shape[0], 3])
     return array
