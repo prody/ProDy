@@ -12,7 +12,7 @@ distributions.  On Linux, when installing ProDy from source, the scripts are
 placed into a default folder that is included in the environment variable 
 :envvar:`PATH`, e.g. :file:`/usr/local/bin/`.  On Windows, installer places the
 scripts into the :file:`Scripts` folder under the path to the corresponding 
-Python distribution, e.g. :file:`C:\Python27\Scripts` if you used Python 2.7. 
+Python distribution, e.g. :file:`C:\\Python27\\Scripts` if you used Python 2.7. 
 You may need to add this path to the environment variable :envvar:`PATH` 
 yourself. 
 
@@ -31,6 +31,8 @@ This will display available commands and short descriptions:
 To get more information on a specific command, type in command name, e.g.
 :command:`prody anm`.
 
+Example
+-------------------------------------------------------------------------------
 
 Running the following command will perform ANM calculations for the p38 MAP 
 kinase structure, and will write eigenvalues/vectors in plain text and 
@@ -52,21 +54,18 @@ The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|).
 .. _scripts-anm:
 
 
-ANM
+ProDy commands
 ===============================================================================
+
+anm
+-------------------------------------------------------------------------------
 
 Perform ANM calculations and output the results in plain text, NMD, and 
 graphical formats.
 
-Usage
--------------------------------------------------------------------------------
-
 Running :command:`prody anm -h` displays:
 
 .. literalinclude:: prody_anm.txt
-
-Examples
--------------------------------------------------------------------------------
 
 Running :command:`prody anm --examples` displays:
 
@@ -75,22 +74,16 @@ Running :command:`prody anm --examples` displays:
 
 .. _scripts-gnm:
 
-GNM
-===============================================================================
+gnm
+-------------------------------------------------------------------------------
 
 Perform GNM calculations and output the results in plain text and graphical 
 formats. 
  
  
-Usage
--------------------------------------------------------------------------------
-
 Running :command:`prody gnm -h` displays:
 
 .. literalinclude:: prody_gnm.txt
-
-Examples
--------------------------------------------------------------------------------
 
 Running :command:`prody gnm --examples` displays:
 
@@ -99,21 +92,17 @@ Running :command:`prody gnm --examples` displays:
 
 .. _scripts-pca:
 
-PCA
-===============================================================================
+pca
+-------------------------------------------------------------------------------
 
 Perform PCA calculations and output the results in plain text, NMD formats,
 and graphical formats.
 
-Usage
--------------------------------------------------------------------------------
 
 Running :command:`prody pca -h` displays:
 
 .. literalinclude:: prody_pca.txt
 
-Examples
--------------------------------------------------------------------------------
 
 Running :command:`prody pca --examples` displays:
 
@@ -122,20 +111,14 @@ Running :command:`prody pca --examples` displays:
 
 .. _scripts-alignmodels:
 
-alignmodels.py
-===============================================================================
+align
+-------------------------------------------------------------------------------
 
 Align models in a PDB file.
-
-Usage
--------------------------------------------------------------------------------
 
 Running :command:`prody align -h` displays:
 
 .. literalinclude:: prody_align.txt
-
-Examples
--------------------------------------------------------------------------------
 
 Running :command:`prody align --examples` displays:
 
@@ -144,43 +127,30 @@ Running :command:`prody align --examples` displays:
 
 .. _scripts-biomolecule:
 
-biomolecule.py
-===============================================================================
+biomol
+-------------------------------------------------------------------------------
  
 Generate biomolecule structure using the transformation from the header 
 section of the PDB file.
- 
-Usage
--------------------------------------------------------------------------------
  
 Running :command:`prody biomol -h` displays:
 
 .. literalinclude:: prody_biomol.txt
 
-Examples
--------------------------------------------------------------------------------
- 
 Running :command:`prody biomol --examples` displays:
 
 .. literalinclude:: prody_biomol_eg.txt
 
 .. _scripts-blastpdb:
 
-blastpdb.py
-===============================================================================
+blast
+-------------------------------------------------------------------------------
 
 Search Protein Data Bank for structures matching a user given sequence.
-
-
-Usage
--------------------------------------------------------------------------------
 
 Running :command:`prody blast -h` displays:
 
 .. literalinclude:: prody_blast.txt
-
-Examples
--------------------------------------------------------------------------------
 
 Running :command:`prody blast --examples` displays:
 
@@ -188,20 +158,14 @@ Running :command:`prody blast --examples` displays:
 
 .. _scripts-fetchpdb:
 
-fetchpdb.py
-===============================================================================
+fetch
+-------------------------------------------------------------------------------
 
 Download PDB for given identifiers.
  
-Usage
--------------------------------------------------------------------------------
-
 Running :command:`prody fetch -h` displays:
 
 .. literalinclude:: prody_fetch.txt
-
-Examples
--------------------------------------------------------------------------------
 
 Running :command:`prody fetch --examples` displays:
 
@@ -209,21 +173,15 @@ Running :command:`prody fetch --examples` displays:
 
 .. _scripts-pdbselect:
 
-pdbselect.py
-===============================================================================
+select
+-------------------------------------------------------------------------------
 
 Extract a selection of atoms from a PDB file.
 
-Usage
--------------------------------------------------------------------------------
- 
 Running :command:`prody select -h` displays:
 
 .. literalinclude:: prody_select.txt
 
-Examples
--------------------------------------------------------------------------------
- 
 Running :command:`prody select --examples` displays:
 
 .. literalinclude:: prody_select_eg.txt

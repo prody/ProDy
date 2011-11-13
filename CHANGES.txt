@@ -6,13 +6,24 @@
 Changes
 *******************************************************************************
 
-Release 0.9 (Nov 7, 2011)
+Release 0.9.1 (Nov 9, 2011)
+===============================================================================
+
+**Bug Fixes**:
+
+  * Fixed problems with reading and writing configuration files.
+  * Fixed problem with importing nose for testing.
+
+Release 0.9 (Nov 8, 2011)
 ===============================================================================
 
 **New Features**:
 
   * `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files
     can be retrieved using :func:`~proteins.fetchPDB` function.
+
+  * :func:`~proteins.getPDBLocalFolder` and :func:`~proteins.setPDBLocalFolder`
+    functions are implemented for local PDB folder management.
     
   * :func:`~proteins.parsePDBHeader` is implemented for convenient parsing of
     header data from :file:`.pdb` files.

@@ -88,10 +88,8 @@ Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 Plugins
 ===============================================================================
 
-:ref:`nmwiz` is a VMD plugin for comparative analysis normal mode data.  
-It will be distributed with VMD 1.9.1. For now see :ref:`nmwiz` for 
-installation instructions. 
-
+:ref:`nmwiz`, part of ProDy project, is a VMD plugin for visualization and 
+animation of normal mode data. See :ref:`nmwiz` for installation instructions. 
 
 Recommended Software
 ===============================================================================

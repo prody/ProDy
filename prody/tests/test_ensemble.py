@@ -22,11 +22,14 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
+import os.path
+
 import unittest
 import numpy as np
 from numpy.testing import *
 
 from prody import *
+from prody.tools import *
 from test_datafiles import *
 
 prody.changeVerbosity('none')
@@ -451,6 +454,46 @@ class TestCalcOccupancies(unittest.TestCase):
         self.assertRaises(ValueError, calcOccupancies, PDBEnsemble())
 
 
+class TestDCDFile(unittest.TestCase):
+    
+    def setUp(self):
+        
+        self.dcd = os.path.join(TEMPDIR, 'temp.dcd')
+    
+    def testWriteDCD(self):
+        dcd = writeDCD(self.dcd, ENSEMBLE)
+        self.assertEqual(dcd, self.dcd, 'failed to write DCD file')
+        
+    def testParseDCD(self):
+        e = parseDCD(writeDCD(self.dcd, ENSEMBLE))
+        assert_allclose(e._getCoordsets(), ENSEMBLE._getCoordsets(),
+                        rtol=RTOL, atol=ATOL,
+                        err_msg='failed to parse DCD file correctly')
+
+    def testWrite(self):
+        dcd = DCDFile(self.dcd, 'w')
+        dcd.write(ENSEMBLE.getCoordsets())
+        dcd.close()
+        e = parseDCD(self.dcd)
+        assert_allclose(e._getCoordsets(), ENSEMBLE._getCoordsets(),
+                        rtol=RTOL, atol=ATOL,
+                        err_msg='failed to parse DCD file correctly')
+
+    def testWriteModeAppend(self):
+        dcd = DCDFile(writeDCD(self.dcd, ENSEMBLE), 'a')
+        dcd.write(ENSEMBLE.getCoordsets())
+        dcd.close()
+        e = parseDCD(self.dcd)
+        n_csets = len(ENSEMBLE)
+        coordsets = e._getCoordsets()
+        assert_equal(coordsets, coordsets, 
+                     'failed to parse DCD file correctly')
+        assert_allclose(coordsets[:n_csets], ENSEMBLE._getCoordsets(),
+                        rtol=RTOL, atol=ATOL,
+                        err_msg='failed to parse DCD file correctly')
+
+
+    
 if __name__ == '__main__':
     prody.changeVerbosity('none')
     unittest.main()

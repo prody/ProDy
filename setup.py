@@ -40,7 +40,7 @@ PACKAGES = ['prody']
 PACKAGE_DATA = {}
 if sys.version_info[:2] > (2,6):
     PACKAGES.append('prody.tests')
-    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat']
+    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat', 'data/*.coo']
 
 EXTENSIONS = []
 

@@ -79,8 +79,8 @@ def installNMWiz(vmddir):
         os.mkdir(nmwizdir)
     print('installing NMWiz into ' + plugindir)
     for fn in ('nmwiz.tcl', 'pkgIndex.tcl'):
-        print('copying ' + os.path.join(nmwiz, fn) + ' -> ' + os.path.join(nmwizdir, fn))
-        shutil.copy(os.path.join(nmwiz, fn), os.path.join(nmwizdir, fn))
+        print('copying ' + os.path.join('nmwiz', fn) + ' -> ' + os.path.join(nmwizdir, fn))
+        shutil.copy(os.path.join('nmwiz', fn), os.path.join(nmwizdir, fn))
     loadplugins = os.path.join(vmddir, 'scripts', 'vmd', 'loadplugins.tcl') 
     tcl = open(loadplugins)
     oldlines = tcl.readlines()

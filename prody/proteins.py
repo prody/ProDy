@@ -216,14 +216,15 @@ def getPDBLocalFolder():
     """Return the path to a local PDB folder and folder structure specifier. 
     If a local folder is not set, ``None`` will be returned.
     
-    .. versionadded:: 0.8.4"""
+    .. versionadded:: 0.9"""
 
     folder = SETTINGS.get('pdb_local_folder')
-    if isinstance(folder, str) and os.path.isdir(folder):
-        return folder, SETTINGS.get('pdb_local_divided', True)
-    else:
-        LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
-                       .format(folder))
+    if folder is not None:
+        if isinstance(folder, str) and os.path.isdir(folder):
+            return folder, SETTINGS.get('pdb_local_divided', True)
+        else:
+            LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
+                           .format(folder))
 
 def setPDBLocalFolder(folder, divided=False):
     """Set a local PDB folder.  Setting a local PDB folder will make 
@@ -233,7 +234,7 @@ def setPDBLocalFolder(folder, divided=False):
     PDB files in a single place and have access to them in different working 
     directories.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     If *divided* is ``True``, the divided folder structure of wwPDB servers 
     will be assumed when reading from and writing to the local folder.  For 
@@ -325,19 +326,16 @@ def getWWPDBFTPServer():
     
     server = SETTINGS.get('wwpdb_ftp', None)
     if server is None:
-        LOGGER.warning('A wwPDB FTP server is not set by the user. '
-                       'Default FTP server RCSB PDB is returned. Use '
-                       'setWWPDBFTPServer function for choosing a server '
-                       'physically close to your location.')
+        LOGGER.warning('A wwPDB FTP server is not set, default FTP server '
+                       'RCSB PDB is used. Use `setWWPDBFTPServer` function '
+                       'to set a server close to your location.')
         return _WWPDB_RCSB
     else:
-        return server
-    
-# The following is to prevent breaking users code due to changes in fetchPDB
-# Remove this in v1.0
-_ = getWWPDBFTPServer()
-if isinstance(_, tuple) and len(_) == 3:
-    setWWPDBFTPServer(_[0].split()[0])
+        if server[2].endswith('data/structures/divided/pdb/'):
+            return (server[0], server[1], 
+                    server[2][:-len('data/structures/divided/pdb/')])
+        else:
+            return server
 
 def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     """Retrieve PDB, PDBML, or mmCIF file(s) for specified *pdb* identifier(s).  
@@ -351,12 +349,10 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
        When *compressed* is false, compressed files found in *folder* or 
        local PDB mirror are decompressed.
     
-    .. versionadded:: 0.8.4
-       *format* and *noatom* keyword arguments are added.
-       
-    .. versionchanged:: 0.8.4
+    .. versionadded:: 0.9
        File discovery is improved to handle a local PDB folder. See 
        :func:`setPDBLocalFolder` method for details.  
+       *format* and *noatom* keyword arguments are added.
 
     If *compressed* is ``False``, all files will be decompressed.  If *copy* is 
     ``True``, all files from local PDB mirror will copied to the user specified 
@@ -549,7 +545,7 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
             raise type(error)('FTP connection problem, potential reason: '
                               'no internet connectivity')
         else:
-            ftp_path = os.path.join(ftp_path, divided)
+            #ftp_path = os.path.join(ftp_path, divided)
             ftp.login('')
             for i, pdbid in enumerate(identifiers):
                 if pdbid != filenames[i]:
@@ -561,7 +557,9 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                 pdbfile = open(filename, 'w+b')
                 fn = prefix + pdbid + pdbext
                 try:
-                    ftp.cwd(os.path.join(ftp_path, pdbid[1:3]))
+                    ftp.cwd(ftp_path)
+                    ftp.cwd(divided)
+                    ftp.cwd(pdbid[1:3])
                     ftp.retrbinary('RETR ' + fn, pdbfile.write)
                 except Exception as error:
                     pdbfile.close()
@@ -573,8 +571,9 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
                                      'current network.'.format(pdbid, 
                                      str(error)))
                     else:
-                        LOGGER.debug('{0:s} download failed. {0:s} does not '
-                                     'exist on ftp.wwpdb.org.'.format(fn))
+                        LOGGER.debug('{0:s} download failed. {1:s} does not '
+                                     'exist on {2:s}.'
+                                     .format(fn, pdbid, ftp_host))
                     failure += 1
                     filenames[i] = None 
                 else:
@@ -661,7 +660,7 @@ _parsePDBdoc = _parsePQRdoc + """
        *chain* and *subset* arguments are appended to atom group name, e.g. for 
        ``('1mkp', chain='A', subset='calpha')`` name will be ``"1mkp_A_ca"``.
 
-    .. versionchanged:: 0.8.4
+    .. versionchanged:: 0.9
        *name* keyword argument is renamed as *title* argument..
 
 
@@ -759,13 +758,13 @@ def parsePDBStream(stream, **kwargs):
     split = 0
     hd = None
     if model != 0:
+        LOGGER.startTimer()
         lines = stream.readlines()
         if header or biomol or secondary:
             hd, split = _getHeaderDict(lines)
-        LOGGER.startTimer()
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate sets were '
+            LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate set(s) were '
                         'parsed in %.2fs.'.format(ag.numAtoms(), 
                          ag.numCoordsets() - n_csets))
         else:
@@ -1287,7 +1286,7 @@ class Chemical(object):
     """|new| A data structure for storing information on chemical components 
     (or heterogens) in PDB structures.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     A :class:`Chemical` instance has the following attributes:
         
@@ -1369,7 +1368,7 @@ class Polymer(object):
     """|new| A data structure for storing information on polymer components 
     (protein or nucleic) of PDB structures.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     A :class:`Polymer` instance has the following attributes:
         
@@ -1508,7 +1507,7 @@ def parsePDBHeader(pdb, *keys):
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be 
     an identifier or a filename.
     
-    .. versionadded:: 0.8.4
+    .. versionadded:: 0.9
     
     List of header records that are parsed. 
     
@@ -2955,7 +2954,7 @@ def buildBiomolecules(header, atoms, biomol=None):
     else:
         return None
 
-def execDSSP(pdb, outputname=None, outputdir=None, silent=False):
+def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
     """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 
     file path.  If *pdb* is a compressed file, it will be decompressed using
     Python :mod:`gzip` library.  When no *outputname* is given, output name 
@@ -2963,12 +2962,18 @@ def execDSSP(pdb, outputname=None, outputdir=None, silent=False):
     automatically to *outputname*.  If :file:`outputdir` is given, DSSP 
     output and uncompressed PDB file will be written into this folder.
     Upon successful execution of :command:`dssp pdb > out` command, output
-    filename is returned. 
+    filename is returned.  On Linux platforms, when *stderr* is false, 
+    standard error messages are suppressed, i.e.
+    ``dssp pdb > outputname 2> /dev/null``.
     
     For more information on DSSP see http://swift.cmbi.ru.nl/gv/dssp/.
     If you benefited from DSSP, please consider citing [WK83]_.
     
-    .. versionadded:: 0.8"""
+    .. versionadded:: 0.8
+    
+    .. versionchanged:: 0.9.2
+       *stderr* keyword argument is added. 
+    """
     
     dssp = which('dssp')
     if dssp is None:
@@ -2996,12 +3001,11 @@ def execDSSP(pdb, outputname=None, outputdir=None, silent=False):
     else:
         out = os.path.join(outputdir, outputname + '.dssp')
         
-    cmd_str = '{0:s} {1:s} {2:s}'.format(dssp, pdb, out)
-
-    if silent:
-        cmd_str += " 2> /dev/null"
-
-    status = os.system(cmd_str)
+    if not stderr and PLATFORM != 'Windows':
+        status = os.system('{0:s} {1:s} > {2:s} 2> /dev/null'.format(
+                            dssp, pdb, out))
+    else:
+        status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
 
     if status == 0:
         return out
@@ -3149,15 +3153,18 @@ def parseDSSP(dssp, ag, parseall=False):
         ag.setData('dssp_tco', TCO)
     return ag
 
-def performDSSP(pdb, parseall=False):
+def performDSSP(pdb, parseall=False, stderr=True):
     """Perform DSSP calculations and parse results.  DSSP data is returned 
     in an :class:`~prody.atomic.AtomGroup` instance.  See also :func:`execDSSP` 
     and :func:`parseDSSP`.
     
-    .. versionadded:: 0.8"""
+    .. versionadded:: 0.8
+    
+    .. versionchanged:: 0.9.2
+       Added *stderr* argument, see :func:`execDSSP` for details."""
     
     pdb = fetchPDB(pdb, compressed=False)
-    return parseDSSP(execDSSP(pdb), parsePDB(pdb), parseall)
+    return parseDSSP(execDSSP(pdb, stderr=stderr), parsePDB(pdb), parseall)
     
 def execSTRIDE(pdb, outputname=None, outputdir=None):
     """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier or 

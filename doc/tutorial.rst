@@ -193,6 +193,9 @@ files:
   * a local folder can be set for storing downloaded files for later access
     using :func:`~proteins.setPDBLocalFolder` 
 
+Note that when these functions are used, ProDy will save your settings as 
+:file:`.prodyrc` in your home folder.
+
 
 Quick visualization
 -------------------------------------------------------------------------------
@@ -446,6 +449,22 @@ or changing the source code.  See the following pages:
   * :ref:`contacts` for selecting interacting atoms
 
 
+ProDy verbosity
+-------------------------------------------------------------------------------
+
+Finally, you might have noted that ProDy prints some information to the console
+after parsing a file or doing some calculations. For example, PDB parser will 
+print what was parsed and how long it took to the screen::
+
+  @> 1p38 (./1p38.pdb.gz) is found in the target directory.
+  @> PDBParser: 2962 atoms and 1 coordinate sets were parsed in 0.08s.
+
+This behavior is useful in interactive sessions, but may be problematic for
+automated tasks as the messages are printed to stderr. The level of verbosity 
+can be adjusted using :func:`changeVerbosity` function, and 
+``changeVerbosity(None)`` will stop all information messages.
+
+
 Dynamics analysis
 ===============================================================================
 
@@ -661,20 +680,6 @@ If you have `Matplotlib`_, you can use ProDy functions whose name start with
 :ref:`pca-xray-plotting` shows more plotting examples and 
 :ref:`dynamics` module documentation lists all of the plotting functions. 
 
-ProDy verbosity
-===============================================================================
-
-Finally, you might have noted that ProDy prints some information to the console
-after parsing a file or doing some calculations. For example, PDB parser will 
-print what was parsed and how long it took to the screen::
-
-  @> 1p38 (./1p38.pdb.gz) is found in the target directory.
-  @> PDBParser: 2962 atoms and 1 coordinate sets were parsed in 0.08s.
-
-This behavior is useful in interactive sessions, but may be problematic for
-automated tasks as the messages are printed to stderr. The level of verbosity 
-can be adjusted using :func:`changeVerbosity` function, and 
-``changeVerbosity(None)`` will stop all information messages.
 
 |questions|
 
