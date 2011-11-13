@@ -1603,11 +1603,14 @@ class TrajectoryBase(EnsembleBase):
         self._closed = False
     
     def __iter__(self):
-        if not self._closed:
-            while self._nfi < self._n_csets: 
-                yield self.next()
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        while self._nfi < self._n_csets: 
+            yield self.next()
     
     def __getitem__(self, index):
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         if isinstance(index, int):
             return self.getFrame(index)
         elif isinstance(index, (slice, list, np.ndarray)):
@@ -1645,9 +1648,10 @@ class TrajectoryBase(EnsembleBase):
         returned. Reference coordinates are not included. Iteration starts
         from the current position in the trajectory."""
 
-        if not self._closed:
-            while self._nfi < self._n_csets: 
-                yield self.nextCoordset()
+        if self._closed:
+            raise ValueError('I/O operation on closed file')        
+        while self._nfi < self._n_csets: 
+            yield self.nextCoordset()
     
     def getCoordsets(self, indices=None):
         """Returns coordinate sets at given *indices*. *indices* may be an 
@@ -1702,28 +1706,28 @@ class TrajectoryFile(TrajectoryBase):
     """
     
     
-    def __init__(self, filename, mode):
-        """Instantiate with a trajectory *filename*. The file will be 
-        automatically opened for reading at instantiation. 
-        Use :meth:`addFile` for appending files to the trajectory."""
+    def __init__(self, filename, mode='r'):
+        """Open*filename* for reading (default, ``mode="r"``), writing 
+        (``mode="w"``), or appending (``mode="r+"`` or ``mode="a"``)."""
 
         if not isinstance(filename, str):
             raise TypeError("filename argument must be a string")
         if not isinstance(mode, str): 
             TypeError('mode argument must be string')
-        if not mode[0] in ('r', 'w', 'a'): 
-            ValueError("mode string must begin with one of 'r', 'w', or 'a'")
-        mode = mode[0]
+        if not mode in ('r', 'w', 'a', 'r+'): 
+            ValueError("mode string must begin with one of 'r', 'w', 'r+', or "
+                       "'a'")
         if mode == 'r' and not os.path.isfile(filename):
             raise IOError("[Errno 2] No such file or directory: '{0:s}'"
                           .format(filename))
         self._filename = filename
-        self._mode = mode
-        if mode == 'a':
+        if mode in ('a', 'r+'):
             self._file = open(filename, 'r+b')
             self._file.seek(0)
+            mode = 'a'
         else:
             self._file = open(filename, mode+'b')
+        self._mode = mode
         name = os.path.splitext(os.path.split(filename)[1])[0]
         TrajectoryBase.__init__(self, name)
         self._bytes_per_frame = None
@@ -1773,7 +1777,7 @@ class TrajectoryFile(TrajectoryBase):
         """Return frame at given *index*."""
         
         if self._closed:
-            return None
+            raise ValueError('I/O operation on closed file')
         if not isinstance(index, (int, long)):
             raise IndexError('index must be an integer')
         if not 0 <= index < self._n_csets:
@@ -1792,6 +1796,8 @@ class TrajectoryFile(TrajectoryBase):
                 
     def getCoordsets(self, indices=None):
         
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         if indices is None:
             indices = np.arange(self._n_csets)
         elif isinstance(indices, (int, long)):
@@ -1832,9 +1838,11 @@ class TrajectoryFile(TrajectoryBase):
     
     def skip(self, n):
      
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
-        if not self._closed and n > 0:
+        if n > 0:
             left = self._n_csets - self._nfi
             if n > left:
                 n = left
@@ -1846,7 +1854,7 @@ class TrajectoryFile(TrajectoryBase):
     def goto(self, n):
         
         if self._closed:
-            return None
+            raise ValueError('I/O operation on closed file')
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         n_csets = self._n_csets
@@ -1866,9 +1874,10 @@ class TrajectoryFile(TrajectoryBase):
     
     def reset(self):
 
-        if not self._closed:
-            self._file.seek(self._first_byte)
-            self._nfi = 0
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        self._file.seek(self._first_byte)
+        self._nfi = 0
             
     reset.__doc__ = TrajectoryBase.reset.__doc__  
     
@@ -1910,18 +1919,19 @@ DEBUG = False
 
 class DCDFile(TrajectoryFile):
     
-    """A class for reading DCD files.
+    """A class for reading DCD files. DCD header and first frame is parsed at 
+    instantiation.  Coordinates from the first frame is set as the reference 
+    coordinates.
     
     .. versionadded:: 0.8"""
     
     def __init__(self, filename, mode='r'):
-        """Instantiate with a DCD filename. DCD header and first frame is 
-        parsed at instantiation. Coordinates from the first frame is set 
-        as the reference coordinates."""
         
         TrajectoryFile.__init__(self, filename, mode)
         if self._mode != 'w':
             self._parseHeader()
+            
+    __init__.__doc__ = TrajectoryFile.__init__.__doc__
         
     def _parseHeader(self):
         """Read the header information from a dcd file.
@@ -2098,8 +2108,10 @@ class DCDFile(TrajectoryFile):
         
     def next(self):
         
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         nfi = self._nfi
-        if not self._closed and nfi < self._n_csets:
+        if nfi < self._n_csets:
             unitcell = self._nextUnitcell()
             coords = self._nextCoordset()
             frame = Frame(self, nfi, coords, unitcell)
@@ -2110,7 +2122,9 @@ class DCDFile(TrajectoryFile):
     def nextCoordset(self):
         """Return next coordinate set."""
         
-        if not self._closed and self._nfi < self._n_csets:
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
+        if self._nfi < self._n_csets:
             #Skip extended system coordinates (unit cell data)
             if self._unitcell:
                 self._file.seek(56, 1)
@@ -2118,18 +2132,18 @@ class DCDFile(TrajectoryFile):
             
     def _nextCoordset(self):
     
-            n_floats = self._n_floats
-            n_atoms = self._n_atoms
-            xyz = np.fromfile(self._file, dtype=self._dtype, count=n_floats)
-            if len(xyz) != n_floats:
-                return None
-            xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
-            xyz = xyz.reshape((n_atoms, 3))
-            self._nfi += 1
-            if self._sel is None:
-                return xyz
-            else:
-                return xyz[self._indices]
+        n_floats = self._n_floats
+        n_atoms = self._n_atoms
+        xyz = np.fromfile(self._file, dtype=self._dtype, count=n_floats)
+        if len(xyz) != n_floats:
+            return None
+        xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
+        xyz = xyz.reshape((n_atoms, 3))
+        self._nfi += 1
+        if self._sel is None:
+            return xyz
+        else:
+            return xyz[self._indices]
 
     nextCoordset.__doc__ = TrajectoryBase.nextCoordset.__doc__  
 
@@ -2153,6 +2167,8 @@ class DCDFile(TrajectoryFile):
         integer, a list of integers or ``None``. ``None`` returns all 
         coordinate sets."""
                 
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         if self._indices is None and \
             (indices is None or indices == slice(None)):
             nfi = self._nfi
@@ -2180,22 +2196,25 @@ class DCDFile(TrajectoryFile):
     
         getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
 
-
     def write(self, coords, unitcell=None, **kwargs):
         """Write *coords* to the file.  Number of atoms will be determined 
         based on the size of the first coordinate set.  If *unitcell* is 
         provided for the first coordinate set, it will be expected for the
-        following coordinate sets as well. 
+        following coordinate sets as well.
         
-        :arg timestep: timestep used when integrating each time step, 
-            default is 1
+        .. versionadded:: 0.9.2
+        
+        The following keywords are used when writing the first coordinate set 
+        for files open at 'w' mode:        
+            
+        :arg timestep: timestep used for integration, default is 1
         :arg firsttimestep: number of the first timestep, default is 0
-        :arg framefreq:  
+        :arg framefreq: number of timesteps between frames, default is 1"""
         
-        """
-        
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
-            raise IOError('File not open for writing.')
+            raise IOError('File not open for writing')
         # Write header
         coords = checkCoordsArray(coords, 'coords', True, dtype=np.float32)
         if coords.ndim == 2:
@@ -2283,6 +2302,8 @@ class DCDFile(TrajectoryFile):
             dcd.seek(0, 2)
         dcd.flush()
         os.fsync(dcd.fileno())
+        self._nfi = self._n_csets
+
 
 class Trajectory(TrajectoryBase):
     
@@ -2380,11 +2401,15 @@ class Trajectory(TrajectoryBase):
         
     def getFrame(self, index):
         
+        if not isinstance(filename, str):
+            raise ValueError('filename must be a string')
         self.goto(index)
         return self.next()
 
     def getCoordsets(self, indices=None):
         
+        if not isinstance(filename, str):
+            raise ValueError('filename must be a string')
         if indices is None:
             indices = np.arange(self._n_csets)
         elif isinstance(indices, (int, long)):
@@ -2415,8 +2440,11 @@ class Trajectory(TrajectoryBase):
     getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
     
     def next(self):
+        
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         nfi = self._nfi
-        if not self._closed and nfi < self._n_csets:
+        if nfi < self._n_csets:
             traj = self._trajectory
             while traj._nfi == traj._n_csets:
                 self._nextFile()
@@ -2436,7 +2464,9 @@ class Trajectory(TrajectoryBase):
     def nextCoordset(self):
         """Return next coordinate set."""
         
-        if not self._closed and self._nfi < self._n_csets:
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
+        if self._nfi < self._n_csets:
             traj = self._trajectory
             while traj._nfi == traj._n_csets:
                 self._nextFile()
@@ -2452,7 +2482,7 @@ class Trajectory(TrajectoryBase):
     def goto(self, n):
         
         if self._closed:
-            return None
+            raise ValueError('I/O operation on closed file')
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         n_csets = self._n_csets
@@ -2480,12 +2510,14 @@ class Trajectory(TrajectoryBase):
     
     def skip(self, n):
         
+        if not isinstance(filename, str):
+            raise ValueError('filename must be a string')
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         left = self._n_csets - self._nfi
         if n > left:
             n = left
-        while not self._closed and self._nfi < self._n_csets and n > 0:
+        while self._nfi < self._n_csets and n > 0:
             traj = self._trajectory
             skip = min(n, traj.numFrames() - traj.getNextFrameIndex())
             traj.skip(skip)
@@ -2498,7 +2530,9 @@ class Trajectory(TrajectoryBase):
     
     def reset(self):
 
-        if not self._closed and self._trajectories:
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        if self._trajectories:
             for traj in self._trajectories:
                 traj.reset()
             self._trajectory = self._trajectories[0]
@@ -2569,9 +2603,7 @@ def parseDCD(filename, start=None, stop=None, step=None):
     :type stop: int
         
     :arg step: steps between reading frames, default is 1 meaning every frame
-    :type step: int
-    
-    """
+    :type step: int"""
     
     dcd = DCDFile(filename)
     time_ = time()
