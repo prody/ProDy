@@ -6,6 +6,21 @@
 Changes
 *******************************************************************************
 
+Release 0.9.1 (in developement)
+===============================================================================
+
+**New Features**:
+
+  * :class:`~ensemble.DCDFile` can be opened in write or append mode, and 
+    coordinate sets can be added using :meth:`~ensemble.DCDFile.write` method. 
+  
+**Changes**:
+
+  * :class:`~ensemble.DCDFile` instances, when closed, raise exception, similar
+    to behavior of :class:`file` objects in Python. 
+
+
+
 Release 0.9.1 (Nov 9, 2011)
 ===============================================================================
 
