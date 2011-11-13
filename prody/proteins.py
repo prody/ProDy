@@ -3006,6 +3006,7 @@ def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
                             dssp, pdb, out))
     else:
         status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
+
     if status == 0:
         return out
     
@@ -3102,13 +3103,13 @@ def parseDSSP(dssp, ag, parseall=False):
         if parseall:
             BP1[indices] = int(line[25:29])
             BP2[indices] = int(line[29:33])
-            NH_O_1[indices] = int(line[40:45])
-            NH_O_1_nrg[indices] = float(line[47:51]) 
-            O_HN_1[indices] = int(line[51:56])
+            NH_O_1[indices] = int(line[38:45])
+            NH_O_1_nrg[indices] = float(line[46:50]) 
+            O_HN_1[indices] = int(line[50:56])
             O_HN_1_nrg[indices] = float(line[57:61])
-            NH_O_2[indices] = int(line[62:67])
+            NH_O_2[indices] = int(line[61:67])
             NH_O_2_nrg[indices] = float(line[68:72])
-            O_HN_2[indices] = int(line[73:78])
+            O_HN_2[indices] = int(line[72:78])
             O_HN_2_nrg[indices] = float(line[79:83])
             TCO[indices] = float(line[85:91])
     
