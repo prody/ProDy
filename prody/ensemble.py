@@ -1464,6 +1464,15 @@ class Frame(ConformationBase):
                 measure._superpose(self._coords, ensemble._coords[indices], 
                                                  ensemble._weights[indices])
     
+    def moveto(self, position):
+        pass
+    
+    def moveby(self, position):
+        pass
+
+    def wrap(self):
+        pass
+    
 def trimEnsemble(pdbensemble, **kwargs):
     """Deprecated, use :meth:`trimPDBEnsemble`."""
     
@@ -2401,15 +2410,15 @@ class Trajectory(TrajectoryBase):
         
     def getFrame(self, index):
         
-        if not isinstance(filename, str):
-            raise ValueError('filename must be a string')
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         self.goto(index)
         return self.next()
 
     def getCoordsets(self, indices=None):
         
-        if not isinstance(filename, str):
-            raise ValueError('filename must be a string')
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         if indices is None:
             indices = np.arange(self._n_csets)
         elif isinstance(indices, (int, long)):
@@ -2502,7 +2511,6 @@ class Trajectory(TrajectoryBase):
                 else:
                     nfi -= traj._n_csets
             self._gotoFile(which)
-            # print nfi
             self._trajectory.goto(nfi)
             self._nfi = n
     
@@ -2510,8 +2518,8 @@ class Trajectory(TrajectoryBase):
     
     def skip(self, n):
         
-        if not isinstance(filename, str):
-            raise ValueError('filename must be a string')
+        if self._closed: 
+            raise ValueError('I/O operation on closed file')
         if not isinstance(n, (int, long)):
             raise ValueError('n must be an integer')
         left = self._n_csets - self._nfi
