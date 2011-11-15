@@ -50,13 +50,43 @@ class TestCopying(unittest.TestCase):
         for label in ATOMS.getDataLabels():
             assert_equal(atoms.getData(label), ATOMS.getData(label))
             
-    def TestCopyAtomChain(self):
+    def TestCopyChain(self):
         
         CHAIN = ATOMS['A']
         chain = CHAIN.copy()
         
         assert_equal(chain.getCoordsets(), CHAIN.getCoordsets())
         for label in ATOMS.getDataLabels():
-            print label
             assert_equal(chain.getData(label), CHAIN.getData(label),
                          'failed to copy ' + label)
+                         
+    def TestCopyAtom(self):
+        
+        ATOM = ATOMS[0]
+        atom = ATOM.copy()
+        
+        assert_equal(atom[0].getCoordsets(), ATOM.getCoordsets())
+        for label in ATOMS.getDataLabels():
+            assert_equal(atom[0].getData(label), ATOM.getData(label),
+                         'failed to copy ' + label)
+
+
+    def TestCopySelstr(self):
+        
+        SELECTION = ATOMS.calpha
+        selection = SELECTION.copy()
+        
+        assert_equal(selection.getCoordsets(), SELECTION.getCoordsets())
+        for label in ATOMS.getDataLabels():
+            assert_equal(selection.getData(label), SELECTION.getData(label),
+                         'failed to copy ' + label)
+
+class TestSaveLoad(unittest.TestCase):
+    
+    def testSaveLoad(self):
+        
+        atoms = loadAtoms(saveAtoms(ATOMS, os.path.join(TEMPDIR, 'atoms')))
+        assert_equal(atoms.getCoordsets(), ATOMS.getCoordsets())
+        for label in ATOMS.getDataLabels():
+            assert_equal(atoms.getData(label), ATOMS.getData(label))
+        
