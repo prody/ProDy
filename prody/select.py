@@ -201,7 +201,7 @@ __all__ = ['Select', 'Contacts',
            'getBackboneAtomNames', 'setBackboneAtomNames',
            'getAtomNameRegex', 'setAtomNameRegex',
            'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
-           ]
+           'getReservedWords']
 
 KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
                        'segment', 'altloc', 'secondary', 'icode',
@@ -216,7 +216,7 @@ KEYWORDS_SYNONYMS = {}
 for key, field in ATOMIC_DATA_FIELDS.iteritems(): 
     if field.synonym:
         KEYWORDS_SYNONYMS[field.synonym] = key
-
+ATOMIC_ATTRIBUTES = prody.atomic.ATOMIC_ATTRIBUTES
 # 21st and 22nd amino acids	    3-Letter	1-Letter
 # Selenocysteine	            Sec	        U
 # Pyrrolysine	                Pyl	        O
@@ -929,19 +929,31 @@ def isBooleanKeyword(keyword):
     return keyword in KEYWORDS_BOOLEAN
     
 def isKeyword(keyword):
-    return (isBooleanKeyword(keyword) or isValuePairedKeyword(keyword) or
-            isNumericKeyword(keyword))
+    return isBooleanKeyword(keyword) or isValuePairedKeyword(keyword)
 
 AND = '&&&'
 NOT = '!!!'
 OR  = '||'
 
-RESERVED_WORDS = set([AND, OR, NOT, 'and', 'or', 'not', 
-                               'within', 'of', 'exwithin', 'same', 'as'])
+
+RESERVED = set(ATOMIC_DATA_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
+               ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as'] +
+               KEYWORDS_SYNONYMS.keys())
 
 def isReserved(word):
-    return isKeyword(word) or word in FUNCTION_MAP or \
-        word in RESERVED_WORDS
+    return word in RESERVED or isKeyword(word) or word in FUNCTION_MAP
+        
+        
+def getReservedWords():
+    """Return a list of words reserved for atom selections and internal 
+    variables. These words are: """
+
+    words = list(RESERVED) + FUNCTION_MAP.keys() + list(KEYWORDS_BOOLEAN) + \
+            list(KEYWORDS_VALUE_PAIRED)
+    words.sort()
+    return words
+
+getReservedWords.__doc__ += "*{0:s}*.".format('*, *'.join(getReservedWords()))
 
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment', 'icode'])
 
