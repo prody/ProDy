@@ -51,9 +51,9 @@ except ImportError:
         def test(verbosity=2, descriptions=True, stream=sys.stderr):
             testrunner = unittest.TextTestRunner(stream, descriptions, 
                                                  verbosity)
-            for module in ['test_datafiles', 'test_dynamics', 'test_ensemble', 
-                           'test_kdtree', 'test_pairwise2', 'test_proteins', 
-                           'test_select',]:
+            for module in ['test_datafiles', 'test_atomic', 'test_dynamics', 
+                           'test_ensemble', 'test_kdtree', 'test_pairwise2', 
+                           'test_proteins', 'test_select',]:
                 testrunner.run(unittest.defaultTestLoader.
                                loadTestsFromName('prody.tests.' + module))
     else:
