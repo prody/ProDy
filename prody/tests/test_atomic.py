@@ -88,5 +88,6 @@ class TestSaveLoad(unittest.TestCase):
         atoms = loadAtoms(saveAtoms(ATOMS, os.path.join(TEMPDIR, 'atoms')))
         assert_equal(atoms.getCoordsets(), ATOMS.getCoordsets())
         for label in ATOMS.getDataLabels():
-            assert_equal(atoms.getData(label), ATOMS.getData(label))
+            assert_equal(atoms.getData(label), ATOMS.getData(label),
+                         'failed to load ' + label)
         
