@@ -9,7 +9,7 @@ Required Software
 
 * `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, the 32 bit option 
   is required for compatibility)
-* `Numpy 1.3+ <http://numpy.scipy.org/>`_
+* `Numpy 1.4+ <http://numpy.scipy.org/>`_
 
 When compiling from source, on Linux for example, you will need a C compiler 
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).  

@@ -14,11 +14,21 @@ Release 0.9.1 (in developement)
   * :class:`~ensemble.DCDFile` can be opened in write or append mode, and 
     coordinate sets can be added using :meth:`~ensemble.DCDFile.write` method. 
   
+  * :class:`~select.getReservedWords` can be used to get a list of words
+    that cannot be used to label user data.
+
 **Changes**:
 
   * :class:`~ensemble.DCDFile` instances, when closed, raise exception, similar
     to behavior of :class:`file` objects in Python. 
+    
+  * Title of :class:`~atomic.AtomGroup` instances resulting from copying an 
+    :class:`~atomic.Atomic` instances does not start with 'Copy of'. 
 
+**Bugfix**:
+
+  * Fixed problems in :func:`~atomic.loadAtoms` and :func:`~atomic.saveAtoms`
+    functions.
 
 
 Release 0.9.1 (Nov 9, 2011)
