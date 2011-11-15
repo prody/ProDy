@@ -275,11 +275,6 @@ ATOMIC_DATA_FIELDS = {
                        selstr=('radii < 1.5', 'radii ** 2 < 2.3')),
 }
 
-RESERVED = list(set(ATOMIC_DATA_FIELDS.keys() + ['and', 'or', 'not', 'within', 
-               'of', 'exwithin', 'same', 'as', 'chid', 'segname', 
-               'secondstr']))
-RESERVED.sort()
-
 ATOMIC_ATTRIBUTES = {}
 for field in ATOMIC_DATA_FIELDS.values():
     ATOMIC_ATTRIBUTES[field.var] = field
@@ -738,7 +733,7 @@ class AtomGroup(Atomic):
     __metaclass__ = AtomGroupMeta
     
     __slots__ = ('_acsi', '_title', '_n_atoms', '_coordinates', '_n_csets', 
-                 '_hv', '_userdata', '_sn2i',  
+                 '_hv', '_sn2i',  
                  '_trajectory', '_frameindex', '_tcsi', '_timestamps',
                  '_data')
     
@@ -751,7 +746,6 @@ class AtomGroup(Atomic):
         self._acsi = None                  # Active Coordinate Set Index
         self._n_csets = 0
         self._hv = None
-        self._userdata = {}
         self._sn2i = None
         self._trajectory = None
         self._frameindex = None
@@ -1127,6 +1121,9 @@ class AtomGroup(Atomic):
         
         .. versionchanged:: 0.8
            User data stored in the atom group is also copied.
+           
+        .. versionchanged:: 0.9.2
+           Copy AtomGroup title does not start with 'Copy of'.
         
         Note that association of an atom group with a trajectory is not copied.
         """
@@ -1134,22 +1131,16 @@ class AtomGroup(Atomic):
         title = self._title
         if which is None:
             indices = None
-            newmol = AtomGroup('Copy of {0:s}'.format(title))
+            newmol = AtomGroup('{0:s}'.format(title))
             newmol.setCoords(self._coordinates.copy())
-            for field in ATOMIC_DATA_FIELDS.values():
-                var = field.var
-                array = self._data[var]
-                if array is not None:
-                    newmol._data[var] = array.copy()
         elif isinstance(which, int):
             indices = [which]
-            newmol = AtomGroup('Copy of {0:s} index {1:d}'.format(title, 
-                                                                  which))
+            newmol = AtomGroup('{0:s} index {1:d}'.format(title, which))
         elif isinstance(which, str):
             indices = prody.ProDyAtomSelect.getIndices(self, which)
             if len(indices) == 0:
                 return None
-            newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'
+            newmol = AtomGroup('{0:s} selection "{1:s}"'
                                .format(title, which))
         elif isinstance(which, (list, np.ndarray)):
             if isinstance(which, list):
@@ -1158,7 +1149,7 @@ class AtomGroup(Atomic):
                 raise ValueError('which must be a 1d array')
             else:
                 indices = which
-            newmol = AtomGroup('Copy of a {0:s} subset'.format(title))
+            newmol = AtomGroup('{0:s} subset'.format(title))
         else:
             if isinstance(which, Atom):
                 indices = [which.getIndex()]
@@ -1167,23 +1158,16 @@ class AtomGroup(Atomic):
             else:
                 raise TypeError('{0:s} is not a valid type'.format(
                                                                 type(which)))            
-            newmol = AtomGroup('Copy of {0:s} selection "{1:s}"'.format(title, 
+            newmol = AtomGroup('{0:s} selection "{1:s}"'.format(title, 
                                                                 str(which)))
         if indices is not None:
             newmol.setCoords(self._coordinates[:, indices])
-        for field in ATOMIC_DATA_FIELDS.values():
-            var = field.var
-            array = self._data[var]
+        for key, array in self._data.iteritems():
             if array is not None:
                 if indices is None:
-                    newmol._data[var] = array.copy()
+                    newmol._data[key] = array.copy()
                 else:
-                    newmol._data[var] = array[indices]
-        for name, data in self._userdata.iteritems():
-            if indices is None:
-                newmol._userdata[name] = data.copy()
-            else:
-                newmol._userdata[name] = data[indices]
+                    newmol._data[key] = array[indices]
         return newmol
     
     def getHierView(self):
@@ -1247,7 +1231,8 @@ class AtomGroup(Atomic):
         
         .. versionadded:: 0.8"""
         
-        return self._userdata.keys()
+        return [key for key, data in self._data.iteritems() 
+                    if data is not None]
         
     def getAttrType(self, name):
         """Deprecated, use :meth:`getDataType`."""
@@ -1262,7 +1247,7 @@ class AtomGroup(Atomic):
         .. versionadded:: 0.9"""
         
         try:
-            return self._userdata[label].dtype
+            return self._data[label].dtype
         except KeyError:
             return None
 
@@ -1281,9 +1266,9 @@ class AtomGroup(Atomic):
             
             * start with a letter
             * contain only alphanumeric characters and underscore
-            * not be a selection keyword or one of the reserved names 
-              listed below
-        
+            * not be a reserved word 
+              (see :func:`~prody.select.getReservedWords`)
+
         *data* must be a :func:`list` or a :class:`numpy.ndarray`, its length 
         must be equal to the number of atoms, and the type of data array must 
         be one of:
@@ -1297,7 +1282,7 @@ class AtomGroup(Atomic):
         it is converted to an :class:`numpy.ndarray`.  If the dimension of the 
         *data* array is 1 (i.e. ``data.ndim==1``), *label* can be used to make
         atom selections, e.g. ``"label 1 to 10"`` or ``"label C1 C2"``.  Note 
-        that, if data with *label* is present, it will be overridden.  """
+        that, if data with *label* is present, it will be overridden."""
         
         if not isinstance(label, str):
             raise TypeError('label must be a string')
@@ -1309,7 +1294,7 @@ class AtomGroup(Atomic):
             raise ValueError('label may contain alphanumeric characters and '
                              'underscore, {0:s} is not valid'.format(label))
             
-        if label in ATOMIC_DATA_FIELDS or prody.select.isReserved(label):
+        if prody.select.isReserved(label):
             raise ValueError('label cannot be a reserved word or a selection '
                              'keyword, "{0:s}" is invalid'.format(label))
         if len(data) != self._n_atoms:
@@ -1324,12 +1309,7 @@ class AtomGroup(Atomic):
                             'string_, {0:s} is not valid'.format(
                             str(data.dtype)))
             
-        self._userdata[label] = data
-    
-    setData.__doc__ += """Data label cannot be one of the following reserved 
-        names: 
-
-            * ``{0:s}``""".format('``\n            * ``'.join(RESERVED))
+        self._data[label] = data
     
     def delAttribute(self, name):
         """Deprecated, use :meth:`delData`."""
@@ -1346,7 +1326,7 @@ class AtomGroup(Atomic):
         
         if not isinstance(label, str):
             raise TypeError('label must be a string')
-        return self._userdata.pop(label, None)
+        return self._data.pop(label, None)
     
     def getAttribute(self, name):
         """Deprecated, use :meth:`getData`."""
@@ -1360,7 +1340,7 @@ class AtomGroup(Atomic):
         
         .. versionadded:: 0.7.1"""
         
-        data = self._userdata.get(label, None)
+        data = self._data.get(label, None)
         if data is None:
             return None
         else:
@@ -1370,7 +1350,7 @@ class AtomGroup(Atomic):
         """Return data array associated with *label*, or ``None`` if such data 
         is not present."""
         
-        data = self._userdata.get(label, None)
+        data = self._data.get(label, None)
         if data is None:
             return None
         else:
@@ -1387,7 +1367,7 @@ class AtomGroup(Atomic):
         
         .. versionadded:: 0.7.1"""
         
-        return label in self._userdata
+        return label in self._data and self._data[label] is not None
   
     def getBySerial(self, serial, stop=None, step=None):
         """Get an atom(s) by *serial* number (range).  *serial* must be zero or 
@@ -1807,7 +1787,7 @@ class Atom(AtomPointer):
         .. versionadded:: 0.7.1"""
         
         if self._ag.isData(label):
-            return self._ag._userdata[label][self._index]
+            return self._ag._data[label][self._index]
     
     _getData = getData
     
@@ -1825,7 +1805,7 @@ class Atom(AtomPointer):
         :raise AttributeError: when data *label* is not present"""
         
         if self._ag.isData(label):
-            self._ag._userdata[label][self._index] = data 
+            self._ag._data[label][self._index] = data 
         else:
             raise AttributeError("AtomGroup '{0:s}' has no data associated "
                       "with label '{1:s}'".format(self._ag.getTitle(), label))
@@ -2097,7 +2077,7 @@ class AtomSubset(AtomPointer):
         .. versionadded:: 0.7.1"""
         
         if self._ag.isData(label):
-            return self._ag._userdata[label][self._indices].copy()
+            return self._ag._data[label][self._indices]
     
     _getData = getData
     
@@ -2116,7 +2096,7 @@ class AtomSubset(AtomPointer):
         """
         
         if self._ag.isData(label):
-            self._ag._userdata[label][self._indices] = data 
+            self._ag._data[label][self._indices] = data 
         else:
             raise AttributeError("AtomGroup '{0:s}' has no data with label "
                             "'{1:s}'".format(self._ag.getTitle(), label))
@@ -2642,7 +2622,7 @@ class AtomMap(AtomPointer):
         .. versionadded:: 0.7.1"""
         
         if self._ag.isData(label):
-            data = self._ag._userdata[label][self._indices]
+            data = self._ag._data[label][self._indices]
             result = np.zeros((self._len,) + data.shape[1:], data.dtype)
             result[self._mapping] = data
             return result
@@ -3012,9 +2992,6 @@ def saveAtoms(atoms, filename=None):
     for key, data in ag._data.iteritems():
         if data is not None:
             attr_dict[key] = data 
-    for key, data in ag._userdata.iteritems():
-        if data is not None:
-            attr_dict[key] = data
     np.savez(filename, **attr_dict)
     return filename
 
