@@ -3007,8 +3007,8 @@ def saveAtoms(atoms, filename=None):
     attr_dict['n_atoms'] = atoms.numAtoms()
     attr_dict['n_csets'] = atoms.numCoordsets()
     coords = atoms._getCoordsets()
-    if coords is None:
-        attr_dict['coordinates'] = atoms._getCoordsets()
+    if coords is not None:
+        attr_dict['coordinates'] = coords
     for key, data in ag._data.iteritems():
         if data is not None:
             attr_dict[key] = data 
@@ -3065,7 +3065,7 @@ def loadAtoms(filename):
         for key, data in attr_dict.iteritems():
             if key in SKIP:
                 continue
-            if key in ATOMIC_DATA_FIELDS:
+            if key in ATOMIC_ATTRIBUTES:
                 ag._data[key] = data
             else:
                 ag.setData(key, data)
