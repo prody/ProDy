@@ -141,7 +141,7 @@ Now let's make another copy of this water:
 
 >>> wtr2 = wtr1.copy()
 >>> wtr2
-<AtomGroup: Copy of Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: Water (3 atoms; 2 coordinate sets, active set index: 0)>
 
 **Translate clone**
 
@@ -195,7 +195,7 @@ Let's merge two water atom groups:
 
 >>> wtrs = wtr1 + wtr2
 >>> wtrs
-<AtomGroup: Water + Copy of Water (6 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: Water + Water (6 atoms; 2 coordinate sets, active set index: 0)>
 >>> print( wtrs.getCoords() )
 [[ 1.  0.  0.]
  [ 0.  0.  0.]
@@ -223,11 +223,11 @@ Hierarchical views of atom groups are represented by :class:`HierView`.
 Residues (and also chains) in an atom group can also be iterated over
 
 >>> for res in wtrs.getHierView().iterResidues(): res
-<Residue: WAT 1 from Chain  from Water + Copy of Water (3 atoms; 2 coordinate sets, active set index: 0)>
-<Residue: WAT 2 from Chain  from Water + Copy of Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<Residue: WAT 1 from Chain  from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<Residue: WAT 2 from Chain  from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
 
 Finally, it's is possible to change the name of *wtrs* from 
-"Water + Copy of Water" to something shorter:
+"Water + Water" to something shorter:
 
 >>> wtrs.setTitle('2Waters')
 >>> wtrs

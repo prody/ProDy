@@ -64,10 +64,10 @@ We will imitate this case by making copies of protein and ligand.
 
 >>> inhibitor = pdb.copy('resname B11')
 >>> inhibitor
-<AtomGroup: Copy of 1zz2 selection "resname B11" (33 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1zz2 selection "resname B11" (33 atoms; 1 coordinate sets, active set index: 0)>
 >>> protein = pdb.copy('protein')
 >>> protein
-<AtomGroup: Copy of 1zz2 selection "protein" (2716 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1zz2 selection "protein" (2716 atoms; 1 coordinate sets, active set index: 0)>
 
 We see that inhibitor molecule contains 33 atoms.
 
@@ -76,7 +76,7 @@ within 4 Å of the inhibitor.
 
 >>> contacts = protein.select('within 4 of inhibitor', inhibitor=inhibitor)
 >>> contacts
-<Selection: "index 227 to 22...56 to 1356 1358" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "index 227 to 22...56 to 1356 1358" from 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
 
 We found that 50 protein atoms are contacting with the inhibitor.
 In this case, we passed the atom group *inhibitor* as a keyword argument 
@@ -92,7 +92,7 @@ residues that have at least one atom interacting with the inhibitor:
 
 >>> contacts_ca = protein.select('calpha and (same residue as within 4 of inhibitor)', inhibitor=inhibitor)
 >>> contacts_ca
-<Selection: "index 225 to 22...51 to 1351 1359" from Copy of 1zz2 selection "protein" (20 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "index 225 to 22...51 to 1351 1359" from 1zz2 selection "protein" (20 atoms; 1 coordinate sets, active set index: 0)>
 
 In this case, ``'calpha and (same residue as within 4 of inhibitor)'`` is 
 interpreted as select Cα atoms of residues that have at least
@@ -121,7 +121,7 @@ recommended.
 >>> protein_contacts = Contacts(protein)
 >>> # The following corresponds to "within 5 of inhibitor"
 >>> protein_contacts.select(4, inhibitor)
-<Selection: "index 227 230 2... 1354 1356 1358" from Copy of 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "index 227 230 2... 1354 1356 1358" from 1zz2 selection "protein" (50 atoms; 1 coordinate sets, active set index: 0)>
 
 This method is 20 times faster than the one in the previous part, but it is
 limited to selecting only contacting atoms (other selection arguments cannot be 
