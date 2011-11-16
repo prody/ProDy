@@ -430,8 +430,8 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
     if not isinstance(selstr, str):
         raise TypeError('selstr must have type str, not {0:s}'
                         .format(type(selstr)))
-    n_coordsets = atoms.numCoordsets()
-    if n_coordsets < 2:
+    n_csets = atoms.numCoordsets()
+    if n_csets < 2:
         LOGGER.warning('{0:s} contains only one coordinate set, '
                        'superposition not performed.'.format(str(atoms)))
         return None
@@ -443,9 +443,12 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
         ag = atoms.getAtomGroup()
     agacsi = ag.getACSI()
     tar = atoms.select(selstr)
+    if tar is None:
+        raise ValueError("selstr '{0:s}' did not match any atoms"
+                         .format(selstr))
     mob = prody.AtomSubset(ag, tar.getIndices(), 0)
     assert tar.getACSI() == acsi
-    for i in range(n_coordsets):
+    for i in range(n_csets):
         if i == acsi:
             continue
         mob.setACSI(i)
