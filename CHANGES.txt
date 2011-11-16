@@ -23,7 +23,11 @@ Release 0.9.2 (in developement)
     to behavior of :class:`file` objects in Python. 
     
   * Title of :class:`~atomic.AtomGroup` instances resulting from copying an 
-    :class:`~atomic.Atomic` instances does not start with 'Copy of'. 
+    :class:`~atomic.Atomic` instances does not start with 'Copy of'.
+    
+  * :func:`~prody.changeVerbosity` and :func:`~prody.getVerbosityLevel`
+    are renamed as :func:`~prody.setVerbosity` and :func:`~prody.getVerbosity`,
+    respectively. Old names will be removed in v1.0.
 
 **Bugfix**:
 
