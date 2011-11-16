@@ -2224,8 +2224,7 @@ class DCDFile(TrajectoryFile):
             raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
             raise IOError('File not open for writing')
-        if kwargs.get('check', True):
-            coords = checkCoordsArray(coords, 'coords', True, dtype=np.float32)
+        coords = checkCoordsArray(coords, 'coords', True, dtype=np.float32)
         if coords.ndim == 2:
             n_atoms = coords.shape[0]
             coords = [coords]
@@ -2235,9 +2234,10 @@ class DCDFile(TrajectoryFile):
             self._n_atoms = n_atoms
         else:
             if self._n_atoms != n_atoms:
-                raise ValueError('coords to not have correct number of atoms')
+                raise ValueError('coords to not have correct number '
+                                 'of atoms')
         dcd = self._file
-        pack_i_4N = pack('i', n_atoms * 4)
+        pack_i_4N = pack('i', self._n_atoms * 4)
         if self._n_csets == 0:
             if unitcell is None:
                 self._unitcell = False
@@ -2309,10 +2309,14 @@ class DCDFile(TrajectoryFile):
             dcd.seek(8, 0)
             dcd.write(pack('i', self._n_csets))
             dcd.seek(0, 2)
-        dcd.flush()
-        os.fsync(dcd.fileno())
         self._nfi = self._n_csets
 
+    def flush(self):
+        """Flush the internal output buffer."""
+        
+        if self._mode != 'r':
+            dcd.flush()
+            os.fsync(dcd.fileno())
 
 class Trajectory(TrajectoryBase):
     
