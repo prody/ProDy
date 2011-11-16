@@ -3004,7 +3004,7 @@ def loadAtoms(filename):
     
     .. versionadded:: 0.7.1"""
     
-    LOGGER.startTimer()
+    LOGGER.timeit()
     attr_dict = np.load(filename)
     files = set(attr_dict.files)
     # REMOVE support for _coordinates IN v1.0
@@ -3049,7 +3049,7 @@ def loadAtoms(filename):
         if ag.numCoordsets() > 0:
             ag._acsi = 0
             
-    LOGGER.stopTimer('Atom group was loaded in %.2fs.')
+    LOGGER.timing('Atom group was loaded in %.2fs.')
     return ag
 
 if __name__ == '__main__':

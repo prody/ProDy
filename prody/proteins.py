@@ -758,15 +758,15 @@ def parsePDBStream(stream, **kwargs):
     split = 0
     hd = None
     if model != 0:
-        LOGGER.startTimer()
+        LOGGER.timeit()
         lines = stream.readlines()
         if header or biomol or secondary:
             hd, split = _getHeaderDict(lines)
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate set(s) were '
-                        'parsed in %.2fs.'.format(ag.numAtoms(), 
-                         ag.numCoordsets() - n_csets))
+            LOGGER.timing('{0:d} atoms and {1:d} coordinate set(s) were '
+                          'parsed in %.2fs.'.format(ag.numAtoms(), 
+                           ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warning('Atomic data could not be parsed, please '
@@ -850,12 +850,12 @@ def parsePQR(filename, **kwargs):
     pqr = openFile(filename)
     lines = pqr.readlines()
     pqr.close()
-    LOGGER.startTimer()
+    LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain, 
                         subset=subset, altloc_torf=False, format='pqr')
     if ag.numAtoms() > 0:
-        LOGGER.stopTimer('{0:d} atoms and {1:d} coordinate sets were '
-                         'parsed in %.2fs.'.format(ag.numAtoms(), 
+        LOGGER.timing('{0:d} atoms and {1:d} coordinate sets were '
+                      'parsed in %.2fs.'.format(ag.numAtoms(), 
                          ag.numCoordsets() - n_csets))
         return ag
     else:
@@ -2314,7 +2314,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
     
     data = urllib.urlencode(query)
-    LOGGER.startTimer()
+    LOGGER.timeit()
     LOGGER.info('Blast searching NCBI PDB database for "{0:s}..."'
                 .format(sequence[:5]))
     request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
@@ -2358,7 +2358,7 @@ def blastPDB(sequence, filename=None, **kwargs):
             LOGGER.warning('Blast search time out.')
             return None
     LOGGER.clear()
-    LOGGER.stopTimer('Blast search completed in %.1fs.')
+    LOGGER.timing('Blast search completed in %.1fs.')
     if filename is not None:
         filename = str(filename)
         if not filename.lower().endswith('.xml'):
@@ -3268,7 +3268,7 @@ def fetchPDBClusters():
     PDB_CLUSTERS_PATH = os.path.join(prody.getPackagePath(), 'pdbclusters')
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)
-    LOGGER.progress(len(PDB_CLUSTERS))
+    LOGGER.progress('Downloading sequence clusters', len(PDB_CLUSTERS))
     count = 0
     for i, x in enumerate(PDB_CLUSTERS.keys()):
         filename = 'bc-{0:d}.out'.format(x)
@@ -3285,7 +3285,7 @@ def fetchPDBClusters():
             inp.close()
             out.close()
             count += 1
-        LOGGER.report(i)
+        LOGGER.update(i)
     LOGGER.clear()
     if len(PDB_CLUSTERS) == count:
         LOGGER.info('All PDB clusters were downloaded successfully.')

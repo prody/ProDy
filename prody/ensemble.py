@@ -2224,8 +2224,8 @@ class DCDFile(TrajectoryFile):
             raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
             raise IOError('File not open for writing')
-        # Write header
-        coords = checkCoordsArray(coords, 'coords', True, dtype=np.float32)
+        if kwargs.get('check', True):
+            coords = checkCoordsArray(coords, 'coords', True, dtype=np.float32)
         if coords.ndim == 2:
             n_atoms = coords.shape[0]
             coords = [coords]
@@ -2678,7 +2678,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         n_fixed = 0
         
     dcd = DCDFile(filename, mode='w')
-    LOGGER.progress(len(irange))
+    LOGGER.progress('Writing DCD', len(irange))
     prev = -1
     uc = None
     time_ = time()
@@ -2704,7 +2704,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
                       firsttimestep=first_ts, framefreq=framefreq)
         else:
             dcd.write(frame._getCoords(), uc)
-        LOGGER.report(i)
+        LOGGER.update(i)
     j += 1
     LOGGER.clear()
     dcd.close()

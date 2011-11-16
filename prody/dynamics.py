@@ -1727,15 +1727,13 @@ class PCA(NMABase):
            super element of the covariance matrix that corresponds to atoms 
            *i* and *j*.  This super element is divided by number of coordinate
            sets (PDB structures) in which both of these atoms are observed 
-           together. 
-        """
+           together."""
         
-        start = time.time()
         if not isinstance(coordsets, (prody.Ensemble, prody.Atomic, 
                                       prody.TrajectoryBase, np.ndarray)):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
-        
+        LOGGER.timeit()
         weights = None
         if isinstance(coordsets, np.ndarray): 
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
@@ -1760,14 +1758,14 @@ class PCA(NMABase):
             LOGGER.info('Covariance will be calculated using {0:d} frames.'
                             .format(n_frames))
             coordsum = np.zeros(dof)
-            LOGGER.progress(n_frames)
+            LOGGER.progress('Calculating covariance', n_frames)
             for frame in coordsets:
                 frame.superpose()
                 coords = frame._getCoords().flatten()
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
-                LOGGER.report(n_confs)
+                LOGGER.update(n_confs)
             LOGGER.clear()
             cov /= n_confs
             coordsum /= n_confs
@@ -1793,12 +1791,12 @@ class PCA(NMABase):
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
                     mean = coordsets.mean(0)
-                    LOGGER.progress(n_confs)
+                    LOGGER.progress('Building covariance', n_confs)
                     for i, coords in enumerate(
                                             coordsets.reshape((n_confs, dof))):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        LOGGER.report(n_confs)
+                        LOGGER.update(n_confs)
                     LOGGER.clear()
                     cov /= n_confs 
                     self._cov = cov
@@ -1816,8 +1814,7 @@ class PCA(NMABase):
         self._trace = self._cov.trace()
         self._dof = dof
         self._n_atoms = n_atoms
-        LOGGER.info('Covariance matrix was calculated in {0:.2f}s.'
-                    .format(time.time()-start))
+        LOGGER.timing('Covariance matrix was calculated in %2fs.')
         
     def calcModes(self, n_modes=20, turbo=True):
         """Calculate principal (or essential) modes.  This method uses 
@@ -3808,11 +3805,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     
     n_atoms = model.numAtoms()
     response_matrix = np.zeros((n_atoms, n_atoms))
-    LOGGER.progress(n_atoms)
+    LOGGER.progress('Calculating perturbation response', n_atoms)
     i3 = -3
     i3p3 = 0
-    LOGGER.info('Starting perturbation response scanning.')
-    start = time.time()
     for i in range(n_atoms):
         i3 += 3
         i3p3 += 3
@@ -3821,12 +3816,11 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
         for force in forces:
             response_matrix[i] += (np.dot(cov[:, i3:i3p3], force) ** 2
                                             ).reshape((n_atoms, 3)).sum(1)
-        LOGGER.report(i)
+        LOGGER.update(i)
 
     response_matrix /= repeats
     LOGGER.clear()
-    LOGGER.info('Perturbation response scanning completed in {0:.1f}s.'
-                .format(time.time()-start))
+    LOGGER.info('Perturbation response scanning completed in %.1fs.')
     if atoms is not None:
         atoms.setData('prs_profile', response_matrix)
     return response_matrix

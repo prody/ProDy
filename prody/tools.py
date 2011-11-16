@@ -153,27 +153,27 @@ class PackageLogger(object):
         
         self._logger.handlers.pop(index)
 
-    def progress(self, n, **kwargs):
-        """Instantiate with number of steps."""
+    def progress(self, msg, steps, **kwargs):
+        """Instantiate with message number of steps."""
         
-        assert isinstance(n, int) and n > 0, 'n must be a positive integer'
-        self._n = n
+        assert isinstance(steps, int) and steps > 0, \
+            'steps must be a positive integer'
+        self._steps = steps
         self._last = 0
         self._start = time.time()
-        self._barlen = int(kwargs.get('barlen', 30))
         self._prev = (0, 0)
+        self._msg = msg
         self._line = ''
     
-    def report(self, i):
-        """Print status to current line in the console."""
+    def update(self, step):
+        """Update progress status to current line in the console."""
         
-        n = self._n
+        assert isinstance(step, int), 'step must be a positive integer'
+        n = self._steps
+        i = step
         if self._level < logging.WARNING and n > 0 and i <= n and \
             i > self._last:
             self._last = i
-            head = '>'
-            if i == n:
-                head = ''
             percent = 100 * i / n
             if percent > 3:
                 seconds = int(np.ceil((time.time()-self._start) * (n-i)/i))
@@ -182,19 +182,11 @@ class PackageLogger(object):
                 prev = (percent, 0)
             if self._prev == prev:
                 return
-            prefix = '\r' + self._prefix
-            bar = ''
-            barlen = self._barlen
-            if barlen > 10:
-                bar = int(round(percent*barlen/100.))
-                bar = '='*bar + head + ' '*(barlen-bar)
-                bar = ' [' + bar  + '] '
-            
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
             if percent > 3:
-                line = (prefix + ' %2d%%' + bar + '%ds')%(percent, seconds)
+                line = self._msg + (' [%3d%%] %ds') % (percent, seconds)
             else:
-                line = (prefix + ' %2d%%' + bar) % percent
+                line = self._msg + ' [%3d%%]' % percent
             sys.stderr.write(line)
             sys.stderr.flush()
             self._prev = prev
@@ -270,18 +262,18 @@ class PackageLogger(object):
                     return
         self.warning("Logfile '{0:s}' was not found.".format(filename))
 
-    def startTimer(self):
-        """Start timing a process.  Use :meth:`stopTimer` to report time."""
+    def timeit(self):
+        """Start timing a process.  Use :meth:`timing` to report time."""
         
         self._start = time.time()
         
-    def stopTimer(self, msg="Completed in %.2fs."):
+    def timing(self, msg="Completed in %.2fs."):
         """Stop timer and report the time it took to complete the process."""
         
         self.debug(msg % (time.time() - self._start))
 
     def getTime(self):
-        """Return the time in seconds since last call of :meth:`startTimer`
+        """Return the time in seconds since last call of :meth:`timeit`
         or :meth:`progress`."""
         
         return time.time() - self._start
