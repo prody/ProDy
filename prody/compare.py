@@ -739,10 +739,6 @@ def mapOntoChain(atoms, chain, **kwargs):
     :arg chain: chain to which atoms will be mapped
     :type chain: :class:`~prody.atomic.Chain`
     
-    :keyword subset: "calpha" (or "ca"), "backbone" (or "bb"), or "all", 
-        default is "calpha"  
-    :type subset: string
-    
     :keyword seqid: percent sequence identity, default is 90.
     :type seqid: float
 
@@ -763,8 +759,12 @@ def mapOntoChain(atoms, chain, **kwargs):
     alignment, and mapping is performed based on the sequence alignment.
     User can control, whether sequence alignment is performed or not with
     *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is 
-    enforced.
+    enforced."""
     
+    """
+    :keyword subset: "calpha" (or "ca"), "backbone" (or "bb"), or "all", 
+        default is "calpha"  
+    :type subset: string
     """
     
     target_chain = chain
