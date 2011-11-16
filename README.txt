@@ -35,10 +35,9 @@ LICENSE
 ProDy is available under GNU General Public License version 3. 
 See LICENSE.txt for more details. 
 
-Biopython (http://biopython.org/) Blast and KDTree packages and pairwise2 
-module are distributed with the ProDy package. Biopython is developed by The 
-Biopython Consortium and is available under the Biopython license 
-(http://www.biopython.org/DIST/LICENSE).
+Biopython (http://biopython.org/) KDTree and pairwise2 modules are distributed 
+with the ProDy package. Biopython is developed by The Biopython Consortium and 
+is available under the Biopython license (http://www.biopython.org/DIST/LICENSE).
 
 The pyparsing (http://pyparsing.wikispaces.com/) module is distributed with 
 the ProDy package. Pyparsing is developed by Paul T. McGuire and is available 
