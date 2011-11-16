@@ -201,6 +201,12 @@ def closeLogfile(filename):
     LOGGER.closeLogfile(filename)
 
 def changeVerbosity(level):
+    """Deprecated, see :func:`setVerbosity`."""
+    
+    deprecate('changeVerbosity', 'setVerbosity')
+    setVerbosity(level)
+    
+def setVerbosity(level):
     """Change ProDy console verbosity *level*.  By default, console verbosity 
     *level* is set to debug. This function accepts one of the following:
     
@@ -219,12 +225,12 @@ def changeVerbosity(level):
     >>> changeVerbosity('debug')
     >>> plog('test')"""
 
-    LOGGER.setVerbosityLevel(level)
+    LOGGER.setVerbosity(level)
 
-def getVerbosityLevel():
+def getVerbosity():
     """Return ProDy console verbosity level."""
     
-    return LOGGER.getVerbosityLevel()
+    return LOGGER.getVerbosity()
 
 def checkUpdates():
     """Inform the user whether a newer version is available."""

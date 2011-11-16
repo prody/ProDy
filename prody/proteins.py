@@ -2354,7 +2354,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         if status.upper() == 'READY':
             break
         sleep *= 2
-        if LOGGER.getTime() > timeout:
+        if LOGGER.timing() > timeout:
             LOGGER.warning('Blast search time out.')
             return None
     LOGGER.clear()
@@ -2572,7 +2572,7 @@ mapHelix = {
 def assignSecondaryStructure(header, atoms, coil=False):
     """Deprecated, use :func:`assignSecstr`."""
     
-    prody.deprecate('assignSecondaryStructure', 'assignSecstr', (0,8))
+    prody.deprecate('assignSecondaryStructure', 'assignSecstr')
     return assignSecstr(header, atoms, coil)
 
 def assignSecstr(header, atoms, coil=False):
@@ -2822,8 +2822,7 @@ def fetchLigandData(cci, save=False, folder='.'):
 def applyBiomolecularTransformations(header, atoms, biomol=None):
     """Deprecated, use :func:`buildBiomolecules`."""
     
-    prody.deprecate('applyBiomolecularTransformations', 'buildBiomolecules', 
-                    (0,9))
+    prody.deprecate('applyBiomolecularTransformations', 'buildBiomolecules')
     return buildBiomolecules(header, atoms, biomol)
 
 def buildBiomolecules(header, atoms, biomol=None):

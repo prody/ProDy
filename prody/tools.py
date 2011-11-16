@@ -68,7 +68,7 @@ class PackageLogger(object):
         logger = logging.getLogger(name)
         logger.setLevel(self._level)
 
-        prefix = kwargs.get('prefix', '@>')
+        prefix = kwargs.get('prefix', '@> ')
         assert isinstance(prefix, str), 'prefix must be as string'
         self._prefix = prefix
         
@@ -78,7 +78,7 @@ class PackageLogger(object):
         
         console = logging.StreamHandler()
         console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
-        console.setFormatter(logging.Formatter(self._prefix + ' %(message)s'))
+        console.setFormatter(logging.Formatter(self._prefix + '%(message)s'))
         logger.addHandler(console)
         self._logger = logger
         
@@ -93,12 +93,12 @@ class PackageLogger(object):
         self._prev = None
         self._line = None
 
-    def getVerbosityLevel(self):
+    def getVerbosity(self):
         """Return verbosity level of the logger."""
         
         return self._logger.handlers[0].level
     
-    def setVerbosityLevel(self, level):
+    def setVerbosity(self, level):
         """Set verbosity level of the logger."""
         
         lvl = LOGGING_LEVELS.get(level, None)
@@ -116,26 +116,31 @@ class PackageLogger(object):
     def info(self, msg):
         """Log *msg* with severity 'INFO'."""
 
+        self.clear()
         self._logger.info(msg)
 
     def critical(self, msg):
         """Log *msg* with severity 'CRITICAL'."""
         
+        self.clear()
         self._logger.critical(msg)
 
     def debug(self, msg):
         """Log *msg* with severity 'DEBUG'."""
 
+        self.clear()
         self._logger.debug(msg)
         
     def warning(self, msg):
         """Log *msg* with severity 'WARNING'."""
         
+        self.clear()
         self._logger.warning(self._warning + msg)
 
     def error(self, msg):
         """Log *msg* with severity 'ERROR'."""
         
+        self.clear()
         self._logger.error(self._error + msg)
     
     def addHandler(self, hdlr):
@@ -184,9 +189,10 @@ class PackageLogger(object):
                 return
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
             if percent > 3:
-                line = self._msg + (' [%3d%%] %ds') % (percent, seconds)
+                line = self._prefix + self._msg + \
+                       ' [%3d%%] %ds' % (percent, seconds)
             else:
-                line = self._msg + ' [%3d%%]' % percent
+                line = self._prefix + self._msg + ' [%3d%%]' % percent
             sys.stderr.write(line)
             sys.stderr.flush()
             self._prev = prev
@@ -195,8 +201,9 @@ class PackageLogger(object):
     def clear(self):
         """Clear sys.stderr."""
         
-        if self._level < logging.WARNING:
+        if self._line and self._level < logging.WARNING:
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
+            self._line = ''
 
     def write(self, line):
         """Write *line* to sys.stderr."""
@@ -267,16 +274,16 @@ class PackageLogger(object):
         
         self._start = time.time()
         
-    def timing(self, msg="Completed in %.2fs."):
-        """Stop timer and report the time it took to complete the process."""
+    def timing(self, msg=None):
+        """If *msg* is none, return time passes since timing started. If 
+        a message is given, e.g. ``"Completed in %.2fs."``, report the time 
+        it took to complete the process at *debug* log level."""
         
-        self.debug(msg % (time.time() - self._start))
-
-    def getTime(self):
-        """Return the time in seconds since last call of :meth:`timeit`
-        or :meth:`progress`."""
+        if msg is None:
+            return time.time() - self._start
+        else:
+            self.debug(msg % (time.time() - self._start))
         
-        return time.time() - self._start
 
 class PackageSettings(object):
     
