@@ -69,10 +69,10 @@ def turnonDepracationWarnings(action='always'):
 _PY3K = sys.version_info[0] > 2
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
-PACKAGE_PATH = os.path.join(USERHOME, '.' + __package__)
-PACKAGE_CONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
-if not os.path.isfile(PACKAGE_CONF) and os.path.isfile(PACKAGE_CONF[:-2]):
-    os.rename(PACKAGE_CONF[:-2], PACKAGE_CONF)
+PACKAGEPATH = os.path.join(USERHOME, '.' + __package__)
+PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
+if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
+    os.rename(PACKAGECONF[:-2], PACKAGECONF)
 
 LOGGER = PackageLogger('.prody')
 
