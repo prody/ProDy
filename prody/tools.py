@@ -83,8 +83,8 @@ class PackageLogger(object):
         self._logger = logger
         
         self._info = kwargs.get('info', '')
-        self._warning = kwargs.get('warning', 'Warning: ')
-        self._error = kwargs.get('error', 'Error: ')
+        self._warning = kwargs.get('warning', 'WARNING ')
+        self._error = kwargs.get('error', 'ERROR ')
         
         self._n = None
         self._last = None
@@ -248,11 +248,8 @@ class PackageLogger(object):
         logfile.setFormatter(logging.Formatter('%(message)s'))
         self._logger.addHandler(logfile)
         if rollover:
-            self.info("Saving existing logfile '{0:s}' and starting a new "
-                      "one.".format(filename))
             logfile.doRollover()
-        else:
-            self.info("Logfile '{0:s}' has been started.".format(filename))
+        self.info("Logging into '{0:s}'.".format(filename))
 
     def closeLogfile(self, filename):
         """Close log file *filename*."""
@@ -262,8 +259,8 @@ class PackageLogger(object):
             filename += '.log'
         for index, handler in enumerate(self.getHandlers()):
             if isinstance(handler, logging.handlers.RotatingFileHandler):
-                if handler.stream.name in (filename, os.path.abspath(filename)):
-                    self.info('Closing logfile {0:s}'.format(filename))
+                if handler.stream.name in (filename,os.path.abspath(filename)):
+                    self.info("Closing logfile '{0:s}'".format(filename))
                     handler.close()
                     self.delHandler(index)
                     return
