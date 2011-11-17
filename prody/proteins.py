@@ -1761,8 +1761,17 @@ def _getPolymers(lines):
         polymers[ch] = poly
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbaccession = line[33:41].strip()
-        poly.dbidentifier = line[42:54].strip()
+        if poly.dbabbr == 'PDB':
+            poly.dbaccession = poly.dbidentifier = pdbid
+            if not (pdbid == line[33:37] == line[42:46] == line[7:11]):
+                LOGGER.warning('wrong accession code and identifier for chain '
+                               '{2:s} ({0:s}:{1:d})'.format(pdbid, i, ch))
+        else:
+            poly.dbaccession = line[33:41].strip()
+            poly.dbidentifier = line[42:54].strip()
+            if pdbid == poly.dbaccession or pdbid == poly.dbidentifier:
+                LOGGER.warning('wrong database abbreviation for chain '
+                               '{2:s} ({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
