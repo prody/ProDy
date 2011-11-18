@@ -257,8 +257,9 @@ def test(**kwargs):
     else:
         tests.test(**kwargs)
 
-__all__ = ['startLogfile', 'closeLogfile', 'changeVerbosity',
-           'checkUpdates', 'plog']
+__all__ = ['checkUpdates', 'getVerbosity', 'setVerbosity',
+           'startLogfile', 'closeLogfile', 'changeVerbosity',
+           'plog']
 
 from . import atomic 
 from atomic import *
