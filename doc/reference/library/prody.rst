@@ -12,17 +12,20 @@ This module defines functions for aiding interactive ProDy experience.
 Functions
 ---------
 
-  * :func:`changeVerbosity`
   * :func:`checkUpdates`
+  * :func:`getVerbosity`
+  * :func:`setVerbosity`
   * :func:`startLogfile`
   * :func:`closeLogfile`
   * :func:`plog`
   * :func:`test`
   * :func:`turnonDepracationWarnings`
     
-.. autofunction:: changeVerbosity
-
 .. autofunction:: checkUpdates
+
+.. autofunction:: getVerbosity
+
+.. autofunction:: setVerbosity
 
 .. autofunction:: startLogfile
 
