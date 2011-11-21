@@ -259,8 +259,9 @@ class EnsembleBase(object):
             self._indices = None
         else:
             if self._ag is None:
-                raise AttributeError('instance needs to be associated with an '
-                                     'AtomGroup for making selections')
+                raise AttributeError(self.__class__.__name__ + ' must be be '
+                                     'associated with an AtomGroup, use '
+                                     '`setAtomGroup` method.')
             sel = self._ag.select(selstr)
             if sel is not None:
                 self._indices = sel.getIndices()
