@@ -178,8 +178,6 @@ software.
 
 
 >>> plt.close('all')
->>> import os
->>> os.remove(name+'.pdb')
 
 Step 4: Perform PCA
 -------------------------------------------------------------------------------

@@ -309,8 +309,8 @@ rst_epilog = """
 
 .. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
-.. |questions| replace:: To stay up to date, join our ProDy-News Google Group: 
-   http://groups.google.com/group/prody-news
+.. |questions| replace:: To receive new version announcements, join our 
+   ProDy-News Google Group: http://groups.google.com/group/prody-news
     
 .. |suggestions| replace:: Suggestions, feature requests, or
    problems? Submit them to the GitHub issue tracker: 
