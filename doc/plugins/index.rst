@@ -43,6 +43,8 @@ NMWiz files are available in the following:
   * :download:`NMWiz1.0.tar.gz <NMWiz1.0.tar.gz>`
   * :download:`NMWiz1.0.zip <NMWiz1.0.zip>`
 
+See `documentation <nmwiz/index.html>`_  for details.
+
 
 Installation
 ===============================================================================
