@@ -28,8 +28,13 @@ except ImportError:
 
 
 import os
-import os.path
 import sys
+import os.path
+import platform
+
+if not (2,6) <= sys.version_info[:2] <= (2,7):
+    raise Exception("prody is compatible with Python 2.6 and 2.7, you are "
+                    "using Python " + platform.python_version())
 
 from tools import *
 
