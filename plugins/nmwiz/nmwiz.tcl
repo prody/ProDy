@@ -35,8 +35,8 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
 # OTHER DEALINGS WITH THE SOFTWARE.
 
-package require exectool 1.2
-package require multiplot 1.6
+package require exectool
+package require multiplot
 package provide nmwiz 1.0
 
 
