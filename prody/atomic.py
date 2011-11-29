@@ -2958,7 +2958,7 @@ class HierView(object):
         return len(self._chains)
 
 
-def saveAtoms(atoms, filename=None):
+def saveAtoms(atoms, filename=None, **kwargs):
     """Save *atoms* in ProDy internal format.  All classes derived from 
     :class:`Atomic` are accepted as *atoms* argument.
     
@@ -2992,7 +2992,9 @@ def saveAtoms(atoms, filename=None):
     for key, data in ag._data.iteritems():
         if data is not None:
             attr_dict[key] = data 
-    np.savez(filename, **attr_dict)
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez(ostream, **attr_dict)
+    ostream.close()
     return filename
 
 SKIP = set(['_name', '_title', 'title', 'n_atoms', 'n_csets', 

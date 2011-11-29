@@ -40,24 +40,24 @@ import numpy as np
 import prody as pkg
 
 __all__ = ['PackageLogger', 'PackageSettings',
-           'checkCoordsArray', 
-           'gunzip', 'openFile', 'openDB',
-           'isExecutable', 'isReadable', 'isWritable', 
-           'makePath', 'relpath', 'which', 
-           'pickle', 'unpickle',
-           'rangeString',
-           'today', 'now', 'getsize',
-           'PLATFORM']
+        'checkCoordsArray', 
+        'gunzip', 'openFile', 'openDB',
+        'isExecutable', 'isReadable', 'isWritable', 
+        'makePath', 'relpath', 'which', 
+        'pickle', 'unpickle',
+        'rangeString',
+        'today', 'now', 'getsize',
+        'PLATFORM']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
 PLATFORM = platform.system()
 LOGGING_LEVELS = {'debug': logging.DEBUG,
-                  'info': logging.INFO,
-                  'warning': logging.WARNING,
-                  'error': logging.ERROR,
-                  'critical': logging.CRITICAL,
-                  'none': logging.CRITICAL}
+                'info': logging.INFO,
+                'warning': logging.WARNING,
+                'error': logging.ERROR,
+                'critical': logging.CRITICAL,
+                'none': logging.CRITICAL}
 LOGGING_LEVELS.setdefault(logging.INFO)
 
 class PackageLogger(object):
@@ -191,7 +191,7 @@ class PackageLogger(object):
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
             if percent > 3:
                 line = self._prefix + self._msg + \
-                       ' [%3d%%] %ds' % (percent, seconds)
+                    ' [%3d%%] %ds' % (percent, seconds)
             else:
                 line = self._prefix + self._msg + ' [%3d%%]' % percent
             sys.stderr.write(line)
@@ -336,8 +336,8 @@ class PackageSettings(object):
             except Exception as err:
                 if self._logger:
                     self._logger.warning("{0:s} configuration file '{1:s}' "
-                                 "could not be loaded ({2:s})."
-                                 .format(self._package, self._rcfile, err))
+                                "could not be loaded ({2:s})."
+                                .format(self._package, self._rcfile, err))
                     
         if isinstance(settings, dict):
             self._settings.update(settings)
@@ -351,16 +351,16 @@ class PackageSettings(object):
             except Exception as err:
                 if self._logger:
                     self._logger.warning("{0:s} cannot write configuration "
-                                 "file '{1:s}' ({2:s})."
-                                 .format(self._package, self._rcfile, err))
+                                "file '{1:s}' ({2:s})."
+                                .format(self._package, self._rcfile, err))
         elif self._logger:
             self._logger.warning("{0:s} cannot write configuration file to "
-                                 "'{1:s}', user does not have write access."
-                                 .format(self._package, USERHOME))
+                                "'{1:s}', user does not have write access."
+                                .format(self._package, USERHOME))
 
 
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
-                     reshape=None, dtype=(float,)):
+                    reshape=None, dtype=(float,)):
     """Return array if checks pass, otherwise raise an exception."""
 
     assert isinstance(arg, str), 'arg must be a string'
@@ -387,14 +387,16 @@ def checkCoordsArray(array, arg='array', cset=False, n_atoms=None,
             array = array.astype(dtype[0])
         except ValueError:
             raise ValueError(arg + '.astype(' + str(dtype[0]) + ') fails, '
-                             'float type could not be assigned')
+                            'float type could not be assigned')
     if cset and reshape and array.ndim == 2:
         array = array.reshape([1, array.shape[0], 3])
     return array
 
 OPEN = {
     '.gz': gzip.open,
+    '.GZ': gzip.open,
     '.zip': zipfile.ZipFile,
+    '.ZIP': zipfile.ZipFile,
 }
 
 def openFile(filename, *args, **kwargs):
@@ -445,20 +447,20 @@ def isExecutable(path):
     """Return true if *path* is an executable."""
     
     return isinstance(path, str) and os.path.exists(path) and \
-           os.access(path, os.X_OK)
+        os.access(path, os.X_OK)
 
 def isReadable(path):
     """Return true if *path* is readable by the user."""
     
     return isinstance(path, str) and os.path.exists(path) and \
-           os.access(path, os.R_OK)
+        os.access(path, os.R_OK)
 
 
 def isWritable(path):
     """Return true if *path* is writable by the user."""
     
     return isinstance(path, str) and os.path.exists(path) and \
-           os.access(path, os.W_OK)
+        os.access(path, os.W_OK)
 
 
 def relpath(path):
@@ -483,7 +485,7 @@ def makePath(path):
                     os.mkdir(dirname)
             except OSError:
                 raise OSError('{0:s} could not be created, please '
-                              'specify another path'.format(path))
+                            'specify another path'.format(path))
                 return os.getcwd()
     return os.path.join(os.getcwd(), path)
 

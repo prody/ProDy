@@ -2296,7 +2296,7 @@ class GammaVariableCutoff(Gamma):
         return gamma
 
 
-def saveModel(nma, filename=None, matrices=False):
+def saveModel(nma, filename=None, matrices=False, **kwargs):
     """Save *nma* model data as :file:`filename.nma.npz`. 
     
     .. versionadded:: 0.5
@@ -2348,7 +2348,9 @@ def saveModel(nma, filename=None, matrices=False):
         if value is not None:
             attr_dict[attr] = value
     filename += '.' + type_.lower() + '.npz'
-    np.savez(filename, **attr_dict)
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez(ostream, **attr_dict)
+    ostream.close()
     return filename
 
 
@@ -2393,7 +2395,7 @@ def loadModel(filename):
             dict_[attr] = attr_dict[attr]
     return nma
 
-def saveVector(vector, filename):
+def saveVector(vector, filename, **kwargs):
     """Save *vector* data as :file:`filename.vec.npz`.  Upon successful 
     completion of saving, filename is returned.  This function makes use 
     of :func:`numpy.savez` function."""
@@ -2405,7 +2407,9 @@ def saveVector(vector, filename):
     attr_dict['array'] = vector._getArray()
     attr_dict['is3d'] = vector.is3d()
     filename += '.vec.npz'
-    np.savez(filename, **attr_dict)
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez(ostream, **attr_dict)
+    ostream.close()
     return filename
 
 def loadVector(filename):

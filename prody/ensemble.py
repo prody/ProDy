@@ -1050,7 +1050,7 @@ class PDBEnsemble(Ensemble):
         self._weights = weights
 
 
-def saveEnsemble(ensemble, filename=None):
+def saveEnsemble(ensemble, filename=None, **kwargs):
     """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename* 
     is ``None``, title of the *ensemble* will be used as the filename, after 
     white spaces in the title are replaced with underscores.  Extension is 
@@ -1075,7 +1075,9 @@ def saveEnsemble(ensemble, filename=None):
         if value is not None:
             attr_dict[attr] = value
     filename += '.ens.npz'
-    np.savez(filename, **attr_dict)
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez(ostream, **attr_dict)
+    ostream.close()
     return filename
 
 def loadEnsemble(filename):
