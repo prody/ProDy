@@ -206,7 +206,9 @@ if conf:
     SETTINGS.update(conf)
 
 def confProDy(*args, **kwargs):
-    """Configure ProDy."""
+    """Configure ProDy.
+    
+    .. versionadded:: 0.9.2"""
 
     if args:
         if len(args) == 1:

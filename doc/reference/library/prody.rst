@@ -12,6 +12,7 @@ This module defines functions for aiding interactive ProDy experience.
 Functions
 ---------
 
+  * :func:`confProDy`
   * :func:`checkUpdates`
   * :func:`getVerbosity`
   * :func:`setVerbosity`
@@ -21,6 +22,8 @@ Functions
   * :func:`test`
   * :func:`turnonDepracationWarnings`
     
+.. autofunction:: confProDy
+
 .. autofunction:: checkUpdates
 
 .. autofunction:: getVerbosity
