@@ -17,6 +17,12 @@ Release 0.9.2 (in developement)
   * :class:`~select.getReservedWords` can be used to get a list of words
     that cannot be used to label user data.
 
+  * :class:`~prody.confProDy` function is added for configuring ProDy.
+  
+  * ProDy automatically renames an existing file using :file:`.BAK` extension
+    instead of overwriting the file.  This behavior can be changed using
+    :class:`~prody.confProDy` function. 
+
 **Changes**:
 
   * :class:`~ensemble.DCDFile` instances, when closed, raise exception, similar

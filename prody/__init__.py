@@ -294,17 +294,17 @@ def getVerbosity():
     return LOGGER.getVerbosity()
 
 def checkUpdates():
-    """Inform the user whether a newer version is available."""
+    """Check PyPI to see if there is a newer ProDy version available."""
     
     import xmlrpclib
     pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
-        LOGGER.info('You are using the latest ProDy release ({0:s}).'
-                         .format(__version__))
+        LOGGER.info('You are using the latest ProDy release (v{0:s}).'
+                    .format(__version__))
     else:
-        LOGGER.info('ProDy {0:s} has been released.  You are using release '
-                    '{1:s}.'.format(releases[0], __version__))
+        LOGGER.info('ProDy v{0:s} is available, you are using {1:s}.'
+                    .format(releases[0], __version__))
 
 def test(**kwargs):
     """Run ProDy tests. See :mod:`prody.testing` documentation for more 
