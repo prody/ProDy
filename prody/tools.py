@@ -37,6 +37,7 @@ getsize = os.path.getsize
 
 import numpy as np
 
+import prody as pkg
 
 __all__ = ['PackageLogger', 'PackageSettings',
            'checkCoordsArray', 
@@ -304,52 +305,54 @@ class PackageSettings(object):
         else:
             self._logger = None
         
-        self._settings = None
-        self.load()
+        self._settings = {}
         
     def __getitem__(self, key):
         
         return self._settings[key]
         
     def __setitem__(self, key, value):
-        """Automatically save settings after changes."""
         
         self._settings[key] = value
-        self.save()
         
     def get(self, key, default=None):
         
         return self._settings.get(key, default)
         
+    def update(self, *args, **kwargs):
+        """Update settings dictionary. """
+        
+        for arg in args:
+            self._settings.update(arg)
+        if kwargs:
+            self._settings.update(kwargs)
+        
     def load(self):
         """Load settings by unpickling the settings dictionary."""
 
-        settings = None        
         if os.path.isfile(self._rcfile):
             try:
                 settings = unpickle(self._rcfile)
-            except:
+            except Exception as err:
                 if self._logger:
                     self._logger.warning("{0:s} configuration file '{1:s}' "
-                                 "is corrupt, settings could not be loaded."
-                                 .format(self._package, self._rcfile))
+                                 "could not be loaded ({2:s})."
+                                 .format(self._package, self._rcfile, err))
                     
-        if not isinstance(settings, dict):
-            settings = {}
-        self._settings = settings
+        if isinstance(settings, dict):
+            self._settings.update(settings)
 
     def save(self):
         """Save settings by pickling the settings dictionary."""
         
         if isWritable(USERHOME):
             try:
-                pickle(self._settings, self._rcfile)
-            except:
+                pickle(self._settings, self._rcfile, backup=False)
+            except Exception as err:
                 if self._logger:
                     self._logger.warning("{0:s} cannot write configuration "
-                                 "file '{1:s}', make sure a file with this "
-                                 "name owned by root does not exist."
-                                 .format(self._package, self._rcfile))
+                                 "file '{1:s}' ({2:s})."
+                                 .format(self._package, self._rcfile, err))
         elif self._logger:
             self._logger.warning("{0:s} cannot write configuration file to "
                                  "'{1:s}', user does not have write access."
@@ -395,14 +398,27 @@ OPEN = {
 }
 
 def openFile(filename, *args, **kwargs):
-    """Open *filename* for an appropriate function."""
+    """Open *filename* for reading, writing, or appending.  First argument in
+    *args* is treated as the mode.
+    
+    :arg backup: backup existing file when opening for appending or writing,
+        default is obtained from package settings
+    :type backup: bool
+    :arg backup_ext: extension for backup file, default is :file:`.BAK`
+    :type backup_ext: str"""
 
-    if not isinstance(filename, str):    
+    if not isinstance(filename, str):
         raise TypeError('filename must be a string')
     folder = kwargs.pop('folder', None)
     if folder:
         filename = os.path.join(folder, filename)
     ext = os.path.splitext(filename)[1]
+    backup = kwargs.pop('backup', pkg.SETTINGS.get('backup', False))
+    backup_ext = kwargs.pop('backup_ext', 
+                            pkg.SETTINGS.get('backup_ext', '.BAK'))
+    if args and args[0][0] in ('a', 'w'):
+        if os.path.isfile(filename) and backup:
+                os.rename(filename, filename + backup_ext)
     return OPEN.get(ext, open)(filename, *args, **kwargs)
     
     
@@ -486,7 +502,7 @@ def which(program):
                 return path
     return None
 
-def pickle(obj, filename):
+def pickle(obj, filename, **kwargs):
     """Pickle *obj* using :mod:`cPickle` and dump in *filename*."""
     
     out = openFile(filename, 'wb')
@@ -494,7 +510,7 @@ def pickle(obj, filename):
     out.close()
     return filename
 
-def unpickle(filename):
+def unpickle(filename, **kwargs):
     """Unpickle object in *filename* using :mod:`cPickle`."""
     
     inf = openFile(filename, 'rb')
