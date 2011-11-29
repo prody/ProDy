@@ -1255,7 +1255,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 indices[(ach, ari)] = (rn, ids, ans)
             if rn != arn:
                 LOGGER.warning("failed to parse alternate location '{0:s}' at "
-                               "line {1:d}, residue names do not match" 
+                               "line {1:d}, residue names do not match " 
                                "(expected '{2:s}', parsed '{3:s}')"
                                .format(key, i+1, rn, arn))
                 continue

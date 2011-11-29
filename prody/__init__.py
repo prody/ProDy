@@ -200,7 +200,16 @@ for key, value in CONFIGURATION.iteritems():
     if SETTINGS.get(key) is None:
         conf[key] = value
 docstring += """
-    ================  ===================================================="""
+    ================  ====================================================
+    
+    Usage example:
+        
+    >>> confProDy('backup')
+    True
+    >>> confProDy('backup', 'backup_ext')
+    [True, '.BAK']
+    >>> confProDy(backup=True, backup_ext='.bak')
+    >>> confProDy(backup_ext='.BAK')"""
 
 if conf:
     SETTINGS.update(conf)
