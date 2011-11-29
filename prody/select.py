@@ -704,6 +704,7 @@ def defSelectionMacro(name, selstr):
                     .format(name, selstr))
         MACROS[name] = selstr
         SETTINGS['selection_macros'] = MACROS
+        SETTINGS.save()
 
 def delSelectionMacro(name):
     """Delete the macro *name*.
@@ -721,6 +722,7 @@ def delSelectionMacro(name):
     else:
         LOGGER.info('Macro "{0:s}" is deleted.'.format(name))
         SETTINGS['selection_macros'] = MACROS
+        SETTINGS.save()
 
 def getSelectionMacro(name=None):
     """Return the definition of the macro *name*. 

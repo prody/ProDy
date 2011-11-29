@@ -262,6 +262,7 @@ def setPDBLocalFolder(folder, divided=False):
                         'will be assumed.')
         SETTINGS['pdb_local_folder'] = folder
         SETTINGS['pdb_local_divided'] = divided
+        SETTINGS.save()
     else:
         raise IOError('No such directory: "{0:s}"'.format(folder))
 
@@ -290,6 +291,7 @@ def setPDBMirrorPath(path):
         path = os.path.abspath(path)
         LOGGER.info('Local PDB mirror path is set: "{0:s}"'.format(path))
         SETTINGS['pdb_mirror_path'] = path
+        SETTINGS.save()
     else:
         raise IOError('No such directory: "{0:s}"'.format(path))
 
@@ -315,6 +317,7 @@ def setWWPDBFTPServer(key):
     server = WWPDB_FTP_SERVERS.get(key.lower())
     if server is not None:
         SETTINGS['wwpdb_ftp'] = server
+        SETTINGS.save()
     else:
         LOGGER.warning('{0:s} is not a valid key.'.format(key))
 

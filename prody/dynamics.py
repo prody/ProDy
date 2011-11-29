@@ -2481,6 +2481,7 @@ def setVMDpath(path):
     
     if isExecutable(path):
         SETTINGS['vmd'] = path
+        SETTINGS.save()
         LOGGER.info("VMD path is set to '{0:s}'.".format(path))
     else:
         raise OSError('{0:s} is not executable.'.format(str(path)))
