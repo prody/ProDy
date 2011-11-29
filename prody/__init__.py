@@ -43,7 +43,7 @@ import warnings
 DEPRECATION_WARNINGS = False
 
 CONFIGURATION = {
-    'backup': True,
+    'backup': False,
     'backup_ext': '.BAK',
 }
 

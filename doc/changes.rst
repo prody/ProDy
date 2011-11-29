@@ -19,8 +19,8 @@ Release 0.9.2 (in developement)
 
   * :class:`~prody.confProDy` function is added for configuring ProDy.
   
-  * ProDy automatically renames an existing file using :file:`.BAK` extension
-    instead of overwriting the file.  This behavior can be changed using
+  * ProDy can optionally rename existing files with :file:`.BAK` extension
+    instead of overwriting thm.  This behavior can be activated using
     :class:`~prody.confProDy` function. 
 
 **Changes**:
