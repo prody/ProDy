@@ -212,17 +212,18 @@ def changeVerbosity(level):
     setVerbosity(level)
     
 def setVerbosity(level):
-    """Change ProDy console verbosity *level*.  By default, console verbosity 
-    *level* is set to debug. This function accepts one of the following:
+    """Change ProDy console verbosity *level* for the current session.  Default
+    console verbosity level **debug**.  Log messages are written to ``sys.
+    stderr``.  This function accepts one of the following as *level* argument:
     
-    ======== ===========
-    Level    Description
-    ======== ===========
-    debug    Everything will be printed on the console or written into logfile.
-    info     Only brief information will be printed or written.
-    warning  Only warning information will be printed or written.
-    none     ProDy will not log any messages.
-    ======== ===========
+    ========  ===========================================
+    Level     Description
+    ========  ===========================================
+    debug     Everything will be printed on the console.
+    info      Only brief information will be printed.
+    warning   Only warning information will be printed.
+    none      ProDy will not log any messages.
+    ========  ===========================================
     
     >>> from prody import *
     >>> changeVerbosity('none')
