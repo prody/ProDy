@@ -42,6 +42,11 @@ import warnings
 
 DEPRECATION_WARNINGS = False
 
+CONFIGURATION = {
+    'backup': True,
+    'backup_ext': '.BAK',
+}
+
 from datetime import date
 today = date.today()
 
@@ -139,7 +144,7 @@ def importBioKDTree():
     select.KDTree = KDTree
 
 SETTINGS = PackageSettings(logger=LOGGER) 
-
+SETTINGS.load()
 def setPackagePath(path):
     if not os.path.isdir(path):
         try:
@@ -179,7 +184,55 @@ def getPackagePath():
             path = raw_input('Please specify a valid folder name with write ' 
                              'access:')
     return path
-    
+
+
+docstring = """
+
+    ================  ====================================================
+    Option            Default setting (type)         
+    ================  ===================================================="""
+
+conf = {}
+for key, value in CONFIGURATION.iteritems():
+    docstring += """
+    {0:16s}  {1:52s}""".format(key, str(value) + 
+                                    ' (' + type(value).__name__  + ')')
+    if SETTINGS.get(key) is None:
+        conf[key] = value
+docstring += """
+    ================  ===================================================="""
+
+if conf:
+    SETTINGS.update(conf)
+
+def confProDy(*args, **kwargs):
+    """Configure ProDy."""
+
+    if args:
+        if len(args) == 1:
+            return SETTINGS.get(args[0])
+        else:
+            return [SETTINGS.get(option) for option in args]
+
+    for option, value in kwargs.iteritems():    
+        if isinstance(option, str):
+            if option in CONFIGURATION:
+                type_ = type(CONFIGURATION[option])
+                if type(value) == type_:
+                    SETTINGS[option] = value
+                    SETTINGS.save()
+                    LOGGER.debug('ProDy configuration is set: {0:s}={1:s}'
+                                 .format(option, str(value)))
+                else:
+                    raise TypeError('value must be a ' + type_.__name__)
+                    
+            else:
+                raise KeyError("'{0:s}' is not a valid option".format(option))
+        else:
+            raise TypeError('option must be a string')
+
+confProDy.__doc__ += docstring
+
 class ProDyException(Exception):
     pass
 
@@ -263,7 +316,7 @@ def test(**kwargs):
     else:
         tests.test(**kwargs)
 
-__all__ = ['checkUpdates', 'getVerbosity', 'setVerbosity',
+__all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
            'startLogfile', 'closeLogfile', 'changeVerbosity',
            'plog']
 
