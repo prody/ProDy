@@ -1932,7 +1932,6 @@ orange3"
           
         }
         if {$plothandle != 0} {
-          # MULTIPLOT "-nmwiz $ns" binds clickAction method to plots
           $plothandle add \
             [subst $${ns}::plotrids] [subst $${ns}::betalist] \
             -title "[subst $${ns}::title] square fluctuations" \
@@ -1943,11 +1942,10 @@ orange3"
             -radius [subst $${ns}::mradius] \
             -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
             -xlabel "Atom/Residue #" \
-            -nmwiz $ns \
+            -callback $ns\::highlight \
             -plot
              
         } else {
-          # MULTIPLOT "-nmwiz $ns" binds clickAction method to plots
           lappend ${ns}::plothandles [multiplot \
             -x [subst $${ns}::plotrids] -y [subst $${ns}::betalist] \
             -title "[subst $${ns}::title] square fluctuations" \
@@ -1958,7 +1956,7 @@ orange3"
             -radius [subst $${ns}::mradius] \
             -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
             -xlabel "Atom/Residue #" \
-            -nmwiz $ns \
+            -callback $ns\::highlight \
             -plot]
         }
         vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
@@ -2024,8 +2022,11 @@ orange3"
         }
       }
 
-      proc clickAction {resid y color} {
+      proc highlight {args} {
 
+        set resid [lindex $args 0] 
+        set y [lindex $args 1]
+        set color [lindex $args 2]
         variable plotrids
         set which [lsearch $plotrids $resid]
         if {$which == -1} {return 0}
