@@ -37,9 +37,10 @@ getsize = os.path.getsize
 
 import numpy as np
 
-import prody as pkg
+pkg = __import__(__package__)
 
 __all__ = ['PackageLogger', 'PackageSettings',
+        'getPackagePath', 'setPackagePath',
         'checkCoordsArray', 
         'gunzip', 'openFile', 'openDB',
         'isExecutable', 'isReadable', 'isWritable', 
@@ -47,7 +48,7 @@ __all__ = ['PackageLogger', 'PackageSettings',
         'pickle', 'unpickle',
         'rangeString',
         'today', 'now', 'getsize',
-        'PLATFORM']
+        'PLATFORM', 'USERHOME']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -358,6 +359,47 @@ class PackageSettings(object):
                                 "'{1:s}', user does not have write access."
                                 .format(self._package, USERHOME))
 
+def setPackagePath(path):
+    if not os.path.isdir(path):
+        try:
+            os.mkdir(path)
+        except Exception as err:
+            LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
+                           .format(path, err.strerror))
+            return False
+    pkg.SETTINGS['package_path'] = path
+    return path    
+
+def getPackagePath():
+    
+    
+    
+    path = pkg.SETTINGS.get('package_path', None)
+    
+    update = False
+    if path is None:
+        LOGGER.warning('{0:s} package path is not yet set by the user.'
+                       .format(__package__))
+        update = True
+    elif not os.path.isdir(path):
+        LOGGER.warning("{0:s} package path '{1:s}' does not exist."
+                       .format(__package__, path))
+        update = True
+    elif not os.access(path, os.W_OK):
+        LOGGER.warning("User does not have write access to {0:s} package path "
+                       "'{1:s}'."
+                       .format(__package__, path))
+        update = True
+        
+    if update:
+        default = os.path.join(USERHOME, '.' + __package__)
+        path = raw_input('Please specify a folder for storing {0:s} data '
+                         '(press enter for "{1:s}"):'
+                         .format(__package__, default)) or default
+        while not setPackagePath(path):
+            path = raw_input('Please specify a valid folder name with write ' 
+                             'access:')
+    return path
 
 def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
                     reshape=None, dtype=(float,)):

@@ -78,8 +78,6 @@ def turnonDepracationWarnings(action='always'):
     
 _PY3K = sys.version_info[0] > 2
 
-USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
-PACKAGEPATH = os.path.join(USERHOME, '.' + __package__)
 PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
 if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
     os.rename(PACKAGECONF[:-2], PACKAGECONF)
@@ -145,45 +143,6 @@ def importBioKDTree():
 
 SETTINGS = PackageSettings(logger=LOGGER) 
 SETTINGS.load()
-def setPackagePath(path):
-    if not os.path.isdir(path):
-        try:
-            os.mkdir(path)
-        except Exception as err:
-            LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
-                           .format(path, err.strerror))
-            return False
-    SETTINGS['package_path'] = path
-    return path    
-
-def getPackagePath():
-    
-    path = SETTINGS.get('package_path', None)
-    
-    update = False
-    if path is None:
-        LOGGER.warning('{0:s} package path is not yet set by the user.'
-                       .format(__package__))
-        update = True
-    elif not os.path.isdir(path):
-        LOGGER.warning('{0:s} package path "{1:s}" does not exist.'
-                       .format(__package__, path))
-        update = True
-    elif not os.access(path, os.W_OK):
-        LOGGER.warning('User does not have write access to {0:s} package path '
-                       ' "{1:s}".'
-                       .format(__package__, path))
-        update = True
-        
-    if update:
-        default = os.path.join(USERHOME, '.' + __package__)
-        path = raw_input('Please specify a folder for storing {0:s} data '
-                         '(press enter for "{1:s}"):'
-                         .format(__package__, default)) or default
-        while not setPackagePath(path):
-            path = raw_input('Please specify a valid folder name with write ' 
-                             'access:')
-    return path
 
 
 docstring = """
@@ -192,27 +151,18 @@ docstring = """
     Option            Default setting (type)         
     ================  ===================================================="""
 
-conf = {}
+_ = {}
 for key, value in CONFIGURATION.iteritems():
     docstring += """
     {0:16s}  {1:52s}""".format(key, str(value) + 
                                     ' (' + type(value).__name__  + ')')
     if SETTINGS.get(key) is None:
-        conf[key] = value
+        _[key] = value
 docstring += """
-    ================  ====================================================
-    
-    Usage example:
-        
-    >>> confProDy('backup')
-    True
-    >>> confProDy('backup', 'backup_ext')
-    [True, '.BAK']
-    >>> confProDy(backup=True, backup_ext='.bak')
-    >>> confProDy(backup_ext='.BAK')"""
+    ================  ===================================================="""
 
-if conf:
-    SETTINGS.update(conf)
+if _:
+    SETTINGS.update(_)
 
 def confProDy(*args, **kwargs):
     """Configure ProDy.
@@ -243,6 +193,15 @@ def confProDy(*args, **kwargs):
             raise TypeError('option must be a string')
 
 confProDy.__doc__ += docstring
+
+confProDy.__doc__ += """
+
+    Usage example::
+            
+      confProDy('backup')
+      confProDy('backup', 'backup_ext')
+      confProDy(backup=True, backup_ext='.bak')
+      confProDy(backup_ext='.BAK')"""
 
 class ProDyException(Exception):
     pass
