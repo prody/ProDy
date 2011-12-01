@@ -38,6 +38,8 @@ ATOL = 1e-5
 RTOL = 0
 
 ATOMS = parseDatafile('multi_model_truncated', subset='ca')
+ALLATOMS = parseDatafile('multi_model_truncated')
+DCD = parseDatafile('dcd')
 COORDS = ATOMS.getCoords()
 COORDSETS = ATOMS.getCoordsets()
 ENSEMBLE = Ensemble(ATOMS)
@@ -461,14 +463,13 @@ class TestDCDFile(unittest.TestCase):
         self.dcd = os.path.join(TEMPDIR, 'temp.dcd')
     
     def testWriteDCD(self):
-        dcd = writeDCD(self.dcd, ENSEMBLE)
+        dcd = writeDCD(self.dcd, ALLATOMS)
         self.assertEqual(dcd, self.dcd, 'failed to write DCD file')
         
     def testParseDCD(self):
-        e = parseDCD(writeDCD(self.dcd, ENSEMBLE))
-        assert_allclose(e._getCoordsets(), ENSEMBLE._getCoordsets(),
-                        rtol=RTOL, atol=ATOL,
-                        err_msg='failed to parse DCD file correctly')
+        e = parseDCD(writeDCD(self.dcd, ALLATOMS))
+        assert_equal(e._getCoordsets(), DCD._getCoordsets(),
+                     err_msg='failed to parse DCD file correctly')
 
     def testWrite(self):
         dcd = DCDFile(self.dcd, 'w')
