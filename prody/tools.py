@@ -368,6 +368,7 @@ def setPackagePath(path):
                            .format(path, err.strerror))
             return False
     pkg.SETTINGS['package_path'] = path
+    pkg.SETTINGS.save()
     return path    
 
 def getPackagePath():
