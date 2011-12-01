@@ -364,7 +364,7 @@ def setPackagePath(path):
         try:
             os.mkdir(path)
         except Exception as err:
-            LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
+            pkg.LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
                            .format(path, err.strerror))
             return False
     pkg.SETTINGS['package_path'] = path
@@ -378,19 +378,17 @@ def getPackagePath():
     
     update = False
     if path is None:
-        LOGGER.warning('{0:s} package path is not yet set by the user.'
+        pkg.LOGGER.warning('{0:s} package path is not yet set by the user.'
                        .format(__package__))
         update = True
     elif not os.path.isdir(path):
-        LOGGER.warning("{0:s} package path '{1:s}' does not exist."
+        pkg.LOGGER.warning("{0:s} package path '{1:s}' does not exist."
                        .format(__package__, path))
         update = True
     elif not os.access(path, os.W_OK):
-        LOGGER.warning("User does not have write access to {0:s} package path "
-                       "'{1:s}'."
-                       .format(__package__, path))
+        pkg.LOGGER.warning("User does not have write access to {0:s} package "
+                           "path '{1:s}'.".format(__package__, path))
         update = True
-        
     if update:
         default = os.path.join(USERHOME, '.' + __package__)
         path = raw_input('Please specify a folder for storing {0:s} data '
