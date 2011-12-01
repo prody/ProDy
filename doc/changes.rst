@@ -22,6 +22,11 @@ Release 0.9.2 (in developement)
   * ProDy can optionally rename existing files with :file:`.BAK` extension
     instead of overwriting thm.  This behavior can be activated using
     :class:`~prody.confProDy` function. 
+    
+**Improvements**:
+
+  * :func:`~ensemble.writeDCD` file accepts :class:`~atomic.AtomGroup` or 
+    other :class:`~atomic.Atomic` instances as *trajectory* argument.
 
 **Changes**:
 
