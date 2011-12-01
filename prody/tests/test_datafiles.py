@@ -78,6 +78,11 @@ DATA_FILES = {
         'n_atoms': 76,
         'models': 1
     },
+    'dcd': {
+        'file': 'dcd2k39_truncated.dcd',
+        'atoms': 167,
+        'models': 3
+    },
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
     },
@@ -100,6 +105,7 @@ DATA_FILES = {
 
 
 PARSERS = {
+    '.dcd': prody.parseDCD,
     '.pdb': prody.parsePDB,
     '.coo': prody.parseSparseMatrix,
     '.dat': prody.parseArray,
