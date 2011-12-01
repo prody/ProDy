@@ -2647,16 +2647,25 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     
     .. versionadded:: 0.8"""
     
-    if not isinstance(trajectory, EnsembleBase):
+    if not isinstance(trajectory, (EnsembleBase, prody.Atomic)):
         raise TypeError('{0:s} is not a valid type for trajectory'
                         .format(type(trajectory)))
     
-    irange = range(*slice(start, stop, step).indices(len(trajectory)))
+    irange = range(*slice(start, stop, 
+                          step).indices(trajectory.numCoordsets()))
     n_csets = len(irange)
     if n_csets == 0:
         raise ValueError('trajectory does not have any coordinate sets, or '
                          'no coordinate sets are selected')
-    n_atoms = trajectory.numSelected()
+    
+    if isinstance(trajectory, EnsembleBase):
+        isEnsemble = True
+        isAtomic = False
+        n_atoms = trajectory.numSelected()
+    else:
+        isEnsemble = False
+        isAtomic = True
+        n_atoms = trajectory.numAtoms()
     if n_atoms == 0:
         raise ValueError('no atoms are selected in the trajectory')
     if isinstance(trajectory, TrajectoryBase):
@@ -2678,7 +2687,11 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     else:
         isTrajectory = False
         unitcell = False
-        frame = trajectory[0]
+        if isinstance(trajectory, EnsembleBase):
+            frame = trajectory[0]
+        else:
+            frame = trajectory
+            acsi = trajectory.getACSI()
         timestep = 1
         first_ts = 0
         framefreq = 1
@@ -2702,8 +2715,10 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
                 uc = frame._getUnitcell()
                 uc[3:] = np.sin((PISQUARE/90) * (90-uc[3:]))
                 uc = uc[[0,3,1,4,5,2]]
-        else:
+        elif isEnsemble:
             frame._index = i
+        else:
+            frame.setACSI(i) 
         if align:
             frame.superpose()
         if j == 0:
@@ -2712,6 +2727,8 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         else:
             dcd.write(frame._getCoords(), uc)
         LOGGER.update(i)
+    if isAtomic:
+        trajectory.setACSI(acsi)
     j += 1
     LOGGER.clear()
     dcd.close()
