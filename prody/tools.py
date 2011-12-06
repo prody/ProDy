@@ -231,8 +231,8 @@ class PackageLogger(object):
         
         :keyword filename: name of the logfile
         :keyword mode: mode in which logfile will be opened, default is "w" 
-        :keyword backupcount: number of old *filename.log* files to save, 
-            default is 1
+        :keyword backupcount: number of existing *filename.log* files to 
+            backup, default is 1
         """
 
         assert isinstance(filename, str), 'filename must be a string'
@@ -251,7 +251,7 @@ class PackageLogger(object):
         self._logger.addHandler(logfile)
         if rollover:
             logfile.doRollover()
-        self.info("Logging into '{0:s}'.".format(filename))
+        self.info("Logging into '{0:s}'.".format(logfilename))
 
     def closeLogfile(self, filename):
         """Close log file *filename*."""
@@ -339,9 +339,9 @@ class PackageSettings(object):
                     self._logger.warning("{0:s} configuration file '{1:s}' "
                                 "could not be loaded ({2:s})."
                                 .format(self._package, self._rcfile, err))
-                    
-        if isinstance(settings, dict):
-            self._settings.update(settings)
+            else:                    
+                if isinstance(settings, dict):
+                    self._settings.update(settings)
 
     def save(self):
         """Save settings by pickling the settings dictionary."""
