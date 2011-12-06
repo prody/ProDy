@@ -28,8 +28,10 @@ NMWiz can be used for:
 Downloads
 ===============================================================================
 
-.. note:: NMWiz is incorporated into VMD and will be available in VMD version
-   1.9.1. Until this version is released, NMWiz files can be obtained from here.
+.. note:: NMWiz is being incorporated into VMD and will be available in VMD 
+   version 1.9.1.  Until this version is released, plugin files can be obtained
+   from here.  Files provided here may be changed to incorporate improvements 
+   without any notice or version number iterations.
 
 NMWiz is written in `TCL <http://tcl.tk/>`_. To be able to use it, 
 you need to have VMD version 1.8.7 or higher installed on your computer.
@@ -38,7 +40,7 @@ Mac OS, and Windows.
 
 See |vmd| for obtaining VMD.
 
-NMWiz files are available in the following:
+NMWiz files are available here:
  
   * :download:`NMWiz1.0.tar.gz <NMWiz1.0.tar.gz>`
   * :download:`NMWiz1.0.zip <NMWiz1.0.zip>`
