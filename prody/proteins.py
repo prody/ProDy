@@ -2314,8 +2314,8 @@ def blastPDB(sequence, filename=None, **kwargs):
     query.append(('QUERY', sequence))
     query.append(('CMD', 'Put'))
     
-    sleep = float(kwargs.get('sleep', 2))
-    timeout = float(kwargs.get('timeout', 20))
+    sleep = float(kwargs.pop('sleep', 2))
+    timeout = float(kwargs.pop('timeout', 20))
     
     if kwargs:
         LOGGER.warning('Keyword arguments "{0:s}" are not used.'
