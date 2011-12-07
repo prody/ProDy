@@ -711,12 +711,14 @@ and save all output and figure files:
                         plt.close('all')                    
     
 def alignmodels():
-    """Align models in a PDB file based on command line arguments."""
+    """Align models in a PDB file or a PDB file onto others."""
     
-    usage = """prody %prog [options] PDB  
+    usage = """prody %prog [options] PDB [PDB2 PDB3 ...]  
 
-Align models in PDB file using selected atoms and save aligned coordinate \
-sets."""
+Align models in PDB structure or multiple PDB structures and save aligned \
+coordinate sets.  When multiple structures are aligned, ProDy will match \
+chains and use best match for aligning the structures.  Note that options \
+are not used when aligning multiple structures."""
         
     parser = OptionParser(usage=usage)
     addOptions(parser)
@@ -730,20 +732,24 @@ sets."""
                       default=1, metavar='INT',
                       help=('model index onto which other models will be ' 
                             'superposed, default is %default'))
-    usage_examples="""Fetch pdb 2k39 and align models:
+    usage_examples="""Fetch PDB structure 2k39 and align models:
     
     $ prody align 2k39
     
-Fetch pdb 2k39 and align models using backbone of residues with number smaller
-than 71:
+Fetch PDB structure 2k39 and align models using backbone of residues with \
+number smaller than 71:
 
-    $ prody align 2k39 --select "backbone and resnum < 71" """
+    $ prody align 2k39 --select "backbone and resnum < 71" 
+    
+Fetch PDB structures 1p38 and 1r39 and superpose 1r39 onto 1p38:
+
+    $ prody align 1p38 1r39"""
         
     opt, args = parser.parse_args()
     if opt.examples:
         print 'Usage Examples:\n', usage_examples
         sys.exit(-1)
-    if len(args) != 1:
+    if len(args) < 1:
         parser.print_help()
         print "\nError: PDB missing\n"
         sys.exit(-1)
@@ -755,26 +761,40 @@ than 71:
     if opt.silent:
         prody.changeVerbosity('warning')
         
-    pdb = args[0]
-    selstr, prefix, model = opt.select, opt.prefix, opt.model
-    pdb = prody.parsePDB(pdb)
-    if prefix == '':
-        prefix = pdb.getTitle() + '_aligned'
-    pdbselect = pdb.select(selstr)
-    if pdbselect is None:
-        LOGGER.warning('Selection "{0:s}" do not match any atoms.'
-                       .format(selstr))
-        sys.exit(-1)
-    LOGGER.info('{0:d} atoms will be used for alignment.'
-                           .format(len(pdbselect)))
-    pdb.setACSI(model-1)
-    prody.alignCoordsets(pdb, selstr=selstr)
-    rmsd = prody.calcRMSD(pdb)
-    LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'
-          .format(rmsd.max(), rmsd.mean()))
-    outfn = prefix + '.pdb'
-    LOGGER.info('Writing file: ' + outfn)
-    prody.writePDB(outfn, pdb)
+    if len(args) == 1:
+        pdb = args[0]
+        LOGGER.info('Aligning multiple models in: ' + pdb)
+        selstr, prefix, model = opt.select, opt.prefix, opt.model
+        pdb = prody.parsePDB(pdb)
+        pdbselect = pdb.select(selstr)
+        if pdbselect is None:
+            LOGGER.warning('Selection "{0:s}" do not match any atoms.'
+                           .format(selstr))
+            sys.exit(-1)
+        LOGGER.info('{0:d} atoms will be used for alignment.'
+                               .format(len(pdbselect)))
+        pdb.setACSI(model-1)
+        prody.alignCoordsets(pdb, selstr=selstr)
+        rmsd = prody.calcRMSD(pdb)
+        LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'
+              .format(rmsd.max(), rmsd.mean()))
+        if prefix == '':
+            prefix = pdb.getTitle() + '_aligned'
+        outfn = prefix + '.pdb'
+        LOGGER.info('Writing file: ' + outfn)
+        prody.writePDB(outfn, pdb)
+    else:
+        ref = args.pop(0)
+        LOGGER.info('Aligning structures onto: ' + ref)
+        ref = prody.parsePDB(ref)
+        for arg in args:
+            pdb = prody.parsePDB(arg)
+            if prody.matchAlign(pdb, ref):
+                outfn = pdb.getTitle() + '_aligned.pdb'
+                LOGGER.info('Writing file: ' + outfn)
+                prody.writePDB(outfn, pdb)
+            else:
+                LOGGER.warning('Failed to align ' + arg)
 
 def biomolecule():
     """Generate biomolecule coordinates based on command line arguments."""
