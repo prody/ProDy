@@ -2318,8 +2318,8 @@ def blastPDB(sequence, filename=None, **kwargs):
     timeout = float(kwargs.pop('timeout', 20))
     
     if kwargs:
-        LOGGER.warning('Keyword arguments "{0:s}" are not used.'
-                       .format('", "'.join(kwargs.keys())))
+        LOGGER.warning("Keyword argument(s) '{0:s}' are not used."
+                       .format("', '".join(kwargs.keys())))
 
     import urllib, urllib2
     
