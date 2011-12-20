@@ -48,7 +48,8 @@ __all__ = ['PackageLogger', 'PackageSettings',
         'pickle', 'unpickle',
         'rangeString',
         'today', 'now', 'getsize',
-        'PLATFORM', 'USERHOME']
+        'PLATFORM', 'USERHOME',
+        'alnum']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -597,3 +598,14 @@ def rangeString(lint, sep=' ', rng=' to '):
 def openDB(filename, *args):
     import anydbm
     return anydbm.open(filename, *args)
+
+def alnum(string, alt='_'):
+    """Replace non alpha numeric characters with *alt*."""
+    
+    result = ''
+    for char in string:
+        if char.isalnum():
+            result += char
+        else:
+            result += alt
+    return result
