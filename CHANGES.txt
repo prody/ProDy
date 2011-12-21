@@ -28,6 +28,8 @@ Release 0.9.2 (in developement)
   * :func:`~ensemble.writeDCD` file accepts :class:`~atomic.AtomGroup` or 
     other :class:`~atomic.Atomic` instances as *trajectory* argument.
 
+  * ``prody align`` command can be used to align multiple PDB structures.
+
 **Changes**:
 
   * :class:`~ensemble.DCDFile` instances, when closed, raise exception, similar

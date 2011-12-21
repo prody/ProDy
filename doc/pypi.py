@@ -15,16 +15,21 @@ import datetime
 import xmlrpclib
 import cPickle
 import sys
+import os.path
 
 PACKAGE_NAME = 'ProDy'
 RELEASE_DATE = datetime.date(2010, 11, 1)
 
 def loadStats():
     # Gather download statistics
-    pkl = open(PACKAGE_NAME.lower() + '_pypi_stats.pkl')
-    stats = cPickle.load(pkl)
-    pkl.close()
-    return stats
+    if os.path.isfile(PACKAGE_NAME.lower() + '_pypi_stats.pkl'):
+        pkl = open(PACKAGE_NAME.lower() + '_pypi_stats.pkl')
+        stats = cPickle.load(pkl)
+        pkl.close()
+        return stats
+    else:
+        from collections import defaultdict
+        return defaultdict(int)
 
 def saveStats(stats):
     pkl = open(PACKAGE_NAME.lower() + '_pypi_stats.pkl', 'wb')
@@ -131,13 +136,28 @@ def updateMonthlyStats():
                                .format(key)).read()).split('\n')
             except:
                 break
+            current = defaultdict(int)
             for line in stats:
                 if line.startswith(package_name):
-                    count += int(line.split(',')[-1])
+                    items = line.split(',')
+                    incr = int(items[-1])
+                    count += incr
+                    release = ''
+                    for char in items[1][len(package_name)+1:]:
+                        if char.isalpha():
+                            break
+                        release += char
+                    release = release[:-1]
+                    if release[-1] == '.':
+                        release = release[:-1]
+                    if release.endswith('.0'):
+                        release = release[:-2]
+                    current[release] += incr            
+                    
             if month.month == today.month and month.year == today.year: 
-                STATS['THIS-MO'] = count
+                STATS['THIS-MO'] = current
             else:
-                STATS[key] = count
+                STATS[key] = current
         #labels.append(month.strftime('%b %y'))
         month = incrMonth(month)
     saveStats(STATS)
@@ -156,6 +176,7 @@ def updateMonthlyStats():
     plt.savefig('_static/pypi_monthly.png', dpi=72)
 
 if __name__ == '__main__':
+    
     if len(sys.argv) > 1:
         if sys.argv[1].lower().startswith('m'):
             updateMonthlyStats()
@@ -165,6 +186,14 @@ if __name__ == '__main__':
         stats = loadStats()
         keys = stats.keys()
         keys.sort(reverse=True)
+        month = 0
+        release = 0
         for key in keys: 
-            print key, stats[key]
-        
+            value = stats[key]
+            if isinstance(value, int):
+                month += value
+            else:
+                release += value[1]
+            print key, value
+        print 'Total (month):', month
+        print 'Total (release):', release

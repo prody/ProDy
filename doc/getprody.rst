@@ -39,9 +39,9 @@ Download a suitable ProDy installation file from http://python.org/pypi/ProDy
 or here:
 
 .. csv-table::
-   :file: _static/pypi_downloads.csv
+   :file: _static/ProDy_downloads.csv
    :header-rows: 1
-   :delim: ;
+   :delim: ,
    :widths: 40, 20, 20, 10, 10
 
 For details of ProDy releases see :ref:`changes` and :ref:`pypi-statistics`.
