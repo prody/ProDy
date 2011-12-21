@@ -235,7 +235,8 @@ def monthly_stats_plot(stats, outname, dpi=72, xlabelstep=2):
                labels[::xlabelstep], rotation=15, fontsize=10)
     plt.yticks(plt.yticks()[0], fontsize=10)
     plt.grid()
-    plt.title('Monthly downloads', fontsize=12)
+    plt.title('Monthly downloads (total={0:d})'
+              .format(sum(counts)), fontsize=12)
     plt.ylabel('Number of downloads', fontsize=11)
     plt.savefig(outname, dpi=dpi)
     LOGGER.info("Monthly downloads plot is saved as '{0:s}'.".format(outname))

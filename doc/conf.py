@@ -13,9 +13,6 @@
 
 import sys, os, os.path, time
 
-if (time.time() - os.path.getmtime('_static/pypi_downloads.csv')) / 3600 > 12:
-    execfile('pypi.py')
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
