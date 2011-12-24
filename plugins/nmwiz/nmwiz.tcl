@@ -151,20 +151,20 @@ namespace eval ::nmwiz:: {
       $log.text insert end " * Hide/Show: hide/show the selected residues\n"
       $log.text insert end " * Options: change plotting options\n"
       $log.text insert end "\n\n\n"
-      $log.text insert end "Protein Graphics\n"
-      $log.text insert end "----------------\n\n"
-      $log.text insert end "Id of the molecule that contains the protein structure is shown in parentheses.\n\n"
+      $log.text insert end "Molecule Representations\n"
+      $log.text insert end "------------------------\n\n"
+      $log.text insert end "Id of the molecule that contains the structure is shown in parentheses.\n\n"
       $log.text insert end "Buttons:\n\n"
-      $log.text insert end " * Update: Uupdate protein representation\n"
+      $log.text insert end " * Update: update molecule representation\n"
       $log.text insert end " * Focus: reset view to focus on the structure\n"
       $log.text insert end " * Hide/Show: hide/show strudture\n"
       $log.text insert end " * Options: change molecular system representation\n"
       $log.text insert end "\nOptions:\n\n"
-      $log.text insert end "User can select the representation and coloring scheme. User can change the protein representation settings manually, by setting 'Show protein as' to 'Custom'.\n\n"      
-      $log.text insert end "Protein can be colored based on the `Mobility` of the residues in the active mode, based on 'Bfactors' that came in NMD file, or based on residue/atom 'Index'.\n\n"
-      $log.text insert end "In addition to the standard representations (Tube/Trace/Licorice), protein can be represented as an elastic network."
+      $log.text insert end "User can select the representation and coloring scheme. User can change the molecule representation settings manually, by setting 'Show structure as' to 'Custom'.\n\n"      
+      $log.text insert end "Structure can be colored based on the `Mobility` of the residues in the active mode, based on 'Bfactors' that came in NMD file, or based on residue/atom 'Index'.\n\n"
+      $log.text insert end "In addition to the standard representations (Tube/Trace/Licorice), structure can be represented as an elastic network."
       $log.text insert end "User can set the cutoff distance, width of dynamic bonds, and node spheres. Note that changing the cutoff distance distance only affects representation, not the precalculated normal mode data.\n\n"
-      $log.text insert end "*TIP*: When visualizing a large system, display protein at lower resolutions and/or try displaying fewer atoms if all atoms are displayed."
+      $log.text insert end "*TIP*: When visualizing a large system, display molecule at lower resolutions and/or try displaying fewer atoms if all atoms are displayed."
     } elseif {$context == "prody"} {
       $log.text insert end "ProDy Interface\n"
       $log.text insert end "===============\n\n"
@@ -350,7 +350,7 @@ orange3"
   variable prodyMolecule
   variable prodyMolid -1
   variable prodyNFrames 0
-  variable prodySelstr "protein name CA"
+  variable prodySelstr "protein and name CA or nucleic and name P C4' C2"
   variable prodySelAtoms 0
   variable prodyScript "ANM"
   variable prodyPrefix ""
@@ -1770,15 +1770,16 @@ orange3"
         if {$atomnames == ""} {
           set atomnames [string repeat "CA " $n_atoms]
           vmdcon -info "NMWiz INFO: All atom names are set as \"CA\"."
-        } else {
-          variable showproteinas
-          foreach an $atomnames {
-            if {$an != "CA"} {
-              set showproteinas "Licorice"
-              break
-            }
-          }
-        }
+        } 
+        #else {
+        #  variable showproteinas
+        #  foreach an $atomnames {
+        #    if {$an != "CA"} {
+        #      set showproteinas "Licorice"
+        #      break
+        #    }
+        #  }
+        #}
         if {$resnames == ""} {
           set resnames [string repeat "GLY " $n_atoms]
           vmdcon -info "NMWiz INFO: All residue names are named set as \"GLY\"."
@@ -2483,7 +2484,7 @@ orange3"
 
         set molid [mol new [file join $::nmwiz::tmpdir $tempfn]]
 
-        $w.draw_arrows.protbuttons_label configure -text "Protein ($molid):"
+        $w.draw_arrows.protbuttons_label configure -text "Molecule ($molid):"
         mol rename $molid "$title coordinates"
         [namespace current]::calcMSF
         [namespace current]::updateProtRep $molid
@@ -2810,7 +2811,7 @@ orange3"
          
         ##-command "if {\$${ns}::pltopt} {pack forget \$${ns}::w.animation_options; set ${ns}::pltopt 0; \$${ns}::w.draw_arrows.plot_options configure -relief raised} else {pack \$${ns}::w.plot_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::pltopt 1; \$${ns}::w.draw_arrows.plot_options configure -relief sunken}"] \
 
-        grid [label $wda.protbuttons_label -text "Protein:"] \
+        grid [label $wda.protbuttons_label -text "Molecule:"] \
           -row 9 -column 0 -sticky w
         grid [button $wda.prt_update -text "Update" \
             -command "${ns}::updateProtRep \$${ns}::molid"] \
@@ -2920,13 +2921,13 @@ orange3"
         } 
         pack $wgo.resolution_frame.list -side left -anchor w -fill x
 
-        set wpgo [labelframe $w.prograph_options -text "Protein Graphics Options" -bd 2]
+        set wpgo [labelframe $w.prograph_options -text "Molecule Representations" -bd 2]
         
         grid [checkbutton $wpgo.selstr_check -text "show selected atoms" \
             -variable ${ns}::selrep -command "${ns}::autoUpdate"] \
           -row 0 -column 1 -columnspan 2 -sticky w
         
-        grid [label $wpgo.protas_label -text "Show protein as:"] \
+        grid [label $wpgo.protas_label -text "Show structure as:"] \
           -row 13 -column 1 -sticky w
         grid [frame $wpgo.protas_frame] \
           -row 13 -column 2 -sticky w
