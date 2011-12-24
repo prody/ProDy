@@ -24,6 +24,7 @@ for line in open('prody/__init__.py'):
     
 def isInstalled(module_name):
     """Check if a required package is installed, by trying to import it."""
+
     try:
         return __import__(module_name)
     except ImportError:

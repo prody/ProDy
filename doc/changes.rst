@@ -19,9 +19,9 @@ Release 0.9.2 (in developement)
 
   * :class:`~prody.confProDy` function is added for configuring ProDy.
   
-  * ProDy can optionally rename existing files with :file:`.BAK` extension
-    instead of overwriting thm.  This behavior can be activated using
-    :class:`~prody.confProDy` function. 
+  * ProDy can optionally backup existing files with :file:`.BAK` (or another) 
+    extension instead of overwriting them.  This behavior can be activated 
+    using :class:`~prody.confProDy` function. 
     
 **Improvements**:
 
@@ -41,6 +41,13 @@ Release 0.9.2 (in developement)
   * :func:`~prody.changeVerbosity` and :func:`~prody.getVerbosityLevel`
     are renamed as :func:`~prody.setVerbosity` and :func:`~prody.getVerbosity`,
     respectively. Old names will be removed in v1.0.
+    
+  * ProDy routines (commands) module is rewritten to use new :mod:`argparse`
+    module. See :ref:`scripts` for details of changes.
+    
+  * :mod:`argparse` module is added to the package for Python versions 2.6
+    and older.
+    
 
 **Bugfix**:
 

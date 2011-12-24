@@ -14,7 +14,6 @@ The following statistics are retrieved from |pypi|.
 Python code
 -------------------------------------------------------------------------------
 
-The following code is used for retrieving the statistics and generating 
-a comma-seperated values (CSV) file:
+The following code is used for retrieving the statistics:
 
 .. literalinclude:: /pyps.py

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 __author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010  Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 from os import system
 from glob import glob
