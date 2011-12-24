@@ -161,8 +161,7 @@ def prody_gnm(opt):
     import prody
     LOGGER = prody.LOGGER
 
-    pdb = args[0]
-    prefix = opt.prefix
+    pdb, prefix = opt.pdb, opt.prefix
 
     cutoff, gamma = opt.cutoff, opt.gamma, 
     nmodes, selstr, model = opt.nmodes, opt.select, opt.model
@@ -835,6 +834,8 @@ group.add_argument('-M', '--mode-shape-figure', dest='modes', type=str,
                          'e.g. "1-3 5" for modes 1, 2, 3 and 5'))
 
 group = addNMAFigureOptions(subparser)
+
+subparser.add_argument('pdb', help='PDB identifier or filename')
     
 subparser.set_defaults(func=prody_gnm)
 subparser.set_defaults(subparser=subparser)
@@ -1024,6 +1025,13 @@ subparser.set_defaults(subparser=subparser)
 
 subparser = commands.add_parser('catdcd', 
     help='concatenate dcd files')
+
+subparser.add_argument('--examples', action=UsageExample, nargs=0,
+    help='show usage examples and exit')
+
+subparser.set_defaults(usage_example=
+"""make some examples"""
+)
 
 subparser.add_argument('-s', '--select', default='all', type=str, 
     dest='select', metavar='SELSTR', 
