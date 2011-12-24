@@ -302,18 +302,34 @@ def prody_pca(opt):
     import prody
     LOGGER = prody.LOGGER
         
-    pdb = opt.pdb
+    coords = opt.coords
     prefix = opt.prefix
     nmodes, selstr = opt.nmodes, opt.select
-
-    if pdb.endswith('.dcd') or pdb.endswith('.DCD'):     
-        LOGGER.info('A DCD file is detected, using all atoms for calculation.')
-        ensemble = prody.parseDCD(pdb)
-        if len(ensemble) < 2:
+    
+    if coords.lower().endswith('.dcd'):     
+        ag = opt.psf or opt.pdb
+        if ag:
+            if ag.lower().endswith('.psf'):
+                ag = prody.parsePSF(ag)
+            else:
+                ag = prody.parsePDB(ag)
+        dcd = prody.DCDFile(opt.coords)
+        if len(dcd) < 2:
             opt.subparser("DCD file must contain multiple frames.")
-        pca = prody.PCA(pdb[:-4])
-        select = prody.AtomGroup(pdb[:-4])
-        select.setCoords(ensemble.getCoords())
+        if ag:
+            dcd.setAtomGroup(ag)
+            select = dcd.select(selstr)
+            LOGGER.info('{0:d} atoms are selected for calculations.'
+                        .format(len(select)))
+        else:
+            select = prody.AtomGroup()
+            select.setCoords(dcd.getCoords())
+        pca = prody.PCA(dcd.getTitle())
+        if len(dcd) > 1000:
+            pca.buildHessian(dcd)
+            pca.calcModes(dcd)
+        else:
+            pca.performSVD(dcd[:])
     else:
         pdb = prody.parsePDB(pdb)
         if pdb.numCoordsets() < 2:
@@ -321,6 +337,8 @@ def prody_pca(opt):
         if prefix == '_pca':
             prefix = pdb.getTitle() + '_pca'
         select = pdb.select(selstr)
+        LOGGER.info('{0:d} atoms are selected for calculations.'
+                    .format(len(select)))
         if select is None:
             opt.subparser('Selection "{0:s}" do not match any atoms.'
                           .format(selstr))
@@ -328,9 +346,9 @@ def prody_pca(opt):
                     .format(len(select)))
         ensemble = prody.Ensemble(select)
         pca = prody.PCA(pdb.getTitle())
-    ensemble.iterpose()
-    
-    pca.performSVD(ensemble)
+        ensemble.iterpose()
+        pca.performSVD(ensemble)
+
     LOGGER.info('Writing numerical output.')
     if opt.npz:
         prody.saveModel(pca)
@@ -832,9 +850,11 @@ subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
 subparser.set_defaults(usage_example=
-"""This command performs PCA calculations for given PDB structure or DCD \
-format trajectory and outputs results in NMD format. If an identifier is \
-passed, structure file will be downloaded from the PDB FTP server.
+"""This command performs PCA calculations for given multi-model PDB structure \
+or DCD format trajectory file and outputs results in NMD format. If a PDB \
+identifier is given, structure file will be downloaded from the PDB FTP \ 
+server. DCD files may be accompanied with PDB or PSF files to enable atoms \ 
+selections.
 
 Fetch pdb 2k39, perform PCA calculations, and output \
 NMD file:
@@ -867,13 +887,13 @@ group.add_argument('-J', '--projection-figure', dest='sp', type=str,
 
 group = addNMAFigureOptions(subparser)
 
-#subparser.add_argument('--psf', 
-#    help='PSF filename (must have same number of atoms as PDB/DCD)')
+group = subparser.add_mutually_exclusive_group()
+group.add_argument('--psf', 
+    help='PSF filename (must have same number of atoms as DCDs)')
+group.add_argument('--pdb', 
+    help='PDB filename (must have same number of atoms as DCDs)')
 
-subparser.add_argument('pdb',
-    help='PDB or DCD filename')
-#subparser.add_argument('dcd', nargs='*',
-#    help='DCD filename(s) (all must have same number of atoms)')
+subparser.add_argument('coords', help='PDB or DCD filename')
 
 subparser.set_defaults(func=prody_pca)
 subparser.set_defaults(subparser=subparser)
