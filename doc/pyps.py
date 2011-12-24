@@ -400,6 +400,15 @@ subparser.set_defaults(
     func=lambda args: release_stats_csv(args.stats, args.o, args.d))
 
 
+subparser = subparsers.add_parser('total',
+    help='print total number of downloads')
+
+subparser.set_defaults(
+    func=lambda args: sys.stderr.write(str(total_downloads(args.stats)) + '\n'))
+
+subparser.add_argument('stats', help='package statistics filename')
+
+
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:    
