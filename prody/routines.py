@@ -305,10 +305,10 @@ def prody_pca(opt):
     prefix = opt.prefix
     nmodes, selstr = opt.nmodes, opt.select
     
-    if coords.lower().endswith('.dcd'):     
+    if os.path.splitext(coords)[1].lower() == '.dcd':     
         ag = opt.psf or opt.pdb
         if ag:
-            if ag.lower().endswith('.psf'):
+            if os.path.splitext(ag)[1].lower() == '.psf':
                 ag = prody.parsePSF(ag)
             else:
                 ag = prody.parsePDB(ag)
@@ -426,6 +426,56 @@ def prody_pca(opt):
                             '_'.join(index) + '.' + format),
                             dpi=dpi, format=format)
                         plt.close('all')                  
+
+def prody_catdcd(opt):
+    """Concatenate DCD files."""
+    
+    import prody
+    LOGGER = prody.LOGGER
+    if opt.num:
+        num = [] 
+        for dcd in opt.dcd:
+            dcd = prody.DCDFile(dcd)
+            num.append(dcd.numFrames())
+        for n in num:
+            print(n)
+        print(sum(num))
+        return
+    ag = opt.psf or opt.pdb
+    if ag:
+        if os.path.splitext(ag)[1].lower() == '.psf':
+            ag = prody.parsePSF(ag)
+        else:
+            ag = prody.parsePDB(ag)
+    
+    dcd = opt.dcd
+    traj = prody.Trajectory(dcd.pop(0))
+    while dcd:
+        traj.addFile(dcd.pop(0))
+    if ag:
+        traj.setAtomGroup(ag)
+        select = traj.select(opt.select)
+        LOGGER.info('{0:d} atoms are selected for writing output.'
+                    .format(len(select)))
+
+    out = prody.DCDFile(opt.output, 'w')
+    count = 0
+    goto = False
+    if opt.stride != 1:
+        goto = True
+    slc = slice(opt.first, opt.last, opt.stride).indices(len(traj)+1)
+    for i in range(*slc):
+        if goto:
+            traj.goto(i)
+        frame = traj.next()
+        out.write(frame._getCoords(), frame.getUnitcell())
+        count += 1
+    traj.close()
+    out.close()
+    LOGGER.info("{0:d} frames are written into '{1:s}'."
+                .format(count, opt.output))
+    
+    
 
 def prody_align(opt):
     """Align models in a PDB file or a PDB file onto others."""
@@ -1037,11 +1087,12 @@ subparser.add_argument('-s', '--select', default='all', type=str,
     dest='select', metavar='SELSTR', 
     help='atom selection (default: "%(default)s")')
 
-subparser.add_argument('-o', '--output', type=str, 
-    required=True, metavar='FILENAME', 
-    help='output filename')
+subparser.add_argument('-o', '--output', type=str, metavar='FILENAME', 
+    default='trajectory.dcd',
+    help='output filename (default: %(default)s)')
 
-subparser.add_argument('-n', '--num', default=False, action='store_true', 
+subparser.add_argument('-n', '--num', default=False, action='store_true',
+    dest='num',
     help='print the number of frames in each file and exit')
 
 group = subparser.add_mutually_exclusive_group()
@@ -1064,6 +1115,7 @@ subparser.add_argument('dcd', nargs='+',
     help='DCD filename(s) (all must have same number of atoms)')
 
 subparser.set_defaults(subparser=subparser)
+subparser.set_defaults(func=prody_catdcd)
 
 ###############################################################################
 # fetch
