@@ -43,8 +43,8 @@ package provide nmwiz 1.0
 proc sign x {expr {($x>0) - ($x<0)}}
 
 # List of NMWiz functions
-#   ::nmwiz::initGUI                 make main window
-#   ::nmwiz::loadNMD                 load NMD file
+#   ::NMWiz::initGUI                 make main window
+#   ::NMWiz::loadNMD                 load NMD file
 
 #   ::nmguiX::deleteMolecules        delete molecules storing coordinates/graphics/animations/selection
 #   ::nmguiX::prepareSelmol          prepare the molecule where selections are displayed
@@ -52,13 +52,14 @@ proc sign x {expr {($x>0) - ($x<0)}}
 #   ::nmguiX::clearSelection         turn selection representation of and clear labels
 
 
-namespace eval ::nmwiz:: {
+namespace eval ::NMWiz:: {
   namespace export nmwizgui
   namespace export initialize
 
   variable guicount -1
   variable tmpdir
   variable titles [list]
+  variable preserview 1
   variable plothandles [list] 
   #variable namespaces [list]
   #variable nmwizguis [list]
@@ -286,55 +287,58 @@ namespace eval ::nmwiz:: {
     grid [button $wmf.loadnmd -width 20 -text "Load NMD File" -command {
       set tempfile [tk_getOpenFile \
         -filetypes {{"NMD files" { .nmd .NMD }} {"Text files" { .txt .TXT }} {"All files" *}}]
-        if {![string equal $tempfile ""]} {::nmwiz::loadNMD $tempfile}}] \
+        if {![string equal $tempfile ""]} {::NMWiz::loadNMD $tempfile}}] \
       -row 3 -column 0 -columnspan 2 -sticky we
 
-    grid [button $wmf.fromol -width 20 -text "From Molecule" -command ::nmwiz::initFromMolecule] \
+    grid [button $wmf.fromol -width 20 -text "From Molecule" -command ::NMWiz::initFromMolecule] \
       -row 5 -column 0 -columnspan 2 -sticky we
 
-    grid [button $wmf.prody -width 20 -text "ProDy Interface" -command ::nmwiz::initProdyGUI] \
+    grid [button $wmf.prody -width 20 -text "ProDy Interface" -command ::NMWiz::initProdyGUI] \
       -row 6 -column 0 -columnspan 2 -sticky we
 
-    grid [button $wmf.compare -width 20 -text "Structure Comparison" -command ::nmwiz::initStrComp] \
+    grid [button $wmf.compare -width 20 -text "Structure Comparison" -command ::NMWiz::initStrComp] \
       -row 7 -column 0 -columnspan 2 -sticky we
 
    
     grid [button $wmf.showhelp -text "Help" \
-        -command {::nmwiz::showHelp main}] \
+        -command {::NMWiz::showHelp main}] \
       -row 8 -column 0 -sticky we
     grid [button $wmf.website -text "Website" \
         -command "vmd_open_url http://www.csb.pitt.edu/NMWiz/"] \
       -row 8 -column 1 -sticky we
     
     if {[molinfo num] > 0} {
-      set ::nmwiz::preserview 1
+      set ::NMWiz::preserview 1
     }
     
     grid [checkbutton $wmf.preserview -text "preserve current view" \
-        -variable ::nmwiz::preserview] \
+        -variable ::NMWiz::preserview] \
       -row 10 -column 0 -columnspan 3 -sticky w
 
     #pack $wmf.options -side top -fill x -expand 1
     pack $wmf -side top -fill x -expand 1
 
-    if {$::nmwiz::guicount > -1} {    
-      for {set i 0} {$i <= $::nmwiz::guicount} {incr i} {
-        set ns "::nmgui$i"
-        if {[namespace exists $ns]} {      
+    #if {$::NMWiz::guicount > -1} {    
+    #  for {set i 0} {$i <= $::NMWiz::guicount} {incr i} {
+    #    set ns "::nmgui$i"
+    #    if {[namespace exists $ns]} {
+        
+        foreach ns [namespace children :: "nmdset*"] {
           set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
           grid [button $wgf.show -text "GUI" \
               -command "${ns}::nmwizgui" ] \
             -row 0 -column 0 -sticky we
           grid [button $wgf.remove -text "Remove" \
-              -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+              -command "lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
             -row 0 -column 1 -sticky we
           grid [button $wgf.save -text "Save" \
-              -command "::nmwiz::writeNMD $ns"] \
+              -command "::NMWiz::writeNMD $ns"] \
             -row 0 -column 2 -sticky we
           pack $wgf -side top -fill x -expand 1
         }
-      }
-    }
+    #    }
+    #  }
+    #}
   }
   
   
@@ -412,29 +416,29 @@ orange3"
       -row 2 -column 1 -sticky w
     grid [frame $wmf.refFrame] \
       -row 2 -column 2 -sticky ew
-    tk_optionMenu $wmf.refFrame.list ::nmwiz::strcompRefMol "" 
+    tk_optionMenu $wmf.refFrame.list ::NMWiz::strcompRefMol "" 
     grid [frame $wmf.tarFrame] \
       -row 2 -column 3 -sticky ew
-    tk_optionMenu $wmf.tarFrame.list ::nmwiz::strcompTarMol "" 
+    tk_optionMenu $wmf.tarFrame.list ::NMWiz::strcompTarMol "" 
     grid [button $wmf.molUpdate -text "Update" \
-        -command ::nmwiz::strcompUpdateMolList] \
+        -command ::NMWiz::strcompUpdateMolList] \
       -row 2 -column 4 -sticky ew
       
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
-    grid [entry $wmf.selstrRefEntry -width 12 -textvariable ::nmwiz::strcompRefSelstr] \
+    grid [entry $wmf.selstrRefEntry -width 12 -textvariable ::NMWiz::strcompRefSelstr] \
       -row 5 -column 2 -sticky ew
-    grid [entry $wmf.selstrTarEntry -width 12 -textvariable ::nmwiz::strcompTarSelstr] \
+    grid [entry $wmf.selstrTarEntry -width 12 -textvariable ::NMWiz::strcompTarSelstr] \
       -row 5 -column 3 -sticky ew
     grid [button $wmf.selUpdate -text "Select" \
-        -command ::nmwiz::strcompUpdateMolinfo] \
+        -command ::NMWiz::strcompUpdateMolinfo] \
       -row 5 -column 4 -sticky ew
       
     grid [label $wmf.frameLabel -text "Frame:"] \
       -row 7 -column 1 -sticky w
-    grid [entry $wmf.frameRefEntry -width 4 -textvariable ::nmwiz::strcompRefFrame] \
+    grid [entry $wmf.frameRefEntry -width 4 -textvariable ::NMWiz::strcompRefFrame] \
       -row 7 -column 2 -sticky w
-    grid [entry $wmf.frameTarEntry -width 4 -textvariable ::nmwiz::strcompTarFrame] \
+    grid [entry $wmf.frameTarEntry -width 4 -textvariable ::NMWiz::strcompTarFrame] \
       -row 7 -column 3 -sticky w
 
     grid [label $wmf.selinfoLbl -text "Information:"] \
@@ -447,21 +451,21 @@ orange3"
       -row 8 -column 4 -sticky w
       
     grid [button $wmf.showHelp -text "Help" \
-        -command {::nmwiz::showHelp compare}] \
+        -command {::NMWiz::showHelp compare}] \
       -row 12 -column 1 -sticky we
     grid [button $wmf.rmsdUpdate -text "RMSD" \
-        -command ::nmwiz::strcompRMSD] \
+        -command ::NMWiz::strcompRMSD] \
       -row 12 -column 2 -sticky ew
     grid [button $wmf.align -text "Align" \
-        -command ::nmwiz::strcompAlign] \
+        -command ::NMWiz::strcompAlign] \
       -row 12 -column 3 -sticky ew
     grid [button $wmf.prodySubmit -text "Calculate" \
-        -command ::nmwiz::calcDeform] \
+        -command ::NMWiz::calcDeform] \
       -row 12 -column 4 -sticky we
       
     pack $wmf -side top -fill x -expand 1
-    ::nmwiz::strcompUpdateMolList
-    ::nmwiz::strcompUpdateMolinfo
+    ::NMWiz::strcompUpdateMolList
+    ::NMWiz::strcompUpdateMolinfo
 
 
   }
@@ -484,9 +488,9 @@ orange3"
       -row 2 -column 1 -sticky w
     grid [frame $wmf.molFrame] \
       -row 2 -column 2 -sticky ew
-    tk_optionMenu $wmf.molFrame.list ::nmwiz::fromolMolecule "" 
+    tk_optionMenu $wmf.molFrame.list ::NMWiz::fromolMolecule "" 
     grid [button $wmf.molUpdate -text "Update" \
-        -command ::nmwiz::fromolUpdateMolList] \
+        -command ::NMWiz::fromolUpdateMolList] \
       -row 2 -column 3 -sticky ew
       
     grid [label $wmf.molinfoLbl -text "Information:"] \
@@ -496,10 +500,10 @@ orange3"
     
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
-    grid [entry $wmf.selstrEntry -width 20 -textvariable ::nmwiz::fromolSelstr] \
+    grid [entry $wmf.selstrEntry -width 20 -textvariable ::NMWiz::fromolSelstr] \
       -row 5 -column 2 -sticky ew
     grid [button $wmf.selUpdate -text "Select" \
-        -command ::nmwiz::fromolUpdateSelection] \
+        -command ::NMWiz::fromolUpdateSelection] \
       -row 5 -column 3 -sticky ew
       
     grid [label $wmf.selinfoLbl -text "Information:"] \
@@ -509,29 +513,29 @@ orange3"
 
     grid [label $wmf.frameLabel -text "Coordinate frame:"] \
       -row 7 -column 1 -sticky w
-    grid [entry $wmf.frameEntry -width 4 -textvariable ::nmwiz::fromolFrame] \
+    grid [entry $wmf.frameEntry -width 4 -textvariable ::NMWiz::fromolFrame] \
       -row 7 -column 2 -sticky w
     
     grid [label $wmf.firstLabel -text "First mode frame:"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wmf.firstEntry -width 4 -textvariable ::nmwiz::fromolFirstFrame] \
+    grid [entry $wmf.firstEntry -width 4 -textvariable ::NMWiz::fromolFirstFrame] \
       -row 8 -column 2 -sticky w
     
     grid [label $wmf.lastLabel -text "Last mode frame:"] \
       -row 10 -column 1 -sticky w
-    grid [entry $wmf.lastEntry -width 4 -textvariable ::nmwiz::fromolLastFrame] \
+    grid [entry $wmf.lastEntry -width 4 -textvariable ::NMWiz::fromolLastFrame] \
       -row 10 -column 2 -sticky w
       
     grid [button $wmf.showHelp -text "Help" \
-        -command {::nmwiz::showHelp frommolecule}] \
+        -command {::NMWiz::showHelp frommolecule}] \
       -row 12 -column 1 -sticky we
     grid [button $wmf.prodySubmit -text "Load data from molecule" \
-        -command ::nmwiz::fromMolecule] \
+        -command ::NMWiz::fromMolecule] \
       -row 12 -column 2 -columnspan 2 -sticky we
       
     pack $wmf -side top -fill x -expand 1
-    ::nmwiz::fromolUpdateMolList
-    ::nmwiz::fromolUpdateMolinfo
+    ::NMWiz::fromolUpdateMolList
+    ::NMWiz::fromolUpdateMolinfo
 
   }
 
@@ -553,9 +557,9 @@ orange3"
       -row 2 -column 1 -sticky w
     grid [frame $wmf.molFrame] \
       -row 2 -column 2 -sticky ew
-    tk_optionMenu $wmf.molFrame.list ::nmwiz::prodyMolecule "" 
+    tk_optionMenu $wmf.molFrame.list ::NMWiz::prodyMolecule "" 
     grid [button $wmf.molUpdate -text "Update" \
-        -command ::nmwiz::prodyUpdateMolList] \
+        -command ::NMWiz::prodyUpdateMolList] \
       -row 2 -column 3 -sticky ew
     
     grid [label $wmf.molinfoLbl -text "Information:"] \
@@ -565,10 +569,10 @@ orange3"
     
     grid [label $wmf.selstrLabel -text "Selection:"] \
       -row 5 -column 1 -sticky w
-    grid [entry $wmf.selstrEntry -width 20 -textvariable ::nmwiz::prodySelstr] \
+    grid [entry $wmf.selstrEntry -width 20 -textvariable ::NMWiz::prodySelstr] \
       -row 5 -column 2 -sticky ew
     grid [button $wmf.selUpdate -text "Select" \
-        -command ::nmwiz::prodyUpdateSelection] \
+        -command ::NMWiz::prodyUpdateSelection] \
       -row 5 -column 3 -sticky ew
       
     grid [label $wmf.selinfoLbl -text "Information:"] \
@@ -577,8 +581,8 @@ orange3"
       -row 6 -column 2 -columnspan 2 -sticky w
     
     pack $wmf -side top -fill x -expand 1
-    ::nmwiz::prodyUpdateMolList
-    ::nmwiz::prodyUpdateMolinfo
+    ::NMWiz::prodyUpdateMolList
+    ::NMWiz::prodyUpdateMolinfo
      
     # ProDy job frame
     set wf [labelframe $prodyGUI.jobFrame -text "ProDy Job Settings" -bd 2]
@@ -587,12 +591,12 @@ orange3"
       -row 7 -column 1 -sticky w
     grid [frame $wf.scriptFrame] \
       -row 7 -column 2 -columnspan 2 -sticky ew
-    tk_optionMenu $wf.scriptFrame.list ::nmwiz::prodyTask "ANM calculation" 
+    tk_optionMenu $wf.scriptFrame.list ::NMWiz::prodyTask "ANM calculation" 
     $wf.scriptFrame.list.menu delete 0 last
     foreach script "ANM GNM PCA" {
       $wf.scriptFrame.list.menu add radiobutton -label "$script calculation" \
-          -variable ::nmwiz::prodyTask \
-          -command "set ::nmwiz::prodyScript $script; ::nmwiz::prodyChangeTask; ::nmwiz::prodyUpdatePrefix"
+          -variable ::NMWiz::prodyTask \
+          -command "set ::NMWiz::prodyScript $script; ::NMWiz::prodyChangeTask; ::NMWiz::prodyUpdatePrefix"
       incr counter  
     }
     pack $wf.scriptFrame.list -side left -anchor w -fill x
@@ -600,22 +604,22 @@ orange3"
 
     grid [label $wf.outdLabel -text "Output directory:"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wf.outdEntry -width 16 -textvariable ::nmwiz::outputdir] \
+    grid [entry $wf.outdEntry -width 16 -textvariable ::NMWiz::outputdir] \
       -row 8 -column 2 -sticky ew
     grid [button $wf.outdBrowse -text "Browse" \
         -command {
-      set tempdir [tk_chooseDirectory -initialdir $::nmwiz::outputdir ]
-        if {![string equal $tempdir ""]} {set ::nmwiz::outputdir $tempdir}
+      set tempdir [tk_chooseDirectory -initialdir $::NMWiz::outputdir ]
+        if {![string equal $tempdir ""]} {set ::NMWiz::outputdir $tempdir}
         }] \
       -row 8 -column 3 -sticky ew
 
     grid [label $wf.filepLabel -text "Output filename:"] \
       -row 9 -column 1 -sticky w
-    grid [entry $wf.filepEntry -width 20 -textvariable ::nmwiz::prodyPrefix] \
+    grid [entry $wf.filepEntry -width 20 -textvariable ::NMWiz::prodyPrefix] \
       -row 9 -column 2 -columnspan 2 -sticky we
 
     grid [checkbutton $wf.rmfileEntry -text "remove coordinate file upon job completion." \
-        -variable ::nmwiz::prodyRmCoords] \
+        -variable ::NMWiz::prodyRmCoords] \
       -row 10 -column 1 -columnspan 3 -sticky w
 
     pack $wf -side top -fill x -expand 1
@@ -625,45 +629,45 @@ orange3"
     set wf [labelframe $prodyGUI.anmFrame -text "ANM Settings" -bd 2]
     grid [label $wf.modesLabel -text "Number of modes:"] \
       -row 6 -column 1 -sticky w
-    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
+    grid [entry $wf.modesEntry -width 4 -textvariable ::NMWiz::prodyNModes] \
       -row 6 -column 2 -sticky w   
     pack $wf -side top -fill x -expand 1
     
     grid [label $wf.frameLabel -text "Frame number:"] \
       -row 6 -column 3 -sticky w
-    grid [entry $wf.frameEntry -width 4 -textvariable ::nmwiz::prodyFrame] \
+    grid [entry $wf.frameEntry -width 4 -textvariable ::NMWiz::prodyFrame] \
       -row 6 -column 4 -sticky w
 
     grid [label $wf.cutoffLabel -text "Cutoff distance (A):"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wf.cutoffEntry -width 4 -textvariable ::nmwiz::prodyCutoff] \
+    grid [entry $wf.cutoffEntry -width 4 -textvariable ::NMWiz::prodyCutoff] \
       -row 8 -column 2 -sticky w
 
     grid [label $wf.gammaLabel -text "Force constant:"] \
       -row 8 -column 3 -sticky w
-    grid [entry $wf.gammaEntry -width 4 -textvariable ::nmwiz::prodyGamma] \
+    grid [entry $wf.gammaEntry -width 4 -textvariable ::NMWiz::prodyGamma] \
       -row 8 -column 4 -sticky w    
 
     # GNM frame
     set wf [labelframe $prodyGUI.gnmFrame -text "GNM Settings" -bd 2]
     grid [label $wf.modesLabel -text "Number of modes:"] \
       -row 6 -column 1 -sticky w
-    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
+    grid [entry $wf.modesEntry -width 4 -textvariable ::NMWiz::prodyNModes] \
       -row 6 -column 2 -sticky w   
     
     grid [label $wf.frameLabel -text "Frame number:"] \
       -row 6 -column 3 -sticky w
-    grid [entry $wf.frameEntry -width 4 -textvariable ::nmwiz::prodyFrame] \
+    grid [entry $wf.frameEntry -width 4 -textvariable ::NMWiz::prodyFrame] \
       -row 6 -column 4 -sticky w
 
     grid [label $wf.cutoffLabel -text "Cutoff distance (A):"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wf.cutoffEntry -width 4 -textvariable ::nmwiz::prodyGNMCutoff] \
+    grid [entry $wf.cutoffEntry -width 4 -textvariable ::NMWiz::prodyGNMCutoff] \
       -row 8 -column 2 -sticky w
 
     grid [label $wf.gammaLabel -text "Force constant:"] \
       -row 8 -column 3 -sticky w
-    grid [entry $wf.gammaEntry -width 4 -textvariable ::nmwiz::prodyGamma] \
+    grid [entry $wf.gammaEntry -width 4 -textvariable ::NMWiz::prodyGamma] \
       -row 8 -column 4 -sticky w    
 
     # PCA frame
@@ -671,51 +675,48 @@ orange3"
     
     grid [label $wf.modesLabel -text "Number of modes:"] \
       -row 6 -column 1 -sticky w
-    grid [entry $wf.modesEntry -width 4 -textvariable ::nmwiz::prodyNModes] \
+    grid [entry $wf.modesEntry -width 4 -textvariable ::NMWiz::prodyNModes] \
       -row 6 -column 2 -sticky w
       
     grid [label $wf.skipLabel -text "Skip frame:"] \
       -row 6 -column 3 -sticky w
-    grid [entry $wf.skipEntry -width 4 -textvariable ::nmwiz::prodySkipFrame] \
+    grid [entry $wf.skipEntry -width 4 -textvariable ::NMWiz::prodySkipFrame] \
       -row 6 -column 4 -sticky w
 
     grid [label $wf.firstLabel -text "First frame:"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wf.firstEntry -width 4 -textvariable ::nmwiz::prodyFirstFrame] \
+    grid [entry $wf.firstEntry -width 4 -textvariable ::NMWiz::prodyFirstFrame] \
       -row 8 -column 2 -sticky w    
 
     grid [label $wf.lastLabel -text "Last frame:"] \
       -row 8 -column 3 -sticky w
-    grid [entry $wf.lastEntry -width 4 -textvariable ::nmwiz::prodyLastFrame] \
+    grid [entry $wf.lastEntry -width 4 -textvariable ::NMWiz::prodyLastFrame] \
       -row 8 -column 4 -sticky w
 
     grid [label $wf.filetypeLabel -text "Trajectory file type:"] \
       -row 10 -column 1 -sticky w
     grid [frame $wf.filetypeFrame] \
       -row 10 -column 2 -columnspan 3 -sticky ew
-    tk_optionMenu $wf.filetypeFrame.list ::nmwiz::prodyPCAfiletype "dcd" 
+    tk_optionMenu $wf.filetypeFrame.list ::NMWiz::prodyPCAfiletype "dcd" 
     $wf.filetypeFrame.list.menu delete 0 last
     foreach script "DCD PDB" {
       $wf.filetypeFrame.list.menu add radiobutton -label "$script file" \
-          -variable ::nmwiz::prodyPCAfiletype \
-          -command "set ::nmwiz::prodyPCAfile $script;"
+          -variable ::NMWiz::prodyPCAfiletype \
+          -command "set ::NMWiz::prodyPCAfile $script;"
       incr counter  
     }
     pack $wf.filetypeFrame.list -side left -anchor w -fill x
     variable prodyPCAfiletype "DCD file"
 
 
-
-      
-      
     # Submit button
     set wf [frame $prodyGUI.submitFrame -bd 2]
       
     grid [button $wf.showHelp -text "Help" \
-        -command {::nmwiz::showHelp prody}] \
+        -command {::NMWiz::showHelp prody}] \
       -row 0 -column 0 -sticky we
     grid [button $wf.prodySubmit -text "Submit Job" \
-        -command ::nmwiz::prodySubmitJob] \
+        -command ::NMWiz::prodySubmitJob] \
       -row 0 -column 1 -sticky we
     grid [button $wf.prodyWebsite -text "ProDy Website" \
         -command "vmd_open_url http://www.csb.pitt.edu/ProDy"] \
@@ -735,18 +736,18 @@ orange3"
         if {$counter == 0} {
           variable prodyMolid $id
         }
-        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
-            -variable ::nmwiz::prodyMolecule \
-            -command "set ::nmwiz::prodyMolid $id; ::nmwiz::prodyUpdateMolinfo"
+        $wf.molFrame.list.menu add radiobutton -label "[::NMWiz::cleanMolName $id] ($id)" \
+            -variable ::NMWiz::prodyMolecule \
+            -command "set ::NMWiz::prodyMolid $id; ::NMWiz::prodyUpdateMolinfo"
         incr counter  
       }
     }
     pack $wf.molFrame.list -side left -anchor w -fill x
     variable prodyMolid
     if {$prodyMolid > -1} {
-      variable prodyMolecule "[::nmwiz::cleanMolName $prodyMolid] ($prodyMolid)"
+      variable prodyMolecule "[::NMWiz::cleanMolName $prodyMolid] ($prodyMolid)"
     }
-    ::nmwiz::prodyUpdateMolinfo
+    ::NMWiz::prodyUpdateMolinfo
   }
 
   proc strcompUpdateMolList {} {
@@ -763,58 +764,58 @@ orange3"
           variable strcompRefid $id
           variable strcompTarid $id
         }
-        $wf.refFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
-            -variable ::nmwiz::strcompRefMolecule \
-            -command "set ::nmwiz::strcompRefid $id; ::nmwiz::strcompUpdateMolinfo"
-        $wf.tarFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
-            -variable ::nmwiz::strcompTarMolecule \
-            -command "set ::nmwiz::strcompTarid $id; ::nmwiz::strcompUpdateMolinfo"
+        $wf.refFrame.list.menu add radiobutton -label "[::NMWiz::cleanMolName $id] ($id)" \
+            -variable ::NMWiz::strcompRefMolecule \
+            -command "set ::NMWiz::strcompRefid $id; ::NMWiz::strcompUpdateMolinfo"
+        $wf.tarFrame.list.menu add radiobutton -label "[::NMWiz::cleanMolName $id] ($id)" \
+            -variable ::NMWiz::strcompTarMolecule \
+            -command "set ::NMWiz::strcompTarid $id; ::NMWiz::strcompUpdateMolinfo"
         incr counter  
       }
     }
     pack $wf.refFrame.list -side left -anchor w -fill x
     pack $wf.tarFrame.list -side left -anchor w -fill x
     if {$strcompTarid > -1} {
-      variable strcompTarMol "[::nmwiz::cleanMolName $strcompTarid] ($strcompTarid)"
-      variable strcompRefMol "[::nmwiz::cleanMolName $strcompRefid] ($strcompRefid)"
+      variable strcompTarMol "[::NMWiz::cleanMolName $strcompTarid] ($strcompTarid)"
+      variable strcompRefMol "[::NMWiz::cleanMolName $strcompRefid] ($strcompRefid)"
     }
-    ::nmwiz::strcompUpdateMolinfo
+    ::NMWiz::strcompUpdateMolinfo
   }
   
   proc strcompUpdateMolinfo {} {
     variable strcompRefid
     variable strcompTarid
     if {$strcompRefid > -1} {
-      set ::nmwiz::strcompRefMol "[::nmwiz::cleanMolName $strcompRefid] ($strcompRefid)"
-      set ref [atomselect $strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
-      set ::nmwiz::strcompRefN [$ref num]
+      set ::NMWiz::strcompRefMol "[::NMWiz::cleanMolName $strcompRefid] ($strcompRefid)"
+      set ref [atomselect $strcompRefid "$::NMWiz::strcompRefSelstr" frame $::NMWiz::strcompRefFrame]
+      set ::NMWiz::strcompRefN [$ref num]
       .nmwizstrcomp.mainFrame.selinfoRefLabel configure \
-        -text "$::nmwiz::strcompRefN selected"
+        -text "$::NMWiz::strcompRefN selected"
       $ref delete
     } else {
-      set ::nmwiz::strcompRefMol ""
+      set ::NMWiz::strcompRefMol ""
       .nmwizstrcomp.mainFrame.selinfoRefLabel configure \
         -text "0 selected"
     }
     if {$strcompTarid > -1} {
-      set ::nmwiz::strcompTarMol "[::nmwiz::cleanMolName $strcompTarid] ($strcompTarid)"
-      set tar [atomselect $strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
-      set ::nmwiz::strcompTarN [$tar num]
+      set ::NMWiz::strcompTarMol "[::NMWiz::cleanMolName $strcompTarid] ($strcompTarid)"
+      set tar [atomselect $strcompTarid "$::NMWiz::strcompTarSelstr" frame $::NMWiz::strcompTarFrame]
+      set ::NMWiz::strcompTarN [$tar num]
       .nmwizstrcomp.mainFrame.selinfoTarLabel configure \
-        -text "$::nmwiz::strcompTarN selected"
+        -text "$::NMWiz::strcompTarN selected"
       $tar delete
     } else {
-      set ::nmwiz::strcompTarMol ""
+      set ::NMWiz::strcompTarMol ""
       .nmwizstrcomp.mainFrame.selinfoTarLabel configure \
         -text "0 selected"
     }
     
   }
   proc strcompAlign {} {
-    set ref [atomselect $::nmwiz::strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
-    set tar [atomselect $::nmwiz::strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
+    set ref [atomselect $::NMWiz::strcompRefid "$::NMWiz::strcompRefSelstr" frame $::NMWiz::strcompRefFrame]
+    set tar [atomselect $::NMWiz::strcompTarid "$::NMWiz::strcompTarSelstr" frame $::NMWiz::strcompTarFrame]
     if {[$ref num] == [$tar num]} {
-      set all [atomselect $::nmwiz::strcompTarid "all" frame $::nmwiz::strcompTarFrame]
+      set all [atomselect $::NMWiz::strcompTarid "all" frame $::NMWiz::strcompTarFrame]
       $all move [measure fit $tar $ref]
       .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
         -text "RMSD = [format %.2f [measure rmsd $ref $tar]] A"
@@ -827,8 +828,8 @@ orange3"
     $ref delete
   }  
   proc strcompRMSD {} {
-    set ref [atomselect $::nmwiz::strcompRefid "$::nmwiz::strcompRefSelstr" frame $::nmwiz::strcompRefFrame]
-    set tar [atomselect $::nmwiz::strcompTarid "$::nmwiz::strcompTarSelstr" frame $::nmwiz::strcompTarFrame]
+    set ref [atomselect $::NMWiz::strcompRefid "$::NMWiz::strcompRefSelstr" frame $::NMWiz::strcompRefFrame]
+    set tar [atomselect $::NMWiz::strcompTarid "$::NMWiz::strcompTarSelstr" frame $::NMWiz::strcompTarFrame]
     if {[$ref num] == [$tar num]} {
       .nmwizstrcomp.mainFrame.selinfoRMSDLabel configure \
         -text "RMSD = [format %.2f [measure rmsd $ref $tar]] A"
@@ -852,48 +853,48 @@ orange3"
         if {$counter == 0} {
           variable fromolMolid $id
         }
-        $wf.molFrame.list.menu add radiobutton -label "[::nmwiz::cleanMolName $id] ($id)" \
-            -variable ::nmwiz::fromolMolecule \
-            -command "set ::nmwiz::fromolMolid $id; ::nmwiz::fromolUpdateMolinfo"
+        $wf.molFrame.list.menu add radiobutton -label "[::NMWiz::cleanMolName $id] ($id)" \
+            -variable ::NMWiz::fromolMolecule \
+            -command "set ::NMWiz::fromolMolid $id; ::NMWiz::fromolUpdateMolinfo"
         incr counter  
       }
     }
     pack $wf.molFrame.list -side left -anchor w -fill x
     variable fromolMolid
     if {$fromolMolid > -1} {
-      variable fromolMolecule "[::nmwiz::cleanMolName $fromolMolid] ($fromolMolid)"
+      variable fromolMolecule "[::NMWiz::cleanMolName $fromolMolid] ($fromolMolid)"
     } 
-    ::nmwiz::fromolUpdateMolinfo
+    ::NMWiz::fromolUpdateMolinfo
   }
 
   
   proc prodyCheckMolecule {} {
-    if {[lsearch [molinfo list] $::nmwiz::prodyMolid] > -1 && [molinfo $::nmwiz::prodyMolid get numframes] > 0} {
+    if {[lsearch [molinfo list] $::NMWiz::prodyMolid] > -1 && [molinfo $::NMWiz::prodyMolid get numframes] > 0} {
       return 1
     } 
-    ::nmwiz::prodyUpdateMolList
+    ::NMWiz::prodyUpdateMolList
     return 0
   }
   
   proc fromolCheckMolecule {} {
-    if {[lsearch [molinfo list] $::nmwiz::fromolMolid] > -1 && [molinfo $::nmwiz::fromolMolid get numframes] > 1} {
+    if {[lsearch [molinfo list] $::NMWiz::fromolMolid] > -1 && [molinfo $::NMWiz::fromolMolid get numframes] > 1} {
       return 1
     }
-    ::nmwiz::fromolUpdateMolList
+    ::NMWiz::fromolUpdateMolList
     return 0
   }
   
   proc prodyUpdateMolinfo {} {
     variable prodyMolid
     if {$prodyMolid > -1} {
-      variable prodyMolecule "[::nmwiz::cleanMolName $prodyMolid] ($prodyMolid)"
-      set ::nmwiz::prodyNFrames [molinfo $::nmwiz::prodyMolid get numframes]
+      variable prodyMolecule "[::NMWiz::cleanMolName $prodyMolid] ($prodyMolid)"
+      set ::NMWiz::prodyNFrames [molinfo $::NMWiz::prodyMolid get numframes]
       .nmwizprody.mainFrame.molinfoLabel configure \
-        -text "[molinfo $::nmwiz::prodyMolid get numatoms] atoms, $::nmwiz::prodyNFrames frames"
-      ::nmwiz::prodyUpdateSelection
-      ::nmwiz::prodyUpdatePrefix
+        -text "[molinfo $::NMWiz::prodyMolid get numatoms] atoms, $::NMWiz::prodyNFrames frames"
+      ::NMWiz::prodyUpdateSelection
+      ::NMWiz::prodyUpdatePrefix
     } else {
-      set ::nmwiz::prodyNFrames 0
+      set ::NMWiz::prodyNFrames 0
       variable fromolMolecule ""
       .nmwizprody.mainFrame.molinfoLabel configure \
         -text "Load a molecule and click Update."
@@ -905,14 +906,14 @@ orange3"
   proc fromolUpdateMolinfo {} {
     variable fromolMolid
     if {$fromolMolid > -1} {
-      variable fromolMolecule "[::nmwiz::cleanMolName $fromolMolid] ($fromolMolid)"
-      set ::nmwiz::fromolNFrames [molinfo $::nmwiz::fromolMolid get numframes]
+      variable fromolMolecule "[::NMWiz::cleanMolName $fromolMolid] ($fromolMolid)"
+      set ::NMWiz::fromolNFrames [molinfo $::NMWiz::fromolMolid get numframes]
       .nmwizfromol.mainFrame.molinfoLabel configure \
-        -text "[molinfo $::nmwiz::fromolMolid get numatoms] atoms, $::nmwiz::fromolNFrames frames"
-      ::nmwiz::fromolUpdateSelection
+        -text "[molinfo $::NMWiz::fromolMolid get numatoms] atoms, $::NMWiz::fromolNFrames frames"
+      ::NMWiz::fromolUpdateSelection
     } else {
-      set ::nmwiz::fromolMolecule ""
-      set ::nmwiz::fromolNFrames 0
+      set ::NMWiz::fromolMolecule ""
+      set ::NMWiz::fromolNFrames 0
       .nmwizfromol.mainFrame.molinfoLabel configure \
         -text "Load a molecule and click Update."
       .nmwizfromol.mainFrame.selinfoLabel configure \
@@ -922,18 +923,18 @@ orange3"
   }
   
   proc prodyUpdatePrefix {} {
-    if {[::nmwiz::prodyCheckMolecule]} {
-      set prefix [::nmwiz::cleanMolName $::nmwiz::prodyMolid]
+    if {[::NMWiz::prodyCheckMolecule]} {
+      set prefix [::NMWiz::cleanMolName $::NMWiz::prodyMolid]
       
       if {[string range $prefix [expr [string length $prefix] - 4] end] == ".pdb"} {
         set prefix [string range $prefix 0 [expr [string length $prefix] - 5]]
       }
-      if {$::nmwiz::prodyScript == "ANM"} {
-        set ::nmwiz::prodyPrefix "$prefix\_anm"
-      } elseif {$::nmwiz::prodyScript == "GNM"} {
-        set ::nmwiz::prodyPrefix "$prefix\_gnm"
+      if {$::NMWiz::prodyScript == "ANM"} {
+        set ::NMWiz::prodyPrefix "$prefix\_anm"
+      } elseif {$::NMWiz::prodyScript == "GNM"} {
+        set ::NMWiz::prodyPrefix "$prefix\_gnm"
       } else {
-        set ::nmwiz::prodyPrefix "$prefix\_pca"
+        set ::NMWiz::prodyPrefix "$prefix\_pca"
       }
     }
   }
@@ -958,7 +959,7 @@ orange3"
   }
   
   proc prodyUpdateSelection {} {
-    ::nmwiz::prodyCheckMolecule
+    ::NMWiz::prodyCheckMolecule
     variable prodyMolid
     variable prodySelstr
     set sel [atomselect $prodyMolid $prodySelstr]
@@ -970,7 +971,7 @@ orange3"
   }
   
   proc fromolUpdateSelection {} {
-    ::nmwiz::fromolCheckMolecule
+    ::NMWiz::fromolCheckMolecule
     variable fromolMolid
     variable fromolGUI
     if {$fromolMolid > -1} {
@@ -1013,74 +1014,74 @@ orange3"
   
   proc prodySubmitJob {} {
     
-    set ::nmwiz::pybin [::ExecTool::find -interactive -description "Python executable" python]
-    set ::nmwiz::prody [::ExecTool::find -interactive -description "ProDy script" prody]
+    set ::NMWiz::pybin [::ExecTool::find -interactive -description "Python executable" python]
+    set ::NMWiz::prody [::ExecTool::find -interactive -description "ProDy script" prody]
   
-    if {$::nmwiz::prodySelAtoms == 0} {
+    if {$::NMWiz::prodySelAtoms == 0} {
       tk_messageBox -type ok -title "ERROR" \
         -message "You need to make an atom selection before you can submit a job."
       return 
     }
-    if {!([string is digit $::nmwiz::prodyNModes] && $::nmwiz::prodyNModes > 0)} {
+    if {!([string is digit $::NMWiz::prodyNModes] && $::NMWiz::prodyNModes > 0)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Number of modes must be a number larger than 0."
       return 
     }
-    if {![file isdirectory $::nmwiz::outputdir]} {
+    if {![file isdirectory $::NMWiz::outputdir]} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "$::nmwiz::outputdir is not a valid directory."
+        -message "$::NMWiz::outputdir is not a valid directory."
       return 
     }
     
-    if {$::nmwiz::prodyScript == "ANM"} {
-      ::nmwiz::prodySubmitANMjob
-    } elseif {$::nmwiz::prodyScript == "GNM"} {
-      ::nmwiz::prodySubmitGNMjob
+    if {$::NMWiz::prodyScript == "ANM"} {
+      ::NMWiz::prodySubmitANMjob
+    } elseif {$::NMWiz::prodyScript == "GNM"} {
+      ::NMWiz::prodySubmitGNMjob
     } else {
-      ::nmwiz::prodySubmitPCAjob
+      ::NMWiz::prodySubmitPCAjob
     }
   }
   proc prodySubmitANMjob {} {
-    set n_frames [molinfo $::nmwiz::prodyMolid get numframes]
-    if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
-        $::nmwiz::prodyFrame < $n_frames)} {
+    set n_frames [molinfo $::NMWiz::prodyMolid get numframes]
+    if {!([string is digit $::NMWiz::prodyFrame] && $::NMWiz::prodyFrame >= 0 && 
+        $::NMWiz::prodyFrame < $n_frames)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Frame number must be an integer from 0 to [expr $n_frames - 1]."
       return 
     }
-    if {!([string is double $::nmwiz::prodyCutoff] && $::nmwiz::prodyCutoff > 4.5)} {
+    if {!([string is double $::NMWiz::prodyCutoff] && $::NMWiz::prodyCutoff > 4.5)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Cutoff distance (A) must be a number greater than 4.5."
       return 
     }
-    if {!([string is double $::nmwiz::prodyGamma] && $::nmwiz::prodyGamma > 0)} {
+    if {!([string is double $::NMWiz::prodyGamma] && $::NMWiz::prodyGamma > 0)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Force constant must be a positive number."
       return 
     }
-    set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.pdb]
-    set sel [atomselect $::nmwiz::prodyMolid $::nmwiz::prodySelstr]
-    $sel frame $::nmwiz::prodyFrame
+    set pdbfn [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix.pdb]
+    set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    $sel frame $::NMWiz::prodyFrame
     $sel writepdb $pdbfn
     $sel delete
     
     set allnum ""
-    if {$::nmwiz::prodyAllnum} {
+    if {$::NMWiz::prodyAllnum} {
       set allnum "-a"
     } 
     set allfig ""
-    if {$::nmwiz::prodyAllfig} {
+    if {$::NMWiz::prodyAllfig} {
       set allfig "-A"
     }    
-    set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
-    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::prody anm --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
-    set status [exec $::nmwiz::pybin $::nmwiz::prody anm --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
+    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]    
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s \"all\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
+    set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
 
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy ANM calculation is finished and results are being loaded."
-      ::nmwiz::loadNMD "$prefix.nmd"
-      if {$::nmwiz::prodyRmCoords} {
+      ::NMWiz::loadNMD "$prefix.nmd"
+      if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       }
     }  else {
@@ -1090,46 +1091,46 @@ orange3"
     }
   }  
   proc prodySubmitGNMjob {} {
-    set n_frames [molinfo $::nmwiz::prodyMolid get numframes]
-    if {!([string is digit $::nmwiz::prodyFrame] && $::nmwiz::prodyFrame >= 0 && 
-        $::nmwiz::prodyFrame < $n_frames)} {
+    set n_frames [molinfo $::NMWiz::prodyMolid get numframes]
+    if {!([string is digit $::NMWiz::prodyFrame] && $::NMWiz::prodyFrame >= 0 && 
+        $::NMWiz::prodyFrame < $n_frames)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Frame number must be an integer from 0 to [expr $n_frames - 1]."
       return 
     }
-    if {!([string is double $::nmwiz::prodyGNMCutoff] && $::nmwiz::prodyGNMCutoff > 4.5)} {
+    if {!([string is double $::NMWiz::prodyGNMCutoff] && $::NMWiz::prodyGNMCutoff > 4.5)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Cutoff distance (A) must be a number greater than 4.5."
       return 
     }
-    if {!([string is double $::nmwiz::prodyGamma] && $::nmwiz::prodyGamma > 0)} {
+    if {!([string is double $::NMWiz::prodyGamma] && $::NMWiz::prodyGamma > 0)} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Force constant must be a positive number."
       return 
     }
-    set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.pdb]
-    set sel [atomselect $::nmwiz::prodyMolid $::nmwiz::prodySelstr]
-    $sel frame $::nmwiz::prodyFrame
+    set pdbfn [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix.pdb]
+    set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    $sel frame $::NMWiz::prodyFrame
     $sel writepdb $pdbfn
     $sel delete
     
     set allnum ""
-    if {$::nmwiz::prodyAllnum} {
+    if {$::NMWiz::prodyAllnum} {
       set allnum "-a"
     } 
     set allfig ""
-    if {$::nmwiz::prodyAllfig} {
+    if {$::NMWiz::prodyAllfig} {
       set allfig "-A"
     }    
-    set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]    
-    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::prody gnm --quiet -s \"all\" -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma \"$pdbfn\""
-    set status [exec $::nmwiz::pybin $::nmwiz::prody gnm --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes -c $::nmwiz::prodyGNMCutoff -g $::nmwiz::prodyGamma "$pdbfn"]
+    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]    
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s \"all\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
+    set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
 
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy GNM calculation is finished and results are being loaded."
-      ::nmwiz::loadNMD "$prefix.nmd"
-      if {$::nmwiz::prodyRmCoords} {
+      ::NMWiz::loadNMD "$prefix.nmd"
+      if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       } 
     }  else {
@@ -1139,60 +1140,60 @@ orange3"
     }
   }  
   proc prodySubmitPCAjob {} {
-    if {$::nmwiz::prodyNFrames < 2} {
+    if {$::NMWiz::prodyNFrames < 2} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Selected molecule must have more than 1 frames for PCA calculations."
       return       
     }
-    if {!([string is digit $::nmwiz::prodyFirstFrame] && $::nmwiz::prodyFirstFrame >= 0 && 
-        $::nmwiz::prodyFirstFrame < [molinfo $::nmwiz::prodyMolid get numframes])} {
+    if {!([string is digit $::NMWiz::prodyFirstFrame] && $::NMWiz::prodyFirstFrame >= 0 && 
+        $::NMWiz::prodyFirstFrame < [molinfo $::NMWiz::prodyMolid get numframes])} {
       tk_messageBox -type ok -title "ERROR" \
         -message "First frame must be a number and must be in the valid range."
       return 
     }
-    if {!([string is digit $::nmwiz::prodySkipFrame] && $::nmwiz::prodySkipFrame >= 0 && 
-        $::nmwiz::prodySkipFrame < [molinfo $::nmwiz::prodyMolid get numframes])} {
+    if {!([string is digit $::NMWiz::prodySkipFrame] && $::NMWiz::prodySkipFrame >= 0 && 
+        $::NMWiz::prodySkipFrame < [molinfo $::NMWiz::prodyMolid get numframes])} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Skip frame must be a number and must be in the valid range."
       return 
     }
-    if {!($::nmwiz::prodyLastFrame == "end" || ([string is digit $::nmwiz::prodyLastFrame]
-       && $::nmwiz::prodyLastFrame > 0 && $::nmwiz::prodyLastFrame < [molinfo $::nmwiz::prodyMolid get numframes]))} {
+    if {!($::NMWiz::prodyLastFrame == "end" || ([string is digit $::NMWiz::prodyLastFrame]
+       && $::NMWiz::prodyLastFrame > 0 && $::NMWiz::prodyLastFrame < [molinfo $::NMWiz::prodyMolid get numframes]))} {
       tk_messageBox -type ok -title "ERROR" \
         -message "Last frame may be \"end\" or a number in the valid range."
       return 
     }
-    set sel [atomselect $::nmwiz::prodyMolid $::nmwiz::prodySelstr]
-    set pdbfn [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix.[string tolower $::nmwiz::prodyPCAfile]]
-    set end $::nmwiz::prodyLastFrame 
+    set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    set pdbfn [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix.[string tolower $::NMWiz::prodyPCAfile]]
+    set end $::NMWiz::prodyLastFrame 
     if {$end == "end"} {
-      set end [expr $::nmwiz::prodyNFrames -1]
+      set end [expr $::NMWiz::prodyNFrames -1]
     }
-    #vmdcon -info "animate write pdb $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid"
-    if {$::nmwiz::prodyPCAfile == "DCD"} {
-      set nwritten [animate write dcd $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid]
+    #vmdcon -info "animate write pdb $pdbfn beg $::NMWiz::prodyFirstFrame end $end skip $::NMWiz::prodySkipFrame waitfor all sel $sel $::NMWiz::prodyMolid"
+    if {$::NMWiz::prodyPCAfile == "DCD"} {
+      set nwritten [animate write dcd $pdbfn beg $::NMWiz::prodyFirstFrame end $end skip $::NMWiz::prodySkipFrame waitfor all sel $sel $::NMWiz::prodyMolid]
     } else {
-      set nwritten [animate write pdb $pdbfn beg $::nmwiz::prodyFirstFrame end $end skip $::nmwiz::prodySkipFrame waitfor all sel $sel $::nmwiz::prodyMolid]
+      set nwritten [animate write pdb $pdbfn beg $::NMWiz::prodyFirstFrame end $end skip $::NMWiz::prodySkipFrame waitfor all sel $sel $::NMWiz::prodyMolid]
     }
     vmdcon -info "$nwritten frames are written as $pdbfn"
     
     $sel delete
     set allnum ""
-    if {$::nmwiz::prodyAllnum} {
+    if {$::NMWiz::prodyAllnum} {
       set allnum "-a"
     } 
     set allfig ""
-    if {$::nmwiz::prodyAllfig} {
+    if {$::NMWiz::prodyAllfig} {
       set allfig "-A"
     } 
-    set prefix [file join $::nmwiz::outputdir $::nmwiz::prodyPrefix]
-    vmdcon -info "Executing: $::nmwiz::pybin $::nmwiz::prody pca --quiet -s all -o \"$::nmwiz::outputdir\" -p \"$prefix\" -n $::nmwiz::prodyNModes \"$pdbfn\""
-    set status [exec $::nmwiz::pybin $::nmwiz::prody pca --quiet -s all -o "$::nmwiz::outputdir" -p "$prefix" -n $::nmwiz::prodyNModes "$pdbfn"]
+    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
+    set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy PCA calculation is finished and results are being loaded."
-      ::nmwiz::loadNMD "$prefix.nmd"
-      if {$::nmwiz::prodyRmCoords} {
+      ::NMWiz::loadNMD "$prefix.nmd"
+      if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       }  
     }  else {
@@ -1201,133 +1202,7 @@ orange3"
       file delete -force $pdbfn
     }
   }
-  proc init_anm_interface {} {
-    variable a
-    # If already initialized, just turn on
-    if [winfo exists .nmwizanm] {
-      wm deiconify .nmwizanm
-      raise .nmwizanm
-      return 
-    }
-    set a [toplevel .nmwizanm]
-    wm title $a "NMWiz - ANM Server Interface"
-    wm resizable $a 0 0
 
-
-    variable anm_id
-    variable anm_coormod "pdb"
-    variable anm_chain "*"
-    variable anm_model "all"
-    variable anm_cutoff 15
-    variable anm_pwr 0
-    
-    set wmf [frame $a.mainframe -bd 2]
-    
-    grid [button $wmf.id_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter 4 character PDB identifier."}] \
-      -row 2 -column 0 -sticky w
-    grid [label $wmf.id_label -text "PDB identifier:"] \
-      -row 2 -column 1 -sticky w
-    grid [entry $wmf.id_entry -width 4 -textvariable ::nmwiz::anm_id] \
-      -row 2 -column 2 -sticky w
-      
-    grid [button $wmf.coordmod_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Choose whether to use PDB coordinates or biological unit coordinates."}] \
-      -row 3 -column 0 -sticky w
-    grid [radiobutton $wmf.coordmod_pdb -text "pdb coordinates" \
-            -variable ::nmwiz::anm_coormod -value "pdb"] \
-      -row 3 -column 1 -sticky w
-    grid [radiobutton $wmf.coordmod_bio -text "biological unit" \
-            -variable ::nmwiz::anm_coormod -value "bio"] \
-      -row 3 -column 2 -sticky w
-    
-    grid [button $wmf.chain_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter 1 character chain identifier (default: all polypeptide chains)."}] \
-      -row 4 -column 0 -sticky w
-    grid [label $wmf.chain_label -text "Chain identifier:"] \
-      -row 4 -column 1 -sticky w
-    grid [entry $wmf.chain_entry -width 4 -textvariable ::nmwiz::anm_chain] \
-      -row 4 -column 2 -sticky w
-
-    grid [button $wmf.model_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter model (for multi-model files such as NMR structures)."}] \
-      -row 6 -column 0 -sticky w
-    grid [label $wmf.model_label -text "Model number:"] \
-      -row 6 -column 1 -sticky w
-    grid [entry $wmf.model_entry -width 4 -textvariable ::nmwiz::anm_model] \
-      -row 6 -column 2 -sticky w
-
-    grid [button $wmf.cutoff_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter cutoff for interaction between C alpha atoms (Å)."}] \
-      -row 8 -column 0 -sticky w
-    grid [label $wmf.cutoff_label -text "Cutoff distance (Å):"] \
-      -row 8 -column 1 -sticky w
-    grid [entry $wmf.cutoff_entry -width 4 -textvariable ::nmwiz::anm_cutoff] \
-      -row 8 -column 2 -sticky w
-
-    grid [button $wmf.pwr_help -text "?" \
-        -command {tk_messageBox -type ok -title "HELP" \
-          -message "Enter distance weight for interaction between C alpha atoms."}] \
-      -row 10 -column 0 -sticky w
-    grid [label $wmf.pwr_label -text "Distance weight:"] \
-      -row 10 -column 1 -sticky w
-    grid [entry $wmf.pwr_entry -width 4 -textvariable ::nmwiz::anm_pwr] \
-      -row 10 -column 2 -sticky w
-      
-    grid [button $wmf.retrieve -width 24 -text "Submit to ANM Server" \
-      -command ::nmwiz::submit_anm_server] \
-      -row 16 -column 0 -columnspan 3
-      
-    grid [button $wmf.website -width 24 -text "Go to ANM Server" \
-        -command "vmd_open_url http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi"] \
-      -row 18 -column 0 -columnspan 3
-
-    pack $wmf -side top -fill x -expand 1
-  }
-  
-  proc submit_anm_server {} {
-    variable anm_id
-    if {[string length $anm_id] != 4} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "PDB identifier must be 4 characters."
-      return
-    }
-    variable anm_coormod
-    variable anm_chain
-    if {! [string is alpha $anm_chain] && $anm_chain != "*"} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Chain identifier must be a letter or *."
-      return
-    }
-    variable anm_model
-    if {![string is integer $anm_model] && $anm_model != "all"} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Model identifier must be an integer or \"all\"."
-      return
-    }
-    variable anm_cutoff
-    if {![string is double $anm_cutoff] || $anm_cutoff < 6.0 || $anm_cutoff > 30.0} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Cutoff distance must be between 6.0 and 30.0 A."
-      return
-    }
-    variable anm_pwr
-    if {![string is double $anm_pwr] || $anm_pwr < 0.0 || $anm_pwr > 3.0} {
-      tk_messageBox -type ok -title "ERROR" \
-        -message "Distance weight must be between 0.0 and 3.0 A."
-      return
-    }
-    
-    vmd_open_url http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm_blzpack.cgi?id=$anm_id&coormod=$anm_coormod&chain=$anm_chain&model=$anm_model&cutoff=$anm_cutoff&pwr=$anm_pwr
-    
-  
-  }
-  
   proc writeNMD {ns} {
     
     set tempfile [tk_getSaveFile -filetypes {{"NMD files" { .nmd .NMD }} {"All files" *}}]
@@ -1522,15 +1397,15 @@ orange3"
     }
 
     if {$title == ""} {
-      set title "Untitled ($::nmwiz::guicount)"
+      set title "Untitled ($::NMWiz::guicount)"
       vmdcon -info "NMWiz INFO: Dataset is named as \"$title\"."
     }
 
-    set ns [::nmwiz::makeNMWizGUI]
+    set ns [::NMWiz::makeNMWizGUI]
     ${ns}::initialize $coordinates $modes $n_dims $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
     ${ns}::nmwizgui
-    ::nmwiz::appendGUIcontrols $ns
-    
+    ::NMWiz::appendGUIcontrols $ns
+    return ${ns}::handle
   }
 
   proc calcDeform {} {
@@ -1575,10 +1450,10 @@ orange3"
     set bfactors [$ref get beta]
     $ref delete
     
-    set ns [::nmwiz::makeNMWizGUI]
+    set ns [::NMWiz::makeNMWizGUI]
     ${ns}::initialize $coordinates $modes 3 $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
     ${ns}::nmwizgui
-    ::nmwiz::appendGUIcontrols $ns
+    ::NMWiz::appendGUIcontrols $ns
     
   }
 
@@ -1622,30 +1497,32 @@ orange3"
     
     $sel delete
     
-    set ns [::nmwiz::makeNMWizGUI]
+    set ns [::NMWiz::makeNMWizGUI]
     ${ns}::initialize $coordinates $modes $n_dims $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
     ${ns}::nmwizgui
-    ::nmwiz::appendGUIcontrols $ns
+    ::NMWiz::appendGUIcontrols $ns
     
   }
   
   proc appendGUIcontrols {ns} {
     
-    set w .nmwizgui
-    set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
-    
-    grid [button $wgf.show -text "GUI" \
-        -command "${ns}::nmwizgui" ] \
-      -row 0 -column 0 -sticky we
-    grid [button $wgf.remove -text "Remove" \
-        -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
-      -row 0 -column 1 -sticky we
-    grid [button $wgf.save -text "Save" \
-        -command "::nmwiz::writeNMD $ns"] \
-      -row 0 -column 2 -sticky we
+    if [winfo exists .nmwizgui] {
+      set w .nmwizgui
+      set wgf [labelframe $w.{[string range $ns 2 end]}frame -text "[subst $${ns}::title]" -bd 2]
+      
+      grid [button $wgf.show -text "GUI" \
+          -command "${ns}::nmwizgui" ] \
+        -row 0 -column 0 -sticky we
+      grid [button $wgf.remove -text "Remove" \
+          -command "lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+        -row 0 -column 1 -sticky we
+      grid [button $wgf.save -text "Save" \
+          -command "::NMWiz::writeNMD $ns"] \
+        -row 0 -column 2 -sticky we
 
-    pack $wgf -side top -fill x -expand 1
+      pack $wgf -side top -fill x -expand 1
     
+    }
   }
   
   proc array2xyz {arr} {
@@ -1660,7 +1537,7 @@ orange3"
 
     variable guicount
     incr guicount
-    set ns "::nmgui$guicount"
+    set ns "::nmdset$guicount"
     
     namespace eval $ns {
       variable tempfn ".[string range [namespace current] 2 end].pdb"
@@ -1675,7 +1552,7 @@ orange3"
       variable arrids
       variable scalearrows 1
       variable sense +1
-      variable color $::nmwiz::defaultColor
+      variable color $::NMWiz::defaultColor
       variable colorlist [list]
       variable materials on
       variable material "HardPlastic"
@@ -1740,6 +1617,226 @@ orange3"
       variable marker "circle"
       variable plothandles [list]
       
+      
+      proc handle { args } {
+        set cmd [lindex $args 0]
+        
+        if {![llength $cmd]} {
+          vmdcon -info "nmwiz commands: getcoords, setcoords, getmode, setmode, \
+getlen, setlen, addmode"
+          return
+        }
+        
+        if {$cmd=="getcoords"} {
+          variable coordinates
+          return $coordinates
+          
+        } elseif {$cmd=="setcoords"} {
+          set data [lindex $args 1]
+          if {![llength $data]} {
+            vmdcon -err "coordinate array is not provided"
+            return
+          }
+          variable coordinates
+          if {[llength $data] != [llength $coordinates]} {
+            vmdcon -err "length of coordinate array is incorrect"
+            return
+          }
+          set coordinates $data
+          list xcoords
+          list ycoords
+          list zcoords
+          foreach {x y z} $data {
+            lappend xcoords $x 
+            lappend ycoords $y 
+            lappend zcoords $z
+          }
+          variable molid
+          set ns [namespace current]
+          set sel [atomselect $molid all]
+          $sel set x $xcoords
+          $sel set y $ycoords
+          $sel set z $zcoords
+          $sel delete
+          ${ns}::updateProtRep $molid
+          ${ns}::drawArrows
+          
+        } elseif {$cmd=="getmode"} {
+          set index [lindex $args 1]
+          if {![llength $index]} {
+            vmdcon -err "mode index is not provided"
+            return
+          }
+          if {![string is digit $index]} {
+            vmdcon -err "mode index is not valid"
+            return
+          }
+          variable indices
+          set index [lsearch $indices $index] 
+          if {$index < 0} {
+            vmdcon -err "mode index is not valid"
+            return            
+          }
+          variable modes
+          return [lindex $modes $index] 
+          
+        } elseif {$cmd=="setmode"} {
+          set index [lindex $args 1]
+          if {![llength $index]} {
+            vmdcon -err "mode index is not provided"
+            return
+          }
+          if {![string is digit $index]} {
+            vmdcon -err "mode index is not valid"
+            return
+          }
+          set idx $index
+          variable indices
+          set index [lsearch $indices $index] 
+          if {$index < 0} {
+            vmdcon -err "mode index is not valid"
+            return            
+          }
+          set data [lindex $args 2]
+          if {![llength $data]} {
+            vmdcon -err "mode array is not provided"
+            return
+          }
+          variable modes
+          if {[llength $data] != [llength [lindex $modes $index]]} {
+            vmdcon -err "length of mode array is incorrect"
+            return
+          }
+          lset modes $index $data
+          variable activemode
+          set activemode $idx 
+          set ns [namespace current]
+          ${ns}::changeMode
+          ${ns}::drawArrows
+        } elseif {$cmd=="nummodes"} {
+          variable numofmodes
+          return $numofmodes
+        
+        } elseif {$cmd=="numatoms"} {
+          variable n_atoms
+          return $n_atoms
+
+        } elseif {$cmd=="addmode"} {
+          set data [lindex $args 1]
+          if {![llength $data]} {
+            vmdcon -err "mode array is not provided"
+            return
+          }
+          variable modes
+          if {[llength $data] != [llength [lindex $modes 0]]} {
+            vmdcon -err "length of mode array is incorrect"
+            return
+          }
+          lappend modes $data
+          variable indices
+          set index [expr [lindex $indices end] + 1]
+          lappend indices $index 
+          variable lengths
+          lappend lengths 1
+
+          variable w
+          set ns [namespace current]
+          $w.active_mode.active.list.menu add radiobutton -label $index \
+              -variable ${ns}::activemode \
+              -command "${ns}::changeMode;"
+
+
+          variable arridlist          
+          lappend arridlist -1
+          variable animidlist 
+          lappend animidlist -1
+          variable colorlist
+          variable color
+          lappend colorlist $color
+          variable hide_shorter_list
+          variable hide_shorter
+          lappend hide_shorter_list $hide_shorter
+          variable cylinder_radius_list 
+          variable cylinder_radius
+          lappend cylinder_radius_list $cylinder_radius
+          variable cone_radius_list
+          variable cone_radius
+          lappend cone_radius_list $cone_radius
+          variable cone_height_list
+          variable cone_height
+          lappend cone_height_list $cone_height
+          variable resolution_list
+          variable resolution
+          lappend resolution_list $resolution
+          variable material_list
+          variable material
+          lappend material_list $material
+          
+          variable numofmodes
+          incr numofmodes
+          
+          variable rmsd_list
+          variable n_atoms
+          set rmsd 2.0
+          set one_over_root_of_n_atoms [expr 1 / $n_atoms ** 0.5]
+          variable scalearrows_list
+          lappend scalearrows_list [expr $rmsd / $one_over_root_of_n_atoms / [veclength $data]]
+          variable rmsd_list
+          lappend rmsd_list $rmsd
+          
+          [namespace current]::nmwizgui
+          
+        } elseif {$cmd=="getlen"} {
+          set index [lindex $args 1]
+          if {![llength $index]} {
+            vmdcon -err "mode index is not provided"
+            return
+          }
+          variable indices
+          set index [lsearch $indices $index] 
+          if {$index < 0} {
+            vmdcon -err "mode index is not valid"
+            return            
+          }
+          variable lengths
+          return [lindex $lengths $index] 
+
+        } elseif {$cmd=="setlen"} {
+          set index [lindex $args 1]
+          if {![llength $index]} {
+            vmdcon -err "mode index is not provided"
+            return
+          }
+          if {![string is digit $index]} {
+            vmdcon -err "mode index is not valid"
+            return
+          }
+          variable indices
+          set index [lsearch $indices $index] 
+          if {$index < 0} {
+            vmdcon -err "mode index is not valid"
+            return            
+          }
+
+          set data [lindex $args 2]
+          if {![llength $data]} {
+            vmdcon -err "mode scalar is not provided"
+            return
+          }
+          if {![string is double $data]} {
+            vmdcon -err "mode scalar is not valid"
+            return
+          }
+          variable lengths
+          lset lengths $index $data 
+        } else {
+          vmdcon -err "$cmd is not a valid nmwiz command"
+          return     
+        }
+        
+        return
+      }
+      
       proc initialize {xyz m d t l i an rn ri ci bf} {
         variable arridlist
         variable animidlist
@@ -1761,10 +1858,10 @@ orange3"
         variable n_dims 0
         variable n_atoms [expr [llength $coordinates] / 3]
         
-        if {[lsearch $::nmwiz::titles $title] > -1} {
-          set title "$title ($::nmwiz::guicount)"
+        if {[lsearch $::NMWiz::titles $title] > -1} {
+          set title "$title ($::NMWiz::guicount)"
         }
-        lappend ::nmwiz::titles $title
+        lappend ::NMWiz::titles $title
 
         
         if {$atomnames == ""} {
@@ -1872,10 +1969,10 @@ orange3"
         for {set i 0} {$i < [llength $modes]} {incr i} {
           lappend arridlist -1
           lappend animidlist -1
-          set curcolor [lindex $::nmwiz::nmwizColors [expr ($i + $shift + $::nmwiz::guicount) % [llength $::nmwiz::nmwizColors]]]
-          if {$curcolor == $::nmwiz::defaultColor} {
+          set curcolor [lindex $::NMWiz::nmwizColors [expr ($i + $shift + $::NMWiz::guicount) % [llength $::NMWiz::nmwizColors]]]
+          if {$curcolor == $::NMWiz::defaultColor} {
             incr shift 
-            set curcolor [lindex $::nmwiz::nmwizColors [expr ($i + $shift + $::nmwiz::guicount) % [llength $::nmwiz::nmwizColors]]]
+            set curcolor [lindex $::NMWiz::nmwizColors [expr ($i + $shift + $::NMWiz::guicount) % [llength $::NMWiz::nmwizColors]]]
           }
           lappend colorlist $curcolor
           lappend hide_shorter_list $hide_shorter 
@@ -1885,8 +1982,8 @@ orange3"
           lappend resolution_list $resolution
           lappend material_list $material
         }
-        if {$::nmwiz::guicount == 0} {
-          lset colorlist 0 $::nmwiz::defaultColor  
+        if {$::NMWiz::guicount == 0} {
+          lset colorlist 0 $::NMWiz::defaultColor  
         }
         variable color [lindex $colorlist 0]
         
@@ -1982,12 +2079,12 @@ orange3"
 
           variable coordinates
           variable tempfn
-          set outfile [open [file join $::nmwiz::tmpdir $tempfn] w]
+          set outfile [open [file join $::NMWiz::tmpdir $tempfn] w]
           foreach line [[namespace current]::getPDBLines $coordinates] {
             puts $outfile $line
           } 
           close $outfile
-          mol addfile [file join $::nmwiz::tmpdir $tempfn] molid $selid
+          mol addfile [file join $::NMWiz::tmpdir $tempfn] molid $selid
           
           foreach id [molinfo list] {
             molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
@@ -2324,6 +2421,7 @@ orange3"
           }
         }
         $sel delete
+
         mol rename $arrid "$title mode $activemode arrows"
         set currentview [molinfo $molid get {rotate_matrix center_matrix scale_matrix global_matrix}]
         display resetview
@@ -2332,7 +2430,7 @@ orange3"
         }
         [namespace current]::calcMSF
         $w.draw_arrows.arrowbuttons_label configure -text "Arrows ($arrid):"
-        
+                
         variable arridlist
         lset arridlist $whichmode $arrid
       }
@@ -2399,10 +2497,10 @@ orange3"
         variable betalist
         variable betamin
         variable betamax
-        puts [namespace current]
+        #puts [namespace current]
         set whichmode [lsearch $indices $activemode] 
         animate pause
-        set animfn [file join $::nmwiz::tmpdir $tempfn]
+        set animfn [file join $::NMWiz::tmpdir $tempfn]
         [namespace current]::loadCoordinates
         variable molid
         set sel [atomselect $molid "all"]
@@ -2432,9 +2530,9 @@ orange3"
         set length [lindex $lengths [lsearch $indices $activemode]]
         set mode [vecscale [expr $length * [::tcl::mathfunc::abs $scalearrows]] [lindex $modes [lsearch $indices $activemode]]]
         set coords [vecadd $coordinates $mode]
-        set mode [::nmwiz::array2xyz [vecscale $mode [expr  -2.0 / $nframes]]]
+        set mode [::NMWiz::array2xyz [vecscale $mode [expr  -2.0 / $nframes]]]
         set sel [atomselect $animid "all"]
-        $sel set {x y z} [::nmwiz::array2xyz $coords]
+        $sel set {x y z} [::NMWiz::array2xyz $coords]
         for {set i 1} {$i <= $nframes} {incr i} {
           animate dup frame [expr $i - 1] $animid
           $sel frame $i
@@ -2473,23 +2571,25 @@ orange3"
           return 0
         }
         
-        set outfile [open [file join $::nmwiz::tmpdir $tempfn] w]
+        set outfile [open [file join $::NMWiz::tmpdir $tempfn] w]
         foreach line [[namespace current]::getPDBLines $coordinates] {
           puts $outfile $line
         } 
         close $outfile
-        if {[molinfo num] > 0 && $::nmwiz::preserview} {
+        set preserve 0
+        if {[molinfo num] > 0 && $::NMWiz::preserview} {
           set currentview [molinfo [lindex [molinfo list] 0] get {rotate_matrix center_matrix scale_matrix global_matrix}]
+          set preserve 1
         }
 
-        set molid [mol new [file join $::nmwiz::tmpdir $tempfn]]
+        set molid [mol new [file join $::NMWiz::tmpdir $tempfn]]
 
         $w.draw_arrows.protbuttons_label configure -text "Molecule ($molid):"
         mol rename $molid "$title coordinates"
         [namespace current]::calcMSF
         [namespace current]::updateProtRep $molid
 
-        if {[molinfo num] > 0 && $::nmwiz::preserview} {
+        if {$preserve} {
           foreach id [molinfo list] {
             molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
           }
@@ -2545,7 +2645,7 @@ orange3"
         }
       }
 
-      
+    
       proc changeMode {} {
         variable w
         variable activemode
@@ -2709,8 +2809,6 @@ orange3"
           pack $wam.active.list $wam.active.prev $wam.active.next $wam.active.color -side left -anchor w -fill x
         }
         
-        
-        
         #blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3
 
         if {$ndim == 3} {
@@ -2745,13 +2843,13 @@ orange3"
             -command nmwiz_tk] \
           -row 8 -column 1 -sticky we
         grid [button $wam.save -text "Save" \
-            -command "::nmwiz::writeNMD $ns"] \
+            -command "::NMWiz::writeNMD $ns"] \
           -row 8 -column 2 -sticky we
         grid [button $wam.remove -text "Remove" \
-            -command "lset ::nmwiz::titles $::nmwiz::guicount NONE; pack forget .nmwizgui.{[string range $ns 2 end]}frame; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+            -command "lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget .nmwizgui.{[string range $ns 2 end]}frame; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
           -row 8 -column 3 -sticky we
         grid [button $wam.showhelp -text "Help" \
-            -command {::nmwiz::showHelp wizard}] \
+            -command {::NMWiz::showHelp wizard}] \
           -row 8 -column 4 -sticky we
 
         pack $wam -side top -ipadx 10 -ipady 5 -fill x -expand 1
@@ -2923,11 +3021,11 @@ orange3"
 
         set wpgo [labelframe $w.prograph_options -text "Molecule Representations" -bd 2]
         
-        grid [checkbutton $wpgo.selstr_check -text "show selected atoms" \
+        grid [checkbutton $wpgo.selstr_check -text "show only selected atoms" \
             -variable ${ns}::selrep -command "${ns}::autoUpdate"] \
           -row 0 -column 1 -columnspan 2 -sticky w
         
-        grid [label $wpgo.protas_label -text "Show structure as:"] \
+        grid [label $wpgo.protas_label -text "Representation:"] \
           -row 13 -column 1 -sticky w
         grid [frame $wpgo.protas_frame] \
           -row 13 -column 2 -sticky w
@@ -2940,7 +3038,7 @@ orange3"
         $wpgo.protas_frame.list.menu add radiobutton -label "Tube" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.protas_frame.list -side left -anchor w -fill x
 
-        grid [label $wpgo.procolor_label -text "Color protein:"] \
+        grid [label $wpgo.procolor_label -text "Color scheme:"] \
           -row 14 -column 1 -sticky w
         grid [frame $wpgo.procolor_frame] \
           -row 14 -column 2 -sticky w
@@ -3158,13 +3256,38 @@ orange3"
 }
 
 proc nmwiz_tk {} {
-  ::nmwiz::initGUI
-  return $::nmwiz::w
+  ::NMWiz::initGUI
+  return $::NMWiz::w
 }
 
 proc nmwiz_load {filename} {
-  nmwiz_tk
-  ::nmwiz::loadNMD $filename
+  return [nmwiz load $filename]
 } 
 
-#nmwiz_tk
+proc nmwiz { args } {
+  set cmd [lindex $args 0]
+  if {![llength $cmd]} { return }
+  if {$cmd=="list"} {
+    set handles {}
+    foreach ns [namespace children :: "nmdset*"] { 
+      lappend handles [subst $ns]::handle
+    }
+    return $handles
+  } elseif {$cmd=="main"} {
+    nmwiz_tk
+  } elseif {$cmd=="load"} {
+    set fn [lindex $args 1]
+    if {![llength $fn]} { 
+      vmdcon -err "a .nmd filename needs to be specified"
+      return     
+    }
+    if {![file isfile $fn]} {
+      vmdcon -err "$fn is not a valid filename"
+      return     
+    }
+    return [::NMWiz::loadNMD $fn]
+  } else {
+    vmdcon -err "$cmd is not a valid nmwiz command"
+    return     
+  }
+}
