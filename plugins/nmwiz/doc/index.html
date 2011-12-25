@@ -229,7 +229,8 @@ required are emphasized.</p>
 decimal numbers. Number of atoms in the system is deduced from size of this
 data line.
 <br/><b>mode</b> - Normal mode array. Each normal mode array must be provided in 
-one line as a list of decimal numbers.
+one line as a list of decimal numbers. Mode array may be preceded by mode index
+and mode length (square root of variance or inverse of frequency).
 <br/><i>title</i> - A title for the dataset.
 <br/><i>names</i> - Atom names. Default is "CA" for all atoms.
 <br/><i>resnames</i>: Residue names. Default value is "GLY".
@@ -261,6 +262,79 @@ mode 3 1.70 0.007 -0.044 0.080 0.015 -0.037 0.062 0.012 ...
 <p>The complete file can be downloaded from here: 
 <a href="p38_MAPK_1p38_anm.zip">p38_MAPK_1p38_anm.zip</a>
 </p>  
+
+<a name="nmd"><h3>NMWiz commands</h3></a>
+
+NMWiz commands allows user to get and set coordinate and mode arrays and
+adding new modes. This features can be used to generate linear combinations 
+of modes and adding them to the dataset. See the example at the end:
+
+The following top level commands are available:
+<p>
+<span class="button">nmwiz list</span> &nbsp; lists all existing normal mode dataset handles </br>
+<span class="button">nmwiz load</span> &nbsp; loads a dataset in NMD format </br>
+<span class="button">nmwiz main</span> &nbsp; shows NMWiz main window 
+</p>
+
+You can get a handle of a dataset as follows:
+<pre class="button">
+set nmdhandle [nmwiz load p38_MAPK_1p38_anm.nmd]
+</pre>
+
+Or you can use the list command:
+<pre class="button">
+set nmdhandle [lindex [nmwiz list] 0]
+</pre>
+
+This handle can be used with the following commands:
+
+<p>
+<span class="button">$nmdhandle numatoms</span> &nbsp; get number of atoms </br>
+<span class="button">$nmdhandle getcoords</span> &nbsp; get a list of all existing normal mode dataset handles </br>
+<span class="button">$nmdhandle setcoords <i>array</i></span> &nbsp; set molecule coordinates </br>
+<span class="button">$nmdhandle nummodes</span> &nbsp; get number of modes </br>
+<span class="button">$nmdhandle getmode <i>index</i></span> &nbsp; get mode array  </br>
+<span class="button">$nmdhandle setmode <i>index</i> <i>array</i></span> &nbsp; set mode array </br>
+<span class="button">$nmdhandle getlen <i>index</i></span> &nbsp; get index of mode </br>
+<span class="button">$nmdhandle setlen <i>index</i> <i>length</i></span> &nbsp; set length of mode</br>
+<span class="button">$nmdhandle addmode <i>array</i></span> &nbsp; add new mode </br>
+</p>
+
+<p><b>Combining modes:</b></p>
+
+The following examples shows how to combine two modes linearly after scaling 
+them by their lengths:
+
+<pre class="button">
+set nmdhandle [lindex [nmwiz list] end]
+set m1 [$nmdhandle getmode 1]
+set l1 [$nmdhandle getlen 1]
+set m2 [$nmdhandle getmode 2]
+set l2 [$nmdhandle getlen 2]
+$nmdhandle addmode [vecadd [vecscale $l1 $m1] [vecscale $l2 $m2]]
+</pre>
+
+<p><b>Inverting a mode:</b></p>
+
+The following examples shows how to invert a mode:
+
+<pre class="button">
+set nmdhandle [lindex [nmwiz list] end]
+set m1 [$nmdhandle getmode 1]
+$nmdhandle setmode 1 [vecinvert $m1]
+</pre>
+
+
+<p><b>Change coordinates:</b></p>
+
+The following examples shows how to change molecule coordinates:
+
+<pre class="button">
+set nmdhandle [lindex [nmwiz list] end]
+set zeros [vecscale 0 [$nmdhandle getcoords]]
+$nmdhandle setcoords $zeros
+</pre>
+
 
 <h3>Author</h3>
 <p><a href="http://www.csb.pitt.edu/People/abakan/">Ahmet Bakan</a></p>
