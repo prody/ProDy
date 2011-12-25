@@ -1622,8 +1622,8 @@ orange3"
         set cmd [lindex $args 0]
         
         if {![llength $cmd]} {
-          vmdcon -info "nmwiz commands: getcoords, setcoords, getmode, setmode, \
-getlen, setlen, addmode"
+          vmdcon -info "nmdhandle commands: getcoords, setcoords, getmode, \
+setmode, getlen, setlen, addmode"
           return
         }
         
@@ -1784,7 +1784,13 @@ getlen, setlen, addmode"
           variable rmsd_list
           lappend rmsd_list $rmsd
           
-          [namespace current]::nmwizgui
+          set ns [namespace current]
+          ${ns}::nmwizgui
+          variable activemode
+          set activemode $index 
+          ${ns}::changeMode
+          ${ns}::drawArrows
+
           
         } elseif {$cmd=="getlen"} {
           set index [lindex $args 1]
@@ -3266,7 +3272,10 @@ proc nmwiz_load {filename} {
 
 proc nmwiz { args } {
   set cmd [lindex $args 0]
-  if {![llength $cmd]} { return }
+  if {![llength $cmd]} {
+    vmdcon -info "nmwiz commands: load, list, main"
+    return
+  }
   if {$cmd=="list"} {
     set handles {}
     foreach ns [namespace children :: "nmdset*"] { 
