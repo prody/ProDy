@@ -1549,7 +1549,6 @@ orange3"
       variable animid -1
       variable animidlist [list]
       variable stopped 1 
-      variable arrids
       variable scalearrows 1
       variable sense +1
       variable color $::NMWiz::defaultColor
@@ -1597,7 +1596,7 @@ orange3"
       variable betamin
       variable betamax
       
-      variable overwrite 1
+      variable hideprev 1
       variable autoplay 1
 
       variable arropt 0
@@ -1745,7 +1744,6 @@ setmode, getlen, setlen, addmode"
               -variable ${ns}::activemode \
               -command "${ns}::changeMode;"
 
-
           variable arridlist          
           lappend arridlist -1
           variable animidlist 
@@ -1789,8 +1787,7 @@ setmode, getlen, setlen, addmode"
           variable activemode
           set activemode $index 
           ${ns}::changeMode
-          ${ns}::drawArrows
-
+          #${ns}::drawArrows
           
         } elseif {$cmd=="getlen"} {
           set index [lindex $args 1]
@@ -2128,6 +2125,7 @@ setmode, getlen, setlen, addmode"
 
       proc highlight {args} {
 
+        [namespace current]::loadCoordinates
         set resid [lindex $args 0] 
         set y [lindex $args 1]
         set color [lindex $args 2]
@@ -2161,7 +2159,6 @@ setmode, getlen, setlen, addmode"
           mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
         }
       }
-
 
       proc updateProtRep {targetid} {
         variable molid
@@ -2315,24 +2312,10 @@ setmode, getlen, setlen, addmode"
         color scale method BWR
         
       }
-
-      proc drawAction {} {
-        variable overwrite
-        variable arrid
-        variable arrids
-        if {!$overwrite} {
-          set arrid [mol new]
-          lappend arrids $arrid
-        }
-        [namespace current]::drawArrows
-      }
       
       proc autoUpdate {} {
         variable autoupdate
         if {$autoupdate} {
-          variable overwrite
-          variable arrid
-          variable arrids
           [namespace current]::drawArrows
         }
       }
@@ -2370,7 +2353,6 @@ setmode, getlen, setlen, addmode"
         variable scalearrows
         variable sense
         variable arrid
-        variable arrids
         variable activemode
         variable indices
         variable modes
@@ -2394,7 +2376,6 @@ setmode, getlen, setlen, addmode"
 
         if {[lsearch [molinfo list] $arrid] == -1} {
           set arrid [mol new]
-          lappend arrids $arrid
         } else {
           graphics $arrid delete all
         }
@@ -2569,14 +2550,13 @@ setmode, getlen, setlen, addmode"
 
       proc loadCoordinates {} {
         variable molid
-        variable coordinates
-        variable title
-        variable w
-        variable tempfn
         if {[lsearch [molinfo list] $molid] != -1} {
           return 0
         }
-        
+        variable coordinates
+        variable title
+        variable w
+        variable tempfn        
         set outfile [open [file join $::NMWiz::tmpdir $tempfn] w]
         foreach line [[namespace current]::getPDBLines $coordinates] {
           puts $outfile $line
@@ -2650,9 +2630,9 @@ setmode, getlen, setlen, addmode"
           [namespace current]::changeMode;
         }
       }
-
     
       proc changeMode {} {
+        [namespace current]::loadCoordinates
         variable w
         variable activemode
         variable indices
@@ -2709,8 +2689,8 @@ setmode, getlen, setlen, addmode"
           set rmsd [lindex $rmsd_list $activeindex]
 
       
-          variable overwrite
-          if {$overwrite} {
+          variable hideprev
+          if {$hideprev} {
             if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
               mol off $arrid
             }
@@ -2728,10 +2708,10 @@ setmode, getlen, setlen, addmode"
 
           if {$arrid > -1 && [lsearch [molinfo list] $arrid] > -1} {
             mol on $arrid
-            [namespace current]::calcMSF
           } else {
-            [namespace current]::drawAction
+            [namespace current]::drawArrows
           }
+          [namespace current]::calcMSF
           
           $w.draw_arrows.arrowbuttons_showhide configure -text Hide
 
@@ -2869,12 +2849,12 @@ setmode, getlen, setlen, addmode"
               -command ${ns}::drawArrows] \
             -row 5 -column 2 -sticky ew
           grid [button $wda.arrowbuttons_clean -text "Clean" \
-              -command "foreach anarrid \$${ns}::arrids {if {\$anarrid != \$${ns}::arrid && \[lsearch \[molinfo list] \$${ns}::arrid] != -1} {mol delete \$anarrid}; if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}}"] \
+              -command "if {\[lsearch \[molinfo list] \$${ns}::arrid] != -1} {graphics \$${ns}::arrid delete all}"] \
             -row 5 -column 3
           grid [button $wda.arrowbuttons_showhide -text "Hide" \
-              -command "if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid;\
+              -command "if {\[lsearch \[molinfo list] \$${ns}::arrid] != 0} { if {\[molinfo \$${ns}::arrid get displayed]} {mol off \$${ns}::arrid;\
                         \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Show} else {mol on \$${ns}::arrid;\
-                        \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide}"] \
+                        \$${ns}::w.draw_arrows.arrowbuttons_showhide configure -text Hide} }"] \
             -row 5 -column 4 -sticky ew
           grid [button $wda.arrowbuttons_options -text "Options" \
               -command "if {\$${ns}::arropt} {pack forget \$${ns}::w.graphics_options;\
@@ -2888,7 +2868,7 @@ setmode, getlen, setlen, addmode"
               -command ${ns}::Animate] \
             -row 6 -column 2 -sticky ew
           grid [button $wda.animbuttons_stop -text "Play" \
-              -command "if {\$${ns}::animid == -1} {${ns}::Animate} else {if {\$${ns}::stopped} {mol top \$${ns}::animid; animate forward; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Pause; set ${ns}::stopped 0} else {animate pause; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Play; set ${ns}::stopped 1}}"] \
+              -command "if {\$${ns}::animid == -1 || \[lsearch \[molinfo list] \$${ns}::animid] == -1} {${ns}::Animate} else {if {\$${ns}::stopped} {mol top \$${ns}::animid; animate forward; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Pause; set ${ns}::stopped 0} else {animate pause; \$${ns}::w.draw_arrows.animbuttons_stop configure -text Play; set ${ns}::stopped 1}}"] \
             -row 6 -column 3 -sticky ew
           grid [button $wda.animbuttons_showhide -text "Hide" \
               -command "if {\$${ns}::animid > -1 && \[lsearch \[molinfo list] \$${ns}::animid] > -1} {if {\[molinfo \$${ns}::animid get displayed]} {animate pause; mol off \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Show} else {mol on \$${ns}::animid; \$${ns}::w.draw_arrows.animbuttons_showhide configure -text Hide; animate forward}}"] \
@@ -2918,13 +2898,13 @@ setmode, getlen, setlen, addmode"
         grid [label $wda.protbuttons_label -text "Molecule:"] \
           -row 9 -column 0 -sticky w
         grid [button $wda.prt_update -text "Update" \
-            -command "${ns}::updateProtRep \$${ns}::molid"] \
+            -command "${ns}::loadCoordinates; ${ns}::updateProtRep \$${ns}::molid"] \
           -row 9 -column 2 -sticky ew
         grid [button $wda.protbuttons_focus -text "Focus" \
-            -command "mol top \$${ns}::molid; display resetview"] \
+            -command "${ns}::loadCoordinates; mol top \$${ns}::molid; display resetview"] \
           -row 9 -column 3  -sticky ew
         grid [button $wda.protbuttons_showhide -text "Hide" \
-            -command "if {\[molinfo \$${ns}::molid get displayed]} {mol off \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Show;} else {mol on \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Hide;}"] \
+            -command "${ns}::loadCoordinates; if {\[molinfo \$${ns}::molid get displayed]} {mol off \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Show;} else {mol on \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Hide;}"] \
           -row 9 -column 4 -sticky ew
         grid [button $wda.protbuttons_repoptions -text "Options" \
             -command "if {\$${ns}::prtopt} {pack forget \$${ns}::w.prograph_options; set ${ns}::prtopt 0; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief raised} else {pack \$${ns}::w.prograph_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::prtopt 1; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief sunken}"] \
@@ -2938,8 +2918,8 @@ setmode, getlen, setlen, addmode"
             -variable ${ns}::autoupdate] \
           -row 0 -column 1 -sticky w
 
-        grid [checkbutton $wgo.overwrite_check -text "auto hide inactive mode" \
-            -variable ${ns}::overwrite] \
+        grid [checkbutton $wgo.hideprev_check -text "auto hide inactive mode" \
+            -variable ${ns}::hideprev] \
           -row 0 -column 2 -sticky w
 
         grid [checkbutton $wgo.both_check -text "draw in both directions" \
