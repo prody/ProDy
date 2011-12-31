@@ -646,6 +646,12 @@ def prody_select(opt):
 import argparse
 import textwrap
 
+class Quiet(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        import prody
+        prody.changeVerbosity('warning')
+
+
 class UsageExample(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         tw = textwrap.TextWrapper()
@@ -754,9 +760,6 @@ parser = argparse.ArgumentParser(
            "command."
     )
 
-parser.add_argument('--quiet', help="suppress info messages to stderr",
-    action='store_true', default=False)
-
 parser.add_argument('--version', help="print ProDy version and exit",
     action=ProDyVersion, nargs=0)
 
@@ -769,6 +772,9 @@ commands = parser.add_subparsers(
 
 subparser = commands.add_parser('anm', 
     help='perform anisotropic network model calculations')
+
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
 
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
@@ -832,6 +838,9 @@ subparser.set_defaults(subparser=subparser)
 subparser = commands.add_parser('gnm', 
     help='perform Gaussian network model calculations')
     
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
+
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
@@ -896,6 +905,9 @@ subparser.set_defaults(subparser=subparser)
 
 subparser = commands.add_parser('pca',
     help='perform principal component analysis calculations')
+
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
 
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
@@ -964,6 +976,9 @@ subparser = commands.add_parser('eda', parents=[subparser],
 subparser = commands.add_parser('align', 
     help='align models or structures')
 
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
+
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
@@ -1011,6 +1026,9 @@ subparser.set_defaults(subparser=subparser)
 subparser = commands.add_parser('biomol', 
     help='build biomolecules')
 
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
+
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
@@ -1038,6 +1056,9 @@ subparser.set_defaults(subparser=subparser)
 
 subparser = commands.add_parser('blast', 
     help='blast search Protein Data Bank')
+
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
 
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
@@ -1075,6 +1096,9 @@ subparser.set_defaults(subparser=subparser)
 
 subparser = commands.add_parser('catdcd', 
     help='concatenate dcd files')
+
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
 
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
@@ -1124,6 +1148,9 @@ subparser.set_defaults(func=prody_catdcd)
 subparser = commands.add_parser('fetch', 
     help='fetch a PDB file')
     
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
+
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
@@ -1154,6 +1181,9 @@ subparser.set_defaults(subparser=subparser)
 subparser = commands.add_parser('select', 
     help='select atoms and write a PDB file')
 
+subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    action=Quiet, nargs=0)
+
 subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
@@ -1181,9 +1211,6 @@ def main():
         parser.print_help()
     else:
         args = parser.parse_args()
-        if args.quiet:
-            import prody
-            prody.changeVerbosity('warning')
         args.func(args)
 
     
