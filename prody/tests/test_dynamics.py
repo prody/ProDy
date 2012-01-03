@@ -29,7 +29,7 @@ from numpy.testing import *
 from prody import *
 from test_datafiles import *
 
-prody.changeVerbosity('none')
+prody.setVerbosity('none')
 
 ATOL = 1e-5
 RTOL = 0

@@ -32,7 +32,7 @@ from prody import *
 from prody.tools import *
 from test_datafiles import *
 
-prody.changeVerbosity('none')
+prody.setVerbosity('none')
 
 ATOL = 1e-5
 RTOL = 0
