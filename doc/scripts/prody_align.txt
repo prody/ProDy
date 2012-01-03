@@ -1,14 +1,15 @@
-Usage: prody align [options] PDB  
+usage: prody align [-h] [--quiet] [--examples] [-p STR] [-s SELSTR] [-m INT]
+                   pdb [pdb ...]
 
-Align models in PDB file using selected atoms and save aligned coordinate sets.
+positional arguments:
+  pdb                   PDB identifier(s) or filename(s)
 
-Options:
+optional arguments:
   -h, --help            show this help message and exit
+  --quiet               suppress info messages to stderr
   --examples            show usage examples and exit
-  --quiet               don't print log messages to stderr
-  -p STRING, --prefix=STRING
-                        prefix for output files, default is PDB_aligned
-  -s STRING, --select=STRING
-                        selection string, default is "calpha"
-  -m INT, --model=INT   model index onto which other models will be
-                        superposed, default is 1
+  -p STR, --prefix STR  prefix for output files, default is PDB_aligned
+  -s SELSTR, --select SELSTR
+                        selection string (default: "calpha")
+  -m INT, --model INT   model index onto which other models will be superposed
+                        (default: 1

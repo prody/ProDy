@@ -1,16 +1,18 @@
-usage: prody anm [-h] [--quiet] [--examples] [-n INT] [-s SELSTR] [-c FLOAT]
-                 [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-q] [-v] [-z]
-                 [-b] [-l] [-k] [-p STR] [-f STR] [-d STR] [-x STR] [-A] [-R]
-                 [-Q] [-B] [-K] [-F STR] [-D INT] [-W FLOAT] [-H FLOAT]
-                 pdb
+usage: prody eda [-h] [--quiet] [--examples] [-n INT] [-s SELSTR] [-a]
+                 [-o PATH] [-e] [-r] [-q] [-v] [-z] [-j] [-p STR] [-f STR]
+                 [-d STR] [-x STR] [-A] [-R] [-Q] [-J STR] [-F STR] [-D INT]
+                 [-W FLOAT] [-H FLOAT] [--psf PSF | --pdb PDB]
+                 coords
 
 positional arguments:
-  pdb                   PDB identifier or filename
+  coords                PDB or DCD filename
 
 optional arguments:
   -h, --help            show this help message and exit
   --quiet               suppress info messages to stderr
   --examples            show usage examples and exit
+  --psf PSF             PSF filename (must have same number of atoms as DCDs)
+  --pdb PDB             PDB filename (must have same number of atoms as DCDs)
 
 parameters:
   -n INT, --number-of-modes INT
@@ -19,11 +21,6 @@ parameters:
   -s SELSTR, --select SELSTR
                         atom selection (default: "protein and name CA or
                         nucleic and name P C4' C2")
-  -c FLOAT, --cutoff FLOAT
-                        cutoff distance (A) (default: 15.0)
-  -g FLOAT, --gamma FLOAT
-                        spring constant (default: 1.0)
-  -m INT, --model INT   model that will be used in the calculations
 
 output:
   -a, --all-output      write all outputs
@@ -36,13 +33,11 @@ output:
                         write square-fluctuations
   -v, --covariance      write covariance matrix
   -z, --npz             write compressed ProDy data file
-  -b, --beta-factors    write B-factors
-  -l, --hessian         write Hessian matrix
-  -k, --kirchhoff       write Kirchhoff matrix
+  -j, --projection      write projections onto PCs
 
 output options:
   -p STR, --file-prefix STR
-                        prefix for output files (default: pdb_anm)
+                        prefix for output files (default: pdb_pca)
   -f STR, --number-format STR
                         delimiter (default: "%12g")
   -d STR, --delimiter STR
@@ -56,9 +51,11 @@ figures:
                         save cross-correlations
   -Q, --square-fluctuations-figure
                         save square-fluctuations
-  -B, --beta-factors-figure
-                        save beta-factors
-  -K, --contact-map     save contact map (Kirchhoff matrix)
+  -J STR, --projection-figure STR
+                        save projections onto specified subspaces, e.g. "1,2"
+                        for projections onto PCs 1 and 2; "1,2 1,3" for
+                        projections onto PCs 1,2 and 1, 3; "1 1,2,3" for
+                        projections onto PCs 1 and 1, 2, 3
 
 figure options:
   -F STR, --figure-format STR

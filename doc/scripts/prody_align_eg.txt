@@ -1,9 +1,18 @@
-Usage Examples:
-Fetch pdb 2k39 and align models:
-    
-    $ prody align 2k39
-    
-Fetch pdb 2k39 and align models using backbone of residues with number smaller
-than 71:
+Align models in PDB structure or multiple PDB structures and save
+aligned coordinate sets.  When multiple structures are aligned, ProDy
+will match chains and use best match for aligning the structures.
+Note that options are not used when aligning multiple structures.
 
-    $ prody align 2k39 --select "backbone and resnum < 71" 
+Fetch PDB structure 2k39 and align models:
+
+    $ prody align 2k39
+
+Fetch PDB structure 2k39 and align models using backbone of residues
+with number smaller than 71:
+
+    $ prody align 2k39 --select "backbone and resnum < 71"
+
+Fetch PDB structures 1p38, 1r39 and 1zz2 and superpose 1r39 and 1zz2
+onto 1p38:
+
+    $ prody align 1p38 1r39 1zz2

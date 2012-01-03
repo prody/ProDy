@@ -1,4 +1,5 @@
-Usage Examples:
-Fetch PDB 1aar and write chain A carbon alpha atoms in a file:
-        
-  $ prody select 2bfu "backbone" 
+This command selects specified atoms and writes them in a PDB file.
+
+Fetch PDB 2bfu and write backbone atoms in a file:
+
+  $ prody select 2bfu "backbone"
