@@ -1,13 +1,23 @@
-Usage: prody [--version] <command> [<args>]
+usage: prody [-h] [--version]
+             {biomol,eda,anm,align,catdcd,blast,pca,fetch,select,gnm} ...
 
-ProDy commands are:
-  anm      Perform Anisotropic Network Model calculations
-  gnm      Perform Gaussian Network Model calculations
-  pca      Perform Principal Component Analysis calculations
-  align    Align models in a PDB file
-  biomol   Build biomolecules
-  blast    Blast search ProteinDataBank
-  fetch    Fetch a PDB file
-  select   Select atoms and write a PDB file 
-  
-See 'prody <command>' for more information on a specific command.
+ProDy: A Python Package for Protein Dynamics Analysis
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             print ProDy version and exit
+
+subcommands:
+  {biomol,eda,anm,align,catdcd,blast,pca,fetch,select,gnm}
+    anm                 perform anisotropic network model calculations
+    gnm                 perform Gaussian network model calculations
+    pca                 perform principal component analysis calculations
+    eda                 perform essential dynamics analysis calculations
+    align               align models or structures
+    biomol              build biomolecules
+    blast               blast search Protein Data Bank
+    catdcd              concatenate dcd files
+    fetch               fetch a PDB file
+    select              select atoms and write a PDB file
+
+See 'prody <command> -h' for more information on a specific command.
