@@ -32,7 +32,7 @@ from prody import *
 from prody.tools import *
 from test_datafiles import *
 
-prody.changeVerbosity('none')
+prody.setVerbosity('none')
 
 ATOL = 1e-5
 RTOL = 0
@@ -53,7 +53,7 @@ ENSEMBLEW.setWeights(np.ones(len(ATOMS), dtype=float))
 CONFW = ENSEMBLEW[0]
         
 PDBENSEMBLE = PDBEnsemble('PDBEnsemble')
-PDBENSEMBLE.setCoordinates(COORDS)
+PDBENSEMBLE.setCoords(COORDS)
 WEIGHTS = []
 for i, xyz in enumerate(ATOMS.iterCoordsets()):
     weights = np.ones((len(ATOMS), 1), dtype=float)

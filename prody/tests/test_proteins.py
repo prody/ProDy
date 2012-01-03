@@ -32,7 +32,7 @@ from prody import *
 from prody.tools import *
 from test_datafiles import *
 
-prody.changeVerbosity('none')
+prody.setVerbosity('none')
 
 class TestFetchPDB(unittest.TestCase):
     
@@ -193,7 +193,7 @@ class TestParsePDB(unittest.TestCase):
         path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
         ag = prody.AtomGroup('One atom')
-        ag.setCoordinates(prody.np.array([[0, 0, 0]]))
+        ag.setCoords(prody.np.array([[0, 0, 0]]))
         self.assertRaises(ValueError, parsePDB, path, ag=ag)
         ag = prody.AtomGroup('Test')
         self.assertEqual(parsePDB(path, ag=ag).numAtoms(), 

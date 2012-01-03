@@ -34,7 +34,7 @@ from test_datafiles import *
 
 
 prody.select.DEBUG = False
-prody.changeVerbosity('none')
+prody.setVerbosity('none')
 
 TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
                                                    inspect.currentframe()))[0])
