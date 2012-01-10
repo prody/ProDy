@@ -1286,7 +1286,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 
 class Chemical(object):
     
-    """|new| A data structure for storing information on chemical components 
+    """A data structure for storing information on chemical components 
     (or heterogens) in PDB structures.
     
     .. versionadded:: 0.9
@@ -1368,7 +1368,7 @@ _PDB_DBREF = {
 
 class Polymer(object):
     
-    """|new| A data structure for storing information on polymer components 
+    """A data structure for storing information on polymer components 
     (protein or nucleic) of PDB structures.
     
     .. versionadded:: 0.9
@@ -2506,7 +2506,7 @@ def writePDB(filename, atoms, model=None):
 writePDB.__doc__ += _writePDBdoc
 
 def writePQR(filename, atoms):
-    """|new| Write *atoms* in PQR format to a file with name *filename*.  Only 
+    """Write *atoms* in PQR format to a file with name *filename*.  Only 
     current coordinate set is written.  Returns *filename* upon success.  If 
     *filename* ends with :file:`.gz`, a compressed file will be written.."""
     
