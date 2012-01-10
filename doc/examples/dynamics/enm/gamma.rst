@@ -17,10 +17,11 @@ This example shows how to develop custom force constant functions for
 We will use the relation shown in the figure below. For Cα atoms that are
 10 to 15 Å apart from each other, we use a unit force constant. For those
 that are 4 to 10 Å apart, we use a 2 times stronger force constant. 
-For those that are within 4 Å of each other (i.e. those from connected residues), 
-we use a 10 times stronger force constant.  
+For those that are within 4 Å of each other (i.e. those from connected 
+residue pairs), we use a 10 times stronger force constant.  
 
 .. plot::
+   :context:
    
    import matplotlib.pyplot as plt
    plt.figure(figsize=(5,4))
@@ -28,6 +29,13 @@ we use a 10 times stronger force constant.
    plt.axis([0, 20, 0, 12])
    plt.xlabel('Distance')
    plt.ylabel('Force constant')
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')  
+
 
 Input
 -------------------------------------------------------------------------------
@@ -73,6 +81,7 @@ We define the aformentioned function as follows:
 
 >>> def gammaDistanceDependent(dist2, *args):
 ...     """Return a force constant based on the given square distance."""
+...
 ...     if dist2 <= 16:
 ...         return 10 
 ...     elif dist2 <= 100:
