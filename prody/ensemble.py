@@ -1467,14 +1467,14 @@ class Frame(ConformationBase):
                 measure._superpose(self._coords, ensemble._coords[indices], 
                                                  ensemble._weights[indices])
     
-    def moveto(self, position):
-        pass
+    #def moveto(self, position):
+    #    pass
     
-    def moveby(self, position):
-        pass
+    #def moveby(self, position):
+    #    pass
 
-    def wrap(self):
-        pass
+    #def wrap(self):
+    #    pass
     
 def trimEnsemble(pdbensemble, **kwargs):
     """Deprecated, use :meth:`trimPDBEnsemble`."""
