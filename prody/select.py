@@ -583,14 +583,12 @@ some selection keywords:
     * :func:`getAtomNameRegex`
     * :func:`getBackboneAtomNames`
     * :func:`getKeywordResnames` 
-    * :func:`getProteinResnames`
     
   * Change keyword definitions:
     
     * :func:`setAtomNameRegex`
     * :func:`setBackboneAtomNames`
     * :func:`setKeywordResnames`
-    * :func:`setProteinResnames`
 
 Below functions are for manipulating selection macros:
     
@@ -895,13 +893,13 @@ def setBackboneAtomNames(backbone_atom_names, full=False):
     _buildKeywordMap()
 
 def getProteinResidueNames():
-    """Deprecated, use :func:`getProteinResnames`."""
+    """Deprecated, use :func:`getKeywordResnames`."""
     
     prody.deprecate('getProteinResidueNames', 'getKeywordResnames')
     return getKeywordResnames('protein')
     
 def setProteinResidueNames(resnames):
-    """Deprecated, use :func:`setProteinResnames`."""
+    """Deprecated, use :func:`setKeywordResnames`."""
     
     prody.deprecate('setProteinResidueNames', 'setKeywordResnames')
     return setKeywordResidueNames('protein', resnames)
