@@ -60,6 +60,8 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'error': logging.ERROR,
                 'critical': logging.CRITICAL,
                 'none': logging.CRITICAL}
+for key, value in LOGGING_LEVELS.items():
+    LOGGING_LEVELS[value] = key
 LOGGING_LEVELS.setdefault(logging.INFO)
 
 class PackageLogger(object):
@@ -97,12 +99,24 @@ class PackageLogger(object):
         self._line = None
 
     def getVerbosity(self):
-        """Return verbosity level of the logger."""
+        """Return verbosity *level* of the logger."""
         
-        return self._logger.handlers[0].level
+        return LOGGING_LEVELS.get(self._logger.handlers[0].level)
     
     def setVerbosity(self, level):
-        """Set verbosity level of the logger."""
+        """Change verbosity *level* of the logger for the current session.  
+        Default verbosity level **debug**.  Log messages are written to 
+        ``sys.stderr``.  This function accepts one of the following as 
+        *level* argument:
+        
+        ========  ===========================================
+        Level     Description
+        ========  ===========================================
+        debug     Everything will be printed on the console.
+        info      Only brief information will be printed.
+        warning   Only warning information will be printed.
+        none      ProDy will not log any messages.
+        ========  ==========================================="""
         
         lvl = LOGGING_LEVELS.get(level, None)
         if lvl is None: 
