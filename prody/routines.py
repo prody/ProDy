@@ -913,21 +913,28 @@ subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
 subparser.set_defaults(usage_example=
-"""This command performs PCA calculations for given multi-model PDB structure \
-or DCD format trajectory file and outputs results in NMD format. If a PDB \
-identifier is given, structure file will be downloaded from the PDB FTP \ 
-server. DCD files may be accompanied with PDB or PSF files to enable atoms \ 
-selections.
+"""This command performs PCA (or EDA) calculations for given multi-model PDB \ 
+structure or DCD format trajectory file and outputs results in NMD format.  \
+If a PDB identifier is given, structure file will be downloaded from the PDB  \ 
+FTP server.  DCD files may be accompanied with PDB or PSF files to enable \ 
+atoms selections.
 
-Fetch pdb 2k39, perform PCA calculations, and output \
-NMD file:
+Fetch pdb 2k39, perform PCA calculations, and output NMD file:
     
   $ prody pca 2k39
     
 Fetch pdb 2k39 and perform calculations for backbone of residues up to 71,
 and save all output and figure files:
 
-  $ prody pca 2k39 --select "backbone and resnum < 71" -a -A"""
+  $ prody pca 2k39 --select "backbone and resnum < 71" -a -A
+  
+Perform EDA of MDM2 trajectory:
+    
+  $ prody eda mdm2.dcd
+  
+Perform EDA for backbone atoms:
+
+  $ prody eda mdm2.dcd --pdb mdm2.pdb --select backbone"""
 )
 
 group = addNMAParameters(subparser)
@@ -1104,7 +1111,13 @@ subparser.add_argument('--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
 
 subparser.set_defaults(usage_example=
-"""make some examples"""
+"""Concatenate two DCD files: 
+  
+  $ prody catdcd mdm2.dcd mdm2sim2.dcd
+  
+Concatenate two DCD files and output backbone atoms: 
+    
+  $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb --select backbone"""
 )
 
 subparser.add_argument('-s', '--select', default='all', type=str, 
