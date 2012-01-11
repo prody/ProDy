@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010-2011 Ahmet Bakan
+# Copyright (C) 2010-2012 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 """This module contains unit tests for :mod:`~prody.proteins`."""
 
 __author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os
 
