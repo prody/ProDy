@@ -1,6 +1,6 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010-2011 Ahmet Bakan
+# Copyright (C) 2010-2012 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 __author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 __version__ = '0.9.1'
 
 release = tuple([int(x) for x in __version__.split('.')])
-
-try:
-    import numpy as np
-except ImportError:
-    raise ImportError('numpy not found, it is a required package')
-
 
 import os
 import sys
@@ -35,6 +29,11 @@ import platform
 if not (2,6) <= sys.version_info[:2] <= (2,7):
     raise Exception("prody is compatible with Python 2.6 and 2.7, you are "
                     "using Python " + platform.python_version())
+
+try:
+    import numpy as np
+except ImportError:
+    raise ImportError('numpy not found, it is a required package')
 
 from tools import *
 
