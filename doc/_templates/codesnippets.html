@@ -76,12 +76,11 @@ function showCodeSnippets() {
   } else {
     prolog = "#!/usr/bin/env python\n"
     prolog += "# -*- coding: utf-8 -*-\n"
-    prolog += "'''This code was copied from ProDy documentation.\n"
+    prolog += "'''This code was copied from {{ project }} {{ version }} documentation.\n"
     prolog += "Title: " + document.title.replace('\xe2', '-') + "\n"
     prolog += "URL: " + document.URL + "\n"
     prolog += "'''\n\n"
-    prolog += "__author__ = 'Ahmet Bakan'\n"
-    prolog += "__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'\n\n"
+    prolog += "__copyright__ = 'Copyright (C) {{ copyright }}'\n\n"
     popupCode('<pre>' + prolog + pycode + '</pre>')
     /*alert(prolog + pycode);*/
   }
