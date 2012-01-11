@@ -58,14 +58,10 @@ How to Make a New Release
 #. Upload the new release files to the 
    `PyPI <http://pypi.python.org/pypi/ProDy/>`_.
 
-#. Update the release download file names::
+#. Update new release file links::
    
      $ cd doc
-     $ ./pypi.py
-
-#. Update the links to NMWiz installers in:
-
-   * :file:`doc/plugins/getnmwiz.rst`.
+     $ make pyps
 
 #. Copy the documentation files packed with source release::
 
