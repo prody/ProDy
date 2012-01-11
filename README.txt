@@ -19,7 +19,8 @@ The following are some of the main features:
   * Fast and flexible parsing of PDB and DCD files
   * Powerful atom selections and contact identification
   * Matching, superposing, and comparing multiple structures/chains
-  * PCA of X-ray structures, NMR models and mixed structural datasets from Blast search
+  * PCA of X-ray structures, NMR models and mixed structural datasets 
+    from Blast search
 
 **Prediction and analysis of protein dynamics using theory and simulation:**
 
@@ -42,6 +43,10 @@ is available under the Biopython license (http://www.biopython.org/DIST/LICENSE)
 The pyparsing (http://pyparsing.wikispaces.com/) module is distributed with 
 the ProDy package. Pyparsing is developed by Paul T. McGuire and is available 
 under the MIT license (http://www.opensource.org/licenses/mit-license.php).
+
+:mod:`argparse` module (http://code.google.com/p/argparse/) is distributed with 
+the ProDy package. :mod:`argparse` is developed by Steven J. Bethard and is 
+available under Python Software Foundation License.  
 
 DOWNLOADS & INSTALLATION
 ------------------------
