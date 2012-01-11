@@ -4,6 +4,7 @@ include README.txt
 include CHANGES.txt
 include setup.py
 include prody/__init__.py
+include prody/argparse.py
 include prody/atomic.py
 include prody/compare.py
 include prody/cpairwise2module.c
@@ -24,14 +25,18 @@ include prody/KDTree/KDTree.py
 include prody/KDTree/KDTreemodule.c
 include prody/KDTree/Neighbor.h
 include prody/tests/__init__.py
+include prody/tests/test_atomic.py
 include prody/tests/test_datafiles.py
+include prody/tests/test_dynamics.py
 include prody/tests/test_ensemble.py
-include prody/tests/test_dybamics.py
+include prody/tests/test_kdtree.py
+include prody/tests/test_pairwise2.py
 include prody/tests/test_proteins.py
 include prody/tests/test_select.py
 include prody/tests/data/anm1ubi_evalues.dat
 include prody/tests/data/anm1ubi_hessian.coo
 include prody/tests/data/anm1ubi_vectors.dat
+include prody/tests/data/dcd2k39_truncated.dcd
 include prody/tests/data/gnm1ubi_evalues.dat
 include prody/tests/data/gnm1ubi_kirchhoff.coo
 include prody/tests/data/gnm1ubi_vectors.dat
@@ -39,7 +44,7 @@ include prody/tests/data/pdb1ejg_oneatom.pdb
 include prody/tests/data/pdb1ejg.pdb
 include prody/tests/data/pdb1r19_dssp.pdb
 include prody/tests/data/pdb1ubi_ca.pdb
-include prody/tests/data/pdb2k39_truncated.pdb  
+include prody/tests/data/pdb2k39_truncated.pdb
 include prody/tests/data/pdb3mht.pdb
 include scripts/prody
 include scripts/alignmodels.py
