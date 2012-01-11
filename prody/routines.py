@@ -649,7 +649,7 @@ import textwrap
 class Quiet(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import prody
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
 
 
 class UsageExample(argparse.Action):

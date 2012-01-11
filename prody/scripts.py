@@ -200,7 +200,7 @@ graphical output files:
     LOGGER = prody.LOGGER
 
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
     
     pdb = args[0]
     prefix = opt.prefix
@@ -393,7 +393,7 @@ save all of the graphical output files:
     LOGGER = prody.LOGGER
 
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
         
     pdb = args[0]
     prefix = opt.prefix
@@ -596,7 +596,7 @@ and save all output and figure files:
     LOGGER = prody.LOGGER
         
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
         
     pdb = args[0]
     prefix = opt.prefix
@@ -759,7 +759,7 @@ Fetch PDB structures 1p38 and 1r39 and superpose 1r39 onto 1p38:
     LOGGER = prody.LOGGER
 
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
         
     if len(args) == 1:
         pdb = args[0]
@@ -829,7 +829,7 @@ Generate biomolecule coordinates."""
     LOGGER = prody.LOGGER
         
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
 
     pdb = args[0]
     prefix, biomol = opt.prefix, opt.biomol
@@ -910,7 +910,7 @@ KESTLHLVLRLRGG"""
     LOGGER = prody.LOGGER
         
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
         
     seqfn = args[0]
     seq = seqfn
@@ -927,7 +927,7 @@ KESTLHLVLRLRGG"""
     assert 0 < identity < 100, 'identity must be between 0 and 100'
     assert 0 < coverage < 100, 'coverage must be between 0 and 100'
     if silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
     
     blast_results = prody.blastPDB(seq)
     hits = blast_results.getHits(percent_identity=identity, 
@@ -988,7 +988,7 @@ Download PDB files specified by their identifiers."""
     LOGGER = prody.LOGGER
        
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
     
     folder, listfn = opt.folder, opt.listfn
 
@@ -1037,7 +1037,7 @@ a file:
     LOGGER = prody.LOGGER
         
     if opt.silent:
-        prody.changeVerbosity('warning')
+        prody.setVerbosity('warning')
         
     prefix = opt.prefix
 
