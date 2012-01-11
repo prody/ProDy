@@ -2850,7 +2850,7 @@ def writeOverlapTable(filename, rows, cols):
     and columns of the overlap table.  See also :func:`printOverlapTable`."""
     
     assert isinstance(filename, str), 'filename must be a string'
-    out = open(filename, 'w')
+    out = openFile(filename, 'w')
     out.write(getOverlapTable(rows, cols))
     out.close()
     return filename
