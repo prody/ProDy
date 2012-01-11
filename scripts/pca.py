@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
-# Copyright (C) 2010  Ahmet Bakan
+# Copyright (C) 2010-2012 Ahmet Bakan
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ __author__ = 'Ahmet Bakan, Lidio Meireles'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan, Lidio Meireles'
 
 import sys
-from prody import routines
+from prody import scripts
 
 if __name__ == '__main__':
-    routines.pca()
+    scripts.pca()
