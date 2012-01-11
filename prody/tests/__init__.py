@@ -47,18 +47,14 @@ except ImportError:
     LOGGER.warning('Failed to import nose, using unittest for testing.')
     LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
     import unittest
-    if sys.version_info[:2] > (2,6):
-        def test(verbosity=2, descriptions=True, stream=sys.stderr):
-            testrunner = unittest.TextTestRunner(stream, descriptions, 
-                                                 verbosity)
-            for module in ['test_datafiles', 'test_atomic', 'test_dynamics', 
-                           'test_ensemble', 'test_kdtree', 'test_pairwise2', 
-                           'test_proteins', 'test_select',]:
-                testrunner.run(unittest.defaultTestLoader.
-                               loadTestsFromName('prody.tests.' + module))
-    else:
-        LOGGER.warning('Unit tests are compatible with Python 2.7 and later.')
-
+    def test(verbosity=2, descriptions=True, stream=sys.stderr):
+        testrunner = unittest.TextTestRunner(stream, descriptions, 
+                                             verbosity)
+        for module in ['test_datafiles', 'test_atomic', 'test_dynamics', 
+                       'test_ensemble', 'test_kdtree', 'test_pairwise2', 
+                       'test_proteins', 'test_select',]:
+            testrunner.run(unittest.defaultTestLoader.
+                           loadTestsFromName('prody.tests.' + module))
 else:
     from numpy.testing import Tester
     test = Tester().test
