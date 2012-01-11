@@ -12,15 +12,17 @@ from distutils.command.install import install
 
 PY3K = sys.version_info[0] > 2
 
-readme = open('README.txt')
-long_description = readme.read()
-readme.close()
+inp = open('README.txt')
+long_description = inp.read()
+inp.close()
 
 __version__ = ''
-for line in open('prody/__init__.py'):
+inp = open('prody/__init__.py')
+for line in inp:
     if (line.startswith('__version__')):
         exec(line.strip())
         break
+inp.close()
 
 def isInstalled(module_name):
     """Check if a required package is installed, by trying to import it."""
@@ -41,7 +43,8 @@ PACKAGES = ['prody']
 PACKAGE_DATA = {}
 if sys.version_info[:2] > (2,6):
     PACKAGES.append('prody.tests')
-    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat', 'data/*.coo', 'data/dcd*.dcd']
+    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat', 
+                                   'data/*.coo', 'data/dcd*.dcd']
 
 EXTENSIONS = []
 
@@ -57,7 +60,8 @@ if os.name != 'java' and sys.version_info[0] == 2:
         import numpy
         kdtree = ['__init__.py', 'KDTree.c', 'KDTree.h', 'KDTree.py', 
                   'KDTreemodule.c', 'Neighbor.h']
-        if all([os.path.isfile(os.path.join('prody/KDTree', fn)) for fn in kdtree]):
+        if all([os.path.isfile(os.path.join('prody/KDTree', fn)) 
+                for fn in kdtree]):
             EXTENSIONS.append(
                 Extension('prody.KDTree._CKDTree',
                           ['prody/KDTree/KDTree.c',
@@ -81,9 +85,10 @@ setup(
     package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
     license='GPLv3',
-    keywords=('protein, dynamics, elastic network model, Gaussian network model, '
-              'anisotropic network model, essential dynamics analysis, '
-              'principal component analysis, Protein Data Bank, PDB, GNM, ANM, PCA'),
+    keywords=('protein, dynamics, elastic network model, '
+              'Gaussian network model, anisotropic network model, '
+              'essential dynamics analysis, principal component analysis, '
+              'Protein Data Bank, PDB, GNM, ANM, PCA'),
     classifiers=[
                  'Development Status :: 4 - Beta',
                  'Intended Audience :: Science/Research',
