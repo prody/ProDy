@@ -49,7 +49,7 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'ProDy'
-copyright = u'2010-2011, Ahmet Bakan'
+copyright = u'2010-2012, Ahmet Bakan'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -62,7 +62,7 @@ def getRevisionNumber():
     logs = logfile.read()
     logfile.close()
     return str(logs.count('Author:'))
-version = '0.9.1'
+version = '0.9.2'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
