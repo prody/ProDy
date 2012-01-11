@@ -1,15 +1,15 @@
-.. _scripts:
+.. _commands:
 
 *******************************************************************************
-Scripts
+ProDy Commands
 *******************************************************************************
 
 Command line usage
 ===============================================================================
 
-ProDy scripts, command line programs, come with both the source and the binary 
-distributions.  On Linux, when installing ProDy from source, the scripts are 
-placed into a default folder that is included in the environment variable 
+ProDy command line programs, or scripts, come with both the source and the 
+binary distributions.  On Linux, when installing ProDy from source, the scripts 
+are placed into a default folder that is included in the environment variable 
 :envvar:`PATH`, e.g. :file:`/usr/local/bin/`.  On Windows, installer places the
 scripts into the :file:`Scripts` folder under the path to the corresponding 
 Python distribution, e.g. :file:`C:\\Python27\\Scripts` if you used Python 2.7. 
@@ -51,7 +51,7 @@ the output files are prefixed with :file:`p38_anm`::
 
 The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|). 
 
-.. _scripts-anm:
+.. _command-anm:
 
 
 ProDy commands
@@ -72,13 +72,13 @@ Running :command:`prody anm --examples` displays:
 .. literalinclude:: prody_anm_eg.txt
 
 
-.. _scripts-gnm:
+.. _command-gnm:
 
 gnm
 -------------------------------------------------------------------------------
 
-Perform GNM calculations and output the results in plain text and graphical 
-formats. 
+Perform GNM calculations and output the results in plain text NMD, and 
+graphical formats.
  
  
 Running :command:`prody gnm -h` displays:
@@ -90,26 +90,47 @@ Running :command:`prody gnm --examples` displays:
 .. literalinclude:: prody_gnm_eg.txt
 
 
-.. _scripts-pca:
+.. _command-pca:
 
 pca
 -------------------------------------------------------------------------------
 
-Perform PCA calculations and output the results in plain text, NMD formats,
-and graphical formats.
+Perform PCA calculations and output the results in plain text, NMD, and 
+graphical formats.
 
 
 Running :command:`prody pca -h` displays:
 
 .. literalinclude:: prody_pca.txt
 
+Download :download:`MDM2 trajectory files </doctest/mdm2.tar.gz>`.
 
 Running :command:`prody pca --examples` displays:
 
 .. literalinclude:: prody_pca_eg.txt
 
 
-.. _scripts-alignmodels:
+.. _command-eda:
+
+eda
+-------------------------------------------------------------------------------
+
+Perform EDA calculations and output the results in plain text, NMD, and 
+graphical formats.
+
+
+Running :command:`prody eda -h` displays:
+
+.. literalinclude:: prody_eda.txt
+
+Download :download:`MDM2 trajectory files </doctest/mdm2.tar.gz>`.
+
+Running :command:`prody eda --examples` displays:
+
+.. literalinclude:: prody_eda_eg.txt
+
+
+.. _command-align:
 
 align
 -------------------------------------------------------------------------------
@@ -125,7 +146,7 @@ Running :command:`prody align --examples` displays:
 .. literalinclude:: prody_align_eg.txt
 
 
-.. _scripts-biomolecule:
+.. _command-biomol:
 
 biomol
 -------------------------------------------------------------------------------
@@ -141,7 +162,7 @@ Running :command:`prody biomol --examples` displays:
 
 .. literalinclude:: prody_biomol_eg.txt
 
-.. _scripts-blastpdb:
+.. _command-blast:
 
 blast
 -------------------------------------------------------------------------------
@@ -156,7 +177,24 @@ Running :command:`prody blast --examples` displays:
 
 .. literalinclude:: prody_blast_eg.txt
 
-.. _scripts-fetchpdb:
+.. _command-catdcd:
+
+catdcd
+-------------------------------------------------------------------------------
+
+Concatenate, slice, and/or reduce DCD files.
+
+Running :command:`prody catdcd -h` displays:
+
+.. literalinclude:: prody_catdcd.txt
+
+Download :download:`MDM2 trajectory files </doctest/mdm2.tar.gz>`.
+
+Running :command:`prody catdcd --examples` displays:
+
+.. literalinclude:: prody_catdcd_eg.txt
+
+.. _command-fetch:
 
 fetch
 -------------------------------------------------------------------------------
@@ -171,7 +209,7 @@ Running :command:`prody fetch --examples` displays:
 
 .. literalinclude:: prody_fetch_eg.txt
 
-.. _scripts-pdbselect:
+.. _command-select:
 
 select
 -------------------------------------------------------------------------------
