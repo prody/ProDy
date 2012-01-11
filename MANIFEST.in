@@ -18,6 +18,7 @@ include prody/routines.py
 include prody/select.py
 include prody/tools.py
 include prody/volume.py
+include prody/scripts.py
 include prody/KDTree/__init__.py
 include prody/KDTree/KDTree.c
 include prody/KDTree/KDTree.h

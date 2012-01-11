@@ -57,6 +57,9 @@ Release 0.9.2 (Jan 11, 2012)
   * Fixed problems in :func:`~atomic.loadAtoms` and :func:`~atomic.saveAtoms`
     functions.
 
+  * Bugfixes in :func:`~ensemble.parseDCD` and :func:`~ensemble.writeDCD`
+    functions for Windows compatability.
+
 
 Release 0.9.1 (Nov 9, 2011)
 ===============================================================================
