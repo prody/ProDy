@@ -2582,7 +2582,7 @@ def writeNMD(filename, modes, atoms):
                         'not {0:s}'.format(type(modes)))
     if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
-    out = open(filename, 'w')
+    out = openFile(filename, 'w')
     
     #out.write('#!{0:s} -e\n'.format(VMDPATH))
     out.write('nmwiz_load {0:s}\n'.format(os.path.abspath(filename)))
