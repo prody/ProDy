@@ -13,7 +13,7 @@ from distutils.command.install import install
 PY3K = sys.version_info[0] > 2
 
 readme = open('README.txt')
-long_description = ''.join(readme.readlines())
+long_description = readme.read()
 readme.close()
 
 __version__ = ''
@@ -69,13 +69,6 @@ if os.name != 'java' and sys.version_info[0] == 2:
 SCRIPTS = glob.glob('scripts/*py')
 SCRIPTS.append('scripts/prody')
 
-class installProDy(install):
-    """Override the standard install to install VMD plug-in NMWiz."""
-    
-    def run(self):
-        """Try installing NMWiz and then continue normal installation."""
-        install.run(self)
-
 setup(
     name='ProDy',
     version=__version__,
@@ -84,7 +77,6 @@ setup(
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
-    #cmdclass={'install' : installProDy,},
     packages=PACKAGES,
     package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
