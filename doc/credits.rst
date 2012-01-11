@@ -9,7 +9,7 @@ Contributors
 
 `Lidio Meireles <http://www.linkedin.com/in/lidio>`_ provided insightful 
 comments on the design of ProDy classes and modules, and contributed to the 
-development of :ref:`scripts` for automated tasks.
+development of early versions of :ref:`commands` for automated tasks.
 
 `Ying Liu <http://www.linkedin.com/pub/ying-liu/15/48b/5a9>`_ provided the 
 code for Perturbation Response Scanning method.   

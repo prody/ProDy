@@ -8,9 +8,6 @@
 ProDy Documentation Contents
 ****************************
 
-Contents
-========
-
 .. toctree::
    :maxdepth: 3
    :glob:
@@ -20,7 +17,7 @@ Contents
    examples/index
    reference/index
    plugins/index
-   scripts/index
+   commands/index
    features
    howtocite
    publications

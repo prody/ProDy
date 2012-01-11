@@ -17,7 +17,7 @@ If you don't have Python developer libraries installed on your machine,
 use your package manager to install :file:`python-dev` package. 
 
 In addition, `Matplotlib <http://matplotlib.sourceforge.net/>`_ is required
-for using plotting functions. ProDy and :ref:`scripts` can be operated without
+for using plotting functions. ProDy and :ref:`commands` can be operated without
 this package.   
 
 

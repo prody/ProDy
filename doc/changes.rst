@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.9.2 (in developement)
+Release 0.9.2 (Jan 10, 2012)
 ===============================================================================
 
 **New Features**:
@@ -29,6 +29,9 @@ Release 0.9.2 (in developement)
     other :class:`~atomic.Atomic` instances as *trajectory* argument.
 
   * ``prody align`` command can be used to align multiple PDB structures.
+  
+  * :program:`prody pca` command allows atom selections for DCD files when
+    an accompanying PDB/PSF file is provided.
 
 **Changes**:
 
@@ -43,7 +46,7 @@ Release 0.9.2 (in developement)
     respectively. Old names will be removed in v1.0.
     
   * ProDy routines (commands) module is rewritten to use new :mod:`argparse`
-    module. See :ref:`scripts` for details of changes.
+    module. See :ref:`commands` for details of changes.
     
   * :mod:`argparse` module is added to the package for Python versions 2.6
     and older.
@@ -263,7 +266,7 @@ Release 0.9 (Nov 8, 2011)
 
 **Scripts**:
   
-  The way ProDy scripts work has changed. See :ref:`scripts` for details.
+  The way ProDy scripts work has changed. See :ref:`commands` for details.
   Using older scripts will start issuing deprecation warnings in 2012.
 
 **Bug Fixes**:
@@ -832,7 +835,7 @@ Release 0.6 (Feb 22, 2011)
     :class:`~dynamics.GammaVariableCutoff`.
   * :func:`~dynamics.calcTempFactors` function is implemented to 
     calculate theoretical temperature factors.
-  * 5 new :ref:`scripts` are implemented, and existing scripts are improved to
+  * 5 new :ref:`commands` are implemented, and existing scripts are improved to
     output figures.
   * :meth:`~dynamics.NMABase.getModel` method is implemented to 
     make function development easier.
@@ -873,7 +876,7 @@ Release 0.6 (Feb 22, 2011)
 **Bug Fixes**:
     
   * A bug in :func:`~proteins.assignSecondaryStructure` function is fixed.
-  * Bug fixes in :ref:`scripts-anm` and :ref:`scripts-gnm`.
+  * Bug fixes in :ref:`command-anm` and :ref:`command-gnm`.
   * Bug fixes in :func:`~dynamics.showSqFlucts` and 
     :func:`~dynamics.showProjection` functions.
     
