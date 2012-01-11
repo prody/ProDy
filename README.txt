@@ -44,9 +44,9 @@ The pyparsing (http://pyparsing.wikispaces.com/) module is distributed with
 the ProDy package. Pyparsing is developed by Paul T. McGuire and is available 
 under the MIT license (http://www.opensource.org/licenses/mit-license.php).
 
-:mod:`argparse` module (http://code.google.com/p/argparse/) is distributed with 
-the ProDy package. :mod:`argparse` is developed by Steven J. Bethard and is 
-available under Python Software Foundation License.  
+The argparse module (http://code.google.com/p/argparse/) is distributed with 
+the ProDy package. Argparse is developed by Steven J. Bethard and is available 
+under Python Software Foundation License.  
 
 DOWNLOADS & INSTALLATION
 ------------------------
