@@ -237,9 +237,9 @@ def setVerbosity(level):
     """    
 
     >>> from prody import *
-    >>> changeVerbosity('none')
+    >>> setVerbosity('none')
     >>> plog('test')
-    >>> changeVerbosity('debug')
+    >>> setVerbosity('debug')
     >>> plog('test')"""
 
     LOGGER.setVerbosity(level)
