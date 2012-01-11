@@ -21,7 +21,7 @@ for line in open('prody/__init__.py'):
     if (line.startswith('__version__')):
         exec(line.strip())
         break
-    
+
 def isInstalled(module_name):
     """Check if a required package is installed, by trying to import it."""
 
