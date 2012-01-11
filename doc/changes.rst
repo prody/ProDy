@@ -11,6 +11,9 @@ Release 0.9.2 (Jan 11, 2012)
 
 **New Features**:
 
+  * :program:`prody catdcd` command is implemented for concatenating and/or 
+    slicing :file:`.dcd` files.  See :ref:`command-catdcd` for usage examples.
+
   * :class:`~ensemble.DCDFile` can be opened in write or append mode, and 
     coordinate sets can be added using :meth:`~ensemble.DCDFile.write` method. 
   
@@ -28,13 +31,10 @@ Release 0.9.2 (Jan 11, 2012)
   * :func:`~ensemble.writeDCD` file accepts :class:`~atomic.AtomGroup` or 
     other :class:`~atomic.Atomic` instances as *trajectory* argument.
 
-  * :program:`prody catdcd` command is implemented for concatenating and/or 
-    slicing :file:`.dcd` files.
-
   * :program:`prody align` command can be used to align multiple PDB structures.
   
-  * :program:`prody pca` command allows atom selections for DCD files when
-    an accompanying PDB/PSF file is provided.
+  * :program:`prody pca` command allows atom selections for DCD files that are 
+    accompanied with a PDB or PSF file.
 
 **Changes**:
 
