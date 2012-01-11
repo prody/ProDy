@@ -2628,6 +2628,8 @@ def parseDCD(filename, start=None, stop=None, step=None):
     ensemble = dcd[slice(start,stop,step)]    
     dcd.close()
     time_ = time() - time_
+    if time_ == 0.0:
+        time_ = 0.01
     dcd_size = 1.0 * dcd.numFrames() * dcd._bytes_per_frame / (1024*1024)
     LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB parsed at input rate {1:.2f} MB/s.'
@@ -2733,6 +2735,8 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     LOGGER.clear()
     dcd.close()
     time_ = time() - time_
+    if time_ == 0.0:
+        time_ = 0.01
     dcd_size = 1.0 * (56 + (n_atoms * 3 + 6) * 4 ) * n_csets / (1024*1024)
     LOGGER.info('DCD file was written in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB written at input rate {1:.2f} MB/s.'
