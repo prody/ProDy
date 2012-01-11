@@ -66,7 +66,7 @@ How to use ProDy
 ProDy can be used:
 
 * interactively in a Python shell,
-* as a command line program via :ref:`scripts`,
+* as a command line program via :ref:`commands`,
 * from within VMD via :ref:`nmwiz`,
 * or as a toolkit for developing new software.
 

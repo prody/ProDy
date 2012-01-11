@@ -25,12 +25,12 @@ Feature Index
     * :ref:`anm`
     * :ref:`pca-xray-calculations`
     * :ref:`pca-nmr`
-    * :ref:`scripts-anm`
+    * :ref:`command-anm`
     
   * Gaussian Network Model (:class:`~dynamics.GNM`)
  
     * :ref:`gnm`
-    * :ref:`scripts-gnm`
+    * :ref:`command-gnm`
       
 **Principal Component Analysis:** (:class:`~dynamics.PCA`)
    
@@ -38,7 +38,7 @@ Feature Index
   * :ref:`pca-nmr`
   * :ref:`pca-blast`
   * :ref:`eda`
-  * :ref:`scripts-pca`
+  * :ref:`command-pca`
 
 **Trajectory Analysis:**
 
