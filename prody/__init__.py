@@ -272,13 +272,16 @@ def test(**kwargs):
     """Run ProDy tests. See :mod:`prody.testing` documentation for more 
     details, i.e. ``import prody.tests; help(prody.tests)``"""
     
-    try:
-        import prody.tests
-    except ImportError:
-        LOGGER.warning('Could not import test modules. '
-                       'Tests are available for Python 2.7')
+    if sys.version_info[:2] > (2,6):
+        try:
+            import prody.tests
+        except ImportError:
+            LOGGER.warning('Could not import ProDy unit tests, '
+                           'please check your installation.')
+        else:
+            tests.test(**kwargs)
     else:
-        tests.test(**kwargs)
+        LOGGER.warning('ProDy tests are available for Python 2.7') 
 
 __all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
            'startLogfile', 'closeLogfile', 'changeVerbosity',
