@@ -2277,7 +2277,7 @@ class DCDFile(TrajectoryFile):
             dcd.write(pack_i_2)
             dcd.write('{0:80s}'.format('Created by ProDy'))
             dcd.write('{0:80s}'.format('REMARKS Created ' + 
-                                       now().strftime('%d %B, %Y at %R')))
+                                       now().strftime('%d %B, %Y at %H:%M')))
             dcd.write(pack_i_164)
             
             dcd.write(pack_i_4)
