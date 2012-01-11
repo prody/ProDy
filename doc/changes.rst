@@ -28,7 +28,7 @@ Release 0.9.2 (Jan 11, 2012)
   * :func:`~ensemble.writeDCD` file accepts :class:`~atomic.AtomGroup` or 
     other :class:`~atomic.Atomic` instances as *trajectory* argument.
 
-  * ``prody align`` command can be used to align multiple PDB structures.
+  * :program:`prody align` command can be used to align multiple PDB structures.
   
   * :program:`prody pca` command allows atom selections for DCD files when
     an accompanying PDB/PSF file is provided.
