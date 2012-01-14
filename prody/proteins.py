@@ -1376,9 +1376,6 @@ class Polymer(object):
     
     .. versionadded:: 0.9
     
-    .. versionchanged:: 0.9.3
-       Renamed :attr:`identifier` as :attr:`chid`.
-    
     A :class:`Polymer` instance has the following attributes:
         
     ============= ====== ======================================================
