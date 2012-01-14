@@ -6,6 +6,16 @@
 Changes
 *******************************************************************************
 
+Release 0.9.3 (in development)
+===============================================================================
+
+**Changes**:
+
+  * Renamed :attr:`~proteins.Polymer.identifier` attribute as 
+    :attr:`~proteins.Polymer.chid` and :attr:`~proteins.Chemical.identifier`
+    as :attr:`~proteins.Polymer.resname`.
+
+
 Release 0.9.2 (Jan 11, 2012)
 ===============================================================================
 
