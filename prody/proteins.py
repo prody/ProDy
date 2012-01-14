@@ -1376,6 +1376,9 @@ class Polymer(object):
     
     .. versionadded:: 0.9
     
+    .. versionchanged:: 0.9.3
+       Renamed :attr:`identifier` as :attr:`chid`.
+    
     A :class:`Polymer` instance has the following attributes:
         
     ============= ====== ======================================================
@@ -1762,74 +1765,101 @@ def _getPolymers(lines):
         polymers[ch] = poly
         poly.sequence += ''.join(prody.compare.getSequence(line[19:].split()))
     for i, line in lines['DBREF ']:
+        i += 1
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
+        if not poly.dbabbr is None:
+            LOGGER.warning('DBREF record for chain {2:s} is duplicated '
+                           '({0:s}:{1:d})'
+                           .format(pdbid, i, ch))
+            continue
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
+        poly.dbaccession = line[33:41].strip()
+        poly.dbidentifier = line[42:54].strip()
         if poly.dbabbr == 'PDB':
-            poly.dbaccession = poly.dbidentifier = pdbid
-            if not (pdbid == line[33:37] == line[42:46] == line[7:11]):
-                LOGGER.warning('wrong accession code and identifier for chain '
-                               '{2:s} ({0:s}:{1:d})'.format(pdbid, i, ch))
+            if not (pdbid == poly.dbaccession == poly.dbidentifier):
+                LOGGER.warning('DBREF record for chain {2:s} refers to PDB '
+                               'entry {3:s} ({0:s}:{1:d})'
+                               .format(pdbid, i, ch, poly.dbaccession))
         else:
-            poly.dbaccession = line[33:41].strip()
-            poly.dbidentifier = line[42:54].strip()
             if pdbid == poly.dbaccession or pdbid == poly.dbidentifier:
-                LOGGER.warning('wrong database abbreviation for chain '
-                               '{2:s} ({0:s}:{1:d})'.format(pdbid, i, ch))
+                LOGGER.warning('DBREF record for chain {2:s} is {3:s}, '
+                               'expected PDB ({0:s}:{1:d})'
+                               .format(pdbid, i, ch, poly.dbabbr))
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
-            LOGGER.warning('failed to parse first residue number for sequence '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
+                           'first residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
             poly.sqlast = (int(line[20:24]), line[24])
         except:
-            LOGGER.warning('failed to parse last residue number for sequence '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
+                           'last residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
             poly.dbfirst = (int(line[56:60]), line[60])
         except:
-            LOGGER.warning('failed to parse first residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
+                           'first residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
             poly.dblast = (int(line[62:67]), line[67])
         except:
-            LOGGER.warning('failed to parse last residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
+                           'last residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
     for i, line in lines['DBREF1']:
+        i += 1
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
+        if not poly.dbabbr is None:
+            LOGGER.warning('DBREF1 record for chain {2:s} is duplicated '
+                           '({0:s}:{1:d})'
+                           .format(pdbid, i, ch))
+            continue
         poly.dbabbr = line[26:32].strip()
         poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
         poly.dbidentifier = line[47:67].strip()
         try:
             poly.sqfirst = (int(line[14:18]), line[18])
         except:
-            LOGGER.warning('failed to parse first residue number for sequence '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF1 record for chain {2:s}: failed to parse '
+                           'first residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
             poly.sqlast = (int(line[20:24]), line[24])
         except:
-            LOGGER.warning('failed to parse last residue number for sequence '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF1 record for chain {2:s}: failed to parse '
+                           'last residue number for sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
     for i, line in lines['DBREF2']:
+        i += 1
         ch = line[12]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
+        if not poly.dbaccession is None:
+            LOGGER.warning('DBREF2 record for chain {2:s} is duplicated '
+                           '({0:s}:{1:d})'
+                           .format(pdbid, i, ch))
+            continue
         poly.dbaccession = line[18:40].strip()
         try:
             poly.dbfirst = (int(line[45:55]), '')
         except:
-            LOGGER.warning('failed to parse first residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF2 record for chain {2:s}: failed to parse '
+                           'first residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
             poly.dblast = (int(line[57:67]), '')
         except:
-            LOGGER.warning('failed to parse last residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i))
+            LOGGER.warning('DBREF2 record for chain {2:s}: failed to parse '
+                           'last residue number for database '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
 
     for i, line in lines['MODRES']:
         ch = line[16]
@@ -1840,6 +1870,7 @@ def _getPolymers(lines):
         poly.modified.append((line[12:15].strip(), line[18:22].strip() + 
                    line[22].strip(), line[24:27].strip(), line[29:70].strip()))
     for i, line in lines['SEQADV']:
+        i += 1
         ch = line[16]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
@@ -1847,15 +1878,17 @@ def _getPolymers(lines):
             poly.different = []
         dbabbr = line[24:28].strip()
         if poly.dbabbr != dbabbr:
-            LOGGER.warning("reference database mismatch in SEQADV, expected "
-                           "'{0:s}' parsed '{1:s}' ({2:s}:{3:d})"
-                           .format(poly.dbabbr, dbabbr, pdbid, i))
+            LOGGER.warning("SEQADV record for chain {4:s}: reference database "
+                           "mismatch, expected '{0:s}' parsed '{1:s}' "
+                           "({2:s}:{3:d})"
+                           .format(poly.dbabbr, dbabbr, pdbid, i, ch))
             continue
         dbaccession = line[29:38].strip() 
         if poly.dbaccession != dbaccession:
-            LOGGER.warning("database idcode mismatch in SEQADV, expected "
-                           "'{0:s}' parsed '{1:s}' ({2:s}:{3:d})"
-                           .format(poly.dbaccession, dbaccession, pdbid, i))
+            LOGGER.warning("SEQADV record for chain {4:s}: database idcode "
+                           "mismatch, expected '{0:s}' parsed '{1:s}' "
+                           "({2:s}:{3:d})"
+                           .format(poly.dbaccession, dbaccession, pdbid, i,ch))
             continue
         poly.different.append((line[12:15].strip(), line[18:22].strip() + 
             line[22].strip(), line[39:42].strip(), line[43:48].strip(), 
