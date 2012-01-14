@@ -62,7 +62,7 @@ def getRevisionNumber():
     logs = logfile.read()
     logfile.close()
     return str(logs.count('Author:'))
-version = '0.9.2'
+version = '0.9.3-dev'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -148,19 +148,19 @@ html_index = 'index.html'
 
 # Custom sidebar templates, maps document names to template names.
 # 'sourcelink.html'
-generic_sidebars = ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'searchbox.html']
+generic_sidebars = ['newrelease.html', 'howtocite.html', 'localtoc.html', 'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['slideshow.html', 'howtocite.html', 'newrelease.html', 'getprody.html', 'getintouch.html', 'searchbox.html'], 
+    'index': ['slideshow.html', 'newrelease.html', 'howtocite.html', 'getprody.html', 'getintouch.html', 'searchbox.html'], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
-    'tutorial': ['howtocite.html', 'newrelease.html', 'localtoc.html', 'codesnippets.html', 'searchbox.html'],
+    'tutorial': ['newrelease.html', 'howtocite.html', 'localtoc.html', 'codesnippets.html', 'searchbox.html'],
     'bibliography': generic_sidebars,
     'changes': generic_sidebars,
     'contents': generic_sidebars,
     'credits': generic_sidebars,
     'features': generic_sidebars,
-    'getprody': generic_sidebars,
+    'getprody': ['howtocite.html', 'localtoc.html', 'relations.html', 'searchbox.html'],
     'license': generic_sidebars,
     'publications': generic_sidebars,
     'examples/index': generic_sidebars,
@@ -170,7 +170,7 @@ html_sidebars = {
     'todo': generic_sidebars,
     'plugins/index': ['slideshow.html'] + generic_sidebars,
     'plugins/getnmwiz': ['slideshow.html'] + generic_sidebars,
-    '**': ['howtocite.html', 'newrelease.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
+    '**': ['newrelease.html', 'howtocite.html', 'localtoc.html', 'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
