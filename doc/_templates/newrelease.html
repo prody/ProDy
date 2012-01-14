@@ -1,6 +1,21 @@
 <!---->
-<h3 style="color: white; background-color: IndianRed; border: 1px solid #9B9886;">New Release</h3>
-v{{ version }} comes with new features and bugfixes.
-See <a href="{{ pathto("changes") }}">changes</a> or 
-go to <a href="{{ pathto("getprody") }}">downloads</a>. 
 
+{% if version.endswith('dev') %}
+
+<h3 style="color: white; background-color: IndianRed; border: 1px solid #9B9886;">Development Version</h3>
+<p>This documentation is for version <b>{{ version }}</b>, which is currently 
+  in development.</p>
+<p>You can get it from the <a href="https://github.com/abakan/ProDy">github repository</a> 
+  or install the latest release <a href="{{ pathto("getprody") }}">downloads</a>.</p>
+
+{% else %}
+
+<h3 style="color: white; background-color: IndianRed; border: 1px solid #9B9886;">Latest Release</h3>
+<p><b>v{{ version }}</b> comes with new features and bugfixes.
+See <a href="{{ pathto("changes") }}">changes</a> or 
+go to <a href="{{ pathto("getprody") }}">downloads</a>.</p> 
+
+<p>Current <a href="{{ pathto("latest") }}">development version</a>
+  documentation is also available.</p>
+
+{% endif %}
