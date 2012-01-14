@@ -8,7 +8,7 @@ Required Software
 ===============================================================================
 
 * `Python 2.6 or 2.7 <http://python.org/>`_ (for Windows, choose a 32bit 
-  installer, which is supported by NumPy and ProDy packages)
+  installer that is supported by NumPy and ProDy packages)
 * `NumPy 1.4+ <http://numpy.scipy.org/>`_
 
 When compiling from source, on Linux for example, you will need a C compiler 
@@ -117,6 +117,11 @@ The following software is included in the ProDy installation packages:
    
   KDTree and pairwise2 components are used for distance based atom selections 
   and pairwise sequence alignment, respectively. 
+
+* `argparse 1.2.1 <http://code.google.com/p/argparse/>`_
+
+  argparse is used to implement new :ref:`commands` and provided for 
+  compatibility with Python 2.6.
 
 
 Source Code
