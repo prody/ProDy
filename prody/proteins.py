@@ -1291,12 +1291,15 @@ class Chemical(object):
     
     .. versionadded:: 0.9
     
+    .. versionchanged:: 0.9.3
+       Renamed :attr:`identifier` as :attr:`resname`.
+    
     A :class:`Chemical` instance has the following attributes:
         
     =========== ===== =========================================================
     Attribute   Type  Description (RECORD TYPE)
     =========== ===== =========================================================
-    identifier  str   chemical component identifier (or residue name) (HET)
+    resname     str   residue name (or chemical component identifier) (HET)
     name        str   chemical name (HETNAM)
     chain       str   chain identifier (HET)
     number      int   residue (or sequence) number (HET)
@@ -1322,13 +1325,13 @@ class Chemical(object):
     
     """
     
-    __slots__ = ['identifier', 'name', 'chain', 'resnum', 'icode', 
+    __slots__ = ['resname', 'name', 'chain', 'resnum', 'icode', 
                  'n_atoms', 'description', 'synonyms', 'formula', 'pdbentry']
     
-    def __init__(self, identifier):
+    def __init__(self, resname):
         
         #: residue name (or chemical component identifier)
-        self.identifier = identifier
+        self.resname = resname
         #: chemical name
         self.name = None
         #: chain identifier
@@ -1349,11 +1352,11 @@ class Chemical(object):
         self.pdbentry = None
         
     def __str__(self):
-        return self.identifier
+        return self.resname
     
     def __repr__(self):
         return '<Chemical: {0:s} ({1:s}_{2:s}_{3:d})>'.format(
-                    self.identifier, self.pdbentry, self.chain, self.resnum)
+                    self.resname, self.pdbentry, self.chain, self.resnum)
 
     def __len__(self):
         return self.n_atoms
@@ -1373,12 +1376,15 @@ class Polymer(object):
     
     .. versionadded:: 0.9
     
+    .. versionchanged:: 0.9.3
+       Renamed :attr:`identifier` as :attr:`chid`.
+    
     A :class:`Polymer` instance has the following attributes:
         
     ============= ====== ======================================================
     Attribute     Type   Description (RECORD TYPE)
     ============= ====== ======================================================
-    identifier    str    chain identifier
+    chid          str    chain identifier
     name          str    name of the polymer (macromolecule) (COMPND)
     fragment      str    specifies a domain or region of the molecule (COMPND)
     synonyms      list   list of synonyms for the polymer (COMPND)
@@ -1416,7 +1422,7 @@ class Polymer(object):
     <Polymer: UBIQUITIN (2K39_A)>
     >>> print(polymer.pdbentry)
     2K39
-    >>> print(polymer.identifier)
+    >>> print(polymer.chid)
     A
     >>> print(polymer.name)
     UBIQUITIN
@@ -1435,16 +1441,16 @@ class Polymer(object):
     
     """
     
-    __slots__ = ['identifier', 'name', 'fragment', 'synonyms', 'ec', 
+    __slots__ = ['chid', 'name', 'fragment', 'synonyms', 'ec', 
                  'engineered', 'mutation', 'comments', 'sequence', 'pdbentry', 
                  'dbabbr', 'dbname', 'dbidentifier', 'dbaccession', 
                  'modified', 'different',
                  'sqfirst', 'sqlast', 'dbfirst', 'dblast']
     
-    def __init__(self, identifier):
+    def __init__(self, chid):
         
         #: chain identifier
-        self.identifier = identifier
+        self.chid = chid
         #: name of the polymer (macromolecule)
         self.name = ''
         #: specifies a domain or region of the molecule
@@ -1490,7 +1496,7 @@ class Polymer(object):
     
     def __repr__(self):
         return '<Polymer: {0:s} ({1:s}_{2:s})>'.format(self.name, 
-                                                self.pdbentry, self.identifier)
+                                                self.pdbentry, self.chid)
 
     def __len__(self): 
         return len(self.sequence)
@@ -1905,7 +1911,7 @@ def _getChemicals(lines):
         chem.icode = line[17].strip()
         chem.n_atoms = int(line[20:25])
         chem.description = line[30:70].strip()
-        chemicals[chem.identifier].append(chem)
+        chemicals[chem.resname].append(chem)
     for i, line in lines['HETNAM']:
         chem = line[11:14].strip()
         chem_names[chem] += line[15:70].rstrip()
