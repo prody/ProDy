@@ -867,7 +867,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset, 
-                   altloc_torf, format='pdb'):
+                   altloc_torf, format='PDB'):
     """Return an AtomGroup. See also :func:`parsePDBStream()`.
     
     :arg lines: PDB/PQR lines 
@@ -900,6 +900,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     else:
         # most PDB files contain less than 99999 atoms
         asize = min(len(lines) - split, 99999)
+    addcoords = False
+    if atomgroup.numCoordsets() > 0:
+        addcoords = True
     alength = asize
     coordinates = np.zeros((asize, 3), dtype=float)
     atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
@@ -922,7 +925,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     else:
         charges = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
         radii = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['radius'].dtype)
-        type_ = 'PDB'
         
     asize = 2000 # increase array length by this much when needed 
         
@@ -1110,8 +1112,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     raise ValueError('PDB file and AtomGroup ag must have '
                                     'same number of atoms')
                 # this is where to decide if more coordsets should be expected
-                if END: 
-                    atomgroup.setCoords(coordinates[:acount])
+                if END:
+                    if addcoords:
+                        atomgroup.addCoordset(coordinates[:acount])
+                    else:
+                        atomgroup.setCoords(coordinates[:acount])
                 else:
                     coordsets = np.zeros((diff/acount+1, acount, 3))
                     coordsets[0] = coordinates[:acount]
@@ -1189,12 +1194,21 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             coordsets[nmodel] = coordinates
             nmodel += 1
         if nmodel == coordsets.shape[0]:
-            atomgroup.setCoords(coordsets)
+            if addcoords:
+                atomgroup.addCoordset(coordsets)
+            else:
+                atomgroup.setCoords(coordsets)
         else:
-            atomgroup.setCoords(coordsets[:nmodel])
+            if addcoords:
+                atomgroup.addCoordset(coordsets[:nmodel])
+            else:
+                atomgroup.setCoords(coordsets[:nmodel])
     elif not END:
         # this means last line wast an ATOM line, so atomgroup is not decorated
-        atomgroup.setCoords(coordinates[:acount])
+        if addcoords:
+            atomgroup.addCoordset(coordinates[:acount])
+        else:
+            atomgroup.setCoords(coordinates[:acount])
         if not only_subset:
             atomnames = np.char.strip(atomnames[:acount])
             resnames = np.char.strip(resnames[:acount])
