@@ -104,6 +104,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from collections import defaultdict
+from types import NoneType
 import time
 
 import numpy as np
@@ -118,9 +119,9 @@ __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset',
            'loadAtoms', 'saveAtoms',]
 
 class Field(object):
-    __slots__ = ('_name', '_var', '_dtype',  '_doc', '_doc_pl', 
+    __slots__ = ['_name', '_var', '_dtype',  '_doc', '_doc_pl', 
                  '_meth', '_meth_pl', '_ndim', '_none', '_selstr',
-                 '_depr', '_depr_pl', '_synonym')
+                 '_depr', '_depr_pl', '_synonym']
     def __init__(self, name, dtype, **kwargs):
         self._name = name
         self._dtype = dtype
@@ -536,7 +537,7 @@ class Atomic(object):
       * :class:`AtomGroup`
       * :class:`AtomPointer`"""
       
-    __slots__ = ('_acsi')
+    __slots__ = ['_acsi']
     
     def __contains__(self, item):
         """.. versionadded:: 0.5.3"""
@@ -732,10 +733,11 @@ class AtomGroup(Atomic):
     
     __metaclass__ = AtomGroupMeta
     
-    __slots__ = ('_acsi', '_title', '_n_atoms', '_coordinates', '_n_csets', 
-                 '_hv', '_sn2i',  
+    __slots__ = ['_acsi', '_title', '_n_atoms', '_coordinates', '_n_csets',
+                 '_cslabels', 
+                 '_hv', '_sn2i',
                  '_trajectory', '_frameindex', '_tcsi', '_timestamps',
-                 '_data')
+                 '_data']
     
     def __init__(self, title='Unnamed'):
         """Instantiate an AtomGroup with a *title*."""
@@ -743,6 +745,7 @@ class AtomGroup(Atomic):
         self._title = str(title)
         self._n_atoms = 0
         self._coordinates = None
+        self._cslabels = []
         self._acsi = None                  # Active Coordinate Set Index
         self._n_csets = 0
         self._hv = None
@@ -951,38 +954,82 @@ class AtomGroup(Atomic):
         prody.deprecate('setCoordinates', 'setCoords')
         return self.setCoords(coordinates)
         
-    def setCoords(self, coords):
-        """Set coordinates.  Coordinates must be a :class:`numpy.ndarray` 
+    def setCoords(self, coords, label=None):
+        """Set coordinates.  *coords* must be a :class:`numpy.ndarray` 
         instance.  If the shape of the coordinates array is 
-        (n_coordsets,n_atoms,3), the given array will replace all coordinate 
-        sets. To avoid it, :meth:`addCoordset` may be used.
+        (n_csets,n_atoms,3), the given array will replace all coordinate sets. 
+        To avoid it, :meth:`addCoordset` may be used.  If the shape of the 
+        coordinates array is (n_atoms,3) or (1,n_atoms,3), the coordinate set 
+        will replace the coordinates of the currently active coordinate set.
         
-        If the shape of the coordinates array is (n_atoms,3) or (1,n_atoms,3),
-        the coordinate set will replace the coordinates of the currently active
-        coordinate set."""
+        .. versionadded:: 0.9.3
+           *label* argument is added to allow labeling coordinate sets.  
+           *label* may be a string or a list of strings length equal to the
+           number of coordinate sets."""
 
         coordinates = checkCoordsArray(coords, 'coords',
                                        cset=True, n_atoms=self._n_atoms,
                                        reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coordinates.shape[-2] 
-        
+        acsi = None
         if self._coordinates is None:
             self._coordinates = coordinates
             self._n_csets = coordinates.shape[0]
             self._acsi = 0
             self._setTimeStamp()
+            if isinstance(label, (NoneType, str)):
+                self._cslabels = [label] * self._n_csets
+            elif isinstance(label, (list, tuple)):
+                if len(label) == self._n_csets:
+                    self._cslabels = label
+                else:
+                    self._cslabels = [None] * self._n_csets
+                    LOGGER.warning('Length of `label` does not match number '
+                                   'of coordinate sets.')
+                
         else:
             if coordinates.shape[0] == 1:
-                self._coordinates[self._acsi] = coordinates[0]
-                self._setTimeStamp(self._acsi)
+                acsi = self._acsi
+                self._coordinates[acsi] = coordinates[0]
+                self._setTimeStamp(acsi)
+                if isinstance(label, str):
+                    self._cslabels[self._acsi] = label
             else:
                 self._coordinates = coordinates
                 self._n_csets = coordinates.shape[0]
                 self._acsi = min(self._n_csets - 1, self._acsi)
                 self._setTimeStamp()
+        if acsi is None:
+            if isinstance(label, (str, NoneType)):
+                self._cslabels = [label] * self._n_csets
+            elif isinstance(label, (list, tuple)):
+                if len(label) == self._n_csets:
+                    if all([isinstance(lbl, str) for lbl in label]):
+                        self._cslabels += label
+                    else:
+                        LOGGER.warning('all items of `label` must be strings')
+                else:
+                    LOGGER.warning('`label` must have same length as the '
+                                   '`coords` array')
+            else:
+                LOGGER.warning('`label` must be a string or list of strings')
+        elif label is not None:
+            if isinstance(label, str):
+                self._cslabels[acsi] = label
+            elif isinstance(label, (list, tuple)):
+                if len(label) == 1:
+                    if isinstance(label[0], str):
+                        self._cslabels[acsi] = label
+                    else:
+                        LOGGER.warning('all items of `label` must be strings')
+                else:
+                    LOGGER.warning('length of `label` must be one')
+            else:
+                LOGGER.warning('`label` must be a string or list of strings')
+                    
             
-    def addCoordset(self, coords):
+    def addCoordset(self, coords, label=None):
         """Add a coordinate set to the atom group.
         
         .. versionchanged:: 0.6.2
@@ -1004,13 +1051,27 @@ class AtomGroup(Atomic):
 
         coords = checkCoordsArray(coords, 'coords', cset=True, 
                                   n_atoms=self._n_atoms, reshape=True)
-
+        diff = coords.shape[0]
         self._coordinates = np.concatenate((self._coordinates, coords), axis=0)
         self._n_csets = self._coordinates.shape[0]
         timestamps = self._timestamps
         self._timestamps = np.zeros(self._n_csets)
         self._timestamps[:len(timestamps)] = timestamps
         self._timestamps[len(timestamps):] = time.time()
+        
+        if isinstance(label, (str, NoneType)):
+            self._cslabels += [label] * diff
+        elif isinstance(label, (list, tuple)):
+            if len(label) == diff:
+                if all([isinstance(lbl, str) for lbl in label]):
+                    self._cslabels += label
+                else:
+                    LOGGER.warning('all items of `label` must be strings')
+            else:
+                LOGGER.warning('`label` list must have same length as the '
+                               '`coords` array')
+        else:
+            LOGGER.warning('`label` must be a string or list of strings')
         
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
@@ -1024,14 +1085,17 @@ class AtomGroup(Atomic):
         which = np.ones(self._n_csets, bool)
         which[index] = False
         n_csets = self._n_csets
-        if which.sum() == 0:
+        which = which.nonzero()[0]
+        if len(which) == 0:
             self._coordinates = None
             self._n_csets = 0
             self._acsi = None
+            self._cslabels = None
         else:
             self._coordinates = self._coordinates[which]
             self._n_csets = self._coordinates.shape[0]
             self._acsi = 0
+            self._cslabels = [self._cslabels[i] for i in which]
         self._timestamps = self._timestamps[which]        
 
     def getCoordsets(self, indices=None):
@@ -1433,6 +1497,7 @@ class AtomGroup(Atomic):
             self._tcsi = None
             self._trajectory = None
             self.delCoordset(self._acsi)
+            self._cslabels.pop()
         else:
             if isinstance(trajectory, str):
                 trajectory = prody.Trajectory(trajectory)
@@ -1441,8 +1506,8 @@ class AtomGroup(Atomic):
                                 'TrajectoryBase instance')
             if self._n_atoms != trajectory.numAtoms():
                 raise ValueError('trajectory must have same number of atoms')
-                
-            self._tcsi = trajectory.getNextFrameIndex()
+            self._tcsi = trajectory.getNextIndex()
+            self._cslabels.append(trajectory.getTitle())
             self.addCoordset(trajectory.nextCoordset())
             self._acsi = self._n_csets - 1
             self._trajectory = trajectory
@@ -1460,7 +1525,7 @@ class AtomGroup(Atomic):
         
         if not isinstance(step, int) or step < 1:
             raise TypeError('step must be a positive integer')
-        nfi = self._trajectory.getNextFrameIndex()
+        nfi = self._trajectory.getNextIndex()
         if step > 1:
             self._trajectory.skip(step - 1)
         if nfi - self._tcsi == 1:
@@ -1482,7 +1547,7 @@ class AtomGroup(Atomic):
         .. versionadded:: 0.8"""
         
         self._trajectory.goto(n)
-        self._tcsi = self._trajectory.getNextFrameIndex()
+        self._tcsi = self._trajectory.getNextIndex()
         self._coordinates[self._acsi] = self._trajectory.nextCoordset()
         self._setTimeStamp(self._acsi)
     
@@ -1494,6 +1559,24 @@ class AtomGroup(Atomic):
         
         return self._tcsi
     
+    def getACSLabel(self):
+        """Return active coordinate set label.
+        
+        .. versionadded:: 0.9.3"""
+        
+        if self._n_csets:
+            return self._cslabels[self._acsi]
+
+    def setACSLabel(self, label):
+        """Set active coordinate set label.
+        
+        .. versionadded:: 0.9.3"""
+
+        if self._n_csets:
+            if isinstance(label, (str, NoneType)):
+                self._cslabels[self._acsi] = label 
+            else:
+                raise TypeError('`label` must be a string')
     
 class AtomPointer(Atomic):
     
@@ -1661,6 +1744,13 @@ class AtomPointer(Atomic):
         
         return self._ag.getFrameIndex()
             
+    def getACSLabel(self):
+        """Return active coordinate set label.
+        
+        .. versionadded:: 0.9.3"""
+        
+        if self._ag._n_csets:
+            return self._ag._cslabels[self._acsi]
 
 class AtomMeta(type):
 
@@ -1729,7 +1819,7 @@ class Atom(AtomPointer):
     """
     
     __metaclass__ = AtomMeta
-    __slots__ = ('_ag', '_index', '_acsi')
+    __slots__ = ['_ag', '_index', '_acsi']
     
     def __init__(self, atomgroup, index, acsi=None):
         AtomPointer.__init__(self, atomgroup, acsi)
