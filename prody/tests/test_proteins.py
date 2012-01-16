@@ -100,32 +100,24 @@ class TestParsePDB(unittest.TestCase):
         
         self.pdb = DATA_FILES['multi_model_truncated']
         self.one = DATA_FILES['oneatom']
-        self.ag = parseDatafile(self.pdb['file'])
+        self.ca = DATA_FILES['1ubi']
          
-    def testReturnType(self):
+    def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
+
+        ag = parseDatafile(self.pdb['file'])
         
-        self.assertIsInstance(self.ag, prody.AtomGroup,
+        self.assertIsInstance(ag, prody.AtomGroup,
             'parsePDB failed to return an AtomGroup instance')
     
-    def testNumOfAtoms(self):
-        """Test the number of parsed atoms."""
-        
-        self.assertEqual(self.ag.numAtoms(), self.pdb['atoms'],
+        self.assertEqual(ag.numAtoms(), self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')
     
-    def testNumOfCoordsets(self):
-        """Test the number of parsed coordinate sets."""
-        
-        self.assertEqual(self.ag.numCoordsets(), self.pdb['models'],
+        self.assertEqual(ag.numCoordsets(), self.pdb['models'],
             'parsePDB failed to parse correct number of coordinate sets '
             '(models)')
 
-    def testAtomGroupTitle(self):
-        """Test the title of the parsed :class:`~prody.atomic.AtomGroup` 
-        instance."""
-        
-        self.assertEqual(self.ag.getTitle(), 
+        self.assertEqual(ag.getTitle(), 
              os.path.splitext(self.pdb['file'])[0],
             'failed to set AtomGroup title based on filename')
 
@@ -187,7 +179,6 @@ class TestParsePDB(unittest.TestCase):
                         'failed to parse correct number of "bb" atoms')
 
     def testAgArgument(self):
-        
         """Test outcome of valid and invalid *ag* arguments."""
 
         path = getDatafilePath(self.pdb['file'])
@@ -199,6 +190,31 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(parsePDB(path, ag=ag).numAtoms(), 
             self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')
+    
+    def testAgArgMultiModel(self):
+        """Test number of coordinate sets when using *ag* arguments."""
+        
+        path = getDatafilePath(self.pdb['file'])
+        ag = parsePDB(path)
+        coords = ag.getCoordsets()
+        ncsets = ag.numCoordsets()
+        ag = parsePDB(path, ag=ag)
+        self.assertEqual(ag.numCoordsets(), ncsets*2,
+            'parsePDB failed to append coordinate sets to given ag')
+        assert_equal(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)))
+        
+    def testAgArgSingleModel(self):
+        """Test number of coordinate sets when using *ag* arguments."""
+        
+        path = getDatafilePath(self.ca['file'])
+        ag = parsePDB(path)
+        coords = ag.getCoordsets()
+        ncsets = ag.numCoordsets()
+        ag = parsePDB(path, ag=ag, subset='bb')
+        self.assertEqual(ag.numCoordsets(), ncsets*2,
+            'parsePDB failed to append coordinate sets to given ag')
+        assert_equal(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)))
+
     
     def testBiomolArgument(self):
         
