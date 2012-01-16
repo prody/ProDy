@@ -267,7 +267,7 @@ class PackageLogger(object):
         if rollover:
             logfile.doRollover()
         self.info("Logging into file: {0:s}".format(logfilename))
-        self.info("Started logging at {0:s}".format(str(now())))
+        self.info("Logging started at {0:s}".format(str(now())))
 
     def closeLogfile(self, filename):
         """Close log file *filename*."""
@@ -278,8 +278,7 @@ class PackageLogger(object):
         for index, handler in enumerate(self.getHandlers()):
             if isinstance(handler, logging.handlers.RotatingFileHandler):
                 if handler.stream.name in (filename,os.path.abspath(filename)):
-                    #self.info("Closing logfile '{0:s}'".format(filename))
-                    self.info("Stopped logging at {0:s}".format(str(now())))
+                    self.info("Logging stopped at {0:s}".format(str(now())))
                     handler.close()
                     self.delHandler(index)
                     return
