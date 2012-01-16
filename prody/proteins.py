@@ -1292,24 +1292,25 @@ class Chemical(object):
     .. versionadded:: 0.9
     
     .. versionchanged:: 0.9.3
-       Renamed :attr:`identifier` as :attr:`resname`.
+       Renamed :attr:`identifier` and :attr:`n_atoms` as :attr:`resname`
+       and :attr:`natoms`, respectively.
     
     A :class:`Chemical` instance has the following attributes:
         
-    =========== ===== =========================================================
-    Attribute   Type  Description (RECORD TYPE)
-    =========== ===== =========================================================
-    resname     str   residue name (or chemical component identifier) (HET)
-    name        str   chemical name (HETNAM)
-    chain       str   chain identifier (HET)
-    number      int   residue (or sequence) number (HET)
-    icode       str   insertion code (HET)
-    n_atoms     int   number of atoms present in the structure (HET)
-    description str   description of the chemical component (HET)
-    synonyms    list  synonyms (HETSYN)
-    formula     str   chemical formula (FORMUL)
-    pdbentry    str   PDB entry that chemical data is extracted from
-    =========== ===== =========================================================
+    ===========  =====  =======================================================
+    Attribute    Type   Description (RECORD TYPE)
+    ===========  =====  =======================================================
+    resname      str    residue name (or chemical component identifier) (HET)
+    name         str    chemical name (HETNAM)
+    chain        str    chain identifier (HET)
+    number       int    residue (or sequence) number (HET)
+    icode        str    insertion code (HET)
+    natoms       int    number of atoms present in the structure (HET)
+    description  str    description of the chemical component (HET)
+    synonyms     list   synonyms (HETSYN)
+    formula      str    chemical formula (FORMUL)
+    pdbentry     str    PDB entry that chemical data is extracted from
+    ===========  =====  =======================================================
     
     Chemical class instances can be obtained as follows:
         
@@ -1318,7 +1319,7 @@ class Chemical(object):
     <Chemical: B11 (1ZZ2_A_362)>
     >>> print(chemical.name)
     N-[3-(4-FLUOROPHENOXY)PHENYL]-4-[(2-HYDROXYBENZYL) AMINO]PIPERIDINE-1-SULFONAMIDE
-    >>> chemical.n_atoms
+    >>> chemical.natoms
     33
     >>> len(chemical)
     33
@@ -1326,7 +1327,7 @@ class Chemical(object):
     """
     
     __slots__ = ['resname', 'name', 'chain', 'resnum', 'icode', 
-                 'n_atoms', 'description', 'synonyms', 'formula', 'pdbentry']
+                 'natoms', 'description', 'synonyms', 'formula', 'pdbentry']
     
     def __init__(self, resname):
         
@@ -1341,7 +1342,7 @@ class Chemical(object):
         #: insertion code
         self.icode = None
         #: number of atoms present in the structure
-        self.n_atoms = None
+        self.natoms = None
         #: description of the chemical component
         self.description = None
         #: list of synonyms
@@ -1359,15 +1360,7 @@ class Chemical(object):
                     self.resname, self.pdbentry, self.chain, self.resnum)
 
     def __len__(self):
-        return self.n_atoms
-
-_PDB_DBREF = { 
-    'GB': 'GenBank',
-    'PDB': 'ProteinDataBank',
-    'UNP': 'UniProt',
-    'NORINE': 'Norine',
-    'UNIMES': 'UNIMES'
-}
+        return self.natoms
 
 class Polymer(object):
     
@@ -1377,43 +1370,33 @@ class Polymer(object):
     .. versionadded:: 0.9
     
     .. versionchanged:: 0.9.3
-       Renamed :attr:`identifier` as :attr:`chid`.
+       Renamed :attr:`identifier` as :attr:`chid`. Storing **DBREF** records
+       in :class:`DBRef` instances.
     
     A :class:`Polymer` instance has the following attributes:
         
-    ============= ====== ======================================================
-    Attribute     Type   Description (RECORD TYPE)
-    ============= ====== ======================================================
-    chid          str    chain identifier
-    name          str    name of the polymer (macromolecule) (COMPND)
-    fragment      str    specifies a domain or region of the molecule (COMPND)
-    synonyms      list   list of synonyms for the polymer (COMPND)
-    ec            list   list of associated Enzyme Commission numbers (COMPND)
-    engineered    bool   indicates that the polymer was produced using 
-                         recombinant technology or by purely chemical synthesis
-                         (COMPND)
-    mutation      bool   indicates presence of a mutation (COMPND)
-    comments      str    additional comments
-    sequence      str    polymer chain sequence (SEQRES)
-    sqfirst       tuple  (resnum, icode) of the *first* residue in structure
-    sqlast        tuple  (resnum, icode) of the *last* residue in structure
-    dbabbr        str    reference sequence database abbreviation (DBREF[1|2])
-    dbname        str    reference sequence database name (DBREF[1|2])
-    dbidentifier  str    sequence database identification code (DBREF[1|2])
-    dbaccession   str    sequence database accession code (DBREF[1|2])
-    dbfirst       tuple  (resnum, icode) of the *first* residue in database
-    dblast        tuple  (resnum, icode) of the *last* residue in database
-    different     list   | differences from database sequence (SEQADV)
-                         | when different residues are present, they will be 
-                           each will be represented as: ``(residueName, 
-                           residueNumberInsertionCode, dbResidueName, 
-                           dbResidueNumber, comment)``
-    modified      list   | modified residues (SEQMOD)
-                         | when modified residues are present, each will be 
-                           represented as: ``(residueName, 
-                           residueNumberInsertionCode, standardName, comment)``
-    pdbentry      str    PDB entry that polymer data is extracted from
-    ============= ====== ======================================================
+    ==========  ======  ======================================================
+    Attribute   Type    Description (RECORD TYPE)
+    ==========  ======  ======================================================
+    chid        str     chain identifier
+    name        str     name of the polymer (macromolecule) (COMPND)
+    fragment    str     specifies a domain or region of the molecule (COMPND)
+    synonyms    list    synonyms for the polymer (COMPND)
+    ec          list    associated Enzyme Commission numbers (COMPND)
+    engineered  bool    indicates that the polymer was produced using 
+                        recombinant technology or by purely chemical synthesis
+                        (COMPND)
+    mutation    bool    indicates presence of a mutation (COMPND)
+    comments    str     additional comments
+    sequence    str     polymer chain sequence (SEQRES)
+    database    list    sequence database records (DBREF[1|2] and SEQADV), 
+                        see :class:`DBRef`  
+    modified    list    | modified residues (SEQMOD)
+                        | when modified residues are present, each will be 
+                          represented as: ``(resname, resnum, icode, stdname, 
+                          comment)``
+    pdbentry    str     PDB entry that polymer data is extracted from
+    ==========  ======  ======================================================
     
     Polymer class instances can be obtained as follows:
     
@@ -1432,20 +1415,19 @@ class Polymer(object):
     76
     >>> len(polymer)
     76
-    >>> print(polymer.dbname)
+    >>> dbref = polymer.dbref[0]
+    >>> print(dbref.dbname)
     UniProt
-    >>> print(polymer.dbaccession)
+    >>> print(dbref.accession)
     P62972
-    >>> print(polymer.dbidentifier)
+    >>> print(dbref.entryname)
     UBIQ_XENLA
     
     """
     
     __slots__ = ['chid', 'name', 'fragment', 'synonyms', 'ec', 
                  'engineered', 'mutation', 'comments', 'sequence', 'pdbentry', 
-                 'dbabbr', 'dbname', 'dbidentifier', 'dbaccession', 
-                 'modified', 'different',
-                 'sqfirst', 'sqlast', 'dbfirst', 'dblast']
+                 'database', 'modified']
     
     def __init__(self, chid):
         
@@ -1462,32 +1444,16 @@ class Polymer(object):
         self.engineered = None
         """indicates that the molecule was produced using recombinant 
         technology or by purely chemical synthesis"""
+        #: reference sequence database records
+        self.database = []
         #: indicates presence of a mutation
         self.mutation = None
         #: additional comments
         self.comments = None
         #: polymer chain sequence
         self.sequence = ''
-        #: reference sequence database abbreviation 
-        self.dbabbr = None
-        #: reference sequence database name 
-        self.dbname = None
-        #: sequence database identification code
-        self.dbidentifier = None
-        #: sequence database accession code 
-        self.dbaccession = None
-        #: ``(resnum, icode)`` of the *first* residue in structure
-        self.sqfirst = None
-        #: ``(resnum, icode)`` of the *last* residue in structure
-        self.sqlast = None
-        #: ``(resnum, icode)`` of the *first* residue in database
-        self.dbfirst = None
-        #: ``(resnum, icode)`` of the *last* residue in database
-        self.dblast = None
         #: modified residues
         self.modified = None
-        #: differences from database reference sequence
-        self.different = None
         #: PDB entry that polymer data is extracted from        
         self.pdbentry = None
         
@@ -1500,7 +1466,50 @@ class Polymer(object):
 
     def __len__(self): 
         return len(self.sequence)
+   
+_PDB_DBREF = { 
+    'GB': 'GenBank',
+    'PDB': 'PDB',
+    'UNP': 'UniProt',
+    'NORINE': 'Norine',
+    'UNIMES': 'UNIMES'
+}
+   
+class DBRef(object):
     
+    """A data structure for storing reference to sequence databases for polymer
+    components in  PDB structures.  Information if parsed from **DBREF[1|2]**
+    and **SEQADV** records in PDB header.
+    
+    .. versionadded:: 0.9.3"""
+    
+    __slots__ = ['database', 'dbabbr', 'idcode', 'accession', 
+                 'first', 'last', 'diff']
+
+    def __init__(self):
+
+        #: sequence database, one of UniProt, GenBank, Norine, UNIMES, or PDB 
+        self.database = None
+        #: database abbreviation, one of UNP, GB, NORINE, UNIMES, or PDB 
+        self.dbabbr = None
+        #: database identification code, i.e. entry name in UniProt
+        self.idcode = None
+        #: database accession code 
+        self.accession = None
+        #: initial residue numbers, ``(resnum, icode, dbnum)``
+        self.first = None
+        #: ending residue numbers, ``(resnum, icode, dbnum)``
+        self.last = None
+        self.diff = []
+        """list of differences between PDB and database sequences, 
+        ``(resname, resnum, icode, dbResname, dbResnum, comment)``"""
+    
+    def __str__(self):
+        return self.accession
+    
+    def __repr__(self):
+        return '<DBRef: {0:s} ({1:s})>'.format(self.accession, self.database)
+
 _START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
 
 def cleanString(string, nows=False):
@@ -1543,7 +1552,7 @@ def parsePDBHeader(pdb, *keys):
                                      * *publisher*: publisher information
                                      * *pmid*: pubmed identifier
                                      * *doi*: digital object identifier 
-    DBREF[1|2]   polymers          see :class:`Polymer`
+    DBREF[1|2]   polymers          see :class:`Polymer` and :class:`DBRef`
     SEQADV       polymers          see :class:`Polymer`
     SEQRES       polymers          see :class:`Polymer`
     MODRES       polymers          see :class:`Polymer`
@@ -1562,12 +1571,6 @@ def parsePDBHeader(pdb, *keys):
     Header records that are not parsed are: OBSLTE, CAVEAT, SOURCE, KEYWDS, 
     REVDAT, SPRSDE, SSBOND, LINK, CISPEP, CRYST1, ORIGX1, ORIGX2, ORIGX3, 
     MTRIX1, MTRIX2, MTRIX3, and REMARK X not mentioned above.
-    
-    
-    Usage examples:
-        
-    >>> 
-    
     """
     
     if not os.path.isfile(pdb):
@@ -1764,102 +1767,128 @@ def _getPolymers(lines):
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
         poly.sequence += ''.join(prody.compare.getSequence(line[19:].split()))
+    
     for i, line in lines['DBREF ']:
         i += 1
+
         ch = line[12]
+        dbabbr = line[26:32].strip()
+        dbref = DBRef()
+        dbref.dbabbr = dbabbr
+        dbref.database = _PDB_DBREF.get(dbabbr, 'Unknown')
+        dbref.accession = line[33:41].strip()
+        dbref.idcode = line[42:54].strip()
+        
+        try:
+            first = int(line[14:18])
+        except:
+            LOGGER.warning('DBREF for chain {2:s}: failed to parse '
+                           'initial sequence number of the PDB sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        try:
+            last = int(line[20:24])
+        except:
+            LOGGER.warning('DBREF for chain {2:s}: failed to parse '
+                           'ending sequence number of the PDB sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        try:
+            dbref.first = (first, line[18], int(line[56:60]))
+        except:
+            LOGGER.warning('DBREF for chain {2:s}: failed to parse '
+                           'initial sequence number of the database sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        try:
+            dbref.last = (last, line[24].strip(), int(line[62:67]))
+        except:
+            LOGGER.warning('DBREF for chain {2:s}: failed to parse '
+                           'ending sequence number of the database sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        if not poly.dbabbr is None:
-            LOGGER.warning('DBREF record for chain {2:s} is duplicated '
-                           '({0:s}:{1:d})'
-                           .format(pdbid, i, ch))
-            continue
-        poly.dbabbr = line[26:32].strip()
-        poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbaccession = line[33:41].strip()
-        poly.dbidentifier = line[42:54].strip()
-        if poly.dbabbr == 'PDB':
-            if not (pdbid == poly.dbaccession == poly.dbidentifier):
-                LOGGER.warning('DBREF record for chain {2:s} refers to PDB '
-                               'entry {3:s} ({0:s}:{1:d})'
-                               .format(pdbid, i, ch, poly.dbaccession))
-        else:
-            if pdbid == poly.dbaccession or pdbid == poly.dbidentifier:
-                LOGGER.warning('DBREF record for chain {2:s} is {3:s}, '
-                               'expected PDB ({0:s}:{1:d})'
-                               .format(pdbid, i, ch, poly.dbabbr))
-        try:
-            poly.sqfirst = (int(line[14:18]), line[18])
-        except:
-            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
-                           'first residue number for sequence '
-                           '({0:s}:{1:d})'.format(pdbid, i, ch))
-        try:
-            poly.sqlast = (int(line[20:24]), line[24])
-        except:
-            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
-                           'last residue number for sequence '
-                           '({0:s}:{1:d})'.format(pdbid, i, ch))
-        try:
-            poly.dbfirst = (int(line[56:60]), line[60])
-        except:
-            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
-                           'first residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i, ch))
-        try:
-            poly.dblast = (int(line[62:67]), line[67])
-        except:
-            LOGGER.warning('DBREF record for chain {2:s}: failed to parse '
-                           'last residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i, ch))
-    for i, line in lines['DBREF1']:
+        poly.database.append(dbref)
+
+    dbref1 = lines['DBREF1']
+    dbref2 = lines['DBREF2']
+    if len(dbref1) != len(dbref2):
+        LOGGER.warning('DBREF1 and DBREF1 records are not complete')
+        dbref12 = []
+    else:
+        dbref12 = zip(dbref1, dbref2)
+
+    for dbref1, dbref2 in dbref12:
+        i, line = dbref1
         i += 1
         ch = line[12]
-        poly = polymers.get(ch, Polymer(ch))
-        polymers[ch] = poly
-        if not poly.dbabbr is None:
-            LOGGER.warning('DBREF1 record for chain {2:s} is duplicated '
-                           '({0:s}:{1:d})'
-                           .format(pdbid, i, ch))
-            continue
-        poly.dbabbr = line[26:32].strip()
-        poly.dbname = _PDB_DBREF.get(poly.dbabbr, 'Unknown')
-        poly.dbidentifier = line[47:67].strip()
+
+        dbabbr = line[26:32].strip()
+        dbref = DBRef()
+        dbref.dbabbr = dbabbr
+        dbref.database = _PDB_DBREF.get(dbabbr, 'Unknown')
+        dbref.idcode = line[47:67].strip()
+        
         try:
-            poly.sqfirst = (int(line[14:18]), line[18])
+            first = int(line[14:18])
         except:
-            LOGGER.warning('DBREF1 record for chain {2:s}: failed to parse '
-                           'first residue number for sequence '
+            LOGGER.warning('DBREF1 for chain {2:s}: failed to parse '
+                           'initial sequence number of the PDB sequence '
                            '({0:s}:{1:d})'.format(pdbid, i, ch))
         try:
-            poly.sqlast = (int(line[20:24]), line[24])
+            last = int(line[20:24])
         except:
-            LOGGER.warning('DBREF1 record for chain {2:s}: failed to parse '
-                           'last residue number for sequence '
+            LOGGER.warning('DBREF1 for chain {2:s}: failed to parse '
+                           'ending sequence number of the PDB sequence '
                            '({0:s}:{1:d})'.format(pdbid, i, ch))
-    for i, line in lines['DBREF2']:
+        i, line = dbref2
         i += 1
-        ch = line[12]
+        if line[12] == ' ':
+            LOGGER.warning('DBREF2 chain id not specified'
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        elif line[12] != ch:
+            LOGGER.warning('DBREF1 and DBREF2 chain id mismatch'
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))            
+
+        dbref.accession = line[18:40].strip()
+        try:
+            dbref.first = (first, line[18].strip(), int(line[45:55]))
+        except:
+            LOGGER.warning('DBREF2 for chain {2:s}: failed to parse '
+                           'initial sequence number of the database sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        try:
+            dbref.last = (last, line[24].strip(), int(line[57:67]))
+        except:
+            LOGGER.warning('DBREF2 for chain {2:s}: failed to parse '
+                           'ending sequence number of the database sequence '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        if not poly.dbaccession is None:
-            LOGGER.warning('DBREF2 record for chain {2:s} is duplicated '
-                           '({0:s}:{1:d})'
-                           .format(pdbid, i, ch))
-            continue
-        poly.dbaccession = line[18:40].strip()
-        try:
-            poly.dbfirst = (int(line[45:55]), '')
-        except:
-            LOGGER.warning('DBREF2 record for chain {2:s}: failed to parse '
-                           'first residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i, ch))
-        try:
-            poly.dblast = (int(line[57:67]), '')
-        except:
-            LOGGER.warning('DBREF2 record for chain {2:s}: failed to parse '
-                           'last residue number for database '
-                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        poly.database.append(dbref)
+
+    for poly in polymers.itervalues():
+        resnum = []
+        for dbref in poly.database:
+            dbabbr = dbref.dbabbr
+            if dbabbr == 'PDB':
+                if not (pdbid == dbref.accession == dbref.idcode):
+                    LOGGER.warning('DBREF for chain {2:s} refers to PDB '
+                                   'entry {3:s} ({0:s}:{1:d})'
+                                   .format(pdbid, i, ch, dbref.accession))
+            else:
+                if pdbid == dbref.accession or pdbid == dbref.idcode:
+                    LOGGER.warning('DBREF for chain {2:s} is {3:s}, '
+                                   'expected PDB ({0:s}:{1:d})'
+                                   .format(pdbid, i, ch, dbabbr))
+                    dbref.database = 'PDB'
+            resnum.append((dbref.first[0], dbref.last[0]))
+        resnum.sort()
+        last = -10000
+        for first, temp in resnum:
+            if first <= last:
+                LOGGER.warning('DBREF records overlap for chain {0:s} ({1:s})'
+                               .format(poly.chid, pdbid))
+            last = temp
 
     for i, line in lines['MODRES']:
         ch = line[16]
@@ -1869,30 +1898,56 @@ def _getPolymers(lines):
             poly.modified = []
         poly.modified.append((line[12:15].strip(), line[18:22].strip() + 
                    line[22].strip(), line[24:27].strip(), line[29:70].strip()))
+                   
     for i, line in lines['SEQADV']:
         i += 1
         ch = line[16]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        if poly.different is None:
-            poly.different = []
         dbabbr = line[24:28].strip()
-        if poly.dbabbr != dbabbr:
-            LOGGER.warning("SEQADV record for chain {4:s}: reference database "
-                           "mismatch, expected '{0:s}' parsed '{1:s}' "
-                           "({2:s}:{3:d})"
-                           .format(poly.dbabbr, dbabbr, pdbid, i, ch))
+        resname = line[12:15].strip()
+        try:
+            resnum = int(line[18:22].strip())
+        except:
             continue
-        dbaccession = line[29:38].strip() 
-        if poly.dbaccession != dbaccession:
-            LOGGER.warning("SEQADV record for chain {4:s}: database idcode "
-                           "mismatch, expected '{0:s}' parsed '{1:s}' "
-                           "({2:s}:{3:d})"
-                           .format(poly.dbaccession, dbaccession, pdbid, i,ch))
+            LOGGER.warning('SEQADV for chain {2:s}: failed to parse '
+                           'PDB sequence number '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+        icode = line[22].strip()
+        dbname = line[39:42].strip()
+        try:
+            dbnum = int(line[43:48].strip())
+        except:
             continue
-        poly.different.append((line[12:15].strip(), line[18:22].strip() + 
-            line[22].strip(), line[39:42].strip(), line[43:48].strip(), 
-            line[49:70].strip()))
+            LOGGER.warning('SEQADV for chain {2:s}: failed to parse '
+                           'database sequence number '
+                           '({0:s}:{1:d})'.format(pdbid, i, ch))
+
+        comment = line[49:70].strip()
+        match = False
+        for dbref in poly.database:
+            if not dbref.first[0] <= resnum <= dbref.last[0]:
+                continue
+            match = True
+            if dbref.dbabbr != dbabbr:
+                LOGGER.warning("SEQADV for chain {2:s}: reference database "
+                               "mismatch, expected '{3:s}' parsed '{4:s}' "
+                               "({0:s}:{1:d})"
+                               .format(pdbid, i, ch, dbref.dbabbr, dbabbr))
+                continue
+            dbacc = line[29:38].strip() 
+            if dbref.accession != dbacc:
+                LOGGER.warning("SEQADV for chain {2:s}: accession code "
+                               "mismatch, expected '{3:s}' parsed '{4:s}' "
+                               "({0:s}:{1:d})"
+                               .format(pdbid, i, ch, dbref.accession, dbacc))
+                continue
+            dbref.diff.append((resname, resnum, icode, dbnum, dbnum, comment))
+        if not match:
+            continue
+            LOGGER.warning("SEQADV for chain {2:s}: database sequence "
+                           "reference not found ({0:s}:{1:d})"
+                           .format(pdbid, i, ch))
     
     string = ''
     for i, line in lines['COMPND']:
@@ -1939,7 +1994,7 @@ def _getChemicals(lines):
         chem.chain = line[12].strip()
         chem.resnum = int(line[13:17])
         chem.icode = line[17].strip()
-        chem.n_atoms = int(line[20:25])
+        chem.natoms = int(line[20:25])
         chem.description = line[30:70].strip()
         chemicals[chem.resname].append(chem)
     for i, line in lines['HETNAM']:
