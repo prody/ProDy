@@ -1651,6 +1651,12 @@ class TrajectoryBase(EnsembleBase):
         return self._n_csets
     
     def getNextFrameIndex(self):
+        """Deprecated, use :meth:`getNextIndex`."""
+        
+        prody.deprecate('getNextFrameIndex', 'getNextIndex')
+        return self.getNextIndex()
+        
+    def getNextIndex(self):
         """Return the index of the next frame."""
         
         return self._nfi
@@ -2358,14 +2364,14 @@ class Trajectory(TrajectoryBase):
         self._cfi += 1
         if self._cfi < self._n_files: 
             self._trajectory = self._trajectories[self._cfi]
-            if self._trajectory.getNextFrameIndex() > 0:
+            if self._trajectory.getNextIndex() > 0:
                 self._trajectory.reset()
 
     def _gotoFile(self, i):
         if i < self._n_files:
             self._cfi = i
             self._trajectory = self._trajectories[i]
-            if self._trajectory.getNextFrameIndex() > 0:
+            if self._trajectory.getNextIndex() > 0:
                 self._trajectory.reset()
         
     def addFile(self, filename):
@@ -2534,7 +2540,7 @@ class Trajectory(TrajectoryBase):
             n = left
         while self._nfi < self._n_csets and n > 0:
             traj = self._trajectory
-            skip = min(n, traj.numFrames() - traj.getNextFrameIndex())
+            skip = min(n, traj.numFrames() - traj.getNextIndex())
             traj.skip(skip)
             if n > skip:
                 self._nextFile()
@@ -2671,7 +2677,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if isinstance(trajectory, TrajectoryBase):
         isTrajectory = True
         unitcell = trajectory.hasUnitcell()
-        nfi = trajectory.getNextFrameIndex() 
+        nfi = trajectory.getNextIndex() 
         trajectory.reset()
         pack_i_48 = pack('i', 48)
         if isinstance(trajectory, Trajectory):
