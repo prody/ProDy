@@ -338,8 +338,10 @@ Method name        Description
 ``numAtoms``       returns number of atoms
 ``numCoordsets``   returns number of coordinate sets
 ``getCoordsets``   returns specified coordinate sets
-``getACSI``        returns the index of the active coordinate set
-``setACSI``        changes the index of the active coordinate set
+``getACSIndex``    returns the index of the active coordinate set
+``setACSIndex``    changes the index of the active coordinate set
+``getACSLabel``    returns the label of the active coordinate set
+``setACSLabel``    changes the label of the active coordinate set
 ``iterCoordsets``  iterate over coordinate sets
 ``isData``         checks whether a user set attribute exists
 ``getData``        returns user set attribute data
@@ -596,12 +598,12 @@ class Atomic(object):
                              .format(self.__class__.__name__, name, selstr))
     
     def getActiveCoordsetIndex(self):
-        """Deprecated, use :meth:`getACSI`."""
+        """Deprecated, use :meth:`getACSIndex`."""
         
-        prody.deprecate('getActiveCoordsetIndex', 'getACSI')
-        return self.getACSI()
+        prody.deprecate('getActiveCoordsetIndex', 'getACSIndex')
+        return self.getACSIndex()
     
-    def getACSI(self):
+    def getACSIndex(self):
         """Return index of the active coordinate set."""
         
         return self._acsi
@@ -718,8 +720,8 @@ class AtomGroup(Atomic):
     
     Atom groups with multiple coordinate sets may have one of these sets as 
     the active coordinate set. The active coordinate set may be changed using
-    :meth:`setACSI()` method. :meth:`getCoors` returns coordinates from the 
-    active set.
+    :meth:`setACSIndex()` method.  :meth:`getCoors` returns coordinates from 
+    the active set.
     
     To access and modify data associated with a subset of atoms in an atom 
     group, :class:`Selection` instances may be used. A selection from an atom 
@@ -871,7 +873,7 @@ class AtomGroup(Atomic):
                                  'as the AtomGroup')
             self.addCoordset(self._coordinates[self._acsi] + 
                              other._getArrayNx3())
-            self.setACSI(self._n_csets - 1)
+            self.setACSIndex(self._n_csets - 1)
         else:
             raise TypeError('can only concatenate two AtomGroup`s or can '
                             'deform AtomGroup along a Vector/Mode')
@@ -1152,12 +1154,12 @@ class AtomGroup(Atomic):
             yield self._coordinates[i]
 
     def setActiveCoordsetIndex(self, index):
-        """Deprecated, use :meth:`setACSI`."""
+        """Deprecated, use :meth:`setACSIndex`."""
         
-        prody.deprecate('setActiveCoordsetIndex', 'setACSI')
-        return self.setACSI(index)
+        prody.deprecate('setActiveCoordsetIndex', 'setACSIndex')
+        return self.setACSIndex(index)
         
-    def setACSI(self, index):
+    def setACSIndex(self, index):
         """Set the index of the active coordinate set."""
         
         if self._n_csets == 0:
@@ -1597,7 +1599,7 @@ class AtomPointer(Atomic):
                             .format(type(atomgroup)))
         self._ag = atomgroup
         if acsi is None:
-            self._acsi = atomgroup.getACSI()
+            self._acsi = atomgroup.getACSIndex()
         else: 
             self._acsi = int(acsi)
 
@@ -1689,12 +1691,12 @@ class AtomPointer(Atomic):
         return self._ag._n_csets
 
     def setActiveCoordsetIndex(self, index):
-        """Deprecated, use :meth:`setACSI`."""
+        """Deprecated, use :meth:`setACSIndex`."""
         
-        prody.deprecate('setActiveCoordsetIndex', 'setACSI')
-        self.setACSI(index)
+        prody.deprecate('setActiveCoordsetIndex', 'setACSIndex')
+        self.setACSIndex(index)
         
-    def setACSI(self, index):
+    def setACSIndex(self, index):
         """Set the index of the active coordinate set."""
         
         if self._ag._coordinates is None:
@@ -2906,7 +2908,7 @@ class HierView(object):
         when attributes of atoms change."""
         
         array = np.array
-        acsi = self._atoms.getACSI()
+        acsi = self._atoms.getACSIndex()
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
             atomgroup = atoms

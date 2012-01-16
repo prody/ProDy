@@ -2950,7 +2950,7 @@ def extrapolateModel(enm, nodes, atoms):
             ag = atoms.getAtomGroup()
         atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
                           np.array([]), str(atoms), 
-                          atoms.getACSI())
+                          atoms.getACSIndex())
         return extra, atommap
     else:
         raise TypeError('atoms must be an Atomic instance')
@@ -2993,7 +2993,7 @@ def sliceVector(vector, atoms, selstr):
     else:
         which = SELECT.getIndices(atoms, selstr)
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getACSI())
+                        selstr, atoms.getACSIndex())
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
                  '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
@@ -3042,7 +3042,7 @@ def sliceMode(mode, atoms, selstr):
     else:
         which = SELECT.getIndices(atoms, selstr)
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getACSI())
+                        selstr, atoms.getACSIndex())
     vec = Vector(mode.getArrayNx3()[
                  which,:].flatten() * mode.getVariance()**0.5,
                  '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
@@ -3085,7 +3085,7 @@ def sliceModel(model, atoms, selstr):
     else:
         which = SELECT.getIndices(atoms, selstr)
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getACSI())
+                        selstr, atoms.getACSIndex())
 
     nma = type(model)('{0:s} slice "{1:s}"'.format(model.getTitle(), selstr))
     if model.is3d():

@@ -878,7 +878,7 @@ class PDBEnsemble(Ensemble):
         else:
             if ag is not None and ag.numCoordsets() > 1:
                 self._identifiers.append('{0:s}_{1:d}'.format(title, 
-                                         atoms.getACSI()))
+                                         atoms.getACSIndex()))
             else:                
                 self._identifiers.append(title)
         if self._confs is None and self._weights is None:
@@ -2697,7 +2697,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
             frame = trajectory[0]
         else:
             frame = trajectory
-            acsi = trajectory.getACSI()
+            acsi = trajectory.getACSIndex()
         timestep = 1
         first_ts = 0
         framefreq = 1
@@ -2724,7 +2724,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         elif isEnsemble:
             frame._index = i
         else:
-            frame.setACSI(i) 
+            frame.setACSIndex(i) 
         if align:
             frame.superpose()
         if j == 0:
@@ -2734,7 +2734,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
             dcd.write(frame._getCoords(), uc)
         LOGGER.update(i)
     if isAtomic:
-        trajectory.setACSI(acsi)
+        trajectory.setACSIndex(acsi)
     j += 1
     LOGGER.clear()
     dcd.close()

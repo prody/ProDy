@@ -773,7 +773,7 @@ Fetch PDB structures 1p38 and 1r39 and superpose 1r39 onto 1p38:
             sys.exit(-1)
         LOGGER.info('{0:d} atoms will be used for alignment.'
                                .format(len(pdbselect)))
-        pdb.setACSI(model-1)
+        pdb.setACSIndex(model-1)
         prody.alignCoordsets(pdb, selstr=selstr)
         rmsd = prody.calcRMSD(pdb)
         LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'

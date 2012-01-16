@@ -9,11 +9,29 @@ Changes
 Release 0.9.3 (in development)
 ===============================================================================
 
+**New Features**:
+
+  * :class:`~proteins.DBRef` class is implemented for storing references 
+    to sequence databases parsed from PDB header records.
+    
+  * Methods for storing coordinate set labels in :class:`~atomic.AtomGroup` 
+    instances are implemented: :meth:`~atomic.AtomGroup.getACSLabel`, and 
+    :meth:`~atomic.AtomGroup.getACSLabel`.
+
 **Changes**:
 
   * Renamed :attr:`~proteins.Polymer.identifier` attribute as 
     :attr:`~proteins.Polymer.chid` and :attr:`~proteins.Chemical.identifier`
     as :attr:`~proteins.Polymer.resname`.
+    
+  * :meth:`getACSI` and :meth:`setACSI` are renamed as :meth:`getACSIndex`
+    and  :meth:`setACSIndex`, respectively.
+
+**Bugfix**:
+
+  * Fixed a problem in :func:`~proteins.parsePDB` that caused loosing existing
+    coordinate sets in an :class:`~atomic.AtomGroup` when passed as *ag* 
+    argument.
 
 
 Release 0.9.2 (Jan 11, 2012)

@@ -256,8 +256,8 @@ def applyTransformation(transformation, coords):
         atoms = coords
         if isinstance(atoms, prody.AtomPointer):
             ag = atoms.getAtomGroup()
-            acsi = ag.getACSI()
-            ag.setACSI(atoms.getACSI())
+            acsi = ag.getACSIndex()
+            ag.setACSIndex(atoms.getACSIndex())
             coords = ag._getCoords()
         else:
             try:
@@ -272,7 +272,7 @@ def applyTransformation(transformation, coords):
             atoms.setCoords(_applyTransformation(transformation, coords))
         else: 
             ag.setCoords(_applyTransformation(transformation, coords))
-            ag.setACSI(acsi)
+            ag.setACSIndex(acsi)
         return atoms
 
 def _applyTransformation(t, coords):
@@ -436,25 +436,25 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
                        'superposition not performed.'.format(str(atoms)))
         return None
     
-    acsi = atoms.getACSI()
+    acsi = atoms.getACSIndex()
     if isinstance(atoms, prody.AtomGroup):
         ag = atoms
     else: 
         ag = atoms.getAtomGroup()
-    agacsi = ag.getACSI()
+    agacsi = ag.getACSIndex()
     tar = atoms.select(selstr)
     if tar is None:
         raise ValueError("selstr '{0:s}' did not match any atoms"
                          .format(selstr))
     mob = prody.AtomSubset(ag, tar.getIndices(), 0)
-    assert tar.getACSI() == acsi
+    assert tar.getACSIndex() == acsi
     for i in range(n_csets):
         if i == acsi:
             continue
-        mob.setACSI(i)
-        ag.setACSI(i)
+        mob.setACSIndex(i)
+        ag.setACSIndex(i)
         calcTransformation(mob, tar, weights).apply(ag)
-    ag.setACSI(agacsi)
+    ag.setACSIndex(agacsi)
 
     
 def calcAngle():

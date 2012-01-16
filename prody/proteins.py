@@ -2512,7 +2512,7 @@ def writePDBStream(stream, atoms, model=None):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
-                                atoms.getACSI(), 
+                                atoms.getACSIndex(), 
                                 'index ' + str(atoms.getIndex()))
 
     if model is None:
@@ -2569,7 +2569,7 @@ def writePDBStream(stream, atoms, model=None):
     if segments is None:
         segments = np.zeros(n_atoms, '|S6')
     
-    acsi = atoms.getACSI()
+    acsi = atoms.getACSIndex()
     multi = False
     if len(model) > 1:
         multi = True
@@ -2582,7 +2582,7 @@ def writePDBStream(stream, atoms, model=None):
     for m in model:
         if multi:
             stream.write('MODEL{0:9d}\n'.format(m+1))
-        atoms.setACSI(m)
+        atoms.setACSIndex(m)
         coords = atoms._getCoords()
         for i, xyz in enumerate(coords):
             write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
@@ -2594,7 +2594,7 @@ def writePDBStream(stream, atoms, model=None):
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, '|S1')
-    atoms.setACSI(acsi)
+    atoms.setACSIndex(acsi)
 
 writePDBStream.__doc__ += _writePDBdoc
 
@@ -2619,7 +2619,7 @@ def writePQR(filename, atoms):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
         atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
-                                atoms.getACSI(), 
+                                atoms.getACSIndex(), 
                                 'index ' + str(atoms.getIndex()))
     stream = openFile(filename, 'w')
     n_atoms = atoms.numAtoms()
@@ -3028,9 +3028,9 @@ def buildBiomolecules(header, atoms, biomol=None):
                     continue
                 
                 for acsi in range(newag.numCoordsets()):
-                    newag.setACSI(acsi)
+                    newag.setACSIndex(acsi)
                     newag = t.apply(newag)
-                newag.setACSI(0)
+                newag.setACSIndex(0)
                 ags.append(newag)
         if ags:
             # Handles the case when there is more atom groups than the number

@@ -1091,7 +1091,7 @@ class Select(object):
                             .format(type(selstr)))
         if self._atoms is atoms:
             if DEBUG: print('atoms is the same')
-            if self._acsi != atoms.getACSI():
+            if self._acsi != atoms.getACSIndex():
                 self._coordinates = None
                 self._kdtree = None
             elif self._timestamp != atoms._getTimeStamp(self._acsi):
@@ -1113,7 +1113,7 @@ class Select(object):
                     self._atoms = atoms
                 self._n_atoms = len(self._indices)
         self._selstr = selstr
-        self._acsi = atoms.getACSI()
+        self._acsi = atoms.getACSIndex()
         self._timestamp = atoms._getTimeStamp(self._acsi)
             
         self._kwargs = kwargs
@@ -1197,7 +1197,7 @@ class Select(object):
                                  np.array([]),
                                  'Selection "{0:s}" from AtomMap {1:s}'.format(
                                  selstr, atoms.getTitle()),
-                                 atoms.getACSI())
+                                 atoms.getACSIndex())
         else:
             
             if self._selstr2indices:
@@ -1206,7 +1206,7 @@ class Select(object):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                       atoms.getSelstr())
             
-            return prody.Selection(ag, indices, selstr, atoms.getACSI(),
+            return prody.Selection(ag, indices, selstr, atoms.getACSIndex(),
                                    unique=True)
         
     def _reset(self):
@@ -2093,7 +2093,7 @@ class Contacts(object):
             raise TypeError('{0:s} is not a valid type for atoms'
                             .format(type(atoms)))
         self._atoms = atoms
-        self._acsi = atoms.getACSI()
+        self._acsi = atoms.getACSIndex()
         self._timestamps = np.zeros(atoms.numCoordsets()) 
         self._kdtrees = [None] * atoms.numCoordsets()
         if not isinstance(atoms, AtomGroup):
@@ -2128,12 +2128,12 @@ class Contacts(object):
         else:
             return self._kdtrees[acsi]
 
-    def getACSI(self):
+    def getACSIndex(self):
         """Return active coordinate set index."""
         
         return self._acsi
     
-    def setACSI(self, acsi):
+    def setACSIndex(self, acsi):
         """Set active coordinate set index.
         
         .. note:: Changing active coordinate set index effects only 

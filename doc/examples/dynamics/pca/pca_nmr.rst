@@ -121,7 +121,7 @@ We set the active coordinate set to 79, which is the one that is closest
 to the mean structure (note that indices start from 0 in Python).
 Then, we perform ANM calculations using :func:`calcANM` for the active coordset:
 
->>> ubi.setACSI(78)
+>>> ubi.setACSIndex(78)
 >>> anm, temp = calcANM(ubi)
 >>> anm.setTitle('Ubiquitin')
 

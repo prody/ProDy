@@ -109,7 +109,7 @@ Let's add another coordinate set to the atom group:
 Note that number of coordinate sets is now 2, but active coordinate set index
 is still 0. Active coordinate set incex can be changed for :class:`AtomGroup`
 
->>> a.setACSI(1)
+>>> a.setACSIndex(1)
 >>> a
 <Atom: H from Water (index 0; 2 coordinate sets, active set index: 1)>
 
@@ -155,7 +155,7 @@ Let's translate the coordinates of wtr2 so that it does not overlap with wtr1
 
 Above operation only translated the coordinate set at index 0
 
->>> wtr2.setACSI(1)
+>>> wtr2.setACSIndex(1)
 >>> print( wtr2.getCoords() )
 [[ 0.  1.  0.]
  [ 0.  0.  0.]
