@@ -82,6 +82,7 @@ Function                 Description
 =======================  ======================================================
 :class:`Chemical`        store PDB chemical (heterogen) component data
 :class:`Polymer`         store PDB polymer (macromolecule) component data
+:class:`DBRef`           store polymer sequence database reference records
 :class:`PDBBlastRecord`  store and evaluate NCBI PDB blast search results 
 =======================  ======================================================
 
@@ -171,7 +172,7 @@ PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None,
 PDB_CLUSTERS_UPDATE_WARNING = True
 
 
-__all__ = ['Chemical', 'Polymer', 'PDBBlastRecord',
+__all__ = ['Chemical', 'Polymer', 'DBRef', 'PDBBlastRecord',
            'assignSecondaryStructure', 'assignSecstr',
            'applyBiomolecularTransformations', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
