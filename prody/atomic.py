@@ -1580,6 +1580,31 @@ class AtomGroup(Atomic):
             else:
                 raise TypeError('`label` must be a string')
     
+    def getCSLabels(self):
+        """Return coordinate set labels.
+        
+        .. versionadded:: 0.9.3"""
+        
+        if self._n_csets:
+            return list(self._cslabels)
+
+    def setCSLabels(self, labels):
+        """Set coordinate set labels. *labels* must be a list of strings.
+        
+        .. versionadded:: 0.9.3"""
+        
+        if isinstance(labels, list):
+            if len(labels) == self._n_csets:
+                if all(isinstance(lbl, (str, NoneType)) for lbl in labels):
+                    self._cslabels = list(labels)
+                else:
+                    raise ValueError('all items of labels must be strings')
+            else:
+                raise ValueError('length of labels must be equal to number of '
+                                 'coordinate sets')
+        else:
+            raise TypeError('labels must be a list')                
+
 class AtomPointer(Atomic):
     
     """Base class for classes pointing to atom(s) in :class:`AtomGroup` 
@@ -3078,6 +3103,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     attr_dict = {'title': title}
     attr_dict['n_atoms'] = atoms.numAtoms()
     attr_dict['n_csets'] = atoms.numCoordsets()
+    attr_dict['cslabels'] = atoms.getCSLabels()
     coords = atoms._getCoordsets()
     if coords is not None:
         attr_dict['coordinates'] = coords
@@ -3090,7 +3116,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     return filename
 
 SKIP = set(['_name', '_title', 'title', 'n_atoms', 'n_csets', 
-            'coordinates', '_coordinates'])
+            'coordinates', '_coordinates', 'cslabels'])
 
 def loadAtoms(filename):
     """Return :class:`AtomGroup` instance from *filename*.  This function makes
@@ -3142,7 +3168,8 @@ def loadAtoms(filename):
                 ag.setData(key, data)
         if ag.numCoordsets() > 0:
             ag._acsi = 0
-            
+        if 'cslabels' in files:
+            ag.setCSLabels(list(attr_dict['cslabels']))
     LOGGER.timing('Atom group was loaded in %.2fs.')
     return ag
 
