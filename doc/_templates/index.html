@@ -112,12 +112,12 @@
          <span class="linkdescr">all functions, classes, terms</span></p>
     </td></tr>
   </table>
-
+{% if not version.endswith('dev') %}
   <p>
     You can also download <a href="ProDy.pdf" target="_blank">PDF version</a> of the ProDy 
     documentation generated from the LaTeX Sphinx procedures.
   </p>
-
+{% endif %}
   <h2>Get ProDy</h2>
   <p><b>Downloads and Installation</b> instructions can be found at  
     <a href="{{ pathto("getprody") }}">Getting ProDy</a>.
