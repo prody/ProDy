@@ -1429,19 +1429,19 @@ class Polymer(object):
     76
     >>> len(polymer)
     76
-    >>> dbref = polymer.dbref[0]
-    >>> print(dbref.dbname)
+    >>> dbref = polymer.dbrefs[0]
+    >>> print(dbref.database)
     UniProt
     >>> print(dbref.accession)
     P62972
-    >>> print(dbref.entryname)
+    >>> print(dbref.idcode)
     UBIQ_XENLA
     
     """
     
     __slots__ = ['chid', 'name', 'fragment', 'synonyms', 'ec', 
                  'engineered', 'mutation', 'comments', 'sequence', 'pdbentry', 
-                 'database', 'modified']
+                 'dbrefs', 'modified']
     
     def __init__(self, chid):
         
@@ -1458,8 +1458,8 @@ class Polymer(object):
         self.engineered = None
         """indicates that the molecule was produced using recombinant 
         technology or by purely chemical synthesis"""
-        #: reference sequence database records
-        self.database = []
+        #: sequence database reference records
+        self.dbrefs = []
         #: indicates presence of a mutation
         self.mutation = None
         #: additional comments
@@ -1820,7 +1820,7 @@ def _getPolymers(lines):
         
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.database.append(dbref)
+        poly.dbrefs.append(dbref)
 
     dbref1 = lines['DBREF1']
     dbref2 = lines['DBREF2']
@@ -1878,11 +1878,11 @@ def _getPolymers(lines):
 
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.database.append(dbref)
+        poly.dbrefs.append(dbref)
 
     for poly in polymers.itervalues():
         resnum = []
-        for dbref in poly.database:
+        for dbref in poly.dbrefs:
             dbabbr = dbref.dbabbr
             if dbabbr == 'PDB':
                 if not (pdbid == dbref.accession == dbref.idcode):
@@ -1939,7 +1939,7 @@ def _getPolymers(lines):
 
         comment = line[49:70].strip()
         match = False
-        for dbref in poly.database:
+        for dbref in poly.dbrefs:
             if not dbref.first[0] <= resnum <= dbref.last[0]:
                 continue
             match = True
