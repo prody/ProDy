@@ -18,6 +18,13 @@ Release 0.9.3 (in development)
     instances are implemented: :meth:`~atomic.AtomGroup.getACSLabel`, and 
     :meth:`~atomic.AtomGroup.getACSLabel`.
 
+**Improvements**:
+
+  * Hierarchical view is using :class:`collections.OrderedDict` so that chain
+    and residue iterations yield them in the order they are parsed from file.
+    Improvements also achieved 1.7x speedup in building hierarchical views.
+
+
 **Changes**:
 
   * Renamed :attr:`~proteins.Polymer.identifier` attribute as 
