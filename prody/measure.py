@@ -33,7 +33,7 @@ Functions
   * :func:`calcADPs`
   * :func:`calcDeformVector`
   * :func:`calcDistance`
-  * :func:`calcRadiusOfGyration`
+  * :func:`calcGyradius`
   * :func:`calcRMSD`
   * :func:`calcTransformation`
   * :func:`superpose` 
@@ -54,7 +54,7 @@ LOGGER = prody.LOGGER
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcGeomCenter', 
-           'calcRadiusOfGyration', 
+           'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 'superpose']
            
 class Transformation(object):
@@ -491,17 +491,25 @@ def moveby(atoms, offset):
     atoms.setCoords(coords)    
 
 def calcRadiusOfGyration(coords, weights=None):
-    """Calculate radius of gyration for a set of coordinates or atoms."""
+    """Deprecated, use :meth:`calcGyradius`."""
     
-    if isinstance(coords, (prody.AtomGroup, prody.AtomSubset, prody.AtomMap, 
-                           prody.ConformationBase)):
-        coords = coords._getCoords()
-    if not isinstance(coords, np.ndarray):
-        raise TypeError('coords must be a array or atomic')
-    elif not coords.ndim in (2, 3):
-        raise ValueError('coords may be a 2 or 3 dimentional array')
-    elif coords.shape[-1] != 3:
-        raise ValueError('coords must have shape ([n_coordsets,]n_atoms,3)')
+    prody.deprecate('calcRadiusOfGyration', 'calcGyradius')
+    return calcGyradius(coords, weights)
+    
+def calcGyradius(atoms, weights=None):
+    """Calculate radius of gyration of *atoms*."""
+    
+    if not isinstance(atoms, np.ndarray):
+        try:
+            coords = atoms._getCoords()
+        except AttributeError:
+            raise TypeError('atoms must have atomic coordinate data')
+    else:
+        coords = atoms
+        if not coords.ndim in (2, 3):
+            raise ValueError('coords may be a 2 or 3 dimentional array')
+        elif coords.shape[-1] != 3:
+            raise ValueError('coords must have shape ([n_coordsets,]n_atoms,3)')
     if weights is not None:
         weights = weights.flatten()
         if len(weights) != coords.shape[-2]:
