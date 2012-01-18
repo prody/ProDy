@@ -18,6 +18,9 @@ Release 0.9.3 (in development)
     instances are implemented: :meth:`~atomic.AtomGroup.getACSLabel`, and 
     :meth:`~atomic.AtomGroup.getACSLabel`.
 
+  * Implemented :func:`~measure.calcGeomCenter` and :func:`~measure.moveAtoms`
+    methods for dealing with coordinate translation.
+
 **Improvements**:
 
   * Hierarchical view is using :class:`collections.OrderedDict` so that chain
@@ -29,10 +32,13 @@ Release 0.9.3 (in development)
 
   * Renamed :attr:`~proteins.Polymer.identifier` attribute as 
     :attr:`~proteins.Polymer.chid` and :attr:`~proteins.Chemical.identifier`
-    as :attr:`~proteins.Polymer.resname`.
+    as :attr:`~proteins.Chemical.resname`.
     
   * :meth:`getACSI` and :meth:`setACSI` are renamed as :meth:`getACSIndex`
     and  :meth:`setACSIndex`, respectively.
+
+  * Renamed :func:`~measure.calcRadiusOfGyration` as 
+    :func:`~measure.calcGyradius`, old name will be removed in v1.0.
 
 **Bugfix**:
 
