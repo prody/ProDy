@@ -241,21 +241,22 @@ def _superpose(mob, tar, weights=None, mov=None):
         mov[:] = np.dot(mov, rotation) + (tar_com - np.dot(mob_com, rotation))
 
 
-def applyTransformation(transformation, coords):
-    """Returns *coords* after applying *transformation*. If *coords* is a 
+def applyTransformation(transformation, atoms):
+    """Return *atoms* after applying *transformation*. If *atoms* is a 
     class instance from :mod:`~prody.atomic`, it will be returned after 
-    *transformation* is applied to its active coordinate set. If *coords*
+    *transformation* is applied to its active coordinate set. If *atoms*
     is an :class:`~prody.atomic.AtomPointer` instance, *transformation* will
     be applied to the corresponding coordinate set in the associated
     :class:`~prody.atomic.AtomGroup` instance."""
     
-    atoms = None
+    coords = None
     ag = None
-    if isinstance(coords, np.ndarray): 
-        if coords.shape[1] != 3:
-            raise ValueError('coordinates must be a 3-d coordinate array')
+    if isinstance(atoms, np.ndarray): 
+        if atoms.shape[1] != 3:
+            raise ValueError('atoms must be a 3-d coordinate array')
+        coords = atoms
+        atoms = None
     else:
-        atoms = coords
         if isinstance(atoms, prody.AtomPointer):
             ag = atoms.getAtomGroup()
             acsi = ag.getACSIndex()
@@ -265,8 +266,8 @@ def applyTransformation(transformation, coords):
             try:
                 coords = atoms._getCoords()
             except AttributeError:
-                raise TypeError('coords is not an array of coordinates '
-                                'and do not contain a coordinate set')
+                raise TypeError('atoms must be a Atomic instance')
+                
     if atoms is None:
         return _applyTransformation(transformation, coords)
     else:
@@ -485,8 +486,9 @@ def moveby(atoms, offset):
         raise TypeError('offset must be a NumPy array')
     elif offset.shape[-1] != 3:
         raise TypeError('last dimension of offset must be 3')
-    
-    atoms.setCoords(atoms._getCoords() += offset)    
+    coords = atoms._getCoords() 
+    coords += offset
+    atoms.setCoords(coords)    
 
 def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
