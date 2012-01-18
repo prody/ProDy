@@ -465,18 +465,28 @@ def calcAngle():
 def calcDihedral():
     pass
 
-def calcGeomCenter(coords):
-    """Calculates geometric center of *coords*."""
+def calcGeomCenter(atoms):
+    """Calculates geometric center of *atoms*."""
     
     try: 
-        coords = coords._getCoords()
+        atoms = atoms._getCoords()
     except AttributeError:
-        checkCoordsArray(coords, 'coords')
+        checkCoordsArray(atoms, 'atoms')
     except Exception as err:
         raise type(err)(err)
     
     return coords.mean(0) 
+
+def moveby(atoms, offset):
+    """Move atoms by *offset*, which must be a :class:`numpy.ndarray` instance 
+    with shape ``(natoms, 3)``, ``(1, 3)``, or ``(3,)``."""
     
+    if not isinstance(offset, np.ndarray):
+        raise TypeError('offset must be a NumPy array')
+    elif offset.shape[-1] != 3:
+        raise TypeError('last dimension of offset must be 3')
+    
+    atoms.setCoords(atoms._getCoords() += offset)    
 
 def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
