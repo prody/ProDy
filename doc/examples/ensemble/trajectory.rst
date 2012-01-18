@@ -117,12 +117,12 @@ Parse data frame-by-frame
 
 >>> dcd.setAtomGroup(structure)
 
->>> dcd.getNextFrameIndex()
+>>> dcd.getNextIndex()
 0
 >>> frame = dcd.next()
 >>> frame
 <Frame: 0 from mdm2 (selected 1449 of 1449 atoms)>
->>> dcd.getNextFrameIndex()
+>>> dcd.getNextIndex()
 1
 
 >>> print frame.getRMSD().round(2)
