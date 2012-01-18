@@ -46,13 +46,15 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 linalg = None
 
+from tools import *
 import prody
 LOGGER = prody.LOGGER
 
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',  
-           'calcDeformVector', 'calcDistance', 'calcRadiusOfGyration', 
+           'calcDeformVector', 'calcDistance', 'calcGeomCenter', 
+           'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 'superpose']
            
 class Transformation(object):
@@ -462,6 +464,19 @@ def calcAngle():
 
 def calcDihedral():
     pass
+
+def calcGeomCenter(coords):
+    """Calculates geometric center of *coords*."""
+    
+    try: 
+        coords = coords._getCoords()
+    except AttributeError:
+        checkCoordsArray(coords, 'coords')
+    except Exception as err:
+        raise type(err)(err)
+    
+    return coords.mean(0) 
+    
 
 def calcRadiusOfGyration(coords, weights=None):
     """Calculate radius of gyration for a set of coordinates or atoms."""
