@@ -3,20 +3,22 @@
 {% if version.endswith('dev') %}
 
 <h3 style="color: white; background-color: IndianRed; border: 1px solid #9B9886;">Development Version</h3>
-<p>This documentation is for version <b>{{ version }}</b>, which is currently 
-  in development.</p>
-<p>You can get it from the <a href="https://github.com/abakan/ProDy">github repository</a> 
-  or install the <a href="{{ pathto("getprody") }}">latest release</a>.</p>
+<p>You are reading <b>{{ version }}</b> docs.  
+   See the upcoming <a href="{{ pathto("changes") }}">changes</a> or
+   get them from <a href="https://github.com/abakan/ProDy">github</a> repository.
+</p>
+<p>Click <a href="../{{ pathto("index") }}">here</a> for the documentation of
+   the latest release.
+</p>
 
 {% else %}
 
 <h3 style="color: white; background-color: IndianRed; border: 1px solid #9B9886;">Latest Release</h3>
-<p><b><i>ProDy</i> v{{ version }}</b> comes with new features and bugfixes.
+<p><b>v{{ version }}</b> comes with new features and bugfixes.
 See <a href="{{ pathto("changes") }}">changes</a> or 
 go to <a href="{{ pathto("getprody") }}">downloads</a>.</p> 
 
-<p>Current documentation for the 
-  <a href="{{ pathto("latest/index") }}">development version</a>
-  is also available.</p>
+<p>You can also see the documentation for the 
+  <a href="{{ pathto("latest/index") }}">development version</a>.</p>
 
 {% endif %}
