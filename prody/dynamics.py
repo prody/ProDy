@@ -1310,7 +1310,7 @@ class GNM(GNMBase):
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
-        coords = checkCoordsArray(coords, 'coords')
+        coords = checkCoords(coords, 'coords')
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff
@@ -1527,7 +1527,7 @@ class ANM(GNMBase):
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
-        coords = checkCoordsArray(coords, 'coords')
+        coords = checkCoords(coords, 'coords')
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff

@@ -307,8 +307,8 @@ class EnsembleBase(object):
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
-        self._coords = checkCoordsArray(coords, arg='coords', 
-                                        n_atoms=self._n_atoms, cset=False)
+        self._coords = checkCoords(coords, arg='coords', 
+                                   n_atoms=self._n_atoms, cset=False)
         
     def getWeights(self):
         """Return a copy of weights of selected atoms."""
@@ -472,8 +472,8 @@ class Ensemble(EnsembleBase):
                 raise TypeError('coords must be a Numpy array or '
                                 'ProDy Atomic or Ensemble instance')
         
-        coords = checkCoordsArray(coords, arg='coords', cset=True, 
-                                  n_atoms=self._n_atoms, reshape=True)
+        coords = checkCoords(coords, arg='coords', cset=True, 
+                             n_atoms=self._n_atoms, reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coords.shape[-2]
         n_atoms = self._n_atoms
@@ -858,8 +858,8 @@ class PDBEnsemble(Ensemble):
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
 
-        coords = checkCoordsArray(coords, 'coords', cset=True, 
-                                  n_atoms=self._n_atoms, reshape=True)
+        coords = checkCoords(coords, 'coords', cset=True, 
+                             n_atoms=self._n_atoms, reshape=True)
         n_csets, n_atoms, _ = coords.shape
         if self._n_atoms == 0:
             self._n_atoms = n_atoms
@@ -1379,9 +1379,8 @@ class PDBConformation(Conformation):
 
 class Frame(ConformationBase):
     
-    """A class to provide methods on a frame in a trajectory.
-    
-    """
+    """A class to store trajectory frame coordinates and provide methods 
+    acting on them."""
     
     __slots__ = ['_ensemble', '_index', '_coords', '_indices', '_sel', 
                  '_unitcell']
@@ -1467,14 +1466,22 @@ class Frame(ConformationBase):
                 measure._superpose(self._coords, ensemble._coords[indices], 
                                                  ensemble._weights[indices])
     
-    #def moveto(self, position):
-    #    pass
+class AtomWrapper(object):
     
-    #def moveby(self, position):
-    #    pass
-
-    #def wrap(self):
-    #    pass
+    def __init__(self, trajectory):
+        
+        self._traj = trajectory
+        
+    def __call__(self, frame, unitcell=None):
+        
+        if self._traj != frame.getTrajectory():
+            raise ValueError('frame must be from ' + self._traj.getTitle())
+        
+        pass
+    
+    def __repr__(self):
+    
+        return '<AtomWrapper: '
     
 def trimEnsemble(pdbensemble, **kwargs):
     """Deprecated, use :meth:`trimPDBEnsemble`."""
@@ -2233,7 +2240,7 @@ class DCDFile(TrajectoryFile):
             raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
             raise IOError('File not open for writing')
-        coords = checkCoordsArray(coords, 'coords', True, dtype=np.float32)
+        coords = checkCoords(coords, 'coords', True, dtype=np.float32)
         if coords.ndim == 2:
             n_atoms = coords.shape[0]
             coords = [coords]

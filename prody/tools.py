@@ -41,7 +41,7 @@ pkg = __import__(__package__)
 
 __all__ = ['PackageLogger', 'PackageSettings',
         'getPackagePath', 'setPackagePath',
-        'checkCoordsArray', 
+        'checkCoords', 
         'gunzip', 'openFile', 'openDB',
         'isExecutable', 'isReadable', 'isWritable', 
         'makePath', 'relpath', 'which', 
@@ -416,9 +416,10 @@ def getPackagePath():
                              'access:')
     return path
 
-def checkCoordsArray(array, arg='array', cset=False, n_atoms=None, 
+def checkCoords(array, arg='array', cset=False, n_atoms=None, 
                     reshape=None, dtype=(float,)):
-    """Return array if checks pass, otherwise raise an exception."""
+    """Check the fitness of *array* to be a coordinate set.  An exception
+    is raised if array is not suitable."""
 
     assert isinstance(arg, str), 'arg must be a string'
     assert isinstance(cset, bool), 'cset must be a boolean'

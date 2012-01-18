@@ -470,9 +470,9 @@ def calcGeomCenter(atoms):
     """Calculates geometric center of *atoms*."""
     
     try: 
-        atoms = atoms._getCoords()
+        coords = atoms._getCoords()
     except AttributeError:
-        checkCoordsArray(atoms, 'atoms')
+        coords = checkCoords(atoms, 'atoms')
     except Exception as err:
         raise type(err)(err)
     

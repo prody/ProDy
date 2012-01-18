@@ -975,9 +975,9 @@ class AtomGroup(Atomic):
            *label* may be a string or a list of strings length equal to the
            number of coordinate sets."""
 
-        coordinates = checkCoordsArray(coords, 'coords',
-                                       cset=True, n_atoms=self._n_atoms,
-                                       reshape=True)
+        coordinates = checkCoords(coords, 'coords',
+                                  cset=True, n_atoms=self._n_atoms,
+                                  reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coordinates.shape[-2] 
         acsi = None
@@ -1057,8 +1057,8 @@ class AtomGroup(Atomic):
             self.setCoords(coords)
             return
 
-        coords = checkCoordsArray(coords, 'coords', cset=True, 
-                                  n_atoms=self._n_atoms, reshape=True)
+        coords = checkCoords(coords, 'coords', cset=True, 
+                             n_atoms=self._n_atoms, reshape=True)
         diff = coords.shape[0]
         self._coordinates = np.concatenate((self._coordinates, coords), axis=0)
         self._n_csets = self._coordinates.shape[0]
