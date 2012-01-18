@@ -105,7 +105,13 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from collections import defaultdict
 from types import NoneType
+import sys
 import time
+
+if sys.version_info[:2] < (2,7):
+    from ordereddict import OrderedDict
+else:
+    from collections import OrderedDict
 
 import numpy as np
 
@@ -2319,7 +2325,7 @@ class Chain(AtomSubset):
     def __init__(self, atomgroup, indices, acsi=None, **kwargs):
         AtomSubset.__init__(self, atomgroup, indices, acsi, **kwargs)
         self._seq = None
-        self._dict = dict()
+        self._dict = OrderedDict()
         
     def __len__(self):
         return len(self._dict)
@@ -2364,10 +2370,12 @@ class Chain(AtomSubset):
     def iterResidues(self):
         """Iterate residues in the chain."""
         
-        keys = self._dict.keys()
-        keys.sort()
-        for key in keys:
-            yield self._dict[key]
+        #keys = self._dict.keys()
+        #keys.sort()
+        #for key in keys:
+        #    yield self._dict[key]
+        for res in self._dict.itervalues():
+            yield res
     
     def getNumOfResidues(self):
         """Deprecated, use :meth:`numResidues`."""
@@ -2916,7 +2924,6 @@ class HierView(object):
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an atomic instance')
         self._atoms = atoms
-        self._chains = dict()
         self.update(**kwargs)
 
     def getAtoms(self):
@@ -2953,9 +2960,15 @@ class HierView(object):
                 atomgroup.setChids(chids)
             chids = chids[_indices]
 
-        for chid in set(chids):
-            ch = Chain(atomgroup, _indices[chids == chid], acsi, unique=True)
-            self._chains[chid] = ch
+        self._chains = _chains = OrderedDict()
+        prev = None          
+        for i, chid in enumerate(chids):
+            if chid == prev or chid in _chains:
+                continue
+            prev = chid
+            _chains[chid] = Chain(atomgroup, _indices[i:][chids[i:] == chid], 
+                                  acsi, unique=True)
+                                  
         if kwargs.get('chain', False):
             return
         _resnums = atomgroup._getResnums()
@@ -2974,24 +2987,69 @@ class HierView(object):
         elif np.all(_icodes == ''):
             skip_icodes = True
 
-        
         for chain in self._chains.itervalues():
             _dict = chain._dict
-            rd = defaultdict(list)
-            idx = chain._indices
-            for i in idx:
-                rd[_resnums[i]].append(i)
-            for resnum, resindices in rd.iteritems():
-                resindices = array(resindices)
-                if skip_icodes:                    
-                    _dict[(resnum, '')] = Residue(atomgroup, resindices, 
-                                                  chain, acsi, unique=True)
+            _indices = chain._indices
+            idx = _indices[0]
+            prevrn = _resnums[idx]
+            start = 0
+            if skip_icodes:
+                ic = ''
+                for i, idx in enumerate(_indices): 
+                    rn = _resnums[idx]
+                    if rn != prevrn:
+                        res = (prevrn, ic)
+                        if res in _dict:                                
+                            _dict[res] = Residue(atomgroup, 
+                                                 np.concatenate((
+                                                    _dict[res]._indices, 
+                                                    _indices[start:i])), 
+                                                 chain, acsi, unique=True)
+                        else:
+                            _dict[res] = Residue(atomgroup, _indices[start:i], 
+                                                 chain, acsi, unique=True)
+                        start = i
+                        prevrn = rn
+                # final residue
+                res = (rn, ic)
+                if res in _dict:                                
+                    _dict[res] = Residue(atomgroup, 
+                                         np.concatenate((_dict[res]._indices, 
+                                                         _indices[start:i+1])), 
+                                         chain, acsi, unique=True)
                 else:
-                    icodes = _icodes[resindices]
-                    for ic in set(icodes): 
-                        _dict[(resnum, ic)] = Residue(atomgroup, 
-                                                      resindices[icodes == ic], 
-                                                      chain, acsi, unique=True)        
+                    _dict[res] = Residue(atomgroup, _indices[start:i+1],
+                                         chain, acsi, unique=True)
+            else:
+                previc = _icodes[idx]
+                for i, idx in enumerate(_indices): 
+                    rn = _resnums[idx]
+                    ic = _icodes[idx]
+                    if rn != prevrn or ic != previc:
+                        res = (prevrn, previc)
+                        if res in _dict:
+                            _dict[res] = Residue(atomgroup, 
+                                                 np.concatenate((
+                                                    _dict[res]._indices, 
+                                                    _indices[start:i])), 
+                                                 chain, acsi, unique=True)
+                        else:
+                            _dict[res] = Residue(atomgroup, 
+                                                 _indices[start:i], 
+                                                 chain, acsi, unique=True)
+                        start = i
+                        prevrn = rn
+                        previc = ic
+                # final residue
+                res = (rn, ic)
+                if res in _dict:
+                    _dict[res] = Residue(atomgroup, 
+                                         np.concatenate((_dict[res]._indices,
+                                                         _indices[start:i+1])), 
+                                         chain, acsi, unique=True)
+                else:
+                    _dict[res] = Residue(atomgroup, _indices[start:i+1],
+                                         chain, acsi, unique=True)
         
     def __repr__(self):
         return '<HierView: {0:s}>'.format(str(self._atoms))
@@ -3023,12 +3081,15 @@ class HierView(object):
     def iterResidues(self):
         """Iterate over residues."""
         
-        chids = self._chains.keys()
-        chids.sort()
-        for chid in chids:
-            chain = self._chains[chid]
-            for res in chain.iterResidues():
-                yield res
+        #chids = self._chains.keys()
+        #chids.sort()
+        #for chid in chids:
+        #    chain = self._chains[chid]
+        #    for res in chain.iterResidues():
+        #        yield res
+        for chain in self._chains.itervalues():
+            for residue in chain.iterResidues():
+                yield residue
                 
     def getResidue(self, chid, resnum, icode=''):
         """Return residue with number *resnum* and insertion code *icode* from 
@@ -3053,10 +3114,12 @@ class HierView(object):
     def iterChains(self):
         """Iterate over chains."""
         
-        chids = self._chains.keys()
-        chids.sort()
-        for chid in chids:
-            yield self._chains[chid]
+        #chids = self._chains.keys()
+        #chids.sort()
+        #for chid in chids:
+        #    yield self._chains[chid]
+        for chain in self._chains.itervalues():
+            yield chain
     
     def getChain(self, chid):
         """Return chain with identifier *chid*, if it exists."""
