@@ -36,7 +36,8 @@ Functions
   * :func:`calcGyradius`
   * :func:`calcRMSD`
   * :func:`calcTransformation`
-  * :func:`superpose` 
+  * :func:`moveAtoms`
+  * :func:`superpose`
 
 """
 
@@ -55,7 +56,8 @@ __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcGeomCenter', 
            'calcGyradius', 'calcRadiusOfGyration', 
-           'calcRMSD', 'calcTransformation', 'superpose']
+           'calcRMSD', 'calcTransformation', 
+           'moveAtoms', 'superpose']
            
 class Transformation(object):
     
@@ -478,7 +480,7 @@ def calcGeomCenter(atoms):
     
     return coords.mean(0) 
 
-def moveby(atoms, offset):
+def moveAtoms(atoms, offset):
     """Move atoms by *offset*, which must be a :class:`numpy.ndarray` instance 
     with shape ``(natoms, 3)``, ``(1, 3)``, or ``(3,)``."""
     
