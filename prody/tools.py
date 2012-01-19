@@ -118,7 +118,7 @@ class PackageLogger(object):
         none      ProDy will not log any messages.
         ========  ==========================================="""
         
-        lvl = LOGGING_LEVELS.get(level, None)
+        lvl = LOGGING_LEVELS.get(str(level).lower(), None)
         if lvl is None: 
             self.warning('{0:s} is not a valid log level.'.format(level))
         else:
