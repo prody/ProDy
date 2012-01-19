@@ -1404,13 +1404,19 @@ class Frame(ConformationBase):
         
     def getCoords(self):
         """Return a copy of coordinates for selected atoms."""
-        
-        return self._coords.copy()
+                
+        if self._indices is None:
+            return self._coords.copy()
+        else:
+            return self._coords[self._indices]
     
     def _getCoords(self):
         """Return coordinates for selected atoms."""
         
-        return self._coords
+        if self._indices is None:
+            return self._coords
+        else:
+            return self._coords[self._indices]
     
     def getUnitcell(self):
         """Return a copy of unitcell array."""
@@ -1428,7 +1434,7 @@ class Frame(ConformationBase):
         if indices is None:
             return self._coords - ensemble._coords
         else:
-            return self._coords - ensemble._coords[indices]
+            return self._coords[indices] - ensemble._coords[indices]
 
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates."""
@@ -1441,10 +1447,10 @@ class Frame(ConformationBase):
                                                     ensemble._weights)
         else:
             if ensemble._weights is None:
-                return measure._calcRMSD(self._coords, 
+                return measure._calcRMSD(self._coords[indices], 
                                          ensemble._coords[indices])
             else:
-                return measure._calcRMSD(self._coords, 
+                return measure._calcRMSD(self._coords[indices], 
                                          ensemble._coords[indices], 
                                          ensemble._weights[indices])
         
@@ -1461,10 +1467,12 @@ class Frame(ConformationBase):
                                                 ensemble._weights)
         else:
             if ensemble._weights is None:
-                measure._superpose(self._coords, ensemble._coords[indices])
+                measure._superpose(self._coords[indices], 
+                                   ensemble._coords[indices])
             else:
-                measure._superpose(self._coords, ensemble._coords[indices], 
-                                                 ensemble._weights[indices])
+                measure._superpose(self._coords[indices], 
+                                   ensemble._coords[indices], 
+                                   ensemble._weights[indices])
     
 class AtomWrapper(object):
     
@@ -2153,8 +2161,11 @@ class DCDFile(TrajectoryFile):
             #Skip extended system coordinates (unit cell data)
             if self._unitcell:
                 self._file.seek(56, 1)
-            return self._nextCoordset()
-            
+            if self._sel is None:
+                return self._nextCoordset()
+            else:            
+                return self._nextCoordset()[self._indices]
+
     def _nextCoordset(self):
     
         n_floats = self._n_floats
@@ -2165,10 +2176,7 @@ class DCDFile(TrajectoryFile):
         xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
         xyz = xyz.reshape((n_atoms, 3))
         self._nfi += 1
-        if self._sel is None:
-            return xyz
-        else:
-            return xyz[self._indices]
+        return xyz
 
     nextCoordset.__doc__ = TrajectoryBase.nextCoordset.__doc__  
 
@@ -2479,11 +2487,7 @@ class Trajectory(TrajectoryBase):
                 self._nextFile()
                 traj = self._trajectory
             unitcell = traj._nextUnitcell()
-            if self._indices is None: 
-                coords = traj._nextCoordset()
-            else:
-                coords = traj._nextCoordset()[self._indices]
-            
+            coords = traj._nextCoordset()            
             frame = Frame(self, nfi, coords, unitcell)
             self._nfi += 1
             return frame
