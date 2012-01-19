@@ -461,8 +461,8 @@ print what was parsed and how long it took to the screen::
 
 This behavior is useful in interactive sessions, but may be problematic for
 automated tasks as the messages are printed to stderr. The level of verbosity 
-can be adjusted using :func:`changeVerbosity` function, and 
-``changeVerbosity(None)`` will stop all information messages.
+can be adjusted using :func:`setVerbosity` function, and 
+``setVerbosity(None)`` will stop all information messages.
 
 
 Dynamics analysis
