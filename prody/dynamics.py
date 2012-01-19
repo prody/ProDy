@@ -1747,7 +1747,7 @@ class PCA(NMABase):
             coordsets = coordsets._getCoordsets()
         
         if isinstance(coordsets, prody.TrajectoryBase):
-            nfi = coordsets.getNextFrameIndex()
+            nfi = coordsets.getNextIndex()
             coordsets.reset()
             n_atoms = coordsets.numSelected()
             dof = n_atoms * 3
