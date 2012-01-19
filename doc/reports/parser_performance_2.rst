@@ -74,7 +74,7 @@ The following code was used for evaluation::
       pdb = func(*args, **kwargs)
       return time() - start
 
-  changeVerbosity('warning')
+  setVerbosity('warning')
 
   N = 10 # repeats
   PDB = ['2k39.pdb', '1dlo.pdb', '3mrz.pdb']
