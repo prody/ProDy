@@ -131,7 +131,7 @@ Parse data frame-by-frame
 >>> print frame.getRMSD().round(2)
 0.96
 
->>> print calcRadiusOfGyration(frame).round(2)
+>>> print calcGyradius(frame).round(2)
 12.95
 
 We can perform these calculations for all frames in a for loop. Let's reset
@@ -142,7 +142,7 @@ We can perform these calculations for all frames in a for loop. Let's reset
 >>> rgyr = np.zeros(len(dcd))
 >>> rmsd = np.zeros(len(dcd))
 >>> for i, frame in enumerate(dcd):
-...     rgyr[i] = calcRadiusOfGyration( frame )
+...     rgyr[i] = calcGyradius( frame )
 ...     frame.superpose()
 ...     rmsd[i] = frame.getRMSD()
 >>> print rmsd.round(2) # doctest: +ELLIPSIS
@@ -172,7 +172,7 @@ Instances of this class are also suitable for previous calculations:
 >>> rgyr = np.zeros(len(traj))
 >>> rmsd = np.zeros(len(traj))
 >>> for i, frame in enumerate(traj):
-...     rgyr[i] = calcRadiusOfGyration( frame )
+...     rgyr[i] = calcGyradius( frame )
 ...     frame.superpose()
 ...     rmsd[i] = frame.getRMSD()
 >>> print rmsd.round(2) # doctest: +ELLIPSIS
