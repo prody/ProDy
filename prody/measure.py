@@ -480,16 +480,25 @@ def calcGeomCenter(atoms):
     
     return coords.mean(0) 
 
-def moveAtoms(atoms, offset):
-    """Move atoms by *offset*, which must be a :class:`numpy.ndarray` instance 
-    with shape ``(natoms, 3)``, ``(1, 3)``, or ``(3,)``."""
+def moveAtoms(atoms, array):
+    """Move or transform *atoms*. *array* must be :class:`numpy.ndarray`.  
+    If shape of *array* is one of ``(natoms, 3)``, ``(1, 3)``, or ``(3,)``,
+    *atoms* will be translated. Ff *array* is a ``(4,4)`` matrix, coordinates
+    will be transformed."""
     
-    if not isinstance(offset, np.ndarray):
+    try:
+        coords = atoms._getCoords()
+    except AttributeError: 
+        raise TypeError("atoms doesn't have a valid type: " + str(type(atoms)))
+    if not isinstance(array, np.ndarray):
         raise TypeError('offset must be a NumPy array')
-    elif offset.shape[-1] != 3:
-        raise TypeError('last dimension of offset must be 3')
-    coords = atoms._getCoords() 
-    coords += offset
+    if array.shape[-1] == 3 and array.ndim in (1,2):
+        coords += array
+    elif array.shape == (4,4):
+        coords = np.dot(coords, array[:3,:3])
+        coords += array[3,:3]
+    else:
+        raise ValueError('array does not have right shape')
     atoms.setCoords(coords)    
 
 def calcRadiusOfGyration(coords, weights=None):
