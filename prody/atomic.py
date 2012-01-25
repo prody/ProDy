@@ -48,6 +48,8 @@ to such data.  These classes are:
 * :class:`Selection` - Points to an arbitrary subset of atoms. See 
   :ref:`selections` and :ref:`selection-operations` for usage examples.
 
+* :class:`Segment` - Points to atoms that have the same segment name.
+
 * :class:`Chain` - Points to atoms that have the same chain identifier.
 
 * :class:`Residue` - Points to atoms that have the same chain identifier, 
@@ -120,8 +122,8 @@ import prody
 LOGGER = prody.LOGGER
 
 __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
-           'Selection', 'Chain',
-           'Residue', 'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS',
+           'Selection', 'Segment', 'Chain', 'Residue', 
+           'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS',
            'loadAtoms', 'saveAtoms',]
 
 class Field(object):
@@ -383,6 +385,15 @@ Method                  Description
 * ``getIndices``        returns indices of atoms
 * ``getSelstr``         returns selection string that reproduces the selection
 
+:class:`Segment`
+
+* ``getName``           returns segment name
+* ``setName``           changes segment name
+* ``getChain``          returns chain with given identifier
+* ``iterChains``        iterates over chains
+* ``numChains`  `       returns the number of chains in the instance
+* ``getSelstr``         returns a string that selects segment atoms
+
 :class:`Chain`
 * ``getIdentifier``     returns chain identifier
 * ``setIdentifier``     changes chain identifier
@@ -458,12 +469,21 @@ Selection  * :func:`len` returns the number of selected atoms.
            * :func:`iter` yields :class:`Atom` instances.
            * Indexing is not available.
 
+Segment    * :func:`len` returns the number of chains in the segment.
+           * :func:`iter` yields :class:`Chain` instances.
+           * Indexing by:
+                
+             - *chain identifier* (:func:`str`), 
+               e.g. ``A`` returns a :class:`Chain`.
+
 Chain      * :func:`len` returns the number of residues in the chain.
            * :func:`iter` yields :class:`Residue` instances.
            * Indexing by:
                 
              - *residue number [, insertion code]* (:func:`tuple`), 
                e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
+             - *slice* (:func:`slice`), e.g, ``10:20`` returns a list of  
+               :class:`Residue` instances.
                     
 Residue    * :func:`len` returns the number of atoms in the instance.
            * :func:`iter` yields :class:`Atom` instances.
@@ -494,7 +514,10 @@ Some overridden functions are:
   - *chain identifier, residue number [, insertion code]* 
     (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
     returns a :class:`Residue`
-
+  - *segment name, chain identifier, residue number [, insertion code]* 
+    (:func:`tuple`), e.g. ``"PROT", "A", 10`` or  ``"PROT", "A", 10, "B"`` 
+    returns a :class:`Residue`
+    
 
 """
 
@@ -508,6 +531,7 @@ Classes
 
     * :class:`AtomGroup`
     * :class:`Atom`
+    * :class:`Segment`
     * :class:`Chain`
     * :class:`Residue`
     * :class:`Selection`
@@ -520,7 +544,6 @@ Base Classes
     * :class:`Atomic`
     * :class:`AtomPointer`
     * :class:`AtomSubset`
-
 
 Functions
 ---------
@@ -2365,6 +2388,11 @@ class Segment(AtomSubset):
         """Return chain with identifier *chid*."""
         
         return self._dict.get(chid)
+    
+    def iterChains(self):
+        """Iterate chains in the segment."""
+        
+        return self._dict.itervalues()
 
     def getSelstr(self):
         """Return selection string that selects atoms in this segment."""
