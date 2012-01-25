@@ -476,7 +476,6 @@ class Ensemble(EnsembleBase):
                              n_atoms=self._n_atoms, reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coords.shape[-2]
-        n_atoms = self._n_atoms
         n_confs = coords.shape[0]
             
         if self._confs is None: 
@@ -1126,7 +1125,7 @@ class ConformationBase(object):
                         self._ensemble.numAtoms())
 
     def __str__(self):
-        return '{0:s} {1:d} from {2:s}'.format(
+        return '{0:s} {1:d} from {2:s}'.format(self.__class__.__name__,
                     self._index, self._ensemble.getTitle())
 
     def getNumOfAtoms(self):
@@ -1473,24 +1472,7 @@ class Frame(ConformationBase):
                 measure._superpose(self._coords[indices], 
                                    ensemble._coords[indices], 
                                    ensemble._weights[indices])
-    
-class AtomWrapper(object):
-    
-    def __init__(self, trajectory):
-        
-        self._traj = trajectory
-        
-    def __call__(self, frame, unitcell=None):
-        
-        if self._traj != frame.getTrajectory():
-            raise ValueError('frame must be from ' + self._traj.getTitle())
-        
-        pass
-    
-    def __repr__(self):
-    
-        return '<AtomWrapper: '
-    
+
 def trimEnsemble(pdbensemble, **kwargs):
     """Deprecated, use :meth:`trimPDBEnsemble`."""
     
@@ -1654,6 +1636,14 @@ class TrajectoryBase(EnsembleBase):
         else:
             raise IndexError('invalid index')
     
+    def __enter__(self):
+        
+        return self
+    
+    def __exit__(self, type, value, tb):
+        
+        self.close()
+    
     def getNumOfFrames(self):
         """Deprecated, use :meth:`numFrames`."""
         
@@ -1797,7 +1787,6 @@ class TrajectoryFile(TrajectoryBase):
     def __str__(self):
         return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
     
-       
     def getFilename(self, absolute=False):
         """Return relative path to the current file. For absolute path,
         pass ``absolute=True`` argument."""
