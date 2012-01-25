@@ -2440,7 +2440,7 @@ class Chain(AtomSubset):
             return self.getResidue(*key) 
         elif isinstance(key, slice):
             resnums = self._getResnums()
-            resnums = set(np.arange(*key.indices(resnums.max())))
+            resnums = set(np.arange(*key.indices(resnums.max()+1)))
             return [res for (rn, ic), res in self._dict.iteritems() 
                     if rn in resnums]
         else:
