@@ -62,7 +62,7 @@ A hierarchical view of the structure can be simply get by calling the
 
 >>> hv = structure.getHierView()
 >>> hv
-<HierView: AtomGroup 3mkb>
+<HierView: AtomGroup 3mkb (4 chains, 946 residues)>
 
 *Indexing*
 
@@ -267,9 +267,9 @@ Finally, you can select atoms from a :class:`Residue` instance:
 
 >>> chA_res1_bb = chA_res1.select('backbone')
 >>> chA_res1_bb
-<Selection: "(backbone) and ...A and resnum 1)" from 3mkb (4 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(backbone) and ... and (chain A))" from 3mkb (4 atoms; 1 coordinate sets, active set index: 0)>
 >>> chA_res1_bb.getSelstr()
-'(backbone) and (chain A and resnum 1)'
+'(backbone) and (resnum 1 and (chain A))'
 
 Again, the selection string is augmented with the chain identifier and 
 residue number ("resnum").

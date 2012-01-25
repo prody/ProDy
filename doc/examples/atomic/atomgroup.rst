@@ -223,8 +223,8 @@ Hierarchical views of atom groups are represented by :class:`HierView`.
 Residues (and also chains) in an atom group can also be iterated over
 
 >>> for res in wtrs.getHierView().iterResidues(): res
-<Residue: WAT 1 from Chain  from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
-<Residue: WAT 2 from Chain  from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<Residue: WAT 1 from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<Residue: WAT 2 from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
 
 Finally, it's is possible to change the name of *wtrs* from 
 "Water + Water" to something shorter:

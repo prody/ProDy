@@ -21,12 +21,22 @@ Release 0.9.3 (in development)
   * Implemented :func:`~measure.calcGeomCenter` and :func:`~measure.moveAtoms`
     methods for dealing with coordinate translation.
 
-**Improvements**:
+  * Hierarchical view class (:class:`HierView`) is completely redesigned.  PDB 
+    files that contain non-empty segment name column (or when such information
+    is parsed from a PSF file), new design delicately handles this information
+    to identify distinct chains and residues.  This prevents merging distinct 
+    chains in different segments but with same identifiers and residues in 
+    those with same numbers.  New design is also using ordered dictionaries
+    :class:`collections.OrderedDict` and lists so that chain and residue 
+    iterations yield them in the order they are parsed from file.  These 
+    improvements also bring modest improvements in speed.
 
-  * Hierarchical view is using :class:`collections.OrderedDict` so that chain
-    and residue iterations yield them in the order they are parsed from file.
-    Improvements also achieved 1.7x speedup in building hierarchical views.
-
+   * Context manager methods are added to trajectory classes.  A trajectory
+     file can be opened as follows::
+       
+       with Trajectory('mdm2.dcd') as traj:
+           for frame in traj:
+               calcGyradius(frame)
 
 **Changes**:
 
