@@ -48,7 +48,12 @@ Release 0.9.3 (in development)
       chA = p38['A']
       res_4to10 = chA[4:11]
       res_100toLAST = chA[100:]
-         
+
+**Improvements**:
+
+  * :meth:`~atomic.Chain.getSelstr` methods of :class:`~atomic.Chain` and 
+    :class:`~atomic.Residue` classes are improved to include the selection
+    string of a :class:`~atomic.Selection` when they are built using one.
 
 **Changes**:
 
