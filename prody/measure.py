@@ -29,6 +29,7 @@ Functions
   * :func:`alignCoordsets`
   * :func:`applyTransformation`
   * :func:`buildADPMatrix`
+  * :func:`buildKDTree`
   * :func:`calcADPAxes`
   * :func:`calcADPs`
   * :func:`calcDeformVector`
@@ -51,9 +52,11 @@ from tools import *
 import prody
 LOGGER = prody.LOGGER
 
+KDTree = None
+
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
-           'buildADPMatrix', 'calcADPAxes', 'calcADPs',  
+           'buildADPMatrix', 'buildKDTree', 'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcGeomCenter', 
            'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 
@@ -500,6 +503,26 @@ def moveAtoms(atoms, array):
     else:
         raise ValueError('array does not have right shape')
     atoms.setCoords(coords)    
+    
+def buildKDTree(atoms):
+    """Return a KDTree built using coordinates of *atoms*.  *atoms* must be
+    a ProDy object or a :class:`numpy.ndarray` with shape ``(n_atoms,3)``.  
+    This function uses Biopython KDTree module."""
+    
+    if isinstance(atoms, np.ndarray):
+        coords = checkCoords(atoms, 'atoms')
+    else:
+        try:
+            coords = atoms._getCoords()
+        except AttributeError:
+            raise TypeError('invalid type for atoms')
+    
+    if KDTree is None:
+        prody.importBioKDTree()
+    kdtree = KDTree(3)
+    kdtree.set_coords(coords)
+    return kdtree
+    
 
 def calcRadiusOfGyration(coords, weights=None):
     """Deprecated, use :meth:`calcGyradius`."""
