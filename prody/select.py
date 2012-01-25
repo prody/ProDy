@@ -2070,7 +2070,7 @@ class Select(object):
         
         if self._kdtree is None:
             if DEBUG: print('kdtree')
-            kdtree = measure.buildKDTree(self._getCoords())
+            kdtree = measure.buildKDTree(self)
             self._kdtree = kdtree
             return kdtree
         return self._kdtree
@@ -2111,7 +2111,7 @@ class Contacts(object):
         indices = self._indices
         if ag._getTimeStamp(acsi) != self._timestamps[acsi]:    
             if indices == None:
-                kdtree = measure.getKDTree(self._ag)
+                kdtree = measure.getKDTree(self._ag._getCoords())
             else:
                 kdtree = measure.getKDTree(self._ag._getCoords()[indices])
             self._kdtrees[acsi] = kdtree
