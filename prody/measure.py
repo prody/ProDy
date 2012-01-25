@@ -52,7 +52,7 @@ from tools import *
 import prody
 LOGGER = prody.LOGGER
 
-KDTree = None
+BioKDTree = None
 
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
@@ -504,22 +504,43 @@ def moveAtoms(atoms, array):
         raise ValueError('array does not have right shape')
     atoms.setCoords(coords)    
     
+def importBioKDTree():
+    global BioKDTree
+    try:
+        from KDTree import KDTree
+    except ImportError:
+        try:
+            from Bio.KDTree import KDTree
+        except ImportError:
+            LOGGER.warning('KDTree module could not be imported. '
+                           'Reinstalling ProDy or installing BioPython '
+                           'can resolve the problem.')
+            return False
+    BioKDTree = KDTree
+    return True
+    
 def buildKDTree(atoms):
     """Return a KDTree built using coordinates of *atoms*.  *atoms* must be
     a ProDy object or a :class:`numpy.ndarray` with shape ``(n_atoms,3)``.  
     This function uses Biopython KDTree module."""
     
+    if BioKDTree is None:
+        importBioKDTree()
     if isinstance(atoms, np.ndarray):
         coords = checkCoords(atoms, 'atoms')
+        return getKDTree(coords)
     else:
         try:
             coords = atoms._getCoords()
         except AttributeError:
             raise TypeError('invalid type for atoms')
-    
-    if KDTree is None:
-        prody.importBioKDTree()
-    kdtree = KDTree(3)
+        finally:
+            return getKDTree(coords)
+
+def getKDTree(coords):
+    """Internal function to get KDTree for coordinates without any checks."""
+
+    kdtree = BioKDTree(3)
     kdtree.set_coords(coords)
     return kdtree
     

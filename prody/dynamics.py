@@ -284,7 +284,6 @@ import numpy as np
 linalg = None
 scipyla = None
 plt = None
-KDTree = None
 scipy_sparse = None
 scipy_sparse_la = None
 
@@ -292,6 +291,7 @@ import prody
 from atomic import *
 from ensemble import *
 from tools import *
+import measure
 LOGGER = prody.LOGGER
 SETTINGS = prody.SETTINGS
 from prody import ProDyAtomSelect as SELECT
@@ -1299,11 +1299,10 @@ class GNM(GNMBase):
            efficient usage of memory at the cost of computation speed."""
         
         slow = kwargs.get('slow', False)
-        if not slow and KDTree is None: 
-            prody.importBioKDTree()
-            if not KDTree:
-                LOGGER.debug('Using a slower method for building the '
-                             'Kirchhoff matrix.')
+        KDTree = measure.importBioKDTree()
+        if not slow and not KDTree: 
+            LOGGER.info('Using a slower method for building the Kirchhoff '
+                         'matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoords()
@@ -1325,8 +1324,7 @@ class GNM(GNMBase):
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         
         if not slow and KDTree:
-            kdtree = KDTree(3)
-            kdtree.set_coords(coords) 
+            kdtree = measure.getKDTree(coords) 
             kdtree.all_search(cutoff)
             radii = kdtree.all_get_radii()
             r = 0
@@ -1516,11 +1514,10 @@ class ANM(GNMBase):
         """
         
         slow = kwargs.get('slow', False)
-        if not slow and KDTree is None: 
-            prody.importBioKDTree()
-            if not KDTree:
-                LOGGER.debug('Using a slower method for building the '
-                             'Hessian matrix.')
+        KDTree = measure.importBioKDTree()
+        if not slow and not KDTree: 
+            LOGGER.info('Using a slower method for building the Hessian '
+                         'matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoords()
@@ -1544,8 +1541,7 @@ class ANM(GNMBase):
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
             hessian = np.zeros((dof, dof), float)
         if not slow and KDTree:
-            kdtree = KDTree(3)
-            kdtree.set_coords(coords) 
+            kdtree = measure.getKDTree(coords) 
             kdtree.all_search(cutoff)
             for i, j in kdtree.all_get_indices():
                 i2j = coords[j] - coords[i]

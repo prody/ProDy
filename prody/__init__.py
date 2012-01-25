@@ -126,20 +126,6 @@ def importPyPlot():
     ensemble.plt = pyplot
     proteins.plt = pyplot
 
-def importBioKDTree():
-    try:
-        from prody.KDTree import KDTree
-    except ImportError:
-        try:
-            from Bio.KDTree import KDTree
-        except ImportError:
-            KDTree = False
-            LOGGER.warning('KDTree module could not be imported. '
-                           'Reinstalling ProDy or installing BioPython '
-                           'can resolve the problem.')
-    dynamics.KDTree = KDTree
-    select.KDTree = KDTree
-
 SETTINGS = PackageSettings(logger=LOGGER) 
 SETTINGS.load()
 

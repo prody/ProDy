@@ -184,13 +184,13 @@ import re as RE
 import numpy as np
 from . import pyparsing as pp
 pp.ParserElement.enablePackrat()
-KDTree = None
 
 import prody
 LOGGER = prody.LOGGER
 SETTINGS = prody.SETTINGS
 from atomic import *
 from tools import *
+import measure
 DEBUG = False
 
 __all__ = ['Select', 'Contacts',
@@ -2068,14 +2068,9 @@ class Select(object):
     def _getKDTree(self):
         """Return KDTree."""
         
-        if KDTree is None: prody.importBioKDTree()
-        if not KDTree:
-            raise ImportError('Bio.KDTree is required for distance based '
-                              'selections.')
         if self._kdtree is None:
             if DEBUG: print('kdtree')
-            kdtree = KDTree(3)
-            kdtree.set_coords(self._getCoords())
+            kdtree = measure.buildKDTree(self._getCoords())
             self._kdtree = kdtree
             return kdtree
         return self._kdtree
@@ -2102,26 +2097,23 @@ class Contacts(object):
         else:
             self._ag = atoms 
             self._indices = None
-        if KDTree is None: prody.importBioKDTree()
-        if not KDTree:
-            raise ImportError('Bio.KDTree is required for distance based '
-                              'selections.')
+        if not measure.importBioKDTree():
+            raise ImportError('KDTree module is required by Contacts class')
 
     def __repr__(self):
         return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(
                                                 str(self._atoms), self._acsi)
-    
 
     def _getKDTree(self):
 
         acsi = self._acsi
         ag = self._ag
+        indices = self._indices
         if ag._getTimeStamp(acsi) != self._timestamps[acsi]:    
-            kdtree = KDTree(3)
-            if self._indices == None:
-                kdtree.set_coords(self._ag._getCoords())
+            if indices == None:
+                kdtree = measure.getKDTree(self._ag)
             else:
-                kdtree.set_coords(self._ag._getCoords()[self._indices])
+                kdtree = measure.getKDTree(self._ag._getCoords()[indices])
             self._kdtrees[acsi] = kdtree
             self._timestamps[acsi] = ag._getTimeStamp(acsi) 
             return kdtree
