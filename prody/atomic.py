@@ -2438,7 +2438,13 @@ class Chain(AtomSubset):
         
         if isinstance(key, tuple): 
             return self.getResidue(*key) 
-        return self.getResidue(key)
+        elif isinstance(key, slice):
+            resnums = self._getResnums()
+            resnums = set(np.arange(*key.indices(resnums.max())))
+            return [res for (rn, ic), res in self._dict.iteritems() 
+                    if rn in resnums]
+        else:
+            return self.getResidue(key)
     
     def getSegment(self):
         """Return segment that this chain belongs to."""
