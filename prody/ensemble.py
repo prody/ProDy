@@ -598,7 +598,8 @@ class Ensemble(EnsembleBase):
         
         indices = self._indices
         if indices is None:
-            measure._superposeTraj(self._confs, self._coords, self._weights)
+            measure._superposeTraj(self._confs, self._coords, self._weights,
+                                   self._confs)
         else:
             weights = None
             if self._weights is not None:

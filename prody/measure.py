@@ -195,31 +195,34 @@ def _calcTransformation(mob, tar, weights=None):
 def _superposeTraj(mobs, tar, weights=None, movs=None):
     # mobs.ndim == 3 and movs.ndim == 3
     # mobs.shape[0] == movs.shape[0]
-    tar_com = tar.mean(0)
-    tar_org_T = (tar - tar_com).T
     if linalg is None:
         prody.importLA()
     svd = linalg.svd
     det = linalg.det
     dot = np.dot
+    add = np.add
+    subtract = np.subtract
     array = np.array
     sign = np.sign
+    
+    tar_com = tar.mean(0)
+    tar_org_T = (tar - tar_com).T
+    mob_org = np.zeros(mobs.shape[-2:])
+
     LOGGER.progress('Superposing ', len(mobs))
     for i, mob in enumerate(mobs):      
-        mob_com = mob.mean(0)
-        mob_org = mob - mob_com
-
-        matrix = dot(tar_org_T, mob_org)
+        mob_com = mob.mean(0)        
+        matrix = dot(tar_org_T, subtract(mob, mob_com, mob_org))
         U, s, Vh = svd(matrix)
         Id = array([ [1, 0, 0], [0, 1, 0], [0, 0, sign(det(matrix))] ])
         rotation = dot(Vh.T, dot(Id, U.T))
 
         if movs is None:
             mobs[i] = dot(mob_org, rotation) 
-            mobs[i] += tar_com 
+            add(mobs[i], tar_com, mobs[i]) 
         else:
-            movs[i] = dot(movs[i], rotation) 
-            movs[i] += (tar_com - dot(mob_com, rotation))
+            add(dot(movs[i], rotation), 
+                (tar_com - dot(mob_com, rotation)), movs[i])
     
         LOGGER.update(i)
     LOGGER.clear()
@@ -241,9 +244,10 @@ def _superpose(mob, tar, weights=None, mov=None):
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     if mov is None:
-        mob[:] = np.dot(mob_org, rotation) + tar_com 
+        np.add(np.dot(mob_org, rotation), tar_com, mob) 
     else:
-        mov[:] = np.dot(mov, rotation) + (tar_com - np.dot(mob_com, rotation))
+        np.add(np.dot(mov, rotation), 
+               (tar_com - np.dot(mob_com, rotation)), mov)
 
 
 def applyTransformation(transformation, atoms):
