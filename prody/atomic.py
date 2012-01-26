@@ -59,7 +59,6 @@ to such data.  These classes are:
   duplicates and missing atoms.  Indices of atoms are stored in the order 
   provided by the user.
     
-
 Atom selections
 -------------------------------------------------------------------------------
 
@@ -123,7 +122,7 @@ LOGGER = prody.LOGGER
 
 __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
            'Selection', 'Segment', 'Chain', 'Residue', 
-           'AtomMap', 'HierView', 'ATOMIC_DATA_FIELDS',
+           'AtomMap', 'HierView', 'Bond', 'ATOMIC_DATA_FIELDS',
            'loadAtoms', 'saveAtoms',]
 
 READONLY = set(['numbonds'])
@@ -3511,6 +3510,11 @@ class Bond(object):
         
         return self._ag
 
+    def getAtoms(self):
+        """Return bonded atoms."""
+        
+        return (self._ag[self._indices[0]], self._ag[self._indices[1]])
+
     def getIndices(self):
         """Return indices of bonded atoms."""
         
@@ -3528,8 +3532,6 @@ class Bond(object):
         acsi = self._acsi
         return self._ag._coords[acsi, one] - self._ag._coords[acsi, two] 
 
-class Pair(object):
-        pass        
 
 def evalBonds(bonds, n_atoms):
     numbonds = np.bincount(bonds.reshape((bonds.shape[0] * 2)))
