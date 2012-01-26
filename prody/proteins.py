@@ -2100,27 +2100,21 @@ _PDB_HEADER_MAP = {
 }
 
 
-def parsePSF(filename, title=None, ag=None, bonds=False, zerobased=True):
+def parsePSF(filename, title=None, ag=None):
     """Return an :class:`~prody.atomic.AtomGroup` instance storing data 
-    parsed from X-PLOR format PSF file *filename*.  If *title* is not given, 
-    *filename* will be set as the title of the :class:`AtomGroup` instance.  
-    An :class:`AtomGroup` instance may be provided as *ag* argument.  When 
-    provided, *ag* must have the same number of atoms in the same order as 
-    the file.  Data from PSF file will be added to *ag*.  This may overwrite 
-    present data if it overlaps with PSF file content.  If *bonds* argument
-    is True, bonds will be parsed and returned in a dictionary that maps
-    an atom to atoms bonded with it.  When *zerobased* is True, indices
-    in the dictionary will start from zero, which in PSF files start from one.  
+    parsed from X-PLOR format PSF file *filename*.  Atom and bond information
+    is parsed from the file.  If *title* is not given, *filename* will be set 
+    as the title of the :class:`AtomGroup` instance.  An :class:`AtomGroup` 
+    instance may be provided as *ag* argument.  When provided, *ag* must have 
+    the same number of atoms in the same order as the file.  Data from PSF 
+    file will be added to the *ag*.  This may overwrite present data if it 
+    overlaps with PSF file content. Note that this function does not evaluate 
+    angles, dihedrals, and impropers sections.
     
     .. versionadded:: 0.8.1
     
     .. versionchanged:: 0.9.3
-       *bonds* argument is added. 
-    
-    Note that this function does not evaluate angles, dihedrals, and impropers
-    sections of the file.
-    
-    """
+       Bonds section is parsed from the file."""
     
     if ag is not None:
         if not isinstance(ag, prody.AtomGroup):
@@ -2197,27 +2191,17 @@ def parsePSF(filename, title=None, ag=None, bonds=False, zerobased=True):
                 IOError('line {0:d} in {1:s} could not be parsed. Please '
                         'report this error.'.format(i_line, filename))
     
-    if bonds:
-        i = n_atoms
-        while 1:
-            line = lines[i].split()
-            if len(line) >= 2 and line[1] == '!NBOND:':
-                 n_bonds = int(line[0])
-                 break
-            i += 1
-        lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
-        array = np.fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
-        if len(array) != n_bonds*2:
-            raise IOError('number of bonds expected and parsed do not match')
-        if array.min() < 1 or array.max() > n_atoms:
-            raise IOError('discrepancy between atom and bond records')
-        bdict = defaultdict(list)
-        if zerobased:
-            array = np.add(array, -1, array)
-        array.reshape((n_bonds, 2))
-        for a, b in array.reshape((n_bonds, 2)): 
-            bdict[a].append(b)
-            bdict[b].append(a)
+    i = n_atoms
+    while 1:
+        line = lines[i].split()
+        if len(line) >= 2 and line[1] == '!NBOND:':
+             n_bonds = int(line[0])
+             break
+        i += 1
+    lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
+    array = np.fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
+    if len(array) != n_bonds*2:
+        raise IOError('number of bonds expected and parsed do not match')
 
     psf.close()
     ag.setSerials(serials)
@@ -2228,10 +2212,11 @@ def parsePSF(filename, title=None, ag=None, bonds=False, zerobased=True):
     ag.setTypes(atomtypes)
     ag.setCharges(charges)
     ag.setMasses(masses)
-    if bonds:
-        return ag, bdict
-    else:
-        return ag
+
+    array = np.add(array, -1, array)
+    ag.setBonds(array.reshape((n_bonds, 2)))
+
+    return ag
 
 def children2dict(element, prefix=None):
     dict_ = {}
