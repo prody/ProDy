@@ -48,6 +48,15 @@ Release 0.9.3 (in development)
       chA = p38['A']
       res_4to10 = chA[4:11]
       res_100toLAST = chA[100:]
+  
+  * Some support for bonds is implemented to :class:`~atomic.AtomGroup` class.
+    Bonds can be set using :meth:`~atomic.AtomGroup.setBonds` method.  All 
+    bonds must be set at once.  :meth:`~atomic.AtomGroup.iterBonds` or
+    :meth:`~atomic.Atom.iterBonds` methods can be used to iterate over bonds
+    in an AtomGroup or an Atom.
+      
+  * :func:`~proteins.parsePSF` parses bond information and sets to the
+    atom group. 
 
 **Improvements**:
 
