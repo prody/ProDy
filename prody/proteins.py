@@ -3587,7 +3587,7 @@ def showProtein(*atoms, **kwargs):
         if calpha:
             for ch in prody.HierView(calpha, chain=True):
                 xyz = ch._getCoords()
-                chid = ch.getIdentifier()
+                chid = ch.getChid()
                 show.plot(xyz[:,0], xyz[:,1], xyz[:,2], 
                           label=title + '_' + chid,
                           color=kwargs.get(chid, cnames.pop()).lower(),
@@ -3603,7 +3603,7 @@ def showProtein(*atoms, **kwargs):
         if hetero:
             for res in prody.HierView(hetero).iterResidues():
                 xyz = res._getCoords()
-                resname = res.getName()
+                resname = res.getResname()
                 resnum = str(res.getNumber())
                 chid = res.getChid()
                 show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None',

@@ -305,7 +305,7 @@ instance at the time it is built. When chain identifiers or residue
 numbers change, the state that hierarchical view represents may not
 match the current state of the atom group:
 
->>> chA.setIdentifier('X')
+>>> chA.setChid('X')
 >>> chA
 <Chain: X from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
 >>> hv['X'] # returns None, since hierarchical view is not updated

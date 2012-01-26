@@ -737,7 +737,7 @@ class PDBEnsemble(Ensemble):
     """
 
     def __init__(self, title='Unknown'):
-        self._identifiers = []
+        self._labels = []
         Ensemble.__init__(self, title)
         
     def __repr__(self):
@@ -873,14 +873,14 @@ class PDBEnsemble(Ensemble):
         title = title.replace(' ', '_')
         
         if n_csets > 1:
-            self._identifiers += ['{0:s}_{1:d}'
+            self._labels += ['{0:s}_{1:d}'
                                   .format(title, i+1) for i in range(n_csets)]
         else:
             if ag is not None and ag.numCoordsets() > 1:
-                self._identifiers.append('{0:s}_{1:d}'.format(title, 
+                self._labels.append('{0:s}_{1:d}'.format(title, 
                                          atoms.getACSIndex()))
             else:                
-                self._identifiers.append(title)
+                self._labels.append(title)
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
@@ -893,13 +893,12 @@ class PDBEnsemble(Ensemble):
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
 
-    def getIdentifiers(self):
+    def getLabels(self):
         """Return identifiers of the conformations in the ensemble.
         
-        .. versionadded:: 0.8.3
-        """
+        .. versionadded:: 0.8.3"""
         
-        return list(self._identifiers)
+        return list(self._labels)
     
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate set(s) at given *indices* for selected 
@@ -954,7 +953,7 @@ class PDBEnsemble(Ensemble):
             index = list(index)
         index.sort(reverse=True)
         for i in index:
-            self._identifiers.pop(i)
+            self._labels.pop(i)
             
     def getConformation(self, index):
         """Return conformation at given index."""
@@ -1066,7 +1065,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     dict_ = ensemble.__dict__
     attr_list = ['_title', '_confs', '_weights', '_coords']
     if isinstance(ensemble, PDBEnsemble):
-        attr_list.append('_identifiers')
+        attr_list.append('_labels')
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
     attr_dict = {}
@@ -1100,7 +1099,9 @@ def loadEnsemble(filename):
     if isPDBEnsemble:
         ensemble.addCoordset(attr_dict['_confs'], weights)
         if '_identifiers' in attr_dict.files:
-            ensemble._identifiers = list(attr_dict['_identifiers'])
+            ensemble._labels = list(attr_dict['_identifiers'])
+        if '_labels' in attr_dict.files:
+            ensemble._labels = list(attr_dict['_labels'])
     else:
         ensemble.addCoordset(attr_dict['_confs'])
         if weights != np.array(None): 
@@ -1266,33 +1267,43 @@ class PDBConformation(Conformation):
     def __repr__(self):
         return ('<PDB Conformation: {0:s} from {1:s} (index: {2:d}; '
                 'selected {3:d} of {4:d} atoms)>').format(
-                    self._ensemble._identifiers[self._index], 
+                    self._ensemble._labels[self._index], 
                     self._ensemble.getTitle(), self._index, 
                     self.numSelected(), self.numAtoms())
     
     def __str__(self):
         return 'PDB Conformation {0:s} from {1:s}'.format(
-                    self._ensemble._identifiers[self._index], 
+                    self._ensemble._labels[self._index], 
                     self._ensemble.getTitle())
     
     def getIdentifier(self):
-        """Return the identifier of the conformation instance.
+        """Deprecated, use :meth:`getLabel`."""
         
-        >>> print( conf.getIdentifier() )
-        1a9u_ca
-        
-        """
-        
-        return self._ensemble._identifiers[self._index]
+        prody.deprecate('getIdentifier', 'getLabel')
+        return self.getLabel()
     
-    def setIdentifier(self, identifier):
-        """Set the identifier of the conformation instance.
+    def getLabel(self):
+        """Return the label of the conformation.
         
-        >>> conf.setIdentifier('1a9u')
-        >>> print( conf.getIdentifier() )
+        >>> print( conf.getLabel() )
+        1a9u_ca"""
+        
+        return self._ensemble._labels[self._index]
+    
+    def setIdentifier(self, label):
+        """Deprecated, use :meth:`setLabel`."""
+        
+        prody.deprecate('setIdentifier', 'setLabel')
+        self.setLabel(label)
+        
+    def setLabel(self, label):
+        """Set the label of the conformation.
+        
+        >>> conf.setLabel('1a9u')
+        >>> print( conf.getLabel() )
         1a9u"""
         
-        self._ensemble._identifiers[self._index] = str(identifier)
+        self._ensemble._labels[self._index] = str(label)
         
     def getCoordinates(self):
         """Deprecated, use :meth:`getCoords`."""

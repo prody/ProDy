@@ -66,15 +66,26 @@ Release 0.9.3 (in development)
 
 **Changes**:
 
-  * Renamed :attr:`~proteins.Polymer.identifier` attribute as 
-    :attr:`~proteins.Polymer.chid` and :attr:`~proteins.Chemical.identifier`
-    as :attr:`~proteins.Chemical.resname`.
+  * :class:`~atomic.Residue` methods :meth:`~atomic.Residue.getNumber`, 
+    :meth:`~atomic.Residue.setNumber`, :meth:`~atomic.Residue.getName`,
+    :meth:`~atomic.Residue.setName` methods are deprecated and will be 
+    removed in v1.0.
+
+  * :class:`~atomic.Chain` methods :meth:`~atomic.Chain.getIdentifier` and 
+    :meth:`~atomic.Chain.setIdentifier` methods are deprecated and will be 
+    removed in v1.0.
+
+  * :class:`~proteins.Polymer` attribute :attr:`~proteins.Polymer.identifier`
+    is renamed as :attr:`~proteins.Polymer.chid`.
+  * :class:`~proteins.Chemical` attribute :attr:`~proteins.Chemical.identifier`
+    is renamed as :attr:`~proteins.Chemical.resname`.
     
   * :meth:`getACSI` and :meth:`setACSI` are renamed as :meth:`getACSIndex`
     and  :meth:`setACSIndex`, respectively.
 
-  * Renamed :func:`~measure.calcRadiusOfGyration` as 
-    :func:`~measure.calcGyradius`, old name will be removed in v1.0.
+  * :func:`~measure.calcRadiusOfGyration` is deprecated and will be removed
+    in v1.0.  Use :func:`~measure.calcGyradius` instead.
+
 
 **Bugfix**:
 

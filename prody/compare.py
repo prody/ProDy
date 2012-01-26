@@ -268,13 +268,13 @@ class SimpleResidue(object):
     def getResidue(self):
         return self._res
     
-    def getNumber(self):
+    def getResnum(self):
         return self._num
     
     def getIcode(self):
         return self._inc
 
-    def getName(self):
+    def getResname(self):
         return self._name
 
 
@@ -288,7 +288,7 @@ class SimpleChain(object):
     
     """
     
-    __slots__ = ['_list', '_seq', '_name', '_dict', '_gaps']
+    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps']
     
     def __init__(self, chain=None, allow_gaps=False):
         """Initialize SimpleChain with a chain id and a sequence (available).
@@ -305,7 +305,7 @@ class SimpleChain(object):
         self._dict = dict()
         self._list = list()
         self._seq = ''
-        self._name = None
+        self._title = None
         self._gaps = allow_gaps
         if isinstance(chain, prody.Chain): 
             self.buildFromChain(chain)
@@ -319,10 +319,10 @@ class SimpleChain(object):
     
     def __repr__(self):
         return '<SimpleChain: {0:s} with {1:d} residues>'.format(
-                    self._name, len(self._list))
+                    self._title, len(self._list))
 
     def __str__(self):
-        return '{0:s} with {1:d} residues'.format( self._name, len(self._list))
+        return '{0:s} with {1:d} residues'.format(self._title, len(self._list))
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -332,8 +332,8 @@ class SimpleChain(object):
     def getSequence(self):
         return self._seq
     
-    def getName(self):
-        return self._name
+    def getTitle(self):
+        return self._title
     
     def buildFromSequence(self, sequence, resnums=None):        
         """Build from amino acid sequence.
@@ -373,14 +373,14 @@ class SimpleChain(object):
         assert isinstance(chain, prody.Chain), 'chain must be a Chain instance'
         gaps = self._gaps
         residues = list(chain.iterResidues())
-        temp = residues[0].getNumber()-1
+        temp = residues[0].getResnum()-1
         protein_resnames = set(prody.getKeywordResnames('protein'))
         for res in chain:
-            if not res.getName() in protein_resnames:
+            if not res.getResname() in protein_resnames:
                 continue
-            resid = res.getNumber()
+            resid = res.getResnum()
             incod = res.getIcode()
-            aa = _aaa2a.get(res.getName(), 'X')
+            aa = _aaa2a.get(res.getResname(), 'X')
             simpres = SimpleResidue(resid, aa, incod, res)
             if gaps:
                 diff = resid - temp - 1
@@ -390,7 +390,7 @@ class SimpleChain(object):
             self._seq += aa
             self._list.append(simpres)
             self._dict[(resid, incod)] = simpres
-        self._name = 'Chain {0:s} from {1:s}'.format(chain.getIdentifier(),
+        self._title = 'Chain {0:s} from {1:s}'.format(chain.getChid(),
                                              chain.getAtomGroup().getTitle())
 
 
@@ -543,8 +543,8 @@ def matchChains(atoms1, atoms2, **kwargs):
     for simpch1 in chains1:
         for simpch2 in chains2:
             LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} (len={3:d}):'
-                         .format(simpch1.getName(), len(simpch1), 
-                                 simpch2.getName(), len(simpch2)))
+                         .format(simpch1.getTitle(), len(simpch1), 
+                                 simpch2.getTitle(), len(simpch2)))
             
             match1, match2, nmatches = getTrivialMatch(simpch1, simpch2)
             _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
@@ -567,8 +567,8 @@ def matchChains(atoms1, atoms2, **kwargs):
             for simpch1, simpch2 in unmatched:
                 LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} '
                              '(len={3:d}):'
-                             .format(simpch1.getName(), len(simpch1), 
-                                     simpch2.getName(), len(simpch2)))
+                             .format(simpch1.getTitle(), len(simpch1), 
+                                     simpch2.getTitle(), len(simpch2)))
                 match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
                 _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
                 _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
@@ -642,12 +642,12 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices2 = np.array(indices2)
         lengh = len(indices1)
         match1 = AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
-                               simpch1.getName() + ' -> ' + simpch2.getName(),
-                               atoms1.getACSIndex()) 
+                           simpch1.getTitle() + ' -> ' + simpch2.getTitle(),
+                           atoms1.getACSIndex()) 
                                  
         match2 = AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
-                               simpch2.getName() + ' -> ' + simpch1.getName(),
-                               atoms2.getACSIndex()) 
+                           simpch2.getTitle() + ' -> ' + simpch1.getTitle(),
+                           atoms2.getACSIndex()) 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
@@ -668,9 +668,9 @@ def getTrivialMatch(ach, bch):
     bmatch = []
     match = 0.0
     for ares in ach:
-        bres = bch[(ares.getNumber(), ares.getIcode())]
+        bres = bch[(ares.getResnum(), ares.getIcode())]
         if bres is not None:
-            if ares.getName() == bres.getName():
+            if ares.getResname() == bres.getResname():
                 match += 1
             amatch.append(ares.getResidue())
             bmatch.append(bres.getResidue())
@@ -798,7 +798,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     
     if subset != 'all':
         target_chain = target_chain.select(subset
-                                ).getHierView()[target_chain.getIdentifier()]
+                                ).getHierView()[target_chain.getChid()]
     
     mappings = []
     unmapped = []
@@ -814,8 +814,8 @@ def mapOntoChain(atoms, chain, **kwargs):
                          'acid residues.'.format(simple_chain))
             continue
         LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
-                     .format(simple_chain.getName(), len(simple_chain), 
-                             simple_target.getName()))
+                     .format(simple_chain.getTitle(), len(simple_chain), 
+                             simple_target.getTitle()))
         
         target_list, chain_list, n_match, n_mapped = getTrivialMapping(
                                                 simple_target, simple_chain)
@@ -843,8 +843,8 @@ def mapOntoChain(atoms, chain, **kwargs):
                      .format(ALIGNMENT_METHOD))
         for simple_chain in unmapped:
             LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
-                         .format(simple_chain.getName(), len(simple_chain), 
-                                 simple_target.getName()))
+                         .format(simple_chain.getTitle(), len(simple_chain), 
+                                 simple_target.getTitle()))
             result = getAlignedMapping(simple_target, simple_chain)
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
@@ -893,16 +893,16 @@ def mapOntoChain(atoms, chain, **kwargs):
                           indices_chain,
                           indices_mapping,
                           indices_dummies,
-                          simple_chain.getName() + ' -> ' + 
-                                                    simple_target.getName(),
+                          simple_chain.getTitle() + ' -> ' + 
+                                                    simple_target.getTitle(),
                           chain._acsi)
 
         selection = AtomMap(target_ag, 
                                     indices_target,
                                     np.arange(len(indices_target)),
                                     np.array([]),
-                                    simple_target.getName() + ' -> ' + 
-                                                    simple_chain.getName(),
+                                    simple_target.getTitle() + ' -> ' + 
+                                                    simple_chain.getTitle(),
                                     target_chain._acsi)
                                     
         mappings[mi] = (atommap, selection, _seqid, _cover)
@@ -924,12 +924,12 @@ def getTrivialMapping(target, chain):
     for target_residue in target:
         append(target_residue.getResidue())
 
-        chain_residue = chain_dict_get((target_residue.getNumber(), 
+        chain_residue = chain_dict_get((target_residue.getResnum(), 
                                         target_residue.getIcode()))
         if chain_residue is None:
             chain_list.append(chain_residue)
         else:
-            if target_residue.getName() == chain_residue.getName():
+            if target_residue.getResname() == chain_residue.getResname():
                 n_match += 1
             chain_list.append(chain_residue.getResidue())
             n_mapped += 1

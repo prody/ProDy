@@ -387,16 +387,16 @@ Method                  Description
 * ``getSelstr``         returns selection string that reproduces the selection
 
 :class:`Segment`
-* ``getName``           returns segment name
-* ``setName``           changes segment name
+* ``getSegname``        returns segment name
+* ``setSegname``        changes segment name
 * ``getChain``          returns chain with given identifier
 * ``iterChains``        iterates over chains
 * ``numChains``         returns the number of chains in the instance
 * ``getSelstr``         returns a string that selects segment atoms
 
 :class:`Chain`
-* ``getIdentifier``     returns chain identifier
-* ``setIdentifier``     changes chain identifier
+* ``getChid``           returns chain identifier
+* ``setChid``           changes chain identifier
 * ``getResidue``        returns residue with given number
 * ``iterResidues``      iterates over residues
 * ``numResidues``       returns the number of residues in the instance
@@ -410,10 +410,10 @@ Method                  Description
 * ``getChid``           returns chain identifier
 * ``getIcode``          returns residue insertion code
 * ``setIcode``          changes residue insertion code 
-* ``getName``           returns residue name
-* ``setName``           changes residue name
-* ``getNumber``         returns residue number
-* ``setNumber``         changes residue number
+* ``getResname``        returns residue name
+* ``setResname``        changes residue name
+* ``getResnum``         returns residue number
+* ``setResnum``         changes residue number
 * ``getSelstr``         returns a string that selects residue atoms
 
 :class:`AtomMap`
@@ -2451,11 +2451,11 @@ class Segment(AtomSubset):
         if n_csets > 0:
             return ('<Segment: {0:s} from {1:s} ({2:d} atoms; '
                     '{3:d} coordinate sets, active set index: {4:d})>').format(
-                    self.getName(), self._ag.getTitle(), 
+                    self.getSegname(), self._ag.getTitle(), 
                     self.numAtoms(), n_csets, self._acsi)
         else:
             return ('<Segment: {0:s} from {1:s} ({2:d} atoms; '
-                    '{3:d} coordinate sets)>').format(self.getName(), 
+                    '{3:d} coordinate sets)>').format(self.getSegname(), 
                     self._ag.getTitle(), self.numAtoms(), n_csets)
 
     def __getitem__(self, chid):
@@ -2463,7 +2463,7 @@ class Segment(AtomSubset):
         return self._dict.get(chid)
     
     def __str__(self):
-        return 'Segment {0:s}'.format(self.getName())
+        return 'Segment {0:s}'.format(self.getSegname())
 
     def __len__(self):
         return len(self._dict)
@@ -2472,12 +2472,12 @@ class Segment(AtomSubset):
         
         return self._dict.itervalues()
 
-    def getName(self):
+    def getSegname(self):
         """Return segment name."""
         
         return self._ag._data['segments'][self._indices[0]]
     
-    def setName(self, segname):
+    def setSegname(self, segname):
         """Set segment name."""
         
         self.setSegnames(segname)
@@ -2501,10 +2501,10 @@ class Segment(AtomSubset):
         """Return selection string that selects atoms in this segment."""
         
         if self._selstr:
-            return 'segname {0:s} and ({1:s})'.format(self.getName(), 
+            return 'segname {0:s} and ({1:s})'.format(self.getSegname(), 
                                                         self._selstr)
         else:
-            return 'segname {0:s}'.format(self.getName())
+            return 'segname {0:s}'.format(self.getSegname())
 
 class Chain(AtomSubset):
     
@@ -2552,15 +2552,15 @@ class Chain(AtomSubset):
         if n_csets > 0:
             return ('<Chain: {0:s}{5:s} from {1:s} ({2:d} atoms; '
                     '{3:d} coordinate sets, active set index: {4:d})>').format(
-                    self.getIdentifier(), self._ag.getTitle(), 
+                    self.getChid(), self._ag.getTitle(), 
                     self.numAtoms(), n_csets, self._acsi, segment)
         else:
             return ('<Chain: {0:s}{4:s} from {1:s} ({2:d} atoms; '
-                    '{3:d} coordinate sets)>').format(self.getIdentifier(), 
+                    '{3:d} coordinate sets)>').format(self.getChid(), 
                     self._ag.getTitle(), self.numAtoms(), n_csets, segment)
 
     def __str__(self):
-        return ('Chain {0:s}').format(self.getIdentifier())
+        return ('Chain {0:s}').format(self.getChid())
 
     def __iter__(self):
         return self.iterResidues()
@@ -2586,7 +2586,7 @@ class Chain(AtomSubset):
         """Return name of the segment that this chain belongs to."""
         
         if self._segment:
-            return self._segment.getName()
+            return self._segment.getSegname()
     
     def getResidue(self, number, insertcode=None):
         """Return residue with given number."""
@@ -2610,11 +2610,23 @@ class Chain(AtomSubset):
         return len(self._dict)
 
     def getIdentifier(self):
+        """Deprecated, use :meth:`getChid`."""
+        
+        prody.deprecate('getIdentifier', 'getChid')
+        return self.getChid()
+        
+    def getChid(self):
         """Return chain identifier."""
         
         return self._ag._data['chids'][self._indices[0]]
     
     def setIdentifier(self, chid):
+        """Deprecated, use :meth:`setChid`."""
+        
+        prody.deprecate('setIdentifier', 'setChid')
+        self.setChid(chid)
+        
+    def setChid(self, chid):
         """Set chain identifier."""
         
         self.setChids(chid)
@@ -2642,13 +2654,13 @@ class Chain(AtomSubset):
 
         if self._segment is None:        
             if self._selstr:
-                return 'chain {0:s} and ({1:s})'.format(self.getIdentifier(),
+                return 'chain {0:s} and ({1:s})'.format(self.getChid(),
                                                         self._selstr)
             else:
-                return 'chain {0:s}'.format(self.getIdentifier())
+                return 'chain {0:s}'.format(self.getChid())
         else:
             selstr = self._segment.getSelstr()
-            return 'chain {0:s} and ({1:s})'.format(self.getIdentifier(),
+            return 'chain {0:s} and ({1:s})'.format(self.getChid(),
                                                     selstr)
 
 
@@ -2688,19 +2700,19 @@ class Residue(AtomSubset):
         if n_csets > 0:
             return ('<Residue: {0:s} {1:d}{2:s}{3:s} from {4:s} '
                     '({5:d} atoms; {6:d} coordinate sets, active set index: '
-                    '{7:d})>').format(self.getName(), self.getNumber(), 
+                    '{7:d})>').format(self.getResname(), self.getResnum(), 
                                       self.getIcode() or '', chain, 
                                       self._ag.getTitle(), len(self), 
                                       n_csets, self._acsi)
         else:        
             return ('<Residue: {0:s} {1:d}{2:s}{3:s} from {4:s} '
                     '({5:d} atoms; {6:d} coordinate sets)>').format(
-                        self.getName(), self.getNumber(), 
+                        self.getResname(), self.getResnum(), 
                         self.getIcode() or '',  chain, 
                         self._ag.getTitle(), len(self), n_csets)
             
     def __str__(self):
-        return '{0:s} {1:d}{2:s}'.format(self.getName(), self.getNumber(), 
+        return '{0:s} {1:d}{2:s}'.format(self.getResname(), self.getResnum(), 
                                          self.getIcode())
 
     def __getitem__(self, name):
@@ -2723,16 +2735,34 @@ class Residue(AtomSubset):
         return self._chain
     
     def getNumber(self):
+        """Deprecated, use :meth:`getResnum`."""
+        
+        prody.deprecate('getNumber', 'getResnum')
+        return self.getResnum()
+    
+    def getResnum(self):
         """Return residue number."""
         
         return int(self._ag._data['resnums'][self._indices[0]])
     
     def setNumber(self, number):
+        """Deprecated, use :meth:`setResnum`."""
+        
+        prody.deprecate('setNumber', 'setResnum')
+        return self.setResnum(number)
+    
+    def setResnum(self, number):
         """Set residue number."""
         
         self.setResnums(number)
     
     def getName(self):
+        """Deprecated, use :meth:`getName`."""
+        
+        prody.deprecate('getName', 'getResname')
+        return self.getResname()
+    
+    def getResname(self):
         """Return residue name."""
         
         data = self._ag._data['resnames']
@@ -2740,6 +2770,12 @@ class Residue(AtomSubset):
             return data[self._indices[0]]
     
     def setName(self, name):
+        """Deprecated, use :meth:`setResname`."""
+        
+        prody.deprecate('setName', 'setResname')
+        return self.setResname(name)
+        
+    def setResname(self, name):
         """Set residue name."""
         
         self.setResnames(name)
@@ -2778,7 +2814,7 @@ class Residue(AtomSubset):
         """Return chain identifier."""
         
         if self._chain:
-            return self._chain.getIdentifier()
+            return self._chain.getChid()
     
     def getSelectionString(self):
         """Deprecated, use :meth:`getSelstr`."""
@@ -2793,13 +2829,13 @@ class Residue(AtomSubset):
         if self._chain is None:        
             if self._selstr:
                 return 'resnum {0:s}{1:s} and ({1:s})'.format(
-                            self.getNumber(), icode, self._selstr)
+                            self.getResnum(), icode, self._selstr)
             else:
-                return 'resnum {0:s}{1:s}'.format(self.getNumber(), icode)
+                return 'resnum {0:s}{1:s}'.format(self.getResnum(), icode)
         else:
             selstr = self._chain.getSelstr()
             return 'resnum {0:d}{1:s} and ({2:s})'.format(
-                                self.getNumber(), icode, selstr)
+                                self.getResnum(), icode, selstr)
 
 
 class Selection(AtomSubset):
