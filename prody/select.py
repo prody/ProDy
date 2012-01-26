@@ -936,9 +936,12 @@ NOT = '!!!'
 OR  = '||'
 
 
+
 RESERVED = set(ATOMIC_DATA_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
                ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as'] +
-               KEYWORDS_SYNONYMS.keys())
+               KEYWORDS_SYNONYMS.keys() + 
+               ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
+                'bonds', 'bmap', 'numbonds'])
 
 def isReserved(word):
     return word in RESERVED or isKeyword(word) or word in FUNCTION_MAP
@@ -1011,7 +1014,7 @@ class Select(object):
         self._acsi = None
         self._timestamp = None
         
-        self._coordinates = None
+        self._coords = None
         self._kdtree = None
         self._kwargs  = None
         self._selstr2indices = False
@@ -1092,7 +1095,7 @@ class Select(object):
         if self._atoms is atoms:
             if DEBUG: print('atoms is the same')
             if self._acsi != atoms.getACSIndex():
-                self._coordinates = None
+                self._coords = None
                 self._kdtree = None
             elif self._timestamp != atoms._getTimeStamp(self._acsi):
                 self._kdtree = None
@@ -1217,7 +1220,7 @@ class Select(object):
         self._n_atoms = None
         self._acsi = None
         self._timestamp = None
-        self._coordinates = None
+        self._coords = None
         self._kdtree = None
         for var in mapField2Var.values():
             self._data[var] = None        
@@ -2056,14 +2059,14 @@ class Select(object):
     def _getCoords(self):
         """Return atomic coordinates."""
         
-        if self._coordinates is None:
+        if self._coords is None:
             if self._indices is None:
-                self._coordinates = self._ag._getCoords()
+                self._coords = self._ag._getCoords()
             else:
-                self._coordinates = self._atoms._getCoords()
-        if self._coordinates is None:
+                self._coords = self._atoms._getCoords()
+        if self._coords is None:
             raise AttributeError('coordinates are not set')
-        return self._coordinates
+        return self._coords
    
     def _getKDTree(self):
         """Return KDTree."""
