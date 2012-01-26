@@ -3163,22 +3163,18 @@ class HierView(object):
     >>> print hv['B'] # Chain B does not exist in 1p38
     None
     
-    Note that is some cases *segments* may better.
-    
-    """
+    Note that is the atom group instance have distinct segments, they will
+    be considered when building the hierarchical view.  A :class:`Segment`
+    instance will be generated for each distinct segment name.  Then,
+    for each segment chains and residues will be evaluated.  Having
+    segments in the structure will not change most behaviors of this class,
+    except indexing.  For example, when indexing a hierarchical view for 
+    chain P in segment PROT needs to be indexed as ``hv['PROT', 'P']``."""
     
     __slots__ = ['_atoms', '_dict', '_segments', '_chains', '_residues']
 
     def __init__(self, atoms, **kwargs):
-        """Hierarchical view can have distinct :class:`Chain` or class:`Segment`
-        instances at the top of the hierarchical level.  Default behavior
-        is building the hierarchical view with chains if chain identifiers are 
-        set, and if not using segment names.  If neither are set, chain 
-        identifiers are set to empty string and hierarchical view is built
-        for residues.  Use *toplevel* and *graceful* arguments for chancing
-        the default behavior.
-
-        """
+        """Build hierarchical view for *atoms*."""
         
         
         if not isinstance(atoms, (AtomGroup, Selection)):
