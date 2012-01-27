@@ -3687,7 +3687,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     return filename
 
 SKIP = set(['_name', '_title', 'title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
-            'coordinates', '_coordinates', 'cslabels'])
+            'coordinates', '_coordinates', 'cslabels', 'numbonds'])
 
 def loadAtoms(filename):
     """Return :class:`AtomGroup` instance from *filename*.  This function makes
@@ -3730,10 +3730,11 @@ def loadAtoms(filename):
             ag._coords = attr_dict['coordinates']
         ag._n_atoms = int(attr_dict['n_atoms'])
         ag._n_csets = int(attr_dict['n_csets'])
-        if 'bonds' in files:
+        ag._setTimeStamp()
+        if 'bonds' in files and 'bmap' in files and 'numbonds' in files:
             ag._bonds = attr_dict['bonds']
-        if 'bmap' in files:
             ag._bmap = attr_dict['bmap']
+            ag._data['numbonds'] = attr_dict['numbonds']
         for key, data in attr_dict.iteritems():
             if key in SKIP:
                 continue
