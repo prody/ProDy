@@ -3604,7 +3604,7 @@ def showProtein(*atoms, **kwargs):
             for res in prody.HierView(hetero).iterResidues():
                 xyz = res._getCoords()
                 resname = res.getResname()
-                resnum = str(res.getNumber())
+                resnum = str(res.getResnum())
                 chid = res.getChid()
                 show.plot(xyz[:,0], xyz[:,1], xyz[:,2], ls='None',
                           color=kwargs.get(resname, cnames.pop()).lower(), 
