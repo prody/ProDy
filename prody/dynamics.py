@@ -1299,7 +1299,10 @@ class GNM(GNMBase):
            efficient usage of memory at the cost of computation speed."""
         
         slow = kwargs.get('slow', False)
-        KDTree = measure.importBioKDTree()
+        try:
+            from KDTree import KDTree
+        except ImportError:
+            KDTree = False
         if not slow and not KDTree: 
             LOGGER.info('Using a slower method for building the Kirchhoff '
                          'matrix.')
@@ -1514,7 +1517,10 @@ class ANM(GNMBase):
         """
         
         slow = kwargs.get('slow', False)
-        KDTree = measure.importBioKDTree()
+        try:
+            from KDTree import KDTree
+        except ImportError:
+            KDTree = False
         if not slow and not KDTree: 
             LOGGER.info('Using a slower method for building the Hessian '
                          'matrix.')

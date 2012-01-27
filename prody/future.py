@@ -113,8 +113,7 @@ class MarkovModel(object):
         cutoff = float(cutoff)
         assert cutoff > 0, 'cutoff distance must be greater than 0'
         
-        if prody.dynamics.KDTree is None:
-            prody.importBioKDTree()
+        from KDTree import KDTree
 
         start = time.time()
         if not isinstance(atoms, prody.AtomGroup):
@@ -137,7 +136,7 @@ class MarkovModel(object):
                      .format(time.time()-start))
 
         start = time.time()
-        kdtree = prody.dynamics.KDTree(3)
+        kdtree = KDTree(3)
         kdtree.set_coords(atoms.getCoords())
         kdtree.all_search(cutoff)
         LOGGER.debug('KDTree was built in {0:.2f}s.'
