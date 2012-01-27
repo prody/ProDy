@@ -58,6 +58,10 @@ Release 0.9.3 (in development)
   * :func:`~proteins.parsePSF` parses bond information and sets to the
     atom group. 
 
+  * Implemented :meth:`~atomic.Selecion.update` for :class:`~atomic.Selecion`
+    which may be useful to update a distance based selection after coordinate
+    changes.  
+
 **Improvements**:
 
   * :meth:`~atomic.Chain.getSelstr` methods of :class:`~atomic.Chain` and 
