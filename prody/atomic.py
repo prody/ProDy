@@ -873,8 +873,8 @@ class AtomGroup(Atomic):
             selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
             return Selection(self, np.arange(start,stop,step), selstr, acsi)
         elif isinstance(indices, (list, np.ndarray)):
-            return Selection(self, np.array(indices), 'Some atoms', 
-                 'index {0:s}'.format(' '.join(np.array(indices, '|S'))), acsi)
+            return Selection(self, np.array(indices),  
+                 'index ' + ' '.join(np.array(indices, '|S')), acsi)
         elif isinstance(indices, (str, tuple)):
             return self.getHierView()[indices]
         else:
@@ -2397,6 +2397,11 @@ class AtomSubset(AtomPointer):
         """Return a copy of the indices of atoms."""
         
         return self._indices.copy()
+    
+    def _getIndices(self):
+        """Return indices of atoms."""
+        
+        return self._indices
     
     def getNumOfAtoms(self):
         """Deprecated, use :meth:`numAtoms`."""
