@@ -2147,11 +2147,7 @@ class Atom(AtomPointer):
             for other in self._ag._bmap[this]:
                 if other == -1:
                     break
-                if other < this:
-                    indices = np.array([other, this])
-                else:
-                    indices = np.array([this, other])
-                yield Bond(ag, indices, acsi) 
+                yield Bond(ag, np.array([this, other]), acsi) 
                 
                     
     def numBonds(self):
@@ -3588,7 +3584,10 @@ def trimBonds(bonds, bmap, indices):
             newbonds.append(newindices[bond])
 
     newbonds = np.array(newbonds)
-    bmap, numbonds = evalBonds(newbonds, len(indices))
+    if len(newbonds) > 0:
+        bmap, numbonds = evalBonds(newbonds, len(indices))
+    else:
+        bmap = numbonds = None
     return newbonds, bmap, numbonds
     
 
