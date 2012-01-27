@@ -49,11 +49,10 @@ if sys.version_info[:2] > (2,6):
 EXTENSIONS = []
 
 if os.name != 'java' and sys.version_info[0] == 2:
-    pairwise2 = ['cpairwise2module.c', 'pairwise2.py']
+    pairwise2 = ['cpairwise2.c', 'pairwise2.py']
     if all([os.path.isfile(os.path.join('prody', fn)) for fn in pairwise2]):  
         EXTENSIONS.append(
-            Extension('prody.cpairwise2',
-                      ['prody/cpairwise2module.c'],
+            Extension('prody.cpairwise2', ['prody/cpairwise2.c'],
                       include_dirs=["prody"]
                       ))
     if isInstalled('numpy'):
