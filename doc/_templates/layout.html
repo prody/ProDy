@@ -76,6 +76,9 @@ function checkFontSize() {
 {% endblock %}
 
 {% block rootrellink %}
+    {% if version.endswith('dev') %}
+        <li><a><img src="{{ pathto("_static/dev.png", 1) }}" alt="You are reading development version docs" style=""></a></li>
+    {% endif %}
         <li><a href="#">
             <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" alt="Decrease text size">
             <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" alt="Default text size">
