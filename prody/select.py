@@ -2071,12 +2071,13 @@ class Select(object):
     def _getKDTree(self):
         """Return KDTree."""
         
-        if self._kdtree is None:
-            if DEBUG: print('kdtree')
-            kdtree = measure.buildKDTree(self)
-            self._kdtree = kdtree
+        if self._indices is None:
+            return self._ag._getKDTree(self._acsi)
+        else:
+            if self._kdtree is None:
+                kdtree = measure.getKDTree(self._atoms._getCoords())
+                self._kdtree = kdtree
             return kdtree
-        return self._kdtree
 
 
 class Contacts(object):
@@ -2100,8 +2101,6 @@ class Contacts(object):
         else:
             self._ag = atoms 
             self._indices = None
-        if not measure.importBioKDTree():
-            raise ImportError('KDTree module is required by Contacts class')
 
     def __repr__(self):
         return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(
@@ -2112,16 +2111,14 @@ class Contacts(object):
         acsi = self._acsi
         ag = self._ag
         indices = self._indices
-        if ag._getTimeStamp(acsi) != self._timestamps[acsi]:    
-            if indices == None:
-                kdtree = measure.getKDTree(self._ag._getCoords())
-            else:
+        if indices == None:
+            kdtree = self._ag._getKDTree(acsi)
+        else:
+            if ag._getTimeStamp(acsi) != self._timestamps[acsi]:    
                 kdtree = measure.getKDTree(self._ag._getCoords()[indices])
             self._kdtrees[acsi] = kdtree
             self._timestamps[acsi] = ag._getTimeStamp(acsi) 
-            return kdtree
-        else:
-            return self._kdtrees[acsi]
+        return kdtree
 
     def getACSIndex(self):
         """Return active coordinate set index."""

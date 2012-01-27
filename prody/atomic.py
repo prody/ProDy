@@ -767,7 +767,8 @@ class AtomGroup(Atomic):
     __slots__ = ['_acsi', '_title', '_n_atoms', '_coords', '_n_csets',
                  '_cslabels', 
                  '_hv', '_sn2i',
-                 '_trajectory', '_frameindex', '_tcsi', '_timestamps',
+                 '_trajectory', '_frameindex', '_tcsi', 
+                 '_timestamps', '_kdtrees',
                  '_data', '_bonds', '_bmap']
     
     def __init__(self, title='Unnamed'):
@@ -785,6 +786,7 @@ class AtomGroup(Atomic):
         self._frameindex = None
         self._tcsi = None # Trajectory Coordinate Set Index
         self._timestamps = None
+        self._kdtrees = None
         self._data = dict()
         self._bmap = None
         self._bonds = None
@@ -814,9 +816,25 @@ class AtomGroup(Atomic):
         
         if index is None:
             self._timestamps = np.zeros(self._n_csets)
-            self._timestamps[:] = time.time()
+            self._timestamps.fill(time.time())
+            self._kdtrees = [None] * self._n_csets
         else:
             self._timestamps[index] = time.time()
+            self._kdtrees[index] = None
+
+    def _getKDTree(self, index):
+        """Return KDTree for coordinate set at given index."""
+
+        if self._n_csets > 0:
+            if index is None:
+                index = self._acsi
+            kdtree = self._kdtrees[index]
+            if kdtree is None:
+                kdtree = prody.measure.getKDTree(self._coords[index])
+                self._kdtrees[index] = kdtree
+            return kdtree
+        else:
+            return None
 
     def __repr__(self):
         if self._trajectory is None:
@@ -1090,7 +1108,7 @@ class AtomGroup(Atomic):
         self._timestamps = np.zeros(self._n_csets)
         self._timestamps[:len(timestamps)] = timestamps
         self._timestamps[len(timestamps):] = time.time()
-        
+        self._kdtrees.extend([None] * diff)
         if isinstance(label, (str, NoneType)):
             self._cslabels += [label] * diff
         elif isinstance(label, (list, tuple)):
@@ -1123,11 +1141,13 @@ class AtomGroup(Atomic):
             self._n_csets = 0
             self._acsi = None
             self._cslabels = None
+            self._kdtrees = None
         else:
             self._coords = self._coords[which]
             self._n_csets = self._coords.shape[0]
             self._acsi = 0
             self._cslabels = [self._cslabels[i] for i in which]
+            self._kdtrees = [self._kdtrees[i] for i in which]
         self._timestamps = self._timestamps[which]        
 
     def getCoordsets(self, indices=None):
