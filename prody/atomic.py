@@ -3568,12 +3568,11 @@ class Bond(object):
         return np.multiply(vector, vector, vector).sum() ** 0.5
 
     def getVector(self):
-        """Return bond vector."""
+        """Return bond vector that originates from the first atom."""
         
         one, two = self._indices
         acsi = self._acsi
-        return self._ag._coords[acsi, one] - self._ag._coords[acsi, two] 
-
+        return self._ag._coords[acsi, two] - self._ag._coords[acsi, one] 
 
 def evalBonds(bonds, n_atoms):
     numbonds = np.bincount(bonds.reshape((bonds.shape[0] * 2)))
