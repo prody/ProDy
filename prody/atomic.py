@@ -2899,6 +2899,15 @@ class Selection(AtomSubset):
         
         return HierView(self)
 
+    def update(self):    
+        """Update selection.  Note that after an update number of selected
+        atoms may change.
+        
+        .. versionadded:: 0.9.3"""
+        
+        self._indices = prody.ProDyAtomSelect.getIndices(self._ag, 
+                                                         self._selstr)
+
 
 class AtomMapMeta(type):
     
