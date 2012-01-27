@@ -2148,7 +2148,6 @@ class Atom(AtomPointer):
                 if other == -1:
                     break
                 yield Bond(ag, [this, other], acsi) 
-                
                     
     def numBonds(self):
         """Return number of bonds formed by this atom.  Bonds must be set first
@@ -2159,6 +2158,21 @@ class Atom(AtomPointer):
         numbonds = self._ag._data.get('numbonds')
         if numbonds is not None:
             return numbonds[self._index]
+    
+    def iterBonded(self):
+        """Yield bonded atoms.  Bonds must be set first using 
+        :meth:`~AtomGroup.setBonds`.
+        
+        .. versionadded:: 0.9.3"""
+        
+        ag = self._ag
+        if ag._bmap is not None:
+            acsi = self._acsi
+            this = self._index
+            for other in self._ag._bmap[this]:
+                if other == -1:
+                    break
+                yield Atom(ag, other, acsi) 
 
 class AtomSubsetMeta(type):
 
