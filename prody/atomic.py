@@ -2147,7 +2147,7 @@ class Atom(AtomPointer):
             for other in self._ag._bmap[this]:
                 if other == -1:
                     break
-                yield Bond(ag, np.array([this, other]), acsi) 
+                yield Bond(ag, [this, other], acsi) 
                 
                     
     def numBonds(self):
