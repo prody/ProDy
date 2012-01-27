@@ -14,7 +14,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d ../$(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) ..
 
-.PHONY: help clean pyps both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest testdist copytxt 
+.PHONY: help clean stats both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest testdist copytxt 
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -38,7 +38,7 @@ help:
 clean:
 	-rm -rf $(BUILDDIR)/* $(DOCDIR)/*
 
-pyps:
+stats:
 	./pyps.py update ProDy; \
 	./pyps.py current -o _static/ProDy_downloads.csv --rst ProDy; \
 	./pyps.py msplot -o _static/ProDy_downloads.png ProDy_stats.pkl
