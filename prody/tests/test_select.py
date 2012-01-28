@@ -175,7 +175,8 @@ SELECTION_TESTS = {'pdb3mht':
                      ('not resname SAH and (protein and name CA) or '
                       '(nucleic and name P)', 351,
                       '(protein and name CA) or (nucleic and name P)'), 
-                      ('protein and (backbone or name H)', 1308),],
+                      ('protein and (backbone or name H)', 1308),
+                      ('same residue as within 4 of and resname SAH', None),],
      'within':      [('within 10 of index 0', 72),
                      ('exwithin 100 of index 0', 3210),
                      ('exwithin 4 of resname SAH', 61),
