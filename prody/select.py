@@ -1560,6 +1560,8 @@ class Select(object):
         which = token[1]
         if not isinstance(which, np.ndarray):
             which = self._evaluate(token[1:])
+            if which is None:
+                return None
         if what == 'residue':
             chainids = self._getAtomicData('chain')[which]
             resnum =  self._getAtomicData('resnum')[which]
