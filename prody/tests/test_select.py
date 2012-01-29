@@ -114,6 +114,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('segment _', 3211),],
      'integer':     [('index 0', 1),
                      ('index 10 20 30', 3),
+                     ('index 10 20 10000', 2),
                      ('serial 0', 0),
                      ('serial 1 2', 2),
                      ('resnum 0', 0),
