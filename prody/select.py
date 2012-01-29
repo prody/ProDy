@@ -203,12 +203,13 @@ __all__ = ['Select', 'Contacts',
            'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
            'getReservedWords']
 
-KEYWORDS_STRING = set(('name', 'type', 'resname', 'chain', 'element', 
+KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
                        'segment', 'altloc', 'secondary', 'icode',
-                       'chid', 'secstr', 'segname'))
-KEYWORDS_INTEGER = set(('serial', 'index', 'resnum', 'resid'))
-KEYWORDS_FLOAT = set(('x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
-                      'radius', 'charge'))
+                       'chid', 'secstr', 'segname'])
+KEYWORDS_INTEGER = set(['serial', 'index', 'resnum', 'resid', 
+                        'segindex', 'chindex', 'resindex'])
+KEYWORDS_FLOAT = set(['x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
+                      'radius', 'charge'])
 KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
 
 KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING)
@@ -916,6 +917,9 @@ class SelectionError(Exception):
 def isFloatKeyword(keyword):
     return keyword in KEYWORDS_FLOAT
 
+def isIntKeyword(keyword):
+    return keyword in KEYWORDS_INTEGER
+
 def isNumericKeyword(keyword):
     return keyword in KEYWORDS_NUMERIC
 
@@ -1345,14 +1349,14 @@ class Select(object):
                     pass
         elif isAlnumKeyword(keyword):
             return self._evalAlnum(keyword, tokens[1:], evalonly=evalonly)
-        elif isFloatKeyword(keyword):
-            return self._evalFloat(keyword, tokens[1:], evalonly=evalonly)
         elif keyword in ('resnum', 'resid'):
             return self._resnum(tokens[1:], evalonly=evalonly)
         elif keyword == 'index':
             return self._index(tokens[1:], evalonly=evalonly)
         elif keyword == 'serial':
             return self._serial(tokens[1:], evalonly=evalonly)
+        elif isFloatKeyword(keyword) or isIntKeyword(keyword):
+            return self._evalFloat(keyword, tokens[1:], evalonly=evalonly)
         elif keyword == NOT:
             return self._not(tokens, evalonly=evalonly)
         elif self._ag.isData(keyword):
@@ -1560,27 +1564,34 @@ class Select(object):
         which = token[1]
         if not isinstance(which, np.ndarray):
             which = self._evaluate(token[1:])
-            if which is None:
+            if not isinstance(which, np.ndarray):
                 return None
+        self._ag.getHierView()
         if what == 'residue':
-            chainids = self._getAtomicData('chain')[which]
-            resnum =  self._getAtomicData('resnum')[which]
-            icodes = self._getAtomicData('icode')[which]
-            if icodes is None:
-                resnum = [str(resnum[i]) + code 
-                                    if code else resids[i] 
-                                    for i, code in enumerate(icodes)]
-            torf = np.zeros(self._n_atoms, np.bool)
-            for chain in np.unique(chainids):
-                torf[np.all([self._evalAlnum('chain', [chain]),
-                             self._resnum(np.unique(resnum[chainids == chain]), 
-                                          numRange=False)], 0)] = True
+            resindex = self._getAtomicData('resindex')[which]
+            torf = self._evalFloat('resindex', np.unique(resindex))
+            #chainids = self._getAtomicData('chain')[which]
+            #resnum =  self._getAtomicData('resnum')[which]
+            #icodes = self._getAtomicData('icode')[which]
+            #if icodes is None:
+            #    resnum = [str(resnum[i]) + code 
+            #                        if code else resids[i] 
+            #                        for i, code in enumerate(icodes)]
+            #torf = np.zeros(self._n_atoms, np.bool)
+            #for chain in np.unique(chainids):
+            #    torf[np.all([self._evalAlnum('chain', [chain]),
+            #                 self._resnum(np.unique(resnum[chainids == chain]), 
+            #                              numRange=False)], 0)] = True
         elif what == 'chain':
-            chainids = self._getAtomicData('chain')
-            torf = self._evalAlnum('chain', list(np.unique(chainids[which])))        
+            chindex = self._getAtomicData('chindex')[which]
+            torf = self._evalFloat('chindex', np.unique(chindex))        
+            #chainids = self._getAtomicData('chain')
+            #torf = self._evalAlnum('chain', list(np.unique(chainids[which])))        
         elif what == 'segment':
-            segnames = self._getAtomicData('segment')
-            torf = self._evalAlnum('segment', list(np.unique(segnames[which])))
+            segindex = self._getAtomicData('segindex')[which]
+            torf = self._evalFloat('segindex', np.unique(segindex))
+            #segnames = self._getAtomicData('segment')
+            #torf = self._evalAlnum('segment', list(np.unique(segnames[which])))
         else: 
             raise SelectionError('"{0:s}" is not valid, selections can be '
                                  'expanded to same "chain", "residue", or ' 
@@ -1691,6 +1702,8 @@ class Select(object):
             return self._index()
         elif token == 'serial':
             return self._serial()
+        elif isNumericKeyword(token): 
+            return self._getAtomicData(token)
         elif self._ag.isData(token):
             data = self._getAtomicData(token)
             if data.dtype in (np.float, np.int):
@@ -1840,14 +1853,14 @@ class Select(object):
         numbers = self._getNumRange(values)
         if numbers is None:
             return None
-        for item in self._getNumRange(values):
+        for item in numbers:
             if isinstance(item, str):
                 pass
             elif isinstance(item, list):
-                torf[(item[0] <= data) * (data <= item[1])] = True
+                torf[(item[0] <= data) & (data <= item[1])] = True
             elif isinstance(item, tuple):
                 if len(item) == 2:
-                    torf[(item[0] <= data) * (data < item[1])] = True
+                    torf[(item[0] <= data) & (data < item[1])] = True
                 else:
                     return None
             else:
@@ -1944,19 +1957,19 @@ class Select(object):
         if numbers is None:
             return None
         for item in numbers:
-            if isinstance(item, tuple):
-                if len(item) == 2:
-                    torf[item[0]:item[1]] = True
+            try:
+                if isinstance(item, tuple):
+                    if len(item) == 2:
+                        torf[item[0]:item[1]] = True
+                    else:
+                        torf[item[0]:item[1]:item[2]] = True
+                elif isinstance(item, list):
+                    torf[int(np.ceil(item[0])):int(
+                                        np.floor(item[1]))+1] = True
                 else:
-                    torf[item[0]:item[1]:item[2]] = True
-            elif isinstance(item, list):
-                torf[int(np.ceil(item[0])):int(
-                                    np.floor(item[1]))+1] = True
-            else:
-                try:
                     torf[item] = True
-                except IndexError:
-                    return None
+            except IndexError:
+                pass
         if DEBUG: print('_index n_selected', torf.sum())
         if self._indices is None:
             if evalonly is None:
@@ -1973,7 +1986,9 @@ class Select(object):
         """Evaluate numeric values. Identify ranges, integers, and floats,
         put them in a list and return."""
         
-        if DEBUG: print('_getNumRange', token)
+        if DEBUG: print('_getNumRange', type(token), token)
+        if isinstance(token, np.ndarray):
+            return token
         tknstr = ' '.join(token)
         while '  ' in tknstr:
             tknstr = tknstr.replace('  ', ' ')
@@ -2048,7 +2063,7 @@ class Select(object):
             var = field.var
             data = self._data[var]
             if data is None:
-                data = self._ag._data[var] 
+                data = getattr(self._ag, '_get' + field.meth_pl)() 
                 if data is None:
                     raise SelectionError('{0:s} are not set.'
                                          .format(field.doc_pl))
