@@ -125,12 +125,12 @@ __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset',
            'AtomMap', 'HierView', 'Bond', 'ATOMIC_DATA_FIELDS',
            'loadAtoms', 'saveAtoms',]
 
-READONLY = set(['numbonds'])
+READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex'])
 
 class Field(object):
     __slots__ = ['_name', '_var', '_dtype',  '_doc', '_doc_pl', 
                  '_meth', '_meth_pl', '_ndim', '_none', '_selstr',
-                 '_depr', '_depr_pl', '_synonym']
+                 '_depr', '_depr_pl', '_synonym', '_readonly', '_call']
     def __init__(self, name, dtype, **kwargs):
         self._name = name
         self._dtype = dtype
@@ -148,6 +148,8 @@ class Field(object):
         else:
             self._depr_pl = kwargs.get('depr_pl', self._depr + 's')
         self._synonym = kwargs.get('synonym')
+        self._readonly = kwargs.get('readonly', False)
+        self._call = kwargs.get('call', None)
         
     def name(self):
         return self._name
@@ -181,7 +183,14 @@ class Field(object):
     selstr = property(selstr, doc='Selection string examples.')
     def synonym(self):
         return self._synonym
-    synonym = property(synonym, doc='Synonym used in atom selections.')
+    synonym = property(synonym, doc='Synonym used in atom selections.')    
+    def readonly(self):
+        return self._readonly
+    readonly = property(readonly, 
+                        doc='Read-only attribute without a set method.')    
+    def call(self):
+        return self._call
+    call = property(call, doc='List of AtomGroup methods to call.')    
     def depr(self):
         return self._depr
     depr = property(depr, doc='Deprecated method name.')
@@ -283,6 +292,19 @@ ATOMIC_DATA_FIELDS = {
     'radius':    Field('radius', float, var='radii', doc='radius',  
                        doc_pl='radii', meth_pl='Radii', 
                        selstr=('radii < 1.5', 'radii ** 2 < 2.3')),
+    'resindex':  Field('resindex', int, var='resindex', doc='residue index',  
+                       doc_pl='residue indices', meth_pl='Resindices',
+                       selstr=('resindex 0'), readonly=True, 
+                       call=['getHierView']),
+    'chindex':   Field('chindex', int, var='chindex', doc='chain index',  
+                       doc_pl='chain indices', meth_pl='Chindices',
+                       selstr=('chindex 0'), readonly=True, 
+                       call=['getHierView']),
+    'segindex':  Field('segindex', int, var='segindex', doc='segment index',  
+                       doc_pl='segment indices', meth_pl='Segindices',
+                       selstr=('segindex 0'), readonly=True, 
+                       call=['getHierView']),
+                       
 }
 
 ATOMIC_ATTRIBUTES = {}
@@ -656,11 +678,18 @@ class AtomGroupMeta(type):
             getMeth = 'get' + meth
             setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
-            def getData(self, var=field.var):
-                array = self._data[var]
-                if array is None:
-                    return None
-                return array.copy() 
+            if field.call:
+                def getData(self, var=field.var, call=field.call):
+                    for meth in call:
+                        getattr(self, meth)()
+                    array = self._data[var]
+                    return array.copy()                 
+            else:
+                def getData(self, var=field.var):
+                    array = self._data[var]
+                    if array is None:
+                        return None
+                    return array.copy() 
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get')
@@ -673,6 +702,9 @@ class AtomGroupMeta(type):
             _getData.__name__ = '_' + getMeth
             _getData.__doc__ = field.getDocstr('_get')
             setattr(cls, '_' + getMeth, _getData)
+            
+            if field.readonly:
+                continue
             
             # Define public method for setting values in data array
             def setData(self, array, var=field.var, dtype=field.dtype, 
@@ -1920,16 +1952,26 @@ class AtomMeta(type):
             getMeth = 'get' + meth
             setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
-            def getData(self, var=field.var):
-                array = self._ag._data[var]
-                if array is None:
-                    return None
-                return array[self._index] 
+            if field.call:
+                def getData(self, var=field.var, call=field.call):
+                    for meth in call:
+                        getattr(self._ag, meth)()
+                    array = self._ag._data[var]
+                    return array[self._index] 
+            else:
+                def getData(self, var=field.var):
+                    array = self._ag._data[var]
+                    if array is None:
+                        return None
+                    return array[self._index] 
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('set', False)
             setattr(cls, getMeth, getData)
             setattr(cls, '_' + getMeth, getData)
+            
+            if field.readonly:
+                continue
             
             # Define public method for setting values in data array
             def setData(self, value, var=field.var, none=field.none):
@@ -2203,16 +2245,26 @@ class AtomSubsetMeta(type):
             getMeth = 'get' + meth
             setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
-            def getData(self, var=field.var):
-                array = self._ag._data[var]
-                if array is None:
-                    return None
-                return array[self._indices] 
+            if field.call:
+                def getData(self, var=field.var, call=field.call):
+                    for meth in call:
+                        getattr(self._ag, meth)()
+                    array = self._ag._data[var]
+                    return array[self._indices]
+            else:
+                def getData(self, var=field.var):
+                    array = self._ag._data[var]
+                    if array is None:
+                        return None
+                    return array[self._indices] 
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get')
             setattr(cls, getMeth, getData)
             setattr(cls, '_' + getMeth, getData)
+            
+            if field.readonly:
+                continue
             
             # Define public method for setting values in data array
             def setData(self, value, var=field.var, none=field.none):
@@ -2940,14 +2992,23 @@ class AtomMapMeta(type):
         for field in ATOMIC_DATA_FIELDS.values():
             meth = field.meth_pl
             getMeth = 'get' + meth
-            def getData(self, var=field.var, dtype=field.dtype):
-                array = self._ag._data[var]
-                if array is None:
-                    return None
-                data = self._ag._data[var][self._indices]
-                result = np.zeros((self._len,) + data.shape[1:], dtype)
-                result[self._mapping] = data
-                return result 
+            if field.call:
+                def getData(self, var=field.var, call=field.call):
+                    for meth in call:
+                        getattr(self._ag, meth)()
+                    data = self._ag._data[var][self._indices]
+                    result = np.zeros((self._len,) + data.shape[1:], dtype)
+                    result[self._mapping] = data
+                    return result 
+            else:
+                def getData(self, var=field.var, dtype=field.dtype):
+                    array = self._ag._data[var]
+                    if array is None:
+                        return None
+                    data = self._ag._data[var][self._indices]
+                    result = np.zeros((self._len,) + data.shape[1:], dtype)
+                    result[self._mapping] = data
+                    return result 
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             if field.dtype in (int, float):
@@ -3330,11 +3391,18 @@ class HierView(object):
             ag = atoms._ag
             _indices = atoms._indices
             selstr = atoms.getSelstr()
-            
+        n_atoms = len(ag)    
         self._dict = _dict = dict()
         self._chains = _chains = list()
         self._residues = _residues = list()
         self._segments = _segments = list()
+
+        segindex = -1
+        segindices = np.zeros(n_atoms, int)
+        chindex = -1
+        chindices = np.zeros(n_atoms, int)
+        resindex = -1
+        resindices = np.zeros(n_atoms, int)
         
         sgnms = ag._getSegnames()
         if sgnms is None:
@@ -3359,8 +3427,11 @@ class HierView(object):
                     if s == ps or s in _dict:
                         continue
                     ps = s
-                    segment = Segment(ag, _indices[i:][sgnms[i:] == s], 
-                                      acsi, unique=True, selstr=selstr)
+                    segindex += 1
+                    idx = _indices[i:][sgnms[i:] == s]
+                    segment = Segment(ag, idx, acsi, unique=True, 
+                                      selstr=selstr)
+                    segindices[idx] = segindex
                     _dict[s] = segment
                     _segments.append(segment)
                 LOGGER.info('Hierarchical view contains segments.')
@@ -3382,8 +3453,10 @@ class HierView(object):
                         if c == pc or (None, c) in _dict:
                             continue
                         pc = c
-                        chain = Chain(ag, _indices[i:][chids[i:] == c], 
-                                      None, acsi, unique=True)
+                        chindex += 1
+                        idx = _indices[i:][chids[i:] == c]
+                        chain = Chain(ag, idx, None, acsi, unique=True)
+                        chindices[idx] = chindex
                         _dict[(None, c)] = chain
                         _chains.append(chain)
             else:
@@ -3398,29 +3471,34 @@ class HierView(object):
                     chain = _dict.get(s_c)
                     if chain is None:
                         segment = _dict[ps]
-                        chain = Chain(ag, _indices[_i:i], segment, acsi, 
-                                      unique=True)
+                        chindex += 1
+                        idx = _indices[_i:i]
+                        chain = Chain(ag, idx, segment, acsi, unique=True)
+                        chindices[idx] = chindex
                         _dict[s_c] = chain
                         segment._dict[pc] = chain
                         _chains.append(chain)
                     else:
-                        chain._indices = np.concatenate((chain._indices,
-                                                         _indices[_i:i])) 
+                        idx = _indices[_i:i]
+                        chindices[idx] = chain._indices[0]
+                        chain._indices = np.concatenate((chain._indices, idx))
                     pc = c
                     ps = s
                     _i = i
                 s_c = (ps, pc or None)
                 chain = _dict.get(s_c)
+                idx = _indices[_i:]
                 if chain is None:
                     segment = _dict[ps]
-                    chain = Chain(ag, _indices[_i:i], segment, acsi, 
-                                  unique=True)
+                    chindex += 1
+                    chindices[idx] = chindex
+                    chain = Chain(ag, idx, segment, acsi, unique=True)
                     _dict[s_c] = chain
                     segment._dict[pc] = chain
                     _chains.append(chain)
                 else:
-                    chain._indices = np.concatenate((chain._indices,
-                                                     _indices[_i:i])) 
+                    chindices[idx] = chain._indices[0]
+                    chain._indices = np.concatenate((chain._indices, idx)) 
         
         if kwargs.get('chain') == True:
             return
@@ -3461,8 +3539,11 @@ class HierView(object):
                 res = _dict.get(s_c_r_i)
                 if res is None:
                     chain = _dict.get((ps, pc))
-                    res = Residue(ag, _indices[_j:j], chain, acsi, unique=True, 
+                    resindex += 1
+                    idx = _indices[_j:j]
+                    res = Residue(ag, idx, chain, acsi, unique=True, 
                                   selstr=selstr)
+                    resindices[idx] = resindex
                     if chain is not None:
                         chain._dict[(pr, pi)] = res
                     _residues.append(res)
@@ -3477,16 +3558,23 @@ class HierView(object):
                 _j = j 
         s_c_r_i = (ps, pc, pr, pi)
         res = _dict.get(s_c_r_i)
+        idx = _indices[_j:]
         if res is None:
             chain = _dict.get((ps, pc))
-            res = Residue(ag, _indices[_j:j+1], chain, acsi, unique=True,
-                          selstr=selstr)
+            resindex += 1
+            res = Residue(ag, idx, chain, acsi, unique=True, selstr=selstr)
+            resindices[idx] = resindex
             if chain is not None:
                 chain._dict[(pr, pi)] = res
             _residues.append(res)
             _dict[s_c_r_i] = res
         else:
-            res._indices = np.concatenate((res._indices, _indices[_j:j+1]))
+            resindices[idx] = res._indices[0]
+            res._indices = np.concatenate((res._indices, idx))
+        
+        ag._data['segindex'] = segindices
+        ag._data['chindex'] = chindices
+        ag._data['resindex'] = resindices
 
     def getResidue(self, chid, resnum, icode=None, segname=None):
         """Return residue with number *resnum* and insertion code *icode* from 
