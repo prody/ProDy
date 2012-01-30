@@ -955,8 +955,9 @@ def getReservedWords():
     """Return a list of words reserved for atom selections and internal 
     variables. These words are: """
 
-    words = list(RESERVED) + FUNCTION_MAP.keys() + list(KEYWORDS_BOOLEAN) + \
-            list(KEYWORDS_VALUE_PAIRED)
+    words = list(set(list(RESERVED) + FUNCTION_MAP.keys() + 
+                     list(KEYWORDS_BOOLEAN) + list(KEYWORDS_VALUE_PAIRED)))
+    
     words.sort()
     return words
 
