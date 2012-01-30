@@ -32,6 +32,7 @@ Functions
   * :func:`buildKDTree`
   * :func:`calcADPAxes`
   * :func:`calcADPs`
+  * :func:`calcCenter`
   * :func:`calcDeformVector`
   * :func:`calcDistance`
   * :func:`calcGyradius`
@@ -54,7 +55,7 @@ LOGGER = prody.LOGGER
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'buildKDTree', 'calcADPAxes', 'calcADPs',  
-           'calcDeformVector', 'calcDistance', 'calcGeomCenter', 
+           'calcDeformVector', 'calcDistance', 'calcCenter', 
            'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 
            'moveAtoms', 'superpose']
@@ -472,8 +473,11 @@ def calcAngle():
 def calcDihedral():
     pass
 
-def calcGeomCenter(atoms):
-    """Calculates geometric center of *atoms*."""
+def calcCenter(atoms, weights=None):
+    """Return geometric center of *atoms*.  If *weights* is given it must 
+    be a flat array with length equal to number of atoms.  Mass center
+    of atoms can be calculated by setting weights equal to mass, i.e.
+    ``weights=atoms.getMasses()``."""
     
     try: 
         coords = atoms._getCoords()
@@ -482,7 +486,16 @@ def calcGeomCenter(atoms):
     except Exception as err:
         raise type(err)(err)
     
-    return coords.mean(0) 
+    if weights is None:
+        return coords.mean(0) 
+    else:
+        if not isinstance(weights, np.ndarray):
+            raise TypeError('weights must be a numpy array')
+        elif weights.ndim != 1:
+            raise ValueError('weights must be a 1 dimensional array')
+        elif weights.shape[0] != corods.shape[0]:
+            raise ValueError('weights length must be equal to number of atoms')
+        return (coords * weights).mean(0) / weights.sum()
 
 def moveAtoms(atoms, array):
     """Move or transform *atoms*. *array* must be :class:`numpy.ndarray`.  

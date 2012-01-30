@@ -18,7 +18,7 @@ Release 0.9.3 (in development)
     instances are implemented: :meth:`~atomic.AtomGroup.getACSLabel`, and 
     :meth:`~atomic.AtomGroup.getACSLabel`.
 
-  * Implemented :func:`~measure.calcGeomCenter` and :func:`~measure.moveAtoms`
+  * Implemented :func:`~measure.calcCenter` and :func:`~measure.moveAtoms`
     methods for dealing with coordinate translation.
 
   * Hierarchical view, :class:`~atomic.HierView`, is completely redesigned.  
@@ -58,7 +58,7 @@ Release 0.9.3 (in development)
   * :func:`~proteins.parsePSF` parses bond information and sets to the
     atom group. 
 
-  * Implemented :meth:`~atomic.Selecion.update` for :class:`~atomic.Selecion`
+  * Implemented :meth:`~atomic.Selection.update` for :class:`~atomic.Selection`
     which may be useful to update a distance based selection after coordinate
     changes.  
 
@@ -96,6 +96,14 @@ Release 0.9.3 (in development)
   * Fixed a problem in :func:`~proteins.parsePDB` that caused loosing existing
     coordinate sets in an :class:`~atomic.AtomGroup` when passed as *ag* 
     argument.
+    
+  * Fixed a problem with ``"same ... as ..."`` argument of :class:`~select.Select`
+    that selected atoms when followed by an incorrect atom selection.
+    
+  * Fixed another problem with ``"same ... as ..."`` which result in selecting
+    multiple chains when same chain identifier is found in multiple segments
+    or multiple residues when same residue number is found in multiple 
+    segments.
 
 
 Release 0.9.2 (Jan 11, 2012)
