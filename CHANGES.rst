@@ -6,14 +6,108 @@
 Changes
 *******************************************************************************
 
-Release 0.9.3 (in development)
+Release 0.9.3 (Feb 1, 2012)
 ===============================================================================
+
+**New Features**:
+
+  * :class:`~proteins.DBRef` class is implemented for storing references 
+    to sequence databases parsed from PDB header records.
+    
+  * Methods for storing coordinate set labels in :class:`~atomic.AtomGroup` 
+    instances are implemented: :meth:`~atomic.AtomGroup.getACSLabel`, and 
+    :meth:`~atomic.AtomGroup.getACSLabel`.
+
+  * :func:`~measure.calcCenter` and :func:`~measure.moveAtoms` functions 
+    are implemented for dealing with coordinate translation.
+
+  * Hierarchical view, :class:`~atomic.HierView`, is completely redesigned.  
+    PDB files that contain non-empty segment name column (or when such 
+    information is parsed from a PSF file), new design delicately handles this 
+    information to identify distinct chains and residues.  This prevents 
+    merging distinct chains in different segments but with same identifiers 
+    and residues in those with same numbers.  New design is also using ordered 
+    dictionaries :class:`collections.OrderedDict` and lists so that chain and 
+    residue iterations yield them in the order they are parsed from file.  
+    These improvements also bring modest improvements in speed.
+
+  * :class:`~atomic.Segment` class is implemented for handling segments
+    of atoms defined in molecular dynamics simulations setup, using 
+    :program:`psfgen` for example. 
+
+  * Context manager methods are added to trajectory classes.  A trajectory
+    file can be opened as follows::
+       
+      with Trajectory('mdm2.dcd') as traj:
+          for frame in traj:
+              calcGyradius(frame)
+
+  * :class:`~atomic.Chain` slicing is implemented::
+    
+      p38 = parsePDB('1p38')
+      chA = p38['A']
+      res_4to10 = chA[4:11]
+      res_100toLAST = chA[100:]
+  
+  * Some support for bonds is implemented to :class:`~atomic.AtomGroup` class.
+    Bonds can be set using :meth:`~atomic.AtomGroup.setBonds` method.  All 
+    bonds must be set at once.  :meth:`~atomic.AtomGroup.iterBonds` or
+    :meth:`~atomic.Atom.iterBonds` methods can be used to iterate over bonds
+    in an AtomGroup or an Atom.
+      
+  * :func:`~proteins.parsePSF` parses bond information and sets to the
+    atom group. 
+
+  * :meth:`~atomic.Selection.update` method for :class:`~atomic.Selection`
+    is implemented, which may be useful to update a distance based selection 
+    after coordinate changes.  
+
+**Improvements**:
+
+  * :meth:`~atomic.Chain.getSelstr` methods of :class:`~atomic.Chain` and 
+    :class:`~atomic.Residue` classes are improved to include the selection
+    string of a :class:`~atomic.Selection` when they are built using one.
 
 **Changes**:
 
-  * Renamed :attr:`~proteins.Polymer.identifier` attribute as 
-    :attr:`~proteins.Polymer.chid` and :attr:`~proteins.Chemical.identifier`
-    as :attr:`~proteins.Polymer.resname`.
+  * :class:`~atomic.Residue` methods :meth:`~atomic.Residue.getNumber`, 
+    :meth:`~atomic.Residue.setNumber`, :meth:`~atomic.Residue.getName`,
+    :meth:`~atomic.Residue.setName` methods are deprecated and will be 
+    removed in v1.0.
+
+  * :class:`~atomic.Chain` methods :meth:`~atomic.Chain.getIdentifier` and 
+    :meth:`~atomic.Chain.setIdentifier` methods are deprecated and will be 
+    removed in v1.0.
+
+  * :class:`~proteins.Polymer` attribute :attr:`~proteins.Polymer.identifier`
+    is renamed as :attr:`~proteins.Polymer.chid`.
+  * :class:`~proteins.Chemical` attribute :attr:`~proteins.Chemical.identifier`
+    is renamed as :attr:`~proteins.Chemical.resname`.
+    
+  * :meth:`getACSI` and :meth:`setACSI` are renamed as 
+    :meth:`~atomic.AtomGroup.getACSIndex` and  
+    :meth:`~atomic.AtomGroup.setACSIndex`, respectively.
+
+  * :func:`~measure.calcRadiusOfGyration` is deprecated and will be removed
+    in v1.0.  Use :func:`~measure.calcGyradius` instead.
+
+
+**Bugfix**:
+
+  * Fixed a problem in :func:`~proteins.parsePDB` that caused loosing existing
+    coordinate sets in an :class:`~atomic.AtomGroup` when passed as *ag* 
+    argument.
+    
+  * Fixed a problem with ``"same ... as ..."`` argument of :class:`~select.Select`
+    that selected atoms when followed by an incorrect atom selection.
+    
+  * Fixed another problem with ``"same ... as ..."`` which result in selecting
+    multiple chains when same chain identifier is found in multiple segments
+    or multiple residues when same residue number is found in multiple 
+    segments.
+    
+  * Improved handling of negative integers in indexing :class:`~atomic.AtomGroup` 
+    instances.
 
 
 Release 0.9.2 (Jan 11, 2012)

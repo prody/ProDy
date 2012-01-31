@@ -96,12 +96,16 @@ Biopython Consortium and is available under the `Biopython license
   OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE
   OR PERFORMANCE OF THIS SOFTWARE.
 
-Pyparsing
+Pyparsing and Ordereddict
 ===============================================================================
 
 The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with 
 the ProDy package.  Pyparsing is developed by Paul T. McGuire and is available 
-under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_::
+under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_.
+
+The `ordereddict <http://pypi.python.org/pypi/ordereddict>`_ module is 
+distributed with the ProDy package.  Ordereddict is developed by Raymond 
+Hettinger and is available under the MIT license::
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -121,6 +125,14 @@ under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_::
   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Argparse
+===============================================================================
+
+The argparse module (http://code.google.com/p/argparse/) is distributed 
+with the ProDy package. Argparse is developed by Steven J. Bethard and 
+is available under the `Python Software Foundation License 
+<http://docs.python.org/license.html>`_.
 
 GPLv3
 ===============================================================================
