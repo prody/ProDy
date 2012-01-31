@@ -935,8 +935,6 @@ class AtomGroup(Atomic):
         """.. versionadded:: 0.5"""
         
         if isinstance(other, AtomGroup):
-            if self == other:
-                raise ValueError('an atom group cannot be added to itself')
             
             new = AtomGroup(self._title + ' + ' + other._title)
             n_csets = self._n_csets
