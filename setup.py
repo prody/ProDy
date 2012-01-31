@@ -12,9 +12,8 @@ from distutils.command.install import install
 
 PY3K = sys.version_info[0] > 2
 
-inp = open('README.txt')
-long_description = inp.read()
-inp.close()
+with open('README.rst') as inp:
+    long_description = inp.read()
 
 __version__ = ''
 inp = open('prody/__init__.py')
