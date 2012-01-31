@@ -84,8 +84,9 @@ Release 0.9.3 (in development)
   * :class:`~proteins.Chemical` attribute :attr:`~proteins.Chemical.identifier`
     is renamed as :attr:`~proteins.Chemical.resname`.
     
-  * :meth:`getACSI` and :meth:`setACSI` are renamed as :meth:`getACSIndex`
-    and  :meth:`setACSIndex`, respectively.
+  * :meth:`getACSI` and :meth:`setACSI` are renamed as 
+    :meth:`~atomic.AtomGroup.getACSIndex` and  
+    :meth:`~atomic.AtomGroup.setACSIndex`, respectively.
 
   * :func:`~measure.calcRadiusOfGyration` is deprecated and will be removed
     in v1.0.  Use :func:`~measure.calcGyradius` instead.
