@@ -11,6 +11,7 @@ include prody/cpairwise2module.c
 include prody/dynamics.py
 include prody/ensemble.py
 include prody/measure.py
+include prody/ordereddict.py
 include prody/pairwise2.py
 include prody/proteins.py
 include prody/pyparsing.py

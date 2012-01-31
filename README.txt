@@ -46,7 +46,11 @@ under the MIT license (http://www.opensource.org/licenses/mit-license.php).
 
 The argparse module (http://code.google.com/p/argparse/) is distributed with 
 the ProDy package. Argparse is developed by Steven J. Bethard and is available 
-under Python Software Foundation License.  
+under the Python Software Foundation License.
+
+The ordereddict module (http://pypi.python.org/pypi/ordereddict) is distributed
+with ProDy package. Ordereddict is developed by Raymond Hettinger and is 
+available under the MIT License.
 
 DOWNLOADS & INSTALLATION
 ------------------------

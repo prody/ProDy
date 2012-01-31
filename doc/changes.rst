@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 0.9.3 (in development)
+Release 0.9.3 (Feb 1, 2012)
 ===============================================================================
 
 **New Features**:
@@ -18,8 +18,8 @@ Release 0.9.3 (in development)
     instances are implemented: :meth:`~atomic.AtomGroup.getACSLabel`, and 
     :meth:`~atomic.AtomGroup.getACSLabel`.
 
-  * Implemented :func:`~measure.calcCenter` and :func:`~measure.moveAtoms`
-    methods for dealing with coordinate translation.
+  * :func:`~measure.calcCenter` and :func:`~measure.moveAtoms` functions 
+    are implemented for dealing with coordinate translation.
 
   * Hierarchical view, :class:`~atomic.HierView`, is completely redesigned.  
     PDB files that contain non-empty segment name column (or when such 
@@ -42,7 +42,7 @@ Release 0.9.3 (in development)
           for frame in traj:
               calcGyradius(frame)
 
-  * :class:`~atomic.Chain` indexing is implemented::
+  * :class:`~atomic.Chain` slicing is implemented::
     
       p38 = parsePDB('1p38')
       chA = p38['A']
@@ -58,9 +58,9 @@ Release 0.9.3 (in development)
   * :func:`~proteins.parsePSF` parses bond information and sets to the
     atom group. 
 
-  * Implemented :meth:`~atomic.Selection.update` for :class:`~atomic.Selection`
-    which may be useful to update a distance based selection after coordinate
-    changes.  
+  * :meth:`~atomic.Selection.update` method for :class:`~atomic.Selection`
+    is implemented, which may be useful to update a distance based selection 
+    after coordinate changes.  
 
 **Improvements**:
 
@@ -105,6 +105,9 @@ Release 0.9.3 (in development)
     multiple chains when same chain identifier is found in multiple segments
     or multiple residues when same residue number is found in multiple 
     segments.
+    
+  * Improved handling of negative integers in indexing :class:`~atomic.AtomGroup` 
+    instances.
 
 
 Release 0.9.2 (Jan 11, 2012)
