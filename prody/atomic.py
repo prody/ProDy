@@ -947,12 +947,19 @@ class AtomGroup(Atomic):
             coordset_range = range(n_csets)
             new.setCoords(np.concatenate((self._coords[coordset_range],
                                           other._coords[coordset_range]), 1))
-            for field in ATOMIC_DATA_FIELDS.values():
-                var = field.var
-                this = self._data[var]
-                that = other._data[var]
-                if this is not None and that is not None:
-                    new._data[var] = np.concatenate((this, that))
+            
+            for key in set(self._data.keys() + other._data.keys()):
+                if key in ATOMIC_ATTRIBUTES and \
+                    ATOMIC_ATTRIBUTES[key].readonly:
+                    continue
+                this = self._data.get(key)
+                that = other._data.get(key)
+                if this is not None or that is not None:
+                    if this is None:
+                        this = np.zeros(that.shape, that.dtype)
+                    if that is None:
+                        that = np.zeros(this.shape, this.dtype)
+                    new._data[key] = np.concatenate((this, that))
 
             if self._bonds is not None and other._bonds is not None:
                 new.setBonds(np.concatenate([self._bonds, 
