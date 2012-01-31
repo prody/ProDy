@@ -31,9 +31,9 @@ instance can be obtained by parsing a PDB file as follows:
 >>> from prody import *
 >>> ag = parsePDB('1aar')
 
-To read this page in a Python session, type:
+To read this page in a Python session, type::
     
->>> # help(atomic)
+  help(atomic)
 
 :class:`AtomGroup` instances can store multiple coordinate sets, which may
 be models from an NMR structure, snapshots from an MD simulation.
@@ -50,10 +50,11 @@ to such data.  These classes are:
 
 * :class:`Segment` - Points to atoms that have the same segment name.
 
-* :class:`Chain` - Points to atoms that have the same chain identifier.
+* :class:`Chain` - Points to atoms in a segment that have the same chain 
+  identifier.
 
-* :class:`Residue` - Points to atoms that have the same chain identifier, 
-  residue number and insertion code.
+* :class:`Residue` - Points to atoms in a chain that have the same residue 
+  number and insertion code.
                       
 * :class:`AtomMap` - Points to arbitrary subsets of atoms while allowing for 
   duplicates and missing atoms.  Indices of atoms are stored in the order 
@@ -263,8 +264,9 @@ ATOMIC_DATA_FIELDS = {
                                'resnum 10 to 20', 'resnum 10:20:2', 
                                'resnum < 10'), synonym='resid',
                        depr='ResidueNumber'),
-    'secondary': Field('secondary', '|S1', doc='secondary structure '
-                       'assignment', meth='Secstr', synonym='secstr',
+    'secondary': Field('secondary', '|S1', var='secondaries', 
+                       doc='secondary structure assignment', 
+                       meth='Secstr', synonym='secstr',
                        selstr=('secondary H E', 'secstr H E'),  
                        depr='SecondaryStr'),
     'segment':   Field('segment', '|S6', doc='segment name', meth='Segname',
@@ -292,19 +294,18 @@ ATOMIC_DATA_FIELDS = {
     'radius':    Field('radius', float, var='radii', doc='radius',  
                        doc_pl='radii', meth_pl='Radii', 
                        selstr=('radii < 1.5', 'radii ** 2 < 2.3')),
-    'resindex':  Field('resindex', int, var='resindex', doc='residue index',  
+    'resindex':  Field('resindex', int, var='resindices', doc='residue index',  
                        doc_pl='residue indices', meth_pl='Resindices',
                        selstr=('resindex 0'), readonly=True, 
                        call=['getHierView']),
-    'chindex':   Field('chindex', int, var='chindex', doc='chain index',  
+    'chindex':   Field('chindex', int, var='chindices', doc='chain index',  
                        doc_pl='chain indices', meth_pl='Chindices',
                        selstr=('chindex 0'), readonly=True, 
                        call=['getHierView']),
-    'segindex':  Field('segindex', int, var='segindex', doc='segment index',  
+    'segindex':  Field('segindex', int, var='segindices', doc='segment index',  
                        doc_pl='segment indices', meth_pl='Segindices',
                        selstr=('segindex 0'), readonly=True, 
                        call=['getHierView']),
-                       
 }
 
 ATOMIC_ATTRIBUTES = {}
@@ -622,8 +623,7 @@ class Atomic(object):
                 isinstance(other, AtomPointer):
                 self_indices = self._indices
                 if len(self_indices) == len(other):
-                    other_indices = other.getIndices()
-                    if np.all(self_indices == other_indices):
+                    if np.all(self_indices == other._getIndices()):
                         return True
         return False
     
@@ -799,7 +799,7 @@ class AtomGroup(Atomic):
     __slots__ = ['_acsi', '_title', '_n_atoms', '_coords', '_n_csets',
                  '_cslabels', 
                  '_hv', '_sn2i',
-                 '_trajectory', '_frameindex', '_tcsi', 
+                 '_traj', '_tcsi', 
                  '_timestamps', '_kdtrees',
                  '_data', '_bonds', '_bmap']
     
@@ -810,12 +810,11 @@ class AtomGroup(Atomic):
         self._n_atoms = 0
         self._coords = None
         self._cslabels = []
-        self._acsi = None                  # Active Coordinate Set Index
+        self._acsi = None                   # Active Coordinate Set Index
         self._n_csets = 0
         self._hv = None
         self._sn2i = None
-        self._trajectory = None
-        self._frameindex = None
+        self._traj = None
         self._tcsi = None # Trajectory Coordinate Set Index
         self._timestamps = None
         self._kdtrees = None
@@ -869,8 +868,8 @@ class AtomGroup(Atomic):
             return None
 
     def __repr__(self):
-        if self._trajectory is None:
-            if self._n_csets > 0:
+        if self._traj is None:
+            if self._n_csets:
                 return ('<AtomGroup: {0:s} ({1:d} atoms; {2:d} coordinate '
                         'sets, active set index: {3:d})>').format(self._title, 
                                     self._n_atoms, self._n_csets, self._acsi)
@@ -881,8 +880,8 @@ class AtomGroup(Atomic):
         else:
             return ('<AtomGroup: {0:s} ({1:d} atoms; trajectory {2:s}, '
                     'frame index {3:d})>').format(self._title, 
-                    self._n_atoms, self._trajectory.getTitle(), self._tcsi, 
-                    len(self._trajectory))
+                    self._n_atoms, self._traj.getTitle(), self._tcsi, 
+                    len(self._traj))
         
     def __str__(self):
         return ('AtomGroup {0:s}').format(self._title)
@@ -890,30 +889,40 @@ class AtomGroup(Atomic):
                'set index: {3:d})').format(self._title, 
               self._n_atoms, self._n_csets, self._acsi)
 
-    def __getitem__(self, indices):
+    def __getitem__(self, index):
+        
         acsi = self._acsi
-        if isinstance(indices, int):
-            if indices < 0:
-                indices = self._n_atoms + indices
-            return Atom(self, indices, acsi)
-        elif isinstance(indices, slice):
-            start, stop, step = indices.indices(self._n_atoms)
+        if isinstance(index, int):
+            n_atoms = self._n_atoms
+            if index >= n_atoms or index < -n_atoms:
+                raise IndexError('index out of bounds')
+            if index < 0:
+                index = n_atoms + index
+            return Atom(self, index, acsi)
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(self._n_atoms)
             if start is None:
                 start = 0
             if step is None:
                 step = 1
-            selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
-            return Selection(self, np.arange(start,stop,step), selstr, acsi)
-        elif isinstance(indices, (list, np.ndarray)):
-            return Selection(self, np.array(indices),  
-                 'index ' + ' '.join(np.array(indices, '|S')), acsi)
-        elif isinstance(indices, (str, tuple)):
-            return self.getHierView()[indices]
+            index = np.arange(start,stop,step)
+            if len(index) > 0:
+                selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
+                return Selection(self, index, selstr, acsi)
+        elif isinstance(index, (list, np.ndarray)):
+            unique = np.unique(index)
+            if unique[0] < 0 or unique[-1] >= self._n_atoms:
+                raise IndexError('index out of range')
+            return Selection(self, unique,  
+                             'index ' + ' '.join(np.array(index, '|S')), 
+                             acsi, unique=True)
+        elif isinstance(index, (str, tuple)):
+            return self.getHierView()[index]
         else:
             raise TypeError('invalid index') 
     
     def __iter__(self):
-        """Iterate over atoms in the atom group."""
+        """Yield atom instances."""
         
         acsi = self._acsi
         for index in xrange(self._n_atoms):
@@ -930,23 +939,34 @@ class AtomGroup(Atomic):
                 raise ValueError('an atom group cannot be added to itself')
             
             new = AtomGroup(self._title + ' + ' + other._title)
-            n_coordsets = self._n_csets
-            if n_coordsets != other._n_csets:
+            n_csets = self._n_csets
+            if n_csets != other._n_csets:
                 LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same '
                                'number of coordinate sets.  First from both '
                                'AtomGroups will be merged.'
-                  .format(str(self._title), str(other._title), n_coordsets))
-                n_coordsets = 1
-            coordset_range = range(n_coordsets)
+                  .format(str(self._title), str(other._title), n_csets))
+                n_csets = 1
+            coordset_range = range(n_csets)
             new.setCoords(np.concatenate((self._coords[coordset_range],
-                                        other._coords[coordset_range]), 1))
+                                          other._coords[coordset_range]), 1))
             for field in ATOMIC_DATA_FIELDS.values():
                 var = field.var
                 this = self._data[var]
                 that = other._data[var]
                 if this is not None and that is not None:
                     new._data[var] = np.concatenate((this, that))
-            return new
+            
+            #if self._bonds is not None and other._bonds is None:
+            #    new._bonds = self._bonds
+            #    bmap = np.zeros((len(other), self._bmap.shape[1]), int)
+            #    bmap.fill(-1)
+            #    new._bmap = np.concatenate([self._bmap, bmap])
+            #    numbonds = np.zeros(len(other), int)
+            #    
+            #elif self._bonds is None and other
+            
+            return new        
+        
         elif isinstance(other, prody.VectorBase):
             if self._n_atoms != other.numAtoms(): 
                 raise ValueError('Vector/Mode must have same number of atoms '
@@ -958,23 +978,22 @@ class AtomGroup(Atomic):
             raise TypeError('can only concatenate two AtomGroup`s or can '
                             'deform AtomGroup along a Vector/Mode')
 
-    def _buildSN2I(self):
-        """Builds a mapping from serial numbers to atom indices."""
-        
-        serials = self._serials  
-        if serials is None:
-            raise AttributeError('atom serial numbers are not set')
-        if len(np.unique(serials)) != self._n_atoms:
-            raise ValueError('atom serial numbers must be unique')
-        if serials.min() < 0:
-            raise ValueError('atoms must not have negative serial numbers')
-        sn2i = -np.ones(serials.max() + 1)
-        sn2i[serials] = np.arange(self._n_atoms)
-        self._sn2i = sn2i
-
     def _getSN2I(self):
+        """Return a mapping of serial numbers to indices."""
+        
         if self._sn2i is None:
-            self._buildSN2I()
+            serials = self._serials  
+            if serials is None:
+                raise AttributeError('atom serial numbers are not set')
+            unique = np.unique(serials) 
+            if len(unique) != self._n_atoms:
+                raise ValueError('atom serial numbers must be unique')
+            if unique[0] < 0:
+                raise ValueError('atoms must not have negative serial numbers')
+            sn2i = np.zeros(unique[-1] + 1, int)
+            sn2i.fill(-1)
+            sn2i[serials] = np.arange(self._n_atoms)
+            self._sn2i = sn2i
         return self._sn2i
 
     def getName(self):
@@ -1118,7 +1137,7 @@ class AtomGroup(Atomic):
             :class:`~prody.ensemble.Ensemble` and :class:`Atomic` instances are 
             accepted as *coords* argument."""
         
-        if self._trajectory is not None:
+        if self._traj is not None:
             raise AttributeError('AtomGroup is locked for coordinate set '
                                  'addition/deletion when its associated with '
                                  'a trajectory')
@@ -1160,7 +1179,7 @@ class AtomGroup(Atomic):
         
         if self._n_csets == 0:
             raise AttributeError('coordinates are not set')
-        if self._trajectory is not None:
+        if self._traj is not None:
             raise AttributeError('AtomGroup is locked for coordinate set '
                                  'addition/deletion when its associated with '
                                  'a trajectory')
@@ -1242,16 +1261,17 @@ class AtomGroup(Atomic):
         return self.setACSIndex(index)
         
     def setACSIndex(self, index):
-        """Set the index of the active coordinate set."""
+        """Set the coordinate set at *index* active."""
         
-        if self._n_csets == 0:
+        n_csets = self._n_csets
+        if n_csets == 0:
             self._acsi = 0
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
-        if self._n_csets <= index or self._n_csets < abs(index):
+        if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
         if index < 0:
-            index += self._n_csets 
+            index += n_csets 
         self._acsi = index
 
     def copy(self, which=None):
@@ -1328,8 +1348,9 @@ class AtomGroup(Atomic):
                 newmol._bmap = bmap.copy()
                 newmol._data['numbonds'] = self._data['numbonds'].copy()
             else:
-                newmol._bonds, newmol._bmap, newmol._data['numbonds'] = \
-                                trimBonds(bonds, bmap, indices)
+                bonds = trimBonds(bonds, bmap, indices)
+                if bonds is not None:
+                    newmol.setBonds(bonds)
         return newmol
     
     __copy__ = copy
@@ -1610,7 +1631,7 @@ class AtomGroup(Atomic):
         
         if trajectory is None:
             self._tcsi = None
-            self._trajectory = None
+            self._traj = None
             self.delCoordset(self._acsi)
             self._cslabels.pop()
         else:
@@ -1625,12 +1646,12 @@ class AtomGroup(Atomic):
             self._cslabels.append(trajectory.getTitle())
             self.addCoordset(trajectory.nextCoordset())
             self._acsi = self._n_csets - 1
-            self._trajectory = trajectory
+            self._traj = trajectory
         
     def getTrajectory(self):
         """Return trajectory associated with the atom group."""
         
-        return self._trajectory
+        return self._traj
     
     def nextFrame(self, step=1):
         """Read the next frame from the trajectory and update coordinates.
@@ -1640,12 +1661,12 @@ class AtomGroup(Atomic):
         
         if not isinstance(step, int) or step < 1:
             raise TypeError('step must be a positive integer')
-        nfi = self._trajectory.getNextIndex()
+        nfi = self._traj.getNextIndex()
         if step > 1:
-            self._trajectory.skip(step - 1)
+            self._traj.skip(step - 1)
         if nfi - self._tcsi == 1:
             self._tcsi = nfi
-            self._coords[self._acsi] = self._trajectory.nextCoordset()
+            self._coords[self._acsi] = self._traj.nextCoordset()
             self._setTimeStamp(self._acsi)
         else:
             self._gotoFrame(self._tcsi + step)
@@ -1661,9 +1682,9 @@ class AtomGroup(Atomic):
         
         .. versionadded:: 0.8"""
         
-        self._trajectory.goto(n)
-        self._tcsi = self._trajectory.getNextIndex()
-        self._coords[self._acsi] = self._trajectory.nextCoordset()
+        self._traj.goto(n)
+        self._tcsi = self._traj.getNextIndex()
+        self._coords[self._acsi] = self._traj.nextCoordset()
         self._setTimeStamp(self._acsi)
     
     def getFrameIndex(self):
@@ -1883,7 +1904,7 @@ class AtomPointer(Atomic):
         self.setACSIndex(index)
         
     def setACSIndex(self, index):
-        """Set the index of the active coordinate set."""
+        """Set the coordinate set at *index* active."""
         
         if self._ag._coords is None:
             raise AttributeError('coordinates are not set')
@@ -2977,8 +2998,7 @@ class Selection(AtomSubset):
         return HierView(self)
 
     def update(self):    
-        """Update selection.  Note that after an update number of selected
-        atoms may change.
+        """Update selection.
         
         .. versionadded:: 0.9.3"""
         
@@ -3213,8 +3233,7 @@ class AtomMap(AtomPointer):
         
         for i in range(self._ag._n_csets):
             coordinates = np.zeros((self._len, 3), float)
-            coordinates[self._mapping] = self._ag._coords[i, 
-                                                               self._indices] 
+            coordinates[self._mapping] = self._ag._coords[i, self._indices] 
             yield coordinates
     
     _iterCoordsets = iterCoordsets
@@ -3572,9 +3591,9 @@ class HierView(object):
             resindices[idx] = res._indices[0]
             res._indices = np.concatenate((res._indices, idx))
         
-        ag._data['segindex'] = segindices
-        ag._data['chindex'] = chindices
-        ag._data['resindex'] = resindices
+        ag._data['segindices'] = segindices
+        ag._data['chindices'] = chindices
+        ag._data['resindices'] = resindices
 
     def getResidue(self, chid, resnum, icode=None, segname=None):
         """Return residue with number *resnum* and insertion code *icode* from 
@@ -3665,9 +3684,18 @@ class Bond(object):
         return self._acsi
         
     def setACSIndex(self):
-        """Return active coordinate set index."""
+        """Set the coordinate set at *index* active."""
 
-        pass
+        if self._ag._coords is None:
+            raise AttributeError('coordinates are not set')
+        if not isinstance(index, int):
+            raise TypeError('index must be an integer')
+        if self._ag._n_csets <= index or \
+           self._ag._n_csets < abs(index):
+            raise IndexError('coordinate set index is out of range')
+        if index < 0:
+            index += self._ag._n_csets
+        self._acsi = index
     
     def getAtomGroup(self):
         """Return atom group."""
@@ -3720,10 +3748,7 @@ def trimBonds(bonds, bmap, indices):
 
     newbonds = np.array(newbonds)
     if len(newbonds) > 0:
-        bmap, numbonds = evalBonds(newbonds, len(indices))
-    else:
-        bmap = numbonds = None
-    return newbonds, bmap, numbonds
+        return newbonds
     
 
 def saveAtoms(atoms, filename=None, **kwargs):
@@ -3766,8 +3791,9 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bmap'] = bmap
             attr_dict['numbonds'] = ag._data['numbonds']
         else:
-            attr_dict['bonds'], attr_dict['bmap'], attr_dict['numbonds'] = \
-                                trimBonds(bonds, bmap, atoms._getIndices())
+            bonds = trimBonds(bonds, bmap, atoms._getIndices())
+            attr_dict['bonds'] = bonds
+            attr_dict['bmap'], attr_dict['numbonds'] = evalBonds(bonds)
         
     for key, data in ag._data.iteritems():
         if key == 'numbonds':
