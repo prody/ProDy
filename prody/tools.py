@@ -478,7 +478,10 @@ def openFile(filename, *args, **kwargs):
                             pkg.SETTINGS.get('backup_ext', '.BAK'))
     if args and args[0][0] in ('a', 'w'):
         if os.path.isfile(filename) and backup:
-                os.rename(filename, filename + backup_ext)
+            bak = filename + backup_ext
+            if os.path.isfile(bak):
+                os.remove(bak)
+            os.rename(filename, bak)
     return OPEN.get(ext, open)(filename, *args, **kwargs)
     
     
@@ -565,7 +568,7 @@ def which(program):
 def pickle(obj, filename, **kwargs):
     """Pickle *obj* using :mod:`cPickle` and dump in *filename*."""
     
-    out = openFile(filename, 'wb')
+    out = openFile(filename, 'wb', **kwargs)
     cPickle.dump(obj, out)
     out.close()
     return filename
@@ -573,7 +576,7 @@ def pickle(obj, filename, **kwargs):
 def unpickle(filename, **kwargs):
     """Unpickle object in *filename* using :mod:`cPickle`."""
     
-    inf = openFile(filename, 'rb')
+    inf = openFile(filename, 'rb', **kwargs)
     obj = cPickle.load(inf)
     inf.close()
     return obj
