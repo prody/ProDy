@@ -170,6 +170,6 @@ testdist:
 	mv ../prody_ ../prody
 
 copytxt:
-	cp -f changes.rst ../CHANGES.txt
-	cp -f getprody.rst ../INSTALL.txt
-	cp -f license.rst ../LICENSE.txt
+	cp -f changes.rst ../CHANGES.rst
+	cp -f getprody.rst ../INSTALL.rst
+	cp -f license.rst ../LICENSE.rst
