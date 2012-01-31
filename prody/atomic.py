@@ -955,15 +955,14 @@ class AtomGroup(Atomic):
                 that = other._data[var]
                 if this is not None and that is not None:
                     new._data[var] = np.concatenate((this, that))
-            
-            #if self._bonds is not None and other._bonds is None:
-            #    new._bonds = self._bonds
-            #    bmap = np.zeros((len(other), self._bmap.shape[1]), int)
-            #    bmap.fill(-1)
-            #    new._bmap = np.concatenate([self._bmap, bmap])
-            #    numbonds = np.zeros(len(other), int)
-            #    
-            #elif self._bonds is None and other
+
+            if self._bonds is not None and other._bonds is not None:
+                new.setBonds(np.concatenate([self._bonds, 
+                                             other._bonds + self._n_atoms]))
+            elif self._bonds is not None:
+                new.setBonds(self._bonds.copy())
+            elif other._bonds is not None:
+                new.setBonds(other._bonds + self._n_atoms)
             
             return new        
         
@@ -3655,6 +3654,8 @@ class HierView(object):
         return self.numChains()
 
 class Bond(object):
+    
+    """A pointer class for bonded atoms."""
     
     __slots__ = ['_ag', '_acsi', '_indices']
     
