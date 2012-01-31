@@ -39,9 +39,9 @@ clean:
 	-rm -rf $(BUILDDIR)/* $(DOCDIR)/*
 
 stats:
-	./pyps.py update ProDy; \
-	./pyps.py current -o _static/ProDy_downloads.csv --rst ProDy; \
-	./pyps.py msplot -o _static/ProDy_downloads.png ProDy_stats.pkl
+	./pypstats update ProDy; \
+	./pypstats current -o _static/ProDy_downloads.csv --rst ProDy; \
+	./pypstats msplot -o _static/ProDy_downloads.png ProDy_stats.pkl
 
 both:
 	cd $(DOCTESTDIR); \
