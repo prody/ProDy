@@ -40,7 +40,7 @@ clean:
 
 stats:
 	pypstats update -s ProDy_stats.pkl ProDy; \
-	pypstats current -o _static/ProDy_downloads.csv --rst ProDy; \
+	pypstats latest -o _static/ProDy_downloads.csv --rst ProDy; \
 	pypstats monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
 
 both:
