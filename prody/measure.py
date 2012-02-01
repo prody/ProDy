@@ -690,9 +690,7 @@ def getKDTree(coords):
     """Internal function to get KDTree for coordinates without any checks."""
 
     from KDTree import KDTree
-    kdtree = KDTree(3)
-    kdtree.set_coords(coords)
-    return kdtree
+    return KDTree(coords)
     
 def iterNeighbors(atoms, radius, atoms2=None):
     """Yield pairs of *atoms* that are those within *radius* of each other,
