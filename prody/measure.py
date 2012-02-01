@@ -472,12 +472,21 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
         calcTransformation(mob, tar, weights).apply(ag)
     ag.setACSIndex(agacsi)
 
-def calcAngle(atom1, atom2, atom3, radian=False):
+def calcAngle(atoms1, atoms2, atoms3, radian=False):
     """Return the angle between atoms in degrees."""
     
-    coords2 = atom2._getCoords()
-    v1 = atom1._getCoords() - coords2
-    v2 = atom3._getCoords() - coords2
+    if not isinstance(atoms1, prody.atomic):
+        raise TypeError('atoms1 must be an Atomic instance')
+    if not isinstance(atoms2, prody.atomic):
+        raise TypeError('atoms2 must be an Atomic instance')
+    if not isinstance(atoms3, prody.atomic):
+        raise TypeError('atoms3 must be an Atomic instance')
+    if not atoms1.numAtoms() == atoms2.numAtoms() == atoms3.numAtoms():
+        raise ValueError('all arguments must have same number of atoms')
+    
+    coords2 = atoms2._getCoords()
+    v1 = atoms1._getCoords() - coords2
+    v2 = atoms3._getCoords() - coords2
     
     rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
     if radian:    
