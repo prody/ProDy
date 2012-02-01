@@ -68,6 +68,10 @@ Release 0.9.3 (Feb 1, 2012)
     
   * :meth:`~atomic.AtomGroup.iterAtoms` method is implemented to all 
     :mod:`atomic` classes to provide uniformity for atom iterations.
+    
+  * :meth:`~measure.calcAngle`, :meth:`~measure.calcDihedral`, 
+    :meth:`~measure.calcPhi`, :meth:`~measure.calcPsi`, and 
+    :meth:`~measure.calcOmega` methods are implemented.
 
 **Improvements**:
 
