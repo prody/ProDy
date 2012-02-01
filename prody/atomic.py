@@ -1033,6 +1033,8 @@ class AtomGroup(Atomic):
         
         return self._n_atoms
     
+    iterAtoms = __iter__
+    
     def getCoordinates(self):
         """Deprecated, use :meth:`getCoords`."""
         
@@ -1858,6 +1860,14 @@ class AtomPointer(Atomic):
         else:
             return self._ag._getTimeStamp(index)
     
+    def iterAtoms(self):
+        """Yield atoms."""
+        
+        ag = self._ag
+        acsi = self._acsi
+        for i in self._getIndices():
+            yield Atom(ag, i, acsi)
+    
     def isAttribute(self, name):    
         """Deprecated, use :meth:`isData`."""
         
@@ -2131,6 +2141,8 @@ class Atom(AtomPointer):
         """Return index of the atom in an :class:`numpy.ndarray`."""
         
         return np.array([self._index])
+    
+    _getIndices = getIndices
     
     def getCoordinates(self):
         """Deprecated, use :meth:`getCoords`."""
@@ -2830,6 +2842,8 @@ class Residue(AtomSubset):
     def __getitem__(self, name):
         return self.getAtom(name)
     
+    __iter__ = AtomPointer.iterAtoms
+    
     def getAtom(self, name):
         """Return atom with given *name*, ``None`` if not found.  Assumes that 
         atom names in the residue are unique.  If more than one atoms with the 
@@ -2984,6 +2998,8 @@ class Selection(AtomSubset):
             selstr = selstr[:15] + '...' + selstr[-15:]  
         return 'Selection "{0:s}" from {1:s}'.format(selstr, 
                                                      self._ag.getTitle())
+    
+    __iter__ = AtomPointer.iterAtoms
     
     def getSelectionString(self):
         """Deprecated, use :meth:`getSelstr`."""
