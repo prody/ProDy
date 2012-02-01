@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010-2012 Ahmet Bakan
@@ -38,6 +39,9 @@ Functions
   * :func:`calcDihedral`
   * :func:`calcDistance`
   * :func:`calcGyradius`
+  * :func:`calcOmega`
+  * :func:`calcPhi`
+  * :func:`calcPsi`
   * :func:`calcRMSD`
   * :func:`calcTransformation`
   * :func:`iterNeighbors`
@@ -62,7 +66,7 @@ __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'buildKDTree', 'iterNeighbors', 
            'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcCenter',
-           'calcAngle', 'calcDihedral',
+           'calcAngle', 'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
            'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 
            'moveAtoms', 'superpose']
@@ -527,6 +531,98 @@ def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
     else:
         return sign * rad * RAD2DEG
 
+def calcOmega(residue, radian=False, dist=4.1):
+    """Return ω (omega) angle of *residue* in degrees.  This function checks
+    the distance between Cα atoms of two residues.  Set *dist* to none, to 
+    avoid this check."""
+
+    if not isinstance(residue, prody.Residue):
+        raise TypeError('{0:s} must be a Residue instance')
+    next = residue.getNext()
+    if not isinstance(next, prody.Residue):
+        raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+    CA = residue['CA']
+    if CA is None:
+        raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
+    C = residue['C']
+    if C is None:
+        raise ValueError('{0:s} does not have C atom'.format(str(residue)))
+    _N = next['N']
+    if _N is None:
+        raise ValueError('{0:s} does not have N atom'.format(str(residue)))
+    _CA = next['CA']
+    if _CA is None:
+        raise ValueError('{0:s} does not have CA atom'.format(str(next)))
+    
+    if dist and dist < calcDistance(CA, _CA):
+        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+                         .format(str(residue), str(next)))
+    
+    return calcDihedral(CA, C, _N, _CA, radian)
+
+def calcPhi(residue, radian=False, dist=4.1):
+    """Return φ (phi) angle of *residue* in degrees.  This function checks
+    the distance between Cα atoms of two residues.  Set *dist* to none, to 
+    avoid this check."""
+
+    if not isinstance(residue, prody.Residue):
+        raise TypeError('{0:s} must be a Residue instance')
+    prev = residue.getPrev()
+    if not isinstance(prev, prody.Residue):
+        raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+
+    C_ = prev['C']
+    if C_ is None:
+        raise ValueError('{0:s} does not have C atom'.format(str(prev)))
+    N = residue['N']
+    if N is None:
+        raise ValueError('{0:s} does not have N atom'.format(str(residue)))
+    CA = residue['CA']
+    if CA is None:
+        raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
+    C = residue['C']
+    if C is None:
+        raise ValueError('{0:s} does not have C atom'.format(str(residue)))
+    CA_ = prev['CA']
+    if C_ is None:
+        raise ValueError('{0:s} does not have CA atom'.format(str(prev)))
+    if dist and dist < calcDistance(CA, CA_):
+        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+                         .format(str(residue), str(prev)))
+    
+    return calcDihedral(C_, N, CA, C, radian)
+
+def calcPsi(residue, radian=False, dist=4.1):
+    """Return ψ (psi) angle of *residue* in degrees.  This function checks
+    the distance between Cα atoms of two residues.  Set *dist* to none, to 
+    avoid this check."""
+
+    if not isinstance(residue, prody.Residue):
+        raise TypeError('{0:s} must be a Residue instance')
+    next = residue.getNext()
+    if not isinstance(next, prody.Residue):
+        raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+    N = residue['N']
+    if N is None:
+        raise ValueError('{0:s} does not have N atom'.format(str(residue)))
+    CA = residue['CA']
+    if CA is None:
+        raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
+    C = residue['C']
+    if C is None:
+        raise ValueError('{0:s} does not have C atom'.format(str(residue)))
+    _N = next['N']
+    if _N is None:
+        raise ValueError('{0:s} does not have N atom'.format(str(next)))
+    _CA = next['CA']
+    if _CA is None:
+        raise ValueError('{0:s} does not have CA atom'.format(str(next)))
+    if dist and dist < calcDistance(CA, _CA):
+        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+                         .format(str(residue), str(next)))
+    
+    return calcDihedral(N, CA, C, _N, radian)
+
 def calcCenter(atoms, weights=None):
     """Return geometric center of *atoms*.  If *weights* is given it must 
     be a flat array with length equal to number of atoms.  Mass center
@@ -570,7 +666,9 @@ def moveAtoms(atoms, array):
         coords += array[3,:3]
     else:
         raise ValueError('array does not have right shape')
-    atoms.setCoords(coords)    
+    atoms.setCoords(coords)
+    
+
         
 def buildKDTree(atoms):
     """Return a KDTree built using coordinates of *atoms*.  *atoms* must be
