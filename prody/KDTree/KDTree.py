@@ -121,26 +121,27 @@ class KDTree:
     of each other. As far as I know the algorithm has not been published.
     """
 
-    def __init__(self, dim, bucket_size=1):
-        self.dim=dim
-        self.kdt=_CKDTree.KDTree(dim, bucket_size)
-        self.built=0
-
-    # Set data
-
-    def set_coords(self, coords):
+    def __init__(self, coords, bucket_size=1):
         """Add the coordinates of the points.
 
         o coords - two dimensional NumPy array. E.g. if the points
-        have dimensionality D and there are N points, the coords 
-        array should be NxD dimensional. 
+        have dimensionality D and there are N points, the shape of coords 
+        array should be NxD. 
         """
+        
+        if coords.ndim != 2:
+                raise Exception("coords.ndim must be 2")
         if coords.min()<=-1e6 or coords.max()>=1e6:
                 raise Exception("Points should lie between -1e6 and 1e6")
-        if len(coords.shape)!=2 or coords.shape[1]!=self.dim:
-                raise Exception("Expected a Nx%i NumPy array" % self.dim)
+        dim = coords.shape[1]
+        self.dim=dim
+        self.kdt=_CKDTree.KDTree(dim, bucket_size)
         self.kdt.set_data(coords)
-        self.built=1
+        self.neighbors = None
+
+    # Set data
+
+    #def set_coords(self, coords):
 
     # Fixed radius search for a point
 
@@ -151,8 +152,6 @@ class KDTree:
         dimensionality D, the center array should be D dimensional. 
         o radius - float>0
         """
-        if not self.built:
-                raise Exception("No point set specified")
         if center.shape!=(self.dim,):
                 raise Exception("Expected a %i-dimensional NumPy array" \
                                 % self.dim)
@@ -193,8 +192,6 @@ class KDTree:
 
         o radius - float (>0)
         """
-        if not self.built:
-                raise Exception("No point set specified")
         self.neighbors = self.kdt.neighbor_search(radius)
 
     def all_get_indices(self):
@@ -204,8 +201,9 @@ class KDTree:
         the indices of the point pairs, where N
         is the number of neighbor pairs.
         """
-        a = array([[neighbor.index1, neighbor.index2] for neighbor in self.neighbors])
-        return a
+        if self.neighbors is not None:
+            return array([[neighbor.index1, neighbor.index2] 
+                          for neighbor in self.neighbors])
 
     def all_get_radii(self):
         """Return All Fixed Neighbor Search results.
@@ -214,7 +212,8 @@ class KDTree:
         of all the point pairs, where N is the number 
         of neighbor pairs..
         """
-        return [neighbor.radius for neighbor in self.neighbors]
+        if self.neighbors is not None:
+            return array([neighbor.radius for neighbor in self.neighbors])
 
 if __name__=="__main__":
 
@@ -227,10 +226,8 @@ if __name__=="__main__":
 
     coords=(200*random((nr_points, dim)))
 
-    kdtree=KDTree(dim, bucket_size)
-
     # enter coords
-    kdtree.set_coords(coords)
+    kdtree=KDTree(coords, bucket_size)
 
     # Find all point pairs within radius
 
