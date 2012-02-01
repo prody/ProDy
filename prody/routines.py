@@ -330,7 +330,7 @@ def prody_pca(opt):
         else:
             pca.performSVD(dcd[:])
     else:
-        pdb = prody.parsePDB(pdb)
+        pdb = prody.parsePDB(opt.coords)
         if pdb.numCoordsets() < 2:
             opt.subparser("PDB file must contain multiple models.")
         if prefix == '_pca':
