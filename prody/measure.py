@@ -35,6 +35,7 @@ Functions
   * :func:`calcAngle`
   * :func:`calcCenter`
   * :func:`calcDeformVector`
+  * :func:`calcDihedral`
   * :func:`calcDistance`
   * :func:`calcGyradius`
   * :func:`calcRMSD`
@@ -61,7 +62,7 @@ __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'buildKDTree', 'iterNeighbors', 
            'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcCenter',
-           'calcAngle', 
+           'calcAngle', 'calcDihedral',
            'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 
            'moveAtoms', 'superpose']
@@ -475,11 +476,11 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
     """Return the angle between atoms in degrees."""
     
-    if not isinstance(atoms1, prody.atomic):
+    if not isinstance(atoms1, prody.Atomic):
         raise TypeError('atoms1 must be an Atomic instance')
-    if not isinstance(atoms2, prody.atomic):
+    if not isinstance(atoms2, prody.Atomic):
         raise TypeError('atoms2 must be an Atomic instance')
-    if not isinstance(atoms3, prody.atomic):
+    if not isinstance(atoms3, prody.Atomic):
         raise TypeError('atoms3 must be an Atomic instance')
     if not atoms1.numAtoms() == atoms2.numAtoms() == atoms3.numAtoms():
         raise ValueError('all arguments must have same number of atoms')
@@ -494,8 +495,37 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
     else:
         return rad * RAD2DEG
 
-def calcDihedral():
-    pass
+def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
+    """Return the dihedral angle between atoms in degrees."""
+    
+    if not isinstance(atoms1, prody.Atomic):
+        raise TypeError('atoms1 must be an Atomic instance')
+    if not isinstance(atoms2, prody.Atomic):
+        raise TypeError('atoms2 must be an Atomic instance')
+    if not isinstance(atoms3, prody.Atomic):
+        raise TypeError('atoms3 must be an Atomic instance')
+    if not isinstance(atoms4, prody.Atomic):
+        raise TypeError('atoms4 must be an Atomic instance')
+    if not atoms1.numAtoms() == atoms2.numAtoms() == \
+           atoms3.numAtoms() == atoms4.numAtoms():
+        raise ValueError('all arguments must have same number of atoms')
+    
+    coords2 = atoms2._getCoords()
+    coords3 = atoms3._getCoords()
+    a1 = coords2 - atoms1._getCoords()
+    a2 = coords3 - coords2
+    a3 = atoms4._getCoords() - coords3
+    
+    v1 = np.cross(a1, a2)
+    v1 = v1 / (v1 * v1).sum(-1)**0.5  
+    v2 = np.cross(a2, a3)
+    v2 = v2 / (v2 * v2).sum(-1)**0.5  
+    sign = np.sign((v1 * a3).sum(-1))
+    rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    if radian:    
+        return sign * rad
+    else:
+        return sign * rad * RAD2DEG
 
 def calcCenter(atoms, weights=None):
     """Return geometric center of *atoms*.  If *weights* is given it must 
