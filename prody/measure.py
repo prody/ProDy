@@ -32,6 +32,7 @@ Functions
   * :func:`buildKDTree`
   * :func:`calcADPAxes`
   * :func:`calcADPs`
+  * :func:`calcAngle`
   * :func:`calcCenter`
   * :func:`calcDeformVector`
   * :func:`calcDistance`
@@ -54,10 +55,13 @@ from tools import *
 import prody
 LOGGER = prody.LOGGER
 
+RAD2DEG = 180 / np.pi
+
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'buildADPMatrix', 'buildKDTree', 'iterNeighbors', 
            'calcADPAxes', 'calcADPs',  
-           'calcDeformVector', 'calcDistance', 'calcCenter', 
+           'calcDeformVector', 'calcDistance', 'calcCenter',
+           'calcAngle', 
            'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 
            'moveAtoms', 'superpose']
@@ -468,9 +472,18 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
         calcTransformation(mob, tar, weights).apply(ag)
     ag.setACSIndex(agacsi)
 
+def calcAngle(atom1, atom2, atom3, radian=False):
+    """Return the angle between atoms in degrees."""
     
-def calcAngle():
-    pass
+    coords2 = atom2._getCoords()
+    v1 = atom1._getCoords() - coords2
+    v2 = atom3._getCoords() - coords2
+    
+    rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    if radian:    
+        return rad
+    else:
+        return rad * RAD2DEG
 
 def calcDihedral():
     pass
