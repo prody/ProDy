@@ -61,7 +61,7 @@ How to Make a New Release
 #. Update new release file links::
    
      $ cd doc
-     $ make pyps
+     $ make stats
 
 #. Copy the documentation files packed with source release::
 
