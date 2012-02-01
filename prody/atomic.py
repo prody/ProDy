@@ -2661,16 +2661,17 @@ class Chain(AtomSubset):
     ...
     """
         
-    __slots__ = AtomSubset.__slots__ + ['_seq', '_dict', '_segment']
+    __slots__ = AtomSubset.__slots__ + ['_seq', '_dict', '_list', '_segment']
     
     def __init__(self, atomgroup, indices, segment, acsi=None, **kwargs):
         AtomSubset.__init__(self, atomgroup, indices, acsi, **kwargs)
         self._segment = segment
         self._seq = None
-        self._dict = OrderedDict()
+        self._dict = dict()
+        self._list = list()
         
     def __len__(self):
-        return len(self._dict)
+        return len(self._list)
     
     def __repr__(self):
         n_csets = self._ag.numCoordsets()
@@ -2701,7 +2702,8 @@ class Chain(AtomSubset):
         elif isinstance(key, slice):
             resnums = self._getResnums()
             resnums = set(np.arange(*key.indices(resnums.max()+1)))
-            return [res for (rn, ic), res in self._dict.iteritems() 
+            _list = self._list
+            return [_list[i] for (rn, ic), i in self._dict.iteritems() 
                     if rn in resnums]
         else:
             return self.getResidue(key)
@@ -2720,12 +2722,14 @@ class Chain(AtomSubset):
     def getResidue(self, number, insertcode=None):
         """Return residue with given number."""
         
-        return self._dict.get((number, insertcode or None))
+        i = self._dict.get((number, insertcode or None))
+        if i is not None:
+            return self._list[i]
 
     def iterResidues(self):
         """Iterate residues in the chain."""
         
-        return self._dict.itervalues()
+        return self._list.__iter__()
     
     def getNumOfResidues(self):
         """Deprecated, use :meth:`numResidues`."""
@@ -2736,7 +2740,7 @@ class Chain(AtomSubset):
     def numResidues(self):
         """Return number of residues."""
         
-        return len(self._dict)
+        return len(self._list)
 
     def getIdentifier(self):
         """Deprecated, use :meth:`getChid`."""
@@ -2967,6 +2971,20 @@ class Residue(AtomSubset):
             selstr = self._chain.getSelstr()
             return 'resnum {0:d}{1:s} and ({2:s})'.format(
                                 self.getResnum(), icode, selstr)
+
+    def getPrev(self):
+        """Return preceding residue in the chain."""
+        
+        i = self._chain._dict.get((self.getResnum(), self.getIcode() or None))
+        if i is not None and i > 0:
+            return self._chain._list[i-1]
+        
+    def getNext(self):
+        """Return following residue in the chain."""
+
+        i = self._chain._dict.get((self.getResnum(), self.getIcode() or None))
+        if i is not None and i + 1 < len(self._chain):
+            return self._chain._list[i+1]
 
 
 class Selection(AtomSubset):
@@ -3589,7 +3607,8 @@ class HierView(object):
                                   selstr=selstr)
                     resindices[idx] = resindex
                     if chain is not None:
-                        chain._dict[(pr, pi)] = res
+                        chain._dict[(pr, pi)] = len(chain._list)
+                        chain._list.append(res)
                     _residues.append(res)
                     _dict[s_c_r_i] = res
                 else:
@@ -3609,7 +3628,8 @@ class HierView(object):
             res = Residue(ag, idx, chain, acsi, unique=True, selstr=selstr)
             resindices[idx] = resindex
             if chain is not None:
-                chain._dict[(pr, pi)] = res
+                chain._dict[(pr, pi)] = len(chain._list)
+                chain._list.append(res)
             _residues.append(res)
             _dict[s_c_r_i] = res
         else:
