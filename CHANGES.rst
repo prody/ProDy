@@ -61,6 +61,17 @@ Release 0.9.3 (Feb 1, 2012)
   * :meth:`~atomic.Selection.update` method for :class:`~atomic.Selection`
     is implemented, which may be useful to update a distance based selection 
     after coordinate changes.  
+    
+  * :func:`~measure.buildKDTree` and :func:`~measure.iterNeighbors` methods
+    are implemented for facilitating identification of pairs of atoms that 
+    are proximal.  
+    
+  * :meth:`~atomic.AtomGroup.iterAtoms` method is implemented to all 
+    :mod:`atomic` classes to provide uniformity for atom iterations.
+    
+  * :meth:`~measure.calcAngle`, :meth:`~measure.calcDihedral`, 
+    :meth:`~measure.calcPhi`, :meth:`~measure.calcPsi`, and 
+    :meth:`~measure.calcOmega` methods are implemented.
 
 **Improvements**:
 
