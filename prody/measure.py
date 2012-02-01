@@ -38,6 +38,7 @@ Functions
   * :func:`calcGyradius`
   * :func:`calcRMSD`
   * :func:`calcTransformation`
+  * :func:`iterNeighbors`
   * :func:`moveAtoms`
   * :func:`superpose`
 
@@ -54,7 +55,8 @@ import prody
 LOGGER = prody.LOGGER
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
-           'buildADPMatrix', 'buildKDTree', 'calcADPAxes', 'calcADPs',  
+           'buildADPMatrix', 'buildKDTree', 'iterNeighbors', 
+           'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcCenter', 
            'calcGyradius', 'calcRadiusOfGyration', 
            'calcRMSD', 'calcTransformation', 
@@ -542,6 +544,84 @@ def getKDTree(coords):
     kdtree.set_coords(coords)
     return kdtree
     
+def iterNeighbors(atoms, radius, atoms2=None):
+    """Yield pairs of *atoms* that are those within *radius* of each other,
+    with the distance between them.  If *atoms2* is also provided, one atom 
+    from *atoms* and another from *atoms2* will be yielded."""
+    
+    if not isinstance(atoms, prody.Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+    elif not isinstance(radius, (float, int)):
+        raise TypeError('radius must be an Atomic instance')
+    elif radius <= 0:
+        raise ValueError('radius must have a positive value')
+        
+    if atoms2 is None:
+        if len(atoms) <= 1:
+            raise ValueError('length of atoms must be more than 1')
+        ag = atoms
+        if not isinstance(ag, prody.AtomGroup):
+            ag = ag.getAtomGroup()
+            indices = atoms._getIndices()
+            index = lambda i: indices[i]
+        else:
+            index = lambda i: i
+        kdtree = getKDTree(atoms._getCoords())
+        kdtree.all_search(radius)
+        
+        _dict = {}
+        for (i, j), r in zip(kdtree.all_get_indices(), kdtree.all_get_radii()): 
+             
+            a1 = _dict.get(i)
+            if a1 is None:      
+                a1 = ag[index(i)]
+                _dict[i] = a1
+            a2 = _dict.get(j)
+            if a2 is None:      
+                a2 = ag[index(j)]
+                _dict[j] = a2
+            yield (a1, a2, r)   
+    else:
+        if len(atoms) >= len(atoms2): 
+            ag = atoms
+            if not isinstance(ag, prody.AtomGroup):
+                ag = ag.getAtomGroup()
+                indices = atoms._getIndices()
+                index = lambda i: indices[i]
+            else:
+                index = lambda i: i
+            kdtree = getKDTree(atoms._getCoords())
+            
+            _dict = {}
+            for a2 in atoms2.iterAtoms():
+                kdtree.search(a2._getCoords(), radius)
+                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
+                    a1 = _dict.get(i)
+                    if a1 is None:      
+                        a1 = ag[index(i)]
+                        _dict[i] = a1
+                    yield (a1, a2, r)   
+        else:    
+            ag = atoms2
+            if not isinstance(ag, prody.AtomGroup):
+                ag = ag.getAtomGroup()
+                indices = atoms2._getIndices()
+                index = lambda i: indices[i]
+            else:
+                index = lambda i: i
+            kdtree = getKDTree(atoms2._getCoords())
+            
+            _dict = {}
+            for a1 in atoms.iterAtoms():
+                kdtree.search(a1._getCoords(), radius)
+                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
+                    a2 = _dict.get(i)
+                    if a2 is None:      
+                        a2 = ag[index(i)]
+                        _dict[i] = a2
+                    yield (a1, a2, r)   
+
+
 
 def calcRadiusOfGyration(coords, weights=None):
     """Deprecated, use :meth:`calcGyradius`."""
