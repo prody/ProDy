@@ -34,10 +34,8 @@ class TestKDTree(unittest.TestCase):
     
     def setUp(self):
         
-        self.ndim = 3
-        self.kdtree = KDTree(self.ndim)
         self.coords = np.tile(np.arange(10), (3,1)).T.astype(float)
-        self.kdtree.set_coords(self.coords)
+        self.kdtree = KDTree(self.coords)
         
         
     def testSearch(self):
