@@ -643,7 +643,7 @@ def calcCenter(atoms, weights=None):
             raise TypeError('weights must be a numpy array')
         elif weights.ndim != 1:
             raise ValueError('weights must be a 1 dimensional array')
-        elif weights.shape[0] != corods.shape[0]:
+        elif weights.shape[0] != coords.shape[0]:
             raise ValueError('weights length must be equal to number of atoms')
         return (coords * weights).mean(0) / weights.sum()
 
@@ -894,7 +894,8 @@ def calcADPAxes(atoms, **kwargs):
     if linalg is None: 
         prody.importLA()
     if not isinstance(atoms, prody.Atomic):
-        raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
+        raise TypeError('atoms must be of type Atomic, not {0:s}'
+                        .format(type(atoms)))
     anisous = atoms.getAnisous()
     if anisous is None:
         raise ValueError('anisotropic temperature factors are not set')
@@ -975,7 +976,8 @@ def calcADPs(atom):
     if linalg is None: 
         prody.importLA()
     if not isinstance(atom, prody.Atom):
-        raise TypeError('atom must be of type Atom, not {0:s}'.type(atom))
+        raise TypeError('atom must be of type Atom, not {0:s}'
+                        .format(type(atom)))
     anisou = atom.getAnisou()
     if anisou is None:
         raise ValueError('atom does not have anisotropic temperature factors')
@@ -1002,7 +1004,8 @@ def buildADPMatrix(atoms):
     """
     
     if not isinstance(atoms, prody.Atomic):
-        raise TypeError('atoms must be of type Atomic, not {0:s}'.type(atoms))
+        raise TypeError('atoms must be of type Atomic, not {0:s}'
+                        .format(type(atoms)))
     anisous = atoms.getAnisous()
     if anisous is None:
         raise ValueError('anisotropic temperature factors are not set')
