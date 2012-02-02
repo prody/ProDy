@@ -459,8 +459,24 @@ class VectorBase(object):
 
     def getArray(self):
         """Return a copy of array."""
+
         pass
         
+    def _getArray(self):
+        """Return array."""
+
+        pass
+    
+    def numAtoms(self):
+        """Return number of atoms."""
+        
+        pass
+    
+    def is3d(self):
+        """Return true if vector is 3d."""
+        
+        pass
+
     def getArrayNx3(self):
         """Return a copy of array with shape (N, 3)."""
         
@@ -2131,17 +2147,17 @@ class GammaStructureBased(Gamma):
         self._sheet = gamma * sheet
         self._connected = gamma * connected
     
-    def getSecondaryStr():
+    def getSecstrs(self):
         """Return a copy of secondary structure assignments."""
         
         return self._sstr.copy()    
     
-    def getChainIdentifiers():
+    def getChids(self):
         """Return a copy of chain identifiers."""
         
         return self._chid.socopypy()    
 
-    def getResidueNumbers():
+    def getResnums(self):
         """Return a copy of residue numbers."""
         
         return self._rnum.copy()    
@@ -2278,7 +2294,7 @@ class GammaVariableCutoff(Gamma):
     def getGamma(self):
         """Return the uniform force constant value."""
         
-        return self._gamma_constant
+        return self._gamma
 
     def gamma(self, dist2, i, j):
         """Return force constant."""
@@ -3767,8 +3783,8 @@ def deformAtoms(atoms, mode, rmsd=None):
 def scanPerturbationResponse(model, atoms=None, repeats=100):
     """See :func:`calcPerturbResponse`."""
     
-    prody.deprecate('scanPerturbationResponse', 'calcPerturResponse')
-    return calcPerturResponse(model, atoms, repeats) 
+    prody.deprecate('scanPerturbationResponse', 'calcPerturbResponse')
+    return calcPerturbResponse(model, atoms, repeats) 
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
     """Return a matrix of profiles from scanning of the response of the 
@@ -3926,7 +3942,7 @@ def calcCrossCorr(modes, n_cpu=1):
                     indices = modes.indices[i*size:]
                 else:
                     indices = modes.indices[i*size:(i+1)*size]
-                process = multiprocessing.Process(target=_cross_correlations, 
+                process = multiprocessing.Process(target=_crossCorrelations, 
                               args=(queue, n_atoms, array, variances, indices))
                 process.start()
             while queue.qsize() < n_cpu:
