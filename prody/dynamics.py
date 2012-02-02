@@ -281,8 +281,6 @@ from types import FunctionType
 import sys
 
 import numpy as np
-linalg = None
-scipyla = None
 
 import prody
 from atomic import *
@@ -1398,11 +1396,10 @@ class GNM(GNMBase):
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
-        if linalg is None:
-            prody.importLA()
+        linalg = importLA()
         start = time.time()
         shift = 0
-        if scipyla:
+        if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None
                 n_modes = self._dof 
@@ -1647,12 +1644,10 @@ class ANM(GNMBase):
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean' 
         assert isinstance(turbo, bool), 'turbo must be a boolean'
-        if linalg is None:
-            prody.importLA()
-        
+        linalg = importLA()
         start = time.time()
         shift = 5
-        if scipyla:
+        if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None
                 n_modes = self._dof 
@@ -1862,13 +1857,12 @@ class PCA(NMABase):
         :type turbo: bool, default is ``True``
         """
         
-        if linalg is None:
-            prody.importLA()
+        linalg = importLA()
         if self._cov is None:
             raise ProDyException('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
-        if scipyla:        
+        if linalg.__package__.startswith('scipy'):        
             if n_modes is None:
                 eigvals = None
                 n_modes = dof
@@ -1915,8 +1909,7 @@ class PCA(NMABase):
         ensembles with missing atomic data.  See :ref:`pca-xray-calculations`
         example for comparison of results from SVD and covariance methods."""
 
-        if linalg is None:
-            prody.importLA()
+        linalg = importLA()
 
         start = time.time()
         if not isinstance(coordsets, (prody.Ensemble, prody.Atomic, 
@@ -3118,8 +3111,7 @@ def reduceModel(model, atoms, selstr):
     :arg atoms: atoms that were used to build the model
     :arg selstr: a selection string specifying subset of atoms"""
     
-    if linalg is None:
-        prody.importLA()
+    linalg = importLA()
 
     if not isinstance(model, NMABase):
         raise TypeError('model must be an NMA instance, not {0:s}'.format(type(model)))

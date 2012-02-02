@@ -49,7 +49,8 @@ __all__ = ['PackageLogger', 'PackageSettings',
         'rangeString',
         'today', 'now', 'getsize',
         'PLATFORM', 'USERHOME',
-        'alnum']
+        'alnum',
+        'importLA']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -628,3 +629,16 @@ def alnum(string, alt='_'):
         else:
             result += alt
     return result
+
+def importLA():
+    """Return one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
+    
+    try:
+        import scipy.linalg as linalg
+    except ImportError:
+        try:
+            import numpy.linalg as linalg
+        except:
+            raise ImportError('scipy.linalg or numpy.linalg is required for '
+                              'NMA and structure alignment calculations')
+    return linalg

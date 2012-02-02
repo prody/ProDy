@@ -83,21 +83,6 @@ if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
 
 LOGGER = PackageLogger('.prody')
 
-def importLA():
-    try:
-        import scipy.linalg as linalg
-        dynamics.scipyla = True
-    except ImportError:
-        dynamics.scipyla = False
-        try:
-            import numpy.linalg as linalg
-        except:
-            raise ImportError('scipy.linalg or numpy.linalg is required for '
-                              'NMA calculations and aligning structures.')
-    dynamics.linalg = linalg
-    measure.linalg = linalg
-   
-
 SETTINGS = PackageSettings(logger=LOGGER) 
 SETTINGS.load()
 

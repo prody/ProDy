@@ -54,7 +54,6 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
-linalg = None
 
 from tools import *
 import prody
@@ -175,8 +174,8 @@ def calcTransformation(mobile, target, weights=None):
     return _calcTransformation(mob, tar, weights)
 
 def _calcTransformation(mob, tar, weights=None):
-    if linalg is None:
-        prody.importLA()
+    
+    linalg = importLA()
     
     if weights is None:
         mob_com = mob.mean(0)
@@ -204,8 +203,7 @@ def _calcTransformation(mob, tar, weights=None):
 def _superposeTraj(mobs, tar, weights=None, movs=None):
     # mobs.ndim == 3 and movs.ndim == 3
     # mobs.shape[0] == movs.shape[0]
-    if linalg is None:
-        prody.importLA()
+    linalg = importLA()
     svd = linalg.svd
     det = linalg.det
     dot = np.dot
@@ -240,8 +238,7 @@ def _superpose(mob, tar, weights=None, mov=None):
     tar_com = tar.mean(0)
     tar_org = tar - tar_com
 
-    if linalg is None:
-        prody.importLA()
+    linalg = importLA()
     mob_com = mob.mean(0)
     mob_org = mob - mob_com
     matrix = np.dot(tar_org.T, mob_org)
@@ -891,8 +888,7 @@ def calcADPAxes(atoms, **kwargs):
     
     """
     
-    if linalg is None: 
-        prody.importLA()
+    linalg = importLA()
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms must be of type Atomic, not {0:s}'
                         .format(type(atoms)))
@@ -973,8 +969,7 @@ def calcADPs(atom):
     *atom* must have ATF values set for ADP calculation. ADPs are returned
     as a tuple, i.e. (eigenvalues, eigenvectors)."""
     
-    if linalg is None: 
-        prody.importLA()
+    linalg = importLA()
     if not isinstance(atom, prody.Atom):
         raise TypeError('atom must be of type Atom, not {0:s}'
                         .format(type(atom)))
