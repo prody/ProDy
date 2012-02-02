@@ -94,8 +94,6 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'trimEnsemble',
            'parseDCD', 'writeDCD']
         
-plt = None
-
 def checkWeightsArray(weights, n_atoms, n_csets=None):
     """Return weights if checks pass, otherwise raise an exception."""
     
@@ -1592,8 +1590,8 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
     plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
     
-    if plt is None: prody.importPyPlot()
-    if not plt: return None
+    import matplotlib.pyplot as plt
+
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
     weights = calcOccupancies(pdbensemble)

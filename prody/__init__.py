@@ -113,19 +113,6 @@ def importScipySparseLA():
                           'imported.')
     dynamics.scipy_sparse_la = linalg
 
-def importPyPlot():
-    try:
-        import matplotlib.pyplot as pyplot
-        from mpl_toolkits.mplot3d import Axes3D
-        dynamics.Axes3D = Axes3D
-        proteins.Axes3D = Axes3D 
-    except ImportError:
-        pyplot = False 
-        LOGGER.warning('Matplotlib is required for plotting.')
-    dynamics.plt = pyplot
-    ensemble.plt = pyplot
-    proteins.plt = pyplot
-
 SETTINGS = PackageSettings(logger=LOGGER) 
 SETTINGS.load()
 

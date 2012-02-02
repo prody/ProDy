@@ -154,7 +154,6 @@ import sys
 from glob import glob
 from collections import defaultdict
 
-plt = None
 import numpy as np
 
 from tools import *
@@ -3554,7 +3553,8 @@ def showProtein(*atoms, **kwargs):
     for atoms in alist:    
         if not isinstance(atoms, prody.Atomic):
             raise TypeError('atoms must be an Atomic instance')
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     cf = plt.gcf()
     show = None
     for child in cf.get_children():

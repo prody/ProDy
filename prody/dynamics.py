@@ -283,7 +283,6 @@ import sys
 import numpy as np
 linalg = None
 scipyla = None
-plt = None
 scipy_sparse = None
 scipy_sparse_la = None
 
@@ -1898,8 +1897,7 @@ class PCA(NMABase):
         an approximate method when heterogeneous datasets are analyzed. 
         Covariance method should be preferred over this one for analysis of 
         ensembles with missing atomic data.  See :ref:`pca-xray-calculations`
-        example for comparison of results from SVD and covariance methods.
-        """
+        example for comparison of results from SVD and covariance methods."""
 
         if linalg is None:
             prody.importLA()
@@ -1970,8 +1968,7 @@ class PCA(NMABase):
         
         For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
         and values must have shape ``(M,)``.  Eigenvalues are also set as the 
-        variances.
-        """
+        variances."""
         
         NMABase.setEigens(self, vectors, values)
         self._vars = self._eigvals.copy()
@@ -1980,9 +1977,7 @@ class EDA(PCA):
     
     """A class for Essential Dynamics Analysis (EDA) [AA93]_.
     
-    |example| See examples in :ref:`eda`.
-    
-    """
+    |example| See examples in :ref:`eda`."""
 
     def __repr__(self):
         return '<EDA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
@@ -2001,9 +1996,7 @@ class Gamma(object):
     Derived classes:
         
     * :class:`GammaStructureBased`
-    * :class:`GammaVariableCutoff`
-    
-    """
+    * :class:`GammaVariableCutoff`"""
     
     
     def __init__(self):
@@ -2014,9 +2007,7 @@ class Gamma(object):
         
         For efficiency purposes square of the distance between interacting
         atom/residue (node) pairs is passed to this function. In addition, 
-        node indices are passed.
-        
-        """
+        node indices are passed."""
         
         pass
     
@@ -2085,9 +2076,7 @@ class GammaStructureBased(Gamma):
     >>> k[0,1] # a pair of connected residues
     -10.0
     >>> k[0,16] # a pair of residues from a sheet
-    -6.0
-    
-    """
+    -6.0"""
     
     def __init__(self, atoms, gamma=1.0, helix=6.0, sheet=6.0, connected=10.0):
         """Setup the parameters.
@@ -2110,8 +2099,7 @@ class GammaStructureBased(Gamma):
             
         :arg connected: Force constant factor for residue pairs that are
             connected. Default is 10.0, i.e. ``10.0`*gamma``.
-        :type connected: float
-        """
+        :type connected: float"""
         
         if not isinstance(atoms, prody.Atomic):
             raise TypeError('atoms must be an Atomic instance')
@@ -2251,9 +2239,7 @@ class GammaVariableCutoff(Gamma):
     
     For pairs of atoms for which the actual distance is larger than the 
     effective cutoff, the :meth:`GammaVariableCutoff.gamma` method returns 
-    ``0``.  This annuls the interaction between those atom pairs.
-    
-    """
+    ``0``.  This annuls the interaction between those atom pairs."""
     
     def __init__(self, identifiers, gamma=1., default_radius=7.5, debug=False, 
                  **kwargs):
@@ -2273,9 +2259,7 @@ class GammaVariableCutoff(Gamma):
         :type debug: bool
         
         Keywords in keyword arguments must match those in *atom_identifiers*.
-        Values of keyword arguments must be :class:`float`.  
-        
-        """
+        Values of keyword arguments must be :class:`float`."""
         
         self._identifiers = identifiers
         radii = np.ones(len(identifiers)) * default_radius
@@ -2327,8 +2311,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     replaced with ``"_"`` (underscores).  Extension may differ based on 
     the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
     Upon successful completion of saving, filename is returned. This 
-    function makes use of :func:`numpy.savez` function.
-    """
+    function makes use of :func:`numpy.savez` function."""
     
     if not isinstance(nma, NMABase):
         raise TypeError('invalid type for nma, {0:s}'.format(type(nma)))
@@ -2592,8 +2575,7 @@ def writeNMD(filename, modes, atoms):
        #. This function skips modes with zero eigenvalues.
        #. If a :class:`Vector` instance is given, it will be normalized before
           it is written. It's length before normalization will be written
-          as the scaling factor of the vector.
-    """
+          as the scaling factor of the vector."""
     
     if not isinstance(modes, (NMABase, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
@@ -2694,8 +2676,7 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     instance.
     
     .. versionchanged:: 0.6
-       Returns also the :class:`~prody.atomic.Selection` instance.
-    """
+       Returns also the :class:`~prody.atomic.Selection` instance."""
     
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
@@ -2723,9 +2704,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     instance.  
     
     .. versionchanged:: 0.6
-       Returns also the :class:`~prody.atomic.Selection` instance.
-    
-    """
+       Returns also the :class:`~prody.atomic.Selection` instance."""
     
     if isinstance(pdb, str):
         ag = prody.parsePDB(pdb)
@@ -2755,8 +2734,7 @@ def calcCollectivity(mode, masses=None):
     :type mode: :class:`Mode` or :class:`Vector`
     
     :arg masses: atomic masses
-    :type masses: :class:`numpy.ndarray`
-    """
+    :type masses: :class:`numpy.ndarray`"""
     
     is3d = mode.is3d()
     if masses is not None:
@@ -2782,8 +2760,7 @@ def calcProjection(ensemble, modes, rmsd=True):
        By default root-mean-square deviation (RMSD) along the normal mode is 
        calculated. To calculate the projection pass ``rmsd=True``.
        :class:`Vector` instances are accepted as *ensemble* argument to allow
-       for projecting a deformation vector onto normal modes.  
-    """
+       for projecting a deformation vector onto normal modes."""
     
     if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
                                  prody.Vector)):
@@ -2825,8 +2802,7 @@ def calcOverlap(rows, cols):
     argument, and columns correspond to those passed as *cols* argument.
     
     .. versionchanged:: 0.7
-       Both rows and columns are normalized prior to calculating overlap.       
-    """
+       Both rows and columns are normalized prior to calculating overlap."""
     
     if not isinstance(rows, (NMABase, ModeSet, Mode, Vector)):
         raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0:s}'
@@ -2857,8 +2833,7 @@ def printOverlapTable(rows, cols):
                         #1     #2     #3
     PCA p38 xray #1   -0.39  +0.04  -0.71
     PCA p38 xray #2   -0.78  -0.20  +0.22
-    PCA p38 xray #3   +0.05  -0.57  +0.06
-    """
+    PCA p38 xray #3   +0.05  -0.57  +0.06"""
     
     print getOverlapTable(rows, cols)
 
@@ -2993,8 +2968,7 @@ def sliceVector(vector, atoms, selstr):
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)
-    """
+    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)"""
     
     if not isinstance(vector, VectorBase):
         raise TypeError('vector must be a VectorBase instance, not {0:s}'
@@ -3042,9 +3016,7 @@ def sliceMode(mode, atoms, selstr):
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)
-    
-    """
+    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)"""
     
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, not {0:s}'
@@ -3083,8 +3055,7 @@ def sliceModel(model, atoms, selstr):
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: (:class:`NMA`, :class:`~prody.atomic.Selection`)
-    """
+    :returns: (:class:`NMA`, :class:`~prody.atomic.Selection`)"""
     
     if not isinstance(model, NMABase):
         raise TypeError('mode must be a NMABase instance, not {0:s}'
@@ -3133,8 +3104,7 @@ def reduceModel(model, atoms, selstr):
     :arg model: dynamics model
     :type model: :class:`ANM`, :class:`GNM`, or :class:`PCA`
     :arg atoms: atoms that were used to build the model
-    :arg selstr: a selection string specifying subset of atoms  
-    """
+    :arg selstr: a selection string specifying subset of atoms"""
     
     if linalg is None:
         prody.importLA()
@@ -3200,8 +3170,7 @@ def writeModes(filename, modes, format='%.18e', delimiter=' '):
     *filename*. See also :func:`writeArray`.
     
     .. versionchanged:: 0.5.3
-       A decompressed file is outputted.
-    """
+       A decompressed file is outputted."""
     
     if not isinstance(modes, (NMABase, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
@@ -3262,8 +3231,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
         number of modes in *normalmodes*.
     :type ev_usevalues: list
     
-    See :func:`parseArray` for details of parsing arrays from files.
-    """
+    See :func:`parseArray` for details of parsing arrays from files."""
     
     modes = parseArray(normalmodes, delimiter=nm_delimiter, 
                        skiprows=nm_skiprows, usecols=nm_usecols)
@@ -3325,8 +3293,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
     :type usecols: list
     
     :arg dtype: Data-type of the resulting array, default is :func:`float`. 
-    :type dtype: :class:`numpy.dtype`.
-    """
+    :type dtype: :class:`numpy.dtype`."""
 
     array = np.loadtxt(filename, dtype=dtype, delimiter=delimiter, 
                        skiprows=skiprows, usecols=usecols)
@@ -3474,9 +3441,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
        :context:
        :nofigs:
         
-       plt.close('all')
-    
-    """
+       plt.close('all')"""
+       
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -3571,10 +3537,10 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     if not isinstance(modes, (NMABase, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -3591,7 +3557,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         if len(onto) != 3:
             raise ValueError('length of onto is not equal to 3')
         if onto.numAtoms() != modes.numAtoms():
-            raise ValueError('modes and onto does not have same number of atoms')
+            raise ValueError('modes and onto must have same number of atoms')
         
     u = np.linspace(0, 2 * np.pi, 100)
     v = np.linspace(0, np.pi, 100)
@@ -3600,9 +3566,9 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     var = modes.getVariances()
     #randn = np.random.standard_normal((1000, 3))
     #coef = ((randn ** 2 * var).sum(1) ** 0.5).mean()
-    #scale = float(n_std) * modes.numAtoms()**0.5 * float(rmsd) / coef * var ** 0.5
+    #scale=float(n_std)*modes.numAtoms()**.5 * float(rmsd) / coef * var **.5
     scale = float(n_std) * scale * var ** 0.5
-    #scale = float(n_std) * modes.numAtoms() ** 0.5 * float(rmsd) / var.sum() ** 0.5 * var ** 0.5   
+    #scale=float(n_std)*modes.numAtoms()**.5*float(rmsd)/var.sum()**.5*var**.5   
 
     x = scale[0] * np.outer(np.cos(u), np.sin(v))
     y = scale[1] * np.outer(np.sin(u), np.sin(v))
@@ -3686,8 +3652,8 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
        :context:
        :nofigs:
         
-       plt.close('all')
-    """
+       plt.close('all')"""
+       
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0:s}'.format(type(mode)))
@@ -3754,9 +3720,7 @@ def deformAtoms(atoms, mode, rmsd=None):
     ...                            p38_pca[1] * p38_pca[1].getVariance()**0.5)
     >>> deformAtoms(p38_structure, p38_pca[0], rmsd=1.0)
     >>> print calcRMSD(p38_structure).round(3)
-    [ 0.     0.41   0.308  0.513  1.   ]
-    
-    """
+    [ 0.     0.41   0.308  0.513  1.   ]"""
 
     if not isinstance(atoms, AtomGroup):
         raise TypeError('atoms must be an AtomGroup, not {0:s}'
@@ -4095,13 +4059,12 @@ def showFractOfVar(modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')
+       plt.close('all')"""
     
-    """
-    
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(modes, (ModeSet, NMABase)):
-        raise TypeError('modes must be NMABase, or ModeSet, not {0:s}'.format(type(modes)))
+        raise TypeError('modes must be NMABase, or ModeSet, not {0:s}'
+                        .format(type(modes)))
     
     fracts = [(mode.getIndex(), mode.getFractOfVariance()) for mode in modes]
     fracts = np.array(fracts)
@@ -4128,7 +4091,7 @@ def showCumFractOfVar(modes, *args, **kwargs):
     Note that mode indices are incremented by 1.
     See :func:`showFractOfVar` for an example."""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(modes, (Mode, NMABase, ModeSet)):
         raise TypeError('modes must be a Mode, NMABase, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
@@ -4193,11 +4156,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')
-       
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
+    
     if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
                                  prody.Vector)):
         raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
@@ -4231,6 +4193,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['ls'] = 'None'
         if 'marker' not in kwargs:
             kwargs['marker'] = 'o'
+        from mpl_toolkits.mplot3d import Axes3D
         projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True)) 
         modes = [m for m in modes]
         cf = plt.gcf()
@@ -4294,10 +4257,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
 
        plt.close('all')
        
-    |example| See :ref:`pca-xray-plotting` for a more elaborate example.
-       
-    """
-    if not plt: prody.importPyPlot()
+    |example| See :ref:`pca-xray-plotting` for a more elaborate example."""
+
+    import matplotlib.pyplot as plt
     if not isinstance(ensemble, (prody.Ensemble, prody.Conformation, 
                                  prody.Vector)):
         raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
@@ -4363,10 +4325,9 @@ def showOverlapTable(rows, cols, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all') 
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(rows, (NMABase, ModeSet)):
         raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'
                         .format(type(rows)))
@@ -4412,11 +4373,9 @@ def showCrossCorr(modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')
+       plt.close('all')"""
     
-    """
-    
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     arange = np.arange(modes.numAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
@@ -4448,11 +4407,9 @@ def showMode(mode, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')
-       
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
                         'not {0:s}'.format(type(mode)))
@@ -4483,11 +4440,9 @@ def showSqFlucts(modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')
+       plt.close('all')"""
     
-    """
-    
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes) 
@@ -4514,11 +4469,9 @@ def showScaledSqFlucts(modes, *args, **kwargs):
        :context:
        :nofigs:
 
-       plt.close('all')
-       
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     sqf = calcSqFlucts(modes)
     mean = sqf.mean()
     args = list(args)
@@ -4556,11 +4509,9 @@ def showNormedSqFlucts(modes, *args, **kwargs):
        :context:
        :nofigs:
 
-       plt.close('all')
-       
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
@@ -4596,11 +4547,9 @@ def showContactMap(enm, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all') 
-       
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(enm, GNMBase):
         raise TypeError('model argument must be an ENM instance')
     kirchhoff = enm.getKirchhoff()
@@ -4632,11 +4581,9 @@ def showOverlap(mode, modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all') 
-       
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be Mode or Vector, not {0:s}'
                         .format(type(mode)))
@@ -4680,11 +4627,9 @@ def showCumOverlap(mode, modes, *args, **kwargs):
        :context:
        :nofigs:
         
-       plt.close('all')  
-          
-    """
+       plt.close('all')"""
     
-    if not plt: prody.importPyPlot()
+    import matplotlib.pyplot as plt
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'
                         .format(type(mode)))
@@ -4708,6 +4653,7 @@ def resetTicks(x, y=None):
     current figure should not be fractional values for this function to work as
     expected."""
     
+    import matplotlib.pyplot as plt
     if x is not None:
         try:    
             xticks = plt.xticks()[0]
