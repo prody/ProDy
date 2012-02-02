@@ -2453,11 +2453,8 @@ def getVMDpath():
         #from types import StringType, UnicodeType
         vmdbin = None
         vmddir = None
-        if sys.platform == 'win32': 
-            if PY3K:
-                import winreg as _winreg
-            else:
-                import _winreg
+        if PLATFORM == 'Windows': 
+            import _winreg
             for vmdversion in ('1.8.7', '1.9', '1.9.1'): 
                 try:
                     key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
@@ -2482,9 +2479,8 @@ def getVMDpath():
                 vmdbin = pipe.next().strip()
                 vmdfile = open(vmdbin)
                 for line in vmdfile:
-                    if 'defaultvmddir' in line:
-                        exec(line.strip())
-                        vmddir = defaultvmddir
+                    if line.startswith('defaultvmddir='):
+                        vmddir = line.split('=')[1].replace('"', '')
                         break
                 vmdfile.close()
         if False and \
