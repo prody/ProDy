@@ -264,7 +264,7 @@ def test(**kwargs):
             LOGGER.warning('Could not import ProDy unit tests, '
                            'please check your installation.')
         else:
-            tests.test(**kwargs)
+            prody.tests.test(**kwargs)
     else:
         LOGGER.warning('ProDy tests are available for Python 2.7') 
 
