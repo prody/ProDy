@@ -96,22 +96,7 @@ def importLA():
                               'NMA calculations and aligning structures.')
     dynamics.linalg = linalg
     measure.linalg = linalg
-
-def importScipySparse():
-    try:
-        from scipy import sparse
-    except ImportError:    
-        raise ImportError('scipy.sparse is required, but could not be '
-                          'imported.')
-    dynamics.scipy_sparse = sparse
-    
-def importScipySparseLA():
-    try:
-        from scipy.sparse import linalg
-    except ImportError:    
-        raise ImportError('scipy.sparse is required, but could not be '
-                          'imported.')
-    dynamics.scipy_sparse_la = linalg
+   
 
 SETTINGS = PackageSettings(logger=LOGGER) 
 SETTINGS.load()

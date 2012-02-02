@@ -283,8 +283,6 @@ import sys
 import numpy as np
 linalg = None
 scipyla = None
-scipy_sparse = None
-scipy_sparse_la = None
 
 import prody
 from atomic import *
@@ -1336,7 +1334,11 @@ class GNM(GNMBase):
         n_atoms = coords.shape[0]
         start = time.time()
         if kwargs.get('sparse', False):
-            prody.importScipySparse()
+            try:
+                from scipy import sparse as scipy_sparse
+            except ImportError:    
+                raise ImportError('failed to import scipy.sparse, which  is '
+                                  'required for sparse matrix calculations')
             kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
@@ -1416,7 +1418,12 @@ class GNM(GNMBase):
                 values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo, 
                                               eigvals=eigvals)
             else:
-                prody.importScipySparseLA()
+                try:
+                    from scipy.sparse import linalg as scipy_sparse_la
+                except ImportError:    
+                    raise ImportError('failed to import scipy.sparse.linalg, '
+                                      'which is required for sparse matrix '
+                                      'decomposition')
                 try:
                     values, vectors = scipy_sparse_la.eigsh(
                                 self._kirchhoff, k=n_modes + 1, which='SA')
@@ -1555,7 +1562,11 @@ class ANM(GNMBase):
         start = time.time()
         
         if kwargs.get('sparse', False):
-            prody.importScipySparse()
+            try:
+                from scipy import sparse as scipy_sparse
+            except ImportError:    
+                raise ImportError('failed to import scipy.sparse, which  is '
+                                  'required for sparse matrix calculations')
             kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
             hessian = scipy_sparse.lil_matrix((dof, dof))
         else:
@@ -1657,7 +1668,12 @@ class ANM(GNMBase):
                 values, vectors = linalg.eigh(self._hessian, turbo=turbo, 
                                               eigvals=eigvals)
             else:
-                prody.importScipySparseLA()
+                try:
+                    from scipy.sparse import linalg as scipy_sparse_la
+                except ImportError:    
+                    raise ImportError('failed to import scipy.sparse.linalg, '
+                                      'which is required for sparse matrix '
+                                      'decomposition')
                 try:
                     values, vectors = scipy_sparse_la.eigsh(
                             self._hessian, k=n_modes+6, which='SA')
@@ -4339,7 +4355,8 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         rows = rows[:]
     if isinstance(cols, NMABase):
         cols = cols[:]
-    show = plt.pcolor(overlap, cmap=plt.cm.jet, *args, **kwargs), plt.colorbar()
+    show = plt.pcolor(overlap, cmap=plt.cm.jet, *args, **kwargs), 
+                      plt.colorbar()
     x_range = np.arange(1, len(cols)+1)
     plt.xticks(x_range-0.5, x_range)
     plt.xlabel(str(cols))
