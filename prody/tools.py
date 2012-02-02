@@ -433,7 +433,7 @@ def checkCoords(array, arg='array', cset=False, n_atoms=None,
     if not isinstance(array, np.ndarray):
         raise TypeError(arg + ' must be a Numpy array')
     elif cset and array.ndim not in (2,3): 
-        raise ValueError(arg + '.ndim must be  2 or 3'.format(ndim))
+        raise ValueError(arg + '.ndim must be 2 or 3')
     elif not cset and array.ndim != 2:
         raise ValueError(arg + '.ndim must be 2')
     elif array.shape[-1] != 3:
