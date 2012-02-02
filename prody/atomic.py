@@ -3384,7 +3384,6 @@ class HierView(object):
             raise TypeError('atoms must be an AtomGroup or Selection instance')
         self._atoms = atoms
         self.update(**kwargs)
-
         
     def __repr__(self):
         
@@ -3675,7 +3674,7 @@ class HierView(object):
     def getSegment(self, segname):
         """Return segment with name *segname*, if it exists."""
         
-        return self._segments.get(segname or None)
+        return self._dict.get(segname or None)
 
     def numSegments(self):
         """Return number of chains."""
@@ -3730,7 +3729,7 @@ class Bond(object):
 
         return self._acsi
         
-    def setACSIndex(self):
+    def setACSIndex(self, index):
         """Set the coordinate set at *index* active."""
 
         if self._ag._coords is None:
@@ -3840,7 +3839,8 @@ def saveAtoms(atoms, filename=None, **kwargs):
         else:
             bonds = trimBonds(bonds, bmap, atoms._getIndices())
             attr_dict['bonds'] = bonds
-            attr_dict['bmap'], attr_dict['numbonds'] = evalBonds(bonds)
+            attr_dict['bmap'], attr_dict['numbonds'] = \
+                evalBonds(bonds, len(atoms))
         
     for key, data in ag._data.iteritems():
         if key == 'numbonds':
@@ -3914,8 +3914,3 @@ def loadAtoms(filename):
             ag.setCSLabels(list(attr_dict['cslabels']))
     LOGGER.timing('Atom group was loaded in %.2fs.')
     return ag
-
-if __name__ == '__main__':
-    from prody import *
-    p = parsePDB('1aar')
-    saveAtoms(p)
