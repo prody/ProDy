@@ -4355,8 +4355,8 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         rows = rows[:]
     if isinstance(cols, NMABase):
         cols = cols[:]
-    show = plt.pcolor(overlap, cmap=plt.cm.jet, *args, **kwargs), 
-                      plt.colorbar()
+    show = (plt.pcolor(overlap, cmap=plt.cm.jet, *args, **kwargs), 
+            plt.colorbar())
     x_range = np.arange(1, len(cols)+1)
     plt.xticks(x_range-0.5, x_range)
     plt.xlabel(str(cols))
