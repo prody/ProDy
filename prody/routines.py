@@ -325,7 +325,7 @@ def prody_pca(opt):
             select.setCoords(dcd.getCoords())
         pca = prody.PCA(dcd.getTitle())
         if len(dcd) > 1000:
-            pca.buildHessian(dcd)
+            pca.buildCovariance(dcd)
             pca.calcModes(dcd)
         else:
             pca.performSVD(dcd[:])
@@ -605,7 +605,7 @@ def prody_blast(opt):
     if opt.folder:
         LOGGER.info('Downloading hits to ' + opt.folder)
         pdblist = [ pdb for identity, pdb in hits2 ]
-        pdblist2 = fetchPDB(pdblist, opt.folder)
+        pdblist2 = prody.fetchPDB(pdblist, opt.folder)
 
 def prody_fetch(opt):
     """Fetch PDB files from PDB FTP server."""
@@ -639,7 +639,7 @@ def prody_select(opt):
     pdbselect = pdb.select(opt.selstr)
     if pdbselect is None:
         opt.subparser('Selection "{0:s}" do not match any atoms.'
-                      .format(args[1]))
+                      .format(opt.selstr))
     LOGGER.info('Writing ' + prefix + '.pdb')
     prody.writePDB(prefix + '.pdb', pdbselect)
 
