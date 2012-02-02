@@ -822,7 +822,7 @@ def getAtomNameRegex(name):
     try:
         return KEYWORD_NAME_REGEX[name].pattern   
     except KeyError:
-        LOGGER.warning('{0:s} is not a valid element'.format(keyword))
+        LOGGER.warning('{0:s} is not a valid element'.format(name))
 
 def setAtomNameRegex(name, regex):
     """Set regular expression used for selecting common elements.
