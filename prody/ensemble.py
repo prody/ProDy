@@ -119,7 +119,7 @@ def checkWeightsArray(weights, n_atoms, n_csets=None):
         try:
             weights = weights.astype(float)
         except ValueError:
-            raise ValueError(arg + '.astype(float) fails, float type could '
+            raise ValueError('weights.astype(float) failed, float type could '
                              'not be assigned')
     if np.any(weights < 0):
         raise ValueError('all weights must greater or equal to 0')
@@ -317,7 +317,7 @@ class EnsembleBase(object):
             return None
         if self._sel is None:
             return self._weights.copy()
-        if self.weights.ndim == 2:
+        if self._weights.ndim == 2:
             return self._weights[self._indices]
         else:
             return self._weights[:, self._indices]
@@ -328,7 +328,7 @@ class EnsembleBase(object):
             return None
         if self._sel is None:
             return self._weights
-        if self.weights.ndim == 2:
+        if self._weights.ndim == 2:
             return self._weights[self._indices]
         else:
             return self._weights[:, self._indices]
@@ -1443,9 +1443,9 @@ class Frame(ConformationBase):
 
         indices = self._indices 
         if indices is None:
-            return self._coords - ensemble._coords
+            return self._coords - self._ensemble._coords
         else:
-            return self._coords[indices] - ensemble._coords[indices]
+            return self._coords[indices] - self._ensemble._coords[indices]
 
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates."""
@@ -1588,7 +1588,7 @@ def showSumOfWeights(pdbensemble, *args, **kwargs):
     prody.deprecate('showSumOfWeights', 'showOccupancies')
     return showOccupancies(pdbensemble, *args, **kwargs)
 
-def showOccupancies(pdb_ensemble, *args, **kwargs):
+def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
     plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
     
@@ -2228,7 +2228,7 @@ class DCDFile(TrajectoryFile):
         else:            
             return TrajectoryFile.getCoordsets(self, indices)
     
-        getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
+    getCoordsets.__doc__ = TrajectoryBase.getCoordsets.__doc__
 
     def write(self, coords, unitcell=None, **kwargs):
         """Write *coords* to the file.  Number of atoms will be determined 
@@ -2340,8 +2340,8 @@ class DCDFile(TrajectoryFile):
         """Flush the internal output buffer."""
         
         if self._mode != 'r':
-            dcd.flush()
-            os.fsync(dcd.fileno())
+            self._file.flush()
+            os.fsync(self._file.fileno())
 
 class Trajectory(TrajectoryBase):
     
@@ -2764,34 +2764,3 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         trajectory.goto(nfi)
     return filename
   
-if __name__ == '__main__':
-    import prody
-    dcd = DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    writeDCD('/home/abakan/dene.dcd', dcd)
-    print dcd.getDCDTitle()
-    print dcd.getFrame(852).getUnitcell()
-    new = DCDFile('/home/abakan/dene.dcd')
-    print new.getDCDTitle()
-    print new.getFrame(852).getUnitcell()
-    stop
-    ens = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    ag = prody.parsePDB('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi.pdb')
-    ens.setAtomGroup( ag )
-    ens.select('calpha')
-    ens.superpose()
-    stop
-    ag.setTrajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    dcd = prody.DCDFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    dcd.setAtomGroup( ag )
-    dcd.select( 'calpha' )
-    pca = prody.PCA()
-    pca.buildCovariance(dcd)
-    #traj = Trajectory('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
-    #traj.addFile('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd')
-    #traj.setAtomGroup( ag )
-    #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/eq1.dcd')
-    #dcd = parseDCD('/home/abakan/research/bcianalogs/mdsim/nMbciR/mkp3bcirwi_sim/sim.dcd', indices=np.arange(1000), stride=10)
-    #dcd = parseDCD('/home/abakan/research/mkps/dynamics/mkp3/MKP3.dcd', indices=np.arange(1000), stride=10)
-    
-    
-    
