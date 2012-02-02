@@ -2061,9 +2061,9 @@ def _getNumModels(lines):
     if line:
         i, line = line[0]
         try:
-            header['n_models'] = int(line[10:14])
+            return int(line[10:14])
         except:
-            return None
+            pass
 
 # Make sure that lambda functions defined below won't raise exceptions
 _PDB_HEADER_MAP = {
