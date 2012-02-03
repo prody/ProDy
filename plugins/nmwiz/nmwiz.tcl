@@ -1560,6 +1560,7 @@ orange3"
       variable resolution_protein 10
       variable ndim 3
       variable bothdirections 0
+      variable porcupine 0
       
       #GNM option
       variable msformode "Mobility"
@@ -2386,6 +2387,7 @@ setmode, getlen, setlen, addmode"
         set mode [vecscale [expr $length * $scalearrows] [lindex $modes $whichmode]]
         
         variable bothdirections
+        variable porcupine
         set sel [atomselect $molid $selstr]
         foreach index [$sel get index] {
           set from [expr $index * 3]
@@ -2394,16 +2396,23 @@ setmode, getlen, setlen, addmode"
           set v [lrange $mode $from $to ] 
           if {$hide_shorter < [veclength $v]} {
             set temp [vecadd $xyz $v]
-            graphics $arrid cylinder $xyz $temp radius $cylinder_radius resolution $resolution
-            set temp2 [vecadd $temp [vecscale $v [expr $cone_height / [veclength $v]]]]
-            graphics $arrid cone $temp $temp2 radius $cone_radius resolution $resolution
-            
-            if {$bothdirections} {
-              set v [vecscale -1 $v]
-              set temp [vecadd $xyz $v]
+            if {$porcupine} {
+              graphics $arrid cone $xyz $temp radius $cone_radius resolution $resolution
+            } else { 
               graphics $arrid cylinder $xyz $temp radius $cylinder_radius resolution $resolution
               set temp2 [vecadd $temp [vecscale $v [expr $cone_height / [veclength $v]]]]
               graphics $arrid cone $temp $temp2 radius $cone_radius resolution $resolution
+            }
+            if {$bothdirections} {
+              set v [vecscale -1 $v]
+              set temp [vecadd $xyz $v]
+              if {$porcupine} {
+                graphics $arrid cone $xyz $temp radius $cone_radius resolution $resolution
+              } else { 
+                graphics $arrid cylinder $xyz $temp radius $cylinder_radius resolution $resolution
+                set temp2 [vecadd $temp [vecscale $v [expr $cone_height / [veclength $v]]]]
+                graphics $arrid cone $temp $temp2 radius $cone_radius resolution $resolution
+              }
             }
           }
         }
@@ -2914,7 +2923,7 @@ setmode, getlen, setlen, addmode"
 
         set wgo [labelframe $w.graphics_options -text "Arrow Graphics Options" -bd 2]
         
-        grid [checkbutton $wgo.auto_check -text "auto update arrows" \
+        grid [checkbutton $wgo.auto_check -text "auto update graphics" \
             -variable ${ns}::autoupdate] \
           -row 0 -column 1 -sticky w
 
@@ -2924,7 +2933,11 @@ setmode, getlen, setlen, addmode"
 
         grid [checkbutton $wgo.both_check -text "draw in both directions" \
             -variable ${ns}::bothdirections] \
-          -row 7 -column 1 -columnspan 2 -sticky w
+          -row 7 -column 1 -sticky w
+
+        grid [checkbutton $wgo.porcupine_check -text "use porcupine style" \
+            -variable ${ns}::porcupine] \
+          -row 7 -column 2 -sticky w
 
         grid [label $wgo.hide_label -text "Draw if longer than:"] \
           -row 9 -column 1 -sticky w
@@ -2953,7 +2966,7 @@ setmode, getlen, setlen, addmode"
           $wgo.cylinder_frame.incr $wgo.cylinder_frame.angstrom \
           -side left -anchor w -fill x
 
-        grid [label $wgo.coner_label -text "Arrow cone radius:"] \
+        grid [label $wgo.coner_label -text "Arrow/porcupine cone radius:"] \
           -row 11 -column 1 -sticky w
         grid [frame $wgo.coner_frame] \
           -row 11 -column 2 -sticky w
