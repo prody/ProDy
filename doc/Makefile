@@ -39,9 +39,9 @@ clean:
 	-rm -rf $(BUILDDIR)/* $(DOCDIR)/*
 
 stats:
-	pypstats update -s ProDy_stats.pkl ProDy; \
-	pypstats latest -o _static/ProDy_downloads.csv -d , --rst ProDy; \
-	pypstats monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
+	pyps update -s ProDy_stats.pkl ProDy; \
+	pyps latest -o _static/ProDy_downloads.csv -d , --rst ProDy; \
+	pyps monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
 
 both:
 	cd $(DOCTESTDIR); \
