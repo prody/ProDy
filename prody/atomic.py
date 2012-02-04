@@ -1623,7 +1623,9 @@ class AtomGroup(Atomic):
 
 
     def setTrajectory(self, trajectory):              
-        """Associates atom group with a *trajectory*.  *trajectory* may be a 
+        """This method is deprecated and will be removed in v1.0.
+        
+        Associates atom group with a *trajectory*.  *trajectory* may be a 
         filename or a :class:`~prody.ensemble.Trajectory` instance.  Number of 
         atoms in the atom group and the trajectory must match.  At association
         a new coordinate set will be added to the atom group.  
@@ -1655,12 +1657,16 @@ class AtomGroup(Atomic):
             self._traj = trajectory
         
     def getTrajectory(self):
-        """Return trajectory associated with the atom group."""
+        """This method is deprecated and will be removed in v1.0.
+        
+        Return trajectory associated with the atom group."""
         
         return self._traj
     
     def nextFrame(self, step=1):
-        """Read the next frame from the trajectory and update coordinates.
+        """This method is deprecated and will be removed in v1.0.
+        
+        Read the next frame from the trajectory and update coordinates.
         *step* can be incremented to skip frames.
         
         .. versionadded:: 0.8"""
@@ -1678,13 +1684,17 @@ class AtomGroup(Atomic):
             self._gotoFrame(self._tcsi + step)
                 
     def skipFrame(self, n=1): 
-        """Deprecated, use :meth:`nextFrame`."""
+        """This method is deprecated and will be removed in v1.0.
+        
+        Deprecated, use :meth:`nextFrame`."""
         
         prody.deprecate('skipFrame', 'nextFrame')
         return self.nextFrame(n+1)
     
     def gotoFrame(self, n):
-        """Read frame *n* from the trajectory and update coordinates.
+        """This method is deprecated and will be removed in v1.0.
+        
+        Read frame *n* from the trajectory and update coordinates.
         
         .. versionadded:: 0.8"""
         
@@ -1694,7 +1704,9 @@ class AtomGroup(Atomic):
         self._setTimeStamp(self._acsi)
     
     def getFrameIndex(self):
-        """Return current trajectory frame index, ``None`` if atoms are not
+        """This method is deprecated and will be removed in v1.0.
+        
+        Return current trajectory frame index, ``None`` if atoms are not
         associated with a trajectory.
         
         .. versionadded:: 0.8"""
