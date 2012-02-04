@@ -206,11 +206,23 @@ class EnsembleBase(object):
         return len(self._indices) 
     
     def getAtomGroup(self):
-        """Return associated atom group instance."""
+        """Deprecated, use :meth:`getAtoms`"""
+        
+        prody.deprecate('getAtomGroup', 'getAtoms')
+        return self.getAtoms()
+        
+    def getAtoms(self):
+        """Return associated atom group."""
         
         return self._ag
     
     def setAtomGroup(self, ag, setref=True):
+        """Deprecated, use :meth:`setAtoms`"""
+        
+        prody.deprecate('setAtomGroup', 'setAtoms')
+        self.setAtoms(ag, setref)
+    
+    def setAtoms(self, ag, setref=True):
         """Associate the instance with an :class:`~prody.atomic.AtomGroup`.
         Note that at association, active coordinate set of the 
         :class:`~prody.atomic.AtomGroup`, if it has one, will be set as 
