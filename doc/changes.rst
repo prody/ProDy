@@ -6,8 +6,24 @@
 Changes
 *******************************************************************************
 
-Release 0.9.4 (in development)
+Release 0.9.4 (Feb 4, 2012)
 ===============================================================================
+
+**Changes**:
+
+  * :meth:`setAtomGroup` and :meth:`getAtomGroup` methods are renamed as 
+    :meth:`~ensemble.EnsembleBase.setAtoms` and 
+    :meth:`~ensemble.EnsembleBase.getAtoms`.
+    
+  * :class:`~atomic.AtomGroup` class trajectory methods, e.g.
+    :meth:`~atomic.AtomGroup.setTrajectory`, 
+    :meth:`~atomic.AtomGroup.getTrajectory`, 
+    :meth:`~atomic.AtomGroup.nextFrame`,
+    :meth:`~atomic.AtomGroup.nextFrame`, and 
+    :meth:`~atomic.AtomGroup.gotoFrame` 
+    methods are deprecated. Version 1.0 will feature a better integration
+    of :class:`~atomic.AtomGroup` and :class:`~ensemble.Trajectory` classes.
+
 
 **Bugfix**:
 

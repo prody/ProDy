@@ -6,6 +6,44 @@
 Changes
 *******************************************************************************
 
+Release 0.9.4 (Feb 4, 2012)
+===============================================================================
+
+**Changes**:
+
+  * :meth:`setAtomGroup` and :meth:`getAtomGroup` methods are renamed as 
+    :meth:`~ensemble.EnsembleBase.setAtoms` and 
+    :meth:`~ensemble.EnsembleBase.getAtoms`.
+    
+  * :class:`~atomic.AtomGroup` class trajectory methods, e.g.
+    :meth:`~atomic.AtomGroup.setTrajectory`, 
+    :meth:`~atomic.AtomGroup.getTrajectory`, 
+    :meth:`~atomic.AtomGroup.nextFrame`,
+    :meth:`~atomic.AtomGroup.nextFrame`, and 
+    :meth:`~atomic.AtomGroup.gotoFrame` 
+    methods are deprecated. Version 1.0 will feature a better integration
+    of :class:`~atomic.AtomGroup` and :class:`~ensemble.Trajectory` classes.
+
+
+**Bugfix**:
+
+  * Bugfixes in :meth:`~atomic.Bond.setACSIndex`, :func:`~atomic.saveAtoms`,
+    and :meth:`~atomic.HierView.getSegment`.
+    
+  * Bugfixes in :class:`~dynamics.GammaVariableCutoff` and 
+    :class:`~dynamics.GammaStructureBased` classes.
+
+  * Bugfix in :func:`~dynamics.calcCrossCorr` function.
+
+  * Bugfixes in :meth:`~ensemble.EnsembleBase.getWeights`, 
+    :func:`~ensemble.showOccupancies`, :meth:`~ensemble.DCDFile.flush`.
+    
+  * Bugfixes in ProDy commands :ref:`command-blast`, :ref:`command-fetch`, and
+    :ref:`command-pca`.
+
+  * Bugfix in :func:`~measure.calcCenter` function.
+
+
 Release 0.9.3 (Feb 1, 2012)
 ===============================================================================
 
@@ -67,7 +105,7 @@ Release 0.9.3 (Feb 1, 2012)
     are proximal.  
     
   * :meth:`~atomic.AtomGroup.iterAtoms` method is implemented to all 
-    :mod:`atomic` classes to provide uniformity for atom iterations.
+    :mod:`~atomic` classes to provide uniformity for atom iterations.
     
   * :meth:`~measure.calcAngle`, :meth:`~measure.calcDihedral`, 
     :meth:`~measure.calcPhi`, :meth:`~measure.calcPsi`, and 
