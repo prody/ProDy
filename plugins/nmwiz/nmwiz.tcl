@@ -102,7 +102,7 @@ namespace eval ::NMWiz:: {
       $log.text insert end "--------------\n\n"
       $log.text insert end "Select the active mode for which you want to draw arrows or make an animation. "
       $log.text insert end "Direction of arrows depicting the normal mode can be changed using +/- button. "
-      $log.text insert end "Arrows can be drawn along both directions by changing the options Arrow Graphics Options panel. "
+      $log.text insert end "Arrows can be drawn along both directions by changing the options Mode Graphics Options panel. "
       $log.text insert end "The selected color effects both arrow graphics and square fluctuation plots."
       $log.text insert end "\n\n**RMSD**\n\n"
       $log.text insert end "The RMSD corresponding to the displacement described by the arrows is displayed. User can change the RMSD value to rescale the arrows. "
@@ -111,7 +111,7 @@ namespace eval ::NMWiz:: {
       $log.text insert end "Selection entry allows the user to display arrows for a subset of atoms.\n\n"
       $log.text insert end "*TIP*: If the arrow graphics are too crowded or the display is slow, draw arrows for an evenly spaced subset of residues, e.g try 'name CA and residue % 4 == 0', which will draw an arrow for every fourth residue."
       $log.text insert end "\n\n\n"
-      $log.text insert end "Arrow Graphics\n"
+      $log.text insert end "Mode Graphics\n"
       $log.text insert end "--------------\n\n"
       $log.text insert end "Id of the molecule that contains the arrow graphics of the active mode is shown in parentheses.\n\n"
       $log.text insert end "Buttons:\n\n"
@@ -2425,7 +2425,7 @@ setmode, getlen, setlen, addmode"
           molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
         }
         [namespace current]::calcMSF
-        $w.draw_arrows.arrowbuttons_label configure -text "Arrows ($arrid):"
+        $w.draw_arrows.arrowbuttons_label configure -text "Mode ($arrid):"
                 
         variable arridlist
         lset arridlist $whichmode $arrid
@@ -2852,7 +2852,7 @@ setmode, getlen, setlen, addmode"
         set wda [labelframe $w.draw_arrows -text "Actions" -bd 2]
         
         if {$ndim == 3} {
-          grid [label $wda.arrowbuttons_label -text "Arrows:"] \
+          grid [label $wda.arrowbuttons_label -text "Mode:"] \
             -row 5 -column 0 -sticky w
           grid [button $wda.arrowbuttons_draw -text "Draw" \
               -command ${ns}::drawArrows] \
@@ -2921,7 +2921,7 @@ setmode, getlen, setlen, addmode"
 
         pack $wda -side top -fill x -expand 1
 
-        set wgo [labelframe $w.graphics_options -text "Arrow Graphics Options" -bd 2]
+        set wgo [labelframe $w.graphics_options -text "Mode Graphics Options" -bd 2]
         
         grid [checkbutton $wgo.auto_check -text "auto update graphics" \
             -variable ${ns}::autoupdate] \
