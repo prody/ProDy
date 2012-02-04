@@ -266,9 +266,5 @@ from .ensemble import *
 __all__.extend(ensemble.__all__)
 __all__.append('ensemble')
 
-#from . import volume
-#from .volume import *
-#__all__.extend(volume.__all__)
-
 import prody
 __all__.append('prody')
