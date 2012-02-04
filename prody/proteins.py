@@ -2149,8 +2149,6 @@ def parsePSF(filename, title=None, ag=None):
     masses = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['mass'].dtype)
     
     lines = psf.readlines(71 * (n_atoms + 5))
-    index = True  # parse items by indexing 
-    split = False # parse items by splitting
     if len(lines) < n_atoms:
         raise IOError('number of lines in PSF is less than the number of '
                       'atoms')
@@ -2159,36 +2157,25 @@ def parsePSF(filename, title=None, ag=None):
         if i == n_atoms:
             break
         i_line += 1
-        if index:
-            try:            
-                serials[i] = line[:8]
-                segnames[i] = line[9:13].strip()
-                resnums[i] = line[14:19]
-                resnames[i] = line[19:23].strip()
-                atomnames[i] = line[24:28].strip()
-                atomtypes[i] = line[29:35].strip()
-                charges[i] = line[35:44]
-                masses[i] = line[50:60]
-            except:
-                LOGGER.warning('line {0:d} in {1:s} is not formatted as '
-                               'expected, trying alternate method for the '
-                               'rest of the file.'.format(i_line, filename))
-                split = True
-                index = False
-        if split:
-            try:
-                items = line.split()
-                serials[i] = items[0]
-                segnames[i] = items[1]
-                resnums[i] = items[2]
-                resnames[i] = items[3]
-                atomnames[i] = items[4]
-                atomtypes[i] = items[5]
-                charges[i] = items[6]
-                masses[i] = items[7]
-            except:
-                IOError('line {0:d} in {1:s} could not be parsed. Please '
-                        'report this error.'.format(i_line, filename))
+        if len(line) <= 71:
+            serials[i] = line[:8]
+            segnames[i] = line[9:13].strip()
+            resnums[i] = line[14:19]
+            resnames[i] = line[19:23].strip()
+            atomnames[i] = line[24:28].strip()
+            atomtypes[i] = line[29:35].strip()
+            charges[i] = line[35:44]
+            masses[i] = line[50:60]
+        else:
+            items = line.split()
+            serials[i] = items[0]
+            segnames[i] = items[1]
+            resnums[i] = items[2]
+            resnames[i] = items[3]
+            atomnames[i] = items[4]
+            atomtypes[i] = items[5]
+            charges[i] = items[6]
+            masses[i] = items[7]
     
     i = n_atoms
     while 1:
