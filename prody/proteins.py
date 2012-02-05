@@ -172,8 +172,7 @@ PDB_CLUSTERS_UPDATE_WARNING = True
 
 
 __all__ = ['Chemical', 'Polymer', 'DBRef', 'PDBBlastRecord',
-           'assignSecondaryStructure', 'assignSecstr',
-           'applyBiomolecularTransformations', 'buildBiomolecules',
+           'assignSecstr', 'buildBiomolecules',
            'blastPDB', 'fetchPDB', 
            'getPDBLocalFolder', 'getPDBMirrorPath', 'getWWPDBFTPServer', 
            'setPDBLocalFolder', 'setPDBMirrorPath', 'setWWPDBFTPServer',
@@ -2690,12 +2689,6 @@ mapHelix = {
     10: '',  # Polyproline
 }
 
-def assignSecondaryStructure(header, atoms, coil=False):
-    """Deprecated, use :func:`assignSecstr`."""
-    
-    prody.deprecate('assignSecondaryStructure', 'assignSecstr')
-    return assignSecstr(header, atoms, coil)
-
 def assignSecstr(header, atoms, coil=False):
     """Assign secondary structure to *atoms* from *header* dictionary.
 
@@ -2939,12 +2932,6 @@ def fetchLigandData(cci, save=False, folder='.'):
     dict_['ideal'] = ideal
 
     return dict_      
-
-def applyBiomolecularTransformations(header, atoms, biomol=None):
-    """Deprecated, use :func:`buildBiomolecules`."""
-    
-    prody.deprecate('applyBiomolecularTransformations', 'buildBiomolecules')
-    return buildBiomolecules(header, atoms, biomol)
 
 def buildBiomolecules(header, atoms, biomol=None):
     """Return *atoms* after applying biomolecular transformations from *header*
