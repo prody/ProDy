@@ -194,9 +194,7 @@ import measure
 DEBUG = False
 
 __all__ = ['Select', 'Contacts',
-           'getProteinResidueNames', 'setProteinResidueNames',
            'getKeywordResnames', 'setKeywordResnames',
-           'getKeywordResidueNames', 'setKeywordResidueNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
            'getAtomNameRegex', 'setAtomNameRegex',
@@ -743,12 +741,6 @@ mapField2Var = {}
 for field in ATOMIC_DATA_FIELDS.values():
     mapField2Var[field.name] = field.var
 
-def getKeywordResidueNames(keyword):
-    """Deprecated, use :func:`getKeywordResnames`."""
-    
-    prody.deprecate('getKeywordResidueNames', 'getKeywordResnames')
-    return getKeywordResnames(keyword) 
-    
 def getKeywordResnames(keyword):
     """Return residue names associated with a keyword.
     
@@ -771,12 +763,6 @@ def getKeywordResnames(keyword):
         else:
             LOGGER.warning('"{0:s}" is not a keyword'.format(keyword))
 
-def setKeywordResidueNames(keyword, resnames):
-    """Deprecated, use :func:`setKeywordResnames`."""
-    
-    prody.deprecate('setKeywordResidueNames', 'setKeywordResnames')
-    return setKeywordResnames(keyword, resnames)
-    
 def setKeywordResnames(keyword, resnames):
     """Change the list of residue names associated with a keyword.  *keyword* 
     must be a string, and *resnames* may be a list, tuple, or set of strings. 
@@ -893,18 +879,7 @@ def setBackboneAtomNames(backbone_atom_names, full=False):
         BACKBONE_ATOM_NAMES = set(backbone_atom_names)
     _buildKeywordMap()
 
-def getProteinResidueNames():
-    """Deprecated, use :func:`getKeywordResnames`."""
-    
-    prody.deprecate('getProteinResidueNames', 'getKeywordResnames')
-    return getKeywordResnames('protein')
-    
-def setProteinResidueNames(resnames):
-    """Deprecated, use :func:`setKeywordResnames`."""
-    
-    prody.deprecate('setProteinResidueNames', 'setKeywordResnames')
-    return setKeywordResidueNames('protein', resnames)
-    
+
 class SelectionError(Exception):    
     
     def __init__(self, selstr, *args):
