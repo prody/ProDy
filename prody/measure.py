@@ -66,7 +66,7 @@ __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'calcADPAxes', 'calcADPs',  
            'calcDeformVector', 'calcDistance', 'calcCenter',
            'calcAngle', 'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcGyradius', 'calcRadiusOfGyration', 
+           'calcGyradius', 
            'calcRMSD', 'calcTransformation', 
            'moveAtoms', 'superpose']
            
@@ -766,14 +766,6 @@ def iterNeighbors(atoms, radius, atoms2=None):
                         _dict[i] = a2
                     yield (a1, a2, r)   
 
-
-
-def calcRadiusOfGyration(coords, weights=None):
-    """Deprecated, use :meth:`calcGyradius`."""
-    
-    prody.deprecate('calcRadiusOfGyration', 'calcGyradius')
-    return calcGyradius(coords, weights)
-    
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
     
