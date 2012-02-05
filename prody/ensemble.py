@@ -89,9 +89,7 @@ __all__ = ['Ensemble', 'Conformation', 'PDBEnsemble', 'PDBConformation',
            'EnsembleBase', 'TrajectoryBase', 'TrajectoryFile', 
            'ConformationBase',
            'saveEnsemble', 'loadEnsemble',
-           'calcOccupancies', 'showOccupancies', 
-           'calcSumOfWeights', 'showSumOfWeights', 'trimPDBEnsemble',
-           'trimEnsemble',
+           'calcOccupancies', 'showOccupancies', 'trimPDBEnsemble',
            'parseDCD', 'writeDCD']
         
 def checkWeightsArray(weights, n_atoms, n_csets=None):
@@ -148,56 +146,26 @@ class EnsembleBase(object):
     def __len__(self):
         return self._n_csets
 
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-        
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
-        
     def getTitle(self):
         """Return title of the ensemble."""
         
         return self._title
 
-    def setName(self, name):
-        """Deprecated, use :meth:`setTitle`."""
-        
-        prody.deprecate('setName', 'setTitle')
-        return self.setTitle(name)
-        
     def setTitle(self, title):
         """Set title of the ensemble."""
         
         self._title = str(title)
     
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
         return self._n_atoms
    
-    def getNumOfCoordsets(self):
-        """Deprecated, use :meth:`numCoordsets`."""
-        
-        prody.deprecate('getNumOfCoordsets', 'numCoordsets')
-        return self.numCoordsets()
-        
     def numCoordsets(self):
         """Return number of coordinate sets, i.e conformations or frames."""
         
         return self._n_csets
     
-    def getNumOfSelected(self):
-        """Deprecated, use :meth:`numSelected`."""
-        
-        prody.deprecate('getNumOfSelected', 'numSelected')
-        return self.numSelected()
-        
     def numSelected(self):  
         """Return number of selected atoms."""
         
@@ -205,22 +173,10 @@ class EnsembleBase(object):
             return self._n_atoms
         return len(self._indices) 
     
-    def getAtomGroup(self):
-        """Deprecated, use :meth:`getAtoms`"""
-        
-        prody.deprecate('getAtomGroup', 'getAtoms')
-        return self.getAtoms()
-        
     def getAtoms(self):
         """Return associated atom group."""
         
         return self._ag
-    
-    def setAtomGroup(self, ag, setref=True):
-        """Deprecated, use :meth:`setAtoms`"""
-        
-        prody.deprecate('setAtomGroup', 'setAtoms')
-        self.setAtoms(ag, setref)
     
     def setAtoms(self, ag, setref=True):
         """Associate the instance with an :class:`~prody.atomic.AtomGroup`.
@@ -278,12 +234,6 @@ class EnsembleBase(object):
             self._sel = sel
             return sel
     
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return a copy of reference coordinates for selected atoms."""
         
@@ -302,12 +252,6 @@ class EnsembleBase(object):
             return self._coords
         return self._coords[self._indices]
 
-    def setCoordinates(self, coords):
-        """Deprecated, use :meth:`setCoords`."""
-        
-        prody.deprecate('setCoordinates', 'setCoords')
-        return self.setCoords(coords)
-        
     def setCoords(self, coords):
         """Set reference coordinates."""
 
@@ -448,12 +392,6 @@ class Ensemble(EnsembleBase):
     def __str__(self):
         return 'Ensemble {0:s}'.format(self._title)
 
-    def getNumOfConfs(self):
-        """Deprecated, use :meth:`numConfs`."""
-        
-        prody.deprecate('getNumOfConfs', 'numConfs')
-        return self.numConfs()
-        
     def numConfs(self):  
         """Return number of conformations."""
 
@@ -1140,23 +1078,11 @@ class ConformationBase(object):
         return '{0:s} {1:d} from {2:s}'.format(self.__class__.__name__,
                     self._index, self._ensemble.getTitle())
 
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
         return self._ensemble.numAtoms()
     
-    def getNumOfSelected(self):
-        """Deprecated, use :meth:`numSelected`."""
-        
-        prody.deprecate('getNumOfSelected', 'numSelected')
-        return self.numSelected()
-        
     def numSelected(self):
         """Return number of selected atoms."""
         
@@ -1202,12 +1128,6 @@ class Conformation(ConformationBase):
         
         return self._ensemble
     
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected
@@ -1286,12 +1206,6 @@ class PDBConformation(Conformation):
                     self._ensemble._labels[self._index], 
                     self._ensemble.getTitle())
     
-    def getIdentifier(self):
-        """Deprecated, use :meth:`getLabel`."""
-        
-        prody.deprecate('getIdentifier', 'getLabel')
-        return self.getLabel()
-    
     def getLabel(self):
         """Return the label of the conformation.
         
@@ -1300,12 +1214,6 @@ class PDBConformation(Conformation):
         
         return self._ensemble._labels[self._index]
     
-    def setIdentifier(self, label):
-        """Deprecated, use :meth:`setLabel`."""
-        
-        prody.deprecate('setIdentifier', 'setLabel')
-        self.setLabel(label)
-        
     def setLabel(self, label):
         """Set the label of the conformation.
         
@@ -1314,12 +1222,6 @@ class PDBConformation(Conformation):
         1a9u"""
         
         self._ensemble._labels[self._index] = str(label)
-        
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
         
     def getCoords(self):
         """Return a copy of the coordinates of the conformation. If a subset
@@ -1417,12 +1319,6 @@ class Frame(ConformationBase):
         
         return self._ensemble
     
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return a copy of coordinates for selected atoms."""
                 
@@ -1495,13 +1391,6 @@ class Frame(ConformationBase):
                                    ensemble._coords[indices], 
                                    ensemble._weights[indices])
 
-def trimEnsemble(pdbensemble, **kwargs):
-    """Deprecated, use :meth:`trimPDBEnsemble`."""
-    
-    prody.deprecate('trimEnsemble', 'trimPDBEnsemble')
-    return trimPDBEnsemble(pdbensemble, **kwargs)
-
-
 def trimPDBEnsemble(pdb_ensemble, **kwargs):
     """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     
@@ -1552,12 +1441,6 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         trimmed.addCoordset( confs[:, torf], weights[:, torf] )
     return trimmed
 
-def calcSumOfWeights(pdbensemble):
-    """Deprecated, use :meth:`calcOccupancies`."""
-    
-    prody.deprecate('calcSumOfWeights', 'calcOccupancies')
-    return calcOccupancies(pdbensemble)
-    
 def calcOccupancies(pdb_ensemble, normed=False):
     """Return occupancy calculated from weights of a :class:`PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are 
@@ -1592,12 +1475,6 @@ def calcOccupancies(pdb_ensemble, normed=False):
     else:
         return occupancies
     
-def showSumOfWeights(pdbensemble, *args, **kwargs):
-    """Deprecated, use :meth:`showOccupancies`."""
-    
-    prody.deprecate('showSumOfWeights', 'showOccupancies')
-    return showOccupancies(pdbensemble, *args, **kwargs)
-
 def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
     plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
@@ -1666,23 +1543,11 @@ class TrajectoryBase(EnsembleBase):
         
         self.close()
     
-    def getNumOfFrames(self):
-        """Deprecated, use :meth:`numFrames`."""
-        
-        prody.deprecate('getNumOfFrames', 'numFrames')
-        return self.numFrames()
-        
     def numFrames(self):
         """Return number of frames."""
         
         return self._n_csets
     
-    def getNextFrameIndex(self):
-        """Deprecated, use :meth:`getNextIndex`."""
-        
-        prody.deprecate('getNextFrameIndex', 'getNextIndex')
-        return self.getNextIndex()
-        
     def getNextIndex(self):
         """Return the index of the next frame."""
         
@@ -1948,12 +1813,6 @@ class TrajectoryFile(TrajectoryBase):
         
         return self._framefreq
     
-    def getNumOfFixed(self):
-        """Deprecated, use :meth:`numFixed`."""
-        
-        prody.deprecate('getNumOfFixed', 'numFixed')
-        return self.numFixed()
-        
     def numFixed(self):
         """Return number of fixed atoms."""
         
@@ -2431,12 +2290,6 @@ class Trajectory(TrajectoryBase):
         self._n_csets += traj.numFrames()
         self._n_files += 1
    
-    def getNumOfFiles(self):
-        """Deprecated, use :meth:`numFiles`."""
-        
-        prody.deprecate('getNumOfFiles', 'numFiles')
-        return self.numFiles()
-        
     def numFiles(self):
         """Return number of open trajectory files."""
         
@@ -2614,12 +2467,6 @@ class Trajectory(TrajectoryBase):
         
         return [traj.getFrameFreq() for traj in self._trajectories]
     
-    def getNumOfFixed(self):
-        """Deprecated, use :meth:`numFixed`."""
-        
-        prody.deprecate('getNumOfFixed', 'numFixed')
-        return self.numFixed()
-        
     def numFixed(self):
         """Return a list of fixed atom numbers, one from each file."""
         
