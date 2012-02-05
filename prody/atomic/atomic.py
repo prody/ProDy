@@ -117,14 +117,15 @@ else:
 
 import numpy as np
 
-from tools import *
+from prody.tools import *
 import prody
 LOGGER = prody.LOGGER
 
 __all__ = ['Atomic', 'AtomGroup', 'AtomPointer', 'Atom', 'AtomSubset', 
            'Selection', 'Segment', 'Chain', 'Residue', 
-           'AtomMap', 'HierView', 'Bond', 'ATOMIC_DATA_FIELDS',
-           'loadAtoms', 'saveAtoms',]
+           'AtomMap', 'HierView', 'Bond', 
+           'loadAtoms', 'saveAtoms', 
+           'ATOMIC_DATA_FIELDS', 'ATOMIC_ATTRIBUTES']
 
 READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex'])
 
