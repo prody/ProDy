@@ -170,12 +170,6 @@ def closeLogfile(filename):
 
     LOGGER.closeLogfile(filename)
 
-def changeVerbosity(level):
-    """Deprecated, see :func:`setVerbosity`."""
-    
-    deprecate('changeVerbosity', 'setVerbosity')
-    setVerbosity(level)
-    
 def setVerbosity(level):
     """    
 
@@ -226,7 +220,7 @@ def test(**kwargs):
         LOGGER.warning('ProDy tests are available for Python 2.7') 
 
 __all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
-           'startLogfile', 'closeLogfile', 'changeVerbosity',
+           'startLogfile', 'closeLogfile', 
            'plog']
 
 from . import atomic 
