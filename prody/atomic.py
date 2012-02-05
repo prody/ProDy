@@ -648,12 +648,6 @@ class Atomic(object):
                              "and '{2:s}' is not a valid selection string"
                              .format(self.__class__.__name__, name, selstr))
     
-    def getActiveCoordsetIndex(self):
-        """Deprecated, use :meth:`getACSIndex`."""
-        
-        prody.deprecate('getActiveCoordsetIndex', 'getACSIndex')
-        return self.getACSIndex()
-    
     def getACSIndex(self):
         """Return index of the active coordinate set."""
         
@@ -734,30 +728,6 @@ class AtomGroupMeta(type):
             setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set')
             setattr(cls, setMeth, setData)
-            
-            
-            # DEPRECATIONS
-            if field.depr:
-                depr = field.depr_pl
-                getDepr = 'get' + depr
-                setDepr = 'set' + depr
-                # Define public method for retrieving a copy of data array
-                def getData(self, old=getDepr, new=getMeth):
-                    prody.deprecate(old, new, 4)
-                    return self.__getattribute__(new)() 
-                getData = wrapGetMethod(getData)
-                getData.__name__ = getDepr
-                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth)
-                setattr(cls, getDepr, getData)
-                
-                # Define public method for setting values in data array
-                def setData(self, value, old=setDepr, new=setMeth):
-                    prody.deprecate(old, new, 4)
-                    self.__getattribute__(new)(value) 
-                setData = wrapSetMethod(setData)
-                setData.__name__ = setDepr 
-                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(setMeth)
-                setattr(cls, setDepr, setData)
 
 
 class AtomGroup(Atomic):
@@ -1000,34 +970,16 @@ class AtomGroup(Atomic):
             self._sn2i = sn2i
         return self._sn2i
 
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
-        
     def getTitle(self):
         """Return title of the atom group instance."""
         
         return self._title
     
-    def setName(self, name):
-        """Deprecated, use :meth:`setTitle`."""
-
-        prody.deprecate('setName', 'setTitle')
-        return self.setTitle(name)
-        
     def setTitle(self, title):
         """Set title of the atom group instance."""
         
         self._title = str(title)
     
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
@@ -1035,12 +987,6 @@ class AtomGroup(Atomic):
     
     iterAtoms = __iter__
     
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return a copy of coordinates from active coordinate set."""
         
@@ -1055,12 +1001,6 @@ class AtomGroup(Atomic):
             return None
         return self._coords[self._acsi]
 
-    def setCoordinates(self, coordinates):
-        """Deprecated, use :meth:`setCoords`."""
-        
-        prody.deprecate('setCoordinates', 'setCoords')
-        return self.setCoords(coordinates)
-        
     def setCoords(self, coords, label=None):
         """Set coordinates.  *coords* must be a :class:`numpy.ndarray` 
         instance.  If the shape of the coordinates array is 
@@ -1235,12 +1175,6 @@ class AtomGroup(Atomic):
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
-    def getNumOfCoordsets(self):
-        """Deprecated, use :meth:`numCoordsets`."""
-        
-        prody.deprecate('getNumOfCoordsets', 'numCoordsets')
-        return self.numCoordsets()
-        
     def numCoordsets(self):
         """Return number of coordinate sets."""
         
@@ -1260,12 +1194,6 @@ class AtomGroup(Atomic):
         for i in range(self._n_csets):
             yield self._coords[i]
 
-    def setActiveCoordsetIndex(self, index):
-        """Deprecated, use :meth:`setACSIndex`."""
-        
-        prody.deprecate('setActiveCoordsetIndex', 'setACSIndex')
-        return self.setACSIndex(index)
-        
     def setACSIndex(self, index):
         """Set the coordinate set at *index* active."""
         
@@ -1368,12 +1296,6 @@ class AtomGroup(Atomic):
             self._hv = HierView(self)
         return self._hv
     
-    def getNumOfChains(self):
-        """Deprecated, use :meth:`numChains`."""
-        
-        prody.deprecate('getNumOfChains', 'numChains')
-        return self.numChains()
-    
     def numChains(self):
         """Return number of chains.
         
@@ -1402,13 +1324,6 @@ class AtomGroup(Atomic):
         
         return self.getHierView().iterSegments()
 
-
-    def getNumOfResidues(self):
-        """Deprecated, use :meth:`numResidues`."""
-        
-        prody.deprecate('getNumOfResidues', 'numResidues')
-        return self.numResidues()
-        
     def numResidues(self):
         """Return number of residues.
         
@@ -1423,13 +1338,6 @@ class AtomGroup(Atomic):
         
         return self.getHierView().iterResidues()
 
-
-    def getAttrNames(self):
-        """Deprecated, use :meth:`getDataLabels`."""
-        
-        prody.deprecate('getAttrNames', 'getDataLabels')
-        return self.getDataLabels()
-
     def getDataLabels(self):
         """Return list of user data labels.
         
@@ -1437,12 +1345,6 @@ class AtomGroup(Atomic):
         
         return [key for key, data in self._data.iteritems() 
                     if data is not None]
-        
-    def getAttrType(self, name):
-        """Deprecated, use :meth:`getDataType`."""
-        
-        prody.deprecate('getAttrType', 'getDataType')
-        return self.getDataType(name)
         
     def getDataType(self, label):
         """Return type of the user data (i.e. data.dtype) associated with
@@ -1455,12 +1357,6 @@ class AtomGroup(Atomic):
         except KeyError:
             return None
 
-    def setAttribute(self, name, data):
-        """Deprecated, use :meth:`setData`."""
-        
-        prody.deprecate('setAttribute', 'setData')
-        return self.setData(name, data)
-        
     def setData(self, label, data):
         """Store atomic *data* under *label*.
         
@@ -1517,12 +1413,6 @@ class AtomGroup(Atomic):
             
         self._data[label] = data
     
-    def delAttribute(self, name):
-        """Deprecated, use :meth:`delData`."""
-        
-        prody.deprecate('delAttribute', 'delData')
-        return self.delData(name)
-        
     def delData(self, label):
         """Return data associated with *label* and remove it from the atom 
         group.  If data associated with *label* is not found, ``None`` will 
@@ -1534,12 +1424,6 @@ class AtomGroup(Atomic):
             raise TypeError('label must be a string')
         return self._data.pop(label, None)
     
-    def getAttribute(self, name):
-        """Deprecated, use :meth:`getData`."""
-        
-        prody.deprecate('getAttribute', 'getData')
-        return self.getData(name)
-        
     def getData(self, label):
         """Return a copy of the data array associated with *label*, or ``None`` 
         if such data is not present.
@@ -1561,12 +1445,6 @@ class AtomGroup(Atomic):
             return None
         else:
             return data
-
-    def isAttribute(self, name):
-        """Deprecated, use :meth:`isData`."""
-        
-        prody.deprecate('isAttribute', 'isData')
-        return self.isData(name)
 
     def isData(self, label):
         """Return **True** if *label* is user data.
@@ -1614,13 +1492,6 @@ class AtomGroup(Atomic):
             indices = indices[indices > -1]
             return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
                                             .format(serial, stop, step))
-
-    def getBySerialRange(self, start, stop, step=None):
-        """Deprecated, use :meth:`getBySerial`."""
-        
-        prody.deprecate('getBySerialRange', 'getBySerial')
-        return self.getBySerial(start, stop, step)
-
 
     def setTrajectory(self, trajectory):              
         """This method is deprecated and will be removed in v1.0.
@@ -1880,12 +1751,6 @@ class AtomPointer(Atomic):
         for i in self._getIndices():
             yield Atom(ag, i, acsi)
     
-    def isAttribute(self, name):    
-        """Deprecated, use :meth:`isData`."""
-        
-        prody.deprecate('isAttribute', 'isData')
-        return self.isData(name)
-        
     def isData(self, label):
         """Return ``True`` if *label* is a user data.
         
@@ -1893,13 +1758,6 @@ class AtomPointer(Atomic):
         
         return self._ag.isData(label)
 
-
-    def getAttrType(self, name):
-        """Deprecated, use :meth:`getDataType`."""
-        
-        prody.deprecate('getAttrType', 'getDataType')
-        return self.getDataType(name)
-        
     def getDataType(self, label):
         """Return type of the user data, ``None`` if data label is not present.
         
@@ -1912,23 +1770,11 @@ class AtomPointer(Atomic):
         
         return self._ag
     
-    def getNumOfCoordsets(self):
-        """Deprecated, use :meth:`numCoordsets`."""
-        
-        prody.deprecate('getNumOfCoordsets', 'numCoordsets')
-        return self.numCoordsets()
-        
     def numCoordsets(self):
         """Return number of coordinate sets."""
         
         return self._ag._n_csets
 
-    def setActiveCoordsetIndex(self, index):
-        """Deprecated, use :meth:`setACSIndex`."""
-        
-        prody.deprecate('setActiveCoordsetIndex', 'setACSIndex')
-        self.setACSIndex(index)
-        
     def setACSIndex(self, index):
         """Set the coordinate set at *index* active."""
         
@@ -1955,27 +1801,35 @@ class AtomPointer(Atomic):
     __copy__ = copy
      
     def nextFrame(self):
-        """Read the next frame from the trajectory and update coordinates.
+        """This method is deprecated and will be removed in v1.0.
+        
+        Read the next frame from the trajectory and update coordinates.
         
         .. versionadded:: 0.8"""
         
         self._ag.nextFrame()
                 
     def skipFrame(self, n=1): 
-        """Deprecated, use :meth:`nextFrame`"""
+        """This method is deprecated and will be removed in v1.0.
+        
+        Deprecated, use :meth:`nextFrame`"""
         
         prody.deprecate('skipFrame', 'nextFrame') 
         self._ag.nextFrame(n+1)
     
     def gotoFrame(self, n):
-        """Read frame *n* from the trajectory and update coordinates.
+        """This method is deprecated and will be removed in v1.0.
+        
+        Read frame *n* from the trajectory and update coordinates.
         
         .. versionadded:: 0.8"""
         
         self._ag.gotoFrame(n)
     
     def getFrameIndex(self):
-        """Return current frame index.
+        """This method is deprecated and will be removed in v1.0.
+        
+        Return current frame index.
         
         .. versionadded:: 0.8"""
         
@@ -2033,30 +1887,7 @@ class AtomMeta(type):
             setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set', False)
             setattr(cls, setMeth, setData)
-            
-            if field.depr:
-                depr = field.depr
-                getDepr = 'get' + depr
-                setDepr = 'set' + depr
-                
-                # Define public method for retrieving a copy of data array
-                def getData(self, old=getDepr, new=getMeth):
-                    prody.deprecate(old, new, 4)
-                    return self.__getattribute__(new)() 
-                getData = wrapGetMethod(getData)
-                getData.__name__ = getDepr
-                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth)
-                setattr(cls, getDepr, getData)
-                
-                # Define public method for setting values in data array
-                def setData(self, value, old=setDepr, new=setMeth):
-                    prody.deprecate(old, new, 4)
-                    self.__getattribute__(new)(value)
-                setData = wrapSetMethod(setData)
-                setData.__name__ = setDepr 
-                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(setMeth)
-                setattr(cls, setDepr, setData)
-                
+                            
 
 class Atom(AtomPointer):
     
@@ -2117,12 +1948,6 @@ class Atom(AtomPointer):
         
         return self._index
     
-    def getAttribute(self, name):
-        """Deprecated, use :meth:`getData`."""
-        
-        prody.deprecate('getAttribute', 'getData')
-        return self.getData(name)
-        
     def getData(self, label):
         """Return data *label*, if it exists.
         
@@ -2133,12 +1958,6 @@ class Atom(AtomPointer):
     
     _getData = getData
     
-    def setAttribute(self, name, data):
-        """Deprecated, use :meth:`setData`."""
-        
-        prody.deprecate('setAttribute', 'setData')
-        return self.setData(name, data)
-        
     def setData(self, label, data):
         """Update *data* with *label* for the atom.
         
@@ -2161,12 +1980,6 @@ class Atom(AtomPointer):
     
     _getIndices = getIndices
     
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return a copy of coordinates of the atom from the active coordinate 
         set."""
@@ -2183,12 +1996,6 @@ class Atom(AtomPointer):
             return None
         return self._ag._coords[self._acsi, self._index]
     
-    def setCoordinates(self, coordinates):
-        """Deprecated, use :meth:`setCoords`."""
-        
-        prody.deprecate('setCoordinates', 'setCoords')
-        return self.setCoords(coordinates)
-        
     def setCoords(self, coords):
         """Set coordinates of the atom in the active coordinate set."""
         
@@ -2239,12 +2046,6 @@ class Atom(AtomPointer):
         for i in range(self._ag._n_csets):
             yield self._ag._coords[i, self._index]
 
-    def getSelectionString(self):
-        """Deprecated, use :meth:`getSelstr`."""
-        
-        prody.deprecate('getSelectionString', 'getSelstr')
-        return self.getSelstr()
-        
     def getSelstr(self):
         """Return selection string that will select this atom."""
         
@@ -2333,29 +2134,6 @@ class AtomSubsetMeta(type):
             setData.__doc__ = field.getDocstr('set')  
             setattr(cls, setMeth, setData)
 
-            # DEPRECATIONS
-            if field.depr:
-                depr = field.depr_pl
-                getDepr = 'get' + depr
-                setDepr = 'set' + depr
-                # Define public method for retrieving a copy of data array
-                def getData(self, old=getDepr, new=getMeth):
-                    prody.deprecate(old, new, 4)
-                    return self.__getattribute__(new)() 
-                getData = wrapGetMethod(getData)
-                getData.__name__ = getDepr
-                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth)
-                setattr(cls, getDepr, getData)
-                setattr(cls, '_' + getDepr, getData)
-                
-                # Define public method for setting values in data array
-                def setData(self, value, old=setDepr, new=setMeth):
-                    prody.deprecate(old, new, 4)
-                    self.__getattribute__(new)(value)
-                setData = wrapSetMethod(setData)
-                setData.__name__ = setDepr 
-                setData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(setMeth)
-                setattr(cls, setDepr, setData)
                         
 class AtomSubset(AtomPointer):
     
@@ -2461,12 +2239,6 @@ class AtomSubset(AtomPointer):
             return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
                                     self.getSelstr(), other.getSelstr()), acsi)
                
-    def getAttribute(self, name):
-        """Deprecated, use :meth:`getData`."""
-        
-        prody.deprecate('getAttribute', 'getData')
-        return self.getData(name)
-        
     def getData(self, label):
         """Return a copy of the data associated with *label*, if it exists.
         
@@ -2477,12 +2249,6 @@ class AtomSubset(AtomPointer):
     
     _getData = getData
     
-    def setAttribute(self, name, data):
-        """Deprecated, use :meth:`setData`."""
-        
-        prody.deprecate('setAttribute', 'setData')
-        return self.setData(name, data)
-        
     def setData(self, label, data):
         """Update *data* with label *label* for the atom subset.
         
@@ -2509,23 +2275,11 @@ class AtomSubset(AtomPointer):
         
         return self._indices
     
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-        
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
         return self._indices.__len__()
 
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return a copy of coordinates from the active coordinate set."""
         
@@ -2536,12 +2290,6 @@ class AtomSubset(AtomPointer):
     
     _getCoords = getCoords
     
-    def setCoordinates(self, coordinates):
-        """Deprecated, use :meth:`setCoords`."""
-        
-        prody.deprecate('setCoordinates', 'setCoords')
-        return self.setCoords(coordinates)
-        
     def setCoords(self, coords):
         """Set coordinates in the active coordinate set."""
         
@@ -2743,34 +2491,16 @@ class Chain(AtomSubset):
         
         return self._list.__iter__()
     
-    def getNumOfResidues(self):
-        """Deprecated, use :meth:`numResidues`."""
-        
-        prody.deprecate('getNumOfResidues', 'numResidues')
-        return self.numResidues()
-        
     def numResidues(self):
         """Return number of residues."""
         
         return len(self._list)
 
-    def getIdentifier(self):
-        """Deprecated, use :meth:`getChid`."""
-        
-        prody.deprecate('getIdentifier', 'getChid')
-        return self.getChid()
-        
     def getChid(self):
         """Return chain identifier."""
         
         return self._ag._data['chids'][self._indices[0]]
     
-    def setIdentifier(self, chid):
-        """Deprecated, use :meth:`setChid`."""
-        
-        prody.deprecate('setIdentifier', 'setChid')
-        self.setChid(chid)
-        
     def setChid(self, chid):
         """Set chain identifier."""
         
@@ -2788,12 +2518,6 @@ class Chain(AtomSubset):
             self._seq = ''
         return self._seq
 
-    def getSelectionString(self):
-        """Deprecated, use :meth:`getSelstr`."""
-        
-        prody.deprecate('getSelectionString', 'getSelstr')
-        return self.getSelstr()
-        
     def getSelstr(self):
         """Return selection string that selects atoms in this chain."""
 
@@ -2881,33 +2605,15 @@ class Residue(AtomSubset):
         
         return self._chain
     
-    def getNumber(self):
-        """Deprecated, use :meth:`getResnum`."""
-        
-        prody.deprecate('getNumber', 'getResnum')
-        return self.getResnum()
-    
     def getResnum(self):
         """Return residue number."""
         
         return int(self._ag._data['resnums'][self._indices[0]])
     
-    def setNumber(self, number):
-        """Deprecated, use :meth:`setResnum`."""
-        
-        prody.deprecate('setNumber', 'setResnum')
-        return self.setResnum(number)
-    
     def setResnum(self, number):
         """Set residue number."""
         
         self.setResnums(number)
-    
-    def getName(self):
-        """Deprecated, use :meth:`getName`."""
-        
-        prody.deprecate('getName', 'getResname')
-        return self.getResname()
     
     def getResname(self):
         """Return residue name."""
@@ -2916,23 +2622,11 @@ class Residue(AtomSubset):
         if data is not None:
             return data[self._indices[0]]
     
-    def setName(self, name):
-        """Deprecated, use :meth:`setResname`."""
-        
-        prody.deprecate('setName', 'setResname')
-        return self.setResname(name)
-        
     def setResname(self, name):
         """Set residue name."""
         
         self.setResnames(name)
 
-    def getInsertionCode(self):
-        """Deprecated, use :meth:`getIcode`."""
-        
-        prody.deprecate('getInsertionCode', 'getIcode')
-        return self.getIcode()
-        
     def getIcode(self):
         """Return residue insertion code."""
         
@@ -2940,35 +2634,17 @@ class Residue(AtomSubset):
         if data is not None:
             return data[self._indices[0]]
         
-    def setInsertionCode(self, icode):
-        """Deprecated, use :meth:`setIcode`."""
-        
-        prody.deprecate('setInsertionCode', 'setIcode')
-        return self.setIcode(icode)
-        
     def setIcode(self, icode):
         """Set residue insertion code."""
         
         self.setIcodes(icode)
     
-    def getChainIdentifier(self):
-        """Deprecated, use :meth:`getChid`."""
-        
-        prody.deprecate('getChainIdentifier', 'getChid')
-        return self.getChid()
-        
     def getChid(self):
         """Return chain identifier."""
         
         if self._chain:
             return self._chain.getChid()
     
-    def getSelectionString(self):
-        """Deprecated, use :meth:`getSelstr`."""
-        
-        prody.deprecate('getSelectionString', 'getSelstr')
-        return self.getSelstr()
-        
     def getSelstr(self):
         """Return selection string that will select this residue."""
         
@@ -3036,12 +2712,6 @@ class Selection(AtomSubset):
     
     __iter__ = AtomPointer.iterAtoms
     
-    def getSelectionString(self):
-        """Deprecated, use :meth:`getSelstr`."""
-        
-        prody.deprecate('getSelectionString', 'getSelstr')
-        return self.getSelstr()
-        
     def getSelstr(self):
         """Return selection string that selects this atom subset."""
         
@@ -3096,18 +2766,6 @@ class AtomMapMeta(type):
                    'Entries for unmapped atoms will be ``{0:s}``.'.format(zero) 
             setattr(cls, getMeth, getData)
             setattr(cls, '_' + getMeth, getData)
-        
-            if field.depr:
-                depr = field.depr_pl
-                getDepr = 'get' + depr
-                def getData(self, old=getDepr, new=getMeth):
-                    prody.deprecate(old, new, 4)
-                    return self.__getattribute__(new)()
-                getData = wrapGetMethod(getData)
-                getData.__name__ = getDepr
-                getData.__doc__ = 'Deprecated, use :meth:`{0:s}`'.format(getMeth) 
-                setattr(cls, getDepr, getData)
-             
 
 
 class AtomMap(AtomPointer):
@@ -3198,12 +2856,6 @@ class AtomMap(AtomPointer):
     def __len__(self):
         return self._len
     
-    def getAttribute(self, name):
-        """Deprecated, use :meth:`getData`."""
-        
-        prody.deprecate('getAttribute', 'getData')
-        return self.getData(name)
-        
     def getData(self, label):
         """Return a copy of data associated with *label*, if it exists.
         
@@ -3217,56 +2869,26 @@ class AtomMap(AtomPointer):
 
     _getData = getData
 
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
-        
     def getTitle(self):
         """Return title of the atom map instance."""
         
         return self._title
     
-    def setName(self, name):
-        """Deprecated, use :meth:`setTitle`."""
-
-        prody.deprecate('setName', 'setTitle')
-        return self.setTitle(name)
-        
     def setTitle(self, title):
         """Set title of the atom map instance."""
         
         self._title = str(title)
 
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of mapped atoms."""
         
         return self._len
 
-    def getNumOfUnmapped(self):
-        """Deprecated, use :meth:`numUnmapped`."""
-
-        prody.deprecate('getNumOfUnmapped', 'numUnmapped')
-        return self.numUnmapped()
-        
     def numUnmapped(self):
         """Return number of unmapped atoms."""
         
         return len(self._unmapped)
 
-    def getNumOfMapped(self):
-        """Deprecated, use :meth:`numMapped`."""
-
-        prody.deprecate('getNumOfMapped', 'numMapped')
-        return self.numMapped()
-        
     def numMapped(self):
         """Return number of mapped atoms."""
         
@@ -3293,12 +2915,6 @@ class AtomMap(AtomPointer):
     
     _iterCoordsets = iterCoordsets
 
-    def getCoordinates(self):
-        """Deprecated, use :meth:`getCoords`."""
-        
-        prody.deprecate('getCoordinates', 'getCoords')
-        return self.getCoords()
-        
     def getCoords(self):
         """Return coordinates from the active coordinate set."""
         
@@ -3311,12 +2927,6 @@ class AtomMap(AtomPointer):
     
     _getCoords = getCoords
     
-    def setCoordinates(self, coordinates):
-        """Deprecated, use :meth:`setCoords`."""
-        
-        prody.deprecate('setCoordinates', 'setCoords')
-        return self.setCoords(coordinates)
-        
     def setCoords(self, coords):
         """Set coordinates in the active coordinate set.  Length of the 
         *coordinates* array must match the number of mapped atoms."""
@@ -3698,17 +3308,6 @@ class HierView(object):
 
         return self._segments.__iter__()
 
-    def getNumOfResidues(self):
-        """Deprecated, use :meth:`numResidues`."""
-        
-        prody.deprecate('getNumOfResidues', 'numResidues')
-        return self.numResidues()
-        
-    def getNumOfChains(self):
-        """Deprecated, use :meth:`numChains`."""
-        
-        prody.deprecate('getNumOfChains', 'numChains')
-        return self.numChains()
 
 class Bond(object):
     
