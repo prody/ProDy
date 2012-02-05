@@ -57,15 +57,10 @@ __all__ = ['matchChains',
            'matchAlign',
            'mapOntoChain',
            'getMatchScore', 'setMatchScore',
-           'getPairwiseMatchScore', 'setPairwiseMatchScore',
            'getMismatchScore', 'setMismatchScore',
-           'getPairwiseMismatchScore', 'setPairwiseMismatchScore',
            'getGapPenalty', 'setGapPenalty',
-           'getPairwiseGapOpeningPenalty', 'setPairwiseGapOpeningPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
-           'getPairwiseGapExtensionPenalty', 'setPairwiseGapExtensionPenalty',
-           'getAlignmentMethod', 'setAlignmentMethod',
-           'getPairwiseAlignmentMethod', 'setPairwiseAlignmentMethod',]
+           'getAlignmentMethod', 'setAlignmentMethod']
 
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
@@ -120,22 +115,10 @@ def getSequence(resnames):
     return sequence
 
 
-def getPairwiseMatchScore():
-    """Deprecated, use :func:`getMatchScore`."""
-    
-    prody.deprecate('getPairwiseMatchScore', 'getMatchScore')
-    return getMatchScore() 
-
 def getMatchScore():
     """Return match score used to align sequences."""
     
     return MATCH_SCORE
-
-def setPairwiseMatchScore(pairwise_match_score):
-    """Deprecated, use :func:`setMatchScore`."""
-    
-    prody.deprecate('setPairwiseMatchScore', 'setMatchScore')
-    return setMatchScore(pairwise_match_score)
 
 def setMatchScore(match_score):
     """Set match score used to align sequences."""
@@ -146,23 +129,10 @@ def setMatchScore(match_score):
     else:
         raise TypeError('match_score must be a positive number or zero')
 
-
-def getPairwiseMismatchScore():
-    """Deprecated, use :func:`getMismatchScore`."""
-    
-    prody.deprecate('getPairwiseMismatchScore', 'getMismatchScore')
-    return getMismatchScore()
-    
 def getMismatchScore():
     """Return mismatch score used to align sequences."""
     
     return MISMATCH_SCORE
-
-def setPairwiseMismatchScore(pairwise_mismatch_score):
-    """Deprecated, use :func:`setMismatchScore`."""
-    
-    prody.deprecate('setPairwiseMismatchScore', 'setMismatchScore')
-    return setMismatchScore(pairwise_mismatch_score)
 
 def setMismatchScore(mismatch_score):
     """Set mismatch score used to align sequences."""
@@ -173,22 +143,10 @@ def setMismatchScore(mismatch_score):
     else:
         raise TypeError('mismatch_score must be a positive number or zero')
 
-def getPairwiseGapOpeningPenalty():
-    """Deprecated, use :func:`getGapPenalty`."""
-    
-    prody.deprecate('getPairwiseGapOpeningPenalty', 'getGapPenalty')
-    return getGapPenalty() 
-
 def getGapPenalty():
     """Return gap opening penalty used for pairwise alignment."""
     
     return GAP_PENALTY
-
-def setPairwiseGapOpeningPenalty(pairwise_gap_opening_penalty):
-    """Deprecated, use :func:`setGapPenalty`."""
-    
-    prody.deprecate('setPairwiseGapOpeningPenalty', 'setGapPenalty')
-    return setGapPenalty(pairwise_gap_opening_penalty)
 
 def setGapPenalty(gap_penalty):
     """Set gap opening penalty used for pairwise alignment."""
@@ -199,23 +157,10 @@ def setGapPenalty(gap_penalty):
     else:
         raise TypeError('gap_penalty must be a negative number')
 
-
-def getPairwiseGapExtensionPenalty():
-    """Deprecated, use :func:`getGapExtPenalty`."""
-    
-    prody.deprecate('getPairwiseGapExtensionPenalty', 'getGapExtPenalty')
-    return getGapExtPenalty()
-    
 def getGapExtPenalty():
     """Return gap extension penalty used for pairwise alignment."""
     
     return GAP_EXT_PENALTY
-
-def setPairwiseGapExtensionPenalty(pairwise_gap_extension_penalty):
-    """Deprecated, use :func:`setGapExtPenalty`."""
-    
-    prody.deprecate('setPairwiseGapExtensionPenalty', 'setGapExtPenalty')
-    return setGapExtPenalty(pairwise_gap_extension_penalty)
 
 def setGapExtPenalty(gap_ext_penalty):
     """Set gap extension penalty used for pairwise alignment."""
@@ -226,22 +171,10 @@ def setGapExtPenalty(gap_ext_penalty):
     else:
         raise TypeError('gap_ext_penalty must be a negative number or zero')
 
-def getPairwiseAlignmentMethod():
-    """Deprecated, use :func:`getAlignmentMethod`."""
-    
-    prody.deprecate('getPairwiseAlignmentMethod', 'getAlignmentMethod')
-    return getAlignmentMethod()
-    
 def getAlignmentMethod():
     """Return pairwise alignment method."""
     
     return ALIGNMENT_METHOD
-
-def setPairwiseAlignmentMethod(method):
-    """Deprecated, use :func:`setAlignmentMethod`."""
-    
-    prody.deprecate('setPairwiseAlignmentMethod', 'setAlignmentMethod')
-    return setAlignmentMethod(method)
 
 def setAlignmentMethod(method):
     """Set pairwise alignment method (global or local)."""
