@@ -72,7 +72,7 @@ If you are analyzing a small trajectory, you can use an
 trajectory at once using :func:`~prody.ensemble.parseDCD`:
 
 >>> ensemble = parseDCD('mdm2.dcd')
->>> ensemble.setAtomGroup( structure )
+>>> ensemble.setAtoms( structure )
 >>> ensemble.select('calpha')
 <Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
 >>> ensemble.superpose()
@@ -88,7 +88,7 @@ If you are analyzing a large trajectory, you can pass the trajectory instance
 to the :meth:`~dynamics.PCA.buildCovariance` method as follows:
 
 >>> dcd = DCDFile('mdm2.dcd')
->>> dcd.setAtomGroup( structure )
+>>> dcd.setAtoms( structure )
 >>> dcd.select('calpha')
 <Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
 >>> eda_trajectory = EDA('MDM2 Trajectory')
@@ -122,7 +122,7 @@ them. In this case we will use data from two independent simulations
 >>> trajectory
 <Trajectory: mdm2 (2 files, next 0 of 1000 frames, selected 1449 of 1449 atoms)>
 
->>> trajectory.setAtomGroup( structure )
+>>> trajectory.setAtoms( structure )
 >>> trajectory.select('calpha')
 <Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
 >>> eda = EDA('mdm2')
@@ -166,7 +166,7 @@ Now, let's project the trajectories onto top three essential modes:
    eda = loadModel('mdm2.eda.npz')
    trajectory = Trajectory('mdm2.dcd')
    trajectory.addFile('mdm2sim2.dcd')
-   trajectory.setAtomGroup( parsePDB('mdm2.pdb') )
+   trajectory.setAtoms( parsePDB('mdm2.pdb') )
    trajectory.select('calpha')
 
 .. plot::

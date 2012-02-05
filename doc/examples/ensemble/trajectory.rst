@@ -66,7 +66,7 @@ be parsed at once. This function returns an :class:`Ensemble` instance:
 
 Let's associate this ensemble with the *structure* we parsed from the PDB file:
 
->>> ensemble.setAtomGroup(structure)
+>>> ensemble.setAtoms(structure)
 
 This operation set the coordinates of the *structure* as the reference
 coordinates of the *ensemble*. Now we can :meth:`~Ensemble.superpose` 
@@ -115,7 +115,7 @@ Parse data frame-by-frame
 >>> dcd
 <DCDFile: mdm2 (next 0 of 500 frames, selected 1449 of 1449 atoms)>
 
->>> dcd.setAtomGroup(structure)
+>>> dcd.setAtoms(structure)
 
 >>> dcd.getNextIndex()
 0
@@ -168,7 +168,7 @@ Handling multiple files
 
 Instances of this class are also suitable for previous calculations:
 
->>> traj.setAtomGroup( structure )
+>>> traj.setAtoms( structure )
 >>> rgyr = np.zeros(len(traj))
 >>> rmsd = np.zeros(len(traj))
 >>> for i, frame in enumerate(traj):
