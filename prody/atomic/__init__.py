@@ -108,3 +108,264 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import atomic
 from atomic import *
 __all__ = atomic.__all__
+
+__doc__ += """
+
+Common methods
+-------------------------------------------------------------------------------
+
+Atomic data contained in a PDB file can be accessed and changed using ``get`` 
+and ``set`` methods defined for :class:`Atomic` classes.  To provide a coherent
+interface, these methods are defined for :class:`AtomGroup`, :class:`Atom`, 
+:class:`Selection`, :class:`Chain`, :class:`Residue`, and :class:`AtomMap` 
+classes, with the following exceptions: 
+
+* Names of methods of the :class:`Atom` class are in singular form.
+* ``set`` methods are not defined for the :class:`AtomMap` class.
+
+The list of methods are below (they link to the documentation of the 
+:class:`AtomGroup` methods):
+ 
+======================  =======================================================
+Get/set method          Description
+======================  =======================================================
+``get/setCoords``       get/set coordinates of atoms
+"""
+
+keys = ATOMIC_DATA_FIELDS.keys()
+keys.sort()
+
+for key in keys:
+    field = ATOMIC_DATA_FIELDS[key]
+    __doc__ += '``get/set{0:13s}  get/set {1:s}\n'.format(field.meth_pl+'``', 
+                                                          field.doc_pl)
+
+__doc__ += """
+======================  =======================================================
+
+.. note:: Note that ``get`` methods return a copy of the data. Changes in the 
+   array obtained by calling one of the above methods will not be saved in the
+   :class:`AtomGroup` instance. To change the data stored in :class:`AtomGroup`
+   instance, use ``set`` methods.
+
+Other functions common to all atomic classes is given below:
+
+=================  ==========================================================
+Method name        Description
+=================  ==========================================================
+``copy``           returns a deep copy of atomic data
+``select``         selects a subset of atoms (see :ref:`selections`)
+``numAtoms``       returns number of atoms
+``numCoordsets``   returns number of coordinate sets
+``getCoordsets``   returns specified coordinate sets
+``getACSIndex``    returns the index of the active coordinate set
+``setACSIndex``    changes the index of the active coordinate set
+``getACSLabel``    returns the label of the active coordinate set
+``setACSLabel``    changes the label of the active coordinate set
+``iterCoordsets``  iterate over coordinate sets
+``isData``         checks whether a user set attribute exists
+``getData``        returns user set attribute data
+``setData``        changes user set attribute data
+=================  ==========================================================
+
+
+Special methods
+-------------------------------------------------------------------------------
+
+Atomic classes also have the following class specific methods: 
+    
+======================  =======================================================
+Method                  Description
+======================  =======================================================
+:class:`AtomGroup`  
+* ``getTitle``          returns title of the atom group
+* ``setTitle``          changes title of the atom group
+* ``delData``           deletes a user data from the atom group
+* ``addCoordset``       add a coordinate set to the atom group
+* ``numChains``         returns the number of chains
+* ``numResidues``       returns the total number of residues from all chains
+* ``iterChains``        iterates over chains
+* ``iterResidues``      iterates over all residues
+
+                      
+:class:`Atom`              
+* ``getIndex``          returns atom index
+* ``getName``           return atom name
+* ``getSelstr``         returns string that selects the atom
+                    
+:class:`Selection`         
+* ``getIndices``        returns indices of atoms
+* ``getSelstr``         returns selection string that reproduces the selection
+
+:class:`Segment`
+* ``getSegname``        returns segment name
+* ``setSegname``        changes segment name
+* ``getChain``          returns chain with given identifier
+* ``iterChains``        iterates over chains
+* ``numChains``         returns the number of chains in the instance
+* ``getSelstr``         returns a string that selects segment atoms
+
+:class:`Chain`
+* ``getChid``           returns chain identifier
+* ``setChid``           changes chain identifier
+* ``getResidue``        returns residue with given number
+* ``iterResidues``      iterates over residues
+* ``numResidues``       returns the number of residues in the instance
+* ``getSequence``       returns single letter amino acid sequence
+* ``getSelstr``         returns a string that selects chain atoms
+                      
+:class:`Residue`
+* ``getIndices``        returns indices of atoms
+* ``getAtom``           returns :class:`Atom` with given name
+* ``getChain``          returns :class:`Chain` of the residue
+* ``getChid``           returns chain identifier
+* ``getIcode``          returns residue insertion code
+* ``setIcode``          changes residue insertion code 
+* ``getResname``        returns residue name
+* ``setResname``        changes residue name
+* ``getResnum``         returns residue number
+* ``setResnum``         changes residue number
+* ``getSelstr``         returns a string that selects residue atoms
+
+:class:`AtomMap`
+* ``getIndices``        returns indices of atoms
+* ``getTitle``          returns name of the atom map
+* ``setTitle``          changes name of the atom map
+* ``numMapped``         returns number of mapped atoms
+* ``numUnmapped``       returns number of unmapped atoms
+* ``getMapping``        returns mapping of indices
+* ``getMappedFlags``    returns an boolean array indicating mapped atoms
+* ``getUnmappedFlags``  returns an boolean array indicating unmapped atoms
+======================  =======================================================
+
+Functions common to :class:`Atom`, :class:`Selection`, :class:`Chain`,
+:class:`Residue`, and :class:`AtomMap` include: 
+    
+======================  =======================================================
+Method                  Description
+======================  =======================================================
+* ``getAtomGroup``      returns the associated :class:`AtomGroup`
+* ``getIndices``        returns the indices of atoms
+======================  =======================================================
+
+
+Behavioral differences
+-------------------------------------------------------------------------------
+
+Atomic classes behave differently to indexing and to calls of certain built-in 
+functions.  These differences are:
+
+=========  ====================================================================
+Class               Properties and differences
+=========  ====================================================================
+AtomGroup  * :func:`len` returns the number of atoms.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing by:
+               
+             - *atom index* (:func:`int`), e.g, ``10`` returns an 
+               :class:`Atom`.
+             - *slice* (:func:`slice`), e.g, ``10:20:2`` returns a 
+               :class:`Selection`.
+             - *chain identifier* (:func:`str`), e.g. ``"A"`` return 
+               a :class:`Chain`.
+             - *chain identifier, residue number [, insertion code]* 
+               (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
+               returns a :class:`Residue`.
+                       
+Atom       * :func:`len` returns 1.
+           * :func:`iter` is not applicable.
+           * Indexing is not applicable.
+                      
+Selection  * :func:`len` returns the number of selected atoms.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing is not available.
+
+Segment    * :func:`len` returns the number of chains in the segment.
+           * :func:`iter` yields :class:`Chain` instances.
+           * Indexing by:
+                
+             - *chain identifier* (:func:`str`), 
+               e.g. ``A`` returns a :class:`Chain`.
+
+Chain      * :func:`len` returns the number of residues in the chain.
+           * :func:`iter` yields :class:`Residue` instances.
+           * Indexing by:
+                
+             - *residue number [, insertion code]* (:func:`tuple`), 
+               e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
+             - *slice* (:func:`slice`), e.g, ``10:20`` returns a list of  
+               :class:`Residue` instances.
+                    
+Residue    * :func:`len` returns the number of atoms in the instance.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing by:
+              
+             - *atom name* (:func:`str`), e.g. ``"CA"`` returns 
+               an :class:`Atom`.
+
+AtomMap    * :func:`len` returns the number of atoms in the instance.
+           * :func:`iter` yields :class:`Atom` instances.
+           * Indexing is not available.
+=========  ====================================================================
+
+
+Hierarchical views
+-------------------------------------------------------------------------------
+
+:class:`HierView` instances can be built for :class:`AtomGroup` and 
+:class:`Selection` instances.
+
+Some overridden functions are:
+
+* :func:`len` return the number of chains.
+* :func:`iter()` iterates over chains.
+* Indexing:
+    
+  - *chain identifier* (:func:`str`), e.g. ``"A"`` returns a :class:`Chain`.
+  - *chain identifier, residue number [, insertion code]* 
+    (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` 
+    returns a :class:`Residue`
+  - *segment name, chain identifier, residue number [, insertion code]* 
+    (:func:`tuple`), e.g. ``"PROT", "A", 10`` or  ``"PROT", "A", 10, "B"`` 
+    returns a :class:`Residue`
+    
+
+"""
+
+__doc__ += """
+
+:mod:`prody.atomic`
+===============================================================================
+
+Classes
+-------
+
+    * :class:`AtomGroup`
+    * :class:`Atom`
+    * :class:`Segment`
+    * :class:`Chain`
+    * :class:`Residue`
+    * :class:`Selection`
+    * :class:`AtomMap`
+    * :class:`HierView`
+    
+Base Classes
+------------
+
+    * :class:`Atomic`
+    * :class:`AtomPointer`
+    * :class:`AtomSubset`
+
+Functions
+---------
+
+    * :func:`saveAtoms`
+    * :func:`loadAtoms`
+
+Inheritance Diagram
+-------------------
+
+.. inheritance-diagram:: prody.atomic
+   :parts: 1
+
+"""
