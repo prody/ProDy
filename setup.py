@@ -68,8 +68,7 @@ if os.name != 'java' and sys.version_info[0] == 2:
                           ))
         PACKAGES.append('prody.KDTree')
 
-SCRIPTS = glob.glob('scripts/*py')
-SCRIPTS.append('scripts/prody')
+SCRIPTS = ['scripts/prody']
 
 setup(
     name='ProDy',
