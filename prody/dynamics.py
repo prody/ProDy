@@ -302,11 +302,10 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            'calcANM', 'calcGNM', 
            
            'calcCollectivity', 'calcCovariance', 'calcCrossCorr',
-           'calcCrossCorrelations', 
            
            'calcSqFlucts', 'calcTempFactors',
            
-           'calcProjection', 'calcPerturbResponse', 'scanPerturbationResponse', 
+           'calcProjection', 'calcPerturbResponse', 
            
            'parseArray', 'parseModes', 'parseNMD',
            
@@ -317,20 +316,20 @@ __all__ = ['ANM', 'GNM', 'NMA', 'PCA', 'EDA', 'Mode', 'ModeSet', 'Vector',
            
            'getVMDpath', 'setVMDpath', 'viewNMDinVMD', 
            
-           'calcOverlap', 'calcCumOverlap', 'calcCumulativeOverlap', 
-           'calcCumOverlapArray', 'calcCumulativeOverlapArray', 
+           'calcOverlap', 'calcCumOverlap', 
+           'calcCumOverlapArray', 
            'calcSubspaceOverlap', 
-           'calcCovOverlap', 'calcCovarianceOverlap', 'printOverlapTable',
+           'calcCovOverlap', 'printOverlapTable',
            
-           'deformAtoms', 'deform', 'sampleModes', 'traverseMode',
+           'deformAtoms', 'sampleModes', 'traverseMode',
             
            'extrapolateModel', 'reduceModel', 'sliceVector', 
            'sliceMode', 'sliceModel',
             
-           'showContactMap', 'showCrossCorr', 'showCrossCorrelations', 
-           'showCumOverlap', 'showCumulativeOverlap', 
-           'showFractOfVar', 'showFractOfVariances', 
-           'showCumFractOfVar', 'showCumFractOfVariances', 'showMode', 
+           'showContactMap', 'showCrossCorr',  
+           'showCumOverlap',  
+           'showFractOfVar',  
+           'showCumFractOfVar', 'showMode', 
            'showOverlap', 'showOverlapTable', 'showProjection', 
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks'
@@ -523,35 +522,17 @@ class Mode(VectorBase):
         
         return self._model._is3d
     
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-        
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
         return self._model._n_atoms
     
-    def getNumOfDegOfFreedom(self):
-        """Deprecated, use :meth:`numDOF`."""
-        
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
-        return self.numDOF()
-        
     def numDOF(self):
         """Return number of degrees of freedom (three times the number of 
         atoms)."""
         
         return self._model._dof
     
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-        
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
-        
     def getTitle(self):
         """A descriptive title for the mode instance."""
         
@@ -657,23 +638,11 @@ class Vector(VectorBase):
     def is3d(self):
         return self._is3d
     
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
-        
     def getTitle(self):
         """Get the descriptive title for the vector instance."""
         
         return self._title
     
-    def setName(self, name):
-        """Deprecated, use :meth:`setTitle`."""
-
-        prody.deprecate('setName', 'setTitle')
-        return self.setTitle(name)
-        
     def setTitle(self, title):
         """Set the descriptive title for the vector instance."""
         
@@ -695,23 +664,11 @@ class Vector(VectorBase):
         return Vector(self._array/(self._array**2).sum()**0.5, 
                       '({0:s})/||{0:s}||'.format(self._title), self._is3d)
 
-    def getNumOfDegOfFreedom(self):
-        """Deprecated, use :meth:`numDOF`."""
-        
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
-        return self.numDOF()
-        
     def numDOF(self):
 
         """Return number of degrees of freedom."""
         return len(self._array)
 
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-        
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms.  For a 3-dimensional vector, returns length 
         of the vector divided by 3."""
@@ -818,57 +775,27 @@ class NMABase(object):
         
         return self._is3d
     
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-        
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
         return self._n_atoms
     
-    def getNumOfModes(self):
-        """Deprecated, use :meth:`numModes`."""
-        
-        prody.deprecate('getNumOfModes', 'numModes')
-        return self.numModes()
-        
     def numModes(self):
         """Return number of modes in the instance (not necessarily maximum 
         number of possible modes)."""
         
         return self._n_modes
     
-    def getNumOfDegOfFreedom(self):
-        """Deprecated, use :meth:`numDOF`."""
-        
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
-        return self.numDOF()
-        
     def numDOF(self):
         """Return number of degrees of freedom."""
         
         return self._dof
-        
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
         
     def getTitle(self):
         """Return title of the model."""
         
         return self._title
     
-    def setName(self, name):
-        """Deprecated, use :meth:`setTitle`."""
-
-        prody.deprecate('setName', 'setTitle')
-        return self.setTitle(name)
-        
     def setTitle(self, title):
         """Set title of the model."""
         
@@ -1094,35 +1021,17 @@ class ModeSet(object):
         
         return self._model._is3d
     
-    def getNumOfAtoms(self):
-        """Deprecated, use :meth:`numAtoms`."""
-        
-        prody.deprecate('getNumOfAtoms', 'numAtoms')
-        return self.numAtoms()
-        
     def numAtoms(self):
         """Return number of atoms."""
         
         return self._model._n_atoms
     
-    def getNumOfModes(self):
-        """Deprecated, use :meth:`numModes`."""
-        
-        prody.deprecate('getNumOfModes', 'numModes')
-        return self.numModes()
-        
     def numModes(self):
         """Return number of modes in the instance (not necessarily maximum 
         number of possible modes)."""
         
         return len(self._indices)
     
-    def getNumOfDegOfFreedom(self):
-        """Deprecated, use :meth:`numDOF`."""
-        
-        prody.deprecate('getNumOfDegOfFreedom', 'numDOF')
-        return self.numDOF()
-        
     def numDOF(self):
         """Return number of degrees of freedom."""
         
@@ -1134,17 +1043,10 @@ class ModeSet(object):
         getMode = self._model.getMode
         return [getMode(i) for i in self._indices]
     
-    def getName(self):
-        """Deprecated, use :meth:`getTitle`."""
-        
-        prody.deprecate('getName', 'getTitle')
-        return self.getTitle()
-    
     def getTitle(self):
         """Return title of the mode set."""
         
         return str(self)
-    
     
     def getModel(self):
         """Return the model that the modes belongs to."""
@@ -3699,12 +3601,6 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
   
-def deform(atoms, mode, rmsd=None):
-    """Deprecated, use :func:`deformAtoms`."""
-    
-    prody.deprecate('deform', 'deformAtoms')
-    return deformAtoms(atoms, mode, rmsd)
-
 def deformAtoms(atoms, mode, rmsd=None):
     """Generate a new coordinate set for *atoms* along the *mode*.
     
@@ -3747,12 +3643,6 @@ def deformAtoms(atoms, mode, rmsd=None):
         atoms.addCoordset( atoms.getCoords() + array * scalar)
     else:     
         atoms.addCoordset( atoms.getCoords() + array)
-
-def scanPerturbationResponse(model, atoms=None, repeats=100):
-    """See :func:`calcPerturbResponse`."""
-    
-    prody.deprecate('scanPerturbationResponse', 'calcPerturbResponse')
-    return calcPerturbResponse(model, atoms, repeats) 
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
     """Return a matrix of profiles from scanning of the response of the 
@@ -3853,12 +3743,6 @@ def calcSqFlucts(modes):
             square_fluctuations += mode.getSqFlucts()
         return square_fluctuations
 
-def calcCrossCorrelations(modes, n_cpu=1):
-    """Deprecated, use :func:`calcCrossCorr`."""
-    
-    prody.deprecate('calcCrossCorrelations', 'calcCrossCorr')
-    return calcCrossCorr(modes, n_cpu)
- 
 def calcCrossCorr(modes, n_cpu=1):
     """Return cross-correlations matrix.  For a 3-d model, cross-correlations 
     matrix is an NxN matrix, where N is the number of atoms.  Each element of 
@@ -3934,13 +3818,6 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
                               arvar.transpose(0, 2, 1),
                               axes=([0, 1], [1, 0]))
     queue.put(covariance)
-
-
-def calcCumulativeOverlap(modes1, modes2):
-    """Deprecated, use :func:`calcCumOverlap`."""
-    
-    prody.deprecate('calcCumulativeOverlap', 'calcCumOverlap')
-    return calcCumOverlap(modes1, modes2) 
     
 def calcCumOverlap(modes1, modes2):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
@@ -3952,13 +3829,6 @@ def calcCumOverlap(modes1, modes2):
     overlap = calcOverlap(modes1, modes2)
     cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
     return cumov
-
-def calcCumulativeOverlapArray(modes1, modes2):
-    """Deprecated, use :func:`calcCumOverlapArray`."""
-
-    prody.deprecate('calcCumulativeOverlapArray', 'calcCumOverlapArray')
-    return calcCumOverlapArray(modes1, modes2) 
-
 
 def calcCumOverlapArray(modes1, modes2):
     """Return array of cumulative overlaps. Returned array has the shape 
@@ -3984,13 +3854,6 @@ def calcSubspaceOverlap(modes1, modes2):
         length = len(modes1)
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
-
-
-def calcCovarianceOverlap(modelA, modelB):
-    """Deprecated, use :func:`calcCovOverlap`."""
-
-    prody.deprecate('calcCovarianceOverlap', 'calcCovOverlap')    
-    return calcCovOverlap(modelA, modelB)
     
 def calcCovOverlap(modelA, modelB):
     """Return overlap between covariances of *modelA* and *modelB*.
@@ -4039,14 +3902,7 @@ def calcTempFactors(modes, atoms):
         raise ValueError('modes and atoms must have same number of nodes')
     sqf = calcSqFlucts(modes)
     return sqf / ((sqf**2).sum()**0.5) * (atoms.getBetas()**2).sum()**0.5
-    
-    
-def showFractOfVariances(modes, *args, **kwargs):
-    """Deprecated, use :func:`showFractOfVar`."""
-    
-    prody.deprecate('showFractOfVariances', 'showFractOfVar')
-    return showFractOfVar(modes, *args, **kwargs) 
-    
+        
 def showFractOfVar(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
     bar`.  Note that mode indices are incremented by 1.
@@ -4081,12 +3937,6 @@ def showFractOfVar(modes, *args, **kwargs):
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
     return show
-
-def showCumFractOfVariances(modes, *args, **kwargs):
-    """Deprecated, use :func:`showCumFractOfVar`."""
-    
-    prody.deprecate('showCumFractOfVariances', 'showCumFractOfVar')
-    return showCumFractOfVar(modes, *args, **kwargs)
 
 def showCumFractOfVar(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
@@ -4354,12 +4204,6 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     plt.axis([0, len(cols), 0, len(rows)])
     return show
 
-def showCrossCorrelations(modes, *args, **kwargs):
-    """Deprecated, use :func:`showCrossCorr`."""
-    
-    prody.deprecate('showCrossCorrelations', 'showCrossCorr')
-    return showCrossCorr(modes, *args, **kwargs)
-
 def showCrossCorr(modes, *args, **kwargs):
     """Show cross-correlations for given modes using :func:`~matplotlib.pyplot.
     imshow`.  By default, *origin=lower* and *interpolation=bilinear* keyword 
@@ -4606,12 +4450,6 @@ def showOverlap(mode, modes, *args, **kwargs):
     plt.ylabel('Overlap')
     return show
 
-def showCumulativeOverlap(mode, modes, *args, **kwargs):
-    """Deprecated, use :func:`showCumOverlap`."""
-    
-    prody.deprecate('showCumulativeOverlap', 'showCumOverlap')
-    return showCumOverlap(mode, modes, *args, **kwargs)
-    
 def showCumOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
     
