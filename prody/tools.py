@@ -154,6 +154,8 @@ class PackageLogger(object):
         
         self.clear()
         self._logger.warning(self._warning + msg)
+    
+    warn = warning
 
     def error(self, msg):
         """Log *msg* with severity 'ERROR'."""
