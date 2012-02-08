@@ -183,10 +183,10 @@ class TestParsePDB(unittest.TestCase):
 
         path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
-        ag = prody.AtomGroup('One atom')
+        ag = prody.MCAtomGroup('One atom')
         ag.setCoords(prody.np.array([[0, 0, 0]]))
         self.assertRaises(ValueError, parsePDB, path, ag=ag)
-        ag = prody.AtomGroup('Test')
+        ag = prody.MCAtomGroup('Test')
         self.assertEqual(parsePDB(path, ag=ag).numAtoms(), 
             self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')

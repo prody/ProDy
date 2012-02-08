@@ -33,7 +33,7 @@ from prody import *
 from test_datafiles import *
 
 
-prody.select.DEBUG = False
+prody.atomic.select.DEBUG = False
 prody.setVerbosity('none')
 
 TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
