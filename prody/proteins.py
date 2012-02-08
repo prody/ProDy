@@ -164,6 +164,7 @@ import prody
 LOGGER = prody.LOGGER
 SETTINGS = prody.SETTINGS
 from prody.atomic import *
+from prody.atomic import ATOMIC_DATA_FIELDS
 
 
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
@@ -751,7 +752,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
     else:
-        ag = prody.AtomGroup(str(kwargs.get('title', kwargs.get('name', 
+        ag = prody.MCAtomGroup(str(kwargs.get('title', kwargs.get('name', 
                                                 'Unknown'))) + title_suffix)
         n_csets = 0
     
@@ -846,7 +847,7 @@ def parsePQR(filename, **kwargs):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
     else:
-        ag = prody.AtomGroup(title + title_suffix)
+        ag = prody.MCAtomGroup(title + title_suffix)
         n_csets = 0
         
     pqr = openFile(filename)
@@ -2133,7 +2134,7 @@ def parsePSF(filename, title=None, ag=None):
     else:
         title = str(title)
     if ag is None:
-        ag = prody.AtomGroup(title)
+        ag = prody.MCAtomGroup(title)
     else:
         if n_atoms != ag.numAtoms():
             raise ValueError('ag and PSF file must have same number of atoms')
@@ -2514,9 +2515,7 @@ def writePDBStream(stream, atoms, model=None):
     if not isinstance(atoms, prody.Atomic):
         raise TypeError('atoms does not have a valid type')
     if isinstance(atoms, prody.Atom):
-        atoms = prody.Selection(atoms.getAtomGroup(), [atoms.getIndex()], 
-                                atoms.getACSIndex(), 
-                                'index ' + str(atoms.getIndex()))
+        atoms = atoms.select('all')
 
     if model is None:
         model = np.arange(atoms.numCoordsets(), dtype=np.int)
