@@ -51,7 +51,7 @@ from tools import *
 import prody
 LOGGER = prody.LOGGER
 
-from . import AtomMap, select
+from atomic import AtomMap, select
 
 __all__ = ['matchChains',
            'matchAlign',
