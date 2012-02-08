@@ -20,26 +20,26 @@
 
 .. _atomic:
     
+.. currentmodule:: prody.atomic
+    
 Atomic data
 ===============================================================================
 
-ProDy stores atomic data in instances of :class:`AtomGroup` class.  This
-class is designed to be efficient and responsive, i.e. facilitates user
-to access atomic data quickly for any subset of atoms.  An :class:`AtomGroup`
-instance can be obtained by parsing a PDB file as follows: 
+ProDy stores atomic data in instances of :class:`~atomgroup.AtomGroup` or 
+:class:`~atomgroup.MCAtomGroup` classes.  **MC** prefix in the latter means
+that the class inherits from :class:`~atomic.MultiCoordset` and offers 
+extended functionality to support handling multiple coordinate sets, which 
+may be models from an NMR structure or snapshots from an molecular dynamics
+trajectory.
+ 
+Instances of the class can be obtained by parsing a PDB file as follows:
     
 >>> from prody import *
 >>> ag = parsePDB('1aar')
+>>> ag
+<MCAtomGroup: 1aar (1218 atoms; 1 coordsets, active 0)>
 
-To read this page in a Python session, type::
-    
-  help(atomic)
-
-:class:`AtomGroup` instances can store multiple coordinate sets, which may
-be models from an NMR structure, snapshots from an MD simulation.
-
-
-ProDy stores all atomic data in :class:`AtomGroup` instances and comes
+All atomic data in :class:`AtomGroup` instances and comes
 with other classes acting as pointers to provide convenient read/write access 
 to such data.  These classes are:
 
@@ -100,16 +100,15 @@ Underscores will be interpreted as white space, as obvious from the
 previous examples.  The limitation of this is that parentheses, special 
 characters cannot be used.     
 
+
 """
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import atomic
-from atomic import *
-__all__ = atomic.__all__
+from atomic import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
 
-__doc__ += """
+"""
 
 Common methods
 -------------------------------------------------------------------------------
@@ -137,10 +136,10 @@ keys.sort()
 
 for key in keys:
     field = ATOMIC_DATA_FIELDS[key]
-    __doc__ += '``get/set{0:13s}  get/set {1:s}\n'.format(field.meth_pl+'``', 
-                                                          field.doc_pl)
+    #__doc__ += '``get/set{0:13s}  get/set {1:s}\n'.format(field.meth_pl+'``', 
+    #                                                      field.doc_pl)
 
-__doc__ += """
+"""
 ======================  =======================================================
 
 .. note:: Note that ``get`` methods return a copy of the data. Changes in the 
@@ -332,7 +331,7 @@ Some overridden functions are:
 
 """
 
-__doc__ += """
+"""
 
 :mod:`prody.atomic`
 ===============================================================================
@@ -340,32 +339,128 @@ __doc__ += """
 Classes
 -------
 
-    * :class:`AtomGroup`
-    * :class:`Atom`
-    * :class:`Segment`
-    * :class:`Chain`
-    * :class:`Residue`
-    * :class:`Selection`
-    * :class:`AtomMap`
-    * :class:`HierView`
+    * :class:`~atomgroup.AtomGroup`
+    * :class:`~atom.Atom`
+    * :class:`~bond.Bond`
+    * :class:`~segment.Segment`
+    * :class:`~chain.Chain`
+    * :class:`~residue.Residue`
+    * :class:`~selection.Selection`
+    * :class:`~atommap.AtomMap`
+    * :class:`~hierview.HierView`
     
 Base Classes
 ------------
 
-    * :class:`Atomic`
-    * :class:`AtomPointer`
-    * :class:`AtomSubset`
+    * :class:`~atomic.Atomic`
+    * :class:`~atompointer.AtomPointer`
+    * :class:`~atomsubset.AtomSubset`
 
 Functions
 ---------
 
-    * :func:`saveAtoms`
-    * :func:`loadAtoms`
+    * :func:`~functions.saveAtoms`
+    * :func:`~functions.loadAtoms`
 
 Inheritance Diagram
 -------------------
 
 .. inheritance-diagram:: prody.atomic
-   :parts: 1
+   :parts: 1"""
 
-"""
+import prody
+LOGGER = prody.LOGGER
+SETTINGS = prody.SETTINGS
+
+__all__ = ['Atomic', 'MultiCoordset',
+           'AtomGroup', 'MCAtomGroup',
+           'Segment', 'MCSegment',
+           'Chain', 'MCChain',
+           'Residue', 'MCResidue',
+           'Atom', 'MCAtom',
+           'AtomPointer', 'MCAtomPointer',
+           'AtomSubset', 'MCAtomSubset',
+           'AtomMap', 'MCAtomMap',
+           'Bond', 'MCBond',
+           'loadAtoms', 'saveAtoms',
+           'select']
+
+import atomic
+from atomic import ATOMIC_DATA_FIELDS
+from atomic import Atomic, MultiCoordset
+
+import atomgroup
+from atomgroup import AtomGroup, MCAtomGroup
+
+import pointer
+from pointer import AtomPointer, MCAtomPointer
+
+pointer.AtomGroup = AtomGroup
+pointer.AtomGroupMC = MCAtomGroup
+
+import subset
+from subset import AtomSubset, MCAtomSubset
+
+import segment
+from segment import Segment, MCSegment
+
+import chain
+from chain import Chain, MCChain
+
+import residue
+from residue import Residue, MCResidue
+
+import atom
+from atom import Atom, MCAtom
+
+import atommap
+from atommap import AtomMap, MCAtomMap
+
+import bond
+from bond import Bond, MCBond
+
+import hierview
+from hierview import HierView
+
+atomgroup.HierView = HierView
+selection.HierView = HierView
+
+#from atom import Atom
+from functions import loadAtoms, saveAtoms
+
+import select
+from select import *
+__all__ += select.__all__
+
+from select import isMacro, isKeyword, isReserved
+atomic.isMacro = isMacro
+atomic.isKeyword = isKeyword
+atomic.isReserved = isReserved
+atomic.SELECT = atomgroup.SELECT = Select()
+atomgroup.isReserved = isReserved
+
+import numpy as np
+
+n_atoms = 10
+ATOMGROUP = AtomGroup('Test')
+ATOMGROUP.setCoords(np.random.random((n_atoms,3)))
+ATOMGROUP.setNames(['CA']*n_atoms)
+ATOMGROUP.setResnames(['GLY']*n_atoms)
+ATOMGROUP.setResnums(np.arange(1,n_atoms+1))
+ATOMGROUP.setChids(['A']*n_atoms)
+ATOMGROUP.setAltlocs([' ']*n_atoms)
+ATOMGROUP.setElements(['C']*n_atoms)
+ATOMGROUP.setHeteros([False]*n_atoms)
+ATOMGROUP.setOccupancies([1]*n_atoms)
+ATOMGROUP.setSecstrs(['H']*n_atoms)
+ATOMGROUP.setSegnames(['PDB']*n_atoms)
+ATOMGROUP.setAnisous(np.random.random((n_atoms,6)))
+ATOMGROUP.setAnistds(np.random.random((n_atoms,6)))
+ATOMGROUP.setIcodes([' ']*n_atoms)
+ATOMGROUP.setTypes(['CH2']*n_atoms)
+ATOMGROUP.setBetas([0]*n_atoms)
+ATOMGROUP.setCharges([0]*n_atoms)
+ATOMGROUP.setMasses([12]*n_atoms)
+ATOMGROUP.setRadii([1.4]*n_atoms)
+
+select.ATOMGROUP = ATOMGROUP

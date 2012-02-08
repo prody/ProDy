@@ -16,13 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """This module contains a class for building hierarchical views of atom groups.
-"""
+
+.. currentmodule:: prody.atomic"""
+
+__author__ = 'Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
+from atomic import MultiCoordset
 from atomgroup import AtomGroup
 from selection import Selection
-from atomsubsets import Chain, Residue, Segment 
+from chain import Chain, MCChain
+from residue import Residue, MCResidue
+from segment import Segment, MCSegment
+
+__all__ = ['HierView']
+
+pkg = __import__(__package__)
+LOGGER = pkg.LOGGER 
+SETTINGS = pkg.SETTINGS
+
 
 class HierView(object):
     
@@ -47,8 +61,6 @@ class HierView(object):
     except indexing.  For example, when indexing a hierarchical view for 
     chain P in segment PROT needs to be indexed as ``hv['PROT', 'P']``."""
     
-    __slots__ = ['_atoms', '_dict', '_segments', '_chains', '_residues']
-
     def __init__(self, atoms, **kwargs):
         """Build hierarchical view for *atoms*."""
         
@@ -81,26 +93,33 @@ class HierView(object):
     
     def __getitem__(self, key):
         
+        _dict = self._dict
         if isinstance(key, str):
-            return self._dict.get(key, self._dict.get((None, key)))
+            return _dict.get(key, self._dict.get((None, key)))
+        
         elif isinstance(key, tuple):
             length = len(key)
+        
             if length == 1:
                 return self.__getitem__(key[0])
-            elif length == 2:
-                return self._dict.get(key,
-                        self._dict.get((None, None, key[0], key[1] or None), 
-                        self._dict.get((None, key[0], key[1], None))))
-            elif length == 3:
-                return self._dict.get((None, key[0] or None, 
+
+            if length == 2:
+                return _dict.get(key,
+                        _dict.get((None, None, key[0], key[1] or None), 
+                        _dict.get((None, key[0], key[1], None))))
+        
+            if length == 3:
+                return _dict.get((None, key[0] or None, 
                                        key[1], key[2] or None), 
-                          self._dict.get((key[0] or None, key[1] or None, 
-                                          key[2], None)))
-            elif length == 4:
-                return self._dict.get((key[0] or None, key[1] or None, 
-                                       key[2], key[3] or None))
+                          _dict.get((key[0] or None, key[1] or None, 
+                                     key[2], None)))
+        
+            if length == 4:
+                return _dict.get((key[0] or None, key[1] or None, 
+                                  key[2], key[3] or None))
+        
         elif isinstance(key, int):
-            return self._dict.get((None, None, key, None))
+            return _dict.get((None, None, key, None))
 
     def getAtoms(self):
         """Return atoms for which the hierarchical view was built.
@@ -115,17 +134,28 @@ class HierView(object):
         when attributes of atoms change."""
         
         array = np.array
-        acsi = self._atoms.getACSIndex()
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
             ag = atoms
             _indices = np.arange(ag._n_atoms)
             selstr = False
         else:
-            ag = atoms._ag
+            ag = atoms.getAtomGroup()
             _indices = atoms._indices
             selstr = atoms.getSelstr()
-        n_atoms = len(ag)    
+        
+        if isinstance(ag, MultiCoordset):
+            acsi = self._atoms.getACSIndex()
+            Segment_ = MCSegment
+            Chain_ = MCChain
+            Residue_ = MCResidue
+        else:
+            acsi = None
+            Segment_ = Segment
+            Chain_ = Chain
+            Residue_ = Residue
+        
+        n_atoms = len(ag)
         self._dict = _dict = dict()
         self._chains = _chains = list()
         self._residues = _residues = list()
@@ -148,7 +178,7 @@ class HierView(object):
             s = sgnms[0]
             if len(unique) == 1:
                 if  s != '':
-                    segment = Segment(ag, _indices, acsi, unique=True, 
+                    segment = Segment_(ag, _indices, acsi=acsi, unique=True, 
                                       selstr=selstr)
                     _dict[s] = segment
                     _segments.append(segment)
@@ -163,8 +193,8 @@ class HierView(object):
                     ps = s
                     segindex += 1
                     idx = _indices[i:][sgnms[i:] == s]
-                    segment = Segment(ag, idx, acsi, unique=True, 
-                                      selstr=selstr)
+                    segment = Segment_(ag, idx, acsi=acsi, unique=True, 
+                                       selstr=selstr)
                     segindices[idx] = segindex
                     _dict[s] = segment
                     _segments.append(segment)
@@ -178,7 +208,7 @@ class HierView(object):
                 chids = chids[_indices]
             if _segments is None:
                 if len(np.unique(chids)) == 1:
-                    chain = Chain(ag, _indices, None, acsi, unique=True)
+                    chain = Chain_(ag, _indices, acsi=acsi, unique=True)
                     _dict[(None, chids[0] or None)] = chain
                     _chains.append(chain)
                 else:
@@ -189,7 +219,7 @@ class HierView(object):
                         pc = c
                         chindex += 1
                         idx = _indices[i:][chids[i:] == c]
-                        chain = Chain(ag, idx, None, acsi, unique=True)
+                        chain = Chain_(ag, idx, acsi=acsi, unique=True)
                         chindices[idx] = chindex
                         _dict[(None, c)] = chain
                         _chains.append(chain)
@@ -207,7 +237,8 @@ class HierView(object):
                         segment = _dict[ps]
                         chindex += 1
                         idx = _indices[_i:i]
-                        chain = Chain(ag, idx, segment, acsi, unique=True)
+                        chain = Chain_(ag, idx, acsi=acsi, segment=segment, 
+                                       unique=True)
                         chindices[idx] = chindex
                         _dict[s_c] = chain
                         segment._dict[pc] = chain
@@ -226,7 +257,8 @@ class HierView(object):
                     segment = _dict[ps]
                     chindex += 1
                     chindices[idx] = chindex
-                    chain = Chain(ag, idx, segment, acsi, unique=True)
+                    chain = Chain_(ag, idx, acsi=acsi, segment=segment, 
+                                   unique=True)
                     _dict[s_c] = chain
                     segment._dict[pc] = chain
                     _chains.append(chain)
@@ -275,8 +307,8 @@ class HierView(object):
                     chain = _dict.get((ps, pc))
                     resindex += 1
                     idx = _indices[_j:j]
-                    res = Residue(ag, idx, chain, acsi, unique=True, 
-                                  selstr=selstr)
+                    res = Residue_(ag, idx, acsi=acsi, chain=chain, 
+                                   unique=True, selstr=selstr)
                     resindices[idx] = resindex
                     if chain is not None:
                         chain._dict[(pr, pi)] = len(chain._list)
@@ -297,7 +329,8 @@ class HierView(object):
         if res is None:
             chain = _dict.get((ps, pc))
             resindex += 1
-            res = Residue(ag, idx, chain, acsi, unique=True, selstr=selstr)
+            res = Residue_(ag, idx, acsi=acsi, chain=chain, unique=True, 
+                           selstr=selstr)
             resindices[idx] = resindex
             if chain is not None:
                 chain._dict[(pr, pi)] = len(chain._list)
