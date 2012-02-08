@@ -289,7 +289,7 @@ from tools import *
 import measure
 LOGGER = prody.LOGGER
 SETTINGS = prody.SETTINGS
-from prody import ProDyAtomSelect as SELECT
+from prody import SELECT
 from prody import ProDyException
 
 

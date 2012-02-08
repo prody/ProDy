@@ -228,12 +228,7 @@ from atomic import *
 __all__.extend(atomic.__all__)
 __all__.append('atomic')
 
-from . import select
-from select import *
-__all__.extend(select.__all__)
-__all__.append('select')
-
-ProDyAtomSelect = Select()
+SELECT = atomic.SELECT
 
 import proteins
 from proteins import *  
