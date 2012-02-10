@@ -38,7 +38,7 @@ You can parse PDB files by passing a PDB identifier:
 
 >>> atoms = parsePDB('1p38')
 >>> atoms
-<AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1p38 (2962 atoms)>
 
 :func:`parsePDB` function returns atomic data in an 
 :class:`~prody.atomic.AtomGroup`.

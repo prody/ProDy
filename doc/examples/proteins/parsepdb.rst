@@ -50,7 +50,7 @@ information):
 '1p38.pdb.gz'
 >>> atoms = parsePDB('1p38.pdb.gz')
 >>> atoms
-<AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1p38 (2962 atoms)>
 
 Parser returns an :class:`~prody.atomic.AtomGroup` instance.
 
@@ -69,7 +69,7 @@ automatically and saved it in the current working directory.
 
 >>> atoms = parsePDB('1mkp')
 >>> atoms
-<AtomGroup: 1mkp (1183 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1mkp (1183 atoms)>
 
 
 Subsets of atoms
@@ -79,10 +79,10 @@ Parser can be used to parse backbone or Cα atoms:
 
 >>> backbone = parsePDB('1mkp', subset='bb')
 >>> backbone
-<AtomGroup: 1mkp_bb (576 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1mkp_bb (576 atoms)>
 >>> calpha = parsePDB('1mkp', subset='ca')
 >>> calpha
-<AtomGroup: 1mkp_ca (144 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1mkp_ca (144 atoms)>
 
 
 Specific chains
@@ -92,16 +92,16 @@ Parser can be used to parse a specific chain from a PDB file:
 
 >>> chA = parsePDB('3mkb', chain='A')
 >>> chA
-<AtomGroup: 3mkb_A (1198 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb_A (1198 atoms)>
 >>> chC = parsePDB('3mkb', chain='C')
 >>> chC
-<AtomGroup: 3mkb_C (1189 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb_C (1189 atoms)>
 
 Multiple chains can also be parsed in the same way:
 
 >>> chAC = parsePDB('3mkb', chain='AC')
 >>> chAC
-<AtomGroup: 3mkb_AC (2387 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb_AC (2387 atoms)>
 
 Specific models
 -------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ Parser can be used to parse a specific model from a file:
 
 >>> model1 = parsePDB('2k39', model=10)
 >>> model1
-<AtomGroup: 2k39 (1231 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 2k39 (1231 atoms)>
 
 Alternate locations
 -------------------------------------------------------------------------------
@@ -120,13 +120,13 @@ alternate locations with indicator ``A`` are parsed.
 
 >>> altlocA = parsePDB('1ejg')
 >>> altlocA
-<AtomGroup: 1ejg (637 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1ejg (637 atoms)>
 
 Specific alternate locations can be parsed as follows:
 
 >>> altlocB = parsePDB('1ejg', altloc='B')
 >>> altlocB
-<AtomGroup: 1ejg (634 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1ejg (634 atoms)>
 
 Note that in this case number of atoms are different between the two atom 
 groups. This is because the residue types of atoms with alternate locations
@@ -136,7 +136,7 @@ Also, all alternate locations can be parsed as follows:
 
 >>> all_altlocs = parsePDB('1ejg', altloc=True)
 >>> all_altlocs
-<AtomGroup: 1ejg (637 atoms; 3 coordinate sets, active set index: 0)>
+<AtomGroup: 1ejg (637 atoms; active #0 of 3 coordsets)>
 
 Note that this time parser returned three coordinate sets. One for each 
 alternate location indicator found in this file (A, B, C). When parsing
@@ -152,7 +152,7 @@ atoms of a specific chain:
 
 >>> composite = parsePDB('2k39', model=10, chain='A', subset='ca')
 >>> composite
-<AtomGroup: 2k39_A_ca (76 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 2k39_A_ca (76 atoms)>
 
 Header data
 -------------------------------------------------------------------------------

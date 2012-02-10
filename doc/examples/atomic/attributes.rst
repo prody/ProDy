@@ -41,7 +41,7 @@ Let's parse a structure of p38 MAP kinase:
 
 >>> ag = parsePDB('1p38')
 >>> ag
-<AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1p38 (2962 atoms)>
 
 Set a new attribute
 -------------------------------------------------------------------------------
@@ -84,7 +84,7 @@ Use attribute in atom selections
 Custom atomic attributes can be used in selections:
 
 >>> ag.select('0 < myresnum and myresnum < 10')
-<Selection: "0 < myresnum and myresnum < 10" from 1p38 (788 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "0 < myresnum and myresnum < 10" from 1p38 (788 atoms)>
 
 This gives the same result as the following selection:
 

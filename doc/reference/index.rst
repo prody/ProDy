@@ -26,13 +26,13 @@ Library reference
 
 .. toctree::
    :maxdepth: 3
+   :glob:
 
    library/prody
-   library/atomic
+   library/atomic/index
    library/compare
    library/dynamics
    library/ensemble
    library/measure
    library/proteins
-   library/select
    library/tests

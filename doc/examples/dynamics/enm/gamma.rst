@@ -66,13 +66,13 @@ We start with parsing a PDB file by passing an identifier.
 
 >>> p38 = parsePDB('1p38')
 >>> p38
-<AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1p38 (2962 atoms)>
 
 We want to use only Cα atoms, so we select them:
 
 >>> calphas = p38.select('protein and name CA')
 >>> calphas
-<Selection: "protein and name CA" from 1p38 (351 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "protein and name CA" from 1p38 (351 atoms)>
 
 Define Force Constant Function
 -------------------------------------------------------------------------------

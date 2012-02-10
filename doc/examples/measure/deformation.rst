@@ -70,9 +70,9 @@ We can get information on matched subset of atoms by entering the variable
 name:
 
 >>> ref_chain
-<AtomMap: Chain A from 1p38 -> Chain A from 1zz2 (from 1p38; 337 atoms; 337 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: Chain A from 1p38 -> Chain A from 1zz2 from 1p38 (337 atoms, 337 mapped, 0 dummy)>
 >>> mob_chain
-<AtomMap: Chain A from 1zz2 -> Chain A from 1p38 (from 1zz2; 337 atoms; 337 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: Chain A from 1zz2 -> Chain A from 1p38 from 1zz2 (337 atoms, 337 mapped, 0 dummy)>
 
 Both :class:`~prody.atomic.AtomMap` instances refer to same number of atoms, 
 and their name suggests how they were retrieved.
@@ -110,7 +110,7 @@ We apply this transformation to *mobile* structure (not to *mob_chain*,
 to preserve structures integrity).
 
 >>> t.apply(mobile)
-<AtomGroup: 1zz2 (2872 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1zz2 (2872 atoms)>
 >>> print( calcRMSD(ref_chain, mob_chain).round(2) )
 1.86
 

@@ -54,7 +54,7 @@ be useful in a number of places, so let's start with parsing this file first:
 
 >>> structure = parsePDB('mdm2.pdb')
 >>> structure
-<AtomGroup: mdm2 (1449 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: mdm2 (1449 atoms)>
 
 This function returned a :class:`~prody.atomic.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
@@ -74,7 +74,7 @@ trajectory at once using :func:`~prody.ensemble.parseDCD`:
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble.setAtoms( structure )
 >>> ensemble.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "calpha" from mdm2 (85 atoms)>
 >>> ensemble.superpose()
 >>> eda_ensemble = EDA('MDM2 Ensemble')
 >>> eda_ensemble.buildCovariance( ensemble )
@@ -90,7 +90,7 @@ to the :meth:`~dynamics.PCA.buildCovariance` method as follows:
 >>> dcd = DCDFile('mdm2.dcd')
 >>> dcd.setAtoms( structure )
 >>> dcd.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "calpha" from mdm2 (85 atoms)>
 >>> eda_trajectory = EDA('MDM2 Trajectory')
 >>> eda_trajectory.buildCovariance( dcd )
 >>> eda_trajectory.calcModes()
@@ -124,7 +124,7 @@ them. In this case we will use data from two independent simulations
 
 >>> trajectory.setAtoms( structure )
 >>> trajectory.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "calpha" from mdm2 (85 atoms)>
 >>> eda = EDA('mdm2')
 >>> eda.buildCovariance( trajectory )
 >>> eda.calcModes()

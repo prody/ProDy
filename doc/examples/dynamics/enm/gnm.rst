@@ -43,7 +43,7 @@ the current working directory, it will be downloaded.
 
 >>> ubi = parsePDB('1aar')
 >>> ubi 
-<AtomGroup: 1aar (1218 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1aar (1218 atoms)>
 
 This file contains 2 chains, and a flexible C-terminal (residues 71-76).
 We only want to use Cα atoms of first 70 residues from chain A, 
@@ -51,7 +51,7 @@ so we select them:
 
 >>> calphas = ubi.select('calpha and chain A and resnum < 71')
 >>> calphas 
-<Selection: "calpha and chai...and resnum < 71" from 1aar (70 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "calpha and chai...and resnum < 71" from 1aar (70 atoms)>
 
 |more| See definition of "calpha", "chain", and other selection 
 keywords in :ref:`selections`.

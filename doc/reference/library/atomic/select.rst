@@ -1,7 +1,7 @@
-************
-prody select
-************
+*******************
+prody.atomic.select
+*******************
 
-.. automodule:: prody.select
+.. automodule:: prody.atomic.select
    :members:
    :undoc-members:

@@ -44,7 +44,7 @@ be useful in a number of places, so let's start with parsing this file first:
 
 >>> structure = parsePDB('mdm2.pdb')
 >>> structure
-<AtomGroup: mdm2 (1449 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: mdm2 (1449 atoms)>
 
 This function returned a :class:`~prody.atomic.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
@@ -88,7 +88,7 @@ in a subset of atoms, let's say Cα atoms, we can make a selection before
 performing calculations:
 
 >>> ensemble.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "calpha" from mdm2 (85 atoms)>
 >>> ensemble
 <Ensemble: mdm2 (0:500:1) (500 conformations, 1449 atoms, 85 selected)>
 >>> ensemble.superpose()
@@ -184,25 +184,6 @@ Instances of this class are also suitable for previous calculations:
   ...
   12.95  12.98  12.96  13.    13.08  12.9   12.94  12.98  12.96]
   
-Associate with an AtomGroup
--------------------------------------------------------------------------------
-
->>> structure.setTrajectory( 'mdm2.dcd' )
->>> structure
-<AtomGroup: mdm2 (1449 atoms; trajectory mdm2, frame index 0)>
-
-Let's calculate end-to-end distance:
-
->>> e2e = np.zeros(500)
->>> nter = structure.select('name CA and resnum 25')
->>> cter = structure.select('name CA and resnum 109')
->>> for i in range(500):
-...     e2e[i] = calcDistance(nter, cter)
-...     structure.nextFrame()
->>> print e2e.round(2) # doctest: +ELLIPSIS
-[ 11.79  14.13  15.66  14.52  16.46  17.21  16.45  14.29  11.6   12.66
-  ...
-  11.94  11.7   12.43  11.65  12.37  12.54  11.34  11.55  11.47]
   
 Writing DCD files
 -------------------------------------------------------------------------------
@@ -213,7 +194,7 @@ Let's select non-hydrogen protein atoms and write a merged trajectory for
 MDM2:
 
 >>> traj.select('noh')
-<Selection: "noh" from mdm2 (706 atoms; 2 coordinate sets, active set index: 1)>
+<Selection: "noh" from mdm2 (706 atoms)>
 >>> writeDCD('mdm2_merged_noh.dcd', traj)
 'mdm2_merged_noh.dcd'
 

@@ -38,7 +38,7 @@ Instantiate an AtomGroup
 
 >>> wtr1 = AtomGroup('Water')
 >>> wtr1
-<AtomGroup: Water (0 atoms; 0 coordinate sets)>
+<AtomGroup: Water (0 atoms; no coordinates)>
 
 
 Set coordinates
@@ -55,7 +55,7 @@ the size of the coordinate data array:
  [0 0 1]]
 >>> wtr1.setCoords( coords )
 >>> wtr1
-<AtomGroup: Water (3 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: Water (3 atoms)>
 
 Set attributes
 -------------------------------------------------------------------------------
@@ -83,9 +83,9 @@ Atoms in an :class:`AtomGroup` can be iterated over
 
 >>> for a in wtr1: a
 ... 
-<Atom: H from Water (index 0; 1 coordinate sets, active set index: 0)>
-<Atom: O from Water (index 1; 1 coordinate sets, active set index: 0)>
-<Atom: H from Water (index 2; 1 coordinate sets, active set index: 0)>
+<Atom: H from Water (index 0)>
+<Atom: O from Water (index 1)>
+<Atom: H from Water (index 2)>
 
 **Indexing**
 
@@ -93,7 +93,7 @@ Atoms in an atom group can be accessed via indexing:
 
 >>> a = wtr1[0]
 >>> a
-<Atom: H from Water (index 0; 1 coordinate sets, active set index: 0)>
+<Atom: H from Water (index 0)>
 >>> print( a.getCoords() )
 [ 1.  0.  0.]
 
@@ -104,20 +104,20 @@ Let's add another coordinate set to the atom group:
 
 >>> wtr1.addCoordset( np.array( [ [0, 1, 0], [0, 0, 0], [0, 0, 1] ] ) )
 >>> wtr1
-<AtomGroup: Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
 
 Note that number of coordinate sets is now 2, but active coordinate set index
 is still 0. Active coordinate set incex can be changed for :class:`AtomGroup`
 
 >>> a.setACSIndex(1)
 >>> a
-<Atom: H from Water (index 0; 2 coordinate sets, active set index: 1)>
+<Atom: H from Water (index 0; active #1 of 2 coordsets)>
 
 Changing active coordinate set for an atom group, does not affect the active 
 coordinate set of the atom group:
 
 >>> wtr1
-<AtomGroup: Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
 
 Coordinates for the atom group will be returned from the active coordinate set
 
@@ -141,7 +141,7 @@ Now let's make another copy of this water:
 
 >>> wtr2 = wtr1.copy()
 >>> wtr2
-<AtomGroup: Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
 
 **Translate clone**
 
@@ -195,7 +195,7 @@ Let's merge two water atom groups:
 
 >>> wtrs = wtr1 + wtr2
 >>> wtrs
-<AtomGroup: Water + Water (6 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: Water + Water (6 atoms; active #0 of 2 coordsets)>
 >>> print( wtrs.getCoords() )
 [[ 1.  0.  0.]
  [ 0.  0.  0.]
@@ -223,15 +223,15 @@ Hierarchical views of atom groups are represented by :class:`HierView`.
 Residues (and also chains) in an atom group can also be iterated over
 
 >>> for res in wtrs.getHierView().iterResidues(): res
-<Residue: WAT 1 from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
-<Residue: WAT 2 from Water + Water (3 atoms; 2 coordinate sets, active set index: 0)>
+<Residue: WAT 1 from Water + Water (3 atoms; active #0 of 2 coordsets)>
+<Residue: WAT 2 from Water + Water (3 atoms; active #0 of 2 coordsets)>
 
 Finally, it's is possible to change the name of *wtrs* from 
 "Water + Water" to something shorter:
 
 >>> wtrs.setTitle('2Waters')
 >>> wtrs
-<AtomGroup: 2Waters (6 atoms; 2 coordinate sets, active set index: 0)>
+<AtomGroup: 2Waters (6 atoms; active #0 of 2 coordsets)>
 
 |questions|
 

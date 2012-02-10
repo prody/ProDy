@@ -70,10 +70,10 @@ structures:
 
 >>> bound_ca = matches[0][0] + matches[1][0]
 >>> bound_ca
-<AtomMap: (AtomMap Chain B from 1vrt -> Chain B from 1dlo) + (AtomMap Chain A from 1vrt -> Chain A from 1dlo) (from 1vrt; 924 atoms; 924 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: (AtomMap Chain B from 1vrt -> Chain B from 1dlo) + (AtomMap Chain A from 1vrt -> Chain A from 1dlo) from 1vrt (924 atoms, 924 mapped, 0 dummy)>
 >>> unbound_ca = matches[0][1] + matches[1][1]
 >>> unbound_ca
-<AtomMap: (AtomMap Chain B from 1dlo -> Chain B from 1vrt) + (AtomMap Chain A from 1dlo -> Chain A from 1vrt) (from 1dlo; 924 atoms; 924 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: (AtomMap Chain B from 1dlo -> Chain B from 1vrt) + (AtomMap Chain A from 1dlo -> Chain A from 1vrt) from 1dlo (924 atoms, 924 mapped, 0 dummy)>
 >>> calcRMSD(bound_ca, unbound_ca)
 129.34348658001386
 
@@ -81,7 +81,7 @@ Then we find the transformation that minimizes RMSD between these two
 selections and apply it to unbound structure:
 
 >>> calcTransformation(unbound_ca, bound_ca).apply(unbound)
-<AtomGroup: 1dlo (7691 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1dlo (7691 atoms)>
 >>> round(calcRMSD(bound_ca, unbound_ca), 2)
 6.0
 
@@ -161,14 +161,14 @@ Let's map bound structure onto unbound chain A (subunit p66):
 ...     print 'Target chain       :', mapping[1]
 ...     print 'Mapping length     :', len(mapping[0])
 ...     print '# of mapped atoms  :', mapping[0].numMapped()
-...     print '# of unmapped atoms:', mapping[0].numUnmapped()
+...     print '# of dummy atoms   :', mapping[0].numDummies()
 ...     print 'Sequence identity  :', mapping[2]
 ...     print 'Sequence overlap   :', mapping[3]
 Mapped chain       : AtomMap Chain B from 1vrt -> Chain A from 1dlo
 Target chain       : AtomMap Chain A from 1dlo -> Chain B from 1vrt
 Mapping length     : 556
 # of mapped atoms  : 524
-# of unmapped atoms: 32
+# of dummy atoms   : 32
 Sequence identity  : 99
 Sequence overlap   : 94
 
@@ -181,14 +181,14 @@ matching larger numbers of atoms. We can map backbone atoms as follows:
 ...     print 'Target chain       :', mapping[1]
 ...     print 'Mapping length     :', len(mapping[0])
 ...     print '# of mapped atoms  :', mapping[0].numMapped()
-...     print '# of unmapped atoms:', mapping[0].numUnmapped()
+...     print '# of dummy atoms   :', mapping[0].numDummies()
 ...     print 'Sequence identity  :', mapping[2]
 ...     print 'Sequence overlap   :', mapping[3]
 Mapped chain       : AtomMap Chain B from 1vrt -> Chain A from 1dlo
 Target chain       : AtomMap Chain A from 1dlo -> Chain B from 1vrt
 Mapping length     : 2224
 # of mapped atoms  : 2096
-# of unmapped atoms: 128
+# of dummy atoms   : 128
 Sequence identity  : 99
 Sequence overlap   : 94
 
@@ -200,14 +200,14 @@ Or, we can map all atoms as follows:
 ...     print 'Target chain       :', mapping[1]
 ...     print 'Mapping length     :', len(mapping[0])
 ...     print '# of mapped atoms  :', mapping[0].numMapped()
-...     print '# of unmapped atoms:', mapping[0].numUnmapped()
+...     print '# of dummy atoms   :', mapping[0].numDummies()
 ...     print 'Sequence identity  :', mapping[2]
 ...     print 'Sequence overlap   :', mapping[3]
 Mapped chain       : AtomMap Chain B from 1vrt -> Chain A from 1dlo
 Target chain       : AtomMap Chain A from 1dlo -> Chain B from 1vrt
 Mapping length     : 4370
 # of mapped atoms  : 4159
-# of unmapped atoms: 211
+# of dummy atoms   : 211
 Sequence identity  : 99
 Sequence overlap   : 94
 

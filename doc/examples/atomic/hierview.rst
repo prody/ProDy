@@ -39,20 +39,20 @@ view of atoms.
 
 >>> structure = parsePDB('3mkb')
 >>> structure
-<AtomGroup: 3mkb (4776 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3mkb (4776 atoms)>
 
 One can access individual atoms by indexing the :class:`AtomGroup` instance:
 
 >>> structure[10]
-<Atom: CG from 3mkb (index 10; 1 coordinate sets, active set index: 0)>
+<Atom: CG from 3mkb (index 10)>
 
 Or, one can iterate over all atoms one by one:
 
 >>> for atom in structure:
 ...     atom # doctest: +ELLIPSIS
-<Atom: N from 3mkb (index 0; 1 coordinate sets, active set index: 0)>
+<Atom: N from 3mkb (index 0)>
 ...
-<Atom: O from 3mkb (index 4775; 1 coordinate sets, active set index: 0)>
+<Atom: O from 3mkb (index 4775)>
 
 Hierarchical view
 -------------------------------------------------------------------------------
@@ -69,9 +69,9 @@ A hierarchical view of the structure can be simply get by calling the
 Indexing a :class:`HierView` instance returns :class:`Chain` instances:
 
 >>> hv['A']
-<Chain: A from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: A from 3mkb (254 residues, 1198 atoms)>
 >>> hv['B']
-<Chain: B from 3mkb (1193 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: B from 3mkb (216 residues, 1193 atoms)>
 >>> hv['Z'] # This will return None, which means chain Z does not exist
 
 The length of the *hv* variable gives the number of chains in the structure:
@@ -85,7 +85,7 @@ It is also possible to get a :class:`Residue` by directly indexing the
 :class:`HierView` instance:
 
 >>> hv['A', 100]
-<Residue: MET 100 from Chain A from 3mkb (8 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: MET 100 from Chain A from 3mkb (8 atoms)>
 
 Insertion codes can also be passed:
 
@@ -99,18 +99,18 @@ One can iterate over :class:`HierView` instances to get chains:
 
 >>> for chain in hv:
 ...     chain # doctest: +ELLIPSIS
-<Chain: A from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: A from 3mkb (254 residues, 1198 atoms)>
 ...
-<Chain: D from 3mkb (1196 atoms; 1 coordinate sets, active set index: 0)>
-
+<Chain: D from 3mkb (231 residues, 1196 atoms)>
+    
 It is also possible to get a :func:`list` of chains simply as follows:
 
 >>> chains = list( hv )
 >>> chains # doctest: +SKIP
-[<Chain: A from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>, 
- <Chain: B from 3mkb (1193 atoms; 1 coordinate sets, active set index: 0)>, 
- <Chain: C from 3mkb (1189 atoms; 1 coordinate sets, active set index: 0)>, 
- <Chain: D from 3mkb (1196 atoms; 1 coordinate sets, active set index: 0)>]
+[<Chain: A from 3mkb (1198 atoms)>, 
+ <Chain: B from 3mkb (1193 atoms)>, 
+ <Chain: C from 3mkb (1189 atoms)>, 
+ <Chain: D from 3mkb (1196 atoms)>]
 
 *Iterate residues*
 
@@ -118,18 +118,18 @@ In addition, one can also iterate over all residues:
 
 >>> for residue in hv.iterResidues():
 ...     residue # doctest: +ELLIPSIS
-<Residue: ALA 1 from Chain A from 3mkb (5 atoms; 1 coordinate sets, active set index: 0)>
-<Residue: PHE 2 from Chain A from 3mkb (11 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
+<Residue: PHE 2 from Chain A from 3mkb (11 atoms)>
 ...
-<Residue: HOH 475 from Chain D from 3mkb (1 atoms; 1 coordinate sets, active set index: 0)>
-<Residue: HOH 492 from Chain D from 3mkb (1 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: HOH 475 from Chain D from 3mkb (1 atoms)>
+<Residue: HOH 492 from Chain D from 3mkb (1 atoms)>
 
 Chains
 -------------------------------------------------------------------------------
 
 >>> chA = hv['A']
 >>> chA
-<Chain: A from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: A from 3mkb (254 residues, 1198 atoms)>
 
 Length of the chain equals to the number of residues in it:
 
@@ -143,7 +143,7 @@ Length of the chain equals to the number of residues in it:
 Indexing a :class:`Chain` instance returns a :class:`Residue` instance.
 
 >>> chA[1]
-<Residue: ALA 1 from Chain A from 3mkb (5 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
 
 If a residue does not exist, ``None`` is returned:
 
@@ -160,11 +160,11 @@ Iterating over a chain yields residues:
 
 >>> for residue in chA:
 ...     residue # doctest: +ELLIPSIS
-<Residue: ALA 1 from Chain A from 3mkb (5 atoms; 1 coordinate sets, active set index: 0)>
-<Residue: PHE 2 from Chain A from 3mkb (11 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
+<Residue: PHE 2 from Chain A from 3mkb (11 atoms)>
 ...
-<Residue: HOH 490 from Chain A from 3mkb (1 atoms; 1 coordinate sets, active set index: 0)>
-<Residue: HOH 493 from Chain A from 3mkb (1 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: HOH 490 from Chain A from 3mkb (1 atoms)>
+<Residue: HOH 493 from Chain A from 3mkb (1 atoms)>
 
 Note that water atoms, each constituting a residue, are also part of a chain
 if they are labeled with that chain's identifier.
@@ -173,9 +173,9 @@ This enables getting a :func:`list` of residues simply as follows:
 
 >>> chA_residues = list(chA)
 >>> chA_residues # doctest: +SKIP
-[<Residue: ALA 1 from Chain A from 3mkb (5 atoms; 1 coordinate sets, active set index: 0)>,
+[<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>,
  ...,
- <Residue: HOH 493 from Chain A from 3mkb (1 atoms; 1 coordinate sets, active set index: 0)>]
+ <Residue: HOH 493 from Chain A from 3mkb (1 atoms)>]
 
 *Get atomic data*
 
@@ -199,7 +199,7 @@ Finally, you can select atoms from a :class:`Chain` instance:
 
 >>> chA_backbone = chA.select('backbone')
 >>> chA_backbone
-<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms)>
 >>> chA_backbone.getSelstr()
 '(backbone) and (chain A)'
 
@@ -208,7 +208,7 @@ As you see, the selection string passed by the user is augmented with
 consistency:
 
 >>> structure.select( chA_backbone.getSelstr() )
-<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms)>
  
 
 Residues
@@ -216,16 +216,16 @@ Residues
 
 >>> chA_res1 = chA[1]
 >>> chA_res1
-<Residue: ALA 1 from Chain A from 3mkb (5 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
 
 *Indexing*
 
 :class:`Residue` instances can be indexed to get individual atoms:
 
 >>> chA_res1['CA']
-<Atom: CA from 3mkb (index 1; 1 coordinate sets, active set index: 0)>
+<Atom: CA from 3mkb (index 1)>
 >>> chA_res1['CB']
-<Atom: CB from 3mkb (index 4; 1 coordinate sets, active set index: 0)>
+<Atom: CB from 3mkb (index 4)>
 >>> chA_res1['X'] # if atom does not exist, None is returned
 
 *Iterations*
@@ -234,18 +234,18 @@ Iterating over a residue instance yields :class:`Atom` instances:
 
 >>> for atom in chA_res1:
 ...     atom # doctest: +ELLIPSIS
-<Atom: N from 3mkb (index 0; 1 coordinate sets, active set index: 0)>
+<Atom: N from 3mkb (index 0)>
 ...
-<Atom: CB from 3mkb (index 4; 1 coordinate sets, active set index: 0)>
+<Atom: CB from 3mkb (index 4)>
 
 This makes it easy to get a :func:`list` of atoms:
 
 >>> list( chA_res1 ) # doctest: +SKIP
-[<Atom: N from 3mkb (index 0; 1 coordinate sets, active set index: 0)>,
- <Atom: CA from 3mkb (index 1; 1 coordinate sets, active set index: 0)>,
- <Atom: C from 3mkb (index 2; 1 coordinate sets, active set index: 0)>,
- <Atom: O from 3mkb (index 3; 1 coordinate sets, active set index: 0)>,
- <Atom: CB from 3mkb (index 4; 1 coordinate sets, active set index: 0)>]
+[<Atom: N from 3mkb (index 0)>,
+ <Atom: CA from 3mkb (index 1)>,
+ <Atom: C from 3mkb (index 2)>,
+ <Atom: O from 3mkb (index 3)>,
+ <Atom: CB from 3mkb (index 4)>]
 
 *Get atomic data*
 
@@ -267,7 +267,7 @@ Finally, you can select atoms from a :class:`Residue` instance:
 
 >>> chA_res1_bb = chA_res1.select('backbone')
 >>> chA_res1_bb
-<Selection: "(backbone) and ... and (chain A))" from 3mkb (4 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(backbone) and ... and (chain A))" from 3mkb (4 atoms)>
 >>> chA_res1_bb.getSelstr()
 '(backbone) and (resnum 1 and (chain A))'
 
@@ -281,7 +281,7 @@ The lowest level of the hierarchical view contains :class:`Atom` instances.
 
 >>> chA_res1_CA = chA_res1['CA']
 >>> chA_res1_CA
-<Atom: CA from 3mkb (index 1; 1 coordinate sets, active set index: 0)>
+<Atom: CA from 3mkb (index 1)>
 
 
 *Get atomic data*
@@ -307,11 +307,11 @@ match the current state of the atom group:
 
 >>> chA.setChid('X')
 >>> chA
-<Chain: X from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: X from 3mkb (254 residues, 1198 atoms)>
 >>> hv['X'] # returns None, since hierarchical view is not updated
 >>> hv.update() # this updates hierarchical view
 >>> hv['X']
-<Chain: X from 3mkb (1198 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: X from 3mkb (254 residues, 1198 atoms)>
 
 
 |questions|

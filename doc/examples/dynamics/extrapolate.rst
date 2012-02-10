@@ -55,7 +55,7 @@ ANM modes are extrapolated using the :func:`extrapolateModel` function:
 >>> bb_anm
 <NMA: Extrapolated ANM 1p38 (20 modes, 1404 atoms)>
 >>> bb_atoms
-<AtomMap: Selection "backbone" from 1p38 (from 1p38; 1404 atoms; 1404 mapped; 0 unmapped; 1 coordinate sets, active set index: 0)>
+<AtomMap: Selection "backbone" from 1p38 from 1p38 (1404 atoms, 1404 mapped, 0 dummy)>
 
 Note that :class:`GNM`, :class:`PCA`, and :class:`NMA` instances can also be
 used as input to this function.

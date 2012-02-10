@@ -93,7 +93,7 @@ Select chain A from the reference structure
 
 >>> ref_chain = ref_structure.getHierView().getChain('A')
 >>> ref_chain
-<Chain: A from p38 reference (321 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: A from p38 reference (321 residues, 321 atoms)>
 
 We use the :func:`~prody.proteins.parsePDB` function to parse a PDB file.
 This returns a :class:`~prody.atomic.AtomGroup` instance. We make a copy

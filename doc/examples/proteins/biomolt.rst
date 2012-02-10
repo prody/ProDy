@@ -41,7 +41,7 @@ protein:
 
 >>> monomer, header = parsePDB('3enl', header=True)
 >>> monomer
-<AtomGroup: 3enl (3647 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3enl (3647 atoms)>
 
 Note that we passed ``header=True`` argument to parse header data in addition
 to coordinates.
@@ -53,7 +53,7 @@ Let's get the dimer coordinates using :func:`buildBiomolecules` function:
 
 >>> dimer = buildBiomolecules(header, monomer)
 >>> dimer
-<AtomGroup: 3enl biomolecule 1 (7294 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 3enl biomolecule 1 (7294 atoms)>
 
 This function takes biomolecular tarnsformations from the *header* dictionary
 (item with key ``'biomolecular_transformations'``) and applies them to the 
