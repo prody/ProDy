@@ -37,7 +37,7 @@
 
 package require exectool
 package require multiplot
-package provide nmwiz 1.0
+package provide nmwiz 1.1
 
 
 proc sign x {expr {($x>0) - ($x<0)}}

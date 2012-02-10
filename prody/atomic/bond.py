@@ -15,9 +15,8 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""This module defined classes for dealing with bond information provided
-by the user.  Bonds can be set using :meth:`~atomgroup.AtomGroup.setBonds` 
-method."""
+"""This module defines :class:`Bond` for dealing with bond information provided
+by using :meth:`~atomic.atomgroup.AtomGroup.setBonds` method."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

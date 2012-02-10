@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded nmwiz 1.0 [list source [file join $dir nmwiz.tcl]]
+package ifneeded nmwiz 1.1 [list source [file join $dir nmwiz.tcl]]
