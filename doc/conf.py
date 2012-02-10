@@ -98,7 +98,7 @@ show_authors = True
 pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
-#modindex_common_prefix = []
+modindex_common_prefix = ['prody.']
 
 
 # -- Options for HTML output ---------------------------------------------------
@@ -314,3 +314,9 @@ rst_epilog = """
    https://github.com/abakan/ProDy/issues
 
 """.format(getRevisionNumber())
+
+def skip_class(app, what, name, obj, skip, options):
+    return not 'members' in options or name.startswith('_')
+
+def setup(app):
+    app.connect('autodoc-skip-member', skip_class)

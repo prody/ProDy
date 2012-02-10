@@ -51,7 +51,8 @@ from tools import *
 import prody
 LOGGER = prody.LOGGER
 
-from atomic import AtomMap, select
+from atomic import AtomMap as AM
+from atomic import select
 
 __all__ = ['matchChains',
            'matchAlign',
@@ -574,13 +575,13 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices1 = np.array(indices1)
         indices2 = np.array(indices2)
         lengh = len(indices1)
-        match1 = AtomMap(atoms1, indices1, np.arange(lengh), np.array([]),
-                           simpch1.getTitle() + ' -> ' + simpch2.getTitle(),
-                           atoms1.getACSIndex()) 
-                                 
-        match2 = AtomMap(atoms2, indices2, np.arange(lengh), np.array([]),
-                           simpch2.getTitle() + ' -> ' + simpch1.getTitle(),
-                           atoms2.getACSIndex()) 
+        
+        match1 = AM(atoms1, indices1, np.arange(lengh), np.array([]),
+                    simpch1.getTitle() + ' -> ' + simpch2.getTitle(),
+                    acsi=atoms1.getACSIndex()) 
+        match2 = AM(atoms2, indices2, np.arange(lengh), np.array([]),
+                    simpch2.getTitle() + ' -> ' + simpch1.getTitle(),
+                    acsi=atoms2.getACSIndex()) 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
@@ -822,21 +823,20 @@ def mapOntoChain(atoms, chain, **kwargs):
                     indices_dummies.append(counter)
                 counter += 1
         #n_atoms = len(indices_target)   
-        atommap = AtomMap(map_ag, 
-                          indices_chain,
-                          indices_mapping,
-                          indices_dummies,
-                          simple_chain.getTitle() + ' -> ' + 
+        atommap = AM(map_ag, 
+                     indices_chain,
+                     indices_mapping,
+                     indices_dummies,
+                     simple_chain.getTitle() + ' -> ' + 
                                                     simple_target.getTitle(),
-                          chain._acsi)
-
-        selection = AtomMap(target_ag, 
-                                    indices_target,
-                                    np.arange(len(indices_target)),
-                                    np.array([]),
-                                    simple_target.getTitle() + ' -> ' + 
-                                                    simple_chain.getTitle(),
-                                    target_chain._acsi)
+                     acsi=chain.getACSIndex())
+        selection = AM(target_ag,
+                       indices_target,
+                       np.arange(len(indices_target)),
+                       np.array([]),
+                       simple_target.getTitle() + ' -> ' + 
+                                       simple_chain.getTitle(),
+                       acsi=target_chain.getACSIndex())
                                     
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:

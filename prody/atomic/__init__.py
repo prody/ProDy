@@ -64,9 +64,7 @@ of ProDy.  The details of the selection grammar is described in
 :ref:`selections`. 
 
 Using the flexibility of Python, atom selections are made much easier by
-overriding the ``.`` operator i.e. the :meth:`__getattribute__` 
-method of :class:`Atomic` class.  So the following will be interpreted
-as atom selections:
+overriding the ``.`` operator, so the following are interpreted as selections:
     
 >>> ag.chain_A # selects chain A
 <Selection: "chain A" from 1aar (608 atoms)>

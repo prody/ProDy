@@ -55,7 +55,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from tools import *
+from prody.tools import *
+
 import prody
 LOGGER = prody.LOGGER
 
@@ -686,7 +687,7 @@ def buildKDTree(atoms):
 def getKDTree(coords):
     """Internal function to get KDTree for coordinates without any checks."""
 
-    from KDTree import KDTree
+    from prody.KDTree import KDTree
     return KDTree(coords)
     
 def iterNeighbors(atoms, radius, atoms2=None):

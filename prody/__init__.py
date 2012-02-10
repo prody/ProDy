@@ -223,34 +223,33 @@ __all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
            'startLogfile', 'closeLogfile', 
            'plog']
 
-from . import atomic 
+import atomic 
 from atomic import *
 __all__.extend(atomic.__all__)
 __all__.append('atomic')
 
-SELECT = atomic.SELECT
+from atomic import SELECT
 
 import proteins
 from proteins import *  
 __all__.extend(proteins.__all__)
 __all__.append('proteins')
 
-from . import measure
+import measure
 from measure import *
 __all__.extend(measure.__all__)
-__all__.append('measure')
 
-from . import compare
+import compare
 from compare import *
 __all__.extend(compare.__all__)
 __all__.append('compare')
 
-from . import dynamics
+import dynamics
 from .dynamics import *
 __all__.extend(dynamics.__all__)
 __all__.append('dynamics')
 
-from . import ensemble
+import ensemble
 from .ensemble import *
 __all__.extend(ensemble.__all__)
 __all__.append('ensemble')

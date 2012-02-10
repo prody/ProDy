@@ -546,13 +546,13 @@ class Ensemble(EnsembleBase):
         
         indices = self._indices
         if indices is None:
-            measure._superposeTraj(self._confs, self._coords, self._weights,
-                                   self._confs)
+            measure.measure._superposeTraj(self._confs, self._coords, 
+                                           self._weights, self._confs)
         else:
             weights = None
             if self._weights is not None:
                 weights = self._weights[indices]
-            measure._superposeTraj(self._confs[:,indices], 
+            measure.measure._superposeTraj(self._confs[:,indices], 
                                self._coords[indices], weights,
                                self._confs)
             
@@ -591,7 +591,7 @@ class Ensemble(EnsembleBase):
                 newxyz = self._confs.sum(0) / length
             else:
                 newxyz = (self._confs * weights).sum(0) / weightsum
-            rmsdif = measure._calcRMSD(self._coords, newxyz)
+            rmsdif = measure.measure._calcRMSD(self._coords, newxyz)
             self._coords = newxyz
             step += 1
             LOGGER.info(('Step #{0:d}: RMSD difference = '
@@ -652,16 +652,17 @@ class Ensemble(EnsembleBase):
         if self._confs is None or self._coords is None: 
             return None
         if self._indices is None:
-            return measure._calcRMSD(self._coords, self._confs, self._weights)
+            return measure.measure._calcRMSD(self._coords, self._confs, 
+                                             self._weights)
         else:
             indices = self._indices
             if self._weights is None:
-                return measure._calcRMSD(self._coords[indices], 
-                                         self._confs[:,indices])
+                return measure.measure._calcRMSD(self._coords[indices], 
+                                                 self._confs[:,indices])
             else:
-                return measure._calcRMSD(self._coords[indices], 
-                                         self._confs[:,indices],
-                                         self._weights[indices])
+                return measure.measure._calcRMSD(self._coords[indices], 
+                                                 self._confs[:,indices],
+                                                 self._weights[indices])
                 
 
 class PDBEnsemble(Ensemble):
@@ -746,8 +747,8 @@ class PDBEnsemble(Ensemble):
     def _superpose(self):
         """Superpose conformations and return new coordinates."""
 
-        calcT = measure._calcTransformation
-        applyT = measure._applyTransformation
+        calcT = measure.measure._calcTransformation
+        applyT = measure.measure._applyTransformation
         if self._sel is None:
             weights = self._weights
             coords = self._coords
@@ -967,10 +968,11 @@ class PDBEnsemble(Ensemble):
             return None
     
         if self._sel is None:
-            return measure._calcRMSD(self._coords, self._confs, self._weights)
+            return measure.measure._calcRMSD(self._coords, self._confs, 
+                                             self._weights)
         else:
             indices = self._indices
-            return measure._calcRMSD(self._coords[indices], 
+            return measure.measure._calcRMSD(self._coords[indices], 
                                      self._confs[:,indices],
                                      self._weights[:, indices])
 
@@ -1173,11 +1175,11 @@ class Conformation(ConformationBase):
         ensemble = self._ensemble 
         indices = self._indices
         if indices is None:
-            return measure._calcRMSD(ensemble._coords,
+            return measure.measure._calcRMSD(ensemble._coords,
                                      ensemble._confs[self._index], 
                                      self.getWeights())[0]
         else:
-            return measure._calcRMSD(ensemble._coords[indices],
+            return measure.measure._calcRMSD(ensemble._coords[indices],
                                      ensemble._confs[self._index, indices], 
                                      self.getWeights())[0]
     
@@ -1272,11 +1274,11 @@ class PDBConformation(Conformation):
         index = self._index
         indices = ensemble._indices
         if indices is None:
-            return measure._calcRMSD(ensemble._coords,
+            return measure.measure._calcRMSD(ensemble._coords,
                                      ensemble._confs[index], 
                                      ensemble._weights[index])
         else:
-            return measure._calcRMSD(ensemble._coords[indices],
+            return measure.measure._calcRMSD(ensemble._coords[indices],
                                      ensemble._confs[index, indices], 
                                      ensemble._weights[index, indices])
     
@@ -1360,14 +1362,14 @@ class Frame(ConformationBase):
         ensemble = self._ensemble
         ensemble = self._ensemble
         if indices is None:
-            return measure._calcRMSD(self._coords, ensemble._coords, 
+            return measure.measure._calcRMSD(self._coords, ensemble._coords, 
                                                     ensemble._weights)
         else:
             if ensemble._weights is None:
-                return measure._calcRMSD(self._coords[indices], 
+                return measure.measure._calcRMSD(self._coords[indices], 
                                          ensemble._coords[indices])
             else:
-                return measure._calcRMSD(self._coords[indices], 
+                return measure.measure._calcRMSD(self._coords[indices], 
                                          ensemble._coords[indices], 
                                          ensemble._weights[indices])
         
@@ -1384,10 +1386,10 @@ class Frame(ConformationBase):
                                                 ensemble._weights)
         else:
             if ensemble._weights is None:
-                measure._superpose(self._coords[indices], 
+                measure.measure._superpose(self._coords[indices], 
                                    ensemble._coords[indices])
             else:
-                measure._superpose(self._coords[indices], 
+                measure.measure._superpose(self._coords[indices], 
                                    ensemble._coords[indices], 
                                    ensemble._weights[indices])
 

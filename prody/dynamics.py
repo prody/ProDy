@@ -1968,7 +1968,7 @@ class GammaStructureBased(Gamma):
     >>> from prody import *
     >>> ubi, header = parsePDB('1aar', chain='A', subset='calpha', header=True)
     >>> assignSecstr(header, ubi)
-    <AtomGroup: 1aar_A_ca (76 atoms; 1 coordinate sets, active set index: 0)>
+    <AtomGroup: 1aar_A_ca (76 atoms)>
 
     In the above we parsed only the atoms needed for this calculation, i.e.
     Cα atoms from chain A. 
@@ -2849,8 +2849,7 @@ def extrapolateModel(enm, nodes, atoms):
         else: 
             ag = atoms.getAtomGroup()
         atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
-                          np.array([]), str(atoms), 
-                          atoms.getACSIndex())
+                          np.array([]), str(atoms), atoms.getACSIndex())
         return extra, atommap
     else:
         raise TypeError('atoms must be an Atomic instance')

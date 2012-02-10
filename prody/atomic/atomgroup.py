@@ -17,7 +17,213 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines :class:`AtomGroup` class that stores atomic data and 
-multiple coordinate sets in :class:`numpy.ndarray` instances."""
+multiple coordinate sets in :class:`numpy.ndarray` instances.
+
+.. _atomgroup:
+
+Constructing an :class:`AtomGroup`
+===============================================================================
+
+We start by importing everything from the ProDy package and the NumPy package:
+
+>>> from prody import *
+>>> import numpy as np
+
+Instantiate an AtomGroup
+-------------------------------------------------------------------------------
+
+>>> wtr1 = AtomGroup('Water')
+>>> wtr1
+<AtomGroup: Water (0 atoms; no coordinates)>
+
+
+Set coordinates
+-------------------------------------------------------------------------------
+
+The best way to start constructing an :class:`AtomGroup` is by setting the
+coordinates first. Number of atoms will be automatically set according to
+the size of the coordinate data array:
+
+>>> coords = np.array( [ [1, 0, 0], [0, 0, 0], [0, 0, 1] ] )
+>>> print( coords )
+[[1 0 0]
+ [0 0 0]
+ [0 0 1]]
+>>> wtr1.setCoords( coords )
+>>> wtr1
+<AtomGroup: Water (3 atoms)>
+
+Set attributes
+-------------------------------------------------------------------------------
+
+Attributes must be passed in a list or an array whose size is the same
+as the number of atoms.
+
+>>> wtr1.setNames( ['H', 'O', 'H'] )
+>>> wtr1.setResnums( [1, 1, 1] )
+>>> wtr1.setResnames( ['WAT', 'WAT', 'WAT'] )
+
+Accessing data will return a copy of the data:
+
+>>> print( wtr1.getNames() )
+['H' 'O' 'H']
+
+Individual atoms
+-------------------------------------------------------------------------------
+
+Atoms are represented by instance of :class:`~prody.atomic.atom.Atom`.
+
+**Iteration**
+
+Atoms in an :class:`AtomGroup` can be iterated over
+
+>>> for a in wtr1: a
+... 
+<Atom: H from Water (index 0)>
+<Atom: O from Water (index 1)>
+<Atom: H from Water (index 2)>
+
+**Indexing**
+
+Atoms in an atom group can be accessed via indexing:
+
+>>> a = wtr1[0]
+>>> a
+<Atom: H from Water (index 0)>
+>>> print( a.getCoords() )
+[ 1.  0.  0.]
+
+Coordinate sets
+-------------------------------------------------------------------------------
+
+Let's add another coordinate set to the atom group:
+
+>>> wtr1.addCoordset( np.array( [ [0, 1, 0], [0, 0, 0], [0, 0, 1] ] ) )
+>>> wtr1
+<AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
+
+Note that number of coordinate sets is now 2, but active coordinate set index
+is still 0. Active coordinate set incex can be changed for :class:`AtomGroup`
+
+>>> a.setACSIndex(1)
+>>> a
+<Atom: H from Water (index 0; active #1 of 2 coordsets)>
+
+Changing active coordinate set for an atom group, does not affect the active 
+coordinate set of the atom group:
+
+>>> wtr1
+<AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
+
+Coordinates for the atom group will be returned from the active coordinate set
+
+>>> print( a.getCoords() )
+[ 0.  1.  0.]
+
+**Iterations**
+
+Coordinate sets can also be iterated over for :class:`~prody.atomic.atom.Atom` 
+and :class:`AtomGroup` instances:
+
+>>> for xyz in a.iterCoordsets(): print( xyz )
+... 
+[ 1.  0.  0.]
+[ 0.  1.  0.]
+
+Copy atom groups
+-------------------------------------------------------------------------------
+
+Now let's make another copy of this water:
+
+>>> wtr2 = wtr1.copy()
+>>> wtr2
+<AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
+
+**Translate copy**
+
+Let's translate the coordinates of wtr2 so that it does not overlap with wtr1
+
+>>> wtr2.setCoords( wtr2.getCoords() + 2 )
+>>> print( wtr2.getCoords() )
+[[ 3.  2.  2.]
+ [ 2.  2.  2.]
+ [ 2.  2.  3.]]
+
+Above operation only translated the coordinate set at index 0
+
+>>> wtr2.setACSIndex(1)
+>>> print( wtr2.getCoords() )
+[[ 0.  1.  0.]
+ [ 0.  0.  0.]
+ [ 0.  0.  1.]]
+>>> wtr2.setCoords( wtr2.getCoords() + 2 ) # translate the second coordinate set as well
+
+**Change copy attributes**
+
+Before we merge wtr1 and wtr2, let's change resid's of wtr2:
+
+>>> wtr2.setResnums( [2, 2, 2] )
+>>> print( wtr2.getResnums() )
+[2 2 2]
+
+We can do this in an alternate way too:
+
+>>> wtr2.select('all').setResnums(2)
+>>> print( wtr2.getResnums() )
+[2 2 2]
+
+Note that the following won't work:
+
+>>> wtr2.setResnums(2)
+Traceback (most recent call last):
+  File "/usr/lib/python2.6/doctest.py", line 1248, in __run
+    compileflags, 1) in test.globs
+  File "<doctest __main__[29]>", line 1, in <module>
+    wtr2.resids = 2
+  File "....", line 424, in set_resnums
+    if len(resids) != self._n_atoms:
+TypeError: object of type 'int' has no len()
+
+Merge atom groups
+-------------------------------------------------------------------------------
+
+Let's merge two water atom groups:
+
+>>> wtrs = wtr1 + wtr2
+>>> wtrs
+<AtomGroup: Water + Water (6 atoms; active #0 of 2 coordsets)>
+>>> print( wtrs.getCoords() )
+[[ 1.  0.  0.]
+ [ 0.  0.  0.]
+ [ 0.  0.  1.]
+ [ 3.  2.  2.]
+ [ 2.  2.  2.]
+ [ 2.  2.  3.]]
+>>> print( wtrs.getNames() )
+['H' 'O' 'H' 'H' 'O' 'H']
+>>> print( wtrs.getResnums() )
+[1 1 1 2 2 2]
+
+Hierarchical view
+-------------------------------------------------------------------------------
+
+Hierarchical views of atom groups are represented by 
+:class:`~prody.atomic.hierview.HierView`.
+
+Residues (and also chains) in an atom group can also be iterated over
+
+>>> for res in wtrs.getHierView().iterResidues(): res
+<Residue: WAT 1 from Water + Water (3 atoms; active #0 of 2 coordsets)>
+<Residue: WAT 2 from Water + Water (3 atoms; active #0 of 2 coordsets)>
+
+Finally, it's is possible to change the name of *wtrs* from 
+"Water + Water" to something shorter:
+
+>>> wtrs.setTitle('2Waters')
+>>> wtrs
+<AtomGroup: 2Waters (6 atoms; active #0 of 2 coordsets)>
+
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -144,7 +350,26 @@ class AtomGroup(Atomic):
     To access and modify data associated with a subset of atoms in an atom 
     group, :class:`~prody.atomic.selection.Selection` instances may be used. 
     A selection from an atom group has initially the same coordinate set as 
-    the *active coordinate set*."""
+    the *active coordinate set*.
+    
+    Some :class:`object` methods are customized as follows:
+    
+    * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
+    * :func:`iter` yields :class:`~prody.atomic.atom.Atom` instances
+    * indexing by:
+         - *int* (:func:`int`), e.g, ``10``, returns an 
+           :class:`~prody.atomic.atom.Atom`
+         - *slice* (:func:`slice`), e.g, ``10:20:2``, returns a 
+           :class:`~prody.atomic.Selection`
+         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns a 
+           a :class:`~prody.atomic.segment.Segment` 
+         - *chain identifier* (:func:`str`), e.g. ``"A"``, returns a 
+           a :class:`~prody.atomic.chain.Chain`
+         - *[segment name,] chain identifier, residue number[, insertion code]* 
+           (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
+           ``"PROT", "A", 10, "B"``, returns a 
+           :class:`~prody.atomic.residue.Residue`
+    """
     
     __metaclass__ = AtomGroupMeta
     
@@ -695,10 +920,10 @@ class AtomGroup(Atomic):
         must be equal to the number of atoms, and the type of data array must 
         be one of:
             
-            * :class:`bool`
-            * :class:`float`
-            * :class:`int`
-            * :class:`string`
+            * :func:`bool`
+            * :func:`float`
+            * :func:`int`
+            * :func:`str`
         
         If a :class:`list` is given, its type must match one of the above after 
         it is converted to an :class:`numpy.ndarray`.  If the dimension of the 

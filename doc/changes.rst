@@ -6,12 +6,29 @@
 Changes
 *******************************************************************************
 
-Release 0.1 (in development)
+Release 1.0 (in development)
 ===============================================================================
 
 **Changes**:
 
-  * Deprecated method and functions are removed. 
+  * Deprecated method and functions are removed.
+  
+  * AtomGroup cannot be deformed by direct addition with a vector instance.  
+
+  * Unmapped atoms in :class:`~atomic.atommap.AtomMap` instances are called
+    dummies.  For example :meth:`numUnmapped` method is renamed as 
+    :meth:`~atomic.atommap.AtomMap.numDummies`.
+    
+**Improvements**:
+
+  * Distance based atom selection is 10 to 15% faster for atom groups with
+    more than 5K atoms.
+
+**Bugfix**:
+
+  * A problem in distance based atom selection which would could cause problems
+    when a distance based selection is made from a selection is fixed.
+    
 
 Release 0.9.4 (Feb 4, 2012)
 ===============================================================================

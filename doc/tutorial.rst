@@ -236,7 +236,7 @@ To get information on an :class:`~prody.atomic.AtomGroup` instance,
 type in the variable name and hit :kbd:`enter` key:
 
 >>> prot
-<AtomGroup: 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+<AtomGroup: 1p38 (2962 atoms)>
 
 The above shows that atom group object contains 2962 atoms. 
 All atomic data from this object can be retrieved using ``get`` methods. 
@@ -261,7 +261,7 @@ instances:
 
 >>> atom = prot[0]
 >>> atom
-<Atom: N from 1p38 (index 0; 1 coordinate sets, active set index: 0)>
+<Atom: N from 1p38 (index 0)>
 
 Not that all ``get/set`` functions defined for :class:`~atomic.AtomGroup` 
 instances are also defined for :class:`~atomic.Atom` instances, using singular
@@ -276,7 +276,7 @@ It is also possible to get a slice of an atom group, for example we can get
 every other atom as follows:
 
 >>> prot[::2]
-<Selection: "index 0:2962:2" from 1p38 (1481 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "index 0:2962:2" from 1p38 (1481 atoms)>
 
 Hierarchical view
 -------------------------------------------------------------------------------
@@ -285,13 +285,13 @@ You can also access specific chains or residues in an atom group.  Indexing
 by a single letter identifier will return a :class:`~atomic.Chain` instance: 
 
 >>> prot['A']
-<Chain: A from 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
+<Chain: A from 1p38 (480 residues, 2962 atoms)>
 
 Indexing atom group with a chain identifier and a residue number will return
 :class:`~atomic.Residue` instance:
 
 >>> prot['A', 100]
-<Residue: ASN 100 from Chain A from 1p38 (8 atoms; 1 coordinate sets, active set index: 0)>
+<Residue: ASN 100 from Chain A from 1p38 (8 atoms)>
 
 See :ref:`atomic` for details of indexing atom groups and :ref:`hierview`
 for more on hierarchical views.
@@ -354,7 +354,7 @@ Keyword selections
 
 >>> protein = prot.select('protein')
 >>> protein
-<Selection: "protein" from 1p38 (2833 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "protein" from 1p38 (2833 atoms)>
 
 Using the "protein" keyword we selected 2833 atoms out of 2962 atoms. 
 :meth:`~atomic.Atomic.select` method returned a :class:`~atomic.Selection` 
@@ -372,7 +372,7 @@ We select backbone atoms by passing atom names following "name" keyword:
 
 >>> backbone = prot.select('protein and name N CA C O')
 >>> backbone
-<Selection: "protein and name N CA C O" from 1p38 (1404 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "protein and name N CA C O" from 1p38 (1404 atoms)>
 >>> len(backbone)
 1404
 
@@ -382,13 +382,13 @@ We select acidic and basic residues by using residue names with
 "resname" keyword:
 
 >>> prot.select('resname ARG LYS HIS ASP GLU')
-<Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms)>
 
 Alternatively, we can use predefined keywords "acidic" and "basic".
 
 >>> charged = prot.select('acidic or basic')
 >>> charged
-<Selection: "acidic or basic" from 1p38 (906 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "acidic or basic" from 1p38 (906 atoms)>
 >>> set(charged.getResnames())
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
@@ -402,7 +402,7 @@ that have at least one atom within 10 Å away from the geometric center.
 >>> print( protein.getCoords().mean(0).round(3) ) # doctest: +ELLIPSIS
 [  1.005  17.533  40.052]
 >>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
-<Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms)>
 
 Selection operations
 -------------------------------------------------------------------------------
@@ -412,7 +412,7 @@ Selection operations
 >>> ca = prot.select('name CA') 
 >>> cb = prot.select('name CB')
 >>> ca | cb
-<Selection: "(name CA) or (name CB)" from 1p38 (687 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(name CA) or (name CB)" from 1p38 (687 atoms)>
 >>> ca & cb
 
 Selections simplified
@@ -423,17 +423,17 @@ In interaction sessions, typing in ``.select('backbone')`` or even
 dot operator:
 
 >>> prot.protein
-<Selection: "protein" from 1p38 (2833 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "protein" from 1p38 (2833 atoms)>
 
 You can use dot operator multiple times:
 
 >>> prot.protein.backbone
-<Selection: "(backbone) and (protein)" from 1p38 (1404 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(backbone) and (protein)" from 1p38 (1404 atoms)>
 
 This may go on and on:
 
 >>> prot.protein.backbone.resname_ALA.calpha
-<Selection: "(calpha) and ((...and (protein)))" from 1p38 (26 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(calpha) and ((...and (protein)))" from 1p38 (26 atoms)>
 
 
 More examples

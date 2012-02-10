@@ -752,7 +752,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
     else:
-        ag = prody.MCAtomGroup(str(kwargs.get('title', kwargs.get('name', 
+        ag = prody.AtomGroup(str(kwargs.get('title', kwargs.get('name', 
                                                 'Unknown'))) + title_suffix)
         n_csets = 0
     
@@ -847,7 +847,7 @@ def parsePQR(filename, **kwargs):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
     else:
-        ag = prody.MCAtomGroup(title + title_suffix)
+        ag = prody.AtomGroup(title + title_suffix)
         n_csets = 0
         
     pqr = openFile(filename)
@@ -2134,7 +2134,7 @@ def parsePSF(filename, title=None, ag=None):
     else:
         title = str(title)
     if ag is None:
-        ag = prody.MCAtomGroup(title)
+        ag = prody.AtomGroup(title)
     else:
         if n_atoms != ag.numAtoms():
             raise ValueError('ag and PSF file must have same number of atoms')

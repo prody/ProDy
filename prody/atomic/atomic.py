@@ -64,6 +64,6 @@ class Atomic(object):
         """Return atoms matching *selstr* criteria.
         
         .. seealso:: :mod:`~prody.atomic.select` module documentation for 
-        details and usage examples."""
+           details and usage examples."""
         
         return SELECT.select(self, selstr, **kwargs)
