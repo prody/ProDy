@@ -16,9 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for handling polypeptide/nucleic acid chains.
-
-.. currentmodule:: prody.atomic"""
+"""This module defines classes for handling polypeptide/nucleic acid chains."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -26,9 +24,9 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 import prody
 
-from subset import AtomSubset, MCAtomSubset
+from subset import AtomSubset
 
-__all__ = ['Chain', 'MCChain']
+__all__ = ['Chain']
 
 class Chain(AtomSubset):
     
@@ -42,7 +40,7 @@ class Chain(AtomSubset):
     >>> hv = pdb.getHierView()
     >>> chA = hv['A']
     >>> chA[4]
-    <Residue: GLU 4 from Chain A from 1p38 (9 atoms; 1 coordinate sets, active set index: 0)>
+    <Residue: GLU 4 from Chain A from 1p38 (9 atoms)>
     >>> print chA[3] # Residue 3 does not exist in chain A
     None
     
@@ -53,13 +51,11 @@ class Chain(AtomSubset):
     ARG 5
     PRO 6
     THR 7
-    ...
-    """
+    ..."""
         
-    
-    def __init__(self, ag, indices, **kwargs):
+    def __init__(self, ag, indices, acsi=None, **kwargs):
         
-        AtomSubset.__init__(self, ag, indices, **kwargs)
+        AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
         self._segment = kwargs.get('segment')
         self._seq = None
         self._dict = dict()
@@ -70,28 +66,45 @@ class Chain(AtomSubset):
         return len(self._list)
     
     def __repr__(self):
-        
-        if self._segment:
-            segment = ' from Segment {0:s}'.format(self.getSegname())
-        else:
+
+        n_csets = self._ag.numCoordsets()
+        segment = self._segment
+        if segment is None:
             segment = ''
-        return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, {4:d} atoms)>'
-                ).format(self.getChid(), segment, self._ag.getTitle(), 
-                         self.numResidues(), self.numAtoms())
+        else:
+            segment = ' from ' + str(segment)
+        if n_csets == 1:
+            return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, {4:d} '
+                    'atoms)>').format(self.getChid(), segment, 
+                    self._ag.getTitle(), self.numResidues(), self.numAtoms())
+        elif n_csets > 1:
+            return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, {4:d} '
+                    'atoms; active #{5:d} of {6:d} coordsets)>').format(
+                    self.getChid(), segment, self._ag.getTitle(), 
+                    self.numResidues(), self.numAtoms(), self.getACSIndex(), 
+                    n_csets)
+        else:
+            return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, '
+                    '{4:d} atoms; no coordinates)>').format(self.getChid(), 
+                    segment, self._ag.getTitle(), self.numResidues(), 
+                    self.numAtoms())
 
     def __str__(self):
+        
         return 'Chain ' + self.getChid()
     
     def __getitem__(self, key):
         
         if isinstance(key, tuple): 
             return self.getResidue(*key) 
+    
         elif isinstance(key, slice):
             resnums = self._getResnums()
             resnums = set(np.arange(*key.indices(resnums.max()+1)))
             _list = self._list
             return [_list[i] for (rn, ic), i in self._dict.iteritems() 
                     if rn in resnums]
+                    
         else:
             return self.getResidue(key)
     
@@ -153,40 +166,9 @@ class Chain(AtomSubset):
         if self._segment is None:        
             if self._selstr:
                 return 'chain {0:s} and ({1:s})'.format(
-                                    self.getChid(), self._selstr)
+                        self.getChid(), self._selstr)
             else:
                 return 'chain {0:s}'.format(self.getChid())
         else:
             return 'chain {0:s} and ({1:s})'.format(
-                                    self.getChid(), self._segment.getSelstr())
-
-class MCChain(Chain, MCAtomSubset):
-    
-    def __init__(self, ag, indices, acsi, **kwargs):
-        
-        MCAtomSubset.__init__(self, ag, indices, acsi, **kwargs)
-        self._segment = kwargs.get('segment')
-        self._seq = None
-        self._dict = dict()
-        self._list = list()
-
-    def __repr__(self):
-
-        n_csets = self._ag.numCoordsets()
-        if self._segment:
-            segment = ' from Segment {0:s}'.format(self.getSegname())
-        else:
-            segment = ''
-        if n_csets:
-            return ('<MCChain: {0:s}{1:s} from {2:s} ({3:d} residues, '
-                    '{4:d} atoms; {5:d} coordsets, active {6:d})>').format(
-                    self.getChid(), segment, self._ag.getTitle(), 
-                    self.numResidues(), self.numAtoms(), n_csets, self._acsi)
-        else:
-            return ('<MCChain: {0:s}{1:s} from {2:s} (residues, '
-                    '{4:d} atoms; 0 coordsets)>').format(self.getChid(), 
-                    segment, self._ag.getTitle(), self.numResidues(), 
-                    self.numAtoms())
-
-    def __str__(self):
-        return 'MCChain ' + self.getChid()
+                    self.getChid(), self._segment.getSelstr())

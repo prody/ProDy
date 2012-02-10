@@ -15,9 +15,7 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-""".. currentmodule:: prody.atomic
-
-This module defined classes for dealing with bond information provided
+"""This module defined classes for dealing with bond information provided
 by the user.  Bonds can be set using :meth:`~atomgroup.AtomGroup.setBonds` 
 method."""
 
@@ -26,18 +24,22 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from atomic import MultiCoordset
-
-__all__ = ['Bond', 'MCBond']
+__all__ = ['Bond']
 
 class Bond(object):
     
     """A pointer class for bonded atoms."""
     
-    def __init__(self, ag, indices):
+    __slots__ = ['_ag', '_acsi', '_indices']
+    
+    def __init__(self, ag, indices, acsi=None):
         
         self._ag = ag
         self._indices = indices
+        if acsi is None:
+            self._acsi = ag.getACSIndex()
+        else:
+            self._acsi = acsi
 
     def __repr__(self):
         
@@ -77,20 +79,17 @@ class Bond(object):
         """Return bond vector that originates from the first atom."""
         
         one, two = self._indices
-        return self._ag._coords[two] - self._ag._coords[one] 
-
-class MCBond(Bond):
+        acsi = self.getACSIndex()
+        return self._ag._coords[acsi, two] - self._ag._coords[acsi, one]
     
-    """A pointer class for bonded atoms with multiple coordinate sets."""
-    
-    def __init__(self, ag, indices, acsi=None):
+    def getACSIndex(self):
+        """Return index of the coordinate set."""
         
-        self._ag = ag
-        self._indices = indices
-        if acsi is None:
-            self._acsi = ag.getACSIndex()
-        else:
-            self._acsi = acsi
+        acsi = self._acsi
+        if acsi >= self._ag._n_csets:
+            raise ValueError('{0:s} has fewer coordsets than assumed by {1:s}'
+                             .format(str(self._ag), str(self)))
+        return acsi
 
     def setACSIndex(self, index):
         """Set the coordinate set at *index* active."""
@@ -101,7 +100,7 @@ class MCBond(Bond):
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
         
-        n_csets = self._ag 
+        n_csets = self._ag._n_csets
         if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
         
@@ -109,14 +108,6 @@ class MCBond(Bond):
             index += n_csets
             
         self._acsi = index
-
-    def getVector(self):
-        """Return bond vector that originates from the first atom."""
-        
-        one, two = self._indices
-        acsi = self._acsi
-        return self._ag._coords[acsi, two] - self._ag._coords[acsi, one]
-    
 
 def evalBonds(bonds, n_atoms):
     """Return an array mapping atoms to their bonded neighbors and an array

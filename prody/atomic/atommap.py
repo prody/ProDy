@@ -16,22 +16,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines atom map classes that allow for pointing to atoms
-in arbitrary order.
-
-.. currentmodule:: prody.atomic"""
+"""This module defines atom map class that allow for pointing to atoms in 
+arbitrary order."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from atomic import ATOMIC_DATA_FIELDS
-from atomic import wrapGetMethod, wrapSetMethod
-from atom import Atom, MCAtom
-from pointer import AtomPointer, MCAtomPointer
+from atom import Atom
+from fields import ATOMIC_DATA_FIELDS
+from fields import wrapGetMethod, wrapSetMethod
+from pointer import AtomPointer
 
-__all__ = ['AtomMap', 'MCAtomMap']
+__all__ = ['AtomMap']
 
 class AtomMapMeta(type):
     
@@ -70,7 +68,7 @@ class AtomMapMeta(type):
             else:
                 zero = '""'
             getData.__doc__ = field.getDocstr('get', selex=False) + \
-                   'Entries for unmapped atoms will be ``{0:s}``.'.format(zero) 
+                   'Entries for dummy atoms will be ``{0:s}``.'.format(zero) 
             setattr(cls, getMeth, getData)
             setattr(cls, '_' + getMeth, getData)
 
@@ -81,20 +79,25 @@ class AtomMap(AtomPointer):
     
     __metaclass__ = AtomMapMeta
     
-    def __init__(self, ag, indices, mapping, unmapped, title='Unnamed'):
+    __slots__ = ['_ag', '_indices', '_acsi', '_mapping', '_dummies', '_title',
+                 '_len']
+    
+    def __init__(self, ag, indices, mapping, dummies, title='Unnamed',
+                 acsi=None, **kwargs):
         """Instantiate an atom map.        
         
         :arg ag: AtomGroup instance from which atoms are mapped
         :arg indices: indices of mapped atoms
         :arg mapping: mapping of the atoms
-        :arg unmapped: list of indices for unmapped atoms
+        :arg dummies: list of indices for dummy atoms
         :arg title: title of the instance, default is 'Unnamed'
+        :arg acsi: active coordinate set index, defaults is that of *ag*
         
         Length of *mapping* must be equal to length of *indices*.  Number of 
-        atoms (including unmapped dummy atoms) are determined from the total 
-        lengths of *mapping* and *unmapped* arrays."""
+        atoms (including dummy atoms) are determined from the total lengths 
+        of *mapping* and *dummies* arrays."""
         
-        AtomPointer.__init__(self, ag)
+        AtomPointer.__init__(self, ag, acsi)
         
         if not isinstance(indices, np.ndarray):
             self._indices = np.array(indices, int)
@@ -110,23 +113,36 @@ class AtomMap(AtomPointer):
         else:
             self._mapping = mapping
 
-        if not isinstance(unmapped, np.ndarray):
-            self._unmapped = np.array(unmapped, int)
-        elif not unmapped.dtype == int:
-            self._unmapped = unmapped.astype(int)
+        if not isinstance(dummies, np.ndarray):
+            self._dummies = np.array(dummies, int)
+        elif not dummies.dtype == int:
+            self._dummies = dummies.astype(int)
         else:
-            self._unmapped = unmapped
+            self._dummies = dummies
         
         self._title = str(title)
-        self._len = len(self._unmapped) + len(self._mapping)
-        
+        self._len = len(self._dummies) + len(self._mapping)
+    
     def __repr__(self):
-
-        return ('<AtomMap: {0:s} (from {1:s}; {2:d} atoms; {3:d} mapped; '
-                '{4:d} unmapped)>').format( self._title, self._ag.getTitle(), 
-                self._len, self.numMapped(), self.numUnmapped())
-
-            
+        
+        n_csets = self._ag.numCoordsets()
+        
+        if n_csets == 1:
+            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms, {3:d} mapped, '
+                    '{4:d} dummy)>').format( self._title, self._ag.getTitle(), 
+                    self._len, self.numMapped(), self.numDummies())
+        elif n_csets > 1:
+            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms, {3:d} mapped, '
+                    '{4:d} dummy; active {5:d} of {6:d} coordsets)>').format(
+                    self._title, self._ag.getTitle(), self._len, 
+                    self.numMapped(), self.numDummies(), self.getACSIndex(),
+                    n_csets)
+        else:
+            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms, {3:d} mapped, '
+                    '{4:d} dummy; no coordinates)>').format(self._title, 
+                    self._ag.getTitle(), self._len, self.numMapped(), 
+                    self.numDummies())
+        
     def __str__(self):
     
         return 'AtomMap {0:s}'.format(self._title)
@@ -153,34 +169,79 @@ class AtomMap(AtomPointer):
     def iterAtoms(self):
         """Yield atoms. Note that ``None`` will be yielded for dummy atoms."""
     
+        acsi = self.getACSIndex()
         indices = np.zeros(self._len, int)
-        indices[self._unmapped] = -1
+        indices[self._dummies] = -1
         indices[self._mapping] = self._indices
         ag = self._ag
         for index in indices:
             if index > -1:
-                yield Atom(ag, index)
+                yield Atom(ag, index, acsi)
             else:
                 yield None
     
     __iter__ = iterAtoms 
     
     def getCoords(self):
-        """Return a copy of coordinates."""
+        """Return a copy of coordinates from the active coordinate set."""
         
-        if self._ag._coords is None:
-            return None
-        coords = np.zeros((self._len, 3), float)
-        coords[self._mapping] = self._ag._coords[self._indices] 
-        return coords
+        coords = self._ag._getCoordsets()
+        if coords is not None:
+            xyz = np.zeros((self._len, 3), float)
+            xyz[self._mapping] = coords[self.getACSIndex(), self._indices] 
+            return xyz
     
     _getCoords = getCoords
     
     def setCoords(self, coords):
-        """Set coordinates.  Length of the *coords* array must match the 
-        number of mapped atoms."""
+        """Set coordinates in the active coordinate set.  Length of the 
+        *coords* array must match the number of mapped atoms."""
         
-        self._ag._coords[self._indices] = coords
+        coordsets = self._ag._getCoordsets()
+        if coordsets is not None: 
+            coordsets[self.getACSIndex(), self._indices] = coords
+    
+
+    def getCoordsets(self, indices=None):
+        """Return coordinate set(s) at given *indices*, which may be an integer 
+        or a list/array of integers."""
+        
+        coords = self._ag._getCoordsets()
+        if coords is not None:
+            n_csets = self._ag.numCoordsets()
+            if indices is None:
+                indices = np.arange(n_csets)
+            elif isinstance(indices, (int, long)):
+                indices = np.array([indices])
+            elif isinstance(indices, slice):
+                indices = np.arange(indices.indices(n_csets))
+            
+            try:
+                coordsets = np.zeros((len(indices), self._len, 3))
+                coordsets[:, self._mapping] = coords[indices][:, self._indices]  
+                return coordsets
+            
+            except IndexError:
+                raise IndexError('indices may be an integer or a list/array '
+                                 'of integers')
+
+    _getCoordsets = getCoordsets
+    
+    def iterCoordsets(self):
+        """Yield copies of coordinate sets."""
+        
+        coords = self._ag._getCoordsets()
+        if coords is not None:
+            mapping = self._mapping
+            n_atoms = self._len
+            indices = self._indices
+            for i in range(self._ag.numCoordsets()):
+                xyz = np.zeros((n_atoms, 3), float)
+                xyz[mapping] = coords[i, indices] 
+                yield xyz
+    
+    _iterCoordsets = iterCoordsets
+
     
     def getData(self, label):
         """Return a copy of data associated with *label*, if it exists."""
@@ -198,6 +259,11 @@ class AtomMap(AtomPointer):
         
         return self._indices.copy()
 
+    def _getIndices(self):
+        """Return indices of mapped atoms."""
+        
+        return self._indices
+
     def getMapping(self):
         """Return a copy of mapping of indices."""
         
@@ -208,20 +274,20 @@ class AtomMap(AtomPointer):
         
         return self._mapping    
 
-    def getUnmappedFlags(self):
-        """Return an array with 1s for unmapped atoms."""
+    def getDummyFlags(self):
+        """Return an array with 1s for dummy atoms."""
         
         flags = np.zeros(self._len)
-        if len(self._unmapped):
-            flags[self._unmapped] = 1
+        if len(self._dummies):
+            flags[self._dummies] = 1
         return flags
     
     def getMappedFlags(self):
         """Return an array with 1s for mapped atoms."""
         
         flags = np.ones(self._len)
-        if len(self._unmapped):
-            flags[self._unmapped] = 0
+        if len(self._dummies):
+            flags[self._dummies] = 0
         return flags
 
     def numMapped(self):
@@ -229,140 +295,7 @@ class AtomMap(AtomPointer):
         
         return len(self._mapping)
 
-    def numUnmapped(self):
-        """Return number of unmapped atoms."""
+    def numDummies(self):
+        """Return number of dummy atoms."""
         
-        return len(self._unmapped)
-
-
-class MCAtomMap(MCAtomPointer, AtomMap):
-    
-    """A class for mapping atomic data with multiple coordinate sets."""
-    
-    def __init__(self, ag, indices, mapping, unmapped, title='Unnamed',
-                 acsi=None):
-        """Instantiate an atom map.        
-        
-        :arg ag: MCAtomGroup instance from which atoms are mapped
-        :arg indices: indices of mapped atoms
-        :arg mapping: mapping of the atoms
-        :arg unmapped: list of indices for unmapped atoms
-        :arg title: title of the instance, default is 'Unnamed'
-        :arg acsi: active coordinate set index, defaults is that of *ag*
-        
-        Length of *mapping* must be equal to length of *indices*.  Number of 
-        atoms (including unmapped dummy atoms) are determined from the total 
-        lengths of *mapping* and *unmapped* arrays."""
-        
-        MCAtomPointer.__init__(self, ag, acsi)
-        
-        if not isinstance(indices, np.ndarray):
-            self._indices = np.array(indices, int)
-        elif not indices.dtype == int:
-            self._indices = indices.astype(int)
-        else:
-            self._indices = indices
-
-        if not isinstance(mapping, np.ndarray):
-            self._mapping = np.array(mapping, int)
-        elif not mapping.dtype == int:
-            self._mapping = mapping.astype(int)
-        else:
-            self._mapping = mapping
-
-        if not isinstance(unmapped, np.ndarray):
-            self._unmapped = np.array(unmapped, int)
-        elif not unmapped.dtype == int:
-            self._unmapped = unmapped.astype(int)
-        else:
-            self._unmapped = unmapped
-        
-        self._title = str(title)
-        self._len = len(self._unmapped) + len(self._mapping)
-    
-    def __repr__(self):
-        
-        n_csets = self._ag.numCoordsets()
-        if n_csets:
-            return ('<MCAtomMap: {0:s} (from {1:s}; {2:d} atoms; {3:d} mapped;'
-                    ' {4:d} unmapped; {5:d} coordsets, active {6:d})>').format(
-                    self._title, self._ag.getTitle(), self._len, 
-                    self.numMapped(), self.numUnmapped(), n_csets, self._acsi)
-        else:
-            return ('<MCAtomMap: {0:s} (from {1:s}; {2:d} atoms; '
-                    '{3:d} mapped; {4:d} unmapped; 0 coordsets)>').format(
-                    self._title, self._ag.getTitle(), self._len, 
-                    self.numMapped(), self.numUnmapped())
-            
-    def __str__(self):
-        return 'MCAtomMap {0:s}'.format(self._title)
-
-    def iterAtoms(self):
-        """Yield atoms. Note that ``None`` will be yielded for dummy atoms."""
-    
-        indices = np.zeros(self._len, int)
-        indices[self._unmapped] = -1
-        indices[self._mapping] = self._indices
-        ag = self._ag
-        acsi = self._acsi
-        for index in indices:
-            if index > -1:
-                yield MCAtom(ag, index, acsi)
-            else:
-                yield None
-    
-    __iter__ = iterAtoms 
-    
-    def getCoords(self):
-        """Return a copy of coordinates from the active coordinate set."""
-        
-        if self._ag._coords is None:
-            return None
-        coords = np.zeros((self._len, 3), float)
-        coords[self._mapping] = self._ag._coords[self._acsi, self._indices] 
-        return coords
-    
-    _getCoords = getCoords
-    
-    def setCoords(self, coords):
-        """Set coordinates in the active coordinate set.  Length of the 
-        *coords* array must match the number of mapped atoms."""
-        
-        self._ag._coords[self._acsi, self._indices] = coords
-    
-
-    def getCoordsets(self, indices=None):
-        """Return coordinate set(s) at given *indices*, which may be an integer 
-        or a list/array of integers."""
-        
-        if self._ag._coords is None:
-            return None
-        
-        if indices is None:
-            indices = np.arange(self._ag._n_csets)
-        elif isinstance(indices, (int, long)):
-            indices = np.array([indices])
-        elif isinstance(indices, slice):
-            indices = np.arange(indices.indices(self._ag._n_csets))
-        
-        try:
-            coordsets = np.zeros((len(indices), self._len, 3))
-            coordsets[:, self._mapping] = self._ag._coords[indices][:, 
-                                                                self._indices]  
-            return coordsets
-        
-        except IndexError:
-            raise IndexError('indices may be an integer or a list/array '
-                             'of integers')
-
-    _getCoordsets = getCoordsets
-    
-    def iterCoordsets(self):
-        """Yield copies of coordinate sets."""
-        
-        for i in range(self._ag._n_csets):
-            coords = np.zeros((self._len, 3), float)
-            coords[self._mapping] = self._ag._coords[i, self._indices] 
-            yield coords
-    
-    _iterCoordsets = iterCoordsets
+        return len(self._dummies)

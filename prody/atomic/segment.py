@@ -16,16 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes to handle segments in an atom group.
-
-.. currentmodule:: prody.atomic"""
+"""This module defines a class to handle segments of atoms in an atom group."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from subset import AtomSubset, MCAtomSubset
+from subset import AtomSubset
 
-__all__ = ['Segment', 'MCSegment']
+__all__ = ['Segment']
 
 class Segment(AtomSubset):
     
@@ -34,17 +32,30 @@ class Segment(AtomSubset):
     Indexing a :class:`Segment` instance by chain identifier returns 
     :class:`Chain` instances."""
 
-    def __init__(self, ag, indices, **kwargs):
+    __slots__ = ['_ag', '_indices', '_acsi', '_selstr', '_dict', '_list']
+
+    def __init__(self, ag, indices, acsi=None, **kwargs):
         
-        AtomSubset.__init__(self, ag, indices, **kwargs)
+        AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
         self._dict = dict()
         self._list = list()
     
     def __repr__(self):
-
-        return ('<Segment: {0:s} from {1:s} ({2:d} atoms)>').format(
-                self.getSegname(), self._ag.getTitle(), 
-                self.numAtoms())
+        
+        n_csets = self._ag.numCoordsets()
+        if n_csets == 1:
+            return ('<Segment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms)>'
+                    ).format(self.getSegname(), self._ag.getTitle(), 
+                             self.numChains(), self.numAtoms())
+        elif n_csets > 1:
+            return ('<Segment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms; '
+                    'active #{4:d} of {5:d} coordsets)>').format(
+                    self.getSegname(), self._ag.getTitle(), self.numChains(),
+                    self.numAtoms(), self.getACSIndex(), n_csets)
+        else:
+            return ('<Segment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms; '
+                    'no coordinates)>').format(self.getSegname(), 
+                    self._ag.getTitle(), self.numAtoms(), self.numChains())
 
     def __str__(self):
 
@@ -97,29 +108,3 @@ class Segment(AtomSubset):
                                                         self._selstr)
         else:
             return 'segname {0:s}'.format(self.getSegname())
-
-
-class MCSegment(Segment, MCAtomSubset):
-    
-    def __init__(self, ag, indices, acsi, **kwargs):
-        
-        MCAtomSubset.__init__(self, ag, indices, acsi, **kwargs)
-        self._dict = dict()
-        self._list = list()
-
-    def __repr__(self):
-        
-        n_csets = self._ag.numCoordsets()
-        if n_csets:
-            return ('<MCSegment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms; '
-                    '{4:d} coordsets, active {5:d})>').format(
-                    self.getSegname(), self._ag.getTitle(), self.numChains(),
-                    self.numAtoms(), n_csets, self._acsi)
-        else:
-            return ('<MCSegment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms; '
-                    '0 coordsets)>').format(self.getSegname(), 
-                    self._ag.getTitle(), self.numAtoms(), self.numChains())
-
-    def __str__(self):
-    
-        return 'MCSegment {0:s}'.format(self.getSegname())

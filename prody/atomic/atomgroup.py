@@ -16,9 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for storing and handling atomic data.
-
-.. currentmodule:: prody.atomic"""
+"""This module defines :class:`AtomGroup` class that stores atomic data and 
+multiple coordinate sets in :class:`numpy.ndarray` instances."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -30,14 +29,14 @@ import numpy as np
 
 from prody.tools import checkCoords
 
-from atomic import Atomic, MultiCoordset
-from atomic import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS, READONLY
-from atomic import wrapGetMethod, wrapSetMethod
-from atom import Atom, MCAtom
-from bond import Bond, MCBond, evalBonds, trimBonds
-from subset import AtomSubset, MCAtomSubset
-from atommap import AtomMap, MCAtomMap
-from selection import Selection, MCSelection
+from atomic import Atomic
+from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS, READONLY
+from fields import wrapGetMethod, wrapSetMethod
+from atom import Atom
+from bond import Bond, evalBonds, trimBonds
+from atommap import AtomMap
+from subset import AtomSubset
+from selection import Selection
 
 from prody.measure import getKDTree
 
@@ -48,7 +47,7 @@ HierView = lambda none: None
 SELECT = None
 isReserved = lambda none: None
 
-__all__ = ['AtomGroup', 'MCAtomGroup']
+__all__ = ['AtomGroup']
 
 class AtomGroupMeta(type):
 
@@ -120,10 +119,9 @@ class AtomGroupMeta(type):
 
 class AtomGroup(Atomic):
     
-    """A class for storing and accessing atomic data.
-    
-    The number of atoms of the atom group is inferred at the first set method
-    call from the size of the data array. 
+    """A class for storing and accessing atomic data.  The number of atoms of 
+    the atom group is inferred at the first set method call from the size of 
+    the data array. 
 
     **Atomic Data**
     
@@ -131,48 +129,61 @@ class AtomGroup(Atomic):
 
     **Get and Set Methods**
     
-    :meth:`get` methods return copies of the data arrays. 
+    *get* methods, e.g. :meth:`getResnames`, return copies of the data arrays. 
     
-    :meth:`set` methods accept data in :class:`list` or :class:`~numpy.ndarray` 
-    instances. The length of the list or array must match the number of atoms 
-    in the atom group. Set method sets attributes of all atoms at once.
+    *set* methods, e.g. :meth:`setResnums`, accept data in :class:`list` or 
+    :class:`~numpy.ndarray` instances.  The length of the list or array must 
+    match the number of atoms in the atom group.  These methods set attributes 
+    of all atoms at once.
     
     Atom groups with multiple coordinate sets may have one of these sets as 
-    the active coordinate set. The active coordinate set may be changed using
-    :meth:`setACSIndex()` method.  :meth:`getCoords` returns coordinates from 
-    the active set.
+    the *active coordinate set*.  The active coordinate set may be changed 
+    using :meth:`setACSIndex()` method.  :meth:`getCoords` returns coordinates
+    from the *active set*.
     
     To access and modify data associated with a subset of atoms in an atom 
-    group, :class:`Selection` instances may be used. A selection from an atom 
-    group has initially the same coordinate set as the active coordinate set.
-    
-    User can iterate over atoms and coordinate sets in an atom group. To 
-    iterate over residues and chains, get a hierarchical view of the atom 
-    group by calling :meth:`getHierView()`."""
+    group, :class:`~prody.atomic.selection.Selection` instances may be used. 
+    A selection from an atom group has initially the same coordinate set as 
+    the *active coordinate set*."""
     
     __metaclass__ = AtomGroupMeta
     
+    __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i', 
+                 '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
+                 '_acsi', '_n_csets', '_data']
+    
     def __init__(self, title='Unnamed'):
-        """Instantiate an AtomGroup with a *title*."""
         
         self._title = str(title)
         self._n_atoms = 0
         self._coords = None
         self._hv = None
         self._sn2i = None
-        self._timestamp = None
-        self._kdtree = None
-        self._data = dict()
+        self._timestamps = None
+        self._kdtrees = None
         self._bmap = None
         self._bonds = None
         
-        for field in ATOMIC_DATA_FIELDS.values():
-            self._data[field.var] = None
+        self._cslabels = []
+        self._acsi = None
+        self._n_csets = 0
+        
+        self._data = dict([(field.var, None) 
+                           for field in ATOMIC_DATA_FIELDS.itervalues()])
 
     def __repr__(self):
 
-        return '<AtomGroup: {0:s} ({1:d} atoms)>'.format(
-                self._title, self._n_atoms)
+        n_csets = self._n_csets
+        if n_csets == 1:
+            return '<AtomGroup: {0:s} ({1:d} atoms)>'.format(
+                    self._title, self._n_atoms)
+        elif n_csets > 1:
+            return ('<AtomGroup: {0:s} ({1:d} atoms; active #{2:d} of {3:d}' 
+                    ' coordsets)>').format(self._title, self._n_atoms, 
+                                           self._acsi, n_csets)
+        else:
+            return '<AtomGroup: {0:s} ({1:d} atoms; no coordinates)>'.format(
+                    self._title, self._n_atoms)
         
     def __str__(self):
         
@@ -180,44 +191,39 @@ class AtomGroup(Atomic):
 
     def __getitem__(self, index):
         
-        if isinstance(index, int):
+        acsi = self._acsi
         
+        if isinstance(index, int):
             n_atoms = self._n_atoms
             if index >= n_atoms or index < -n_atoms:
                 raise IndexError('index out of bounds')
             if index < 0:
                 index = n_atoms + index
-            return Atom(self, index)
+            return Atom(self, index, acsi)
         
         elif isinstance(index, slice):
-        
             start, stop, step = index.indices(self._n_atoms)
             if start is None:
                 start = 0
             if step is None:
                 step = 1
-            index = np.arange(start, stop, step)
+            index = np.arange(start,stop,step)
             if len(index) > 0:
                 selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
-                return Selection(self, index, selstr)
+                return Selection(self, index, selstr, acsi)
         
         elif isinstance(index, (list, np.ndarray)):
-        
             unique = np.unique(index)
             if unique[0] < 0 or unique[-1] >= self._n_atoms:
                 raise IndexError('index out of range')
             return Selection(self, unique,  
                              'index ' + ' '.join(np.array(index, '|S')), 
-                             unique=True)
+                             acsi, unique=True)
         
         elif isinstance(index, (str, tuple)):
-        
-            hv = self.getHierView()
-            if hv is not None:
-                return hv[index]
+            return self.getHierView()[index]
         
         else:
-        
             raise TypeError('invalid index') 
     
     def __len__(self):
@@ -275,29 +281,50 @@ class AtomGroup(Atomic):
     def __iter__(self):
         """Yield atom instances."""
         
+        acsi = self._acsi
         for index in xrange(self._n_atoms):
-            yield Atom(self, index)
+            yield Atom(self, index, acsi)
 
     iterAtoms = __iter__
 
-    def _getTimeStamp(self):
-        """Return the last time when coordinates were changed."""
+    def _getTimeStamp(self, index):
+        """Return time stamp showing when coordinates were last changed."""
 
-        return self._timestamp
+        if self._n_cset:
+            if index is None:
+                return self._timestamps[self._acsi]
+            else:
+                return self._timestamps[index]
+        else:
+            return None
     
-    def _setTimeStamp(self):
-        """Set time stamp when coordinates change."""
+    def _setTimeStamp(self, index=None):
+        """Set time stamp when :meth:`setCoords` methods of 
+        atom group or atom pointer instances are called.
+        """
         
-        self._timestamp = time()
-        self._kdtree = None
+        if index is None:
+            self._timestamps = np.zeros(self._n_csets)
+            self._timestamps.fill(time())
+            self._kdtrees = [None] * self._n_csets
+        else:
+            self._timestamps[index] = time()
+            self._kdtrees[index] = None
 
-    def _getKDTree(self):
-        """Return KDTree."""
+    def _getKDTree(self, index=None):
+        """Return KDTree for coordinate set at given index."""
 
-        if self._kdtree is None:
-            self._kdtree = getKDTree(self._coords)
-        return self._kdtree
-    
+        if self._n_csets:
+            if index is None:
+                index = self._acsi
+            kdtree = self._kdtrees[index]
+            if kdtree is None:
+                kdtree = getKDTree(self._coords[index])
+                self._kdtrees[index] = kdtree
+            return kdtree
+        else:
+            return None
+
     def _getSN2I(self):
         """Return a mapping of serial numbers to indices."""
         
@@ -332,31 +359,219 @@ class AtomGroup(Atomic):
         return self._n_atoms
     
     def getCoords(self):
-        """Return a copy of coordinates."""
+        """Return a copy of coordinates from active coordinate set."""
         
         if self._coords is not None:
-            return self._coords.copy()
+            return self._coords[self._acsi].copy()
     
     def _getCoords(self): 
-        """Return coordinates."""
+        """Return a view of coordinates from active coordinate set."""
         
         if self._coords is not None:
-            return self._coords
+            return self._coords[self._acsi]
 
-    def setCoords(self, coords):
-        """Set coordinates.  *coords* must be a :class:`numpy.ndarray` instance 
-        with shape (n_atoms,3) or an object instance with ``getCoords`` method.
-        """
+    def setCoords(self, coords, label=None):
+        """Set coordinates.  *coords* may be a :class:`numpy.ndarray` instance 
+        or an object instance with ``getCoordsets`` method.  If the shape of 
+        the coordinates array is (n_csets,n_atoms,3), the given array will 
+        replace all coordinate sets.  To avoid it, :meth:`addCoordset` may be 
+        used.  If the shape of the *coords* array is (n_atoms,3) or 
+        (1,n_atoms,3), the coordinate set will replace the coordinates of the 
+        currently active set.  *label* argument may be used to label coordinate
+        sets.  *label* may be a string or a list of strings length equal to 
+        the number of coordinate sets."""
 
-        coordinates = checkCoords(coords, 'coords', cset=False,
-                                  n_atoms=self._n_atoms)
+        if not isinstance(coords, np.ndarray):
+            coords = coords.getCoordsets()
+
+        coords = checkCoords(coords, 'coords',
+                                  cset=True, n_atoms=self._n_atoms,
+                                  reshape=True)
         if self._n_atoms == 0:
-            self._n_atoms = coordinates.shape[-2] 
-        acsi = None
-        self._coords = coordinates
-        self._acsi = 0
-        self._setTimeStamp()
+            self._n_atoms = coords.shape[-2] 
             
+        acsi = None
+        if self._coords is None:
+            self._coords = coords
+            self._n_csets = coords.shape[0]
+            self._acsi = 0
+            self._setTimeStamp()
+            if isinstance(label, (NoneType, str)):
+                self._cslabels = [label] * self._n_csets
+            elif isinstance(label, (list, tuple)):
+                if len(label) == self._n_csets:
+                    self._cslabels = label
+                else:
+                    self._cslabels = [None] * self._n_csets
+                    LOGGER.warning('Length of `label` does not match number '
+                                   'of coordinate sets.')
+        else:
+            if coords.shape[0] == 1:
+                acsi = self._acsi
+                self._coords[acsi] = coords[0]
+                self._setTimeStamp(acsi)
+                if isinstance(label, str):
+                    self._cslabels[self._acsi] = label
+            else:
+                self._coords = coords
+                self._n_csets = coords.shape[0]
+                self._acsi = min(self._n_csets - 1, self._acsi)
+                self._setTimeStamp()
+                
+        if acsi is None:
+            if isinstance(label, (str, NoneType)):
+                self._cslabels = [label] * self._n_csets
+            elif isinstance(label, (list, tuple)):
+                if len(label) == self._n_csets:
+                    if all([isinstance(lbl, str) for lbl in label]):
+                        self._cslabels += label
+                    else:
+                        LOGGER.warning('all items of label must be strings')
+                else:
+                    LOGGER.warning('label must have same length as the '
+                                   'coords array')
+            else:
+                LOGGER.warning('label must be a string or list of strings')
+                
+        elif label is not None:
+            if isinstance(label, str):
+                self._cslabels[acsi] = label
+            elif isinstance(label, (list, tuple)):
+                if len(label) == 1:
+                    if isinstance(label[0], str):
+                        self._cslabels[acsi] = label
+                    else:
+                        LOGGER.warning('all items of label must be strings')
+                else:
+                    LOGGER.warning('length of label must be one')
+            else:
+                LOGGER.warning('label must be a string or list of strings')    
+    
+    def addCoordset(self, coords, label=None):
+        """Add a coordinate set.  *coords* argument may be an object instance 
+        with ``getCoordsets`` method."""
+        
+        if not isinstance(coords, np.ndarray):
+            coords = coords.getCoordsets()
+
+        if self._coords is None:
+            self.setCoords(coords)
+            return
+
+        coords = checkCoords(coords, 'coords', cset=True, 
+                             n_atoms=self._n_atoms, reshape=True)
+        diff = coords.shape[0]
+        self._coords = np.concatenate((self._coords, coords), axis=0)
+        self._n_csets = self._coords.shape[0]
+        timestamps = self._timestamps
+        self._timestamps = np.zeros(self._n_csets)
+        self._timestamps[:len(timestamps)] = timestamps
+        self._timestamps[len(timestamps):] = time()
+        self._kdtrees.extend([None] * diff)
+        if isinstance(label, (str, NoneType)):
+            self._cslabels += [label] * diff
+        elif isinstance(label, (list, tuple)):
+            if len(label) == diff:
+                if all([isinstance(lbl, str) for lbl in label]):
+                    self._cslabels += label
+                else:
+                    LOGGER.warning('all items of `label` must be strings')
+            else:
+                LOGGER.warning('`label` list must have same length as the '
+                               '`coords` array')
+        else:
+            LOGGER.warning('`label` must be a string or list of strings')
+        
+    def delCoordset(self, index):
+        """Delete a coordinate set from the atom group."""
+        
+        if self._n_csets == 0:
+            raise AttributeError('coordinates are not set')
+
+        which = np.ones(self._n_csets, bool)
+        which[index] = False
+        n_csets = self._n_csets
+        which = which.nonzero()[0]
+        if len(which) == 0:
+            self._coords = None
+            self._n_csets = 0
+            self._acsi = None
+            self._cslabels = None
+            self._kdtrees = None
+        else:
+            self._coords = self._coords[which]
+            self._n_csets = self._coords.shape[0]
+            self._acsi = 0
+            self._cslabels = [self._cslabels[i] for i in which]
+            self._kdtrees = [self._kdtrees[i] for i in which]
+        self._timestamps = self._timestamps[which]
+    
+    def getCoordsets(self, indices=None):
+        """Return a copy of coordinate set(s) at given *indices*.  *indices* 
+        may  be an integer, a list of integers, or ``None`` meaning all 
+        coordinate sets."""
+        
+        if self._coords is None:
+            return None
+        if indices is None:
+            return self._coords.copy()
+        if isinstance(indices, (int, slice)):
+            return self._coords[indices].copy()
+        if isinstance(indices, (list, np.ndarray)):
+            return self._coords[indices]
+        raise IndexError('indices must be an integer, a list/array of '
+                         'integers, a slice, or None')
+        
+    def _getCoordsets(self, indices=None):
+        """Return a view of coordinate set(s) at given *indices*."""
+        
+        if self._coords is None:
+            return None
+        if indices is None:
+            return self._coords
+        if isinstance(indices, (int, slice, list, np.ndarray)):
+            return self._coords[indices]
+        raise IndexError('indices must be an integer, a list/array of '
+                         'integers, a slice, or None')
+
+    def numCoordsets(self):
+        """Return number of coordinate sets."""
+        
+        return self._n_csets
+    
+    def iterCoordsets(self):
+        """Iterate over coordinate sets by returning a copy of each coordinate
+        set."""
+        
+        for i in range(self._n_csets):
+            yield self._coords[i].copy()
+    
+    def _iterCoordsets(self):
+        """Iterate over coordinate sets by returning a view of each coordinate
+        set."""
+        
+        for i in range(self._n_csets):
+            yield self._coords[i]
+
+    def getACSIndex(self):
+        """Return index of the coordinate set."""
+        
+        return self._acsi 
+            
+    def setACSIndex(self, index):
+        """Set the coordinate set at *index* active."""
+        
+        n_csets = self._n_csets
+        if n_csets == 0:
+            self._acsi = 0
+        if not isinstance(index, int):
+            raise TypeError('index must be an integer')
+        if n_csets <= index or n_csets < abs(index):
+            raise IndexError('coordinate set index is out of range')
+        if index < 0:
+            index += n_csets 
+        self._acsi = index
+        
     def copy(self, which=None):
         """Return a copy of atoms indicated *which* as a new AtomGroup 
         instance.
@@ -367,23 +582,21 @@ class AtomGroup(Atomic):
             * a list or an array of indices
             * a selection string"""
         
-        AG = type(self)
-        
         title = self._title
         if which is None:
             indices = None
-            newmol = AG('{0:s}'.format(title))
+            newmol = AtomGroup('{0:s}'.format(title))
             newmol.setCoords(self._coords.copy())
             
         elif isinstance(which, int):
             indices = [which]
-            newmol = AG('{0:s} index {1:d}'.format(title, which))
+            newmol = AtomGroup('{0:s} index {1:d}'.format(title, which))
             
         elif isinstance(which, str):
             indices = SELECT.getIndices(self, which)
             if len(indices) == 0:
                 return None
-            newmol = AG('{0:s} selection "{1:s}"'.format(title, which))
+            newmol = AtomGroup('{0:s} selection "{1:s}"'.format(title, which))
             
         elif isinstance(which, (list, np.ndarray)):
             if isinstance(which, list):
@@ -392,7 +605,7 @@ class AtomGroup(Atomic):
                 raise ValueError('which must be a 1d array')
             else:
                 indices = which
-            newmol = AG('{0:s} subset'.format(title))
+            newmol = AtomGroup('{0:s} subset'.format(title))
             
         else:
             if isinstance(which, Atom):
@@ -402,7 +615,7 @@ class AtomGroup(Atomic):
             else:
                 raise TypeError('{0:s} is not a valid type'.format(
                                                                 type(which)))            
-            newmol = AG('{0:s} selection "{1:s}"'.format(title, 
+            newmol = AtomGroup('{0:s} selection "{1:s}"'.format(title, 
                                                                 str(which)))
         if indices is not None:
             newmol.setCoords(self._coords[:, indices])
@@ -476,7 +689,7 @@ class AtomGroup(Atomic):
             * start with a letter
             * contain only alphanumeric characters and underscore
             * not be a reserved word 
-              (see :func:`~prody.select.getReservedWords`)
+              (see :func:`~prody.atomic.select.getReservedWords`)
 
         *data* must be a :func:`list` or a :class:`numpy.ndarray`, its length 
         must be equal to the number of atoms, and the type of data array must 
@@ -609,6 +822,43 @@ class AtomGroup(Atomic):
             return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
                                             .format(serial, stop, step))
 
+
+    def getACSLabel(self):
+        """Return active coordinate set label."""
+        
+        if self._n_csets:
+            return self._cslabels[self._acsi]
+
+    def setACSLabel(self, label):
+        """Set active coordinate set label."""
+
+        if self._n_csets:
+            if isinstance(label, (str, NoneType)):
+                self._cslabels[self._acsi] = label 
+            else:
+                raise TypeError('label must be a string')
+    
+    def getCSLabels(self):
+        """Return coordinate set labels."""
+        
+        if self._n_csets:
+            return list(self._cslabels)
+
+    def setCSLabels(self, labels):
+        """Set coordinate set labels. *labels* must be a list of strings."""
+        
+        if isinstance(labels, list):
+            if len(labels) == self._n_csets:
+                if all(isinstance(lbl, (str, NoneType)) for lbl in labels):
+                    self._cslabels = list(labels)
+                else:
+                    raise ValueError('all items of labels must be strings')
+            else:
+                raise ValueError('length of labels must be equal to the '
+                                 'number of coordinate sets')
+        else:
+            raise TypeError('labels must be a list')    
+            
     def setBonds(self, bonds):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
         array of pairs of indices.  All bonds must be set at once.  An array
@@ -635,388 +885,16 @@ class AtomGroup(Atomic):
         self._bonds = bonds
 
     def numBonds(self):
-        """Return number of bonds.  Bonds must be set first using 
-        :meth:`setBonds`."""
+        """Return number of bonds.  Bonds must be set using :meth:`setBonds`.
+        """
         
         if self._bonds is not None:
             return self._bonds.shape[0]
 
     def iterBonds(self):
-        """Yield bonds in the atom group.  Bonds must be set first using 
-        :meth:`setBonds`."""
+        """Yield bonds.  Bonds must be set using :meth:`setBonds`."""
         
-        if self._bonds is None:
-            return
-        acsi = self._acsi
-        for bond in self._bonds:
-            yield Bond(self, bond)
-
-
-class MCAtomGroup(MultiCoordset, AtomGroup):
-    
-    """Extends :class:`AtomGroup` to handle multiple coordinate sets."""
-   
-    def __init__(self, title='Unnamed'):
-        
-        AtomGroup.__init__(self, title)
-        self._cslabels = []
-        self._acsi = None
-        self._n_csets = 0
-    
-    def __repr__(self):
-
-        if self._n_csets:
-            return ('<MCAtomGroup: {0:s} ({1:d} atoms; {2:d} coordsets, active'
-                    ' {3:d})>').format(self._title, self._n_atoms, 
-                                       self._n_csets, self._acsi)
-        else:
-            return '<MCAtomGroup: {0:s} ({1:d} atoms; 0 coordsets)>'.format(
-                    self._title, self._n_atoms)
-                    
-    def __str__(self):
-        
-        return 'MCAtomGroup ' + self._title
-    
-    def __getitem__(self, index):
-        
-        acsi = self._acsi
-        
-        if isinstance(index, int):
-            n_atoms = self._n_atoms
-            if index >= n_atoms or index < -n_atoms:
-                raise IndexError('index out of bounds')
-            if index < 0:
-                index = n_atoms + index
-            return MCAtom(self, index, acsi)
-        
-        elif isinstance(index, slice):
-            start, stop, step = index.indices(self._n_atoms)
-            if start is None:
-                start = 0
-            if step is None:
-                step = 1
-            index = np.arange(start,stop,step)
-            if len(index) > 0:
-                selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
-                return MCSelection(self, index, selstr, acsi)
-        
-        elif isinstance(index, (list, np.ndarray)):
-            unique = np.unique(index)
-            if unique[0] < 0 or unique[-1] >= self._n_atoms:
-                raise IndexError('index out of range')
-            return MCSelection(self, unique,  
-                             'index ' + ' '.join(np.array(index, '|S')), 
-                             acsi, unique=True)
-        
-        elif isinstance(index, (str, tuple)):
-            return self.getHierView()[index]
-        
-        else:
-            raise TypeError('invalid index') 
-    
-    def __iter__(self):
-        """Yield atom instances."""
-        
-        acsi = self._acsi
-        for index in xrange(self._n_atoms):
-            yield MCAtom(self, index, acsi)
-    
-    iterAtoms = __iter__
-    
-    def _getTimeStamp(self, index):
-        """Return time stamp showing when coordinates were last changed."""
-
-        if self._n_csets > 0:
-            if index is None:
-                return self._timestamp[self._acsi]
-            else:
-                return self._timestamp[index]
-        else:
-            return None
-    
-    def _setTimeStamp(self, index=None):
-        """Set time stamp when:
-           
-            * :meth:`setCoordinates` method of :class:`AtomGroup` or 
-              :class:`AtomPointer` instances are called.
-        """
-        
-        if index is None:
-            self._timestamp = np.zeros(self._n_csets)
-            self._timestamp.fill(time())
-            self._kdtree = [None] * self._n_csets
-        else:
-            self._timestamp[index] = time()
-            self._kdtree[index] = None
-
-    def _getKDTree(self, index=None):
-        """Return KDTree for coordinate set at given index."""
-
-        if self._n_csets:
-            if index is None:
-                index = self._acsi
-            kdtree = self._kdtree[index]
-            if kdtree is None:
-                kdtree = getKDTree(self._coords[index])
-                self._kdtree[index] = kdtree
-            return kdtree
-        else:
-            return None
-    
-    def getCoords(self):
-        """Return a copy of coordinates from active coordinate set."""
-        
-        if self._coords is None:
-            return None
-        return self._coords[self._acsi].copy()
-    
-    def _getCoords(self): 
-        """Return a view of coordinates from active coordinate set."""
-        
-        if self._coords is None:
-            return None
-        return self._coords[self._acsi]
-
-    def setCoords(self, coords, label=None):
-        """Set coordinates.  *coords* may be a :class:`numpy.ndarray` instance 
-        or an object instance with ``getCoordsets`` method.  If the shape of 
-        the coordinates array is (n_csets,n_atoms,3), the given array will 
-        replace all coordinate sets.  To avoid it, :meth:`addCoordset` may be 
-        used.  If the shape of the coordinates array is (n_atoms,3) or 
-        (1,n_atoms,3), the coordinate set will replace the coordinates of the 
-        currently active coordinate set.  *label* argument may be used to label
-        coordinate sets.  *label* may be a string or a list of strings length 
-        equal to the number of coordinate sets."""
-
-        if not isinstance(coords, np.ndarray):
-            coords = coords.getCoordsets()
-
-        coordinates = checkCoords(coords, 'coords',
-                                  cset=True, n_atoms=self._n_atoms,
-                                  reshape=True)
-        if self._n_atoms == 0:
-            self._n_atoms = coordinates.shape[-2] 
-        acsi = None
-        if self._coords is None:
-            self._coords = coordinates
-            self._n_csets = coordinates.shape[0]
-            self._acsi = 0
-            self._setTimeStamp()
-            if isinstance(label, (NoneType, str)):
-                self._cslabels = [label] * self._n_csets
-            elif isinstance(label, (list, tuple)):
-                if len(label) == self._n_csets:
-                    self._cslabels = label
-                else:
-                    self._cslabels = [None] * self._n_csets
-                    LOGGER.warning('Length of `label` does not match number '
-                                   'of coordinate sets.')
-                
-        else:
-            if coordinates.shape[0] == 1:
-                acsi = self._acsi
-                self._coords[acsi] = coordinates[0]
-                self._setTimeStamp(acsi)
-                if isinstance(label, str):
-                    self._cslabels[self._acsi] = label
-            else:
-                self._coords = coordinates
-                self._n_csets = coordinates.shape[0]
-                self._acsi = min(self._n_csets - 1, self._acsi)
-                self._setTimeStamp()
-        if acsi is None:
-            if isinstance(label, (str, NoneType)):
-                self._cslabels = [label] * self._n_csets
-            elif isinstance(label, (list, tuple)):
-                if len(label) == self._n_csets:
-                    if all([isinstance(lbl, str) for lbl in label]):
-                        self._cslabels += label
-                    else:
-                        LOGGER.warning('all items of `label` must be strings')
-                else:
-                    LOGGER.warning('`label` must have same length as the '
-                                   '`coords` array')
-            else:
-                LOGGER.warning('`label` must be a string or list of strings')
-        elif label is not None:
-            if isinstance(label, str):
-                self._cslabels[acsi] = label
-            elif isinstance(label, (list, tuple)):
-                if len(label) == 1:
-                    if isinstance(label[0], str):
-                        self._cslabels[acsi] = label
-                    else:
-                        LOGGER.warning('all items of `label` must be strings')
-                else:
-                    LOGGER.warning('length of `label` must be one')
-            else:
-                LOGGER.warning('`label` must be a string or list of strings')
-    
-    def addCoordset(self, coords, label=None):
-        """Add a coordinate set to the atom group.  *coords* argument may be an
-        object instance with ``getCoordsets`` method."""
-        
-        if not isinstance(coords, np.ndarray):
-            coords = coords.getCoordsets()
-
-        if self._coords is None:
-            self.setCoords(coords)
-            return
-
-        coords = checkCoords(coords, 'coords', cset=True, 
-                             n_atoms=self._n_atoms, reshape=True)
-        diff = coords.shape[0]
-        self._coords = np.concatenate((self._coords, coords), axis=0)
-        self._n_csets = self._coords.shape[0]
-        timestamp = self._timestamp
-        self._timestamp = np.zeros(self._n_csets)
-        self._timestamp[:len(timestamp)] = timestamp
-        self._timestamp[len(timestamp):] = time()
-        self._kdtree.extend([None] * diff)
-        if isinstance(label, (str, NoneType)):
-            self._cslabels += [label] * diff
-        elif isinstance(label, (list, tuple)):
-            if len(label) == diff:
-                if all([isinstance(lbl, str) for lbl in label]):
-                    self._cslabels += label
-                else:
-                    LOGGER.warning('all items of `label` must be strings')
-            else:
-                LOGGER.warning('`label` list must have same length as the '
-                               '`coords` array')
-        else:
-            LOGGER.warning('`label` must be a string or list of strings')
-        
-    def delCoordset(self, index):
-        """Delete a coordinate set from the atom group."""
-        
-        if self._n_csets == 0:
-            raise AttributeError('coordinates are not set')
-        if self._traj is not None:
-            raise AttributeError('AtomGroup is locked for coordinate set '
-                                 'addition/deletion when its associated with '
-                                 'a trajectory')
-        which = np.ones(self._n_csets, bool)
-        which[index] = False
-        n_csets = self._n_csets
-        which = which.nonzero()[0]
-        if len(which) == 0:
-            self._coords = None
-            self._n_csets = 0
-            self._acsi = None
-            self._cslabels = None
-            self._kdtree = None
-        else:
-            self._coords = self._coords[which]
-            self._n_csets = self._coords.shape[0]
-            self._acsi = 0
-            self._cslabels = [self._cslabels[i] for i in which]
-            self._kdtree = [self._kdtree[i] for i in which]
-        self._timestamp = self._timestamp[which]
-    
-    def getCoordsets(self, indices=None):
-        """Return a copy of coordinate set(s) at given *indices*.  *indices* 
-        may  be an integer, a list of integers, or ``None`` meaning all 
-        coordinate sets."""
-        
-        if self._coords is None:
-            return None
-        if indices is None:
-            return self._coords.copy()
-        if isinstance(indices, (int, slice)):
-            return self._coords[indices].copy()
-        if isinstance(indices, (list, np.ndarray)):
-            return self._coords[indices]
-        raise IndexError('indices must be an integer, a list/array of '
-                         'integers, a slice, or None')
-        
-    def _getCoordsets(self, indices=None):
-        """Return a view of coordinate set(s) at given *indices*."""
-        
-        if self._coords is None:
-            return None
-        if indices is None:
-            return self._coords
-        if isinstance(indices, (int, slice, list, np.ndarray)):
-            return self._coords[indices]
-        raise IndexError('indices must be an integer, a list/array of '
-                         'integers, a slice, or None')
-
-    def numCoordsets(self):
-        """Return number of coordinate sets."""
-        
-        return self._n_csets
-    
-    def iterCoordsets(self):
-        """Iterate over coordinate sets by returning a copy of each coordinate
-        set."""
-        
-        for i in range(self._n_csets):
-            yield self._coords[i].copy()
-    
-    def _iterCoordsets(self):
-        """Iterate over coordinate sets by returning a view of each coordinate
-        set."""
-        
-        for i in range(self._n_csets):
-            yield self._coords[i]
-
-    def setACSIndex(self, index):
-        """Set the coordinate set at *index* active."""
-        
-        n_csets = self._n_csets
-        if n_csets == 0:
-            self._acsi = 0
-        if not isinstance(index, int):
-            raise TypeError('index must be an integer')
-        if n_csets <= index or n_csets < abs(index):
-            raise IndexError('coordinate set index is out of range')
-        if index < 0:
-            index += n_csets 
-        self._acsi = index
-
-    def getACSLabel(self):
-        """Return active coordinate set label."""
-        
-        if self._n_csets:
-            return self._cslabels[self._acsi]
-
-    def setACSLabel(self, label):
-        """Set active coordinate set label."""
-
-        if self._n_csets:
-            if isinstance(label, (str, NoneType)):
-                self._cslabels[self._acsi] = label 
-            else:
-                raise TypeError('`label` must be a string')
-    
-    def getCSLabels(self):
-        """Return coordinate set labels."""
-        
-        if self._n_csets:
-            return list(self._cslabels)
-
-    def setCSLabels(self, labels):
-        """Set coordinate set labels. *labels* must be a list of strings."""
-        
-        if isinstance(labels, list):
-            if len(labels) == self._n_csets:
-                if all(isinstance(lbl, (str, NoneType)) for lbl in labels):
-                    self._cslabels = list(labels)
-                else:
-                    raise ValueError('all items of labels must be strings')
-            else:
-                raise ValueError('length of labels must be equal to number of '
-                                 'coordinate sets')
-        else:
-            raise TypeError('labels must be a list')                
-
-    def iterBonds(self):
-        """Yield bonds in the atom group.  Bonds must be set first using 
-        :meth:`setBonds`."""
-        
-        if self._bonds is None:
-            return
-        acsi = self._acsi
-        for bond in self._bonds:
-            yield MCBond(self, bond, acsi)
+        if self._bonds is not None:
+            acsi = self._acsi
+            for bond in self._bonds:
+                yield Bond(self, bond, acsi)

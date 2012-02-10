@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" This module defines classes for selecting subsets of atoms and identifying 
-contacts, and functions to learn and change definitions of selection keywords.
+""" This module defines a class for selecting subsets of atoms and functions 
+to learn and change definitions of selection keywords.
 
 .. _selections:
 
@@ -178,13 +178,13 @@ pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 SETTINGS = pkg.SETTINGS
 
-from atomic import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
-from atomic import Atomic, MultiCoordset
+from atomic import Atomic
+from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
 
 from atomgroup import AtomGroup 
 from pointer import AtomPointer
-from selection import Selection, MCSelection
-from atommap import AtomMap, MCAtomMap
+from selection import Selection
+from atommap import AtomMap
 
 from prody.tools import rangeString 
 from prody.measure import getKDTree
@@ -991,7 +991,7 @@ class Select(object):
             self._ag = atoms.getAtomGroup()
             self._indices = atoms.getIndices()
             if isinstance(atoms, AtomMap):
-                self._atoms = Selection(self._ag, self._indices, '')
+                self._atoms = Selection(self._ag, self._indices, '', )
                 self._atoms._indices = self._indices
             else: 
                 self._atoms = atoms
@@ -1067,14 +1067,9 @@ class Select(object):
             return None
             
         elif isinstance(atoms, AtomMap):
-            if isinstance(atoms, MultiCoordset):
-                return MCAtomMap(ag, indices, np.arange(len(indices)), 
-                         np.array([]), 'Selection "{0:s}" from AtomMap {1:s}'
-                        .format(selstr, atoms.getTitle()), atoms.getACSIndex())
-            else:
-                return AtomMap(ag, indices, np.arange(len(indices)), 
-                         np.array([]), 'Selection "{0:s}" from AtomMap {1:s}'
-                        .format(selstr, atoms.getTitle()))
+            return AtomMap(ag, indices, np.arange(len(indices)), 
+                     np.array([]), 'Selection "{0:s}" from AtomMap {1:s}'
+                    .format(selstr, atoms.getTitle()), atoms.getACSIndex())
         else:
             if self._ss2idx:
                 selstr = 'index {0:s}'.format(rangeString(indices))
@@ -1082,11 +1077,8 @@ class Select(object):
                 selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                       atoms.getSelstr())
             
-            if isinstance(atoms, MultiCoordset):
-                return MCSelection(ag, indices, selstr, atoms.getACSIndex(),
-                                   unique=True)
-            else:
-                return Selection(ag, indices, selstr, unique=True)
+            return Selection(ag, indices, selstr, atoms.getACSIndex(),
+                             unique=True)
         
     def _reset(self):
         if DEBUG: print('_reset')
@@ -1375,7 +1367,7 @@ class Select(object):
             which = self._evaluate(tokens[1:])
 
         if DEBUG: print('_within', which)
-
+        other = False
         if which is None and self._kwargs is not None:
             try:
                 coords = self._kwargs[tokens[1]]
@@ -1397,13 +1389,15 @@ class Select(object):
             exclude=False
             self._ss2idx = True
             which = np.arange(len(coords))
+            other = True
         elif isinstance(which, np.ndarray) and which.dtype == np.bool: 
             which = which.nonzero()[0]
             coords = self._getCoords()
         else:
             return None
-
-        if len(which) < 20:
+        #import code
+        #code.interact(local=locals())
+        if other or len(which) < 20:
             kdtree = self._atoms._getKDTree()
             get_indices = kdtree.get_indices
             search = kdtree.search
@@ -1431,8 +1425,7 @@ class Select(object):
                 search(xyz, within)
                 if len(get_indices()):
                     append(i)
-            #import code
-            #code.interact(local=locals())
+
             torf[check[select]] = True
             if not exclude:
                 torf[which] = True

@@ -16,16 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines atom pointer base class.
-
-.. currentmodule:: prody.atomic"""
+"""This module defines atom pointer base class."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from atomic import Atomic, MultiCoordset
+from atomic import Atomic
 
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
@@ -35,13 +33,18 @@ class AtomPointer(Atomic):
     """A base for classes pointing to atoms in :class:`~atomgroup.AtomGroup` 
     instances."""
     
+    __slots__ = ['_ag', '_acsi']
     
-    def __init__(self, ag):
+    def __init__(self, ag, acsi):
         
-        if not isinstance(ag, pkg.AtomGroup):
+        if not isinstance(ag, AtomGroup):
             raise TypeError('ag must be an AtomGroup instance, not {0:s}'
                             .format(type(ag)))
         self._ag = ag
+        if acsi is None:
+            self._acsi = ag.getACSIndex()
+        else: 
+            self._acsi = int(acsi)
 
     def __contains__(self, item):
         
@@ -54,7 +57,7 @@ class AtomPointer(Atomic):
         return (isinstance(other, AtomPointer) and 
                 self._ag == other.getAtomGroup() and 
                 len(other) == len(self) and 
-                np.all(self._indices == other._getIndices()))
+                np.all(self._getIndices() == other._getIndices()))
     
     def __ne__(self, other):
         
@@ -68,133 +71,64 @@ class AtomPointer(Atomic):
             raise TypeError('an AtomPointer instance cannot be added to a '
                             '{0:s} instance'.format(type(other)))
         ag = self._ag
-        if ag != other.getAtomGroup():
+        if ag != other._ag:
             raise ValueError('AtomPointer instances must point to the same '
                              'AtomGroup instance')
+        acsi = self.getACSIndex()
+        if acsi != other.getACSIndex():
+            LOGGER.warning('Active coordset indices of atoms are not the same.'
+                           ' Result will have ACSI {0:d}.'.format(acsi))
         
         title = '({0:s}) + ({1:s})'.format(str(self), str(other))
         indices = np.concatenate([self._getIndices(), other._getIndices()])
         length = len(self)
         
-        if isinstance(self, pkg.AtomMap):
-            mapping = [self.getMapping()]
-            unmapped = [self._unmapped]
+        if isinstance(self, AtomMap):
+            mapping = [self._getMapping()]
+            unmapped = [self._dummies]
         else:
             mapping = [np.arange(length)]
             unmapped = [np.array([])]
         
-        if isinstance(other, pkg.AtomMap):
-            mapping.append(other.getMapping() + length)
-            unmapped.append(other._unmapped + length) 
+        if isinstance(other, AtomMap):
+            mapping.append(other._getMapping() + length)
+            unmapped.append(other._dummies + length) 
         else:
-            mapping.append(np.arange(length, length+len(other)))
+            mapping.append(np.arange(length, length + len(other)))
             unmapped.append(np.array([]))
             
-        return pkg.AtomMap(ag, indices, np.concatenate(mapping), 
-                           np.concatenate(unmapped), title)
+        return AtomMap(ag, indices, np.concatenate(mapping), 
+                           np.concatenate(unmapped), title, acsi)
                        
-    def _getTimeStamp(self):
+    def _getTimeStamp(self, index=None):
         
-        return self._ag._getTimeStamp()
+        if index is None:
+            index = self.getACSIndex()
+        return self._ag._getTimeStamp(index)
     
     def _getKDTree(self):
-        """Return KDTree for from the atom group."""
+        """Return KDTree for the active coordinate set from the atom group."""
         
-        return self._ag._getKDTree()
+        return self._ag._getKDTree(self.getACSIndex())
 
     def getAtomGroup(self):
         """Return associated atom group."""
         
         return self._ag
     
-    def copy(self):
-        """Make a copy of atoms."""
-        
-        return self._ag.copy(self)
-    
-    __copy__ = copy
-
-    def isData(self, label):
-        """Return ``True`` if *label* is a user data."""
-        
-        return self._ag.isData(label)
-
-    def getDataType(self, label):
-        """Return type of the user data, ``None`` if data label is not present.
-        """
-        
-        return self._ag.getDataType(label)
-
-
-class MCAtomPointer(MultiCoordset, AtomPointer):     
-                
-    """A base for classes pointing to atoms in :class:`~atomgroup.MCAtomGroup` 
-    instances."""
-
-
-    def __init__(self, ag, acsi=None):
-        
-        if not isinstance(ag, pkg.MCAtomGroup):
-            raise TypeError('ag must be an MCAtomGroup instance, not {0:s}'
-                            .format(type(ag)))
-        self._ag = ag
-        if acsi is None:
-            self._acsi = ag.getACSIndex()
-        else: 
-            self._acsi = int(acsi)
-    
-    def __add__(self, other):
-        """Returns an :class:`AtomMap` instance. Order of pointed atoms are
-        preserved."""
-        
-        if not isinstance(other, MCAtomPointer):
-            raise TypeError('an MCAtomPointer instance cannot be added to a '
-                            '{0:s} instance'.format(type(other)))
-        ag = self._ag
-        if ag != other._ag:
-            raise ValueError('MCAtomPointer instances must point to the same '
-                             'MCAtomGroup instance')
-        acsi = self._acsi
-        if self._acsi != other._acsi:
-            LOGGER.warning('Active coordinate set indices of operands are not '
-                           'the same.  Result will have {0:d}'.format(acsi))
-        
-        title = '({0:s}) + ({1:s})'.format(str(self), str(other))
-        indices = np.concatenate([self._getIndices(), other._getIndices()])
-        length = len(self)
-        
-        if isinstance(self, pkg.MCAtomMap):
-            mapping = [self._getMapping()]
-            unmapped = [self._unmapped]
-        else:
-            mapping = [np.arange(length)]
-            unmapped = [np.array([])]
-        
-        if isinstance(other, pkg.MCAtomMap):
-            mapping.append(other._getMapping() + length)
-            unmapped.append(other._unmapped + length) 
-        else:
-            mapping.append(np.arange(length, length + len(other)))
-            unmapped.append(np.array([]))
-            
-        return pkg.MCAtomMap(ag, indices, np.concatenate(mapping), 
-                         np.concatenate(unmapped), title, acsi)
-     
-    def _getTimeStamp(self, index=None):
-        
-        if index is None:
-            index = self._acsi
-        return self._ag._getTimeStamp(index)
-    
-    def _getKDTree(self):
-        """Return KDTree for the active coordinate set from the atom group."""
-        
-        return self._ag._getKDTree(self._acsi)
-     
     def numCoordsets(self):
         """Return number of coordinate sets."""
         
         return self._ag._n_csets
+    
+    def getACSIndex(self):
+        """Return index of the coordinate set."""
+        
+        acsi = self._acsi
+        if acsi >= self._ag._n_csets:
+            raise ValueError('{0:s} has fewer coordsets than assumed by {1:s}'
+                             .format(str(self._ag), str(self)))
+        return acsi
 
     def setACSIndex(self, index):
         """Set coordinates at *index* active."""
@@ -205,11 +139,12 @@ class MCAtomPointer(MultiCoordset, AtomPointer):
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
             
-        if self._ag._n_csets <= index or  self._ag._n_csets < abs(index):
+        n_csets = self._ag._n_csets
+        if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
             
         if index < 0:
-            index += self._ag._n_csets
+            index += n_csets
             
         self._acsi = index
         
@@ -217,4 +152,21 @@ class MCAtomPointer(MultiCoordset, AtomPointer):
         """Return active coordinate set label."""
         
         if self._ag._n_csets:
-            return self._ag._cslabels[self._acsi]
+            return self._ag._cslabels[self.getACSIndex()]
+    
+    def copy(self):
+        """Make a copy of atoms."""
+        
+        return self._ag.copy(self)
+    
+    __copy__ = copy
+
+    def isData(self, label):
+        """Return ``True`` if data *label* is present."""
+        
+        return self._ag.isData(label)
+
+    def getDataType(self, label):
+        """Return type of data, or ``None`` if data *label* is not present."""
+        
+        return self._ag.getDataType(label)

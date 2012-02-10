@@ -20,24 +20,20 @@
 
 .. _atomic:
     
-.. currentmodule:: prody.atomic
     
 Atomic data
 ===============================================================================
 
-ProDy stores atomic data in instances of :class:`~atomgroup.AtomGroup` or 
-:class:`~atomgroup.MCAtomGroup` classes.  **MC** prefix in the latter means
-that the class inherits from :class:`~atomic.MultiCoordset` and offers 
-extended functionality to support handling multiple coordinate sets, which 
-may be models from an NMR structure or snapshots from an molecular dynamics
-trajectory.
+ProDy stores atomic data in instances of :class:`~atomgroup.AtomGroup` class,  
+which supports multiple coordinate sets that may be models from an NMR 
+structure or snapshots from an molecular dynamics trajectory.
  
 Instances of the class can be obtained by parsing a PDB file as follows:
     
 >>> from prody import *
 >>> ag = parsePDB('1aar')
 >>> ag
-<MCAtomGroup: 1aar (1218 atoms; 1 coordsets, active 0)>
+<AtomGroup: 1aar (1218 atoms)>
 
 All atomic data in :class:`AtomGroup` instances and comes
 with other classes acting as pointers to provide convenient read/write access 
@@ -67,32 +63,30 @@ Flexible and powerful atom selections is one of the most important features
 of ProDy.  The details of the selection grammar is described in 
 :ref:`selections`. 
 
-.. versionadded:: 0.7.1
-
 Using the flexibility of Python, atom selections are made much easier by
 overriding the ``.`` operator i.e. the :meth:`__getattribute__` 
 method of :class:`Atomic` class.  So the following will be interpreted
 as atom selections:
     
 >>> ag.chain_A # selects chain A
-<Selection: "chain A" from 1aar (608 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "chain A" from 1aar (608 atoms)>
 >>> ag.calpha # selects alpha carbons
-<Selection: "calpha" from 1aar (152 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "calpha" from 1aar (152 atoms)>
 >>> ag.resname_ALA # selects alanine residues
-<Selection: "resname ALA" from 1aar (20 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "resname ALA" from 1aar (20 atoms)>
 
 It is also possible to combine selections with ``and`` and ``or`` operators:
 
 >>> ag.chain_A_and_backbone
-<Selection: "chain A and backbone" from 1aar (304 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "chain A and backbone" from 1aar (304 atoms)>
 >>> ag.acidic_or_basic
-<Selection: "acidic or basic" from 1aar (422 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "acidic or basic" from 1aar (422 atoms)>
 
 
 Using dot operator will behave like the logical ``and`` operator:
     
 >>> ag.chain_A.backbone
-<Selection: "(backbone) and (chain A)" from 1aar (304 atoms; 1 coordinate sets, active set index: 0)>
+<Selection: "(backbone) and (chain A)" from 1aar (304 atoms)>
   
 For this to work, the first word following the dot operator must be a selection
 keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 
@@ -106,7 +100,7 @@ characters cannot be used.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from atomic import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
+from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
 
 """
 
@@ -372,55 +366,36 @@ import prody
 LOGGER = prody.LOGGER
 SETTINGS = prody.SETTINGS
 
-__all__ = ['Atomic', 'MultiCoordset',
-           'AtomGroup', 'MCAtomGroup',
-           'Segment', 'MCSegment',
-           'Chain', 'MCChain',
-           'Residue', 'MCResidue',
-           'Atom', 'MCAtom',
-           'AtomPointer', 'MCAtomPointer',
-           'AtomSubset', 'MCAtomSubset',
-           'AtomMap', 'MCAtomMap',
-           'Bond', 'MCBond',
-           'loadAtoms', 'saveAtoms',
+__all__ = ['Atomic', 'AtomGroup', 
+           'Segment', 'Chain', 'Residue', 'Atom',
+           'AtomPointer', 'AtomSubset',
+           'Selection', 'AtomMap',
+           'Bond', 'loadAtoms', 'saveAtoms',
            'select']
 
+from fields import ATOMIC_DATA_FIELDS
+
+from atom import *
+from bond import *
+from chain import *
+from subset import *
+from atomic import *
+from select import *
+from atommap import *
+from residue import *
+from pointer import *
+from segment import *
+from hierview import *
+from atomgroup import *
+from selection import *
+
 import atomic
-from atomic import ATOMIC_DATA_FIELDS
-from atomic import Atomic, MultiCoordset
-
-import atomgroup
-from atomgroup import AtomGroup, MCAtomGroup
-
+import select
 import pointer
-from pointer import AtomPointer, MCAtomPointer
+import atomgroup
+import selection
 
-pointer.AtomGroup = AtomGroup
-pointer.AtomGroupMC = MCAtomGroup
-
-import subset
-from subset import AtomSubset, MCAtomSubset
-
-import segment
-from segment import Segment, MCSegment
-
-import chain
-from chain import Chain, MCChain
-
-import residue
-from residue import Residue, MCResidue
-
-import atom
-from atom import Atom, MCAtom
-
-import atommap
-from atommap import AtomMap, MCAtomMap
-
-import bond
-from bond import Bond, MCBond
-
-import hierview
-from hierview import HierView
+from atomgroup import SELECT
 
 atomgroup.HierView = HierView
 selection.HierView = HierView
@@ -428,16 +403,16 @@ selection.HierView = HierView
 #from atom import Atom
 from functions import loadAtoms, saveAtoms
 
-import select
-from select import *
 __all__ += select.__all__
 
 from select import isMacro, isKeyword, isReserved
 atomic.isMacro = isMacro
 atomic.isKeyword = isKeyword
-atomic.isReserved = isReserved
-atomic.SELECT = atomgroup.SELECT = Select()
+atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()
 atomgroup.isReserved = isReserved
+pointer.AtomMap = AtomMap
+pointer.AtomGroup = AtomGroup
+subset.Selection = Selection
 
 import numpy as np
 

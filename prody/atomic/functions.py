@@ -17,8 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines utility functions for handling atomic classes and data.
-
-.. currentmodule:: prody.atomic"""
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -28,8 +27,9 @@ from numpy import load, savez
 
 from prody.tools import openFile
 
-from atomic import Atomic, ATOMIC_ATTRIBUTES
-from atomgroup import AtomGroup, MCAtomGroup
+from atomic import Atomic
+from fields import ATOMIC_ATTRIBUTES
+from atomgroup import AtomGroup
 from bond import trimBonds, evalBonds
 
 __all__ = ['loadAtoms', 'saveAtoms']
@@ -104,11 +104,8 @@ def loadAtoms(filename):
     title = str(attr_dict['title'])
     if 'coordinates' in files:
         coords = attr_dict['coordinates']
-        if coords.ndim == 3:
-            ag = MCAtomGroup(title)
-            ag._n_csets = int(attr_dict['n_csets'])
-        else:
-            ag = AtomGroup(title)
+        ag = AtomGroup(title)
+        ag._n_csets = int(attr_dict['n_csets'])
         ag._coords = coords
     ag._n_atoms = int(attr_dict['n_atoms'])
     ag._setTimeStamp()

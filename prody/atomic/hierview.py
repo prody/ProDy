@@ -15,21 +15,20 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""This module contains a class for building hierarchical views of atom groups.
 
-.. currentmodule:: prody.atomic"""
+"""This module contains a class for building hierarchical views of atom groups.
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from atomic import MultiCoordset
 from atomgroup import AtomGroup
 from selection import Selection
-from chain import Chain, MCChain
-from residue import Residue, MCResidue
-from segment import Segment, MCSegment
+from chain import Chain
+from residue import Residue
+from segment import Segment
 
 __all__ = ['HierView']
 
@@ -144,16 +143,7 @@ class HierView(object):
             _indices = atoms._indices
             selstr = atoms.getSelstr()
         
-        if isinstance(ag, MultiCoordset):
-            acsi = self._atoms.getACSIndex()
-            Segment_ = MCSegment
-            Chain_ = MCChain
-            Residue_ = MCResidue
-        else:
-            acsi = None
-            Segment_ = Segment
-            Chain_ = Chain
-            Residue_ = Residue
+        acsi = self._atoms.getACSIndex()
         
         n_atoms = len(ag)
         self._dict = _dict = dict()
@@ -178,7 +168,7 @@ class HierView(object):
             s = sgnms[0]
             if len(unique) == 1:
                 if  s != '':
-                    segment = Segment_(ag, _indices, acsi=acsi, unique=True, 
+                    segment = Segment(ag, _indices, acsi=acsi, unique=True, 
                                       selstr=selstr)
                     _dict[s] = segment
                     _segments.append(segment)
@@ -193,7 +183,7 @@ class HierView(object):
                     ps = s
                     segindex += 1
                     idx = _indices[i:][sgnms[i:] == s]
-                    segment = Segment_(ag, idx, acsi=acsi, unique=True, 
+                    segment = Segment(ag, idx, acsi=acsi, unique=True, 
                                        selstr=selstr)
                     segindices[idx] = segindex
                     _dict[s] = segment
@@ -208,7 +198,7 @@ class HierView(object):
                 chids = chids[_indices]
             if _segments is None:
                 if len(np.unique(chids)) == 1:
-                    chain = Chain_(ag, _indices, acsi=acsi, unique=True)
+                    chain = Chain(ag, _indices, acsi=acsi, unique=True)
                     _dict[(None, chids[0] or None)] = chain
                     _chains.append(chain)
                 else:
@@ -219,7 +209,7 @@ class HierView(object):
                         pc = c
                         chindex += 1
                         idx = _indices[i:][chids[i:] == c]
-                        chain = Chain_(ag, idx, acsi=acsi, unique=True)
+                        chain = Chain(ag, idx, acsi=acsi, unique=True)
                         chindices[idx] = chindex
                         _dict[(None, c)] = chain
                         _chains.append(chain)
@@ -237,7 +227,7 @@ class HierView(object):
                         segment = _dict[ps]
                         chindex += 1
                         idx = _indices[_i:i]
-                        chain = Chain_(ag, idx, acsi=acsi, segment=segment, 
+                        chain = Chain(ag, idx, acsi=acsi, segment=segment, 
                                        unique=True)
                         chindices[idx] = chindex
                         _dict[s_c] = chain
@@ -257,7 +247,7 @@ class HierView(object):
                     segment = _dict[ps]
                     chindex += 1
                     chindices[idx] = chindex
-                    chain = Chain_(ag, idx, acsi=acsi, segment=segment, 
+                    chain = Chain(ag, idx, acsi=acsi, segment=segment, 
                                    unique=True)
                     _dict[s_c] = chain
                     segment._dict[pc] = chain
@@ -307,7 +297,7 @@ class HierView(object):
                     chain = _dict.get((ps, pc))
                     resindex += 1
                     idx = _indices[_j:j]
-                    res = Residue_(ag, idx, acsi=acsi, chain=chain, 
+                    res = Residue(ag, idx, acsi=acsi, chain=chain, 
                                    unique=True, selstr=selstr)
                     resindices[idx] = resindex
                     if chain is not None:
@@ -329,7 +319,7 @@ class HierView(object):
         if res is None:
             chain = _dict.get((ps, pc))
             resindex += 1
-            res = Residue_(ag, idx, acsi=acsi, chain=chain, unique=True, 
+            res = Residue(ag, idx, acsi=acsi, chain=chain, unique=True, 
                            selstr=selstr)
             resindices[idx] = resindex
             if chain is not None:
