@@ -363,6 +363,22 @@ Among these list of backbone atom names can be changed using
 :func:`setBackboneAtomNames`  and regular expressions for element types
 can be changed using :func:`setAtomNameRegex`.
 
+Below functions can be used to learn and change the definitions of 
+some selection keywords:
+
+  * Learn keyword definitions:
+    
+    * :func:`getAtomNameRegex`
+    * :func:`getBackboneAtomNames`
+    * :func:`getKeywordResnames` 
+    
+  * Change keyword definitions:
+    
+    * :func:`setAtomNameRegex`
+    * :func:`setBackboneAtomNames`
+    * :func:`setKeywordResnames`
+
+
 """
 
 SECSTR_MAP = {
@@ -531,43 +547,14 @@ Selection macros
 
 Any valid selection string can be used to define selection macros using the 
 :func:`defSelectionMacro` function.  Macros are saved in ProDy configuration 
-and loaded in later sessions automatically. 
-
-
-:mod:`prody.select`
-===============================================================================
-
-Classes
--------------------------------------------------------------------------------
-
-  * :class:`Select`
-  * :class:`Contacts`
-  
-Functions
--------------------------------------------------------------------------------
-
-Below functions can be used to learn and change the definitions of 
-some selection keywords:
-
-  * Learn keyword definitions:
-    
-    * :func:`getAtomNameRegex`
-    * :func:`getBackboneAtomNames`
-    * :func:`getKeywordResnames` 
-    
-  * Change keyword definitions:
-    
-    * :func:`setAtomNameRegex`
-    * :func:`setBackboneAtomNames`
-    * :func:`setKeywordResnames`
-
-Below functions are for manipulating selection macros:
+and loaded in later sessions automatically.  Below functions are for 
+manipulating selection macros:
     
   * :func:`defSelectionMacro`
   * :func:`delSelectionMacro`
-  * :func:`getSelectionMacro` 
-  
+  * :func:`getSelectionMacro`  
 
+  
 """
 
 FUNCTION_MAP = {
