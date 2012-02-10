@@ -42,7 +42,6 @@ Protein Structure
 .. toctree::
    :maxdepth: 1
 
-   atomic/hierview
    select/contacts
    measure/alignment
    proteins/biomolt
@@ -70,6 +69,5 @@ Atomic classes and data
 .. toctree::
    :maxdepth: 1
    
-   atomic/atomgroup
    atomic/attributes   
 

@@ -263,7 +263,7 @@ man_pages = [
 ]
 
 autodoc_member_order = 'groupwise'
-autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
+autodoc_default_flags = []# ['members', 'undoc-members', 'show-inheritance']
 autoclass_content = 'both'
 todo_include_todos = True
 
@@ -314,9 +314,3 @@ rst_epilog = """
    https://github.com/abakan/ProDy/issues
 
 """.format(getRevisionNumber())
-
-def skip_class(app, what, name, obj, skip, options):
-    return not 'members' in options or name.startswith('_')
-
-def setup(app):
-    app.connect('autodoc-skip-member', skip_class)

@@ -3,9 +3,10 @@ prody.atomic
 ************
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :glob:
 
    *
-
+ 
+   
 .. automodule:: prody.atomic

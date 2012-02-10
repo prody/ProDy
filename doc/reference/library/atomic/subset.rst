@@ -1,7 +1,7 @@
 ********************
-prody.atomic.segment
+prody.atomic.subset
 ********************
 
-.. automodule:: prody.atomic.segment
+.. automodule:: prody.atomic.subset
    :members:
    :inherited-members:

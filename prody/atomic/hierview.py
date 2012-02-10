@@ -16,7 +16,290 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains a class for building hierarchical views of atom groups.
+"""This module defines :class:`HierView` class that builds a hierarchical 
+views of atom groups.
+
+.. _hierview:
+
+Hierarchical Views
+===============================================================================
+
+We start by importing everything from the ProDy package:
+
+>>> from prody import *
+
+Parse a structure
+-------------------------------------------------------------------------------
+
+Parsing a structure returns an :class:`AtomGroup` instance which has a plain
+view of atoms. 
+
+>>> structure = parsePDB('3mkb')
+>>> structure
+<AtomGroup: 3mkb (4776 atoms)>
+
+Hierarchical view
+-------------------------------------------------------------------------------
+
+A hierarchical view of the structure can be simply get by calling the
+:meth:`~prody.atomic.atomgroup.AtomGroup.getHierView` method:
+
+>>> hv = structure.getHierView()
+>>> hv
+<HierView: AtomGroup 3mkb (4 chains, 946 residues)>
+
+*Indexing*
+
+Indexing :class:`HierView` instances return :class:`~prody.atomic.chain.Chain`:
+
+>>> hv['A']
+<Chain: A from 3mkb (254 residues, 1198 atoms)>
+>>> hv['B']
+<Chain: B from 3mkb (216 residues, 1193 atoms)>
+>>> hv['Z'] # This will return None, which means chain Z does not exist
+
+The length of the *hv* variable gives the number of chains in the structure:
+
+>>> len(hv)
+4
+>>> hv.numChains()
+4
+
+It is also possible to get a :class:`~prody.atomic.residue.Residue` by 
+directly indexing the :class:`HierView` instance:
+
+>>> hv['A', 100]
+<Residue: MET 100 from Chain A from 3mkb (8 atoms)>
+
+Insertion codes can also be passed:
+
+>>> hv['A', 100, 'B']
+
+But this does not return anything, since residue 100B does not exist.
+
+*Iterations*
+
+One can iterate over :class:`HierView` instances to get chains:
+
+>>> for chain in hv:
+...     chain # doctest: +ELLIPSIS
+<Chain: A from 3mkb (254 residues, 1198 atoms)>
+...
+<Chain: D from 3mkb (231 residues, 1196 atoms)>
+    
+It is also possible to get a :func:`list` of chains simply as follows:
+
+>>> chains = list( hv )
+>>> chains # doctest: +SKIP
+[<Chain: A from 3mkb (1198 atoms)>, 
+ <Chain: B from 3mkb (1193 atoms)>, 
+ <Chain: C from 3mkb (1189 atoms)>, 
+ <Chain: D from 3mkb (1196 atoms)>]
+
+*Iterate residues*
+
+In addition, one can also iterate over all residues:
+
+>>> for residue in hv.iterResidues():
+...     residue # doctest: +ELLIPSIS
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
+<Residue: PHE 2 from Chain A from 3mkb (11 atoms)>
+...
+<Residue: HOH 475 from Chain D from 3mkb (1 atoms)>
+<Residue: HOH 492 from Chain D from 3mkb (1 atoms)>
+
+Chains
+-------------------------------------------------------------------------------
+
+>>> chA = hv['A']
+>>> chA
+<Chain: A from 3mkb (254 residues, 1198 atoms)>
+
+Length of the chain equals to the number of residues in it:
+
+>>> len(chA)
+254
+>>> chA.numResidues()
+254
+
+*Indexing*
+
+Indexing a :class:`~prody.atomic.chain.Chain` instance returns a 
+:class:`~prody.atomic.residue.Residue` instance.
+
+>>> chA[1]
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
+
+If a residue does not exist, ``None`` is returned:
+
+>>> chA[1000]
+>>> chA[1, 'A'] # Residue 1 with insertion code A also does not exist  
+
+If residue with given integer number does not exist, ``None`` is returned. 
+
+*Iterations*
+
+Iterating over a chain yields residues:
+
+>>> for residue in chA:
+...     residue # doctest: +ELLIPSIS
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
+<Residue: PHE 2 from Chain A from 3mkb (11 atoms)>
+...
+<Residue: HOH 490 from Chain A from 3mkb (1 atoms)>
+<Residue: HOH 493 from Chain A from 3mkb (1 atoms)>
+
+Note that water atoms, each constituting a residue, are also part of a chain
+if they are labeled with that chain's identifier.
+
+This enables getting a :func:`list` of residues simply as follows:
+
+>>> chA_residues = list(chA)
+>>> chA_residues # doctest: +SKIP
+[<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>,
+ ...,
+ <Residue: HOH 493 from Chain A from 3mkb (1 atoms)>]
+
+*Get atomic data*
+
+All methods defined for :class:`~prody.atomic.atomgroup.AtomGroup` class are 
+also defined for :class:`~prody.atomic.chain.Chain` (and also 
+:class:`~prody.atomic.reside.Residue`) class:
+
+>>> print( chA.getCoords() ) # doctest: +ELLIPSIS
+[[ -2.139  17.026 -13.287]
+ [ -1.769  15.572 -13.111]
+ [ -0.296  15.257 -13.467]
+ ...
+ [ -5.843  17.181 -16.86 ]
+ [-13.199  -9.21  -49.692]
+ [ -0.459   0.378 -46.156]]
+>>> print( chA.getBetas() )
+[ 59.35  59.14  58.5  ...,  57.79  47.77  40.77]
+
+*Select atoms*
+
+Finally, you can select atoms from a :class:`~prody.atomic.chain.Chain` 
+instance:
+
+>>> chA_backbone = chA.select('backbone')
+>>> chA_backbone
+<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms)>
+>>> chA_backbone.getSelstr()
+'(backbone) and (chain A)'
+
+As you see, the selection string passed by the user is augmented with 
+"chain" keyword and identifier automatically to provide internal
+consistency:
+
+>>> structure.select( chA_backbone.getSelstr() )
+<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms)>
+ 
+
+Residues
+-------------------------------------------------------------------------------
+
+>>> chA_res1 = chA[1]
+>>> chA_res1
+<Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
+
+*Indexing*
+
+:class:`~prody.atomic.residue.Residue` instances can be indexed to get 
+individual atoms:
+
+>>> chA_res1['CA']
+<Atom: CA from 3mkb (index 1)>
+>>> chA_res1['CB']
+<Atom: CB from 3mkb (index 4)>
+>>> chA_res1['X'] # if atom does not exist, None is returned
+
+*Iterations*
+
+Iterating over a residue instance yields :class:`Atom` instances:
+
+>>> for atom in chA_res1:
+...     atom # doctest: +ELLIPSIS
+<Atom: N from 3mkb (index 0)>
+...
+<Atom: CB from 3mkb (index 4)>
+
+This makes it easy to get a :func:`list` of atoms:
+
+>>> list( chA_res1 ) # doctest: +SKIP
+[<Atom: N from 3mkb (index 0)>,
+ <Atom: CA from 3mkb (index 1)>,
+ <Atom: C from 3mkb (index 2)>,
+ <Atom: O from 3mkb (index 3)>,
+ <Atom: CB from 3mkb (index 4)>]
+
+*Get atomic data*
+
+All methods defined for :class:`~prody.atomic.atomgroup.AtomGroup` class are 
+also defined for :class:`~prody.atomic.residue.Residue` class:
+
+>>> print( chA_res1.getCoords() )
+[[ -2.139  17.026 -13.287]
+ [ -1.769  15.572 -13.111]
+ [ -0.296  15.257 -13.467]
+ [  0.199  14.155 -13.155]
+ [ -2.752  14.639 -13.898]]
+>>> print( chA_res1.getBetas() )
+[ 59.35  59.14  58.5   59.13  59.02]
+
+*Select atoms*
+
+Finally, you can select atoms from a :class:`~prody.atomic.residue.Residue` 
+instance:
+
+>>> chA_res1_bb = chA_res1.select('backbone')
+>>> chA_res1_bb
+<Selection: "(backbone) and ... and (chain A))" from 3mkb (4 atoms)>
+>>> chA_res1_bb.getSelstr()
+'(backbone) and (resnum 1 and (chain A))'
+
+Again, the selection string is augmented with the chain identifier and 
+residue number ("resnum").
+
+Atoms
+-------------------------------------------------------------------------------
+
+The lowest level of the hierarchical view contains :class:`Atom` instances.
+
+>>> chA_res1_CA = chA_res1['CA']
+>>> chA_res1_CA
+<Atom: CA from 3mkb (index 1)>
+
+*Get atomic data*
+
+All methods defined for :class:`~prody.atomic.atomgroup.AtomGroup` class are 
+also defined for :class:`~prody.atomic.atom.Atom` class with the difference 
+that method names are singular (except for coordinates):
+
+>>> print( chA_res1_CA.getCoords() )
+[ -1.769  15.572 -13.111]
+>>> print( chA_res1_CA.getBeta() )
+59.14
+
+Changes in attributes
+-------------------------------------------------------------------------------
+
+A :class:`HierView` instance represents the state of an 
+:class:`~prody.atomic.atomgroup.AtomGroup` instance at the time it is built.  
+When chain identifiers or residue numbers change, the state that hierarchical 
+view represents may not match the current state of the atom group:
+
+>>> chA.setChid('X')
+>>> chA
+<Chain: X from 3mkb (254 residues, 1198 atoms)>
+>>> hv['X'] # returns None, since hierarchical view is not updated
+>>> hv.update() # this updates hierarchical view
+>>> hv['X']
+<Chain: X from 3mkb (254 residues, 1198 atoms)>
+
+When this is the case, :meth:`HierView.update` method can be used to update 
+hierarchical view. 
+
 """
 
 __author__ = 'Ahmet Bakan'
@@ -39,30 +322,34 @@ SETTINGS = pkg.SETTINGS
 
 class HierView(object):
     
-    """Hierarchical views can be generated for :class:`AtomGroup` and 
-    :class:`Selection` instances.  Indexing a :class:`HierView` instance 
-    returns a :class:`Chain` instance.
+    """Hierarchical views can be generated for :class:`~prody.atomic.atomgroup.
+    AtomGroup` and :class:`~prody.atomic.selection.Selection` instances.  
+    Indexing a :class:`HierView` instance  returns a :class:`Chain` instance.
     
-    >>> from prody import *
-    >>> pdb = parsePDB('1p38')
-    >>> hv = pdb.getHierView()
-    >>> chA = hv['A']
-    >>> chA
-    <Chain: A from 1p38 (2962 atoms; 1 coordinate sets, active set index: 0)>
-    >>> print hv['B'] # Chain B does not exist in 1p38
-    None
+    Some :class:`object` methods are customized as follows:
     
-    Note that is the atom group instance have distinct segments, they will
-    be considered when building the hierarchical view.  A :class:`Segment`
-    instance will be generated for each distinct segment name.  Then,
-    for each segment chains and residues will be evaluated.  Having
-    segments in the structure will not change most behaviors of this class,
-    except indexing.  For example, when indexing a hierarchical view for 
-    chain P in segment PROT needs to be indexed as ``hv['PROT', 'P']``."""
+    * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
+    * :func:`iter` yields :class:`~prody.atomic.atom.Atom` instances
+    * indexing by:
+         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns a 
+           a :class:`~prody.atomic.segment.Segment` 
+         - *chain identifier* (:func:`str`), e.g. ``"A"``, returns a 
+           a :class:`~prody.atomic.chain.Chain`
+         - *[segment name,] chain identifier, residue number[, insertion code]* 
+           (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
+           ``"PROT", "A", 10, "B"``, returns a 
+           :class:`~prody.atomic.residue.Residue`
+        
+    Note that when an :class:`~prody.atomic.atomgroup.AtomGroup` instance have 
+    distinct segments, they will be considered when building the hierarchical 
+    view.  A :class:`~prody.atomic.segment.Segment` instance will be generated
+    for each distinct segment name.  Then, for each segment chains and residues
+    will be evaluated.  Having segments in the structure will not change most 
+    behaviors of this class, except indexing.  For example, when indexing a 
+    hierarchical view for chain P in segment PROT needs to be indexed as 
+    ``hv['PROT', 'P']``."""
     
     def __init__(self, atoms, **kwargs):
-        """Build hierarchical view for *atoms*."""
-        
         
         if not isinstance(atoms, (AtomGroup, Selection)):
             raise TypeError('atoms must be an AtomGroup or Selection instance')
@@ -80,6 +367,7 @@ class HierView(object):
                ).format(str(self._atoms), self.numChains(), self.numResidues())
     
     def __str__(self):
+        
         return 'HierView of {0:s}'.format(str(self._atoms))
     
     def __iter__(self):
@@ -88,6 +376,7 @@ class HierView(object):
         return self._chains.__iter__()
     
     def __len__(self):
+        
         return len(self._chains)
     
     def __getitem__(self, key):
