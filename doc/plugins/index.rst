@@ -25,7 +25,7 @@ NMWiz can be used for:
 +--------------------------------------------------+------------------------------------------------+------------------------------------------------+
 
 See `documentation <nmwiz/index.html>`_  for details. NMWiz recognizes
-NMD format, which is described below.
+:ref:`nmd-format`, which is described below.
 
 Availability
 ===============================================================================

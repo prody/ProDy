@@ -249,9 +249,7 @@ from prody.measure import getKDTree
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 
-HierView = lambda none: None
 SELECT = None
-isReserved = lambda none: None
 
 __all__ = ['AtomGroup']
 

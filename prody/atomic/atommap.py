@@ -16,8 +16,79 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines atom map class that allow for pointing to atoms in 
-arbitrary order."""
+"""This module defines :class:`AtomMap` class that allows for pointing atoms in 
+arbitrary order.
+
+.. _atommaps:
+
+How AtomMap's work
+===============================================================================
+    
+:class:`AtomMap` class adds great flexibility to manipulating atomic data.
+
+First let's see how an instance of :class:`~prody.atomic.selection.Selection` 
+(:class:`~prody.atomic.chain.Chain`, or :class:`~prody.atomic.residue.Residue`) 
+works.  Below table shows indices for a selection of atoms in an 
+:class:`~prody.atomic.atomgroup.AtomGroup` and values returned when 
+:meth:`~prody.atomic.selection.Selection.getNames`, 
+:meth:`~prody.atomic.selection.Selection.getResnames` and
+:meth:`~prody.atomic.selection.Selection.getResnums` methods are called.
+
+.. csv-table:: **Atom Subset** 
+   :header: "Indices", "Names", "Resnames", "Resnums"
+
+   0, N, PHE, 1
+   1, CA, PHE, 1
+   2, C, PHE, 1
+   3, O, PHE, 1
+   4, CB, PHE, 1
+   5, CG, PHE, 1
+   6, CD1, PHE, 1
+   7, CD2, PHE, 1
+   8, CE1, PHE, 1
+   9, CE2, PHE, 1
+   10, CZ, PHE, 1
+
+:class:`~prody.atomic.selection.Selection` instances keep indices ordered and 
+do not allow duplicate values, hence their use is limited. 
+In an :class:`AtomMap`, indices do not need to be sorted, duplicate indices ma
+y exist, even "DUMMY" atoms are allowed.
+
+Let's say we instantiate the following AtomMap::
+    
+    amap = AtomMap(atomgroup, indices=[0, 1, 3, 8, 8, 9, 10], 
+                   mapping=[5, 6, 7, 0, 1, 2, 3])
+
+
+The size of the :class:`AtomMap` based on this mapping is 8, since the larger 
+mapping is 7.
+
+Calling the same functions for this AtomMap instance would result in the 
+following:
+
+.. csv-table:: **Atom Map**
+   :header: "Mapping", "Indices", "Names", "Resnames", "Resnums", \
+            "MappedFlags", "DummyFlags"
+
+   0, 8, CE1, PHE, 1, 1, 0
+   1, 8, CE1, PHE, 1, 1, 0
+   2, 9, CE2, PHE, 1, 1, 0
+   3, 10, CZ, PHE, 1, 1, 0
+   4, , , , 0, 0, 1
+   5, 0, N, PHE, 1, 1, 0
+   6, 1, CA, PHE, 1, 1, 0
+   7, 3, O, PHE, 1, 1, 0
+   
+For unmapped atoms, numeric attributes are set to 0, others to empty string,
+i.e. ``""``.
+
+AtomMaps are used by functions that compare protein chains.
+
+.. seealso::
+   :ref:`pca-xray` and :ref:`pca-dimer` examples make use of :class:`AtomMaps`.
+
+
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

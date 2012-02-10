@@ -16,10 +16,7 @@ Usage reference
    :maxdepth: 1
    :glob:
 
-   usage/selection-operations
    usage/normalmode-operations
-   usage/atommaps
-   usage/nmd-format
 
 Library reference
 ===============================================================================
