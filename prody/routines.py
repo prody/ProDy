@@ -507,10 +507,14 @@ def prody_align(opt):
         LOGGER.info('Writing file: ' + outfn)
         prody.writePDB(outfn, pdb)
     else:
-        ref = args.pop(0)
-        LOGGER.info('Aligning structures onto: ' + ref)
-        ref = prody.parsePDB(ref)
+        reffn = args.pop(0)
+        LOGGER.info('Aligning structures onto: ' + reffn)
+        ref = prody.parsePDB(reffn)
         for arg in args:
+            if arg == reffn:
+                continue
+            if '_aligned.pdb' in arg:
+                continue
             pdb = prody.parsePDB(arg)
             if prody.matchAlign(pdb, ref):
                 outfn = pdb.getTitle() + '_aligned.pdb'
@@ -1019,8 +1023,7 @@ subparser.add_argument('-s', '--select', dest='select', type=str,
     help='selection string (default: "%(default)s")')
 subparser.add_argument('-m', '--model', dest='model', type=int, 
     default=1, metavar='INT',
-    help=('model index onto which other models will be ' 
-        'superposed (default: %(default)s'))
+    help=('for NMR files, reference model index (default: %(default)s)'))
 
 subparser.add_argument('pdb', nargs='+', 
     help='PDB identifier(s) or filename(s)')
