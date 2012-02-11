@@ -518,6 +518,7 @@ def prody_align(opt):
                 prody.writePDB(outfn, pdb)
             else:
                 LOGGER.warning('Failed to align ' + arg)
+    print args
 
 def prody_biomol(opt):
     """Generate biomolecule coordinates based on command line arguments."""
@@ -1079,8 +1080,14 @@ subparser.set_defaults(usage_example=
 Blast search PDB for the sequence argument:
 
   $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQ\
-KESTLHLVLRLRGG"""
-)
+KESTLHLVLRLRGG
+
+Blast search PDB for avidin structures, download files, and align all files \
+onto the 2avi structure:
+    
+  $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTIN\
+KRTQPTFGFTVNWKFSESTTVFT
+  $ prody align 2avi.pdb *pdb """)
 
 subparser.add_argument('-i', '--identity', dest='identity', type=float, 
     default=90.0, metavar='FLOAT', 
