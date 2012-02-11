@@ -605,7 +605,8 @@ def prody_blast(opt):
     if opt.folder:
         LOGGER.info('Downloading hits to ' + opt.folder)
         pdblist = [ pdb for identity, pdb in hits2 ]
-        pdblist2 = prody.fetchPDB(pdblist, opt.folder)
+        pdblist2 = prody.fetchPDB(pdblist, opt.folder, 
+                                  compressed=opt.gzip, copy=True)
 
 def prody_fetch(opt):
     """Fetch PDB files from PDB FTP server."""
@@ -1089,7 +1090,10 @@ subparser.add_argument('-o', '--overlap', dest='coverage', type=float,
     help='percent sequence overlap (default: %(default)s)')
 subparser.add_argument('-d', '--dir', dest='folder', type=str,
     default=None, metavar='PATH', 
-    help=('if given, download PDB files to the folder'))
+    help=('download uncompressed PDB files to given path'))
+
+subparser.add_argument('-z', '--gzip', dest='gzip', action='store_true', 
+                 default=False, help='write compressed PDB file')
 
 subparser.add_argument('seq', type=str,  
     help=('sequence or file in fasta format'))
