@@ -154,7 +154,7 @@ LOGGER = prody.LOGGER
 SETTINGS = prody.SETTINGS
 
 __all__ = ['Atomic', 'AtomGroup', 
-           'Segment', 'Chain', 'Residue', 'Atom',
+           'HierView', 'Segment', 'Chain', 'Residue', 'Atom',
            'AtomPointer', 'AtomSubset',
            'Selection', 'AtomMap',
            'Bond', 'loadAtoms', 'saveAtoms',
