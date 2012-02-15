@@ -27,7 +27,8 @@ from struct import calcsize, unpack, pack
 
 import numpy as np
 
-from prody import Atomic, Ensemble
+from prody.atomic import Atomic
+from prody.ensemble import Ensemble
 from prody.tools import getsize, checkCoords, now
 
 from frame import Frame

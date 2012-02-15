@@ -23,9 +23,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody import AtomGroup
-from prody import Ensemble
-from prody.ensemble import checkWeights
+from prody.atomic import AtomGroup
+from prody.ensemble import Ensemble, checkWeights
 from prody.tools import checkCoords
 
 __all__ = ['TrajBase']
