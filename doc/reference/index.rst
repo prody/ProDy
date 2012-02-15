@@ -27,9 +27,10 @@ Library reference
 
    library/prody
    library/atomic/index
+   library/ensemble/index
+   library/measure/index
+   library/trajectory/index
    library/compare
    library/dynamics
-   library/ensemble
-   library/measure
    library/proteins
    library/tests
