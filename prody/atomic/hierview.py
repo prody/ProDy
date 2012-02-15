@@ -520,7 +520,8 @@ class HierView(object):
                                        unique=True)
                         chindices[idx] = chindex
                         _dict[s_c] = chain
-                        segment._dict[pc] = chain
+                        segment._dict[pc] = len(segment._list)
+                        segment._list.append(chain)
                         _chains.append(chain)
                     else:
                         idx = _indices[_i:i]
@@ -539,7 +540,8 @@ class HierView(object):
                     chain = Chain(ag, idx, acsi=acsi, segment=segment, 
                                    unique=True)
                     _dict[s_c] = chain
-                    segment._dict[pc] = chain
+                    segment._dict[pc] = len(segment._list)
+                    segment._list.append(chain)
                     _chains.append(chain)
                 else:
                     chindices[idx] = chain._indices[0]
