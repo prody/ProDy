@@ -329,8 +329,6 @@ class DCDFile(TrajFile):
         provided for the first coordinate set, it will be expected for the
         following coordinate sets as well.
         
-        .. versionadded:: 0.9.2
-        
         The following keywords are used when writing the first coordinate set 
         for files open at 'w' mode:        
             
@@ -437,15 +435,10 @@ class DCDFile(TrajFile):
             os.fsync(self._file.fileno())
             
 def parseDCD(filename, start=None, stop=None, step=None):
-    """Parse CHARMM format DCD files (also NAMD 2.1 and later).
-    
-    .. versionadded:: 0.7.2
-    
-    .. versionchanged:: 0.8
-       Returns an :class:`Ensemble` instance. Conformations in the ensemble
-       will be ordered as they appear in the trajectory file. 
-       *indices* argument is removed. Use :class:`DCDFile` class for parsing 
-       coordinates of a subset of atoms.
+    """Parse CHARMM format DCD files (also NAMD 2.1 and later).  Returns an 
+    :class:`Ensemble` instance. Conformations in the ensemble will be ordered 
+    as they appear in the trajectory file.  Use :class:`DCDFile` class for 
+    parsing  coordinates of a subset of atoms.
     
     :arg filename: DCD filename
     :type filename: str

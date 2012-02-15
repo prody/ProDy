@@ -34,9 +34,7 @@ __all__ = ['Trajectory']
 
 class Trajectory(TrajBase):
     
-    """A class for handling trajectories in multiple files.
-    
-    .. versionadded:: 0.8"""
+    """A class for handling trajectories in multiple files."""
         
     def __init__(self, name):
         """Trajectory can be instantiated with a *name* or a filename. When
