@@ -25,7 +25,7 @@ import numpy as np
 
 from prody import AtomGroup
 from prody import Ensemble
-from prody.ensemble import checkWeightsArray
+from prody.ensemble import checkWeights
 from prody.tools import checkCoords
 
 __all__ = ['TrajBase']
@@ -239,7 +239,7 @@ class TrajBase(object):
         
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
-        self._weights = checkWeightsArray(weights, self._n_atoms, None)
+        self._weights = checkWeights(weights, self._n_atoms, None)
         
     def numFrames(self):
         """Return number of frames."""
