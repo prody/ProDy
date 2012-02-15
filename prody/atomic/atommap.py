@@ -82,10 +82,10 @@ following:
 For unmapped atoms, numeric attributes are set to 0, others to empty string,
 i.e. ``""``.
 
-AtomMaps are used by functions that compare protein chains.
-
 .. seealso::
-   :ref:`pca-xray` and :ref:`pca-dimer` examples make use of :class:`AtomMaps`.
+   :class:`AtomMap` are used by :mod:`~prody.compare` module functions
+   that match or map protein chains.  :ref:`pca-xray` and :ref:`pca-dimer` 
+   examples that make use of these functions and :class:`AtomMap` class.
 
 
 """
