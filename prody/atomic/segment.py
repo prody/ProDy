@@ -63,7 +63,7 @@ class Segment(AtomSubset):
 
     def __getitem__(self, chid):
         
-        return self._dict.get(chid)
+        return self.getChain(chid)
     
     def __len__(self):
 
