@@ -245,14 +245,18 @@ __all__.extend(compare.__all__)
 __all__.append('compare')
 
 import dynamics
-from .dynamics import *
+from dynamics import *
 __all__.extend(dynamics.__all__)
 __all__.append('dynamics')
 
 import ensemble
-from .ensemble import *
+from ensemble import *
 __all__.extend(ensemble.__all__)
 __all__.append('ensemble')
+
+from trajectory import *
+__all__.extend(trajectory.__all__)
+
 
 import prody
 __all__.append('prody')
