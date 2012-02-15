@@ -23,11 +23,16 @@ Release 1.0 (in development)
 
   * Distance based atom selection is 10 to 15% faster for atom groups with
     more than 5K atoms.
+    
+  * Added uncompressed file saving option to :ref:`prody-blast` command.
 
 **Bugfix**:
 
   * A problem in distance based atom selection which would could cause problems
     when a distance based selection is made from a selection is fixed.
+    
+  * Changed :ref:`prody-blast` so that when a path for downloading files
+    are given files are not save to local PDB folder. 
     
 
 Release 0.9.4 (Feb 4, 2012)

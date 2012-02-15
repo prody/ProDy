@@ -88,7 +88,7 @@ exclude_patterns = ['_build']
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
-#add_module_names = True
+add_module_names = False
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
@@ -100,6 +100,7 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['prody.']
 
+doctest_global_setup = "from prody import *"
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -176,6 +177,9 @@ html_sidebars = {
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 html_additional_pages = {'index': 'index.html'}
+
+# If true, the reST sources are included in the HTML build as _sources/<name>.
+html_copy_source = False
 
 # If false, no module index is generated.
 #html_domain_indices = True
