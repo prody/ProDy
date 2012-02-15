@@ -522,7 +522,6 @@ def prody_align(opt):
                 prody.writePDB(outfn, pdb)
             else:
                 LOGGER.warning('Failed to align ' + arg)
-    print args
 
 def prody_biomol(opt):
     """Generate biomolecule coordinates based on command line arguments."""
