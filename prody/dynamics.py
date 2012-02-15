@@ -1640,7 +1640,7 @@ class PCA(NMABase):
         * :class:`numpy.ndarray`
 
         .. versionchanged:: 0.8
-           :class:`~numpy.ndarray` and :class:`~prody.ensemble.TrajectoryBase` 
+           :class:`~numpy.ndarray` and :class:`~prody.ensemble.TrajBase` 
            instances are accepted as *coordsets* argument.
 
         A NumPy array passed as *coordsets* argument must have the shape 
@@ -1660,7 +1660,7 @@ class PCA(NMABase):
            together."""
         
         if not isinstance(coordsets, (prody.Ensemble, prody.Atomic, 
-                                      prody.TrajectoryBase, np.ndarray)):
+                                      prody.TrajBase, np.ndarray)):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
         LOGGER.timeit()
@@ -1676,7 +1676,7 @@ class PCA(NMABase):
                 weights = coordsets.getWeights() > 0
             coordsets = coordsets._getCoordsets()
         
-        if isinstance(coordsets, prody.TrajectoryBase):
+        if isinstance(coordsets, prody.TrajBase):
             nfi = coordsets.getNextIndex()
             coordsets.reset()
             n_atoms = coordsets.numSelected()
