@@ -240,8 +240,6 @@ class Selection(AtomSubset):
         return HierView(self)
 
     def update(self):    
-        """Update selection.
-        
-        .. versionadded:: 0.9.3"""
+        """Update selection."""
         
         self._indices = SELECT.getIndices(self._ag, self._selstr)

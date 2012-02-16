@@ -432,8 +432,6 @@ def calcDistance(one, two):
 def alignCoordsets(atoms, selstr='calpha', weights=None):
     """Superpose coordinate sets onto the active coordinate set.
     
-    .. versionadded:: 0.5
-    
     Atoms matching *selstr* will be used for calculation of transformation 
     matrix. Transformation matrix will be applied to all atoms in *atoms*,
     or its :class:`~prody.atomics.AtomGroup` if *atoms* is an 
@@ -816,15 +814,6 @@ def calcADPAxes(atoms, **kwargs):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
-    .. versionadded:: 0.5.3
-    
-    .. versionchanged:: 0.7
-       *ratio2* optional keyword argument is added.
-    
-    .. versionchanged:: 0.7.1
-       The interpretation of *ratio*, *ratio2*, and *ratio3* keywords
-       have changed (see the new definitions below).
-
     :arg atoms: a ProDy object for handling atomic data
     :type atoms: prody.atomic.Atomic
 
@@ -957,8 +946,6 @@ def calcADPs(atom):
     """Calculate anisotropic displacement parameters (ADPs) from 
     anisotropic temperature factors (ATFs).
     
-    .. versionadded:: 0.8
-    
     *atom* must have ATF values set for ADP calculation. ADPs are returned
     as a tuple, i.e. (eigenvalues, eigenvectors)."""
     
@@ -982,8 +969,6 @@ def calcADPs(atom):
 def buildADPMatrix(atoms):
     """Return a 3Nx3N symmetric matrix containing anisotropic displacement
     parameters (ADPs) along the diagonal as 3x3 super elements.
-    
-    .. versionadded:: 0.5.3
     
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  

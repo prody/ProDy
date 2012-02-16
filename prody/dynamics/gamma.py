@@ -33,8 +33,6 @@ class Gamma(object):
     """Base class for facilitating use of atom type, residue type, or residue
     property dependent force constants (γ).
     
-    .. versionadded:: 0.6    
-        
     Derived classes:
         
     * :class:`GammaStructureBased`
@@ -59,8 +57,6 @@ class GammaStructureBased(Gamma):
     """Facilitate setting the spring constant based on the secondary structure 
     and connectivity of the residues.
     
-    .. versionadded:: 0.6    
-        
     A recent systematic study [LT10]_ of a large set of NMR-structures analyzed 
     using a method based on entropy maximization showed that taking into 
     consideration properties such as sequential separation between 
@@ -218,8 +214,6 @@ class GammaVariableCutoff(Gamma):
     """Facilitate setting the cutoff distance based on user defined 
     atom/residue (node) radii.
     
-    .. versionadded:: 0.6    
-        
     Half of the cutoff distance can be thought of as the radius of a node. 
     This class enables setting different radii for different node types.
     

@@ -410,9 +410,7 @@ class HierView(object):
             return _dict.get((None, None, key, None))
 
     def getAtoms(self):
-        """Return atoms for which the hierarchical view was built.
-        
-        .. versionadded:: 0.6.2"""
+        """Return atoms for which the hierarchical view was built."""
         
         return self._atoms
     

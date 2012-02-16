@@ -87,11 +87,10 @@ def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
     For K conformations and M modes, a (K,M) matrix is returned.
     
-    .. versionchanged:: 0.8
-       By default root-mean-square deviation (RMSD) along the normal mode is 
-       calculated. To calculate the projection pass ``rmsd=True``.
-       :class:`Vector` instances are accepted as *ensemble* argument to allow
-       for projecting a deformation vector onto normal modes."""
+    By default root-mean-square deviation (RMSD) along the normal mode is 
+    calculated. To calculate the projection pass ``rmsd=True``.
+    :class:`Vector` instances are accepted as *ensemble* argument to allow
+    for projecting a deformation vector onto normal modes."""
     
     if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
         raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
@@ -126,10 +125,7 @@ def calcProjection(ensemble, modes, rmsd=True):
     return projection
 
 def calcSqFlucts(modes):
-    """Return sum of square-fluctuations for given set of normal *modes*.
-    
-    .. versionchanged:: 0.7.1
-       :class:`Vector` instances are accepted as *modes* argument."""
+    """Return sum of square-fluctuations for given set of normal *modes*."""
     
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
@@ -256,12 +252,10 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     and *atoms* must have the same number of atoms. *atoms* must be an :class:`
     ~prody.atomic.AtomGroup` instance.
     
-    .. versionadded:: 0.8.2
-    
     The RPS matrix can be save as follows::
         
-     prs_matrix = calcPerturbationResponse(p38_anm)
-     writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
+      prs_matrix = calcPerturbationResponse(p38_anm)
+      writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
     """
     
     if not isinstance(model, NMA): 

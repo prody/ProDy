@@ -82,17 +82,14 @@ LOGGER = pkg.LOGGER
 SETTINGS = pkg.SETTINGS
            
 def saveModel(nma, filename=None, matrices=False, **kwargs):
-    """Save *nma* model data as :file:`filename.nma.npz`. 
-    
-    .. versionadded:: 0.5
-    
-    By default, eigenvalues, eigenvectors, variances, trace of covariance 
-    matrix, and name of the model will be saved.  If *matrices* is ``True``,
-    covariance, Hessian or Kirchhoff matrices are saved too, whichever are 
-    available.  If *filename* is ``None``, name of the NMA instance will be 
-    used as the filename, after ``" "`` (white spaces) in the name are 
-    replaced with ``"_"`` (underscores).  Extension may differ based on 
-    the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
+    """Save *nma* model data as :file:`filename.nma.npz`.  By default, 
+    eigenvalues, eigenvectors, variances, trace of covariance matrix, 
+    and name of the model will be saved.  If *matrices* is ``True``, 
+    covariance, Hessian or Kirchhoff matrices are saved too, whichever 
+    are available.  If *filename* is ``None``, name of the NMA instance 
+    will be used as the filename, after ``" "`` (white spaces) in the name 
+    are replaced with ``"_"`` (underscores).  Extension may differ based 
+    on the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
     Upon successful completion of saving, filename is returned. This 
     function makes use of :func:`numpy.savez` function."""
     
@@ -142,9 +139,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 def loadModel(filename):
     """Return NMA instance after loading it from file (*filename*).  
     This function makes use of :func:`numpy.load` function.  See 
-    also :func:`saveModel`.
-    
-    .. versionadded:: 0.5"""
+    also :func:`saveModel`."""
     
     attr_dict = np.load(filename)
     try:
@@ -273,13 +268,7 @@ def setVMDpath(path):
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
     Normal mode data is returned in an :class:`NMA` instance. Atomic
-    data is returned in an :class:`~prody.atomic.AtomGroup` instance. 
-    
-    .. versionadded:: 0.5.3
-    
-    .. versionchanged:: 0.7
-       User can pass NMA type for the data, eg. :class:`ANM` or :class:`PCA`.
-    """
+    data is returned in an :class:`~prody.atomic.AtomGroup` instance."""
 
     assert not isinstance(type, NMA), 'type must be NMA, ANM, GNM, or PCA'
     atomic = dict()
@@ -447,10 +436,7 @@ def viewNMDinVMD(filename):
         
 def writeModes(filename, modes, format='%.18e', delimiter=' '):
     """Write *modes* (eigenvectors) into a plain text file with name 
-    *filename*. See also :func:`writeArray`.
-    
-    .. versionchanged:: 0.5.3
-       A decompressed file is outputted."""
+    *filename*. See also :func:`writeArray`."""
     
     if not isinstance(modes, (NMA, ModeSet, Mode)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
@@ -462,8 +448,6 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
                nm_skiprows=0, nm_usecols=None, ev_delimiter=None, 
                ev_skiprows=0, ev_usecols=None, ev_usevalues=None):
     """Return :class:`NMA` instance with normal modes parsed from *normalmodes*.
-    
-    .. versionadded:: 0.5.3
     
     In normal mode file *normalmodes*, columns must correspond to modes 
     (eigenvectors).  Optionally, *eigenvalues* can be parsed from a separate 
@@ -529,9 +513,6 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 def writeArray(filename, array, format='%d', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
     
-    .. versionchanged:: 0.5.3
-       A compressed file is not outputted.
-       
     This function is using :func:`numpy.savetxt` to write the file, after 
     making some type and value checks.  Default *format* argument is ``"%d"``.
     Default *delimiter* argument is white space, ``" "``.
@@ -550,8 +531,6 @@ def writeArray(filename, array, format='%d', delimiter=' '):
 def parseArray(filename, delimiter=None, skiprows=0, usecols=None, 
                dtype=float):
     """Parse array data from a file.
-    
-    .. versionadded:: 0.5.3
     
     This function is using :func:`numpy.loadtxt` to parse the file.  Each row 
     in the text file must have the same number of values.
@@ -582,8 +561,6 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
 def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
                       irow=0, icol=1, first=1):
     """Parse sparse matrix data from a file.
-    
-    .. versionadded:: 0.7
     
     This function is using :func:`parseArray` to parse the file.
     Input must have the following format::

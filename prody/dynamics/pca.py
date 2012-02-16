@@ -72,18 +72,17 @@ class PCA(NMA):
         self._trace = self._cov.trace()
 
     def buildCovariance(self, coordsets):
-        """Build a weighted covariance matrix for coodsets.  *coordsets* 
+        """Build a weighted covariance matrix for *coordsets*.  *coordsets* 
         argument may be an instance of one of the following:
           
-        * :class:`~prody.atomic.Atomic`
-        * :class:`~prody.ensemble.Ensemble`
-        * :class:`~prody.ensemble.PDBEnsemble`
-        * :class:`~prody.ensemble.Trajectory`
+        * :class:`~.Atomic`
+        * :class:`~.Ensemble`
+        * :class:`~.PDBEnsemble`
+        * :class:`~.Trajectory`
         * :class:`numpy.ndarray`
 
-        .. versionchanged:: 0.8
-           :class:`~numpy.ndarray` and :class:`~prody.ensemble.TrajBase` 
-           instances are accepted as *coordsets* argument.
+       :class:`~numpy.ndarray` and :class:`~.TrajBase` 
+       instances are accepted as *coordsets* argument.
 
         A NumPy array passed as *coordsets* argument must have the shape 
         (n_coordsets, n_atoms, 3).
@@ -237,13 +236,8 @@ class PCA(NMA):
         *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
         :class:`~prody.ensemble.Ensemble`, or :class:`numpy.ndarray` instance.
         If *coordsets* is a numpy array it must have the shape 
-        ``(n_coordsets, n_atoms, 3)``.
-        
-        .. versionadded:: 0.6.2
-        
-        .. versionchanged:: 0.8
-           :class:`numpy.ndarray` instances are accepted as *coordsets* 
-           argument.
+        ``(n_coordsets, n_atoms, 3)``.  :class:`numpy.ndarray` instances are 
+        accepted as *coordsets* argument.
         
         This is a considerably faster way of performing PCA calculations 
         compared to eigenvalue decomposition of covariance matrix, but is
@@ -297,9 +291,7 @@ class PCA(NMA):
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add *eigenvector* and *eigenvalue* pair to :class:`NMA` instance.
         If *eigenvalue* is not given, it will be set to 1.  Eigenvalue is also 
-        set as the variance.
-        
-        .. versionadded:: 0.7"""
+        set as the variance."""
 
         NMA.addEigenpair(self, eigenvector, eigenvalue)
         self._vars = self._eigvals.copy()
@@ -307,8 +299,6 @@ class PCA(NMA):
 
     def setEigens(self, vectors, values=None):
         """Set eigenvectors and eigenvalues.
-        
-        .. versionadded:: 0.7
         
         :arg vectors: eigenvectors
         :type vectors: numpy.ndarray

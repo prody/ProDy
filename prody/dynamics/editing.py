@@ -54,8 +54,6 @@ LOGGER = pkg.LOGGER
 def extrapolateModel(enm, nodes, atoms):
     """Extrapolate *enm* built for *nodes* to *atoms*.
     
-    .. version added:: 0.6.2
-    
     This function is designed for extrapolating an NMA model built at coarse 
     grained level to all atom level.  For each atom in *nodes* argument *atoms* 
     argument must contain a corresponding residue.  Note that modes in the 
@@ -103,11 +101,6 @@ def extrapolateModel(enm, nodes, atoms):
 def sliceVector(vector, atoms, selstr):
     """Return a slice of *vector* matching *atoms* specified by *selstr*.
     
-    .. versionadded:: 0.5
-    
-    .. versionchanged:: 0.7
-       Returns the vector and the corresponding atom selection. 
-    
     Note that returned :class:`Vector` instance is not normalized.
     
     :arg vector: vector instance to be sliced
@@ -145,11 +138,6 @@ def sliceVector(vector, atoms, selstr):
 
 def sliceMode(mode, atoms, selstr):
     """Return a slice of *mode* matching *atoms* specified by *selstr*.
-    
-    .. versionadded:: 0.5
-    
-    .. versionchanged:: 0.7
-       Returns the vector and the corresponding atom selection. 
     
     This works slightly difference from :func:`sliceVector`. Mode array 
     (eigenvector) is multiplied by square-root of the variance along the mode.
@@ -193,8 +181,6 @@ def sliceMode(mode, atoms, selstr):
 def sliceModel(model, atoms, selstr):
     """Return a slice of *model* matching *atoms* specified by *selstr*.
     
-    .. versionadded:: 0.7
-
     Note that sliced normal modes (eigenvectors) are not normalized.
     
     :arg mode: NMA model instance to be sliced
@@ -238,9 +224,6 @@ def sliceModel(model, atoms, selstr):
     
 def reduceModel(model, atoms, selstr):
     """Return reduced NMA model.
-    
-    .. versionchanged:: 0.7
-       Returns the reduced model and the corresponding atom selection. 
     
     Reduces a :class:`NMA` model to a subset of *atoms* matching a selection 
     *selstr*.  This function behaves differently depending on the type of the 

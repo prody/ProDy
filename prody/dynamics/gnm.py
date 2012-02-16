@@ -156,13 +156,11 @@ class GNM(GNMBase):
             Scipy is not found, :class:`ImportError` is raised.
         :type sparse: bool
         
-        .. versionchanged:: 0.6
-            Instances of :class:`Gamma` classes and custom functions are
-            accepted as *gamma* argument.        
+        Instances of :class:`Gamma` classes and custom functions are
+        accepted as *gamma* argument.        
 
-        .. versionchanged:: 0.7.3
-           When Scipy is available, user can select to use sparse matrices for
-           efficient usage of memory at the cost of computation speed."""
+        When Scipy is available, user can select to use sparse matrices for
+        efficient usage of memory at the cost of computation speed."""
         
         slow = kwargs.get('slow', False)
         try:
@@ -307,10 +305,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     """Return a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps 
     selecting a subset of it.  *pdb* can be :class:`~prody.atomic.Atomic` 
-    instance.  
-    
-    .. versionchanged:: 0.6
-       Returns also the :class:`~prody.atomic.Selection` instance."""
+    instance."""
     
     if isinstance(pdb, str):
         ag = parsePDB(pdb)
