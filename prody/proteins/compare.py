@@ -47,12 +47,11 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 PW2 = None
 
-from tools import *
-import prody
-LOGGER = prody.LOGGER
-
-from atomic import AtomMap as AM
-from atomic import select
+from prody.atomic import AtomMap as AM
+from prody.atomic import Chain, AtomGroup, Selection
+from prody.atomic import getKeywordResnames
+from prody.measure import calcTransformation, calcRMSD
+from prody.tools import which
 
 __all__ = ['matchChains',
            'matchAlign',
@@ -62,6 +61,10 @@ __all__ = ['matchChains',
            'getGapPenalty', 'setGapPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
            'getAlignmentMethod', 'setAlignmentMethod']
+
+pkg = __import__(__package__)
+LOGGER = pkg.LOGGER
+
 
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
@@ -228,7 +231,7 @@ class SimpleChain(object):
         """Initialize SimpleChain with a chain id and a sequence (available).
         
         :arg chain: chain instance or single-letter amino acid sequence  
-        :type chain: :class:`~prody.atomic.Chain` or str
+        :type chain: :class:`~.Chain` or str
         
         :arg allow_gaps: allow gaps in the sequence of simple chain instance, 
             default is False  
@@ -241,7 +244,7 @@ class SimpleChain(object):
         self._seq = ''
         self._title = None
         self._gaps = allow_gaps
-        if isinstance(chain, prody.Chain): 
+        if isinstance(chain, Chain): 
             self.buildFromChain(chain)
         elif isinstance(chain, str):
             self.buildFromSequence(chain)
@@ -302,13 +305,13 @@ class SimpleChain(object):
                 self._seq += aa
     
     def buildFromChain(self, chain):
-        """Build from a :class:`prody.atomic.Chain`."""
+        """Build from a :class:`~.Chain`."""
         
-        assert isinstance(chain, prody.Chain), 'chain must be a Chain instance'
+        assert isinstance(chain, Chain), 'chain must be a Chain instance'
         gaps = self._gaps
         residues = list(chain.iterResidues())
         temp = residues[0].getResnum()-1
-        protein_resnames = set(prody.getKeywordResnames('protein'))
+        protein_resnames = set(getKeywordResnames('protein'))
         for res in chain:
             if not res.getResname() in protein_resnames:
                 continue
@@ -340,9 +343,9 @@ def matchAlign(mobile, target, **kwargs):
     This function returns a tuple that contains the following items:
       
       * *mobile* after it is superposed,
-      * Matching chain from *mobile* as a :class:`~prody.atomic.AtomMap` 
+      * Matching chain from *mobile* as a :class:`~.AtomMap` 
         instance, 
-      * Matching chain from *target* as a :class:`~prody.atomic.AtomMap` 
+      * Matching chain from *target* as a :class:`~.AtomMap` 
         instance,
       * Percent sequence identity of the match,
       * Percent sequence overlap of the match.
@@ -354,25 +357,25 @@ def matchAlign(mobile, target, **kwargs):
         return
     match = match[0]
     LOGGER.info('RMSD before alignment (A): {0:.2f}'
-                .format(prody.calcRMSD(match[0], match[1])))
-    prody.calcTransformation(match[0], match[1]).apply(mobile)
+                .format(calcRMSD(match[0], match[1])))
+    calcTransformation(match[0], match[1]).apply(mobile)
     LOGGER.info('RMSD after alignment  (A): {0:.2f}'
-                .format(prody.calcRMSD(match[0], match[1])))
+                .format(calcRMSD(match[0], match[1])))
     return (mobile,) + match
 
 def matchChains(atoms1, atoms2, **kwargs):
     """Return pairs of chains matched based on sequence similarity.
     
     Makes an all-to-all comparison of chains in *atoms1* and *atoms2*. Chains
-    are obtained from hierarchical views (:class:`~prody.atomic.HierView`) of 
+    are obtained from hierarchical views (:class:`~.HierView`) of 
     atom groups.  
     
     This function returns a list of matches. Each match is a tuple
     that contains 4 items:
 
-      * Matching chain from *atoms1* as a :class:`~prody.atomic.AtomMap` 
+      * Matching chain from *atoms1* as a :class:`~.AtomMap` 
         instance, 
-      * Matching chain from *atoms2* as a :class:`~prody.atomic.AtomMap` 
+      * Matching chain from *atoms2* as a :class:`~.AtomMap` 
         instance,
       * Percent sequence identity of the match,
       * Percent sequence overlap of the match.
@@ -382,12 +385,10 @@ def matchChains(atoms1, atoms2, **kwargs):
     groups.
     
     :arg atoms1: atoms that contain a chain
-    :type atoms1: :class:`~prody.atomic.Chain`, 
-        :class:`~prody.atomic.AtomGroup`, or :class:`~prody.atomic.Selection`
+    :type atoms1: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
     
     :arg atoms2: atoms that contain a chain
-    :type atoms2: :class:`~prody.atomic.Chain`, 
-        :class:`~prody.atomic.AtomGroup`, or :class:`~prody.atomic.Selection`
+    :type atoms2: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
     
     :keyword subset: ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``), 
         or ``"all"``, default is ``"calpha"``
@@ -420,9 +421,9 @@ def matchChains(atoms1, atoms2, **kwargs):
     
     """
     
-    if not isinstance(atoms1, (prody.AtomGroup, prody.Chain, prody.Selection)):
+    if not isinstance(atoms1, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms1 must be an AtomGroup, Chain, or Selection')
-    if not isinstance(atoms2, (prody.AtomGroup, prody.Chain, prody.Selection)):
+    if not isinstance(atoms2, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms2 must be an AtomGroup, Chain, or Selection')
     
     subset = kwargs.get('subset', 'calpha')
@@ -437,12 +438,12 @@ def matchChains(atoms1, atoms2, **kwargs):
     assert isinstance(coverage, float), 'overlap must be float'
     pwalign = kwargs.get('pwalign', None)
     
-    if isinstance(atoms1, prody.Chain):
+    if isinstance(atoms1, Chain):
         chains1 = [atoms1]
         atoms1 = atoms1.getAtomGroup()
     else:
         chains1 = list(atoms1.getHierView().iterChains())
-        if not isinstance(atoms1, prody.AtomGroup):
+        if not isinstance(atoms1, AtomGroup):
             atoms1 = atoms1.getAtomGroup()
     chains = list()
     for ch in chains1:
@@ -450,16 +451,16 @@ def matchChains(atoms1, atoms2, **kwargs):
         if len(simpch) > 0:
             chains.append(simpch)
     chains1 = chains
-    if not isinstance(atoms1, prody.Chain):
+    if not isinstance(atoms1, Chain):
         LOGGER.debug('Checking {0:s}: {1:d} chains are identified'
                      .format(str(atoms1), len(chains1)))
         
-    if isinstance(atoms2, prody.Chain):
+    if isinstance(atoms2, Chain):
         chains2 = [atoms2]
         atoms2 = atoms2.getAtomGroup()
     else:
         chains2 = list(atoms2.getHierView().iterChains())
-        if not isinstance(atoms2, prody.AtomGroup):
+        if not isinstance(atoms2, AtomGroup):
             atoms2 = atoms2.getAtomGroup()
     chains = list()
     for ch in chains2:
@@ -467,7 +468,7 @@ def matchChains(atoms1, atoms2, **kwargs):
         if len(simpch) > 0:
             chains.append(simpch)
     chains2 = chains
-    if not isinstance(atoms2, prody.Chain):
+    if not isinstance(atoms2, Chain):
         LOGGER.debug('Checking {0:s}: {1:d} chains are identified'
                      .format(str(atoms2), len(chains2)))
 
@@ -657,8 +658,8 @@ def mapOntoChain(atoms, chain, **kwargs):
     This function returns a list of mappings. Each mapping is a tuple
     that contains 4 items:
 
-      * Mapped chain as an :class:`~prody.atomic.AtomMap` instance, 
-      * *chain* as an :class:`~prody.atomic.AtomMap` instance,
+      * Mapped chain as an :class:`~.AtomMap` instance, 
+      * *chain* as an :class:`~.AtomMap` instance,
       * Percent sequence identitity,
       * Percent sequence overlap
          
@@ -667,11 +668,10 @@ def mapOntoChain(atoms, chain, **kwargs):
     unmapped atoms.
     
     :arg atoms: atoms that will be mapped to the target *chain*
-    :type atoms: :class:`~prody.atomic.Chain`, :class:`~prody.atomic.AtomGroup`, 
-                 or :class:`~prody.atomic.Selection`
+    :type atoms: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
     
     :arg chain: chain to which atoms will be mapped
-    :type chain: :class:`~prody.atomic.Chain`
+    :type chain: :class:`~.Chain`
     
     :keyword seqid: percent sequence identity, default is 90.
     :type seqid: float
@@ -702,10 +702,10 @@ def mapOntoChain(atoms, chain, **kwargs):
     """
     
     target_chain = chain
-    if not isinstance(atoms, (prody.AtomGroup, prody.Chain, prody.Selection)):
+    if not isinstance(atoms, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms must be an AtomGroup, a Chain, or a '
                         'Selection instance')
-    if not isinstance(target_chain, prody.Chain):
+    if not isinstance(target_chain, Chain):
         raise TypeError('chain must be Chain instance')
         
     subset = str(kwargs.get('subset', 'calpha')).lower()
@@ -718,11 +718,11 @@ def mapOntoChain(atoms, chain, **kwargs):
         coverage = kwargs.get('coverage', 90.)
     pwalign = kwargs.get('pwalign', None)
     
-    if isinstance(atoms, prody.Chain):
+    if isinstance(atoms, Chain):
         chains = [atoms]
         map_ag = atoms.getAtomGroup()
     else:
-        if isinstance(atoms, prody.AtomGroup):
+        if isinstance(atoms, AtomGroup):
             map_ag = atoms
         else:
             map_ag = atoms.getAtomGroup()
