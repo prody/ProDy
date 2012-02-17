@@ -58,7 +58,7 @@ to such data.  These classes are:
   in the order provided by the user.
     
 Atom selections
--------------------------------------------------------------------------------
+===============================================================================
 
 Flexible and powerful atom selections is one of the most important features 
 of ProDy.  The details of the selection grammar is described in 
