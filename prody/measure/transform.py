@@ -219,7 +219,7 @@ def _superpose(mob, tar, weights=None, mov=None):
 
 def applyTransformation(transformation, atoms):
     """Return *atoms* after applying *transformation*. If *atoms* is a 
-    class instance from :mod:`~.atomic`, it will be returned after 
+    class instance from :mod:`~prody.atomic`, it will be returned after 
     *transformation* is applied to its active coordinate set. If *atoms*
     is an :class:`~.AtomPointer` instance, *transformation* will
     be applied to the corresponding coordinate set in the associated

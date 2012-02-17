@@ -34,7 +34,8 @@ import prody
 
 __all__ = ['calcDistance', 'calcCenter', 'calcAngle', 
            'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcDeformVector', ]
+           'calcDeformVector', 'calcGyradius',
+           'buildADPMatrix', 'calcADPAxes', 'calcADPs']
            
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
