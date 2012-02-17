@@ -22,6 +22,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from prody import measure
+from prody.measure import superpose
 
 __all__ = ['Frame']
 
@@ -136,14 +137,14 @@ class Frame(object):
         indices = self._indices 
         traj = self._traj
         if indices is None:
-            return measure.measure._calcRMSD(self._coords, traj._coords, 
+            return measure._calcRMSD(self._coords, traj._coords, 
                                              traj._weights)
         else:
             if traj._weights is None:
-                return measure.measure._calcRMSD(self._coords[indices], 
+                return measure._calcRMSD(self._coords[indices], 
                                                  traj._coords[indices])
             else:
-                return measure.measure._calcRMSD(self._coords[indices], 
+                return measure._calcRMSD(self._coords[indices], 
                                                  traj._coords[indices], 
                                                  traj._weights[indices])
         
@@ -156,14 +157,14 @@ class Frame(object):
         indices = self._indices 
         traj = self._traj
         if indices is None:
-            self._coords, t = measure.superpose(self._coords, 
-                                                traj._coords, 
-                                                traj._weights)
+            self._coords, t = superpose(self._coords, 
+                                        traj._coords, 
+                                        traj._weights)
         else:
             if traj._weights is None:
-                measure.measure._superpose(self._coords[indices], 
+                measure._superpose(self._coords[indices], 
                                            traj._coords[indices])
             else:
-                measure.measure._superpose(self._coords[indices], 
+                measure._superpose(self._coords[indices], 
                                            traj._coords[indices], 
                                            traj._weights[indices])

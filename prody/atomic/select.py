@@ -187,7 +187,7 @@ from selection import Selection
 from atommap import AtomMap
 
 from prody.tools import rangeString 
-from prody.measure import getKDTree
+import prody
 
 DEBUG = False
 
@@ -1403,7 +1403,7 @@ class Select(object):
             torf = np.zeros(self._n_atoms, bool)
             
             cxyz = coords[check]
-            kdtree = getKDTree(coords[which])
+            kdtree = prody.measure.getKDTree(coords[which])
             get_indices = kdtree.get_indices
             search = kdtree.search
             select = []

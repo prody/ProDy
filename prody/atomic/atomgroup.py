@@ -244,14 +244,14 @@ from atommap import AtomMap
 from subset import AtomSubset
 from selection import Selection
 
-from prody.measure import getKDTree
+import prody
+
+__all__ = ['AtomGroup']
 
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 
 SELECT = None
-
-__all__ = ['AtomGroup']
 
 class AtomGroupMeta(type):
 
@@ -542,7 +542,7 @@ class AtomGroup(Atomic):
                 index = self._acsi
             kdtree = self._kdtrees[index]
             if kdtree is None:
-                kdtree = getKDTree(self._coords[index])
+                kdtree = prody.measure.getKDTree(self._coords[index])
                 self._kdtrees[index] = kdtree
             return kdtree
         else:
