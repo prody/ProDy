@@ -4,13 +4,9 @@ prody
 
 .. module:: prody
 
-:mod:`prody`
-=====================
 
 This module defines functions for aiding interactive ProDy experience. 
 
-Functions
----------
 
   * :func:`confProDy`
   * :func:`checkUpdates`

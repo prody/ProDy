@@ -107,9 +107,7 @@ if _:
     SETTINGS.update(_)
 
 def confProDy(*args, **kwargs):
-    """Configure ProDy.
-    
-    .. versionadded:: 0.9.2"""
+    """Configure ProDy."""
 
     if args:
         if len(args) == 1:
@@ -149,13 +147,9 @@ class ProDyException(Exception):
     pass
 
 def plog(*text):
-    """Log *text* using ProDy logger at log level info.
-    
-    .. versionadded:: 0.6.2
-    
-    .. versionchanged:: 0.7
-       Multiple arguments are accepted. Each argument will be converted to 
-       string and joined using a white space as delimiter. """
+    """Log *text* using ProDy logger at log level info.  Multiple arguments 
+    are accepted.  Each argument will be converted to string and joined using 
+    a white space as delimiter."""
     
     LOGGER.info(' '.join([str(s) for s in text]))
 

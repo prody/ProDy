@@ -31,7 +31,9 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.intersphin
               'sphinx.ext.inheritance_diagram', 'sphinx.ext.graphviz',
               'matplotlib.sphinxext.plot_directive',
               'matplotlib.sphinxext.only_directives',
-              'matplotlib.sphinxext.mathmpl']#, 'sphinxcontrib.spelling']
+              'matplotlib.sphinxext.mathmpl',
+              'sphinxcontrib.googleanalytics',
+              'sphinxcontrib.googlechart']#, 'sphinxcontrib.spelling']
               
                #'sphinx.ext.pngmath',
 
@@ -270,6 +272,9 @@ autodoc_member_order = 'groupwise'
 autodoc_default_flags = []# ['members', 'undoc-members', 'show-inheritance']
 autoclass_content = 'both'
 todo_include_todos = True
+
+googleanalytics_enabled = True
+googleanalytics_id = 'UA-19801227-1'
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://matplotlib.sourceforge.net/': None, 

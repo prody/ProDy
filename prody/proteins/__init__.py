@@ -20,107 +20,120 @@
 structural data files, execute structural analysis programs, and to access 
 and search structural databases, e.g. `ProteinDataBank <http://wwpdb.org>`_.
 
-Protein structural data
-===============================================================================
+Retrieve PDB files
+==================
 
-Access databases 
--------------------------------------------------------------------------------
+Following functions provide access to wwPDB FTP servers:
 
-Following functions are provided for access to protein structural data:
-
-===========================  ==================================================
-Function                     Description
-===========================  ==================================================
-:func:`~.blastPDB`           blast search NCBI PDB database
-:func:`~.fetchPDB`           retrieve PDB/PDBML/mmCIF files from wwPDB
-:func:`~.fetchLigandData`    retrieve ligand from Ligand-Expo 
-:func:`~.fetchPDBClusters`   retrieve PDB sequence cluster data from wwPDB
-:func:`~.getPDBCluster`      access PDB sequence clusters
-:func:`~.setPDBLocalFolder`  set a local folder for storing PDB files
-:func:`~.setPDBMirrorPath`   set a local PDB mirror path
-:func:`~.setWWPDBFTPServer`  set a wwPDB FTP server for downloads 
-:func:`~.getPDBLocalFolder`  get preset local PDB folder
-:func:`~.getPDBMirrorPath`   get preset local PDB mirror path
-:func:`~.getWWPDBFTPServer`  get preset wwPDB FTP server
-===========================  ==================================================
+  * :func:`~.fetchPDB` - retrieve PDB/PDBML/mmCIF files from wwPDB
+  * :func:`~.setWWPDBFTPServer` - set a wwPDB FTP server for downloads 
+  * :func:`~.getWWPDBFTPServer` - get preset wwPDB FTP server
 
 
-Parse/write files
--------------------------------------------------------------------------------
+Local PDB folder/mirror 
+=======================
 
-Following ProDy functions are for parsing and writing atomic data:
+You can use following functions to manage local PDB file resources:
 
-========================  =====================================================
-Function                  Description
-========================  =====================================================
-:func:`~.parsePDB`        parse atomic data from files in :file:`.pdb` format
-:func:`~.parsePSF`        parse atomic data from files in :file:`.psf` format
-:func:`~.parsePQR`        parse atomic data from files in :file:`.pqr` format
-:func:`~.parsePDBHeader`  parse header data from :file:`.pdb` files 
-:func:`~.parsePDBStream`  parse atomic data from a :file:`.pdb` formated stream
-:func:`~.parseDSSP`       parse structural data from :program:`dssp` output
-:func:`~.parseSTRIDE`     parse structural data from :program:`stride` output
-:func:`~.writePDB`        write atomic data to a file in :file:`.pdb` format
-:func:`~.writePQR`        write atomic data to a file in :file:`.pqr` format
-:func:`~.writePDBStream`  write atomic data in :file:`.pdb` format to a stream
-========================  =====================================================
+  * :func:`~.setPDBLocalFolder` - set a local folder for storing PDB files
+  * :func:`~.setPDBMirrorPath` - set a local PDB mirror path
+  * :func:`~.getPDBLocalFolder` - get preset local PDB folder
+  * :func:`~.getPDBMirrorPath` - get preset local PDB mirror path
+
+Blast search PDB 
+================
+
+The following are for blast searching PDB content.
+
+  * :func:`~.blastPDB` - blast search NCBI PDB database
+  * :class:`~.PDBBlastRecord` - store/evaluate NCBI PDB blast search results 
+
+PDB clusters biopolymer chains using blast weekly.  These clusters can be
+retrieved using the following functions.  Using cluster data is as good
+as blast searching PDB most of the time and incredibly faster always. 
+
+  * :func:`~.getPDBCluster` - access PDB sequence cluster
+  * :func:`~.loadPDBClusters` - load PDB clusters into memory
+  * :func:`~.fetchPDBClusters` - retrieve PDB sequence cluster data from wwPDB
+
+Parse/write PDB files
+=====================
+
+Following ProDy functions are for parsing and writing :file:`.pdb` files:
+
+  * :func:`~.parsePDB` - parse :file:`.pdb` formated file
+  * :func:`~.parsePDBStream` - parse :file:`.pdb` formated stream
+  * :func:`~.writePDB` - write :file:`.pdb` formatted file
+  * :func:`~.writePDBStream`  write :file:`.pdb` formated stream
+
+Since :file:`.pqr` format is similar to :file:`.pdb` format, following 
+functions come as bonus features:
+ 
+  * :func:`~.writePQR`        write atomic data to a file in :file:`.pqr` format
+  * :func:`~.parsePQR`        parse atomic data from files in :file:`.pqr` format
+  
 
 .. seealso::
    
    Atom data (coordinates, atom names, residue names, etc.) parsed from 
-   PDB/PSF/PQR files are stored in :class:`~prody.atomic.AtomGroup` instances.  
+   PDB/PSF/PQR files are stored in :class:`~.AtomGroup` instances.  
    See :mod:`~prody.atomic` module documentation for more details. 
 
+Quick visualization
+===================
 
-Store data
--------------------------------------------------------------------------------
-
-Following classes are for storing meta, structural, and/or search data: 
-
-=========================  ====================================================
-Function                   Description
-=========================  ====================================================
-:class:`~.Chemical`        store PDB chemical (heterogen) component data
-:class:`~.Polymer`         store PDB polymer (macromolecule) component data
-:class:`~.DBRef`           store polymer sequence database reference records
-:class:`~.PDBBlastRecord`  store and evaluate NCBI PDB blast search results 
-=========================  ====================================================
-
-Execute programs
--------------------------------------------------------------------------------
-
-Following functions can be used to execute structural analysis programs from 
-within Python:
-
-==========================  ===================================================
-Function                    Description
-==========================  ===================================================
-:func:`~.execDSSP`          execute :program:`dssp`
-:func:`~.execSTRIDE`        execute :program:`stride`
-:func:`~.performDSSP`       execute :program:`dssp` and parse results
-:func:`~.performSTRIDE`     execute :program:`stride` and parse results
-==========================  ===================================================
-
+:func:`~.showProtein` function can be used to take a quick look at protein 
+structures. 
 
 Edit structures
--------------------------------------------------------------------------------
+===============
 
 Following functions allow editing structures using structural data from PDB 
 header records:
 
-=========================  ====================================================
-Function                   Description
-=========================  ====================================================
-:func:`assignSecstr`       add secondary structure data from header to atoms
-:func:`buildBiomolecules`  build biomolecule data based on header records
-=========================  ====================================================
+:func:`~.assignSecstr`       add secondary structure data from header to atoms
+:func:`~.buildBiomolecules`  build biomolecule data based on header records
 
 
-Visualization
--------------------------------------------------------------------------------
+PDB header data
+===============
 
-:func:`showProtein` function can be used to take a quick look at protein 
-structures. 
+Use the following to parse and access header data in PDB files:
+  
+  * :func:`~.parsePDBHeader` - parse header data from :file:`.pdb` files 
+  * :class:`~.Chemical` - store PDB chemical (heterogen) component data
+  * :class:`~.Polymer` - store PDB polymer (macromolecule) component data
+  * :class:`~.DBRef` - store polymer sequence database reference records
+
+  * :func:`~.parsePSF`        parse atomic data from files in :file:`.psf` format
+
+Ligand data
+===========
+
+Following function can be used to fetch meta data on PDB ligands:
+
+  * :func:`~.fetchLigandData` - retrieve ligand from Ligand-Expo 
+
+
+Execute DSSP
+============
+
+Following functions can be used to execute DSSP structural analysis program
+and/or parse results:
+
+  * :func:`~.execDSSP` - execute :program:`dssp`
+  * :func:`~.performDSSP` - execute :program:`dssp` and parse results
+  * :func:`~.parseDSSP` - parse structural data from :program:`dssp` output
+
+Execute STRIDE
+==============
+
+Following functions can be used to execute STRIDE structural analysis program
+and/or parse results:
+
+  * :func:`~.execSTRIDE` - execute :program:`stride`
+  * :func:`~.performSTRIDE` - execute :program:`stride` and parse results
+  * :func:`~.parseSTRIDE` - parse structural data from :program:`stride` output
 
 .. doctest::
     :hide:

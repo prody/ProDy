@@ -92,15 +92,15 @@ ProDy documentation is organized in three main sections:
 * :ref:`examples` section contains comprehensive usage examples, which may be 
   applied to other cases after small modifications.
 * :ref:`reference` section describes all ProDy classes and functions, with some
-  usage examples. Features are divided into following modules:
+  usage examples. Features are divided into following main modules:
 
-  * :mod:`atomic` - efficient handling of atomic data
-  * :mod:`compare` - comparing protein chains
-  * :mod:`dynamics` - analysis and modeling of protein dynamics
-  * :mod:`ensemble` - analysis of ensembles and trajectories
-  * :mod:`measure` - analysis of geometrical properties 
-  * :mod:`proteins` - structure analysis and data retrieval
-  * :mod:`trajectory` - trajectory input and output
+  * :mod:`~.atomic` - efficient handling of atomic data
+  * :mod:`~.dynamics` - analysis and modeling of protein dynamics
+  * :mod:`~.ensemble` - analysis of ensembles and trajectories
+  * :mod:`~.measure` - analysis of geometrical properties 
+  * :mod:`~.proteins` - structure analysis, IO, and data retrieval
+  * :mod:`~.select` - atom selections
+  * :mod:`~.trajectory` - trajectory IO
   
 In interactive sessions, the reference documentation can be accessed 
 using the built-in Python function :func:`help`:: 
@@ -154,6 +154,15 @@ in a Python shell. To begin the Tutorial, import all the functions and classes
 from ProDy into the current namespace as follows:
 
 >>> from prody import *
+
+There are other ways to import ProDy contents. You may use 
+``import prody as pd`` and prefix all functions calls with ``pd.``, 
+if you prefer not to overcrowd your namespace.
+Alternatively, if you want to use functions in a specific module, 
+:mod:`~.proteins` let's say, you can use ``from prody.proteins import *``. 
+You should, however, avoid using using 
+``from prody.proteins.pdbfile import *``, because location of methods
+in submodules may change without notice.
 
 .. plot::
    :nofigs: 
