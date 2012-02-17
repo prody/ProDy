@@ -29,7 +29,8 @@ from types import FunctionType
 
 import numpy as np
 
-from prody.proteins import parsePDB, Atomic, AtomGroup
+from prody.atomic import Atomic, AtomGroup
+from prody.proteins import parsePDB
 from prody.measure import getKDTree
 from prody.tools import checkCoords, importLA
 
