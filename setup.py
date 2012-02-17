@@ -38,7 +38,8 @@ if not isInstalled('numpy'):
 features and needs to be installed before you can use ProDy.  
 You can find NumPy at: http://numpy.scipy.org""")
 
-PACKAGES = ['prody']
+PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
+            'prody.measure', 'prody.proteins', 'prody.trajectory']
 PACKAGE_DATA = {}
 if sys.version_info[:2] > (2,6):
     PACKAGES.append('prody.tests')
@@ -49,9 +50,11 @@ EXTENSIONS = []
 
 if os.name != 'java' and sys.version_info[0] == 2:
     pairwise2 = ['cpairwise2.c', 'pairwise2.py']
-    if all([os.path.isfile(os.path.join('prody', fn)) for fn in pairwise2]):  
+    if all([os.path.isfile(os.path.join('prody', 'proteins', fn)) 
+                           for fn in pairwise2]):  
         EXTENSIONS.append(
-            Extension('prody.cpairwise2', ['prody/cpairwise2.c'],
+            Extension('prody.proteins.cpairwise2', 
+                      ['prody/proteins/cpairwise2.c'],
                       include_dirs=["prody"]
                       ))
     if isInstalled('numpy'):
