@@ -239,11 +239,6 @@ import measure
 from measure import *
 __all__.extend(measure.__all__)
 
-import compare
-from compare import *
-__all__.extend(compare.__all__)
-__all__.append('compare')
-
 import dynamics
 from dynamics import *
 __all__.extend(dynamics.__all__)
