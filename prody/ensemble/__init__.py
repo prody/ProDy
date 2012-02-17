@@ -17,6 +17,52 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines classes for handling conformational ensembles.
+
+Conformational ensembles
+------------------------
+
+The following two classes are implemented for handling arbitrary but uniform
+conformational ensembles, e.g. NMR models, MD snapshots: 
+
+  * :class:`~.Ensemble`
+  * :class:`~.Conformation`
+
+See usage examples in :ref:`pca-nmr` and :ref:`eda`.
+
+PDB ensembles
+-------------
+
+PDB ensembles, such as multiple structures of the same protein, are in general 
+heterogeneous.  This just means that different residues in different structures
+are missing.  The following classes extend above to support this heterogeneity:
+
+  * :class:`~.PDBEnsemble`
+  * :class:`~.PDBConformation`
+
+Following functions are for editing PDB ensembles, e.g. finding and removing
+residues that are missing in too many structures:
+
+  * :func:`~.calcOccupancies`
+  * :func:`~.showOccupancies`
+  * :func:`~.trimPDBEnsemble`
+
+See usage examples in :ref:`pca-xray`, :ref:`pca-dimer`, :ref:`pca-blast`.
+
+Save/load ensembles
+-------------------
+
+    * :func:`~.saveEnsemble`
+    * :func:`~.loadEnsemble`
+
+Examples
+--------
+
+Results from the example :ref:`pca-xray-calculations` will be used to
+illustrate class methods and functions in the module.
+
+>>> from prody import *
+>>> ens = loadEnsemble('p38_X-ray.ens.npz')
+
 """
 
 __author__ = 'Ahmet Bakan'

@@ -17,23 +17,11 @@
 
 """This module defines a functions for handling conformational ensembles.
 
-    * :func:`saveEnsemble`
-    * :func:`loadEnsemble`
-    * :func:`calcOccupancies`
-    * :func:`showOccupancies`
-    * :func:`trimEnsemble`
-    * :func:`parseDCD`
-    * :func:`writeDCD`
-
+.. doctest::
+   :hide:
     
-Examples
---------
-
-Results from the example :ref:`pca-xray-calculations` will be used to
-illustrate class methods and functions in the module.
-
->>> from prody import *
->>> ens = loadEnsemble('p38_X-ray.ens.npz')
+   from prody import *
+   ens = loadEnsemble('p38_X-ray.ens.npz')
 
 """
 
@@ -114,7 +102,7 @@ def loadEnsemble(filename):
 def trimPDBEnsemble(pdb_ensemble, **kwargs):
     """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     This function helps selecting atoms in a pdb ensemble based on one of the 
-    following criteria, and returns them in a new :class:`PDBEnsemble` 
+    following criteria, and returns them in a new :class:`~.PDBEnsemble` 
     instance.
         
     **Occupancy**
@@ -132,7 +120,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble argument must be a PDBEnsemble')
     if pdb_ensemble.numConfs() == 0 or pdb_ensemble.numAtoms() == 0:
-        raise ValueError('conformations must be set for pdb_ensemble')
+        raise ValueError('pdb_ensemble must have conformations')
     
     if 'occupancy' in kwargs:
         occupancy = float(kwargs['occupancy'])

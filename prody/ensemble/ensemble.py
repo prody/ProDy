@@ -17,17 +17,11 @@
 
 """This module defines classes for handling ensembles of conformations.
 
-  * :class:`Ensemble`
-  * :class:`PDBEnsemble`
-  
-Examples
---------
-
-Results from the example :ref:`pca-xray-calculations` will be used to
-illustrate class methods and functions in the module.
-
->>> from prody import *
->>> ens = loadEnsemble('p38_X-ray.ens.npz')
+.. doctest::
+   :hide:
+    
+   from prody import *
+   ens = loadEnsemble('p38_X-ray.ens.npz')
 
 """
 
@@ -52,15 +46,15 @@ class Ensemble(object):
     
     """A class for analysis of arbitrary conformational ensembles. 
     
-    Indexing returns a :class:`Conformation` instance, which corresponds to
+    Indexing returns a :class:`~.Conformation` instance, which corresponds to
     a coordinate set. Slicing returns an :class:`Ensemble` instance that 
     contains subset of conformations (coordinate sets). The ensemble obtained 
     by slicing will have a copy of the reference coordinates."""
 
     def __init__(self, title='Unknown'):
-        """Instantiate with a *title* or a :class:`~prody.atomic.atomic.Atomic` 
-        instance.  All coordinate sets from atomic instances will be added to 
-        the ensemble automatically."""
+        """Instantiate with a *title* or a :class:`~.Atomic` instance.  All 
+        coordinate sets from atomic instances will be added to the ensemble 
+        automatically."""
         
         self._title = str(title).strip()
 
@@ -115,13 +109,12 @@ class Ensemble(object):
         return self._ag
     
     def setAtoms(self, ag, setref=True):
-        """Associate the instance with an :class:`~prody.atomic.AtomGroup`.
-        Note that at association, active coordinate set of the 
-        :class:`~prody.atomic.AtomGroup`, if it has one, will be set as 
-        the reference coordinates for the ensemble or trajectory. Changes in 
-        :class:`~prody.atomicAtomGroup` active coordinate set will not be
-        reflected to the reference coordinates. If you want to preserve the 
-        present reference coordinates, pass ``setref=False``."""
+        """Associate the instance with an :class:`~.AtomGroup`.  Note that at 
+        association, active coordinate set of the :class:`~.AtomGroup`, if it 
+        has one, will be set as the reference coordinates for the ensemble or 
+        trajectory.  Changes in :class:`~.AtomGroup` active coordinate set will
+        not be reflected to the reference coordinates. If you want to preserve 
+        the present reference coordinates, pass ``setref=False``."""
         
         if ag is None:
             self._ag = None
@@ -302,12 +295,11 @@ class Ensemble(object):
         return self._n_csets
 
     def addCoordset(self, coords, allcoordsets=True):
-        """Add coordinate set(s) as conformation(s).
-        :class:`~prody.atomic.Atomic` instances are accepted as *coords* 
-        argument. If *allcoordsets* is ``True``, all coordinate sets from
-        the :class:`~prody.atomic.Atomic` instance will be appended to the 
-        ensemble. Otherwise, only the active coordinate set will be appended.
-        """
+        """Add coordinate set(s) as conformation(s).  :class:`~.Atomic` 
+        instances are accepted as *coords* argument.  If *allcoordsets* is 
+        ``True``, all coordinate sets from the :class:`~.Atomic` instance 
+        will be appended to the ensemble.  Otherwise, only the active 
+        coordinate set will be appended."""
         
         assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
         if not isinstance(coords, np.ndarray):
@@ -665,10 +657,10 @@ class PDBEnsemble(Ensemble):
     def addCoordset(self, coords, weights=None, allcoordsets=True):
         """Add coordinate set(s) as conformation(s).
 
-        :class:`~prody.atomic.Atomic` instances are accepted as *coords* 
-        argument. If *allcoordsets* is ``True``, all coordinate sets from
-        the :class:`~prody.atomic.Atomic` instance will be appended to the 
-        ensemble. Otherwise, only the active coordinate set will be appended.
+        :class:`~.Atomic` instances are accepted as *coords* argument.  
+        If *allcoordsets* is ``True``, all coordinate sets from the 
+        :class:`~.Atomic` instance will be appended to the ensemble. 
+        Otherwise, only the active coordinate set will be appended.
 
         *weights* is an optional argument. If provided, its length must
         match number of atoms. Weights of missing (not resolved) atoms 

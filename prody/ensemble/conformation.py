@@ -17,17 +17,11 @@
 
 """This module defines classes handling individual conformations.
 
-  * :class:`Conformation`
-  * :class:`PDBConformation`
-  
-Examples
---------
-
-Results from the example :ref:`pca-xray-calculations` will be used to
-illustrate class methods and functions in the module.
-
->>> from prody import *
->>> ens = loadEnsemble('p38_X-ray.ens.npz')
+.. doctest::
+   :hide:
+    
+   from prody import *
+   ens = loadEnsemble('p38_X-ray.ens.npz')
 
 """
 
