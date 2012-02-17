@@ -19,34 +19,6 @@
 """This module defines a class and methods and for comparing coordinate data 
 and measuring quantities.
 
-Classes
--------
-  
-  * :class:`Transformation`
-    
-Functions
----------
-    
-  * :func:`alignCoordsets`
-  * :func:`applyTransformation`
-  * :func:`buildADPMatrix`
-  * :func:`buildKDTree`
-  * :func:`calcADPAxes`
-  * :func:`calcADPs`
-  * :func:`calcAngle`
-  * :func:`calcCenter`
-  * :func:`calcDeformVector`
-  * :func:`calcDihedral`
-  * :func:`calcDistance`
-  * :func:`calcGyradius`
-  * :func:`calcOmega`
-  * :func:`calcPhi`
-  * :func:`calcPsi`
-  * :func:`calcRMSD`
-  * :func:`calcTransformation`
-  * :func:`iterNeighbors`
-  * :func:`moveAtoms`
-  * :func:`superpose`
 
 """
 
@@ -55,362 +27,24 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody.tools import *
+from prody.atomic import Atomic, Residue, Atom
+from prody.tools import importLA, checkCoords
 
 import prody
-LOGGER = prody.LOGGER
+
+__all__ = ['calcDistance', 'calcCenter', 'calcAngle', 
+           'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
+           'calcDeformVector', ]
+           
+pkg = __import__(__package__)
+LOGGER = pkg.LOGGER
 
 RAD2DEG = 180 / np.pi
-
-__all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
-           'buildADPMatrix', 'buildKDTree', 'iterNeighbors', 
-           'calcADPAxes', 'calcADPs',  
-           'calcDeformVector', 'calcDistance', 'calcCenter',
-           'calcAngle', 'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcGyradius', 
-           'calcRMSD', 'calcTransformation', 
-           'moveAtoms', 'superpose']
-           
-class Transformation(object):
-    
-    __slots__ = ['_rotation', '_translation']
-    
-    def __init__(self, rotation, translation):
-        self._rotation = None
-        self.setRotation(rotation)
-        self._translation = None
-        self.setTranslation(translation)
-    
-    def getRotation(self): 
-        """Returns rotation matrix."""
-        
-        return self._rotation.copy()
-
-    def setRotation(self, rotation):
-        """Set rotation matrix."""
-        
-        if not isinstance(rotation, np.ndarray):
-            raise TypeError('rotation must be an ndarray')
-        elif rotation.shape != (3,3):
-            raise ValueError('rotation must be a 3x3 array')
-        self._rotation = rotation
-
-    def getTranslation(self): 
-        """Returns translation vector."""
-        
-        return self._translation.copy()
-    
-    def setTranslation(self, translation): 
-        """Set translation vector."""
-        
-        if not isinstance(translation, np.ndarray):
-            raise TypeError('translation must be an ndarray')
-        elif translation.shape != (3,):
-            raise ValueError('translation must be an ndarray of length 3')
-        self._translation = translation
-    
-    def get4x4Matrix(self):
-        """Returns 4x4 transformation matrix whose top left is rotation matrix
-        and last column is translation vector."""
-        
-        fourby4 = np.eye(4)
-        fourby4[:3, :3] = self._rotation
-        fourby4[:3, 3] = self._translation
-        return fourby4
-    
-    def apply(self, atoms):
-        """Applies transformation to given atoms or coordinate set.
-        
-        ProDy class instances from :mod:`~prody.atomic` are accepted. Instance
-        is returned after its active coordinate set is transformed.
-        If a :class:`~prody.atomic.AtomPointer` is passsed, the 
-        :class:`~prody.atomic.AtomGroup` that it points to is transformed. 
-        
-        If an :class:`~numpy.ndarray` instance is given, transformed array 
-        is returned."""
-        
-        return applyTransformation(self, atoms)
-    
-
-def calcTransformation(mobile, target, weights=None):
-    """Returns a :class:`Transformation` instance which, when applied to the 
-    atoms in *mobile*, minimizes the weighted RMSD between *mobile* and 
-    *target*.
-    
-    *mobile* and *target* may be NumPy coordinate arrays, or istances of 
-    Molecule, AtomGroup, Chain, or Residue."""
-    
-    name = ''
-    if not isinstance(mobile, np.ndarray): 
-        try:
-            mob = mobile._getCoords()
-        except AttributeError:
-            raise TypeError('mobile must be a numpy array or an object '
-                            'with getCoords method')
-    else:
-        mob = mobile
-    if not isinstance(target, np.ndarray): 
-        try:
-            tar = target._getCoords()
-        except AttributeError:
-            raise TypeError('target must be a numpy array or an object '
-                            'with getCoords method')
-    else:
-        tar = target
-    
-    if mob.shape != tar.shape:
-        raise ValueError('reference and target coordinate arrays '
-                         'must have same shape')
-    
-
-    if mob.shape[1] != 3:
-        raise ValueError('reference and target must be 3-d coordinate arrays')
-    
-    if weights is not None:
-        if not isinstance(weights, np.ndarray): 
-            raise TypeError('weights must be an ndarray instance')
-        elif weights.shape != (mob.shape[0], 1):
-            raise ValueError('weights must have shape (n_atoms, 1)')
-
-    return _calcTransformation(mob, tar, weights)
-
-def _calcTransformation(mob, tar, weights=None):
-    
-    linalg = importLA()
-    
-    if weights is None:
-        mob_com = mob.mean(0)
-        tar_com = tar.mean(0)
-        mob = mob - mob_com
-        tar = tar - tar_com
-        matrix = np.dot(tar.T, mob)
-    else:
-        weights_sum = weights.sum()
-        weights_dot = np.dot(weights.T, weights)
-        mob_com = (mob * weights).sum(axis=0) / weights_sum
-        tar_com = (tar * weights).sum(axis=0) / weights_sum
-        mob = mob - mob_com
-        tar = tar - tar_com
-        matrix = np.dot((tar * weights).T, (mob * weights)) / weights_dot
-
-    U, s, Vh = linalg.svd(matrix)
-    Id = np.array([ [1, 0, 0], 
-                    [0, 1, 0], 
-                    [0, 0, np.sign(linalg.det(matrix))] ])
-    rotation = np.dot(Vh.T, np.dot(Id, U.T))
-
-    return Transformation(rotation, tar_com - np.dot(mob_com, rotation))
-
-def _superposeTraj(mobs, tar, weights=None, movs=None):
-    # mobs.ndim == 3 and movs.ndim == 3
-    # mobs.shape[0] == movs.shape[0]
-    linalg = importLA()
-    svd = linalg.svd
-    det = linalg.det
-    dot = np.dot
-    add = np.add
-    subtract = np.subtract
-    array = np.array
-    sign = np.sign
-    
-    tar_com = tar.mean(0)
-    tar_org_T = (tar - tar_com).T
-    mob_org = np.zeros(mobs.shape[-2:])
-
-    LOGGER.progress('Superposing ', len(mobs))
-    for i, mob in enumerate(mobs):      
-        mob_com = mob.mean(0)        
-        matrix = dot(tar_org_T, subtract(mob, mob_com, mob_org))
-        U, s, Vh = svd(matrix)
-        Id = array([ [1, 0, 0], [0, 1, 0], [0, 0, sign(det(matrix))] ])
-        rotation = dot(Vh.T, dot(Id, U.T))
-
-        if movs is None:
-            mobs[i] = dot(mob_org, rotation) 
-            add(mobs[i], tar_com, mobs[i]) 
-        else:
-            add(dot(movs[i], rotation), 
-                (tar_com - dot(mob_com, rotation)), movs[i])
-    
-        LOGGER.update(i)
-    LOGGER.clear()
-
-def _superpose(mob, tar, weights=None, mov=None):
-    tar_com = tar.mean(0)
-    tar_org = tar - tar_com
-
-    linalg = importLA()
-    mob_com = mob.mean(0)
-    mob_org = mob - mob_com
-    matrix = np.dot(tar_org.T, mob_org)
-
-    U, s, Vh = linalg.svd(matrix)
-    Id = np.array([ [1, 0, 0], 
-                    [0, 1, 0], 
-                    [0, 0, np.sign(linalg.det(matrix))] ])
-    rotation = np.dot(Vh.T, np.dot(Id, U.T))
-
-    if mov is None:
-        np.add(np.dot(mob_org, rotation), tar_com, mob) 
-    else:
-        np.add(np.dot(mov, rotation), 
-               (tar_com - np.dot(mob_com, rotation)), mov)
-
-
-def applyTransformation(transformation, atoms):
-    """Return *atoms* after applying *transformation*. If *atoms* is a 
-    class instance from :mod:`~prody.atomic`, it will be returned after 
-    *transformation* is applied to its active coordinate set. If *atoms*
-    is an :class:`~prody.atomic.AtomPointer` instance, *transformation* will
-    be applied to the corresponding coordinate set in the associated
-    :class:`~prody.atomic.AtomGroup` instance."""
-    
-    coords = None
-    ag = None
-    if isinstance(atoms, np.ndarray): 
-        if atoms.shape[1] != 3:
-            raise ValueError('atoms must be a 3-d coordinate array')
-        coords = atoms
-        atoms = None
-    else:
-        if isinstance(atoms, prody.AtomPointer):
-            ag = atoms.getAtomGroup()
-            acsi = ag.getACSIndex()
-            ag.setACSIndex(atoms.getACSIndex())
-            coords = ag._getCoords()
-        else:
-            try:
-                coords = atoms._getCoords()
-            except AttributeError:
-                raise TypeError('atoms must be a Atomic instance')
-                
-    if atoms is None:
-        return _applyTransformation(transformation, coords)
-    else:
-        if ag is None:
-            atoms.setCoords(_applyTransformation(transformation, coords))
-        else: 
-            ag.setCoords(_applyTransformation(transformation, coords))
-            ag.setACSIndex(acsi)
-        return atoms
-
-def _applyTransformation(t, coords):
-    return t._translation + np.dot(coords, t._rotation)
-    
-
-def calcDeformVector(from_atoms, to_atoms):
-    """Returns deformation from *from_atoms* to *atoms_to* as a 
-    :class:`~prody.dynamics.Vector` instance."""
-    
-    name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
-    if len(name) > 30: 
-        name = 'Deformation'
-    array = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
-    return prody.Vector(array, name)
-
-def calcRMSD(reference, target=None, weights=None):
-    """Returns Root-Mean-Square-Deviations between reference and target 
-    coordinates.
-    
-    >>> ens = loadEnsemble('p38_X-ray.ens.npz')
-    >>> print ens.getRMSDs().round(2) # doctest: +ELLIPSIS
-    [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
-      ...
-      0.58  0.66  0.83]
-    >>> print calcRMSD(ens).round(2) # doctest: +ELLIPSIS
-    [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
-      ...
-      0.58  0.66  0.83]
-    >>> print calcRMSD(ens.getCoords(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
-    [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
-      ...
-      0.58  0.66  0.83]
-    
-    """
-    
-    if isinstance(reference, np.ndarray): 
-        ref = reference
-    else:
-        try:
-            ref = reference._getCoords()
-        except AttributeError:
-            raise TypeError('reference must be a numpy array or an object '
-                            'with getCoords method')
-        if target is None:
-            try:
-                target = reference._getCoordsets()
-            except AttributeError:
-                pass
-        if weights is None:
-            try:
-                weights = reference._getWeights()
-            except AttributeError:
-                pass
-    if ref.ndim != 2 or ref.shape[1] != 3:
-        raise ValueError('reference must have shape (n_atoms, 3)')
-    
-    if isinstance(target, np.ndarray): 
-        tar = target
-    else:
-        try:
-            tar = target._getCoords()
-        except AttributeError:
-            raise TypeError('target must be a numpy array or an object '
-                            'with getCoords method')
-    if tar.ndim not in (2, 3) or tar.shape[-1] != 3:
-        raise ValueError('target must have shape ([n_confs,] n_atoms, 3)')
-
-    if ref.shape != tar.shape[-2:]:
-        raise ValueError('reference and target arrays must have the same '
-                         'number of atoms')
-    
-    if weights is not None:
-        if not isinstance(weights, np.ndarray): 
-            raise TypeError('weights must be an ndarray instance')
-        elif not ((weights.ndim == 2 and len(weights) == len(ref)) or
-            (weights.ndim == 3 and weights.shape[:2] == target.shape[:2])) or \
-             weights.shape[-1] != 1:
-            raise ValueError('weights must have shape ([n_confs,] n_atoms, 1)')
-    return _calcRMSD(ref, tar, weights)
-    
-def _calcRMSD(ref, tar, weights=None):
-    if weights is None:
-        divByN = 1.0 / ref.shape[0]
-        if tar.ndim == 2:
-            return np.sqrt(((ref-tar) ** 2).sum() * divByN)
-        else:
-            rmsd = np.zeros(len(tar))
-            for i, t in enumerate(tar):
-                rmsd[i] = ((ref-t) ** 2).sum() 
-            return np.sqrt(rmsd * divByN)
-    else:
-        if tar.ndim == 2:
-            return np.sqrt((((ref-tar) ** 2) * weights).sum() * 
-                                                    (1 / weights.sum()))
-        else:
-            rmsd = np.zeros(len(tar))
-            if weights.ndim == 2:
-                for i, t in enumerate(tar):
-                    rmsd[i] = (((ref-t) ** 2) * weights).sum() 
-                return np.sqrt(rmsd * (1 / weights.sum()))
-            else:
-                for i, t in enumerate(tar):
-                    rmsd[i] = (((ref-t) ** 2) * weights[i]).sum()
-                return np.sqrt(rmsd / weights.sum(1).flatten())
-            
-    
-def superpose(mobile, target, weights=None):
-    """Superpose *mobile* onto *target* to minimize the RMSD distance.
-    Return *target*, after superposition, and the transformation."""
-    
-    t = calcTransformation(mobile, target, weights)
-    result = applyTransformation(t, mobile)
-    return (result, t)
 
 def calcDistance(one, two):
     """Return the Euclidean distance between *one* and *two*.
     
-    Arguments may be :class:`~prody.atomic.Atomic` instances or NumPy arrays. 
+    Arguments may be :class:`~.Atomic` instances or NumPy arrays. 
     Shape of numpy arrays must be ([M,]N,3), where M is number of coordinate 
     sets and N is the number of atoms."""
     
@@ -429,58 +63,14 @@ def calcDistance(one, two):
     
     return np.sqrt(np.power(one - two, 2).sum(axis=-1))
     
-def alignCoordsets(atoms, selstr='calpha', weights=None):
-    """Superpose coordinate sets onto the active coordinate set.
-    
-    Atoms matching *selstr* will be used for calculation of transformation 
-    matrix. Transformation matrix will be applied to all atoms in *atoms*,
-    or its :class:`~prody.atomics.AtomGroup` if *atoms* is an 
-    :class:`~prody.atomics.AtomPointer`.
-    
-    By default, alpha carbon atoms are used to calculate the transformations.
-    
-    Optionally, atomic *weights* can be passed for weighted superposition."""
-    
-    if not isinstance(atoms, prody.Atomic):
-        raise TypeError('atoms must have type Atomic, not {0:s}'
-                        .format(type(atoms)))
-    if not isinstance(selstr, str):
-        raise TypeError('selstr must have type str, not {0:s}'
-                        .format(type(selstr)))
-    n_csets = atoms.numCoordsets()
-    if n_csets < 2:
-        LOGGER.warning('{0:s} contains only one coordinate set, '
-                       'superposition not performed.'.format(str(atoms)))
-        return None
-    
-    acsi = atoms.getACSIndex()
-    if isinstance(atoms, prody.AtomGroup):
-        ag = atoms
-    else: 
-        ag = atoms.getAtomGroup()
-    agacsi = ag.getACSIndex()
-    tar = atoms.select(selstr)
-    if tar is None:
-        raise ValueError("selstr '{0:s}' did not match any atoms"
-                         .format(selstr))
-    mob = prody.AtomSubset(ag, tar.getIndices(), 0)
-    assert tar.getACSIndex() == acsi
-    for i in range(n_csets):
-        if i == acsi:
-            continue
-        mob.setACSIndex(i)
-        ag.setACSIndex(i)
-        calcTransformation(mob, tar, weights).apply(ag)
-    ag.setACSIndex(agacsi)
-
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
     """Return the angle between atoms in degrees."""
     
-    if not isinstance(atoms1, prody.Atomic):
+    if not isinstance(atoms1, Atomic):
         raise TypeError('atoms1 must be an Atomic instance')
-    if not isinstance(atoms2, prody.Atomic):
+    if not isinstance(atoms2, Atomic):
         raise TypeError('atoms2 must be an Atomic instance')
-    if not isinstance(atoms3, prody.Atomic):
+    if not isinstance(atoms3, Atomic):
         raise TypeError('atoms3 must be an Atomic instance')
     if not atoms1.numAtoms() == atoms2.numAtoms() == atoms3.numAtoms():
         raise ValueError('all arguments must have same number of atoms')
@@ -498,13 +88,13 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
 def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
     """Return the dihedral angle between atoms in degrees."""
     
-    if not isinstance(atoms1, prody.Atomic):
+    if not isinstance(atoms1, Atomic):
         raise TypeError('atoms1 must be an Atomic instance')
-    if not isinstance(atoms2, prody.Atomic):
+    if not isinstance(atoms2, Atomic):
         raise TypeError('atoms2 must be an Atomic instance')
-    if not isinstance(atoms3, prody.Atomic):
+    if not isinstance(atoms3, Atomic):
         raise TypeError('atoms3 must be an Atomic instance')
-    if not isinstance(atoms4, prody.Atomic):
+    if not isinstance(atoms4, Atomic):
         raise TypeError('atoms4 must be an Atomic instance')
     if not atoms1.numAtoms() == atoms2.numAtoms() == \
            atoms3.numAtoms() == atoms4.numAtoms():
@@ -532,10 +122,10 @@ def calcOmega(residue, radian=False, dist=4.1):
     the distance between Cα atoms of two residues.  Set *dist* to none, to 
     avoid this check."""
 
-    if not isinstance(residue, prody.Residue):
+    if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
     next = residue.getNext()
-    if not isinstance(next, prody.Residue):
+    if not isinstance(next, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
     CA = residue['CA']
     if CA is None:
@@ -561,10 +151,10 @@ def calcPhi(residue, radian=False, dist=4.1):
     the distance between Cα atoms of two residues.  Set *dist* to none, to 
     avoid this check."""
 
-    if not isinstance(residue, prody.Residue):
+    if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
     prev = residue.getPrev()
-    if not isinstance(prev, prody.Residue):
+    if not isinstance(prev, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
 
     C_ = prev['C']
@@ -593,10 +183,10 @@ def calcPsi(residue, radian=False, dist=4.1):
     the distance between Cα atoms of two residues.  Set *dist* to none, to 
     avoid this check."""
 
-    if not isinstance(residue, prody.Residue):
+    if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
     next = residue.getNext()
-    if not isinstance(next, prody.Residue):
+    if not isinstance(next, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
     N = residue['N']
     if N is None:
@@ -643,128 +233,6 @@ def calcCenter(atoms, weights=None):
             raise ValueError('weights length must be equal to number of atoms')
         return (coords * weights).mean(0) / weights.sum()
 
-def moveAtoms(atoms, array):
-    """Move or transform *atoms*. *array* must be :class:`numpy.ndarray`.  
-    If shape of *array* is one of ``(natoms, 3)``, ``(1, 3)``, or ``(3,)``,
-    *atoms* will be translated. Ff *array* is a ``(4,4)`` matrix, coordinates
-    will be transformed."""
-    
-    try:
-        coords = atoms._getCoords()
-    except AttributeError: 
-        raise TypeError("atoms doesn't have a valid type: " + str(type(atoms)))
-    if not isinstance(array, np.ndarray):
-        raise TypeError('offset must be a NumPy array')
-    if array.shape[-1] == 3 and array.ndim in (1,2):
-        coords += array
-    elif array.shape == (4,4):
-        coords = np.dot(coords, array[:3,:3])
-        coords += array[3,:3]
-    else:
-        raise ValueError('array does not have right shape')
-    atoms.setCoords(coords)
-    
-
-        
-def buildKDTree(atoms):
-    """Return a KDTree built using coordinates of *atoms*.  *atoms* must be
-    a ProDy object or a :class:`numpy.ndarray` with shape ``(n_atoms,3)``.  
-    This function uses Biopython KDTree module."""
-    
-    if isinstance(atoms, np.ndarray):
-        coords = checkCoords(atoms, 'atoms')
-        return getKDTree(coords)
-    else:
-        try:
-            coords = atoms._getCoords()
-        except AttributeError:
-            raise TypeError('invalid type for atoms')
-        finally:
-            return getKDTree(coords)
-
-def getKDTree(coords):
-    """Internal function to get KDTree for coordinates without any checks."""
-
-    from prody.KDTree import KDTree
-    return KDTree(coords)
-    
-def iterNeighbors(atoms, radius, atoms2=None):
-    """Yield pairs of *atoms* that are those within *radius* of each other,
-    with the distance between them.  If *atoms2* is also provided, one atom 
-    from *atoms* and another from *atoms2* will be yielded."""
-    
-    if not isinstance(atoms, prody.Atomic):
-        raise TypeError('atoms must be an Atomic instance')
-    elif not isinstance(radius, (float, int)):
-        raise TypeError('radius must be an Atomic instance')
-    elif radius <= 0:
-        raise ValueError('radius must have a positive value')
-        
-    if atoms2 is None:
-        if len(atoms) <= 1:
-            raise ValueError('length of atoms must be more than 1')
-        ag = atoms
-        if not isinstance(ag, prody.AtomGroup):
-            ag = ag.getAtomGroup()
-            indices = atoms._getIndices()
-            index = lambda i: indices[i]
-        else:
-            index = lambda i: i
-        kdtree = getKDTree(atoms._getCoords())
-        kdtree.all_search(radius)
-        
-        _dict = {}
-        for (i, j), r in zip(kdtree.all_get_indices(), kdtree.all_get_radii()): 
-             
-            a1 = _dict.get(i)
-            if a1 is None:      
-                a1 = ag[index(i)]
-                _dict[i] = a1
-            a2 = _dict.get(j)
-            if a2 is None:      
-                a2 = ag[index(j)]
-                _dict[j] = a2
-            yield (a1, a2, r)   
-    else:
-        if len(atoms) >= len(atoms2): 
-            ag = atoms
-            if not isinstance(ag, prody.AtomGroup):
-                ag = ag.getAtomGroup()
-                indices = atoms._getIndices()
-                index = lambda i: indices[i]
-            else:
-                index = lambda i: i
-            kdtree = getKDTree(atoms._getCoords())
-            
-            _dict = {}
-            for a2 in atoms2.iterAtoms():
-                kdtree.search(a2._getCoords(), radius)
-                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
-                    a1 = _dict.get(i)
-                    if a1 is None:      
-                        a1 = ag[index(i)]
-                        _dict[i] = a1
-                    yield (a1, a2, r)   
-        else:    
-            ag = atoms2
-            if not isinstance(ag, prody.AtomGroup):
-                ag = ag.getAtomGroup()
-                indices = atoms2._getIndices()
-                index = lambda i: indices[i]
-            else:
-                index = lambda i: i
-            kdtree = getKDTree(atoms2._getCoords())
-            
-            _dict = {}
-            for a1 in atoms.iterAtoms():
-                kdtree.search(a1._getCoords(), radius)
-                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
-                    a2 = _dict.get(i)
-                    if a2 is None:      
-                        a2 = ag[index(i)]
-                        _dict[i] = a2
-                    yield (a1, a2, r)   
-
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
     
@@ -809,13 +277,23 @@ def calcGyradius(atoms, weights=None):
                 rgyr.append(d2sum)
         d2sum = np.array(rgyr)
     return (d2sum / wsum) ** 0.5
+
+def calcDeformVector(from_atoms, to_atoms):
+    """Returns deformation from *from_atoms* to *atoms_to* as a 
+    :class:`~.Vector` instance."""
+    
+    name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
+    if len(name) > 30: 
+        name = 'Deformation'
+    array = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
+    return prody.dynamics.Vector(array, name)
             
 def calcADPAxes(atoms, **kwargs):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
     
     :arg atoms: a ProDy object for handling atomic data
-    :type atoms: prody.atomic.Atomic
+    :type atoms: :class:`~.Atomic`
 
     :kwarg fract: For an atom, if the fraction of anisotropic displacement 
         explained by its largest axis/eigenvector is less than given value, 
@@ -866,12 +344,10 @@ def calcADPAxes(atoms, **kwargs):
     >>> nma
     <NMA: ADPs (3 modes, 46 atoms)>
     >>> writeNMD( 'adp_axes.nmd', nma, calphas )
-    'adp_axes.nmd'
-    
-    """
+    'adp_axes.nmd'"""
     
     linalg = importLA()
-    if not isinstance(atoms, prody.Atomic):
+    if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be of type Atomic, not {0:s}'
                         .format(type(atoms)))
     anisous = atoms.getAnisous()
@@ -950,7 +426,7 @@ def calcADPs(atom):
     as a tuple, i.e. (eigenvalues, eigenvectors)."""
     
     linalg = importLA()
-    if not isinstance(atom, prody.Atom):
+    if not isinstance(atom, Atom):
         raise TypeError('atom must be of type Atom, not {0:s}'
                         .format(type(atom)))
     anisou = atom.getAnisou()
@@ -973,10 +449,9 @@ def buildADPMatrix(atoms):
     >>> from prody import *
     >>> protein = parsePDB('1ejg')  
     >>> calphas = protein.select('calpha')
-    >>> adp_matrix = buildADPMatrix( calphas )
-    """
+    >>> adp_matrix = buildADPMatrix( calphas )"""
     
-    if not isinstance(atoms, prody.Atomic):
+    if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be of type Atomic, not {0:s}'
                         .format(type(atoms)))
     anisous = atoms.getAnisous()
@@ -997,6 +472,4 @@ def buildADPMatrix(atoms):
         element[1,2] = element[2,1] = anisou[5]
         adp[i*3:(i+1)*3, i*3:(i+1)*3] = element
     return adp
-        
-    
 

@@ -16,9 +16,49 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for ...
+"""This module defines classes measuring quantities, transforming coordinates,
+and identifying contacts.
 
-.. currentmodule:: prody.measure"""
+
+Identify contacts
+=================
+
+  * :class:`~.Contacts` - identify intermolecular contacts
+  * :func:`~.buildKDTree` - build a KDTree for given atoms or coordinate set
+  * :func:`~.iterNeighbors` - yield interacting atom pairs
+
+Measure quantities
+==================
+
+  * :func:`~.calcDistance` - calculate distance(s)
+  * :func:`~.calcAngle` - calculate bond angle
+  * :func:`~.calcDihedral` - calculate dihedral angle
+  * :func:`~.calcOmega` - calculate omega (ω) angle
+  * :func:`~.calcPhi` - calculate phi (φ) angle
+  * :func:`~.calcPsi` - calculate psi (ψ) angle
+  * :func:`~.calcGyradius` - calculate radius of gyration
+  * :func:`~.calcCenter` - calculate geometric (or mass) center
+  * :func:`~.calcDeformVector` - calculate deformation vector
+
+
+Anisotropic displacement parameters
+===================================
+
+  * :func:`~.buildADPMatrix` - build ADP matrix 
+  * :func:`~.calcADPAxes` - calculate ADP axes
+  * :func:`~.calcADPs` - calculate ADPs
+
+Transformations
+===============
+      
+  * :class:`~.Transformation` - store transformation matrix
+  * :func:`~.alignCoordsets` - align multiple coordinate sets
+  * :func:`~.applyTransformation` - apply a transformation
+  * :func:`~.calcTransformation` - calculate a transformation
+  * :func:`~.calcRMSD` - calculate root-mean-square distance
+  * :func:`~.superpose` - superpose atoms or coordinate sets
+  * :func:`~.moveAtoms` - move atoms by given offset
+"""
 
 import prody
 LOGGER = prody.LOGGER
@@ -30,9 +70,14 @@ import measure
 from measure import *
 __all__.extend(measure.__all__)
 
-from measure import getKDTree
-
 import contacts
 from contacts import *
 __all__.extend(contacts.__all__)
 
+from contacts import getKDTree
+
+import transform
+from transform import *
+__all__.extend(transform.__all__)
+
+from transform import _superposeTraj, _superposeTraj, _calcRMSD

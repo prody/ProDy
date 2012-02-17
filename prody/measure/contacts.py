@@ -16,21 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" This module defines a class for identifying contacts.
-
-.. currentmodule:: prody
-"""
+""" This module defines a class and function for identifying contacts."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-import prody
-from measure import getKDTree
+from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
+from prody.tools import checkCoords
 
-__all__ = ['Contacts']
-
+__all__ = ['Contacts', 'buildKDTree', 'iterNeighbors']
 
 class Contacts(object):
     
@@ -40,14 +36,14 @@ class Contacts(object):
     
     def __init__(self, atoms):
         """*atoms* for which contacts will be identified. *atoms* can be
-        instances of one of :class:`~atomic.atomgroup.AtomGroup` or 
-        :class:`~atomic.subset.AtomSubset`."""
+        instances of one of :class:`~.AtomGroup`, :class:`~.Selection`, 
+        :class:`~.Chain`, or :class:`~.Segment`."""
 
-        if not isinstance(atoms, (prody.AtomGroup, prody.AtomSubset)):                
+        if not isinstance(atoms, (AtomGroup, AtomSubset)):                
             raise TypeError('{0:s} is not a valid type for atoms'
                             .format(type(atoms)))
         self._atoms = atoms
-        if isinstance(atoms, prody.AtomGroup):
+        if isinstance(atoms, AtomGroup):
             self._ag = atoms 
             self._indices = None
             self._kdtree = atoms._getKDTree()
@@ -99,6 +95,105 @@ class Contacts(object):
         if len(indices) != 0:
             if self._indices is not None:        
                 indices = self._indices[indices]
-            return prody.Selection(self._ag, np.array(indices), 
+            return Selection(self._ag, np.array(indices), 
                     'index {0:s}'.format(' '.join(np.array(indices, '|S'))), 
                                          acsi=self._acsi, unique=True)
+
+def buildKDTree(atoms):
+    """Return a KDTree built using coordinates of *atoms*.  *atoms* must be
+    a ProDy object or a :class:`numpy.ndarray` with shape ``(n_atoms,3)``.  
+    This function uses Biopython KDTree module."""
+    
+    if isinstance(atoms, np.ndarray):
+        coords = checkCoords(atoms, 'atoms')
+        return getKDTree(coords)
+    else:
+        try:
+            coords = atoms._getCoords()
+        except AttributeError:
+            raise TypeError('invalid type for atoms')
+        finally:
+            return getKDTree(coords)
+
+def getKDTree(coords):
+    """Internal function to get KDTree for coordinates without any checks."""
+
+    from prody.KDTree import KDTree
+    return KDTree(coords)
+    
+def iterNeighbors(atoms, radius, atoms2=None):
+    """Yield pairs of *atoms* that are those within *radius* of each other,
+    with the distance between them.  If *atoms2* is also provided, one atom 
+    from *atoms* and another from *atoms2* will be yielded."""
+    
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+    elif not isinstance(radius, (float, int)):
+        raise TypeError('radius must be an Atomic instance')
+    elif radius <= 0:
+        raise ValueError('radius must have a positive value')
+        
+    if atoms2 is None:
+        if len(atoms) <= 1:
+            raise ValueError('length of atoms must be more than 1')
+        ag = atoms
+        if not isinstance(ag, AtomGroup):
+            ag = ag.getAtomGroup()
+            indices = atoms._getIndices()
+            index = lambda i: indices[i]
+        else:
+            index = lambda i: i
+        kdtree = getKDTree(atoms._getCoords())
+        kdtree.all_search(radius)
+        
+        _dict = {}
+        for (i, j), r in zip(kdtree.all_get_indices(), kdtree.all_get_radii()): 
+             
+            a1 = _dict.get(i)
+            if a1 is None:      
+                a1 = ag[index(i)]
+                _dict[i] = a1
+            a2 = _dict.get(j)
+            if a2 is None:      
+                a2 = ag[index(j)]
+                _dict[j] = a2
+            yield (a1, a2, r)   
+    else:
+        if len(atoms) >= len(atoms2): 
+            ag = atoms
+            if not isinstance(ag, AtomGroup):
+                ag = ag.getAtomGroup()
+                indices = atoms._getIndices()
+                index = lambda i: indices[i]
+            else:
+                index = lambda i: i
+            kdtree = getKDTree(atoms._getCoords())
+            
+            _dict = {}
+            for a2 in atoms2.iterAtoms():
+                kdtree.search(a2._getCoords(), radius)
+                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
+                    a1 = _dict.get(i)
+                    if a1 is None:      
+                        a1 = ag[index(i)]
+                        _dict[i] = a1
+                    yield (a1, a2, r)   
+        else:    
+            ag = atoms2
+            if not isinstance(ag, AtomGroup):
+                ag = ag.getAtomGroup()
+                indices = atoms2._getIndices()
+                index = lambda i: indices[i]
+            else:
+                index = lambda i: i
+            kdtree = getKDTree(atoms2._getCoords())
+            
+            _dict = {}
+            for a1 in atoms.iterAtoms():
+                kdtree.search(a1._getCoords(), radius)
+                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
+                    a2 = _dict.get(i)
+                    if a2 is None:      
+                        a2 = ag[index(i)]
+                        _dict[i] = a2
+                    yield (a1, a2, r)   
