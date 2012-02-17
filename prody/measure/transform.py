@@ -81,7 +81,7 @@ class Transformation(object):
     
     def apply(self, atoms):
         """Applies transformation to given atoms or coordinate set.  ProDy 
-        class instances from :mod:`~.atomic` are accepted.  Instance is 
+        class instances from :mod:`~prody.atomic` are accepted.  Instance is 
         returned after its active coordinate set is transformed.  If a 
         :class:`~.AtomPointer` is passsed, the :class:`~.AtomGroup` that it 
         points to is transformed. 
