@@ -163,8 +163,8 @@ Save/load models
 Dynamics objects can be efficiently saved and loaded in later Python sessions 
 using the following functions:
 
-| :func:`loadModel`, :func:`saveModel` - load/save dynamics models
-| :func:`loadVector`, :func:`saveVector` - load/save normal modes and vectors
+| :func:`~.loadModel`, :func:`~.saveModel` - load/save dynamics models
+| :func:`~.loadVector`, :func:`~.saveVector` - load/save modes or vectors
   
 
 Short-hand functions
@@ -301,6 +301,10 @@ __all__.extend(modeset.__all__)
 
 modeset.NMA = NMA
 
+import gamma
+from gamma import *
+__all__.extend(gamma.__all__)
+
 import anm
 from anm import *
 __all__.extend(anm.__all__)
@@ -312,3 +316,4 @@ __all__.extend(gnm.__all__)
 import pca
 from pca import *
 __all__.extend(pca.__all__)
+
