@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _pca-dimer:
 
 *******************************************************************************
@@ -13,8 +11,6 @@ This example shows how to perform PCA of structural dataset for a dimeric
 protein. The protein of interest is HIV reverse transcriptase (RT). 
 Dataset will be obtained by blast searching PDB.
 
-.. versionadded:: 0.5.3
-
 User input
 -------------------------------------------------------------------------------
  
@@ -27,10 +23,10 @@ User input
 Output
 -------------------------------------------------------------------------------
 
-A :class:`PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`PCA` instance
-and principal modes (:class:`Mode`) can be used as input to functions in 
-:mod:`~prody.dynamics` module for further analysis.
+A :class:`~.PCA` instance that stores covariance matrix and principal modes
+that describes the dominant changes in the dataset. :class:`~.PCA` instance
+and principal modes (:class:`~.Mode`) can be used as input to functions in 
+:mod:`~.dynamics` module for further analysis.
 
 ProDy Code
 ===============================================================================
@@ -114,7 +110,7 @@ Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
 Step 3: Prepare ensemble
 -------------------------------------------------------------------------------
  
-Instantiate an :class:`~prody.ensemble.PDBEnsemble`
+Instantiate an :class:`~.PDBEnsemble`
 
 >>> ensemble = PDBEnsemble(name)
 
@@ -124,7 +120,7 @@ of the ensemble.
 >>> reference_chain = reference_chains[0] + reference_chains[1]
 >>> ensemble.setCoords(reference_chain.getCoords())
 
-We also start a log file using :func:`prody.startLogfile`. 
+We also start a log file using :func:`~.startLogfile`. 
 Screen output will be save in this file, and can be
 used to check if structures are added to the ensemble as expected.
 
@@ -159,7 +155,7 @@ Now, we parse the PDB files one by one and add them to the ensemble:
 >>> saveEnsemble(ensemble)
 'HIV-RT.ens.npz'
 
-We can now close the logfile using :func:`~prody.closeLogfile`:
+We can now close the logfile using :func:`~.closeLogfile`:
 
 >>> closeLogfile(name)
 
@@ -181,7 +177,7 @@ This is a heterogeneous dataset, i.e. many structures had missing residues.
 We want to make sure that we include residues in PCA analysis if they
 are resolved in more than 94% of the time.
 
-We can find out this using :func:`~prody.ensemble.calcOccupancies` function:
+We can find out this using :func:`~.calcOccupancies` function:
 
 >>> print( calcOccupancies(ensemble, normed=True).min().round(3) )
 0.252
@@ -202,13 +198,13 @@ After trimmin, another round of iterative superposition may be useful:
 Step 4: Perform PCA
 -------------------------------------------------------------------------------
 
-Once the ensemble is ready, performing :class:`PCA` is 3 easy steps:
+Once the ensemble is ready, performing :class:`~.PCA` is 3 easy steps:
 
 >>> pca = PCA(name)
 >>> pca.buildCovariance(ensemble)
 >>> pca.calcModes()
    
-The calculated data can be saved as a compressed file using :func:`saveModel`
+The calculated data can be saved as a compressed file using :func:`~.saveModel`
 
 >>> saveModel(pca) 
 'HIV-RT.pca.npz'

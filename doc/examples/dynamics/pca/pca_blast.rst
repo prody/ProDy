@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _pca-blast:
 
 *******************************************************************************
@@ -26,10 +24,10 @@ Input
 Output
 -------------------------------------------------------------------------------
 
-A :class:`PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`PCA` instance
-and principal modes (:class:`Mode`) can be used as input to functions in 
-:mod:`~prody.dynamics` module for further analysis.
+A :class:`~.PCA` instance that stores covariance matrix and principal modes
+that describes the dominant changes in the dataset. :class:`~.PCA` instance
+and principal modes (:class:`~.Mode`) can be used as input to functions in 
+:mod:`~.dynamics` module for further analysis.
  
 ProDy Code
 ===============================================================================
@@ -96,7 +94,7 @@ The results are displayed for following list of structures:
 ...  ('1s6v', 'B'), ('1yea', 'A'), ('1yeb', 'A'), ('1lfm', 'A'), ('2b10', 'B'),
 ...  ('1u74', 'B'), ('1j3s', 'A'), ('1chi', 'A'),]
 
-List of PDB structures can be updated using :func:`~prody.proteins.blastPDB` 
+List of PDB structures can be updated using :func:`~.blastPDB` 
 as follows::
 
   blast_record = blastPDB(sequence)
@@ -191,7 +189,7 @@ Once the ensemble is ready, performing PCA is 3 easy steps:
 >>> # Calculate modes
 >>> pca.calcModes()
    
-The calculated data can be saved as a compressed file using :func:`saveModel`
+The calculated data can be saved as a compressed file using :func:`~.saveModel`
 function:
 
 >>> saveModel(pca)

@@ -1,9 +1,14 @@
 .. _proteins:
 
 **************
-prody proteins
+prody.proteins
 **************
 
 .. automodule:: prody.proteins
-   :members:
-   :undoc-members:
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :hidden:
+
+   *

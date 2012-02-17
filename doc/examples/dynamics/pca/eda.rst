@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _eda:
 
 *******************************************************************************
@@ -26,10 +24,10 @@ Example input:
 Output
 -------------------------------------------------------------------------------
 
-A :class:`EDA` instance that stores covariance matrix and principal modes
+A :class:`~.EDA` instance that stores covariance matrix and principal modes
 that describes the essential dynamics of the system observed in the simulation. 
-:class:`EDA` instance and principal modes (:class:`Mode`) can be used as input 
-to functions in :mod:`~prody.dynamics` module for further analysis.
+:class:`~.EDA` instance and principal modes (:class:`~.Mode`) can be used as 
+input to functions in :mod:`~.dynamics` module for further analysis.
 
 Notes
 -------------------------------------------------------------------------------
@@ -56,7 +54,7 @@ be useful in a number of places, so let's start with parsing this file first:
 >>> structure
 <AtomGroup: mdm2 (1449 atoms)>
 
-This function returned a :class:`~prody.atomic.AtomGroup` instance that
+This function returned a :class:`~.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
 EDA calculations
@@ -68,8 +66,8 @@ two ways.
 **Small trajectory files**
 
 If you are analyzing a small trajectory, you can use an 
-:class:`~prody.ensemble.Ensemble` instance obtained by parsing the 
-trajectory at once using :func:`~prody.ensemble.parseDCD`:
+:class:`~.Ensemble` instance obtained by parsing the 
+trajectory at once using :func:`~.parseDCD`:
 
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble.setAtoms( structure )
@@ -85,7 +83,7 @@ trajectory at once using :func:`~prody.ensemble.parseDCD`:
 **Large trajectory files**
 
 If you are analyzing a large trajectory, you can pass the trajectory instance
-to the :meth:`~dynamics.PCA.buildCovariance` method as follows:
+to the :meth:`.PCA.buildCovariance` method as follows:
 
 >>> dcd = DCDFile('mdm2.dcd')
 >>> dcd.setAtoms( structure )
@@ -133,7 +131,7 @@ them. In this case we will use data from two independent simulations
 
 **Save your work**
 
-You can save your work using ProDy function :func:`saveModel`. This will 
+You can save your work using ProDy function :func:`~.saveModel`. This will 
 allow you to avoid repeating calculations when you return to your work later:
 
 >>> saveModel(eda)
@@ -184,8 +182,8 @@ Now, let's project the trajectories onto top three essential modes:
    plt.figure(figsize=(5,4))
    
    # We project independent trajectories in different color   
-   showProjection(mdm2ca_sim1, eda[:3], color='red', marker='-', ls='-')
-   showProjection(mdm2ca_sim2, eda[:3], color='blue', marker='-', ls='-')
+   showProjection(mdm2ca_sim1, eda[:3], color='red', marker='.')
+   showProjection(mdm2ca_sim2, eda[:3], color='blue', marker='.')
    
    # Now let's mark the beginning of the trajectory with a circle
    showProjection(mdm2ca_sim1[0], eda[:3], color='red', marker='o', ms=12)

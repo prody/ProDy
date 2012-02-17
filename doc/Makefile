@@ -36,7 +36,8 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf $(BUILDDIR)/* $(DOCDIR)/*
+	-rm -rf $(DOCDIR)/*
+	# -rm -rf $(BUILDDIR)/* $(DOCDIR)/*
 
 stats:
 	pyps update -s ProDy_stats.pkl ProDy; \

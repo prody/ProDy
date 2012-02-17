@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _pca-xray-calculations:
 
 *******************************************************************************
@@ -22,10 +20,10 @@ is sufficient.
 Output
 -------------------------------------------------------------------------------
 
-A :class:`PCA` instance that stores the covariance matrix and principal modes
-describing the dominant changes in the dataset. The :class:`PCA` instance
-and principal modes (:class:`Mode`) can be used as input for the functions in 
-:mod:`~prody.dynamics` module.
+A :class:`~.PCA` instance that stores the covariance matrix and principal modes
+describing the dominant changes in the dataset. The :class:`~.PCA` instance
+and principal modes (:class:`~.Mode`) can be used as input for the functions in 
+:mod:`~.dynamics` module.
 
 
 ProDy Code
@@ -59,7 +57,7 @@ These changes are reflected to the above list.
   
 Also note that, it is possible to update this list to include all of the p38
 structures currently available in the PDB using the 
-:func:`~prody.proteins.blastPDB` function as follows: 
+:func:`~.blastPDB` function as follows: 
  
 >>> p38_sequence ='''GLVPRGSHMSQERPTFYRQELNKTIWEVPERYQNLSPVGSGAYGSVCAAFDTKTGHRVAVKKLSRPFQS
 ... IIHAKRTYRELRLLKHMKHENVIGLLDVFTPARSLEEFNDVYLVTHLMGADLNNIVKCQKLTDDHVQFLIYQILRGLKYI
@@ -71,7 +69,7 @@ structures currently available in the PDB using the
 
 We use the same set of structures to reproduce the results.
 After we listed the PDB identifiers, we obtain them using 
-:func:`~prody.proteins.fetchPDB` function as follows:
+:func:`~.fetchPDB` function as follows:
  
 >>> pdbfiles = fetchPDB(pdbids, folder='pdbfiles', compressed=False)
   
@@ -95,8 +93,8 @@ Select chain A from the reference structure
 >>> ref_chain
 <Chain: A from p38 reference (321 residues, 321 atoms)>
 
-We use the :func:`~prody.proteins.parsePDB` function to parse a PDB file.
-This returns a :class:`~prody.atomic.AtomGroup` instance. We make a copy
+We use the :func:`~.parsePDB` function to parse a PDB file.
+This returns a :class:`~.AtomGroup` instance. We make a copy
 of α-carbon atoms of select residues for analysis.   
 
 |more| See :ref:`selections` for making selections.
@@ -109,8 +107,8 @@ have different sets of unresolved residues. Hence, it is not straightforward
 to analyzed them as it would be for NMR models (see :ref:`pca-nmr`). 
 
 ProDy has special functions and classes for facilitating efficient analysis
-of the PDB X-ray data. In this example we use :func:`~prody.compare.mapOntoChain` 
-function which returns an :class:`~prody.atomic.AtomMap` instance.
+of the PDB X-ray data. In this example we use :func:`~.mapOntoChain` 
+function which returns an :class:`~.AtomMap` instance.
 
 |more| See :ref:`atommaps` for more details.   
 
@@ -118,7 +116,7 @@ Start a logfile to save screen output:
 
 >>> startLogfile('p38_pca') 
 
-Instantiate an :class:`~prody.ensemble.PDBEnsemble` object:
+Instantiate an :class:`~.PDBEnsemble` object:
   
 >>> ensemble = PDBEnsemble('p38 X-ray')
   
@@ -155,11 +153,11 @@ Close the logfile (file content shows how chains were paired/mapped):
 Save coordinates
 -------------------------------------------------------------------------------
 
-We use :class:`~prody.ensemble.PDBEnsemble` to store coordinates of the X-ray 
-structures. The :class:`~prody.ensemble.PDBEnsemble` instances do not store any 
+We use :class:`~.PDBEnsemble` to store coordinates of the X-ray 
+structures. The :class:`~.PDBEnsemble` instances do not store any 
 other atomic data. If we want to write aligned coordinates into a file, we 
-need to pass the coordinates to an :class:`~prody.atomic.AtomGroup` instance.
-Then we use :func:`~prody.proteins.writePDB` function to save coordinates:
+need to pass the coordinates to an :class:`~.AtomGroup` instance.
+Then we use :func:`~.writePDB` function to save coordinates:
 
 >>> xray_coords = ref_structure.copy()
 >>> xray_coords.delCoordset(0) # Delete existing coordinate set
@@ -172,15 +170,13 @@ PCA calculations
 -------------------------------------------------------------------------------
 
 Once the coordinate data is prepared, it is straightforward to perform the 
-:class:`PCA` calculations:
+:class:`~.PCA` calculations:
 
 >>> pca = PCA('p38 xray')           # Instantiate a PCA instance
 >>> pca.buildCovariance(ensemble)   # Build covariance for the ensemble
 >>> pca.calcModes()                 # Calculate modes (20 of the by default)
 
 **Approximate method**
-
-.. versionadded:: 0.6.2
 
 In the following we are using singular value decomposition for faster 
 and more memory efficient calculation of principal modes:
@@ -203,7 +199,7 @@ method may be preferred over covariance method.
 ANM calculations
 -------------------------------------------------------------------------------
 
-To perform :class:`ANM` calculations:
+To perform :class:`~.ANM` calculations:
 
 >>> anm = ANM('1p38')             # Instantiate a ANM instance
 >>> anm.buildHessian(ref_chain)   # Build Hessian for the reference chain  
@@ -229,10 +225,9 @@ to share it with others.
 >>> writePDB('p38_ref_chain.pdb', ref_chain)
 'p38_ref_chain.pdb'
 
-We use the :func:`saveModel` and :func:`~prody.ensemble.saveEnsemble` 
-functions to save calculated data. In :ref:`pca-xray-analysis`, 
-we will use the :func:`loadModel` and :func:`~prody.ensemble.loadEnsemble` 
-functions to load the data.
+We use the :func:`~.saveModel` and :func:`~.saveEnsemble` functions to save 
+calculated data. In :ref:`pca-xray-analysis`, we will use the 
+:func:`~.loadModel` and :func:`~.loadEnsemble` functions to load the data.
 
 See Also
 ===============================================================================

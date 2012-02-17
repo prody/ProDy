@@ -1,10 +1,7 @@
-*************
-prody compare
-*************
+**********************
+prody.proteins.compare
+**********************
 
-:mod:`prody.compare`
-====================
-
-.. automodule:: prody.compare
+.. automodule:: prody.proteins.compare
    :members:
    :undoc-members:

@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _pca-nmr:
 
 *******************************************************************************
@@ -22,18 +20,18 @@ identifier for an NMR structure is sufficient.
 Output
 -------------------------------------------------------------------------------
 
-A :class:`PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`PCA` instance
-and principal modes (:class:`Mode`) can be used as input to functions in 
-:mod:`~prody.dynamics` module for further analysis.
+A :class:`~.PCA` instance that stores covariance matrix and principal modes
+that describes the dominant changes in the dataset. :class:`~.PCA` instance
+and principal modes (:class:`~.Mode`) can be used as input to functions in 
+:mod:`~.dynamics` module for further analysis.
 
 
 Notes
 -------------------------------------------------------------------------------
 
 Note that this example is slightly different from that in the :ref:`Tutorial`.
-This example uses the :class:`~prody.ensemble.Ensemble` class which has 
-a method for performing iterative superpositon.
+This example uses the :class:`~.Ensemble` class which has a method for 
+performing iterative superposition.
 
 Also, note that this example applies to any PDB file that contains multiple 
 models. 
@@ -48,8 +46,8 @@ We start by importing everything from the ProDy package:
 Prepare ensemble
 -------------------------------------------------------------------------------
 
-We parse only CA atoms using :func:`~prody.proteins.parsePDB` 
-(note that it is possible to repeat this calculation for all atoms):
+We parse only CA atoms using :func:`~.parsePDB` (note that it is possible to 
+repeat this calculation for all atoms):
  
 >>> ubi = parsePDB('2k39', subset='calpha')
 
@@ -71,7 +69,7 @@ iterative superposition:
 PCA calculations
 -------------------------------------------------------------------------------
 
-Performing :class:`PCA` is only three lines of code:
+Performing :class:`~.PCA` is only three lines of code:
 
 >>> pca = PCA('Ubiquitin')
 >>> pca.buildCovariance(ensemble)
@@ -97,8 +95,8 @@ For heterogeneous NMR datasets, both methods yields identical results:
 Write NMD file
 -------------------------------------------------------------------------------
 
-Write principal modes into an :term:`NMD` file for NMWiz using :func:`writeNMD` 
-function:
+Write principal modes into an :term:`NMD` file for NMWiz using 
+:func:`~.writeNMD` function:
 
 >>> writeNMD('ubi_pca.nmd', pca[:3], ubi)
 'ubi_pca.nmd'
@@ -119,14 +117,16 @@ Compare with ANM results
 
 We set the active coordinate set to 79, which is the one that is closest 
 to the mean structure (note that indices start from 0 in Python).
-Then, we perform ANM calculations using :func:`calcANM` for the active coordset:
+Then, we perform ANM calculations using :func:`~.calcANM` for the active 
+coordset:
 
 >>> ubi.setACSIndex(78)
 >>> anm, temp = calcANM(ubi)
 >>> anm.setTitle('Ubiquitin')
 
 We calculate overlaps between ANM and PCA modes (presented in Table 1).
-:func:`printOverlapTable` function is handy to print a formatted overlap table:
+:func:`~.printOverlapTable` function is handy to print a formatted overlap 
+table:
 
 >>> printOverlapTable(pca[:4], anm[:4])
 Overlap Table

@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _pca-xray-plotting:
 
 *******************************************************************************
@@ -162,7 +160,8 @@ Alternatively, we could plot normalized square fluctuations:
 Projections  
 -------------------------------------------------------------------------------
 
-Now we will project the ensemble onto PC 1 and 2 using :func:`showProjection`:
+Now we will project the ensemble onto PC 1 and 2 using 
+:func:`~.showProjection`:
 
 .. plot::
    :context:
@@ -224,9 +223,9 @@ It is possible to show the legend for this plot, but the figure gets crowded:
 Cross-projections
 -------------------------------------------------------------------------------
 
-Finally, we will make a cross-projection plot using :func:`showCrossProjection`.
-We will pass ``scale='y'`` argument, which will scale the width of the projection
-along ANM mode:
+Finally, we will make a cross-projection plot using 
+:func:`~.showCrossProjection`. We will pass ``scale='y'`` argument, which will 
+scale the width of the projection along ANM mode:
 
 
 .. plot::

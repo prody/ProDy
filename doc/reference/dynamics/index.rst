@@ -1,8 +1,10 @@
+.. _dynamics:
+
 **************
-prody.ensemble
+prody.dynamics
 **************
 
-.. automodule:: prody.ensemble
+.. automodule:: prody.dynamics
 
 .. toctree::
    :maxdepth: 2

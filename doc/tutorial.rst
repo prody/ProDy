@@ -94,13 +94,13 @@ ProDy documentation is organized in three main sections:
 * :ref:`reference` section describes all ProDy classes and functions, with some
   usage examples. Features are divided into following modules:
 
-  * :mod:`~prody.atomic` - efficient handling of atomic data
-  * :mod:`~prody.compare` - comparing protein chains
-  * :mod:`~prody.dynamics` - analysis and modeling of protein dynamics
-  * :mod:`~prody.ensemble` - analysis of ensembles and trajectories
-  * :mod:`~prody.measure` - analysis of geometrical properties 
-  * :mod:`~prody.proteins` - structure analysis and data retrieval
-  * :mod:`~prody.select` - atom selections
+  * :mod:`atomic` - efficient handling of atomic data
+  * :mod:`compare` - comparing protein chains
+  * :mod:`dynamics` - analysis and modeling of protein dynamics
+  * :mod:`ensemble` - analysis of ensembles and trajectories
+  * :mod:`measure` - analysis of geometrical properties 
+  * :mod:`proteins` - structure analysis and data retrieval
+  * :mod:`trajectory` - trajectory input and output
   
 In interactive sessions, the reference documentation can be accessed 
 using the built-in Python function :func:`help`:: 
@@ -170,7 +170,7 @@ Protein structure
 ===============================================================================
 
 Protein structure files in :file:`.pdb` format are the standard input for 
-ProDy.  PDB files are parsed using :func:`~proteins.parsePDB` (see 
+ProDy.  PDB files are parsed using :func:`~.parsePDB` (see 
 :ref:`pdbparser-performance` and :ref:`pdbparser-performance-2` for 
 benchmarks).  It is sufficient to pass a PDB identifier to read the file, and 
 the parser will download it automatically if needed.
@@ -187,11 +187,11 @@ You can tell ProDy where to get PDB files from or where to store downloaded
 files:
 
   * one of the `wwPDB <http://www.wwpdb.org/>`_ FTP servers in US, Europe or
-    Japan can be picked for downloads using :func:`~proteins.setWWPDBFTPServer`
+    Japan can be picked for downloads using :func:`~.setWWPDBFTPServer`
   * a local PDB mirror can be be set for faster access to files using
-    :func:`~proteins.setPDBMirrorPath` 
+    :func:`~.setPDBMirrorPath` 
   * a local folder can be set for storing downloaded files for later access
-    using :func:`~proteins.setPDBLocalFolder` 
+    using :func:`~.setPDBLocalFolder` 
 
 Note that when these functions are used, ProDy will save your settings as 
 :file:`.prodyrc` in your home folder.
@@ -202,7 +202,7 @@ Quick visualization
 
 :file:`1p38.pdb` contains an unbound structure of the p38 MAP kinase.
 If you have `Matplotlib`_ installed, you can take 
-a quick look at what you parsed using :func:`~proteins.showProtein` function:  
+a quick look at what you parsed using :func:`~.showProtein` function:  
 
 
 >>> import matplotlib.pyplot as plt
@@ -225,14 +225,14 @@ a quick look at what you parsed using :func:`~proteins.showProtein` function:
    
    plt.close('all')
 
-:func:`~proteins.parsePDB` returns data in an :class:`~atomic.AtomGroup` 
+:func:`~.parsePDB` returns data in an :class:`~.AtomGroup` 
 instance. 
 
 
 Atomic data
 -------------------------------------------------------------------------------
 
-To get information on an :class:`~prody.atomic.AtomGroup` instance, 
+To get information on an :class:`~.AtomGroup` instance, 
 type in the variable name and hit :kbd:`enter` key:
 
 >>> prot
@@ -252,19 +252,19 @@ For example:
  [  1.323  30.027  65.103]]
  
 The list of methods for getting and setting atomic data is provided in
-:class:`~atomic.AtomGroup` reference documentation. 
+:class:`~.AtomGroup` reference documentation. 
 
 **Indexing**:
 
-An individual :class:`~atomic.Atom` can be accessed by indexing atom group 
+An individual :class:`~.Atom` can be accessed by indexing atom group 
 instances:
 
 >>> atom = prot[0]
 >>> atom
 <Atom: N from 1p38 (index 0)>
 
-Not that all ``get/set`` functions defined for :class:`~atomic.AtomGroup` 
-instances are also defined for :class:`~atomic.Atom` instances, using singular
+Not that all ``get/set`` functions defined for :class:`~.AtomGroup` 
+instances are also defined for :class:`~.Atom` instances, using singular
 form of the function name.  
 
 >>> atom.getResname()
@@ -282,13 +282,13 @@ Hierarchical view
 -------------------------------------------------------------------------------
 
 You can also access specific chains or residues in an atom group.  Indexing
-by a single letter identifier will return a :class:`~atomic.Chain` instance: 
+by a single letter identifier will return a :class:`~.Chain` instance: 
 
 >>> prot['A']
 <Chain: A from 1p38 (480 residues, 2962 atoms)>
 
 Indexing atom group with a chain identifier and a residue number will return
-:class:`~atomic.Residue` instance:
+:class:`~.Residue` instance:
 
 >>> prot['A', 100]
 <Residue: ASN 100 from Chain A from 1p38 (8 atoms)>
@@ -300,7 +300,7 @@ for more on hierarchical views.
 Writing PDB files
 -------------------------------------------------------------------------------
 
-PDB files can be written using the :func:`~prody.proteins.writePDB` function.
+PDB files can be written using the :func:`~.writePDB` function.
 The function accepts objects containing or referring to atomic data.
 
 Writing selected atoms:
@@ -321,7 +321,7 @@ For more PDB writing examples see :ref:`writepdb`.
 More examples
 -------------------------------------------------------------------------------
 
-:func:`~proteins.parsePDB` function is very flexible and can be extremely
+:func:`~.parsePDB` function is very flexible and can be extremely
 efficient depending on what you want to extract from a PDB file.  It can be 
 used to parse specific chains, models, alternate locations, or well-defined 
 subsets of atoms from a file.  A detailed usage example can be found in 
@@ -329,12 +329,12 @@ subsets of atoms from a file.  A detailed usage example can be found in
 
 ProDy can parse other file types, including :file:`.psf` and :file:`.pqr` files.
 All of the functions for accessing and handling protein structural data are 
-described in :mod:`~prody.proteins` module reference documentation.
+described in :mod:`~.proteins` module reference documentation.
 Also, :ref:`fetchpdb` and :ref:`blastpdb` examples show other ways to 
 access the Protein Data Bank (|pdb|) content.
 
 For more details on atomic objects see :ref:`atomic`.  
-:class:`~atomic.AtomGroup` instances can be build from scratch or 
+:class:`~.AtomGroup` instances can be build from scratch or 
 parsers for other file types (e.g. mol2) can be developed. The example in 
 :ref:`atomgroup` can be helpful to this aim.
 
@@ -342,7 +342,7 @@ parsers for other file types (e.g. mol2) can be developed. The example in
 Atom selections
 ===============================================================================
 
-:class:`~atomic.AtomGroup` instances have a plain view of atoms for efficiency, 
+:class:`~.AtomGroup` instances have a plain view of atoms for efficiency, 
 but they are coupled with a powerful atom selection engine.  You can get well 
 defined atom subsets by passing simple keywords or make rather sophisticated 
 selections using composite statements.  Selection keywords and grammar is very 
@@ -357,10 +357,10 @@ Keyword selections
 <Selection: "protein" from 1p38 (2833 atoms)>
 
 Using the "protein" keyword we selected 2833 atoms out of 2962 atoms. 
-:meth:`~atomic.Atomic.select` method returned a :class:`~atomic.Selection` 
+:meth:`~.Atomic.select` method returned a :class:`~.Selection` 
 instance.  Note that all ``get`` and ``set`` methods defined for
-the :class:`~atomic.AtomGroup` class are also defined for 
-:class:`~atomic.Selection` class. For example:
+the :class:`~.AtomGroup` class are also defined for 
+:class:`~.Selection` class. For example:
 
 >>> print( protein.getResnames() )
 ['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
@@ -407,7 +407,7 @@ that have at least one atom within 10 Å away from the geometric center.
 Selection operations
 -------------------------------------------------------------------------------
 
-:class:`~atomic.Selection` instances can be
+:class:`~.Selection` instances can be
 
 >>> ca = prot.select('name CA') 
 >>> cb = prot.select('name CB')
@@ -445,7 +445,7 @@ or changing the source code.  See the following pages:
 
   * :ref:`selections` for description of all selection keywords
   * :ref:`selection-operations` for handy features of 
-    :class:`~atomic.Selection` objects
+    :class:`~.Selection` objects
   * :ref:`contacts` for selecting interacting atoms
 
 
@@ -471,7 +471,7 @@ Dynamics analysis
 PCA calculations
 -------------------------------------------------------------------------------
 
-We show how to perform principal component analysis (:class:`~dynamics.PCA`) 
+We show how to perform principal component analysis (:class:`~.PCA`) 
 of a set of NMR models for ubiquitin (PDB ID: 2k39).
 
 Parse and align the coordinate data:
@@ -496,7 +496,7 @@ Print the fraction of variance for top raking 4 PCs:
 0.08
 0.07
 
-PCA data can be saved on disck using :func:`~prody.dynamics.saveModel`
+PCA data can be saved on disck using :func:`~.saveModel`
 function:
 
 >>> saveModel(pca)
@@ -504,12 +504,12 @@ function:
 
 This functions writes data in binary format, so is an efficient way of 
 storing data permanently.  In a later session, this data can be loaded using 
-:func:`~prody.dynamics.loadModel` function.
+:func:`~.loadModel` function.
 
 NMD files 
 -------------------------------------------------------------------------------
 
-The :func:`~dynamics.writeNMD` function writes PCA results 
+The :func:`~.writeNMD` function writes PCA results 
 in NMD format. NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
 
 >>> writeNMD('ubi_pca.nmd', pca[:3], ubi_selection)
@@ -519,7 +519,7 @@ Write files
 -------------------------------------------------------------------------------
 
 Additionally, results can be written in plain text files for analysis with
-other programs using the :func:`~dynamics.writeArray` function:
+other programs using the :func:`~.writeArray` function:
 
 >>> writeArray('ubi_pca_modes.txt', pca.getArray(), format='%8.3f')
 'ubi_pca_modes.txt'
@@ -528,7 +528,7 @@ other programs using the :func:`~dynamics.writeArray` function:
 ANM calculations
 -------------------------------------------------------------------------------
 
-Anisotropic network model (:class:`~prody.dynamics.ANM`) analysis can be 
+Anisotropic network model (:class:`~.ANM`) analysis can be 
 performed in two ways:
 
 The shorter way, which may be suitable for interactive sessions:
@@ -548,10 +548,10 @@ The longer and more controlled way:
 The above longer way gives more control to the user. For example, instead of 
 building the Hessian matrix using uniform force constant and cutoff distance, 
 customized force constant functions (see :ref:`gamma`) or a pre-calculated matrix 
-(see :meth:`~dynamics.ANM.setHessian`) may be used. 
+(see :meth:`~.ANM.setHessian`) may be used. 
 
-Individual :class:`~dynamics.Mode` instances can be accessed by 
-indexing the :class:`~dynamics.ANM` instance:
+Individual :class:`~.Mode` instances can be accessed by 
+indexing the :class:`~.ANM` instance:
 
 >>> slowest_mode = anm[0]
 >>> print( slowest_mode )
@@ -562,7 +562,7 @@ Mode 1 from ANM ubi
 Note that indices in Python start from zero (0). 
 0th mode is the 1st non-zero mode in this case.
 
-The :func:`~dynamics.writeNMD` function writes ANM results 
+The :func:`~.writeNMD` function writes ANM results 
 in NMD format. NMD files can be viewed using the :ref:`nmwiz` VMD plugin. 
 
 >>> writeNMD('p38_anm.nmd', anm[:6], ubi_selection) 
@@ -576,7 +576,7 @@ Comparative analysis
 
 ProDy comes with many built-in functions to facilitate a comparative analysis
 of experimental and theoretical data. For example, using 
-:func:`~dynamics.printOverlapTable` function you can see the agreement between 
+:func:`~.printOverlapTable` function you can see the agreement between 
 experimental (PCA) modes and theoretical (ANM) modes calculated above:
 
 >>> printOverlapTable(pca[:4], anm[:4])
@@ -599,7 +599,7 @@ highest overlap (cosine-correlation).
    pca = loadModel('Ubiquitin.pca.npz')
    anm = loadModel('ubi.anm.npz')
 
-We can also make a plot of this table using :func:`~dynamics.showOverlapTable`
+We can also make a plot of this table using :func:`~.showOverlapTable`
 function:
 
 .. plot::
@@ -624,7 +624,7 @@ External data
 -------------------------------------------------------------------------------
 
 Normal mode data from other NMA, EDA, or PCA programs can be parsed using
-:func:`~dynamics.parseModes` function for ProDy analysis. 
+:func:`~.parseModes` function for ProDy analysis. 
 
 In this case, we will parse ANM modes for p38 MAP Kinase calculated using 
 `ANM server <http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi>`_  as the 
