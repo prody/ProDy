@@ -49,6 +49,7 @@ PW2 = None
 
 from prody.atomic import AtomMap as AM
 from prody.atomic import Chain, AtomGroup, Selection
+from prody.atomic import AAA2A
 from prody.atomic import getKeywordResnames
 from prody.measure import calcTransformation, calcRMSD
 from prody.tools import which
@@ -77,15 +78,6 @@ GAP = '-'
 GAPCHARS = ['-', '.']
 NONE_A = '_'
 
-_aaa2a = {
-'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q', 
-'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 
-'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 
-'TYR': 'Y', 'VAL': 'V',
-'HSD': 'H', 'HSP': 'H', 'HSE': 'H',
-'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J'
-}
-
 _a2aaa = {
 'A': 'ALA', 'R': 'ARG', 'N': 'ASN', 'D': 'ASP', 'C': 'CYS', 'Q': 'GLN', 
 'E': 'GLU', 'G': 'GLY', 'H': 'HIS', 'I': 'ILE', 'L': 'LEU', 'K': 'LYS', 
@@ -108,16 +100,6 @@ def importBioPairwise2():
                                   'to solve the problem.')
         PW2 = pairwise2
     return PW2
-
-def getSequence(resnames):
-    """Return sequence of 1-letter codes for a given list of 3-letter amino 
-    acid codes."""
-    
-    sequence = ''
-    for rn in resnames:
-        sequence += _aaa2a.get(rn, 'X')
-    return sequence
-
 
 def getMatchScore():
     """Return match score used to align sequences."""
@@ -317,7 +299,7 @@ class SimpleChain(object):
                 continue
             resid = res.getResnum()
             incod = res.getIcode()
-            aa = _aaa2a.get(res.getResname(), 'X')
+            aa = AAA2A.get(res.getResname(), 'X')
             simpres = SimpleResidue(resid, aa, incod, res)
             if gaps:
                 diff = resid - temp - 1
