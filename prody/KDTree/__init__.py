@@ -7,4 +7,10 @@ Algorithms and Applications" (Mark de Berg, Marc van Kreveld, Mark Overmars,
 Otfried Schwarzkopf).
 """
 
-from KDTree import KDTree
+
+def getKDTree(coords, bucket_size=1):
+    """Internal function to get KDTree for coordinates without any checks."""
+
+    from KDTree import KDTree
+    return KDTree(coords, bucket_size)
+    
