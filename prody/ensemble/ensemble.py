@@ -15,15 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for handling ensembles of conformations.
-
-.. doctest::
-   :hide:
-    
-   from prody import *
-   ens = loadEnsemble('p38_X-ray.ens.npz')
-
-"""
+"""This module defines classes for handling ensembles of conformations."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -567,12 +559,7 @@ class PDBEnsemble(Ensemble):
     .. note:: This class is designed to handle conformations with missing
        coordinates, e.g. atoms that are note resolved in an X-ray structure.
        For unresolved atoms, the coordinates of the reference structure is
-       assumed in RMSD calculations and superpositions.
-    
-    >>> ens
-    <PDB Ensemble: p38 X-ray (75 conformations, 321 atoms, 321 selected)>
-
-    """
+       assumed in RMSD calculations and superpositions."""
 
     def __init__(self, title='Unknown'):
         self._labels = []
@@ -835,21 +822,7 @@ class PDBEnsemble(Ensemble):
     def getRMSDs(self):
         """Calculate and return root mean square deviations (RMSDs). Note that 
         you might need to align the conformations using :meth:`superpose` or 
-        :meth:`iterpose` before calculating RMSDs.
-        
-        >>> rmsd = ens.getRMSDs().round(2)
-        >>> print( rmsd[0] )
-        0.74
-        >>> print( rmsd )
-        [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
-          0.48  0.75  0.56  0.76  0.84  0.49  0.69  0.74  0.69  0.49  0.69  0.61
-          0.73  0.64  0.52  0.51  0.65  0.84  0.77  0.69  0.82  1.19  0.6   1.12
-          0.71  0.61  0.73  0.57  0.99  0.94  0.85  0.98  0.58  0.61  0.64  0.89
-          0.82  0.95  0.88  0.86  1.09  0.7   0.72  0.86  0.76  0.82  0.88  0.95
-          0.63  0.92  1.08  0.44  0.43  0.49  0.64  0.88  0.72  0.9   0.96  1.23
-          0.58  0.66  0.83]
-          
-        """
+        :meth:`iterpose` before calculating RMSDs."""
         
         if self._confs is None or self._coords is None: 
             return None
