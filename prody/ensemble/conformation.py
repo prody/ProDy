@@ -15,15 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes handling individual conformations.
-
-.. doctest::
-   :hide:
-    
-   from prody import *
-   ens = loadEnsemble('p38_X-ray.ens.npz')
-
-"""
+"""This module defines classes handling individual conformations."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -150,15 +142,7 @@ class Conformation(object):
 class PDBConformation(Conformation):
     
     """This class is the same as :class:`Conformation`, except that the 
-    conformation has a name (or identifier), e.g. PDB identifier.
-    
-    .. versionadded:: 0.8
-
-    >>> conf = ens[0] 
-    >>> conf
-    <PDB Conformation: 1a9u_ca from p38 X-ray (index: 0; selected 321 of 321 atoms)>
-
-    """
+    conformation has a name (or identifier), e.g. PDB identifier."""
     
     def __repr__(self):
         return ('<PDB Conformation: {0:s} from {1:s} (index: {2:d}; '
@@ -173,19 +157,12 @@ class PDBConformation(Conformation):
                     self._ensemble.getTitle())
     
     def getLabel(self):
-        """Return the label of the conformation.
-        
-        >>> print( conf.getLabel() )
-        1a9u_ca"""
+        """Return the label of the conformation."""
         
         return self._ensemble._labels[self._index]
     
     def setLabel(self, label):
-        """Set the label of the conformation.
-        
-        >>> conf.setLabel('1a9u')
-        >>> print( conf.getLabel() )
-        1a9u"""
+        """Set the label of the conformation."""
         
         self._ensemble._labels[self._index] = str(label)
         
@@ -228,11 +205,7 @@ class PDBConformation(Conformation):
     
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates. RMSD is
-        calculated for selected atoms.
-        
-        >>> print( conf.getRMSD().round(2) )
-        0.74
-        """
+        calculated for selected atoms."""
         
         ensemble = self._ensemble
         index = self._index
