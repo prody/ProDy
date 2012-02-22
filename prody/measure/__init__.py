@@ -23,12 +23,16 @@ and identifying contacts.
 Identify contacts
 =================
 
+Following class and functions are for contact identifications:
+
   * :class:`~.Contacts` - identify intermolecular contacts
   * :func:`~.buildKDTree` - build a KDTree for given atoms or coordinate set
   * :func:`~.iterNeighbors` - yield interacting atom pairs
 
 Measure quantities
 ==================
+
+Following functions are for measuring simple quantities:
 
   * :func:`~.calcDistance` - calculate distance(s)
   * :func:`~.calcAngle` - calculate bond angle
@@ -41,8 +45,11 @@ Measure quantities
   * :func:`~.calcDeformVector` - calculate deformation vector
 
 
-Anisotropic displacement parameters
-===================================
+Anisotropic factors
+===================
+
+Following functions handle anisotropic displacement parameter (ADP) present
+in some X-ray structures.
 
   * :func:`~.buildADPMatrix` - build ADP matrix 
   * :func:`~.calcADPAxes` - calculate ADP axes
@@ -50,6 +57,8 @@ Anisotropic displacement parameters
 
 Transformations
 ===============
+
+Following class and functions are for handling coordinate transformations:
       
   * :class:`~.Transformation` - store transformation matrix
   * :func:`~.alignCoordsets` - align multiple coordinate sets
