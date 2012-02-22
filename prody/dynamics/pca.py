@@ -79,9 +79,9 @@ class PCA(NMA):
         * :class:`~.Trajectory`
         * :class:`numpy.ndarray`
 
-       :class:`~numpy.ndarray` and :class:`~.TrajBase` 
-       instances are accepted as *coordsets* argument.
-
+        :class:`~numpy.ndarray` and :class:`~.Trajectory` instances are accepted
+        as *coordsets* argument.
+        
         A NumPy array passed as *coordsets* argument must have the shape 
         (n_coordsets, n_atoms, 3).
         
@@ -91,7 +91,7 @@ class PCA(NMA):
         average of coordinate sets in the trajectory. 
          
         .. note::        
-           If *coordsets* is a :class:`~prody.ensemble.PDBEnsemble` instance,
+           If *coordsets* is a :class:`~.PDBEnsemble` instance,
            coordinates are treated specially.  Let's say **C**\_ij is the 
            super element of the covariance matrix that corresponds to atoms 
            *i* and *j*.  This super element is divided by number of coordinate
@@ -231,11 +231,10 @@ class PCA(NMA):
 
     def performSVD(self, coordsets):
         """Calculate principal modes using singular value decomposition (SVD).
-        *coordsets* argument may be a :class:`~prody.atomic.Atomic`, 
-        :class:`~prody.ensemble.Ensemble`, or :class:`numpy.ndarray` instance.
-        If *coordsets* is a numpy array it must have the shape 
-        ``(n_coordsets, n_atoms, 3)``.  :class:`numpy.ndarray` instances are 
-        accepted as *coordsets* argument.
+        *coordsets* argument may be a :class:`~.Atomic`, :class:`~.Ensemble`, 
+        or :class:`numpy.ndarray` instance.  If *coordsets* is a numpy array it
+        must have the shape ``(n_csets, n_atoms, 3)``.  :class:`numpy.ndarray`
+        instances are accepted as *coordsets* argument.
         
         This is a considerably faster way of performing PCA calculations 
         compared to eigenvalue decomposition of covariance matrix, but is

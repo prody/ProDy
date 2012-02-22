@@ -5,8 +5,8 @@ PDB Parser Performance 2
 
 *Date: 31 Oct 2011*
 
-ProDy v0.9 comes with improvements in :func:`~prody.proteins.parsePDB` and 
-:class:`~prody.atomic.HierView`.  The improvements in speed is reported here.  
+ProDy v0.9 comes with improvements in :func:`~.parsePDB` and 
+:class:`~.HierView`.  Speed improvements are reported here.  
 
 
 Dataset

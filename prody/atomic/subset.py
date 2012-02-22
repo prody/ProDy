@@ -23,6 +23,8 @@ from fields import ATOMIC_DATA_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 
+__all__ = ['AtomSubset']
+
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 
@@ -72,9 +74,15 @@ class AtomSubsetMeta(type):
                         
 class AtomSubset(AtomPointer):
     
-    """A class for manipulating subset of atomic data in an :class:`AtomGroup`.
+    """A class for manipulating subset of atoms in an :class:`~.AtomGroup`.
+    Derived classes are:
+        
+      * :class:`~.Selection`
+      * :class:`~.Segment`
+      * :class:`~.Chain`
+      * :class:`~.Residue`
     
-    This class stores a reference to an :class:`AtomGroup` instance, a set of 
+    This class stores a reference to an :class:`~.AtomGroup` instance, a set of 
     atom indices, and active coordinate set index for the atom group.
     
     """

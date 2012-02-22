@@ -451,10 +451,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     :arg filename: Provide a *filename* to save the results in XML format. 
     :type filename: str
     
-    This method uses :meth:`qdblast` function in :mod:`NCBIWWW` module of 
-    Biopython.  It will use *blastp* program and search *pdb* database.
-    Results are parsed using :meth:`NCBIXML.parse` and passed to a
-    :class:`PDBBlastRecord`
+    Results are returned in a :class:`PDBBlastRecord` instance.
     
     User can adjust *hitlist_size* (default is 250) and *expect* (default is 
     1e-10) parameter values.

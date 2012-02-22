@@ -840,7 +840,7 @@ mapHelix = {
 def assignSecstr(header, atoms, coil=False):
     """Assign secondary structure from *header* dictionary to *atoms*.
 
-    *header* must be a dictionary parsed using the :func:`parsePDB`.  
+    *header* must be a dictionary parsed using the :func:`~.parsePDB`.  
     *atoms* may be an instance of :class:`~.AtomGroup`, 
     :class:`~.Selection`, :class:`~.Chain` or :class:`~.Residue`. 
 

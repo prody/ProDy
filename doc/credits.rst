@@ -15,8 +15,7 @@ development of early versions of :ref:`commands` for automated tasks.
 code for Perturbation Response Scanning method.   
 
 `Kian Ho <https://github.com/kianho>`_ contributed with bug fixes and unit 
-tests initiating the unit test development phase for ProDy that helped making
-numerous improvements in atom selections and PDB parsing.
+tests initiating the unit test development phase for ProDy.
 
 
 Funding

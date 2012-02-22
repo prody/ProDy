@@ -27,7 +27,6 @@ from prody import Atomic, AtomGroup
 from prody.measure import _calcRMSD, _calcTransformation, _applyTransformation
 from prody.measure import _superposeTraj
 from prody.tools import checkCoords
-from functions import checkWeights
 
 from conformation import *
 

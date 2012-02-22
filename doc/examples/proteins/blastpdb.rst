@@ -12,7 +12,7 @@ This examples demonstrates how to use Protein Data Bank blast search function,
 
 :func:`~.blastPDB` is a utility function which can be used to check if 
 structures matching a sequence exists in PDB or to identify a set of related 
-structures for ensemble analysis (i.e. ref:`pca`). 
+structures for ensemble analysis (i.e. :ref:`pca`). 
 
 Input
 -------------------------------------------------------------------------------

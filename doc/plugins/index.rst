@@ -103,8 +103,8 @@ NMD files (extension :file:`.nmd`) are plain text files that contain at
 least normal mode and system coordinate data.
 
 NMD files can be visualized using :ref:`nmwiz`. 
-ProDy functions :func:`~prody.dynamics.writeNMD` and 
-:func:`~prody.dynamics.parseNMD` can be used to read and write NMD files. 
+ProDy functions :func:`~.writeNMD` and :func:`~.parseNMD` can be used to read 
+and write NMD files. 
 
 Data fields
 -------------------------------------------------------------------------------

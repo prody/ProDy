@@ -34,7 +34,7 @@ __all__ = ['showProtein', 'writePQR', ]
 def writePQR(filename, atoms):
     """Write *atoms* in PQR format to a file with name *filename*.  Only 
     current coordinate set is written.  Returns *filename* upon success.  If 
-    *filename* ends with :file:`.gz`, a compressed file will be written.."""
+    *filename* ends with :file:`.gz`, a compressed file will be written."""
     
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms does not have a valid type')

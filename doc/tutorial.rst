@@ -427,7 +427,7 @@ Selection operations
 Selections simplified
 -------------------------------------------------------------------------------
 
-In interaction sessions, typing in ``.select('backbone')`` or even 
+In interactive sessions, typing in ``.select('backbone')`` or even 
 ``.select('bb')`` may be time consuming.  An alternative to this is using
 dot operator:
 

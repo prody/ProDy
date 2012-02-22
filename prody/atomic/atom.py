@@ -28,7 +28,7 @@ from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from bond import Bond
 
-__all__ = ['Atom', 'Atom']
+__all__ = ['Atom']
 
 class AtomMeta(type):
 

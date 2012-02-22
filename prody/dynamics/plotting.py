@@ -468,7 +468,7 @@ def showCrossCorr(modes, *args, **kwargs):
     """Show cross-correlations for given modes using :func:`~matplotlib.pyplot.
     imshow`.  By default, *origin=lower* and *interpolation=bilinear* keyword 
     arguments are passed to imshow function. User can overwrite these 
-    parameters.  See also :func:`~.getCrossCorr`.
+    parameters.  See also :func:`~.calcCrossCorr`.
     
     .. plot::
        :context:

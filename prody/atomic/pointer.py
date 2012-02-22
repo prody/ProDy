@@ -25,13 +25,19 @@ import numpy as np
 
 from atomic import Atomic
 
+__all__ = ['AtomPointer']
+
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 
 class AtomPointer(Atomic):
     
     """A base for classes pointing to atoms in :class:`~atomgroup.AtomGroup` 
-    instances."""
+    instances.  Derived classes are:
+        
+      * :class:`~.Atom`
+      * :class:`~.AtomSubset`
+      * :class:`~.AtomMap`"""
     
     __slots__ = ['_ag', '_acsi']
     
@@ -64,7 +70,7 @@ class AtomPointer(Atomic):
         return not self.__eq__(other)
 
     def __add__(self, other):
-        """Returns an :class:`AtomMap` instance. Order of pointed atoms are
+        """Returns an :class:`~.AtomMap` instance. Order of pointed atoms are
         preserved."""
         
         if not isinstance(other, AtomPointer):

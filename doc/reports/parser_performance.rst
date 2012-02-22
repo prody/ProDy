@@ -5,7 +5,7 @@ PDB Parser Performance
 
 *Date: 20 Dec 2010*
 
-We tested the performance of the ProDy PDB parser :func:`~prody.proteins.parsePDB` 
+We tested the performance of the ProDy PDB parser :func:`~.parsePDB` 
 by comparing it with the PDB parsers of Biopython 
 (:class:`Bio.PDB.PDBParser.PDBParser`) and MMTK 
 (:class:`MMTK.PDB.PDBConfiguration`). 

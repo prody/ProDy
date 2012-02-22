@@ -139,7 +139,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     return trimmed
 
 def calcOccupancies(pdb_ensemble, normed=False):
-    """Return occupancy calculated from weights of a :class:`PDBEnsemble`.
+    """Return occupancy calculated from weights of a :class:`~.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are 
     calculated by binary weights for each atom over the conformations in 
     the ensemble. When *normed* is ``True``, total weights will be divided 
