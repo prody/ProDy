@@ -22,11 +22,26 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
-import prody
 
 from subset import AtomSubset
 
 __all__ = ['Chain']
+
+AAA2A = {
+    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q', 
+    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 
+    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 
+    'TYR': 'Y', 'VAL': 'V',
+    'HSD': 'H', 'HSP': 'H', 'HSE': 'H',
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J'
+}
+
+def getSequence(resnames):
+    """Return polypeptide sequence as from list of *resnames* (residue 
+    name abbreviations)."""
+    
+    get = AAA2A.get
+    return ''.join([get(rn, 'X') for rn in resnames])
 
 class Chain(AtomSubset):
     
@@ -155,7 +170,7 @@ class Chain(AtomSubset):
             return self._seq
         CAs = self.select('name CA').select('protein')
         if len(CAs) > 0:
-            self._seq = prody.compare.getSequence(CAs.getResnames())
+            self._seq = getSequence(CAs.getResnames())
         else:
             self._seq = ''
         return self._seq
