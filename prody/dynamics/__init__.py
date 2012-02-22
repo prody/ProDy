@@ -205,17 +205,9 @@ illustrate class methods and functions in the module.
    :nofigs: 
    :context: 
     
-   from prody import *
    import matplotlib.pyplot as plt
-   import numpy as np
    
    plt.close('all')
-   
-   p38_pca = loadModel('p38_xray.pca.npz')
-   p38_anm = loadModel('1p38.anm.npz') 
-   p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
-   p38_structure = parsePDB('p38_ref_chain.pdb')
-
 """
 
 __author__ = 'Ahmet Bakan'

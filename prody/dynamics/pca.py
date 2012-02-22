@@ -17,9 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines classes for principal component analysis (PCA) and 
-essential dynamics analysis (EDA) calculations.
-
-""" 
+essential dynamics analysis (EDA) calculations.""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

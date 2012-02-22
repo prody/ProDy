@@ -17,9 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines a class and a function for anisotropic network model
-(ANM) calculations.
-
-""" 
+(ANM) calculations.""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

@@ -41,10 +41,12 @@ Let's get started by getting ANM models for two related protein structures:
 >>> ch_one = match[0]
 >>> ch_two = match[1]
 
->>> ch_two, t = superpose(ch_two, ch_one) # minimizes RMSD by moving ch_two onto ch_one
->>> # t is transformation, which is already applied to ch_two, so we don't use it
+Minimize RMSD by superposing ``ch_two`` onto ``ch_one``:
+
+>>> ch_two, t = superpose(ch_two, ch_one) 
+>>> # t is transformation, which is already applied to ch_two
 >>> rmsd = calcRMSD(ch_one, ch_two)
->>> print( '{0:.2f}'.format(rmsd) ) # We are just printing rmsd with some formatting
+>>> print( '{0:.2f}'.format(rmsd) ) # Print rmsd with some formatting
 0.90
 
 
@@ -74,7 +76,7 @@ Calculate overlap
 We need Numpy in this part:
 
 >>> import numpy as np
->>> np.set_printoptions(precision=3) # This is to make sure same numbers are printed in your session
+>>> np.set_printoptions(precision=3)
 
 Multiplication of two :class:`Mode` instances returns dot product
 of their eigenvectors. This dot product is the overlap or cosine correlation
@@ -104,7 +106,8 @@ We could also generate a matrix of overlaps using :func:`numpy.outer`:
  [ 0.15 -0.98  0.08]
  [ 0.01 -0.08 -0.99]]
 
-This could also be printed in a pretty table format using :func:`printOverlapTable`:
+This could also be printed in a pretty table format using 
+:func:`~.printOverlapTable`:
 
 >>> printOverlapTable(anm_one[:3], anm_two[:3])
 Overlap Table
@@ -344,7 +347,7 @@ class Mode(VectorBase):
         """Initialize mode object as part of an NMA model.
         
         :arg model: a normal mode analysis instance
-        :type model: :class:`ANM`, :class:`GNM`, or :class:`PCA` 
+        :type model: :class:`~.ANM`, :class:`~.GNM`, or :class:`~.PCA` 
         :arg index: index of the mode 
         :type index: int
         """
@@ -426,7 +429,7 @@ class Mode(VectorBase):
     def getCollectivity(self, masses=None):
         """Return the degree of collectivity of the mode.  This function 
         implements collectivity as defined in equation 5 of [BR95]_. See 
-        also the :func:`calcCollectivity`."""
+        also the :func:`~.calcCollectivity`."""
 
         return calcCollectivity(self)
 

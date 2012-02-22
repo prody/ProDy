@@ -3,14 +3,14 @@
 .. _extendmodel:
 
 *******************************************************************************
-Extrapolate a coarse-grained model
+Extend a coarse-grained model
 *******************************************************************************
 
 Synopsis
 =============================================================================
 
-This example shows how to extrapolate normal modes calculated for a 
-coarse-grained model to a larger set of atoms. Extrapolated model can be
+This example shows how to extend normal modes calculated for a 
+coarse-grained model to a larger set of atoms. Extended model can be
 used to generate alternate conformers. 
 
 .. versionadded:: 0.6.2
@@ -23,7 +23,7 @@ A PDB structure.
 Output
 -------------------------------------------------------------------------------
 
-Output is an extrapolated model and conformers along selected normal modes. 
+Output is an extended model and conformers along selected normal modes. 
 Conformers can be save in PDB format.
 
 ProDy Code
@@ -49,11 +49,11 @@ generate backbone trace conformations.
 Extrapolation
 -------------------------------------------------------------------------------
 
-ANM modes are extrapolated using the :func:`extrapolateModel` function: 
+ANM modes are extended using the :func:`extendModel` function: 
 
->>> bb_anm, bb_atoms = extrapolateModel(anm, p38_ca, p38.select('backbone'))
+>>> bb_anm, bb_atoms = extendModel(anm, p38_ca, p38.select('backbone'))
 >>> bb_anm
-<NMA: Extrapolated ANM 1p38 (20 modes, 1404 atoms)>
+<NMA: Extended ANM 1p38 (20 modes, 1404 atoms)>
 >>> bb_atoms
 <AtomMap: Selection "backbone" from 1p38 from 1p38 (1404 atoms, 1404 mapped, 0 dummy)>
 
@@ -63,7 +63,7 @@ used as input to this function.
 Write NMD file
 -------------------------------------------------------------------------------
 
-Extrapolated modes can be visualized in VMD using :ref:`nmwiz` using 
+Extended modes can be visualized in VMD using :ref:`nmwiz` using 
 an NMD file:
 
 >>> writeNMD('p38_anm_backbone.nmd', bb_anm, bb_atoms)
@@ -72,11 +72,11 @@ an NMD file:
 Sample conformers
 -------------------------------------------------------------------------------
 
-We can use the extrapolated model to sample backbone conformers:
+We can use the extended model to sample backbone conformers:
 
 >>> ensemble = sampleModes(bb_anm[:3], bb_atoms, n_confs=40, rmsd=0.8)
 >>> ensemble
-<Ensemble: Conformations along 3 modes from NMA Extrapolated ANM 1p38 (40 conformations, 1404 atoms, 1404 selected)>
+<Ensemble: Conformations along 3 modes from NMA Extended ANM 1p38 (40 conformations, 1404 atoms, 1404 selected)>
 
 Note that we made used of ANM modes beyond their theoretical limitations.
 
