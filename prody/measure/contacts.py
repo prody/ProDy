@@ -25,6 +25,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
 from prody.tools import checkCoords
+from prody.KDTree import getKDTree
 
 __all__ = ['Contacts', 'buildKDTree', 'iterNeighbors']
 
@@ -115,12 +116,6 @@ def buildKDTree(atoms):
         finally:
             return getKDTree(coords)
 
-def getKDTree(coords):
-    """Internal function to get KDTree for coordinates without any checks."""
-
-    from prody.KDTree import KDTree
-    return KDTree(coords)
-    
 def iterNeighbors(atoms, radius, atoms2=None):
     """Yield pairs of *atoms* that are those within *radius* of each other,
     with the distance between them.  If *atoms2* is also provided, one atom 
