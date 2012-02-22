@@ -80,4 +80,5 @@ import transform
 from transform import *
 __all__.extend(transform.__all__)
 
-from transform import _superposeTraj, _superposeTraj, _calcRMSD
+from transform import _calcRMSD, _superpose, _superposeTraj  
+from transform import _calcTransformation, _applyTransformation
