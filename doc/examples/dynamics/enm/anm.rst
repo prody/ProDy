@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _anm:
 
 *******************************************************************************
@@ -20,10 +18,10 @@ Protein structure data in PDB file format or specified by a PDB identifier.
 Output
 -------------------------------------------------------------------------------
 
-An :class:`ANM` instance that stores Hessian and Kirchhoff matrices and 
+An :class:`~.ANM` instance that stores Hessian and Kirchhoff matrices and 
 normal mode data describing intrinsic dynamics of the protein structure. 
-:class:`ANM` instances and individual normal modes 
-(:class:`Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
+:class:`~.ANM` instances and individual normal modes 
+(:class:`~.Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
 module.
 
 
@@ -68,16 +66,16 @@ to be used in ANM  calculations.
 Build Hessian matrix
 -------------------------------------------------------------------------------
 
-We instantiate an :class:`ANM` instance:
+We instantiate an :class:`~.ANM` instance:
 
 >>> anm = ANM('p38 ANM analysis')
 
 Then, build the Hessian matrix by passing selected atoms (351 Cα's)
-to :meth:`ANM.buildHessian` method:
+to :meth:`.ANM.buildHessian` method:
 
 >>> anm.buildHessian(calphas)
 
-We can get a copy of the Hessian matrix using :meth:`ANM.getHessian` method:
+We can get a copy of the Hessian matrix using :meth:`.ANM.getHessian` method:
 
 >>> print( anm.getHessian().round(3) ) # doctest: +ELLIPSIS
 [[ 9.959 -3.788  0.624 ...,  0.     0.     0.   ]
@@ -91,7 +89,7 @@ We can get a copy of the Hessian matrix using :meth:`ANM.getHessian` method:
 Change cutoff distance and force constant
 -------------------------------------------------------------------------------
 
-We didn't pass any parameters to :meth:`ANM.buildHessian` method, but it 
+We didn't pass any parameters to :meth:`.ANM.buildHessian` method, but it 
 accepts *cutoff* and *gamma* parameters, for which  default values are
 ``cutoff=15.0`` and ``gamma=1.0``.
  
@@ -101,12 +99,12 @@ accepts *cutoff* and *gamma* parameters, for which  default values are
 1.0
 
 Note that it is also possible to use an externally calculated Hessian 
-matrix. Just pass it to the ANM instance using :meth:`ANM.setHessian` method.
+matrix. Just pass it to the ANM instance using :meth:`.ANM.setHessian` method.
 
 Calculate normal modes
 -------------------------------------------------------------------------------
 
-Calculate modes using :meth:`ANM.calcModes` method: 
+Calculate modes using :meth:`.ANM.calcModes` method: 
 
 >>> anm.calcModes()
 
@@ -152,7 +150,7 @@ Normal mode indices in Python start from 0, so slowest mode has index 0.
 By default, modes with zero eigenvalues are excluded. If they were retained, 
 slowest non-trivial mode would have index 6.
 
-Get the slowest mode by indexing :class:`ANM` instance as follows:
+Get the slowest mode by indexing :class:`~.ANM` instance as follows:
 
 >>> slowest_mode = anm[0]
 >>> print( slowest_mode.getEigenvalue().round(3) )

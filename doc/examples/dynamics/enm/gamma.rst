@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _gamma:
 
 *******************************************************************************
@@ -10,9 +8,7 @@ Synopsis
 ===============================================================================
 
 This example shows how to develop custom force constant functions for
-:class:`ANM` (or :class:`GNM`) calculations. 
-
-.. versionadded:: 0.6
+:class:`~.ANM` (or :class:`~.GNM`) calculations. 
 
 We will use the relation shown in the figure below. For Cα atoms that are
 10 to 15 Å apart from each other, we use a unit force constant. For those
@@ -45,10 +41,10 @@ Protein structure data in PDB file format or specified by a PDB identifier.
 Output
 -------------------------------------------------------------------------------
 
-An :class:`ANM` instance that stores Hessian and Kirchhoff matrices and 
+An :class:`~.ANM` instance that stores Hessian and Kirchhoff matrices and 
 normal mode data describing intrinsic dynamics of the protein structure. 
-:class:`ANM` instances and individual normal modes 
-(:class:`Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
+:class:`~.ANM` instances and individual normal modes 
+(:class:`~.Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
 module.
 
 
@@ -91,7 +87,7 @@ We define the aformentioned function as follows:
 ...     else:
 ...         return 0
 
-Note that the input to this function from :class:`ANM` or :class:`GNM` 
+Note that the input to this function from :class:`~.ANM` or :class:`~.GNM` 
 is the square of the distance. In addition, node (atom or residue) indices
 are passed to this function, that's why we used ``*args`` in the function
 definition.

@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _reduce-slice:
 
 *******************************************************************************
@@ -106,7 +104,7 @@ Slicing a model
 -------------------------------------------------------------------------------
 
 We take the slice of the ANM model corresponding to subunit p66, which is 
-chain A in the structure, using :func:`sliceModel` function:
+chain A in the structure, using :func:`~.sliceModel` function:
 
 >>> anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
 >>> anm_slc_p66
@@ -166,8 +164,9 @@ without any change:
 Reducing a model
 -------------------------------------------------------------------------------
 
-We reduce the ANM model to subunit p66 using :func:`reduceModel` function. This
-function implements the method described in 2000 paper of Hinsen et al. [KH00]_
+We reduce the ANM model to subunit p66 using :func:`~.reduceModel` function. 
+This function implements the method described in 2000 paper of Hinsen et al. 
+[KH00]_
 
 >>> anm_red_p66, sel_p66 = reduceModel(anm, rt, 'chain A')
 >>> anm_red_p66.calcModes()

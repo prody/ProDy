@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _extendmodel:
 
 *******************************************************************************
@@ -49,7 +47,7 @@ generate backbone trace conformations.
 Extrapolation
 -------------------------------------------------------------------------------
 
-ANM modes are extended using the :func:`extendModel` function: 
+ANM modes are extended using the :func:`~.extendModel` function: 
 
 >>> bb_anm, bb_atoms = extendModel(anm, p38_ca, p38.select('backbone'))
 >>> bb_anm
@@ -57,8 +55,8 @@ ANM modes are extended using the :func:`extendModel` function:
 >>> bb_atoms
 <AtomMap: Selection "backbone" from 1p38 from 1p38 (1404 atoms, 1404 mapped, 0 dummy)>
 
-Note that :class:`GNM`, :class:`PCA`, and :class:`NMA` instances can also be
-used as input to this function.
+Note that :class:`~.GNM`, :class:`~.PCA`, and :class:`~.NMA` instances can also
+be used as input to this function.
 
 Write NMD file
 -------------------------------------------------------------------------------

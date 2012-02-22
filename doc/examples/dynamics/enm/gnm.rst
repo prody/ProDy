@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _gnm:
 
 *******************************************************************************
@@ -20,9 +18,9 @@ Protein structure data in PDB file format or specified by a PDB identifier.
 Output
 -------------------------------------------------------------------------------
 
-A :class:`GNM` instance that stores Kirchhoff matrix and normal mode data 
+A :class:`~.GNM` instance that stores Kirchhoff matrix and normal mode data 
 describing intrinsic dynamics of the protein structure.
-:class:`GNM` instances and individual normal modes (:class:`Mode`) can be
+:class:`~.GNM` instances and individual normal modes (:class:`~.Mode`) can be
 used as input to functions in :mod:`~prody.dynamics` module.
 
 ProDy Code
@@ -37,7 +35,7 @@ Prepare protein
 
     
 First we parse a PDB file by passing its identifier to 
-:func:`~prody.proteins.parsePDB` function. Note that if file is not found in 
+:func:`~.parsePDB` function. Note that if file is not found in 
 the current working directory, it will be downloaded.
 
 
@@ -63,17 +61,18 @@ Build Kirchoff matrix
 ------------------------------------------------------------------------------- 
 
     
-Instantiate a :class:`GNM` instance:
+Instantiate a :class:`~.GNM` instance:
 
 >>> gnm = GNM('Ubiquitin')
 
-We can build Kirchhoff matrix using selected atoms and :meth:`GNM.buildKirchhoff`
-method:
+We can build Kirchhoff matrix using selected atoms and 
+:meth:`.GNM.buildKirchhoff` method:
 
 >>> gnm.buildKirchhoff(calphas)
 
 
-We can get a copy of the Kirchhoff matrix using :meth:`GNM.getKirchhoff` method:
+We can get a copy of the Kirchhoff matrix using :meth:`.GNM.getKirchhoff` 
+method:
 
 >>> print( gnm.getKirchhoff() ) # doctest: +ELLIPSIS
 [[ 11.  -1.  -1. ...,   0.   0.   0.]
@@ -88,7 +87,7 @@ Change cutoff distance and force constant
 -------------------------------------------------------------------------------
 
 
-We didn't pass any parameters, but :meth:`~GNM.buildKirchhoff` method accepts 
+We didn't pass any parameters, but :meth:`.GNM.buildKirchhoff` method accepts 
 two of them, which by default are ``cutoff=10.0`` and ``gamma=1.0``, i.e.
 ``buildKirchhoff(calphas, cutoff=10., gamma=1.)`` 
 
@@ -99,7 +98,7 @@ two of them, which by default are ``cutoff=10.0`` and ``gamma=1.0``, i.e.
 1.0
 
 Note that it is also possible to use an externally calculated Kirchhoff 
-matrix. Just pass it to the GNM instance using :meth:`~GNM.setKirchhoff` method.
+matrix. Just pass it to the GNM instance using :meth:`.GNM.setKirchhoff` method.
 
 Calculate normal modes
 -------------------------------------------------------------------------------

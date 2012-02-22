@@ -29,7 +29,7 @@ and principal modes (:class:`~.Mode`) can be used as input to functions in
 Notes
 -------------------------------------------------------------------------------
 
-Note that this example is slightly different from that in the :ref:`Tutorial`.
+Note that this example is slightly different from that in the :ref:`tutorial`.
 This example uses the :class:`~.Ensemble` class which has a method for 
 performing iterative superposition.
 

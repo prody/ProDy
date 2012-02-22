@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _generate-conformers:
 
 *******************************************************************************
@@ -7,11 +5,11 @@ Generate conformers along normal modes
 *******************************************************************************
 
 Synopsis
-=============================================================================
+===============================================================================
 
-This example shows how to generate conformers along normal modes. Normal modes
-may be from :class:`ANM`, :class:`PCA`, or any other user provided :class:`NMA` 
-models. 
+This example shows how to generate conformers along normal modes.  Normal modes
+may be from :class:`~.ANM`, :class:`~.PCA`, or any other user provided 
+:class:`~.NMA` models. 
 
 Input
 -------------------------------------------------------------------------------
@@ -46,7 +44,7 @@ generate backbone trace conformations.
 Traverse a mode
 -------------------------------------------------------------------------------
 
-:func:`traverseMode` function generates conformations along a single normal
+:func:`~.traverseMode` function generates conformations along a single normal
 mode. Conformations are generated in both directions along the given mode.
 *rmsd* argument is used to set the RMSD distance to the farthest conformation.
 
@@ -75,9 +73,10 @@ follows:
 Sample along modes
 -------------------------------------------------------------------------------
 
-:func:`sampleModes` function generates conformations using random combinations
-of given modes. The nice thing about this function is that user can preset
-the average RMSD of the generated ensemble to the initial coordinates. 
+:func:`~.sampleModes` function generates conformations using random 
+combinations of given modes. The nice thing about this function is that 
+user can preset the average RMSD of the generated ensemble to the initial 
+coordinates. 
 
 Let's generate 40 p38 MAP kinase Cα conformers using slowest 3 ANM modes  
 with average RMSD 1.5 Å to the initial coordinates:

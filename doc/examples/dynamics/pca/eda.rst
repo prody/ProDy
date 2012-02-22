@@ -137,7 +137,7 @@ allow you to avoid repeating calculations when you return to your work later:
 >>> saveModel(eda)
 'mdm2.eda.npz'
 
-:func:`loadModel` function can be used to load this object without any loss.
+:func:`~.loadModel` function can be used to load this object without any loss.
 
 Print data
 -------------------------------------------------------------------------------

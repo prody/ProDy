@@ -1,5 +1,3 @@
-.. currentmodule:: prody.dynamics
-
 .. _external-matrix:
 
 *******************************************************************************
@@ -12,8 +10,6 @@ Synopsis
 This example shows how to use matrices from external software in ANM and GNM
 analysis.
 
-.. versionadded:: 0.7
-
 Input
 -------------------------------------------------------------------------------
 
@@ -22,7 +18,7 @@ Hessian/Kirchhoff matrix stored in a text file.
 Output
 -------------------------------------------------------------------------------
 
-:class:`ANM` or :class:`GNM` instances that can be used for analysis of protein
+:class:`~.ANM` or :class:`~.GNM` instances that can be used for analysis of protein
 dynamics.
 
 ProDy Code
@@ -50,7 +46,7 @@ The input file that contains the Hessian matrix has the following format
        1      10   -5.224789977073669e-01
        ...
 
-:func:`parseSparseMatrix` can be used for parsing the above file:
+:func:`~.parseSparseMatrix` can be used for parsing the above file:
 
 >>> hessian = parseSparseMatrix('oanm_hes.txt', symmetric=True)
 >>> hessian.shape
