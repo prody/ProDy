@@ -232,6 +232,7 @@ __all__.append('proteins')
 import measure
 from measure import *
 __all__.extend(measure.__all__)
+__all__.append('measure')
 
 import dynamics
 from dynamics import *
@@ -243,9 +244,10 @@ from ensemble import *
 __all__.extend(ensemble.__all__)
 __all__.append('ensemble')
 
+import trajectory
 from trajectory import *
 __all__.extend(trajectory.__all__)
-
+__all__.append('trajectory')
 
 import prody
 __all__.append('prody')
