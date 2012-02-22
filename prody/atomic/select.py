@@ -83,13 +83,13 @@ radius [*]       float, range     atomic radius
 
 **[*]** These atomic attributes are not set by the PDB parser when a PDB file 
 is parsed. Using them before they are set will raise selection error. 
-Secondary structure assignments can be made using 
-:func:`~prody.proteins.assignSecstr` function.
+Secondary structure assignments can be made using :func:`~.assignSecstr` 
+function.
 
 **[†]** Alternate locations are parsed as alternate coordinate sets. This
 keyword will work for alternate location specified by "A". This to work for
 alternate locations indicated by other letters, they must be parsed 
-specifically by passing the identifier to the :func:`~prody.proteins.parsePDB`.
+specifically by passing the identifier to the :func:`~.parsePDB`.
 
 **[‡]** Atoms with unspecified alternate location/chain/segment/icode/secondary 
 structure identifiers can be selected using "_". This character is replaced 
@@ -186,8 +186,8 @@ from pointer import AtomPointer
 from selection import Selection
 from atommap import AtomMap
 
-from prody.tools import rangeString 
-import prody
+from prody.tools import rangeString
+from prody.KDTree import getKDTree
 
 DEBUG = False
 
@@ -1011,14 +1011,14 @@ class Select(object):
         """Return a subset of atoms matching *selstr* as a :class:`Selection`.
         
         :arg atoms: atoms to select from which    
-        :type atoms: :class:`~prody.atomic.Atomic`
+        :type atoms: :class:`~.Atomic`
         
         :arg selstr: selection string
         :type selstr: str
         
-        If type of *atoms* is :class:`~prody.atomic.AtomMap`, an 
-        :class:`~prody.atomic.AtomMap` instance is returned. Otherwise,
-        :class:`~prody.atomic.Selection` instances are returned.
+        If type of *atoms* is :class:`~.AtomMap`, an :class:`~.AtomMap` 
+        instance is returned. Otherwise, :class:`~.Selection` instances 
+        are returned.
 
         .. note:
 
@@ -1034,10 +1034,9 @@ class Select(object):
               if *atoms* objects in two consecutive selections are the same.
         
             * A special case for making atom selections is passing an
-              :class:`~prody.atomic.AtomMap` instance as *atoms* argument. 
-              Unmapped atoms will not be included in the returned 
-              :class:`~prody.atomic.AtomMap` instance. The order of atoms 
-              will be preserved."""
+              :class:`~.AtomMap` instance as *atoms* argument. Unmapped 
+              atoms will not be included in the returned :class:`~.AtomMap` 
+              instance. The order of atoms will be preserved."""
         
         self._ss2idx = False
         
@@ -1403,7 +1402,7 @@ class Select(object):
             torf = np.zeros(self._n_atoms, bool)
             
             cxyz = coords[check]
-            kdtree = prody.measure.getKDTree(coords[which])
+            kdtree = getKDTree(coords[which])
             get_indices = kdtree.get_indices
             search = kdtree.search
             select = []
