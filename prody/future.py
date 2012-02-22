@@ -27,9 +27,12 @@ import time
 
 from scipy import sparse
 import numpy as np
+from collections import defaultdict
+
+from KDTree import getKDTree
+
 import prody
 LOGGER = prody.LOGGER
-from collections import defaultdict
 
 __all__ = ['MarkovModel']
 
@@ -113,8 +116,6 @@ class MarkovModel(object):
         cutoff = float(cutoff)
         assert cutoff > 0, 'cutoff distance must be greater than 0'
         
-        from KDTree import KDTree
-
         start = time.time()
         if not isinstance(atoms, prody.AtomGroup):
             atoms = atoms.getAtomGroup().copy(atoms)
@@ -136,8 +137,7 @@ class MarkovModel(object):
                      .format(time.time()-start))
 
         start = time.time()
-        kdtree = KDTree(3)
-        kdtree.set_coords(atoms.getCoords())
+        kdtree = getKDTree(atoms.getCoords())
         kdtree.all_search(cutoff)
         LOGGER.debug('KDTree was built in {0:.2f}s.'
                      .format(time.time()-start))
@@ -334,8 +334,9 @@ class MarkovModel(object):
         
 if __name__ == '__main__':
     
-     #p = parsePDB('1aon')
-     m = MarkovModel('')
-     m.buildAffinityMatrix(p.select('protein'))
-     m.buildTransitionMatrix()
-     c = m.grainCoarser(power=8, symmetry=['ABCDEFG', 'HIJKLMN', 'OPQRSTU'])
+    from prody import *
+    p = parsePDB('1aon')
+    m = MarkovModel('')
+    m.buildAffinityMatrix(p.select('protein'))
+    m.buildTransitionMatrix()
+    c = m.grainCoarser(power=8, symmetry=['ABCDEFG', 'HIJKLMN', 'OPQRSTU'])
