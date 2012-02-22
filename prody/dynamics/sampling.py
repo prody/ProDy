@@ -17,17 +17,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines functions for generating alternate conformations along
-normal modes.
+normal modes
 
-====================  =========================================================
-Function              Method
-====================  =========================================================
-:func:`deformAtoms`   deform atoms along a mode
-:func:`sampleModes`   deform along random combination of a set of modes 
-:func:`traverseMode`  traverse a mode along both directions
-====================  =========================================================
+>>> from prody import *
+>>> import matplotlib.pyplot as plt
+>>> import numpy as np
 
-"""
+>>> p38_pca = loadModel('p38_xray.pca.npz')
+>>> p38_anm = loadModel('1p38.anm.npz') 
+>>> p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
+>>> p38_structure = parsePDB('p38_ref_chain.pdb')"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
