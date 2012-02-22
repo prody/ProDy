@@ -37,7 +37,9 @@ LOGGER = pkg.LOGGER
 class TrajFile(TrajBase):
     
     """A base class for providing a consistent interface over trajectories in 
-    different formats."""
+    different formats.  Derived classes are:
+    
+      * :class:`~.DCDFile`"""
     
     
     def __init__(self, filename, mode='r'):

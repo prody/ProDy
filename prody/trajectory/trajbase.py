@@ -34,7 +34,7 @@ LOGGER = pkg.LOGGER
 
 class TrajBase(object):
     
-    """Base class for :class:`Trajectory` and :class:`TrajFile`.
+    """Base class for :class:`~.Trajectory` and :class:`~.TrajFile`.
     Derived classes must implement functions described in this class."""
 
     def __init__(self, title='Unknown'):

@@ -34,9 +34,12 @@ LOGGER = pkg.LOGGER
 
 class Transformation(object):
     
+    """A class for store transformation matrix."""
+    
     __slots__ = ['_rotation', '_translation']
     
     def __init__(self, rotation, translation):
+    
         self._rotation = None
         self.setRotation(rotation)
         self._translation = None
