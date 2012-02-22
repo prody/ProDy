@@ -15,30 +15,8 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+
 """This module defines functions for comparing and mapping polypeptide chains.
-
-Functions
----------
-
-**Compare chains**:
-
-  * :func:`matchChains`
-  * :func:`matchAlign`
-  * :func:`mapOntoChain`
-        
-**Adjust settings**:
-        
-  * :func:`getAlignmentMethod`
-  * :func:`setAlignmentMethod`
-  * :func:`getMatchScore`
-  * :func:`setMatchScore`
-  * :func:`getMismatchScore`
-  * :func:`setMismatchScore`
-  * :func:`getGapPenalty`
-  * :func:`setGapPenalty`
-  * :func:`getGapExtPenalty`
-  * :func:`setGapExtPenalty`
-    
 """
 
 __author__ = 'Ahmet Bakan'

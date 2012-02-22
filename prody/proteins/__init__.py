@@ -114,6 +114,25 @@ Following function can be used to fetch meta data on PDB ligands:
 
   * :func:`~.fetchLigandData` - retrieve ligand from Ligand-Expo 
 
+Compare/align chains
+====================
+
+Following functions can be used to match, align, and map polypeptide chains:
+
+  * :func:`~.matchChains` - finds matching chains in two protein structures
+  * :func:`~.matchAlign` - finds best matching chains and aligns structures
+  * :func:`~.mapOntoChain` - maps chains in a structure onto a reference chain
+        
+
+The following functions can be used to adjust alignment parameters: 
+        
+  * :func:`~.getAlignmentMethod`, :func:`~.setAlignmentMethod`
+  * :func:`~.getMatchScore`, :func:`~.setMatchScore`
+  * :func:`~.getMismatchScore`, :func:`~.setMismatchScore`
+  * :func:`~.getGapPenalty`, :func:`~.setGapPenalty`
+  * :func:`~.getGapExtPenalty`, :func:`~.setGapExtPenalty`
+    
+
 
 Execute DSSP
 ============
