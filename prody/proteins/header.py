@@ -28,10 +28,10 @@ import numpy as np
 
 from prody.atomic import ATOMIC_DATA_FIELDS
 from prody.atomic import Atomic, AtomGroup
+from prody.atomic import getSequence
 from prody.measure import Transformation
 from prody.tools import openFile
 
-from compare import getSequence
 from databank import fetchPDB
 
 __all__ = ['Chemical', 'Polymer', 'DBRef', 'parsePDBHeader',
