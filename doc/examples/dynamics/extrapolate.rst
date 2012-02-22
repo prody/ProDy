@@ -1,6 +1,6 @@
 .. currentmodule:: prody.dynamics
 
-.. _extrapolate:
+.. _extendmodel:
 
 *******************************************************************************
 Extrapolate a coarse-grained model
