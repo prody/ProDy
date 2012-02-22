@@ -185,6 +185,8 @@ import selection
 
 from atomgroup import SELECT
 
+from chain import AAA2A, getSequence
+
 atomgroup.HierView = HierView
 selection.HierView = HierView
 
