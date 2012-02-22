@@ -16,18 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines functions for editing normal mode data.
-
-========================  =====================================================
-Function                  Description
-========================  =====================================================
-:func:`sliceMode`         take a slice of the normal mode      
-:func:`sliceModel`        take a slice of a model
-:func:`sliceVector`       take a slice of a vector
-:func:`reduceModel`       reduce a model to a subset of atoms
-:func:`extrapolateModel`  extrapolate a coarse-grained model to all-atoms  
-========================  =====================================================
-"""
+"""This module defines functions for editing normal mode data."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -101,18 +90,18 @@ def extrapolateModel(enm, nodes, atoms):
 def sliceVector(vector, atoms, selstr):
     """Return a slice of *vector* matching *atoms* specified by *selstr*.
     
-    Note that returned :class:`Vector` instance is not normalized.
+    Note that returned :class:`~.Vector` instance is not normalized.
     
     :arg vector: vector instance to be sliced
-    :type vector: :class:`VectorBase`
+    :type vector: :class:`~.VectorBase`
     
     :arg atoms: atoms for which *vector* describes a deformation, motion, etc.
-    :type atoms: :class:`~prody.atomic.Atomic`
+    :type atoms: :class:`~.Atomic`
     
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)"""
+    :returns: (:class:`~.Vector`, :class:`~.Selection`)"""
     
     if not isinstance(vector, VectorBase):
         raise TypeError('vector must be a VectorBase instance, not {0:s}'
@@ -139,23 +128,23 @@ def sliceVector(vector, atoms, selstr):
 def sliceMode(mode, atoms, selstr):
     """Return a slice of *mode* matching *atoms* specified by *selstr*.
     
-    This works slightly difference from :func:`sliceVector`. Mode array 
+    This works slightly difference from :func:`~.sliceVector`. Mode array 
     (eigenvector) is multiplied by square-root of the variance along the mode.
     If mode is from an elastic network model, variance is defined as the 
     inverse of the eigenvalue.
     
-    Note that returned :class:`Vector` instance is not normalized.
+    Note that returned :class:`~.Vector` instance is not normalized.
     
     :arg mode: mode instance to be sliced
-    :type mode: :class:`Mode`
+    :type mode: :class:`~.Mode`
     
     :arg atoms: atoms for which *mode* describes a deformation, motion, etc.
-    :type atoms: :class:`~prody.atomic.Atomic`
+    :type atoms: :class:`~.Atomic`
     
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: (:class:`Vector`, :class:`~prody.atomic.Selection`)"""
+    :returns: (:class:`~.Vector`, :class:`~.Selection`)"""
     
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, not {0:s}'
@@ -184,15 +173,15 @@ def sliceModel(model, atoms, selstr):
     Note that sliced normal modes (eigenvectors) are not normalized.
     
     :arg mode: NMA model instance to be sliced
-    :type mode: :class:`NMA`
+    :type mode: :class:`~.NMA`
     
     :arg atoms: atoms for which the *model* was built
-    :type atoms: :class:`~prody.atomic.Atomic`
+    :type atoms: :class:`~.Atomic`
     
     :arg selstr: selection string
     :type selstr: str 
     
-    :returns: (:class:`NMA`, :class:`~prody.atomic.Selection`)"""
+    :returns: (:class:`~.NMA`, :class:`~.Selection`)"""
     
     if not isinstance(model, NMA):
         raise TypeError('mode must be a NMA instance, not {0:s}'
@@ -223,20 +212,19 @@ def sliceModel(model, atoms, selstr):
     return (nma, sel)
     
 def reduceModel(model, atoms, selstr):
-    """Return reduced NMA model.
-    
-    Reduces a :class:`NMA` model to a subset of *atoms* matching a selection 
-    *selstr*.  This function behaves differently depending on the type of the 
-    *model* argument.  For ANM and GNM or other NMA models, this functions 
-    derives the force constant matrix for system of interest (specified by the 
-    *selstr*) from the force constant matrix for the *model* by assuming that 
-    for any given displacement of the system of interest, the other atoms move 
-    along in such a way as to minimize the potential energy.  This is based on 
-    the formulation in in [KH00]_.  For PCA models, this function simply takes 
-    the sub-covariance matrix for the selected atoms.
+    """Return reduced NMA model.  Reduces a :class:`~.NMA` model to a subset of 
+    *atoms* matching a selection *selstr*.  This function behaves differently 
+    depending on the type of the *model* argument.  For :class:`~.ANM` and 
+    :class:`~.GNM` or other :class:`~.NMA` models, this functions derives the 
+    force constant matrix for system of interest (specified by the *selstr*) 
+    from the force constant matrix for the *model* by assuming that for any 
+    given displacement of the system of interest, the other atoms move along in
+    such a way as to minimize the potential energy.  This is based on the 
+    formulation in in [KH00]_.  For :class:`~.PCA` models, this function simply
+    takes the sub-covariance matrix for the selected atoms.
 
     :arg model: dynamics model
-    :type model: :class:`ANM`, :class:`GNM`, or :class:`PCA`
+    :type model: :class:`~.ANM`, :class:`~.GNM`, or :class:`~.PCA`
     :arg atoms: atoms that were used to build the model
     :arg selstr: a selection string specifying subset of atoms"""
     

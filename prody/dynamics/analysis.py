@@ -17,21 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines functions for calculating atomic properties from normal
-modes.
-
-===========================  ==================================================
-Function                     Calculated data or property
-===========================  ==================================================
-:func:`calcCollectivity`     degree of collectivity of a mode
-:func:`calcCovariance`       covariance matrix for given modes
-:func:`calcCrossCorr`        cross-correlations of fluctuations
-:func:`calcPerturbResponse`  response to perturbations in positions
-:func:`calcProjection`       projection of conformations onto modes
-:func:`calcSqFlucts`         square-fluctuations
-:func:`calcTempFactors`      temperature factors fitted to exp. data
-===========================  ==================================================
-
-""" 
+modes.""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -62,7 +48,7 @@ def calcCollectivity(mode, masses=None):
     uniform masses.
     
     :arg mode: mode or vector
-    :type mode: :class:`Mode` or :class:`Vector`
+    :type mode: :class:`~.Mode` or :class:`~.Vector`
     
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
@@ -89,7 +75,7 @@ def calcProjection(ensemble, modes, rmsd=True):
     
     By default root-mean-square deviation (RMSD) along the normal mode is 
     calculated. To calculate the projection pass ``rmsd=True``.
-    :class:`Vector` instances are accepted as *ensemble* argument to allow
+    :class:`~.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
     
     if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
@@ -221,8 +207,8 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
     
 def calcTempFactors(modes, atoms):
     """Return temperature (β) factors calculated using *modes* from a 
-    :class:`ANM` or :class:`GNM` instance scaled according to the experimental 
-    β-factors from *atoms*."""
+    :class:`~.ANM` or :class:`~.GNM` instance scaled according to the 
+    experimental β-factors from *atoms*."""
     
     model = modes.getModel()
     if not isinstance(model, GNMBase):
@@ -245,12 +231,12 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     responses obtained by perturbing the atom/node position at that row index, 
     i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to 
     perturbations in residue/node *i*.  PRS is performed using the covariance 
-    matrix from *model*, e.t. :class:`ANM` instance.  Each residue/node is 
+    matrix from *model*, e.t. :class:`~.ANM` instance.  Each residue/node is 
     perturbed *repeats* times with a random unit force vector.  When *atoms* 
     instance is given, PRS profile for residues will be added as an attribute 
     which then can be retrieved as ``atoms.getData('prs_profile')``.  *model* 
     and *atoms* must have the same number of atoms. *atoms* must be an :class:`
-    ~prody.atomic.AtomGroup` instance.
+    ~.AtomGroup` instance.
     
     The RPS matrix can be save as follows::
         

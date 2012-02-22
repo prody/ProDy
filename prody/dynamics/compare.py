@@ -17,21 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines functions for comparing normal modes from different 
-models.
-
-===========================  ==================================================
-Function                      Output
-===========================  ==================================================
-:func:`calcOverlap`          overlap (correlation) between modes
-:func:`calcCumOverlap`       cumulative overlap between modes
-:func:`calcCumOverlapArray`  incremental cumulative overlap
-:func:`calcSubspaceOverlap`  overlap between normal mode subspaces 
-:func:`calcCovOverlap`       covariance overlap between models
-:func:`printOverlapTable`    formatted overlap table printed on screen
-:func:`writeOverlapTable`    overlap between modes in a formatted table
-===========================  ==================================================
-
-""" 
+models.""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -91,7 +77,7 @@ def printOverlapTable(rows, cols):
 def writeOverlapTable(filename, rows, cols):
     """Write table of overlaps (correlations) between two sets of modes to a 
     file.  *rows* and *cols* are sets of normal modes, and correspond to rows
-    and columns of the overlap table.  See also :func:`printOverlapTable`."""
+    and columns of the overlap table.  See also :func:`~.printOverlapTable`."""
     
     assert isinstance(filename, str), 'filename must be a string'
     out = openFile(filename, 'w')
@@ -152,8 +138,8 @@ def getOverlapTable(rows, cols):
 
 def calcCumOverlap(modes1, modes2):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
-    Returns a number of *modes1* contains a single :class:`Mode` or a 
-    :class:`Vector` instance. If *modes1* contains multiple modes, returns an
+    Returns a number of *modes1* contains a single :class:`~.Mode` or a 
+    :class:`~.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes 
     in *modes1* with those in *modes2*."""
     

@@ -16,43 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines input and output functions.
-
-Save/load models 
--------------------------------------------------------------------------------
-
-The above models and objects can be efficiently saved and loaded in later
-Python sessions using the following functions:
-
-| :func:`loadModel`, :func:`saveModel` - load/save dynamics models
-| :func:`loadVector`, :func:`saveVector` - load/save normal modes and vectors
-  
-
-IO functions
--------------------------------------------------------------------------------
-
-=========================  ====================================================
-Function                   Input/output
-=========================  ====================================================
-:func:`parseArray`         numeric arrays, e.g. coordinates, eigenvectors
-:func:`parseModes`         normal modes
-:func:`parseNMD`           normal mode, coordinate, and atomic data for NMWiz
-:func:`parseSparseMatrix`  matrix data in sparse coordinate list format
-:func:`writeArray`         numeric arrays, e.g. coordinates, eigenvectors
-:func:`writeModes`         normal modes
-:func:`writeNMD`           normal mode, coordinate, and atomic data
-=========================  ====================================================
-
-Visualize modes
--------------------------------------------------------------------------------
-
-Finally, normal modes can be visualized and animated using VMD plugin 
-:ref:`nmwiz`. Following functions allow for running NMWiz from within Python: 
- 
-| :func:`viewNMDinVMD` - run VMD and load normal mode data
-| :func:`getVMDpath`, :func:`setVMDpath` - get/set path to VMD executable
-
-""" 
+"""This module defines input and output functions.""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -192,9 +156,9 @@ def saveVector(vector, filename, **kwargs):
     return filename
 
 def loadVector(filename):
-    """Return :class:`Vector` instance after loading it from file (*filename*).
-    This function makes use of :func:`numpy.load` function.  See also
-    :func:`saveVector`."""
+    """Return :class:`~.Vector` instance after loading it from file 
+    (*filename*). This function makes use of :func:`numpy.load` function.  
+    See also :func:`saveVector`."""
     
     attr_dict = np.load(filename)
     try:
@@ -267,8 +231,8 @@ def setVMDpath(path):
 
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
-    Normal mode data is returned in an :class:`NMA` instance. Atomic
-    data is returned in an :class:`~prody.atomic.AtomGroup` instance."""
+    Normal mode data is returned in an :class:`~.NMA` instance. Atomic
+    data is returned in an :class:`~.AtomGroup` instance."""
 
     assert not isinstance(type, NMA), 'type must be NMA, ANM, GNM, or PCA'
     atomic = dict()
@@ -341,9 +305,9 @@ def writeNMD(filename, modes, atoms):
     
     .. note:: 
        #. This function skips modes with zero eigenvalues.
-       #. If a :class:`Vector` instance is given, it will be normalized before
-          it is written. It's length before normalization will be written
-          as the scaling factor of the vector."""
+       #. If a :class:`~.Vector` instance is given, it will be normalized 
+          before it is written. It's length before normalization will be 
+          written as the scaling factor of the vector."""
     
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
@@ -447,7 +411,8 @@ def writeModes(filename, modes, format='%.18e', delimiter=' '):
 def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None, 
                nm_skiprows=0, nm_usecols=None, ev_delimiter=None, 
                ev_skiprows=0, ev_usecols=None, ev_usevalues=None):
-    """Return :class:`NMA` instance with normal modes parsed from *normalmodes*.
+    """Return :class:`~.NMA` instance with normal modes parsed from 
+    *normalmodes*.
     
     In normal mode file *normalmodes*, columns must correspond to modes 
     (eigenvectors).  Optionally, *eigenvalues* can be parsed from a separate 
