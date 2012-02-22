@@ -47,7 +47,7 @@ def extendModel(model, nodes, atoms):
     atoms) and extend it to all other atoms in the same residue.  For each atom
     in *nodes* argument *atoms* argument must contain a corresponding residue.  
     Note that modes in the extended model will not be normalized.  For a usage
-    example see :ref:`extrapolate`."""
+    example see :ref:`extendmodel`."""
     
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance')
@@ -74,15 +74,15 @@ def extendModel(model, nodes, atoms):
         indices = np.concatenate(indices)
         
         array = model.getArray()[indices,:]
-        extra = NMA('Extended ' + str(model))
-        extra.setEigens(array, model.getEigenvalues())
+        extended = NMA('Extended ' + str(model))
+        extended.setEigens(array, model.getEigenvalues())
         if isinstance(atoms, AtomGroup):
             ag = atoms
         else: 
             ag = atoms.getAtomGroup()
         atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
                           np.array([]), str(atoms), atoms.getACSIndex())
-        return extra, atommap
+        return extended, atommap
     else:
         raise TypeError('atoms must be an Atomic instance')
     

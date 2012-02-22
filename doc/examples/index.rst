@@ -60,7 +60,7 @@ Dynamics Analysis
    dynamics/pca/index
    trajectory/trajectory
    dynamics/generate_conformers
-   dynamics/extrapolate
+   dynamics/extendmodel
    dynamics/reduce_slice
 
 Atomic classes and data 

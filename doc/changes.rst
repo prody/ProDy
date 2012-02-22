@@ -13,12 +13,15 @@ Release 1.0 (in development)
 
   * Deprecated method and functions are removed.
   
-  * AtomGroup cannot be deformed by direct addition with a vector instance.  
+  * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
+    instance.  
 
   * Unmapped atoms in :class:`~.AtomMap` instances are called
     dummies.  For example :meth:`numUnmapped` method is renamed as 
     :meth:`~.AtomMap.numDummies`.
-    
+
+  * Renamed :func:`extrapolateModel` as :func:`~.extendModel`.
+
 **Improvements**:
 
   * Distance based atom selection is 10 to 15% faster for atom groups with
@@ -930,7 +933,7 @@ Release 0.6.2 (Mar 16, 2011)
     and more memory efficient principal compoment analysis.
   * :func:`~.extrapolateModel` function is implemented for 
     extrapolating a coarse-grained model to an all atom model. See the 
-    usage example :ref:`extrapolate`.
+    usage example :ref:`extendmodel`.
   * :func:`plog` is implemented for enabling users to make log entries.
 
 **Improvements**:

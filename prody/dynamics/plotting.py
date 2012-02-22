@@ -21,7 +21,22 @@
 Plotting functions are called by the name of the plotted data/property 
 and are prefixed with ``show``.  Function documentations refers to the 
 :mod:`matplotlib.pyplot` function utilized for actual plotting. 
-Arguments and keyword arguments are passed to the Matplotlib functions.""" 
+Arguments and keyword arguments are passed to the Matplotlib functions.
+
+
+.. plot::
+   :nofigs: 
+   :context: 
+    
+   from prody import *
+   import matplotlib.pyplot as plt
+   import numpy as np
+
+   p38_pca = loadModel('p38_xray.pca.npz')
+   p38_anm = loadModel('1p38.anm.npz') 
+   p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
+   p38_structure = parsePDB('p38_ref_chain.pdb')   
+   plt.close('all')""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
