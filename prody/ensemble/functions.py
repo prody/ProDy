@@ -15,15 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines a functions for handling conformational ensembles.
-
-.. doctest::
-   :hide:
-    
-   from prody import *
-   ens = loadEnsemble('p38_X-ray.ens.npz')
-
-"""
+"""This module defines a functions for handling conformational ensembles."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -156,6 +148,8 @@ def calcOccupancies(pdb_ensemble, normed=False):
     When analyzing an ensemble of X-ray structures, this function can be used 
     to see how many times a residue is resolved.
     
+    >>> from prody import *
+    >>> ens = loadEnsemble('p38_X-ray.ens.npz')
     >>> print( calcOccupancies(ens) ) # doctest: +ELLIPSIS
     [ 74.  75.  75.  75.  75.  75.  75.  75.  75.  73.  73.  74.  75.  75.  75.
       ...
