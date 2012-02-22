@@ -71,7 +71,7 @@ Accessing data will return a copy of the data:
 Individual atoms
 -------------------------------------------------------------------------------
 
-Atoms are represented by instance of :class:`~prody.atomic.atom.Atom`.
+Atoms are represented by instance of :class:`~.Atom`.
 
 **Iteration**
 
@@ -122,8 +122,8 @@ Coordinates for the atom group will be returned from the active coordinate set
 
 **Iterations**
 
-Coordinate sets can also be iterated over for :class:`~prody.atomic.atom.Atom` 
-and :class:`AtomGroup` instances:
+Coordinate sets can also be iterated over for :class:`~.Atom` and 
+:class:`AtomGroup` instances:
 
 >>> for xyz in a.iterCoordsets(): print( xyz )
 ... 
@@ -207,8 +207,7 @@ Let's merge two water atom groups:
 Hierarchical view
 -------------------------------------------------------------------------------
 
-Hierarchical views of atom groups are represented by 
-:class:`~prody.atomic.hierview.HierView`.
+Hierarchical views of atom groups are represented by :class:`~.HierView`.
 
 Residues (and also chains) in an atom group can also be iterated over
 
@@ -234,6 +233,7 @@ from types import NoneType
 import numpy as np
 
 from prody.tools import checkCoords
+from prody.KDTree import getKDTree
 
 from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS, READONLY
@@ -244,7 +244,7 @@ from atommap import AtomMap
 from subset import AtomSubset
 from selection import Selection
 
-import prody
+
 
 __all__ = ['AtomGroup']
 
@@ -346,27 +346,25 @@ class AtomGroup(Atomic):
     from the *active set*.
     
     To access and modify data associated with a subset of atoms in an atom 
-    group, :class:`~prody.atomic.selection.Selection` instances may be used. 
-    A selection from an atom group has initially the same coordinate set as 
-    the *active coordinate set*.
+    group, :class:`~.Selection` instances may be used.  A selection from an 
+    atom group has initially the same coordinate set as the *active coordinate 
+    set*.
     
     Some :class:`object` methods are customized as follows:
     
     * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
-    * :func:`iter` yields :class:`~prody.atomic.atom.Atom` instances
+    * :func:`iter` yields :class:`~.Atom` instances
     * indexing by:
-         - *int* (:func:`int`), e.g, ``10``, returns an 
-           :class:`~prody.atomic.atom.Atom`
+         - *int* (:func:`int`), e.g, ``10``, returns an :class:`~.Atom`
          - *slice* (:func:`slice`), e.g, ``10:20:2``, returns a 
-           :class:`~prody.atomic.Selection`
+           :class:`~.Selection`
          - *segment name* (:func:`str`), e.g. ``"PROT"``, returns a 
-           a :class:`~prody.atomic.segment.Segment` 
+           a :class:`~.Segment` 
          - *chain identifier* (:func:`str`), e.g. ``"A"``, returns a 
-           a :class:`~prody.atomic.chain.Chain`
+           a :class:`~.Chain`
          - *[segment name,] chain identifier, residue number[, insertion code]* 
            (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
-           ``"PROT", "A", 10, "B"``, returns a 
-           :class:`~prody.atomic.residue.Residue`
+           ``"PROT", "A", 10, "B"``, returns a :class:`~.Residue`
     """
     
     __metaclass__ = AtomGroupMeta
@@ -542,7 +540,7 @@ class AtomGroup(Atomic):
                 index = self._acsi
             kdtree = self._kdtrees[index]
             if kdtree is None:
-                kdtree = prody.measure.getKDTree(self._coords[index])
+                kdtree = getKDTree(self._coords[index])
                 self._kdtrees[index] = kdtree
             return kdtree
         else:
@@ -912,7 +910,7 @@ class AtomGroup(Atomic):
             * start with a letter
             * contain only alphanumeric characters and underscore
             * not be a reserved word 
-              (see :func:`~prody.atomic.select.getReservedWords`)
+              (see :func:`~.getReservedWords`)
 
         *data* must be a :func:`list` or a :class:`numpy.ndarray`, its length 
         must be equal to the number of atoms, and the type of data array must 
