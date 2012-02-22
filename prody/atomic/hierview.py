@@ -42,7 +42,7 @@ Hierarchical view
 -------------------------------------------------------------------------------
 
 A hierarchical view of the structure can be simply get by calling the
-:meth:`~prody.atomic.atomgroup.AtomGroup.getHierView` method:
+:meth:`~.AtomGroup.getHierView` method:
 
 >>> hv = structure.getHierView()
 >>> hv
@@ -50,7 +50,7 @@ A hierarchical view of the structure can be simply get by calling the
 
 *Indexing*
 
-Indexing :class:`HierView` instances return :class:`~prody.atomic.chain.Chain`:
+Indexing :class:`HierView` instances return :class:`~.Chain`:
 
 >>> hv['A']
 <Chain: A from 3mkb (254 residues, 1198 atoms)>
@@ -65,7 +65,7 @@ The length of the *hv* variable gives the number of chains in the structure:
 >>> hv.numChains()
 4
 
-It is also possible to get a :class:`~prody.atomic.residue.Residue` by 
+It is also possible to get a :class:`~.Residue` by 
 directly indexing the :class:`HierView` instance:
 
 >>> hv['A', 100]
@@ -124,8 +124,7 @@ Length of the chain equals to the number of residues in it:
 
 *Indexing*
 
-Indexing a :class:`~prody.atomic.chain.Chain` instance returns a 
-:class:`~prody.atomic.residue.Residue` instance.
+Indexing a :class:`~.Chain` instance returns a :class:`~.Residue` instance.
 
 >>> chA[1]
 <Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
@@ -162,9 +161,8 @@ This enables getting a :func:`list` of residues simply as follows:
 
 *Get atomic data*
 
-All methods defined for :class:`~prody.atomic.atomgroup.AtomGroup` class are 
-also defined for :class:`~prody.atomic.chain.Chain` (and also 
-:class:`~prody.atomic.reside.Residue`) class:
+All methods defined for :class:`~.AtomGroup` class are also defined for 
+:class:`~.Chain` and :class:`~.Residue` classes:
 
 >>> print( chA.getCoords() ) # doctest: +ELLIPSIS
 [[ -2.139  17.026 -13.287]
@@ -179,8 +177,7 @@ also defined for :class:`~prody.atomic.chain.Chain` (and also
 
 *Select atoms*
 
-Finally, you can select atoms from a :class:`~prody.atomic.chain.Chain` 
-instance:
+Finally, you can select atoms from a :class:`~.Chain` instance:
 
 >>> chA_backbone = chA.select('backbone')
 >>> chA_backbone
@@ -205,8 +202,7 @@ Residues
 
 *Indexing*
 
-:class:`~prody.atomic.residue.Residue` instances can be indexed to get 
-individual atoms:
+:class:`~.Residue` instances can be indexed to get individual atoms:
 
 >>> chA_res1['CA']
 <Atom: CA from 3mkb (index 1)>
@@ -235,8 +231,8 @@ This makes it easy to get a :func:`list` of atoms:
 
 *Get atomic data*
 
-All methods defined for :class:`~prody.atomic.atomgroup.AtomGroup` class are 
-also defined for :class:`~prody.atomic.residue.Residue` class:
+All methods defined for :class:`~.AtomGroup` class are also defined for 
+:class:`~.Residue` class:
 
 >>> print( chA_res1.getCoords() )
 [[ -2.139  17.026 -13.287]
@@ -249,8 +245,7 @@ also defined for :class:`~prody.atomic.residue.Residue` class:
 
 *Select atoms*
 
-Finally, you can select atoms from a :class:`~prody.atomic.residue.Residue` 
-instance:
+Finally, you can select atoms from a :class:`~.Residue` instance:
 
 >>> chA_res1_bb = chA_res1.select('backbone')
 >>> chA_res1_bb
@@ -272,9 +267,9 @@ The lowest level of the hierarchical view contains :class:`Atom` instances.
 
 *Get atomic data*
 
-All methods defined for :class:`~prody.atomic.atomgroup.AtomGroup` class are 
-also defined for :class:`~prody.atomic.atom.Atom` class with the difference 
-that method names are singular (except for coordinates):
+All methods defined for :class:`~.AtomGroup` class are also defined for 
+:class:`~.Atom` class with the difference that method names are singular 
+(except for coordinates):
 
 >>> print( chA_res1_CA.getCoords() )
 [ -1.769  15.572 -13.111]
@@ -285,7 +280,7 @@ Changes in attributes
 -------------------------------------------------------------------------------
 
 A :class:`HierView` instance represents the state of an 
-:class:`~prody.atomic.atomgroup.AtomGroup` instance at the time it is built.  
+:class:`~.AtomGroup` instance at the time it is built.  
 When chain identifiers or residue numbers change, the state that hierarchical 
 view represents may not match the current state of the atom group:
 
@@ -322,32 +317,30 @@ SETTINGS = pkg.SETTINGS
 
 class HierView(object):
     
-    """Hierarchical views can be generated for :class:`~prody.atomic.atomgroup.
-    AtomGroup` and :class:`~prody.atomic.selection.Selection` instances.  
-    Indexing a :class:`HierView` instance  returns a :class:`Chain` instance.
+    """Hierarchical views can be generated for :class:`~.AtomGroup` and 
+    :class:`~.Selection` instances.  Indexing a :class:`HierView` instance 
+    returns a :class:`~.Chain`  instance.
     
     Some :class:`object` methods are customized as follows:
     
     * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
-    * :func:`iter` yields :class:`~prody.atomic.atom.Atom` instances
+    * :func:`iter` yields :class:`~.Chain` instances
     * indexing by:
-         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns a 
-           a :class:`~prody.atomic.segment.Segment` 
-         - *chain identifier* (:func:`str`), e.g. ``"A"``, returns a 
-           a :class:`~prody.atomic.chain.Chain`
+         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns 
+           a :class:`~.Segment` 
+         - *chain identifier* (:func:`str`), e.g. ``"A"``, returns 
+           a :class:`~.Chain`
          - *[segment name,] chain identifier, residue number[, insertion code]* 
            (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
-           ``"PROT", "A", 10, "B"``, returns a 
-           :class:`~prody.atomic.residue.Residue`
+           ``"PROT", "A", 10, "B"``, returns a :class:`~.Residue`
         
-    Note that when an :class:`~prody.atomic.atomgroup.AtomGroup` instance have 
-    distinct segments, they will be considered when building the hierarchical 
-    view.  A :class:`~prody.atomic.segment.Segment` instance will be generated
-    for each distinct segment name.  Then, for each segment chains and residues
-    will be evaluated.  Having segments in the structure will not change most 
-    behaviors of this class, except indexing.  For example, when indexing a 
-    hierarchical view for chain P in segment PROT needs to be indexed as 
-    ``hv['PROT', 'P']``."""
+    Note that when an :class:`~.AtomGroup` instance have distinct segments, 
+    they will be considered when building the hierarchical view.  
+    A :class:`~.Segment` instance will be generated for each distinct segment 
+    name.  Then, for each segment chains and residues will be evaluated.  
+    Having segments in the structure will not change most behaviors of this 
+    class, except indexing.  For example, when indexing a hierarchical view 
+    for chain P in segment PROT needs to be indexed as ``hv['PROT', 'P']``."""
     
     def __init__(self, atoms, **kwargs):
         

@@ -32,8 +32,8 @@ the PDB structure 1p38:
 >>> from prody import *
 >>> prot = parsePDB('1p38')
 
-We will use :meth:`~prody.atomic.atomgroup.AtomGroup.select` method to get
-:class:`Selection` instances as follows:
+We will use :meth:`~.AtomGroup.select` method to get :class:`Selection` 
+instances as follows:
     
 >>> water = prot.select('water') 
 
@@ -122,7 +122,7 @@ Addition
 -------------------------------------------------------------------------------
 
 Another operation defined on the :class:`Select` object is addition
-(also on other :class:`~prody.atomic.AtomPointer` derived classes). 
+(also on other :class:`~.AtomPointer` derived classes). 
 
 This may be useful if you want to yield atoms in an :class:`AtomGroup` in a 
 specific order.

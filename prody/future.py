@@ -99,7 +99,7 @@ class MarkovModel(object):
         
     
         :arg atoms: atoms for which the affinity matrix will be calculated
-        :type atoms: :class:`~prody.atomic.Atomic`
+        :type atoms: :class:`~.Atomic`
         
         :arg cutoff: pairwise atomic contact cutoff distance, default is 4 Å
         :type cutoff: float

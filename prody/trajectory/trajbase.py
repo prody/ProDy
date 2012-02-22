@@ -124,13 +124,12 @@ class TrajBase(object):
         return self._ag
     
     def setAtoms(self, ag, setref=True):
-        """Associate the instance with an :class:`~prody.atomic.AtomGroup`.
-        Note that at association, active coordinate set of the 
-        :class:`~prody.atomic.AtomGroup`, if it has one, will be set as 
-        the reference coordinates for the ensemble or trajectory. Changes in 
-        :class:`~prody.atomicAtomGroup` active coordinate set will not be
-        reflected to the reference coordinates. If you want to preserve the 
-        present reference coordinates, pass ``setref=False``."""
+        """Associate the instance with an :class:`~.AtomGroup`.  Note that at 
+        association, active coordinate set of the :class:`~.AtomGroup`, if it 
+        has one, will be set as the reference coordinates for the ensemble or 
+        trajectory. Changes in :class:`~.AtomGroup` active coordinate set will 
+        not be reflected to the reference coordinates. If you want to preserve 
+        the present reference coordinates, pass ``setref=False``."""
         
         if ag is None:
             self._ag = None

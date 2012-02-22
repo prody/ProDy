@@ -36,7 +36,7 @@ prody.setVerbosity('none')
 
 class TestFetchPDB(unittest.TestCase):
     
-    """Test :func:`~prody.proteins.fetchPDB` function."""
+    """Test :func:`~.fetchPDB` function."""
     
     @dec.slow
     def setUp(self):

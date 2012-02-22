@@ -44,7 +44,7 @@ Release 0.9.4 (Feb 4, 2012)
 **Changes**:
 
   * :meth:`setAtomGroup` and :meth:`getAtomGroup` methods are renamed as 
-    :meth:`.EnsembleBase.setAtoms` and  :meth:`.EnsembleBase.getAtoms`.
+    :meth:`.Ensemble.setAtoms` and  :meth:`.Ensemble.getAtoms`.
     
   * :class:`~.AtomGroup` class trajectory methods, i.e.
     :meth:`~.AtomGroup.setTrajectory`, 

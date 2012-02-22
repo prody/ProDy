@@ -318,7 +318,7 @@ class TestSelectMeta(type):
 
 class TestSelect(unittest.TestCase):
     
-    """Test :class:`~prody.select.select`."""
+    """Test :class:`~.Select`."""
     
     __metaclass__ = TestSelectMeta
 

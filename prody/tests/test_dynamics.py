@@ -63,13 +63,13 @@ class testGNMBase(unittest.TestCase):
 
     
     def testGetCutoff(self):
-        """Testing return type of :meth:`~prody.dynamics.GNMBase.getCutoff`."""
+        """Testing return type of :meth:`~.GNMBase.getCutoff`."""
         
         self.assertIsInstance(self.model.getCutoff(), float,
                               'getCutoff failed to return a float')
         
     def testGetGamma(self):
-        """Testing return type of :meth:`~prody.dynamics.GNMBase.getGamma`."""
+        """Testing return type of :meth:`~.GNMBase.getGamma`."""
 
         self.assertIsInstance(self.model.getGamma(), float,
                               'getCutoff failed to return a float')

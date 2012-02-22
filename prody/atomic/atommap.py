@@ -26,13 +26,11 @@ How AtomMap's work
     
 :class:`AtomMap` class adds great flexibility to manipulating atomic data.
 
-First let's see how an instance of :class:`~prody.atomic.selection.Selection` 
-(:class:`~prody.atomic.chain.Chain`, or :class:`~prody.atomic.residue.Residue`) 
-works.  Below table shows indices for a selection of atoms in an 
-:class:`~prody.atomic.atomgroup.AtomGroup` and values returned when 
-:meth:`~prody.atomic.selection.Selection.getNames`, 
-:meth:`~prody.atomic.selection.Selection.getResnames` and
-:meth:`~prody.atomic.selection.Selection.getResnums` methods are called.
+First let's see how an instance of :class:`~.Selection` (:class:`~.Chain`, or 
+:class:`~.Residue`) works.  Below table shows indices for a selection of atoms 
+in an :class:`~.AtomGroup` and values returned when 
+:meth:`~.Selection.getNames`, :meth:`~.Selection.getResnames` and
+:meth:`~.Selection.getResnums` methods are called.
 
 .. csv-table:: **Atom Subset** 
    :header: "Indices", "Names", "Resnames", "Resnums"
@@ -49,10 +47,9 @@ works.  Below table shows indices for a selection of atoms in an
    9, CE2, PHE, 1
    10, CZ, PHE, 1
 
-:class:`~prody.atomic.selection.Selection` instances keep indices ordered and 
-do not allow duplicate values, hence their use is limited. 
-In an :class:`AtomMap`, indices do not need to be sorted, duplicate indices ma
-y exist, even "DUMMY" atoms are allowed.
+:class:`~.Selection` instances keep indices ordered and do not allow duplicate 
+values, hence their use is limited. In an :class:`AtomMap`, indices do not need
+to be sorted, duplicate indices may exist, even "DUMMY" atoms are allowed.
 
 Let's say we instantiate the following AtomMap::
     
@@ -83,7 +80,7 @@ For unmapped atoms, numeric attributes are set to 0, others to empty string,
 i.e. ``""``.
 
 .. seealso::
-   :class:`AtomMap` are used by :mod:`~prody.compare` module functions
+   :class:`AtomMap` are used by :mod:`~prody.proteins` module chain functions
    that match or map protein chains.  :ref:`pca-xray` and :ref:`pca-dimer` 
    examples that make use of these functions and :class:`AtomMap` class.
 

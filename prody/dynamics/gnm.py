@@ -142,7 +142,7 @@ class GNM(GNMBase):
         """Build Kirchhoff matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
-        :type coords: :class:`~numpy.ndarray` or :class:`~prody.atomic.Atomic`
+        :type coords: :class:`~numpy.ndarray` or :class:`~.Atomic`
         
         :arg cutoff: cutoff distance (Å) for pairwise interactions
             default is 10.0 Å, , minimum is 4.0 Å
@@ -303,8 +303,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
     """Return a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps 
-    selecting a subset of it.  *pdb* can be :class:`~prody.atomic.Atomic` 
-    instance."""
+    selecting a subset of it.  *pdb* can be :class:`~.Atomic` instance."""
     
     if isinstance(pdb, str):
         ag = parsePDB(pdb)
