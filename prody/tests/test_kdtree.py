@@ -25,7 +25,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import unittest
 import numpy as np
 from numpy.testing import *
-from prody.KDTree import KDTree
+from prody.KDTree import getKDTree
 ATOL = 1e-5
 RTOL = 0
 
@@ -35,7 +35,7 @@ class TestKDTree(unittest.TestCase):
     def setUp(self):
         
         self.coords = np.tile(np.arange(10), (3,1)).T.astype(float)
-        self.kdtree = KDTree(self.coords)
+        self.kdtree = getKDTree(self.coords)
         
         
     def testSearch(self):
