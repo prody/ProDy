@@ -1,5 +1,3 @@
-.. currentmodule:: prody.compare
-
 .. _extract-ligands:
 
 *******************************************************************************
@@ -9,11 +7,9 @@ Extract ligands
 Synopsis
 =============================================================================
 
-:func:`matchAlign` function can be used for aligning protein structures.
+:func:`~.matchAlign` function can be used for aligning protein structures.
 This example shows to to use it to extract ligands from multiple PDB structures 
 after superposing the structures onto a reference.
-
-.. versionadded:: 0.7.1
 
 Input
 -------------------------------------------------------------------------------

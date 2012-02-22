@@ -1,5 +1,3 @@
-.. currentmodule:: prody.ensemble
-
 .. _trajectory:
 
 *******************************************************************************
@@ -46,14 +44,14 @@ be useful in a number of places, so let's start with parsing this file first:
 >>> structure
 <AtomGroup: mdm2 (1449 atoms)>
 
-This function returned a :class:`~prody.atomic.AtomGroup` instance that
+This function returned a :class:`~.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
 Parse data all-at-once
 -------------------------------------------------------------------------------
 
-Using :func:`parseDCD` function all coordinate data in the DCD file can
-be parsed at once. This function returns an :class:`Ensemble` instance:
+Using :func:`~.parseDCD` function all coordinate data in the DCD file can
+be parsed at once. This function returns an :class:`~.Ensemble` instance:
 
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble
@@ -69,7 +67,7 @@ Let's associate this ensemble with the *structure* we parsed from the PDB file:
 >>> ensemble.setAtoms(structure)
 
 This operation set the coordinates of the *structure* as the reference
-coordinates of the *ensemble*. Now we can :meth:`~Ensemble.superpose` 
+coordinates of the *ensemble*. Now we can :meth:`.Ensemble.superpose` 
 the *ensemble* onto the coordinates of the *structure*.  
 
 >>> ensemble.superpose()
@@ -105,7 +103,7 @@ In this case, superposition was based on Cα atom coordinates.
   1.55]
 
 
-The :class:`Ensemble` instance can also be used in :class:`~prody.dynamics.PCA`
+The :class:`~.Ensemble` instance can also be used in :class:`~.PCA`
 calculations. See the examples in :ref:`pca` for more information.
 
 Parse data frame-by-frame
@@ -157,7 +155,7 @@ We can perform these calculations for all frames in a for loop. Let's reset
 Handling multiple files
 -------------------------------------------------------------------------------
 
-:class:`Trajectory` is designed for handling multiple trajectory files:
+:class:`~.Trajectory` is designed for handling multiple trajectory files:
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
@@ -188,8 +186,8 @@ Instances of this class are also suitable for previous calculations:
 Writing DCD files
 -------------------------------------------------------------------------------
 
-Finally, you can write :class:`Ensemble`, :class:`Trajectory`, and 
-:class:`DCDFile` instances in DCD format using :func:`writeDCD` function.
+Finally, you can write :class:`~.Ensemble`, :class:`~.Trajectory`, and 
+:class:`~.DCDFile` instances in DCD format using :func:`~.writeDCD` function.
 Let's select non-hydrogen protein atoms and write a merged trajectory for
 MDM2:
 

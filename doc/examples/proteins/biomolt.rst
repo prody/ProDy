@@ -1,5 +1,3 @@
-.. currentmodule:: prody.proteins
-
 .. _biomolt:
 
 *******************************************************************************
@@ -23,7 +21,7 @@ generate the multimer coordinates.
 Output
 -------------------------------------------------------------------------------
 
-An :class:`~prody.atomic.AtomGroup` instance that contains the multimer 
+An :class:`~.AtomGroup` instance that contains the multimer 
 coordinates.
 
 ProDy Code
@@ -49,7 +47,7 @@ to coordinates.
 Build multimer
 -------------------------------------------------------------------------------
 
-Let's get the dimer coordinates using :func:`buildBiomolecules` function:
+Let's get the dimer coordinates using :func:`~.buildBiomolecules` function:
 
 >>> dimer = buildBiomolecules(header, monomer)
 >>> dimer

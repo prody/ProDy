@@ -1,5 +1,3 @@
-.. currentmodule:: prody.select
-
 .. _contacts:
 
 *******************************************************************************
@@ -21,9 +19,9 @@ protein and ligand separately are also accepted.
 Output
 -------------------------------------------------------------------------------
 
-Output is a :class:`~prody.atomic.Selection` instance that points to atoms
+Output is a :class:`~.Selection` instance that points to atoms
 matching the contact criteria given by the user. 
-:class:`~prody.atomic.Selection` instances can be used as input to other
+:class:`~.Selection` instances can be used as input to other
 functions for further analysis.
 
 ProDy Code
@@ -114,7 +112,7 @@ identify atoms in a spherical region. Let's find backbone atoms within 5
 Fast contact selections
 -------------------------------------------------------------------------------
 
-For repeated and faster contact identification :class:`Contacts` class is
+For repeated and faster contact identification :class:`~.Contacts` class is
 recommended.
 
 >>> # We pass the protein as argument
@@ -125,6 +123,6 @@ recommended.
 
 This method is 20 times faster than the one in the previous part, but it is
 limited to selecting only contacting atoms (other selection arguments cannot be 
-passed). Again, it should be noted that :class:`Contacts` does not update the 
+passed). Again, it should be noted that :class:`~.Contacts` does not update the 
 KDTree that it uses, so it should be used if protein coordinates does not change 
 between selections. 

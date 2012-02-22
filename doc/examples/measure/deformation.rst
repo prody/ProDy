@@ -1,5 +1,3 @@
-.. currentmodule:: prody.compare
-
 .. _deformation:
 
 *******************************************************************************
@@ -21,7 +19,7 @@ sufficient.
 Output
 -------------------------------------------------------------------------------
 
-A :class:`~prody.dynamics.Vector` instance that contains the deformation vector
+A :class:`~.Vector` instance that contains the deformation vector
 describing the change in protein structure. This object instance can be used 
 conveniently to compare deformation with normal modes.
 
@@ -45,13 +43,13 @@ Let's parse two p38 MAP Kinase structures: 1p38 and 1zz2
 Match chains
 -------------------------------------------------------------------------------
 
-ProDy offers the function :func:`matchChains` to find matching chains
+ProDy offers the function :func:`~.matchChains` to find matching chains
 in two structures easily. We use it to find the chains for which we will 
 calculate the deformation vector:
 
 >>> matches = matchChains(reference, mobile)
 
-:func:`matchChains` function returns a list. If there are no matching chains, 
+:func:`~.matchChains` function returns a list. If there are no matching chains, 
 list is empty, else the list contains a tuple for each pair of matching chains.
 
 >>> print( len(matches) ) 
@@ -65,7 +63,7 @@ second structure (*mobile*).
 >>> ref_chain = match[0]
 >>> mob_chain = match[1]
 
-Matched atoms are returned in :class:`~prody.atomic.AtomMap` instances.
+Matched atoms are returned in :class:`~.AtomMap` instances.
 We can get information on matched subset of atoms by entering the variable 
 name:
 
@@ -74,7 +72,7 @@ name:
 >>> mob_chain
 <AtomMap: Chain A from 1zz2 -> Chain A from 1p38 from 1zz2 (337 atoms, 337 mapped, 0 dummy)>
 
-Both :class:`~prody.atomic.AtomMap` instances refer to same number of atoms, 
+Both :class:`~.AtomMap` instances refer to same number of atoms, 
 and their name suggests how they were retrieved.
 
 In addition, we can find out the sequence identity that the matched atoms 
@@ -96,13 +94,13 @@ is the number of atoms in the returned atom maps.
 RMSD and superpose
 -------------------------------------------------------------------------------
 
-We calculate the RMSD using :func:`~prody.measure.calcRMSD` function: 
+We calculate the RMSD using :func:`~.calcRMSD` function: 
 
 >>> print( calcRMSD(ref_chain, mob_chain).round(2) )
 72.93
 
 Let's find the transformation that minimizes RMSD between these chains
-using :func:`~prody.measure.calcTransformation` function:
+using :func:`~.calcTransformation` function:
 
 >>> t = calcTransformation(mob_chain, ref_chain)
 
@@ -118,7 +116,7 @@ Deformation vector
 -------------------------------------------------------------------------------
 
 Once matching chains are identified it is straightforward to calculate the
-deformation vector using :func:`~prody.measure.calcDeformVector`
+deformation vector using :func:`~.calcDeformVector`
 
 >>> defvec = calcDeformVector(ref_chain, mob_chain)
 >>> print( abs(defvec).round(3) )
@@ -147,7 +145,7 @@ Compare with ANM modes
 -------------------------------------------------------------------------------
 
 Let's get ANM model for the reference chain using 
-:func:`~prody.dynamics.calcANM` (a shorthand function for ANM calculations):
+:func:`~.calcANM` (a shorthand function for ANM calculations):
 
 >>> anm = calcANM(ref_chain)[0]
 

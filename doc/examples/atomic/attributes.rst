@@ -1,5 +1,3 @@
-.. currentmodule:: prody.atomic
-
 .. _attributes:
 
 *******************************************************************************
@@ -9,10 +7,8 @@ Storing data in AtomGroup instances
 Synopsis
 ===============================================================================
 
-.. versionadded:: 0.7.1
-
 This example shows how to store arbitrary atomic attributes in an 
-:class:`AtomGroup` instance. 
+:class:`~.AtomGroup` instance. 
 
 
 Input
@@ -24,7 +20,7 @@ A protein structure in PDB format and other atomic data.
 Output
 -------------------------------------------------------------------------------
 
-Output is an :class:`~prody.atomic.AtomGroup` instance that stores atomic data
+Output is an :class:`~.AtomGroup` instance that stores atomic data
 and can be used as input to functions and classes for dynamics analysis.
 
 ProDy Code
@@ -51,13 +47,13 @@ dividing the residue number of each atom by 10:
 
 >>> myresnum = ag.getResnums() / 10.0
 
-We will add this to the atom group using :meth:`~AtomGroup.setData`
+We will add this to the atom group using :meth:`.AtomGroup.setData`
 method by passing a name for the attribute and the data:
 
 >>> ag.setData('myresnum', myresnum)
 
 We can check if a custom atomic attribute exists using 
-:meth:`~AtomGroup.isData` method:
+:meth:`.AtomGroup.isData` method:
 
 >>> ag.isData('myresnum')
 True
@@ -96,12 +92,12 @@ Save attributes
 -------------------------------------------------------------------------------
 
 It is not possible to save custom attributes in PDB files, but 
-:func:`saveAtoms` function can be used them to save in disk for later use:
+:func:`~.saveAtoms` function can be used them to save in disk for later use:
 
 >>> saveAtoms(ag)
 '1p38.ag.npz'
 
-Let's load it using :func:`loadAtoms` function:
+Let's load it using :func:`~.loadAtoms` function:
 
 >>> ag = loadAtoms('1p38.ag.npz')
 >>> ag.getData('myresnum')
@@ -112,7 +108,7 @@ Delete an attribute
 -------------------------------------------------------------------------------
 
 Finally, when done with an attribute, it can be deleted using 
-:meth:`~AtomGroup.delData` method:
+:meth:`.AtomGroup.delData` method:
 
 >>> ag.delData('myresnum')
 array([  0.4,   0.4,   0.4, ...,  77.1,  77.3,  77.6])

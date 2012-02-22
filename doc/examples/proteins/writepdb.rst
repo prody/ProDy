@@ -1,5 +1,3 @@
-.. currentmodule:: prody.proteins
-
 .. _writepdb:
 
 *******************************************************************************
@@ -9,15 +7,15 @@ Write PDB file
 Synopsis
 ===============================================================================
 
-PDB files can be written using :func:`writePDB` function. This
-example shows how to write PDB files for :class:`~prody.atomic.AtomGroup` 
+PDB files can be written using :func:`~.writePDB` function. This
+example shows how to write PDB files for :class:`~.AtomGroup` 
 instances and subsets of atoms. 
 
 Input
 -------------------------------------------------------------------------------
 
 A ProDy class instance that contains or points to atomic data is accepted
-as input, e.g. :class:`~prody.atomic.AtomGroup` or :class:`~prody.atomic.Chain`
+as input, e.g. :class:`~.AtomGroup` or :class:`~.Chain`
  
 Output
 -------------------------------------------------------------------------------
@@ -40,14 +38,14 @@ You can parse PDB files by passing a PDB identifier:
 >>> atoms
 <AtomGroup: 1p38 (2962 atoms)>
 
-:func:`parsePDB` function returns atomic data in an 
-:class:`~prody.atomic.AtomGroup`.
+:func:`~.parsePDB` function returns atomic data in an 
+:class:`~.AtomGroup`.
 
 
 Write all atoms
 -------------------------------------------------------------------------------
 
-All atoms in an :class:`~prody.atomic.AtomGroup` can be written in PDB format
+All atoms in an :class:`~.AtomGroup` can be written in PDB format
 as follows:
 
 >>> writePDB('1p38.pdb', atoms)

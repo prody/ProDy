@@ -1,5 +1,3 @@
-.. currentmodule:: prody.measure
-
 .. _aligncoordsets:
 
 *******************************************************************************
@@ -9,9 +7,9 @@ Align coordinate sets
 Synopsis
 ===============================================================================
 
-:class:`~prody.atomic.AtomGroup` instances can store multiple coordinate sets,
+:class:`~.AtomGroup` instances can store multiple coordinate sets,
 i.e. multiple models from an NMR structure. This example shows how to align
-such coordinate sets using :func:`alignCoordsets` function. 
+such coordinate sets using :func:`~.alignCoordsets` function. 
 
 Input
 -------------------------------------------------------------------------------
@@ -21,7 +19,7 @@ Multiple structures/models of the same protein in a single PDB file.
 Output
 -------------------------------------------------------------------------------
 
-Output is a :class:`~prody.atomic.AtomGroup` instance whose coordinate
+Output is a :class:`~.AtomGroup` instance whose coordinate
 sets are superposed on the the active coordinate set selected by the user.
 
 ProDy Code
@@ -73,7 +71,7 @@ set).
 Write aligned coordinates
 -------------------------------------------------------------------------------
 
-Using :func:`~prody.proteins.writePDB` function, we can write the aligned
+Using :func:`~.writePDB` function, we can write the aligned
 coordinate sets in PDB format: 
 
 >>> writePDB('1joy_aligned.pdb', pdb)

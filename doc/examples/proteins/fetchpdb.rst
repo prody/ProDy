@@ -1,5 +1,3 @@
-.. currentmodule:: prody.proteins
-
 .. _fetchpdb:
 
 *******************************************************************************
@@ -10,7 +8,7 @@ Synopsis
 ===============================================================================
 
 This examples demonstrates how to use the flexible PDB fetcher, 
-:func:`fetchPDB`. 
+:func:`~.fetchPDB`. 
 
 Input
 -------------------------------------------------------------------------------

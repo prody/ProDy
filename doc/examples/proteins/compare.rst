@@ -1,5 +1,3 @@
-.. currentmodule:: prody.compare
-
 .. _compare-chains:
 
 *******************************************************************************
@@ -9,7 +7,7 @@ Compare chains
 Synopsis
 =============================================================================
 
-:mod:`~prody.compare` module contains functions for matching and mapping 
+:mod:`~.proteins` module contains functions for matching and mapping 
 chains. Results can be used for RMSD fitting and PCA analysis. 
 
 Input
@@ -20,7 +18,7 @@ Two structures of the same protein in PDB file format.
 Output
 -------------------------------------------------------------------------------
 
-Output is :class:`~prody.atomic.AtomMap` instances that can be used as input
+Output is :class:`~.AtomMap` instances that can be used as input
 to other classes and functions.
 
 ProDy Code
@@ -65,7 +63,7 @@ RMSD             : 142.084163869
 
 We can do a structural alignment using both chains as follows:
 
-First we add the :class:`~prody.atomic.AtomGroup` instances for both 
+First we add the :class:`~.AtomGroup` instances for both 
 structures: 
 
 >>> bound_ca = matches[0][0] + matches[1][0]
@@ -85,7 +83,7 @@ selections and apply it to unbound structure:
 >>> round(calcRMSD(bound_ca, unbound_ca), 2)
 6.0
 
-By default, :func:`matchChains` function matches Cα atoms. 
+By default, :func:`~.matchChains` function matches Cα atoms. 
 *subset* argument allows for matching larger numbers of atoms. 
 We can match backbone atoms as follows:
 
@@ -145,7 +143,7 @@ Map onto a chain
 -------------------------------------------------------------------------------
 
 Mapping is different from matching. When chains are matched, all matching
-atoms are returned as :class:`~prody.atomic.AtomMap` instances. When atoms
+atoms are returned as :class:`~.AtomMap` instances. When atoms
 are mapped onto a *chain*, missing atoms are replaced by dummy atoms. The 
 length of the mapping is equal to the length of *chain*. Mapping is used
 particularly useful in assembling coordinate data in analysis of heterogeneous
@@ -172,7 +170,7 @@ Mapping length     : 556
 Sequence identity  : 99
 Sequence overlap   : 94
 
-:func:`mapOntoChain` mapped only Cα atoms. *subset* argument allows for
+:func:`~.mapOntoChain` mapped only Cα atoms. *subset* argument allows for
 matching larger numbers of atoms. We can map backbone atoms as follows:
 
 >>> mappings = mapOntoChain(bound, unbound_A, subset='bb')

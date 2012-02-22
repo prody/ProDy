@@ -1,5 +1,3 @@
-.. currentmodule:: prody.proteins
-
 .. _parsepdb:
 
 *******************************************************************************
@@ -9,7 +7,7 @@ Parse PDB files
 Synopsis
 ===============================================================================
 
-ProDy offers a fast and flexible PDB parser, :func:`parsePDB`. 
+ProDy offers a fast and flexible PDB parser, :func:`~.parsePDB`. 
 Parser can be used to read well defined subsets of atoms, specific chains or 
 models (in NMR structures) to boost the performance. This example shows how to 
 use the flexible parsing options. 
@@ -52,11 +50,11 @@ information):
 >>> atoms
 <AtomGroup: 1p38 (2962 atoms)>
 
-Parser returns an :class:`~prody.atomic.AtomGroup` instance.
+Parser returns an :class:`~.AtomGroup` instance.
 
 Also note that the time it took to parse the file is printed on
 the screen. This includes the time that it takes to evaluate 
-coordinate lines and build an :class:`~prody.atomic.AtomGroup` instance and 
+coordinate lines and build an :class:`~.AtomGroup` instance and 
 excludes the time spent on reading the file from disk.
 
 Use an identifier

@@ -42,11 +42,11 @@ Protein Structure
 .. toctree::
    :maxdepth: 1
 
-   select/contacts
+   measure/contacts
    measure/alignment
    proteins/biomolt
-   compare/compare
-   compare/extract_ligands
+   proteins/compare
+   proteins/extract_ligands
    measure/deformation
 
 Dynamics Analysis
@@ -58,7 +58,7 @@ Dynamics Analysis
 
    dynamics/enm/index
    dynamics/pca/index
-   ensemble/trajectory
+   trajectory/trajectory
    dynamics/generate_conformers
    dynamics/extrapolate
    dynamics/reduce_slice
