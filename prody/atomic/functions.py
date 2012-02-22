@@ -72,7 +72,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bmap'] = bmap
             attr_dict['numbonds'] = ag._data['numbonds']
         else:
-            bonds = trimBonds(bonds, bmap, atoms._getIndices())
+            bonds = trimBonds(bonds, atoms._getIndices())
             attr_dict['bonds'] = bonds
             attr_dict['bmap'], attr_dict['numbonds'] = \
                 evalBonds(bonds, len(atoms))

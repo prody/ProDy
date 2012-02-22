@@ -69,8 +69,8 @@ Following ProDy functions are for parsing and writing :file:`.pdb` files:
 Since :file:`.pqr` format is similar to :file:`.pdb` format, following 
 functions come as bonus features:
  
-  * :func:`~.writePQR`        write atomic data to a file in :file:`.pqr` format
-  * :func:`~.parsePQR`        parse atomic data from files in :file:`.pqr` format
+  * :func:`~.writePQR` - write atomic data to a file in :file:`.pqr` format
+  * :func:`~.parsePQR` - parse atomic data from files in :file:`.pqr` format
   
 
 .. seealso::
@@ -91,8 +91,8 @@ Edit structures
 Following functions allow editing structures using structural data from PDB 
 header records:
 
-:func:`~.assignSecstr`       add secondary structure data from header to atoms
-:func:`~.buildBiomolecules`  build biomolecule data based on header records
+  * :func:`~.assignSecstr` - add secondary structure data from header to atoms
+  * :func:`~.buildBiomolecules` - build biomolecule from header records
 
 
 PDB header data
@@ -104,8 +104,6 @@ Use the following to parse and access header data in PDB files:
   * :class:`~.Chemical` - store PDB chemical (heterogen) component data
   * :class:`~.Polymer` - store PDB polymer (macromolecule) component data
   * :class:`~.DBRef` - store polymer sequence database reference records
-
-  * :func:`~.parsePSF`        parse atomic data from files in :file:`.psf` format
 
 Ligand data
 ===========
@@ -153,14 +151,6 @@ and/or parse results:
   * :func:`~.execSTRIDE` - execute :program:`stride`
   * :func:`~.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`~.parseSTRIDE` - parse structural data from :program:`stride` output
-
-.. doctest::
-    :hide:
-        
-    >>> from prody import *
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-
 """
 
 __author__ = 'Ahmet Bakan'

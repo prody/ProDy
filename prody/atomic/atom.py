@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from fields import ATOMIC_DATA_FIELDS
+from fields import ATOMIC_DATA_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from bond import Bond

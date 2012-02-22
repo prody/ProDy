@@ -19,10 +19,12 @@
 import numpy as np
 
 from atom import Atom
-from fields import ATOMIC_DATA_FIELDS
+from fields import ATOMIC_DATA_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 
+pkg = __import__(__package__)
+LOGGER = pkg.LOGGER
 
 class AtomSubsetMeta(type):
 

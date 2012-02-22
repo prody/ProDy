@@ -24,8 +24,10 @@ from time import time
 
 import numpy as np
 from prody import Atomic, AtomGroup
-from prody import measure
+from prody.measure import _calcRMSD, _calcTransformation, _applyTransformation
+from prody.measure import _superposeTraj
 from prody.tools import checkCoords
+from functions import checkWeights
 
 from conformation import *
 
@@ -434,15 +436,14 @@ class Ensemble(object):
         
         indices = self._indices
         if indices is None:
-            measure._superposeTraj(self._confs, self._coords, 
-                                           self._weights, self._confs)
+            _superposeTraj(self._confs, self._coords, 
+                           self._weights, self._confs)
         else:
             weights = None
             if self._weights is not None:
                 weights = self._weights[indices]
-            measure._superposeTraj(self._confs[:,indices], 
-                               self._coords[indices], weights,
-                               self._confs)
+            _superposeTraj(self._confs[:,indices], self._coords[indices], 
+                           weights, self._confs)
             
     def iterpose(self, rmsd=0.0001):
         """Iteratively superpose the ensemble until convergence.
@@ -479,7 +480,7 @@ class Ensemble(object):
                 newxyz = self._confs.sum(0) / length
             else:
                 newxyz = (self._confs * weights).sum(0) / weightsum
-            rmsdif = measure._calcRMSD(self._coords, newxyz)
+            rmsdif = _calcRMSD(self._coords, newxyz)
             self._coords = newxyz
             step += 1
             LOGGER.info(('Step #{0:d}: RMSD difference = '
@@ -536,16 +537,15 @@ class Ensemble(object):
         if self._confs is None or self._coords is None: 
             return None
         if self._indices is None:
-            return measure._calcRMSD(self._coords, self._confs, self._weights)
+            return _calcRMSD(self._coords, self._confs, self._weights)
         else:
             indices = self._indices
             if self._weights is None:
-                return measure._calcRMSD(self._coords[indices], 
-                                         self._confs[:,indices])
+                return _calcRMSD(self._coords[indices], self._confs[:,indices])
             else:
-                return measure._calcRMSD(self._coords[indices], 
-                                         self._confs[:,indices],
-                                         self._weights[indices])
+                return _calcRMSD(self._coords[indices], 
+                                 self._confs[:,indices],
+                                 self._weights[indices])
                 
 
 class PDBEnsemble(Ensemble):
@@ -623,8 +623,8 @@ class PDBEnsemble(Ensemble):
     def _superpose(self):
         """Superpose conformations and return new coordinates."""
 
-        calcT = measure._calcTransformation
-        applyT = measure._applyTransformation
+        calcT = _calcTransformation
+        applyT = _applyTransformation
         if self._sel is None:
             weights = self._weights
             coords = self._coords
@@ -828,13 +828,12 @@ class PDBEnsemble(Ensemble):
             return None
     
         if self._sel is None:
-            return measure._calcRMSD(self._coords, self._confs, 
-                                             self._weights)
+            return _calcRMSD(self._coords, self._confs, self._weights)
         else:
             indices = self._indices
-            return measure._calcRMSD(self._coords[indices], 
-                                     self._confs[:,indices],
-                                     self._weights[:, indices])
+            return _calcRMSD(self._coords[indices], 
+                             self._confs[:,indices],
+                             self._weights[:, indices])
 
     def setWeights(self, weights):
         """Set atomic weights."""

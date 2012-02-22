@@ -20,7 +20,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from prody.measure import measure
+from prody.measure import _calcRMSD
 
 __all__ = ['Conformation', 'PDBConformation']
 
@@ -131,13 +131,13 @@ class Conformation(object):
         ensemble = self._ensemble 
         indices = self._indices
         if indices is None:
-            return measure._calcRMSD(ensemble._coords,
-                                     ensemble._confs[self._index], 
-                                     self.getWeights())[0]
+            return _calcRMSD(ensemble._coords,
+                             ensemble._confs[self._index], 
+                             self.getWeights())[0]
         else:
-            return measure._calcRMSD(ensemble._coords[indices],
-                                     ensemble._confs[self._index, indices], 
-                                     self.getWeights())[0]
+            return _calcRMSD(ensemble._coords[indices],
+                             ensemble._confs[self._index, indices], 
+                             self.getWeights())[0]
     
 class PDBConformation(Conformation):
     
@@ -211,13 +211,13 @@ class PDBConformation(Conformation):
         index = self._index
         indices = ensemble._indices
         if indices is None:
-            return measure._calcRMSD(ensemble._coords,
-                                     ensemble._confs[index], 
-                                     ensemble._weights[index])
+            return _calcRMSD(ensemble._coords,
+                             ensemble._confs[index], 
+                             ensemble._weights[index])
         else:
-            return measure._calcRMSD(ensemble._coords[indices],
-                                     ensemble._confs[index, indices], 
-                                     ensemble._weights[index, indices])
+            return _calcRMSD(ensemble._coords[indices],
+                             ensemble._confs[index, indices], 
+                             ensemble._weights[index, indices])
     
     def getWeights(self):
         """Return coordinate weights for selected atoms."""

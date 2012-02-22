@@ -57,3 +57,7 @@ import frame
 from frame import *
 __all__.extend(frame.__all__)
    
+import psffile
+from psffile import *
+__all__.extend(psffile.__all__)
+   

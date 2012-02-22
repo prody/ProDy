@@ -71,7 +71,7 @@ class Segment(AtomSubset):
     
     def __iter__(self):
         
-        return self._list.itervalues()
+        return self._list.__iter__()
 
     def getSegname(self):
         """Return segment name."""

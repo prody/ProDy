@@ -199,7 +199,7 @@ class PCA(NMA):
         
         linalg = importLA()
         if self._cov is None:
-            raise ProDyException('covariance matrix is not built or set')
+            raise ValueError('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
         if linalg.__package__.startswith('scipy'):        
