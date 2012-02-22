@@ -34,30 +34,30 @@ from gnm import GNM
 from anm import ANM
 from pca import PCA
 
-__all__ = ['extrapolateModel', 'reduceModel', 'sliceMode', 'sliceModel',
+__all__ = ['extendModel', 'reduceModel', 'sliceMode', 'sliceModel',
            'sliceVector']
 
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 
-def extrapolateModel(enm, nodes, atoms):
-    """Extrapolate *enm* built for *nodes* to *atoms*.
+def extendModel(model, nodes, atoms):
+    """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
+    may be :class:`~.ANM`, :class:`~.GNM`, :class:`~.PCA`, or :class:`~.NMA` 
+    instance.  This will take part of the normal modes for each node (i.e. Cα 
+    atoms) and extend it to all other atoms in the same residue.  For each atom
+    in *nodes* argument *atoms* argument must contain a corresponding residue.  
+    Note that modes in the extended model will not be normalized.  For a usage
+    example see :ref:`extrapolate`."""
     
-    This function is designed for extrapolating an NMA model built at coarse 
-    grained level to all atom level.  For each atom in *nodes* argument *atoms* 
-    argument must contain a corresponding residue.  Note that modes in the 
-    extrapolated model will not be normalized.  For a usage example see 
-    :ref:`extrapolate`."""
-    
-    if not isinstance(enm, NMA):
-        raise TypeError('enm must be an NMA instance')
+    if not isinstance(model, NMA):
+        raise TypeError('model must be an NMA instance')
     if not isinstance(nodes, Atomic):
         raise TypeError('nodes must be an Atomic instance')
-    if enm.numAtoms() != nodes.numAtoms():
-        raise ValueError('enm and nodes must have same number of atoms')
+    if model.numAtoms() != nodes.numAtoms():
+        raise ValueError('model and nodes must have same number of atoms')
     
     if isinstance(atoms, Atomic):
-        is3d = enm.is3d()            
+        is3d = model.is3d()            
         atom_indices = []
         indices = []
         hierview = atoms.getHierView()
@@ -73,9 +73,9 @@ def extrapolateModel(enm, nodes, atoms):
         atom_indices = np.concatenate(atom_indices)
         indices = np.concatenate(indices)
         
-        array = enm.getArray()[indices,:]
-        extra = NMA('Extrapolated ' + str(enm))
-        extra.setEigens(array, enm.getEigenvalues())
+        array = model.getArray()[indices,:]
+        extra = NMA('Extended ' + str(model))
+        extra.setEigens(array, model.getEigenvalues())
         if isinstance(atoms, AtomGroup):
             ag = atoms
         else: 
