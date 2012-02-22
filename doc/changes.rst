@@ -16,9 +16,9 @@ Release 1.0 (in development)
   * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  
 
-  * Unmapped atoms in :class:`~.AtomMap` instances are called
-    dummies.  For example :meth:`numUnmapped` method is renamed as 
-    :meth:`~.AtomMap.numDummies`.
+  * Unmapped atoms in :class:`~.AtomMap` instances are called dummies.  
+    :meth:`AtomMap.numUnmapped` method, for example, is renamed as 
+    :meth:`.AtomMap.numDummies`.
 
   * Renamed :func:`extrapolateModel` as :func:`~.extendModel`.
 
@@ -44,8 +44,7 @@ Release 0.9.4 (Feb 4, 2012)
 **Changes**:
 
   * :meth:`setAtomGroup` and :meth:`getAtomGroup` methods are renamed as 
-    :meth:`~.EnsembleBase.setAtoms` and 
-    :meth:`~.EnsembleBase.getAtoms`.
+    :meth:`.EnsembleBase.setAtoms` and  :meth:`.EnsembleBase.getAtoms`.
     
   * :class:`~.AtomGroup` class trajectory methods, i.e.
     :meth:`~.AtomGroup.setTrajectory`, 
@@ -128,16 +127,15 @@ Release 0.9.3 (Feb 1, 2012)
   * :func:`~.parsePSF` parses bond information and sets to the
     atom group. 
 
-  * :meth:`~.Selection.update` method for :class:`~.Selection`
-    is implemented, which may be useful to update a distance based selection 
-    after coordinate changes.  
+  * :meth:`.Selection.update` method is implemented, which may be useful to 
+    update a distance based selection after coordinate changes.  
     
   * :func:`~.buildKDTree` and :func:`~.iterNeighbors` methods
     are implemented for facilitating identification of pairs of atoms that 
     are proximal.  
     
   * :meth:`~.AtomGroup.iterAtoms` method is implemented to all 
-    :mod:`~` classes to provide uniformity for atom iterations.
+    :mod:`~prody.atomic` classes to provide uniformity for atom iterations.
     
   * :meth:`~.calcAngle`, :meth:`~.calcDihedral`, 
     :meth:`~.calcPhi`, :meth:`~.calcPsi`, and 
@@ -169,7 +167,7 @@ Release 0.9.3 (Feb 1, 2012)
     :meth:`~.AtomGroup.getACSIndex` and  
     :meth:`~.AtomGroup.setACSIndex`, respectively.
 
-  * :func:`~.calcRadiusOfGyration` is deprecated and will be removed
+  * :func:`calcRadiusOfGyration` is deprecated and will be removed
     in v1.0.  Use :func:`~.calcGyradius` instead.
 
 
@@ -179,7 +177,7 @@ Release 0.9.3 (Feb 1, 2012)
     coordinate sets in an :class:`~.AtomGroup` when passed as *ag* 
     argument.
     
-  * Fixed a problem with ``"same ... as ..."`` argument of :class:`~select.Select`
+  * Fixed a problem with ``"same ... as ..."`` argument of :class:`~.Select`
     that selected atoms when followed by an incorrect atom selection.
     
   * Fixed another problem with ``"same ... as ..."`` which result in selecting
@@ -229,9 +227,9 @@ Release 0.9.2 (Jan 11, 2012)
   * Title of :class:`~.AtomGroup` instances resulting from copying an 
     :class:`~.Atomic` instances does not start with 'Copy of'.
     
-  * :func:`~prody.changeVerbosity` and :func:`~prody.getVerbosityLevel`
-    are renamed as :func:`~prody.setVerbosity` and :func:`~prody.getVerbosity`,
-    respectively. Old names will be removed in v1.0.
+  * :func:`changeVerbosity` and :func:`getVerbosityLevel` are renamed as 
+    :func:`~.setVerbosity` and :func:`~.getVerbosity`, respectively. 
+    Old names will be removed in v1.0.
     
   * ProDy routines (commands) module is rewritten to use new :mod:`argparse`
     module. See :ref:`commands` for details of changes.
@@ -298,7 +296,7 @@ Release 0.9 (Nov 8, 2011)
      
   .. note::  When modifying code using ProDy to adjust the name changes, 
      turning on deprecation warnings may help locating all use cases of the 
-     deprecated names.  See :meth:`prody.turnonDepracationWarnings` for this
+     deprecated names.  See :meth:`~.turnonDepracationWarnings` for this
      purpose.
 
   **Functions**:
@@ -397,7 +395,7 @@ Release 0.9 (Nov 8, 2011)
   ===========================  =======================
   :meth:`getAtomNames`	       :meth:`getNames`
   :meth:`getAtomTypes`	       :meth:`getTypes`
-  :meth:`getAltLocIndicators`	 :meth:`getAltlocs`
+  :meth:`getAltLocIndicators`  :meth:`getAltlocs`
   :meth:`getAnisoTempFactors`  :meth:`getAnisos`
   :meth:`getAnisoStdDevs`      :meth:`getAnistds`
   :meth:`getChainIdentifiers`  :meth:`getChains`
@@ -409,7 +407,7 @@ Release 0.9 (Nov 8, 2011)
   :meth:`getSecondaryStrs`     :meth:`getSecstrs`            
   :meth:`getSegmentNames`      :meth:`getSegnames`
   :meth:`getSerialNumbers`     :meth:`getSerials`
-  :meth:`getTempFactors`	     :meth:`getBetas`
+  :meth:`getTempFactors`	   :meth:`getBetas`
   ===========================  =======================
                        
   This change affects all :mod:`~prody.atomic` classes, 
@@ -420,11 +418,7 @@ Release 0.9 (Nov 8, 2011)
 
   **Other changes in atomic methods**:
   
-  The following changes are made to shorten method names:
-  
   * :meth:`getSelectionString` renamed as :meth:`getSelstr`
-  * :meth:`getActiveCoordsetIndex` renamed as :meth:`getACSI`
-  * :meth:`setActiveCoordsetIndex` renamed as :meth:`setACSI`
 
   Methods handling user data (which was previously called attribute) are 
   renamed as follows: 
@@ -436,7 +430,7 @@ Release 0.9 (Nov 8, 2011)
   :meth:`getAttrNames`  :meth:`getDataLabels`
   :meth:`getAttrType`   :meth:`getDataType`
   :meth:`delAttribute`  :meth:`delData`
-  :meth:`isAttribute`	  :meth:`isData`
+  :meth:`isAttribute`	:meth:`isData`
   :meth:`setAttribute`  :meth:`setData`
   ====================  =======================
   
@@ -445,10 +439,8 @@ Release 0.9 (Nov 8, 2011)
   Finally, the following methods will be removed, but other suitable methods
   are overloaded to perform their action:
   
-  * removed :meth:`~.AtomGroup.getBySerialRange`, overloaded 
-    :meth:`~.AtomGroup.getBySerial`
-  * removed :meth:`~.AtomGroup.skipFrame`, overloaded 
-    :meth:`~.AtomGroup.nextFrame`
+  * removed :meth:`AtomGroup.getBySerialRange`, overloaded 
+    :meth:`.AtomGroup.getBySerial`
   * removed :func:`~.getProteinResidueNames`, overloaded
     :func:`~select.getKeywordResnames` 
   * removed :func:`~.setProteinResidueNames`, overloaded
