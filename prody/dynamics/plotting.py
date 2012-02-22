@@ -21,34 +21,7 @@
 Plotting functions are called by the name of the plotted data/property 
 and are prefixed with ``show``.  Function documentations refers to the 
 :mod:`matplotlib.pyplot` function utilized for actual plotting. 
-Arguments and keyword arguments are passed to the Matplotlib functions.  
-
-
-===========================  ==================================================
-Function                     Plotted data
-===========================  ==================================================
-:func:`showMode`             mode shape
-:func:`showOverlap`          overlap between modes
-:func:`showSqFlucts`         square-fluctuations
-:func:`showEllipsoid`        depict projection of a normal mode space on 
-                             another 
-:func:`showContactMap`       contact map based on a Kirchhoff matrix
-:func:`showProjection`       projection of conformations onto normal modes
-:func:`showOverlapTable`     overlaps between two models
-:func:`showScaledSqFlucts`   square-fluctuations fitted to experimental data
-:func:`showNormedSqFlucts`   normalized square-fluctuations
-:func:`showCrossProjection`  project conformations onto modes from different 
-                             models
-:func:`showFractOfVar`       fraction of variances
-:func:`showCrossCorr`        cross-correlations between fluctuations
-                             in atomic positions
-:func:`showCumOverlap`       cumulative overlap of a mode with multiple modes 
-                             from another model
-:func:`showCumFractOfVar`    cumulative fraction of variances 
-:func:`resetTicks`           change ticks in a plot
-===========================  ==================================================
-
-""" 
+Arguments and keyword arguments are passed to the Matplotlib functions.""" 
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -75,23 +48,24 @@ pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
            
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
-    """Show an ellipsoid using  :meth:`~mpl_toolkits.mplot3d.Axes3D.
-    plot_wireframe`.
+    """Show an ellipsoid using  :meth:`~mpl_toolkits.mplot3d.Axes3D.plot_wireframe`.
     
     Ellipsoid volume gives an analytical view of the conformational space that
     given modes describe.
     
     :arg modes: 3 modes for which ellipsoid will be drawn.
-    :type modes: :class:`ModeSet`, :class:`PCA`, :class:`ANM` or :class:`NMA`
+    :type modes: :class:`~.ModeSet`, :class:`~.PCA`, :class:`~.ANM`, 
+         :class:`~.NMA`
     
     :arg onto: 3 modes onto which ellipsoid will be projected.
-    :type modes: :class:`ModeSet`, :class:`PCA`, :class:`ANM` or :class:`NMA`
+    :type modes: :class:`~.ModeSet`, :class:`~.PCA`, :class:`~.ANM`,
+        :class:`~.NMA`
        
     :arg n_std: Number of standard deviations to scale the ellipsoid.
     :type n_std: float
     
     :arg scale: Used for scaling the volume of ellipsoid. This can be
-        obtaine from :func:`sampleModes`.
+        obtained from :func:`~.sampleModes`.
     :type scale: float
 
 
@@ -218,7 +192,7 @@ def showCumFractOfVar(modes, *args, **kwargs):
     plot`.
     
     Note that mode indices are incremented by 1.
-    See :func:`showFractOfVar` for an example."""
+    See :func:`~.showFractOfVar` for an example."""
     
     import matplotlib.pyplot as plt
     if not isinstance(modes, (Mode, NMA, ModeSet)):
@@ -246,11 +220,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     """Show a projection of conformational deviations onto up to three normal 
     modes from the same model.
     
-    :arg ensemble: a :class:`~prody.ensemble.Ensemble` instance
-    :arg modes: a :class:`Mode`, :class:`ModeSet`, or :class:`NMA` instance
+    :arg ensemble: a :class:`~.Ensemble` instance
+    :arg modes: a :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.NMA`
     
     The projected values are by default converted to RMSD.  Pass 
-    ``rmsd=False`` to use projection itself. :class:`Vector` instances 
+    ``rmsd=False`` to use projection itself. :class:`~.Vector` instances 
     are accepted as *ensemble* argument to allow for projecting a 
     deformation vector onto normal modes.  
     
@@ -258,7 +232,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         
       * 1 mode: :func:`~matplotlib.pyplot.hist`
       * 2 modes: :func:`~matplotlib.pyplot.plot`
-      * 3 modes: :meth:`mpl_toolkits.mplot3d.Axes3D.plot`
+      * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`
           
     By default ``marker='o', ls='None'`` is passed to the plotting function 
     to disable lines in projections onto 2 or 3-d spaces.
@@ -345,15 +319,15 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
                         *args, **kwargs):
     """Show a projection of conformational deviations onto modes from
     different models using :func:`~matplotlib.pyplot.plot`.  This function 
-    differs from :func:`showProjection` by accepting modes from two different 
+    differs from :func:`~.showProjection` by accepting modes from two different 
     models.
     
     :arg ensemble: Ensemble for which deviations will be projected
-    :type ensemble: :class:`~prody.ensemble.Ensemble`
+    :type ensemble: :class:`~.Ensemble`
     :arg mode_x: Projection onto this mode will be shown along x-axis. 
-    :type mode_x: :class:`Mode`
+    :type mode_x: :class:`~.Mode`
     :arg mode_y: Projection onto this mode will be shown along y-axis.
-    :type mode_y: :class:`Mode`
+    :type mode_y: :class:`~.Mode`
     :arg scale: Scale width of the projection onto one of modes. 
                 ``x`` and ``y`` are accepted.
     :type scale: str
@@ -364,7 +338,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     
     The projected values are by default converted to RMSD. 
     Pass ``rmsd=False`` to calculate raw projection values.
-    :class:`Vector` instances are accepted as *ensemble* argument to allow
+    :class:`~.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes.  
     
     By default ``marker='o', ls='None'`` is passed to the plotting function 
@@ -479,7 +453,7 @@ def showCrossCorr(modes, *args, **kwargs):
     """Show cross-correlations for given modes using :func:`~matplotlib.pyplot.
     imshow`.  By default, *origin=lower* and *interpolation=bilinear* keyword 
     arguments are passed to imshow function. User can overwrite these 
-    parameters.  See also :func:`getCrossCorr`.
+    parameters.  See also :func:`~.getCrossCorr`.
     
     .. plot::
        :context:
@@ -686,9 +660,10 @@ def showOverlap(mode, modes, *args, **kwargs):
     """Show overlap :func:`~matplotlib.pyplot.bar`.
     
     :arg mode: a single mode/vector
-    :type mode: :class:`Mode`, :class:`Vector` 
+    :type mode: :class:`~.Mode`, :class:`~.Vector` 
     :arg modes: multiple modes
-    :type modes: :class:`ModeSet`, :class:`ANM`, :class:`GNM`, or :class:`PCA` 
+    :type modes: :class:`~.ModeSet`, :class:`~.ANM`, :class:`~.GNM`, 
+        :class:`~.PCA` 
     
     .. plot::
        :context:
@@ -724,9 +699,10 @@ def showOverlap(mode, modes, *args, **kwargs):
 def showCumOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
     
-    :type mode: :class:`Mode`, :class:`Vector` 
+    :type mode: :class:`~.Mode`, :class:`~.Vector` 
     :arg modes: multiple modes
-    :type modes: :class:`ModeSet`, :class:`ANM`, :class:`GNM`, or :class:`PCA` 
+    :type modes: :class:`~.ModeSet`, :class:`~.ANM`, :class:`~.GNM`, 
+        :class:`~.PCA` 
     
     .. plot::
        :context:
