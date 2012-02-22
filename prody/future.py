@@ -42,11 +42,7 @@ def parseDCD(filename, indices=None, header=False, first=0, skip=0, last=None):
 
 class MarkovModel(object):
     
-    """Implementation of the Markov model described in [CC06]_ and [CC07]_.
-
-    .. versionadded:: 0.7.1
-    
-    """
+    """Implementation of the Markov model described in [CC06]_ and [CC07]_."""
     
     def __init__(self, title):
         title = str(title)

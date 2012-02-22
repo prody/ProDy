@@ -295,12 +295,8 @@ _SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
 
 def matchAlign(mobile, target, **kwargs):
     """Superpose *mobile* onto *target* based on best matching pair of chains.
-    
-    .. versionadded:: 0.7.1
-
-    This function makes use of :func:`matchChains` for matching chains.
-  
-    This function returns a tuple that contains the following items:
+    This function uses :func:`matchChains` for matching chains and returns a 
+    tuple that contains the following items:
       
       * *mobile* after it is superposed,
       * Matching chain from *mobile* as a :class:`~.AtomMap` 
@@ -366,9 +362,6 @@ def matchChains(atoms1, atoms2, **kwargs):
     If *subset* is set to *calpha* or *backbone*, only alpha carbon
     atoms or backbone atoms will be paired. If set to *all*, all atoms
     common to matched residues will be returned.
-    
-    .. versionchanged:: 0.6.1
-       ``"ca"`` and and ``"bb"`` are accepted as *subset* argument. 
     
     This function tries to match chains based on residue numbers and names. 
     All chains in *atoms1* is compared to all chains in *atoms2*. 
@@ -642,10 +635,6 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool
     
-    .. versionchanged:: 0.6.1
-       Mapping can be performed for backbone or all atoms.
-       ``"ca"`` and and ``*bb*`` are accepted as *subset* argument. 
-
     This function tries to map *atoms* to *chain* based on residue
     numbers and types. Each individual chain in *atoms* is compared to
     target *chain*. This works well for different structures of the same

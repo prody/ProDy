@@ -11,8 +11,6 @@ This example shows how to extend normal modes calculated for a
 coarse-grained model to a larger set of atoms. Extended model can be
 used to generate alternate conformers. 
 
-.. versionadded:: 0.6.2
-
 Input
 -------------------------------------------------------------------------------
 

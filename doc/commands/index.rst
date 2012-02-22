@@ -16,10 +16,6 @@ Python distribution, e.g. :file:`C:\\Python27\\Scripts` if you used Python 2.7.
 You may need to add this path to the environment variable :envvar:`PATH` 
 yourself. 
 
-.. versionchanged:: 0.9
-   The usage of scripts have changed, all commands must be prefixed with
-   :command:`prody`. 
-
 A list of ProDy commands can be obtained by running :command:`prody`::
   
   $ prody 
