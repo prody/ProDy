@@ -199,8 +199,8 @@ def checkUpdates():
                     .format(releases[0], __version__))
 
 def test(**kwargs):
-    """Run ProDy tests. See :mod:`prody.testing` documentation for more 
-    details, i.e. ``import prody.tests; help(prody.tests)``"""
+    """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests` 
+    documentation for more details."""
     
     if sys.version_info[:2] > (2,6):
         try:
