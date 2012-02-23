@@ -265,6 +265,8 @@ class ANM(GNMBase):
                             self._hessian, k=n_modes+6, which='SA')
         
         else:
+            if n_modes is not None:
+                LOGGER.info('Scipy is not found, all modes are calculated.')
             values, vectors = linalg.eigh(self._hessian)
         n_zeros = sum(values < ZERO)
         if n_zeros < 6: 
