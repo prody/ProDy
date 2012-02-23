@@ -54,7 +54,7 @@ Let's get the dimer coordinates using :func:`~.buildBiomolecules` function:
 <AtomGroup: 3enl biomolecule 1 (7294 atoms)>
 
 This function takes biomolecular tarnsformations from the *header* dictionary
-(item with key ``'biomolecular_transformations'``) and applies them to the 
+(item with key ``'biomoltrans'``) and applies them to the 
 *monomer*.  
 
 Iterate monomers

@@ -160,9 +160,8 @@ There are other ways to import ProDy contents. You may use
 if you prefer not to overcrowd your namespace.
 Alternatively, if you want to use functions in a specific module, 
 :mod:`~.proteins` let's say, you can use ``from prody.proteins import *``. 
-You should, however, avoid using using 
-``from prody.proteins.pdbfile import *``, because location of methods
-in submodules may change without notice.
+You should, however, avoid using ``from prody.proteins.pdbfile import *``, 
+because location of methods in submodules may change without notice.
 
 .. plot::
    :nofigs: 
