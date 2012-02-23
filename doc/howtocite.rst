@@ -11,7 +11,7 @@ When using ProDy or NMWiz in published work, please cite:
 
   | Bakan A, Meireles LM, Bahar I. 
   | ProDy: Protein Dynamics Inferred from Theory and Experiments.
-  | *Bioinformatics* **2011** doi: 10.1093/bioinformatics/btr168
+  | *Bioinformatics* **2011** 27(11):1575-1577.
 
 If you have used ProDy functions that implement methods or theory in work
 listed in :ref:`bibliography` or :ref:`publications`, please cite the 
