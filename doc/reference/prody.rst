@@ -16,7 +16,6 @@ This module defines functions for aiding interactive ProDy experience.
   * :func:`closeLogfile`
   * :func:`plog`
   * :func:`test`
-  * :func:`turnonDepracationWarnings`
     
 .. autofunction:: confProDy
 
@@ -33,5 +32,3 @@ This module defines functions for aiding interactive ProDy experience.
 .. autofunction:: plog
 
 .. autofunction:: test
-
-.. autofunction:: turnonDepracationWarnings
