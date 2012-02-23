@@ -216,6 +216,8 @@ class PCA(NMA):
             values, vectors = linalg.eigh(self._cov, turbo=turbo, 
                                           eigvals=eigvals)
         else:
+            if n_modes is not None:
+                LOGGER.info('Scipy is not found, all modes are calculated.')
             values, vectors = linalg.eigh(self._cov)
         # Order by descending SV
         revert = range(len(values)-1, -1, -1)
