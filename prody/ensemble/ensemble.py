@@ -39,10 +39,11 @@ class Ensemble(object):
     
     """A class for analysis of arbitrary conformational ensembles. 
     
-    Indexing returns a :class:`~.Conformation` instance, which corresponds to
-    a coordinate set. Slicing returns an :class:`Ensemble` instance that 
-    contains subset of conformations (coordinate sets). The ensemble obtained 
-    by slicing will have a copy of the reference coordinates."""
+    Indexing (e.g. ``ens[0]``) returns a :class:`~.Conformation` instance that 
+    points to a coordinate set in the ensemble. Slicing (e.g. ``ens[:10]``) 
+    returns an :class:`Ensemble` instance that contains subset of conformations
+    (coordinate sets). The ensemble obtained by slicing will have a copy of 
+    the reference coordinates."""
 
     def __init__(self, title='Unknown'):
         """Instantiate with a *title* or a :class:`~.Atomic` instance.  All 
@@ -65,9 +66,83 @@ class Ensemble(object):
             self.setCoords(title.getCoords())
             self.addCoordset(title)
 
+    
+    def __repr__(self):
+    
+        if self._sel is None:
+            return ('<Ensemble: {0:s} ({1:d} conformations; {2:d} atoms)>'
+                    ).format(self._title, len(self), self._n_atoms)
+        else:
+            return ('<Ensemble: {0:s} ({1:d} conformations; selected {2:d} of '
+                    '{3:d} atoms)>').format(self._title, len(self), 
+                                           self.numSelected(), self._n_atoms)
+
+    def __str__(self):
+    
+        return 'Ensemble {0:s}'.format(self._title)
 
     def __len__(self):
+    
         return self._n_csets
+    
+    def __getitem__(self, index):
+        """Return a conformation at given index."""
+        
+        if self._confs is None:
+            return None
+        
+        if isinstance(index, int):
+            return self.getConformation(index) 
+            
+        elif isinstance(index, slice):
+            ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+                                self._title, index.indices(len(self))))
+            ens.setCoords(self.getCoords())
+            ens.addCoordset(self.getCoordsets(index))
+            if self._weights is not None:
+                ens.setWeights(self.getWeights())
+            return ens
+            
+        elif isinstance(index, (list, np.ndarray)):
+            ens = Ensemble('Conformations of {0:s}'.format(self._title))
+            ens.setCoords(self.getCoords())
+            ens.addCoordset(self.getCoordsets(index))
+            if self._weights is not None:
+                ens.setWeights(self.getWeights())
+            return ens
+            
+        else:
+            raise IndexError('invalid index')
+    
+    def __add__(self, other):
+        """Concatenate ensembles. The reference coordinates and weights of 
+        *self* is used in the resulting ensemble."""
+        
+        if not isinstance(other, Ensemble):
+            raise TypeError('an Ensemble instance cannot be added to an {0:s} '
+                            'instance'.format(type(other)))
+        elif self.numAtoms() != other.numAtoms():
+            raise ValueError('Ensembles must have same number of atoms.')
+    
+        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getTitle(), 
+                                                   other.getTitle()))
+        ensemble.setCoords(self._coords.copy())
+        ensemble.addCoordset(self._confs.copy())
+        ensemble.addCoordset(other.getCoordsets())
+        if self._weights is not None: 
+            LOGGER.info('Atom weights from "{0:s}" are used in "{1:s}".'
+                        .format(self._title, ensemble.getTitle()))
+            ensemble.setWeights(self._weights)
+        return ensemble
+    
+    def __iter__(self):
+    
+        n_csets = self._n_csets
+        for i in range(n_csets):
+            if n_csets != self._n_csets:
+                raise RuntimeError('number of conformations in the ensemble '
+                                   'changed during iteration')
+            yield Conformation(self, i)
 
     def getTitle(self):
         """Return title of the ensemble."""
@@ -149,7 +224,7 @@ class Ensemble(object):
             if self._ag is None:
                 raise AttributeError(self.__class__.__name__ + ' must be be '
                                      'associated with an AtomGroup, use '
-                                     '`setAtomGroup` method.')
+                                     '`setAtoms` method.')
             sel = self._ag.select(selstr)
             if sel is not None:
                 self._indices = sel.getIndices()
@@ -216,71 +291,6 @@ class Ensemble(object):
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
         self._weights = checkWeights(weights, self._n_atoms, None)
-
-
-
-        
-    def __getitem__(self, index):
-        """Return a conformation at given index."""
-        
-        if self._confs is None:
-            return None
-        if isinstance(index, int):
-            return self.getConformation(index) 
-        elif isinstance(index, slice):
-            ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
-                                self._title, index.indices(len(self))))
-            ens.setCoords(self.getCoords())
-            ens.addCoordset(self.getCoordsets(index))
-            if self._weights is not None:
-                ens.setWeights(self.getWeights())
-            return ens
-        elif isinstance(index, (list, np.ndarray)):
-            ens = Ensemble('Conformations of {0:s}'.format(self._title))
-            ens.setCoords(self.getCoords())
-            ens.addCoordset(self.getCoordsets(index))
-            if self._weights is not None:
-                ens.setWeights(self.getWeights())
-            return ens
-        else:
-            raise IndexError('invalid index')
-    
-    def __add__(self, other):
-        """Concatenate ensembles. The reference coordinates and weights of 
-        *self* is used in the resulting ensemble."""
-        
-        if not isinstance(other, Ensemble):
-            raise TypeError('an Ensemble instance cannot be added to an {0:s} '
-                            'instance'.format(type(other)))
-        elif self.numAtoms() != other.numAtoms():
-            raise ValueError('Ensembles must have same number of atoms.')
-    
-        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getTitle(), 
-                                                   other.getTitle()))
-        ensemble.setCoords(self._coords.copy())
-        ensemble.addCoordset(self._confs.copy())
-        ensemble.addCoordset(other.getCoordsets())
-        if self._weights is not None: 
-            LOGGER.info('Atom weights from "{0:s}" are used in "{1:s}".'
-                        .format(self._title, ensemble.getTitle()))
-            ensemble.setWeights(self._weights)
-        return ensemble
-    
-    def __iter__(self):
-        n_csets = self._n_csets
-        for i in range(n_csets):
-            if n_csets != self._n_csets:
-                raise RuntimeError('number of conformations in the ensemble '
-                                   'changed during iteration')
-            yield Conformation(self, i)
-    
-    def __repr__(self):
-        return ('<Ensemble: {0:s} ({1:d} conformations, {2:d} atoms, {3:d} '
-               'selected)>').format(self._title, len(self), self._n_atoms, 
-                                    self.numSelected())
-
-    def __str__(self):
-        return 'Ensemble {0:s}'.format(self._title)
 
     def numConfs(self):  
         """Return number of conformations."""
@@ -565,10 +575,10 @@ class PDBEnsemble(Ensemble):
         Ensemble.__init__(self, title)
         
     def __repr__(self):
-        return '<PDB ' + Ensemble.__repr__(self)[1:]
+        return '<PDB' + Ensemble.__repr__(self)[1:]
     
     def __str__(self):
-        return 'PDB ' + Ensemble.__str__(self)
+        return 'PDB' + Ensemble.__str__(self)
     
     def __add__(self, other):
         """Concatenate two ensembles. The reference coordinates of *self* is 
@@ -584,10 +594,11 @@ class PDBEnsemble(Ensemble):
                                                    other.getTitle()))
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
-        if other._weights is None:
+        other_weights = other.getWeights()
+        if other_weights is None:
             ensemble.addCoordset(other.getCoordsets())
         else:
-            ensemble.addCoordset(other._confs.copy(), other._weights.copy())
+            ensemble.addCoordset(other._confs.copy(), other_weights)
         return ensemble
     
     def __iter__(self):

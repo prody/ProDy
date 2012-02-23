@@ -38,14 +38,19 @@ class Conformation(object):
         self._indices = ensemble._getSelIndices()
         
     def __repr__(self):
-        return ('<{0:s}: {1:d} from {2:s} (selected {3:d} of {4:d} atoms)>'
-               ).format(self.__class__.__name__, self._index, 
-                        self._ensemble.getTitle(), self.numSelected(), 
-                        self._ensemble.numAtoms())
+        
+        if self._sel is None:
+            return ('<Conformation: {0:d} from {1:s} ({2:d} atoms)>').format(
+                    self._index, self._ensemble.getTitle(), self.numAtoms())
+        else:
+            return ('<Conformation: {0:d} from {1:s} (selected {2:d} of {3:d} '
+                    'atoms)>').format(self._index, self._ensemble.getTitle(), 
+                    self.numSelected(), self.numAtoms())
 
     def __str__(self):
-        return '{0:s} {1:d} from {2:s}'.format(self.__class__.__name__,
-                    self._index, self._ensemble.getTitle())
+        
+        return 'Conformation {0:d} from {1:s}'.format(
+                self._index, self._ensemble.getTitle())
 
     def numAtoms(self):
         """Return number of atoms."""
@@ -145,14 +150,22 @@ class PDBConformation(Conformation):
     conformation has a name (or identifier), e.g. PDB identifier."""
     
     def __repr__(self):
-        return ('<PDB Conformation: {0:s} from {1:s} (index: {2:d}; '
-                'selected {3:d} of {4:d} atoms)>').format(
+        
+        if self._sel is None:
+            return ('<PDBConformation: {0:s} from {1:s} (index: {2:d}; '
+                    '{3:d} atoms)>').format(
                     self._ensemble._labels[self._index], 
-                    self._ensemble.getTitle(), self._index, 
-                    self.numSelected(), self.numAtoms())
+                    self._ensemble.getTitle(), self._index, self.numAtoms())
+        else:
+            return ('<PDBConformation: {0:s} from {1:s} (index: {2:d}; '
+                    'selected {3:d} of {4:d} atoms)>').format(
+                        self._ensemble._labels[self._index], 
+                        self._ensemble.getTitle(), self._index, 
+                        self.numSelected(), self.numAtoms())
     
     def __str__(self):
-        return 'PDB Conformation {0:s} from {1:s}'.format(
+    
+        return 'PDBConformation {0:s} from {1:s}'.format(
                     self._ensemble._labels[self._index], 
                     self._ensemble.getTitle())
     
