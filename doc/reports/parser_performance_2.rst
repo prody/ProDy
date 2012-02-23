@@ -58,7 +58,7 @@ times faster.
    "*v0.8.3*", 0.0114, 0.1331, 1.0926
    "*v0.9*", 0.0041, 0.0412, 0.6422
    
-Generating a hierarchical is 2.6 times faster on average.
+Generating a hierarchical view is 2.6 times faster on average.
  
 Python code
 -------------------------------------------------------------------------------
