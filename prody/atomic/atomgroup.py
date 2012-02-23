@@ -668,6 +668,41 @@ class AtomGroup(Atomic):
             else:
                 LOGGER.warning('label must be a string or list of strings')    
     
+    def _setCoords(self, coords, label=None):
+        """Set coordinates without date type checking.  *coords* must 
+        be a :class:`numpy.ndarray`, but may have data type other than 
+        :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label* 
+        argument may be used to label coordinate sets.  *label* may be 
+        a string or a list of strings length equal to the number of 
+        coordinate sets."""
+
+        n_atoms = self._n_atoms
+        if self._n_atoms: 
+            if coords.shape[-2] != self._n_atoms:
+                raise ValueError('coords have incorrect number of atoms')
+        else:
+            n_atoms = coords.shape[-2]
+            self._n_atoms = n_atoms
+        
+        if coords.ndim == 2:
+            coords = coords.reshape((1, n_atoms, 3))
+            self._cslabels = [label]
+            self._n_csets = 1
+        else:
+            self._n_csets = coords.shape[0]
+            if isinstance(label, (NoneType, str)):
+                self._cslabels = [label] * self._n_csets
+            elif isinstance(label, (list, tuple)):
+                if len(label) == self._n_csets:
+                    self._cslabels = label
+                else:
+                    self._cslabels = [None] * self._n_csets
+                    LOGGER.warning('Length of `label` does not match number '
+                                   'of coordinate sets.')
+        self._coords = coords
+        self._acsi = 0
+        self._setTimeStamp()
+    
     def addCoordset(self, coords, label=None):
         """Add a coordinate set.  *coords* argument may be an object instance 
         with ``getCoordsets`` method."""
