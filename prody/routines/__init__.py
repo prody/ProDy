@@ -48,6 +48,13 @@ class UsageExample(argparse.Action):
             print("\n".join(tw.wrap(line)))
         parser.exit()
 
+class ProDyCitation(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        print("Bakan A, Meireles LM, Bahar I "
+              "ProDy: Protein Dynamics Inferred from Theory and Experiments "
+              "Bioinformatics 2011 27(11):1575-1577.")
+        parser.exit()
+
 class ProDyVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import prody
@@ -149,7 +156,10 @@ parser = argparse.ArgumentParser(
            "command."
     )
 
-parser.add_argument('--version', help="print ProDy version and exit",
+parser.add_argument('-c', '--cite', help="print citation info and exit",
+    action=ProDyCitation, nargs=0)
+
+parser.add_argument('-v', '--version', help="print ProDy version and exit",
     action=ProDyVersion, nargs=0)
 
 commands = parser.add_subparsers(
