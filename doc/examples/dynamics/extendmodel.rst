@@ -72,7 +72,7 @@ We can use the extended model to sample backbone conformers:
 
 >>> ensemble = sampleModes(bb_anm[:3], bb_atoms, n_confs=40, rmsd=0.8)
 >>> ensemble
-<Ensemble: Conformations along 3 modes from NMA Extended ANM 1p38 (40 conformations, 1404 atoms, 1404 selected)>
+<Ensemble: Conformations along 3 modes from NMA Extended ANM 1p38 (40 conformations; 1404 atoms)>
 
 Note that we made used of ANM modes beyond their theoretical limitations.
 

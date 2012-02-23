@@ -55,7 +55,7 @@ be parsed at once. This function returns an :class:`~.Ensemble` instance:
 
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble
-<Ensemble: mdm2 (0:500:1) (500 conformations, 1449 atoms, 1449 selected)>
+<Ensemble: mdm2 (0:500:1) (500 conformations; 1449 atoms)>
 
 .. note:: When parsing large DCD files at once memory may become an issue.
    If the size of the DCD file is larger than half of the RAM in your machine,
@@ -88,7 +88,7 @@ performing calculations:
 >>> ensemble.select('calpha')
 <Selection: "calpha" from mdm2 (85 atoms)>
 >>> ensemble
-<Ensemble: mdm2 (0:500:1) (500 conformations, 1449 atoms, 85 selected)>
+<Ensemble: mdm2 (0:500:1) (500 conformations; selected 85 of 1449 atoms)>
 >>> ensemble.superpose()
 
 In this case, superposition was based on Cα atom coordinates. 

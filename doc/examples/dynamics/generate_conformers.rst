@@ -52,7 +52,7 @@ Let's generate 10 conformations along ANM mode 1:
 
 >>> trajectory = traverseMode(anm[0], p38ca, n_steps=5, rmsd=2.0)
 >>> trajectory 
-<Ensemble: Conformations along Mode 1 from ANM 1p38 (11 conformations, 351 atoms, 351 selected)>
+<Ensemble: Conformations along Mode 1 from ANM 1p38 (11 conformations; 351 atoms)>
 >>> calcRMSD(trajectory).round(2)
 array([ 2. ,  1.6,  1.2,  0.8,  0.4,  0. ,  0.4,  0.8,  1.2,  1.6,  2. ])
 
@@ -83,7 +83,7 @@ with average RMSD 1.5 Å to the initial coordinates:
 
 >>> ensemble = sampleModes(anm[:3], p38ca, n_confs=40, rmsd=1.5)
 >>> ensemble
-<Ensemble: Conformations along 3 modes from ANM 1p38 (40 conformations, 351 atoms, 351 selected)>
+<Ensemble: Conformations along 3 modes from ANM 1p38 (40 conformations; 351 atoms)>
 >>> round( calcRMSD(ensemble).mean(), 2)
 1.5
 

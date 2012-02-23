@@ -150,7 +150,7 @@ Now, we parse the PDB files one by one and add them to the ensemble:
 ...     atommap = atommaps[0] + atommaps[1]
 ...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags()) 
 >>> ensemble
-<PDB Ensemble: HIV-RT (155 conformations, 971 atoms, 971 selected)>
+<PDBEnsemble: HIV-RT (155 conformations; 971 atoms)>
 >>> ensemble.iterpose()
 >>> saveEnsemble(ensemble)
 'HIV-RT.ens.npz'
