@@ -280,6 +280,8 @@ class GNM(GNMBase):
                     values, vectors = scipy_sparse_la.eigen_symmetric(
                                 self._kirchhoff, k=n_modes + 1, which='SA')                
         else:
+            if n_modes is not None:
+                LOGGER.info('Scipy is not found, all modes are calculated.')
             values, vectors = linalg.eigh(self._kirchhoff)
         n_zeros = sum(values < ZERO)
         if n_zeros < 1: 
