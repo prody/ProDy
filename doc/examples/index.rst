@@ -58,10 +58,20 @@ Dynamics Analysis
 
    dynamics/enm/index
    dynamics/pca/index
-   trajectory/trajectory
    dynamics/generate_conformers
    dynamics/extendmodel
    dynamics/reduce_slice
+
+Trajectory Analysis
+===============================================================================
+
+.. toctree::
+   :maxdepth: 2
+   :titlesonly:
+   :glob:
+
+   trajectory/*
+
 
 Atomic classes and data 
 ===============================================================================
