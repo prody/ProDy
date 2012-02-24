@@ -52,18 +52,22 @@ class Trajectory(TrajBase):
         
         
     def __repr__(self):
+        
         if self._closed:
-            return ('<Trajectory: {0:s} (closed)>').format(self._title)
+            return '<Trajectory: {0:s} (closed)>'.format(self._title)
+        if self._sel is None:
+            return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
+                    'frames; {4:d} atoms)>').format(
+                    self._title, self._n_files, self._nfi, 
+                    self._n_csets, self.numSelected(), self._n_atoms)
         else:
-            return ('<Trajectory: {0:s} ({1:d} files, next {2:d} of {3:d} '
-                    'frames, selected {4:d} of {5:d} atoms)>').format(
+            return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
+                    'frames; selected {4:d} of {5:d} atoms)>').format(
                     self._title, self._n_files, self._nfi, 
                     self._n_csets, self.numSelected(), self._n_atoms)
     
-    def __str__(self):
-        return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
-
     def _nextFile(self):
+        
         self._cfi += 1
         if self._cfi < self._n_files: 
             self._trajectory = self._trajectories[self._cfi]
@@ -71,12 +75,19 @@ class Trajectory(TrajBase):
                 self._trajectory.reset()
 
     def _gotoFile(self, i):
+        
         if i < self._n_files:
             self._cfi = i
             self._trajectory = self._trajectories[i]
             if self._trajectory.getNextIndex() > 0:
                 self._trajectory.reset()
         
+    def setAtoms(self, ag, setref=True):
+        
+        for traj in self._trajectories:
+            traj.setAtoms(ag, setref)
+        TrajBase.setAtoms(self, ag, setref)
+
     def addFile(self, filename):
         """Add a file to the trajectory instance. Currently only DCD files
         are supported."""
@@ -165,13 +176,14 @@ class Trajectory(TrajBase):
             unitcell = traj._nextUnitcell()
             coords = traj._nextCoordset()            
             frame = Frame(self, nfi, coords, unitcell)
+            if self._ag is not None:
+                self._ag.setACSLabel(self._title + ' frame ' + str(self._nfi))
             self._nfi += 1
             return frame
 
     next.__doc__ = TrajBase.next.__doc__
     
     def nextCoordset(self):
-        """Return next coordinate set."""
         
         if self._closed: 
             raise ValueError('I/O operation on closed file')
@@ -179,6 +191,9 @@ class Trajectory(TrajBase):
             traj = self._trajectory
             while traj._nfi == traj._n_csets:
                 self._nextFile()
+                traj = self._trajectory
+            if self._ag is not None:
+                self._ag.setACSLabel(self._title + ' frame ' + str(self._nfi))
                 traj = self._trajectory
             self._nfi += 1
             if self._indices is None: 
@@ -264,12 +279,12 @@ class Trajectory(TrajBase):
     hasUnitcell.__doc__ = TrajBase.hasUnitcell.__doc__
     
     def getTimestep(self):
-        """Return list timestep sizes, one number from each file."""
+        """Return list of timestep sizes, one number from each file."""
         
         return [traj.getTimestep() for traj in self._trajectories]
     
     def getFirstTimestep(self):
-        """Return list first timestep values, one number from each file."""
+        """Return list of first timestep values, one number from each file."""
         
         return [traj.getFirstTimestep() for traj in self._trajectories]
     
