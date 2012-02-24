@@ -270,6 +270,8 @@ class DCDFile(TrajFile):
             return None
         xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
         xyz = xyz.reshape((n_atoms, 3))
+        if self._ag is not None:
+            self._ag._setCoords(xyz, self._title + ' frame ' + str(self._nfi))
         self._nfi += 1
         return xyz
 
