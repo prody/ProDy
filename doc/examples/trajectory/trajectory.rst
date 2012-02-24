@@ -5,7 +5,7 @@ Trajectory analysis
 *******************************************************************************
 
 Synopsis
-=============================================================================
+===============================================================================
 
 This example shows how to analyze a trajectory in DCD format. There are 
 a number of different ways that coordinate data in DCD files can be analyzed.
@@ -113,6 +113,7 @@ Parse data frame-by-frame
 >>> dcd
 <DCDFile: mdm2 (next 0 of 500 frames, selected 1449 of 1449 atoms)>
 
+>>> structure = parsePDB('mdm2.pdb')
 >>> dcd.setAtoms(structure)
 
 >>> dcd.getNextIndex()
@@ -159,13 +160,14 @@ Handling multiple files
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
-<Trajectory: mdm2 (1 files, next 0 of 500 frames, selected 1449 of 1449 atoms)>
+<Trajectory: mdm2 (1 files; next 0 of 500 frames; 1449 atoms)>
 >>> traj.addFile('mdm2sim2.dcd')
 >>> traj 
-<Trajectory: mdm2 (2 files, next 0 of 1000 frames, selected 1449 of 1449 atoms)>
+<Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
 
 Instances of this class are also suitable for previous calculations:
 
+>>> structure = parsePDB('mdm2.pdb')
 >>> traj.setAtoms( structure )
 >>> rgyr = np.zeros(len(traj))
 >>> rmsd = np.zeros(len(traj))
@@ -181,7 +183,6 @@ Instances of this class are also suitable for previous calculations:
 [ 12.95  13.08  12.93  13.03  12.96  13.02  12.87  12.93  12.9   12.86
   ...
   12.95  12.98  12.96  13.    13.08  12.9   12.94  12.98  12.96]
-  
   
 Writing DCD files
 -------------------------------------------------------------------------------
@@ -204,7 +205,8 @@ Parsing this file returns:
 See Also
 ===============================================================================
 
-See :ref:`eda` for essential dynamics analysis example. 
+See :ref:`trajectory2` for more analysis examples and :ref:`eda` for 
+essential dynamics analysis example. 
 
 |questions|
 
