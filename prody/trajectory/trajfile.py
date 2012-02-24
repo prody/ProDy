@@ -80,25 +80,21 @@ class TrajFile(TrajBase):
         self._file.close()
     
     def __repr__(self):
+
         if self._closed:
             return ('<{0:s}: {1:s} (closed)>').format(
                         self.__class__.__name__, self._title)
+        if self._mode == 'r':
+            return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames, '
+                    'selected {4:d} of {5:d} atoms)>').format(
+                    self.__class__.__name__, self._title, 
+                    self._nfi, self._n_csets, self.numSelected(),
+                    self._n_atoms)
         else:
-            if self._mode == 'r':
-                return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames, '
-                        'selected {4:d} of {5:d} atoms)>').format(
-                        self.__class__.__name__, self._title, 
-                        self._nfi, self._n_csets, self.numSelected(),
-                        self._n_atoms)
-            else:
-                return ('<{0:s}: {1:s} ({2:d} atoms, {3:d} frames written)>'
-                        ).format(
-                        self.__class__.__name__, self._title, 
-                        self._n_atoms, self._n_csets)
-                
-                
-    def __str__(self):
-        return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
+            return ('<{0:s}: {1:s} ({2:d} atoms, {3:d} frames written)>'
+                    ).format(
+                    self.__class__.__name__, self._title, 
+                    self._n_atoms, self._n_csets)
     
     def getFilename(self, absolute=False):
         """Return relative path to the current file. For absolute path,
