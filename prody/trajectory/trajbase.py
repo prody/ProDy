@@ -51,10 +51,15 @@ class TrajBase(object):
         self._closed = False
 
     def __iter__(self):
+        
         if self._closed:
             raise ValueError('I/O operation on closed file')
         while self._nfi < self._n_csets: 
             yield self.next()
+    
+    def __str__(self):
+        
+        return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
     
     def __getitem__(self, index):
     
@@ -124,12 +129,16 @@ class TrajBase(object):
         return self._ag
     
     def setAtoms(self, ag, setref=True):
-        """Associate the instance with an :class:`~.AtomGroup`.  Note that at 
-        association, active coordinate set of the :class:`~.AtomGroup`, if it 
-        has one, will be set as the reference coordinates for the ensemble or 
-        trajectory. Changes in :class:`~.AtomGroup` active coordinate set will 
-        not be reflected to the reference coordinates. If you want to preserve 
-        the present reference coordinates, pass ``setref=False``."""
+        """Associate the trajectory with an :class:`~.AtomGroup`.  Note that  
+        the active coordinate set of the :class:`~.AtomGroup`, if it has one, 
+        will be set as the reference coordinates for the trajectory.  If you 
+        want to preserve the present reference coordinates, pass 
+        ``setref=False``.  When a frame is parsed from the trajectory,
+        coordinates of :class:`~.AtomGroup` instance will be updated.
+        
+        .. warning:: Note that frames parsed from the trajectory file will
+           overwrite all coordinate sets present in the :class:`~.AtomGroup`.
+        """
         
         if ag is None:
             self._ag = None
@@ -143,8 +152,8 @@ class TrajBase(object):
                 coords = ag.getCoords()
                 if coords is not None:
                     self._coords = coords 
-                    LOGGER.info('Coordinates of {0:s} is set as the reference '
-                               'for {1:s}.'.format(ag.getTitle(), self._title))
+        if ag.numCoordsets() > 1:
+            LOGGER.warn('All coordinate sets of {0:s} will be overwritten.')
         self._sel = None
         self._indices = None
         
@@ -155,6 +164,7 @@ class TrajBase(object):
         return self._sel
     
     def _getSelIndices(self):
+    
         return self._indices 
     
     def select(self, selstr):
