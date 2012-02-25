@@ -36,7 +36,7 @@ def parsePSF(filename, title=None, ag=None):
     """Return an :class:`~.AtomGroup` instance storing data 
     parsed from X-PLOR format PSF file *filename*.  Atom and bond information
     is parsed from the file.  If *title* is not given, *filename* will be set 
-    as the title of the :class:`AtomGroup` instance.  An :class:`AtomGroup` 
+    as the title of the :class:`~.AtomGroup` instance.  An :class:`~.AtomGroup` 
     instance may be provided as *ag* argument.  When provided, *ag* must have 
     the same number of atoms in the same order as the file.  Data from PSF 
     file will be added to the *ag*.  This may overwrite present data if it 

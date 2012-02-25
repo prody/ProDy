@@ -16,7 +16,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for handling trajectory files."""
+"""This module defines classes for handling trajectory files in DCD format.
+
+
+Parse/write DCD files
+=====================
+
+  * :class:`~.DCDFile`
+  * :func:`~.parseDCD`
+  * :func:`~.writeDCD`
+
+Parse structure files
+=====================
+
+  * :func:`~.parsePSF`  
+
+Handle multiple files
+=====================
+  
+  * :class:`~.Trajectory`
+
+Handle frame data
+=================
+  
+  * :class:`~.Frame`
+
+Examples
+========
+
+Following examples show how to use trajectory classes and functions:
+    
+  * :ref:`trajectory`
+  * :ref:`trajectory2`
+  * :ref:`eda`"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
