@@ -31,15 +31,18 @@ class Frame(object):
     """A class for storing trajectory frame coordinates and provide methods 
     acting on them."""
     
-    __slots__ = ['_traj', '_index', '_coords', '_indices', '_sel', '_unitcell']
+    __slots__ = ['_traj', '_index', '_coords', '_indices', '_ag', '_sel', 
+                 '_unitcell', '_velocs']
 
-    def __init__(self, traj, index, coords, unitcell=None):
+    def __init__(self, traj, index, coords, unitcell=None, velocs=None):
 
         self._coords = coords
         self._unitcell = unitcell
+        self._velocs = velocs
         
         self._traj = traj
         self._index = index
+        self._ag = traj.getAtoms()
         self._sel = traj.getSelection()
         self._indices = traj._getSelIndices()
         
@@ -97,20 +100,30 @@ class Frame(object):
         return self._traj
     
     def getCoords(self):
-        """Return a copy of coordinates for selected atoms."""
-                
-        if self._indices is None:
-            return self._coords.copy()
+        """Return a copy of coordinates of (selected) atoms."""
+        
+        if self._ag is None:
+            coords = self._coords
         else:
-            return self._coords[self._indices]
-    
-    def _getCoords(self):
-        """Return coordinates for selected atoms."""
+            coords = self._ag._getCoords()
         
         if self._indices is None:
-            return self._coords
+            return coords.copy()
         else:
-            return self._coords[self._indices]
+            return coords[self._indices]
+    
+    def _getCoords(self):
+        """Return coordinates of (selected) atoms."""
+        
+        if self._ag is None:
+            coords = self._coords
+        else:
+            coords = self._ag._getCoords()
+        
+        if self._indices is None:
+            return coords
+        else:
+            return coords[self._indices]
     
     def getUnitcell(self):
         """Return a copy of unitcell array."""
@@ -125,46 +138,43 @@ class Frame(object):
     def getDeviations(self):
         """Return deviations from the trajectory reference coordinates."""
 
-        indices = self._indices 
+        indices = self._indices
+        coords = self._getCoords()
         if indices is None:
-            return self._coords - self._traj._coords
+            return coords - self._traj._coords
         else:
-            return self._coords[indices] - self._traj._coords[indices]
+            return coords - self._traj._coords[indices]
 
     def getRMSD(self):
-        """Return RMSD from the trajectory reference coordinates."""
+        """Return RMSD from the trajectory reference coordinates.  If weights 
+        for the trajectory are set, weighted RMSD will be returned."""
         
         indices = self._indices 
         traj = self._traj
+        coords = self._getCoords()
         if indices is None:
-            return measure._calcRMSD(self._coords, traj._coords, 
-                                             traj._weights)
+            return measure._calcRMSD(coords, traj._coords, traj._weights)
         else:
             if traj._weights is None:
-                return measure._calcRMSD(self._coords[indices], 
-                                                 traj._coords[indices])
+                return measure._calcRMSD(coords, traj._coords[indices])
             else:
-                return measure._calcRMSD(self._coords[indices], 
-                                                 traj._coords[indices], 
+                return measure._calcRMSD(coords, traj._coords[indices], 
                                                  traj._weights[indices])
-        
 
     def superpose(self):
         """Superpose frame onto the trajectory reference coordinates.  Note 
         that transformation matrix is calculated based on selected atoms and 
-        applied to all atoms."""
+        applied to all atoms. If weights for the trajectory are set, they will 
+        be used to calculate to transformation."""
         
         indices = self._indices 
         traj = self._traj
+        coords = self._getCoords()
         if indices is None:
-            self._coords, t = superpose(self._coords, 
-                                        traj._coords, 
-                                        traj._weights)
+            self._coords, t = superpose(coords, traj._coords, traj._weights)
         else:
             if traj._weights is None:
-                measure._superpose(self._coords[indices], 
-                                           traj._coords[indices])
+                measure._superpose(coords, traj._coords[indices])
             else:
-                measure._superpose(self._coords[indices], 
-                                           traj._coords[indices], 
+                measure._superpose(coords, traj._coords[indices], 
                                            traj._weights[indices])
