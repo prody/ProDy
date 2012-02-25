@@ -125,6 +125,22 @@ class Frame(object):
         else:
             return coords[self._indices]
     
+    def getVelocities(self):
+        """Return a copy of velocities of (selected) atoms."""
+        
+        if self._indices is None:
+            return self._velocs.copy()
+        else:
+            return self._velocs[self._indices]
+    
+    def _getVelocities(self):
+        """Return velocities of (selected) atoms."""
+        
+        if self._indices is None:
+            return self._velocs
+        else:
+            return self._velocs[self._indices]
+    
     def getUnitcell(self):
         """Return a copy of unitcell array."""
         
