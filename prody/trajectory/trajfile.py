@@ -85,11 +85,17 @@ class TrajFile(TrajBase):
             return ('<{0:s}: {1:s} (closed)>').format(
                         self.__class__.__name__, self._title)
         if self._mode == 'r':
-            return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames, '
-                    'selected {4:d} of {5:d} atoms)>').format(
-                    self.__class__.__name__, self._title, 
-                    self._nfi, self._n_csets, self.numSelected(),
-                    self._n_atoms)
+            if self._sel is None:            
+                return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames; '
+                        '{4:d} atoms)>').format(
+                        self.__class__.__name__, self._title, 
+                        self._nfi, self._n_csets, self._n_atoms)
+            else:
+                return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames; '
+                        'selected {4:d} of {5:d} atoms)>').format(
+                        self.__class__.__name__, self._title, 
+                        self._nfi, self._n_csets, self.numSelected(),
+                        self._n_atoms)
         else:
             return ('<{0:s}: {1:s} ({2:d} atoms, {3:d} frames written)>'
                     ).format(
