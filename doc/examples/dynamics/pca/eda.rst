@@ -17,9 +17,7 @@ User needs to provide trajectory in DCD file format and PDB file of the system.
 
 Example input: 
 
-* :download:`MDM2 reference structure </doctest/mdm2.pdb>` 
-* :download:`MDM2 trajectory </doctest/mdm2.dcd>`
-* :download:`MDM2 trajectory </doctest/mdm2sim2.dcd>`  
+* :download:`MDM2 structure and dcd files </doctest/mdm2.tar.gz>`
 
 Output
 -------------------------------------------------------------------------------
@@ -118,7 +116,7 @@ them. In this case we will use data from two independent simulations
 >>> trajectory = Trajectory('mdm2.dcd')
 >>> trajectory.addFile('mdm2sim2.dcd')
 >>> trajectory
-<Trajectory: mdm2 (2 files, next 0 of 1000 frames, selected 1449 of 1449 atoms)>
+<Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
 
 >>> trajectory.setAtoms( structure )
 >>> trajectory.select('calpha')

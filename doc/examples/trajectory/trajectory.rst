@@ -7,12 +7,12 @@ Trajectory analysis
 Synopsis
 ===============================================================================
 
-This example shows how to analyze a trajectory in DCD format. There are 
-a number of different ways that coordinate data in DCD files can be analyzed.
+This example shows how to analyze a trajectory in DCD format. RMSD, RMSF, 
+radius of gyration, and distance will be calculated from trajectory frames.
  
 
-Input
--------------------------------------------------------------------------------
+Input files
+===============================================================================
 
 Currently, ProDy supports only DCD format files. Two DCD trajectory files and 
 corresponding PDB structure file is needed for this example.
@@ -21,23 +21,14 @@ Example input:
  
 * :download:`MDM2 files </doctest/mdm2.tar.gz>` 
 
-Output
--------------------------------------------------------------------------------
-
-RMSD, RMSF, radius of gyration, and distance calculated from the 
-trajectory.
-
-ProDy Code
+Parse structure
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
 
-Parse reference structure
--------------------------------------------------------------------------------
-
-The PDB file provided with this example contains and X-ray structure which will 
+The PDB file provided with this example contains an X-ray structure which will 
 be useful in a number of places, so let's start with parsing this file first:
 
 >>> structure = parsePDB('mdm2.pdb')
@@ -47,8 +38,8 @@ be useful in a number of places, so let's start with parsing this file first:
 This function returned a :class:`~.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
-Parse data all-at-once
--------------------------------------------------------------------------------
+Parse all frames
+===============================================================================
 
 Using :func:`~.parseDCD` function all coordinate data in the DCD file can
 be parsed at once. This function returns an :class:`~.Ensemble` instance:
@@ -106,12 +97,12 @@ In this case, superposition was based on Cα atom coordinates.
 The :class:`~.Ensemble` instance can also be used in :class:`~.PCA`
 calculations. See the examples in :ref:`pca` for more information.
 
-Parse data frame-by-frame
--------------------------------------------------------------------------------
+Parse frames one-by-one
+===============================================================================
 
 >>> dcd = DCDFile('mdm2.dcd')
 >>> dcd
-<DCDFile: mdm2 (next 0 of 500 frames, selected 1449 of 1449 atoms)>
+<DCDFile: mdm2 (next 0 of 500 frames; 1449 atoms)>
 
 >>> structure = parsePDB('mdm2.pdb')
 >>> dcd.setAtoms(structure)
@@ -134,7 +125,7 @@ Parse data frame-by-frame
 12.95
 
 We can perform these calculations for all frames in a for loop. Let's reset
-*dcd* to return the the 0th frame:
+*dcd* to return to the 0th frame:
 
 >>> dcd.reset()
 >>> import numpy as np
@@ -154,7 +145,7 @@ We can perform these calculations for all frames in a for loop. Let's reset
   13.05  13.05  13.16  13.1   13.15  13.18  13.1 ]
 
 Handling multiple files
--------------------------------------------------------------------------------
+===============================================================================
 
 :class:`~.Trajectory` is designed for handling multiple trajectory files:
 
@@ -184,24 +175,6 @@ Instances of this class are also suitable for previous calculations:
   ...
   12.95  12.98  12.96  13.    13.08  12.9   12.94  12.98  12.96]
   
-Writing DCD files
--------------------------------------------------------------------------------
-
-Finally, you can write :class:`~.Ensemble`, :class:`~.Trajectory`, and 
-:class:`~.DCDFile` instances in DCD format using :func:`~.writeDCD` function.
-Let's select non-hydrogen protein atoms and write a merged trajectory for
-MDM2:
-
->>> traj.select('noh')
-<Selection: "noh" from mdm2 (706 atoms)>
->>> writeDCD('mdm2_merged_noh.dcd', traj)
-'mdm2_merged_noh.dcd'
-
-Parsing this file returns:
-
->>> DCDFile('mdm2_merged_noh.dcd')
-<DCDFile: mdm2_merged_noh (next 0 of 1000 frames, selected 706 of 706 atoms)>
-
 See Also
 ===============================================================================
 

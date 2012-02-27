@@ -7,31 +7,26 @@ Trajectory analysis II
 Synopsis
 ===============================================================================
 
-This example shows how to perform different types of calculations simultaneously. 
+This example shows how to perform a more elaborate calculations simultaneously. 
+Radius of gyration, distance, psi angle calculated will be calculated 
+using trajectory frames.
+
  
-Input
--------------------------------------------------------------------------------
+Input files
+===============================================================================
 
 Two DCD trajectory files and a PDB structure file is provided for this example:
 
 * :download:`MDM2 files </doctest/mdm2.tar.gz>` 
 
-Output
--------------------------------------------------------------------------------
-
-Radius of gyration, distance, psi angle calculated will be calculated 
-using trajectory frames.
-
-ProDy Code
+Parse structure 
 ===============================================================================
 
-We start by importing everything from the ProDy package:
+We start by importing everything from the ProDy package and also the NumPy
+package:
 
 >>> from prody import *
 >>> import numpy as np
-
-Parse structure 
--------------------------------------------------------------------------------
 
 The PDB file provided with this example contains and X-ray structure which will 
 be useful in a number of places, so let's start with parsing this file first:
@@ -44,7 +39,7 @@ This function returned a :class:`~.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
 Handling multiple files
--------------------------------------------------------------------------------
+===============================================================================
 
 :class:`~.Trajectory` is designed for handling multiple trajectory files:
 
@@ -55,8 +50,8 @@ Handling multiple files
 >>> traj 
 <Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
 
-Link atoms and trajectory
--------------------------------------------------------------------------------
+Link trajectory to atoms
+===============================================================================
 
 Atoms can be linked to the trajectory as follows:
 
@@ -67,8 +62,8 @@ trajectory files will overwrite coordinates of the atom group. By making
 atom selections, you can calculate and analyze different properties. 
 
 
-Setup calculations
--------------------------------------------------------------------------------
+Setup for calculations
+===============================================================================
 
 Let's make atom selections for different types of calculations:
 
@@ -99,7 +94,7 @@ We select a residue an make an empty array:
 >>> res30psi = np.zeros(traj.numFrames())
 
 Perform calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 We perform all calculations simultaneously as follows:
 
