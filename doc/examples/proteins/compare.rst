@@ -10,26 +10,16 @@ Synopsis
 :mod:`~.proteins` module contains functions for matching and mapping 
 chains. Results can be used for RMSD fitting and PCA analysis. 
 
-Input
--------------------------------------------------------------------------------
+Input is two structures of the same protein in PDB file format.
+Output will be :class:`~.AtomMap` instances that can be used as input
+to ProDy classes and functions.
 
-Two structures of the same protein in PDB file format.
-
-Output
--------------------------------------------------------------------------------
-
-Output is :class:`~.AtomMap` instances that can be used as input
-to other classes and functions.
-
-ProDy Code
+Match chains
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Match chains
--------------------------------------------------------------------------------
 
 Matching chains is useful when comparing two chains.
 Let's find matching chains in two different HIV-RT structures:
@@ -140,7 +130,7 @@ RMSD             : 7.83814068858
 
 
 Map onto a chain
--------------------------------------------------------------------------------
+===============================================================================
 
 Mapping is different from matching. When chains are matched, all matching
 atoms are returned as :class:`~.AtomMap` instances. When atoms

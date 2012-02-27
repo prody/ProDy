@@ -8,29 +8,17 @@ Synopsis
 =============================================================================
 
 :func:`~.matchAlign` function can be used for aligning protein structures.
-This example shows to to use it to extract ligands from multiple PDB structures 
-after superposing the structures onto a reference.
-
-Input
--------------------------------------------------------------------------------
-
-A reference PDB file.
-
-Output
--------------------------------------------------------------------------------
-
-Output is PDB files that contain ligands superposed onto the reference
+This example shows how to use it to extract ligands from multiple PDB 
+structures after superposing the structures onto a reference.
+Output will be PDB files that contain ligands superposed onto the reference
 structure.
 
-ProDy Code
+Parse reference and blast search
 ===============================================================================
 
 We start by importing everything from the ProDy package::
 
   from prody import *
-
-Parse reference and blast PDB
--------------------------------------------------------------------------------
 
 First, we parse the reference structure and blast search PDB for similar 
 structure::
@@ -40,7 +28,7 @@ structure::
   b = blastPDB(seq)
 
 Align structures and extract ligands
--------------------------------------------------------------------------------
+===============================================================================
 
 Then, we parse the hits one-by-one, superpose them onto the reference 
 structure, and extract ligands::

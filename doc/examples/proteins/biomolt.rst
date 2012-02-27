@@ -1,38 +1,26 @@
 .. _biomolt:
 
 *******************************************************************************
-Building biomolecules
+Building Biomolecules
 *******************************************************************************
 
 Synopsis
 ===============================================================================
 
-Some PDB files contain coordinates for a monomer from a functional/biological 
+Some PDB files contain coordinates for a monomer of a functional/biological 
 multimer (biomolecule).  ProDy offers functions to build structures of 
-biomolecules using the header data from the PDB file.
-
-Input
--------------------------------------------------------------------------------
-
-A PDB file that contains the coordinates for a monomer of a biological 
+biomolecules using the header data from the PDB file.  We will use PDB file 
+that contains the coordinates for a monomer of a biological 
 multimeric protein and the transformations in the header section to
-generate the multimer coordinates.
+generate the multimer coordinates.  Output will be an :class:`~.AtomGroup` 
+instance that contains the multimer coordinates.
 
-Output
--------------------------------------------------------------------------------
-
-An :class:`~.AtomGroup` instance that contains the multimer 
-coordinates.
-
-ProDy Code
+Parse a PDB file
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Parse a PDB file
--------------------------------------------------------------------------------
 
 We parse a PDB file that contains the coordinates for a monomer of a dimeric
 protein:
@@ -45,7 +33,7 @@ Note that we passed ``header=True`` argument to parse header data in addition
 to coordinates.
 
 Build multimer
--------------------------------------------------------------------------------
+===============================================================================
 
 Let's get the dimer coordinates using :func:`~.buildBiomolecules` function:
 
@@ -58,7 +46,7 @@ This function takes biomolecular tarnsformations from the *header* dictionary
 *monomer*.  
 
 Iterate monomers
--------------------------------------------------------------------------------
+===============================================================================
 
 The *dimer* object now has two chains. Let's see by iterating over the chains 
 in the dimer:

@@ -14,29 +14,21 @@ This examples demonstrates how to use Protein Data Bank blast search function,
 structures matching a sequence exists in PDB or to identify a set of related 
 structures for ensemble analysis (i.e. :ref:`pca`). 
 
-Input
--------------------------------------------------------------------------------
-
-Amino acid sequence of a protein, e.g. 
+We will used amino acid sequence of a protein, e.g. 
 ``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLF...YDIVKMKKSNISPNFNFMGQLLDFERTL``
 
 The :func:`~.blastPDB` function accepts sequence as a Python :func:`str`. 
 
-Output
--------------------------------------------------------------------------------
- 
-Output is an :class:`~.PDBBlastRecord` instance that stores PDB hits and returns
-to the user those sharing sequence identity above a user specified value. 
+Output will be :class:`~.PDBBlastRecord` instance that stores PDB hits and 
+returns to the user those sharing sequence identity above a user specified 
+value. 
 
-ProDy Code
+Blast search
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Perform search
--------------------------------------------------------------------------------
 
 Let's search for structures similar to that of MKP-3, using its sequence:
 
@@ -50,7 +42,7 @@ Let's search for structures similar to that of MKP-3, using its sequence:
 hits from this record:
 
 Best match
--------------------------------------------------------------------------------
+===============================================================================
 
 To get the best match, :meth:`.PDBBlastRecord.getBest` method can be used::
 
@@ -61,7 +53,7 @@ To get the best match, :meth:`.PDBBlastRecord.getBest` method can be used::
   # 100.0
  
 PDB hits
--------------------------------------------------------------------------------
+===============================================================================
 
 ::
 
@@ -91,7 +83,7 @@ More information on a hit can be obtained as follows::
   68
 
 Download hits
--------------------------------------------------------------------------------
+===============================================================================
 
 PDB hits can be downloaded using :func:`~.fetchPDB` function::
 

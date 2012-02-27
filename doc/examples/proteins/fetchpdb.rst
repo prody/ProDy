@@ -8,31 +8,17 @@ Synopsis
 ===============================================================================
 
 This examples demonstrates how to use the flexible PDB fetcher, 
-:func:`~.fetchPDB`. 
-
-Input
--------------------------------------------------------------------------------
-
-Valid inputs are:
-
-  * PDB identifier, e.g ``"2k39"``
-  * list of PDB identifiers, e.g. ``["2k39", "1mkp", "1etc"]`` 
+:func:`~.fetchPDB`. Valid inputs are PDB identifier, e.g ``"2k39"``, or a list 
+of PDB identifiers, e.g. ``["2k39", "1mkp", "1etc"]``.
+Compressed PDB files (:file:`pdb.gz`) will be saved to the current working 
+directory or a target folder.
   
-Output
--------------------------------------------------------------------------------
-
-Compressed PDB files (:file:`pdb.gz`) saved in the current working directory 
-or a target folder.
-  
-ProDy Code
+Single file
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Single file
--------------------------------------------------------------------------------
 
 The function will return a filename if the download is successful.
  
@@ -41,7 +27,7 @@ The function will return a filename if the download is successful.
 1p38.pdb.gz
 
 Multiple files
--------------------------------------------------------------------------------
+===============================================================================
 
 This function also accepts a list of PDB identifiers:
 

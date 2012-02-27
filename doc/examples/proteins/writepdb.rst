@@ -11,27 +11,13 @@ PDB files can be written using :func:`~.writePDB` function. This
 example shows how to write PDB files for :class:`~.AtomGroup` 
 instances and subsets of atoms. 
 
-Input
--------------------------------------------------------------------------------
-
-A ProDy class instance that contains or points to atomic data is accepted
-as input, e.g. :class:`~.AtomGroup` or :class:`~.Chain`
- 
-Output
--------------------------------------------------------------------------------
- 
-A PDB file.
-
-ProDy Code
+Parse a PDB file
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
  
-Parse a PDB file
--------------------------------------------------------------------------------
-
 You can parse PDB files by passing a PDB identifier:
 
 >>> atoms = parsePDB('1p38')
@@ -43,7 +29,7 @@ You can parse PDB files by passing a PDB identifier:
 
 
 Write all atoms
--------------------------------------------------------------------------------
+===============================================================================
 
 All atoms in an :class:`~.AtomGroup` can be written in PDB format
 as follows:
@@ -54,7 +40,7 @@ as follows:
 Upon successful writing of PDB file, filename is returned.
 
 Write a subset
--------------------------------------------------------------------------------
+===============================================================================
 
 It is also possible to write subsets of atoms in PDB format:
 

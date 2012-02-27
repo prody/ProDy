@@ -12,33 +12,25 @@ Parser can be used to read well defined subsets of atoms, specific chains or
 models (in NMR structures) to boost the performance. This example shows how to 
 use the flexible parsing options. 
 
-|more| For performance benchmarks of ProDy PDB parser see 
-:ref:`pdbparser-performance` and :ref:`pdbparser-performance-2`.
-
-Input
--------------------------------------------------------------------------------
-
 Three types of input are accepted from user:
 
   * PDB file path, e.g. ``"../1MKP.pdb"``
   * compressed (gzipped) PDB file path, e.g. ``"1p38.pdb.gz"`` 
   * PDB identifier, e.g. ``"2k39"``
  
-Output
--------------------------------------------------------------------------------
- 
+
 Output is an :class:`~prody.atomic.AtomGroup` instance that stores atomic data
 and can be used as input to functions and classes for dynamics analysis.  
+
+|more| For performance benchmarks of ProDy PDB parser see 
+:ref:`pdbparser-performance` and :ref:`pdbparser-performance-2`.
  
-ProDy Code
+Parse a file
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Parse a file
--------------------------------------------------------------------------------
 
 You can parse PDB files by passing a filename (gzipped files are handled).
 We do so after downloading a PDB file (see :ref:`fetchpdb` for more 
@@ -58,7 +50,7 @@ coordinate lines and build an :class:`~.AtomGroup` instance and
 excludes the time spent on reading the file from disk.
 
 Use an identifier
--------------------------------------------------------------------------------
+===============================================================================
 
 PDB files can be parsed by passing simply an identifier. arser will look for a 
 PDB file that matches the given identifier in the current working directory. 
@@ -71,7 +63,7 @@ automatically and saved it in the current working directory.
 
 
 Subsets of atoms
--------------------------------------------------------------------------------
+===============================================================================
 
 Parser can be used to parse backbone or Cα atoms:
 
@@ -84,7 +76,7 @@ Parser can be used to parse backbone or Cα atoms:
 
 
 Specific chains
--------------------------------------------------------------------------------
+===============================================================================
 
 Parser can be used to parse a specific chain from a PDB file:
 
@@ -102,7 +94,7 @@ Multiple chains can also be parsed in the same way:
 <AtomGroup: 3mkb_AC (2387 atoms)>
 
 Specific models
--------------------------------------------------------------------------------
+===============================================================================
 
 Parser can be used to parse a specific model from a file:
 
@@ -111,7 +103,7 @@ Parser can be used to parse a specific model from a file:
 <AtomGroup: 2k39 (1231 atoms)>
 
 Alternate locations
--------------------------------------------------------------------------------
+===============================================================================
 
 When a PDB file contains alternate locations for some of the atoms, by default
 alternate locations with indicator ``A`` are parsed. 
@@ -143,7 +135,7 @@ for each atom with an alternate location. If residue names differ, a warning
 message will be printed.
 
 Composite arguments
--------------------------------------------------------------------------------
+===============================================================================
 
 Parser can be used to parse coordinates from a specific model for a subset of 
 atoms of a specific chain:
@@ -153,7 +145,7 @@ atoms of a specific chain:
 <AtomGroup: 2k39_A_ca (76 atoms)>
 
 Header data
--------------------------------------------------------------------------------
+===============================================================================
 
 PDB parser can be used to extract header data from PDB files as follows:
 
