@@ -8,32 +8,19 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform GNM calculations using an X-ray structure 
-of ubiquitin.  
+of ubiquitin.  A :class:`~.GNM` instance that stores Kirchhoff matrix and 
+normal mode data describing intrinsic dynamics of the protein structure will
+be obtained.  :class:`~.GNM` instances and individual normal modes
+(:class:`~.Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
+module.
 
-Input
--------------------------------------------------------------------------------
-
-Protein structure data in PDB file format or specified by a PDB identifier.
-
-Output
--------------------------------------------------------------------------------
-
-A :class:`~.GNM` instance that stores Kirchhoff matrix and normal mode data 
-describing intrinsic dynamics of the protein structure.
-:class:`~.GNM` instances and individual normal modes (:class:`~.Mode`) can be
-used as input to functions in :mod:`~prody.dynamics` module.
-
-ProDy Code
+Parse structure
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
 
-Prepare protein
--------------------------------------------------------------------------------
-
-    
 First we parse a PDB file by passing its identifier to 
 :func:`~.parsePDB` function. Note that if file is not found in 
 the current working directory, it will be downloaded.
@@ -58,7 +45,7 @@ Note that, flexible design of classes allows users to select atoms other than
 alpha carbons to be used in GNM calculations.
 
 Build Kirchoff matrix
-------------------------------------------------------------------------------- 
+===============================================================================
 
     
 Instantiate a :class:`~.GNM` instance:
@@ -83,9 +70,8 @@ method:
  [  0.   0.   0. ...,  -1.  21.  -1.]
  [  0.   0.   0. ...,  -1.  -1.  12.]]
 
-Change cutoff distance and force constant
--------------------------------------------------------------------------------
-
+Parameters
+===============================================================================
 
 We didn't pass any parameters, but :meth:`.GNM.buildKirchhoff` method accepts 
 two of them, which by default are ``cutoff=10.0`` and ``gamma=1.0``, i.e.
@@ -101,7 +87,7 @@ Note that it is also possible to use an externally calculated Kirchhoff
 matrix. Just pass it to the GNM instance using :meth:`.GNM.setKirchhoff` method.
 
 Calculate normal modes
--------------------------------------------------------------------------------
+===============================================================================
 
 # calculate modes (by default slowest 20 will be calculated)
    
@@ -111,8 +97,8 @@ Note that by default 20 non-zero (or non-trivial) and 6 trivial modes are
 calculated. Trivial modes are not retained. To calculate different number
 of non-zero modes or to keep zero modes, try ``gnm.calcModes(50, zeros=True)``
 
-Access calculated data
--------------------------------------------------------------------------------
+Normal mode data
+===============================================================================
 
 Get eigenvalues and eigenvectors:
 
@@ -146,7 +132,7 @@ If user calculated M slowest modes, only they will be used in the
 calculation of covariance.
 
 Individual modes
--------------------------------------------------------------------------------
+===============================================================================
 
 Normal mode indices start from 0, so slowest mode has index 0. 
 
@@ -166,7 +152,7 @@ By default, modes with 0 eigenvalue are excluded. If they were retained,
 slowest non-trivial mode would have index 6.
 
 Plot results
--------------------------------------------------------------------------------
+===============================================================================
 
 .. plot::
    :context:

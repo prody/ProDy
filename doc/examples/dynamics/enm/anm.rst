@@ -8,32 +8,19 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform ANM calculations, and retrieve
-normal mode data.  
-
-Input
--------------------------------------------------------------------------------
-
-Protein structure data in PDB file format or specified by a PDB identifier.
-
-Output
--------------------------------------------------------------------------------
-
-An :class:`~.ANM` instance that stores Hessian and Kirchhoff matrices and 
-normal mode data describing intrinsic dynamics of the protein structure. 
-:class:`~.ANM` instances and individual normal modes 
-(:class:`~.Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
-module.
+normal mode data.  An :class:`~.ANM` instance that stores Hessian and Kirchhoff
+matrices and normal mode data describing intrinsic dynamics of the protein 
+structure will be obtained.  :class:`~.ANM` instances and individual normal 
+modes (:class:`~.Mode`) can be used as input to functions in 
+:mod:`~prody.dynamics` module.
 
 
-ProDy Code
+Parse structure
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Prepare protein
--------------------------------------------------------------------------------
 
 We start with parsing a PDB file by passing an identifier.
 Note that if a file is not found in the current working directory, it will be 
@@ -63,8 +50,8 @@ True
 Note that, ProDy atom selector gives the flexibility to select any set of atoms 
 to be used in ANM  calculations.
 
-Build Hessian matrix
--------------------------------------------------------------------------------
+Build Hessian
+===============================================================================
 
 We instantiate an :class:`~.ANM` instance:
 
@@ -86,8 +73,8 @@ We can get a copy of the Hessian matrix using :meth:`.ANM.getHessian` method:
  [ 0.     0.     0.    ..., -0.282  3.785 -2.504]
  [ 0.     0.     0.    ...,  0.607 -2.504  4.214]]
 
-Change cutoff distance and force constant
--------------------------------------------------------------------------------
+Parameters
+===============================================================================
 
 We didn't pass any parameters to :meth:`.ANM.buildHessian` method, but it 
 accepts *cutoff* and *gamma* parameters, for which  default values are
@@ -102,7 +89,7 @@ Note that it is also possible to use an externally calculated Hessian
 matrix. Just pass it to the ANM instance using :meth:`.ANM.setHessian` method.
 
 Calculate normal modes
--------------------------------------------------------------------------------
+===============================================================================
 
 Calculate modes using :meth:`.ANM.calcModes` method: 
 
@@ -112,8 +99,8 @@ Note that by default 20 non-zero (or non-trivial) and 6 trivial modes are
 calculated. Trivial modes are not retained. To calculate different number
 of non-zero modes or to keep zero modes, try: ``anm.calcModes(50, zeros=True)``
 
-Access calculated data
--------------------------------------------------------------------------------
+Normal mode data
+===============================================================================
 
 >>> print( anm.getEigenvalues().round(3) ) # doctest: +ELLIPSIS
 [ 0.179  0.334  0.346  0.791  0.942  1.012  1.188  1.304  1.469  1.546
@@ -144,7 +131,7 @@ this case). If user calculates M slowest modes, only they will be used in the
 calculation of covariance.
 
 Individual modes
--------------------------------------------------------------------------------
+===============================================================================
 
 Normal mode indices in Python start from 0, so slowest mode has index 0. 
 By default, modes with zero eigenvalues are excluded. If they were retained, 
@@ -159,7 +146,7 @@ Get the slowest mode by indexing :class:`~.ANM` instance as follows:
 [ 0.039  0.009  0.058 ...,  0.046  0.042  0.08 ]
 
 Write NMD file
--------------------------------------------------------------------------------
+===============================================================================
 
 ANM results in NMD format can be visualized using NMWiz VMD plugin |nmwiz|.
 
@@ -172,7 +159,7 @@ Note that slicing an ANM (or GNM, EDA) instances returns a list of modes.
 In this case, slowest 3 ANM modes were written into NMD file.
 
 View modes in VMD
--------------------------------------------------------------------------------
+===============================================================================
 
 First make sure that the VMD path is correct
 

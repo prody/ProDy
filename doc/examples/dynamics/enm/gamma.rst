@@ -33,30 +33,19 @@ residue pairs), we use a 10 times stronger force constant.
    plt.close('all')  
 
 
-Input
--------------------------------------------------------------------------------
-
-Protein structure data in PDB file format or specified by a PDB identifier.
-
-Output
--------------------------------------------------------------------------------
-
-An :class:`~.ANM` instance that stores Hessian and Kirchhoff matrices and 
-normal mode data describing intrinsic dynamics of the protein structure. 
-:class:`~.ANM` instances and individual normal modes 
+We will obtain an :class:`~.ANM` instance that stores Hessian and Kirchhoff 
+matrices and normal mode data describing intrinsic dynamics of the protein 
+structure. :class:`~.ANM` instances and individual normal modes 
 (:class:`~.Mode`) can be used as input to functions in :mod:`~prody.dynamics` 
 module.
 
 
-ProDy Code
+Parse structure
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Prepare protein
--------------------------------------------------------------------------------
 
 We start with parsing a PDB file by passing an identifier.
 
@@ -70,8 +59,8 @@ We want to use only Cα atoms, so we select them:
 >>> calphas
 <Selection: "protein and name CA" from 1p38 (351 atoms)>
 
-Define Force Constant Function
--------------------------------------------------------------------------------
+Force Constant Function
+===============================================================================
 
 We define the aformentioned function as follows:
 
@@ -104,7 +93,7 @@ Let's test how it works:
 0
 
 ANM calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 We use selected atoms (351 Cα's) and ``gammaDistanceDependent`` function
 for ANM calculations as follows:

@@ -7,29 +7,15 @@ Using an External Matrices
 Synopsis
 ===============================================================================
 
-This example shows how to use matrices from external software in ANM and GNM
-analysis.
+This example shows how to use matrices from external software in :class:`~.ANM`
+or :class:`~.GNM` analysis of protein dynamics.
 
-Input
--------------------------------------------------------------------------------
-
-Hessian/Kirchhoff matrix stored in a text file.
-
-Output
--------------------------------------------------------------------------------
-
-:class:`~.ANM` or :class:`~.GNM` instances that can be used for analysis of protein
-dynamics.
-
-ProDy Code
+Parse Hessian
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Parse Hessian matrix
--------------------------------------------------------------------------------
 
 The input file that contains the Hessian matrix has the following format 
 (:download:`oanm_hes.txt </doctest/oanm_hes.txt>`)::
@@ -53,7 +39,7 @@ The input file that contains the Hessian matrix has the following format
 (1053, 1053)
 
 ANM calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 Rest of the calculations can be performed as follows:
 
@@ -65,8 +51,8 @@ Rest of the calculations can be performed as follows:
 
 For more information, see :ref:`anm`.
 
-Parse Kirchhoff matrix
--------------------------------------------------------------------------------
+Parse Kirchhoff
+===============================================================================
 
 The input file that contains the Kirchhoff matrix has the following format
 (:download:`ognm_kirchhoff.txt </doctest/ognm_kirchhoff.txt>`)::
@@ -89,7 +75,7 @@ The input file that contains the Kirchhoff matrix has the following format
 (351, 351)
 
 GNM calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 Rest of the GNM calculations can be performed as follows:
 
