@@ -7,30 +7,19 @@ PCA of X-ray structures: Visualization
 Synopsis
 ===============================================================================
 
-This example is continued from :ref:`pca-xray-plotting`.
-The aim of this part is to generate molecular graphics that was presented
-in our paper [AB09]_.
-
-Input
--------------------------------------------------------------------------------
-
-PCA and ANM data calculated in :ref:`pca-xray-calculations`.
-
-Output
--------------------------------------------------------------------------------
-
-Qualitative molecular graphics comparing experimental and theoretical modes.
+This example is continued from :ref:`pca-xray-plotting`.  The aim of this part
+is visual comparison of experimental and theoretical modes. 
+We will generate molecular graphics that was presented in our paper [AB09]_.
 
 Notes
 -------------------------------------------------------------------------------
 
-To make a comparative visual analysis of PCA and ANM modes
-that were calculated in the previous parts, NMWiz needs to be installed.
-NMWiz is a VMD plugin designed to complement ProDy.
-You can get it from |nmwiz|. 
+To make a comparative visual analysis of PCA and ANM modes that were calculated
+in the previous parts, NMWiz needs to be installed.  NMWiz is a VMD plugin 
+designed to complement ProDy.  You can get it from |nmwiz|. 
 
 
-ProDy Code
+Load data
 ===============================================================================
 
 We start by importing everything from the ProDy package:
@@ -44,7 +33,7 @@ Then we load data saved in :ref:`pca-xray-calculations`:
 >>> ref_chain = parsePDB('p38_ref_chain.pdb')
 
 Write NMD files
--------------------------------------------------------------------------------
+===============================================================================
 
 We will save PCA and ANM data in NMD format. 
 NMWiz can read and visualize multiple NMD files at once. Interested

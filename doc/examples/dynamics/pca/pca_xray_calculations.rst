@@ -7,34 +7,22 @@ PCA of X-ray structures: Calculations
 Synopsis
 ===============================================================================
 
-This is the first part of a lengthy ProDy example. The aim is to repeat the 
-calculations for p38 MAP kinase (MAPK) that were published in [AB09]_. 
-In this part, we perform the calculations using the same p38 MAPK dataset.
+This is the first part of a lengthy ProDy example.  In this part, we perform 
+the calculations using a p38 MAP kinase (MAPK) structural dataset.  This will 
+reproduce the calculations for p38 that were published in [AB09]_.
 
-Input
--------------------------------------------------------------------------------
-
-A set of structures of the same protein. Specifying a list of PDB identifiers 
-is sufficient.
-
-Output
--------------------------------------------------------------------------------
-
-A :class:`~.PCA` instance that stores the covariance matrix and principal modes
-describing the dominant changes in the dataset. The :class:`~.PCA` instance
-and principal modes (:class:`~.Mode`) can be used as input for the functions in 
-:mod:`~.dynamics` module.
+We will obtain a :class:`~.PCA` instance that stores the covariance matrix and 
+principal modes describing the dominant changes in the dataset. The 
+:class:`~.PCA` instance and principal modes (:class:`~.Mode`) can be used as 
+input for the functions in :mod:`~.dynamics` module.
 
 
-ProDy Code
+Retrieve dataset
 ===============================================================================
   
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Gather dataset
--------------------------------------------------------------------------------
 
 We use a list of PDB identifiers for the structures that we want to 
 include in our analysis.
@@ -76,7 +64,7 @@ After we listed the PDB identifiers, we obtain them using
 ``pdbfiles`` variable contains the list of filenames of obtained PDB structures.
 
 Set reference chain
--------------------------------------------------------------------------------
+===============================================================================
 
 The next step is setting one of the p38 structures as the reference
 structure. We use 1p38 chain A. Note that we won't use
@@ -100,7 +88,7 @@ of α-carbon atoms of select residues for analysis.
 |more| See :ref:`selections` for making selections.
 
 Prepare ensemble
--------------------------------------------------------------------------------
+===============================================================================
 
 X-ray structural ensembles are heterogenous, i.e. different structures
 have different sets of unresolved residues. Hence, it is not straightforward
@@ -151,7 +139,7 @@ Close the logfile (file content shows how chains were paired/mapped):
 >>> closeLogfile('p38_pca')
 
 Save coordinates
--------------------------------------------------------------------------------
+===============================================================================
 
 We use :class:`~.PDBEnsemble` to store coordinates of the X-ray 
 structures. The :class:`~.PDBEnsemble` instances do not store any 
@@ -167,7 +155,7 @@ Then we use :func:`~.writePDB` function to save coordinates:
 
 
 PCA calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 Once the coordinate data is prepared, it is straightforward to perform the 
 :class:`~.PCA` calculations:
@@ -197,7 +185,7 @@ method for heterogeneous ensembles. For NMR models or MD trajectories SVD
 method may be preferred over covariance method.
 
 ANM calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 To perform :class:`~.ANM` calculations:
 
@@ -206,7 +194,7 @@ To perform :class:`~.ANM` calculations:
 >>> anm.calcModes()               # Calculate slowest non-trivial 20 modes 
 
 Save your work
--------------------------------------------------------------------------------
+===============================================================================
 
 Calculated data can be saved in a ProDy internal format
 to use in a later session or to share it with others.

@@ -7,20 +7,11 @@ PCA of X-ray structures: Plotting
 Synopsis
 ===============================================================================
 
-This example is continued from :ref:`pca-xray-analysis`. The aim of this part 
-is to make the plots that was presented in our paper [AB09]_.
+This example is continued from :ref:`pca-xray-analysis`. The aim of this part
+is to produce graphical comparison of experimental and theoretical data.
+We will reproduce the plots that was presented in our paper [AB09]_.
 
-Input
--------------------------------------------------------------------------------
-
-PCA and ANM data calculated in :ref:`pca-xray-calculations`.
-
-Output
--------------------------------------------------------------------------------
-
-Graphical quantitative output comparing experimental and theoretical data.
-
-ProDy Code
+Load data
 ===============================================================================
 
 
@@ -50,9 +41,8 @@ Then we load data saved in :ref:`pca-xray-calculations`:
    ref_chain = parsePDB('p38_ref_chain.pdb')
    
  
- 
 PCA - ANM overlap  
--------------------------------------------------------------------------------
+===============================================================================
 
 In previous page, we compared PCA and ANM modes to get some numbers. In this
 case, we will use plotting functions to make similar comparisons:
@@ -100,7 +90,7 @@ Let's also plot the cumulative overlap in the same figure:
    plt.close('all')  
 
 Square fluctuations  
--------------------------------------------------------------------------------
+===============================================================================
 
 .. plot::
    :context:
@@ -158,7 +148,7 @@ Alternatively, we could plot normalized square fluctuations:
 
 
 Projections  
--------------------------------------------------------------------------------
+===============================================================================
 
 Now we will project the ensemble onto PC 1 and 2 using 
 :func:`~.showProjection`:
@@ -221,7 +211,7 @@ It is possible to show the legend for this plot, but the figure gets crowded:
    plt.close('all')
 
 Cross-projections
--------------------------------------------------------------------------------
+===============================================================================
 
 Finally, we will make a cross-projection plot using 
 :func:`~.showCrossProjection`. We will pass ``scale='y'`` argument, which will 

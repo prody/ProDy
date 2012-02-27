@@ -8,40 +8,27 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform PCA of a structural dataset obtained by blast
-searching PDB. The protein of interest is cytochrome C (*cyt C*). 
-Dataset will contain structures sharing 44% or more 
-sequence identity with human *cyt C*, i.e. its homologs and/or orthologs.
+searching PDB. The protein of interest is cytochrome C (*cyt C*).  Dataset will
+contain structures sharing 44% or more sequence identity with human *cyt C*, 
+i.e. its homologs and/or orthologs.  A :class:`~.PCA` instance that stores 
+covariance matrix and principal modes that describes the dominant changes in 
+the dataset will be obtained. :class:`~.PCA` instance and principal modes 
+(:class:`~.Mode`) can be used as input to functions in :mod:`~.dynamics` module
+for further analysis.
 
-Input
--------------------------------------------------------------------------------
+Input is amino acid sequence of the protein, a reference PDB identifier,
+and some parameters.
+
  
-* Amino acid sequence of the protein
-* A reference PDB structure
-* Optionally, a list of PDB files to be excluded from the analysis 
-* Percent sequence identity used for selecting blast hits (PDB structures)
-* Selection of the protein chains and residues to be considered in analysis
-
-Output
--------------------------------------------------------------------------------
-
-A :class:`~.PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`~.PCA` instance
-and principal modes (:class:`~.Mode`) can be used as input to functions in 
-:mod:`~.dynamics` module for further analysis.
- 
-ProDy Code
+Setup
 ===============================================================================
-
-Imports
--------------------------------------------------------------------------------
 
 Import ProDy and matplotlib into the current namespace.
 
 >>> from prody import *
 >>> from matplotlib import pyplot as plt
 
-Definitions
--------------------------------------------------------------------------------
+
 
 >>> # Name of the protein (a name without a white space is preferred) 
 >>> name = 'CytC'
@@ -59,7 +46,7 @@ Definitions
 >>> exclude = ['3nbt', '3nbs']
 
 Parameters
--------------------------------------------------------------------------------
+===============================================================================
 
 >>> # Minimum sequence identity of hits
 >>> sequence_identity = 44
@@ -70,9 +57,8 @@ Parameters
 >>> # Selection string ("all" can be used if all of the chain is to be analyzed) 
 >>> selstr = 'resnum 1 to 103'
     
-
-Step 1: Blast and download
--------------------------------------------------------------------------------
+Blast and download
+===============================================================================
 
 The results are displayed for following list of structures:
 
@@ -109,8 +95,8 @@ Let's check number of downloaded files:
 >>> len(pdb_files)
 82
 
-Step 2: Set reference
--------------------------------------------------------------------------------
+Set reference
+===============================================================================
 
 We first parse the reference structure. Note that we parse only Cα atoms from
 chain A. The analysis will be performed for a single chain (monomeric) protein.
@@ -122,8 +108,8 @@ For analysis of a dimeric protein see :ref:`pca-dimer`
 >>> reference_hierview = reference_structure.getHierView() 
 >>> reference_chain = reference_hierview[ref_chid]
  
-Step 3: Prepare ensemble
--------------------------------------------------------------------------------
+Prepare ensemble
+===============================================================================
  
 >>> # Start a log file
 >>> startLogfile('pca_blast') 
@@ -177,8 +163,8 @@ software.
 
 >>> plt.close('all')
 
-Step 4: Perform PCA
--------------------------------------------------------------------------------
+Perform PCA
+===============================================================================
 
 Once the ensemble is ready, performing PCA is 3 easy steps:
 
@@ -195,8 +181,8 @@ function:
 >>> saveModel(pca)
 'CytC.pca.npz'
 
-Step 5: Plot data and results
--------------------------------------------------------------------------------
+Plot results
+===============================================================================
 
 .. plot::
    :context:

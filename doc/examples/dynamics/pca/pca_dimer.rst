@@ -8,38 +8,23 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform PCA of structural dataset for a dimeric
-protein. The protein of interest is HIV reverse transcriptase (RT). 
-Dataset will be obtained by blast searching PDB.
-
-User input
--------------------------------------------------------------------------------
- 
-* List of PDB identifiers
-* A reference PDB structure
-* Optionally, a list of PDB files to be excluded from the analysis 
-* Percent sequence identity used for selecting blast hits (PDB structures)
-* Selection of the protein chains and residues to be considered in analysis
-
-Output
--------------------------------------------------------------------------------
+protein. The protein of interest is HIV reverse transcriptase (RT).  A 
+predefined set of structures will be used, but an up-to-date list can be
+obtained by blast searching PDB. See :ref:`pca-blast` and :ref:`blastpdb`
+examples.
 
 A :class:`~.PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`~.PCA` instance
-and principal modes (:class:`~.Mode`) can be used as input to functions in 
-:mod:`~.dynamics` module for further analysis.
+that describes the dominant changes in the dataset will be obtained. 
+:class:`~.PCA` instance and principal modes (:class:`~.Mode`) can be used as 
+input to functions in :mod:`~.dynamics` module for further analysis.
 
-ProDy Code
+
+Setup
 ===============================================================================
-
-Imports
--------------------------------------------------------------------------------
 
 Import ProDy into the current namespace.
 
 >>> from prody import *
-
-Definitions
--------------------------------------------------------------------------------
 
 Set the name of the protein/dataset (a name without a white space is preferred): 
 
@@ -51,7 +36,7 @@ Set the reference PDB file:
 
 
 Parameters
--------------------------------------------------------------------------------
+===============================================================================
 
 Set the minimum sequence identity of hits:
 
@@ -65,8 +50,8 @@ Set the sequence coverage:
 
 >>> sequence_coverage = 85
 
-Structures
--------------------------------------------------------------------------------
+Retrieve structures
+===============================================================================
 
 >>> pdb_ids = ['3kk3', '3kk2', '3kk1', '1suq', '1dtt', '3i0r', '3i0s', '3m8p',
 ...            '3m8q', '1jlq', '3nbp', '1klm', '2ops', '2opr', '1s9g', '2jle', 
@@ -89,13 +74,11 @@ Structures
 ...            '2vg7', '2hmi', '1lwf', '1tkt', '2vg6', '1s6p', '1s6q', '3dm2', 
 ...            '1lwc', '3ffi', '1lwe']
 
-Step 1: Retrieve structures
--------------------------------------------------------------------------------
 
 >>> pdb_files = fetchPDB(pdb_ids, folder='pdbfiles', compressed=False)
 
 Step 2: Set reference
--------------------------------------------------------------------------------
+===============================================================================
 
 >>> # Parse reference structure
 >>> reference_structure = parsePDB('pdbfiles/'+ref_pdb+'.pdb', subset='calpha')
@@ -107,8 +90,8 @@ Step 2: Set reference
  
 Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
  
-Step 3: Prepare ensemble
--------------------------------------------------------------------------------
+Prepare ensemble
+===============================================================================
  
 Instantiate an :class:`~.PDBEnsemble`
 
@@ -195,8 +178,8 @@ After trimmin, another round of iterative superposition may be useful:
 >>> saveEnsemble(ensemble)
 'HIV-RT.ens.npz'
 
-Step 4: Perform PCA
--------------------------------------------------------------------------------
+Perform PCA
+===============================================================================
 
 Once the ensemble is ready, performing :class:`~.PCA` is 3 easy steps:
 
@@ -209,8 +192,8 @@ The calculated data can be saved as a compressed file using :func:`~.saveModel`
 >>> saveModel(pca) 
 'HIV-RT.pca.npz'
 
-Step 5: Plot data and results
--------------------------------------------------------------------------------
+Plot results
+===============================================================================
 
 .. plot::
    :context:

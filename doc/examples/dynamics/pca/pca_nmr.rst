@@ -9,19 +9,9 @@ Synopsis
 
 This example shows how to perform PCA of an NMR structure with multiple models. 
 The protein of interest is Ubiquitin, and example will repeat the calculations 
-for ubiquitin that was published in [AB09]_.
-
-Input
--------------------------------------------------------------------------------
-
-Multiple coordinate sets for a protein in PDB file format. Specifying a PDB 
-identifier for an NMR structure is sufficient.  
-
-Output
--------------------------------------------------------------------------------
-
-A :class:`~.PCA` instance that stores covariance matrix and principal modes
-that describes the dominant changes in the dataset. :class:`~.PCA` instance
+for ubiquitin that was published in [AB09]_.  A :class:`~.PCA` instance that 
+stores covariance matrix and principal modes that describes the dominant 
+changes in the dataset will be obtained. :class:`~.PCA` instance
 and principal modes (:class:`~.Mode`) can be used as input to functions in 
 :mod:`~.dynamics` module for further analysis.
 
@@ -36,17 +26,14 @@ performing iterative superposition.
 Also, note that this example applies to any PDB file that contains multiple 
 models. 
   
-ProDy Code
+Prepare ensemble
 ===============================================================================
   
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
 
-Prepare ensemble
--------------------------------------------------------------------------------
-
-We parse only CA atoms using :func:`~.parsePDB` (note that it is possible to 
+We parse only Cα atoms using :func:`~.parsePDB` (note that it is possible to 
 repeat this calculation for all atoms):
  
 >>> ubi = parsePDB('2k39', subset='calpha')
@@ -67,7 +54,7 @@ iterative superposition:
 
 
 PCA calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 Performing :class:`~.PCA` is only three lines of code:
 
@@ -93,7 +80,7 @@ For heterogeneous NMR datasets, both methods yields identical results:
 '1.000'
 
 Write NMD file
--------------------------------------------------------------------------------
+===============================================================================
 
 Write principal modes into an :term:`NMD` file for NMWiz using 
 :func:`~.writeNMD` function:
@@ -102,7 +89,7 @@ Write principal modes into an :term:`NMD` file for NMWiz using
 'ubi_pca.nmd'
 
 Print data
--------------------------------------------------------------------------------
+===============================================================================
 Let's print fraction of variance for top raking 4 PCs (listed in the Table S3):
 
 >>> for mode in pca[:4]:
@@ -113,7 +100,7 @@ Let's print fraction of variance for top raking 4 PCs (listed in the Table S3):
 0.065
 
 Compare with ANM results
--------------------------------------------------------------------------------
+===============================================================================
 
 We set the active coordinate set to 79, which is the one that is closest 
 to the mean structure (note that indices start from 0 in Python).

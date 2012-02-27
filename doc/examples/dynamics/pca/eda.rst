@@ -8,24 +8,18 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform essential dynamics analysis of molecular
-dynamics (MD) trajectories.
+dynamics (MD) trajectories.  A :class:`~.EDA` instance that stores covariance 
+matrix and principal modes that describes the essential dynamics of the system
+observed in the simulation will be built.  :class:`~.EDA` and principal modes 
+(:class:`~.Mode`) can be used as input to functions in :mod:`~.dynamics` module
+for further analysis.
 
-Input
--------------------------------------------------------------------------------
 
 User needs to provide trajectory in DCD file format and PDB file of the system.
 
 Example input: 
 
 * :download:`MDM2 structure and dcd files </doctest/mdm2.tar.gz>`
-
-Output
--------------------------------------------------------------------------------
-
-A :class:`~.EDA` instance that stores covariance matrix and principal modes
-that describes the essential dynamics of the system observed in the simulation. 
-:class:`~.EDA` instance and principal modes (:class:`~.Mode`) can be used as 
-input to functions in :mod:`~.dynamics` module for further analysis.
 
 Notes
 -------------------------------------------------------------------------------
@@ -35,15 +29,12 @@ of MDAnalysis Python package. Interested user should consult |mdanalysis| for
 more information.
 
 
-ProDy Code
+Parse reference structure
 ===============================================================================
 
 We start by importing everything from ProDy:
   
 >>> from prody import *
-   
-Parse reference structure
--------------------------------------------------------------------------------
 
 The PDB file provided with this example contains and X-ray structure which will 
 be useful in a number of places, so let's start with parsing this file first:
@@ -56,7 +47,7 @@ This function returned a :class:`~.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
 EDA calculations
--------------------------------------------------------------------------------
+===============================================================================
 
 Essential dynamics analysis (EDA or PCA) of a trajectory can be performed in 
 two ways. 
@@ -108,7 +99,7 @@ Overlap values of +1 along the diagonal of the table shows that top ranking
 3 essential (principal) modes are the same.
 
 Multiple files
--------------------------------------------------------------------------------
+===============================================================================
 
 It is also possible to analyze multiple trajectory files without concatenating
 them. In this case we will use data from two independent simulations 
@@ -138,7 +129,7 @@ allow you to avoid repeating calculations when you return to your work later:
 :func:`~.loadModel` function can be used to load this object without any loss.
 
 Print data
--------------------------------------------------------------------------------
+===============================================================================
 
 Let's print fraction of variance for top raking 4 essential modes:
 
@@ -150,7 +141,7 @@ Let's print fraction of variance for top raking 4 essential modes:
 0.06
 
 Plot data
--------------------------------------------------------------------------------
+===============================================================================
 
 Now, let's project the trajectories onto top three essential modes:
 
@@ -199,7 +190,7 @@ Now, let's project the trajectories onto top three essential modes:
    plt.close('all')
 
 Write NMD file
--------------------------------------------------------------------------------
+===============================================================================
 
 The above projection is shown for illustration. Interpreting the essential 
 modes and projection of snapshots onto them is case dependent. One should know

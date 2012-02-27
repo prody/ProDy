@@ -7,21 +7,12 @@ PCA of X-ray structures: Analysis
 Synopsis
 ===============================================================================
 
-This example is continued from :ref:`pca-xray-calculations`.
-The aim of this part is to print/save the numerical data that was presented
-in our paper [AB09]_.
+This example is continued from :ref:`pca-xray-calculations`.  The aim of this 
+part is to perform a quantitative comparison of experimental and theoretical 
+data and to print/save the numerical data that was presented in [AB09]_.
 
-Input
--------------------------------------------------------------------------------
 
-PCA and ANM data calculated in :ref:`pca-xray-calculations`.
-
-Output
--------------------------------------------------------------------------------
-
-Quantitative comparison of experimental and theoretical data.
-
-ProDy Code
+Load data
 ===============================================================================
 
 We start by importing everything from the ProDy package:
@@ -34,7 +25,7 @@ Then we load data saved in the previous part:
 >>> anm = loadModel('1p38.anm.npz')
 
 Variance along PCs
--------------------------------------------------------------------------------
+===============================================================================
 
 Of interest is the fraction of variance that is explained by principal 
 components, which are the dominant modes of variability in the dataset.
@@ -50,7 +41,7 @@ Mode 3 from PCA p38 xray  % variance = 10.63
 This data was included in Table 1 in [AB09]_.
 
 Collectivity of modes 
--------------------------------------------------------------------------------
+===============================================================================
 
 Collectivity of a normal mode ([BR95]_) can be obtained using 
 :meth:`~.getCollectivity`:
@@ -72,7 +63,7 @@ Mode 3 from ANM 1p38  collectivity = 0.68
 This shows that top PCA modes and slow ANM modes are highly collective.
 
 PCA - ANM overlap  
--------------------------------------------------------------------------------
+===============================================================================
 
 We also calculated overlap between PCA and ANM modes to see whether 
 structural changes observed upon inhibitor binding correlated with 
@@ -95,7 +86,7 @@ This formatted table can also be written into a file using
 :func:`~.writeOverlapTable` function. 
 
 Save numeric data
--------------------------------------------------------------------------------
+===============================================================================
 
 :class:`~.ANM` and :class:`~.PCA` instances store calculated numeric data. 
 Their class documentation lists methods that return eigenvalue, eigenvector, 
