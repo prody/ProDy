@@ -27,6 +27,7 @@ import numpy as np
 from prody.tools import openFile
 
 from ensemble import *
+from pdbensemble import *
 from conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble', 
