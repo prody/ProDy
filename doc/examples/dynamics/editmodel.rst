@@ -1,37 +1,24 @@
 .. _reduce-slice:
 
 *******************************************************************************
-Reducing/slicing a model
+Editing a Model
 *******************************************************************************
 
 Synopsis
 =============================================================================
 
-This example shows how to analyze part of a system that is to interest. 
-In this example, ANM calculations will be performed for HIV-1 reverse
-transcriptase (RT) subunits p66 and p51. Analysis will be made for 
-subunit p66.
+This example shows how to analyze part a normal mode model corresponding to
+a system of interest.  In this example, ANM calculations will be performed for 
+HIV-1 reverse transcriptase (RT) subunits p66 and p51. Analysis will be made 
+for subunit p66.  Output is a reduced/sliced model that can be used as input 
+to analysis and plotting functions.
 
-Input
--------------------------------------------------------------------------------
-
-A PDB structure.
-
-Output
--------------------------------------------------------------------------------
-
-Output is a reduced/sliced model that can be used as input to analysis and
-plotting functions.
-
-ProDy Code
+ANM calculations
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-ANM calculations
--------------------------------------------------------------------------------
 
 We start with parsing the Cα atoms of the RT structure 1DLO and performing ANM
 calculations for them:
@@ -61,7 +48,7 @@ array([ 0.039,  0.063,  0.126,  0.181,  0.221])
    plt.close('all')
    
 Analysis of full model
--------------------------------------------------------------------------------
+===============================================================================
 
 We can plot the cross-correlations and square fluctuations for the full model
 as follows:
@@ -101,7 +88,7 @@ as follows:
 
 
 Slicing a model
--------------------------------------------------------------------------------
+===============================================================================
 
 We take the slice of the ANM model corresponding to subunit p66, which is 
 chain A in the structure, using :func:`~.sliceModel` function:
@@ -121,7 +108,7 @@ modes matching the selection. Note that the sliced model contains fewer nodes,
 has the same eigenvalues, and that the sliced modes are not normal.
 
 Analysis of the slice
--------------------------------------------------------------------------------
+===============================================================================
 
 We plot the cross-correlations and square fluctuations for the sliced model
 in the same way. Note that the plots contain selected part of the model
@@ -162,7 +149,7 @@ without any change:
    plt.close('all') 
 
 Reducing a model
--------------------------------------------------------------------------------
+===============================================================================
 
 We reduce the ANM model to subunit p66 using :func:`~.reduceModel` function. 
 This function implements the method described in 2000 paper of Hinsen et al. 
@@ -181,7 +168,7 @@ array([ 0.05 ,  0.098,  0.214,  0.289,  0.423])
 
 
 Analysis of the slice
--------------------------------------------------------------------------------
+===============================================================================
 
 We plot the cross-correlations and square fluctuations for the reduced model
 in the same way. Note that in this case the plots are not identical to the
@@ -219,7 +206,7 @@ full model:
    plt.close('all') 
 
 Compare reduced and sliced models
--------------------------------------------------------------------------------
+===============================================================================
 
 We can compare the sliced and reduced models by plotting the overlap table
 between modes:

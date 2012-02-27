@@ -9,28 +9,14 @@ Synopsis
 
 This example shows how to extend normal modes calculated for a 
 coarse-grained model to a larger set of atoms. Extended model can be
-used to generate alternate conformers. 
+used to generate alternate conformers that can be save in PDB format.
 
-Input
--------------------------------------------------------------------------------
-
-A PDB structure. 
-
-Output
--------------------------------------------------------------------------------
-
-Output is an extended model and conformers along selected normal modes. 
-Conformers can be save in PDB format.
-
-ProDy Code
+Normal mode analysis
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Normal mode analysis
--------------------------------------------------------------------------------
 
 Conformers can be generated along any set of normal modes. In this example,
 we will calculate normal modes for unbound structure of p38 MAP kinase and
@@ -43,7 +29,7 @@ generate backbone trace conformations.
 >>> anm.calcModes()
 
 Extrapolation
--------------------------------------------------------------------------------
+===============================================================================
 
 ANM modes are extended using the :func:`~.extendModel` function: 
 
@@ -57,7 +43,7 @@ Note that :class:`~.GNM`, :class:`~.PCA`, and :class:`~.NMA` instances can also
 be used as input to this function.
 
 Write NMD file
--------------------------------------------------------------------------------
+===============================================================================
 
 Extended modes can be visualized in VMD using :ref:`nmwiz` using 
 an NMD file:
@@ -66,7 +52,7 @@ an NMD file:
 'p38_anm_backbone.nmd'
 
 Sample conformers
--------------------------------------------------------------------------------
+===============================================================================
 
 We can use the extended model to sample backbone conformers:
 
@@ -78,7 +64,7 @@ Note that we made used of ANM modes beyond their theoretical limitations.
 
 
 Write PDB file
--------------------------------------------------------------------------------
+===============================================================================
 
 Generated conformers can be written in PDB format as follows: 
 

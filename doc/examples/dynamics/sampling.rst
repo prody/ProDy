@@ -1,7 +1,7 @@
 .. _generate-conformers:
 
 *******************************************************************************
-Generate conformers along normal modes
+Sampling along normal modes
 *******************************************************************************
 
 Synopsis
@@ -9,28 +9,14 @@ Synopsis
 
 This example shows how to generate conformers along normal modes.  Normal modes
 may be from :class:`~.ANM`, :class:`~.PCA`, or any other user provided 
-:class:`~.NMA` models. 
+:class:`~.NMA` models.  Conformers can be save in PDB format.
 
-Input
--------------------------------------------------------------------------------
-
-A PDB structure will be used to calculate ANM modes. 
-
-Output
--------------------------------------------------------------------------------
-
-Output is conformers along selected normal modes. Conformers can be save in 
-PDB format.
-
-ProDy Code
+Normal mode analysis
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Normal mode analysis
--------------------------------------------------------------------------------
 
 Conformers can be generated along any set of normal modes. In this example,
 we will calculate normal modes for unbound structure of p38 MAP kinase and
@@ -42,7 +28,7 @@ generate backbone trace conformations.
 >>> anm.calcModes()
 
 Traverse a mode
--------------------------------------------------------------------------------
+===============================================================================
 
 :func:`~.traverseMode` function generates conformations along a single normal
 mode. Conformations are generated in both directions along the given mode.
@@ -71,7 +57,7 @@ follows:
 'p38_mode1_trajectory.pdb'
 
 Sample along modes
--------------------------------------------------------------------------------
+===============================================================================
 
 :func:`~.sampleModes` function generates conformations using random 
 combinations of given modes. The nice thing about this function is that 
