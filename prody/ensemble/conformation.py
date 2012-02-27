@@ -20,7 +20,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from prody.measure import _calcRMSD
+from prody.measure import getRMSD
 
 __all__ = ['Conformation', 'PDBConformation']
 
@@ -29,17 +29,16 @@ class Conformation(object):
     """A class to provide methods on a conformation in an ensemble.  
     Instances of this class do not keep coordinate and weights data."""
 
-    __slots__ = ['_ensemble', '_index', '_sel', '_indices']
+    __slots__ = ['_ensemble', '_index']
 
     def __init__(self, ensemble, index):
+        
         self._ensemble = ensemble
         self._index = index
-        self._sel = ensemble.getSelection()
-        self._indices = ensemble._getSelIndices()
         
     def __repr__(self):
         
-        if self._sel is None:
+        if self.getSelection() is None:
             return ('<Conformation: {0:d} from {1:s} ({2:d} atoms)>').format(
                     self._index, self._ensemble.getTitle(), self.numAtoms())
         else:
@@ -60,31 +59,42 @@ class Conformation(object):
     def numSelected(self):
         """Return number of selected atoms."""
         
-        if self._sel is None:
-            return self._ensemble.numAtoms()
-        else:
-            return len(self._indices)
+        return self._ensemble.numSelected()
     
+    def getAtoms(self):
+        """Return associated atom group."""
+        
+        return self._ensemble.getAtoms()        
+    
+    def getSelection(self):
+        """Return the current selection. If ``None`` is returned, it means
+        that all atoms are selected."""
+        
+        return self._ensemble.getSelection()        
+
     def getIndex(self):
         """Return index."""
         
         return self._index
     
     def getWeights(self):
-        """Return coordinate weights for selected atoms."""
+        """Return coordinate weights for (selected) atoms."""
         
-        if self._sel is None:
-            return self._ensemble.getWeights()
+        ensemble = self._ensemble
+        indices = ensemble._indices
+        if indices is None:
+            return ensemble.getWeights()
         else:
-            return self._ensemble.getWeights()[self._indices]
+            return ensemble.getWeights()[indices]
 
     def _getWeights(self):
         
-        if self._sel is None:
-            return self._ensemble._getWeights()
+        ensemble = self._ensemble
+        indices = ensemble._indices
+        if indices is None:
+            return ensemble._getWeights()
         else:
-            return self._ensemble._getWeights()[self._indices]
-
+            return ensemble._getWeights()[indices]
 
     def getEnsemble(self):
         """Return the ensemble that this conformation belongs to."""
@@ -96,28 +106,29 @@ class Conformation(object):
         of atoms are selected in the ensemble, coordinates for selected
         atoms will be returned."""
         
-        if self._ensemble._confs is None:
+        ensemble = self._ensemble
+        if ensemble._confs is None:
             return None
-        indices = self._indices
+        indices = ensemble._indices
         if indices is None:
-            return self._ensemble._confs[self._index].copy()
+            return ensemble._confs[self._index].copy()
         else:
-            return self._ensemble._confs[self._index, indices].copy()
+            return ensemble._confs[self._index, indices].copy()
     
     def _getCoords(self):
 
-        if self._ensemble._confs is None:
+        ensemble = self._ensemble
+        if ensemble._confs is None:
             return None
-        indices = self._indices
+        indices = ensemble._indices
         if indices is None:
-            return self._ensemble._confs[self._index]
+            return ensemble._confs[self._index]
         else:
-            return self._ensemble._confs[self._index, indices]
-
+            return ensemble._confs[self._index, indices]
     
     def getDeviations(self):
         """Return deviations from the ensemble reference coordinates. 
-        Deviations are calculated for selected atoms."""
+        Deviations are calculated for (selected) atoms."""
         
         ensemble = self._ensemble 
         if ensemble._confs is None:
@@ -131,18 +142,18 @@ class Conformation(object):
 
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates. RMSD is
-        calculated for selected atoms."""
+        calculated for (selected) atoms."""
         
         ensemble = self._ensemble 
-        indices = self._indices
+        indices = ensemble._indices
         if indices is None:
-            return _calcRMSD(ensemble._coords,
-                             ensemble._confs[self._index], 
-                             self.getWeights())[0]
+            return getRMSD(ensemble._coords, 
+                           ensemble._confs[self._index], 
+                           self.getWeights())[0]
         else:
-            return _calcRMSD(ensemble._coords[indices],
-                             ensemble._confs[self._index, indices], 
-                             self.getWeights())[0]
+            return getRMSD(ensemble._coords[indices],
+                           ensemble._confs[self._index, indices], 
+                           self.getWeights())[0]
     
 class PDBConformation(Conformation):
     
@@ -151,7 +162,7 @@ class PDBConformation(Conformation):
     
     def __repr__(self):
         
-        if self._sel is None:
+        if self.getSelection() is None:
             return ('<PDBConformation: {0:s} from {1:s} (index: {2:d}; '
                     '{3:d} atoms)>').format(
                     self._ensemble._labels[self._index], 
@@ -186,8 +197,7 @@ class PDBConformation(Conformation):
         
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
-           ensemble reference coordinate set.
-        """
+           ensemble reference coordinate set."""
         
         ensemble = self._ensemble
         if ensemble._confs is None:
@@ -208,32 +218,33 @@ class PDBConformation(Conformation):
     
     def getDeviations(self):
         """Return deviations from the ensemble reference coordinates. 
-        Deviations are calculated for selected atoms."""
+        Deviations are calculated for (selected) atoms."""
         
-        indices = self._indices
+        ensemble = self._ensemble
+        indices = ensemble._indices
         if indices is None:
-            return self.getCoords() - self._ensemble._coords
+            return self.getCoords() - ensemble._coords
         else:
-            return self.getCoords() - self._ensemble._coords[indices]
+            return self.getCoords() - ensemble._coords[indices]
     
     def getRMSD(self):
         """Return RMSD from the ensemble reference coordinates. RMSD is
-        calculated for selected atoms."""
+        calculated for (selected) atoms."""
         
         ensemble = self._ensemble
         index = self._index
         indices = ensemble._indices
         if indices is None:
-            return _calcRMSD(ensemble._coords,
-                             ensemble._confs[index], 
-                             ensemble._weights[index])
+            return getRMSD(ensemble._coords,
+                           ensemble._confs[index], 
+                           ensemble._weights[index])
         else:
-            return _calcRMSD(ensemble._coords[indices],
-                             ensemble._confs[index, indices], 
-                             ensemble._weights[index, indices])
+            return getRMSD(ensemble._coords[indices],
+                           ensemble._confs[index, indices], 
+                           ensemble._weights[index, indices])
     
     def getWeights(self):
-        """Return coordinate weights for selected atoms."""
+        """Return coordinate weights for (selected) atoms."""
         
         ensemble = self._ensemble
         indices = ensemble._indices
