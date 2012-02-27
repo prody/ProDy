@@ -290,7 +290,7 @@ class PackageLogger(object):
     def timeit(self):
         """Start timing a process.  Use :meth:`timing` to report time."""
         
-        self._start = time.time()
+        self._timer = time.time()
         
     def timing(self, msg=None):
         """If *msg* is none, return time passes since timing started. If 
@@ -298,9 +298,9 @@ class PackageLogger(object):
         it took to complete the process at *debug* log level."""
         
         if msg is None:
-            return time.time() - self._start
+            return time.time() - self._timer
         else:
-            self.debug(msg % (time.time() - self._start))
+            self.debug(msg % (time.time() - self._timer))
         
 
 class PackageSettings(object):
