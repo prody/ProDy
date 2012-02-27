@@ -8,31 +8,18 @@ Synopsis
 ===============================================================================
 
 This examples shows how to identify intermolecular contacts, e.g. protein
-atoms interacting with a bound inhibitor.
-
-Input
--------------------------------------------------------------------------------
-
-Structure of a protein-ligand complex in PDB format. Two PDB files containing
-protein and ligand separately are also accepted.
-
-Output
--------------------------------------------------------------------------------
-
-Output is a :class:`~.Selection` instance that points to atoms
-matching the contact criteria given by the user. 
+atoms interacting with a bound inhibitor.  A structure of a protein-ligand 
+complex in PDB format will be used.  Output will be :class:`~.Selection` 
+instances that points to atoms matching the contact criteria given by the user. 
 :class:`~.Selection` instances can be used as input to other
 functions for further analysis.
 
-ProDy Code
+Simple contact selections
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-Simple contact selections
--------------------------------------------------------------------------------
 
 ProDy selection engine has a powerful feature that enables identifying 
 intermolecular contacts very easily. We will see this by identifying protein 
@@ -55,7 +42,7 @@ atoms that are within 4 A of residue whose name is B11. This selects
 protein atoms that within 4 A of the inhibitor. 
 
 Contacts between different atom groups
--------------------------------------------------------------------------------
+===============================================================================
 
 In some cases, the protein and the ligand may be in separate files. 
 We will imitate this case by making copies of protein and ligand.
@@ -83,7 +70,7 @@ in the selection string.
 
 
 Composite contact selections
--------------------------------------------------------------------------------
+===============================================================================
 
 Now, let's try something more sophisticated. We select Cα atoms of
 residues that have at least one atom interacting with the inhibitor:
@@ -99,7 +86,7 @@ one atom within 4 A of any inhibitor atom.
 This shows that, 20 residues have atoms interacting with the inhibitor.
 
 Spherical atom selections
--------------------------------------------------------------------------------
+===============================================================================
 
 Similarly, one can give arbitrary coordinate arrays as keyword arguments to 
 identify atoms in a spherical region. Let's find backbone atoms within 5 
@@ -110,7 +97,7 @@ identify atoms in a spherical region. Let's find backbone atoms within 5
 
 
 Fast contact selections
--------------------------------------------------------------------------------
+===============================================================================
 
 For repeated and faster contact identification :class:`~.Contacts` class is
 recommended.

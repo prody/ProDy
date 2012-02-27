@@ -11,27 +11,16 @@ Synopsis
 i.e. multiple models from an NMR structure. This example shows how to align
 such coordinate sets using :func:`~.alignCoordsets` function. 
 
-Input
--------------------------------------------------------------------------------
+Resulting :class:`~.AtomGroup` will have its coordinate sets superposed onto 
+the active coordinate set selected by the user.
 
-Multiple structures/models of the same protein in a single PDB file.
-
-Output
--------------------------------------------------------------------------------
-
-Output is a :class:`~.AtomGroup` instance whose coordinate
-sets are superposed on the the active coordinate set selected by the user.
-
-ProDy Code
+Parse an NMR structure
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
 
-Parse an NMR structure
--------------------------------------------------------------------------------
-   
 We use 1joy that contains 21 models homodimeric domain of EnvZ protein 
 from E. coli.
 
@@ -40,7 +29,7 @@ from E. coli.
 21
 
 Calculate RMSD
--------------------------------------------------------------------------------
+===============================================================================
    
 >>> rmsds = calcRMSD( pdb )
 >>> print( rmsds.mean().round(2) )
@@ -49,8 +38,8 @@ Calculate RMSD
 This function calculates RMSDs with respect to the active coordinate set,
 which is the first model in this case.
 
-Align coordsets
--------------------------------------------------------------------------------
+Align coordinate sets
+===============================================================================
 
 We will superpose all models onto the first model in the file using
 based on Cα atom positions:
@@ -69,7 +58,7 @@ set).
 3.28
 
 Write aligned coordinates
--------------------------------------------------------------------------------
+===============================================================================
 
 Using :func:`~.writePDB` function, we can write the aligned
 coordinate sets in PDB format: 

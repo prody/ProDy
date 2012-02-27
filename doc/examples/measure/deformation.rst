@@ -8,32 +8,17 @@ Synopsis
 ===============================================================================
 
 This example shows how to calculate the deformation vector describing the 
-change between two structures of a protein. 
+change between two structures of a protein.  Two structures of the same 
+protein in PDB format will be used.  A :class:`~.Vector` instance that 
+contains the deformation vector describing the change in protein structure
+will be calculated. This object will be compared to :class:`~.ANM` modes.
 
-Input
--------------------------------------------------------------------------------
-
-Two structures of the same protein in PDB format. PDB identifiers are also
-sufficient.
-
-Output
--------------------------------------------------------------------------------
-
-A :class:`~.Vector` instance that contains the deformation vector
-describing the change in protein structure. This object instance can be used 
-conveniently to compare deformation with normal modes.
-
-ProDy Code
+Parse structures
 ===============================================================================
 
 We start by importing everything from the ProDy package:
 
 >>> from prody import *
-
-
-Parse structures
--------------------------------------------------------------------------------
-
 
 Let's parse two p38 MAP Kinase structures: 1p38 and 1zz2
 
@@ -41,7 +26,7 @@ Let's parse two p38 MAP Kinase structures: 1p38 and 1zz2
 >>> mobile = parsePDB('1zz2')   # this is the one we want to superimpose
 
 Match chains
--------------------------------------------------------------------------------
+===============================================================================
 
 ProDy offers the function :func:`~.matchChains` to find matching chains
 in two structures easily. We use it to find the chains for which we will 
@@ -92,7 +77,7 @@ is the number of atoms in the returned atom maps.
 
 
 RMSD and superpose
--------------------------------------------------------------------------------
+===============================================================================
 
 We calculate the RMSD using :func:`~.calcRMSD` function: 
 
@@ -113,7 +98,7 @@ to preserve structures integrity).
 1.86
 
 Deformation vector
--------------------------------------------------------------------------------
+===============================================================================
 
 Once matching chains are identified it is straightforward to calculate the
 deformation vector using :func:`~.calcDeformVector`
@@ -142,7 +127,7 @@ Following yields the normalized deformation vector
 1.0
 
 Compare with ANM modes
--------------------------------------------------------------------------------
+===============================================================================
 
 Let's get ANM model for the reference chain using 
 :func:`~.calcANM` (a shorthand function for ANM calculations):
