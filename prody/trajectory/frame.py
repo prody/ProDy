@@ -138,20 +138,22 @@ class Frame(object):
     def getVelocities(self):
         """Return a copy of velocities of (selected) atoms."""
         
-        indices = self._traj._indices
-        if indices is None:
-            return self._velocs.copy()
-        else:
-            return self._velocs[indices]
+        if self._velocs is not None:        
+            indices = self._traj._indices
+            if indices is None:
+                return self._velocs.copy()
+            else:
+                return self._velocs[indices]
     
     def _getVelocities(self):
         """Return velocities of (selected) atoms."""
-        
-        indices = self._traj._indices
-        if indices is None:
-            return self._velocs
-        else:
-            return self._velocs[indices]
+
+        if self._velocs is not None:        
+            indices = self._traj._indices
+            if indices is None:
+                return self._velocs
+            else:
+                return self._velocs[indices]
     
     def getUnitcell(self):
         """Return a copy of unitcell array."""
