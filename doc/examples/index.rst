@@ -58,9 +58,9 @@ Dynamics Analysis
 
    dynamics/enm/index
    dynamics/pca/index
-   dynamics/generate_conformers
+   dynamics/sampling
    dynamics/extendmodel
-   dynamics/reduce_slice
+   dynamics/editmodel
 
 Trajectory Analysis
 ===============================================================================
@@ -79,5 +79,5 @@ Atomic classes and data
 .. toctree::
    :maxdepth: 1
    
-   atomic/attributes   
+   atomic/userdata   
 
