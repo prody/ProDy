@@ -9,7 +9,10 @@ from subprocess import Popen, PIPE
 import prody
 from prody import routines
 
-#system('prody > prody.txt')
+pipe = Popen(['prody', '-h'], stdout=PIPE, stderr=PIPE)
+with open('prody.txt', 'w') as rst:
+    rst.write(pipe.stdout.read())
+
 for cmd in routines.PRODY_COMMANDS: 
     
     pkg = getattr(getattr(prody, 'routines'), 'prody_' + cmd)
