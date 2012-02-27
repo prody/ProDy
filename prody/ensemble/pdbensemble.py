@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for handling ensembles of conformations."""
+"""This module defines a class for handling ensembles of PDB conformations."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -48,6 +48,7 @@ class PDBEnsemble(Ensemble):
        assumed in RMSD calculations and superpositions."""
 
     def __init__(self, title='Unknown'):
+        
         self._labels = []
         Ensemble.__init__(self, title)
         
@@ -108,7 +109,7 @@ class PDBEnsemble(Ensemble):
             raise IndexError('invalid index')
             
     def _superpose(self):
-        """Superpose conformations and return new coordinates."""
+        """Superpose conformations and update coordinates."""
 
         calcT = _calcTransformation
         applyT = _applyTransformation
