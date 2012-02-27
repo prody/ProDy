@@ -21,8 +21,11 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+import numpy as np
+
 from prody import measure
-from prody.measure import superpose, _superpose, _calcRMSD
+from prody.measure import getRMSD
+from prody.tools import importLA
 
 __all__ = ['Frame']
 
@@ -178,13 +181,13 @@ class Frame(object):
         traj = self._traj
         coords = self._getCoords()
         if indices is None:
-            return _calcRMSD(coords, traj._coords, traj._weights)
+            return getRMSD(coords, traj._coords, traj._weights)
         else:
             if traj._weights is None:
-                return _calcRMSD(coords, traj._coords[indices])
+                return getRMSD(coords, traj._coords[indices])
             else:
-                return _calcRMSD(coords, traj._coords[indices], 
-                                 traj._weights[indices])
+                return getRMSD(coords, traj._coords[indices], 
+                               traj._weights[indices])
 
     def superpose(self):
         """Superpose frame onto the trajectory reference coordinates.  Note 
@@ -196,15 +199,45 @@ class Frame(object):
         indices = traj._indices 
         ag = traj._ag
         if ag is None:
-            coords = self._coords
+            mob = mov = self._coords
         else:
-            coords = ag._getCoords()
+            mob = mov = ag._getCoords()
+        
+        weights = traj._weights
         if indices is None:
-            _superpose(coords, traj._coords, traj._weights, coords)
+            tar = traj._coords
+            mov = None
         else:
-            if traj._weights is None:
-                _superpose(coords[indices], traj._coords[indices], 
-                           None, coords)
-            else:
-                _superpose(coords[indices], traj._coords[indices], 
-                           traj._weights[indices], coords)
+            tar = traj._coords[indices]
+            mob = mob[indices]
+            if weights is not None:
+                weights = weights[indices]
+
+        linalg = importLA()
+        if weights is None:
+            mob_com = mob.mean(0)
+            mob_org = mob - mob_com
+            tar_com = tar.mean(0)
+            tar_org = tar - tar_com
+            matrix = np.dot(tar_org.T, mob_org)
+        else:
+            weights_sum = weights.sum()
+            weights_dot = np.dot(weights.T, weights)
+            mob_com = (mob * weights).sum(axis=0) / weights_sum
+            mob_org = mob - mob_com
+            tar_com = (tar * weights).sum(axis=0) / weights_sum
+            tar_org = tar - tar_com
+            matrix = np.dot((tar_org * weights).T, 
+                            (mob_org * weights)) / weights_dot
+        
+        U, s, Vh = linalg.svd(matrix)
+        Id = np.array([ [1, 0, 0], 
+                        [0, 1, 0], 
+                        [0, 0, np.sign(linalg.det(matrix))] ])
+        rotation = np.dot(Vh.T, np.dot(Id, U.T))
+
+        if mov is None:
+            np.add(np.dot(mob_org, rotation), tar_com, mob) 
+        else:
+            np.add(np.dot(mov, rotation), 
+                   (tar_com - np.dot(mob_com, rotation)), mov)
