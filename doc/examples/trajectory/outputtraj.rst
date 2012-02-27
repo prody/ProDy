@@ -110,8 +110,8 @@ Let's open these files to show number of atoms in each:
 See Also
 ===============================================================================
 
-See :ref:`trajectory` and :ref:`trajectory2` for analysis examples and 
-:ref:`eda` for essential dynamics analysis example. 
+See :ref:`trajectory`, :ref:`trajectory2`, and :ref:`atomsframes` for more 
+usage examples and :ref:`eda` for essential dynamics analysis example. 
 
 |questions|
 

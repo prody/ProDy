@@ -124,8 +124,8 @@ Let's print results:
 See Also
 ===============================================================================
 
-See :ref:`trajectory` for more trajectory analysis examples and :ref:`eda` for 
-essential dynamics analysis example. 
+See :ref:`trajectory`, :ref:`outputtraj`, and :ref:`atomsframes` for more usage
+examples and :ref:`eda` for essential dynamics analysis example. 
 
 |questions|
 

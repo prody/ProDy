@@ -178,8 +178,8 @@ Instances of this class are also suitable for previous calculations:
 See Also
 ===============================================================================
 
-See :ref:`trajectory2` for more analysis examples and :ref:`eda` for 
-essential dynamics analysis example. 
+See :ref:`trajectory2`, :ref:`outputtraj`, and :ref:`atomsframes` for more 
+usage examples and :ref:`eda` for essential dynamics analysis example. 
 
 |questions|
 
