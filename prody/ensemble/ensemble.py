@@ -22,7 +22,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 from prody import Atomic, AtomGroup
-from prody.measure import getRMSD, _calcTransformation, _applyTransformation
+from prody.measure import getRMSD
 from prody.tools import checkCoords, importLA
 
 from conformation import *
@@ -44,8 +44,7 @@ class Ensemble(object):
 
     def __init__(self, title='Unknown'):
         """Instantiate with a *title* or a :class:`~.Atomic` instance.  All 
-        coordinate sets from atomic instances will be added to the ensemble 
-        automatically."""
+        coordinate sets from atomic instances will be added to the ensemble."""
         
         self._title = str(title).strip()
 
