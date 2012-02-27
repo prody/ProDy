@@ -1,27 +1,15 @@
 .. _attributes:
 
 *******************************************************************************
-Storing data in AtomGroup instances
+Storing data in AtomGroup
 *******************************************************************************
 
 Synopsis
 ===============================================================================
 
 This example shows how to store arbitrary atomic attributes in an 
-:class:`~.AtomGroup` instance. 
-
-
-Input
--------------------------------------------------------------------------------
-
-A protein structure in PDB format and other atomic data.
-
-
-Output
--------------------------------------------------------------------------------
-
-Output is an :class:`~.AtomGroup` instance that stores atomic data
-and can be used as input to functions and classes for dynamics analysis.
+:class:`~.AtomGroup` instance. Input is protein structure in PDB format and 
+other atomic data. 
 
 ProDy Code
 ===============================================================================
@@ -30,8 +18,8 @@ We start by importing everything from the ProDy package and the NumPy package:
 
 >>> from prody import *
 
-Read protein structure
--------------------------------------------------------------------------------
+Parse structure
+===============================================================================
 
 Let's parse a structure of p38 MAP kinase:
 
@@ -40,7 +28,7 @@ Let's parse a structure of p38 MAP kinase:
 <AtomGroup: 1p38 (2962 atoms)>
 
 Set a new attribute
--------------------------------------------------------------------------------
+===============================================================================
 
 For the purposes of this example, we will manufacture atomic data by
 dividing the residue number of each atom by 10:
@@ -59,8 +47,8 @@ We can check if a custom atomic attribute exists using
 True
 
 
-Access data from selections
--------------------------------------------------------------------------------
+Access subset of data
+===============================================================================
 
 Custom attributes can be accessed from selections:
 
@@ -74,8 +62,8 @@ Custom attributes can be accessed from selections:
 
 
 
-Use attribute in atom selections
--------------------------------------------------------------------------------
+Make selections
+===============================================================================
 
 Custom atomic attributes can be used in selections:
 
@@ -89,7 +77,7 @@ True
 
 
 Save attributes
--------------------------------------------------------------------------------
+===============================================================================
 
 It is not possible to save custom attributes in PDB files, but 
 :func:`~.saveAtoms` function can be used them to save in disk for later use:
@@ -105,7 +93,7 @@ array([  0.4,   0.4,   0.4, ...,  77.1,  77.3,  77.6])
 
 
 Delete an attribute
--------------------------------------------------------------------------------
+===============================================================================
 
 Finally, when done with an attribute, it can be deleted using 
 :meth:`.AtomGroup.delData` method:
