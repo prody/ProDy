@@ -18,12 +18,14 @@
 
 """This module defines a class for handling trajectory frames.
 
+.. atomsframes::
+
 Atoms and Frames
 ================
 
 :class:`Frame` instances store only coordinate and some frame related metadata.
-Setting atoms of a trajectory (:meth:~Trajectory.setAtoms) links :class:`Frame` 
-and :class:`~.AtomGroup` instances. Let's see how this works:  
+Setting atoms of a trajectory (using :meth:`~Trajectory.setAtoms`) links 
+:class:`Frame` and :class:`~.AtomGroup` instances. Let's see how this works:  
  
 Example input:
  
