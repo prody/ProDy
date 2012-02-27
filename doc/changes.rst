@@ -13,6 +13,10 @@ Release 1.0 (in development)
 
   * Deprecated method and functions are removed.
   
+  * The relation between :class:`~.AtomGroup`, :class:`~.Trajectory`, and
+    :class:`~.Frame` instances have changed. See :ref:`trajectory2` and
+    :ref:`outputtraj`, and :ref:`atomsframes` usage examples.
+  
   * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  
 
@@ -27,14 +31,14 @@ Release 1.0 (in development)
   * Distance based atom selection is 10 to 15% faster for atom groups with
     more than 5K atoms.
     
-  * Added uncompressed file saving option to :ref:`command-blast` command.
+  * Added uncompressed file saving option to :ref:`prody-blast` command.
 
 **Bugfix**:
 
   * A problem in distance based atom selection which would could cause problems
     when a distance based selection is made from a selection is fixed.
     
-  * Changed :ref:`command-blast` so that when a path for downloading files
+  * Changed :ref:`prody-blast` so that when a path for downloading files
     are given files are not save to local PDB folder. 
     
 
@@ -69,8 +73,8 @@ Release 0.9.4 (Feb 4, 2012)
   * Bugfixes in :meth:`~.EnsembleBase.getWeights`, 
     :func:`~.showOccupancies`, :meth:`~.DCDFile.flush`.
     
-  * Bugfixes in ProDy commands :ref:`command-blast`, :ref:`command-fetch`, and
-    :ref:`command-pca`.
+  * Bugfixes in ProDy commands :ref:`prody-blast`, :ref:`prody-fetch`, and
+    :ref:`prody-pca`.
 
   * Bugfix in :func:`~.calcCenter` function.
 
@@ -195,7 +199,7 @@ Release 0.9.2 (Jan 11, 2012)
 **New Features**:
 
   * :program:`prody catdcd` command is implemented for concatenating and/or 
-    slicing :file:`.dcd` files.  See :ref:`command-catdcd` for usage examples.
+    slicing :file:`.dcd` files.  See :ref:`prody-catdcd` for usage examples.
 
   * :class:`~.DCDFile` can be opened in write or append mode, and 
     coordinate sets can be added using :meth:`~.DCDFile.write` method. 
@@ -1059,7 +1063,7 @@ Release 0.6 (Feb 22, 2011)
 **Bug Fixes**:
     
   * A bug in :func:`~.assignSecondaryStructure` function is fixed.
-  * Bug fixes in :ref:`command-anm` and :ref:`command-gnm`.
+  * Bug fixes in :ref:`prody-anm` and :ref:`prody-gnm`.
   * Bug fixes in :func:`~.showSqFlucts` and 
     :func:`~.showProjection` functions.
     
