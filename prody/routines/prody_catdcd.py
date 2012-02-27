@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody catdcd` command."""
+"""Concatenate, slice, and/or select DCD files."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -86,11 +86,11 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Concatenate two DCD files and output all atmos: 
       
-      $ prody catdcd mdm2.dcd mdm2sim2.dcd
-      
-    Concatenate two DCD files and output backbone atoms: 
-        
-      $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb"""
+  $ prody catdcd mdm2.dcd mdm2sim2.dcd
+  
+Concatenate two DCD files and output backbone atoms: 
+    
+  $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb"""
     )
 
     subparser.add_argument('-s', '--select', default='all', type=str, 

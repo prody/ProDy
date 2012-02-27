@@ -15,7 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody biomol` command."""
+"""Generate biomolecule structure using the transformation from the header 
+section of the PDB file."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -62,7 +63,7 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Generate biomolecule coordinates:
         
-      $ prody biomol 2bfu"""
+$ prody biomol 2bfu"""
     )
 
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 

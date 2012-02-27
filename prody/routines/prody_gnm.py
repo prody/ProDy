@@ -15,7 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody gnm` command."""
+"""Perform GNM calculations and output the results in plain text NMD, and 
+graphical formats."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -178,19 +179,19 @@ def addCommand(commands):
         help='show usage examples and exit')
 
     subparser.set_defaults(usage_example=
-    """This command performs GNM calculations for given PDB structure and outputs \
-    results in NMD format. If an identifier is passed, structure file will be \
-    downloaded from the PDB FTP server.
+    """This command performs GNM calculations for given PDB structure and \
+outputs results in NMD format. If an identifier is passed, structure file \
+will be downloaded from the PDB FTP server.
 
-    Fetch PDB 1p38, run GNM calculations using default parameters, and results:
-        
-      $ prody gnm 1p38
-        
-    Fetch PDB 1aar, run GNM calculations with cutoff distance 7 angstrom for \
-    chain A carbon alpha atoms with residue numbers less than 70, and \
-    save all of the graphical output files:
+Fetch PDB 1p38, run GNM calculations using default parameters, and results:
+    
+  $ prody gnm 1p38
+    
+Fetch PDB 1aar, run GNM calculations with cutoff distance 7 angstrom for \
+chain A carbon alpha atoms with residue numbers less than 70, and \
+save all of the graphical output files:
 
-      $ prody gnm 1aar -c 7 -s "calpha and chain A and resnum < 70" -A"""
+  $ prody gnm 1aar -c 7 -s "calpha and chain A and resnum < 70" -A"""
     )
 
     group = addNMAParameters(subparser)

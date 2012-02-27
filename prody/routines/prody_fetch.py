@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody fetch` command."""
+"""Download PDB files for given identifiers."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -58,7 +58,7 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Download PDB file(s) by specifying identifiers:
         
-      $ prody fetch 1mkp 1p38"""
+$ prody fetch 1mkp 1p38"""
     )
 
     subparser.add_argument('-d', '--dir', dest='folder', type=str,

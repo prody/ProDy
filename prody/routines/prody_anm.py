@@ -15,7 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody anm` command."""
+"""Perform ANM calculations and output the results in plain text, NMD, and 
+graphical formats."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -155,20 +156,20 @@ def addCommand(commands):
     subparser.add_argument('--examples', action=UsageExample, nargs=0,
         help='show usage examples and exit')
     subparser.set_defaults(usage_example=
-    """This command performs ANM calculations for given PDB structure and outputs \
-    results in NMD format. If an identifier is passed, structure file will be \
-    downloaded from the PDB FTP server.
+    """This command performs ANM calculations for given PDB structure and \
+outputs results in NMD format. If an identifier is passed, structure file \
+will be downloaded from the PDB FTP server.
 
-    Fetch PDB 1p38, run ANM calculations using default parameters, and write \
-    NMD file:
-        
-      $ prody anm 1p38
-        
-    Fetch PDB 1aar, run ANM calculations using default parameters for chain A \
-    carbon alpha atoms with residue numbers less than 70, and save all of the \
-    graphical output files:
+Fetch PDB 1p38, run ANM calculations using default parameters, and write \
+NMD file:
+    
+  $ prody anm 1p38
+    
+Fetch PDB 1aar, run ANM calculations using default parameters for chain A \
+carbon alpha atoms with residue numbers less than 70, and save all of the \
+graphical output files:
 
-      $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A"""
+  $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A"""
     )
 
     group = addNMAParameters(subparser)

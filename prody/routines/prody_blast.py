@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody blast` command."""
+"""Blast Protein Data Bank for structures matching a user given sequence."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -99,20 +99,20 @@ def addCommand(commands):
 
     subparser.set_defaults(usage_example=
     """Blast search PDB for the first sequence in a fasta file:
-        
-      $ prody blast seq.fasta -i 70
+    
+  $ prody blast seq.fasta -i 70
 
-    Blast search PDB for the sequence argument:
+Blast search PDB for the sequence argument:
 
-      $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQ\
-    KESTLHLVLRLRGG
+  $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQ\
+KESTLHLVLRLRGG
 
-    Blast search PDB for avidin structures, download files, and align all files \
-    onto the 2avi structure:
-        
-      $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTIN\
-    KRTQPTFGFTVNWKFSESTTVFT
-      $ prody align 2avi.pdb *pdb """)
+Blast search PDB for avidin structures, download files, and align all files \
+onto the 2avi structure:
+    
+  $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTIN\
+KRTQPTFGFTVNWKFSESTTVFT
+  $ prody align 2avi.pdb *pdb """)
 
     subparser.add_argument('-i', '--identity', dest='identity', type=float, 
         default=90.0, metavar='FLOAT', 

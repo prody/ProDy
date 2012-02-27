@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody align` command."""
+"""Align models in a PDB file or multiple structures in separate PDB files."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -80,23 +80,23 @@ def addCommand(commands):
         help='show usage examples and exit')
 
     subparser.set_defaults(usage_example=
-    """Align models in PDB structure or multiple PDB structures and save aligned \
-    coordinate sets.  When multiple structures are aligned, ProDy will match \
-    chains and use best match for aligning the structures.  Note that options \
-    are not used when aligning multiple structures.
+    """Align models in PDB structure or multiple PDB structures and save \
+aligned coordinate sets.  When multiple structures are aligned, ProDy will \
+match  chains and use best match for aligning the structures.  Note that \
+options are not used when aligning multiple structures.
 
-    Fetch PDB structure 2k39 and align models:
-        
-        $ prody align 2k39
-        
-    Fetch PDB structure 2k39 and align models using backbone of residues with \
-    number smaller than 71:
+Fetch PDB structure 2k39 and align models:
+    
+    $ prody align 2k39
+    
+Fetch PDB structure 2k39 and align models using backbone of residues with \
+number smaller than 71:
 
-        $ prody align 2k39 --select "backbone and resnum < 71" 
-        
-    Fetch PDB structures 1p38, 1r39 and 1zz2 and superpose 1r39 and 1zz2 onto 1p38:
+    $ prody align 2k39 --select "backbone and resnum < 71" 
+    
+Fetch PDB structures 1p38, 1r39 and 1zz2 and superpose 1r39 and 1zz2 onto 1p38:
 
-        $ prody align 1p38 1r39 1zz2"""
+    $ prody align 1p38 1r39 1zz2"""
     )
         
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 

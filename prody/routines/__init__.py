@@ -15,51 +15,51 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains functions which are used as command line programs."""
+"""This module defines ProDy routines used as command line programs."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import sys
-import os.path
-import textwrap
-
 import argparse
 
 from actions import *
 
+PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
+                  'catdcd', 'fetch', 'select', ] 
+
 __all__ = ['main']
 
-parser = argparse.ArgumentParser(
+prody_parser = argparse.ArgumentParser(
     description="ProDy: A Python Package for Protein Dynamics Analysis",
     epilog="See 'prody <command> -h' for more information on a specific "
            "command."
     )
 
-parser.add_argument('-c', '--cite', help="print citation info and exit",
+prody_parser.add_argument('-c', '--cite', 
+    help="print citation info and exit",
     action=ProDyCitation, nargs=0)
 
-parser.add_argument('-v', '--version', help="print ProDy version and exit",
+prody_parser.add_argument('-v', '--version', 
+    help="print ProDy version and exit",
     action=ProDyVersion, nargs=0)
 
-commands = parser.add_subparsers(
+prody_commands = prody_parser.add_subparsers(
     title='subcommands')
     
     
-for cmd in ['prody_anm', 'prody_gnm', 'prody_pca', 'prody_align',
-           'prody_blast', 'prody_biomol', 'prody_catdcd', 'prody_fetch',  
-           'prody_select', ]:    
-    pkg = __import__(cmd, globals(), locals(), [], -1)
-    pkg.addCommand(commands)
+for cmd in PRODY_COMMANDS:    
+    pkg = __import__('prody_' + cmd, globals(), locals(), [], -1)
+    pkg.addCommand(prody_commands)
 
-def main():
+def prody_main():
     
     if len(sys.argv) == 1:    
-        parser.print_help()
+        prody_parser.print_help()
     else:
-        args = parser.parse_args()
+        args = prody_parser.parse_args()
         args.func(args)
 
     
 if __name__ == '__main__':
-    main()
+    prody_main()

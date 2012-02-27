@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines :program:`prody select` command."""
+"""Extract a selection of atoms from a PDB file."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -53,9 +53,9 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """This command selects specified atoms and writes them in a PDB file.
 
-    Fetch PDB 2bfu and write backbone atoms in a file:
-            
-      $ prody select 2bfu "backbone" """
+Fetch PDB 2bfu and write backbone atoms in a file:
+        
+  $ prody select 2bfu "backbone" """
     )
 
 
