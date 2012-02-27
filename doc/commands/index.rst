@@ -4,7 +4,7 @@
 ProDy Commands
 *******************************************************************************
 
-Command line usage
+Usage
 ===============================================================================
 
 ProDy command line programs, or scripts, come with both the source and the 
@@ -28,7 +28,7 @@ To get more information on a specific command, type in command name, e.g.
 :command:`prody anm`.
 
 Example
--------------------------------------------------------------------------------
+===============================================================================
 
 Running the following command will perform ANM calculations for the p38 MAP 
 kinase structure, and will write eigenvalues/vectors in plain text and 
@@ -47,7 +47,7 @@ the output files are prefixed with :file:`p38_anm`::
 
 The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|). 
 
-ProDy commands
+Commands
 ===============================================================================
 
 .. toctree::
