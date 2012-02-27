@@ -179,9 +179,13 @@ import header
 from header import *
 __all__.extend(header.__all__)
 
-import programs
-from programs import *
-__all__.extend(programs.__all__)
+import dssp
+from dssp import *
+__all__.extend(dssp.__all__)
+
+import stride
+from stride import *
+__all__.extend(stride.__all__)
 
 import pdbfile
 from pdbfile import *
