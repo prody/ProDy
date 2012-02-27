@@ -78,10 +78,15 @@ import ensemble
 from ensemble import *
 __all__.extend(ensemble.__all__)
 
+import pdbensemble
+from pdbensemble import *
+__all__.extend(pdbensemble.__all__)
+
 import conformation
 from conformation import *
 __all__.extend(conformation.__all__)
 
 from functions import checkWeights
 ensemble.checkWeights = checkWeights
+pdbensemble.checkWeights = checkWeights
 
