@@ -1,7 +1,7 @@
-************************
-prody.proteins.programs
-************************
+*******************
+prody.proteins.dssp
+*******************
 
-.. automodule:: prody.proteins.programs
+.. automodule:: prody.proteins.dssp
    :members:
    :undoc-members:
