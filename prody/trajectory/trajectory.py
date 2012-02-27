@@ -49,8 +49,7 @@ class Trajectory(TrajBase):
         self._cfi = 0 # current file index
         if os.path.isfile(name):
             self.addFile(name)
-        
-        
+
     def __repr__(self):
         
         if self._closed:
@@ -59,7 +58,7 @@ class Trajectory(TrajBase):
             return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
                     'frames; {4:d} atoms)>').format(
                     self._title, self._n_files, self._nfi, 
-                    self._n_csets, self.numSelected(), self._n_atoms)
+                    self._n_csets, self._n_atoms)
         else:
             return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
                     'frames; selected {4:d} of {5:d} atoms)>').format(
@@ -174,9 +173,13 @@ class Trajectory(TrajBase):
                 self._nextFile()
                 traj = self._trajectory
             unitcell = traj._nextUnitcell()
-            coords = traj._nextCoordset()            
-            frame = Frame(self, nfi, coords, unitcell)
-            if self._ag is not None:
+            coords = traj._nextCoordset()
+                        
+            if self._ag is None:
+                frame = Frame(self, nfi, coords, unitcell)
+            else:
+                frame = self._frame
+                Frame.__init__(frame, self, nfi, None, unitcell)
                 self._ag.setACSLabel(self._title + ' frame ' + str(self._nfi))
             self._nfi += 1
             return frame
