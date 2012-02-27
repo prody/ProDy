@@ -366,6 +366,9 @@ def writeNMD(filename, modes, atoms):
     except:
         pass
     
+    if coords.dtype != float:
+        coords = coords.astype(float)
+    
     out.write('coordinates {0:s}\n'.format(
                     ' '.join(['{0:.3f}'.format(x) for x in coords.flatten()])))
     
