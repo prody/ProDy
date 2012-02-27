@@ -242,7 +242,11 @@ class DCDFile(TrajFile):
         if nfi < self._n_csets:
             unitcell = self._nextUnitcell()
             coords = self._nextCoordset()
-            frame = Frame(self, nfi, coords, unitcell)
+            if self._ag is None:
+                frame = Frame(self, nfi, coords, unitcell)
+            else:
+                frame = self._frame
+                Frame.__init__(frame, self, nfi, None, unitcell)
             return frame
     
     next.__doc__ = TrajBase.next.__doc__  
