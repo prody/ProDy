@@ -331,13 +331,13 @@ class DCDFile(TrajFile):
     getCoordsets.__doc__ = TrajBase.getCoordsets.__doc__
 
     def write(self, coords, unitcell=None, **kwargs):
-        """Write *coords* to the file.  Number of atoms will be determined 
-        based on the size of the first coordinate set.  If *unitcell* is 
-        provided for the first coordinate set, it will be expected for the
-        following coordinate sets as well.
-        
-        The following keywords are used when writing the first coordinate set 
-        for files open at 'w' mode:        
+        """Write *coords* to a file open in 'a' or 'w' mode.  Number of atoms 
+        will be determined from the file or based on the size of the first 
+        coordinate set written.  If *unitcell* is provided for the first 
+        coordinate set, it will be expected for the following coordinate sets 
+        as well.  If *coords* is an :class:`~.Atomic` or :class:`~.Ensemble` 
+        all coordinate sets will be written.  The following keywords are used 
+        when writing the first coordinate set:        
             
         :arg timestep: timestep used for integration, default is 1
         :arg firsttimestep: number of the first timestep, default is 0
@@ -347,12 +347,12 @@ class DCDFile(TrajFile):
             raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
             raise IOError('File not open for writing')
+        if not isinstance(coords, np.ndarray): 
+            coords = coords._getCoordsets()
         coords = checkCoords(coords, 'coords', True, dtype=np.float32)
+        n_atoms = coords.shape[-2]
         if coords.ndim == 2:
-            n_atoms = coords.shape[0]
             coords = [coords]
-        else:
-            n_atoms = coords.shape[1]
         if self._n_atoms == 0:
             self._n_atoms = n_atoms
         else:
