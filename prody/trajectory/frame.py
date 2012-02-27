@@ -16,7 +16,73 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines a class for handling trajectory frames."""
+"""This module defines a class for handling trajectory frames.
+
+Atoms and Frames
+================
+
+:class:`Frame` instances store only coordinate and some frame related metadata.
+Setting atoms of a trajectory (:meth:~Trajectory.setAtoms) links :class:`Frame` 
+and :class:`~.AtomGroup` instances. Let's see how this works:  
+ 
+Example input:
+ 
+* :download:`MDM2 files </doctest/mdm2.tar.gz>`
+
+When trajectory atoms are not set, you will get multiple instances of frames:
+
+>>> from prody import *
+>>> dcd = Trajectory('mdm2.dcd')
+>>> frame0 = dcd.next()
+>>> frame0
+<Frame: 0 from mdm2 (1449 atoms)>
+>>> frame1 = dcd.next()
+>>> frame1
+<Frame: 1 from mdm2 (1449 atoms)>
+
+As shown below, these :class:`Frame` instances are different objects.
+
+>>> frame0 is frame1
+False
+
+When you are not referring to any of these frames anymore in your code,
+Python garbage collector will free or reuse the memory space that was used by 
+those frames.
+
+When an :class:`~.AtomGroup` is set, things are different.
+
+>>> pdb = parsePDB('mdm2.pdb')
+>>> dcd.setAtoms(pdb)
+>>> dcd.reset()
+
+We get :class:`Frame` instances in the same way:
+
+>>> frame0 = dcd.next()
+>>> frame0
+<Frame: 0 from mdm2 (1449 atoms)>
+>>> print pdb.getACSLabel()
+mdm2 frame 0
+
+Note that the active coordinate set of the :class:`~.AtomGroup` and its label
+will change when we get the next frame:
+
+>>> frame1 = dcd.next()
+>>> frame1
+<Frame: 1 from mdm2 (1449 atoms)>
+>>> print pdb.getACSLabel()
+mdm2 frame 1
+
+Now the key difference is that the :class:`Frame` instances are the same 
+objects in this case:
+    
+>>> frame0 is frame1
+True
+
+As you see, a new frame was not instantiated.  The same frame is reused and
+it always points to the coordinates stored in the :class:`~.AtomGroup`.
+You can also make :class:`~.Selection` instances that will point to the same 
+coordinate set.  This will allow making a more elaborate analysis of frames.  
+For an example see :ref:`trajectory2`."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
