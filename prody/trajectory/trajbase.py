@@ -27,6 +27,8 @@ from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, checkWeights
 from prody.tools import checkCoords
 
+from frame import Frame
+
 __all__ = ['TrajBase']
 
 pkg = __import__(__package__)
@@ -47,6 +49,7 @@ class TrajBase(object):
         self._ag = None
         self._sel = None
         self._indices = None # indices of selected atoms
+        self._frame = None # if atoms are set, always return the same frame
         self._nfi = 0
         self._closed = False
 
@@ -152,8 +155,10 @@ class TrajBase(object):
                 coords = ag.getCoords()
                 if coords is not None:
                     self._coords = coords 
-        if ag.numCoordsets() > 1:
-            LOGGER.warn('All coordinate sets of {0:s} will be overwritten.')
+            if ag.numCoordsets() > 1:
+                LOGGER.warn('All coordinate sets of {0:s} will be overwritten.'
+                            .format(ag.getTitle()))
+            self._frame = Frame(None, None, None)
         self._sel = None
         self._indices = None
         
@@ -170,9 +175,8 @@ class TrajBase(object):
     def select(self, selstr):
         """Select a subset atoms. When a subset of atoms are selected, their 
         coordinates will be evaluated in, for example, RMSD calculations. 
-        If *selstr* results in selecting no atoms, all atoms will be 
-        considered. For more information on atom selections see 
-        :ref:`selections`."""
+        If *selstr* results in selecting no atoms, all atoms are selected. 
+        For more information on atom selections see :ref:`selections`."""
         
         if selstr is None:
             self._sel = None
@@ -181,7 +185,7 @@ class TrajBase(object):
             if self._ag is None:
                 raise AttributeError(self.__class__.__name__ + ' must be be '
                                      'associated with an AtomGroup, use '
-                                     '`setAtomGroup` method.')
+                                     '`setAtoms` method.')
             sel = self._ag.select(selstr)
             if sel is not None:
                 self._indices = sel.getIndices()
@@ -189,7 +193,7 @@ class TrajBase(object):
             return sel
     
     def getCoords(self):
-        """Return a copy of reference coordinates for selected atoms."""
+        """Return a copy of reference coordinates for (selected) atoms."""
         
         if self._coords is None:
             return None
@@ -198,7 +202,7 @@ class TrajBase(object):
         return self._coords[self._indices]
     
     def _getCoords(self):
-        """Return a view of reference coordinates for selected atoms."""
+        """Return a view of reference coordinates for (selected) atoms."""
 
         if self._coords is None:
             return None
@@ -218,37 +222,30 @@ class TrajBase(object):
         self._coords = checkCoords(coords, arg='coords', 
                                    n_atoms=self._n_atoms, cset=False)
         
-    def getWeights(self):
-        """Return a copy of weights of selected atoms."""
-        
-        if self._weights is None:
-            return None
-        if self._sel is None:
-            return self._weights.copy()
-        if self._weights.ndim == 2:
-            return self._weights[self._indices]
-        else:
-            return self._weights[:, self._indices]
-    
-    def _getWeights(self):
-
-        if self._weights is None:
-            return None
-        if self._sel is None:
-            return self._weights
-        if self._weights.ndim == 2:
-            return self._weights[self._indices]
-        else:
-            return self._weights[:, self._indices]
-
-    
     def setWeights(self, weights):
         """Set atomic weights."""
         
         if self._n_atoms == 0:
-            raise AttributeError('first set reference coordinates')
+            raise AttributeError('coordinates must be set first')
         self._weights = checkWeights(weights, self._n_atoms, None)
         
+    def getWeights(self):
+        """Return a copy of weights of (selected) atoms."""
+        
+        if self._weights is not None:
+            if self._sel is None:
+                return self._weights.copy()
+            else:
+                return self._weights[self._indices]
+    
+    def _getWeights(self):
+
+        if self._weights is not None:
+            if self._sel is None:
+                return self._weights
+            else:
+                return self._weights[self._indices]
+
     def numFrames(self):
         """Return number of frames."""
         
@@ -260,9 +257,8 @@ class TrajBase(object):
         return self._nfi
     
     def iterCoordsets(self):
-        """Iterate over coordinate sets. Coordinates for selected atoms are 
-        returned. Reference coordinates are not included. Iteration starts
-        from the current position in the trajectory."""
+        """Yield coordinate sets for (selected) atoms. Reference coordinates 
+        are not included. Iteration starts from the next frame in line."""
 
         if self._closed:
             raise ValueError('I/O operation on closed file')        
