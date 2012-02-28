@@ -807,16 +807,20 @@ def fetchLigandData(cci, save=False, folder='.'):
     resnums = np.ones(n_atoms, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
     
     alternate_atomnames = np.zeros(n_atoms, 
-                                        dtype=ATOMIC_DATA_FIELDS['name'].dtype)
+                                    dtype=ATOMIC_DATA_FIELDS['name'].dtype)
     leaving_atom_flags = np.zeros(n_atoms, np.bool)
     aromatic_flags = np.zeros(n_atoms, np.bool)
     stereo_configs = np.zeros(n_atoms, np.bool)
     ordinals = np.zeros(n_atoms, int)
     
+    name2index = {}
+    
     for i, atom in enumerate(atoms):
         data = dict([(child.tag[len_ns:], child.text) for child in list(atom)])
-
-        atomnames[i] = data.get('pdbx_component_atom_id', 'X')
+        
+        name = data.get('pdbx_component_atom_id', 'X')
+        name2index[name] = i
+        atomnames[i] = name 
         elements[i] = data.get('type_symbol', 'X')
         resnames[i] = data.get('pdbx_component_comp_id', 'UNK')
         charges[i] = float(data.get('charge', 0))
@@ -852,6 +856,14 @@ def fetchLigandData(cci, save=False, folder='.'):
     ideal.setCoords(ideal_coords)
     dict_['ideal'] = ideal
 
+    bonds = []
+    for bond in list(root.find(ns + 'chem_comp_bondCategory')):
+        name_1 = bond.get('atom_id_1')
+        name_2 = bond.get('atom_id_2')
+        bonds.append((name2index[name_1], name2index[name_2]))
+    bonds = np.array(bonds, int)
+    model.setBonds(bonds)
+    ideal.setBonds(bonds)
     return dict_      
 
 def loadPDBClusters(sqid=None):
