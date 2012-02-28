@@ -1,7 +1,7 @@
 ***********************
-prody.proteins.blastpdb
+prody.proteins.wwpdbftp
 ***********************
 
-.. automodule:: prody.proteins.blastpdb
+.. automodule:: prody.proteins.wwpdbftp
    :members:
    :undoc-members:

@@ -1,7 +1,7 @@
 ***********************
-prody.proteins.blastpdb
+prody.proteins.localpdb
 ***********************
 
-.. automodule:: prody.proteins.blastpdb
+.. automodule:: prody.proteins.localpdb
    :members:
    :undoc-members:
