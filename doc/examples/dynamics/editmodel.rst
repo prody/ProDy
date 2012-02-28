@@ -29,8 +29,8 @@ calculations for them:
 <ANM: 1dlo_ca (20 modes, 971 nodes)>
 >>> saveModel(anm, 'rt_anm')
 'rt_anm.anm.npz'
->>> anm[:5].getEigenvalues()
-array([ 0.039,  0.063,  0.126,  0.181,  0.221])
+>>> print anm[:5].getEigenvalues().round(3)
+[ 0.039  0.063  0.126  0.181  0.221]
 >>> '%.3f' % (anm[0].getArray() ** 2).sum() ** 0.5
 '1.000'
 
@@ -98,8 +98,8 @@ chain A in the structure, using :func:`~.sliceModel` function:
 <ANM: 1dlo_ca slice "chain A" (20 modes, 556 nodes)>
 >>> saveModel(anm_slc_p66, 'rt_anm_sliced')
 'rt_anm_sliced.anm.npz'
->>> anm_slc_p66[:5].getEigenvalues()
-array([ 0.039,  0.063,  0.126,  0.181,  0.221])
+>>> print anm_slc_p66[:5].getEigenvalues().round(3)
+[ 0.039  0.063  0.126  0.181  0.221]
 >>> '%.3f' % (anm_slc_p66[0].getArray() ** 2).sum() ** 0.5
 '0.895'
 
@@ -161,8 +161,8 @@ This function implements the method described in 2000 paper of Hinsen et al.
 <ANM: 1dlo_ca reduced (20 modes, 556 nodes)>
 >>> saveModel(anm_red_p66, 'rt_anm_reduced')
 'rt_anm_reduced.anm.npz'
->>> anm_red_p66[:5].getEigenvalues()
-array([ 0.05 ,  0.098,  0.214,  0.289,  0.423])
+>>> print anm_red_p66[:5].getEigenvalues().round(3)
+[ 0.05   0.098  0.214  0.289  0.423]
 >>> '%.3f' % (anm_red_p66[0].getArray() ** 2).sum() ** 0.5
 '1.000'
 
