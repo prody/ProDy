@@ -147,10 +147,10 @@ class Residue(AtomSubset):
         icode = self.getIcode() or ''
         if self._chain is None:        
             if self._selstr:
-                return 'resnum {0:s}{1:s} and ({1:s})'.format(
+                return 'resnum {0:d}{1:s} and ({1:s})'.format(
                             self.getResnum(), icode, self._selstr)
             else:
-                return 'resnum {0:s}{1:s}'.format(self.getResnum(), icode)
+                return 'resnum {0:d}{1:s}'.format(self.getResnum(), icode)
         else:
             selstr = self._chain.getSelstr()
             return 'resnum {0:d}{1:s} and ({2:s})'.format(
