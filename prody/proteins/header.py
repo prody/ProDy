@@ -32,7 +32,7 @@ from prody.atomic import getSequence
 from prody.measure import Transformation
 from prody.tools import openFile
 
-from databank import fetchPDB
+from wwpdbftp import fetchPDB
 
 __all__ = ['Chemical', 'Polymer', 'DBRef', 'parsePDBHeader',
            'assignSecstr', 'buildBiomolecules']

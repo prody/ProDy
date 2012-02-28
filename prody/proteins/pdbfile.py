@@ -32,7 +32,7 @@ from prody.atomic import getBackboneAtomNames, getKeywordResnames
 from prody.atomic import ATOMIC_FIELDS
 from prody.tools import openFile
 
-from databank import fetchPDB
+from wwpdbftp import fetchPDB
 from header import getHeaderDict, buildBiomolecules, assignSecstr
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',

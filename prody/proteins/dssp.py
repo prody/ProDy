@@ -31,7 +31,7 @@ from prody.atomic import AtomGroup
 from prody.tools import gunzip, which, PLATFORM
 
 from pdbfile import parsePDB
-from databank import fetchPDB
+from wwpdbftp import fetchPDB
 
 __all__ = ['execDSSP', 'parseDSSP', 'performDSSP']
 

@@ -167,9 +167,25 @@ import compare
 from compare import *
 __all__.extend(compare.__all__)
 
-import databank
-from databank import *
-__all__.extend(databank.__all__)
+import wwpdbftp
+from wwpdbftp import *
+__all__.extend(wwpdbftp.__all__)
+
+import localpdb
+from localpdb import *
+__all__.extend(localpdb.__all__)
+
+import pdbclusters
+from pdbclusters import *
+__all__.extend(pdbclusters.__all__)
+
+import blastpdb
+from blastpdb import *
+__all__.extend(blastpdb.__all__)
+
+import pdbligands
+from pdbligands import *
+__all__.extend(pdbligands.__all__)
 
 import functions
 from functions import *
