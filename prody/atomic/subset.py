@@ -19,7 +19,7 @@
 import numpy as np
 
 from atom import Atom
-from fields import ATOMIC_DATA_FIELDS, READONLY
+from fields import ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 
@@ -32,7 +32,7 @@ class AtomSubsetMeta(type):
 
     def __init__(cls, name, bases, dict):
 
-        for field in ATOMIC_DATA_FIELDS.values():
+        for field in ATOMIC_FIELDS.values():
             meth = field.meth_pl
             getMeth = 'get' + meth
             setMeth = 'set' + meth

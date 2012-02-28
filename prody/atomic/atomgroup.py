@@ -236,7 +236,7 @@ from prody.tools import checkCoords
 from prody.KDTree import getKDTree
 
 from atomic import Atomic
-from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS, READONLY
+from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from atom import Atom
 from bond import Bond, evalBonds, trimBonds
@@ -257,7 +257,7 @@ class AtomGroupMeta(type):
 
     def __init__(cls, name, bases, dict):
     
-        for field in ATOMIC_DATA_FIELDS.values():
+        for field in ATOMIC_FIELDS.values():
 
             meth = field.meth_pl
             getMeth = 'get' + meth
@@ -390,7 +390,7 @@ class AtomGroup(Atomic):
         self._n_csets = 0
         
         self._data = dict([(field.var, None) 
-                           for field in ATOMIC_DATA_FIELDS.itervalues()])
+                           for field in ATOMIC_FIELDS.itervalues()])
 
     def __repr__(self):
 

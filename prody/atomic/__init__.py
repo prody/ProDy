@@ -98,7 +98,7 @@ characters cannot be used.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
+from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
 
 """
 Behavioral differences
@@ -160,7 +160,7 @@ __all__ = ['Atomic', 'AtomGroup',
            'Bond', 'loadAtoms', 'saveAtoms',
            'select', 'atomgroup', 'hierview']
 
-from fields import ATOMIC_DATA_FIELDS
+from fields import ATOMIC_FIELDS
 
 from atom import *
 from bond import *

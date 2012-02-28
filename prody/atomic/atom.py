@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from fields import ATOMIC_DATA_FIELDS, READONLY
+from fields import ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from bond import Bond
@@ -34,7 +34,7 @@ class AtomMeta(type):
 
     def __init__(cls, name, bases, dict):
         
-        for field in ATOMIC_DATA_FIELDS.values():
+        for field in ATOMIC_FIELDS.values():
             
             meth = field.meth
             getMeth = 'get' + meth

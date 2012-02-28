@@ -29,7 +29,7 @@ import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup
 from prody.atomic import getBackboneAtomNames, getKeywordResnames 
-from prody.atomic import ATOMIC_DATA_FIELDS
+from prody.atomic import ATOMIC_FIELDS
 from prody.tools import openFile
 
 from databank import fetchPDB
@@ -330,26 +330,25 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         addcoords = True
     alength = asize
     coordinates = np.zeros((asize, 3), dtype=float)
-    atomnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['name'].dtype)
-    resnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
-    resnums = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['resnum'].dtype)
-    chainids = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['chain'].dtype)
-    hetero = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['hetero'].dtype)
-    altlocs = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['altloc'].dtype)
-    icodes = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['icode'].dtype)
-    serials = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['serial'].dtype)
+    atomnames = np.zeros(asize, dtype=ATOMIC_FIELDS['name'].dtype)
+    resnames = np.zeros(asize, dtype=ATOMIC_FIELDS['resname'].dtype)
+    resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
+    chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
+    hetero = np.zeros(asize, dtype=ATOMIC_FIELDS['hetero'].dtype)
+    altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
+    icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
+    serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
     if isPDB:
-        segnames = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['segment'].dtype)
-        elements = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
-        bfactors = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['beta'].dtype)
-        occupancies = np.zeros(asize, 
-                               dtype=ATOMIC_DATA_FIELDS['occupancy'].dtype)
+        segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
+        elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
+        bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
+        occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         secondary = None
         anisou = None
         siguij = None
     else:
-        charges = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
-        radii = np.zeros(asize, dtype=ATOMIC_DATA_FIELDS['radius'].dtype)
+        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
+        radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
         
     asize = 2000 # increase array length by this much when needed 
         
@@ -472,41 +471,41 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 coordinates = np.concatenate(
                     (coordinates, np.zeros((asize, 3), float)))
                 atomnames = np.concatenate((atomnames,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['name'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['name'].dtype)))
                 resnames = np.concatenate((resnames,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['resname'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['resname'].dtype)))
                 resnums = np.concatenate((resnums,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['resnum'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['resnum'].dtype)))
                 chainids = np.concatenate((chainids,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['chain'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['chain'].dtype)))
                 hetero = np.concatenate((hetero,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['hetero'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['hetero'].dtype)))
                 altlocs = np.concatenate((altlocs,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['altloc'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['altloc'].dtype)))
                 icodes = np.concatenate((icodes,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['icode'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['icode'].dtype)))
                 serials = np.concatenate((serials,
-                    np.zeros(asize, ATOMIC_DATA_FIELDS['serial'].dtype)))
+                    np.zeros(asize, ATOMIC_FIELDS['serial'].dtype)))
                 if isPDB:
                     bfactors = np.concatenate((bfactors,
-                        np.zeros(asize, ATOMIC_DATA_FIELDS['beta'].dtype)))
+                        np.zeros(asize, ATOMIC_FIELDS['beta'].dtype)))
                     occupancies = np.concatenate((occupancies,
-                        np.zeros(asize, ATOMIC_DATA_FIELDS['occupancy'].dtype)))
+                        np.zeros(asize, ATOMIC_FIELDS['occupancy'].dtype)))
                     segnames = np.concatenate((segnames,
-                        np.zeros(asize, ATOMIC_DATA_FIELDS['segment'].dtype)))
+                        np.zeros(asize, ATOMIC_FIELDS['segment'].dtype)))
                     elements = np.concatenate((elements,
-                        np.zeros(asize, ATOMIC_DATA_FIELDS['element'].dtype)))
+                        np.zeros(asize, ATOMIC_FIELDS['element'].dtype)))
                     if anisou is not None:
                         anisou = np.concatenate((anisou, np.zeros((asize, 6), 
-                            ATOMIC_DATA_FIELDS['anisou'].dtype)))
+                            ATOMIC_FIELDS['anisou'].dtype)))
                     if siguij is not None:
                         siguij = np.concatenate((siguij, np.zeros((asize, 6), 
-                            ATOMIC_DATA_FIELDS['siguij'].dtype)))
+                            ATOMIC_FIELDS['siguij'].dtype)))
                 else:
                     charges = np.concatenate((charges,
-                        np.zeros(asize, ATOMIC_DATA_FIELDS['charge'].dtype)))
+                        np.zeros(asize, ATOMIC_FIELDS['charge'].dtype)))
                     radii = np.concatenate((radii,
-                        np.zeros(asize, ATOMIC_DATA_FIELDS['radius'].dtype)))
+                        np.zeros(asize, ATOMIC_FIELDS['radius'].dtype)))
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
@@ -584,7 +583,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if anisou is None:
                 anisou = True
                 anisou = np.zeros((alength, 6), 
-                    dtype=ATOMIC_DATA_FIELDS['anisou'].dtype)
+                    dtype=ATOMIC_FIELDS['anisou'].dtype)
             try:
                 index = acount - 1
                 anisou[index, 0] = line[28:35]
@@ -599,7 +598,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elif isPDB and startswith =='SIGUIJ':
             if siguij is None:
                 siguij = np.zeros((alength, 6), 
-                    dtype=ATOMIC_DATA_FIELDS['siguij'].dtype)
+                    dtype=ATOMIC_FIELDS['siguij'].dtype)
             try:
                 index = acount - 1
                 siguij[index, 0] = line[28:35]

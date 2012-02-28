@@ -26,7 +26,7 @@ import os.path
 
 import numpy as np
 
-from prody.atomic import ATOMIC_DATA_FIELDS
+from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import AtomGroup
 from prody.tools import openFile
 
@@ -67,14 +67,14 @@ def parsePSF(filename, title=None, ag=None):
         if n_atoms != ag.numAtoms():
             raise ValueError('ag and PSF file must have same number of atoms')
         
-    serials = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['serial'].dtype)
-    segnames = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['segment'].dtype)
-    resnums = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['resnum'].dtype)
-    resnames = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['resname'].dtype)
-    atomnames = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['name'].dtype)
-    atomtypes = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['type'].dtype)
-    charges = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['charge'].dtype)
-    masses = np.zeros(n_atoms, ATOMIC_DATA_FIELDS['mass'].dtype)
+    serials = np.zeros(n_atoms, ATOMIC_FIELDS['serial'].dtype)
+    segnames = np.zeros(n_atoms, ATOMIC_FIELDS['segment'].dtype)
+    resnums = np.zeros(n_atoms, ATOMIC_FIELDS['resnum'].dtype)
+    resnames = np.zeros(n_atoms, ATOMIC_FIELDS['resname'].dtype)
+    atomnames = np.zeros(n_atoms, ATOMIC_FIELDS['name'].dtype)
+    atomtypes = np.zeros(n_atoms, ATOMIC_FIELDS['type'].dtype)
+    charges = np.zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
+    masses = np.zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
     
     lines = psf.readlines(71 * (n_atoms + 5))
     if len(lines) < n_atoms:

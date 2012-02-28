@@ -26,7 +26,7 @@ import os.path
 
 import numpy as np
 
-from prody.atomic import ATOMIC_DATA_FIELDS
+from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
@@ -891,7 +891,7 @@ def assignSecstr(header, atoms, coil=False):
         else:
             ag = atoms.getAtomGroup()
         ag.setSecstrs(np.zeros(ag.numAtoms(), 
-                            ATOMIC_DATA_FIELDS['secondary'].dtype))
+                      ATOMIC_FIELDS['secondary'].dtype))
     atoms.select('protein').setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0

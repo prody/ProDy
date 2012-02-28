@@ -27,8 +27,6 @@ from glob import glob
 
 import numpy as np
 
-from prody.atomic import ATOMIC_DATA_FIELDS
-from prody.atomic import AtomGroup
 from prody.tools import makePath, gunzip, relpath, openFile
 from prody import getPackagePath
 

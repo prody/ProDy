@@ -167,7 +167,7 @@ class Field(object):
             return docstr
 
 
-ATOMIC_DATA_FIELDS = {
+ATOMIC_FIELDS = {
     'name':      Field('name', '|S6', selstr=('name CA CB',), depr='AtomName'),
     'altloc':    Field('altloc', '|S1', doc='alternate location indicator', 
                        selstr=('altloc A B', 'altloc _'), 
@@ -239,7 +239,7 @@ ATOMIC_DATA_FIELDS = {
 
 
 ATOMIC_ATTRIBUTES = {}
-for field in ATOMIC_DATA_FIELDS.values():
+for field in ATOMIC_FIELDS.values():
     ATOMIC_ATTRIBUTES[field.var] = field
 
 

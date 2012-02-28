@@ -26,7 +26,7 @@ import os.path
 
 import numpy as np
 
-from prody.atomic import ATOMIC_DATA_FIELDS
+from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import AtomGroup
 from prody.tools import gunzip, which, PLATFORM
 
@@ -155,8 +155,7 @@ def parseDSSP(dssp, ag, parseall=False):
         O_HN_2_nrg = np.zeros(n_atoms, float)
         TCO = np.zeros(n_atoms, float)
 
-    ag.setSecstrs(np.zeros(n_atoms, 
-                              dtype=ATOMIC_DATA_FIELDS['secondary'].dtype))
+    ag.setSecstrs(np.zeros(n_atoms, dtype=ATOMIC_FIELDS['secondary'].dtype))
     for line in dssp:
         if line.startswith('  #  RESIDUE'):
             break

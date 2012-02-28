@@ -179,7 +179,7 @@ LOGGER = pkg.LOGGER
 SETTINGS = pkg.SETTINGS
 
 from atomic import Atomic
-from fields import ATOMIC_ATTRIBUTES, ATOMIC_DATA_FIELDS
+from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
 
 from atomgroup import AtomGroup 
 from pointer import AtomPointer
@@ -210,7 +210,7 @@ KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)
 
 KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING)
 KEYWORDS_SYNONYMS = {}
-for key, field in ATOMIC_DATA_FIELDS.iteritems(): 
+for key, field in ATOMIC_FIELDS.iteritems(): 
     if field.synonym:
         KEYWORDS_SYNONYMS[field.synonym] = key
 ATOMIC_ATTRIBUTES = ATOMIC_ATTRIBUTES
@@ -666,7 +666,7 @@ def getSelectionMacro(name=None):
         LOGGER.info('"{0:s}" is not a user defined macro name.'.format(name))
 
 mapField2Var = {}
-for field in ATOMIC_DATA_FIELDS.values():
+for field in ATOMIC_FIELDS.values():
     mapField2Var[field.name] = field.var
 
 def getKeywordResnames(keyword):
@@ -819,7 +819,7 @@ OR  = '||'
 
 
 
-RESERVED = set(ATOMIC_DATA_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
+RESERVED = set(ATOMIC_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
                ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as'] +
                KEYWORDS_SYNONYMS.keys() + 
                ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
@@ -1891,7 +1891,7 @@ class Select(object):
         
         data = self._data.get(keyword)
         if data is None:        
-            field = ATOMIC_DATA_FIELDS.get(keyword)
+            field = ATOMIC_FIELDS.get(keyword)
             if field is None:
                 data = self._ag._getData(keyword)
                 if data is None:

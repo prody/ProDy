@@ -25,7 +25,7 @@ import os.path
 
 import numpy as np
 
-from prody.atomic import AtomGroup, ATOMIC_DATA_FIELDS
+from prody.atomic import AtomGroup, ATOMIC_FIELDS
 from prody.tools import openFile
 
 __all__ = ['fetchPDBLigand']
@@ -130,15 +130,14 @@ def fetchPDBLigand(cci, save=False, folder='.'):
     ideal_coords = np.zeros((n_atoms, 3))
     model_coords = np.zeros((n_atoms, 3))
     
-    atomnames = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['name'].dtype) 
-    elements = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['element'].dtype)
-    resnames = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['resname'].dtype)
-    charges = np.zeros(n_atoms, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
+    atomnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['name'].dtype) 
+    elements = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['element'].dtype)
+    resnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['resname'].dtype)
+    charges = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['charge'].dtype)
     
-    resnums = np.ones(n_atoms, dtype=ATOMIC_DATA_FIELDS['charge'].dtype)
+    resnums = np.ones(n_atoms, dtype=ATOMIC_FIELDS['charge'].dtype)
     
-    alternate_atomnames = np.zeros(n_atoms, 
-                                    dtype=ATOMIC_DATA_FIELDS['name'].dtype)
+    alternate_atomnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['name'].dtype)
     leaving_atom_flags = np.zeros(n_atoms, np.bool)
     aromatic_flags = np.zeros(n_atoms, np.bool)
     stereo_configs = np.zeros(n_atoms, np.bool)

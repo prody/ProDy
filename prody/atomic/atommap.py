@@ -93,7 +93,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from atom import Atom
-from fields import ATOMIC_DATA_FIELDS
+from fields import ATOMIC_FIELDS
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 
@@ -103,7 +103,7 @@ class AtomMapMeta(type):
     
     def __init__(cls, name, bases, dict):
         
-        for field in ATOMIC_DATA_FIELDS.values():
+        for field in ATOMIC_FIELDS.values():
             meth = field.meth_pl
             getMeth = 'get' + meth
     
