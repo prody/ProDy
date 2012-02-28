@@ -22,53 +22,12 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
-import shutil
-from glob import glob
 
-import numpy as np
-
-from prody.tools import makePath, gunzip, relpath, openFile
-from prody import getPackagePath
-
-__all__ = ['PDBBlastRecord', 'blastPDB', 'fetchPDB', 
-           'getPDBLocalFolder', 'getPDBMirrorPath', 'getWWPDBFTPServer', 
-           'setPDBLocalFolder', 'setPDBMirrorPath', 'setWWPDBFTPServer',
-           'fetchPDBClusters', 'loadPDBClusters', 'getPDBCluster',]
+__all__ = ['PDBBlastRecord', 'blastPDB']
            
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
            
-PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
-                90: None, 95: None, 100: None}
-PDB_CLUSTERS_UPDATE_WARNING = True
-
-_PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
-                       '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ',
-                       '.xml', '.XML', '.xml.gz', '.XML.GZ',
-                       '.cif', '.CIF', '.cif.gz', '.CIF.GZ',])
-_PDB_FORMATS = set(['pdb', 'cif', 'xml'])
-
-_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/pdb/')
-_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/pdb/')
-_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/pdb/')
-
-WWPDB_FTP_SERVERS = {
-    'rcsb'   : _WWPDB_RCSB,
-    'usa'    : _WWPDB_RCSB,
-    'us'     : _WWPDB_RCSB,
-    'pdbe'   : _WWPDB_PDBe,
-    'euro'   : _WWPDB_PDBe,
-    'europe' : _WWPDB_PDBe,
-    'eu'     : _WWPDB_PDBe,
-    'pdbj'   : _WWPDB_PDBj,
-    'japan'  : _WWPDB_PDBj,
-    'jp'     : _WWPDB_PDBj,
-}
-
-
-
-
 PROTSEQ_ALPHABET = set('ARNDCQEGHILKMFPSTWYVBJOUXZ-')
 
 def checkSequence(sequence):
