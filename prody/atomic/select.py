@@ -540,7 +540,14 @@ Expanding selections
 A selection can be expanded to include the atoms in the same *residue*, 
 *chain*, or *segment* using ``same .. as ..`` setting, e.g.
 ``same residue as exwithin 4 of water`` will select residues that have
-at least an atom within 4 Å of any water molecule.    
+at least an atom within 4 Å of any water molecule.
+
+Additional, a selection may be expanded the immediately bonded atoms using
+``bonded to ...`` method, e.f. ``bonded to calpha`` will
+select atoms bonded to Cα that are not backbone atoms.  For this to work, 
+bonds must be set by the user using :meth:`.AtomGroup.setBonds` method.
+It is also possible to select bonded atoms by excluding the atoms from
+which the bonds will originate, i.e. ``exbonded to ...``.
 
 Selection macros
 -------------------------------------------------------------------------------
