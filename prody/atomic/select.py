@@ -820,7 +820,8 @@ OR  = '||'
 
 
 RESERVED = set(ATOMIC_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
-               ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as'] +
+               ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
+                'bonded', 'exbonded', 'to'] +
                KEYWORDS_SYNONYMS.keys() + 
                ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
                 'bonds', 'bmap', 'numbonds'])
@@ -943,7 +944,8 @@ class Select(object):
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              (pp.Keyword(NOT) | 
+              (pp.Keyword(NOT) |
+               pp.Regex('(ex)?bonded to') |
                pp.Regex('same [a-z]+ as') | 
                pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 
                         1, pp.opAssoc.RIGHT, self._unary),
@@ -1313,13 +1315,15 @@ class Select(object):
     
     def _unary(self, selstr, location, tokens):
         """Perform the unary operation."""
-        
+
         if DEBUG: print('_unary', tokens)
         tokens = tokens[0]
         if tokens[0] == NOT:
             result = self._not(tokens)
         elif tokens[0].startswith('same'):
             result = self._sameas(tokens)
+        elif tokens[0].endswith('bonded to'):
+            result = self._bondedto(tokens, tokens[0].startswith('exbonded'))
         else:
             result = self._within(tokens, tokens[0].startswith('exwithin'))
         if result is None:
@@ -1444,6 +1448,32 @@ class Select(object):
                                  '"segment"'.format(token[0]))
         return torf
      
+    def _bondedto(self, token, exclude):
+        """Expand selection to immediately bonded atoms."""
+        
+        terms = token
+        if DEBUG: print('_bondedto', terms)
+        which = token[1]
+        if not isinstance(which, np.ndarray):
+            which = self._evaluate(token[1:])
+            if not isinstance(which, np.ndarray):
+                return None
+        bmap = self._ag._bmap
+        if bmap is None:
+            return None
+        if self._indices is not None:
+            bmap = bmap[which]
+        else:
+            bmap = bmap[self._indices[which]]
+        bonded = np.unique(bmap)
+        torf = np.zeros(self._n_atoms, bool)
+        torf[np.zeros(self._ag.numAtoms(), bool)[bonded[1:]][which]] = True
+        if exclude:
+            torf[which] = False
+        else:
+            torf[which] = True
+        return torf
+    
     def _comp(self, selstr, location, tokens):
         """Perform numeric comparisons. Expected operands are numbers 
         and numeric atom attributes."""
