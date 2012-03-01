@@ -44,6 +44,7 @@ DEPRECATION_WARNINGS = False
 CONFIGURATION = {
     'backup': False,
     'backup_ext': '.BAK',
+    'ligand_xml_save': False,
 }
 
 from datetime import date
@@ -87,21 +88,38 @@ SETTINGS = PackageSettings(logger=LOGGER)
 SETTINGS.load()
 
 
+_max_key_len = max([len(_key) for _key in CONFIGURATION.iterkeys()])
+_max_def_len = 68 - _max_key_len
+_table_lines = '=' * _max_key_len +  '  ' + '=' * _max_def_len
+
 docstring = """
 
-    ================  ====================================================
-    Option            Default setting (type)         
-    ================  ===================================================="""
+    {0:s}
+    {1:s}  {2:s}         
+    {0:s}""".format(_table_lines, 'Option'.ljust(_max_key_len), 
+                    'Default setting (type)')
 
 _ = {}
-for key, value in CONFIGURATION.iteritems():
+
+from textwrap import wrap
+_keys = CONFIGURATION.keys()
+_keys.sort()
+for _key in _keys:
+    _value = CONFIGURATION[_key]
+    if isinstance(_value, str):
+        _val = '"' + _value + '"'
+    else: 
+        _val = str(_value)
+    _lines = wrap(_val + ' (' + type(_value).__name__  + ')', _max_def_len)
     docstring += """
-    {0:16s}  {1:52s}""".format(key, str(value) + 
-                                    ' (' + type(value).__name__  + ')')
-    if SETTINGS.get(key) is None:
-        _[key] = value
+    {0:s}  {1:s}""".format(_key.ljust(_max_key_len), _lines[0])
+    for _line in _lines[1:]:
+        docstring += """
+        {0:s}  {1:52s}""".format(''.ljust(_max_key_len), _line)
+    if SETTINGS.get(_key) is None:
+        _[_key] = _value
 docstring += """
-    ================  ===================================================="""
+    {0:s}""".format(_table_lines)
 
 if _:
     SETTINGS.update(_)
