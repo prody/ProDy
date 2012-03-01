@@ -26,18 +26,26 @@ import os.path
 import numpy as np
 
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
-from prody.tools import openFile
+from prody.tools import openFile, makePath
+from prody import getPackagePath
 
 __all__ = ['fetchPDBLigand']
 
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
+SETTINGS = pkg.SETTINGS
 
-def fetchPDBLigand(cci, save=False, folder='.'):
+def fetchPDBLigand(cci, filename=None):
     """Fetch PDB ligand data from `Ligand Expo <http://ligand-expo.rcsb.org/>`_
     for chemical component *cci*.  *cci* may be 3-letter chemical component 
-    identifier or a valid XML filename.  If ``save=True`` is passed, XML file 
-    will be saved in the specified *folder*. 
+    identifier or a valid XML filename.  If *filename* is given, XML file 
+    will be saved with that name.
+    
+    If you query ligand data frequently, you may configure ProDy to save XML 
+    files into a folder in you computer.  Set ``ligand_xml_save`` option to
+    True, i.e. ``confProDy(ligand_xml_save=True)``.  Compressed XML files will 
+    be save to ProDy package folder, e.g. :file:`/home/user/.prody/pdbligands`.
+    Each file is around 5Kb when compressed. 
     
     This function is compatible with PDBx/PDBML v 4.0.
     
@@ -49,8 +57,8 @@ def fetchPDBLigand(cci, save=False, folder='.'):
     indexing the dictionary, e.g. to retrieve formula weight (or relative
     molar mass) of the chemical component use ``data.get('formula_weight')``
     instead of ``data['formula_weight']`` to avoid exceptions when this
-    data field is not found in the XML file.
-    URL of the XML file is returned in the dictionary with key ``url``.
+    data field is not found in the XML file.  URL of the XML file is returned 
+    in the dictionary with key ``url``.
     
     Following example downloads data for ligand STI (a.k.a. Gleevec and
     Imatinib) and calculates RMSD between model (X-ray structure 1IEP) and 
@@ -75,21 +83,38 @@ def fetchPDBLigand(cci, save=False, folder='.'):
         raise ValueError('cci must be 3-letters long and alphanumeric or '
                          'a valid filename')
     else:
-        #'http://www.pdb.org/pdb/files/ligand/{0:s}.xml'
-        url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}.xml'
-               .format(cci.upper()))
-        import urllib2
-        try:
-            inp = urllib2.urlopen(url)
-        except urllib2.HTTPError:
-            raise IOError('XML file for ligand {0:s} is not found'.format(cci))
-        else:
-            xml = inp.read()
-            inp.close()
-        if save:
-            out = openFile(cci+'.xml', mode='w', folder=folder)
-            out.write(xml)
-            out.close()
+        xml = None
+        cci = cci.upper()
+        if SETTINGS.get('ligand_xml_save'):
+            folder = os.path.join(getPackagePath(), 'pdbligands')
+            if not os.path.isdir(folder):
+                makePath(folder)
+            xmlgz = os.path.join(folder, cci + '.xml.gz')
+            if os.path.isfile(xmlgz):
+                LOGGER.info('Reading {0:s} ligand XML from local folder.'
+                            .format(cci))
+                with openFile(xmlgz) as inp:
+                    xml = inp.read()
+        url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}'
+               '.xml'.format(cci.upper()))
+        if not xml:
+            #'http://www.pdb.org/pdb/files/ligand/{0:s}.xml'
+            import urllib2
+            try:
+                inp = urllib2.urlopen(url)
+            except urllib2.HTTPError:
+                raise IOError('XML file for ligand {0:s} is not found online'
+                              .format(cci))
+            else:
+                xml = inp.read()
+                inp.close()
+            if filename:
+                out = openFile(filename, mode='w', folder=folder)
+                out.write(xml)
+                out.close()
+            if SETTINGS.get('ligand_xml_save'):
+                with openFile(xmlgz, 'w') as out:
+                    out.write(xml)
 
     import xml.etree.cElementTree as ET
 
