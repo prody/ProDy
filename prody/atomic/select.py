@@ -1197,6 +1197,16 @@ class Select(object):
                 return self._evalUserdata(keyword, evalonly=evalonly)
             elif isinstance(keyword, np.ndarray):
                 return keyword
+            elif keyword in self._kwargs:
+                arg = self._kwargs[keyword]
+                if (isinstance(arg, AtomPointer) and 
+                    arg.getAtomGroup() is self._ag):
+                    torf = np.zeros(self._ag.numAtoms(), bool)
+                    torf[arg._getIndices()] = True
+                    if self._indices is not None:
+                        torf = torf[self._indices]
+                    if DEBUG: print('_evaluate', keyword, torf)
+                    return torf
             else:
                 try:
                     return float(keyword)
@@ -1325,14 +1335,17 @@ class Select(object):
 
         if DEBUG: print('_unary', tokens)
         tokens = tokens[0]
-        if tokens[0] == NOT:
+        what = tokens[0]
+        if what == NOT:
             result = self._not(tokens)
-        elif tokens[0].startswith('same'):
+        elif what.startswith('same'):
             result = self._sameas(tokens)
-        elif tokens[0].endswith('bonded to'):
-            result = self._bondedto(tokens, tokens[0].startswith('exbonded'))
+        elif what.endswith('bonded to'):
+            result = self._bondedto(tokens, what.startswith('exbonded'))
         else:
-            result = self._within(tokens, tokens[0].startswith('exwithin'))
+            result = self._within(tokens, what.startswith('exwithin'))
+        if isinstance(result, SelectionError):
+            raise result
         if result is None:
             raise SelectionError(selstr)
         return result
@@ -1431,8 +1444,7 @@ class Select(object):
     def _sameas(self, token):
         """Expand selection."""
         
-        terms = token
-        if DEBUG: print('_sameas', terms)
+        if DEBUG: print('_sameas', token)
         what = token[0].split()[1]
         which = token[1]
         if not isinstance(which, np.ndarray):
@@ -1458,8 +1470,7 @@ class Select(object):
     def _bondedto(self, token, exclude):
         """Expand selection to immediately bonded atoms."""
         
-        terms = token
-        if DEBUG: print('_bondedto', terms)
+        if DEBUG: print('_bondedto', token)
         which = token[1]
         if not isinstance(which, np.ndarray):
             which = self._evaluate(token[1:])
@@ -1467,14 +1478,16 @@ class Select(object):
                 return None
         bmap = self._ag._bmap
         if bmap is None:
-            return None
-        if self._indices is not None:
+            return SelectionError('bonds are not set')
+        if self._indices is None:
             bmap = bmap[which]
         else:
             bmap = bmap[self._indices[which]]
         bonded = np.unique(bmap)
-        torf = np.zeros(self._n_atoms, bool)
-        torf[np.zeros(self._ag.numAtoms(), bool)[bonded[1:]][which]] = True
+        torf = np.zeros(self._ag.numAtoms(), bool)
+        torf[bonded[1:]] = True 
+        if self._indices is not None:
+            torf = torf[self._indices]
         if exclude:
             torf[which] = False
         else:
