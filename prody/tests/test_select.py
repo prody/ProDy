@@ -165,8 +165,17 @@ SELECTION_TESTS = {'pdb3mht':
                      ('ceil(beta) == 10', 60),
                      ('floor(beta) == 10', 58),
                      ('abs(x) == sqrt(sq(x))', 3211), 
-                     ('sq(x-5)+sq(y+4)+sq(z) > sq(100)', 1444),
-                     ],
+                     ('sq(x-5)+sq(y+4)+sq(z) > sq(100)', 1444),],
+     'or':          [('index 0 or index 1 ', 2),
+                     ('index 0 or index 1 or index 2', 3, 'index 0 1 2'),
+                     ('index 0 or index 1 or index 2 or index 4', 
+                      4, 'index 0 1 2 4'),],
+     'and':         [('index 0 and index 1 ', 0),
+                     ('index < 50 and index < 5', 5, 'index < 5'),
+                     ('index < 50 and index < 25 and index < 5', 5),
+                     ('index < 5 and index < 25 and index < 50', 5),
+                     ('index < 5 and index < 25 and index < 50 or '
+                      'index < 50 or index < 5', 50),],
      'composite':   [('same residue as within 4 of resname SAH', 177),
                      ('name CA and same residue as within 4 of resname SAH', 
                       20),
@@ -287,7 +296,6 @@ class TestSelectMeta(type):
                             selstr2 = test[2]
                         if len(test) == 4:
                             kwargs = test[3]
-
                             
                         if natoms is None:
                             self.assertRaises(prody.select.SelectionError,
