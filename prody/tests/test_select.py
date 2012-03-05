@@ -45,7 +45,7 @@ TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
 
 SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': 3211,
-     'path': getDatafilePath('pdb3mht.pdb'),
+     'ag': prody.parsePDB(getDatafilePath('pdb3mht.pdb'), secondary=True),
      'keyword':     [('none', 0),
                      ('all', 3211),
                      ('acidic', 334),
@@ -150,7 +150,8 @@ SELECTION_TESTS = {'pdb3mht':
                      ('beta < 10', 336),
                      ('occupancy > 0.999999', 3211),
                      ('radius > 10', None),
-                     ('chain = A', None),],
+                     ('chain = A', None),
+                     ('x x < 1', None),],
      'operation':   [('x ** 2 < 10', 238),
                      ('x ** 2 ** 2 ** 2 < 10', 99),
                      ('x ** (+2 ** (+2 ** +2)) < 10', 87),
@@ -165,7 +166,9 @@ SELECTION_TESTS = {'pdb3mht':
                      ('ceil(beta) == 10', 60),
                      ('floor(beta) == 10', 58),
                      ('abs(x) == sqrt(sq(x))', 3211), 
-                     ('sq(x-5)+sq(y+4)+sq(z) > sq(100)', 1444),],
+                     ('sq(x-5)+sq(y+4)+sq(z) > sq(100)', 1444),
+                     ('1 > sq(occ)', None),
+                     ('sq(x x) > 1', None),],
      'or':          [('index 0 or index 1 ', 2),
                      ('index 0 or index 1 or index 2', 3, 'index 0 1 2'),
                      ('index 0 or index 1 or index 2 or index 4', 
@@ -196,11 +199,13 @@ SELECTION_TESTS = {'pdb3mht':
                      ('same chain as index 0', 248),   
                      ('same segment as index 0', 3211),
                      ('same residue as resname DG ALA', 212),
-                     ('same chain as chain C', 248),],
+                     ('same chain as chain C', 248),
+                     ('same none as chain C', None)],
      'regexp':      [('resname "S.."', 122),
                      ('name "C.*"', 1920),
                      ('name ".*\'"', 208),
-                     ('name "C(A|B)"', 628),],
+                     ('name "C(A|B)"', 628),
+                     ('name "C((A|B)"', None),],
      'specialchar': [('altloc ``', 3211),
                      ('altloc ` `', 3211),
                      ('z `+100.291`', 1),],
@@ -215,7 +220,9 @@ SELECTION_TESTS = {'pdb3mht':
                      ('within 100 of origin', 1975, None, 
                       {'origin': np.zeros((10, 3))}),
                      ('within 100 of origin', 1975, None, 
-                      {'origin': np.zeros((50, 3))}),],
+                      {'origin': np.zeros((50, 3))}),
+                     ('within 100 of none', None, None, 
+                      {'none': np.zeros((50, 3))}),],
      'equivalent':  [('chain C', 248, 'not not chain C'),
                      ('chain C', 248, 'not not not not chain C'),],
      'invalid':     [('chain C and and chain C', None),
@@ -226,14 +233,15 @@ SELECTION_TESTS = {'pdb3mht':
                      ('x > sq(calpha)', None),
                      ('x > sq(name CA and resname ALA)', None),
                      ('resname ALA and +1', None)],
-     'attribute':   [('temp < 10', 336, 'beta < 10'),
+     'userdata':    [('temp < 10', 336, 'beta < 10'),
                      ('temp < 10 and chain D', 37, 'temp < 10 and chain D'),
                      ('oc10 - 9 == 1', 3211, 'occupancy 1'),
                      ('temp < 10', 336, 'temp + oc10 < 20'),
                      ('occ', 3211, 'occupancy != 0'),
                      ('occ and occupancy == 1', 3211, 'occupancy != 0'),
                      ('occ and occupancy == 1 and oc10 - 9 == 1', 3211),
-                     ('occ and occupancy == 1 and temp < 10', 336),],
+                     ('occ and occupancy == 1 and temp < 10', 336),
+                     ('occ > 0', None),],
      'synonyms':    [('chain C', 248, 'chid C'),
                      ('chain C D', 521, 'chid C D'),],
      'docexamples': [('serial 1 2 3', 3),
@@ -253,16 +261,30 @@ SELECTION_TESTS = {'pdb3mht':
                      ('0 < mass < 500', 3211),
                      ('abs(mass) <= mass <= 10', 337),],
     }
-
 }
-for key, item in SELECTION_TESTS.iteritems():
-    ag = prody.parsePDB(item['path'], secondary=True)
-    ag.setCharges(ag.getOccupancies())
-    ag.setMasses(ag.getBetas())
-    ag.setData('temp', ag.getBetas())
-    ag.setData('oc10', ag.getOccupancies() * 10)
-    ag.setData('occ', ag.getOccupancies().astype(bool))
-    SELECTION_TESTS[key]['ag'] = ag
+
+try:
+    ligand = fetchPDBLigand('STI')
+except:
+    pass
+else:
+    ag = ligand['ideal']
+    SELECTION_TESTS['imatinib'] = {
+        'n_atoms': len(ag),
+        'ag': ag,
+        'bondedto': [('bonded to index 0', ag[0].numBonds() + 1),
+                     ('exbonded to index 0', ag[0].numBonds()),
+                     ('bonded to index 67', ag[67].numBonds() + 1),
+                     ('exbonded to index 67', ag[67].numBonds()),],
+    }
+
+
+pdb3mht = SELECTION_TESTS['pdb3mht']['ag']
+pdb3mht.setCharges(pdb3mht.getOccupancies())
+pdb3mht.setMasses(pdb3mht.getBetas())
+pdb3mht.setData('temp', pdb3mht.getBetas())
+pdb3mht.setData('oc10', pdb3mht.getOccupancies() * 10)
+pdb3mht.setData('occ', pdb3mht.getOccupancies().astype(bool))
     
 SELECT = prody.Select()
 
@@ -272,21 +294,18 @@ class TestSelectMeta(type):
     
     def __init__(cls, name, bases, dict):
         
-        test_types = set()
-        for case in SELECTION_TESTS.itervalues():
-            for key, item in case.iteritems():
-                if isinstance(item, list):
-                    test_types.add(key.lower())
-
-        for type_ in test_types:
-            count = 0        
-            for key, testsets in SELECTION_TESTS.iteritems():
-                tests = testsets.get(type_, [])
+        for key, case in SELECTION_TESTS.iteritems():
+        
+            for type_, tests in case.iteritems():
+                
+                if not isinstance(tests, list):
+                    continue
+                count = 0        
                 for test in tests:
                     def testFunction(self, pdb=key, test=test, type_=type_, 
                                      **kwargs):
                 
-                        atoms = SELECTION_TESTS[key]['ag']
+                        atoms = SELECTION_TESTS[pdb]['ag']
                     
                         selstr = test[0]
                         natoms = test[1]
