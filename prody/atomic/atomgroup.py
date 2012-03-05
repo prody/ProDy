@@ -248,7 +248,7 @@ from selection import Selection
 
 __all__ = ['AtomGroup']
 
-pkg = __import__(__package__)
+import prody as pkg
 LOGGER = pkg.LOGGER
 
 SELECT = None
@@ -550,7 +550,7 @@ class AtomGroup(Atomic):
         """Return a mapping of serial numbers to indices."""
         
         if self._sn2i is None:
-            serials = self._serials  
+            serials = self._data['serials']  
             if serials is None:
                 raise AttributeError('atom serial numbers are not set')
             unique = np.unique(serials) 
