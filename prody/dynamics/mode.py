@@ -426,13 +426,6 @@ class Mode(VectorBase):
         
         return self.getVariance() / self._model._trace
     
-    def getCollectivity(self, masses=None):
-        """Return the degree of collectivity of the mode.  This function 
-        implements collectivity as defined in equation 5 of [BR95]_. See 
-        also the :func:`~.calcCollectivity`."""
-
-        return calcCollectivity(self)
-
     def getCovariance(self):
         """Return covariance matrix calculated for this mode instance."""
         
