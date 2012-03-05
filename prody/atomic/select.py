@@ -202,7 +202,7 @@ from prody.tools import rangeString
 from prody.KDTree import getKDTree
 
 DEBUG = 0
-from code import interact
+#from code import interact
 
 __all__ = ['Select',
            'getKeywordResnames', 'setKeywordResnames',
@@ -556,11 +556,10 @@ A selection can be expanded to include the atoms in the same *residue*,
 at least an atom within 4 Å of any water molecule.
 
 Additional, a selection may be expanded the immediately bonded atoms using
-``bonded to ...`` method, e.f. ``bonded to calpha`` will
-select atoms bonded to Cα that are not backbone atoms.  For this to work, 
-bonds must be set by the user using :meth:`.AtomGroup.setBonds` method.
-It is also possible to select bonded atoms by excluding the atoms from
-which the bonds will originate, i.e. ``exbonded to ...``.
+``bonded to ...`` method, e.f. ``bonded to calpha`` will select atoms bonded 
+to Cα.  For this to work, bonds must be set by the user using :meth:`.AtomGroup
+.setBonds` method.  It is also possible to select bonded atoms by excluding the
+atoms from which the bonds will originate, i.e. ``exbonded to ...``.
 
 Selection macros
 -------------------------------------------------------------------------------
@@ -1309,7 +1308,7 @@ class Select(object):
                     evalonly = evalonly[invert(torf, torf).nonzero()]
         return selection
 
-    def _and(self, sel, loc, tokens):
+    def _and(self, sel, loc, tokens, rtrn=False):
         """Evaluate statements containing ``"and"`` operator."""
         
         if DEBUG: print('_and\n_and tokens '+str(tokens))
@@ -1333,7 +1332,7 @@ class Select(object):
                 selection = np.all(arrays, 0, arrays[0])
             if tokens:
                 evalonly = selection.nonzero()[0]
-        
+
         n_tokens = len(tokens) - 1
         for i, token in enumerate(tokens):
             
@@ -1343,18 +1342,14 @@ class Select(object):
             torf = self._evaluate(sel, loc, token, evalonly=evalonly)
             if isinstance(torf, SelectionError):
                 raise torf
-            
+            #interact(local=locals())
             if evalonly is None:
                 selection = torf
                 evalonly = selection.nonzero()[0]
             else:
-                #if len(torf) == len(evalonly):
-                torf = invert(torf, torf).nonzero()[0]
-                selection[evalonly[torf]] = False
-                #else:
-                #    selection[torf] = True
+                selection[evalonly] = torf
                 if i < n_tokens:
-                    evalonly = selection[evalonly].nonzero()
+                    evalonly = evalonly[torf]
         return selection
     
     def _unary(self, sel, loc, tokens):
@@ -1741,11 +1736,12 @@ class Select(object):
                     values[i] = ' '
                     values.append('')
                     break
-            
+
         if evalonly is not None:
             data = data[evalonly]
+        if DEBUG: print('_evalAlnum set(data)', set(data))
         n_atoms = len(data)
-        
+
         regexps = []
         strings = []
         for value in values:
@@ -1753,7 +1749,7 @@ class Select(object):
                 strings.append(value)
             else:
                 regexps.append(value)
-                
+
         if len(strings) == 1:
             torf = data == strings[0]
         elif len(strings) > 4:
@@ -1766,6 +1762,7 @@ class Select(object):
             torf = np.concatenate(torf, 1).sum(1).astype(np.bool) 
         else:
             torf = zeros(n_atoms, np.bool)
+
         for value in regexps:
             for i in xrange(n_atoms):
                 torf[i] = (value.match(data[i]) is not None)
