@@ -177,6 +177,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('index < 50 and index < 5', 5, 'index < 5'),
                      ('index < 50 and index < 25 and index < 5', 5),
                      ('index < 5 and index < 25 and index < 50', 5),
+                     ('index 0 to 5 and index 0 to 25 and index 0 to 50', 6),
                      ('index < 5 and index < 25 and index < 50 or '
                       'index < 50 or index < 5', 50),],
      'composite':   [('same residue as within 4 of resname SAH', 177),
@@ -189,7 +190,12 @@ SELECTION_TESTS = {'pdb3mht':
                       '(nucleic and name P)', 351,
                       '(protein and name CA) or (nucleic and name P)'), 
                       ('protein and (backbone or name H)', 1308),
-                      ('same residue as within 4 of and resname SAH', None),],
+                      ('same residue as within 4 of and resname SAH', None),
+                      ('protein and name CA CB and same residue as '
+                       '((x+21.2)**2 + (y-35.9)**2 + (z-80.0)**2)**0.5 < 10',
+                       78, 'protein and name CA CB and same residue as '
+                       'within 10 of center', 
+                       {'center': np.array([21.2, 35.9, 80.0])})],
      'within':      [('within 10 of index 0', 72),
                      ('exwithin 100 of index 0', 3210),
                      ('exwithin 4 of resname SAH', 61),
