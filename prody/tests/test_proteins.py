@@ -218,13 +218,13 @@ class TestParsePDB(unittest.TestCase):
     
     def testBiomolArgument(self):
         
-        self.assertRaises(proteins.PDBParseError, parsePDB, self.one['path'], 
+        self.assertRaises(ValueError, parsePDB, self.one['path'], 
                           biomol=True)
 
 
     def testSecondaryArgument(self):
 
-        self.assertRaises(proteins.PDBParseError, parsePDB, self.one['path'], 
+        self.assertRaises(ValueError, parsePDB, self.one['path'],
                           secondary=True)
 
 class TestWritePDB(unittest.TestCase):
