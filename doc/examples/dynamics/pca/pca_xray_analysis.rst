@@ -47,7 +47,7 @@ Collectivity of a normal mode ([BR95]_) can be obtained using
 :meth:`~.getCollectivity`:
 
 >>> for mode in pca[:3]:    # Print PCA mode collectivity
-...     print '{0:s}  collectivity = {1:.2f}'.format( mode, mode.getCollectivity() )
+...     print '{0:s}  collectivity = {1:.2f}'.format( mode, calcCollectivity(mode) )
 Mode 1 from PCA p38 xray  collectivity = 0.50
 Mode 2 from PCA p38 xray  collectivity = 0.50
 Mode 3 from PCA p38 xray  collectivity = 0.32
@@ -55,7 +55,7 @@ Mode 3 from PCA p38 xray  collectivity = 0.32
 Similarly, we can get collectivity of ANM modes:
 
 >>> for mode in anm[:3]:    # Print ANM mode collectivity
-...     print '{0:s}  collectivity = {1:.2f}'.format( mode, mode.getCollectivity() )
+...     print '{0:s}  collectivity = {1:.2f}'.format( mode, calcCollectivity(mode) )
 Mode 1 from ANM 1p38  collectivity = 0.65
 Mode 2 from ANM 1p38  collectivity = 0.55
 Mode 3 from ANM 1p38  collectivity = 0.68
