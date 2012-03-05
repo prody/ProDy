@@ -53,6 +53,9 @@ def calcCollectivity(mode, masses=None):
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
     
+    if not isinstance(mode, Mode):
+        raise TypeError('mode must be a Mode instance')
+    
     is3d = mode.is3d()
     if masses is not None:
         if len(masses) != mode.numAtoms(): 
@@ -68,6 +71,12 @@ def calcCollectivity(mode, masses=None):
     coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
     return coll
     
+def calcFractVariance(mode):
+    """Return fraction of variance explained by the mode.  Fraction of 
+    variance is the ratio of the variance along this mode to the trace 
+    of the covariance matrix.  See :meth:`~.Mode.getVariance`."""
+    
+    pass
 
 def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
