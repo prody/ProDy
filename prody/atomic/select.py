@@ -36,9 +36,6 @@ contacts.  This section describes the keywords and selection syntax.
 |more| See :ref:`contacts` and :ref:`selection-operations` for more usage
 examples.
 
-Getting interactive help
--------------------------------------------------------------------------------
-
 The contents of this web page can be viewed in an interactive session as 
 follows:
     
@@ -47,42 +44,42 @@ follows:
 
     
 Keywords with arguments
--------------------------------------------------------------------------------
+===============================================================================
 
 Below is the list of keywords that can be used when paired with atomic
 attributes as arguments.
 
-================ ================ =============================================
-Keyword          Arguments        Description
-================ ================ =============================================
-name             string           atom name
-element          string           element symbol
-type [*]         string           atom type
-altloc [†‡]      string           one-character alternate location identifier
-resname          string           residue name
-chain [‡]        string           one-character chain identifier
-chid [‡]         string           same as *chain*
-icode [‡]        string           single letter insertion code
-segment [‡]      string           segment name
-segname [‡]      string           same as *segment*
-secondary [\*‡]  string           one-character secondary structure identifier
-secstr [\*‡]     string           same as *secondary*
-index            integer, range   internal atom number (starts from 0) 
-serial           integer, range   atom serial number (parsed from file)
-resnum [§]       integer, range   residue number
-resid [§]        integer, range   same as *resnum*
-resindex [¶]     integer, range   unique index number for distinct residues  
-chindex [¶]      integer, range   unique index number for distinct chains
-segindex [¶]     integer, range   unique index number for distinct segments
-x                float, range     x coordinate
-y                float, range     y coordinate
-z                float, range     z coordinate
-beta             float, range     β (temperature) factor
-occupancy        float, range     atomic occupancy value
-charge [*]       float, range     atomic charge
-mass [*]         float, range     atomic mass
-radius [*]       float, range     atomic radius
-================ ================ =============================================
+===============  ==============  ============================================
+Keyword          Arguments         Description
+===============  ==============  ============================================
+name             string          atom name
+element          string          element symbol
+type [*]         string          atom type
+altloc [†‡]      string          one-character alternate location identifier
+resname          string          residue name
+chain [‡]        string          one-character chain identifier
+chid [‡]         string          same as *chain*
+icode [‡]        string          single letter insertion code
+segment [‡]      string          segment name
+segname [‡]      string          same as *segment*
+secondary [\*‡]  string          one-character secondary structure identifier
+secstr [\*‡]     string          same as *secondary*
+index            integer, range  internal atom number (starts from 0) 
+serial           integer, range  atom serial number (parsed from file)
+resnum [§]       integer, range  residue number
+resid [§]        integer, range  same as *resnum*
+resindex [¶]     integer, range  unique index number for distinct residues  
+chindex [¶]      integer, range  unique index number for distinct chains
+segindex [¶]     integer, range  unique index number for distinct segments
+x                float, range    x coordinate
+y                float, range    y coordinate
+z                float, range    z coordinate
+beta             float, range    β (temperature) factor
+occupancy        float, range    atomic occupancy value
+charge [*]       float, range    atomic charge
+mass [*]         float, range    atomic mass
+radius [*]       float, range    atomic radius
+===============  ==============  ============================================
 
 **[*]** These atomic attributes are not set by the PDB parser when a PDB file 
 is parsed. Using them before they are set will raise selection error. 
@@ -300,32 +297,34 @@ _setReadonlyResidueNames()
 __doc__ += """
 
 Keywords without arguments
--------------------------------------------------------------------------------
+===============================================================================
 
 Below is the list of keywords defined based on residue type and/or property.
 These definitions can be retrieved or altered using 
 :func:`getKeywordResnames` and :func:`setKeywordResnames`, 
 respectively.
 
-============= =================================================================
-Keyword       Description
-============= =================================================================
+=============  ================================================================
+Keyword        Description
+=============  ================================================================
 """
 keys = KEYWORD_RESNAMES.keys()
 keys.sort()
+from textwrap import wrap
 for key in keys:
+    lines = wrap('resname ' + ' '.join(KEYWORD_RESNAMES[key]))
     if key in KEYWORD_RESNAMES_READONLY:
-        __doc__ += '{0:13s} resname {1:s}\n'.format(
-            key + ' [#]', ' '.join(KEYWORD_RESNAMES[key]))
+        __doc__ += '{0:13s}  {1:s}\n'.format(key + ' [#]', lines[0])
     else:
-        __doc__ += '{0:13s} resname {1:s}\n'.format(
-            key, ' '.join(KEYWORD_RESNAMES[key]))
+        __doc__ += '{0:13s}  {1:s}\n'.format(key, lines[0])
+    for line in lines[1:]:
+        __doc__ += '{0:13s}  {1:s}\n'.format('', line)
 
 __doc__ += """\
-============= =================================================================
+=============  ================================================================
 
-**[#]** Definitions of these keywords cannot be changed directly, as they 
-are defined based on others as follows: 
+**[#]** Definitions of these keywords are based on others and cannot be changed
+directly: 
     
 """
 keys = KEYWORD_RESNAMES_READONLY.keys()
@@ -336,41 +335,42 @@ for key in keys:
 
 __doc__ += """
 
-The following are additional keywords whose definitions are more restricted:
+Following are additional keywords whose definitions are more restricted:
 
-=============== ===============================================================
-Keyword         Description
-=============== ===============================================================
-all             all atoms
-none            nothing (returns ``None``)
-hetero          non-protein/nucleic atoms, same as \
-``"not (protein or nucleic)"``
-calpha (ca)     Cα atoms of protein residues, same as ``"name CA and protein"``
-backbone (bb)   backbone atoms of protein residues, same as \
-``"name CA C O N and protein"``
-backbonefull    backbone atoms of protein residues, same as \
-``"name CA C O N H H1 H2 H3 OXT and protein"``
-bbful           same as ``backbonefull`` 
-sidechain (sc)  side-chain atoms of protein residues, same as \
-``"not name CA C O N H and protein"``
-carbon          carbon atoms, same as ``'name "C.*" and not resname ion'``
-hydrogen        hydrogen atoms, same as ``'name "[1-9]?H.*"'``
-noh             non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
-nitrogen        nitrogen atoms, same as ``'name "N.*"'``
-oxygen          oxygen atoms, same as ``'name "O.*"'``
-sulfur          sulfur atoms, same as ``'name "S.*"'``
-extended        residue in extended conformation, same as ``"secondary E"``
-helix           residue in α-helix conformation, same as ``"secondary H"``
-helix_3_10      residue in 3_10-helix conformation, same as ``"secondary G"``
-helix_pi        residue in π-helix conformation, same as ``"secondary I"``
-turn            residue in hydrogen bonded turn conformation, same as \
-``"secondary T"``
-bridge          residue in isolated beta-bridge conformation, same as \
-``"secondary B"``
-bend            residue in bend conformation, same as ``"secondary S"``
-coil            residue not in one of above conformations, same as \
-``"secondary C"``
-=============== ===============================================================
+===============  ==============================================================
+Keyword          Description
+===============  ==============================================================
+all              all atoms
+none             nothing (returns ``None``)
+hetero           non-protein/nucleic atoms, same as
+                 ``"not (protein or nucleic)"``
+calpha (ca)      Cα atoms of protein residues, same as 
+                 ``"name CA and protein"``
+backbone (bb)    backbone atoms of protein residues, same as
+                 ``"name CA C O N and protein"``
+backbonefull     backbone atoms of protein residues, same as
+                 ``"name CA C O N H H1 H2 H3 OXT and protein"``
+bbful            same as ``backbonefull`` 
+sidechain (sc)   side-chain atoms of protein residues, same as
+                 ``"not name CA C O N H and protein"``
+carbon           carbon atoms, same as ``'name "C.*" and not resname ion'``
+hydrogen         hydrogen atoms, same as ``'name "[1-9]?H.*"'``
+noh              non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
+nitrogen         nitrogen atoms, same as ``'name "N.*"'``
+oxygen           oxygen atoms, same as ``'name "O.*"'``
+sulfur           sulfur atoms, same as ``'name "S.*"'``
+extended         residue in extended conformation, same as ``"secondary E"``
+helix            residue in α-helix conformation, same as ``"secondary H"``
+helix_3_10       residue in 3_10-helix conformation, same as ``"secondary G"``
+helix_pi         residue in π-helix conformation, same as ``"secondary I"``
+turn             residue in hydrogen bonded turn conformation, same as
+                 ``"secondary T"``
+bridge           residue in isolated beta-bridge conformation, same as
+                 ``"secondary B"``
+bend             residue in bend conformation, same as ``"secondary S"``
+coil             residue not in one of above conformations, same as
+                 ``"secondary C"``
+===============  ==============================================================
 
 Among these list of backbone atom names can be changed using 
 :func:`setBackboneAtomNames`  and regular expressions for element types
@@ -455,7 +455,7 @@ KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys() +
 __doc__ += """
 
 Numerical comparisons
--------------------------------------------------------------------------------
+===============================================================================
 
 Following keywords can be used in numerical comparisons, as operands of 
 arithmetic operations or as arguments to functions:  
@@ -468,35 +468,35 @@ arithmetic operations or as arguments to functions:
 
 Numerical attributes of atoms can be used with the following comparison 
 
-========== =================================
-Comparison Description
-========== =================================
-   <       less than
-   >       greater than
-   <=      less than or equal
-   >=      greater than or equal
-   ==      equal
-   =       equal
-   !=      not equal
-========== =================================
+==========  =================================
+Comparison  Description
+==========  =================================
+   <        less than
+   >        greater than
+   <=       less than or equal
+   >=       greater than or equal
+   ==       equal
+   =        equal
+   !=       not equal
+==========  =================================
 
 *Examples:* ``"x < 0"``, ``"occupancy != 1"``
 
 Numerical attributes of atoms can be used as operands to the following 
 operators:
 
-========= ==================================
-Operation Description
-========= ==================================
-x ** y    x to the power y
-x ^ y     x to the power y
-x * y     x times y
-x / y     x divided by y
-x // y    x divided by y (floor division)
-x % y     x modulo y
-x + y     x plus y 
-x - y     x minus y
-========= ==================================
+=========  ==================================
+Operation  Description
+=========  ==================================
+x ** y     x to the power y
+x ^ y      x to the power y
+x * y      x times y
+x / y      x divided by y
+x // y     x divided by y (floor division)
+x % y      x modulo y
+x + y      x plus y 
+x - y      x minus y
+=========  ==================================
    
 These operations must be used with a numerical comparison, e.g. 
 ``"x ** 2 < 10"``, ``"x ** 2 ** 2 < 10"``, ``"occupancy != 1"``
@@ -504,27 +504,27 @@ These operations must be used with a numerical comparison, e.g.
 Numerical attributes of atoms can be used as arguments to the following 
 functions:
    
-======== ===================================
-Function Description
-======== ===================================
-abs(x)   absolute value of x 
-acos(x)  arccos of x
-asin(x)  arcsin of x
-atan(x)  arctan of x
-ceil(x)  smallest integer not less than x
-cos(x)   cosine of x
-cosh(x)  hyperbolic cosine of x
-floor(x) largest integer not greater than x 
-exp(x)   e to the power x
-log(x)   natural logarithm of x
-log10(x) base 10 logarithm of x
-sin(x)   sine of x
-sinh(x)  hyperbolic sine of x
-sq(x)    square of x
-sqrt(x)  square-root of x
-tan(x)   tangent of x
-tanh(x)  hyperbolic tangent of x
-======== ===================================
+========  ===================================
+Function  Description
+========  ===================================
+abs(x)    absolute value of x 
+acos(x)   arccos of x
+asin(x)   arcsin of x
+atan(x)   arctan of x
+ceil(x)   smallest integer not less than x
+cos(x)    cosine of x
+cosh(x)   hyperbolic cosine of x
+floor(x)  largest integer not greater than x 
+exp(x)    e to the power x
+log(x)    natural logarithm of x
+log10(x)  base 10 logarithm of x
+sin(x)    sine of x
+sinh(x)   hyperbolic sine of x
+sq(x)     square of x
+sqrt(x)   square-root of x
+tan(x)    tangent of x
+tanh(x)   hyperbolic tangent of x
+========  ===================================
 
 **Examples**
   
@@ -535,7 +535,7 @@ tanh(x)  hyperbolic tangent of x
 
 
 Distance based selections
--------------------------------------------------------------------------------
+===============================================================================
 
 Atoms within a user specified distance (Å) from a set of user specified atoms
 can be selected using ``within . of ..`` keyword, e.g. ``within 5 of water``
@@ -548,7 +548,7 @@ to ``within 5 of water and not water``
 
 
 Expanding selections
--------------------------------------------------------------------------------
+===============================================================================
 
 A selection can be expanded to include the atoms in the same *residue*, 
 *chain*, or *segment* using ``same .. as ..`` setting, e.g.
@@ -562,7 +562,7 @@ to Cα.  For this to work, bonds must be set by the user using :meth:`.AtomGroup
 atoms from which the bonds will originate, i.e. ``exbonded to ...``.
 
 Selection macros
--------------------------------------------------------------------------------
+===============================================================================
 
 Any valid selection string can be used to define selection macros using the 
 :func:`defSelectionMacro` function.  Macros are saved in ProDy configuration 
@@ -1341,7 +1341,10 @@ class Select(object):
                             .format(' '.join([str(tkn) for tkn in token])))
             torf = self._evaluate(sel, loc, token, evalonly=evalonly)
             if isinstance(torf, SelectionError):
-                raise torf
+                if rtrn:
+                    return torf
+                else:
+                    raise torf
             #interact(local=locals())
             if evalonly is None:
                 selection = torf
@@ -1717,8 +1720,8 @@ class Select(object):
             return zeros(n_atoms, bool)
         else:
             keyword = expandBoolean(keyword)
-            torf = self._and(sel, loc, [keyword])
-            if evalonly is None:
+            torf = self._and(sel, loc, [keyword], rtrn=True)
+            if evalonly is None or isinstance(torf, SelectionError):
                 return torf
             else:
                 return torf[evalonly] 
