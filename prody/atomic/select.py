@@ -26,12 +26,12 @@ Atom selections
 ===============================================================================
 
 
-ProDy offers a powerful atom selector. The keywords, selection grammar,
-and capabilities of the selector are similar to those found in VMD (|vmd|). 
-Small differences between the two should not affect most practical uses of 
-atom selections. ProDy selection engine also enables the identification of 
-intermolecular contacts. This section describes the keywords and selection 
-syntax.
+ProDy offers a powerful atom selector for :class:`~.AtomGroup` and other 
+:mod:`~prody.atomic` classes.  The keywords, selection grammar, and features 
+of the selector are similar to those found in VMD (|vmd|).  Small differences 
+between the two should not affect most practical uses of atom selections. 
+ProDy selection engine also enables the identification of intermolecular 
+contacts.  This section describes the keywords and selection syntax.
 
 |more| See :ref:`contacts` and :ref:`selection-operations` for more usage
 examples.
@@ -71,6 +71,9 @@ index            integer, range   internal atom number (starts from 0)
 serial           integer, range   atom serial number (parsed from file)
 resnum [§]       integer, range   residue number
 resid [§]        integer, range   same as *resnum*
+resindex [¶]     integer, range   unique index number for distinct residues  
+chindex [¶]      integer, range   unique index number for distinct chains
+segindex [¶]     integer, range   unique index number for distinct segments
 x                float, range     x coordinate
 y                float, range     y coordinate
 z                float, range     z coordinate
@@ -102,6 +105,12 @@ to the residue number. "_" stands for empty insertion code. For example:
   * ``"resnum 5"`` selects residue 5 (all insertion codes)
   * ``"resnum 5A"`` selects residue 5 with insertion code A
   * ``"resnum 5_"`` selects residue 5 with no insertion code
+
+**[¶]** Distinct residues, chains, and segments can be selected using 
+*resindex*, *chindex*, and *segindex* keywords, respectively.  Unique
+numbers to these entitites are assigned by :class:`~.HierView` class
+upon building of a hierarchical view for an :class:`~.AtomGroup`.
+Note that hierarchical views are build automatically when needed.
 
 **Strings (with special characters)**
 
@@ -171,7 +180,7 @@ import re as RE
 from types import NoneType
 
 import numpy as np
-from numpy import ndarray, ones, zeros, invert 
+from numpy import ndarray, ones, zeros, invert, unique, concatenate 
 
 import pyparsing as pp
 pp.ParserElement.enablePackrat()
@@ -193,7 +202,7 @@ from prody.tools import rangeString
 from prody.KDTree import getKDTree
 
 DEBUG = 0
-#from code import interact
+from code import interact
 
 __all__ = ['Select',
            'getKeywordResnames', 'setKeywordResnames',
@@ -1483,7 +1492,7 @@ class Select(object):
         indices = self._getData(sel, loc, xindex)
         if isinstance(indices, SelectionError):
             return indices
-        return self._evalFloat(sel, loc, xindex, np.unique(indices[which]))
+        return self._evalFloat(sel, loc, xindex, unique(indices[which]))
      
     def _bondedto(self, sel, loc, token, exclude):
         """Expand selection to immediately bonded atoms."""
@@ -1501,7 +1510,7 @@ class Select(object):
             bmap = bmap[which]
         else:
             bmap = bmap[self._indices[which]]
-        bonded = np.unique(bmap)
+        bonded = unique(bmap)
         torf = zeros(self._ag.numAtoms(), bool)
         torf[bonded[1:]] = True 
         if self._indices is not None:
@@ -1851,36 +1860,46 @@ class Select(object):
         return torf
 
     def _serial(self, sel, loc, token=None, evalonly=None):
-        """Evaluate "serial" keyword."""
+        """Evaluate *serial* keyword."""
         
         if DEBUG: print('_serial', token)
-        serials = self._getData(sel, loc, 'serial')
-        if token is None or isinstance(serials, SelectionError):
-            return serials
-    
-        n_atoms = self._n_atoms
-        if evalonly is not None:
-            serials = serials[evalonly]
-            n_atoms = len(evalonly)
-        torf = zeros(n_atoms, np.bool)
+        
+        if token is None:
+            return self._getData(sel, loc, 'serial')
+
+        try:
+            sn2i = self._ag._getSN2I()
+        except (AttributeError, ValueError) as err:
+            return SelectionError(sel, loc, str(err))
         
         numbers = self._getNumRange(sel, loc, token)
         if isinstance(numbers, SelectionError):
             return numbers
-    
+        indices = []
         for item in numbers:
             if isinstance(item, list):
-                torf[(item[0] <= serials) * (serials <= item[1])] = True
+                indices.append(sn2i[int(np.ceil(item[0])):
+                                    int(np.floor(item[1]))+1])
             elif isinstance(item, tuple):
                 if len(item) == 2:
-                    torf[(item[0] <= serials) * (serials < item[1])] = True
+                    indices.append(sn2i[item[0]:item[1]])
                 else:
-                    for i in range(item[0], item[1], item[2]):
-                        torf[serials == i] = True
+                    indices.append(sn2i[item[0]:item[1]:item[2]])
             else:
-                torf[serials == item] = True
-        if DEBUG: print('_serial n_selected', torf.sum())
-        return torf
+                indices.append([sn2i[item]])
+
+        indices = unique(concatenate(indices))
+        torf = zeros(self._ag.numAtoms(), bool)
+        if indices[0] == -1:
+            torf[indices[1:]] = True
+        else: 
+            torf[indices] = True
+        if self._indices is not None:
+            torf = torf[self._indices]
+        if evalonly is None:
+            return torf
+        else:
+            return torf[evalonly]
     
     def _index(self, sel, loc, token=None, evalonly=None):
         """Evaluate "index" keyword."""
@@ -1903,8 +1922,7 @@ class Select(object):
                     else:
                         torf[item[0]:item[1]:item[2]] = True
                 elif isinstance(item, list):
-                    torf[int(np.ceil(item[0])):int(
-                                        np.floor(item[1]))+1] = True
+                    torf[int(np.ceil(item[0])):int(np.floor(item[1]))+1] = True
                 else:
                     torf[item] = True
             except IndexError:
@@ -1944,7 +1962,7 @@ class Select(object):
                 # boundaries are placed in a LIST
                 items = item.split('to')
                 if len(items) != 2:
-                    raise SelectionError(sel, loc, "'{0:s}' is not understood."
+                    return SelectionError(sel, loc, "'{0:s}' is not understood"
                                          .format(' to '.join(items)))
                 try:
                     token.append([float(items[0]), float(items[1])])
@@ -1956,7 +1974,7 @@ class Select(object):
                 # boundaries are placed in a TUPLE
                 items = item.split(':')
                 if not len(items) in (2, 3):
-                    raise SelectionError(sel, loc, "'{0:s}' is not understood."
+                    return SelectionError(sel, loc, "'{0:s}' is not understood"
                                          .format(':'.join(items)))
                 try:
                     if len(items) == 2:
