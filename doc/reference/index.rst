@@ -18,4 +18,5 @@ module.  Some documentation pages include usage examples.
    measure/index
    proteins/index
    trajectory/index
+   tools
    tests

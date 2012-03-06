@@ -40,7 +40,7 @@ Release 1.0 (in development)
     :func:`~.calcCollectivity` function instead.
   
   * :meth:`Mode.getFractOfVariance` method is removed, use the new 
-    :func:`~.calcFractVariance` function instead.
+    :func:`~.calcFractVars` function instead.
   
   * :meth:`Mode.getSqFlucts` method is removed, use :func:`~.calcSqFlucts` 
     function instead.
