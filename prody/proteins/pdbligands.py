@@ -91,8 +91,8 @@ def fetchPDBLigand(cci, filename=None):
                 makePath(folder)
             xmlgz = os.path.join(folder, cci + '.xml.gz')
             if os.path.isfile(xmlgz):
-                LOGGER.info('Reading {0:s} ligand XML from local folder.'
-                            .format(cci))
+                LOGGER.info('Parsing XML file for {0:s} from local folder.'
+                             .format(cci))
                 with openFile(xmlgz) as inp:
                     xml = inp.read()
         url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}'
