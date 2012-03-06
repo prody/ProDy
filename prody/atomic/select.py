@@ -99,9 +99,9 @@ with a whitespace.
 distinguished with insertion codes, the insertion code can be appended
 to the residue number. "_" stands for empty insertion code. For example:
     
-  * ``"resnum 5"`` selects residue 5 (all insertion codes)
-  * ``"resnum 5A"`` selects residue 5 with insertion code A
-  * ``"resnum 5_"`` selects residue 5 with no insertion code
+  * ``'resnum 5'`` selects residue 5 (all insertion codes)
+  * ``'resnum 5A'`` selects residue 5 with insertion code A
+  * ``'resnum 5_'`` selects residue 5 with no insertion code
 
 **[¶]** Distinct residues, chains, and segments can be selected using 
 *resindex*, *chindex*, and *segindex* keywords, respectively.  Unique
@@ -124,27 +124,27 @@ For example ``"name C' N` O~ C$ C#"`` is a valid selection string.
 **Integers and floats**
 
 Numbers can be provided as integers or floats, and they will be converted to
-appropriate type. For example ``"resnum 10 11.0"`` will select residues
-with number 10 and 11, but ``"resnum 10.5"`` will not select anything.
+appropriate type. For example ``'resnum 10 11.0'`` will select residues
+with number 10 and 11, but ``'resnum 10.5'`` will not select anything.
 
 Negative numbers must be entered between grave accent symbols, 
-e.g. ``"resnum `-3`"``
+e.g. ``'resnum `-3`'``
 
 **Number ranges**
 
 Number ranges can be passed as follows:
     
-  * ``"resnum 5 10 to 15"`` selects residues 5, 10, 11, 12, 13, 14, and 15
-  * ``"resnum 5 10:15"`` selects residues 5, 10, 11, 12, 13, and 14 
+  * ``'resnum 5 10 to 15'`` selects residues 5, 10, 11, 12, 13, 14, and 15
+  * ``'resnum 5 10:15'`` selects residues 5, 10, 11, 12, 13, and 14 
     (:, colon, works as it does in Python slicing operations)
-  * ``"resnum 1:10:2"`` selects residues 1, 3, 5, 7, and 9
-  * ``"x 1 to 10"`` selects atoms whose x coordinates are greater or equal to 1
+  * ``'resnum 1:10:2'`` selects residues 1, 3, 5, 7, and 9
+  * ``'x 1 to 10'`` selects atoms whose x coordinates are greater or equal to 1
     or smaller or equal to 10  
-  * ``"x 1:10"`` selects atoms whose x coordinates are greater or equal to 1
+  * ``'x 1:10'`` selects atoms whose x coordinates are greater or equal to 1
     or smaller or equal to 10
     
 Number ranges involving negative numbers must be entered between grave accent 
-symbols, e.g. ``"resnum `-3 to 10`"``, ``"resnum `-3:10:2`"``
+symbols, e.g. ``'resnum `-3 to 10`'``, ``'resnum `-3:10:2`'``
 
 **More special characters (``)**
 
@@ -153,7 +153,7 @@ when they are surrounded by grave accent character (``):
   
   ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"
 
-For example ``"name `CA#` `C #`"`` will work.
+For example ``'name `CA#` `C #`'`` will work.
 
 **Regular expressions ("")**
 
@@ -330,8 +330,8 @@ directly:
 keys = KEYWORD_RESNAMES_READONLY.keys()
 keys.sort()
 for key in keys:
-    __doc__ += '  * ``"{0:s}"`` is ``"{1:s}"``\n'.format(
-        key, KEYWORD_RESNAMES_READONLY[key])
+    __doc__ += '  * ``{0:s}`` is ``{1:s}``\n'.format(
+        repr(key), repr(KEYWORD_RESNAMES_READONLY[key]))
 
 __doc__ += """
 
@@ -341,35 +341,35 @@ Following are additional keywords whose definitions are more restricted:
 Keyword          Description
 ===============  ==============================================================
 all              all atoms
-none             nothing (returns ``None``)
+none             nothing (returns **None**)
 hetero           non-protein/nucleic atoms, same as
-                 ``"not (protein or nucleic)"``
+                 ``'not (protein or nucleic)'``
 calpha (ca)      Cα atoms of protein residues, same as 
-                 ``"name CA and protein"``
+                 ``'name CA and protein'``
 backbone (bb)    backbone atoms of protein residues, same as
-                 ``"name CA C O N and protein"``
+                 ``'name CA C O N and protein'``
 backbonefull     backbone atoms of protein residues, same as
-                 ``"name CA C O N H H1 H2 H3 OXT and protein"``
-bbful            same as ``backbonefull`` 
+                 ``'name CA C O N H H1 H2 H3 OXT and protein'``
+bbful            same as ``'backbonefull'`` 
 sidechain (sc)   side-chain atoms of protein residues, same as
-                 ``"not name CA C O N H and protein"``
+                 ``'not name CA C O N H and protein'``
 carbon           carbon atoms, same as ``'name "C.*" and not resname ion'``
 hydrogen         hydrogen atoms, same as ``'name "[1-9]?H.*"'``
 noh              non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
 nitrogen         nitrogen atoms, same as ``'name "N.*"'``
 oxygen           oxygen atoms, same as ``'name "O.*"'``
 sulfur           sulfur atoms, same as ``'name "S.*"'``
-extended         residue in extended conformation, same as ``"secondary E"``
-helix            residue in α-helix conformation, same as ``"secondary H"``
-helix_3_10       residue in 3_10-helix conformation, same as ``"secondary G"``
-helix_pi         residue in π-helix conformation, same as ``"secondary I"``
+extended         residue in extended conformation, same as ``'secondary E'``
+helix            residue in α-helix conformation, same as ``'secondary H'``
+helix_3_10       residue in 3_10-helix conformation, same as ``'secondary G'``
+helix_pi         residue in π-helix conformation, same as ``'secondary I'``
 turn             residue in hydrogen bonded turn conformation, same as
-                 ``"secondary T"``
+                 ``'secondary T'``
 bridge           residue in isolated beta-bridge conformation, same as
-                 ``"secondary B"``
-bend             residue in bend conformation, same as ``"secondary S"``
+                 ``'secondary B'``
+bend             residue in bend conformation, same as ``'secondary S'``
 coil             residue not in one of above conformations, same as
-                 ``"secondary C"``
+                 ``'secondary C'``
 ===============  ==============================================================
 
 Among these list of backbone atom names can be changed using 
@@ -480,7 +480,7 @@ Comparison  Description
    !=       not equal
 ==========  =================================
 
-*Examples:* ``"x < 0"``, ``"occupancy != 1"``
+*Examples:* ``'x < 0'``, ``'occupancy != 1'``
 
 Numerical attributes of atoms can be used as operands to the following 
 operators:
@@ -499,7 +499,7 @@ x - y      x minus y
 =========  ==================================
    
 These operations must be used with a numerical comparison, e.g. 
-``"x ** 2 < 10"``, ``"x ** 2 ** 2 < 10"``, ``"occupancy != 1"``
+``'x ** 2 < 10'``, ``'x ** 2 ** 2 < 10'``, ``'occupancy != 1'``
    
 Numerical attributes of atoms can be used as arguments to the following 
 functions:
@@ -528,9 +528,9 @@ tanh(x)   hyperbolic tangent of x
 
 **Examples**
   
-  * ``"sqrt(x**2 + y**2 + z**2) < 10"`` selects atoms within 10 Å of the 
+  * ``'sqrt(x**2 + y**2 + z**2) < 10'`` selects atoms within 10 Å of the 
     origin
-  * ``"resnum <= 100"`` selects atoms with residue numbers less than or equal 
+  * ``'resnum <= 100'`` selects atoms with residue numbers less than or equal 
     to 100  
 
 
@@ -650,8 +650,8 @@ def defSelectionMacro(name, selstr):
     try:
         ATOMGROUP.select(selstr)
     except SelectionError:
-        LOGGER.warn("{0:s} is not a valid selection string, macro {1:s}"
-                    " is not defined.".format(repr(selstr), repr(name)))
+        LOGGER.warn('{0:s} is not a valid selection string, macro {1:s} is not'
+                    'defined.'.format(repr(selstr), repr(name)))
     else:
         LOGGER.info("Macro {0:s} is defined as {1:s}."
                     .format(repr(name), repr(selstr)))
@@ -702,7 +702,7 @@ def getKeywordResnames(keyword):
         return resnames  
     except KeyError:
         if keyword in KEYWORD_RESNAMES_READONLY:
-            LOGGER.warn("{0:s} is defined as {1:s}".format(repr(keyword), 
+            LOGGER.warn('{0:s} is defined as {1:s}'.format(repr(keyword), 
                                     repr(KEYWORD_RESNAMES_READONLY[keyword])))
         else:
             LOGGER.warn("{0:s} is not a keyword".format(repr(keyword)))
@@ -953,8 +953,8 @@ class Select(object):
                 try:
                     regexp = RE.compile('^(' + token[1] + ')$')
                 except:
-                    raise SelectionError(sel, loc, "failed to compile regular "
-                                    "expression {0:s}".format(repr(token[1])))
+                    raise SelectionError(sel, loc, 'failed to compile regular '
+                                    'expression {0:s}'.format(repr(token[1])))
                 else:
                     return regexp  
         regularexp.setParseAction(regularExpParseAction)
@@ -1270,7 +1270,7 @@ class Select(object):
                               .format(repr(' '.join(tkns))))
 
     def _or(self, sel, loc, tokens):
-        """Evaluate statements containing ``"or"`` operator."""
+        """Evaluate statements containing ``'or'`` operator."""
         
         if DEBUG: print('_or\n_or tokens '+str(tokens))
         previous = None
@@ -1313,7 +1313,7 @@ class Select(object):
         return selection
 
     def _and(self, sel, loc, tokens, rtrn=False):
-        """Evaluate statements containing ``"and"`` operator."""
+        """Evaluate statements containing ``'and'`` operator."""
         
         if DEBUG: print('_and\n_and tokens '+str(tokens))
         evalonly = None
@@ -1475,7 +1475,7 @@ class Select(object):
         return torf
     
     def _sameas(self, sel, loc, token):
-        """Evaluate ``"same entity as ..."`` expression."""
+        """Evaluate ``'same entity as ...'`` expression."""
         
         if DEBUG: print('_sameas', token)
         what = token[0].split()[1]
