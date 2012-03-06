@@ -170,7 +170,7 @@ because location of methods in submodules may change without notice.
    from prody import *
    import matplotlib.pyplot as plt
    import numpy as np
-   prot = parsePDB('1p38')
+   structure = parsePDB('1p38')
 
    plt.close('all')
 
@@ -183,7 +183,7 @@ ProDy.  PDB files are parsed using :func:`~.parsePDB` (see
 benchmarks).  It is sufficient to pass a PDB identifier to read the file, and 
 the parser will download it automatically if needed.
 
->>> prot = parsePDB('1p38')
+>>> structure = parsePDB('1p38')
 
 In the above line, :file:`1p38.pdb` is downloaded and coordinates and atomic 
 data are parsed from the file. 
@@ -215,7 +215,7 @@ a quick look at what you parsed using :func:`~.showProtein` function:
 
 >>> import matplotlib.pyplot as plt
 >>> plt.figure(figsize=(5,4)) # doctest: +SKIP
->>> showProtein(prot) # doctest: +SKIP
+>>> showProtein(structure) # doctest: +SKIP
 >>> plt.legend(prop={'size': 10}) # doctest: +SKIP
 
 .. plot::
@@ -223,7 +223,7 @@ a quick look at what you parsed using :func:`~.showProtein` function:
    
    import matplotlib.pyplot as plt
    plt.figure(figsize=(5,4))
-   showProtein(prot)
+   showProtein(structure)
    plt.legend(prop={'size': 10})
 
    
@@ -243,16 +243,16 @@ Atomic data
 To get information on an :class:`~.AtomGroup` instance, 
 type in the variable name and hit :kbd:`enter` key:
 
->>> prot
+>>> structure
 <AtomGroup: 1p38 (2962 atoms)>
 
 The above shows that atom group object contains 2962 atoms. 
 All atomic data from this object can be retrieved using ``get`` methods. 
 For example:
 
->>> print( prot.getResnames() )
+>>> print( structure.getResnames() )
 ['GLU' 'GLU' 'GLU' ..., 'HOH' 'HOH' 'HOH']
->>> print( prot.getCoords() ) # doctest: +ELLIPSIS
+>>> print( structure.getCoords() ) # doctest: +ELLIPSIS
 [[ 28.492   3.212  23.465]
  [ 27.552   4.354  23.629]
  ...
@@ -267,7 +267,7 @@ The list of methods for getting and setting atomic data is provided in
 An individual :class:`~.Atom` can be accessed by indexing atom group 
 instances:
 
->>> atom = prot[0]
+>>> atom = structure[0]
 >>> atom
 <Atom: N from 1p38 (index 0)>
 
@@ -283,7 +283,7 @@ form of the function name.
 It is also possible to get a slice of an atom group, for example we can get
 every other atom as follows:
 
->>> prot[::2]
+>>> structure[::2]
 <Selection: "index 0:2962:2" from 1p38 (1481 atoms)>
 
 Hierarchical view
@@ -292,13 +292,13 @@ Hierarchical view
 You can also access specific chains or residues in an atom group.  Indexing
 by a single letter identifier will return a :class:`~.Chain` instance: 
 
->>> prot['A']
+>>> structure['A']
 <Chain: A from 1p38 (480 residues, 2962 atoms)>
 
 Indexing atom group with a chain identifier and a residue number will return
 :class:`~.Residue` instance:
 
->>> prot['A', 100]
+>>> structure['A', 100]
 <Residue: ASN 100 from Chain A from 1p38 (8 atoms)>
 
 See :ref:`atomic` for details of indexing atom groups and :ref:`hierview`
@@ -313,12 +313,12 @@ The function accepts objects containing or referring to atomic data.
 
 Writing selected atoms:
 
->>> writePDB('1p38_calphas.pdb', prot.select('calpha'))
+>>> writePDB('1p38_calphas.pdb', structure.select('calpha'))
 '1p38_calphas.pdb'
 
 Writing a chain:
 
->>> chain_A = prot['A']
+>>> chain_A = structure['A']
 >>> writePDB('1p38_chain_A.pdb', chain_A)
 '1p38_chain_A.pdb'
 
@@ -360,7 +360,7 @@ Some examples are shown here:
 Keyword selections
 -------------------------------------------------------------------------------
 
->>> protein = prot.select('protein')
+>>> protein = structure.select('protein')
 >>> protein
 <Selection: "protein" from 1p38 (2833 atoms)>
 
@@ -378,7 +378,7 @@ Select by name/type
 
 We select backbone atoms by passing atom names following "name" keyword:
 
->>> backbone = prot.select('protein and name N CA C O')
+>>> backbone = structure.select('protein and name N CA C O')
 >>> backbone
 <Selection: "protein and name N CA C O" from 1p38 (1404 atoms)>
 >>> len(backbone)
@@ -389,12 +389,12 @@ We can also use "backbone" to make the same selection.
 We select acidic and basic residues by using residue names with 
 "resname" keyword:
 
->>> prot.select('resname ARG LYS HIS ASP GLU')
+>>> structure.select('resname ARG LYS HIS ASP GLU')
 <Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms)>
 
 Alternatively, we can use predefined keywords "acidic" and "basic".
 
->>> charged = prot.select('acidic or basic')
+>>> charged = structure.select('acidic or basic')
 >>> charged
 <Selection: "acidic or basic" from 1p38 (906 atoms)>
 >>> set(charged.getResnames())
@@ -404,21 +404,28 @@ Composite selections
 -------------------------------------------------------------------------------
 
 Let's try a more sophisticated selection.  We first calculate the geometric 
-center of the protein atoms. Then, we select the Cα and Cβ atoms of residues 
-that have at least one atom within 10 Å away from the geometric center.
+center of the protein atoms using :func:`~.calcCenter` function.  Then, we 
+select the Cα and Cβ atoms of residues that have at least one atom within 
+10 Å away from the geometric center.
 
->>> print( protein.getCoords().mean(0).round(3) ) # doctest: +ELLIPSIS
+>>> center = calcCenter(protein).round(3)
+>>> print( center )
 [  1.005  17.533  40.052]
->>> prot.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
+>>> structure.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
 <Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms)>
+
+Alternatively, this selection could be done as follows:
+
+>>> structure.select('protein and name CA CB and same residue as within 10 of center', center=center)
+<Selection: "index 576 to 57...07 to 1707 1710" from 1p38 (66 atoms)>
 
 Selection operations
 -------------------------------------------------------------------------------
 
-:class:`~.Selection` instances can be
+:class:`~.Selection` instances can used with bitwise operators:
 
->>> ca = prot.select('name CA') 
->>> cb = prot.select('name CB')
+>>> ca = structure.select('name CA') 
+>>> cb = structure.select('name CB')
 >>> ca | cb
 <Selection: "(name CA) or (name CB)" from 1p38 (687 atoms)>
 >>> ca & cb
@@ -430,17 +437,17 @@ In interactive sessions, typing in ``.select('backbone')`` or even
 ``.select('bb')`` may be time consuming.  An alternative to this is using
 dot operator:
 
->>> prot.protein
+>>> structure.protein
 <Selection: "protein" from 1p38 (2833 atoms)>
 
 You can use dot operator multiple times:
 
->>> prot.protein.backbone
+>>> structure.protein.backbone
 <Selection: "(backbone) and (protein)" from 1p38 (1404 atoms)>
 
 This may go on and on:
 
->>> prot.protein.backbone.resname_ALA.calpha
+>>> structure.protein.backbone.resname_ALA.calpha
 <Selection: "(calpha) and ((...and (protein)))" from 1p38 (26 atoms)>
 
 
