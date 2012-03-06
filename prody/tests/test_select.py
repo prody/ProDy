@@ -43,9 +43,11 @@ TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
 # If two selection strings are paired, they must select exactly same of atoms
 # Else, number must be the number atoms that the string is expected to select 
 
+pdb3mht = prody.parsePDB(getDatafilePath('pdb3mht.pdb'), secondary=True)
+
 SELECTION_TESTS = {'pdb3mht':
-    {'n_atoms': 3211,
-     'ag': prody.parsePDB(getDatafilePath('pdb3mht.pdb'), secondary=True),
+    {'n_atoms': len(pdb3mht),
+     'ag': pdb3mht,
      'keyword':     [('none', 0),
                      ('all', 3211),
                      ('acidic', 334),
@@ -192,6 +194,8 @@ SELECTION_TESTS = {'pdb3mht':
                       'exwithin 4 of water'),
                      ('within 5 of within 5 of within 5 of index 0', 135),
                      ('exwithin 5 of exwithin 5 of exwithin 5 of index 0', 99),
+                     ('within 1 of pdb', 3211, None, {'pdb': pdb3mht}),
+                     ('exwithin 1 of pdb', 3211, None, {'pdb': pdb3mht}),
                      ],
      'sameas':      [('same residue as index 0', 22),
                      ('same chain as index 0', 248),   
