@@ -555,11 +555,11 @@ A selection can be expanded to include the atoms in the same *residue*,
 ``same residue as exwithin 4 of water`` will select residues that have
 at least an atom within 4 Å of any water molecule.
 
-Additional, a selection may be expanded the immediately bonded atoms using
+Additionally, a selection may be expanded to the immediately bonded atoms using
 ``bonded to ...`` method, e.f. ``bonded to calpha`` will select atoms bonded 
 to Cα.  For this to work, bonds must be set by the user using :meth:`.AtomGroup
 .setBonds` method.  It is also possible to select bonded atoms by excluding the
-atoms from which the bonds will originate, i.e. ``exbonded to ...``.
+atoms from which the bonds will originate, i.e. ``exbonded to ...``.  
 
 Selection macros
 ===============================================================================
@@ -640,21 +640,21 @@ def defSelectionMacro(name, selstr):
     if not isinstance(name, str) or not isinstance(selstr, str):
         raise TypeError('both name and selstr must be strings')
     elif isKeyword(name):
-        raise ValueError("'{0:s}' is an existing keyword, cannot be used as a "
-                         "macro name".format(name))
+        raise ValueError("{0:s} is an existing keyword, cannot be used as a "
+                         "macro name".format(repr(name)))
     elif not (name.isalpha() and name.islower()):
         raise ValueError('macro names must be all lower case letters, {0:s} '
-                         'is not a valid macro name'.format(name))
+                         'is not a valid macro name'.format(repr(name)))
     
     LOGGER.info('Testing validity of selection string:')
     try:
         ATOMGROUP.select(selstr)
     except SelectionError:
-        LOGGER.warn("'{0:s}' is not a valid selection string, macro '{1:s}'"
-                    " is not defined.".format(selstr, name))
+        LOGGER.warn("{0:s} is not a valid selection string, macro {1:s}"
+                    " is not defined.".format(repr(selstr), repr(name)))
     else:
-        LOGGER.info("Macro '{0:s}' is defined as '{1:s}'."
-                    .format(name, selstr))
+        LOGGER.info("Macro {0:s} is defined as {1:s}."
+                    .format(repr(name), repr(selstr)))
         MACROS[name] = selstr
         SETTINGS['selection_macros'] = MACROS
         SETTINGS.save()
@@ -667,9 +667,9 @@ def delSelectionMacro(name):
     try:
         MACROS.pop(name)
     except:
-        LOGGER.warn("Macro '{0:s}' is not found.".format(name))
+        LOGGER.warn("Macro {0:s} is not found.".format(repr(name)))
     else:
-        LOGGER.info("Macro '{0:s}' is deleted.".format(name))
+        LOGGER.info("Macro {0:s} is deleted.".format(repr(name)))
         SETTINGS['selection_macros'] = MACROS
         SETTINGS.save()
 
@@ -682,7 +682,8 @@ def getSelectionMacro(name=None):
     try:
         return MACROS[name]
     except KeyError:
-        LOGGER.info("'{0:s}' is not a user defined macro name.".format(name))
+        LOGGER.info("{0:s} is not a user defined macro name."
+                    .format(repr(name)))
 
 mapField2Var = {}
 for field in ATOMIC_FIELDS.values():
@@ -701,10 +702,10 @@ def getKeywordResnames(keyword):
         return resnames  
     except KeyError:
         if keyword in KEYWORD_RESNAMES_READONLY:
-            LOGGER.warn("'{0:s}' is defined as '{1:s}'".format(keyword, 
-                                        KEYWORD_RESNAMES_READONLY[keyword]))
+            LOGGER.warn("{0:s} is defined as {1:s}".format(repr(keyword), 
+                                    repr(KEYWORD_RESNAMES_READONLY[keyword])))
         else:
-            LOGGER.warn("'{0:s}' is not a keyword".format(keyword))
+            LOGGER.warn("{0:s} is not a keyword".format(repr(keyword)))
 
 def setKeywordResnames(keyword, resnames):
     """Change the list of residue names associated with a keyword.  *keyword* 
@@ -723,8 +724,8 @@ def setKeywordResnames(keyword, resnames):
         raise TypeError('all items in resnames must be string instances')
     
     if keyword in KEYWORD_RESNAMES_READONLY:
-        LOGGER.warn("'{0:s}' is defined as '{1:s}' and cannot be changed "
-               "directly".format(keyword, KEYWORD_RESNAMES_READONLY[keyword]))
+        LOGGER.warn("{0:s} is defined as {1:s} and cannot be changed directly"
+            .format(repr(keyword), repr(KEYWORD_RESNAMES_READONLY[keyword])))
         return
     if keyword in KEYWORD_RESNAMES:
         for rn in resnames:
@@ -733,7 +734,7 @@ def setKeywordResnames(keyword, resnames):
         KEYWORD_RESNAMES[keyword] = list(set(resnames))
         _setReadonlyResidueNames()
     else:
-        raise ValueError("'{0:s}' is not a valid keyword".format(keyword))
+        raise ValueError("{0:s} is not a valid keyword".format(repr(keyword)))
 
 def getAtomNameRegex(name):
     """Return regular expression used for selecting common elements.
@@ -755,14 +756,14 @@ def setAtomNameRegex(name, regex):
     
     assert isinstance(name, str), 'name must be a string instance'
     if not name in KEYWORD_NAME_REGEX:
-        raise ValueError("'{0:s}' is not a valid keyword".format(name))
+        raise ValueError("{0:s} is not a valid keyword".format(repr(name)))
     if not isinstance(regex, str):
         raise TypeError("regex must be a string instance")
     try:
         regex = RE.compile(regex)
     except:
-        raise ValueError("'{0:s}' is not a valid regular expression"
-                         .format(regex))
+        raise ValueError("{0:s} is not a valid regular expression"
+                         .format(repr(regex)))
     else:
         KEYWORD_NAME_REGEX[name] = regex
 
@@ -805,7 +806,7 @@ class SelectionError(Exception):
     
     def __init__(self, sel='', loc=0, msg=''):
         
-        msg = ("'{0:s}' is not a valid selection string\n".format(sel) +
+        msg = ("{0:s} is not a valid selection string\n".format(repr(sel)) +
                ' ' * (loc + 17) + '^ ' + msg)
         Exception.__init__(self, msg)
 
@@ -953,7 +954,7 @@ class Select(object):
                     regexp = RE.compile('^(' + token[1] + ')$')
                 except:
                     raise SelectionError(sel, loc, "failed to compile regular "
-                                        "expression '{0:s}'".format(token[1]))
+                                    "expression {0:s}".format(repr(token[1])))
                 else:
                     return regexp  
         regularexp.setParseAction(regularExpParseAction)
@@ -973,6 +974,7 @@ class Select(object):
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
               (pp.Keyword(NOT) |
                pp.Regex('(ex)?bonded to') |
+               pp.Regex('(ex)?bonded [0-9]+ to') |
                pp.Regex('same [a-z]+ as') | 
                pp.Regex('(ex)?within [0-9]+\.?[0-9]* of'), 
                         1, pp.opAssoc.RIGHT, self._unary),
@@ -1011,9 +1013,9 @@ class Select(object):
         if any([isReserved(key) for key in kwargs.iterkeys()]):   
             for key in kwargs.iterkeys():
                 if isReserved(key):
-                    raise SelectionError(selstr, selstr.find(key), "'{0:s}' "
+                    raise SelectionError(selstr, selstr.find(key), "{0:s} "
                         "is a reserved word and cannot be used as a keyword "
-                        "argument".format(key))            
+                        "argument".format(repr(key)))
 
         if isinstance(atoms, AtomGroup): 
             self._ag = atoms
@@ -1098,8 +1100,9 @@ class Select(object):
             
         elif isinstance(atoms, AtomMap):
             return AtomMap(ag, indices, np.arange(len(indices)), 
-                     np.array([]), 'Selection "{0:s}" from AtomMap {1:s}'
-                    .format(selstr, atoms.getTitle()), atoms.getACSIndex())
+                     np.array([]), 'Selection {0:s} from AtomMap {1:s}'
+                    .format(repr(selstr), atoms.getTitle()), 
+                            atoms.getACSIndex())
         else:
             if self._ss2idx:
                 selstr = 'index {0:s}'.format(rangeString(indices))
@@ -1213,8 +1216,8 @@ class Select(object):
             elif self._ag.isData(tkns):
                 return self._evalUserdata(sel, loc, tkns, evalonly=evalonly)
             else:
-                return SelectionError(sel, loc, "'{0:s}' is not understood"
-                                      .format(tkns))
+                return SelectionError(sel, loc, "{0:s} is not understood"
+                                      .format(repr(tkns)))
         elif isinstance(tkns, (ndarray, float)):
             return tkns
     
@@ -1262,8 +1265,9 @@ class Select(object):
         elif self._ag.isData(keyword):
             return self._evalUserdata(sel, loc, keyword, tkns[1:], 
                                       evalonly=evalonly)
-        return SelectionError(sel, loc, "'{0:s}' is not understood"
-                              .format(' '.join(tkns)), )
+        
+        return SelectionError(sel, loc, "{0:s} is not understood"
+                              .format(repr(' '.join(tkns))))
 
     def _or(self, sel, loc, tokens):
         """Evaluate statements containing ``"or"`` operator."""
@@ -1293,8 +1297,8 @@ class Select(object):
         n_tokens = len(tokens) - 1
         for i, tokens in enumerate(tokens):
             if not self._isValid(tokens):
-                raise SelectionError(sel, loc, "'{0:s}' is not a valid usage"
-                             .format(' '.join([str(tkn) for tkn in tokens])))
+                raise SelectionError(sel, loc, "{0:s} is not a valid usage"
+                         .format(repr(' '.join([str(tkn) for tkn in tokens]))))
             torf = self._evaluate(sel, loc, tokens, evalonly=evalonly)
             if isinstance(torf, SelectionError):
                 raise torf
@@ -1337,8 +1341,8 @@ class Select(object):
         for i, token in enumerate(tokens):
             
             if not self._isValid(token):
-                raise SelectionError(sel, loc, "'{0:s}' is not a valid usage"
-                            .format(' '.join([str(tkn) for tkn in token])))
+                raise SelectionError(sel, loc, "{0:s} is not a valid usage"
+                        .format(repr(' '.join([str(tkn) for tkn in token]))))
             torf = self._evaluate(sel, loc, token, evalonly=evalonly)
             if isinstance(torf, SelectionError):
                 if rtrn:
@@ -1396,8 +1400,8 @@ class Select(object):
         try:
             within = float(within)
         except:
-            return SelectionError(sel, loc, '"0:s" must be a number'
-                                  .format(within))
+            return SelectionError(sel, loc, '{0:s} must be a number'
+                                  .format(repr(within)))
         if DEBUG: print('_within', within)
         which = tokens[1]
         if not isinstance(which, ndarray):
@@ -1412,17 +1416,18 @@ class Select(object):
                 if coords.ndim == 1 and len(coords) == 3:
                     coords = np.array([coords])
                 elif not (coords.ndim == 2 and coords.shape[1] == 3):
-                    return SelectionError(sel, loc, "'{0:s}' is not a "
-                                          "coordinate array")
+                    return SelectionError(sel, loc + sel.find(which), 
+                        "{0:s} is not a coordinate array".format(repr(which)))
             else:
                 try:
                     coords = coords.getCoords()
                 except:
-                    return SelectionError(sel, loc, "'{0:s}' does not have "
-                                          "`getCoords` method".format(token))
+                    return SelectionError(sel, loc + sel.find(which), 
+                        "{0:s} does not have `getCoords` method"
+                        .format(repr(which)))
                 if not isinstance(coords, ndarray):
-                    return SelectionError(sel, loc, "coordinates of '{0:s}' "
-                                          "are not set".format(token))
+                    return SelectionError(sel, loc +  + sel.find(which), 
+                        "coordinates of {0:s} are not set".format(repr(which)))
             exclude=False
             self._ss2idx = True
             which = np.arange(len(coords))
@@ -1496,6 +1501,16 @@ class Select(object):
         """Expand selection to immediately bonded atoms."""
         
         if DEBUG: print('_bondedto', token)
+        
+        keyword = token[0].split()
+        if len(keyword) == 2:
+            repeat = 1
+        else: 
+            repeat = int(keyword[1])
+            if repeat == 0:
+                return SelectionError(sel, loc + len('bonded '), 
+                                      'number must be a greater than zero')
+
         which = token[1]
         if not isinstance(which, ndarray):
             which = self._evaluate(sel, loc, token[1:])
@@ -1504,19 +1519,29 @@ class Select(object):
         bmap = self._ag._bmap
         if bmap is None:
             return SelectionError(sel, loc, 'bonds are not set')
-        if self._indices is None:
-            bmap = bmap[which]
-        else:
-            bmap = bmap[self._indices[which]]
-        bonded = unique(bmap)
-        torf = zeros(self._ag.numAtoms(), bool)
-        torf[bonded[1:]] = True 
-        if self._indices is not None:
-            torf = torf[self._indices]
-        if exclude:
-            torf[which] = False
-        else:
-            torf[which] = True
+        
+        indices = self._indices
+        if indices is not None:
+            bmap = bmap[indices]
+        n_atoms = self._ag.numAtoms()
+        for i in xrange(repeat):
+            torf = zeros(n_atoms, bool)
+            bonded = unique(bmap[which])
+            if bonded[0] == -1:
+                torf[bonded[1:]] = True
+            else: 
+                torf[bonded] = True
+            if indices is not None:
+                torf = torf[indices]
+            if exclude:
+                torf[which] = False
+            else:
+                torf[which] = True
+            if i + 1 < repeat: 
+                which = torf.nonzero()[0]
+            #from code import interact
+            #interact(local=locals())
+            if DEBUG: print('_bondedto repeat', i+1, 'selected', len(which))
         return torf
     
     def _comp(self, sel, loc, tokens):
@@ -1630,8 +1655,8 @@ class Select(object):
             if data.dtype in (float, int):
                 return data
             else:
-                return SelectionError(sel, loc, "data type of '{0:s}' must be "
-                                      "int or float".format(token))
+                return SelectionError(sel, loc, "data type of {0:s} must be "
+                                      "int or float".format(repr(token)))
                 
         else:
             try:
@@ -1640,8 +1665,8 @@ class Select(object):
                 pass
             else:
                 return token
-        return SelectionError(sel, loc, "'{0:s}' does not have a numeric value"
-                              .format(token))
+        return SelectionError(sel, loc, "{0:s} does not have a numeric value"
+                              .format(repr(token)))
     
     def _sign(self, sel, loc, tokens):
         """Change the sign of a selection argument."""
@@ -1692,8 +1717,8 @@ class Select(object):
                 else:
                     return data[evalonly]
             else:
-                return SelectionError(sel, loc, "data type of '{0:s}' must be "
-                                      "bool".format(keyword))
+                return SelectionError(sel, loc, "data type of {0:s} must be "
+                                      "bool".format(repr(keyword)))
         else:
             if data.dtype in (int, float):
                 return self._evalFloat(sel, loc, keyword, values, 
@@ -1702,8 +1727,8 @@ class Select(object):
                 return self._evalAlnum(sel, loc, keyword, values, 
                                        evalonly=evalonly)
             else:
-                return SelectionError(sel, loc, "data type of '{0:s}' must be "
-                                      "int, float, or str".format(keyword))
+                return SelectionError(sel, loc, "data type of {0:s} must be "
+                                  "int, float, or str".format(repr(keyword)))
 
     def _evalBoolean(self, sel, loc, keyword, evalonly=None):
         """Evaluate a boolean keyword."""
@@ -1962,8 +1987,8 @@ class Select(object):
                 # boundaries are placed in a LIST
                 items = item.split('to')
                 if len(items) != 2:
-                    return SelectionError(sel, loc, "'{0:s}' is not understood"
-                                         .format(' to '.join(items)))
+                    return SelectionError(sel, loc, "{0:s} is not understood"
+                                     .format(repr(' to '.join(items))))
                 try:
                     token.append([float(items[0]), float(items[1])])
                 except:
@@ -1974,8 +1999,8 @@ class Select(object):
                 # boundaries are placed in a TUPLE
                 items = item.split(':')
                 if not len(items) in (2, 3):
-                    return SelectionError(sel, loc, "'{0:s}' is not understood"
-                                         .format(':'.join(items)))
+                    return SelectionError(sel, loc, "{0:s} is not understood"
+                                         .format(repr(':'.join(items))))
                 try:
                     if len(items) == 2:
                         token.append( (int(items[0]), int(items[1])) )
@@ -2008,17 +2033,16 @@ class Select(object):
             if field is None:
                 data = self._ag._getData(keyword)
                 if data is None:
-                    return SelectionError(sel, loc, "'{0:s}' is not a valid "
-                                          "keyword or user data label"
-                                          .format(keyword))
+                    return SelectionError(sel, loc, "{0:s} is not a valid "
+                          "keyword or user data label".format(repr(keyword)))
                 elif not isinstance(data, ndarray) and data.ndim == 1:
-                    return SelectionError(sel, loc, "'{0:s}' must be a 1d "
-                                          "array".format(keyword))
+                    return SelectionError(sel, loc, "{0:s} must be a 1d "
+                                          "array".format(repr(keyword)))
             else:
                 data = getattr(self._ag, '_get' + field.meth_pl)() 
                 if data is None:
-                    return SelectionError(sel, loc, "'{0:s}' is not set by "
-                                          "user".format(keyword))
+                    return SelectionError(sel, loc, "{0:s} is not set by "
+                                          "user".format(repr(keyword)))
             self._data[keyword] = data
         indices = self._indices
         if indices is None:               
