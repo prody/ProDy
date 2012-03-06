@@ -33,7 +33,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.intersphin
               'matplotlib.sphinxext.only_directives',
               'matplotlib.sphinxext.mathmpl',
               'sphinxcontrib.googleanalytics',
-              'sphinxcontrib.googlechart']#, 'sphinxcontrib.spelling']
+              'sphinxcontrib.googlechart',
+              'sphinxcontrib.youtube',]#, 'sphinxcontrib.spelling']
               
                #'sphinx.ext.pngmath',
 
