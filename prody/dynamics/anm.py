@@ -107,9 +107,14 @@ class ANM(GNMBase):
         :arg gamma: spring constant, default is 1.0 
         :type gamma: float, :class:`Gamma`
         
-        :arg sparse: slect to use sparse matrices. Default is ``False``. If 
+        :arg sparse: elect to use sparse matrices, default is **False**. If 
             Scipy is not found, :class:`ImportError` is raised.
         :type sparse: bool
+        
+        :arg kdtree: elect to use KDTree for building Hessian matrix, 
+            default is **False** since KDTree method is slower
+        :type kdtree: bool
+
         
         Instances of :class:`Gamma` classes and custom functions are
         accepted as *gamma* argument.        
@@ -143,7 +148,7 @@ class ANM(GNMBase):
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
             hessian = np.zeros((dof, dof), float)
-        if kwargs.get('kdtree', True):
+        if kwargs.get('kdtree', False):
             kdtree = getKDTree(coords) 
             kdtree.all_search(cutoff)
             for i, j in kdtree.all_get_indices():
@@ -166,18 +171,18 @@ class ANM(GNMBase):
                 kirchhoff[i, i] = kirchhoff[i, i] - g
                 kirchhoff[j, j] = kirchhoff[j, j] - g
         else:
-            LOGGER.info('Using the slower method for building the Hessian '
-                         'matrix.')
+            LOGGER.info('Using KDTree for building the Hessian.')
             cutoff2 = cutoff * cutoff 
             for i in range(n_atoms):
                 res_i3 = i*3
                 res_i33 = res_i3+3
-                xyz_i = coords[i, :]
-                for j in range(i+1, n_atoms):
-                    i2j = coords[j, :] - xyz_i
-                    dist2 = np.dot(i2j, i2j)
+                i_p1 = i+1
+                i2j_all = coords[i_p1:, :] - coords[i]
+                for j, dist2 in enumerate((i2j_all ** 2).sum(1)):
                     if dist2 > cutoff2:
                         continue             
+                    i2j = i2j_all[j]
+                    j += i_p1
                     g = gamma(dist2, i, j)
                     res_j3 = j*3
                     res_j33 = res_j3+3
