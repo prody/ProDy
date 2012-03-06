@@ -75,6 +75,7 @@ Following functions are for calculating atomic properties from normal modes:
   * :func:`~.calcCollectivity` - degree of collectivity of a mode
   * :func:`~.calcCovariance` - covariance matrix for given modes
   * :func:`~.calcCrossCorr` - cross-correlations of fluctuations
+  * :func:`~.calcFractVariance` - fraction of variance explained by a mode
   * :func:`~.calcPerturbResponse` - response to perturbations in positions
   * :func:`~.calcProjection` - projection of conformations onto modes
   * :func:`~.calcSqFlucts` - square-fluctuations
@@ -166,7 +167,7 @@ Arguments and keyword arguments are passed to the Matplotlib functions.
   * :func:`~.showNormedSqFlucts` - normalized square-fluctuations
   * :func:`~.showCrossProjection` - project conformations onto modes from 
     different models
-  * :func:`~.showFractOfVar` - fraction of variances
+  * :func:`~.showFractVariance` - fraction of variances
   * :func:`~.showCrossCorr` - cross-correlations between fluctuations
     in atomic positions
   * :func:`~.showCumOverlap` - cumulative overlap of a mode with multiple modes 
