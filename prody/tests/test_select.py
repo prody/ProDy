@@ -280,6 +280,16 @@ SELECTION_TESTS = {'pdb3mht':
     }
 }
 
+subsets = []
+for ch in pdb3mht.iterChains():
+    subsets.append((ch.getSelstr(), ch.numAtoms()))
+
+for i, res in enumerate(pdb3mht.iterResidues()):
+    if i % 80 == 0:
+        subsets.append((res.getSelstr(), res.numAtoms()))
+
+SELECTION_TESTS['pdb3mht']['subsets'] = subsets
+    
 try:
     ligand = fetchPDBLigand('STI')
 except:
