@@ -34,8 +34,9 @@ from gnm import GNM
 from anm import ANM
 from pca import PCA
 
-__all__ = ['extendModel', 'reduceModel', 'sliceMode', 'sliceModel',
-           'sliceVector']
+__all__ = ['extendModel', 
+           'sliceMode', 'sliceModel', 'sliceVector',
+           'reduceModel',]
 
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
@@ -88,9 +89,8 @@ def extendModel(model, nodes, atoms):
     
 
 def sliceVector(vector, atoms, selstr):
-    """Return a slice of *vector* matching *atoms* specified by *selstr*.
-    
-    Note that returned :class:`~.Vector` instance is not normalized.
+    """Return part of the *vector* for *atoms* matching *selstr*.  Note that 
+    returned :class:`~.Vector` instance is not normalized.
     
     :arg vector: vector instance to be sliced
     :type vector: :class:`~.VectorBase`
@@ -121,19 +121,17 @@ def sliceVector(vector, atoms, selstr):
                         selstr, atoms.getACSIndex())
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
-                 '{0:s} slice "{1:s}"'.format(str(vector), selstr), 
+                 '{0:s} slice {1:s}'.format(str(vector), repr(selstr)), 
                  vector.is3d())
     return (vec, sel)
 
 def sliceMode(mode, atoms, selstr):
-    """Return a slice of *mode* matching *atoms* specified by *selstr*.
-    
-    This works slightly difference from :func:`~.sliceVector`. Mode array 
-    (eigenvector) is multiplied by square-root of the variance along the mode.
-    If mode is from an elastic network model, variance is defined as the 
-    inverse of the eigenvalue.
-    
-    Note that returned :class:`~.Vector` instance is not normalized.
+    """Return part of the *mode* for *atoms* matching *selstr*.  This works 
+    slightly different from :func:`~.sliceVector`. Mode array (eigenvector) is 
+    multiplied by square-root of the variance along the mode.  If mode is from
+    an elastic network model, variance is defined as the inverse of the 
+    eigenvalue.  Note that returned :class:`~.Vector` instance is not 
+    normalized.
     
     :arg mode: mode instance to be sliced
     :type mode: :class:`~.Mode`
@@ -163,14 +161,13 @@ def sliceMode(mode, atoms, selstr):
                         selstr, atoms.getACSIndex())
     vec = Vector(mode.getArrayNx3()[
                  which,:].flatten() * mode.getVariance()**0.5,
-                 '{0:s} slice "{1:s}"'.format(str(mode), selstr), 
+                 '{0:s} slice {1:s}'.format(str(mode), repr(selstr)), 
                  mode.is3d()) 
     return (vec, sel)
 
 def sliceModel(model, atoms, selstr):
-    """Return a slice of *model* matching *atoms* specified by *selstr*.
-    
-    Note that sliced normal modes (eigenvectors) are not normalized.
+    """Return a part of the *model* for *atoms* matching *selstr*.  Note that 
+    normal modes (eigenvectors) are not normalized.
     
     :arg mode: NMA model instance to be sliced
     :type mode: :class:`~.NMA`
@@ -202,7 +199,8 @@ def sliceModel(model, atoms, selstr):
         sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
                         selstr, atoms.getACSIndex())
 
-    nma = type(model)('{0:s} slice "{1:s}"'.format(model.getTitle(), selstr))
+    nma = type(model)('{0:s} slice {1:s}'
+                      .format(model.getTitle(), repr(selstr)))
     if model.is3d():
         which = [which.reshape((len(which),1))*3]
         which.append(which[0]+1)
