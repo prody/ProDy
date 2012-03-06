@@ -72,7 +72,7 @@ def calcCollectivity(mode, masses=None):
     return coll
     
 def calcFractVariance(mode):
-    """Return fraction of variance explained by the *mode*(s).  Fraction of 
+    """Return fraction of variance explained by the *mode*.  Fraction of 
     variance is the ratio of the variance along a mode to the trace of the 
     covariance matrix of the model."""
     
