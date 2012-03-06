@@ -295,12 +295,17 @@ else:
                       'bonded to bonded to bonded to index 0'),
                      ('bonded 4 to index 0', 13, 
                       'bonded to bonded to bonded to bonded to index 0'),
+                     ('bonded 4 to index 0', 13, 
+                      'bonded 2 to bonded 2 to index 0'),
+                     ('bonded 4 to index 0', 13, 
+                      'bonded to bonded 3 to index 0'),
                      ('exbonded 1 to index 0', 3, 'exbonded to index 0'),
                      ('exbonded 2 to index 0', 5, 
                       'exbonded to exbonded to index 0'),
                      ('exbonded 3 to index 0', 5, 
                       'exbonded to exbonded to exbonded to index 0'),
-                     ('bonded 20 to index 0', 64)
+                     ('bonded 20 to index 0', 64),
+                     ('bonded 20 to index 10', 68)
                      ],
     }
 
