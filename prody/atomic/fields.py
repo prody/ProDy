@@ -156,9 +156,9 @@ class Field(object):
                 doc = self.doc
             if '(' in doc:
                 doc = doc[:doc.index('(')]
-            selex = "'``, ``'".join(selstr)
+            selex = "``, ``".join([repr(s) for s in selstr])
             selex = ("  {0:s} can be used in atom selections, e.g. "
-                     "``'{1:s}'``.").format(doc.capitalize(), selex)
+                     "``{1:s}``.").format(doc.capitalize(), selex)
             if self.synonym is not None:
                 selex = selex + ('  Note that *{0:s}* is a synonym for '
                     '*{1:s}*.').format(self.synonym, self.name)
@@ -225,15 +225,15 @@ ATOMIC_FIELDS = {
                        selstr=('radii < 1.5', 'radii ** 2 < 2.3')),
     'resindex':  Field('resindex', int, var='resindices', doc='residue index',  
                        doc_pl='residue indices', meth_pl='Resindices',
-                       selstr=('resindex 0'), readonly=True, 
+                       selstr=('resindex 0',), readonly=True, 
                        call=['getHierView']),
     'chindex':   Field('chindex', int, var='chindices', doc='chain index',  
                        doc_pl='chain indices', meth_pl='Chindices',
-                       selstr=('chindex 0'), readonly=True, 
+                       selstr=('chindex 0',), readonly=True, 
                        call=['getHierView']),
     'segindex':  Field('segindex', int, var='segindices', doc='segment index',  
                        doc_pl='segment indices', meth_pl='Segindices',
-                       selstr=['segindex 0'], readonly=True, 
+                       selstr=['segindex 0',], readonly=True, 
                        call=['getHierView']),
 }
 
