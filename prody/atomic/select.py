@@ -930,6 +930,7 @@ class Select(object):
         # set True when selection string alone cannot reproduce the selection
         self._ss2idx = False  
         self._data = dict()
+        self._replace = False
         
         shortlist = pp.alphanums + '''~@#$.:;_','''
         longlist = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
@@ -1085,6 +1086,7 @@ class Select(object):
               of atoms will be preserved."""
         
         self._ss2idx = False
+        self._replace = False
         
         indices = self.getIndices(atoms, selstr, **kwargs)
         
@@ -1106,8 +1108,16 @@ class Select(object):
         else:
             if self._ss2idx:
                 selstr = 'index {0:s}'.format(rangeString(indices))
-            elif isinstance(atoms, AtomPointer):
-                selstr = '({0:s}) and ({1:s})'.format(selstr, 
+            else:
+                if self._replace:
+                    for key, value in kwargs.iteritems():
+                        if (isinstance(value, AtomPointer) and
+                            not isinstance(value, AtomMap) and
+                            key in selstr):
+                            selstr = selstr.replace(key, 
+                                                '(' + value.getSelstr() + ')')
+                if isinstance(atoms, AtomPointer):
+                    selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                       atoms.getSelstr())
             
             return Selection(ag, indices, selstr, atoms.getACSIndex(),
@@ -1233,12 +1243,14 @@ class Select(object):
                 return keyword
             elif keyword in self._kwargs:
                 arg = self._kwargs[keyword]
-                if (isinstance(arg, AtomPointer) and 
-                    arg.getAtomGroup() is self._ag):
+                if (isinstance(arg, AtomPointer) and
+                    arg.getAtomGroup() is self._ag and
+                    not isinstance(arg, AtomMap)):
                     torf = zeros(self._ag.numAtoms(), bool)
                     torf[arg._getIndices()] = True
                     if self._indices is not None:
                         torf = torf[self._indices]
+                    self._replace = True
                     if DEBUG: print('_evaluate', keyword, torf)
                     return torf
                 return keyword
