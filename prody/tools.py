@@ -250,8 +250,7 @@ class PackageLogger(object):
         :keyword filename: name of the logfile
         :keyword mode: mode in which logfile will be opened, default is "w" 
         :keyword backupcount: number of existing *filename.log* files to 
-            backup, default is 1
-        """
+            backup, default is 1"""
 
         assert isinstance(filename, str), 'filename must be a string'
         logfilename = filename
@@ -379,6 +378,8 @@ class PackageSettings(object):
                                 .format(self._package, USERHOME))
 
 def setPackagePath(path):
+    """Set package path."""
+    
     if not os.path.isdir(path):
         try:
             os.mkdir(path)
@@ -391,8 +392,7 @@ def setPackagePath(path):
     return path    
 
 def getPackagePath():
-    
-    
+    """Return package path."""
     
     path = pkg.SETTINGS.get('package_path', None)
     
@@ -618,6 +618,8 @@ def rangeString(lint, sep=' ', rng=' to '):
     return strint
 
 def openDB(filename, *args):
+    """Open a database with given *filename*."""
+    
     import anydbm
     return anydbm.open(filename, *args)
 
