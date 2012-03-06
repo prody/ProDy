@@ -198,8 +198,8 @@ def parsePDBStream(stream, **kwargs):
                            ag.numCoordsets() - n_csets))
         else:
             ag = None
-            LOGGER.warning('Atomic data could not be parsed, please '
-                           'check the input file.')
+            LOGGER.warn('Atomic data could not be parsed, please '
+                        'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
@@ -409,9 +409,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     if nmodel ==0:
                         raise ValueError(format + 'file and AtomGroup ag must '
                                          'have same number of atoms')
-                    LOGGER.warning('Discarding model {0:d}, which contains '
-                                   'more atoms than first model does.'
-                                   .format(nmodel+1))
+                    LOGGER.warn('Discarding model {0:d}, which contains more '
+                            'atoms than first model does.'.format(nmodel+1))
                     acount = 0
                     nmodel += 1
                     coordinates = np.zeros((n_atoms, 3), dtype=float)
@@ -436,13 +435,13 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 try:
                     occupancies[acount] = line[54:60]
                 except:
-                    LOGGER.warning('failed to parse occupancy at line {0:d}'
-                                   .format(i))
+                    LOGGER.warn('failed to parse occupancy at line {0:d}'
+                                .format(i))
                 try:
                     bfactors[acount] = line[60:66]
                 except:
-                    LOGGER.warning('failed to parse beta-factor at line {0:d}'
-                                   .format(i))
+                    LOGGER.warn('failed to parse beta-factor at line {0:d}'
+                                .format(i))
                 hetero[acount] = startswith[0] == 'H'
                 segnames[acount] = line[72:76]
                 elements[acount] = line[76:78]
@@ -450,13 +449,13 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 try:
                     charges[acount] = line[54:62]
                 except:
-                    LOGGER.warning('failed to parse charge at line {0:d}'
-                                   .format(i))
+                    LOGGER.warn('failed to parse charge at line {0:d}'
+                                .format(i))
                 try:
                     radii[acount] = line[62:69]
                 except:
-                    LOGGER.warning('failed to parse radius at line {0:d}'
-                                   .format(i))
+                    LOGGER.warn('failed to parse radius at line {0:d}'
+                                .format(i))
             acount += 1
             if n_atoms == 0 and acount >= alength:
                 # if arrays are short extend them with zeros
@@ -515,9 +514,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 END = True
             if onlycoords:
                 if acount < n_atoms:
-                    LOGGER.warning('Discarding model {0:d}, which contains '
-                                   '{1:d} fewer atoms than the first model '
-                                   'does.'.format(nmodel+1, n_atoms-acount))
+                    LOGGER.warn('Discarding model {0:d}, which contains '
+                                '{1:d} fewer atoms than the first model '
+                                'does.'.format(nmodel+1, n_atoms-acount))
                 else:
                     coordsets[nmodel] = coordinates
                     nmodel += 1
@@ -586,7 +585,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 anisou[index, 4] = line[56:63]
                 anisou[index, 5] = line[63:70]
             except:
-                LOGGER.warning('failed to parse anisotropic temperature '
+                LOGGER.warn('failed to parse anisotropic temperature '
                     'factors at line {0:d}'.format(i))
         elif isPDB and startswith =='SIGUIJ':
             if siguij is None:
@@ -601,7 +600,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 siguij[index, 4] = line[56:63]
                 siguij[index, 5] = line[63:70]
             except:
-                LOGGER.warning('failed to parse standard deviations of '
+                LOGGER.warn('failed to parse standard deviations of '
                     'anisotropic temperature factors at line {0:d}'.format(i))
         elif startswith =='SIGATM':
             pass
@@ -677,42 +676,39 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                     indices[ach] = ids
                 ids = ids[resnums[ids] == ari]
                 if len(ids) == 0:
-                    LOGGER.warning("failed to parse alternate location '{0:s}'" 
-                                   " at line {1:d}, residue does not exist as "
-                                   "altloc 'A'".format(key, i+1))
+                    LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, "
+                                "residue does not exist as altloc 'A'".format(
+                                repr(key), i+1))
                     continue
                 rn = resnames[ids[0]]
                 ans = atomnames[ids]
                 indices[(ach, ari)] = (rn, ids, ans)
             if rn != arn:
-                LOGGER.warning("failed to parse alternate location '{0:s}' at "
-                               "line {1:d}, residue names do not match " 
-                               "(expected '{2:s}', parsed '{3:s}')"
-                               .format(key, i+1, rn, arn))
+                LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, "
+                            "residue names do not match (expected {2:s}, "
+                            "parsed {3:s})".format(repr(key), i+1, repr(rn), 
+                                                   repr(arn)))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
-                LOGGER.warning("failed to parse alternate location '{0:s}' at "
-                               "line {1:d}, could not identify matching atom "
-                               "('{2:s}' not found in the residue)"
-                               .format(key, i+1, aan))
+                LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, could"
+                            " not identify matching atom ({2:s} not found in "
+                            "the residue)".format(repr(key), i+1, repr(aan)))
                 continue
             try:
                 xyz[index[0], 0] = float(line[30:38])
                 xyz[index[0], 1] = float(line[38:46])
                 xyz[index[0], 2] = float(line[46:54])
             except:
-                LOGGER.warning('failed to parse alternate location {0:s} at '
-                               'line {1:d}, could not read coordinates'
-                               .format(key, i+1))
+                LOGGER.warn('failed to parse altloc {0:s} at line {1:d}, could'
+                            ' not read coordinates'.format(repr(key), i+1))
                 continue
             success += 1
-        LOGGER.info('{0:d} out of {1:d} alternate location {2:s} lines were '
-                    'parsed successfully.'.format(success, len(lines), key))
+        LOGGER.info('{0:d} out of {1:d} altloc {2:s} lines were parsed.'
+                    .format(success, len(lines), repr(key)))
         if success > 0:
-            LOGGER.info('Alternate location {0:s} is appended as a coordinate '
-                        'set to the atom group.'
-                        .format(key, atomgroup.getTitle()))
+            LOGGER.info('Altloc {0:s} is appended as a coordinate set to the '
+                        'atom group.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz)
 
 _writePDBdoc = """
