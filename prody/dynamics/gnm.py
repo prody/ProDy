@@ -156,10 +156,15 @@ class GNM(GNMBase):
         :arg gamma: spring constant, default is 1.0
         :type gamma: float
         
-        :arg sparse: Elect to use sparse matrices. Default is ``False``. If 
+        :arg sparse: elect to use sparse matrices, default is **False**. If 
             Scipy is not found, :class:`ImportError` is raised.
         :type sparse: bool
         
+        :arg kdtree: elect to use KDTree for building Kirchhoff matrix faster, 
+            default is **True**
+        :type kdtree: bool
+
+
         Instances of :class:`Gamma` classes and custom functions are
         accepted as *gamma* argument.        
 
@@ -203,16 +208,18 @@ class GNM(GNMBase):
                 kirchhoff[j, j] = kirchhoff[j, j] + g
                 r += 1
         else:
-            LOGGER.info('Using the slower method for building the Hessian '
-                         'matrix.')
+            LOGGER.info('Using slower method for building the Kirchhoff.')
             cutoff2 = cutoff * cutoff
+            mul = np.multiply
             for i in range(n_atoms):
                 xyz_i = coords[i, :]
-                for j in range(i+1, n_atoms):
-                    i2j = coords[j, :] - xyz_i
-                    dist2 = np.dot(i2j, i2j)
+                i_p1 = i+1
+                i2j = coords[i_p1:, :] - xyz_i
+                mul(i2j, i2j, i2j)
+                for j, dist2 in enumerate(i2j.sum(1)):
                     if dist2 > cutoff2:
-                        continue             
+                        continue
+                    j += i_p1
                     g = gamma(dist2, i, j)
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
