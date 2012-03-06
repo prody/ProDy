@@ -166,14 +166,6 @@ class GNM(GNMBase):
         When Scipy is available, user can select to use sparse matrices for
         efficient usage of memory at the cost of computation speed."""
         
-        slow = kwargs.get('slow', False)
-        try:
-            from KDTree import KDTree
-        except ImportError:
-            KDTree = False
-        if not slow and not KDTree: 
-            LOGGER.info('Using a slower method for building the Kirchhoff '
-                         'matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoords()
@@ -198,7 +190,7 @@ class GNM(GNMBase):
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         
-        if not slow and KDTree:
+        if kwargs.get('kdtree', True):
             kdtree = getKDTree(coords) 
             kdtree.all_search(cutoff)
             radii = kdtree.all_get_radii()
@@ -211,6 +203,8 @@ class GNM(GNMBase):
                 kirchhoff[j, j] = kirchhoff[j, j] + g
                 r += 1
         else:
+            LOGGER.info('Using the slower method for building the Hessian '
+                         'matrix.')
             cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
                 xyz_i = coords[i, :]
