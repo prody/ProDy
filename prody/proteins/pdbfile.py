@@ -203,24 +203,16 @@ def parsePDBStream(stream, **kwargs):
         hd, split = getHeaderDict(stream)
 
     if secondary:
-        try:
-            ag = assignSecstr(hd, ag)
-        except:
-            raise PDBParseError('secondary structure assignments could not '
-                                 'be made, check input file')
+        ag = assignSecstr(hd, ag)
     if biomol:
-        try:
-            ag = buildBiomolecules(hd, ag)
-        except:
-            raise PDBParseError('biomolecule could not be generated, check'
-                                 'input file')
+        ag = buildBiomolecules(hd, ag)
+
+        if isinstance(ag, list):
+            LOGGER.info('Biomolecular transformations were applied, {0:d} '
+                        'biomolecule(s) are returned.'.format(len(ag)))
         else:
-            if isinstance(ag, list):
-                LOGGER.info('Biomolecular transformations were applied, {0:d} '
-                            'biomolecule(s) are returned.'.format(len(ag)))
-            else:
-                LOGGER.info('Biomolecular transformations were applied to the '
-                            'coordinate data.')
+            LOGGER.info('Biomolecular transformations were applied to the '
+                        'coordinate data.')
     if model != 0:
         if header:
             return ag, hd
@@ -237,8 +229,7 @@ def parsePQR(filename, **kwargs):
     from PDB lines. 
     
     :arg filename: a PQR filename
-    :type filename: str
-    """
+    :type filename: str"""
     
     title = kwargs.get('title', kwargs.get('name'))
     model = 1
