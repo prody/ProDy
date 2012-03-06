@@ -134,10 +134,10 @@ class Chain(AtomSubset):
         if self._segment:
             return self._segment.getSegname()
     
-    def getResidue(self, number, insertcode=None):
-        """Return residue with given number."""
+    def getResidue(self, resnum, icode=None):
+        """Return residue with number *resnum* and insertion code *icode*."""
         
-        index = self._dict.get((number, insertcode or None))
+        index = self._dict.get((resnum, icode or None))
         if index is not None:
             return self._list[index]
 
