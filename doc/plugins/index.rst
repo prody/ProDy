@@ -5,9 +5,9 @@ NMWiz
 *******************************************************************************
 
 Normal Mode Wizard (NMWiz) is a `VMD <www.ks.uiuc.edu/Research/vmd/>`_ 
-plugin designed for visual and comparative analysis of normal mode data, 
-i.e. modes from principal component, essential dynamics, or normal mode 
-analysis. 
+plugin designed for visual comparative analysis of normal mode data, 
+i.e. modes may come from principal component, essential dynamics, normal 
+mode analysis or may be any vector describing a molecular motion. 
 
 NMWiz can be used for:
 
@@ -15,6 +15,8 @@ NMWiz can be used for:
   * making animations (conformations along a normal mode)
   * plotting square-fluctuations (labeling and highlighting residues)
   * comparing two structures and drawing deformation arrows
+  
+Following molecular representations are prepared using NMWiz:
   
 +--------------------------------------------------+------------------------------------------------+------------------------------------------------+
 |                                                  | Example figures                                |                                                |
@@ -24,8 +26,17 @@ NMWiz can be used for:
 | ANM modes 1-3 for p38 MAPK                       | ANM and PCA modes for p38                      | p38 network model                              |
 +--------------------------------------------------+------------------------------------------------+------------------------------------------------+
 
-See `documentation <nmwiz/index.html>`_  for details. NMWiz recognizes
-:ref:`nmd-format`, which is described below.
+NMWiz can also be used to generate trajectories on the fly.  The movie shows 
+normal mode representation and animation generated using NMWiz.  Anisotropic 
+network model modes were calculated using ProDy.  Movie was generated using 
+`VMD Movie Plugin <http://www.ks.uiuc.edu/Research/vmd/plugins/vmdmovie/>`_.
+
+.. youtube:: 1OUzdzm68YY
+   :width: 400
+
+See `documentation <http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/>`_  
+NMWiz usage for details. NMWiz recognizes :ref:`nmd-format`, which is 
+a simple data format described below.
 
 Availability
 ===============================================================================
@@ -170,7 +181,7 @@ loading coordinate data into VMD.
 
 *bfactors*: list of experimental beta-factors
   If not provided, all beta-factors are set to zero. 
-  Beta-actors can be used to color the protein representation.
+  Beta-factors can be used to color the protein representation.
   
 NMD files may contain additional lines. Only lines that start with one of the 
 above field names are evaluated by NMWiz.
