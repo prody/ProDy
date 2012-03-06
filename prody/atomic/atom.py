@@ -54,7 +54,7 @@ class AtomMeta(type):
                     return array[self._index] 
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
-            getData.__doc__ = field.getDocstr('set', False)
+            getData.__doc__ = field.getDocstr('get', False)
             setattr(cls, getMeth, getData)
             setattr(cls, '_' + getMeth, getData)
             
