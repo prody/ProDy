@@ -130,13 +130,14 @@ class AtomMapMeta(type):
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             if field.dtype in (int, float):
-                zero = '0'
+                zero = 0
             elif field.dtype == bool:
-                zero = 'True'
+                zero = True
             else:
-                zero = '""'
-            getData.__doc__ = field.getDocstr('get', selex=False) + \
-                   'Entries for dummy atoms will be ``{0:s}``.'.format(zero) 
+                zero = ''
+            getData.__doc__ = (field.getDocstr('get', selex=False) +
+                               ' Entries for dummy atoms will be ``{0:s}``.'
+                               .format(repr(zero))) 
             setattr(cls, getMeth, getData)
             setattr(cls, '_' + getMeth, getData)
 
