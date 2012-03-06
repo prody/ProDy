@@ -14,7 +14,9 @@
 #  
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-"""This module contains tools for handling files, logging, type checking."""
+"""This module contains tools for handling files, logging, type checking, etc.
+Contents of this module is not included ``from prody import *``, so they
+need to be imported as ``from prody.tools import *``."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
