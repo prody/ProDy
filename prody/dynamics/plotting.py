@@ -50,10 +50,11 @@ from gnm import GNMBase
 from mode import Mode, VectorBase, Vector
 from modeset import ModeSet
 from analysis import calcSqFlucts, calcProjection, calcCrossCorr
+from analysis import calcFractVariance
 from compare import calcOverlap
 
 __all__ = ['showContactMap', 'showCrossCorr',  
-           'showCumOverlap', 'showFractOfVar',  
+           'showCumOverlap', 'showFractVariance',  
            'showCumFractOfVar', 'showMode', 
            'showOverlap', 'showOverlapTable', 'showProjection', 
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
@@ -167,7 +168,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         show.set_zlabel('Mode {0:d} coordinate'.format(modes[2].getIndex()+1))
     return show
 
-def showFractOfVar(modes, *args, **kwargs):
+def showFractVariance(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
     bar`.  Note that mode indices are incremented by 1.
     
@@ -190,7 +191,7 @@ def showFractOfVar(modes, *args, **kwargs):
         raise TypeError('modes must be NMA, or ModeSet, not {0:s}'
                         .format(type(modes)))
     
-    fracts = [(mode.getIndex(), mode.getFractOfVariance()) for mode in modes]
+    fracts = [(mode.getIndex(), calcFractVariance(mode)) for mode in modes]
     fracts = np.array(fracts)
     show = plt.bar(fracts[:,0]+0.5, fracts[:,1], *args, **kwargs)
     axis = list(plt.axis())
