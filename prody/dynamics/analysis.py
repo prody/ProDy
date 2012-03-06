@@ -72,11 +72,25 @@ def calcCollectivity(mode, masses=None):
     return coll
     
 def calcFractVariance(mode):
-    """Return fraction of variance explained by the mode.  Fraction of 
-    variance is the ratio of the variance along this mode to the trace 
-    of the covariance matrix.  See :meth:`~.Mode.getVariance`."""
+    """Return fraction of variance explained by the *mode*(s).  Fraction of 
+    variance is the ratio of the variance along a mode to the trace of the 
+    covariance matrix of the model."""
     
-    pass
+    if isinstance(mode, Mode):
+        var = mode.getVariance()
+        trace = mode.getModel()._trace
+    elif isinstance(mode, (ModeSet, NMA)):
+        var = self.getVariances()
+        if isinstance(mode, ModeSet):
+            trace = mode.getModel()._trace
+        else:
+            trace = mode._trace
+    else:
+        raise TypeError('mode must be a Mode instance')
+    if trace is None:
+        raise ValueError('modes are not calculated')
+    
+    return var / trace
 
 def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
@@ -120,23 +134,31 @@ def calcProjection(ensemble, modes, rmsd=True):
     return projection
 
 def calcSqFlucts(modes):
-    """Return sum of square-fluctuations for given set of normal *modes*."""
+    """Return sum of square-fluctuations for given set of normal *modes*.
+    Square fluctuations for a single mode is obtained by multiplying the 
+    square of the mode array with the variance (:meth:`~.Mode.getVariance`) 
+    along the mode."""
     
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
                         'not {0:s}'.format(type(modes)))
+    is3d = modes.is3d()
     if isinstance(modes, Vector):
-        if modes.is3d():
+        if is3d:
             return (modes._getArrayNx3()**2).sum(axis=1)
         else:
             return (modes._getArray() ** 2)
     else:
-        square_fluctuations = np.zeros(modes.numAtoms()) 
+        sq_flucts = np.zeros(modes.numAtoms()) 
         if isinstance(modes, VectorBase):
             modes = [modes]
         for mode in modes:
-            square_fluctuations += mode.getSqFlucts()
-        return square_fluctuations
+            if is3d:
+                sq_flucts += ((mode._getArrayNx3()**2).sum(axis=1) * 
+                                mode.getVariance())
+            else:
+                sq_flucts += (mode._getArray() ** 2)  * mode.getVariance()
+        return sq_flucts
 
 def calcCrossCorr(modes, n_cpu=1):
     """Return cross-correlations matrix.  For a 3-d model, cross-correlations 
