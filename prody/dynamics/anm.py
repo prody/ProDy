@@ -29,8 +29,8 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.measure import getKDTree
 from prody.tools import checkCoords, importLA
+from prody.KDTree import getKDTree
 
 from gnm import GNMBase, ZERO, checkENMParameters
 
@@ -117,14 +117,6 @@ class ANM(GNMBase):
         When Scipy is available, user can select to use sparse matrices for
         efficient usage of memory at the cost of computation speed."""
         
-        slow = kwargs.get('slow', False)
-        try:
-            from KDTree import KDTree
-        except ImportError:
-            KDTree = False
-        if not slow and not KDTree: 
-            LOGGER.info('Using a slower method for building the Hessian '
-                         'matrix.')
         if not isinstance(coords, np.ndarray):
             try:
                 coords = coords.getCoords()
@@ -151,7 +143,7 @@ class ANM(GNMBase):
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
             hessian = np.zeros((dof, dof), float)
-        if not slow and KDTree:
+        if kwargs.get('kdtree', True):
             kdtree = getKDTree(coords) 
             kdtree.all_search(cutoff)
             for i, j in kdtree.all_get_indices():
@@ -174,6 +166,8 @@ class ANM(GNMBase):
                 kirchhoff[i, i] = kirchhoff[i, i] - g
                 kirchhoff[j, j] = kirchhoff[j, j] - g
         else:
+            LOGGER.info('Using the slower method for building the Hessian '
+                         'matrix.')
             cutoff2 = cutoff * cutoff 
             for i in range(n_atoms):
                 res_i3 = i*3
