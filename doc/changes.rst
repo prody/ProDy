@@ -9,6 +9,25 @@ Changes
 Release 1.0 (in development)
 ===============================================================================
 
+**Improvements**:
+
+  * Added ``bonded to ...`` selection method that expands a selection to 
+    immediately bound atoms.  See :ref:`selections` for its description.
+  
+  * :func:`~.fetchPDBLigand` parses bond data from the XML file.
+
+  * :func:`~.fetchPDBLigand` can optionally save compressed XML files into
+    ProDy package folder so that frequent access to same files will be more
+    rapid. See :func:`~.confProDy` function for setting this option.
+
+  * :class:`~.Select` class is revised. All exceptions are handled delicately
+    to increase the stability of the class.
+
+  * Distance based atom selection is 10 to 15% faster for atom groups with
+    more than 5K atoms.
+    
+  * Added uncompressed file saving option to :ref:`prody-blast` command.
+
 **Changes**:
 
   * Deprecated method and functions are removed.
@@ -16,6 +35,12 @@ Release 1.0 (in development)
   * The relation between :class:`~.AtomGroup`, :class:`~.Trajectory`, and
     :class:`~.Frame` instances have changed. See :ref:`trajectory2` and
     :ref:`outputtraj`, and :ref:`atomsframes` usage examples.
+  
+  * :meth:`Mode.getCollectivity` method is removed, use 
+    :func:`~.calcCollectivity` function.
+  
+  * :meth:`Mode.getFractOfVariance` method is removed, use the new 
+    :func:`~.FractVariance` function.
   
   * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  
@@ -26,12 +51,8 @@ Release 1.0 (in development)
 
   * Renamed :func:`extrapolateModel` as :func:`~.extendModel`.
 
-**Improvements**:
-
-  * Distance based atom selection is 10 to 15% faster for atom groups with
-    more than 5K atoms.
-    
-  * Added uncompressed file saving option to :ref:`prody-blast` command.
+  * :func:`~.fetchPDBLigand` accepts only *filename* (instead of *save* and 
+    *folder*) argument to save an XML file.
 
 **Bugfix**:
 
