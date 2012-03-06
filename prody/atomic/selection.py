@@ -56,7 +56,7 @@ These two selections can be combined as follows:
 
 >>> betas_gly_alphas = betas | gly_alphas
 >>> print( betas_gly_alphas )
-Selection "(name CB and pr...nd resname GLY)" from 1p38
+Selection '(name CB and pr...nd resname GLY)' from 1p38
 >>> print( len(betas_gly_alphas) )
 351
 
@@ -77,14 +77,14 @@ charged and medium size residues in a protein:
 
 >>> charged = prot.select('charged')
 >>> print( charged )
-Selection "charged" from 1p38
+Selection 'charged' from 1p38
 >>> medium = prot.select('medium')
 >>> print( medium )
-Selection "medium" from 1p38
+Selection 'medium' from 1p38
 
 >>> medium_charged = medium & charged
 >>> print( medium_charged )
-Selection "(medium) and (charged)" from 1p38
+Selection '(medium) and (charged)' from 1p38
 >>> print( medium_charged.getSelstr() )
 (medium) and (charged)
 
@@ -106,14 +106,14 @@ It is also possible to invert a selection:
 
 >>> only_protein = prot.select('protein')
 >>> print( only_protein )
-Selection "protein" from 1p38
+Selection 'protein' from 1p38
 >>> only_non_protein = ~only_protein
 >>> print( only_non_protein )
-Selection "not (protein) " from 1p38
+Selection 'not (protein) ' from 1p38
 
 >>> water = prot.select('water')
 >>> print( water )
-Selection "water" from 1p38
+Selection 'water' from 1p38
 
 The above shows that 1p38 does not contain any non-water 
 hetero atoms.

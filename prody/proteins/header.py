@@ -350,8 +350,8 @@ def getHeaderDict(stream, *keys):
                 value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
-                raise KeyError('"{0:s}" is not a valid header data identifier'
-                               .format(key))
+                raise KeyError('{0:s} is not a valid header data identifier'
+                               .format(repr(key)))
             if key in ('chemicals', 'polymers'):
                 for component in value:
                     component.pdbentry = pdbid

@@ -67,8 +67,8 @@ def openTrajFile(filename):
     if ext.lower() == '.dcd':
         traj = DCDFile(filename)
     else: 
-        raise ValueError('Trajectory file type "{0:s}" is not recognized.'
-                         .format(ext))
+        raise ValueError('Trajectory file type {0:s} is not recognized.'
+                         .format(repr(ext)))
 
     return traj 
     

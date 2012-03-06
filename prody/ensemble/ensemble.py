@@ -126,8 +126,8 @@ class Ensemble(object):
         ensemble.addCoordset(self._confs.copy())
         ensemble.addCoordset(other.getCoordsets())
         if self._weights is not None: 
-            LOGGER.info('Atom weights from "{0:s}" are used in "{1:s}".'
-                        .format(self._title, ensemble.getTitle()))
+            LOGGER.info('Atom weights from {0:s} are used in {1:s}.'
+                        .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
         return ensemble
     

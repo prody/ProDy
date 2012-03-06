@@ -39,8 +39,8 @@ def getPDBLocalFolder():
         if isinstance(folder, str) and os.path.isdir(folder):
             return folder, SETTINGS.get('pdb_local_divided', True)
         else:
-            LOGGER.warning('PDB local folder "{0:s}" is not a accessible.'
-                           .format(folder))
+            LOGGER.warning('PDB local folder {0:s} is not a accessible.'
+                           .format(repr(folder)))
 
 def setPDBLocalFolder(folder, divided=False):
     """Set a local PDB folder.  Setting a local PDB folder will make 
@@ -67,7 +67,7 @@ def setPDBLocalFolder(folder, divided=False):
     assert isinstance(divided, bool), 'divided must be a boolean'
     if os.path.isdir(folder):
         folder = os.path.abspath(folder)
-        LOGGER.info('Local PDB folder is set: "{0:s}"'.format(folder))
+        LOGGER.info('Local PDB folder is set: {0:s}'.format(repr(folder)))
         if divided:
             LOGGER.info('When using local PDB folder, wwPDB divided '
                         'folder structure will be assumed.')
@@ -78,7 +78,7 @@ def setPDBLocalFolder(folder, divided=False):
         SETTINGS['pdb_local_divided'] = divided
         SETTINGS.save()
     else:
-        raise IOError('No such directory: "{0:s}"'.format(folder))
+        raise IOError('No such directory: {0:s}'.format(repr(folder)))
 
 def getPDBMirrorPath():
     """Return the path to a local PDB mirror, or ``None`` if a mirror path is 
@@ -89,8 +89,8 @@ def getPDBMirrorPath():
         if os.path.isdir(path):
             return path
         else:
-            LOGGER.warning('PDB mirror path "{0:s}" is not a accessible.'
-                           .format(path))
+            LOGGER.warning('PDB mirror path {0:s} is not a accessible.'
+                           .format(repr(path)))
 
 def setPDBMirrorPath(path):
     """Set the path to a local PDB mirror."""
@@ -99,8 +99,8 @@ def setPDBMirrorPath(path):
         raise TypeError('path must be a string')
     if os.path.isdir(path):
         path = os.path.abspath(path)
-        LOGGER.info('Local PDB mirror path is set: "{0:s}"'.format(path))
+        LOGGER.info('Local PDB mirror path is set: {0:s}'.format(repr(path)))
         SETTINGS['pdb_mirror_path'] = path
         SETTINGS.save()
     else:
-        raise IOError('No such directory: "{0:s}"'.format(path))
+        raise IOError('No such directory: {0:s}'.format(repr(path)))

@@ -67,7 +67,7 @@ trajectory at once using :func:`~.parseDCD`:
 >>> eda_ensemble.buildCovariance( ensemble )
 >>> eda_ensemble.calcModes()
 >>> eda_ensemble
-<EDA: MDM2 Ensemble (20 modes, 85 atoms)>
+<EDA: MDM2 Ensemble (20 modes; 85 atoms)>
 
 **Large trajectory files**
 
@@ -82,7 +82,7 @@ to the :meth:`.PCA.buildCovariance` method as follows:
 >>> eda_trajectory.buildCovariance( dcd )
 >>> eda_trajectory.calcModes()
 >>> eda_trajectory
-<EDA: MDM2 Trajectory (20 modes, 85 atoms)>
+<EDA: MDM2 Trajectory (20 modes; 85 atoms)>
 
 **Compare two methods**
 
@@ -116,7 +116,7 @@ them. In this case we will use data from two independent simulations
 >>> eda.buildCovariance( trajectory )
 >>> eda.calcModes()
 >>> eda
-<EDA: mdm2 (20 modes, 85 atoms)>
+<EDA: mdm2 (20 modes; 85 atoms)>
 
 **Save your work**
 

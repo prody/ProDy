@@ -47,7 +47,10 @@ Release 1.0 (in development)
 
   * Renamed :func:`showFractOfVar` function as :func:`~.showFractVariance` 
     function instead.
-  
+    
+  * Removed :func:`calcCumOverlapArray`, use :func:`~.calcCumulOverlap`
+    with ``array=True`` argument instead.
+    
   * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  
 
@@ -342,13 +345,12 @@ Release 0.9 (Nov 8, 2011)
   :func:`assignSecondaryStructure`          :func:`~.assignSecstr`
   :func:`scanPerturbationResponse`          :func:`~.calcPerturbResponse`
   :func:`calcCrossCorrelations`             :func:`~.calcCrossCorr`
-  :func:`calcCumulativeOverlap`             :func:`~.calcCumOverlap`
-  :func:`calcCumulativeOverlapArray`        :func:`~.calcCumOverlapArray`
+  :func:`calcCumulativeOverlap`             :func:`~.calcCumulOverlap`
   :func:`calcCovarianceOverlap`             :func:`~.calcCovOverlap`
-  :func:`showFractOfVariances`              :func:`~.showFractOfVar`
-  :func:`showCumFractOfVariances`           :func:`~.showCumFractOfVar`
+  :func:`showFractOfVariances`              :func:`~.showFractVars`
+  :func:`showCumFractOfVariances`           :func:`~.showCumulFractVars`
   :func:`showCrossCorrelations`             :func:`~.showCrossCorr`
-  :func:`showCumulativeOverlap`             :func:`~.showCumOverlap`
+  :func:`showCumulativeOverlap`             :func:`~.showCumulOverlap`
   :func:`deform`                            :func:`~.deformAtoms`
   :func:`calcSumOfWeights`                  :func:`~.calcOccupancies`
   :func:`showSumOfWeights`                  :func:`~.showOccupancies`

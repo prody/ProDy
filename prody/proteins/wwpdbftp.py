@@ -132,12 +132,13 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     format = kwargs.pop('format', 'pdb')
     assert isinstance(format, str), 'format must be a string'
     format = format.lower()
-    assert format in _PDB_FORMATS, '"{0:s}" is not valid format'.format(format)
+    assert format in _PDB_FORMATS, '{0:s} is not valid format'.format(
+                                                                repr(format))
     noatom = kwargs.pop('noatom', False) 
     assert isinstance(noatom, bool), 'noatom must be a boolean'
     if kwargs:
-        raise TypeError('"{0:s}" is not a valid keyword argument for this' 
-                        'function'.format(kwargs.iterkeys().next()))
+        raise TypeError('{0:s} is not a valid keyword argument for this' 
+                        'function'.format(repr(kwargs.iterkeys().next())))
     if folder != '.':
         folder = makePath(folder)
     if not os.access(folder, os.W_OK):

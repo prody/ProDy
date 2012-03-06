@@ -181,7 +181,7 @@ Finally, you can select atoms from a :class:`~.Chain` instance:
 
 >>> chA_backbone = chA.select('backbone')
 >>> chA_backbone
-<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms)>
+<Selection: '(backbone) and (chain A)' from 3mkb (560 atoms)>
 >>> chA_backbone.getSelstr()
 '(backbone) and (chain A)'
 
@@ -190,7 +190,7 @@ As you see, the selection string passed by the user is augmented with
 consistency:
 
 >>> structure.select( chA_backbone.getSelstr() )
-<Selection: "(backbone) and (chain A)" from 3mkb (560 atoms)>
+<Selection: '(backbone) and (chain A)' from 3mkb (560 atoms)>
  
 
 Residues
@@ -249,7 +249,7 @@ Finally, you can select atoms from a :class:`~.Residue` instance:
 
 >>> chA_res1_bb = chA_res1.select('backbone')
 >>> chA_res1_bb
-<Selection: "(backbone) and ... and (chain A))" from 3mkb (4 atoms)>
+<Selection: '(backbone) and ... and (chain A))' from 3mkb (4 atoms)>
 >>> chA_res1_bb.getSelstr()
 '(backbone) and (resnum 1 and (chain A))'
 
@@ -323,7 +323,7 @@ class HierView(object):
     
     Some :class:`object` methods are customized as follows:
     
-    * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
+    * :func:`len` returns the number of atoms, i.e. :meth:`numChains`
     * :func:`iter` yields :class:`~.Chain` instances
     * indexing by:
          - *segment name* (:func:`str`), e.g. ``"PROT"``, returns 
@@ -635,7 +635,7 @@ class HierView(object):
         return self._residues.__iter__()
                 
     def getChain(self, chid, segname=None):
-        """Return chain with identifier *chid*, if it exists."""
+        """Return chain with identifier *chid*, if it is present."""
         
         return self._dict.get((segname or None, chid or None))
 
@@ -650,7 +650,7 @@ class HierView(object):
         return len(self._chains)
 
     def getSegment(self, segname):
-        """Return segment with name *segname*, if it exists."""
+        """Return segment with name *segname*, if it is present."""
         
         return self._dict.get(segname or None)
 

@@ -31,8 +31,7 @@ from modeset import ModeSet
 from mode import VectorBase, Mode, Vector
 from gnm import ZERO
 
-__all__ = ['calcOverlap', 'calcCumOverlap', 
-           'calcCumOverlapArray', 'calcSubspaceOverlap', 
+__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 
            'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',]
            
 def calcOverlap(rows, cols):
@@ -136,28 +135,23 @@ def getOverlapTable(rows, cols):
         table += line.rstrip() + '\n'
     return table
 
-def calcCumOverlap(modes1, modes2):
+def calcCumulOverlap(modes1, modes2, array=False):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
     Returns a number of *modes1* contains a single :class:`~.Mode` or a 
     :class:`~.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes 
-    in *modes1* with those in *modes2*."""
+    in *modes1* with those in *modes2*.  If *array* is **True**, Return array 
+    of cumulative overlaps. Returned array has the shape ``(len(modes1), 
+    len(modes2))``.  Each row corresponds to cumulative overlaps calculated for
+    modes in *modes1* with those in *modes2*.  Each value in a row corresponds
+    to cumulative overlap calculated using upto that many number of modes from 
+    *modes2*."""
     
     overlap = calcOverlap(modes1, modes2)
-    cumov = np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
-    return cumov
-
-def calcCumOverlapArray(modes1, modes2):
-    """Return array of cumulative overlaps. Returned array has the shape 
-    ``(len(modes1), len(modes2))``.  Each row corresponds to cumulative 
-    overlaps calculated for modes in *modes1* with those in *modes2*.  
-    Each value in a row corresponds to cumulative overlap calculated 
-    using upto that many number of modes from *modes2*."""
-    
-    overlap = calcOverlap(modes1, modes2)
-    cumov = np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
-    return cumov
-
+    if array:
+        return np.sqrt(np.power(overlap, 2).sum(axis=overlap.ndim-1))
+    else:
+        return np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
 
 def calcSubspaceOverlap(modes1, modes2):
     """Return subspace overlap between two sets of modes (*modes1* and 

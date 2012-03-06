@@ -163,7 +163,8 @@ def parsePDBStream(stream, **kwargs):
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
-            raise ValueError('"{0:s}" is not a valid subset'.format(subset))
+            raise ValueError('{0:s} is not a valid subset'
+                             .format(repr(subset)))
         title_suffix = '_' + _PDBSubsets[subset]
     if chain is not None:
         if not isinstance(chain, str):
@@ -238,7 +239,7 @@ def parsePQR(filename, **kwargs):
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
     if not os.path.isfile(filename):
-        raise IOError('No such file: "{0:s}"'.format(filename))
+        raise IOError('No such file: {0:s}'.format(repr(filename)))
     if title is None:
         fn, ext = os.path.splitext(os.path.split(filename)[1])
         if ext == '.gz':
@@ -249,7 +250,8 @@ def parsePQR(filename, **kwargs):
         if not isinstance(subset, str):
             raise TypeError('subset must be a string')
         elif subset.lower() not in _PDBSubsets:
-            raise ValueError('"{0:s}" is not a valid subset'.format(subset))
+            raise ValueError('{0:s} is not a valid subset'
+                             .format(repr(subset)))
         title_suffix = '_' + _PDBSubsets[subset]
     if chain is not None:
         if not isinstance(chain, str):

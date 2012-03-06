@@ -68,24 +68,24 @@ Using the flexibility of Python, atom selections are made much easier by
 overriding the ``.`` operator, so the following are interpreted as selections:
     
 >>> ag.chain_A # selects chain A
-<Selection: "chain A" from 1aar (608 atoms)>
+<Selection: 'chain A' from 1aar (608 atoms)>
 >>> ag.calpha # selects alpha carbons
-<Selection: "calpha" from 1aar (152 atoms)>
+<Selection: 'calpha' from 1aar (152 atoms)>
 >>> ag.resname_ALA # selects alanine residues
-<Selection: "resname ALA" from 1aar (20 atoms)>
+<Selection: 'resname ALA' from 1aar (20 atoms)>
 
 It is also possible to combine selections with ``and`` and ``or`` operators:
 
 >>> ag.chain_A_and_backbone
-<Selection: "chain A and backbone" from 1aar (304 atoms)>
+<Selection: 'chain A and backbone' from 1aar (304 atoms)>
 >>> ag.acidic_or_basic
-<Selection: "acidic or basic" from 1aar (422 atoms)>
+<Selection: 'acidic or basic' from 1aar (422 atoms)>
 
 
 Using dot operator will behave like the logical ``and`` operator:
     
 >>> ag.chain_A.backbone
-<Selection: "(backbone) and (chain A)" from 1aar (304 atoms)>
+<Selection: '(backbone) and (chain A)' from 1aar (304 atoms)>
   
 For this to work, the first word following the dot operator must be a selection
 keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 

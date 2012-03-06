@@ -676,7 +676,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         else:
             map_ag = atoms.getAtomGroup()
         chains = list(atoms.getHierView().iterChains())
-        LOGGER.debug('Evaluating "{0:s}": {1:d} chains are identified'
+        LOGGER.debug('Evaluating {0:s}: {1:d} chains are identified'
                      .format(str(atoms), len(chains)))
     
     if subset != 'all':

@@ -852,7 +852,8 @@ class AtomGroup(Atomic):
             indices = SELECT.getIndices(self, which)
             if len(indices) == 0:
                 return None
-            newmol = AtomGroup('{0:s} selection "{1:s}"'.format(title, which))
+            newmol = AtomGroup('{0:s} selection {1:s}'
+                               .format(title, repr(which)))
             
         elif isinstance(which, (list, np.ndarray)):
             if isinstance(which, list):
@@ -865,14 +866,23 @@ class AtomGroup(Atomic):
             
         else:
             if isinstance(which, Atom):
-                indices = [which.getIndex()]
-            elif isinstance(which, (AtomSubset, AtomMap)):
+                idx = which.getIndex()
+                indices = [idx]
+                newmol = AtomGroup('{0:s} index {1:d}'
+                                   .format(title, idx))
+            elif isinstance(which, AtomSubset):
                 indices = which.getIndices()
+                newmol = AtomGroup('{0:s} selection {1:s}'
+                                   .format(title, repr(which.getSelstr())))
+            elif isinstance(which, AtomMap):
+                indices = which.getIndices()
+                newmol = AtomGroup('{0:s} selection {1:s}'
+                                   .format(title, repr(which.getTitle())))
+
             else:
                 raise TypeError('{0:s} is not a valid type'.format(
                                                                 type(which)))            
-            newmol = AtomGroup('{0:s} selection "{1:s}"'.format(title, 
-                                                                str(which)))
+                               
         if indices is not None:
             newmol.setCoords(self._coords[:, indices])
         for key, array in self._data.iteritems():
@@ -976,7 +986,7 @@ class AtomGroup(Atomic):
             
         if isReserved(label):
             raise ValueError('label cannot be a reserved word or a selection '
-                             'keyword, "{0:s}" is invalid'.format(label))
+                             'keyword, {0:s} is invalid'.format(repr(label)))
         if len(data) != self._n_atoms:
             raise ValueError('length of data array must match number of atoms')
         if isinstance(data, list):

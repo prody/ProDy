@@ -17,10 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines a class and methods and for comparing coordinate data 
-and measuring quantities.
-
-
-"""
+and measuring quantities."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -283,7 +280,7 @@ def calcDeformVector(from_atoms, to_atoms):
     """Returns deformation from *from_atoms* to *atoms_to* as a 
     :class:`~.Vector` instance."""
     
-    name = '"{0:s}" => "{1:s}"'.format(str(from_atoms), str(to_atoms))
+    name = '{0:s} => {1:s}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30: 
         name = 'Deformation'
     array = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
@@ -343,7 +340,7 @@ def calcADPAxes(atoms, **kwargs):
     >>> nma = NMA('ADPs')
     >>> nma.setEigens(adp_axes)
     >>> nma
-    <NMA: ADPs (3 modes, 46 atoms)>
+    <NMA: ADPs (3 modes; 46 atoms)>
     >>> writeNMD( 'adp_axes.nmd', nma, calphas )
     'adp_axes.nmd'"""
     

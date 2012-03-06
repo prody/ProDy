@@ -54,8 +54,8 @@ from analysis import calcFractVariance
 from compare import calcOverlap
 
 __all__ = ['showContactMap', 'showCrossCorr',  
-           'showCumOverlap', 'showFractVariance',  
-           'showCumFractOfVar', 'showMode', 
+           'showCumulOverlap', 'showFractVars',  
+           'showCumulFractVars', 'showMode', 
            'showOverlap', 'showOverlapTable', 'showProjection', 
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks', ]
@@ -64,7 +64,8 @@ pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
            
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
-    """Show an ellipsoid using  :meth:`~mpl_toolkits.mplot3d.Axes3D.plot_wireframe`.
+    """Show an ellipsoid using  :meth:`~mpl_toolkits.mplot3d.Axes3D
+    .plot_wireframe`.
     
     Ellipsoid volume gives an analytical view of the conformational space that
     given modes describe.
@@ -168,7 +169,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         show.set_zlabel('Mode {0:d} coordinate'.format(modes[2].getIndex()+1))
     return show
 
-def showFractVariance(modes, *args, **kwargs):
+def showFractVars(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
     bar`.  Note that mode indices are incremented by 1.
     
@@ -177,8 +178,8 @@ def showFractVariance(modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showFractOfVar(p38_pca) 
-       showCumFractOfVar(p38_pca)
+       showFractVars(p38_pca) 
+       showCumulFractVars(p38_pca)
       
     .. plot::
        :context:
@@ -203,12 +204,10 @@ def showFractVariance(modes, *args, **kwargs):
     plt.ylabel('Fraction of variance')
     return show
 
-def showCumFractOfVar(modes, *args, **kwargs):
+def showCumulFractVars(modes, *args, **kwargs):
     """Show fraction of variances of *modes* using :func:`~matplotlib.pyplot.
-    plot`.
-    
-    Note that mode indices are incremented by 1.
-    See :func:`~.showFractOfVar` for an example."""
+    plot`.  Note that mode indices are incremented by 1.  See also 
+    :func:`~.showFractVars` function."""
     
     import matplotlib.pyplot as plt
     if not isinstance(modes, (Mode, NMA, ModeSet)):
@@ -221,7 +220,7 @@ def showCumFractOfVar(modes, *args, **kwargs):
         indices = modes.getIndices() + 0.5
     else:
         indices = np.arange(len(modes)) + 0.5
-    fracts = np.array([mode.getFractOfVariance() for mode in modes]).cumsum()
+    fracts = np.array([calcFractVariance(mode) for mode in modes]).cumsum()
     show = plt.plot(indices, fracts, *args, **kwargs)
     axis = list(plt.axis())
     axis[0] = 0.5
@@ -712,7 +711,7 @@ def showOverlap(mode, modes, *args, **kwargs):
     plt.ylabel('Overlap')
     return show
 
-def showCumOverlap(mode, modes, *args, **kwargs):
+def showCumulOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
     
     :type mode: :class:`~.Mode`, :class:`~.Vector` 
@@ -725,7 +724,7 @@ def showCumOverlap(mode, modes, *args, **kwargs):
        :include-source:
         
        plt.figure(figsize=(5,4))
-       showCumOverlap( p38_pca[0], p38_anm )
+       showCumulOverlap( p38_pca[0], p38_anm )
        # Let's also show the overlap
        showOverlap( p38_pca[0], p38_anm )
 

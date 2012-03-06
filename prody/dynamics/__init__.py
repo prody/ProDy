@@ -87,8 +87,7 @@ Compare models
 Following functions are for comparing normal modes or dynamics models:
 
   * :func:`~.calcOverlap` - overlap (correlation) between modes
-  * :func:`~.calcCumOverlap` - cumulative overlap between modes
-  * :func:`~.calcCumOverlapArray` - incremental cumulative overlap
+  * :func:`~.calcCumulOverlap` - cumulative overlap between modes
   * :func:`~.calcSubspaceOverlap` - overlap between normal mode subspaces 
   * :func:`~.calcCovOverlap` - covariance overlap between models
   * :func:`~.printOverlapTable` - formatted overlap table printed on screen
@@ -167,12 +166,12 @@ Arguments and keyword arguments are passed to the Matplotlib functions.
   * :func:`~.showNormedSqFlucts` - normalized square-fluctuations
   * :func:`~.showCrossProjection` - project conformations onto modes from 
     different models
-  * :func:`~.showFractVariance` - fraction of variances
   * :func:`~.showCrossCorr` - cross-correlations between fluctuations
     in atomic positions
-  * :func:`~.showCumOverlap` - cumulative overlap of a mode with multiple modes 
-    from another model
-  * :func:`~.showCumFractOfVar` - cumulative fraction of variances 
+  * :func:`~.showCumulOverlap` - cumulative overlap of a mode with multiple 
+    modes from another model
+  * :func:`~.showFractVars` - fraction of variances
+  * :func:`~.showCumulFractVars` - cumulative fraction of variances 
   * :func:`~.resetTicks` - change ticks in a plot
 
 Visualize modes
