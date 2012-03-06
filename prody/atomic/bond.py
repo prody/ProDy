@@ -34,7 +34,7 @@ class Bond(object):
     def __init__(self, ag, indices, acsi=None):
         
         self._ag = ag
-        self._indices = indices
+        self._indices = np.array(indices)
         if acsi is None:
             self._acsi = ag.getACSIndex()
         else:
@@ -53,6 +53,17 @@ class Bond(object):
         names = self._ag._getNames()
         return '{0:s}({1:d})--{2:s}({3:d})'.format(
                                             names[one], one, names[two], two)
+
+    def __eq__(self, other):
+        
+        return (isinstance(other, Bond) and other.getAtomGroup() is self._ag
+                and (np.all(other.getIndices() == self._indices) or 
+                 np.all(other.getIndices() == list(reversed(self._indices))))) 
+
+    def __ne__(self, other):
+        
+        return not self.__eq__(other) 
+
 
     def getAtomGroup(self):
         """Return atom group."""
