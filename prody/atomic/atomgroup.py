@@ -555,9 +555,9 @@ class AtomGroup(Atomic):
                 raise AttributeError('atom serial numbers are not set')
             unique = np.unique(serials) 
             if len(unique) != self._n_atoms:
-                raise ValueError('atom serial numbers must be unique')
+                raise ValueError('atom serial numbers are not unique')
             if unique[0] < 0:
-                raise ValueError('atoms must not have negative serial numbers')
+                raise ValueError('atom serial numbers must be positive')
             sn2i = np.zeros(unique[-1] + 1, int)
             sn2i.fill(-1)
             sn2i[serials] = np.arange(self._n_atoms)
@@ -1078,7 +1078,6 @@ class AtomGroup(Atomic):
             return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
                                             .format(serial, stop, step))
 
-
     def getACSLabel(self):
         """Return active coordinate set label."""
         
@@ -1117,10 +1116,12 @@ class AtomGroup(Atomic):
             
     def setBonds(self, bonds):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
-        array of pairs of indices.  All bonds must be set at once.  An array
-        with number of bonds will be generated and stored as *numbonds*.
-        This can be used in atom selections, e.g. ``ag.select('numbonds 0')``
-        can be used to select ions in a system."""
+        array of pairs of indices.  All bonds must be set at once.  Bonding
+        information can be used to make atom selections, e.g. ``"bonded to 
+        index 1"``.  See :mod:`~.select` module documentation for details.   
+        Also, a data array with number of bonds will be generated and stored 
+        with label *numbonds*.  This can be used in atom selections, e.g. 
+        ``'numbonds 0'`` can be used to select ions in a system."""
         
         if isinstance(bonds, list):
             bonds = np.array(bonds, int)
