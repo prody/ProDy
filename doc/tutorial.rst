@@ -505,7 +505,7 @@ Perform the PCA:
 Print the fraction of variance for top raking 4 PCs:
 
 >>> for mode in pca[:4]:
-...     print( mode.getFractOfVariance().round(2) ) # doctest: +ELLIPSIS
+...     print( calcFractVariance(mode).round(2) ) # doctest: +ELLIPSIS
 0.13
 0.09
 0.08

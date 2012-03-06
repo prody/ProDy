@@ -93,7 +93,7 @@ Print data
 Let's print fraction of variance for top raking 4 PCs (listed in the Table S3):
 
 >>> for mode in pca[:4]:
-...     print mode.getFractOfVariance().round(3) # doctest: +ELLIPSIS
+...     print calcFractVariance(mode).round(3) # doctest: +ELLIPSIS
 0.134
 0.094
 0.083

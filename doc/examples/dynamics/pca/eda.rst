@@ -134,7 +134,7 @@ Print data
 Let's print fraction of variance for top raking 4 essential modes:
 
 >>> for mode in eda_trajectory[:4]:
-...     print mode.getFractOfVariance().round(2)
+...     print calcFractVariance(mode).round(2)
 0.26
 0.11
 0.08

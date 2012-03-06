@@ -32,7 +32,7 @@ components, which are the dominant modes of variability in the dataset.
 We can print this information to screen for top 6 PCs as follows:
 
 >>> for mode in pca[:3]:    # Print % variance explained by top PCs
-...     print '{0:s}  % variance = {1:.2f}'.format( mode, mode.getFractOfVariance()*100 )
+...     print '{0:s}  % variance = {1:.2f}'.format( mode, calcFractVariance(mode)*100 )
 Mode 1 from PCA p38 xray  % variance = 29.19
 Mode 2 from PCA p38 xray  % variance = 16.51
 Mode 3 from PCA p38 xray  % variance = 10.63
