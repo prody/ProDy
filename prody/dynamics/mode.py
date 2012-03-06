@@ -419,28 +419,11 @@ class Mode(VectorBase):
         
         return self._model._vars[self._index]
 
-    def getFractOfVariance(self):
-        """Return fraction of variance explained by the mode.  Fraction of 
-        variance is the ratio of the variance along this mode to the trace 
-        of the covariance matrix.  See :meth:`getVariance`."""
-        
-        return self.getVariance() / self._model._trace
-    
     def getCovariance(self):
         """Return covariance matrix calculated for this mode instance."""
         
         array = self._getArray()
         return np.outer(array, array) * self.getVariance()
-    
-    def getSqFlucts(self):
-        """Return square fluctuations.  Square fluctuations are obtained by 
-        multiplying the squared the mode array with the variance (:meth:`
-        getVariance`) along the mode."""
-        
-        if self.is3d():
-            return (self._getArrayNx3()**2).sum(axis=1) * self.getVariance()
-        else:
-            return (self._getArray() ** 2)  * self.getVariance()
 
 
 class Vector(VectorBase):
