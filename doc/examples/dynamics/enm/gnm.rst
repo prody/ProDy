@@ -36,7 +36,7 @@ so we select them:
 
 >>> calphas = ubi.select('calpha and chain A and resnum < 71')
 >>> calphas 
-<Selection: "calpha and chai...and resnum < 71" from 1aar (70 atoms)>
+<Selection: 'calpha and chai...and resnum < 71' from 1aar (70 atoms)>
 
 |more| See definition of "calpha", "chain", and other selection 
 keywords in :ref:`selections`.

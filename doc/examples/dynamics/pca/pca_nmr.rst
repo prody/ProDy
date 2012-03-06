@@ -62,7 +62,7 @@ Performing :class:`~.PCA` is only three lines of code:
 >>> pca.buildCovariance(ensemble)
 >>> pca.calcModes()
 >>> pca
-<PCA: Ubiquitin (20 modes, 70 atoms)>
+<PCA: Ubiquitin (20 modes; 70 atoms)>
 
 
 **Faster method**

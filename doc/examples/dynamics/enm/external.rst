@@ -47,7 +47,7 @@ Rest of the calculations can be performed as follows:
 >>> anm.setHessian(hessian)
 >>> anm.calcModes()
 >>> anm
-<ANM: Using external Hessian (20 modes, 351 nodes)>
+<ANM: Using external Hessian (20 modes; 351 nodes)>
 
 For more information, see :ref:`anm`.
 
@@ -83,7 +83,7 @@ Rest of the GNM calculations can be performed as follows:
 >>> gnm.setKirchhoff(kirchhoff)
 >>> gnm.calcModes()
 >>> gnm
-<GNM: Using external Kirchhoff (20 modes, 351 nodes)>
+<GNM: Using external Kirchhoff (20 modes; 351 nodes)>
 
 For more information, see :ref:`gnm`.
 

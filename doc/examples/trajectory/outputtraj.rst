@@ -66,7 +66,7 @@ Let's select non-hydrogen protein atoms and write a merged trajectory for
 MDM2:
 
 >>> traj.select('noh')
-<Selection: "noh" from mdm2 (706 atoms)>
+<Selection: 'noh' from mdm2 (706 atoms)>
 >>> writeDCD('mdm2_merged_noh.dcd', traj)
 'mdm2_merged_noh.dcd'
 

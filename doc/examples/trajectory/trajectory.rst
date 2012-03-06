@@ -77,7 +77,7 @@ in a subset of atoms, let's say Cα atoms, we can make a selection before
 performing calculations:
 
 >>> ensemble.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms)>
+<Selection: 'calpha' from mdm2 (85 atoms)>
 >>> ensemble
 <Ensemble: mdm2 (0:500:1) (500 conformations; selected 85 of 1449 atoms)>
 >>> ensemble.superpose()

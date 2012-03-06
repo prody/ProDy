@@ -57,7 +57,7 @@ We want to use only Cα atoms, so we select them:
 
 >>> calphas = p38.select('protein and name CA')
 >>> calphas
-<Selection: "protein and name CA" from 1p38 (351 atoms)>
+<Selection: 'protein and name CA' from 1p38 (351 atoms)>
 
 Force Constant Function
 ===============================================================================

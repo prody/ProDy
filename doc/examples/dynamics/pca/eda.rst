@@ -61,7 +61,7 @@ trajectory at once using :func:`~.parseDCD`:
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble.setAtoms( structure )
 >>> ensemble.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms)>
+<Selection: 'calpha' from mdm2 (85 atoms)>
 >>> ensemble.superpose()
 >>> eda_ensemble = EDA('MDM2 Ensemble')
 >>> eda_ensemble.buildCovariance( ensemble )
@@ -77,7 +77,7 @@ to the :meth:`.PCA.buildCovariance` method as follows:
 >>> dcd = DCDFile('mdm2.dcd')
 >>> dcd.setAtoms( structure )
 >>> dcd.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms)>
+<Selection: 'calpha' from mdm2 (85 atoms)>
 >>> eda_trajectory = EDA('MDM2 Trajectory')
 >>> eda_trajectory.buildCovariance( dcd )
 >>> eda_trajectory.calcModes()
@@ -111,7 +111,7 @@ them. In this case we will use data from two independent simulations
 
 >>> trajectory.setAtoms( structure )
 >>> trajectory.select('calpha')
-<Selection: "calpha" from mdm2 (85 atoms)>
+<Selection: 'calpha' from mdm2 (85 atoms)>
 >>> eda = EDA('mdm2')
 >>> eda.buildCovariance( trajectory )
 >>> eda.calcModes()

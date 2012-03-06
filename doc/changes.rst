@@ -37,10 +37,16 @@ Release 1.0 (in development)
     :ref:`outputtraj`, and :ref:`atomsframes` usage examples.
   
   * :meth:`Mode.getCollectivity` method is removed, use 
-    :func:`~.calcCollectivity` function.
+    :func:`~.calcCollectivity` function instead.
   
   * :meth:`Mode.getFractOfVariance` method is removed, use the new 
-    :func:`~.FractVariance` function.
+    :func:`~.calcFractVariance` function instead.
+  
+  * :meth:`Mode.getSqFlucts` method is removed, use :func:`~.calcSqFlucts` 
+    function instead.
+
+  * Renamed :func:`showFractOfVar` function as :func:`~.showFractVariance` 
+    function instead.
   
   * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  

@@ -34,13 +34,13 @@ We want to use only Cα atoms, so we select them:
 
 >>> calphas = p38.select('protein and name CA')
 >>> calphas
-<Selection: "protein and name CA" from 1p38 (351 atoms)>
+<Selection: 'protein and name CA' from 1p38 (351 atoms)>
 
 We can also make the same selection like this:
 
 >>> calphas2 = p38.select('calpha')
 >>> calphas2
-<Selection: "calpha" from 1p38 (351 atoms)>
+<Selection: 'calpha' from 1p38 (351 atoms)>
 
 To check whether the selections are the same, we can try:
 

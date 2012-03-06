@@ -284,7 +284,7 @@ It is also possible to get a slice of an atom group, for example we can get
 every other atom as follows:
 
 >>> structure[::2]
-<Selection: "index 0:2962:2" from 1p38 (1481 atoms)>
+<Selection: 'index 0:2962:2' from 1p38 (1481 atoms)>
 
 Hierarchical view
 -------------------------------------------------------------------------------
@@ -362,7 +362,7 @@ Keyword selections
 
 >>> protein = structure.select('protein')
 >>> protein
-<Selection: "protein" from 1p38 (2833 atoms)>
+<Selection: 'protein' from 1p38 (2833 atoms)>
 
 Using the "protein" keyword we selected 2833 atoms out of 2962 atoms. 
 :meth:`~.Atomic.select` method returned a :class:`~.Selection` 
@@ -380,7 +380,7 @@ We select backbone atoms by passing atom names following "name" keyword:
 
 >>> backbone = structure.select('protein and name N CA C O')
 >>> backbone
-<Selection: "protein and name N CA C O" from 1p38 (1404 atoms)>
+<Selection: 'protein and name N CA C O' from 1p38 (1404 atoms)>
 >>> len(backbone)
 1404
 
@@ -390,13 +390,13 @@ We select acidic and basic residues by using residue names with
 "resname" keyword:
 
 >>> structure.select('resname ARG LYS HIS ASP GLU')
-<Selection: "resname ARG LYS HIS ASP GLU" from 1p38 (906 atoms)>
+<Selection: 'resname ARG LYS HIS ASP GLU' from 1p38 (906 atoms)>
 
 Alternatively, we can use predefined keywords "acidic" and "basic".
 
 >>> charged = structure.select('acidic or basic')
 >>> charged
-<Selection: "acidic or basic" from 1p38 (906 atoms)>
+<Selection: 'acidic or basic' from 1p38 (906 atoms)>
 >>> set(charged.getResnames())
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
@@ -412,12 +412,12 @@ select the Cα and Cβ atoms of residues that have at least one atom within
 >>> print( center )
 [  1.005  17.533  40.052]
 >>> structure.select('protein and name CA CB and same residue as ((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
-<Selection: "protein and nam...)**2)**0.5 < 10" from 1p38 (66 atoms)>
+<Selection: 'protein and nam...)**2)**0.5 < 10' from 1p38 (66 atoms)>
 
 Alternatively, this selection could be done as follows:
 
 >>> structure.select('protein and name CA CB and same residue as within 10 of center', center=center)
-<Selection: "index 576 to 57...07 to 1707 1710" from 1p38 (66 atoms)>
+<Selection: 'index 576 to 57...07 to 1707 1710' from 1p38 (66 atoms)>
 
 Selection operations
 -------------------------------------------------------------------------------
@@ -427,7 +427,7 @@ Selection operations
 >>> ca = structure.select('name CA') 
 >>> cb = structure.select('name CB')
 >>> ca | cb
-<Selection: "(name CA) or (name CB)" from 1p38 (687 atoms)>
+<Selection: '(name CA) or (name CB)' from 1p38 (687 atoms)>
 >>> ca & cb
 
 Selections simplified
@@ -438,17 +438,17 @@ In interactive sessions, typing in ``.select('backbone')`` or even
 dot operator:
 
 >>> structure.protein
-<Selection: "protein" from 1p38 (2833 atoms)>
+<Selection: 'protein' from 1p38 (2833 atoms)>
 
 You can use dot operator multiple times:
 
 >>> structure.protein.backbone
-<Selection: "(backbone) and (protein)" from 1p38 (1404 atoms)>
+<Selection: '(backbone) and (protein)' from 1p38 (1404 atoms)>
 
 This may go on and on:
 
 >>> structure.protein.backbone.resname_ALA.calpha
-<Selection: "(calpha) and ((...and (protein)))" from 1p38 (26 atoms)>
+<Selection: '(calpha) and ((...and (protein)))' from 1p38 (26 atoms)>
 
 
 More examples
@@ -655,7 +655,7 @@ or obtain them for another protein from the ANM server.
 ...                  nm_usecols=range(1,21), 
 ...                  ev_usecols=[1], ev_usevalues=range(6,26))
 >>> nma
-<NMA: oanm_slwevs (20 modes, 351 atoms)>
+<NMA: oanm_slwevs (20 modes; 351 atoms)>
 >>> nma.setTitle('1p38 ANM')
 >>> slowmode = nma[0]
 >>> print( slowmode.getEigenvalue().round(2) )

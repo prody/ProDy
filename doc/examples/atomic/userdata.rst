@@ -68,7 +68,7 @@ Make selections
 Custom atomic attributes can be used in selections:
 
 >>> ag.select('0 < myresnum and myresnum < 10')
-<Selection: "0 < myresnum and myresnum < 10" from 1p38 (788 atoms)>
+<Selection: '0 < myresnum and myresnum < 10' from 1p38 (788 atoms)>
 
 This gives the same result as the following selection:
 

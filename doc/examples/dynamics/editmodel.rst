@@ -26,7 +26,7 @@ calculations for them:
 >>> rt = parsePDB('1dlo', subset="ca")
 >>> anm, sel = calcANM(rt)
 >>> anm
-<ANM: 1dlo_ca (20 modes, 971 nodes)>
+<ANM: 1dlo_ca (20 modes; 971 nodes)>
 >>> saveModel(anm, 'rt_anm')
 'rt_anm.anm.npz'
 >>> print anm[:5].getEigenvalues().round(3)
@@ -95,7 +95,7 @@ chain A in the structure, using :func:`~.sliceModel` function:
 
 >>> anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
 >>> anm_slc_p66
-<ANM: 1dlo_ca slice "chain A" (20 modes, 556 nodes)>
+<ANM: 1dlo_ca slice "chain A" (20 modes; 556 nodes)>
 >>> saveModel(anm_slc_p66, 'rt_anm_sliced')
 'rt_anm_sliced.anm.npz'
 >>> print anm_slc_p66[:5].getEigenvalues().round(3)
@@ -158,7 +158,7 @@ This function implements the method described in 2000 paper of Hinsen et al.
 >>> anm_red_p66, sel_p66 = reduceModel(anm, rt, 'chain A')
 >>> anm_red_p66.calcModes()
 >>> anm_red_p66
-<ANM: 1dlo_ca reduced (20 modes, 556 nodes)>
+<ANM: 1dlo_ca reduced (20 modes; 556 nodes)>
 >>> saveModel(anm_red_p66, 'rt_anm_reduced')
 'rt_anm_reduced.anm.npz'
 >>> print anm_red_p66[:5].getEigenvalues().round(3)
