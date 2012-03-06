@@ -1222,7 +1222,8 @@ class Select(object):
         
         if isinstance(tkns, str):
             if isBooleanKeyword(tkns):
-                return self._evalBoolean(sel, loc, tkns, evalonly=evalonly)
+                return self._evalBoolean(sel, loc, tkns, evalonly=evalonly, 
+                                         rtrn=True)
             elif self._ag.isData(tkns):
                 return self._evalUserdata(sel, loc, tkns, evalonly=evalonly)
             else:
@@ -1234,7 +1235,8 @@ class Select(object):
         keyword = tkns[0]
         if len(tkns) == 1:
             if isBooleanKeyword(keyword):
-                return self._evalBoolean(sel, loc, keyword, evalonly=evalonly)
+                return self._evalBoolean(sel, loc, keyword, evalonly=evalonly, 
+                                         rtrn=True)
             elif isNumericKeyword(keyword):
                 return self._evalNumeric(sel, loc, keyword)
             elif self._ag.isData(keyword):
@@ -1742,7 +1744,7 @@ class Select(object):
                 return SelectionError(sel, loc, "data type of {0:s} must be "
                                   "int, float, or str".format(repr(keyword)))
 
-    def _evalBoolean(self, sel, loc, keyword, evalonly=None):
+    def _evalBoolean(self, sel, loc, keyword, evalonly=None, rtrn=False):
         """Evaluate a boolean keyword."""
     
         if DEBUG: print('_evalBoolean', keyword)
@@ -1757,7 +1759,7 @@ class Select(object):
             return zeros(n_atoms, bool)
         else:
             keyword = expandBoolean(keyword)
-            torf = self._and(sel, loc, [keyword], rtrn=True)
+            torf = self._and(sel, loc, [keyword], rtrn=rtrn)
             if evalonly is None or isinstance(torf, SelectionError):
                 return torf
             else:
