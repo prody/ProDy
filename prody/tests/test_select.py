@@ -196,6 +196,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('exwithin 5 of exwithin 5 of exwithin 5 of index 0', 99),
                      ('within 1 of pdb', 3211, None, {'pdb': pdb3mht}),
                      ('exwithin 1 of pdb', 3211, None, {'pdb': pdb3mht}),
+                     ('exwithin 1 of ag', None, None, {'ag': AtomGroup()}),
                      ],
      'sameas':      [('same residue as index 0', 22),
                      ('same chain as index 0', 248),   
