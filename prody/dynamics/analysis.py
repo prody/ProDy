@@ -35,7 +35,7 @@ from mode import VectorBase, Mode, Vector
 from gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
-           'calcSqFlucts', 'calcTempFactors',
+           'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcPerturbResponse', ]
 
 pkg = __import__(__package__)
