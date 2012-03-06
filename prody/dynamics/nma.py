@@ -75,11 +75,14 @@ class NMA(object):
             yield self.getMode(i)
     
     def __repr__(self):
-        return '<NMA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
-                self._title, self._n_modes, self._n_atoms)
+        
+        return '<{0:s}: {1:s} ({2:d} modes; {3:d} atoms)>'.format(
+                self.__class__.__name__, self._title, self._n_modes, 
+                self._n_atoms)
 
     def __str__(self):
-        return 'NMA {0:s}'.format(self._title)
+        
+        return self.__class__.__name__ + ' ' + self._title
 
     def _reset(self):
         self._n_modes = 0        

@@ -47,14 +47,8 @@ class PCA(NMA):
     """
 
     def __init__(self, name='Unknown'):
+        
         NMA.__init__(self, name)
-    
-    def __repr__(self):
-        return '<PCA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
-                self._title, self._n_modes, self._n_atoms)
-
-    def __str__(self):
-        return 'PCA {0:s}'.format(self._title)
     
     def setCovariance(self, covariance):
         """Set covariance matrix."""
@@ -319,13 +313,4 @@ class EDA(PCA):
     
     |example| See examples in :ref:`eda`."""
 
-    def __repr__(self):
-        return '<EDA: {0:s} ({1:d} modes, {2:d} atoms)>'.format(
-                self._title, self._n_modes, self._n_atoms)
-
-    def __str__(self):
-        return 'EDA {0:s}'.format(self._title)
-
-
-
-    
+    pass

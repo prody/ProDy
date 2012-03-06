@@ -49,6 +49,7 @@ class ANM(GNMBase):
     """
 
     def __init__(self, name='Unknown'):
+        
         GNMBase.__init__(self, name)
         self._is3d = True
         self._cutoff = None
@@ -56,15 +57,8 @@ class ANM(GNMBase):
         self._gamma = None
         self._hessian = None
 
-
-    def __repr__(self):
-        return '<ANM: {0:s} ({1:d} modes, {2:d} nodes)>'.format(
-                                    self._title, self.__len__(), self._n_atoms)
-                                    
-    def __str__(self):
-        return 'ANM {0:s}'.format(self._title)
-
     def _reset(self):
+        
         GNMBase._reset(self)
         self._hessian = None
         self._is3d = True

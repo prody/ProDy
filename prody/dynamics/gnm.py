@@ -47,6 +47,7 @@ class GNMBase(NMA):
     """Class for Gaussian Network Model analysis of proteins."""
 
     def __init__(self, name='Unknown'):
+        
         NMA.__init__(self, name)
         self._is3d = False
         self._cutoff = None
@@ -54,13 +55,17 @@ class GNMBase(NMA):
         self._gamma = None
         
     def __repr__(self):
-        return '<GNM: {0:s} ({1:d} modes, {2:d} nodes)>'.format(
-                                    self._title, self.__len__(), self._n_atoms)
+        
+        return '<{0:s}: {1:s} ({2:d} modes; {3:d} nodes)>'.format(
+                self.__class__.__name__, self._title, self.__len__(), 
+                self._n_atoms)
     
     def __str__(self):
-        return 'GNM {0:s}'.format(self._title)
+        
+        return self.__class__.__name__ + ' ' + self._title
     
     def _reset(self):
+        
         NMA._reset(self)
         self._cutoff = None
         self._gamma = None
