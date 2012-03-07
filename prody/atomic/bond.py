@@ -27,7 +27,11 @@ __all__ = ['Bond']
 
 class Bond(object):
     
-    """A pointer class for bonded atoms."""
+    """A pointer class for bonded atoms.  Some :class:`object` methods are 
+    customized as follows:
+    
+    * :func:`len` returns bond length, i.e. :meth:`getLength`
+    * :func:`iter` yields :class:`~.Atom` instances"""
     
     __slots__ = ['_ag', '_acsi', '_indices']
     
@@ -64,6 +68,14 @@ class Bond(object):
         
         return not self.__eq__(other) 
 
+    def __len__(self):
+        
+        return self.getLength()
+    
+    def __iter__(self):
+        
+        for index in self._indices:
+            yield self._ag[index]
 
     def getAtomGroup(self):
         """Return atom group."""
