@@ -72,7 +72,7 @@ class AtomPointer(Atomic):
     def __invert__(self):
         
         ones = np.ones(self._ag.numAtoms(), bool)
-        ones[self._indices] = False
+        ones[self._getIndices()] = False
         return Selection(self._ag, ones.nonzero()[0], 
                          "not ({0:s}) ".format(self.getSelstr()), 
                          self.getACSIndex(), unique=True)
@@ -94,7 +94,7 @@ class AtomPointer(Atomic):
                         'be set to zero.')
             acsi = 0
             
-        indices = np.unique(np.concatenate((self._indices, 
+        indices = np.unique(np.concatenate((self._getIndices(), 
                                             other._getIndices())))
         return Selection(self._ag, indices, '({0:s}) or ({1:s})'.format(
                                     self.getSelstr(), other.getSelstr()), 
@@ -123,7 +123,7 @@ class AtomPointer(Atomic):
                         'be set to zero.')
             acsi = 0
             
-        indices = set(self._indices)
+        indices = set(self._getIndices())
     
         indices = indices.intersection(other.getIndices())
         if indices:
