@@ -6,10 +6,20 @@
 Changes
 *******************************************************************************
 
-Release 1.0 (in development)
+Release 1.0 (Mar 7, 2012)
 ===============================================================================
 
 **Improvements**:
+
+  * :meth:`.ANM.buildHessian` method is not using a KDTree by default, since
+    with some code optimization the version not using KDTree is running faster.
+    Same optimization has gone into :meth:`.GNM.buildKirchhoff` too, but for 
+    Kirchoff matrix, version using KDTree is faster and is the default.  Both
+    methods have *kdtree* argument to choose whether to use it or not.
+
+  * :program:`prody` script is updated.  Importing Prody and Numpy libraries 
+    are avoided. Script responses to help queries faster.  See :ref:`commands`
+    for script usage details.
 
   * Added ``bonded to ...`` selection method that expands a selection to 
     immediately bound atoms.  See :ref:`selections` for its description.
@@ -30,12 +40,20 @@ Release 1.0 (in development)
 
 **Changes**:
 
-  * Deprecated method and functions are removed.
+  * All deprecated method and functions scheduled for removal are removed.
   
-  * The relation between :class:`~.AtomGroup`, :class:`~.Trajectory`, and
-    :class:`~.Frame` instances have changed. See :ref:`trajectory2` and
-    :ref:`outputtraj`, and :ref:`atomsframes` usage examples.
-  
+  * :meth:`~.Mode.getEigenvector` and :meth:`~.Mode.getEigenvalue` methods are
+    deprecated for removal in v1.1, use :meth:`~.Mode.getEigvec` and 
+    :meth:`~.Mode.getEigval` instead.
+
+  * :meth:`~.NMA.getEigenvectors` and :meth:`~.NMA.getEigenvalues` methods are
+    deprecated for removal in v1.1, use :meth:`.NMA.getEigvecs` and 
+    :meth:`.NMA.getEigvals` instead. 
+
+  * :meth:`.Mode.getCovariance` and :meth:`.ModeSet.getCovariance` methods
+    are deprecated for removal in v1.1, use :func:`~.calcCovariance` method 
+    instead.
+
   * :meth:`Mode.getCollectivity` method is removed, use 
     :func:`~.calcCollectivity` function instead.
   
@@ -51,14 +69,18 @@ Release 1.0 (in development)
   * Removed :func:`calcCumOverlapArray`, use :func:`~.calcCumulOverlap`
     with ``array=True`` argument instead.
     
+  * Renamed :func:`extrapolateModel` as :func:`~.extendModel`.
+
+  * The relation between :class:`~.AtomGroup`, :class:`~.Trajectory`, and
+    :class:`~.Frame` instances have changed. See :ref:`trajectory2` and
+    :ref:`outputtraj`, and :ref:`atomsframes` usage examples.
+  
   * :class:`~.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  
 
   * Unmapped atoms in :class:`~.AtomMap` instances are called dummies.  
     :meth:`AtomMap.numUnmapped` method, for example, is renamed as 
     :meth:`.AtomMap.numDummies`.
-
-  * Renamed :func:`extrapolateModel` as :func:`~.extendModel`.
 
   * :func:`~.fetchPDBLigand` accepts only *filename* (instead of *save* and 
     *folder*) argument to save an XML file.
