@@ -124,10 +124,10 @@ class ANM(GNMBase):
         
         if not isinstance(coords, np.ndarray):
             try:
-                coords = coords.getCoords()
+                coords = coords._getCoords()
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
-                                'getCoordinates attribute')
+                                'getCoords attribute')
         coords = checkCoords(coords, 'coords')
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
@@ -148,7 +148,9 @@ class ANM(GNMBase):
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
             hessian = np.zeros((dof, dof), float)
+            
         if kwargs.get('kdtree', False):
+            LOGGER.info('Using KDTree for building the Hessian.')
             kdtree = getKDTree(coords) 
             kdtree.all_search(cutoff)
             for i, j in kdtree.all_get_indices():
@@ -171,7 +173,6 @@ class ANM(GNMBase):
                 kirchhoff[i, i] = kirchhoff[i, i] - g
                 kirchhoff[j, j] = kirchhoff[j, j] - g
         else:
-            LOGGER.info('Using KDTree for building the Hessian.')
             cutoff2 = cutoff * cutoff 
             for i in range(n_atoms):
                 res_i3 = i*3
