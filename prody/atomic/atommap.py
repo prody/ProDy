@@ -200,25 +200,19 @@ class AtomMap(AtomPointer):
     
     def __repr__(self):
         
-        n_csets = self._ag.numCoordsets()
-        
-        dummy = ''
+        rep = '<AtomMap: {0:s} from {1:s} ({2:d} atoms'.format(
+                self._title, self._ag.getTitle(), self._len) 
         if self.numDummies():
-            dummy = ', {0:d} mapped, {1:d} dummy'.format(self.numMapped(), 
+            rep += ', {0:d} mapped, {1:d} dummy'.format(self.numMapped(), 
                                                          self.numDummies())
         
-        if n_csets == 1:
-            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms{3:s})>').format(
-                    self._title, self._ag.getTitle(), self._len, dummy)
-        elif n_csets > 1:
-            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms{3:s}; active '
-                    '{5:d} of {6:d} coordsets)>').format(self._title, 
-                    self._ag.getTitle(), self._len, dummy, self.getACSIndex(),
-                    n_csets)
-        else:
-            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms{3:s}; no '
-                    'coordinates)>').format(self._title, self._ag.getTitle(), 
-                    self._len, dummy)
+        n_csets = self._ag.numCoordsets()
+        if n_csets > 1:
+            rep += '; active {0:d} of {1:d} coordsets)>'.format(
+                    self.getACSIndex(), n_csets)
+        elif n_csets == 0:
+            rep += '; no coordinates'
+        return rep + ')>'
         
     def __str__(self):
     
