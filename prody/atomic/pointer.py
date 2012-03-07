@@ -32,8 +32,8 @@ LOGGER = pkg.LOGGER
 
 class AtomPointer(Atomic):
     
-    """A base for classes pointing to atoms in :class:`~atomgroup.AtomGroup` 
-    instances.  Derived classes are:
+    """A base for classes pointing to atoms in :class:`~.AtomGroup` instances.
+    Derived classes are:
         
       * :class:`~.Atom`
       * :class:`~.AtomSubset`
@@ -68,6 +68,68 @@ class AtomPointer(Atomic):
     def __ne__(self, other):
         
         return not self.__eq__(other)
+    
+    def __invert__(self):
+        
+        ones = np.ones(self._ag.numAtoms(), bool)
+        ones[self._indices] = False
+        return Selection(self._ag, ones.nonzero()[0], 
+                         "not ({0:s}) ".format(self.getSelstr()), 
+                         self.getACSIndex(), unique=True)
+
+    def __or__(self, other):
+        
+        if self is other:
+            return self
+    
+        if not isinstance(other, AtomPointer):
+            raise TypeError('other must be an AtomPointer')
+            
+        if self._ag != other.getAtomGroup():
+            raise ValueError('both selections must be from the same AtomGroup')
+            
+        acsi = self.getACSIndex()
+        if acsi != other.getACSIndex():
+            LOGGER.warn('Active coordinate set indices do not match, it will '
+                        'be set to zero.')
+            acsi = 0
+            
+        indices = np.unique(np.concatenate((self._indices, 
+                                            other._getIndices())))
+        return Selection(self._ag, indices, '({0:s}) or ({1:s})'.format(
+                                    self.getSelstr(), other.getSelstr()), 
+                                    acsi, unique=True)
+
+    def __and__(self, other):
+        
+        if self is other:
+            return self
+    
+        if not isinstance(other, AtomPointer):
+            raise TypeError('other must be an AtomPointer')
+            
+        if self._ag != other.getAtomGroup():
+            raise ValueError('both selections must be from the same AtomGroup')
+    
+        acsi = self.getACSIndex()
+        if acsi != other.getACSIndex():
+            LOGGER.warning('active coordinate set indices do not match, '
+                           'so it will be set to zero in the union.')
+            acsi = 0
+
+        acsi = self.getACSIndex()
+        if acsi != other.getACSIndex():
+            LOGGER.warn('Active coordinate set indices do not match, it will '
+                        'be set to zero.')
+            acsi = 0
+            
+        indices = set(self._indices)
+    
+        indices = indices.intersection(other.getIndices())
+        if indices:
+            indices = np.unique(indices)
+            return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
+                                    self.getSelstr(), other.getSelstr()), acsi)
 
     def __add__(self, other):
         """Returns an :class:`~.AtomMap` instance. Order of pointed atoms are

@@ -108,72 +108,9 @@ class AtomSubset(AtomPointer):
         self._selstr = kwargs.get('selstr')
 
     def __len__(self):
+        
         return len(self._indices)
 
-    def __invert__(self):
-        
-        acsi = self.getACSIndex()
-        ones = np.ones(self._ag.numAtoms(), bool)
-        ones[self._indices] = False
-        sel = Selection(self._ag, ones.nonzero()[0], 
-                        "not ({0:s}) ".format(self.getSelstr()), acsi)        
-        return sel
-    
-    def __or__(self, other):
-        
-        if not isinstance(other, AtomSubset):
-            raise TypeError('other must be an AtomSubset')
-            
-        if self._ag != other._ag:
-            raise ValueError('both selections must be from the same AtomGroup')
-            
-        if self is other:
-            return self
-    
-        acsi = self.getACSIndex()
-        if acsi != other.getACSIndex():
-            LOGGER.warning('active coordinate set indices do not match, '
-                           'so it will be set to zero in the union.')
-            acsi = 0
-            
-        if isinstance(other, Atom):
-            other_indices = np.array([other._index])
-        else:
-            other_indices = other._indices
-            
-        indices = np.unique(np.concatenate((self._indices, other_indices)))
-        return Selection(self._ag, indices, '({0:s}) or ({1:s})'.format(
-                                    self.getSelstr(), other.getSelstr()), acsi)
-
-    def __and__(self, other):
-        
-        if not isinstance(other, AtomSubset):
-            raise TypeError('other must be an AtomSubset')
-            
-        if self._ag != other._ag:
-            raise ValueError('both selections must be from the same AtomGroup')
-        
-        if self is other:
-            return self
-    
-        acsi = self.getACSIndex()
-        if acsi != other.getACSIndex():
-            LOGGER.warning('active coordinate set indices do not match, '
-                           'so it will be set to zero in the union.')
-            acsi = 0
-    
-        indices = set(self._indices)
-        if isinstance(other, Atom):
-            other_indices = set([other._index])
-        else:
-            other_indices = set(other._indices)
-    
-        indices = indices.intersection(other_indices)
-        if indices:
-            indices = np.unique(indices)
-            return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
-                                    self.getSelstr(), other.getSelstr()), acsi)
-               
     def getCoords(self):
         """Return a copy of coordinates from the active coordinate set."""
         
