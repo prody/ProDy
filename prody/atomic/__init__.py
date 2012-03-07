@@ -134,13 +134,7 @@ import atomgroup
 import selection
 
 from atomgroup import SELECT
-
 from chain import AAA2A, getSequence
-
-atomgroup.HierView = HierView
-selection.HierView = HierView
-
-#from atom import Atom
 from functions import loadAtoms, saveAtoms
 
 __all__ += select.__all__
@@ -150,9 +144,11 @@ atomic.isMacro = isMacro
 atomic.isKeyword = isKeyword
 atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()
 atomgroup.isReserved = isReserved
+atomgroup.HierView = HierView
 pointer.AtomMap = AtomMap
 pointer.AtomGroup = AtomGroup
-subset.Selection = Selection
+pointer.Selection = Selection
+selection.HierView = HierView
 
 import numpy as np
 
