@@ -92,6 +92,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
+from prody.tools import rangeString
+
 from atom import Atom
 from fields import ATOMIC_FIELDS
 from fields import wrapGetMethod, wrapSetMethod
@@ -370,3 +372,8 @@ class AtomMap(AtomPointer):
         """Return number of dummy atoms."""
         
         return len(self._dummies)
+
+    def getSelstr(self):
+        """Return selection string that selects mapped atoms."""
+        
+        return 'index ' + rangeString(self._indices)
