@@ -53,13 +53,12 @@ today = date.today()
 if today.year == 2012:
     warnings.filterwarnings('default', category=DeprecationWarning)
 
-def deprecate(dep, alt, sl=3):
+def deprecate(dep, alt, ver='1.1', sl=3):
     """Issue a deprecation warning for *dep* and recommend using *alt*, if 
     current year is 2012."""
 
-    if DEPRECATION_WARNINGS or today.year >= 2012:
-        warnings.warn('`{0:s}` is deprecated for removal in v1.0, use `{1:s}`.'
-                      .format(dep, alt), DeprecationWarning, stacklevel=sl)
+    warnings.warn('`{0:s}` is deprecated for removal in v{1:s}, use `{2:s}`.'
+                  .format(dep, ver, alt), DeprecationWarning, stacklevel=sl)
 
 def turnonDepracationWarnings(action='always'):
     """Turn on deprecation warnings for the current session.  By default
