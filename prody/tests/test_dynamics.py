@@ -80,7 +80,7 @@ class TestANMResults(testGNMBase):
     def testEigenvalues(self):
         """Test eigenvalues."""
         
-        assert_allclose(anm[:len(ANM_EVALUES)].getEigenvalues(), ANM_EVALUES, 
+        assert_allclose(anm[:len(ANM_EVALUES)].getEigvals(), ANM_EVALUES, 
                         rtol=RTOL, atol=ATOL*10,
                         err_msg='failed to get correct eigenvalues')
 
@@ -88,7 +88,7 @@ class TestANMResults(testGNMBase):
     def testEigenvectors(self):
         """Test eigenvectors."""
         
-        _temp = np.abs(np.dot(anm[6:6+ANM_EVECTORS.shape[1]].getEigenvectors().T, 
+        _temp = np.abs(np.dot(anm[6:6+ANM_EVECTORS.shape[1]].getEigvecs().T, 
                               ANM_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
                         err_msg='failed to get correct eigenvectors')
@@ -140,10 +140,10 @@ class TestANMSparse(unittest.TestCase):
                         rtol=0, atol=ATOL,
                         err_msg='failed to get correct sparse Hessian matrix')
         anm.calcModes(None)
-        assert_allclose(anm[:len(ANM_EVALUES)].getEigenvalues(), ANM_EVALUES, 
+        assert_allclose(anm[:len(ANM_EVALUES)].getEigvals(), ANM_EVALUES, 
                         rtol=RTOL, atol=ATOL*10,
                         err_msg='failed to get correct eigenvalues')
-        _temp = np.abs(np.dot(anm[6:6+ANM_EVECTORS.shape[1]].getEigenvectors().T, 
+        _temp = np.abs(np.dot(anm[6:6+ANM_EVECTORS.shape[1]].getEigvecs().T, 
                               ANM_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
                         err_msg='failed to get correct eigenvectors')
@@ -152,16 +152,16 @@ class TestANMSparse(unittest.TestCase):
 class TestGNMResults(testGNMBase):
     
     def testEigenvalues(self):
-        assert_allclose(gnm[:21].getEigenvalues(), GNM_EVALUES[:21], 
+        assert_allclose(gnm[:21].getEigvals(), GNM_EVALUES[:21], 
                         rtol=RTOL, atol=ATOL*100,
                         err_msg='failed to get correct slow eigenvalues')
                         
-        assert_allclose(gnm[-21:].getEigenvalues(), GNM_EVALUES[21:], 
+        assert_allclose(gnm[-21:].getEigvals(), GNM_EVALUES[21:], 
                         rtol=RTOL, atol=ATOL*100,
                         err_msg='failed to get correct fast eigenvalues')
 
     def testEigenvectors(self):
-        _temp = np.abs(np.dot(gnm[1:21].getEigenvectors().T, GNM_EVECTORS))
+        _temp = np.abs(np.dot(gnm[1:21].getEigvecs().T, GNM_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL*10,
                        err_msg='failed to get correct eigenvectors')
 
