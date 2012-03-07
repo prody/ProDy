@@ -96,7 +96,7 @@ def prody_pca(opt):
         prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
                          pca.getArray(), delimiter=delim, format=format)
         prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-                         pca.getEigenvalues(), delimiter=delim, format=format)
+                         pca.getEigvals(), delimiter=delim, format=format)
     if outall or opt.covar:
         prody.writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
                          pca.getCovariance(), delimiter=delim, format=format)

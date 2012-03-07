@@ -67,7 +67,7 @@ def prody_gnm(opt):
         prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
                          gnm.getArray(), delimiter=delim, format=format)
         prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-                         gnm.getEigenvalues(), delimiter=delim, format=format)
+                         gnm.getEigvals(), delimiter=delim, format=format)
     
     if outall or opt.beta:
         fout = prody.openFile(prefix + '_beta.txt', 'w', folder=outdir)

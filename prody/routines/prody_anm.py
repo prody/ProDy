@@ -69,7 +69,7 @@ def prody_anm(opt):
         prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
                          anm.getArray(), delimiter=delim, format=format)
         prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
-                         anm.getEigenvalues(), delimiter=delim, format=format)
+                         anm.getEigvals(), delimiter=delim, format=format)
     if outall or opt.beta:
         fout = prody.openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
