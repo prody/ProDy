@@ -53,9 +53,9 @@ We can get information on matched subset of atoms by entering the variable
 name:
 
 >>> ref_chain
-<AtomMap: Chain A from 1p38 -> Chain A from 1zz2 from 1p38 (337 atoms, 337 mapped, 0 dummy)>
+<AtomMap: Chain A from 1p38 -> Chain A from 1zz2 from 1p38 (337 atoms)>
 >>> mob_chain
-<AtomMap: Chain A from 1zz2 -> Chain A from 1p38 from 1zz2 (337 atoms, 337 mapped, 0 dummy)>
+<AtomMap: Chain A from 1zz2 -> Chain A from 1p38 from 1zz2 (337 atoms)>
 
 Both :class:`~.AtomMap` instances refer to same number of atoms, 
 and their name suggests how they were retrieved.

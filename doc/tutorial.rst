@@ -571,7 +571,7 @@ indexing the :class:`~.ANM` instance:
 >>> slowest_mode = anm[0]
 >>> print( slowest_mode )
 Mode 1 from ANM ubi
->>> print( slowest_mode.getEigenvalue().round(3) )
+>>> print( slowest_mode.getEigval().round(3) )
 1.714
 
 Note that indices in Python start from zero (0). 
@@ -658,7 +658,7 @@ or obtain them for another protein from the ANM server.
 <NMA: oanm_slwevs (20 modes; 351 atoms)>
 >>> nma.setTitle('1p38 ANM')
 >>> slowmode = nma[0]
->>> print( slowmode.getEigenvalue().round(2) )
+>>> print( slowmode.getEigval().round(2) )
 0.18
 
 .. plot::

@@ -58,10 +58,10 @@ structures:
 
 >>> bound_ca = matches[0][0] + matches[1][0]
 >>> bound_ca
-<AtomMap: (AtomMap Chain B from 1vrt -> Chain B from 1dlo) + (AtomMap Chain A from 1vrt -> Chain A from 1dlo) from 1vrt (924 atoms, 924 mapped, 0 dummy)>
+<AtomMap: (AtomMap Chain B from 1vrt -> Chain B from 1dlo) + (AtomMap Chain A from 1vrt -> Chain A from 1dlo) from 1vrt (924 atoms)>
 >>> unbound_ca = matches[0][1] + matches[1][1]
 >>> unbound_ca
-<AtomMap: (AtomMap Chain B from 1dlo -> Chain B from 1vrt) + (AtomMap Chain A from 1dlo -> Chain A from 1vrt) from 1dlo (924 atoms, 924 mapped, 0 dummy)>
+<AtomMap: (AtomMap Chain B from 1dlo -> Chain B from 1vrt) + (AtomMap Chain A from 1dlo -> Chain A from 1vrt) from 1dlo (924 atoms)>
 >>> calcRMSD(bound_ca, unbound_ca)
 129.34348658001386
 
