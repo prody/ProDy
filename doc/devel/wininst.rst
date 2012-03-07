@@ -1,14 +1,12 @@
 .. _wininst:
 
-.. currentmodule:: prody
-
 *******************************************************************************
-Creating Windows Installers
+Making Windows Installers
 *******************************************************************************
 
-When creating Windows installers http://www.mingw.org/ can be 
-used for compiling C modules. In :file:`Lib\distutils` folder, make 
-:file:`distutils.cfg` file that contains::
+`MinGW <http://www.mingw.org/>`_ can be used for compiling C modules when
+making Windows installers.  Install MinGW and make :file:`distutils.cfg` file 
+in :file:`Python26\\Lib\\distutils` folder that contains::
 
   [build]
   compiler = mingw32
