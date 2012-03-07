@@ -22,6 +22,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
+import prody
 
 __all__ = ['ModeSet']
 
@@ -100,14 +101,21 @@ class ModeSet(object):
         return self._indices
     
     def getEigenvalues(self):
+        """Deprecated, use :meth:`getEigvals` instead."""
+        
+        prody.deprecate('getEigenvalue', 'getEigvals')
+        return self.getEigval()
+        
+    def getEigvals(self):
         """Return eigenvalues."""
         
         return self._model._eigvals[self._indices]
 
     def getEigenvectors(self):
-        """Return a copy of eigenvectors."""
+        """Deprecated, use :meth:`getEigvecs` instead."""
         
-        return self._model._array[:, self._indices]
+        prody.deprecate('getEigenvector', 'getEigvecs')
+        return self.getEigvecs()
     
     def getVariances(self):
         """Return variances (~inverse eigenvalues)."""
@@ -119,13 +127,15 @@ class ModeSet(object):
         
         return self._model._array[:, self._indices]
 
+    getEigvecs = getArray
+
     def _getArray(self):
         """Return a copy of eigenvectors array."""
 
         return self._model._array[:, self._indices]
         
     def getCovariance(self):
-        """Return covariance matrix calculated for modes in the set."""
+        """Deprecated, use :func:`~.calcCovariance` instead."""
         
-        array = self._getArray()
-        return np.dot(array, np.dot(np.diag(self.getVariances()), array.T))
+        prody.deprecate('getCovariance', 'calcCovariance')
+        return prody.calcCovariance(self)

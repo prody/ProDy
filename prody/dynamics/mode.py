@@ -31,43 +31,43 @@ same number of atoms).
 Let's get started by getting ANM models for two related protein structures:
 
 >>> from prody import *
->>> str_one = parsePDB('1p38')
->>> str_two = parsePDB('1r39')
+>>> str1 = parsePDB('1p38')
+>>> str2 = parsePDB('1r39')
 
 **Find and align matching chains**
 
->>> matches = matchChains(str_one, str_two)
+>>> matches = matchChains(str1, str2)
 >>> match = matches[0]
->>> ch_one = match[0]
->>> ch_two = match[1]
+>>> ch1 = match[0]
+>>> ch2 = match[1]
 
-Minimize RMSD by superposing ``ch_two`` onto ``ch_one``:
+Minimize RMSD by superposing ``ch2`` onto ``ch1``:
 
->>> ch_two, t = superpose(ch_two, ch_one) 
->>> # t is transformation, which is already applied to ch_two
->>> rmsd = calcRMSD(ch_one, ch_two)
+>>> ch2, t = superpose(ch2, ch1) 
+>>> # t is transformation, which is already applied to ch2
+>>> rmsd = calcRMSD(ch1, ch2)
 >>> print( '{0:.2f}'.format(rmsd) ) # Print rmsd with some formatting
 0.90
 
 
 **Get ANM models for each chain**
 
->>> anm_one, ch_one = calcANM(ch_one)
->>> anm_two, ch_two = calcANM(ch_two)
+>>> anm1, ch1 = calcANM(ch1)
+>>> anm2, ch2 = calcANM(ch2)
 
->>> print( anm_one[0] )
+>>> print( anm1[0] )
 Mode 1 from ANM 1p38
 
 Let's rename these :class:`ANM` instances, so that they print short: 
 
->>> anm_one.setTitle('1p38_anm')
->>> anm_two.setTitle('1r39_anm')
+>>> anm1.setTitle('1p38_anm')
+>>> anm2.setTitle('1r39_anm')
 
 This is how they print now:
 
->>> print( anm_one[0] )
+>>> print( anm1[0] )
 Mode 1 from ANM 1p38_anm
->>> print( anm_two[0] )
+>>> print( anm2[0] )
 Mode 1 from ANM 1r39_anm
 
 Calculate overlap
@@ -84,7 +84,7 @@ between modes.
 
 Let's calculate overlap for slowest modes:
 
->>> overlap = anm_one[0] * anm_two[0]
+>>> overlap = anm1[0] * anm2[0]
 >>> print( '{0:.3f}'.format(overlap) ) 
 -0.984
 
@@ -93,14 +93,14 @@ surprising since ANM modes come from structures of the *same* protein.
 
 To compare multiple modes, convert a list of modes to a :func:`numpy.array`:
 
->>> print( np.array(list(anm_one[:3])) * np.array(list(anm_two[:3])) )
+>>> print( np.array(list(anm1[:3])) * np.array(list(anm2[:3])) )
 [-0.98402119545 -0.98158348545 -0.991357811832]
 
 This shows that slowest three modes are almost identical.
 
 We could also generate a matrix of overlaps using :func:`numpy.outer`:
 
->>> outer = np.outer( np.array(list(anm_one[:3])),  np.array(list(anm_two[:3])) )
+>>> outer = np.outer( np.array(list(anm1[:3])),  np.array(list(anm2[:3])) )
 >>> print( outer.astype(np.float64).round(2) )
 [[-0.98 -0.14 -0.  ]
  [ 0.15 -0.98  0.08]
@@ -109,7 +109,7 @@ We could also generate a matrix of overlaps using :func:`numpy.outer`:
 This could also be printed in a pretty table format using 
 :func:`~.printOverlapTable`:
 
->>> printOverlapTable(anm_one[:3], anm_two[:3])
+>>> printOverlapTable(anm1[:3], anm2[:3])
 Overlap Table
                       ANM 1r39_anm
                     #1     #2     #3
@@ -124,7 +124,7 @@ ANM 1p38_anm #3   +0.01  -0.08  -0.99
 :class:`Mode` instances can be scaled, but after this operation they will
 become :class:`Vector` instances:
 
->>> anm_one[0] * 10
+>>> anm1[0] * 10
 <Vector: 10*(Mode 1 from ANM 1p38_anm)>
 
 Linear combination
@@ -132,12 +132,12 @@ Linear combination
 
 It is also possible to linearly combine normal modes:
 
->>> anm_one[0] * 3 + anm_one[1] + anm_one[2] * 2
+>>> anm1[0] * 3 + anm1[1] + anm1[2] * 2
 <Vector: 3*(Mode 1 from ANM 1p38_anm) + Mode 2 from ANM 1p38_anm + 2*(Mode 3 from ANM 1p38_anm)>
 
 Or, we could use eigenvalues for linear combination:
 
->>> lincomb = anm_one[0] * anm_one[0].getEigenvalue() + anm_one[1] * anm_one[1].getEigenvalue()
+>>> lincomb = anm1[0] * anm1[0].getEigval() + anm1[1] * anm1[1].getEigval()
 
 It is the name of the :class:`Vector` instance that keeps track of operations.
 
@@ -147,29 +147,29 @@ It is the name of the :class:`Vector` instance that keeps track of operations.
 Approximate a deformation vector
 ===============================================================================
 
-Let's get the deformation vector between *ch_one* and *ch_two*:
+Let's get the deformation vector between *ch1* and *ch2*:
 
->>> defvec = calcDeformVector(ch_one, ch_two)
+>>> defvec = calcDeformVector(ch1, ch2)
 >>> defvec_magnitude = abs(defvec)
 >>> print( '{0:.2f}'.format(defvec_magnitude) )
 16.69
 
 Let's see how deformation projects onto ANM modes:
 
->>> print( np.array(list(anm_one[:3])) * defvec )
+>>> print( np.array(list(anm1[:3])) * defvec )
 [-5.60860594784 2.15393365959 -3.13701609199]
 
 We can use these numbers to combine ANM modes:
 
->>> approximate_defvec = np.sum( (np.array(list(anm_one[:3])) * defvec) * np.array(list(anm_one[:3])) ) 
+>>> approximate_defvec = np.sum( (np.array(list(anm1[:3])) * defvec) * np.array(list(anm1[:3])) ) 
 >>> print( approximate_defvec )
 -5.60860594784*(Mode 1 from ANM 1p38_anm) + 2.15393365959*(Mode 2 from ANM 1p38_anm) + -3.13701609199*(Mode 3 from ANM 1p38_anm)
 
 Let's deform 1r39 chain along this approximate deformation vector and see
 how RMSD changes:
 
->>> ch_two.setCoords(ch_two.getCoords() - approximate_defvec.getArrayNx3())
->>> rmsd = calcRMSD(ch_one, ch_two)
+>>> ch2.setCoords(ch2.getCoords() - approximate_defvec.getArrayNx3())
+>>> rmsd = calcRMSD(ch1, ch2)
 >>> print( '{0:.2f}'.format(rmsd) )
 0.82
 
@@ -181,6 +181,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
+import prody
 
 __all__ = ['Mode', 'Vector']
            
@@ -401,7 +402,13 @@ class Mode(VectorBase):
         
         return self._model._array[:, self._index].copy()
     
-    getEigenvector = getArray
+    getEigvec = getArray
+    
+    def getEigenvector(self):
+        """Deprecated, use :meth:`getEigvec` instead."""
+        
+        prody.deprecate('getEigenvector', 'getEigvec')
+        return self.getEigvec()
 
     def _getArray(self):
         """Return a copy of the normal mode array (eigenvector)."""
@@ -409,6 +416,12 @@ class Mode(VectorBase):
         return self._model._array[:, self._index]
     
     def getEigenvalue(self):
+        """Deprecated, use :meth:`getEigval` instead."""
+        
+        prody.deprecate('getEigenvalue', 'getEigval')
+        return self.getEigval()
+        
+    def getEigval(self):
         """Return normal mode eigenvalue."""
         
         return self._model._eigvals[self._index]
@@ -420,10 +433,10 @@ class Mode(VectorBase):
         return self._model._vars[self._index]
 
     def getCovariance(self):
-        """Return covariance matrix calculated for this mode instance."""
+        """Deprecated, use :func:`~.calcCovariance` instead."""
         
-        array = self._getArray()
-        return np.outer(array, array) * self.getVariance()
+        prody.deprecate('getCovariance', 'calcCovariance')
+        return prody.calcCovariance(self)
 
 
 class Vector(VectorBase):

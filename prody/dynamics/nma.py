@@ -26,6 +26,8 @@ import numpy as np
 from mode import Mode
 from modeset import ModeSet 
 
+import prody
+
 __all__ = ['NMA']
 
 class NMA(object):
@@ -154,16 +156,22 @@ class NMA(object):
 
     
     def getEigenvalues(self):
+        """Deprecated, use :meth:`getEigvals` instead."""
+        
+        prody.deprecate('getEigenvalue', 'getEigvals')
+        return self.getEigval()
+        
+    def getEigvals(self):
         """Return eigenvalues."""
         
         if self._eigvals is None: return None
         return self._eigvals.copy()
 
     def getEigenvectors(self):
-        """Return eigenvectors."""
+        """Deprecated, use :meth:`getEigvecs` instead."""
         
-        if self._array is None: return None
-        return self._array.copy()
+        prody.deprecate('getEigenvector', 'getEigvecs')
+        return self.getEigvecs()
     
     def getVariances(self):
         """Return variances (~inverse eigenvalues)."""
@@ -177,6 +185,7 @@ class NMA(object):
         if self._array is None: return None
         return self._array.copy()
         
+    getEigvecs = getArray
 
     def _getArray(self):
         """Return eigenvectors array."""

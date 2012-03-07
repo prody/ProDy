@@ -220,7 +220,7 @@ def calcCrossCorr(modes, n_cpu=1):
             while queue.qsize() > 0:
                 covariance += queue.get()
     else:
-        covariance = modes.getCovariance()
+        covariance = calcCovariance(modes)
     diag = np.power(covariance.diagonal(), 0.5)
     return covariance / np.outer(diag, diag)
 
@@ -252,7 +252,16 @@ def calcTempFactors(modes, atoms):
 def calcCovariance(modes):
     """Return covariance matrix calculated for given *modes*."""
     
-    return modes.getCovariance()
+    if isinstance(modes, Mode):
+        array = self._getArray()
+        return np.outer(array, array) * modes.getVariance()
+    elif isinstance(modes, ModeSet):
+        array = self._getArray()
+        return np.dot(array, np.dot(np.diag(modes.getVariances()), array.T))
+    elif isinstance(modes, NMA):
+        return modes.getCovariance()
+    else:
+        raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
     """Return a matrix of profiles from scanning of the response of the 
@@ -288,7 +297,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
             raise ValueError('model and atoms must have the same number atoms')
             
     assert isinstance(repeats, int), 'repeats must be an integer'
-    cov = model.getCovariance()
+    cov = calcCovariance(model)
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
     

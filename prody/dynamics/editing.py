@@ -76,7 +76,7 @@ def extendModel(model, nodes, atoms):
         
         array = model.getArray()[indices,:]
         extended = NMA('Extended ' + str(model))
-        extended.setEigens(array, model.getEigenvalues())
+        extended.setEigens(array, model.getEigvals())
         if isinstance(atoms, AtomGroup):
             ag = atoms
         else: 
@@ -206,7 +206,7 @@ def sliceModel(model, atoms, selstr):
         which.append(which[0]+1)
         which.append(which[0]+2)
         which = np.concatenate(which, 1).flatten()
-    nma.setEigens( array[which, :], model.getEigenvalues() )
+    nma.setEigens( array[which, :], model.getEigvals() )
     return (nma, sel)
     
 def reduceModel(model, atoms, selstr):

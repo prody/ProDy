@@ -381,7 +381,7 @@ def writeNMD(filename, modes, atoms):
         if isinstance(modes, Mode):
             modes = [modes]
         for mode in modes:
-            if mode.getEigenvalue() < ZERO:
+            if mode.getEigval() < ZERO:
                 continue
             out.write('mode {0:d} {1:.2f} {2:s}\n'.format(
                        mode.getIndex()+1, mode.getVariance()**0.5, 
