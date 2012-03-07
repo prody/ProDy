@@ -1,5 +1,5 @@
 ***********
-prody tests
+prody.tests
 ***********
 
 .. automodule:: prody.tests
