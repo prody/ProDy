@@ -39,9 +39,6 @@ All atomic data in :class:`~.AtomGroup` instances and comes
 with other classes acting as pointers to provide convenient read/write access 
 to such data.  These classes are:
 
-* :class:`~.Atom` - Points to a single atom in an :class:`~.AtomGroup` 
-  instance.                          
-
 * :class:`~.Selection` - Points to an arbitrary subset of atoms. See 
   :ref:`selections` and :ref:`selection-operations` for usage examples.
 
@@ -57,6 +54,10 @@ to such data.  These classes are:
   allowing for duplicates and missing atoms.  Indices of atoms are stored 
   in the order provided by the user.
     
+* :class:`~.Atom` - Points to a single atom
+
+* :class:`~.Bond` - Points to two connected atoms
+
 Atom selections
 ===============================================================================
 
@@ -91,63 +92,12 @@ For this to work, the first word following the dot operator must be a selection
 keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 
 Underscores will be interpreted as white space, as obvious from the
 previous examples.  The limitation of this is that parentheses, special 
-characters cannot be used.     
-
-"""
+characters cannot be used."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
-
-"""
-Behavioral differences
--------------------------------------------------------------------------------
-
-Atomic classes behave differently to indexing and to calls of certain built-in 
-functions.  These differences are:
-
-=========  ====================================================================
-Class               Properties and differences
-=========  ====================================================================
-                       
-Atom       * :func:`len` returns 1.
-           * :func:`iter` is not applicable.
-           * Indexing is not applicable.
-                      
-Selection  * :func:`len` returns the number of selected atoms.
-           * :func:`iter` yields :class:`Atom` instances.
-           * Indexing is not available.
-
-Segment    * :func:`len` returns the number of chains in the segment.
-           * :func:`iter` yields :class:`Chain` instances.
-           * Indexing by:
-                
-             - *chain identifier* (:func:`str`), 
-               e.g. ``A`` returns a :class:`Chain`.
-
-Chain      * :func:`len` returns the number of residues in the chain.
-           * :func:`iter` yields :class:`Residue` instances.
-           * Indexing by:
-                
-             - *residue number [, insertion code]* (:func:`tuple`), 
-               e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
-             - *slice* (:func:`slice`), e.g, ``10:20`` returns a list of  
-               :class:`Residue` instances.
-                    
-Residue    * :func:`len` returns the number of atoms in the instance.
-           * :func:`iter` yields :class:`Atom` instances.
-           * Indexing by:
-              
-             - *atom name* (:func:`str`), e.g. ``"CA"`` returns 
-               an :class:`Atom`.
-
-AtomMap    * :func:`len` returns the number of atoms in the instance.
-           * :func:`iter` yields :class:`Atom` instances.
-           * Indexing is not available.
-=========  ====================================================================
-
-"""
 
 import prody
 LOGGER = prody.LOGGER

@@ -197,7 +197,12 @@ ellipsis = lambda s: s[:15] + '...' + s[-15:] if len(s) > 33 else s
 class Selection(AtomSubset):
     
     """A class for accessing and manipulating attributes of selection of atoms 
-    in an :class:`AtomGroup` instance."""
+    in an :class:`~.AtomGroup` instance.  Instances can be generated using
+    :meth:`~.AtomGroup.select` method.  Following built-in functions are 
+    customized for this class:
+    
+    * :func:`len` returns the number of selected atoms
+    * :func:`iter` yields :class:`Atom` instances"""
     
     __slots__ = ['_ag', '_indices', '_acsi', '_selstr']
     

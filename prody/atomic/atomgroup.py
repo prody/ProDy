@@ -21,16 +21,14 @@ multiple coordinate sets in :class:`numpy.ndarray` instances.
 
 .. _atomgroup:
 
-Constructing an :class:`AtomGroup`
-===============================================================================
-
-We start by importing everything from the ProDy package and the NumPy package:
+Below example shows how to build an :class:`AtomGroup` from scratch.  We start 
+by importing everything from the ProDy package and the NumPy package:
 
 >>> from prody import *
 >>> import numpy as np
 
-Instantiate an AtomGroup
--------------------------------------------------------------------------------
+Instantiation
+===============================================================================
 
 >>> wtr1 = AtomGroup('Water')
 >>> wtr1
@@ -38,7 +36,7 @@ Instantiate an AtomGroup
 
 
 Set coordinates
--------------------------------------------------------------------------------
+===============================================================================
 
 The best way to start constructing an :class:`AtomGroup` is by setting the
 coordinates first. Number of atoms will be automatically set according to
@@ -54,7 +52,7 @@ the size of the coordinate data array:
 <AtomGroup: Water (3 atoms)>
 
 Set attributes
--------------------------------------------------------------------------------
+===============================================================================
 
 Attributes must be passed in a list or an array whose size is the same
 as the number of atoms.
@@ -69,11 +67,12 @@ Accessing data will return a copy of the data:
 ['H' 'O' 'H']
 
 Individual atoms
--------------------------------------------------------------------------------
+===============================================================================
 
 Atoms are represented by instance of :class:`~.Atom`.
 
-**Iteration**
+Iteration
+-------------------------------------------------------------------------------
 
 Atoms in an :class:`AtomGroup` can be iterated over
 
@@ -83,7 +82,8 @@ Atoms in an :class:`AtomGroup` can be iterated over
 <Atom: O from Water (index 1)>
 <Atom: H from Water (index 2)>
 
-**Indexing**
+Indexing
+-------------------------------------------------------------------------------
 
 Atoms in an atom group can be accessed via indexing:
 
@@ -94,7 +94,7 @@ Atoms in an atom group can be accessed via indexing:
 [ 1.  0.  0.]
 
 Coordinate sets
--------------------------------------------------------------------------------
+===============================================================================
 
 Let's add another coordinate set to the atom group:
 
@@ -130,8 +130,8 @@ Coordinate sets can also be iterated over for :class:`~.Atom` and
 [ 1.  0.  0.]
 [ 0.  1.  0.]
 
-Copy atom groups
--------------------------------------------------------------------------------
+Copying atoms
+===============================================================================
 
 Now let's make another copy of this water:
 
@@ -184,8 +184,8 @@ Traceback (most recent call last):
     if len(resids) != self._n_atoms:
 TypeError: object of type 'int' has no len()
 
-Merge atom groups
--------------------------------------------------------------------------------
+Merge atoms
+===============================================================================
 
 Let's merge two water atom groups:
 
@@ -205,7 +205,7 @@ Let's merge two water atom groups:
 [1 1 1 2 2 2]
 
 Hierarchical view
--------------------------------------------------------------------------------
+===============================================================================
 
 Hierarchical views of atom groups are represented by :class:`~.HierView`.
 
@@ -350,11 +350,12 @@ class AtomGroup(Atomic):
     atom group has initially the same coordinate set as the *active coordinate 
     set*.
     
-    Some :class:`object` methods are customized as follows:
+    Following built-in functions are customized for this class:
     
     * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
     * :func:`iter` yields :class:`~.Atom` instances
-    * indexing by:
+    
+    Indexing :class:`AtomGroup` instances by:
          - *int* (:func:`int`), e.g, ``10``, returns an :class:`~.Atom`
          - *slice* (:func:`slice`), e.g, ``10:20:2``, returns a 
            :class:`~.Selection`

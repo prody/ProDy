@@ -62,9 +62,7 @@ class Atomic(object):
                              .format(self.__class__.__name__, name, selstr))
 
     def select(self, selstr, **kwargs):
-        """Return atoms matching *selstr* criteria.
-        
-        .. seealso:: :mod:`~prody.atomic.select` module documentation for 
-           details and usage examples."""
+        """Return atoms matching *selstr* criteria.  See :mod:`~.select` module
+        documentation for details and usage examples."""
         
         return SELECT.select(self, selstr, **kwargs)

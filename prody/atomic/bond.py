@@ -27,8 +27,8 @@ __all__ = ['Bond']
 
 class Bond(object):
     
-    """A pointer class for bonded atoms.  Some :class:`object` methods are 
-    customized as follows:
+    """A pointer class for bonded atoms.  Following built-in functions are 
+    customized for this class:
     
     * :func:`len` returns bond length, i.e. :meth:`getLength`
     * :func:`iter` yields :class:`~.Atom` instances"""

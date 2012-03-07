@@ -78,7 +78,7 @@ class AtomMeta(type):
 
 class Atom(AtomPointer):
     
-    """A class for handling individual atoms in an atom group."""
+    """A class for handling individual atoms in an :class:`~.AtomGroup`."""
     
     __metaclass__ = AtomMeta
     

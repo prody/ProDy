@@ -164,7 +164,13 @@ class AtomMap(AtomPointer):
         
         Length of *mapping* must be equal to length of *indices*.  Number of 
         atoms (including dummy atoms) are determined from the total lengths 
-        of *mapping* and *dummies* arrays."""
+        of *mapping* and *dummies* arrays.
+        
+        Following built-in functions are customized for this class:
+        
+        * :func:`len` returns the number of atoms in the instance.
+        * :func:`iter` yields :class:`~.Atom` instances.
+        * Indexing is not available."""
         
         AtomPointer.__init__(self, ag, acsi)
         
