@@ -19,8 +19,6 @@
 """This module defines :class:`HierView` class that builds a hierarchical 
 views of atom groups.
 
-.. _hierview:
-
 Below example shows how to use hierarchical views.  We start by importing 
 everything from the ProDy package:
 
@@ -32,6 +30,8 @@ plain view of atoms:
 >>> structure = parsePDB('3mkb')
 >>> structure
 <AtomGroup: 3mkb (4776 atoms)>
+
+.. _hierview:
 
 Hierarchical view
 ===============================================================================
