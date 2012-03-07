@@ -1,39 +1,102 @@
-include INSTALL.rst
-include LICENSE.rst
-include README.rst
-include CHANGES.rst
-include setup.py
-include prody/__init__.py
-include prody/argparse.py
-include prody/atomic.py
-include prody/compare.py
-include prody/cpairwise2.c
-include prody/dynamics.py
-include prody/ensemble.py
-include prody/measure.py
-include prody/ordereddict.py
-include prody/pairwise2.py
-include prody/proteins.py
-include prody/pyparsing.py
-include prody/routines.py
-include prody/scripts.py
-include prody/select.py
-include prody/tools.py
-include prody/KDTree/__init__.py
-include prody/KDTree/KDTree.c
-include prody/KDTree/KDTree.h
-include prody/KDTree/KDTree.py
-include prody/KDTree/KDTreemodule.c
-include prody/KDTree/Neighbor.h
-include prody/tests/__init__.py
-include prody/tests/test_atomic.py
-include prody/tests/test_datafiles.py
-include prody/tests/test_dynamics.py
-include prody/tests/test_ensemble.py
-include prody/tests/test_kdtree.py
-include prody/tests/test_pairwise2.py
-include prody/tests/test_proteins.py
-include prody/tests/test_select.py
+CHANGES.rst
+INSTALL.rst
+LICENSE.rst
+README.rst
+setup.py
+prody/__init__.py
+prody/future.py
+prody/tools.py
+prody/KDTree/KDTree.c
+prody/KDTree/KDTree.h
+prody/KDTree/KDTree.py
+prody/KDTree/KDTreemodule.c
+prody/KDTree/Neighbor.h
+prody/KDTree/__init__.py
+prody/atomic/__init__.py
+prody/atomic/atom.py
+prody/atomic/atomgroup.py
+prody/atomic/atomic.py
+prody/atomic/atommap.py
+prody/atomic/bond.py
+prody/atomic/chain.py
+prody/atomic/fields.py
+prody/atomic/functions.py
+prody/atomic/hierview.py
+prody/atomic/pointer.py
+prody/atomic/pyparsing.py
+prody/atomic/residue.py
+prody/atomic/segment.py
+prody/atomic/select.py
+prody/atomic/selection.py
+prody/atomic/subset.py
+prody/dynamics/__init__.py
+prody/dynamics/analysis.py
+prody/dynamics/anm.py
+prody/dynamics/compare.py
+prody/dynamics/editing.py
+prody/dynamics/functions.py
+prody/dynamics/gamma.py
+prody/dynamics/gnm.py
+prody/dynamics/mode.py
+prody/dynamics/modeset.py
+prody/dynamics/nma.py
+prody/dynamics/pca.py
+prody/dynamics/plotting.py
+prody/dynamics/sampling.py
+prody/ensemble/__init__.py
+prody/ensemble/conformation.py
+prody/ensemble/ensemble.py
+prody/ensemble/functions.py
+prody/ensemble/pdbensemble.py
+prody/measure/__init__.py
+prody/measure/contacts.py
+prody/measure/measure.py
+prody/measure/transform.py
+prody/proteins/__init__.py
+prody/proteins/blastpdb.py
+prody/proteins/compare.py
+prody/proteins/cpairwise2.c
+prody/proteins/dssp.py
+prody/proteins/functions.py
+prody/proteins/header.py
+prody/proteins/localpdb.py
+prody/proteins/pairwise2.py
+prody/proteins/pdbclusters.py
+prody/proteins/pdbfile.py
+prody/proteins/pdbligands.py
+prody/proteins/stride.py
+prody/proteins/wwpdbftp.py
+prody/routines/__init__.py
+prody/routines/actions.py
+prody/routines/argparse.py
+prody/routines/nmaoptions.py
+prody/routines/prody_align.py
+prody/routines/prody_anm.py
+prody/routines/prody_biomol.py
+prody/routines/prody_blast.py
+prody/routines/prody_catdcd.py
+prody/routines/prody_eda.py
+prody/routines/prody_fetch.py
+prody/routines/prody_gnm.py
+prody/routines/prody_pca.py
+prody/routines/prody_select.py
+prody/routines/routines.py
+prody/tests/__init__.py
+prody/tests/test_atomic.py
+prody/tests/test_datafiles.py
+prody/tests/test_dynamics.py
+prody/tests/test_ensemble.py
+prody/tests/test_kdtree.py
+prody/tests/test_pairwise2.py
+prody/tests/test_proteins.py
+prody/tests/test_select.py
+prody/trajectory/__init__.py
+prody/trajectory/dcdfile.py
+prody/trajectory/frame.py
+prody/trajectory/psffile.py
+prody/trajectory/trajbase.py
+prody/trajectory/trajectory.py
+prody/trajectory/trajfile.py
 include prody/tests/data/anm1ubi_evalues.dat
 include prody/tests/data/anm1ubi_hessian.coo
 include prody/tests/data/anm1ubi_vectors.dat

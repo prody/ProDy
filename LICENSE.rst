@@ -96,16 +96,12 @@ Biopython Consortium and is available under the `Biopython license
   OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE
   OR PERFORMANCE OF THIS SOFTWARE.
 
-Pyparsing and Ordereddict
+Pyparsing
 ===============================================================================
 
 The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with 
 the ProDy package.  Pyparsing is developed by Paul T. McGuire and is available 
-under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_.
-
-The `ordereddict <http://pypi.python.org/pypi/ordereddict>`_ module is 
-distributed with the ProDy package.  Ordereddict is developed by Raymond 
-Hettinger and is available under the MIT license::
+under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_::
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
