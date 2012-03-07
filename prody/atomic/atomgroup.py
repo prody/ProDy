@@ -19,15 +19,15 @@
 """This module defines :class:`AtomGroup` class that stores atomic data and 
 multiple coordinate sets in :class:`numpy.ndarray` instances.
 
-.. _atomgroup:
-
 Below example shows how to build an :class:`AtomGroup` from scratch.  We start 
 by importing everything from the ProDy package and the NumPy package:
 
 >>> from prody import *
 >>> import numpy as np
 
-Instantiation
+.. _atomgroup:
+
+Atom Group
 ===============================================================================
 
 >>> wtr1 = AtomGroup('Water')
