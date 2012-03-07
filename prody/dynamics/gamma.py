@@ -235,9 +235,9 @@ class GammaVariableCutoff(Gamma):
          
     We set the radii of atoms: 
      
-    >>> variableCutoff = GammaVariableCutoff(ca_p.getNames(), gamma=1,  
+    >>> varcutoff = GammaVariableCutoff(ca_p.getNames(), gamma=1,  
     ... default_radius=7.5, debug=True, P=10)
-    >>> print( variableCutoff.getRadii() ) # doctest: +ELLIPSIS
+    >>> print( varcutoff.getRadii() ) # doctest: +ELLIPSIS
     [ 10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.   10.
       10.   10.   10.   10.   10.   10.   10.   10.   10.   10.    7.5   7.5
       ...
@@ -253,23 +253,21 @@ class GammaVariableCutoff(Gamma):
     We build :class:`ANM` Hessian matrix as follows:  
         
     >>> anm = ANM('HhaI-DNA')
-    >>> anm.buildHessian(ca_p, gamma=variableCutoff, cutoff=20) # doctest: +ELLIPSIS
+    >>> anm.buildHessian(ca_p, gamma=varcutoff, cutoff=20) # doctest: +ELLIPSIS
     P_0 -- P_1 effective cutoff: 20.0 distance: 7.00984971308 gamma: 1.0
     P_0 -- P_2 effective cutoff: 20.0 distance: 13.0828573714 gamma: 1.0
     P_0 -- P_3 effective cutoff: 20.0 distance: 17.7058394322 gamma: 1.0
     P_0 -- P_16 effective cutoff: 20.0 distance: 16.8254374386 gamma: 1.0
     P_0 -- P_17 effective cutoff: 20.0 distance: 16.4588128977 gamma: 1.0
     P_0 -- P_18 effective cutoff: 20.0 distance: 17.3123524109 gamma: 1.0
-    P_0 -- P_19 effective cutoff: 20.0 distance: 17.1108732974 gamma: 1.0
     ...
-    CA_345 -- CA_346 effective cutoff: 15.0 distance: 3.80939023992 gamma: 1.0
     CA_345 -- CA_347 effective cutoff: 15.0 distance: 6.0211884209 gamma: 1.0
     CA_345 -- CA_348 effective cutoff: 15.0 distance: 9.71260639581 gamma: 1.0
     CA_346 -- CA_347 effective cutoff: 15.0 distance: 3.80736523071 gamma: 1.0
     CA_346 -- CA_348 effective cutoff: 15.0 distance: 6.73513808322 gamma: 1.0
     CA_347 -- CA_348 effective cutoff: 15.0 distance: 3.80721748788 gamma: 1.0
         
-    Note that we set passed ``cutoff=20.0`` to the :meth:`ANM.buildHessian` 
+    Note that we passed ``cutoff=20.0`` to the :meth:`ANM.buildHessian` 
     method.  This is equal to the largest possible cutoff distance (between 
     two phosphate atoms) for this system, and ensures that all of the 
     potential interactions are evaluated. 
