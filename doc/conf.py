@@ -65,7 +65,7 @@ def getRevisionNumber():
     logs = logfile.read()
     logfile.close()
     return str(logs.count('Author:'))
-version = '1.0-dev'
+version = '1.0'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
