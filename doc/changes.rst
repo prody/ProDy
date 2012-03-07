@@ -58,12 +58,12 @@ Release 1.0 (Mar 7, 2012)
     :func:`~.calcCollectivity` function instead.
   
   * :meth:`Mode.getFractOfVariance` method is removed, use the new 
-    :func:`~.calcFractVars` function instead.
+    :func:`~.calcFractVariance` function instead.
   
   * :meth:`Mode.getSqFlucts` method is removed, use :func:`~.calcSqFlucts` 
     function instead.
 
-  * Renamed :func:`showFractOfVar` function as :func:`~.showFractVariance` 
+  * Renamed :func:`showFractOfVar` function as :func:`~.showFractVars` 
     function instead.
     
   * Removed :func:`calcCumOverlapArray`, use :func:`~.calcCumulOverlap`
