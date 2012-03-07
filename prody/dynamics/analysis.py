@@ -80,7 +80,7 @@ def calcFractVariance(mode):
         var = mode.getVariance()
         trace = mode.getModel()._trace
     elif isinstance(mode, (ModeSet, NMA)):
-        var = self.getVariances()
+        var = mode.getVariances()
         if isinstance(mode, ModeSet):
             trace = mode.getModel()._trace
         else:
@@ -253,10 +253,10 @@ def calcCovariance(modes):
     """Return covariance matrix calculated for given *modes*."""
     
     if isinstance(modes, Mode):
-        array = self._getArray()
+        array = modes._getArray()
         return np.outer(array, array) * modes.getVariance()
     elif isinstance(modes, ModeSet):
-        array = self._getArray()
+        array = modes._getArray()
         return np.dot(array, np.dot(np.diag(modes.getVariances()), array.T))
     elif isinstance(modes, NMA):
         return modes.getCovariance()
