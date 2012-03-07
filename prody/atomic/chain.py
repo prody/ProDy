@@ -50,14 +50,14 @@ class Chain(AtomSubset):
     are customized for this class:
     
     * :func:`len` returns the number of residues in the chain
-    * :func:`iter` yields :class:`!.Residue` instances
+    * :func:`iter` yields :class:`~.Residue` instances
     
     Indexing :class:`Chain` instances by:
 
          - *residue number [, insertion code]* (:func:`tuple`), 
-            e.g. ``10`` or  ``10, "B"`` returns a :class:`Residue`.
-         - *slice* (:func:`slice`), e.g, ``10:20`` returns a list of  
-           :class:`Residue` instances.
+           e.g. ``10`` or  ``10, "B"``, returns a :class:`~.Residue`
+         - *slice* (:func:`slice`), e.g, ``10:20``, returns a list of  
+           :class:`~.Residue` instances
     
     >>> from prody import *
     >>> pdb = parsePDB('1p38')

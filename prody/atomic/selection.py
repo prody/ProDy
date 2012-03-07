@@ -121,10 +121,10 @@ hetero atoms.
 Addition
 -------------------------------------------------------------------------------
 
-Another operation defined on the :class:`Select` object is addition
+Another operation defined on the :class:`~.Select` object is addition
 (also on other :class:`~.AtomPointer` derived classes). 
 
-This may be useful if you want to yield atoms in an :class:`AtomGroup` in a 
+This may be useful if you want to yield atoms in an :class:`~.AtomGroup` in a 
 specific order.
 Let's think of a simple case, where we want to output atoms in 1p38 in a 
 specific order:
@@ -202,7 +202,7 @@ class Selection(AtomSubset):
     customized for this class:
     
     * :func:`len` returns the number of selected atoms
-    * :func:`iter` yields :class:`Atom` instances"""
+    * :func:`iter` yields :class:`~.Atom` instances"""
     
     __slots__ = ['_ag', '_indices', '_acsi', '_selstr']
     

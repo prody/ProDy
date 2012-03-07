@@ -33,10 +33,10 @@ class Residue(AtomSubset):
     Following built-in functions are customized for this class:
     
     * :func:`len` returns the number of atoms in the instance.
-    * :func:`iter` yields :class:`Atom` instances.
+    * :func:`iter` yields :class:`~.Atom` instances.
     
     Indexing :class:`Residue` instances by *atom name* (:func:`str`), e.g. 
-    ``"CA"`` returns an :class:`Atom` instance.
+    ``"CA"`` returns an :class:`~.Atom` instance.
                    
     >>> from prody import *
     >>> pdb = parsePDB('1p38')

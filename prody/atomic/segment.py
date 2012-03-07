@@ -32,10 +32,10 @@ class Segment(AtomSubset):
     are customized for this class:
     
     * :func:`len` returns the number of chains in the segment.
-    * :func:`iter` yields :class:`Chain` instances.
+    * :func:`iter` yields :class:`~.Chain` instances.
     
     Indexing :class:`Segment` instances by a *chain identifier* (:func:`str`), 
-    e.g. ``A``, returns a :class:`Chain`."""
+    e.g. ``A``, returns a :class:`~.Chain`."""
 
     __slots__ = ['_ag', '_indices', '_acsi', '_selstr', '_dict', '_list']
 

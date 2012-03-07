@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 """This module defines :class:`Bond` for dealing with bond information provided
-by using :meth:`~atomic.atomgroup.AtomGroup.setBonds` method."""
+by using :meth:`.AtomGroup.setBonds` method."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -93,6 +93,7 @@ class Bond(object):
         return self._indices.copy()
     
     def getLength(self):
+        """Return bond length."""
         
         vector = self.getVector()
         return np.multiply(vector, vector, vector).sum() ** 0.5
