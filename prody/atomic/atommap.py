@@ -202,21 +202,23 @@ class AtomMap(AtomPointer):
         
         n_csets = self._ag.numCoordsets()
         
+        dummy = ''
+        if self.numDummies():
+            dummy = ', {0:d} mapped, {1:d} dummy'.format(self.numMapped(), 
+                                                         self.numDummies())
+        
         if n_csets == 1:
-            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms, {3:d} mapped, '
-                    '{4:d} dummy)>').format( self._title, self._ag.getTitle(), 
-                    self._len, self.numMapped(), self.numDummies())
+            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms{3:s})>').format(
+                    self._title, self._ag.getTitle(), self._len, dummy)
         elif n_csets > 1:
-            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms, {3:d} mapped, '
-                    '{4:d} dummy; active {5:d} of {6:d} coordsets)>').format(
-                    self._title, self._ag.getTitle(), self._len, 
-                    self.numMapped(), self.numDummies(), self.getACSIndex(),
+            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms{3:s}; active '
+                    '{5:d} of {6:d} coordsets)>').format(self._title, 
+                    self._ag.getTitle(), self._len, dummy, self.getACSIndex(),
                     n_csets)
         else:
-            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms, {3:d} mapped, '
-                    '{4:d} dummy; no coordinates)>').format(self._title, 
-                    self._ag.getTitle(), self._len, self.numMapped(), 
-                    self.numDummies())
+            return ('<AtomMap: {0:s} from {1:s} ({2:d} atoms{3:s}; no '
+                    'coordinates)>').format(self._title, self._ag.getTitle(), 
+                    self._len, dummy)
         
     def __str__(self):
     
