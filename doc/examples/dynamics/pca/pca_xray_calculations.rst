@@ -175,7 +175,7 @@ and more memory efficient calculation of principal modes:
 The resulting eigenvalues and eigenvectors may show small differences due to
 missing atoms in the datasets:
 
->>> '%.2f' % abs(pca_svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
+>>> '%.2f' % abs(pca_svd.getEigvals()[:20] - pca.getEigvals()).max()
 '0.40'
 >>> '%.3f' % abs(calcOverlap(pca, pca_svd).diagonal()[:20]).min()
 '0.998'

@@ -74,7 +74,7 @@ Principal modes can be calculated faster using singular value decomposition:
 
 For heterogeneous NMR datasets, both methods yields identical results:
 
->>> '%.3f' % abs(svd.getEigenvalues()[:20] - pca.getEigenvalues()).max()
+>>> '%.3f' % abs(svd.getEigvals()[:20] - pca.getEigvals()).max()
 '0.000'
 >>> '%.3f' % abs(calcOverlap(pca, svd).diagonal()[:20]).min()
 '1.000'

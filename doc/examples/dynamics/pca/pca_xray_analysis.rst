@@ -94,8 +94,8 @@ covariance matrix etc. data to the user. Such data can easily be written into
 text files for analysis using external software. The function is to use is 
 :func:`~.writeArray`:
 
->>> writeArray( 'p38_PCA_eigvectors.txt', pca.getEigenvectors() ) # PCA eigenvectors
-'p38_PCA_eigvectors.txt'
+>>> writeArray( 'p38_PCA_eigvecs.txt', pca.getEigvecs() ) # PCA eigenvectors
+'p38_PCA_eigvecs.txt'
 >>> writeModes( 'p38_ANM_modes.txt', anm ) # ANM eigenvectors, same as using above function
 'p38_ANM_modes.txt'
 

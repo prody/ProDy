@@ -102,11 +102,11 @@ Normal mode data
 
 Get eigenvalues and eigenvectors:
 
->>> print( gnm.getEigenvalues().round(3) )
+>>> print( gnm.getEigvals().round(3) )
 [  2.502   2.812   4.366   5.05    7.184   7.65    7.877   9.08    9.713
   10.132  10.502  10.644  10.888  11.157  11.285  11.632  11.78   11.936
   12.006  12.218]
->>> print( gnm.getEigenvectors().round(3) ) # doctest: +ELLIPSIS
+>>> print( gnm.getEigvecs().round(3) ) # doctest: +ELLIPSIS
 [[-0.064 -0.131 -0.245 ..., -0.256  0.538 -0.   ]
  [-0.073 -0.085 -0.19  ...,  0.006 -0.069  0.032]
  [-0.076 -0.043 -0.135 ...,  0.017 -0.047  0.018]
@@ -137,9 +137,9 @@ Individual modes
 Normal mode indices start from 0, so slowest mode has index 0. 
 
 >>> slowest_mode = gnm[0]
->>> print( slowest_mode.getEigenvalue().round(3) )
+>>> print( slowest_mode.getEigval().round(3) )
 2.502
->>> print( slowest_mode.getEigenvector().round(3) ) # doctest: +ELLIPSIS
+>>> print( slowest_mode.getEigvec().round(3) ) # doctest: +ELLIPSIS
 [-0.064 -0.073 -0.076 -0.112 -0.092 -0.143 -0.164 -0.205 -0.24  -0.313
  -0.192 -0.152 -0.066 -0.07  -0.025 -0.031  0.001 -0.006 -0.015  0.027
   0.042  0.055  0.063  0.09   0.09   0.069  0.132  0.175  0.145  0.121
