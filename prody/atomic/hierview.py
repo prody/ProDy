@@ -21,34 +21,30 @@ views of atom groups.
 
 .. _hierview:
 
-Hierarchical Views
-===============================================================================
-
-We start by importing everything from the ProDy package:
+Below example shows how to use hierarchical views.  We start by importing 
+everything from the ProDy package:
 
 >>> from prody import *
 
-Parse a structure
--------------------------------------------------------------------------------
-
-Parsing a structure returns an :class:`AtomGroup` instance which has a plain
-view of atoms. 
+Then we parses a structure to get an :class:`~.AtomGroup` instance which has a 
+plain view of atoms: 
 
 >>> structure = parsePDB('3mkb')
 >>> structure
 <AtomGroup: 3mkb (4776 atoms)>
 
 Hierarchical view
--------------------------------------------------------------------------------
+===============================================================================
 
 A hierarchical view of the structure can be simply get by calling the
-:meth:`~.AtomGroup.getHierView` method:
+:meth:`.AtomGroup.getHierView` method:
 
 >>> hv = structure.getHierView()
 >>> hv
 <HierView: AtomGroup 3mkb (4 chains, 946 residues)>
 
-*Indexing*
+Indexing
+-------------------------------------------------------------------------------
 
 Indexing :class:`HierView` instances return :class:`~.Chain`:
 
@@ -77,7 +73,8 @@ Insertion codes can also be passed:
 
 But this does not return anything, since residue 100B does not exist.
 
-*Iterations*
+Iterations
+-------------------------------------------------------------------------------
 
 One can iterate over :class:`HierView` instances to get chains:
 
@@ -96,7 +93,8 @@ It is also possible to get a :func:`list` of chains simply as follows:
  <Chain: C from 3mkb (1189 atoms)>, 
  <Chain: D from 3mkb (1196 atoms)>]
 
-*Iterate residues*
+Residues
+-------------------------------------------------------------------------------
 
 In addition, one can also iterate over all residues:
 
@@ -109,7 +107,8 @@ In addition, one can also iterate over all residues:
 <Residue: HOH 492 from Chain D from 3mkb (1 atoms)>
 
 Chains
--------------------------------------------------------------------------------
+===============================================================================
+
 
 >>> chA = hv['A']
 >>> chA
@@ -122,7 +121,8 @@ Length of the chain equals to the number of residues in it:
 >>> chA.numResidues()
 254
 
-*Indexing*
+Indexing
+-------------------------------------------------------------------------------
 
 Indexing a :class:`~.Chain` instance returns a :class:`~.Residue` instance.
 
@@ -136,7 +136,8 @@ If a residue does not exist, ``None`` is returned:
 
 If residue with given integer number does not exist, ``None`` is returned. 
 
-*Iterations*
+Iterations
+-------------------------------------------------------------------------------
 
 Iterating over a chain yields residues:
 
@@ -159,7 +160,8 @@ This enables getting a :func:`list` of residues simply as follows:
  ...,
  <Residue: HOH 493 from Chain A from 3mkb (1 atoms)>]
 
-*Get atomic data*
+Get data
+-------------------------------------------------------------------------------
 
 All methods defined for :class:`~.AtomGroup` class are also defined for 
 :class:`~.Chain` and :class:`~.Residue` classes:
@@ -175,7 +177,8 @@ All methods defined for :class:`~.AtomGroup` class are also defined for
 >>> print( chA.getBetas() )
 [ 59.35  59.14  58.5  ...,  57.79  47.77  40.77]
 
-*Select atoms*
+Selections
+-------------------------------------------------------------------------------
 
 Finally, you can select atoms from a :class:`~.Chain` instance:
 
@@ -194,13 +197,14 @@ consistency:
  
 
 Residues
--------------------------------------------------------------------------------
+===============================================================================
 
 >>> chA_res1 = chA[1]
 >>> chA_res1
 <Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
 
-*Indexing*
+Indexing
+-------------------------------------------------------------------------------
 
 :class:`~.Residue` instances can be indexed to get individual atoms:
 
@@ -210,7 +214,8 @@ Residues
 <Atom: CB from 3mkb (index 4)>
 >>> chA_res1['X'] # if atom does not exist, None is returned
 
-*Iterations*
+Iterations
+-------------------------------------------------------------------------------
 
 Iterating over a residue instance yields :class:`Atom` instances:
 
@@ -229,7 +234,8 @@ This makes it easy to get a :func:`list` of atoms:
  <Atom: O from 3mkb (index 3)>,
  <Atom: CB from 3mkb (index 4)>]
 
-*Get atomic data*
+Get data
+-------------------------------------------------------------------------------
 
 All methods defined for :class:`~.AtomGroup` class are also defined for 
 :class:`~.Residue` class:
@@ -243,7 +249,8 @@ All methods defined for :class:`~.AtomGroup` class are also defined for
 >>> print( chA_res1.getBetas() )
 [ 59.35  59.14  58.5   59.13  59.02]
 
-*Select atoms*
+Selections
+-------------------------------------------------------------------------------
 
 Finally, you can select atoms from a :class:`~.Residue` instance:
 
@@ -257,7 +264,7 @@ Again, the selection string is augmented with the chain identifier and
 residue number ("resnum").
 
 Atoms
--------------------------------------------------------------------------------
+===============================================================================
 
 The lowest level of the hierarchical view contains :class:`Atom` instances.
 
@@ -276,13 +283,13 @@ All methods defined for :class:`~.AtomGroup` class are also defined for
 >>> print( chA_res1_CA.getBeta() )
 59.14
 
-Changes in attributes
--------------------------------------------------------------------------------
+State Changes 
+===============================================================================
 
-A :class:`HierView` instance represents the state of an 
-:class:`~.AtomGroup` instance at the time it is built.  
-When chain identifiers or residue numbers change, the state that hierarchical 
-view represents may not match the current state of the atom group:
+A :class:`HierView` instance represents the state of an :class:`~.AtomGroup` 
+instance at the time it is built.  When chain identifiers or residue numbers 
+change, the state that hierarchical view represents may not match the current 
+state of the atom group:
 
 >>> chA.setChid('X')
 >>> chA
@@ -293,9 +300,7 @@ view represents may not match the current state of the atom group:
 <Chain: X from 3mkb (254 residues, 1198 atoms)>
 
 When this is the case, :meth:`HierView.update` method can be used to update 
-hierarchical view. 
-
-"""
+hierarchical view."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
