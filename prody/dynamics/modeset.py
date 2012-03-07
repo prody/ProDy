@@ -104,7 +104,7 @@ class ModeSet(object):
         """Deprecated, use :meth:`getEigvals` instead."""
         
         prody.deprecate('getEigenvalue', 'getEigvals')
-        return self.getEigval()
+        return self.getEigvals()
         
     def getEigvals(self):
         """Return eigenvalues."""
