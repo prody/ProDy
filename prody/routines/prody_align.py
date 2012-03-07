@@ -38,6 +38,7 @@ def prody_align(opt):
         if pdbselect is None:
             LOGGER.warning('Selection "{0:s}" do not match any atoms.'
                            .format(selstr))
+            import sys
             sys.exit(-1)
         LOGGER.info('{0:d} atoms will be used for alignment.'
                                .format(len(pdbselect)))
