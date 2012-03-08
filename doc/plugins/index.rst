@@ -31,8 +31,10 @@ normal mode representation and animation generated using NMWiz.  Anisotropic
 network model modes were calculated using ProDy.  Movie was generated using 
 `VMD Movie Plugin <http://www.ks.uiuc.edu/Research/vmd/plugins/vmdmovie/>`_.
 
-.. youtube:: 1OUzdzm68YY
-   :width: 400
+.. only:: html
+
+   .. youtube:: 1OUzdzm68YY
+      :width: 400
 
 See `documentation <http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/>`_  
 NMWiz usage for details. NMWiz recognizes :ref:`nmd-format`, which is 
