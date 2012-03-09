@@ -455,9 +455,10 @@ class AtomGroup(Atomic):
     def __add__(self, other):
         
         if not isinstance(other, AtomGroup):
-            raise TypeError('can only concatenate two AtomGroup`s or can '
-                            'deform AtomGroup along a Vector/Mode')
-            
+            raise TypeError('unsupported operand type(s) for +: {0:s} and '
+                            '{1:s}'.format(repr(type(self).__name__), 
+                                           repr(type(other).__name__)))
+                                                       
         new = AtomGroup(self._title + ' + ' + other._title)
         n_csets = self._n_csets
         if n_csets != other._n_csets:

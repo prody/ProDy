@@ -136,8 +136,10 @@ class AtomPointer(Atomic):
         preserved."""
         
         if not isinstance(other, AtomPointer):
-            raise TypeError('an AtomPointer instance cannot be added to a '
-                            '{0:s} instance'.format(type(other)))
+            raise TypeError('unsupported operand type(s) for +: {0:s} and '
+                            '{1:s}'.format(repr(type(self).__name__), 
+                                           repr(type(other).__name__)))
+                    
         ag = self._ag
         if ag != other._ag:
             raise ValueError('AtomPointer instances must point to the same '
