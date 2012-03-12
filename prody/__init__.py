@@ -45,6 +45,7 @@ CONFIGURATION = {
     'backup': False,
     'backup_ext': '.BAK',
     'ligand_xml_save': False,
+    'typo_warnings': True,
 }
 
 from datetime import date
