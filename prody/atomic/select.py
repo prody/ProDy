@@ -1873,7 +1873,10 @@ class Select(object):
                 if len(item) == 2:
                     torf[(item[0] <= data) & (data < item[1])] = True
                 else:
-                    return None
+                    item = [str(i) for i in item]
+                    return SelectionError(sel, loc, repr(':'.join(item)) + 
+                          ' cannot be used with ' + repr(keyword) + ', but ' + 
+                          repr(':'.join(item[:2])) + ' is accepted')
             else:
                 torf[data == item] = True
         return torf
