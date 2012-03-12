@@ -54,6 +54,8 @@ def prody_align(opt):
         prody.writePDB(outfn, pdb)
     else:
         reffn = args.pop(0)
+        seqid=opt.seqid
+        overlap=opt.overlap
         LOGGER.info('Aligning structures onto: ' + reffn)
         ref = prody.parsePDB(reffn)
         for arg in args:
@@ -62,7 +64,7 @@ def prody_align(opt):
             if '_aligned.pdb' in arg:
                 continue
             pdb = prody.parsePDB(arg)
-            if prody.matchAlign(pdb, ref):
+            if prody.matchAlign(pdb, ref, seqid=seqid, overlap=overlap):
                 outfn = pdb.getTitle() + '_aligned.pdb'
                 LOGGER.info('Writing file: ' + outfn)
                 prody.writePDB(outfn, pdb)
@@ -83,8 +85,8 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Align models in PDB structure or multiple PDB structures and save \
 aligned coordinate sets.  When multiple structures are aligned, ProDy will \
-match  chains and use best match for aligning the structures.  Note that \
-options are not used when aligning multiple structures.
+match chains based on sequence alignment and use best match for aligning the \
+structures.
 
 Fetch PDB structure 2k39 and align models:
     
@@ -109,6 +111,12 @@ Fetch PDB structures 1p38, 1r39 and 1zz2 and superpose 1r39 and 1zz2 onto 1p38:
     subparser.add_argument('-m', '--model', dest='model', type=int, 
         default=1, metavar='INT',
         help=('for NMR files, reference model index (default: %(default)s)'))
+    subparser.add_argument('-i', '--seqid', dest='seqid', type=int, 
+        default=90, metavar='INT',
+        help=('percent sequence identity (default: %(default)s)'))
+    subparser.add_argument('-o', '--overlap', dest='overlap', type=int, 
+        default=90, metavar='INT',
+        help=('percent sequence overlap (default: %(default)s)'))
 
     subparser.add_argument('pdb', nargs='+', 
         help='PDB identifier(s) or filename(s)')
