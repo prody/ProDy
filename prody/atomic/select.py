@@ -820,10 +820,11 @@ class SelectionError(Exception):
 
 class TypoWarning(object):
     
-    """Warning that is issued when a selection string contains potential typos.
-    Warnings are issued using to ``sys.stderr`` via ProDy package logger. 
-    :func:`~.confProDy` function can be used to turn typo warnings *on* or 
-    *off*, e.g. ``confProDy(typo_warnings=False)``."""
+    """A class used for issuing warning messages when potential typos are
+    detected in a selection string.  Warnings are issued to ``sys.stderr`` 
+    via ProDy package logger. :func:`~.confProDy` function can be used to 
+    turn typo warnings *on* or *off*, e.g. ``confProDy(typo_warnings=False)``.
+    """
     
     def __init__(self, sel='', loc=0, msg='', typo=None):
 

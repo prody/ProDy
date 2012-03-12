@@ -11,8 +11,8 @@ Release 1.0.1 (in development)
 
 **Improvements**:
 
-  * :class:`Select` class issues warnings (:class:`TypoWarning`) when potential
-    typos are detected in a selection string.
+  * :class:`~.Select` class issues warnings (:class:`~.TypoWarning`) when 
+    potential typos are detected in a selection string.
   
   * :program:`prody align` command accepts percent sequence identity and 
     overlap parameters used when matching chains from given multiple 
