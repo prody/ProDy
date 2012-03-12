@@ -765,6 +765,9 @@ def writePDBStream(stream, atoms, model=None):
     resnums = atoms._getResnums()
     if resnums is None:
         resnums = np.ones(n_atoms, int)
+    else:
+        if resnums.dtype != int:
+            resnums = resnums.astype(int)
     chainids = atoms._getChids()
     if chainids is None: 
         chainids = np.zeros(n_atoms, '|S1')
@@ -809,7 +812,7 @@ def writePDBStream(stream, atoms, model=None):
         coords = atoms._getCoords()
         for i, xyz in enumerate(coords):
             write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
-                         resnames[i], chainids[i], int(resnums[i]), 
+                         resnames[i], chainids[i], resnums[i], 
                          icodes[i], 
                          xyz[0], xyz[1], xyz[2], 
                          occupancies[i], bfactors[i],  
