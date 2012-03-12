@@ -177,15 +177,12 @@ import re as RE
 from types import NoneType
 
 import numpy as np
-from numpy import ndarray, ones, zeros, invert, unique, concatenate 
+from numpy import ndarray, ones, zeros, invert, unique, concatenate
 
 import pyparsing as pp
 pp.ParserElement.enablePackrat()
 
-import prody as pkg
-
-LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
+from prody import LOGGER, SETTINGS
 
 from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
@@ -201,7 +198,7 @@ from prody.KDTree import getKDTree
 DEBUG = 0
 #from code import interact
 
-__all__ = ['Select',
+__all__ = ['Select', 'SelectionError', 'TypoWarning',
            'getKeywordResnames', 'setKeywordResnames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
            'getBackboneAtomNames', 'setBackboneAtomNames',
@@ -212,6 +209,15 @@ __all__ = ['Select',
 KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
                        'segment', 'altloc', 'secondary', 'icode',
                        'chid', 'secstr', 'segname'])
+
+ALNUM_VALLEN = {}
+for key, field in ATOMIC_FIELDS.iteritems():
+    if isinstance(field.dtype, str) and field.dtype.startswith('|S'):
+        itemsize = np.dtype(field.dtype).itemsize
+        ALNUM_VALLEN[key] = itemsize
+        if field.synonym:
+            ALNUM_VALLEN[field.synonym] = itemsize
+
 KEYWORDS_INTEGER = set(['serial', 'index', 'resnum', 'resid', 
                         'segindex', 'chindex', 'resindex'])
 KEYWORDS_FLOAT = set(['x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
@@ -804,11 +810,28 @@ def setBackboneAtomNames(backbone_atom_names, full=False):
 
 class SelectionError(Exception):    
     
+    """Exception raised when there are errors in the selection string."""
+    
     def __init__(self, sel='', loc=0, msg=''):
         
         msg = ("{0:s} is not a valid selection string\n".format(repr(sel)) +
                ' ' * (loc + 17) + '^ ' + msg)
         Exception.__init__(self, msg)
+
+class TypoWarning(object):
+    
+    """Warning that is issued when a selection string contains potential typos.
+    Warnings are issued using to ``sys.stderr`` via ProDy package logger. 
+    :func:`~.confProDy` function can be used to turn typo warnings *on* or 
+    *off*, e.g. ``confProDy(typo_warnings=False)``."""
+    
+    def __init__(self, sel='', loc=0, msg='', typo=None):
+
+        if SETTINGS['typo_warnings']:        
+            shift = sel.find(typo, loc)
+            msg = ("{0:s} might contain typo(s)\n".format(repr(sel)) +
+                   ' ' * (shift + 12) + '^ ' + msg)
+            LOGGER.warn(msg)
 
 def isFloatKeyword(keyword):
     return keyword in KEYWORDS_FLOAT
@@ -1038,11 +1061,12 @@ class Select(object):
             print('getBoolArray', selstr)
         torf = self._evalSelstr()
         if not isinstance(torf, ndarray):
+            if DEBUG: print(torf)
             raise SelectionError(selstr)
-        elif torf.dtype != np.bool:
+        elif torf.dtype != bool:
             if DEBUG:
                 print('_select torf.dtype', torf.dtype, isinstance(torf.dtype, 
-                                                                   np.bool))
+                                                                   bool))
             raise SelectionError(selstr)
         if DEBUG:
             print('_select', torf)
@@ -1783,12 +1807,15 @@ class Select(object):
             data = data[evalonly]
         if DEBUG: print('_evalAlnum set(data)', set(data))
         n_atoms = len(data)
-
+        vallen = ALNUM_VALLEN[keyword]
         regexps = []
         strings = []
         for value in values:
             if isinstance(value, str):
                 strings.append(value)
+                if len(value) > vallen:
+                    TypoWarning(sel, loc, 'longer than {0:d} allowed chars'
+                                .format(vallen), value)
             else:
                 regexps.append(value)
 
@@ -1884,7 +1911,8 @@ class Select(object):
                 try:
                     number = int(item[:-1])
                 except ValueError:
-                    return None
+                    return SelectionError(sel, loc, 'all values must start '
+                                          'with a number')
                 torf[(resids == number) * (icodes == icode)] = True
             elif isinstance(item, list):
                 torf[(item[0] <= resids) * (resids <= item[1])] = True
@@ -2032,8 +2060,8 @@ class Select(object):
                         item = float(item)
                     except ValueError:
                         if intfloat:
-                            return SelectionError(sel, loc, "all specified "
-                                                  "values must be numbers")
+                            return SelectionError(sel, loc, "all values must "
+                                                  "be numbers")
                 token.append(item)
         if DEBUG: print('_getNumRange', token)            
         return token
