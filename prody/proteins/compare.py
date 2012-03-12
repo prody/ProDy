@@ -305,8 +305,21 @@ def matchAlign(mobile, target, **kwargs):
         instance,
       * Percent sequence identity of the match,
       * Percent sequence overlap of the match.
+      
+    :arg atoms1: atoms that contain a chain
+    :type atoms1: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
+    
+    :arg atoms2: atoms that contain a chain
+    :type atoms2: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
      
-    """
+    :keyword seqid: percent sequence identity, default is 90
+    :type seqid: float
+
+    :keyword overlap: percent overlap, default is 90
+    :type overlap: float
+
+    :keyword pwalign: perform pairwise sequence alignment 
+    :type pwalign: bool"""
     
     match = matchChains(mobile, target, **kwargs)
     if not match:
@@ -350,10 +363,10 @@ def matchChains(atoms1, atoms2, **kwargs):
         or ``"all"``, default is ``"calpha"``
     :type subset: string
     
-    :keyword seqid: percent sequence identity, default is 90.
+    :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
 
-    :keyword overlap: percent overlap, default is 90.
+    :keyword overlap: percent overlap, default is 90
     :type overlap: float
 
     :keyword pwalign: perform pairwise sequence alignment 
@@ -384,11 +397,13 @@ def matchChains(atoms1, atoms2, **kwargs):
         raise ValueError('{0:s} is not a valid subset argument'
                          .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
-    assert isinstance(seqid, float), 'seqid must be float'
+    assert isinstance(seqid, (float, int)), 'seqid must be float'
+    assert 0 < seqid <= 100, 'seqid must be in the range from 0 to 100'
     coverage = kwargs.get('overlap')
     if coverage is None:
         coverage = kwargs.get('coverage', 90.)
-    assert isinstance(coverage, float), 'overlap must be float'
+    assert isinstance(coverage, (float, int)), 'overlap must be float'
+    assert 0 < coverage <= 100, 'overlap must be in the range from 0 to 100'
     pwalign = kwargs.get('pwalign', None)
     
     if isinstance(atoms1, Chain):
@@ -626,10 +641,10 @@ def mapOntoChain(atoms, chain, **kwargs):
     :arg chain: chain to which atoms will be mapped
     :type chain: :class:`~.Chain`
     
-    :keyword seqid: percent sequence identity, default is 90.
+    :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
 
-    :keyword overlap: percent overlap, default is 90.
+    :keyword overlap: percent overlap, default is 90
     :type overlap: float
 
     :keyword pwalign: perform pairwise sequence alignment 
