@@ -812,7 +812,7 @@ class SelectionError(Exception):
     
     """Exception raised when there are errors in the selection string."""
     
-    def __init__(self, sel='', loc=0, msg=''):
+    def __init__(self, sel, loc=0, msg=''):
         
         msg = ("An invalid selection string is encountered:\n{0:s}\n"
                .format(repr(sel)) + 
