@@ -814,8 +814,9 @@ class SelectionError(Exception):
     
     def __init__(self, sel='', loc=0, msg=''):
         
-        msg = ("{0:s} is not a valid selection string\n".format(repr(sel)) +
-               ' ' * (loc + 17) + '^ ' + msg)
+        msg = ("An invalid selection string is encountered:\n{0:s}\n"
+               .format(repr(sel)) + 
+               ' ' * (loc + 1) + '^ ' + msg)
         Exception.__init__(self, msg)
 
 class TypoWarning(object):
@@ -1815,8 +1816,9 @@ class Select(object):
             if isinstance(value, str):
                 strings.append(value)
                 if len(value) > vallen:
-                    TypoWarning(sel, loc, 'longer than {0:d} allowed chars'
-                                .format(vallen), value)
+                    return SelectionError(sel, sel.find(value, loc), 'invalid '
+                        'value, maximum {0:d} char(s) allowed for {1:s}'
+                        .format(vallen, repr(keyword)))
             else:
                 regexps.append(value)
 
