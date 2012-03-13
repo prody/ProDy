@@ -41,7 +41,7 @@ def prody_fetch(opt):
                             pdblist.append(pdb)
             inp.close()
         else:    
-            opt.subparser.error("No such file: '{0:s}'".format(listfn))
+            opt.subparser.error("No such file: {0:s}".format(repr(listfn)))
     prody.fetchPDB(pdblist, opt.folder, compressed=opt.gzip, copy=True)
 
 def addCommand(commands):

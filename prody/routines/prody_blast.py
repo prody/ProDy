@@ -52,10 +52,11 @@ def prody_blast(opt):
     title = None
     if os.path.isfile(seq):
         title, seq = readFirstSequenceFasta(seq)
-        LOGGER.info("First sequence ({0:s}) is parsed from '{1:s}'."
-                    .format(title, seq))
+        LOGGER.info("First sequence ({0:s}) is parsed from {1:s}."
+                    .format(title, repr(seq)))
     if not seq.isalpha() or not seq.isupper():
-        opt.subparser("{0:s} is not a valid sequence or a file".format(seq))
+        opt.subparser.error("{0:s} is not a valid sequence or a file"
+                            .format(repr(seq)))
         
     folder, identity, coverage = opt.folder, opt.identity, opt.coverage
     if not 0 < identity < 100: 

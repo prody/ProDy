@@ -33,7 +33,7 @@ def prody_pca(opt):
     
     outdir = opt.outdir
     if not os.path.isdir(outdir):
-        opt.subparser.error('{0:s} is not a valid path'.format(outdir))
+        opt.subparser.error('{0:s} is not a valid path'.format(repr(outdir)))
         
     import prody
     LOGGER = prody.LOGGER
@@ -51,7 +51,7 @@ def prody_pca(opt):
                 ag = prody.parsePDB(ag)
         dcd = prody.DCDFile(opt.coords)
         if len(dcd) < 2:
-            opt.subparser("DCD file must contain multiple frames.")
+            opt.subparser.error("DCD file must contain multiple frames.")
         if ag:
             dcd.setAtomGroup(ag)
             select = dcd.select(selstr)
@@ -69,15 +69,15 @@ def prody_pca(opt):
     else:
         pdb = prody.parsePDB(opt.coords)
         if pdb.numCoordsets() < 2:
-            opt.subparser("PDB file must contain multiple models.")
+            opt.subparser.error("PDB file must contain multiple models.")
         if prefix == '_pca':
             prefix = pdb.getTitle() + '_pca'
         select = pdb.select(selstr)
         LOGGER.info('{0:d} atoms are selected for calculations.'
                     .format(len(select)))
         if select is None:
-            opt.subparser('Selection "{0:s}" do not match any atoms.'
-                          .format(selstr))
+            opt.subparser.error('Selection {0:s} do not match any atoms.'
+                                .format(repr(selstr)))
         LOGGER.info('{0:d} atoms will be used for PCA calculations.'
                     .format(len(select)))
         ensemble = prody.Ensemble(select)

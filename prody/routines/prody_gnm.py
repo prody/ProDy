@@ -31,7 +31,7 @@ def prody_gnm(opt):
     
     outdir = opt.outdir
     if not os.path.isdir(outdir):
-        opt.subparser('{0:s} is not a valid path'.format(outdir))
+        opt.subparser.error('{0:s} is not a valid path'.format(repr(outdir)))
         
     import numpy as np
     import prody
@@ -48,8 +48,8 @@ def prody_gnm(opt):
 
     select = pdb.select(selstr)
     if select is None:
-        opt.subparser('Selection "{0:s}" do not match any atoms.'
-                      .format(selstr))
+        opt.subparser.error('Selection {0:s} do not match any atoms.'
+                            .format(repr(selstr)))
     LOGGER.info('{0:d} atoms will be used for GNM calculations.'
                 .format(len(select)))
 

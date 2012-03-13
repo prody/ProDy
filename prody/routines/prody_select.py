@@ -33,8 +33,8 @@ def prody_select(opt):
         prefix = pdb.getTitle() + '_selected'
     pdbselect = pdb.select(opt.selstr)
     if pdbselect is None:
-        opt.subparser('Selection "{0:s}" do not match any atoms.'
-                      .format(opt.selstr))
+        opt.subparser.error('Selection {0:s} do not match any atoms.'
+                      .format(repr(opt.selstr)))
     LOGGER.info('Writing ' + prefix + '.pdb')
     prody.writePDB(prefix + '.pdb', pdbselect)
 
@@ -55,8 +55,7 @@ def addCommand(commands):
 
 Fetch PDB 2bfu and write backbone atoms in a file:
         
-  $ prody select 2bfu "backbone" """
-    )
+  $ prody select 2bfu "backbone" """)
 
 
     subparser.add_argument('-o', '--output', dest='output', type=str, 
