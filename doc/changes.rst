@@ -11,12 +11,21 @@ Release 1.0.1 (in development)
 
 **Improvements**:
 
-  * :class:`~.Select` class issues warnings (:class:`~.TypoWarning`) when 
-    potential typos are detected in a selection string.
+  * :class:`~.Select` class raises a :class:`~.SelectionError` when 
+    potential typos are detected in a selection string, e.g. ``'chain AB'``
+    is a grammatically correct selection string that will return **None**
+    since no atoms have chain identifier ``'AB'``.  In such cases, an exception
+    noting that values exceed maximum number of characters is raised.
   
   * :program:`prody align` command accepts percent sequence identity and 
     overlap parameters used when matching chains from given multiple 
     structures.
+
+**Bugfix**:
+
+  * A bug in some :ref:`commands` is fixed. The bug would emerge when invalid
+    arguments were passed to effected commands and throw an unrelated exception
+    hiding the error message related to the arguments.
 
 Release 1.0 (Mar 7, 2012)
 ===============================================================================
