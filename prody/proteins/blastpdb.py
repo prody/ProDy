@@ -22,7 +22,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
-from prody.tools import element2dict
+from prody.tools import dictElement
 from prody import LOGGER
 
 __all__ = ['PDBBlastRecord', 'blastPDB']
@@ -187,12 +187,12 @@ class PDBBlastRecord(object):
         else:
             root = ET.XML(xml)
         
-        root = element2dict(root, 'BlastOutput_')
+        root = dictElement(root, 'BlastOutput_')
         if root['db'] != 'pdb':
             raise ValueError('blast search database in xml must be "pdb"')
         if root['program'] != 'blastp':
             raise ValueError('blast search program in xml must be "blastp"')
-        self._param = element2dict(root['param'][0], 'Parameters_')
+        self._param = dictElement(root['param'][0], 'Parameters_')
         query_length = int(root['query-len'])
         if len(sequence) != query_length:
             raise ValueError('query-len and the length of the sequence do not '
@@ -200,9 +200,9 @@ class PDBBlastRecord(object):
                              'sequence')
         hits = [] 
         for iteration in root['iterations']:
-            for hit in element2dict(iteration, 'Iteration_')['hits']:
-                hit = element2dict(hit, 'Hit_')
-                data = element2dict(hit['hsps'][0], 'Hsp_')
+            for hit in dictElement(iteration, 'Iteration_')['hits']:
+                hit = dictElement(hit, 'Hit_')
+                data = dictElement(hit['hsps'][0], 'Hsp_')
                 for key in ['align-len', 'gaps', 'hit-frame', 'hit-from',
                             'hit-to', 'identity', 'positive', 'query-frame',
                             'query-from', 'query-to']:
