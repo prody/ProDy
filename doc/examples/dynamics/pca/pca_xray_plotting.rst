@@ -159,6 +159,7 @@ Now we will project the ensemble onto PC 1 and 2 using
    
    plt.figure(figsize=(5,4))
    showProjection(ensemble, pca[:2])
+   plt.axis([-0.8, 0.8, -0.8, 0.8])
 
 .. plot::
    :context:
@@ -178,7 +179,7 @@ Now we will do a little more work, and get a colorful picture:
    #   yellow for glucoside bound
    #   purple for peptide/protein bound
    # the order of 
-   color_list = ['purple', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 
+   color_list = ['blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 
                  'purple', 'purple', 'blue', 'blue', 'blue', 'blue', 'blue', 
                  'red', 'red', 'red', 'blue', 'blue', 'blue', 'blue', 'blue', 
                  'blue', 'blue', 'blue', 'blue', 'blue', 'red', 'blue', 'blue', 
@@ -187,16 +188,17 @@ Now we will do a little more work, and get a colorful picture:
                  'blue', 'blue', 'blue', 'blue', 'yellow', 'purple', 'purple', 
                  'blue', 'yellow', 'yellow', 'yellow', 'blue', 'yellow', 'yellow', 
                  'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 
-                 'blue', 'blue', 'blue', 'blue', 'blue', 'blue'] 
-   import numpy as np
-   color_array = np.array(color_list) # Having an array will be handier  
-   color_assignments = [('Unbound', 'red'), ('Inhibitor bound', 'blue'), ('Glucoside bound', 'yellow'), ('Peptide/protein bound', 'purple')]
+                 'blue', 'blue', 'blue', 'blue', 'blue', 'blue', 'purple'] 
+   color2label = {'red': 'Unbound', 'blue': 'Inhibitor bound', 
+                  'yellow': 'Glucoside bound', 
+                  'purple': 'Peptide/protein bound'}
+   label_list = [color2label[color] for color in color_list]
    
    plt.figure(figsize=(5,4))
-   for lbl, clr in color_assignments:
-       showProjection(ensemble[ color_array == clr], pca[:2], color=clr, label=lbl)
+   showProjection(ensemble, pca[:2], color=color_list, label=label_list)
+   plt.axis([-0.8, 0.8, -0.8, 0.8])
    
-It is possible to show the legend for this plot, but the figure gets crowded:
+It is possible to show the legend for this plot:
    
 .. plot::
    :context:
@@ -209,7 +211,26 @@ It is possible to show the legend for this plot, but the figure gets crowded:
    :nofigs:
 
    plt.close('all')
+   
+Now let's project conformations onto 3d principal space and label conformations 
+using ``text`` keyword argument and :meth:`.PDBEnsemble.getLabels` method:
+ 
+.. plot::
+   :context:
+   :include-source:
 
+   plt.figure(figsize=(5,4))
+   showProjection(ensemble, pca[:3], color=color_list, label=label_list, text=ensemble.getLabels(), fontsize=10)
+
+The figure with all conformation labels is crowded, but in an interactive 
+session you can zoom in and out to make text readable.
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+   
 Cross-projections
 ===============================================================================
 
@@ -223,14 +244,14 @@ scale the width of the projection along ANM mode:
    :include-source:
 
    plt.figure(figsize=(5,4))
-   for lbl, clr in color_assignments:
-       showCrossProjection(ensemble[color_array == clr], pca[0], anm[2], scale="y", scalar=-1.27, color=clr, label=lbl)
+   showCrossProjection(ensemble, pca[0], anm[2], scale="y", color=color_list, label=label_list)
    plt.plot([-0.8, 0.8], [-0.8, 0.8], 'k')
    plt.axis([-0.8, 0.8, -0.8, 0.8])
+   plt.legend(prop={'size': 10}, loc='upper left')
+   
 
    plt.figure(figsize=(5,4))
-   for lbl, clr in color_assignments:
-       showCrossProjection(ensemble[color_array == clr], pca[1], anm[0], scale="y", scalar=-1.05, color=clr, label=lbl)
+   showCrossProjection(ensemble, pca[1], anm[0], scale="y", color=color_list, label=label_list)
    plt.plot([-0.8, 0.8], [-0.8, 0.8], 'k')
    plt.axis([-0.8, 0.8, -0.8, 0.8])
 
@@ -241,13 +262,32 @@ It is also possible to find the correlation between these projections:
    :include-source:
    :nofigs:
    
-   pca_coords = calcProjection(ensemble, pca[0])
-   anm_coords = calcProjection(ensemble, anm[2])
+   pca_coords, anm_coords = calcCrossProjection(ensemble, pca[0], anm[2])
    
-   print np.corrcoef(pca_coords, anm_coords)
+   from numpy import corrcoef 
+   print corrcoef(pca_coords, anm_coords)
    
 This is going to print 0.95 for PC 1 and ANM mode 2 pair.
 
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+
+Finally, it is also possible to label conformations in cross projection plots 
+too:
+
+.. plot::
+   :context:
+   :include-source:
+
+   plt.figure(figsize=(5,4))
+   showCrossProjection(ensemble, pca[1], anm[0], scale="y", color=color_list, label=label_list, text=ensemble.getLabels(), fontsize=10)
+   plt.plot([-0.8, 0.8], [-0.8, 0.8], 'k')
+   plt.axis([-0.8, 0.8, -0.8, 0.8])
+
+  
 .. plot::
    :context:
    :nofigs:
