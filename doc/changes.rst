@@ -9,6 +9,10 @@ Changes
 Release 1.0.1 (in development)
 ===============================================================================
 
+**New Features**:
+
+  * :func:`calcCrossProjection` function is implemented.
+
 **Improvements**:
 
   * :class:`~.Select` class raises a :class:`~.SelectionError` when 
@@ -20,6 +24,11 @@ Release 1.0.1 (in development)
   * :program:`prody align` command accepts percent sequence identity and 
     overlap parameters used when matching chains from given multiple 
     structures.
+
+  * :func:`showProjection` and :func:`showCrossProjection` functions are 
+    improved to evaluate list of markers, color, labels, and texts.  See
+    usage example in :ref:`pca-xray-plotting`.
+    
 
 **Bugfix**:
 
