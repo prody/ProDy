@@ -160,14 +160,14 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = onto.getModes()
-        show.set_xlabel('Mode {0:d} coordinate'.format(onto[0].getIndex()+1))
-        show.set_ylabel('Mode {0:d} coordinate'.format(onto[1].getIndex()+1))
-        show.set_zlabel('Mode {0:d} coordinate'.format(onto[2].getIndex()+1))
+        show.set_xlabel('Mode {0:d} coordinate'.format(int(onto[0])+1))
+        show.set_ylabel('Mode {0:d} coordinate'.format(int(onto[1])+1))
+        show.set_zlabel('Mode {0:d} coordinate'.format(int(onto[2])+1))
     else:
         modes = modes.getModes()
-        show.set_xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
-        show.set_ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
-        show.set_zlabel('Mode {0:d} coordinate'.format(modes[2].getIndex()+1))
+        show.set_xlabel('Mode {0:d} coordinate'.format(int(modes[0])+1))
+        show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
+        show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
     return show
 
 def showFractVars(modes, *args, **kwargs):
@@ -193,7 +193,7 @@ def showFractVars(modes, *args, **kwargs):
         raise TypeError('modes must be NMA, or ModeSet, not {0:s}'
                         .format(type(modes)))
     
-    fracts = [(mode.getIndex(), calcFractVariance(mode)) for mode in modes]
+    fracts = [(int(mode), calcFractVariance(mode)) for mode in modes]
     fracts = np.array(fracts)
     show = plt.bar(fracts[:,0]+0.5, fracts[:,1], *args, **kwargs)
     axis = list(plt.axis())
@@ -236,23 +236,33 @@ def showProjection(ensemble, modes, *args, **kwargs):
     """Show a projection of conformational deviations onto up to three normal 
     modes from the same model.
     
-    :arg ensemble: a :class:`~.Ensemble` instance
-    :arg modes: a :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.NMA`
+    :arg ensemble: an ensemble or a conformation for which deviation(s) will be
+        projected, or a deformation vector
+    :type ensemble: :class:`~.Ensemble`, :class:`~.Vector`
+    :arg modes: up to three normal modes
+    :type modes: :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.NMA`
+    :arg color: a color name or a list of color name, default is ``'blue'`` 
+    :type color: str, list 
+    :arg label: label or a list of labels 
+    :type label: str, list 
+    :arg marker: a marker or a list of markers, default is ``'o'`` 
+    :type marker: str, list 
+    :arg linestyle: line style, default is ``'None'`` 
+    :type linestyle: str 
+    :arg text: list of text labels, one for each conformation 
+    :type text: list
+    :arg fontsize: font size for text labels 
+    :type fontsize: int
     
-    The projected values are by default converted to RMSD.  Pass 
-    ``rmsd=False`` to use projection itself. :class:`~.Vector` instances 
-    are accepted as *ensemble* argument to allow for projecting a 
-    deformation vector onto normal modes.  
+    The projected values are by default converted to RMSD.  Pass ``rmsd=False``
+    to use projection itself.    
     
     Matplotlib function used for plotting depends on the number of modes:
         
       * 1 mode: :func:`~matplotlib.pyplot.hist`
       * 2 modes: :func:`~matplotlib.pyplot.plot`
       * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`
-          
-    By default ``marker='o', ls='None'`` is passed to the plotting function 
-    to disable lines in projections onto 2 or 3-d spaces.
-    
+   
     .. plot::
        :context:
        :include-source:
@@ -277,42 +287,64 @@ def showProjection(ensemble, modes, *args, **kwargs):
        plt.close('all')"""
     
     import matplotlib.pyplot as plt
-    
-    if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
-        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
-                        'not {0:s}'.format(type(ensemble)))
-    if not isinstance(modes, (NMA, ModeSet, Mode)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
-                        .format(type(modes)))
-    if not modes.is3d(): 
-        raise Exception('modes must be 3-dimensional')
-    
-    if isinstance(modes, Mode) or (isinstance(modes, (ModeSet, NMA)) and 
-                                   len(modes)==1):
-        if not isinstance(modes, Mode):
-            modes = modes[0]
-        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
+
+    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
+
+    if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('Mode {0:d} coordinate'.format(modes.getIndex()+1))
+        plt.xlabel('{0:s} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
-    elif len(modes) == 2:
-        if 'ls' not in kwargs:
-            kwargs['ls'] = 'None'
-        if 'marker' not in kwargs:
-            kwargs['marker'] = 'o'
-        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
-        show = plt.plot(projection[:, 0], projection[:, 1], *args, **kwargs)
-        modes = [m for m in modes]
-        plt.xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
-        plt.ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
-    elif len(modes) == 3:
-        if 'ls' not in kwargs:
-            kwargs['ls'] = 'None'
-        if 'marker' not in kwargs:
-            kwargs['marker'] = 'o'
+        return show
+    elif projection.shape[1] > 3:
+        raise ValueError('Projection onto up to 3 modes can be shown. '
+                         'You have given {0:d} mode.'.format(len(modes)))
+        
+    num = projection.shape[0]
+
+    markers = kwargs.pop('marker', 'o')
+    if isinstance(markers, str) or markers is None:
+        markers = [markers] * num
+    elif isinstance(markers, list):
+        if len(markers) != num:
+            raise ValueError('length of marker must be {0:d}'.format(num))
+    else: 
+        raise TypeError('marker must be a string or a list')
+
+    colors = kwargs.pop('color', 'blue')
+    if isinstance(colors, str) or colors is None:
+        colors = [colors] * num
+    elif isinstance(colors, list): 
+        if len(colors) != num:
+            raise ValueError('length of color must be {0:d}'.format(num))
+    else: 
+        raise TypeError('color must be a string or a list')
+
+    labels = kwargs.pop('label', None)
+    if isinstance(labels, str) or labels is None:
+        labels = [labels] * num
+    elif isinstance(labels, list):
+        if len(labels) != num:
+            raise ValueError('length of label must be {0:d}'.format(num))
+    elif labels is not None: 
+        raise TypeError('label must be a string or a list')
+
+    kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
+    
+    texts = kwargs.pop('text', None)
+    if texts:
+        if not isinstance(texts, list):
+            raise TypeError('text must be a list')
+        elif len(texts) != num:
+            raise TypeError('length of text must be {0:d}'.format(num))
+        size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
+    
+    modes = [m for m in modes]
+    if len(modes) == 2:
+        plot = plt.plot
+        show = plt.gcf()
+        text = plt.text
+    else:
         from mpl_toolkits.mplot3d import Axes3D
-        projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True)) 
-        modes = [m for m in modes]
         cf = plt.gcf()
         show = None
         for child in cf.get_children():
@@ -321,14 +353,40 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 break 
         if show is None:
             show = Axes3D(cf)
-        show.plot(projection[:, 0], projection[:, 1], projection[:, 2], 
-                  *args, **kwargs)
-        show.set_xlabel('Mode {0:d} coordinate'.format(modes[0].getIndex()+1))
-        show.set_ylabel('Mode {0:d} coordinate'.format(modes[1].getIndex()+1))
-        show.set_zlabel('Mode {0:d} coordinate'.format(modes[2].getIndex()+1))
-    else:
-        raise ValueError('Projection onto upto 3 modes can be shown. '
-                         'You have given {0:d} mode.'.format(len(modes)))
+        plot = show.plot
+        text = show.text                
+
+    indict = defaultdict(list)
+    for i, opts in enumerate(zip(markers, colors, labels)):
+        indict[opts].append(i)
+
+    args = list(args)
+    for opts, indices in indict.iteritems():
+        marker, color, label = opts
+        kwargs['marker'] = marker
+        kwargs['color'] = color
+        if label:
+            kwargs['label'] = label
+        else:
+            kwargs.pop('label', None)
+        
+        plot(*(list(projection[indices].T) + args), **kwargs)
+
+    if texts:
+        kwargs = {}
+        if size:
+            kwargs['size'] = size
+        for args in zip(*(list(projection.T) + [texts])):
+            text(*args, **kwargs)
+            
+    if len(modes) == 2:
+        plt.xlabel('{0:d} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('{0:d} coordinate'.format(int(modes[1])+1))
+    elif len(modes) == 3:
+        show.set_xlabel('Mode {0:d} coordinate'.format(int(modes[0])+1))
+        show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
+        show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
+
     return show
 
 def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
@@ -359,10 +417,11 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     :type marker: str, list 
     :arg linestyle: line style, default is ``'None'`` 
     :type linestyle: str 
-    :arg text: list of text labels, one for each conformation 
-    :type text: list 
-    :arg fontsize: list of text labels, one for each conformation 
-    :type fontsize: list 
+    :arg text: list of text labels, one for each conformation
+    :type text: list
+    :arg fontsize: font size for text labels 
+    :type fontsize: int
+
     
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
     to calculate raw projection values.  
@@ -390,39 +449,39 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     num = len(xcoords)
 
     markers = kwargs.pop('marker', 'o')
-    if isinstance(markers, (str, list)):
-        if isinstance(markers, str):
-            markers = [markers] * num
-        elif isinstance(markers, list) and len(markers) != num:
+    if isinstance(markers, str) or markers is None:
+        markers = [markers] * num
+    elif isinstance(markers, list):
+        if len(markers) != num:
             raise ValueError('length of marker must be {0:d}'.format(num))
     else: 
         raise TypeError('marker must be a string or a list')
 
     colors = kwargs.pop('color', 'blue')
-    if isinstance(colors, (str, list)):
-        if isinstance(colors, str):
-            colors = [colors] * num
-        elif isinstance(colors, list) and len(colors) != num:
+    if isinstance(colors, str) or colors is None:
+        colors = [colors] * num
+    elif isinstance(colors, list): 
+        if len(colors) != num:
             raise ValueError('length of color must be {0:d}'.format(num))
     else: 
         raise TypeError('color must be a string or a list')
 
     labels = kwargs.pop('label', None)
-    if isinstance(labels, (str, list)):
-        if isinstance(labels, str):
-            labels = [labels] * num
-        elif isinstance(labels, list) and len(labels) != num:
+    if isinstance(labels, str) or labels is None:
+        labels = [labels] * num
+    elif isinstance(labels, list):
+        if len(labels) != num:
             raise ValueError('length of label must be {0:d}'.format(num))
     elif labels is not None: 
         raise TypeError('label must be a string or a list')
 
     kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
        
-    text = kwargs.pop('text', None)
-    if text is not None:
-        if not isinstance(text, list):
+    texts = kwargs.pop('text', None)
+    if texts:
+        if not isinstance(texts, list):
             raise TypeError('text must be a list')
-        elif len(text) != num:
+        elif len(texts) != num:
             raise TypeError('length of text must be {0:d}'.format(num))
         size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
         
@@ -439,11 +498,11 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         else:
             kwargs.pop('label', None)
         show = plt.plot(xcoords[indices], ycoords[indices], *args, **kwargs)
-    if text is not None:
+    if texts:
         kwargs = {}
         if size:
             kwargs['size'] = size
-        for x, y, t in zip(xcoords, ycoords, text):
+        for x, y, t in zip(xcoords, ycoords, texts):
             plt.text(x, y, t, **kwargs)
     plt.xlabel('{0:s} coordinate'.format(mode_x))
     plt.ylabel('{0:s} coordinate'.format(mode_y))
