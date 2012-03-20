@@ -41,8 +41,11 @@ Arguments and keyword arguments are passed to the Matplotlib functions.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from collections import defaultdict
+
 import numpy as np
 
+from prody import LOGGER
 from prody.ensemble import Ensemble, Conformation
 
 from nma import NMA
@@ -50,7 +53,7 @@ from gnm import GNMBase
 from mode import Mode, VectorBase, Vector
 from modeset import ModeSet
 from analysis import calcSqFlucts, calcProjection, calcCrossCorr
-from analysis import calcFractVariance
+from analysis import calcFractVariance, calcCrossProjection
 from compare import calcOverlap
 
 __all__ = ['showContactMap', 'showCrossCorr',  
@@ -60,8 +63,6 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks', ]
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
            
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     """Show an ellipsoid using  :meth:`~mpl_toolkits.mplot3d.Axes3D
@@ -330,34 +331,41 @@ def showProjection(ensemble, modes, *args, **kwargs):
                          'You have given {0:d} mode.'.format(len(modes)))
     return show
 
-def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None, 
-                        *args, **kwargs):
+def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     """Show a projection of conformational deviations onto modes from
     different models using :func:`~matplotlib.pyplot.plot`.  This function 
     differs from :func:`~.showProjection` by accepting modes from two different 
     models.
     
-    :arg ensemble: Ensemble for which deviations will be projected
-    :type ensemble: :class:`~.Ensemble`
-    :arg mode_x: Projection onto this mode will be shown along x-axis. 
-    :type mode_x: :class:`~.Mode`
-    :arg mode_y: Projection onto this mode will be shown along y-axis.
-    :type mode_y: :class:`~.Mode`
-    :arg scale: Scale width of the projection onto one of modes. 
-                ``x`` and ``y`` are accepted.
+    :arg ensemble: an ensemble or a conformation for which deviation(s) will be
+        projected, or a deformation vector
+    :type ensemble: :class:`~.Ensemble`, :class:`~.Vector`
+    :arg mode_x: projection onto this mode will be shown along x-axis 
+    :type mode_x: :class:`~.Mode`, :class:`~.Vector`
+    :arg mode_y: projection onto this mode will be shown along y-axis
+    :type mode_y: :class:`~.Mode`, :class:`~.Vector`
+    :arg scale: scale width of the projection onto mode ``x`` or ``y``,
+        best scaling factor will be calculated and printed on the console,
+        absolute value of scalar makes the with of two projection same,
+        sign of scalar makes the projections yield a positive correlation
     :type scale: str
-    :arg scalar: Scalar factor for ``x`` or ``y``.  If ``scalar=None`` is 
-        passed, best scaling factor will be calculated and printed on the
-        console.
+    :arg scalar: scalar factor for projection onto selected mode 
     :type scalar: float
+    :arg color: a color name or a list of color name, default is ``'blue'`` 
+    :type color: str, list 
+    :arg label: label or a list of labels 
+    :type label: str, list 
+    :arg marker: a marker or a list of markers, default is ``'o'`` 
+    :type marker: str, list 
+    :arg linestyle: line style, default is ``'None'`` 
+    :type linestyle: str 
+    :arg text: list of text labels, one for each conformation 
+    :type text: list 
+    :arg fontsize: list of text labels, one for each conformation 
+    :type fontsize: list 
     
-    The projected values are by default converted to RMSD. 
-    Pass ``rmsd=False`` to calculate raw projection values.
-    :class:`~.Vector` instances are accepted as *ensemble* argument to allow
-    for projecting a deformation vector onto normal modes.  
-    
-    By default ``marker='o', ls='None'`` is passed to the plotting function 
-    to disable lines.
+    The projected values are by default converted to RMSD.  Pass ``rmsd=False``
+    to calculate raw projection values.  
     
     .. plot::
        :context:
@@ -375,48 +383,68 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, scalar=None,
     |example| See :ref:`pca-xray-plotting` for a more elaborate example."""
 
     import matplotlib.pyplot as plt
-    if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
-        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
-                        'not {0:s}'.format(type(ensemble)))
-    if not isinstance(mode_x, VectorBase):
-        raise TypeError('mode_x must be a Mode instance, not {0:s}'
-                        .format(type(mode_x)))
-    if not mode_x.is3d():
-        raise ValueError('mode_x must be 3-dimensional')
-    if not isinstance(mode_y, VectorBase):
-        raise TypeError('mode_y must be a Mode instance, not {0:s}'
-                        .format(type(mode_y)))
-    if not mode_y.is3d():
-        raise ValueError('mode_y must be 3-dimensional')
-    if scale is not None:
-        assert isinstance(scale, str), 'scale must be a string'
-        scale = scale.lower()
-        assert scale in ('x', 'y'), 'scale must be x or y'
-    if scalar is not None:
-        assert isinstance(scalar, float), 'scalar must be a float'
-    xcoords = calcProjection(ensemble, mode_x, kwargs.get('rmsd', True))
-    ycoords = calcProjection(ensemble, mode_y, kwargs.pop('rmsd', True))
-    if scale:
-        if scalar is None:
-            scalar = ((ycoords.max() - ycoords.min()) / 
-                      (xcoords.max() - xcoords.min())) 
-            scalar = scalar * np.sign(calcOverlap(mode_x, mode_y))
-            if scale == 'x':
-                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
-                            .format(mode_x, scalar))
-            else:
-                scalar = 1 / scalar
-                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
-                            .format(mode_y, scalar))
-        if scale == 'x':
-            xcoords = xcoords * scalar  
+
+    xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y, 
+        scale=scale, **kwargs)
+    
+    num = len(xcoords)
+
+    markers = kwargs.pop('marker', 'o')
+    if isinstance(markers, (str, list)):
+        if isinstance(markers, str):
+            markers = [markers] * num
+        elif isinstance(markers, list) and len(markers) != num:
+            raise ValueError('length of marker must be {0:d}'.format(num))
+    else: 
+        raise TypeError('marker must be a string or a list')
+
+    colors = kwargs.pop('color', 'blue')
+    if isinstance(colors, (str, list)):
+        if isinstance(colors, str):
+            colors = [colors] * num
+        elif isinstance(colors, list) and len(colors) != num:
+            raise ValueError('length of color must be {0:d}'.format(num))
+    else: 
+        raise TypeError('color must be a string or a list')
+
+    labels = kwargs.pop('label', None)
+    if isinstance(labels, (str, list)):
+        if isinstance(labels, str):
+            labels = [labels] * num
+        elif isinstance(labels, list) and len(labels) != num:
+            raise ValueError('length of label must be {0:d}'.format(num))
+    elif labels is not None: 
+        raise TypeError('label must be a string or a list')
+
+    kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
+       
+    text = kwargs.pop('text', None)
+    if text is not None:
+        if not isinstance(text, list):
+            raise TypeError('text must be a list')
+        elif len(text) != num:
+            raise TypeError('length of text must be {0:d}'.format(num))
+        size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
+        
+    indict = defaultdict(list)
+    for i, opts in enumerate(zip(markers, colors, labels)):
+        indict[opts].append(i)
+    
+    for opts, indices in indict.iteritems():
+        marker, color, label = opts
+        kwargs['marker'] = marker
+        kwargs['color'] = color
+        if label:
+            kwargs['label'] = label
         else:
-            ycoords = ycoords * scalar
-    if 'ls' not in kwargs:
-        kwargs['ls'] = 'None'
-    if 'marker' not in kwargs:
-        kwargs['marker'] = 'o'
-    show = plt.plot(xcoords, ycoords, *args, **kwargs)
+            kwargs.pop('label', None)
+        show = plt.plot(xcoords[indices], ycoords[indices], *args, **kwargs)
+    if text is not None:
+        kwargs = {}
+        if size:
+            kwargs['size'] = size
+        for x, y, t in zip(xcoords, ycoords, text):
+            plt.text(x, y, t, **kwargs)
     plt.xlabel('{0:s} coordinate'.format(mode_x))
     plt.ylabel('{0:s} coordinate'.format(mode_y))
     return show
