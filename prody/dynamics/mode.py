@@ -357,14 +357,25 @@ class Mode(VectorBase):
         self._index = int(index)
         
     def __len__(self):
+        
         return self._model._dof
     
     def __repr__(self):
+        
         return '<Mode: {0:d} from {1:s}>'.format(self._index+1, str(self._model))
 
     def __str__(self):
+        
         return 'Mode {0:d} from {1:s}'.format(self._index+1, str(self._model))
 
+    def __int__(self):
+        
+        return self._index
+    
+    def __float__(self):
+        
+        return self.getEigval()
+    
     def is3d(self):
         """Return ``True`` if mode instance is from a 3-dimensional model."""
         
