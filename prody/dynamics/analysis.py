@@ -26,6 +26,7 @@ import time
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 
@@ -36,10 +37,8 @@ from gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcPerturbResponse', ]
+           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', ]
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
            
 def calcCollectivity(mode, masses=None):
     """Return collectivity of the mode.  This function implements collectivity 
@@ -132,6 +131,65 @@ def calcProjection(ensemble, modes, rmsd=True):
     if rmsd:
         projection =  (1 / (n_atoms ** 0.5)) * projection
     return projection
+
+def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
+    """Return projection of conformational deviations onto modes from
+    different models.
+    
+    :arg ensemble: ensemble for which deviations will be projected
+    :type ensemble: :class:`~.Ensemble`
+    :arg mode1: normal mode to project conformations onto 
+    :type mode1: :class:`~.Mode`, :class:`~.Vector`
+    :arg mode2: normal mode to project conformations onto
+    :type mode2: :class:`~.Mode`, :class:`~.Vector`
+    :arg scale: scale width of the projection onto mode ``x`` or ``y``,
+        best scaling factor will be calculated and printed on the console,
+        absolute value of scalar makes the with of two projection same,
+        sign of scalar makes the projections yield a positive correlation"""
+    
+    if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
+        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
+                        'not {0:s}'.format(type(ensemble)))
+    if not isinstance(mode1, VectorBase):
+        raise TypeError('mode1 must be a Mode instance, not {0:s}'
+                        .format(type(mode1)))
+    if not mode1.is3d():
+        raise ValueError('mode1 must be 3-dimensional')
+    if not isinstance(mode2, VectorBase):
+        raise TypeError('mode2 must be a Mode instance, not {0:s}'
+                        .format(type(mode2)))
+    if not mode2.is3d():
+        raise ValueError('mode2 must be 3-dimensional')
+    
+    if scale is not None:
+        assert isinstance(scale, str), 'scale must be a string'
+        scale = scale.lower()
+        assert scale in ('x', 'y'), 'scale must be x or y'
+
+    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True))
+    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True))
+    if scale:
+        scalar = kwargs.get('scalar', None)
+        if scalar:
+            assert isinstance(scalar, (float, int)), 'scalar must be a number'
+        else:
+            scalar = ((ycoords.max() - ycoords.min()) / 
+                      (xcoords.max() - xcoords.min())
+                      ) * np.sign(np.dot(xcoords, ycoords))
+            if scale == 'x':
+                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
+                            .format(mode1, scalar))
+            else:
+                scalar = 1 / scalar
+                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
+                            .format(mode2, scalar))
+
+        if scale == 'x':
+            xcoords = xcoords * scalar  
+        else:
+            ycoords = ycoords * scalar
+
+    return xcoords, ycoords
 
 def calcSqFlucts(modes):
     """Return sum of square-fluctuations for given set of normal *modes*.
