@@ -53,7 +53,7 @@ __all__ = ['PackageLogger', 'PackageSettings',
         'PLATFORM', 'USERHOME',
         'alnum',
         'importLA',
-        'element2dict']
+        'dictElement']
 
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -650,12 +650,13 @@ def importLA():
                               'NMA and structure alignment calculations')
     return linalg
 
-def element2dict(element, prefix=None):
+def dictElement(element, prefix=None):
     """Returns a dictionary built from the children of *element*, which must be
     a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
-    are *tag* of children without the *prefix*.  Values depend on the content
-    of the child.  If a child does not have any children, its text attribute is
-    the value.  If a child has children, then the child is the value."""
+    are *tag* of children without the *prefix*, or namespace.  Values depend on
+    the content of the child.  If a child does not have any children, its text 
+    attribute is the value.  If a child has children, then the child is the 
+    value."""
     
     dict_ = {}
     length = False
