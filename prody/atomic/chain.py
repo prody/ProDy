@@ -172,12 +172,13 @@ class Chain(AtomSubset):
         
         self.setChids(chid)
     
-    def getSequence(self, allres=False):
+    def getSequence(self, **kwargs):
         """Return one-letter sequence string for amino acids in the chain.  
-        When *allres* is **True**, sequence string will include all residues
-        in the chain and **X** will be used for non-standard residue names."""
+        When *allres* keyword argument is **True**, sequence will include all 
+        residues (e.g. water molecules) in the chain and **X** will be used for 
+        non-standard residue names."""
         
-        if allres:
+        if kwargs.get('allres', False):
             get = AAA2A.get
             seq = ''.join([get(res.getResname(), 'X') for res in self._list])
         elif self._seq:
