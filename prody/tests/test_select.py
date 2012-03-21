@@ -272,7 +272,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('sequence "S[A-Z]{2}G"', 79, 
                      'resindex 109 to 112 267 to 270 276 to 279'),
                      ('sequence "S.S.S"', 0),
-                     ('sequence "."', 3211),],
+                     ('sequence "."', 2606),],
      'docexamples': [('serial 1 2 3', 3),
                      ('serial 1 to 10', 10),
                      ('serial 1:10:2', 5),
