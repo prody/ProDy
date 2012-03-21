@@ -554,6 +554,15 @@ User can avoid selecting specified atoms using ``exwithin . of ..`` setting,
 e.g. ``exwithin 5 of water`` will not select water molecules and is equivalent
 to ``within 5 of water and not water``
 
+Sequence selections
+===============================================================================
+
+One-letter amino acid sequences can be used to make atom selections. 
+``'sequence SAR'`` will select **SER-ALA-ARG** residues in a chain.  Note
+that the selection does not consider connectivity within a chain.  Regular 
+expressions can also be used to make selections: ``'sequence S..R'`` will
+select **SER-XXX-XXX-ARG** pattern, if  present. 
+    
 
 Expanding selections
 ===============================================================================
@@ -979,7 +988,7 @@ class Select(object):
                 return RE.compile('^()$')
             else:
                 try:
-                    regexp = RE.compile(token[1])#'^(' +  + ')$')
+                    regexp = RE.compile(token[1])
                 except:
                     raise SelectionError(sel, loc, 'failed to compile regular '
                                     'expression {0:s}'.format(repr(token[1])))
