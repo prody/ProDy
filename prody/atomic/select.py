@@ -189,8 +189,10 @@ from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
 
 from atomgroup import AtomGroup 
+from chain import Chain, getSequence, AAA2A
 from pointer import AtomPointer
 from selection import Selection
+from segment import Segment
 from atommap import AtomMap
 
 from prody.tools import rangeString
@@ -1862,17 +1864,23 @@ class Select(object):
     def _sequence(self, sel, loc, keyword, values, evalonly):
         
         if DEBUG: print('_sequence', values)
-        
-        if isinstance(self._atoms, AtomGroup):
-            citer = self._atoms.iterChains()
+        atoms = self._atoms
+        if isinstance(atoms, AtomGroup):
+            citer = atoms.iterChains()
+        elif isinstance(atoms, Chain):
+            citer = iter([atoms])
+        elif isinstance(atoms, Segment):
+            citer = iter(atoms)
         else:
             citer = iter(HierView(self._atoms))
         
         matches = []
         for chain in citer:
-            sequence = chain.getSequence(True)
-            seqlen = len(sequence)
-            residues = list(chain)
+            sequence = chain.getSequence()
+            residues = [res for res in chain if res.getResname() in AAA2A]
+            if len(sequence) != len(residues):
+                return SelectionError(sel, loc, 'amino acid sequence length '
+                    'does not match number of amino acid residues')
             for value in values: 
                 if isinstance(value, str):
                     if not value.isalpha() or not value.isupper():
@@ -1882,12 +1890,18 @@ class Select(object):
                     value = RE.compile(value)
                 for match in value.finditer(sequence):  
                     matches.extend(residues[match.start():match.end()])
-        torf = zeros(self._n_atoms, bool)
         if matches:
+            torf = zeros(len(self._ag), bool)
             indices = concatenate([res._getIndices() for res in matches])
             torf[indices] = True
-        if evalonly:
-            torf = torf[evalonly]
+            if self._indices is not None:
+                torf = torf[self._indices]
+            if evalonly is not None:
+                torf = torf[evalonly]
+        elif evalonly is not None:
+            torf = zeros(len(evalonly), bool)
+        else:
+            torf = zeros(self._n_atoms, bool)
         return torf
     
     def _evalFloat(self, sel, loc, keyword, values=None, evalonly=None):
