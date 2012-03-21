@@ -64,6 +64,7 @@ segment [‡]      string          segment name
 segname [‡]      string          same as *segment*
 secondary [\*‡]  string          one-character secondary structure identifier
 secstr [\*‡]     string          same as *secondary*
+sequence         string          one-letter amino acid sequence
 index            integer, range  internal atom number (starts from 0) 
 serial           integer, range  atom serial number (parsed from file)
 resnum [§]       integer, range  residue number
@@ -196,7 +197,6 @@ from prody.tools import rangeString
 from prody.KDTree import getKDTree
 
 DEBUG = 0
-#from code import interact
 
 __all__ = ['Select', 'SelectionError', 'TypoWarning',
            'getKeywordResnames', 'setKeywordResnames',
@@ -208,7 +208,7 @@ __all__ = ['Select', 'SelectionError', 'TypoWarning',
 
 KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
                        'segment', 'altloc', 'secondary', 'icode',
-                       'chid', 'secstr', 'segname'])
+                       'chid', 'secstr', 'segname', 'sequence'])
 
 ALNUM_VALLEN = {}
 for key, field in ATOMIC_FIELDS.iteritems():
@@ -419,6 +419,8 @@ KEYWORD_NAME_REGEX = {
     'oxygen': RE.compile('O.*'),
     'sulfur': RE.compile('S.*'),
 }
+
+SRE_Pattern = type(KEYWORD_NAME_REGEX['carbon'])
 
 BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O'))
 BACKBONE_FULL_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 
@@ -977,12 +979,12 @@ class Select(object):
                 return RE.compile('^()$')
             else:
                 try:
-                    regexp = RE.compile('^(' + token[1] + ')$')
+                    regexp = RE.compile(token[1])#'^(' +  + ')$')
                 except:
                     raise SelectionError(sel, loc, 'failed to compile regular '
                                     'expression {0:s}'.format(repr(token[1])))
                 else:
-                    return regexp  
+                    return regexp
         regularexp.setParseAction(regularExpParseAction)
         oneormore = pp.OneOrMore(pp.Word(shortlist) | regularexp | 
                                  specialchars)
@@ -1389,7 +1391,6 @@ class Select(object):
                     return torf
                 else:
                     raise torf
-            #interact(local=locals())
             if evalonly is None:
                 selection = torf
                 evalonly = selection.nonzero()[0]
@@ -1579,8 +1580,6 @@ class Select(object):
                 torf[which] = True
             if i + 1 < repeat: 
                 which = torf.nonzero()[0]
-            #from code import interact
-            #interact(local=locals())
             if DEBUG: print('_bondedto repeat', i+1, 'selected', len(which))
         return torf
     
@@ -1698,6 +1697,9 @@ class Select(object):
                 return SelectionError(sel, loc, "data type of {0:s} must be "
                                       "int or float".format(repr(token)))
                 
+        elif isinstance(token, SRE_Pattern):
+            return SelectionError(sel, loc, 'regular expressions cannot be '
+                                  'used as numeric values')
         else:
             try:
                 token = float(token)
@@ -1796,20 +1798,27 @@ class Select(object):
         names, atom names, etc."""
         
         if DEBUG: print('_evalAlnum', keyword, values)
+        
+        if keyword == 'sequence':
+            return self._sequence(sel, loc, keyword, values, evalonly)
+    
         keyword = KEYWORDS_SYNONYMS.get(keyword, keyword)
         data = self._getData(sel, loc, keyword)
+        if isinstance(data, SelectionError):
+            return data
+            
         if keyword in _specialKeywords:
             for i, value in enumerate(values):
                 if value == '_':
                     values[i] = ' '
                     values.append('')
                     break
-
         if evalonly is not None:
             data = data[evalonly]
         if DEBUG: print('_evalAlnum set(data)', set(data))
         n_atoms = len(data)
         vallen = ALNUM_VALLEN[keyword]
+
         regexps = []
         strings = []
         for value in values:
@@ -1821,7 +1830,7 @@ class Select(object):
                         .format(vallen, repr(keyword)))
             else:
                 regexps.append(value)
-
+        
         if len(strings) == 1:
             torf = data == strings[0]
         elif len(strings) > 4:
@@ -1839,6 +1848,37 @@ class Select(object):
             for i in xrange(n_atoms):
                 torf[i] = (value.match(data[i]) is not None)
 
+        return torf
+    
+    def _sequence(self, sel, loc, keyword, values, evalonly):
+        
+        if DEBUG: print('_sequence', values)
+        
+        if isinstance(self._atoms, AtomGroup):
+            citer = self._atoms.iterChains()
+        else:
+            citer = iter(HierView(self._atoms))
+        
+        matches = []
+        for chain in citer:
+            sequence = chain.getSequence(True)
+            seqlen = len(sequence)
+            residues = list(chain)
+            for value in values: 
+                if isinstance(value, str):
+                    if not value.isalpha() or not value.isupper():
+                        return SelectionError(sel, sel.find(value, loc),
+                            'sequence string must be upper case letters or '
+                            'a regular expression')
+                    value = RE.compile(value)
+                for match in value.finditer(sequence):  
+                    matches.extend(residues[match.start():match.end()])
+        torf = zeros(self._n_atoms, bool)
+        if matches:
+            indices = concatenate([res._getIndices() for res in matches])
+            torf[indices] = True
+        if evalonly:
+            torf = torf[evalonly]
         return torf
     
     def _evalFloat(self, sel, loc, keyword, values=None, evalonly=None):
@@ -2019,7 +2059,9 @@ class Select(object):
         if DEBUG: print('_getNumRange', type(token), token)
         if isinstance(token, ndarray):
             return token
-    
+        if any([isinstance(tkn, SRE_Pattern) for tkn in token]):
+            return SelectionError(sel, loc, 'values must be numbers or ranges')
+            
         tknstr = ' '.join(token)
         while '  ' in tknstr:
             tknstr = tknstr.replace('  ', ' ')
