@@ -11,7 +11,11 @@ Release 1.0.1 (in development)
 
 **New Features**:
 
-  * :func:`calcCrossProjection` function is implemented.
+  * Amino acid sequences with regular expressions can be used to make atom 
+    selections, e.g. ``'sequence "C..C"'``.  See :ref:`selections` for usage 
+    details.
+  
+  * :func:`~.calcCrossProjection` function is implemented.
 
 **Improvements**:
 
@@ -25,10 +29,16 @@ Release 1.0.1 (in development)
     overlap parameters used when matching chains from given multiple 
     structures.
 
-  * :func:`showProjection` and :func:`showCrossProjection` functions are 
+  * :func:`~.showProjection` and :func:`~.showCrossProjection` functions are 
     improved to evaluate list of markers, color, labels, and texts.  See
     usage example in :ref:`pca-xray-plotting`.
+ 
     
+**Changes**:
+
+  * Hit dictionaries from :class:`~.PDBBlastRecord` will use *percent_overlap* 
+    instead of *percent_coverage*.  Older key will be removed in v1.1.
+
 
 **Bugfix**:
 
@@ -1275,8 +1285,8 @@ Release 0.2 (Nov 16, 2010)
 
 
   * Single word keywords *not* followed by "and" logical operator are not 
-    accepted, e.g. "protein within 5 of water" will raise an SelectionError, 
-    use "protein and within 5 of water" instead.
+    accepted, e.g. "protein within 5 of water" will raise a 
+    :class:`~.SelectionError`, use "protein and within 5 of water" instead.
   * :func:`findMatchingChains` is renamed to 
     :func:`~.matchChains`.
   * :func:`showOverlapMatrix` is renamed to 
