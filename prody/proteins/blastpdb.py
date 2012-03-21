@@ -44,24 +44,20 @@ def checkSequence(sequence):
     return False
 
 def blastPDB(sequence, filename=None, **kwargs):
-    """Blast search *sequence* in ProteinDataBank database using NCBI blastp.
+    """Return a :class:`PDBBlastRecord` instance that contains results from
+    blast searching of ProteinDataBank database *sequence* using NCBI blastp.
         
     :arg sequence: Single-letter code amino acid sequence of the protein.
     :type sequence: str 
-    
     :arg filename: Provide a *filename* to save the results in XML format. 
     :type filename: str
     
-    Results are returned in a :class:`PDBBlastRecord` instance.
-    
-    User can adjust *hitlist_size* (default is 250) and *expect* (default is 
-    1e-10) parameter values.
-    
-    User can also set the time interval for checking the results using
-    *sleep* keyword argument.  Default value for *sleep* is 2 seconds.
-    Finally, user can set a *timeout* value after which the function 
-    will return ``None`` if the results are not ready.  Default for
-    *timeout* is 30 seconds."""
+    *hitlist_size* (default is ``250``) and *expect* (default is ``1e-10``) 
+    search parameters can be adjusted by the user.  *sleep* keyword argument
+    (default is ``2`` seconds) determines how long to wait to reconnect for 
+    results.  Sleep time is doubled when results are not ready.  *timeout* 
+    (default is 30 seconds) determined when to give up waiting for the results.  
+    """
     
     if kwargs.pop('runexample', False):
         sequence = 'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'\
@@ -143,8 +139,7 @@ def blastPDB(sequence, filename=None, **kwargs):
             return None
     LOGGER.clear()
     LOGGER.timing('Blast search completed in %.1fs.')
-    if filename is not None:
-        filename = str(filename)
+    if isinstance(filename, str):
         if not filename.lower().endswith('.xml'):
                 filename += '.xml'        
         out = open(filename, 'w')
@@ -152,6 +147,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         out.close()
         LOGGER.info('Results are saved as {0:s}.'.format(filename))
     return PDBBlastRecord(sequence, results)
+
 
 class PDBBlastRecord(object):
 
@@ -166,9 +162,7 @@ class PDBBlastRecord(object):
         :type xml: str
         :arg xml: blast search results in XML format or an XML file that 
             contains the results
-        :type xml: str
-        
-        """
+        :type xml: str"""
         
         sequence = checkSequence(sequence)
         if not sequence:
@@ -211,9 +205,11 @@ class PDBBlastRecord(object):
                     data[key] = float(data[key])
                 p_identity = 100.0 * data['identity'] / data['align-len']
                 data['percent_identity'] = p_identity
-                p_coverage = 100.0 * (data['align-len'] - data['gaps']) / \
-                    query_length
-                data['percent_coverage'] = p_coverage  
+                data['identity'] = p_identity
+                p_overlap = (100.0 * (data['align-len'] - data['gaps']) /
+                              query_length)
+                data['percent_coverage'] = p_overlap  
+                data['overlap'] = p_overlap
                 for item in (hit['id'] + hit['def']).split('>gi'):
                     #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
                     #                        __________TITLE__________
@@ -225,10 +221,9 @@ class PDBBlastRecord(object):
                     pdbch['pdb_id'] = pdb_id
                     pdbch['chain_id'] = chain_id
                     pdbch['title'] = (head[-1][1:] + title).strip()
-                    hits.append((p_identity, p_coverage, pdbch))
+                    hits.append((p_identity, p_overlap, pdbch))
         hits.sort(reverse=True)
         self._hits = hits
-        
         
     def getSequence(self):    
         """Return the query sequence that was used in the search."""
@@ -238,39 +233,33 @@ class PDBBlastRecord(object):
     def getParameters(self):
         """Return parameters used in blast search."""
         
-        return self._param
+        return dict(self._param)
         
-    def getHits(self, percent_identity=90., percent_coverage=70., chain=False):
-        """Return a dictionary that contains hits.
-        
-        Returns a dictionary whose keys are PDB identifiers.  Each dictionary
-        entry is also a dictionary that contains information on the blast hit
-        and alignment. 
+    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
+        """Return a dictionary in which PDB identifiers are mapped to structure
+        and alignment information. 
         
         :arg percent_identity: PDB hits with percent sequence identity equal 
-            to or higher than this value will be returned, default is ``90.0``.
+            to or higher than this value will be returned, default is ``90.0``
         :type percent_identity: float
-        :arg percent_coverage: PDB hits with percent coverage of the query 
-          sequence equivalent or better will be returned, default is ``70.0``.
-        :type percent_coverage: float
-        :arg chain: if chain is set ``True``, individual chains in a PDB file
-          will be considered as separate hits when they match the query
-          sequence, default is ``False``.
-        :type chain: bool
-        
-        """
+        :arg percent_overlap: PDB hits with percent coverage of the query 
+          sequence equivalent or better will be returned, default is ``70.0``
+        :type percent_overlap: float
+        :arg chain: if chain is **True**, individual chains in a PDB file
+          will be considered as separate hits , default is **False**
+        :type chain: bool"""
         
         assert isinstance(percent_identity, (float, int)), \
             'percent_identity must be a float or an integer'
-        assert isinstance(percent_coverage, (float, int)), \
-            'percent_coverage must be a float or an integer'
+        assert isinstance(percent_overlap, (float, int)), \
+            'percent_overlap must be a float or an integer'
         assert isinstance(chain, bool), 'chain must be a boolean'
         
         hits = {}
-        for p_identity, p_coverage, hit in self._hits:
+        for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
                 break
-            if p_coverage < percent_coverage:
+            if p_overlap < percent_overlap:
                 continue
             if chain:
                 key = (hit['pdb_id'], hit['chain_id'])
@@ -281,7 +270,8 @@ class PDBBlastRecord(object):
         return hits
     
     def getBest(self):
-        """Returns a dictionary for the hit with highest sequence identity."""
+        """Return a dictionary containing structure and alignment information 
+        for the hit with highest sequence identity."""
         
         return dict(self._hits[0][2])
     
