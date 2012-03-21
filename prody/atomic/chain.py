@@ -172,18 +172,25 @@ class Chain(AtomSubset):
         
         self.setChids(chid)
     
-    def getSequence(self):
-        """Return sequence, if chain is a polypeptide."""
+    def getSequence(self, allres=False):
+        """Return one-letter sequence string for amino acids in the chain.  
+        When *allres* is **True**, sequence string will include all residues
+        in the chain and **X** will be used for non-standard residue names."""
         
-        if self._seq:
-            return self._seq
-        CAs = self.select('name CA').select('protein')
-        if len(CAs) > 0:
-            self._seq = getSequence(CAs.getResnames())
+        if allres:
+            get = AAA2A.get
+            seq = ''.join([get(res.getResname(), 'X') for res in self._list])
+        elif self._seq:
+            seq = self._seq
         else:
-            self._seq = ''
-        return self._seq
-
+            calpha = self.calpha
+            if calpha:
+                seq = getSequence(calpha.getResnames())
+            else:    
+                seq = ''
+            self._seq = seq
+        return seq
+    
     def getSelstr(self):
         """Return selection string that selects atoms in this chain."""
 
