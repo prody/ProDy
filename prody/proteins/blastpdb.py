@@ -22,52 +22,45 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
-from prody.tools import dictElement
+
 from prody import LOGGER
+from prody.tools import dictElement
 
 __all__ = ['PDBBlastRecord', 'blastPDB']
            
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-           
-PROTSEQ_ALPHABET = set('ARNDCQEGHILKMFPSTWYVBJOUXZ-')
+PROTSEQ_ALPHABET = set('ARNDCQEGHILKMFPSTWYVBJOUXZ' + 
+                       'ARNDCQEGHILKMFPSTWYVBJOUXZ'.lower())
 
-def checkSequence(sequence):
+def checkSequence(seq):
     """Check validity of a protein sequence.  If a valid sequence, return
     after standardizing it (make all upper case, remove spaces, etc.), 
-    otherwise return ``False``."""
+    otherwise return **False**."""
     
-    if isinstance(sequence, str):
-        sequence = ''.join(sequence.split()).upper()
-        if PROTSEQ_ALPHABET.issuperset(set(sequence)):
-            return sequence
-    return False
+    return isinstance(seq, str) and PROTSEQ_ALPHABET.issuperset(set(seq))
 
 def blastPDB(sequence, filename=None, **kwargs):
     """Return a :class:`PDBBlastRecord` instance that contains results from
     blast searching of ProteinDataBank database *sequence* using NCBI blastp.
         
-    :arg sequence: Single-letter code amino acid sequence of the protein.
+    :arg sequence: single-letter code amino acid sequence of the protein
+        without any spaces or gap characters
     :type sequence: str 
-    :arg filename: Provide a *filename* to save the results in XML format. 
+    :arg filename: a *filename* to save the results in XML format 
     :type filename: str
     
     *hitlist_size* (default is ``250``) and *expect* (default is ``1e-10``) 
     search parameters can be adjusted by the user.  *sleep* keyword argument
     (default is ``2`` seconds) determines how long to wait to reconnect for 
     results.  Sleep time is doubled when results are not ready.  *timeout* 
-    (default is 30 seconds) determined when to give up waiting for the results.  
+    (default is 30 seconds) determines when to give up waiting for the results.  
     """
     
     if kwargs.pop('runexample', False):
-        sequence = 'ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'\
-                   'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'\
-                   'DAYDIVKMKKSNISPNFNFMGQLLDFERTL'
-    else:
-        sequence = checkSequence(sequence)
-        
-    if not sequence:
-        raise ValueError('not a valid protein sequence')
+        sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
+                    'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
+                    'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
+    elif not checkSequence(sequence):
+        raise ValueError(repr(sequence) + ' is not a valid protein sequence')
 
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),] 
