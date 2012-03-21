@@ -111,6 +111,10 @@ class Atom(AtomPointer):
     
         return 1
     
+    def __int__(self):
+        
+        return self._index
+    
     def numAtoms(self):
         """Return number of atoms."""
         
