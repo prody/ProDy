@@ -21,16 +21,15 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
-from prody import Atomic, AtomGroup
+
+from prody import LOGGER
+from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD
 from prody.tools import checkCoords, importLA
 
 from conformation import *
 
 __all__ = ['Ensemble']
-
-pkg = __import__(__package__) 
-LOGGER = pkg.LOGGER
 
 class Ensemble(object):
     

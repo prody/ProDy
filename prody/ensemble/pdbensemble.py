@@ -21,7 +21,9 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
-from prody import Atomic, AtomGroup
+
+from prody import LOGGER
+from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, _calcTransformation, _applyTransformation
 from prody.tools import checkCoords, importLA
 
@@ -29,10 +31,6 @@ from ensemble import Ensemble
 from conformation import PDBConformation
 
 __all__ = ['PDBEnsemble']
-
-pkg = __import__(__package__) 
-LOGGER = pkg.LOGGER
-                
 
 class PDBEnsemble(Ensemble):
     
