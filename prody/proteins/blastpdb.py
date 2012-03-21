@@ -157,8 +157,7 @@ class PDBBlastRecord(object):
             contains the results
         :type xml: str"""
         
-        sequence = checkSequence(sequence)
-        if not sequence:
+        if not checkSequence(sequence):
             raise ValueError('not a valid protein sequence')
         self._sequence = sequence
         
