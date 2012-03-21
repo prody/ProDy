@@ -43,7 +43,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     blast searching of ProteinDataBank database *sequence* using NCBI blastp.
         
     :arg sequence: single-letter code amino acid sequence of the protein
-        without any spaces or gap characters
+        without any gap characters, all white spaces will be removed
     :type sequence: str 
     :arg filename: a *filename* to save the results in XML format 
     :type filename: str
@@ -55,12 +55,16 @@ def blastPDB(sequence, filename=None, **kwargs):
     (default is 30 seconds) determines when to give up waiting for the results.  
     """
     
-    if kwargs.pop('runexample', False):
+    if sequence == 'runexample':
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
-    elif not checkSequence(sequence):
-        raise ValueError(repr(sequence) + ' is not a valid protein sequence')
+    elif isinstance(sequence, str):
+        sequence = ''.join(sequence.split())
+        if not checkSequence(sequence):
+            raise ValueError(repr(sequence) + ' is not a valid sequence')
+    else:
+        raise TypeError('sequence must be a string')
 
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),] 
@@ -139,7 +143,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         out.write(results)
         out.close()
         LOGGER.info('Results are saved as {0:s}.'.format(filename))
-    return PDBBlastRecord(sequence, results)
+    return PDBBlastRecord(results, sequence)
 
 
 class PDBBlastRecord(object):
@@ -148,17 +152,18 @@ class PDBBlastRecord(object):
     
     __slots__ = ['_param', '_sequence', '_hits']
 
-    def __init__(self, sequence, xml):
+    def __init__(self, xml, sequence=None):
         """Instantiate a PDBlast object instance.
         
-        :arg sequence: query sequence
-        :type xml: str
         :arg xml: blast search results in XML format or an XML file that 
             contains the results
-        :type xml: str"""
-        
-        if not checkSequence(sequence):
-            raise ValueError('not a valid protein sequence')
+        :type xml: str
+        :arg sequence: query sequence
+        :type sequence: str"""
+
+        if sequence:        
+            if not checkSequence(sequence):
+                raise ValueError('not a valid protein sequence')
         self._sequence = sequence
         
         import xml.etree.cElementTree as ET
@@ -166,7 +171,7 @@ class PDBBlastRecord(object):
         if len(xml) < 100:
             if os.path.isfile(xml):
                 xml = ET.parse(xml)
-                xml.getroot()
+                root = xml.getroot()
             else:
                 raise ValueError('xml is not a filename and does not look like'
                                  ' a valid XML string')
@@ -179,11 +184,11 @@ class PDBBlastRecord(object):
         if root['program'] != 'blastp':
             raise ValueError('blast search program in xml must be "blastp"')
         self._param = dictElement(root['param'][0], 'Parameters_')
-        query_length = int(root['query-len'])
-        if len(sequence) != query_length:
+
+        query_len = int(root['query-len'])
+        if sequence and len(sequence) != query_len:
             raise ValueError('query-len and the length of the sequence do not '
-                             'match, xml data may not be for the given' 
-                             'sequence')
+                             'match, xml data may not be for given sequence')
         hits = [] 
         for iteration in root['iterations']:
             for hit in dictElement(iteration, 'Iteration_')['hits']:
@@ -193,15 +198,16 @@ class PDBBlastRecord(object):
                             'hit-to', 'identity', 'positive', 'query-frame',
                             'query-from', 'query-to']:
                     data[key] = int(data[key])
+                data['query-len'] = query_len
                 for key in ['evalue', 'bit-score', 'score']:
                     data[key] = float(data[key])
-                p_identity = 100.0 * data['identity'] / data['align-len']
+                p_identity = 100.0 * data['identity'] / (data['query-to'] - 
+                                                    data['query-from'] + 1)
                 data['percent_identity'] = p_identity
-                data['identity'] = p_identity
                 p_overlap = (100.0 * (data['align-len'] - data['gaps']) /
-                              query_length)
+                              query_len)
                 data['percent_coverage'] = p_overlap  
-                data['overlap'] = p_overlap
+                data['percent_overlap'] = p_overlap
                 for item in (hit['id'] + hit['def']).split('>gi'):
                     #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
                     #                        __________TITLE__________
