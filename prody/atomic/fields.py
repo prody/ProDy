@@ -201,7 +201,7 @@ ATOMIC_FIELDS = {
                        depr='SecondaryStr'),
     'segment':   Field('segment', '|S6', doc='segment name', meth='Segname',
                        selstr=('segment PROT', 'segname PROT'), 
-                       synonym='segname', depr='SegmentName'),
+                       synonym='segname', depr='SegmentName', none='hv'),
     'siguij':    Field('siguij', float, doc='standard deviations for '
                        'anisotropic temperature factor', meth='Anistd', ndim=2, 
                        depr='AnisoStdDev'),
