@@ -29,6 +29,7 @@ import numpy as np
 from numpy.testing import *
 
 from prody import *
+from prody.atomic.fields import READONLY
 from prody.tools import *
 from test_datafiles import *
 
@@ -48,6 +49,8 @@ class TestCopying(unittest.TestCase):
         
         assert_equal(atoms.getCoordsets(), ATOMS.getCoordsets())
         for label in ATOMS.getDataLabels():
+            if label in READONLY:
+                continue
             assert_equal(atoms.getData(label), ATOMS.getData(label))
             
     def TestCopyChain(self):
@@ -57,6 +60,8 @@ class TestCopying(unittest.TestCase):
         
         assert_equal(chain.getCoordsets(), CHAIN.getCoordsets())
         for label in ATOMS.getDataLabels():
+            if label in READONLY:
+                continue
             assert_equal(chain.getData(label), CHAIN.getData(label),
                          'failed to copy ' + label)
                          
@@ -67,6 +72,8 @@ class TestCopying(unittest.TestCase):
         
         assert_equal(atom[0].getCoordsets(), ATOM.getCoordsets())
         for label in ATOMS.getDataLabels():
+            if label in READONLY:
+                continue
             assert_equal(atom[0].getData(label), ATOM.getData(label),
                          'failed to copy ' + label)
 
@@ -78,6 +85,8 @@ class TestCopying(unittest.TestCase):
         
         assert_equal(selection.getCoordsets(), SELECTION.getCoordsets())
         for label in ATOMS.getDataLabels():
+            if label in READONLY:
+                continue
             assert_equal(selection.getData(label), SELECTION.getData(label),
                          'failed to copy ' + label)
 
