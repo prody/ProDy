@@ -68,7 +68,7 @@ class AtomMeta(type):
                     raise AttributeError('attribute of the AtomGroup is '
                                          'not set')
                 array[self._index] = value
-                if None:
+                if none:
                     self._ag.__setattr__('_' + none,  None)
             setData = wrapSetMethod(setData)
             setData.__name__ = setMeth 
