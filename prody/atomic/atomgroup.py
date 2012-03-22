@@ -884,6 +884,8 @@ class AtomGroup(Atomic):
         if indices is not None:
             if atommap:
                 newmol.setCoords(which.getCoords())
+                newmol.setData('dummy', which.getDummyFlags())
+                newmol.setData('mapped', which.getMappedFlags())
             else:
                 newmol.setCoords(self._coords[:, indices])
             
