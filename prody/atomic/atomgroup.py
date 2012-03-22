@@ -232,6 +232,7 @@ from types import NoneType
 
 import numpy as np
 
+from prody import LOGGER
 from prody.tools import checkCoords
 from prody.KDTree import getKDTree
 
@@ -244,12 +245,7 @@ from atommap import AtomMap
 from subset import AtomSubset
 from selection import Selection
 
-
-
 __all__ = ['AtomGroup']
-
-import prody as pkg
-LOGGER = pkg.LOGGER
 
 SELECT = None
 
@@ -268,7 +264,7 @@ class AtomGroupMeta(type):
                     for meth in call:
                         getattr(self, meth)()
                     array = self._data[var]
-                    return array.copy()                 
+                    return array.copy()
             else:
                 def getData(self, var=field.var):
                     array = self._data[var]
@@ -831,16 +827,17 @@ class AtomGroup(Atomic):
         self._acsi = index
         
     def copy(self, which=None):
-        """Return a copy of atoms indicated *which* as a new AtomGroup 
-        instance.
-        
-        *which* may be:
-            * ``None``, make a copy of the AtomGroup
-            * a Selection, Residue, Chain, or Atom instance
-            * a list or an array of indices
-            * a selection string"""
+        """Return a copy of atomic data indicated by *which* in a new 
+        :class:`AtomGroup` instance. *which* may be one of:
+          
+          * ``None``, make a copy of the AtomGroup
+          * a :class:`~.Selection`, :class:`~.Residue`, :class:`~.Chain`, 
+            :class:`~.Atom`, :class:`~.Segment`, :class:`~.AtomMap` instance
+          * a list or an array of indices
+          * a selection string"""
         
         title = self._title
+        atommap = False
         if which is None:
             indices = None
             newmol = AtomGroup('{0:s}'.format(title))
@@ -870,31 +867,41 @@ class AtomGroup(Atomic):
             if isinstance(which, Atom):
                 idx = which.getIndex()
                 indices = [idx]
-                newmol = AtomGroup('{0:s} index {1:d}'
-                                   .format(title, idx))
+                newmol = AtomGroup('{0:s} index {1:d}'.format(title, idx))
             elif isinstance(which, AtomSubset):
-                indices = which.getIndices()
+                indices = which._getIndices()
                 newmol = AtomGroup('{0:s} selection {1:s}'
                                    .format(title, repr(which.getSelstr())))
             elif isinstance(which, AtomMap):
-                indices = which.getIndices()
-                newmol = AtomGroup('{0:s} selection {1:s}'
+                indices = np.unique(which._getIndices())
+                newmol = AtomGroup('{0:s} mapping {1:s}'
                                    .format(title, repr(which.getTitle())))
-
+                atommap = True
             else:
                 raise TypeError('{0:s} is not a valid type'.format(
                                                                 type(which)))            
                                
         if indices is not None:
-            newmol.setCoords(self._coords[:, indices])
+            if atommap:
+                newmol.setCoords(which.getCoords())
+            else:
+                newmol.setCoords(self._coords[:, indices])
+            
         for key, array in self._data.iteritems():
-            if key == 'numbonds':
+            if key in READONLY:
                 continue
             if array is not None:
-                if indices is None:
-                    newmol._data[key] = array.copy()
+                if atommap:
+                    if key in ATOMIC_ATTRIBUTES:
+                        newmol._data[key] = getattr(which, 'get' + 
+                                            ATOMIC_ATTRIBUTES[key].meth_pl)()
+                    else:
+                        newmol._data[key] = which.getData(key)
                 else:
-                    newmol._data[key] = array[indices]
+                    if indices is None:
+                        newmol._data[key] = array.copy()
+                    else:
+                        newmol._data[key] = array[indices]
         
         newmol._cslabels = list(self._cslabels)
         bonds = self._bonds
