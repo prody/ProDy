@@ -368,8 +368,10 @@ def getHeaderDict(stream, *keys):
                 header[key] = value        
         for chem in header.get('chemicals', []):
             chem.pdbentry = pdbid
+            header[chem.resname] = chem
         for poly in header.get('polymers', []):
             poly.pdbentry = pdbid
+            header[poly.chid] = poly
         return header, loc
 
 def _getBiomoltrans(lines): 
