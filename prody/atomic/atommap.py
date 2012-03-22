@@ -350,7 +350,7 @@ class AtomMap(AtomPointer):
     def getDummyFlags(self):
         """Return an array with 1s for dummy atoms."""
         
-        flags = np.zeros(self._len)
+        flags = np.zeros(self._len, bool)
         if len(self._dummies):
             flags[self._dummies] = 1
         return flags
@@ -358,7 +358,7 @@ class AtomMap(AtomPointer):
     def getMappedFlags(self):
         """Return an array with 1s for mapped atoms."""
         
-        flags = np.ones(self._len)
+        flags = np.ones(self._len, bool)
         if len(self._dummies):
             flags[self._dummies] = 0
         return flags
