@@ -21,7 +21,8 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex'])
+READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex',
+                'resindices', 'chindices', 'segindices'])
 
 class Field(object):
     
