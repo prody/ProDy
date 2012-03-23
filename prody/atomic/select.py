@@ -718,7 +718,7 @@ def getKeywordResnames(keyword):
     """Return residue names associated with a keyword.
     
     >>> getKeywordResnames('acidic')
-    ['ASP', 'GLU']"""
+    ['ASP', 'GLU', 'PTR', 'SEP', 'TPO']"""
     
     assert isinstance(keyword, str), 'keyword must be a string instance'
     try:
@@ -739,7 +739,7 @@ def setKeywordResnames(keyword, resnames):
     residue names.  Note that changes in keyword definitions are not saved 
     permanently.
     
-    >>> setKeywordResnames('acidic', ['ASP', 'GLU'])"""
+    >>> setKeywordResnames('acidic', ['ASP', 'GLU', 'PTR', 'SEP', 'TPO'])"""
     
     if not isinstance(keyword, str):
         raise TypeError('keyword must be a string')
