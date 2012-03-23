@@ -36,6 +36,11 @@ Release 1.0.1 (in development)
     
 **Changes**:
 
+  * Recognizing phosphorylated amino acid types, phosphothreonine (*TPO*),
+    O-phosphotyrosine (*PTR*), and phosphoserine (*SEP*), as acidic protein 
+    residues. See :ref:`selections` for definitions of *protein* and *acidic* 
+    keywords.  
+
   * Hit dictionaries from :class:`~.PDBBlastRecord` will use *percent_overlap* 
     instead of *percent_coverage*.  Older key will be removed in v1.1.
 
