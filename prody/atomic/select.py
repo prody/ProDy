@@ -43,11 +43,10 @@ follows:
 >>> # help(select)
 
     
-Keywords with arguments
+Atom attributes 
 ===============================================================================
 
-Below is the list of keywords that can be used when paired with atomic
-attributes as arguments.
+Below is the list of atomic attributes that can be used in atom selections:
 
 ===============  ==============  ============================================
 Keyword          Arguments         Description
@@ -189,7 +188,7 @@ from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
 
 from atomgroup import AtomGroup 
-from chain import Chain, getSequence, AAA2A
+from chain import Chain, getSequence, AAMAP
 from pointer import AtomPointer
 from selection import Selection
 from segment import Segment
@@ -242,15 +241,23 @@ ATOMIC_ATTRIBUTES = ATOMIC_ATTRIBUTES
 # Leucine or Isoleucine	                Xle	        J
 # Unspecified or unknown amino acid     Xaa         X
 
+# Phosphorylated amino acids           3-Letter	    1-Letter
+# Phosphothreonine                     TPO          T
+# O-Phosphotyrosine                    PTR          Y
+# Phosphoserine                        SEP          S
+
+# Other amino acids           3-Letter	    1-Letter
+# S-Hydroxycysteine           CSO           C
+
 KEYWORD_RESNAMES = {
     'protein': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
                 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
                 'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
-                'GLX', 'ASX', 'SEC', 'PYL', 'XLE', 'CSO'],
+                'GLX', 'ASX', 'SEC', 'PYL', 'XLE', 'CSO', 'TPO', 'PTR', 'SEP'],
     'nucleic': ['GUA', 'ADE', 'CYT', 'THY', 'URA', 'DA', 'DC', 'DG', 'DT', 
                 'A', 'C', 'G', 'T', 'U'],
 
-    'acidic': ['ASP', 'GLU'],
+    'acidic': ['ASP', 'GLU', 'TPO', 'PTR', 'SEP'],
     'aliphatic': ['ALA', 'GLY', 'ILE', 'LEU', 'VAL', 'XLE'],
     'aromatic': ['HIS', 'PHE', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'],
     'basic': ['LYS', 'ARG', 'HIS', 'HSP', 'HSD'],
@@ -304,13 +311,12 @@ _setReadonlyResidueNames()
 
 __doc__ += """
 
-Keywords without arguments
+Keywords arguments
 ===============================================================================
 
 Below is the list of keywords defined based on residue type and/or property.
-These definitions can be retrieved or altered using 
-:func:`getKeywordResnames` and :func:`setKeywordResnames`, 
-respectively.
+These definitions can be retrieved or altered using :func:`getKeywordResnames` 
+and :func:`setKeywordResnames`, respectively.
 
 =============  ================================================================
 Keyword        Description
@@ -1877,7 +1883,7 @@ class Select(object):
         matches = []
         for chain in citer:
             sequence = chain.getSequence()
-            residues = [res for res in chain if res.getResname() in AAA2A]
+            residues = [res for res in chain if res.getResname() in AAMAP]
             if len(sequence) != len(residues):
                 return SelectionError(sel, loc, 'amino acid sequence length '
                     'does not match number of amino acid residues')
