@@ -134,7 +134,7 @@ import atomgroup
 import selection
 
 from atomgroup import SELECT
-from chain import AAA2A, getSequence
+from chain import AAMAP, getSequence
 from functions import loadAtoms, saveAtoms
 
 __all__ += select.__all__
