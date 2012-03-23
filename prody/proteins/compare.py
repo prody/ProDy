@@ -27,7 +27,7 @@ PW2 = None
 
 from prody.atomic import AtomMap as AM
 from prody.atomic import Chain, AtomGroup, Selection
-from prody.atomic import AAA2A
+from prody.atomic import AAMAP
 from prody.atomic import getKeywordResnames
 from prody.measure import calcTransformation, calcRMSD
 from prody.tools import which
@@ -277,7 +277,7 @@ class SimpleChain(object):
                 continue
             resid = res.getResnum()
             incod = res.getIcode()
-            aa = AAA2A.get(res.getResname(), 'X')
+            aa = AAMAP.get(res.getResname(), 'X')
             simpres = SimpleResidue(resid, aa, incod, res)
             if gaps:
                 diff = resid - temp - 1
