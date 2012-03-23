@@ -27,20 +27,25 @@ from subset import AtomSubset
 
 __all__ = ['Chain']
 
-AAA2A = {
+AAMAP = {
     'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q', 
     'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 
     'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 
     'TYR': 'Y', 'VAL': 'V',
-    'HSD': 'H', 'HSP': 'H', 'HSE': 'H',
-    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J'
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J',
 }
+_ = {}
+for aaa, a in AAMAP.iteritems():
+    _[a] = aaa
+AAMAP.update(_)
+AAMAP.update({'PTR': 'Y', 'TPO': 'T', 'SEP': 'S', 'CSO': 'C',
+              'HSD': 'H', 'HSP': 'H', 'HSE': 'H',})
 
 def getSequence(resnames):
     """Return polypeptide sequence as from list of *resnames* (residue 
     name abbreviations)."""
     
-    get = AAA2A.get
+    get = AAMAP.get
     return ''.join([get(rn, 'X') for rn in resnames])
 
 class Chain(AtomSubset):
@@ -179,7 +184,7 @@ class Chain(AtomSubset):
         non-standard residue names."""
         
         if kwargs.get('allres', False):
-            get = AAA2A.get
+            get = AAMAP.get
             seq = ''.join([get(res.getResname(), 'X') for res in self._list])
         elif self._seq:
             seq = self._seq
