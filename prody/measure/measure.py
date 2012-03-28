@@ -198,6 +198,7 @@ def calcPsi(residue, radian=False, dist=4.1):
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
+        
     next = residue.getNext()
     if not isinstance(next, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
@@ -236,15 +237,21 @@ def calcCenter(atoms, weights=None):
     except Exception as err:
         raise type(err)(err)
     
-    if weights is None:
-        return coords.mean(0) 
-    else:
+    if weights is not None:
         if not isinstance(weights, np.ndarray):
             raise TypeError('weights must be a numpy array')
         elif weights.ndim != 1:
             raise ValueError('weights must be a 1 dimensional array')
         elif weights.shape[0] != coords.shape[0]:
             raise ValueError('weights length must be equal to number of atoms')
+
+    return getCenter(coords, weights)
+
+def getCenter(coords, weights=None):
+    
+    if weights is None:
+        return coords.mean(0)
+    else:
         return (coords * weights).mean(0) / weights.sum()
 
 def calcGyradius(atoms, weights=None):
