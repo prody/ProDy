@@ -151,11 +151,24 @@ def calcOmega(residue, radian=False, dist=4.1):
 
 def calcPhi(residue, radian=False, dist=4.1):
     """Return φ (phi) angle of *residue* in degrees.  This function checks
-    the distance between Cα atoms of two residues.  Set *dist* to none, to 
-    avoid this check."""
+    the distance between Cα atoms of two residues.  Set *dist* to **None**, 
+    to avoid this check."""
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
+
+    C_, N, CA, C = getPhiAtoms(residue)
+
+    if dist and dist < calcDistance(CA, CA_):
+        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+                         .format(str(residue), str(prev)))
+    
+    return getDihedral(C_._getCoords(), N._getCoords(), CA._getCoords(), 
+                       C._getCoords(), radian)
+
+def getPhiAtoms(residue):
+    """Return the four atoms that form the φ (phi) angle of *residue*."""
+    
     prev = residue.getPrev()
     if not isinstance(prev, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
@@ -175,17 +188,13 @@ def calcPhi(residue, radian=False, dist=4.1):
     CA_ = prev['CA']
     if C_ is None:
         raise ValueError('{0:s} does not have CA atom'.format(str(prev)))
-    if dist and dist < calcDistance(CA, CA_):
-        raise ValueError('{0:s} and {1:s} does not seem to be connected'
-                         .format(str(residue), str(prev)))
     
-    return getDihedral(C_._getCoords(), N._getCoords(), CA._getCoords(), 
-                       C._getCoords(), radian)
+    return C_, N, CA, C
 
 def calcPsi(residue, radian=False, dist=4.1):
     """Return ψ (psi) angle of *residue* in degrees.  This function checks
-    the distance between Cα atoms of two residues.  Set *dist* to none, to 
-    avoid this check."""
+    the distance between Cα atoms of two residues.  Set *dist* to **None**, 
+    to avoid this check."""
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
