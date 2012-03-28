@@ -146,7 +146,8 @@ def calcOmega(residue, radian=False, dist=4.1):
         raise ValueError('{0:s} and {1:s} does not seem to be connected'
                          .format(str(residue), str(next)))
     
-    return calcDihedral(CA, C, _N, _CA, radian)
+    return getDihedral(CA._getCoords(), C._getCoords(), _N._getCoords(), 
+                       _CA._getCoords(), radian)
 
 def calcPhi(residue, radian=False, dist=4.1):
     """Return φ (phi) angle of *residue* in degrees.  This function checks
@@ -178,7 +179,8 @@ def calcPhi(residue, radian=False, dist=4.1):
         raise ValueError('{0:s} and {1:s} does not seem to be connected'
                          .format(str(residue), str(prev)))
     
-    return calcDihedral(C_, N, CA, C, radian)
+    return getDihedral(C_._getCoords(), N._getCoords(), CA._getCoords(), 
+                       C._getCoords(), radian)
 
 def calcPsi(residue, radian=False, dist=4.1):
     """Return ψ (psi) angle of *residue* in degrees.  This function checks
@@ -209,7 +211,8 @@ def calcPsi(residue, radian=False, dist=4.1):
         raise ValueError('{0:s} and {1:s} does not seem to be connected'
                          .format(str(residue), str(next)))
     
-    return calcDihedral(N, CA, C, _N, radian)
+    return getDihedral(N._getCoords(), CA._getCoords(), C._getCoords(), 
+                       _N._getCoords(), radian)
 
 def calcCenter(atoms, weights=None):
     """Return geometric center of *atoms*.  If *weights* is given it must 
