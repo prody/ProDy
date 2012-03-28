@@ -79,6 +79,8 @@ import measure
 from measure import *
 __all__.extend(measure.__all__)
 
+from measure import getDihedral, getPhiAtoms
+
 import contacts
 from contacts import *
 __all__.extend(contacts.__all__)
