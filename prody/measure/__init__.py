@@ -80,6 +80,7 @@ from measure import *
 __all__.extend(measure.__all__)
 
 from measure import getDihedral, getPhiAtoms
+from measure import getCenter
 
 import contacts
 from contacts import *
