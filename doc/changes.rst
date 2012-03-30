@@ -29,20 +29,31 @@ Release 1.0.1 (in development)
     overlap parameters used when matching chains from given multiple 
     structures.
 
+  * :program:`prody catdcd` command accepts ``--align SELSTR`` argument
+    that can be used to align frames when concatenating files.
+
   * :func:`~.showProjection` and :func:`~.showCrossProjection` functions are 
     improved to evaluate list of markers, color, labels, and texts.  See
     usage example in :ref:`pca-xray-plotting`.
+    
+  * :class:`~.Trajectory` instances can be used for calculating and plotting
+    projections using :func:`~.calcProjection`, :func:`~.showProjection`,
+    :func:`~.calcCrossProjection`, and :func:`~.showCrossProjection` functions.
  
     
 **Changes**:
 
-  * Recognizing phosphorylated amino acid types, phosphothreonine (*TPO*),
-    O-phosphotyrosine (*PTR*), and phosphoserine (*SEP*), as acidic protein 
-    residues. See :ref:`selections` for definitions of *protein* and *acidic* 
-    keywords.  
+  * Phosphorylated amino acids, phosphothreonine (*TPO*), O-phosphotyrosine 
+    (*PTR*), and phosphoserine (*SEP*), are recognized as acidic protein 
+    residues.  This prevents having breaks in protein chains which contains
+    phosphorylated residues.  See :ref:`selections` for definitions of 
+    *protein* and *acidic* keywords.
 
   * Hit dictionaries from :class:`~.PDBBlastRecord` will use *percent_overlap* 
     instead of *percent_coverage*.  Older key will be removed in v1.1.
+
+  * :meth:`.Transformation.get4x4Matrix` method is deprecated for removal in 
+    v1.1, use :meth:`.Transformation.getMatrix` method instead.
 
 
 **Bugfix**:
