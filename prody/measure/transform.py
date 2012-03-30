@@ -23,6 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
+from prody import deprecate
 from prody.atomic import Atomic, AtomGroup, AtomSubset, AtomMap, AtomPointer
 from prody.tools import importLA
 
@@ -34,21 +35,29 @@ LOGGER = pkg.LOGGER
 
 class Transformation(object):
     
-    """A class for store transformation matrix."""
+    """A class for storing a transformation matrix."""
     
-    __slots__ = ['_rotation', '_translation']
+    __slots__ = ['_matrix']
     
-    def __init__(self, rotation, translation):
-    
-        self._rotation = None
-        self.setRotation(rotation)
-        self._translation = None
-        self.setTranslation(translation)
-    
+    def __init__(self, *args):
+        """Either 4x4 transformation *matrix*, or *rotation* matrix and 
+        *translation* vector must be provided at instantiation."""
+
+        nargs = len(args)
+        if nargs == 1:
+            self.setMatrix(args[0])
+        elif nargs == 2:
+            self._matrix = np.eye(4)
+            self.setRotation(args[0])
+            self.setTranslation(args[1])
+        else:
+            raise ValueError('one or two array must be provided as arguments')            
+            
     def getRotation(self): 
-        """Returns rotation matrix."""
-        
-        return self._rotation.copy()
+        """Return rotation matrix."""
+
+        if self._matrix is not None:
+            return self._matrix[:3, :3]
 
     def setRotation(self, rotation):
         """Set rotation matrix."""
@@ -57,12 +66,13 @@ class Transformation(object):
             raise TypeError('rotation must be an ndarray')
         elif rotation.shape != (3,3):
             raise ValueError('rotation must be a 3x3 array')
-        self._rotation = rotation
+        self._matrix[:3, :3] = rotation
 
     def getTranslation(self): 
-        """Returns translation vector."""
+        """Return translation vector."""
         
-        return self._translation.copy()
+        if self._matrix is not None:
+            return self._matrix[:3, 3]
     
     def setTranslation(self, translation): 
         """Set translation vector."""
@@ -71,16 +81,28 @@ class Transformation(object):
             raise TypeError('translation must be an ndarray')
         elif translation.shape != (3,):
             raise ValueError('translation must be an ndarray of length 3')
-        self._translation = translation
+        self._matrix[:3, 3] = translation
     
     def get4x4Matrix(self):
-        """Returns 4x4 transformation matrix whose top left is rotation matrix
-        and last column is translation vector."""
+        """Deprecated for removal in v1.1, use :meth:`getMatrix` instead."""
         
-        fourby4 = np.eye(4)
-        fourby4[:3, :3] = self._rotation
-        fourby4[:3, 3] = self._translation
-        return fourby4
+        deprecate('get4x4Matrix', 'getMatrix')
+        return self.getMatrix()
+    
+    def getMatrix(self):
+        """Returns a copy of the 4x4 transformation matrix whose top left is 
+        rotation matrix and last column is translation vector."""
+
+        if self._matrix is not None:        
+            return self._matrix.copy()
+    
+    def setMatrix(self, matrix):
+        
+        if not isinstance(matrix, np.ndarray):
+            raise TypeError('matrix must be an ndarray')
+        elif matrix.shape != (4, 4):
+            raise ValueError('matrix must have shape (4,4)')
+        self._matrix = matrix
     
     def apply(self, atoms):
         """Applies transformation to given atoms or coordinate set.  ProDy 
@@ -199,7 +221,7 @@ def applyTransformation(transformation, atoms):
         return atoms
 
 def _applyTransformation(t, coords):
-    return t._translation + np.dot(coords, t._rotation)
+    return t.getTranslation() + np.dot(coords, t.getRotation())
     
 def superpose(mobile, target, weights=None):
     """Return *mobile*, after its RMSD minimizing superposition onto *target*, 
@@ -246,9 +268,7 @@ def calcRMSD(reference, target=None, weights=None):
     >>> print calcRMSD(ens.getCoords(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
     [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
-      0.58  0.66  0.83]
-    
-    """
+      0.58  0.66  0.83]"""
     
     if isinstance(reference, np.ndarray): 
         ref = reference
