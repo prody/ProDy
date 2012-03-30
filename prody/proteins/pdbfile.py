@@ -127,7 +127,7 @@ def parsePDB(pdb, **kwargs):
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
-            title, ext = os.path.splitext(fn)
+            title, ext = os.path.splitext(title)
         kwargs['title'] = title
     pdb = openFile(pdb)
     result = parsePDBStream(pdb, **kwargs)
