@@ -142,11 +142,13 @@ class GammaStructureBased(Gamma):
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance')
         n_atoms = atoms.numAtoms()
+        if n_atoms < 3:
+            raise ValueError('number of atoms must be larger than 2')
         sstr = atoms.getSecstrs()
         assert sstr is not None, 'secondary structure assignments must be set'
         chid = atoms.getChids()
         assert chid is not None, 'chain identifiers must be set'
-        rnum = atoms.getResnums()
+        rnum = atoms.getResindices()
         assert rnum is not None, 'residue numbers must be set'
         gamma = float(gamma)
         assert gamma > 0, 'gamma must be greater than 0'
@@ -197,6 +199,7 @@ class GammaStructureBased(Gamma):
         sstr = self._sstr
         ssid = self._ssid
         rnum = self._rnum
+        # if residues are in the same secondary structure element 
         if ssid[i] == ssid[j]:
             i_j = abs(rnum[j] - rnum[i])
             if ((i_j <= 4 and sstr[i] == 'H') or 
