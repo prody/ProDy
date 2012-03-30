@@ -236,9 +236,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
     """Show a projection of conformational deviations onto up to three normal 
     modes from the same model.
     
-    :arg ensemble: an ensemble or a conformation for which deviation(s) will be
-        projected, or a deformation vector
-    :type ensemble: :class:`~.Ensemble`, :class:`~.Vector`
+    :arg ensemble: an ensemble, trajectory or a conformation for which 
+        deviation(s) will be projected, or a deformation vector
+    :type ensemble: :class:`~.Ensemble`, :class:`~.Conformation`, 
+        :class:`~.Vector`, :class:`~.Trajectory`
     :arg modes: up to three normal modes
     :type modes: :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.NMA`
     :arg color: a color name or a list of color name, default is ``'blue'`` 
@@ -397,7 +398,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     
     :arg ensemble: an ensemble or a conformation for which deviation(s) will be
         projected, or a deformation vector
-    :type ensemble: :class:`~.Ensemble`, :class:`~.Vector`
+    :type ensemble: :class:`~.Ensemble`, :class:`~.Conformation`, 
+        :class:`~.Vector`, :class:`~.Trajectory`
     :arg mode_x: projection onto this mode will be shown along x-axis 
     :type mode_x: :class:`~.Mode`, :class:`~.Vector`
     :arg mode_y: projection onto this mode will be shown along y-axis

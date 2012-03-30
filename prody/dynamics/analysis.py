@@ -96,6 +96,13 @@ def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
     For K conformations and M modes, a (K,M) matrix is returned.
     
+    :arg ensemble: an ensemble, trajectory or a conformation for which 
+        deviation(s) will be projected, or a deformation vector
+    :type ensemble: :class:`~.Ensemble`, :class:`~.Conformation`, 
+        :class:`~.Vector`, :class:`~.Trajectory`
+    :arg modes: up to three normal modes
+    :type modes: :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.NMA`
+    
     By default root-mean-square deviation (RMSD) along the normal mode is 
     calculated. To calculate the projection pass ``rmsd=True``.
     :class:`~.Vector` instances are accepted as *ensemble* argument to allow
@@ -119,7 +126,7 @@ def calcProjection(ensemble, modes, rmsd=True):
         if not ensemble.is3d(): 
             raise ValueError('ensemble must be a 3d vector instance')
         deviations = ensemble._getArray()
-    elif isinstance(ensemble, Ensemble):
+    elif isinstance(ensemble, (Ensemble, Conformation)):
         deviations = ensemble.getDeviations()
     else:
         nfi = ensemble.getNextIndex()
