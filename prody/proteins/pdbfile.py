@@ -114,7 +114,8 @@ def parsePDB(pdb, **kwargs):
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
             if title is None:
-                kwargs['title'] = pdb
+                title = pdb
+                kwargs['title'] = title
             filename = fetchPDB(pdb)
             if filename is None:
                 raise IOError('PDB file for {0:s} could not be downloaded.'
@@ -124,9 +125,10 @@ def parsePDB(pdb, **kwargs):
             raise IOError('{0:s} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
     if title is None:
-        fn, ext = os.path.splitext(os.path.split(pdb)[1])
+        title, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
-            kwargs['title'], ext = os.path.splitext(fn)
+            title, ext = os.path.splitext(fn)
+        kwargs['title'] = title
     pdb = openFile(pdb)
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
