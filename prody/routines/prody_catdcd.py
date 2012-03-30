@@ -38,22 +38,30 @@ def prody_catdcd(opt):
             print(n)
         print(sum(num))
         return
+    align = opt.align
     ag = opt.psf or opt.pdb
     if ag:
         if os.path.splitext(ag)[1].lower() == '.psf':
             ag = prody.parsePSF(ag)
         else:
             ag = prody.parsePDB(ag)
+    elif align:
+        raise ValueError('one of PSF or PDB files must be provided for '
+                         'align option to work')
     
     dcd = opt.dcd
     traj = prody.Trajectory(dcd.pop(0))
     while dcd:
         traj.addFile(dcd.pop(0))
     if ag:
-        traj.setAtomGroup(ag)
+        traj.setAtoms(ag)
         select = traj.select(opt.select)
         LOGGER.info('{0:d} atoms are selected for writing output.'
                     .format(len(select)))
+        if align:
+            _ = traj.select(align)
+            LOGGER.info('{0:d} atoms are selected for aligning frames.'
+                        .format(len(_)))
 
     out = prody.DCDFile(opt.output, 'w')
     count = 0
@@ -65,7 +73,11 @@ def prody_catdcd(opt):
         if goto:
             traj.goto(i)
         frame = traj.next()
-        out.write(frame._getCoords(), frame.getUnitcell())
+        if align:
+            frame.superpose()
+            out.write(select._getCoords(), frame.getUnitcell())
+        else:
+            out.write(frame._getCoords(), frame.getUnitcell())
         count += 1
     traj.close()
     out.close()
@@ -99,7 +111,7 @@ Concatenate two DCD files and output backbone atoms:
 
     subparser.add_argument('-o', '--output', type=str, metavar='FILENAME', 
         default='trajectory.dcd',
-        help='output filename (default: %(default)s)')
+        help='output filename (default: "%(default)s")')
 
     subparser.add_argument('-n', '--num', default=False, action='store_true',
         dest='num',
@@ -120,6 +132,10 @@ Concatenate two DCD files and output backbone atoms:
     subparser.add_argument('--stride', metavar='INT', type=int, default=1,
         help="number of frames to skip when writing "
              "(default: %(default)s, skip none)")
+
+    subparser.add_argument('--align', metavar='SELSTR', type=str,
+        help="atom selection for aligning frames, one of PSF or PDB files "
+             "must be provided")
 
     subparser.add_argument('dcd', nargs='+',
         help='DCD filename(s) (all must have same number of atoms)')
