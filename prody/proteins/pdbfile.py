@@ -110,12 +110,11 @@ def parsePDB(pdb, **kwargs):
         If needed, PDB files are downloaded using :func:`fetchPDB()` function.
     """
     
-    title = kwargs.get('title', kwargs.get('name'))
+    title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
             if title is None:
-                title = pdb.lower()
-                kwargs['title'] = title
+                kwargs['title'] = pdb
             filename = fetchPDB(pdb)
             if filename is None:
                 raise IOError('PDB file for {0:s} could not be downloaded.'
@@ -127,9 +126,7 @@ def parsePDB(pdb, **kwargs):
     if title is None:
         fn, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
-            fn, ext = os.path.splitext(fn)
-        title = fn.lower()
-        kwargs['title'] = title
+            kwargs['title'], ext = os.path.splitext(fn)
     pdb = openFile(pdb)
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
@@ -178,8 +175,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
     else:
-        ag = AtomGroup(str(kwargs.get('title', kwargs.get('name', 
-                                                'Unknown'))) + title_suffix)
+        ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
         n_csets = 0
     
     biomol = kwargs.get('biomol', False)
