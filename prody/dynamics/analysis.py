@@ -29,6 +29,7 @@ import numpy as np
 from prody import LOGGER
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
+from prody.trajectory import TrajBase
 
 from nma import NMA
 from modeset import ModeSet
@@ -100,9 +101,9 @@ def calcProjection(ensemble, modes, rmsd=True):
     :class:`~.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
     
-    if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
-        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
-                        'not {0:s}'.format(type(ensemble)))
+    if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
+        raise TypeError('ensemble must be Ensemble, Conformation, Vector, '
+                        'or a TrajBase, not {0:s}'.format(type(ensemble)))
     if not isinstance(modes, (NMA, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'
                         .format(type(modes)))
@@ -118,8 +119,13 @@ def calcProjection(ensemble, modes, rmsd=True):
         if not ensemble.is3d(): 
             raise ValueError('ensemble must be a 3d vector instance')
         deviations = ensemble._getArray()
-    else:
+    elif isinstance(ensemble, Ensemble):
         deviations = ensemble.getDeviations()
+    else:
+        nfi = ensemble.getNextIndex()
+        ensemble.goto(0)
+        deviations = np.array([frame.getDeviations() for frame in ensemble])
+        ensemble.goto(nfi)
     if deviations.ndim == 3:
         deviations = deviations.reshape((deviations.shape[0], 
                                          deviations.shape[1] * 3))
@@ -147,9 +153,9 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
         absolute value of scalar makes the with of two projection same,
         sign of scalar makes the projections yield a positive correlation"""
     
-    if not isinstance(ensemble, (Ensemble, Conformation, Vector)):
-        raise TypeError('ensemble must be Ensemble, Conformation, or Vector, '
-                        'not {0:s}'.format(type(ensemble)))
+    if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
+        raise TypeError('ensemble must be Ensemble, Conformation, Vector, '
+                        'or a Trajectory, not {0:s}'.format(type(ensemble)))
     if not isinstance(mode1, VectorBase):
         raise TypeError('mode1 must be a Mode instance, not {0:s}'
                         .format(type(mode1)))
