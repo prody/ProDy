@@ -64,7 +64,14 @@ def prody_align(opt):
             if '_aligned.pdb' in arg:
                 continue
             pdb = prody.parsePDB(arg)
-            if prody.matchAlign(pdb, ref, seqid=seqid, overlap=overlap):
+            result = prody.matchAlign(pdb, ref, seqid=seqid, overlap=overlap) 
+            if result:
+                if pdb.numCoordsets() > 1:
+                    LOGGER.info('Aligning all models in: ' + pdb.getTitle())
+                    pdb, mobile, target, _, _ = result
+                    for i in range(1, pdb.numCoordsets()):
+                        mobile.setACSIndex(i)
+                        prody.superpose(mobile, target)
                 outfn = pdb.getTitle() + '_aligned.pdb'
                 LOGGER.info('Writing file: ' + outfn)
                 prody.writePDB(outfn, pdb)
