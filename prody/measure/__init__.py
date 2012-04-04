@@ -92,4 +92,4 @@ import transform
 from transform import *
 __all__.extend(transform.__all__)
 
-from transform import getRMSD, _calcTransformation, _applyTransformation
+from transform import getRMSD, getTransformation
