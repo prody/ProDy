@@ -46,6 +46,7 @@ CONFIGURATION = {
     'backup_ext': '.BAK',
     'ligand_xml_save': False,
     'typo_warnings': True,
+    'check_updates': 0,
 }
 
 from datetime import date
@@ -69,7 +70,7 @@ def turnonDepracationWarnings(action='always'):
      is passed, warning will be issued at the first call of a function.
      The latter behavior will automatically kick in when v0.9 is released.
      Until v0.9 is released, restarting the session will turn of warnings.
-     This function must be called as ``prody.turnonDepracationWarnings``. """
+     This function must be called as ``prody.turnonDepracationWarnings``."""
     
     global DEPRECATION_WARNINGS
     DEPRECATION_WARNINGS = True
@@ -204,7 +205,13 @@ def getVerbosity():
 getVerbosity.__doc__ = LOGGER.getVerbosity.__doc__
 
 def checkUpdates():
-    """Check PyPI to see if there is a newer ProDy version available."""
+    """Check PyPI to see if there is a newer ProDy version available.  Setting
+    ProDy configuration parameter *check_updates* to a positive integer will 
+    make ProDy automatically check updates, e.g.::
+       
+      confProDy(check_updates=7) # check at most once a week
+      confProDy(check_updates=0) # do not auto check updates
+      confProDy(check_updates=-1) # check at the start of every session"""
     
     import xmlrpclib
     pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
@@ -215,6 +222,20 @@ def checkUpdates():
     else:
         LOGGER.info('ProDy v{0:s} is available, you are using {1:s}.'
                     .format(releases[0], __version__))
+    if SETTINGS['check_updates']:
+        import time
+        SETTINGS['last_check'] = time.time()
+        SETTINGS.save()
+
+if SETTINGS['check_updates']: 
+    
+    if SETTINGS.get('last_check') is None:
+        SETTINGS['last_check'] = 0
+    import time
+    if ((time.time() - SETTINGS.get('last_check')) / 3600 / 24 > 
+        SETTINGS['check_updates']):
+        LOGGER.info('Checking PyPI for ProDy updates:')
+        checkUpdates()
 
 def test(**kwargs):
     """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests` 
