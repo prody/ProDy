@@ -11,12 +11,21 @@ Release 1.0.1 (in development)
 
 **New Features**:
 
+  * ProDy can be configured to automatically check for updates on a regular 
+    basis, see :func:`~.checkUpdates` and :func:`~.confProDy` functions for
+    details.   
+
+  * :meth:`.PDBConformation.getTransformation` is implemented to return
+    the transformation that was used to superpose conformation onto reference
+    coordinates. This transformation can be used to superpose the original
+    PDB file onto the reference PDB file.
+  
   * Amino acid sequences with regular expressions can be used to make atom 
     selections, e.g. ``'sequence "C..C"'``.  See :ref:`selections` for usage 
     details.
   
   * :func:`~.calcCrossProjection` function is implemented.
-
+  
 **Improvements**:
 
   * :class:`~.Select` class raises a :class:`~.SelectionError` when 
@@ -28,6 +37,9 @@ Release 1.0.1 (in development)
   * :program:`prody align` command accepts percent sequence identity and 
     overlap parameters used when matching chains from given multiple 
     structures.
+
+  * When using :program:`prody align` command to align multiple structure,
+    all models in NMR structures are aligned onto the reference structure.
 
   * :program:`prody catdcd` command accepts ``--align SELSTR`` argument
     that can be used to align frames when concatenating files.

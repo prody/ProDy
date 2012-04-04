@@ -264,6 +264,9 @@ class PDBConformation(Conformation):
             return ensemble._weights[self._index, indices]
 
     def getTransformation(self):
+        """Return the :class:`~.Transformation` used to superpose this 
+        conformation onto reference coordinates.  The transformation can 
+        be used to superpose original PDB file onto the reference PDB file."""
         
         if self._ensemble._trans is not None:
             return Transformation(self._ensemble._trans[self._index])
