@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010-2012 Ahmet Bakan
@@ -420,16 +421,14 @@ class Ensemble(object):
         """Superpose the ensemble onto the reference coordinates."""
         
         if self._coords is None:
-            raise AttributeError('coordinates are not set, use `setCoords`')
+            raise ValueError('coordinates are not set, use `setCoords`')
         if self._confs is None or len(self._confs) == 0: 
-            raise AttributeError('conformations are not set, use `addCoordset`'
-                                )
-        LOGGER.info('Superposing structures:')
+            raise ValueError('conformations are not set, use `addCoordset`')
         LOGGER.timeit()
-        self._superpose()
+        self._superpose(trans=True) # trans kwarg is used by PDBEnsemble
         LOGGER.timing('Superposition is completed in %.2f seconds.')
         
-    def _superpose(self):
+    def _superpose(self, **kwargs):
         """Superpose conformations and update coordinates."""
         
         indices = self._indices
@@ -494,20 +493,19 @@ class Ensemble(object):
         LOGGER.clear()
             
     def iterpose(self, rmsd=0.0001):
-        """Iteratively superpose the ensemble until convergence.
+        """Iteratively superpose the ensemble until convergence.  Initially, 
+        all conformations are aligned with the reference coordinates.  Then 
+        mean coordinates are calculated, and are set as the new reference 
+        coordinates.  This is repeated until reference coordinates do not 
+        change.  This is determined by the value of RMSD between the new and 
+        old reference coordinates.        
         
-        Initially, all conformations are aligned with the reference 
-        coordinates. Then mean coordinates are calculated, and are set
-        as the new reference coordinates. This is repeated until 
-        reference coordinates do not change. This is determined by
-        the value of RMSD between the new and old reference coordinates.        
-        
-        :arg rmsd: RMSD (A) between old and new reference coordinates 
-                     to converge
-        :type rmsd: float, default is 0.0001"""
+        :arg rmsd: change in reference coordinates to determine convergence,
+            default is 0.0001 Å RMSD
+        :type rmsd: float"""
         
         if self._coords is None:
-            raise AttributeError('coordinates are not set, use `setCoord`')
+            raise AttributeError('coordinates are not set, use `setCoords`')
         if self._confs is None or len(self._confs) == 0: 
             raise AttributeError('conformations are not set, use `addCoordset`'
                                  )
@@ -533,9 +531,9 @@ class Ensemble(object):
         LOGGER.timing('Iterative superposition completed in %.2fs.')
 
     def getMSFs(self):
-        """Calculate and return mean square fluctuations (MSFs). 
-        Note that you might need to align the conformations using 
-        :meth:`superpose` or :meth:`iterpose` before calculating MSFs."""
+        """Calculate and return mean square fluctuations (MSFs).  Note that 
+        you may need to align the conformations using :meth:`superpose` or 
+        :meth:`iterpose` before calculating MSFs."""
         
         if self._confs is None: 
             return
@@ -553,14 +551,14 @@ class Ensemble(object):
         return ssqf.sum(1) / self._n_csets
     
     def getRMSFs(self):
-        """Calculate and return root mean square fluctuations (RMSFs). 
-        Note that you might need to align the conformations using 
+        """Calculate and return root mean square fluctuations (RMSFs).  
+        Note that you may need to align the conformations using 
         :meth:`superpose` or meth:`iterpose` before calculating RMSFs."""
 
         return self.getMSFs() ** 0.5
             
     def getDeviations(self):
-        """Return deviations from reference coordinates. Note that you
+        """Return deviations from reference coordinates.  Note that you
         might need to align the conformations using :meth:`superpose` or 
         :meth:`iterpose` before calculating deviations."""
         
@@ -574,9 +572,9 @@ class Ensemble(object):
         return self._getCoordsets() - self._coords 
         
     def getRMSDs(self):
-        """Calculate and return root mean square deviations (RMSDs). Note that 
-        you might need to align the conformations using :meth:`superpose` or 
-        :meth:`iterpose` before calculating RMSDs."""
+        """Calculate and return root mean square deviations (RMSDs).  Note 
+        that you might need to align the conformations using :meth:`superpose` 
+        or :meth:`iterpose` before calculating RMSDs."""
         
         if self._confs is None or self._coords is None: 
             return None
