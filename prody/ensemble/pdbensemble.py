@@ -22,10 +22,10 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
-from prody.measure import getRMSD, _calcTransformation, _applyTransformation
+from prody.measure import getRMSD, getTransformation
 from prody.tools import checkCoords, importLA
+from prody import LOGGER
 
 from ensemble import Ensemble
 from conformation import PDBConformation
@@ -49,6 +49,7 @@ class PDBEnsemble(Ensemble):
         
         self._labels = []
         Ensemble.__init__(self, title)
+        self._trans = None
         
     def __repr__(self):
         return '<PDB' + Ensemble.__repr__(self)[1:]
@@ -106,25 +107,44 @@ class PDBEnsemble(Ensemble):
         else:
             raise IndexError('invalid index')
             
-    def _superpose(self):
+    def _superpose(self, **kwargs):
         """Superpose conformations and update coordinates."""
 
-        calcT = _calcTransformation
-        applyT = _applyTransformation
+        calcT = getTransformation
+        if kwargs.get('trans', False):
+            trans = None
+        else:
+            trans = np.zeros((len(self), 4, 4))
         if self._sel is None:
             weights = self._weights
             coords = self._coords
             confs = self._confs
-            for i, conf in enumerate(confs):
-                confs[i] = applyT(calcT(conf, coords, weights[i]), confs[i])
-        else:            
+            confs_selected = self._confs
+        else:
             indices = self._indices
             weights = self._weights[:, indices]
             coords = self._coords[indices]
-            confs_selected = self._confs[:,indices]
             confs = self._confs
-            for i, conf in enumerate(confs_selected):
-                confs[i] = applyT(calcT(conf, coords, weights[i]), confs[i]) 
+            confs_selected = self._confs[:,indices]
+
+        for i, conf in enumerate(confs_selected):
+            rmat, tvec = calcT(conf, coords, weights[i])
+            if trans is not None:
+                trans[i][:3, :3] = rmat
+                trans[i][:3, 3] = tvec
+            confs[i] = tvec + np.dot(confs[i], rmat)
+        self._trans = trans    
+
+    def iterpose(self, rmsd=0.0001):
+        
+        confs = self._confs.copy()
+        Ensemble.iterpose(self, rmsd)
+        self._confs = confs
+        LOGGER.info('Final superposition to calculate transformations:')
+        self.superpose()
+        
+    iterpose.__doc__ = Ensemble.iterpose.__doc__
+    
 
     def addCoordset(self, coords, weights=None, allcoordsets=True):
         """Add coordinate set(s) as conformation(s).
