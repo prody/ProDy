@@ -154,9 +154,9 @@ def calcTransformation(mobile, target, weights=None):
         elif weights.shape != (mob.shape[0], 1):
             raise ValueError('weights must have shape (n_atoms, 1)')
 
-    return _calcTransformation(mob, tar, weights)
+    return Transformation(*getTransformation(mob, tar, weights))
 
-def _calcTransformation(mob, tar, weights=None):
+def getTransformation(mob, tar, weights=None):
     
     linalg = importLA()
     
@@ -181,7 +181,7 @@ def _calcTransformation(mob, tar, weights=None):
                     [0, 0, np.sign(linalg.det(matrix))] ])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
-    return Transformation(rotation, tar_com - np.dot(mob_com, rotation))
+    return rotation, tar_com - np.dot(mob_com, rotation)
 
 def applyTransformation(transformation, atoms):
     """Return *atoms* after applying *transformation*.  If *atoms* 
