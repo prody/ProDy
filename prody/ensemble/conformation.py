@@ -21,6 +21,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from prody.measure import getRMSD
+from prody.measure import Transformation
 
 __all__ = ['Conformation', 'PDBConformation']
 
@@ -262,4 +263,8 @@ class PDBConformation(Conformation):
         else:
             return ensemble._weights[self._index, indices]
 
+    def getTransformation(self):
+        
+        if self._ensemble._trans is not None:
+            return Transformation(self._ensemble._trans[self._index])
 
