@@ -234,17 +234,19 @@ def checkWeights(weights, n_atoms, n_csets=None):
     return weights
 
 def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
-    """Align PDB files using transformations from a *ensemble*, which may be 
+    """Align PDB files using transformations from *ensemble*, which may be 
     a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of 
     the conformation (see :meth:`~.PDBConformation.getLabel`) will be used to 
-    determine the PDB file and model number.  First four characters of the 
-    label is expected to be the PDB identifier and ending numbers to be the 
+    determine the PDB structure and model number.  First four characters of 
+    the label is expected to be the PDB identifier and ending numbers to be the 
     model number.  For example, the :class:`.Transformation` from conformation 
     with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th 
-    model of PDB file **2k39**.  After its all applicable transformations are
-    applied to its models, structure will be save as :file:`2k39_aligned.pdb`
-    into *outputdir*.  If *gzip* is **True**, output files will be compressed.
-    """
+    model of structure **2k39**.  After applicable transformations are made, 
+    structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.  
+    If *gzip* is **True**, output files will be compressed.  Return value is
+    the output filename or list of filenames, in the order files are processed.
+    Note that if multiple models from a file are aligned, the file name will
+    appear multiple times in the list."""
     
     if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
         raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
@@ -254,6 +256,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         gzip = '.gz'
     else:
         gzip = ''
+    output = []
     pdbdict = {}    
     for conf in ensemble:
         trans = conf.getTransformation()
@@ -267,6 +270,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         if filename is None:
             LOGGER.warning('PDB file for conformation {0:s} is not found.'
                            .format(label))
+            output.append(None)
             continue
         LOGGER.info('Parsing PDB file {0:s} for conformation {1:s}.'
                     .format(pdb, label))
@@ -289,13 +293,20 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
             if acsi >= ag.numCoordsets():
                 LOGGER.warn('Model number {0:s} for {1:s} is out of range.'
                             .format(model, pdb))
+                output.append(None)
                 continue
             ag.setACSIndex(acsi)
         trans.apply(ag)
+        outfn = os.path.join(outdir, pdb + suffix + '.pdb' + gzip)
         if ag.numCoordsets() > 1:
             pdbdict[pdb] = ag
         else:            
-            writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
+            writePDB(outfn, ag)
+        output.append(outfn)
         
     for pdb, ag in pdbdict.iteritems():
         writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
+    if len(output) == 1:
+        return output[0]
+    else:
+        return output
