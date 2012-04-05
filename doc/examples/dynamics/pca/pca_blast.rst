@@ -19,6 +19,16 @@ for further analysis.
 Input is amino acid sequence of the protein, a reference PDB identifier,
 and some parameters.
 
+
+.. plot::
+   :context:
+   :nofigs:
+   
+   from prody import *
+   from matplotlib import pyplot as plt
+   ensemble = loadEnsemble('CytC.ens.npz')
+   pca = loadModel('CytC.pca.npz')
+   plt.close('all')
  
 Setup
 ===============================================================================
@@ -163,6 +173,34 @@ software.
 
 >>> plt.close('all')
 
+Align PDB files
+===============================================================================
+
+:func:`.alignPDBEnsemble` function can be used to align all PDB structures used
+in the analysis, e.g. ``alignPDBEnsemble(ensemble)``.  Outputted files will
+contain intact structures and can be used for visualization purposes in other
+software.  In this case, we will align only select PDB files:
+
+>>> alignPDBEnsemble(ensemble[0])
+'./1ccr_aligned.pdb'
+>>> alignPDBEnsemble(ensemble[1])
+'./2frc_aligned.pdb'
+  
+Let's take a quick look at the aligned structures:
+
+.. plot::
+   :context:
+   :include-source:
+
+   showProtein(parsePDB('./1ccr_aligned.pdb'), parsePDB('./2frc_aligned.pdb'))   
+
+
+.. plot::
+   :context:
+   :nofigs:
+
+   plt.close('all')
+
 Perform PCA
 ===============================================================================
 
@@ -184,15 +222,6 @@ function:
 Plot results
 ===============================================================================
 
-.. plot::
-   :context:
-   :nofigs:
-   
-   from prody import *
-   from matplotlib import pyplot as plt
-   ensemble = loadEnsemble('CytC.ens.npz')
-   pca = loadModel('CytC.pca.npz')
-   plt.close('all')
 
 Let's plot RMSD to the average structure:
 

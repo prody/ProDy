@@ -15,6 +15,10 @@ Release 1.0.1 (in development)
     basis, see :func:`~.checkUpdates` and :func:`~.confProDy` functions for
     details.   
 
+  * :func:`.alignPDBEnsemble` function is implemented to align PDB files using
+    transformations calculated in ensemble analysis.  See usage example in
+    :ref:`pca-blast` example. 
+
   * :meth:`.PDBConformation.getTransformation` is implemented to return
     the transformation that was used to superpose conformation onto reference
     coordinates. This transformation can be used to superpose the original
