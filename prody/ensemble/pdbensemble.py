@@ -111,7 +111,7 @@ class PDBEnsemble(Ensemble):
             ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy(),
-                            label=self._labels[index])
+                            label=[self._labels[i] for i in index])
             if self._trans is not None:
                 ens._trans = self._trans[index]
             return ens
