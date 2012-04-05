@@ -52,9 +52,11 @@ class PDBEnsemble(Ensemble):
         self._trans = None
         
     def __repr__(self):
+        
         return '<PDB' + Ensemble.__repr__(self)[1:]
     
     def __str__(self):
+        
         return 'PDB' + Ensemble.__str__(self)
     
     def __add__(self, other):
@@ -79,6 +81,7 @@ class PDBEnsemble(Ensemble):
         return ensemble
     
     def __iter__(self):
+        
         n_confs = self._n_csets
         for i in range(n_confs):
             if n_confs != self._n_csets:
@@ -91,18 +94,26 @@ class PDBEnsemble(Ensemble):
         
         if isinstance(index, int):
             return self.getConformation(index) 
+            
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
-                            self._weights[index].copy())
+                            self._weights[index].copy(),
+                            label=self._labels[index])
+            if self._trans is not None:
+                ens._trans = self._trans[index]
             return ens
+            
         elif isinstance(index, (list, np.ndarray)):
             ens = PDBEnsemble('Conformations of {0:s}'.format(self._title))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
-                            self._weights[index].copy())
+                            self._weights[index].copy(),
+                            label=self._labels[index])
+            if self._trans is not None:
+                ens._trans = self._trans[index]
             return ens
         else:
             raise IndexError('invalid index')
@@ -112,9 +123,11 @@ class PDBEnsemble(Ensemble):
 
         calcT = getTransformation
         if kwargs.get('trans', False):
-            trans = None
+            if self._trans is not None:
+                LOGGER.info('Existing transformations will be overwritten.')
+            trans = np.zeros((self._n_csets, 4, 4))
         else:
-            trans = np.zeros((len(self), 4, 4))
+            trans = None
         if self._sel is None:
             weights = self._weights
             coords = self._coords
@@ -140,54 +153,55 @@ class PDBEnsemble(Ensemble):
         confs = self._confs.copy()
         Ensemble.iterpose(self, rmsd)
         self._confs = confs
-        LOGGER.info('Final superposition to calculate transformations:')
+        LOGGER.info('Final superposition to calculate transformations.')
         self.superpose()
         
     iterpose.__doc__ = Ensemble.iterpose.__doc__
     
 
-    def addCoordset(self, coords, weights=None, allcoordsets=True):
-        """Add coordinate set(s) as conformation(s).
-
-        :class:`~.Atomic` instances are accepted as *coords* argument.  
-        If *allcoordsets* is ``True``, all coordinate sets from the 
-        :class:`~.Atomic` instance will be appended to the ensemble. 
-        Otherwise, only the active coordinate set will be appended.
-
-        *weights* is an optional argument. If provided, its length must
-        match number of atoms. Weights of missing (not resolved) atoms 
-        must be equal to ``0`` and weights of those that are resolved
-        can be anything greater than ``0``. If not provided, weights of 
-        atoms in this coordinate set will be set equal to ``1``."""
+    def addCoordset(self, coords, weights=None, allcsets=True, label=None):
+        """Add coordinate set(s) to the ensemble.  :class:`~.Atomic` instances 
+        are accepted as *coords* argument.  If *allcsets* is ``True``, all 
+        coordinate sets from the :class:`~.Atomic` instance will be appended 
+        to the ensemble.  Otherwise, only the active coordinate set will be 
+        appended.  *weights* is an optional argument. If provided, its length 
+        must match number of atoms.  Weights of missing (not resolved) atoms 
+        must be equal to ``0`` and weights of those that are resolved can be 
+        anything greater than ``0``.  If not provided, weights of all atoms 
+        for this coordinate set will be set equal to ``1``. *label*, which 
+        may be a PDB identifier or a list of identifiers, is used to label 
+        conformations."""
         
-        assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
+        assert isinstance(allcsets, bool), 'allcsets must be boolean'
         if weights is not None:
             assert isinstance(weights, np.ndarray), 'weights must be ndarray'
-            
+        if label is not None:
+            assert isinstance(label, (str, list)), 'label must be str or list'
         ag = None
         if isinstance(coords, Atomic):
             atoms = coords
+            if allcsets:
+                coords = atoms._getCoordsets()
+            else: 
+                coords = atoms._getCoords()
             if isinstance(coords, AtomGroup):
                 ag = atoms
             else:
                 ag = atoms.getAtomGroup()
-            if allcoordsets:
-                coords = atoms.getCoordsets()
-            else: 
-                coords = atoms.getCoords()
-            title = ag.getTitle() 
+            label = label or ag.getTitle()
         elif isinstance(coords, np.ndarray):
-            title = 'Unknown'
+            label = label or 'Unknown'
         else:
-            title = str(coords)
             try:
-                if allcoordsets:
-                    coords = coords.getCoordsets()
+                if allcsets:
+                    coords = coords._getCoordsets()
                 else: 
-                    coords = coords.getCoords()
+                    coords = coords._getCoords()
             except AttributeError:            
                 raise TypeError('coords must be a Numpy array or must have '
-                                'getCoordinates attribute')
+                                '`getCoords` attribute')
+
+            label = label or str(coords)
 
         coords = checkCoords(coords, 'coords', cset=True, 
                              n_atoms=self._n_atoms, reshape=True)
@@ -199,19 +213,22 @@ class PDBEnsemble(Ensemble):
         else:
             weights = checkWeights(weights, n_atoms, n_csets)
 
-        while '  ' in title:
-            title = title.replace('  ', ' ')
-        title = title.replace(' ', '_')
-        
         if n_csets > 1:
-            self._labels += ['{0:s}_{1:d}'
-                                  .format(title, i+1) for i in range(n_csets)]
+            if isinstance(label, str):
+                self._labels.extend('{0:s}_m{1:d}'
+                    .format(label, i+1) for i in range(n_csets))
+            else:
+                if len(label) != n_csets: 
+                    raise ValueError('length of label and number of '
+                                     'coordinate sets must be the same')
+                self._labels.extend(label)
+                                 
         else:
             if ag is not None and ag.numCoordsets() > 1:
-                self._labels.append('{0:s}_{1:d}'.format(title, 
+                self._labels.append('{0:s}_m{1:d}'.format(label, 
                                          atoms.getACSIndex()))
             else:                
-                self._labels.append(title)
+                self._labels.append(label)
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
