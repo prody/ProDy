@@ -24,14 +24,16 @@ import os.path
 
 import numpy as np
 
+from prody.proteins import fetchPDB, parsePDB, writePDB
 from prody.tools import openFile
+from prody import LOGGER
 
 from ensemble import *
 from pdbensemble import *
 from conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble', 
-           'calcOccupancies', 'showOccupancies']
+           'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble']
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
     """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename* 
@@ -50,6 +52,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     attr_list = ['_title', '_confs', '_weights', '_coords']
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
+        attr_list.append('_trans')
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
     attr_dict = {}
@@ -86,6 +89,8 @@ def loadEnsemble(filename):
             ensemble._labels = list(attr_dict['_identifiers'])
         if '_labels' in attr_dict.files:
             ensemble._labels = list(attr_dict['_labels'])
+        if '_trans' in attr_dict.files:
+            ensemble._trans = attr_dict['_trans']
     else:
         ensemble.addCoordset(attr_dict['_confs'])
         if weights != np.array(None): 
@@ -227,3 +232,70 @@ def checkWeights(weights, n_atoms, n_csets=None):
     if n_csets is not None and weights.ndim == 2:
         weights = np.tile(weights.reshape((1, n_atoms, 1)), (n_csets, 1, 1))
     return weights
+
+def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
+    """Align PDB files using transformations from a *ensemble*, which may be 
+    a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of 
+    the conformation (see :meth:`~.PDBConformation.getLabel`) will be used to 
+    determine the PDB file and model number.  First four characters of the 
+    label is expected to be the PDB identifier and ending numbers to be the 
+    model number.  For example, the :class:`.Transformation` from conformation 
+    with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th 
+    model of PDB file **2k39**.  After its all applicable transformations are
+    applied to its models, structure will be save as :file:`2k39_aligned.pdb`
+    into *outputdir*.  If *gzip* is **True**, output files will be compressed.
+    """
+    
+    if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
+        raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
+    if isinstance(ensemble, PDBConformation):
+        ensemble = [ensemble]
+    if gzip:
+        gzip = '.gz'
+    else:
+        gzip = ''
+    pdbdict = {}    
+    for conf in ensemble:
+        trans = conf.getTransformation()
+        if trans is None:
+            raise ValueError('transformations are not calculated, call '
+                             '`superpose` or `iterpose`')
+        label = conf.getLabel()
+
+        pdb = label[:4]
+        filename = pdbdict.get(pdb, fetchPDB(pdb))
+        if filename is None:
+            LOGGER.warning('PDB file for conformation {0:s} is not found.'
+                           .format(label))
+            continue
+        LOGGER.info('Parsing PDB file {0:s} for conformation {1:s}.'
+                    .format(pdb, label))
+
+        acsi = None
+        model = label.rfind('m')
+        if model > 3:
+            model = label[model+1:]
+            if model.isdigit():
+                acsi = int(model) - 1
+            LOGGER.info('Applying transformation to model {0:s}.'
+                        .format(model))
+
+        if isinstance(filename, str):
+            ag = parsePDB(filename)
+        else:
+            ag = filename
+
+        if acsi is not None:
+            if acsi >= ag.numCoordsets():
+                LOGGER.warn('Model number {0:s} for {1:s} is out of range.'
+                            .format(model, pdb))
+                continue
+            ag.setACSIndex(acsi)
+        trans.apply(ag)
+        if ag.numCoordsets() > 1:
+            pdbdict[pdb] = ag
+        else:            
+            writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
+        
+    for pdb, ag in pdbdict.iteritems():
+        writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
