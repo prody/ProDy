@@ -73,15 +73,21 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
     if not atoms1.numAtoms() == atoms2.numAtoms() == atoms3.numAtoms():
         raise ValueError('all arguments must have same number of atoms')
     
-    coords2 = atoms2._getCoords()
-    v1 = atoms1._getCoords() - coords2
-    v2 = atoms3._getCoords() - coords2
+    return getAngle(atoms1._getCoords(), atoms2._getCoords(), 
+                    atoms3._getCoords(), radian)
+
+def getAngle(coords1, coords2, coords3, radian):
+    """Return bond angle in degrees."""
+
+    v1 = coords1 - coords2
+    v2 = coords3 - coords2
     
     rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
     if radian:    
         return rad
     else:
         return rad * RAD2DEG
+    
 
 def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
     """Return the dihedral angle between atoms in degrees."""
