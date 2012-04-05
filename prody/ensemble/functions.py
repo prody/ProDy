@@ -245,8 +245,8 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.  
     If *gzip* is **True**, output files will be compressed.  Return value is
     the output filename or list of filenames, in the order files are processed.
-    Note that if multiple models from a file are aligned, the file name will
-    appear multiple times in the list."""
+    Note that if multiple models from a file are aligned, that filename will
+    appear in the list multiple times."""
     
     if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
         raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')

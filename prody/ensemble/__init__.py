@@ -42,10 +42,11 @@ are missing.  The following classes extend above to support this heterogeneity:
 Following functions are for editing PDB ensembles, e.g. finding and removing
 residues that are missing in too many structures:
 
+  * :func:`~.alignPDBEnsemble`
   * :func:`~.calcOccupancies`
   * :func:`~.showOccupancies`
   * :func:`~.trimPDBEnsemble`
-
+  
 See usage examples in :ref:`pca-xray`, :ref:`pca-dimer`, :ref:`pca-blast`.
 
 Save/load ensembles
