@@ -61,7 +61,6 @@ class Ensemble(object):
         if isinstance(title, (Atomic, Ensemble)):
             self.setCoords(title.getCoords())
             self.addCoordset(title)
-
     
     def __repr__(self):
     
@@ -289,18 +288,18 @@ class Ensemble(object):
 
         return self._n_csets
 
-    def addCoordset(self, coords, allcoordsets=True):
-        """Add coordinate set(s) as conformation(s).  :class:`~.Atomic` 
-        instances are accepted as *coords* argument.  If *allcoordsets* is 
+    def addCoordset(self, coords, allcests=True):
+        """Add coordinate set(s) as to the ensemble.  :class:`~.Atomic` 
+        instances are accepted as *coords* argument.  If *allcests* is 
         ``True``, all coordinate sets from the :class:`~.Atomic` instance 
         will be appended to the ensemble.  Otherwise, only the active 
         coordinate set will be appended."""
         
-        assert isinstance(allcoordsets, bool), 'allcoordsets must be boolean'
+        assert isinstance(allcests, bool), 'allcests must be boolean'
         if not isinstance(coords, np.ndarray):
             if isinstance(coords, (Atomic, Ensemble)):
                 atoms = coords
-                if allcoordsets:
+                if allcests:
                     coords = atoms.getCoordsets()
                 else:
                     coords = atoms.getCoords()
@@ -426,7 +425,7 @@ class Ensemble(object):
             raise ValueError('conformations are not set, use `addCoordset`')
         LOGGER.timeit()
         self._superpose(trans=True) # trans kwarg is used by PDBEnsemble
-        LOGGER.timing('Superposition is completed in %.2f seconds.')
+        LOGGER.timing('Superposition completed in %.2f seconds.')
         
     def _superpose(self, **kwargs):
         """Superpose conformations and update coordinates."""
