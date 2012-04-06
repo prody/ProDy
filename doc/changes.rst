@@ -77,6 +77,11 @@ Release 1.0.1 (in development)
   * A bug in some :ref:`commands` is fixed. The bug would emerge when invalid
     arguments were passed to effected commands and throw an unrelated exception
     hiding the error message related to the arguments.
+    
+  * A bug in ``'bonded to ...'`` is fixed that emerged when ``'...'``
+    selected nothing.
+    
+  * A bug in ``'not'`` selections using ``.`` operator is fixed. 
 
 Release 1.0 (Mar 7, 2012)
 ===============================================================================
