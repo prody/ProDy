@@ -1569,11 +1569,14 @@ class Select(object):
                 return SelectionError(sel, loc + len('bonded '), 
                                       'number must be a greater than zero')
 
-        which = token[1]
-        if not isinstance(which, ndarray):
-            which = self._evaluate(sel, loc, token[1:])
-            if isinstance(which, SelectionError):
-                return which
+        torf = token[1]
+        if not isinstance(torf, ndarray):
+            torf = self._evaluate(sel, loc, token[1:])
+            if isinstance(torf, SelectionError):
+                return torf
+        which = torf.nonzero()[0]
+        if not len(which):
+            return torf
         bmap = self._ag._bmap
         if bmap is None:
             return SelectionError(sel, loc, 'bonds are not set')
