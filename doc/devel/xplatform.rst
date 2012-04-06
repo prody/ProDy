@@ -3,7 +3,7 @@
 .. currentmodule:: prody
 
 *******************************************************************************
-Cross-platform issues
+Cross-platform Issues
 *******************************************************************************
 
 This section describes cross-platform issues that may emerge and provides 

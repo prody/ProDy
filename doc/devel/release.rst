@@ -3,7 +3,7 @@
 .. currentmodule:: prody
 
 *******************************************************************************
-How to Make a New Release
+How to Make a Release
 *******************************************************************************
 
 #. Make sure ProDy imports and passes unit tests (Python 2.7)::
@@ -38,6 +38,10 @@ How to Make a New Release
    * :file:`MANIFEST.in`
    * :file:`setup.py`
 
+#. Copy the documentation files packed with source release::
+
+     $ make copytxt
+
 #. Generate the source distributions::
 
      $ cd ..
@@ -63,15 +67,10 @@ How to Make a New Release
      $ cd doc
      $ make stats
 
-#. Copy the documentation files packed with source release::
-
-     $ make copytxt
-
 #. Generate HTML and PDF documentation::
 
      $ make html
      $ make latexpdf
-  
 
 #. Commit the final changes::
 

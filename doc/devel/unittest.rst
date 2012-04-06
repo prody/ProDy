@@ -3,7 +3,7 @@
 .. currentmodule:: prody
 
 *******************************************************************************
-Unit test development
+Unit Test Development
 *******************************************************************************
 
 ProDy releases have been tested using the code snippets in the documentation

@@ -6,6 +6,83 @@
 Changes
 *******************************************************************************
 
+Release 1.0.1 (Apr 6, 2012)
+===============================================================================
+
+**New Features**:
+
+  * ProDy can be configured to automatically check for updates on a regular 
+    basis, see :func:`~.checkUpdates` and :func:`~.confProDy` functions for
+    details.   
+
+  * :func:`.alignPDBEnsemble` function is implemented to align PDB files using
+    transformations calculated in ensemble analysis.  See usage example in
+    :ref:`pca-blast` example. 
+
+  * :meth:`.PDBConformation.getTransformation` is implemented to return
+    the transformation that was used to superpose conformation onto reference
+    coordinates. This transformation can be used to superpose the original
+    PDB file onto the reference PDB file.
+  
+  * Amino acid sequences with regular expressions can be used to make atom 
+    selections, e.g. ``'sequence "C..C"'``.  See :ref:`selections` for usage 
+    details.
+  
+  * :func:`~.calcCrossProjection` function is implemented.
+  
+**Improvements**:
+
+  * :class:`~.Select` class raises a :class:`~.SelectionError` when 
+    potential typos are detected in a selection string, e.g. ``'chain AB'``
+    is a grammatically correct selection string that will return **None**
+    since no atoms have chain identifier ``'AB'``.  In such cases, an exception
+    noting that values exceed maximum number of characters is raised.
+  
+  * :program:`prody align` command accepts percent sequence identity and 
+    overlap parameters used when matching chains from given multiple 
+    structures.
+
+  * When using :program:`prody align` command to align multiple structure,
+    all models in NMR structures are aligned onto the reference structure.
+
+  * :program:`prody catdcd` command accepts ``--align SELSTR`` argument
+    that can be used to align frames when concatenating files.
+
+  * :func:`~.showProjection` and :func:`~.showCrossProjection` functions are 
+    improved to evaluate list of markers, color, labels, and texts.  See
+    usage example in :ref:`pca-xray-plotting`.
+    
+  * :class:`~.Trajectory` instances can be used for calculating and plotting
+    projections using :func:`~.calcProjection`, :func:`~.showProjection`,
+    :func:`~.calcCrossProjection`, and :func:`~.showCrossProjection` functions.
+ 
+    
+**Changes**:
+
+  * Phosphorylated amino acids, phosphothreonine (*TPO*), O-phosphotyrosine 
+    (*PTR*), and phosphoserine (*SEP*), are recognized as acidic protein 
+    residues.  This prevents having breaks in protein chains which contains
+    phosphorylated residues.  See :ref:`selections` for definitions of 
+    *protein* and *acidic* keywords.
+
+  * Hit dictionaries from :class:`~.PDBBlastRecord` will use *percent_overlap* 
+    instead of *percent_coverage*.  Older key will be removed in v1.1.
+
+  * :meth:`.Transformation.get4x4Matrix` method is deprecated for removal in 
+    v1.1, use :meth:`.Transformation.getMatrix` method instead.
+
+
+**Bugfix**:
+
+  * A bug in some :ref:`commands` is fixed. The bug would emerge when invalid
+    arguments were passed to effected commands and throw an unrelated exception
+    hiding the error message related to the arguments.
+    
+  * A bug in ``'bonded to ...'`` is fixed that emerged when ``'...'``
+    selected nothing.
+    
+  * A bug in ``'not'`` selections using ``.`` operator is fixed. 
+
 Release 1.0 (Mar 7, 2012)
 ===============================================================================
 
@@ -1245,8 +1322,8 @@ Release 0.2 (Nov 16, 2010)
 
 
   * Single word keywords *not* followed by "and" logical operator are not 
-    accepted, e.g. "protein within 5 of water" will raise an SelectionError, 
-    use "protein and within 5 of water" instead.
+    accepted, e.g. "protein within 5 of water" will raise a 
+    :class:`~.SelectionError`, use "protein and within 5 of water" instead.
   * :func:`findMatchingChains` is renamed to 
     :func:`~.matchChains`.
   * :func:`showOverlapMatrix` is renamed to 
