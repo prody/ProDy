@@ -52,7 +52,7 @@ class Atomic(object):
             selstr = name
             items = name.split('_')
             word = items[0]
-            if (isKeyword(word) or items == 'not' or isMacro(word) or
+            if (isKeyword(word) or word == 'not' or isMacro(word) or
                 self.isData(word)):
                 selstr = ' '.join(items)
                 return SELECT.select(self, selstr)
