@@ -332,7 +332,8 @@ else:
                      ('exbonded 3 to index 0', 5, 
                       'exbonded to exbonded to exbonded to index 0'),
                      ('bonded 20 to index 0', 64),
-                     ('bonded 20 to index 10', 68)
+                     ('bonded 20 to index 10', 68),
+                     ('bonded to index 1000', 0),
                      ],
     }
 
