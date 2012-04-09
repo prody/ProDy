@@ -36,6 +36,9 @@ class AtomMeta(type):
         
         for field in ATOMIC_FIELDS.values():
             
+            if field.private:
+                continue
+            
             meth = field.meth
             getMeth = 'get' + meth
             setMeth = 'set' + meth
