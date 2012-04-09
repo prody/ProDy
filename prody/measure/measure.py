@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody.atomic import Atomic, Residue, Atom
+from prody.atomic import Atomic, Residue, Atom, AtomGroup
 from prody.tools import importLA, checkCoords
 
 import prody
@@ -32,7 +32,8 @@ import prody
 __all__ = ['calcDistance', 'calcCenter', 'calcAngle', 
            'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
            'calcDeformVector', 'calcGyradius',
-           'buildADPMatrix', 'calcADPAxes', 'calcADPs']
+           'buildADPMatrix', 'calcADPAxes', 'calcADPs',
+           'pickCentral']
            
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
@@ -259,6 +260,21 @@ def getCenter(coords, weights=None):
         return coords.mean(0)
     else:
         return (coords * weights).mean(0) / weights.sum()
+
+def pickCentral(atoms, weights=None):
+    """Return :class:`.Atom` that is closest to the center."""
+        
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+    if isinstance(atoms, Atom):
+        return atoms
+    elif isinstance(atoms, AtomGroup):
+        ag = atoms
+    else:
+        ag = atoms.getAtomGroup()
+    center = calcCenter(atoms, weights)
+    index = ((atoms._getCoords() - center)**2).sum(1).argmin()
+    return Atom(ag, index, atoms.getACSIndex())
 
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
