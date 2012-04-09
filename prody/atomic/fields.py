@@ -16,10 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines atomic data fields used by meta classes."""
+"""This module defines atomic data fields which are used by meta classes
+for decorating :class:`.Atomic` classes."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
+
+__all__ = ['Field']
 
 READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex',
                 'resindices', 'chindices', 'segindices'])
@@ -38,7 +41,7 @@ class Field(object):
         self.name = name
         #: data type (primitive Python types)
         self.dtype = dtype
-        #: internal variable name uses as a key for `AtomGroup._data` dict
+        #: internal variable name used as key for :class:`.AtomGroup` ``_data``
         self.var = kwargs.get('var', name + 's')
         #: data field name, as used in documentation
         self.doc = kwargs.get('doc', name)
@@ -50,7 +53,8 @@ class Field(object):
         self.meth = kwargs.get('meth', name.capitalize())
         #: get/set method name in plural form
         self.meth_pl = kwargs.get('meth_pl', self.meth + 's')
-        #: AtomGroup attributes to be set None, when `setMethod` is called 
+        #: :class:`.AtomGroup` attributes to be set None, when ``setMethod`` 
+        #: is called 
         self.none = kwargs.get('none')
         #: list of selection string examples
         self.selstr = kwargs.get('selstr')
@@ -64,9 +68,11 @@ class Field(object):
         self.synonym = kwargs.get('synonym')
         #: read-only attribute without a set method
         self.readonly = kwargs.get('readonly', False)
-        #: list of AtomGroup methods to call when `getMethod` is called
+        #: list of :class:`.AtomGroup` methods to call when ``getMethod`` is 
+        #: called
         self.call = kwargs.get('call', None)
-        #: define only _getMethod for AtomGroup to be used by Select class
+        #: define only _getMethod for :class:`.AtomGroup` to be used by 
+        #: :class:`.Select` class
         self.private = kwargs.get('private', False)
         
     def getDocstr(self, meth, plural=True, selex=True):
@@ -111,55 +117,49 @@ class Field(object):
 
 
 ATOMIC_FIELDS = {
-    'name':      Field('name', '|S6', selstr=('name CA CB',), depr='AtomName'),
+    'name':      Field('name', '|S6', selstr=('name CA CB',)),
     'altloc':    Field('altloc', '|S1', doc='alternate location indicator', 
-                       selstr=('altloc A B', 'altloc _'), 
-                       depr='AltLocIndicator'),
+                       selstr=('altloc A B', 'altloc _'),),
     'anisou':    Field('anisou', float, doc='anisotropic temperature factor', 
-                       ndim=2, depr='AnisoTempFactor'),
+                       ndim=2),
     'chain':     Field('chain', '|S1', var='chids', doc='chain identifier', 
                        meth='Chid', none='hv', synonym='chid', 
-                       selstr=('chain A', 'chid A B C', 'chain _'), 
-                       depr='ChainIdentifier'),
+                       selstr=('chain A', 'chid A B C', 'chain _')),
     'element':   Field('element', '|S2', doc='element symbol', 
-                       selstr=('element C O N',), depr='ElementSymbol'),
+                       selstr=('element C O N',)),
     'hetero':    Field('hetero', bool, doc='hetero flag', 
-                       selstr=('hetero', 'hetero and not water'), 
-                       depr='HeteroFlag'),
+                       selstr=('hetero', 'hetero and not water')),
     'occupancy': Field('occupancy', float, var='occupancies', 
                        doc='occupancy value', meth_pl='Occupancies',
                        selstr=('occupancy 1', 'occupancy > 0')),
     'resname':   Field('resname', '|S6', doc='residue name', 
-                       selstr=('resname ALA GLY',), depr='ResidueName'),
+                       selstr=('resname ALA GLY',)),
     'resnum':    Field('resnum', int, doc='residue number', none='hv',
                        selstr=('resnum 1 2 3', 'resnum 120A 120B', 
                                'resnum 10 to 20', 'resnum 10:20:2', 
-                               'resnum < 10'), synonym='resid',
-                       depr='ResidueNumber'),
+                               'resnum < 10'), synonym='resid'),
     'secondary': Field('secondary', '|S1', var='secondaries', 
                        doc='secondary structure assignment', 
                        meth='Secstr', synonym='secstr',
-                       selstr=('secondary H E', 'secstr H E'),  
-                       depr='SecondaryStr'),
+                       selstr=('secondary H E', 'secstr H E')),
     'segment':   Field('segment', '|S6', doc='segment name', meth='Segname',
                        selstr=('segment PROT', 'segname PROT'), 
-                       synonym='segname', depr='SegmentName', none='hv'),
+                       synonym='segname', none='hv'),
     'siguij':    Field('siguij', float, doc='standard deviations for '
-                       'anisotropic temperature factor', meth='Anistd', ndim=2, 
-                       depr='AnisoStdDev'),
+                       'anisotropic temperature factor', 
+                       meth='Anistd', ndim=2),
     'serial':    Field('serial', int, doc='serial number (from file)', 
                        doc_pl='serial numbers (from file)', none='sn2i', 
                        selstr=('serial 1 2 3', 'serial 1 to 10', 
-                       'serial 1:10:2', 'serial < 10'), depr='SerialNumber'),
+                       'serial 1:10:2', 'serial < 10')),
     'beta':      Field('beta', float, doc='β-value (temperature factor)', 
                        doc_pl='β-values (or temperature factors)', 
                        selstr=('beta 555.55', 'beta 0 to 500', 'beta 0:500', 
-                       'beta < 500'), depr='TempFactor'),
+                       'beta < 500')),
     'icode':     Field('icode', '|S1', doc='insertion code', none='hv', 
-                       selstr=('icode A', 'icode _'), depr='InsertionCode'),
-    'type':      Field('type', '|S6', selstr=('type CT1 CT2 CT3',), 
-                       depr='AtomType'),
-    'charge':    Field('charge', float, doc='partial charge',  
+                       selstr=('icode A', 'icode _')),
+    'type':      Field('type', '|S6', selstr=('type CT1 CT2 CT3',)),
+    'charge':    Field('charge', float, doc='partial charge', 
                        selstr=('charge 1', 'abs(charge) == 1', 'charge < 0')),
     'mass':      Field('mass', float, var='masses', doc_pl='masses', 
                        meth_pl='Masses', selstr=('12 <= mass <= 13.5',)),
