@@ -122,7 +122,9 @@ SELECTION_TESTS = {'pdb3mht':
                      ('resnum 100 105', 13),
                      ('resid 0', 0),
                      ('resid 100 105', 13),
-                     ('resid 100 A 105', None),],
+                     ('resid 100 A 105', None),
+                     ('fragindex 0', None),
+                     ('fragment 0', None),],
      'range':       [('index 0:10', 10),
                      ('index 0to10', 11),
                      ('index 0 to 10', 11),
@@ -336,6 +338,11 @@ else:
                      ('bonded 20 to index 0', 64),
                      ('bonded 20 to index 10', 68),
                      ('bonded to index 1000', 0),
+                     ('fragment 0', len(ag)),
+                     ('fragment 1', 0),
+                     ('fragment 0 1 2', len(ag)),
+                     ('fragindex 0 1 2', len(ag)),
+                     ('fragindex 0:2', len(ag)),
                      ],
     }
 
