@@ -37,6 +37,8 @@ __all__ = ['loadAtoms', 'saveAtoms']
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
 
+SKIPSAVE = set(['numbonds', 'fragindices'])
+
 def saveAtoms(atoms, filename=None, **kwargs):
     """Save *atoms* in ProDy internal format.  All atomic classes are accepted 
     as *atoms* argument.  This function saves user set atomic data as well.  
@@ -71,14 +73,17 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bonds'] = bonds
             attr_dict['bmap'] = bmap
             attr_dict['numbonds'] = ag._data['numbonds']
+            frags = ag._data['fragindices']
+            if frags is not None:
+                attr_dict['fragindices'] = frags
         else:
             bonds = trimBonds(bonds, atoms._getIndices())
             attr_dict['bonds'] = bonds
             attr_dict['bmap'], attr_dict['numbonds'] = \
                 evalBonds(bonds, len(atoms))
-        
+    
     for key, data in ag._data.iteritems():
-        if key == 'numbonds':
+        if key in SKIPSAVE:
             continue
         if data is not None:
             attr_dict[key] = data 
@@ -87,8 +92,8 @@ def saveAtoms(atoms, filename=None, **kwargs):
     ostream.close()
     return filename
 
-SKIP = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
-            'coordinates', 'cslabels', 'numbonds'])
+SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
+                'coordinates', 'cslabels', 'numbonds'])
 
 def loadAtoms(filename):
     """Return :class:`AtomGroup` instance from *filename*.  This function makes
@@ -97,7 +102,6 @@ def loadAtoms(filename):
     LOGGER.timeit()
     attr_dict = load(filename)
     files = set(attr_dict.files)
-    # REMOVE support for _coordinates IN v1.0
     if not 'n_atoms' in files:
         raise ValueError("'{0:s}' is not a valid atomic data file"
                          .format(filename))
@@ -114,7 +118,7 @@ def loadAtoms(filename):
         ag._bmap = attr_dict['bmap']
         ag._data['numbonds'] = attr_dict['numbonds']
     for key, data in attr_dict.iteritems():
-        if key in SKIP:
+        if key in SKIPLOAD:
             continue
         if key in ATOMIC_ATTRIBUTES:
             ag._data[key] = data
