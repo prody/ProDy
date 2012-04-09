@@ -236,6 +236,11 @@ ATOMIC_FIELDS = {
                        doc_pl='segment indices', meth_pl='Segindices',
                        selstr=['segindex 0',], readonly=True, 
                        call=['getHierView']),
+    'fragindex':  Field('fragindex', int, var='fragindices', 
+                       doc='fragment index', doc_pl='fragment indices', 
+                       meth_pl='Fragindices', 
+                       selstr=['fragindex 0', 'fragment 1'], 
+                       readonly=True, call=['_fragment'], synonym='fragment')
 }
 
 
