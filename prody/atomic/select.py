@@ -71,6 +71,7 @@ resid [§]        integer, range  same as *resnum*
 resindex [¶]     integer, range  unique index number for distinct residues  
 chindex [¶]      integer, range  unique index number for distinct chains
 segindex [¶]     integer, range  unique index number for distinct segments
+fragindex [\\]   integer, range  unique index number for distinct fragments
 x                float, range    x coordinate
 y                float, range    y coordinate
 z                float, range    z coordinate
@@ -108,6 +109,9 @@ to the residue number. "_" stands for empty insertion code. For example:
 numbers to these entitites are assigned by :class:`~.HierView` class
 upon building of a hierarchical view for an :class:`~.AtomGroup`.
 Note that hierarchical views are build automatically when needed.
+
+**[\\]** Distinct fragments are connected subsets of atoms.  Fragments are 
+determined automatically when needed and bond information is available.
 
 **Strings (with special characters)**
 
@@ -220,7 +224,8 @@ for key, field in ATOMIC_FIELDS.iteritems():
             ALNUM_VALLEN[field.synonym] = itemsize
 
 KEYWORDS_INTEGER = set(['serial', 'index', 'resnum', 'resid', 
-                        'segindex', 'chindex', 'resindex'])
+                        'segindex', 'chindex', 'resindex', 
+                        'fragindex', 'fragment', 'numbonds'])
 KEYWORDS_FLOAT = set(['x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
                       'radius', 'charge'])
 KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
@@ -886,7 +891,7 @@ RESERVED = set(ATOMIC_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
                 'bonded', 'exbonded', 'to'] +
                KEYWORDS_SYNONYMS.keys() + 
                ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
-                'bonds', 'bmap', 'numbonds'])
+                'bonds', 'bmap'])
 
 def isReserved(word):
     return (word in RESERVED or isKeyword(word) or word in FUNCTION_MAP)
@@ -913,7 +918,8 @@ def tkn2str(token):
     else:
         return ' '.join(token)
 
-SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex', 'segment': 'segindex'}
+SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex', 
+              'segment': 'segindex', 'fragment': 'fragindex'}
 
 def expandBoolean(keyword):
     
@@ -1918,6 +1924,7 @@ class Select(object):
         If *values* is not passed, return the attribute array."""
         
         if DEBUG: print('_evalFloat', keyword, values)
+        keyword = KEYWORDS_SYNONYMS.get(keyword, keyword)
         if keyword == 'x':
             data = self._getCoords(sel, loc)[:,0]
         elif keyword == 'y':
@@ -2161,7 +2168,10 @@ class Select(object):
                     return SelectionError(sel, loc, "{0:s} must be a 1d "
                                           "array".format(repr(keyword)))
             else:
-                data = getattr(self._ag, '_get' + field.meth_pl)() 
+                try:
+                    data = getattr(self._ag, '_get' + field.meth_pl)()
+                except Exception as err: 
+                    return SelectionError(sel, loc, str(err))
                 if data is None:
                     return SelectionError(sel, loc, "{0:s} is not set by "
                                           "user".format(repr(keyword)))
