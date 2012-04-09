@@ -28,105 +28,47 @@ class Field(object):
     
     """Atomic data field."""
     
-    __slots__ = ['_name', '_var', '_dtype',  '_doc', '_doc_pl', 
-                 '_meth', '_meth_pl', '_ndim', '_none', '_selstr',
-                 '_depr', '_depr_pl', '_synonym', '_readonly', '_call']
+    __slots__ = ['name', 'var', 'dtype',  'doc', 'doc_pl', 'meth', 'meth_pl', 
+                 'ndim', 'none', 'selstr', 'synonym', 'readonly', 'call', 
+                 'private', 'depr', 'depr_pl']
                  
     def __init__(self, name, dtype, **kwargs):
-        self._name = name
-        self._dtype = dtype
-        self._var = kwargs.get('var', name + 's')
-        self._doc = kwargs.get('doc', name)
-        self._ndim = kwargs.get('ndim', 1)
-        self._meth = kwargs.get('meth', name.capitalize())
-        self._doc_pl = kwargs.get('doc_pl', self._doc + 's')
-        self._meth_pl = kwargs.get('meth_pl', self._meth + 's')
-        self._none = kwargs.get('none')
-        self._selstr = kwargs.get('selstr')
-        self._depr = kwargs.get('depr')
-        if self._depr is None:
-            self._depr_pl = None
-        else:
-            self._depr_pl = kwargs.get('depr_pl', self._depr + 's')
-        self._synonym = kwargs.get('synonym')
-        self._readonly = kwargs.get('readonly', False)
-        self._call = kwargs.get('call', None)
         
-    def name(self):
-        return self._name
-    
-    name = property(name, doc='Data field name used in atom selections.')
-    
-    def var(self):
-        return self._var
-    
-    var = property(var, doc='Internal variable name.')
-    
-    def dtype(self):
-        return self._dtype
-    
-    dtype = property(dtype, doc='Data type (primitive Python types).')
-    
-    def doc(self):
-        return self._doc
-    
-    doc = property(doc, doc='Data field name, as used in documentation.')
-    
-    def doc_pl(self):
-        return self._doc_pl
-    
-    doc_pl = property(doc_pl, doc='Plural form for documentation.')
-    
-    def meth(self):
-        return self._meth
-    
-    meth = property(meth, doc='Atomic get/set method name.')
-    
-    def meth_pl(self):        
-        return self._meth_pl
-    
-    meth_pl = property(meth_pl, doc='get/set method name in plural form.')
-    
-    def ndim(self):
-        return self._ndim
-    
-    ndim = property(ndim, doc='Expected number of data array dimensions.')
-    
-    def none(self):
-        return self._none
-    
-    none = property(none, doc='When to set the value of the variable to None.')
-    
-    def selstr(self):
-        return self._selstr
-    
-    selstr = property(selstr, doc='Selection string examples.')
-    
-    def synonym(self):
-        return self._synonym
-    
-    synonym = property(synonym, doc='Synonym used in atom selections.')
+        #: data field name used in atom selections
+        self.name = name
+        #: data type (primitive Python types)
+        self.dtype = dtype
+        #: internal variable name uses as a key for `AtomGroup._data` dict
+        self.var = kwargs.get('var', name + 's')
+        #: data field name, as used in documentation
+        self.doc = kwargs.get('doc', name)
+        #: plural form for documentation
+        self.doc_pl = kwargs.get('doc_pl', self.doc + 's')
+        #: expected dimension of the data array
+        self.ndim = kwargs.get('ndim', 1)
+        #: atomic get/set method name
+        self.meth = kwargs.get('meth', name.capitalize())
+        #: get/set method name in plural form
+        self.meth_pl = kwargs.get('meth_pl', self.meth + 's')
+        #: AtomGroup attributes to be set None, when `setMethod` is called 
+        self.none = kwargs.get('none')
+        #: list of selection string examples
+        self.selstr = kwargs.get('selstr')
+        #: deprecated method name
+        self.depr = kwargs.get('depr')
+        #: deprecated method name in plural form
+        self.depr_pl = None
+        if self.depr is not None:
+            self.depr_pl = kwargs.get('depr_pl', self.depr + 's')
+        #: synonym used in atom selections
+        self.synonym = kwargs.get('synonym')
+        #: read-only attribute without a set method
+        self.readonly = kwargs.get('readonly', False)
+        #: list of AtomGroup methods to call when `getMethod` is called
+        self.call = kwargs.get('call', None)
+        #: define only _getMethod for AtomGroup to be used by Select class
+        self.private = kwargs.get('private', False)
         
-    def readonly(self):
-        return self._readonly
-    
-    readonly = property(readonly, 
-                        doc='Read-only attribute without a set method.')    
-    def call(self):
-        return self._call
-    
-    call = property(call, doc='List of AtomGroup methods to call.')    
-    
-    def depr(self):
-        return self._depr
-    
-    depr = property(depr, doc='Deprecated method name.')
-    
-    def depr_pl(self):
-        return self._depr_pl
-    
-    depr_pl = property(depr_pl, doc='Deprecated method name in plural form.')
-    
     def getDocstr(self, meth, plural=True, selex=True):
         """Return documentation string for the field."""
         
@@ -240,7 +182,11 @@ ATOMIC_FIELDS = {
                        doc='fragment index', doc_pl='fragment indices', 
                        meth_pl='Fragindices', 
                        selstr=['fragindex 0', 'fragment 1'], 
-                       readonly=True, call=['_fragment'], synonym='fragment')
+                       readonly=True, call=['_fragment'], synonym='fragment'),
+    'numbonds':  Field('numbonds', int, var='numbonds', 
+                       doc='number of bonds', 
+                       selstr=['numbonds 0', 'numbonds 1'], 
+                       readonly=True, private=True)
 }
 
 
