@@ -1191,7 +1191,7 @@ class AtomGroup(Atomic):
             yield Bond(self, bond, acsi)
 
     def numFragments(self):
-        """Return number of disconnected atom subsets."""
+        """Return number of connected atom subsets."""
         
         self._fragment()
         return self._data['fragindices'].max() + 1

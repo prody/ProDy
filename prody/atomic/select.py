@@ -71,7 +71,7 @@ resid [§]        integer, range  same as *resnum*
 resindex [¶]     integer, range  unique index number for distinct residues  
 chindex [¶]      integer, range  unique index number for distinct chains
 segindex [¶]     integer, range  unique index number for distinct segments
-fragindex [\\]   integer, range  unique index number for distinct fragments
+fragindex [\\\\]   integer, range  unique index number for distinct fragments
 x                float, range    x coordinate
 y                float, range    y coordinate
 z                float, range    z coordinate
@@ -110,7 +110,7 @@ numbers to these entitites are assigned by :class:`~.HierView` class
 upon building of a hierarchical view for an :class:`~.AtomGroup`.
 Note that hierarchical views are build automatically when needed.
 
-**[\\]** Distinct fragments are connected subsets of atoms.  Fragments are 
+**[\\\\]** Distinct fragments are connected subsets of atoms.  Fragments are 
 determined automatically when needed and bond information is available.
 
 **Strings (with special characters)**
