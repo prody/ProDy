@@ -33,6 +33,10 @@ class AtomSubsetMeta(type):
     def __init__(cls, name, bases, dict):
 
         for field in ATOMIC_FIELDS.values():
+            
+            if field.private:
+                continue
+
             meth = field.meth_pl
             getMeth = 'get' + meth
             setMeth = 'set' + meth
