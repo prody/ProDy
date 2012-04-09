@@ -260,36 +260,39 @@ class AtomGroupMeta(type):
             setMeth = 'set' + meth
             if field.call:
                 # Define public method for retrieving a copy of data array
-                def getData(self, var=field.var, call=field.call):
-                    for meth in call:
-                        getattr(self, meth)()
-                    array = self._data[var]
-                    return array.copy()
+                if not field.private:
+                    def getData(self, var=field.var, call=field.call):
+                        for meth in call:
+                            getattr(self, meth)()
+                        array = self._data[var]
+                        return array.copy()
                 # Define private method for retrieving actual data array
                 def _getData(self, var=field.var, call=field.call):
                     for meth in call:
                         getattr(self, meth)()
                     return self._data[var]
             else:
-                def getData(self, var=field.var):
-                    array = self._data[var]
-                    if array is None:
-                        return None
-                    return array.copy() 
+                if not field.private:
+                    def getData(self, var=field.var):
+                        array = self._data[var]
+                        if array is None:
+                            return None
+                        return array.copy() 
                 def _getData(self, var=field.var):
                     return self._data[var]
 
-            getData = wrapGetMethod(getData)
-            getData.__name__ = getMeth
-            getData.__doc__ = field.getDocstr('get')
-            setattr(cls, getMeth, getData)
+            if not field.private:
+                getData = wrapGetMethod(getData)
+                getData.__name__ = getMeth
+                getData.__doc__ = field.getDocstr('get')
+                setattr(cls, getMeth, getData)
             
             _getData = wrapGetMethod(_getData)
             _getData.__name__ = '_' + getMeth
             _getData.__doc__ = field.getDocstr('_get')
             setattr(cls, '_' + getMeth, _getData)
             
-            if field.readonly:
+            if field.readonly or field.private:
                 continue
             
             # Define public method for setting values in data array
@@ -1209,7 +1212,8 @@ class AtomGroup(Atomic):
         
         if self._data['fragindices'] is None:
             if self._bmap is None:
-                raise ValueError('bonds are not set')
+                raise ValueError('bonds must be set to determine fragments, '
+                                 'use `setBonds`')
             
             fids = np.zeros(self._n_atoms, int)
             fids.fill(-1)
