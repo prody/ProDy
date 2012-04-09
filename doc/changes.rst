@@ -6,6 +6,18 @@
 Changes
 *******************************************************************************
 
+Release 1.0.2 (in development)
+===============================================================================
+
+**Improvements**:
+
+  * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
+
+**Bugfix**:
+
+  * A problem in building hierarchical views when making selections using
+    *resindex*, *chindex*, and *segindex* keywords is fixed.   
+
 Release 1.0.1 (Apr 6, 2012)
 ===============================================================================
 
