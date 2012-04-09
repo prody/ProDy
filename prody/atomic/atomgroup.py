@@ -233,7 +233,7 @@ from types import NoneType
 import numpy as np
 
 from prody import LOGGER
-from prody.tools import checkCoords
+from prody.tools import checkCoords, Counter
 from prody.KDTree import getKDTree
 
 from atomic import Atomic
@@ -258,27 +258,32 @@ class AtomGroupMeta(type):
             meth = field.meth_pl
             getMeth = 'get' + meth
             setMeth = 'set' + meth
-            # Define public method for retrieving a copy of data array
             if field.call:
+                # Define public method for retrieving a copy of data array
                 def getData(self, var=field.var, call=field.call):
                     for meth in call:
                         getattr(self, meth)()
                     array = self._data[var]
                     return array.copy()
+                # Define private method for retrieving actual data array
+                def _getData(self, var=field.var, call=field.call):
+                    for meth in call:
+                        getattr(self, meth)()
+                    return self._data[var]
             else:
                 def getData(self, var=field.var):
                     array = self._data[var]
                     if array is None:
                         return None
                     return array.copy() 
+                def _getData(self, var=field.var):
+                    return self._data[var]
+
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get')
             setattr(cls, getMeth, getData)
             
-            # Define private method for retrieving actual data array
-            def _getData(self, var=field.var):
-                return self._data[var]
             _getData = wrapGetMethod(_getData)
             _getData.__name__ = '_' + getMeth
             _getData.__doc__ = field.getDocstr('_get')
@@ -913,10 +918,12 @@ class AtomGroup(Atomic):
                 newmol._bonds = bonds.copy()
                 newmol._bmap = bmap.copy()
                 newmol._data['numbonds'] = self._data['numbonds'].copy()
+                newmol._data['fragindices'] = self._data['fragindices'].copy()
             else:
                 bonds = trimBonds(bonds, indices)
                 if bonds is not None:
                     newmol.setBonds(bonds)
+                newmol._data['fragindices'] = None
         return newmol
     
     __copy__ = copy
@@ -1161,6 +1168,7 @@ class AtomGroup(Atomic):
         
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
+        self._data['fragindices'] = None
 
     def numBonds(self):
         """Return number of bonds.  Bonds must be set using :meth:`setBonds`.
@@ -1172,7 +1180,59 @@ class AtomGroup(Atomic):
     def iterBonds(self):
         """Yield bonds.  Bonds must be set using :meth:`setBonds`."""
         
-        if self._bonds is not None:
-            acsi = self._acsi
-            for bond in self._bonds:
-                yield Bond(self, bond, acsi)
+        if self._bonds is None:
+            raise ValueError('bonds are not set')
+        
+        acsi = self._acsi
+        for bond in self._bonds:
+            yield Bond(self, bond, acsi)
+
+    def numFragments(self):
+        """Return number of disconnected atom subsets."""
+        
+        self._fragment()
+        return self._data['fragindices'].max() + 1
+        
+    def iterFragments(self):
+        """Yield connected atom subsets as :class:`.Selection` instances."""
+        
+        self._fragment()
+        frags = self._data['fragindices']
+        if frags is not None:    
+            for i in range(frags.max() + 1):
+                yield Selection(self, (frags==i).nonzero()[0], 'fragment ' + 
+                                str(i), acsi=self._acsi, unique=True)
+    
+    def _fragment(self):
+        """Set unique fragment indices to connected atom subsets using bond 
+        information."""
+        
+        if self._data['fragindices'] is None:
+            if self._bmap is None:
+                raise ValueError('bonds are not set')
+            
+            fids = np.zeros(self._n_atoms, int)
+            fids.fill(-1)
+            cfid = 0
+            bmap = self._bmap
+            for i, fid in enumerate(fids):
+                if fid != -1:
+                    continue
+                indices = set()
+                visited = set()
+                findFragment(i, bmap, indices, visited)
+                fids[list(indices)] = cfid
+                cfid += 1
+            self._data['fragindices'] = fids
+
+def findFragment(i, bmap, indices, visited):
+    
+    indices.add(i)
+    visited.add(i)
+    for other in bmap[i]:
+        if other == -1:
+            return
+        indices.add(other)
+        if other not in visited:
+            findFragment(other, bmap, indices, visited)
+    
