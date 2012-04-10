@@ -35,6 +35,7 @@ def prody_select(opt):
     if pdbselect is None:
         opt.subparser.error('Selection {0:s} do not match any atoms.'
                       .format(repr(opt.selstr)))
+    LOGGER.info('{0:d} atoms are selected.'.format(len(pdbselect)))
     LOGGER.info('Writing ' + prefix + '.pdb')
     prody.writePDB(prefix + '.pdb', pdbselect)
 
