@@ -483,7 +483,8 @@ class HierView(object):
                 chids = chids[_indices]
             if _segments is None:
                 if len(np.unique(chids)) == 1:
-                    chain = Chain(ag, _indices, acsi=acsi, unique=True)
+                    chain = Chain(ag, _indices, acsi=acsi, unique=True,
+                                  selstr=selstr)
                     _dict[(None, chids[0] or None)] = chain
                     _chains.append(chain)
                 else:
@@ -494,7 +495,8 @@ class HierView(object):
                         pc = c
                         chindex += 1
                         idx = _indices[i:][chids[i:] == c]
-                        chain = Chain(ag, idx, acsi=acsi, unique=True)
+                        chain = Chain(ag, idx, acsi=acsi, unique=True,
+                                      selstr=selstr)
                         chindices[idx] = chindex
                         _dict[(None, c)] = chain
                         _chains.append(chain)
@@ -513,7 +515,7 @@ class HierView(object):
                         chindex += 1
                         idx = _indices[_i:i]
                         chain = Chain(ag, idx, acsi=acsi, segment=segment, 
-                                       unique=True)
+                                       unique=True, selstr=selstr)
                         chindices[idx] = chindex
                         _dict[s_c] = chain
                         segment._dict[pc] = len(segment._list)
@@ -534,7 +536,7 @@ class HierView(object):
                     chindex += 1
                     chindices[idx] = chindex
                     chain = Chain(ag, idx, acsi=acsi, segment=segment, 
-                                   unique=True)
+                                   unique=True, selstr=selstr)
                     _dict[s_c] = chain
                     segment._dict[pc] = len(segment._list)
                     segment._list.append(chain)
