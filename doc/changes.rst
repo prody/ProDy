@@ -23,7 +23,7 @@ Release 1.0.2 (in development)
     :func:`.confProDy` for usage details. 
 
   * :program:`prody align` makes use of :option:`--select` when aligning 
-    multiple structures. See usage examples: :ref:`prody_align`
+    multiple structures. See usage examples: :ref:`prody-align`
 
 **Improvements**:
 
