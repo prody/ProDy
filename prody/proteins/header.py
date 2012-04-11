@@ -840,14 +840,16 @@ mapHelix = {
 }
 
 def assignSecstr(header, atoms, coil=False):
-    """Assign secondary structure from *header* dictionary to *atoms*.
-
+    """Assign secondary structure from *header* dictionary to *atoms*. 
     *header* must be a dictionary parsed using the :func:`~.parsePDB`.  
-    *atoms* may be an instance of :class:`~.AtomGroup`, 
-    :class:`~.Selection`, :class:`~.Chain` or :class:`~.Residue`. 
+    *atoms* may be an instance of :class:`.AtomGroup`, :class:`.Selection`, 
+    :class:`.Chain` or :class:`.Residue`.  ProDy can be configured to
+    automatically parse and assign secondary structure information using
+    ``confProDy(auto_secondary=True)`` command.  See also :func:`.confProDy` 
+    function.
 
     The Dictionary of Protein Secondary Structure, in short DSSP, type 
-    single letter codes assignments are used:     
+    single letter code assignments are used:     
     
       * **G** = 3-turn helix (310 helix). Min length 3 residues.
       * **H** = 4-turn helix (alpha helix). Min length 4 residues.

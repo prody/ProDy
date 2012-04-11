@@ -47,6 +47,7 @@ CONFIGURATION = {
     'ligand_xml_save': False,
     'typo_warnings': True,
     'check_updates': 0,
+    'auto_secondary': False,
 }
 
 from datetime import date

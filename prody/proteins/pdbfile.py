@@ -31,15 +31,13 @@ from prody.atomic import Atomic, Atom, AtomGroup
 from prody.atomic import getBackboneAtomNames, getKeywordResnames 
 from prody.atomic import ATOMIC_FIELDS
 from prody.tools import openFile
+from prody import LOGGER, SETTINGS
 
 from wwpdbftp import fetchPDB
 from header import getHeaderDict, buildBiomolecules, assignSecstr
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',
            'writePDBStream', 'writePDB',]
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class PDBParseError(Exception):    
     pass
@@ -181,7 +179,8 @@ def parsePDBStream(stream, **kwargs):
         n_csets = 0
     
     biomol = kwargs.get('biomol', False)
-    secondary = kwargs.get('secondary', False)
+    auto_secondary = SETTINGS.get('auto_secondary')
+    secondary = kwargs.get('secondary', auto_secondary)
     split = 0
     hd = None
     if model != 0:
@@ -202,7 +201,13 @@ def parsePDBStream(stream, **kwargs):
         hd, split = getHeaderDict(stream)
 
     if secondary:
-        ag = assignSecstr(hd, ag)
+        if auto_secondary:
+            try:
+                ag = assignSecstr(hd, ag)
+            except ValueError:
+                pass
+        else:
+            ag = assignSecstr(hd, ag)
     if biomol:
         ag = buildBiomolecules(hd, ag)
 
@@ -793,6 +798,11 @@ def writePDBStream(stream, atoms, model=None):
     if segments is None:
         segments = np.zeros(n_atoms, '|S6')
     
+    if isinstance(atoms, AtomGroup):
+        stream.write('REMARK {0:s}\n'.format(atoms.getTitle()))
+    else:
+        stream.write('REMARK {0:s}\n'.format(str(atoms)))
+        
     acsi = atoms.getACSIndex()
     multi = False
     if len(model) > 1:
