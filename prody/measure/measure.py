@@ -262,18 +262,23 @@ def getCenter(coords, weights=None):
         return (coords * weights).mean(0) / weights.sum()
 
 def pickCentral(atoms, weights=None):
-    """Return :class:`.Atom` that is closest to the center."""
+    """Return :class:`.Atom` that is closest to the center, which is calculated
+    using :func:`calcCenter`."""
         
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance')
     if isinstance(atoms, Atom):
         return atoms
-    elif isinstance(atoms, AtomGroup):
+    if isinstance(atoms, AtomGroup):
         ag = atoms
     else:
         ag = atoms.getAtomGroup()
-    center = calcCenter(atoms, weights)
-    index = ((atoms._getCoords() - center)**2).sum(1).argmin()
+    if len(atoms) == 1:
+        index = atoms._getIndices()[0]
+    else:
+        center = calcCenter(atoms, weights)
+        index = atoms._getIndices()[
+                    ((atoms._getCoords() - center)**2).sum(1).argmin()]
     return Atom(ag, index, atoms.getACSIndex())
 
 def calcGyradius(atoms, weights=None):
