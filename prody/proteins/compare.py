@@ -298,13 +298,13 @@ def matchAlign(mobile, target, **kwargs):
       * percent sequence identity of the match,
       * percent sequence overlap of the match.
       
-    :arg mobile: atoms that contain a chain
+    :arg mobile: atoms that contain a protein chain
     :type mobile: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
     
-    :arg target: atoms that contain a chain
+    :arg target: atoms that contain a protein chain
     :type target: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
      
-    :arg selstr: target atom selection that will be used for aligning,
+    :arg selstr: target atom selection that will be used for alignment,
         default is ``'calpha'``
     :type selstr: str
      
@@ -336,7 +336,7 @@ def matchAlign(mobile, target, **kwargs):
     tar = match[1]
     if selstr:
         which = SELECT.getIndices(tar, selstr)
-        LOGGER.info('Aligning is based on {0:d} atoms matching {1:s}.'
+        LOGGER.info('Alignment is based on {0:d} atoms matching {1:s}.'
                     .format(len(which), repr(selstr)))
     else:
         which = slice(None)
