@@ -13,7 +13,7 @@ Running :command:`prody catdcd -h` displays::
 
   usage: prody catdcd [-h] [--quiet] [--examples] [-s SELSTR] [-o FILENAME] [-n]
                       [--psf PSF | --pdb PDB] [--first INT] [--last INT]
-                      [--stride INT]
+                      [--stride INT] [--align SELSTR]
                       dcd [dcd ...]
   
   positional arguments:
@@ -26,7 +26,7 @@ Running :command:`prody catdcd -h` displays::
     -s SELSTR, --select SELSTR
                           atom selection (default: "all")
     -o FILENAME, --output FILENAME
-                          output filename (default: trajectory.dcd)
+                          output filename (default: "trajectory.dcd")
     -n, --num             print the number of frames in each file and exit
     --psf PSF             PSF filename (must have same number of atoms as DCDs)
     --pdb PDB             PDB filename (must have same number of atoms as DCDs)
@@ -36,6 +36,8 @@ Running :command:`prody catdcd -h` displays::
                           (default: -1, last frame)
     --stride INT          number of frames to skip when writing (default: 1,
                           skip none)
+    --align SELSTR        atom selection for aligning frames, one of PSF or PDB
+                          files must be provided
 
 Examples
 ===============================================================================

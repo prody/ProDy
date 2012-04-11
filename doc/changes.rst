@@ -9,6 +9,22 @@ Changes
 Release 1.0.2 (in development)
 ===============================================================================
 
+**New Features**:
+ 
+  * Methods to deal with connected subsets of atoms are implemented, see
+    :meth:`.AtomGroup.iterFragments` and :meth:`.AtomGroup.numFragments`.
+    
+  * :func:`.pickCentral` method is implemented for picking the atom that
+    is closest to the centroid of a group or subset of atoms.
+    
+  * ProDy configuration option :keyword:`auto_secondary` is implemented to 
+    allow for parsing and assigning secondary structure information from PDB
+    file header data automatically.  See :func:`.assignSecstr` and 
+    :func:`.confProDy` for usage details. 
+
+  * :program:`prody align` makes use of :option:`--select` when aligning 
+    multiple structures. See usage examples: :ref:`prody_align`
+
 **Improvements**:
 
   * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
@@ -16,7 +32,11 @@ Release 1.0.2 (in development)
 **Bugfix**:
 
   * A problem in building hierarchical views when making selections using
-    *resindex*, *chindex*, and *segindex* keywords is fixed.   
+    *resindex*, *chindex*, and *segindex* keywords is fixed.  
+
+  * A problem in :class:`.Chain` and :class:`.Residue` selection strings 
+    that would emerge when a :class:`.HierView` is build using a selection
+    is fixed.
 
 Release 1.0.1 (Apr 6, 2012)
 ===============================================================================
