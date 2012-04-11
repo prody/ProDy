@@ -31,6 +31,7 @@ from prody.atomic import AAMAP
 from prody.atomic import getKeywordResnames
 from prody.measure import calcTransformation, calcRMSD
 from prody.tools import which
+from prody import LOGGER, SELECT
 
 __all__ = ['matchChains',
            'matchAlign',
@@ -40,10 +41,6 @@ __all__ = ['matchChains',
            'getGapPenalty', 'setGapPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
            'getAlignmentMethod', 'setAlignmentMethod']
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-
 
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
@@ -191,13 +188,11 @@ class SimpleChain(object):
         """Initialize SimpleChain with a chain id and a sequence (available).
         
         :arg chain: chain instance or single-letter amino acid sequence  
-        :type chain: :class:`~.Chain` or str
+        :type chain: str, :class:`.Chain` 
         
         :arg allow_gaps: allow gaps in the sequence of simple chain instance, 
             default is False  
-        :type allow_gaps: bool
-        
-        """
+        :type allow_gaps: bool"""
         
         self._dict = dict()
         self._list = list()
@@ -244,9 +239,8 @@ class SimpleChain(object):
         
         Examples of *resnums* are:
             
-            * 1:200 250:300
+            * 1:200 250:300"""
             
-        """
         assert isinstance(sequence, str), 'sequence must be string'
         assert sequence.isalpha(), 'sequence must be all alpha'
 
@@ -265,7 +259,7 @@ class SimpleChain(object):
                 self._seq += aa
     
     def buildFromChain(self, chain):
-        """Build from a :class:`~.Chain`."""
+        """Build from a :class:`.Chain`."""
         
         assert isinstance(chain, Chain), 'chain must be a Chain instance'
         gaps = self._gaps
@@ -299,18 +293,20 @@ def matchAlign(mobile, target, **kwargs):
     tuple that contains the following items:
       
       * *mobile* after it is superposed,
-      * Matching chain from *mobile* as a :class:`~.AtomMap` 
-        instance, 
-      * Matching chain from *target* as a :class:`~.AtomMap` 
-        instance,
-      * Percent sequence identity of the match,
-      * Percent sequence overlap of the match.
+      * matching chain from *mobile* as a :class:`.AtomMap` instance, 
+      * matching chain from *target* as a :class:`.AtomMap` instance,
+      * percent sequence identity of the match,
+      * percent sequence overlap of the match.
       
-    :arg atoms1: atoms that contain a chain
-    :type atoms1: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
+    :arg mobile: atoms that contain a chain
+    :type mobile: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
     
-    :arg atoms2: atoms that contain a chain
-    :type atoms2: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
+    :arg target: atoms that contain a chain
+    :type target: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
+     
+    :arg selstr: target atom selection that will be used for aligning,
+        default is ``'calpha'``
+    :type selstr: str
      
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
@@ -321,43 +317,62 @@ def matchAlign(mobile, target, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool"""
     
-    match = matchChains(mobile, target, **kwargs)
+    selstr = kwargs.pop('selstr', 'calpha')
+    if selstr:
+        sel = target.select(selstr)
+        if sel is None:
+            raise ValueError('selection {0:s} did not match any atoms'
+                             .format(repr(selstr)))
+        chid = set(sel.getChids())
+        if len(chid) == 1:
+            chid = chid.pop()
+            target = target.select('chain ' + chid)
+    
+    match = matchChains(mobile, target, subset='all', **kwargs)
     if not match:
         return
     match = match[0]
+    mob = match[0]
+    tar = match[1]
+    if selstr:
+        which = SELECT.getIndices(tar, selstr)
+        LOGGER.info('Aligning is based on {0:d} atoms matching {1:s}.'
+                    .format(len(which), repr(selstr)))
+    else:
+        which = slice(None)
     LOGGER.info('RMSD before alignment (A): {0:.2f}'
-                .format(calcRMSD(match[0], match[1])))
-    calcTransformation(match[0], match[1]).apply(mobile)
+                .format(calcRMSD(mob._getCoords()[which], 
+                                 tar._getCoords()[which])))
+    calcTransformation(mob._getCoords()[which], 
+                       tar._getCoords()[which]).apply(mobile)
     LOGGER.info('RMSD after alignment  (A): {0:.2f}'
-                .format(calcRMSD(match[0], match[1])))
+                .format(calcRMSD(mob._getCoords()[which], 
+                                 tar._getCoords()[which])))
     return (mobile,) + match
 
 def matchChains(atoms1, atoms2, **kwargs):
-    """Return pairs of chains matched based on sequence similarity.
-    
-    Makes an all-to-all comparison of chains in *atoms1* and *atoms2*. Chains
-    are obtained from hierarchical views (:class:`~.HierView`) of 
-    atom groups.  
-    
-    This function returns a list of matches. Each match is a tuple
-    that contains 4 items:
+    """Return pairs of chains matched based on sequence similarity.  Makes an 
+    all-to-all comparison of chains in *atoms1* and *atoms2*.  Chains are 
+    obtained from hierarchical views (:class:`.HierView`) of atom groups.  
+    This function returns a list of matching chains in a tuples that contain
+    4 items:
 
-      * Matching chain from *atoms1* as a :class:`~.AtomMap` 
+      * matching chain from *atoms1* as a :class:`.AtomMap` 
         instance, 
-      * Matching chain from *atoms2* as a :class:`~.AtomMap` 
+      * matching chain from *atoms2* as a :class:`.AtomMap` 
         instance,
-      * Percent sequence identity of the match,
-      * Percent sequence overlap of the match.
+      * percent sequence identity of the match,
+      * percent sequence overlap of the match.
     
     List of matches are sorted in decreasing percent sequence identity order. 
-    AtomMap instances can be used to calculate RMSD values and superpose atom 
-    groups.
+    :class:`.AtomMap` instances can be used to calculate RMSD values and 
+    superpose atom groups.
     
     :arg atoms1: atoms that contain a chain
-    :type atoms1: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
+    :type atoms1: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
     
     :arg atoms2: atoms that contain a chain
-    :type atoms2: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
+    :type atoms2: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
     
     :keyword subset: ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``), 
         or ``"all"``, default is ``"calpha"``
@@ -376,16 +391,13 @@ def matchChains(atoms1, atoms2, **kwargs):
     atoms or backbone atoms will be paired. If set to *all*, all atoms
     common to matched residues will be returned.
     
-    This function tries to match chains based on residue numbers and names. 
-    All chains in *atoms1* is compared to all chains in *atoms2*. 
-    This works well for different structures of the same
-    protein. When it fails, :mod:`Bio.pairwise2` is used for pairwise sequence
-    alignment, and matching is performed based on the sequence alignment.
-    User can control, whether sequence alignment is performed or not with
-    *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is 
-    enforced.
-    
-    """
+    This function tries to match chains based on residue numbers and names.  
+    All chains in *atoms1* is compared to all chains in *atoms2*.  This works 
+    well for different structures of the same protein.  When it fails, 
+    :mod:`Bio.pairwise2` is used for pairwise sequence alignment, and matching 
+    is performed based on the sequence alignment.  User can control, whether 
+    sequence alignment is performed or not with *pwalign* keyword.  If 
+    ``pwalign=True`` is passed, pairwise alignment is enforced."""
     
     if not isinstance(atoms1, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms1 must be an AtomGroup, Chain, or Selection')
@@ -442,7 +454,7 @@ def matchChains(atoms1, atoms2, **kwargs):
 
     matches = []
     unmatched = []
-    LOGGER.debug('Trying to match chains based on residue numbers and identities:')
+    LOGGER.debug('Trying to match chains based on residue numbers and names:')
     for simpch1 in chains1:
         for simpch2 in chains2:
             LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} (len={3:d}):'
@@ -454,11 +466,13 @@ def matchChains(atoms1, atoms2, **kwargs):
             _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
 
             if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% sequence identity and {2:.0f}% overlap.'
+                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% '
+                             'sequence identity and {2:.0f}% overlap.'
                             .format(len(match1), _seqid, _cover))
                 matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
             else:
-                LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, cover={1:.0f}%).'.format(_seqid, _cover))
+                LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                             'overlap={1:.0f}%).'.format(_seqid, _cover))
                 unmatched.append((simpch1, simpch2))
             
 
@@ -479,10 +493,11 @@ def matchChains(atoms1, atoms2, **kwargs):
                     LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% '
                                  'sequence identity and {2:.0f}% overlap.'
                                  .format(len(match1), _seqid, _cover))
-                    matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
+                    matches.append((match1, match2, _seqid, _cover, 
+                                    simpch1, simpch2))
                 else:
                     LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                 'cover={1:.0f}%).'
+                                 'overlap={1:.0f}%).'
                                  .format(_seqid, _cover))
         else:
             LOGGER.warning('Pairwise alignment could not be performed.')
@@ -582,7 +597,6 @@ def getTrivialMatch(ach, bch):
     
 def getAlignedMatch(ach, bch):
     """Return list of matching residues (match is based on sequence alignment).
-    
     """
     
     pairwise2 = importBioPairwise2()
@@ -621,25 +635,23 @@ def getAlignedMatch(ach, bch):
     return amatch, bmatch, match
 
 def mapOntoChain(atoms, chain, **kwargs):
-    """Map *atoms* onto *chain*. 
-    
-    This function returns a list of mappings. Each mapping is a tuple
-    that contains 4 items:
+    """Map *atoms* onto *chain*.  This function returns a list of mappings. 
+    Each mapping is a tuple that contains 4 items:
 
-      * Mapped chain as an :class:`~.AtomMap` instance, 
-      * *chain* as an :class:`~.AtomMap` instance,
+      * Mapped chain as an :class:`.AtomMap` instance, 
+      * *chain* as an :class:`.AtomMap` instance,
       * Percent sequence identitity,
       * Percent sequence overlap
          
     Mappings are returned in decreasing percent sequence identity order.
-    AtomMap that keeps mapped atom indices contains dummy atoms in place of 
-    unmapped atoms.
+    :class:`.AtomMap` that keeps mapped atom indices contains dummy atoms 
+    in place of unmapped atoms.
     
     :arg atoms: atoms that will be mapped to the target *chain*
-    :type atoms: :class:`~.Chain`, :class:`~.AtomGroup`, :class:`~.Selection`
+    :type atoms: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
     
     :arg chain: chain to which atoms will be mapped
-    :type chain: :class:`~.Chain`
+    :type chain: :class:`.Chain`
     
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
@@ -731,7 +743,7 @@ def mapOntoChain(atoms, chain, **kwargs):
             mappings.append((target_list, chain_list, _seqid, _cover))
         else:
             LOGGER.debug('\tFailed to match chains based on residue numbers '
-                         '(seqid={0:.0f}%, cover={1:.0f}%).'
+                         '(seqid={0:.0f}%, overlap={1:.0f}%).'
                         .format(_seqid, _cover))
             unmapped.append(simple_chain)
 
@@ -760,7 +772,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                     mappings.append((target_list, chain_list, _seqid, _cover))
                 else:
                     LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                 'cover={1:.0f}%).'
+                                 'overlap={1:.0f}%).'
                                  .format(_seqid, _cover))
     
     for mi, result in enumerate(mappings):

@@ -64,7 +64,8 @@ def prody_align(opt):
             if '_aligned.pdb' in arg:
                 continue
             pdb = prody.parsePDB(arg)
-            result = prody.matchAlign(pdb, ref, seqid=seqid, overlap=overlap) 
+            result = prody.matchAlign(pdb, ref, seqid=seqid, 
+                                      overlap=overlap, selstr=opt.select) 
             if result:
                 if pdb.numCoordsets() > 1:
                     LOGGER.info('Aligning all models in: ' + pdb.getTitle())
