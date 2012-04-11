@@ -318,7 +318,14 @@ def matchAlign(mobile, target, **kwargs):
     :type pwalign: bool"""
     
     selstr = kwargs.pop('selstr', 'calpha')
+    if selstr == 'calpha':
+        selstr = None
+    subset = 'calpha'
     if selstr:
+        if selstr in _SUBSETS:
+            subset = selstr
+        else: 
+            subset = 'all'
         sel = target.select(selstr)
         if sel is None:
             raise ValueError('selection {0:s} did not match any atoms'
@@ -328,7 +335,7 @@ def matchAlign(mobile, target, **kwargs):
             chid = chid.pop()
             target = target.select('chain ' + chid)
     
-    match = matchChains(mobile, target, subset='all', **kwargs)
+    match = matchChains(mobile, target, subset=subset, **kwargs)
     if not match:
         return
     match = match[0]
@@ -336,10 +343,13 @@ def matchAlign(mobile, target, **kwargs):
     tar = match[1]
     if selstr:
         which = SELECT.getIndices(tar, selstr)
-        LOGGER.info('Alignment is based on {0:d} atoms matching {1:s}.'
-                    .format(len(which), repr(selstr)))
+        n_atoms = len(which)
     else:
         which = slice(None)
+        n_atoms = len(tar)
+        selstr = 'calpha'
+    LOGGER.info('Alignment is based on {0:d} atoms matching {1:s}.'
+                .format(n_atoms, repr(selstr)))
     LOGGER.info('RMSD before alignment (A): {0:.2f}'
                 .format(calcRMSD(mob._getCoords()[which], 
                                  tar._getCoords()[which])))
