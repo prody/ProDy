@@ -68,7 +68,7 @@ SOURCE
 EMAILING LIST
 -------------
 
-* http://groups.google.com/group/prody-dev
+* http://groups.google.com/group/prody-news
 
 REPORT ISSUES
 -------------
