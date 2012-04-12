@@ -304,10 +304,13 @@ def matchAlign(mobile, target, **kwargs):
     :arg target: atoms that contain a protein chain
     :type target: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
      
-    :arg selstr: target atom selection that will be used for alignment,
+    :arg tarsel: *target* atoms that will be used for alignment,
         default is ``'calpha'``
-    :type selstr: str
+    :type tarsel: str
      
+    :arg allcsets: align all coordinate sets of *mobile*, default is **True**
+    :type allcsets: bool
+
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
 
@@ -317,7 +320,7 @@ def matchAlign(mobile, target, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment 
     :type pwalign: bool"""
     
-    selstr = kwargs.pop('selstr', 'calpha')
+    selstr = kwargs.pop('tarsel', 'calpha')
     if selstr == 'calpha':
         selstr = None
     subset = 'calpha'
@@ -348,16 +351,30 @@ def matchAlign(mobile, target, **kwargs):
         which = slice(None)
         n_atoms = len(tar)
         selstr = 'calpha'
+    
+    if kwargs.get('allcets', True):
+        cslabel = kwargs.get('cslabel', 'Coordinate set')
+        csincr = kwargs.get('csincr', 0)
+        indent = (lambda acsi, cslabel=cslabel, csincr=csincr:
+                  '  {0:s} {1:d}: '.format(cslabel, acsi + csincr))
+        csets = range(mobile.numCoordsets())
+    else:
+        indent = lambda acsi: ''
+        csets = [mobile.getACSIndex()]
+    
     LOGGER.info('Alignment is based on {0:d} atoms matching {1:s}.'
                 .format(n_atoms, repr(selstr)))
-    LOGGER.info('RMSD before alignment (A): {0:.2f}'
-                .format(calcRMSD(mob._getCoords()[which], 
-                                 tar._getCoords()[which])))
-    calcTransformation(mob._getCoords()[which], 
-                       tar._getCoords()[which]).apply(mobile)
-    LOGGER.info('RMSD after alignment  (A): {0:.2f}'
-                .format(calcRMSD(mob._getCoords()[which], 
-                                 tar._getCoords()[which])))
+    for acsi in csets:
+        mob.setACSIndex(acsi)
+        mobile.setACSIndex(acsi)
+        LOGGER.info(indent(acsi) + 'RMSD before alignment (A): {0:.2f}'
+                    .format(calcRMSD(mob._getCoords()[which], 
+                                     tar._getCoords()[which])))
+        calcTransformation(mob._getCoords()[which], 
+                           tar._getCoords()[which]).apply(mobile)
+        LOGGER.info(indent(acsi) + 'RMSD after alignment  (A): {0:.2f}'
+                    .format(calcRMSD(mob._getCoords()[which], 
+                                     tar._getCoords()[which])))
     return (mobile,) + match
 
 def matchChains(atoms1, atoms2, **kwargs):
