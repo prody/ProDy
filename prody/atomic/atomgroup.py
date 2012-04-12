@@ -233,7 +233,7 @@ from types import NoneType
 import numpy as np
 
 from prody import LOGGER
-from prody.tools import checkCoords, Counter
+from prody.tools import checkCoords
 from prody.KDTree import getKDTree
 
 from atomic import Atomic
