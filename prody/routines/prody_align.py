@@ -64,15 +64,10 @@ def prody_align(opt):
             if '_aligned.pdb' in arg:
                 continue
             pdb = prody.parsePDB(arg)
-            result = prody.matchAlign(pdb, ref, seqid=seqid, 
-                                      overlap=overlap, selstr=opt.select) 
+            result = prody.matchAlign(pdb, ref, seqid=seqid, overlap=overlap, 
+                                      tarsel=opt.select, allcsets=True,
+                                      cslabel='Model', csincr=1) 
             if result:
-                if pdb.numCoordsets() > 1:
-                    LOGGER.info('Aligning all models in: ' + pdb.getTitle())
-                    pdb, mobile, target, _, _ = result
-                    for i in range(1, pdb.numCoordsets()):
-                        mobile.setACSIndex(i)
-                        prody.superpose(mobile, target)
                 outfn = pdb.getTitle() + '_aligned.pdb'
                 LOGGER.info('Writing file: ' + outfn)
                 prody.writePDB(outfn, pdb)
@@ -96,19 +91,23 @@ aligned coordinate sets.  When multiple structures are aligned, ProDy will \
 match chains based on sequence alignment and use best match for aligning the \
 structures.
 
-Fetch PDB structure 2k39 and align models:
+Fetch PDB structure 2k39 and align models (reference model is the first model):
     
     $ prody align 2k39
     
 Fetch PDB structure 2k39 and align models using backbone of residues with \
-number smaller than 71:
+number less than 71:
 
     $ prody align 2k39 --select "backbone and resnum < 71" 
     
-Fetch PDB structures 1p38, 1r39 and 1zz2 and superpose 1r39 and 1zz2 onto \
-1p38 using residues with number smaller than 300:
+Align 1r39 and 1zz2 onto 1p38 using residues with number less than 300:
 
-    $ prody align --select "resnum < 300" 1p38 1r39 1zz2"""
+    $ prody align --select "resnum < 300" 1p38 1r39 1zz2
+    
+Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
+
+    $ prody align --select "resnum 1 to 70" 1aar 2k39.pdb 
+    """
     )
         
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 
