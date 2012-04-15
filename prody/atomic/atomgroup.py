@@ -331,11 +331,11 @@ class AtomGroup(Atomic):
     the atom group is inferred at the first set method call from the size of 
     the data array. 
 
-    **Atomic Data**
+    **Atomic data**
     
     All atomic data is stored in :class:`numpy.ndarray` instances.
 
-    **Get and Set Methods**
+    **Get and set methods**
     
     *get* methods, e.g. :meth:`getResnames`, return copies of the data arrays. 
     
@@ -344,15 +344,21 @@ class AtomGroup(Atomic):
     match the number of atoms in the atom group.  These methods set attributes 
     of all atoms at once.
     
+    **Coordinate sets**
+    
     Atom groups with multiple coordinate sets may have one of these sets as 
     the *active coordinate set*.  The active coordinate set may be changed 
     using :meth:`setACSIndex()` method.  :meth:`getCoords` returns coordinates
     from the *active set*.
     
+    **Coordinate sets**
+    
     To access and modify data associated with a subset of atoms in an atom 
-    group, :class:`~.Selection` instances may be used.  A selection from an 
-    atom group has initially the same coordinate set as the *active coordinate 
-    set*.
+    group, :class:`~.Selection` instances may be used.  A :class:`~.Selection` 
+    has initially the same coordinate set as the *active coordinate set*, but 
+    it may be changed using :meth:`~.Selection.setACSIndex()` method.
+    
+    **Customizations**
     
     Following built-in functions are customized for this class:
     
@@ -370,7 +376,16 @@ class AtomGroup(Atomic):
          - *[segment name,] chain identifier, residue number[, insertion code]* 
            (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
            ``"PROT", "A", 10, "B"``, returns a :class:`~.Residue`
-    """
+    
+    *Addition*
+        
+    Addition of two :class:`AtomGroup`, let's say *A* and *B*, instances 
+    results in a new :class:`AtomGroup` instance, say *C*.  *C* stores an 
+    independent copy of the data of *A* and *B*.  If *A* or *B* is missing
+    a certain data type, that zero values will be used for that part in *C*.
+    If *A* and *B* has same number of coordinate sets, *C* will have a copy
+    of all coordinate sets, otherwise *C* will have a single coordinate set,
+    which is a copy of of active coordinate sets of *A* and *B*."""
     
     __metaclass__ = AtomGroupMeta
     
@@ -464,16 +479,20 @@ class AtomGroup(Atomic):
                                            repr(type(other).__name__)))
                                                        
         new = AtomGroup(self._title + ' + ' + other._title)
-        n_csets = self._n_csets
-        if n_csets != other._n_csets:
-            LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same '
-                           'number of coordinate sets.  First from both '
-                           'AtomGroups will be merged.'
-              .format(str(self._title), str(other._title), n_csets))
-            n_csets = 1
-        coordset_range = range(n_csets)
-        new.setCoords(np.concatenate((self._coords[coordset_range],
-                                      other._coords[coordset_range]), 1))
+        if self._n_csets:
+            if self._n_csets == other._n_csets:
+                new.setCoords(np.concatenate((self._coords, other._coords), 1))
+                if self._n_csets > 1:
+                    LOGGER.info('All {0:d} coordinate sets are copied to '
+                                '{1:s}.'.format(self._n_csets, new.getTitle()))
+            else:
+                new.setCoords(np.concatenate((self._getCoords(), 
+                                              other._getCoords())))
+                LOGGER.info('Active coordinate sets are copied to {0:s}.'
+                            .format(new.getTitle()))
+        elif other._n_csets:
+            LOGGER.warn('No coordinate sets are copied to {0:s}'
+                        .format(new.getTitle()))
         
         for key in set(self._data.keys() + other._data.keys()):
             if key in ATOMIC_ATTRIBUTES and \
