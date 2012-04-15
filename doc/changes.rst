@@ -24,6 +24,9 @@ Release 1.0.2 (in development)
 
   * :program:`prody align` makes use of :option:`--select` when aligning 
     multiple structures. See usage examples: :ref:`prody-align`
+    
+  * :func:`.printRMSD` function that prints minimum, maximum, and mean RMSD
+    values when comparing multiple coordinate sets is implemented.
 
 **Improvements**:
 
