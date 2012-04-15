@@ -464,13 +464,14 @@ class AtomGroup(Atomic):
                                            repr(type(other).__name__)))
                                                        
         new = AtomGroup(self._title + ' + ' + other._title)
-        n_csets = self._n_csets
-        if n_csets != other._n_csets:
+        if self._n_csets != other._n_csets:
+
+            n_csets = min(self._n_csets, other._n_csets)
             LOGGER.warning('AtomGroups {0:s} and {1:s} do not have same '
-                           'number of coordinate sets.  First from both '
+                           'number of coordinate sets.  First {2:d} {3:s} from both '
                            'AtomGroups will be merged.'
-              .format(str(self._title), str(other._title), n_csets))
-            n_csets = 1
+              .format(str(self._title), str(other._title), n_csets, "sets" if n_csets > 1 else "set"))
+
         coordset_range = range(n_csets)
         new.setCoords(np.concatenate((self._coords[coordset_range],
                                       other._coords[coordset_range]), 1))
