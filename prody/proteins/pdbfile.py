@@ -43,49 +43,48 @@ class PDBParseError(Exception):
     pass
     
 _parsePQRdoc = """
-    :arg title: Title of the AtomGroup instance.  When ``None`` is passed,
-        AtomGroup is named after the PDB filename.  
+    :arg title: title of the :class:`.AtomGroup` instance, default is the 
+        PDB filename or PDB identifier  
     :type title: str
     
-    :arg ag: :class:`~.AtomGroup` instance for storing data parsed 
-        from PDB file.  Number of atoms in *ag* and number of atoms parsed from
-        the PDB file must be the same.  Atoms in *ag* and the PDB file must be 
-        in the same order.  Non-coordinate data stored in *ag* will be 
+    :arg ag: :class:`.AtomGroup` instance for storing data parsed from PDB 
+        file, number of atoms in *ag* and number of atoms parsed from the PDB 
+        file must be the same and atoms in *ag* and those in PDB file must 
+        be in the same order.  Non-coordinate data stored in *ag* will be 
         overwritten with those parsed from the file. 
-    :type ag: :class:`~.AtomGroup`
+    :type ag: :class:`.AtomGroup`
 
-    :arg chain: Chain identifiers for parsing specific chains, e.g. 
-        ``chain='A'``, ``chain='B'``, ``chain='DE'``. By default all chains
-        are parsed.        
+    :arg chain: chain identifiers for parsing specific chains, e.g. 
+        ``chain='A'``, ``chain='B'``, ``chain='DE'``, by default all 
+        chains are parsed        
     :type chain: str
 
-    :arg subset: A predefined keyword to parse subset of atoms.
-        Valid keywords are ``"calpha"`` (``"ca"``) or ``"backbone"`` 
-        (``"bb"``), or ``None`` (read all atoms), e.g. ``subset='bb'``
+    :arg subset: a predefined keyword to parse subset of atoms, valid keywords 
+        are ``"calpha"`` (``"ca"``) or ``"backbone"`` (``"bb"``), or **None** 
+        (read all atoms), e.g. ``subset='bb'``
     :type subset: str
 """
 
 _parsePDBdoc = _parsePQRdoc + """
-    :arg model: model index or None (read all models), 
-        e.g. ``model=10``
+    :arg model: model index or None (read all models), e.g. ``model=10``
     :type model: int, list
 
-    :arg header: If ``True`` PDB header content will be parsed and returned.
+    :arg header: if **True** PDB header content will be parsed and returned
     :type header: bool
 
-    :arg altloc: If a location indicator is passed, such as ``'A'`` or ``'B'``, 
+    :arg altloc: if a location indicator is passed, such as ``'A'`` or ``'B'``, 
          only indicated alternate locations will be parsed as the single 
-         coordinate set of the AtomGroup.  If ``True`` all alternate locations 
-         will be parsed and each will be appended as a distinct coordinate set.
-         Default is ``"A"``.
+         coordinate set of the AtomGroup,  if *altloc* is set **True** all 
+         alternate locations will be parsed and each will be appended as a 
+         distinct coordinate set, default is ``"A"``
     :type altloc: str
 
-    :arg biomol: If ``True``, return biomolecule obtained by transforming the
-        coordinates using information from header section.
+    :arg biomol: if **True**, biomolecule obtained by transforming the 
+        coordinates using information from header section will be returned
     :type biomol: False
 
-    :arg secondary: If ``True``, parse the secondary structure information
-        from header section and assign data to atoms.
+    :arg secondary: if **True**, secondary structure information from header 
+        section will be assigned atoms
     :type secondary: False
         
     If ``model=0`` and ``header=True``, return header dictionary only.
@@ -97,15 +96,15 @@ _parsePDBdoc = _parsePQRdoc + """
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
 def parsePDB(pdb, **kwargs):
-    """Return an :class:`~.AtomGroup` and/or dictionary containing 
-    header data parsed from a PDB file. 
+    """Return an :class:`.AtomGroup` and/or dictionary containing header data 
+    parsed from a PDB file. 
     
-    This function extends :func:`parsePDBStream`.
+    This function extends :func:`.parsePDBStream`.
     
     |example| See :ref:`parsepdb` for a detailed example.
     
-    :arg pdb: A valid PDB identifier or filename.  
-        If needed, PDB files are downloaded using :func:`fetchPDB()` function.
+    :arg pdb: a PDB identifier or a filename
+        If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
     """
     
     title = kwargs.get('title', None)
@@ -135,12 +134,11 @@ def parsePDB(pdb, **kwargs):
 parsePDB.__doc__ += _parsePDBdoc
     
 def parsePDBStream(stream, **kwargs):
-    """Return an :class:`~.AtomGroup` and/or dictionary containing header data 
+    """Return an :class:`.AtomGroup` and/or dictionary containing header data 
     parsed from a stream of PDB lines. 
     
-    :arg stream: Anything that implements the method readlines() 
-        (e.g. :class:`file`, buffer, stdin).
-    """
+    :arg stream: Anything that implements the method ``readlines`` 
+        (e.g. :class:`file`, buffer, stdin)"""
     
     model = kwargs.get('model')
     header = kwargs.get('header', False)
@@ -169,18 +167,22 @@ def parsePDBStream(stream, **kwargs):
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
         title_suffix = '_' + chain + title_suffix
+    ag = None
     if 'ag' in kwargs:
         ag = kwargs['ag']
         if not isinstance(ag, AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
-    else:
+    elif model != 0:
         ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
         n_csets = 0
     
     biomol = kwargs.get('biomol', False)
-    auto_secondary = SETTINGS.get('auto_secondary')
-    secondary = kwargs.get('secondary', auto_secondary)
+    auto_secondary = None
+    secondary = kwargs.get('secondary')
+    if not secondary:
+        auto_secondary = SETTINGS.get('auto_secondary')
+        secondary = auto_secondary
     split = 0
     hd = None
     if model != 0:
@@ -200,23 +202,24 @@ def parsePDBStream(stream, **kwargs):
     elif header:
         hd, split = getHeaderDict(stream)
 
-    if secondary:
-        if auto_secondary:
-            try:
+    if ag is not None and isinstance(hd, dict): 
+        if secondary:
+            if auto_secondary:
+                try:
+                    ag = assignSecstr(hd, ag)
+                except ValueError:
+                    pass
+            else:
                 ag = assignSecstr(hd, ag)
-            except ValueError:
-                pass
-        else:
-            ag = assignSecstr(hd, ag)
-    if biomol:
-        ag = buildBiomolecules(hd, ag)
+        if biomol:
+            ag = buildBiomolecules(hd, ag)
 
-        if isinstance(ag, list):
-            LOGGER.info('Biomolecular transformations were applied, {0:d} '
-                        'biomolecule(s) are returned.'.format(len(ag)))
-        else:
-            LOGGER.info('Biomolecular transformations were applied to the '
-                        'coordinate data.')
+            if isinstance(ag, list):
+                LOGGER.info('Biomolecular transformations were applied, {0:d} '
+                            'biomolecule(s) are returned.'.format(len(ag)))
+            else:
+                LOGGER.info('Biomolecular transformations were applied to the '
+                            'coordinate data.')
     if model != 0:
         if header:
             return ag, hd
@@ -289,7 +292,7 @@ parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset, 
                    altloc_torf, format='PDB'):
-    """Return an AtomGroup. See also :func:`parsePDBStream()`.
+    """Return an AtomGroup. See also :func:`.parsePDBStream()`.
     
     :arg lines: PDB/PQR lines 
     :arg split: starting index for coordinate data lines"""
@@ -833,9 +836,9 @@ def writePDBStream(stream, atoms, model=None):
 writePDBStream.__doc__ += _writePDBdoc
 
 def writePDB(filename, atoms, model=None):
-    """Write *atoms* in PDB format to a file with name *filename*.  Returns 
-    *filename* upon success.  If *filename* ends with :file:`.gz`, a compressed
-    file will be written."""
+    """Write *atoms* in PDB format to a file with name *filename* and return 
+    *filename*.  If *filename* ends with :file:`.gz`, a compressed file will 
+    be written."""
     
     out = openFile(filename, 'w')
     writePDBStream(out, atoms, model)
