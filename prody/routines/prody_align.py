@@ -36,17 +36,14 @@ def prody_align(opt):
         pdb = prody.parsePDB(pdb)
         pdbselect = pdb.select(selstr)
         if pdbselect is None:
-            LOGGER.warning('Selection "{0:s}" do not match any atoms.'
-                           .format(selstr))
-            import sys
-            sys.exit(-1)
+            opt.subparser.error('Selection {0:s} do not match any atoms.'
+                               .format(repr(selstr)))
         LOGGER.info('{0:d} atoms will be used for alignment.'
-                               .format(len(pdbselect)))
-        pdb.setACSIndex(model-1)
-        prody.alignCoordsets(pdb, selstr=selstr)
-        rmsd = prody.calcRMSD(pdb)
-        LOGGER.info('Max RMSD: {0:0.2f} Mean RMSD: {1:0.2f}'
-              .format(rmsd.max(), rmsd.mean()))
+                    .format(len(pdbselect)))
+        pdbselect.setACSIndex(model-1)
+        prody.printRMSD(pdbselect, msg='Before alignment ')
+        prody.alignCoordsets(pdbselect)
+        prody.printRMSD(pdbselect, msg='After alignment  ')
         if prefix == '':
             prefix = pdb.getTitle() + '_aligned'
         outfn = prefix + '.pdb'
@@ -106,7 +103,7 @@ Align 1r39 and 1zz2 onto 1p38 using residues with number less than 300:
     
 Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
 
-    $ prody align --select "resnum 1 to 70" 1aar 2k39.pdb 
+    $ prody align --select "resnum 1 to 70" 1aar 2k39 
     """
     )
         
