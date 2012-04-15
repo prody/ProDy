@@ -29,7 +29,7 @@ from prody.atomic import AtomMap as AM
 from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
 from prody.atomic import getKeywordResnames
-from prody.measure import calcTransformation, calcRMSD
+from prody.measure import calcTransformation, calcRMSD, printRMSD
 from prody.tools import which
 from prody import LOGGER, SELECT
 
@@ -178,9 +178,7 @@ class SimpleChain(object):
 
 
     SimpleChain instances can be indexed using residue numbers. If a residue
-    with given number is not found in the chain, ``None`` is returned.    
-    
-    """
+    with given number is not found in the chain, **None** is returned."""
     
     __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps']
     
@@ -364,17 +362,15 @@ def matchAlign(mobile, target, **kwargs):
     
     LOGGER.info('Alignment is based on {0:d} atoms matching {1:s}.'
                 .format(n_atoms, repr(selstr)))
+    printRMSD(tar._getCoords()[which], mob._getCoordsets()[:, which], 
+              msg='Before alignment ')
     for acsi in csets:
         mob.setACSIndex(acsi)
         mobile.setACSIndex(acsi)
-        LOGGER.info(indent(acsi) + 'RMSD before alignment (A): {0:.2f}'
-                    .format(calcRMSD(mob._getCoords()[which], 
-                                     tar._getCoords()[which])))
         calcTransformation(mob._getCoords()[which], 
                            tar._getCoords()[which]).apply(mobile)
-        LOGGER.info(indent(acsi) + 'RMSD after alignment  (A): {0:.2f}'
-                    .format(calcRMSD(mob._getCoords()[which], 
-                                     tar._getCoords()[which])))
+    printRMSD(tar._getCoords()[which], mob._getCoordsets()[:, which], 
+              msg='After alignment  ')
     return (mobile,) + match
 
 def matchChains(atoms1, atoms2, **kwargs):
