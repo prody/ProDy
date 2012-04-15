@@ -133,7 +133,8 @@ Linear combination
 It is also possible to linearly combine normal modes:
 
 >>> anm1[0] * 3 + anm1[1] + anm1[2] * 2
-<Vector: 3*(Mode 1 from ANM 1p38_anm) + Mode 2 from ANM 1p38_anm + 2*(Mode 3 from ANM 1p38_anm)>
+<Vector: 3*(Mode 1 from ANM 1p38_anm) + Mode 2 from ANM 1p38_anm + 2*(Mode 3 \
+from ANM 1p38_anm)>
 
 Or, we could use eigenvalues for linear combination:
 
@@ -142,7 +143,8 @@ Or, we could use eigenvalues for linear combination:
 It is the name of the :class:`Vector` instance that keeps track of operations.
 
 >>> print( lincomb.getTitle() )  
-0.148971269751*(Mode 1 from ANM 1p38_anm) + 0.24904210757*(Mode 2 from ANM 1p38_anm)
+0.148971269751*(Mode 1 from ANM 1p38_anm) + 0.24904210757*(Mode 2 from ANM \
+1p38_anm)
 
 Approximate a deformation vector
 ===============================================================================
@@ -161,9 +163,11 @@ Let's see how deformation projects onto ANM modes:
 
 We can use these numbers to combine ANM modes:
 
->>> approximate_defvec = np.sum( (np.array(list(anm1[:3])) * defvec) * np.array(list(anm1[:3])) ) 
+>>> approximate_defvec = np.sum( (np.array(list(anm1[:3])) * defvec) * \
+np.array(list(anm1[:3])) ) 
 >>> print( approximate_defvec )
--5.60860594784*(Mode 1 from ANM 1p38_anm) + 2.15393365959*(Mode 2 from ANM 1p38_anm) + -3.13701609199*(Mode 3 from ANM 1p38_anm)
+-5.60860594784*(Mode 1 from ANM 1p38_anm) + 2.15393365959*(Mode 2 from ANM \
+1p38_anm) + -3.13701609199*(Mode 3 from ANM 1p38_anm)
 
 Let's deform 1r39 chain along this approximate deformation vector and see
 how RMSD changes:
@@ -350,8 +354,7 @@ class Mode(VectorBase):
         :arg model: a normal mode analysis instance
         :type model: :class:`~.ANM`, :class:`~.GNM`, or :class:`~.PCA` 
         :arg index: index of the mode 
-        :type index: int
-        """
+        :type index: int"""
         
         self._model = model
         self._index = int(index)
@@ -362,7 +365,8 @@ class Mode(VectorBase):
     
     def __repr__(self):
         
-        return '<Mode: {0:d} from {1:s}>'.format(self._index+1, str(self._model))
+        return '<Mode: {0:d} from {1:s}>'.format(self._index + 1, 
+                                                 str(self._model))
 
     def __str__(self):
         

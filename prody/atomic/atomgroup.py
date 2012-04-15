@@ -156,7 +156,7 @@ Above operation only translated the coordinate set at index 0
 [[ 0.  1.  0.]
  [ 0.  0.  0.]
  [ 0.  0.  1.]]
->>> wtr2.setCoords( wtr2.getCoords() + 2 ) # translate the second coordinate set as well
+>>> wtr2.setCoords( wtr2.getCoords() + 2 ) # translate the 2nd coordset as well
 
 **Change copy attributes**
 

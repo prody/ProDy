@@ -266,7 +266,8 @@ def calcRMSD(reference, target=None, weights=None):
     [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
       0.58  0.66  0.83]
-    >>> print calcRMSD(ens.getCoords(), ens.getCoordsets(), ens.getWeights()).round(2) # doctest: +ELLIPSIS
+    >>> print calcRMSD(ens.getCoords(), ens.getCoordsets(), \
+ens.getWeights()).round(2) # doctest: +ELLIPSIS
     [ 0.74  0.53  0.58  0.6   0.61  0.72  0.62  0.74  0.69  0.65  0.48  0.54
       ...
       0.58  0.66  0.83]"""
