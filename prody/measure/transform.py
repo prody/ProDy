@@ -28,7 +28,8 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset, AtomMap, AtomPointer
 from prody.tools import importLA
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
-           'calcRMSD', 'calcTransformation', 'superpose', 'moveAtoms']
+           'calcRMSD', 'calcTransformation', 'superpose', 'moveAtoms',
+           'printRMSD']
            
 pkg = __import__(__package__)
 LOGGER = pkg.LOGGER
@@ -253,7 +254,7 @@ def moveAtoms(atoms, array):
     atoms.setCoords(coords)
     
 def calcRMSD(reference, target=None, weights=None):
-    """Returns Root-Mean-Square-Deviations between reference and target 
+    """Return root-mean-square deviation(s) (RMSD) between reference and target 
     coordinates.
     
     >>> ens = loadEnsemble('p38_X-ray.ens.npz')
@@ -339,6 +340,31 @@ def getRMSD(ref, tar, weights=None):
                 for i, t in enumerate(tar):
                     rmsd[i] = (((ref-t) ** 2) * weights[i]).sum()
                 return np.sqrt(rmsd / weights.sum(1).flatten())
+    
+def printRMSD(reference, target=None, weights=None, log=True, msg=None):
+    """Print RMSD to the screen.  If *target* has multiple coordinate sets, 
+    minimum, maximum and mean RMSD values are printed.  If *log* is **True** 
+    (default), RMSD is written to the standard error using package logger, 
+    otherwise standard output is used.  When *msg* string is given, it is
+    printed before the RMSD value.  See also :func:`calcRMSD` function. """
+    
+    if log:
+        write = LOGGER.info
+    else:
+        import sys
+        write = lambda line: sys.stdout.write(line + '\n')
+    msg = msg or ''
+    if msg and msg[-1] != ' ':
+        msg += ' '
+    rmsd = calcRMSD(reference, target, weights)
+    if isinstance(rmsd, np.ndarray) and len(rmsd) > 1:
+        write(msg + 'RMSD: min={0:.2f}, max={1:.2f}, mean={2:.2f}'
+                    .format(rmsd.min(), rmsd.max(), rmsd.mean()))
+    else:
+        if isinstance(rmsd, np.ndarray):
+            rmsd = rmsd[0]
+        write(msg + 'RMSD: {0:.2f}'.format(rmsd))
+        
     
 def alignCoordsets(atoms, selstr='calpha', weights=None):
     """Superpose coordinate sets onto the active coordinate set.
