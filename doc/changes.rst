@@ -31,6 +31,19 @@ Release 1.0.2 (in development)
 **Improvements**:
 
   * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
+  
+  * :func:`.sliceMode`, :func:`.sliceModel`, :func:`.sliceVector`, and 
+    :func:`.reduceModel` functions accept :class:`.Selection` instances as 
+    well as selection strings.  In repeated use of this function and if 
+    selections are already made out of the function, considerable speed-ups 
+    are achieved when selection is passed to these functions.
+
+**Changes**:
+
+  * There is a change in the behavior of addition operation on instances of 
+    :class:`.AtomGroup`.  When operands do not have same number of coordinate 
+    sets, the result will have one coordinate set that is concatenation of the 
+    *active coordinate sets* of operands.  
 
 **Bugfix**:
 
