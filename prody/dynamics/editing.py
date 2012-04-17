@@ -26,6 +26,7 @@ import numpy as np
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
 from prody.atomic import Selection, SELECT
 from prody.tools import importLA
+from prody import LOGGER
 
 from nma import NMA
 from modeset import ModeSet
@@ -38,8 +39,7 @@ __all__ = ['extendModel',
            'sliceMode', 'sliceModel', 'sliceVector',
            'reduceModel',]
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
+
 
 def extendModel(model, nodes, atoms):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
@@ -88,20 +88,20 @@ def extendModel(model, nodes, atoms):
         raise TypeError('atoms must be an Atomic instance')
     
 
-def sliceVector(vector, atoms, selstr):
-    """Return part of the *vector* for *atoms* matching *selstr*.  Note that 
-    returned :class:`~.Vector` instance is not normalized.
+def sliceVector(vector, atoms, select):
+    """Return part of the *vector* for *atoms* matching *select*.  Note that 
+    returned :class:`.Vector` instance is not normalized.
     
     :arg vector: vector instance to be sliced
-    :type vector: :class:`~.VectorBase`
+    :type vector: :class:`.VectorBase`
     
     :arg atoms: atoms for which *vector* describes a deformation, motion, etc.
-    :type atoms: :class:`~.Atomic`
+    :type atoms: :class:`.Atomic`
     
-    :arg selstr: selection string
-    :type selstr: str 
+    :arg select: an atom selection or a selection string 
+    :type select: :class:`.Selection`, str 
     
-    :returns: (:class:`~.Vector`, :class:`~.Selection`)"""
+    :returns: (:class:`.Vector`, :class:`.Selection`)"""
     
     if not isinstance(vector, VectorBase):
         raise TypeError('vector must be a VectorBase instance, not {0:s}'
@@ -110,37 +110,60 @@ def sliceVector(vector, atoms, selstr):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'
                         .format(type(atoms)))
     if atoms.numAtoms() != vector.numAtoms(): 
-        raise ValueError('number of atoms in *vector* and *atoms* must be '
-                         'equal')
-    if isinstance(atoms, AtomGroup):
-        sel = atoms.select(selstr)
-        which = sel.getIndices()
+        raise ValueError('number of atoms in model and atoms must be equal')
+    
+    if isinstance(select, str):
+        selstr = select
+        if isinstance(atoms, AtomGroup):
+            sel = atoms.select(selstr)
+            which = sel._getIndices()
+        else:
+            which = SELECT.getIndices(atoms, selstr)
+            sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
+                            selstr, atoms.getACSIndex())
+            
+    elif isinstance(select, AtomSubset):
+        sel = select
+        if isinstance(atoms, AtomGroup):
+            if sel.getAtomGroup() != atoms:
+                raise ValueError('select and atoms do not match')
+            which = sel._getIndices()
+        else:
+            if atoms.getAtomGroup() != sel.getAtomGroup():
+                raise ValueError('select and atoms do not match')
+            elif not sel in atoms:
+                raise ValueError('select is not a subset of atoms')
+            idxset = set(atoms._getIndices())
+            which = np.array([idx in idxset for idx in sel._getIndices()])
+            which = which.nonzero()[0]
+        selstr = sel.getSelstr()
+    
     else:
-        which = SELECT.getIndices(atoms, selstr)
-        sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getACSIndex())
+        raise TypeError('select must be a string or a Selection instance')
+        
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
                  '{0:s} slice {1:s}'.format(str(vector), repr(selstr)), 
                  vector.is3d())
     return (vec, sel)
 
-def sliceMode(mode, atoms, selstr):
-    """Return part of the *mode* for *atoms* matching *selstr*.  This works 
-    slightly different from :func:`~.sliceVector`. Mode array (eigenvector) is 
+
+def sliceMode(mode, atoms, select):
+    """Return part of the *mode* for *atoms* matching *select*.  This works 
+    slightly different from :func:`.sliceVector`. Mode array (eigenvector) is 
     multiplied by square-root of the variance along the mode.  If mode is from
     an elastic network model, variance is defined as the inverse of the 
     eigenvalue.  Note that returned :class:`~.Vector` instance is not 
     normalized.
     
     :arg mode: mode instance to be sliced
-    :type mode: :class:`~.Mode`
+    :type mode: :class:`.Mode`
     
     :arg atoms: atoms for which *mode* describes a deformation, motion, etc.
-    :type atoms: :class:`~.Atomic`
+    :type atoms: :class:`.Atomic`
     
-    :arg selstr: selection string
-    :type selstr: str 
+    :arg select: an atom selection or a selection string 
+    :type select: :class:`.Selection`, str 
     
     :returns: (:class:`~.Vector`, :class:`~.Selection`)"""
     
@@ -151,34 +174,58 @@ def sliceMode(mode, atoms, selstr):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'
                         .format(type(atoms)))
     if atoms.numAtoms() != mode.numAtoms(): 
-        raise ValueError('number of atoms in *mode* and *atoms* must be equal')
-    if isinstance(atoms, AtomGroup):
-        sel = atoms.select(selstr)
-        which = sel.getIndices()
+        raise ValueError('number of atoms in model and atoms must be equal')
+    
+    if isinstance(select, str):
+        selstr = select
+        if isinstance(atoms, AtomGroup):
+            sel = atoms.select(selstr)
+            which = sel._getIndices()
+        else:
+            which = SELECT.getIndices(atoms, selstr)
+            sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
+                            selstr, atoms.getACSIndex())
+        
+    elif isinstance(select, AtomSubset):
+        sel = select
+        if isinstance(atoms, AtomGroup):
+            if sel.getAtomGroup() != atoms:
+                raise ValueError('select and atoms do not match')
+            which = sel._getIndices()
+        else:
+            if atoms.getAtomGroup() != sel.getAtomGroup():
+                raise ValueError('select and atoms do not match')
+            elif not sel in atoms:
+                raise ValueError('select is not a subset of atoms')
+            idxset = set(atoms._getIndices())
+            which = np.array([idx in idxset for idx in sel._getIndices()])
+            which = which.nonzero()[0]
+        selstr = sel.getSelstr()
+    
     else:
-        which = SELECT.getIndices(atoms, selstr)
-        sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getACSIndex())
+        raise TypeError('select must be a string or a Selection instance')
+    
     vec = Vector(mode.getArrayNx3()[
                  which,:].flatten() * mode.getVariance()**0.5,
                  '{0:s} slice {1:s}'.format(str(mode), repr(selstr)), 
                  mode.is3d()) 
     return (vec, sel)
 
-def sliceModel(model, atoms, selstr):
-    """Return a part of the *model* for *atoms* matching *selstr*.  Note that 
+
+def sliceModel(model, atoms, select):
+    """Return a part of the *model* for *atoms* matching *select*.  Note that 
     normal modes (eigenvectors) are not normalized.
     
     :arg mode: NMA model instance to be sliced
-    :type mode: :class:`~.NMA`
+    :type mode: :class:`.NMA`
     
     :arg atoms: atoms for which the *model* was built
-    :type atoms: :class:`~.Atomic`
+    :type atoms: :class:`.Atomic`
     
-    :arg selstr: selection string
-    :type selstr: str 
+    :arg select: an atom selection or a selection string 
+    :type select: :class:`.Selection`, str 
     
-    :returns: (:class:`~.NMA`, :class:`~.Selection`)"""
+    :returns: (:class:`.NMA`, :class:`.Selection`)"""
     
     if not isinstance(model, NMA):
         raise TypeError('mode must be a NMA instance, not {0:s}'
@@ -187,18 +234,39 @@ def sliceModel(model, atoms, selstr):
         raise TypeError('atoms must be an Atomic instance, not {0:s}'
                         .format(type(atoms)))
     if atoms.numAtoms() != model.numAtoms(): 
-        raise ValueError('number of atoms in *model* and *atoms* must be '
-                         'equal')
+        raise ValueError('number of atoms in model and atoms must be equal')
     
     array = model._getArray()
-    if isinstance(atoms, AtomGroup):
-        sel = atoms.select(selstr)
-        which = sel.getIndices()
+    
+    if isinstance(select, str):
+        selstr = select
+        if isinstance(atoms, AtomGroup):
+            sel = atoms.select(selstr)
+            which = sel.getIndices()
+        else:
+            which = SELECT.getIndices(atoms, selstr)
+            sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
+                            selstr, atoms.getACSIndex())
+        
+    elif isinstance(select, AtomSubset):
+        sel = select
+        if isinstance(atoms, AtomGroup):
+            if sel.getAtomGroup() != atoms:
+                raise ValueError('select and atoms do not match')
+            which = sel._getIndices()
+        else:
+            if atoms.getAtomGroup() != sel.getAtomGroup():
+                raise ValueError('select and atoms do not match')
+            elif not sel in atoms:
+                raise ValueError('select is not a subset of atoms')
+            idxset = set(atoms._getIndices())
+            which = np.array([idx in idxset for idx in sel._getIndices()])
+            which = which.nonzero()[0]
+        selstr = sel.getSelstr()
+    
     else:
-        which = SELECT.getIndices(atoms, selstr)
-        sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                        selstr, atoms.getACSIndex())
-
+        raise TypeError('select must be a string or a Selection instance')
+        
     nma = type(model)('{0:s} slice {1:s}'
                       .format(model.getTitle(), repr(selstr)))
     if model.is3d():
@@ -209,27 +277,34 @@ def sliceModel(model, atoms, selstr):
     nma.setEigens( array[which, :], model.getEigvals() )
     return (nma, sel)
     
-def reduceModel(model, atoms, selstr):
+    
+def reduceModel(model, atoms, select):
     """Return reduced NMA model.  Reduces a :class:`~.NMA` model to a subset of 
-    *atoms* matching a selection *selstr*.  This function behaves differently 
-    depending on the type of the *model* argument.  For :class:`~.ANM` and 
-    :class:`~.GNM` or other :class:`~.NMA` models, this functions derives the 
-    force constant matrix for system of interest (specified by the *selstr*) 
-    from the force constant matrix for the *model* by assuming that for any 
-    given displacement of the system of interest, the other atoms move along in
-    such a way as to minimize the potential energy.  This is based on the 
-    formulation in in [KH00]_.  For :class:`~.PCA` models, this function simply
-    takes the sub-covariance matrix for the selected atoms.
+    *atoms* matching *select*.  This function behaves differently depending on 
+    the type of the *model* argument.  For :class:`.ANM` and :class:`.GNM` or 
+    other :class:`.NMA` models, force constant matrix for system of interest 
+    (specified by the *select*) is derived from the force constant matrix for 
+    the *model* by assuming that for any given displacement of the system of 
+    interest, other atoms move along in such a way as to minimize the potential
+    energy.  This is based on the formulation in [KH00]_.  For :class:`.PCA` 
+    models, this function simply takes the sub-covariance matrix for selection.
 
     :arg model: dynamics model
-    :type model: :class:`~.ANM`, :class:`~.GNM`, or :class:`~.PCA`
+    :type model: :class:`.ANM`, :class:`.GNM`, or :class:`.PCA`
+    
     :arg atoms: atoms that were used to build the model
-    :arg selstr: a selection string specifying subset of atoms"""
+    :type atoms: :class:`.Atomic`
+    
+    :arg select: an atom selection or a selection string 
+    :type select: :class:`.Selection`, str 
+    
+    :returns: (:class:`.NMA`, :class:`.Selection`)"""
     
     linalg = importLA()
 
     if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance, not {0:s}'.format(type(model)))
+        raise TypeError('model must be an NMA instance, not {0:s}'
+                        .format(type(model)))
     if not isinstance(atoms, (AtomGroup, AtomSubset, AtomMap)):
         raise TypeError('atoms type is not valid')
     if len(atoms) <= 1:
@@ -247,16 +322,41 @@ def reduceModel(model, atoms, selstr):
         raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not '
                          'built')
 
-    system = SELECT.getBoolArray(atoms, selstr)
+    if isinstance(select, str):
+        system = SELECT.getBoolArray(atoms, select)
+        n_sel = sum(system)
+        if n_sel == 0:
+            raise ValueError('select matches 0 atoms')
+        if len(atoms) == n_sel:
+            raise ValueError('select matches all atoms')
+
+        if isinstance(atoms, AtomGroup):
+            ag = atoms
+            which = np.arange(len(atoms))[system]
+        else:
+            ag = atoms.getAtomGroup()
+            which = atoms._getIndices()[system]
+        sel = Selection(ag, which, select, atoms.getACSIndex())
+        
+    elif isinstance(select, AtomSubset):
+        sel = select
+        if isinstance(atoms, AtomGroup):
+            if sel.getAtomGroup() != atoms:
+                raise ValueError('select and atoms do not match')
+            system = np.zeros(len(atoms), bool)
+            system[sel._getIndices()] = True 
+        else:
+            if atoms.getAtomGroup() != sel.getAtomGroup():
+                raise ValueError('select and atoms do not match')
+            elif not sel in atoms:
+                raise ValueError('select is not a subset of atoms')
+            idxset = set(atoms._getIndices())
+            system = np.array([idx in idxset for idx in sel._getIndices()])
+    
+    else:
+        raise TypeError('select must be a string or a Selection instance')
+    
     other = np.invert(system)
-    n_sel = sum(system) 
-    if n_sel == 0:
-        LOGGER.warning('selection has 0 atoms')
-        return None
-    if len(atoms) == n_sel:
-        LOGGER.warning('selection results in same number of atoms, '
-                       'model is not reduced')
-        return None
 
     if model.is3d():
         system = np.tile(system, (3,1)).transpose().flatten()
@@ -274,12 +374,12 @@ def reduceModel(model, atoms, selstr):
     if isinstance(model, GNM):
         gnm = GNM(model.getTitle() + ' reduced')
         gnm.setKirchhoff(matrix)
-        return gnm, system
+        return gnm, sel
     elif isinstance(model, ANM):
         anm = ANM(model.getTitle() + ' reduced')
         anm.setHessian(matrix)
-        return anm, system
+        return anm, sel
     elif isinstance(model, PCA):
         eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(matrix)
-        return eda, system
+        return eda, sel
