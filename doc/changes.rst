@@ -17,7 +17,7 @@ Release 1.0.2 (in development)
   * :func:`.pickCentral` method is implemented for picking the atom that
     is closest to the centroid of a group or subset of atoms.
     
-  * ProDy configuration option :keyword:`auto_secondary` is implemented to 
+  * ProDy configuration option *auto_secondary* is implemented to 
     allow for parsing and assigning secondary structure information from PDB
     file header data automatically.  See :func:`.assignSecstr` and 
     :func:`.confProDy` for usage details. 
@@ -34,9 +34,9 @@ Release 1.0.2 (in development)
   
   * :func:`.sliceMode`, :func:`.sliceModel`, :func:`.sliceVector`, and 
     :func:`.reduceModel` functions accept :class:`.Selection` instances as 
-    well as selection strings.  In repeated use of this function and if 
-    selections are already made out of the function, considerable speed-ups 
-    are achieved when selection is passed to these functions.
+    well as selection strings.  In repeated use of this function, if selections
+    are already made out of the function, considerable speed-ups are achieved 
+    when selection is passed instead of selection string.
 
 **Changes**:
 
