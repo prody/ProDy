@@ -276,10 +276,15 @@ def pickCentral(atoms, weights=None):
     if len(atoms) == 1:
         index = atoms._getIndices()[0]
     else:
-        center = calcCenter(atoms, weights)
-        index = atoms._getIndices()[
-                    ((atoms._getCoords() - center)**2).sum(1).argmin()]
+        index = getCentral(atoms._getCoords(), weights)
+        if not isinstance(atoms, AtomGroup):
+             index = atoms._getIndices()[index]
     return Atom(ag, index, atoms.getACSIndex())
+
+def getCentral(coords, weights=None):
+    """Return index of coordinates closest to the center."""
+    
+    return ((coords - getCenter(coords, weights))**2).sum(1).argmin()
 
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
