@@ -53,6 +53,17 @@ Release 1.0.2 (in development)
   * A problem in :class:`.Chain` and :class:`.Residue` selection strings 
     that would emerge when a :class:`.HierView` is build using a selection
     is fixed.
+    
+  * A problem with copying :class:`.AtomGroup` instances whose coordinates 
+    are not set is fixed.
+    
+  * :class:`.AtomGroup` fragment detection algorithm is rewritten to avoid
+    the problem of reaching maximum recursion depth for large molecules
+    with the old recursive algorithm.
+
+  * A problem with picking central atom of :class:`.AtomGroup` instances
+    in :func:`.pickCentral` function is fixed.
+
 
 Release 1.0.1 (Apr 6, 2012)
 ===============================================================================
