@@ -865,10 +865,12 @@ class AtomGroup(Atomic):
         
         title = self._title
         atommap = False
+        copy_coords = self._coords is not None
         if which is None:
             indices = None
             newmol = AtomGroup('{0:s}'.format(title))
-            newmol.setCoords(self._coords.copy())
+            if copy_coords:
+                newmol.setCoords(self._coords.copy())
             
         elif isinstance(which, int):
             indices = [which]
@@ -910,10 +912,11 @@ class AtomGroup(Atomic):
                                
         if indices is not None:
             if atommap:
-                newmol.setCoords(which.getCoords())
+                if copy_coords:
+                    newmol.setCoords(which.getCoords())
                 newmol.setData('dummy', which.getDummyFlags())
                 newmol.setData('mapped', which.getMappedFlags())
-            else:
+            elif copy_coords:
                 newmol.setCoords(self._coords[:, indices])
             
         for key, array in self._data.iteritems():
