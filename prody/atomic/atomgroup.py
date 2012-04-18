@@ -391,7 +391,7 @@ class AtomGroup(Atomic):
     
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i', 
                  '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
-                 '_acsi', '_n_csets', '_data']
+                 '_acsi', '_n_csets', '_data', '_fragments']
     
     def __init__(self, title='Unnamed'):
         
@@ -1227,11 +1227,18 @@ class AtomGroup(Atomic):
         
         self._fragment()
         frags = self._data['fragindices']
-        if frags is not None:    
-            for i in range(frags.max() + 1):
-                yield Selection(self, (frags==i).nonzero()[0], 'fragment ' + 
-                                str(i), acsi=self._acsi, unique=True)
-    
+        acsi = self._acsi
+        if frags is not None:
+            if self._fragments is None:
+                for i in range(frags.max() + 1):
+                    yield Selection(self, (frags==i).nonzero()[0],  
+                                    'fragment ' + str(i), acsi=acsi, 
+                                    unique=True)
+            else:    
+                for i, frag in enumerate(self._fragments):
+                    yield Selection(self, frag, 'fragment ' + str(i), 
+                                    acsi=acsi, unique=True)
+                
     def _fragment(self):
         """Set unique fragment indices to connected atom subsets using bond 
         information."""
@@ -1241,7 +1248,6 @@ class AtomGroup(Atomic):
                 raise ValueError('bonds must be set for fragment '
                                  'determination, use `setBonds`')
             
-
             fids = np.zeros(self._n_atoms, int)
             fdict = {}
             c = 0
@@ -1265,7 +1271,9 @@ class AtomGroup(Atomic):
                     c += 1
                     fdict[c] = [a, b]
                     fids[a] = fids[b] = c
-            fragments = np.zeros(self._n_atoms, int)
+            fragindices = np.zeros(self._n_atoms, int)
+            fragments = []
+            append = fragments.append
             fidset = set()
             c = 0
             for i, fid in enumerate(fids):
@@ -1273,10 +1281,15 @@ class AtomGroup(Atomic):
                     continue
                 elif fid:
                     fidset.add(fid)
-                    fragments[fdict[fid]] = c
+                    indices = fdict[fid]
+                    indices.sort()
+                    append(indices)
+                    fragindices[indices] = c
                     c += 1
                 else:
                     # these are non-bonded atoms, e.g. ions
-                    fragments[i] = c
+                    fragindices[i] = c
+                    append([i])
                     c += 1
-            self._data['fragindices'] = fragments
+            self._data['fragindices'] = fragindices
+            self._fragments = fragments
