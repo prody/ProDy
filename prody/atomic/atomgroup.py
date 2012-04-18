@@ -857,9 +857,9 @@ class AtomGroup(Atomic):
         """Return a copy of atomic data indicated by *which* in a new 
         :class:`AtomGroup` instance. *which* may be one of:
           
-          * ``None``, make a copy of the AtomGroup
-          * a :class:`~.Selection`, :class:`~.Residue`, :class:`~.Chain`, 
-            :class:`~.Atom`, :class:`~.Segment`, :class:`~.AtomMap` instance
+          * ``None``, make a copy of the :class:`AtomGroup` instance
+          * a :class:`.Selection`, :class:`.Residue`, :class:`.Chain`, 
+            :class:`.Atom`, :class:`.Segment`, :class:`.AtomMap` instance
           * a list or an array of indices
           * a selection string"""
         
@@ -918,6 +918,8 @@ class AtomGroup(Atomic):
                 newmol.setData('mapped', which.getMappedFlags())
             elif copy_coords:
                 newmol.setCoords(self._coords[:, indices])
+            if not copy_coords:
+                newmol._n_atoms = len(indices)
             
         for key, array in self._data.iteritems():
             if key in READONLY:
@@ -943,7 +945,9 @@ class AtomGroup(Atomic):
                 newmol._bonds = bonds.copy()
                 newmol._bmap = bmap.copy()
                 newmol._data['numbonds'] = self._data['numbonds'].copy()
-                newmol._data['fragindices'] = self._data['fragindices'].copy()
+                if self._data['fragindices'] is not None:
+                    newmol._data['fragindices'
+                        ] = self._data['fragindices'].copy()
             else:
                 bonds = trimBonds(bonds, indices)
                 if bonds is not None:
@@ -1234,31 +1238,45 @@ class AtomGroup(Atomic):
         
         if self._data['fragindices'] is None:
             if self._bmap is None:
-                raise ValueError('bonds must be set to determine fragments, '
-                                 'use `setBonds`')
+                raise ValueError('bonds must be set for fragment '
+                                 'determination, use `setBonds`')
             
-            fids = np.zeros(self._n_atoms, int)
-            fids.fill(-1)
-            cfid = 0
-            bmap = self._bmap
-            for i, fid in enumerate(fids):
-                if fid != -1:
-                    continue
-                indices = set()
-                visited = set()
-                findFragment(i, bmap, indices, visited)
-                fids[list(indices)] = cfid
-                cfid += 1
-            self._data['fragindices'] = fids
 
-def findFragment(i, bmap, indices, visited):
-    
-    indices.add(i)
-    visited.add(i)
-    for other in bmap[i]:
-        if other == -1:
-            return
-        indices.add(other)
-        if other not in visited:
-            findFragment(other, bmap, indices, visited)
-    
+            fids = np.zeros(self._n_atoms, int)
+            fdict = {}
+            c = 0
+            for a, b in self._bonds:
+                af = fids[a]
+                bf = fids[b]
+                if af and bf:
+                    if af != bf:
+                        frag = fdict[af]
+                        temp = fdict[bf]
+                        fids[temp] = af
+                        frag.extend(temp)
+                        fdict.pop(bf)
+                elif af:
+                    fdict[af].append(b)
+                    fids[b] = af
+                elif bf:
+                    fdict[bf].append(a)
+                    fids[a] = bf
+                else:
+                    c += 1
+                    fdict[c] = [a, b]
+                    fids[a] = fids[b] = c
+            fragments = np.zeros(self._n_atoms, int)
+            fidset = set()
+            c = 0
+            for i, fid in enumerate(fids):
+                if fid in fidset:
+                    continue
+                elif fid:
+                    fidset.add(fid)
+                    fragments[fdict[fid]] = c
+                    c += 1
+                else:
+                    # these are non-bonded atoms, e.g. ions
+                    fragments[i] = c
+                    c += 1
+            self._data['fragindices'] = fragments
