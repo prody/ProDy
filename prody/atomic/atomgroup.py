@@ -1198,16 +1198,17 @@ class AtomGroup(Atomic):
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
         self._data['fragindices'] = None
+        self._fragments = None
 
     def numBonds(self):
-        """Return number of bonds.  Bonds must be set using :meth:`setBonds`.
+        """Return number of bonds.  Use :meth:`setBonds` for setting bonds.
         """
         
         if self._bonds is not None:
             return self._bonds.shape[0]
 
     def iterBonds(self):
-        """Yield bonds.  Bonds must be set using :meth:`setBonds`."""
+        """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
         
         if self._bonds is None:
             raise ValueError('bonds are not set')
@@ -1230,10 +1231,14 @@ class AtomGroup(Atomic):
         acsi = self._acsi
         if frags is not None:
             if self._fragments is None:
+                fragments = []
+                append = fragments.append
                 for i in range(frags.max() + 1):
-                    yield Selection(self, (frags==i).nonzero()[0],  
-                                    'fragment ' + str(i), acsi=acsi, 
-                                    unique=True)
+                    indices = (frags == i).nonzero()[0]
+                    append(indices)
+                    yield Selection(self, indices, 'fragment ' + str(i), 
+                                    acsi=acsi, unique=True)
+                self._fragments = fragments
             else:    
                 for i, frag in enumerate(self._fragments):
                     yield Selection(self, frag, 'fragment ' + str(i), 
