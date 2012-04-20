@@ -92,7 +92,20 @@ For this to work, the first word following the dot operator must be a selection
 keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 
 Underscores will be interpreted as white space, as obvious from the
 previous examples.  The limitation of this is that parentheses, special 
-characters cannot be used."""
+characters cannot be used.
+
+Functions
+===============================================================================
+
+Following functions can be used for permanent data storage:
+    
+  * :func:`loadAtoms`
+  * :func:`saveAtoms`
+  
+Following function can be used to identify fragments in a group 
+(:class:`.AtomGroup`) or subset (:class:`.Selection`) of atoms:
+    
+  * :func:`findFragments`"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
