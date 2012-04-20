@@ -23,19 +23,19 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 
-from numpy import load, savez
+from numpy import load, savez, zeros
 
-from prody.tools import openFile
+from prody.tools import openFile, rangeString
+from prody import LOGGER
 
 from atomic import Atomic
-from fields import ATOMIC_ATTRIBUTES
 from atomgroup import AtomGroup
 from bond import trimBonds, evalBonds
+from fields import ATOMIC_ATTRIBUTES
+from selection import Selection
 
-__all__ = ['loadAtoms', 'saveAtoms']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
+__all__ = ['findFragments', 'loadAtoms', 'saveAtoms']
 
 SKIPSAVE = set(['numbonds', 'fragindices'])
 
@@ -92,6 +92,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     ostream.close()
     return filename
 
+
 SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
                 'coordinates', 'cslabels', 'numbonds'])
 
@@ -130,3 +131,58 @@ def loadAtoms(filename):
         ag.setCSLabels(list(attr_dict['cslabels']))
     LOGGER.timing('Atom group was loaded in %.2fs.')
     return ag
+
+
+def findFragments(atoms):
+    """Return a list of fragments, i.e. connected atom subsets."""
+    
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+    if isinstance(atoms, AtomGroup):
+        return list(atoms.iterFragments())    
+    ag = atoms.getAtomGroup()
+    
+    bonds = atoms._iterBonds()
+    
+    fids = zeros((len(ag)), int)
+    fdict = {}
+    c = 0
+    for a, b in bonds:
+        af = fids[a]
+        bf = fids[b]
+        if af and bf:
+            if af != bf:
+                frag = fdict[af]
+                temp = fdict[bf]
+                fids[temp] = af
+                frag.extend(temp)
+                fdict.pop(bf)
+        elif af:
+            fdict[af].append(b)
+            fids[b] = af
+        elif bf:
+            fdict[bf].append(a)
+            fids[a] = bf
+        else:
+            c += 1
+            fdict[c] = [a, b]
+            fids[a] = fids[b] = c
+    fragments = []
+    append = fragments.append
+    fidset = set()
+    indices = atoms._getIndices()
+    for i, fid in zip(indices, fids[indices]):
+        if fid in fidset:
+            continue
+        elif fid:
+            fidset.add(fid)
+            indices = fdict[fid]
+            indices.sort()
+            append(indices)
+        else:
+            # these are non-bonded atoms, e.g. ions
+            append([i])
+    acsi = atoms.getACSIndex()
+
+    return [Selection(ag, frag, rangeString(frag), acsi, unique=True)
+            for frag in fragments]
