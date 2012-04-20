@@ -380,6 +380,7 @@ class PackageSettings(object):
                                 "'{1:s}', user does not have write access."
                                 .format(self._package, USERHOME))
 
+
 def setPackagePath(path):
     """Set package path."""
     
@@ -393,6 +394,7 @@ def setPackagePath(path):
     pkg.SETTINGS['package_path'] = path
     pkg.SETTINGS.save()
     return path    
+
 
 def getPackagePath():
     """Return package path."""
@@ -421,6 +423,7 @@ def getPackagePath():
             path = raw_input('Please specify a valid folder name with write ' 
                              'access:')
     return path
+
 
 def checkCoords(array, arg='array', cset=False, n_atoms=None, 
                     reshape=None, dtype=(float,)):
@@ -455,6 +458,7 @@ def checkCoords(array, arg='array', cset=False, n_atoms=None,
     if cset and reshape and array.ndim == 2:
         array = array.reshape([1, array.shape[0], 3])
     return array
+
 
 OPEN = {
     '.gz': gzip.open,
@@ -510,11 +514,13 @@ def gunzip(filename, outname=None):
     out.close()
     return outname
 
+
 def isExecutable(path):
     """Return true if *path* is an executable."""
     
     return isinstance(path, str) and os.path.exists(path) and \
         os.access(path, os.X_OK)
+
 
 def isReadable(path):
     """Return true if *path* is readable by the user."""
@@ -537,6 +543,7 @@ def relpath(path):
         return path
     else:
         return os.path.relpath(path)
+
 
 def makePath(path):
     """Make all directories that does not exist in a given path."""
@@ -571,6 +578,7 @@ def which(program):
                 return path
     return None
 
+
 def pickle(obj, filename, **kwargs):
     """Pickle *obj* using :mod:`cPickle` and dump in *filename*."""
     
@@ -578,6 +586,7 @@ def pickle(obj, filename, **kwargs):
     cPickle.dump(obj, out)
     out.close()
     return filename
+
 
 def unpickle(filename, **kwargs):
     """Unpickle object in *filename* using :mod:`cPickle`."""
@@ -587,44 +596,47 @@ def unpickle(filename, **kwargs):
     inf.close()
     return obj
 
-def rangeString(lint, sep=' ', rng=' to '):
-    """Return a structured string for a given list of integers.
+
+def rangeString(lint, sep=' ', rng=' to ', exc=False):
+    """Return a structured string for a given list of integers.  Negative 
+    integers are omitted.
     
     :arg lint: integer list or array
     :arg sep: range or number separator         
-    :arg rng: inclusive range symbol
+    :arg rng: range symbol
+    :arg exc: set **True** if range symbol is exclusive
 
     E.g. for ``sep=' '`` and ``rng=' to '``: 
         ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1 to 4 10 15 to 17"``
     for ``sep=','`` and ``rng='-'``:
         ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1-4,10,15-17"``
-    """
-    lint = np.unique(lint)
-    strint = ''
-    i = -1
-    for j in lint:
-        if j < 0:
-            continue
-        if i < 0:
-            i = j
-        diff = j - i
-        if diff == 0:
-            strint += str(j)
-        elif diff > 1: 
-            strint += rng + str(i) + sep + str(j)
-            k = j 
-        i = j
-    if diff == 1: 
-        strint += rng + str(i)
-    elif diff > 1 and k != j: 
-        strint += rng + str(i) + sep + str(j)
-    return strint
+    for ``sep=','`` and ``rng='-'`` and ``exc=True`:
+        ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1:5,10,15:18"``"""
+
+        
+    ints = np.unique(lint)
+    if ints[0] < 0:
+        ints = ints[ints > -1]
+
+    prev = ints[0]
+    lint = [[prev]]
+    for i in ints[1:]:
+        if i - prev > 1:
+            lint.append([i])
+        else:
+            lint[-1].append(i)
+        prev = i
+    exc = int(exc)
+    return sep.join([str(l[0]) if len(l) == 1 else 
+                     str(l[0]) + rng + str(l[-1] + exc) for l in lint])
+
 
 def openDB(filename, *args):
     """Open a database with given *filename*."""
     
     import anydbm
     return anydbm.open(filename, *args)
+
 
 def alnum(string, alt='_'):
     """Replace non alpha numeric characters with *alt*."""
@@ -636,6 +648,7 @@ def alnum(string, alt='_'):
         else:
             result += alt
     return result
+
 
 def importLA():
     """Return one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
@@ -649,6 +662,7 @@ def importLA():
             raise ImportError('scipy.linalg or numpy.linalg is required for '
                               'NMA and structure alignment calculations')
     return linalg
+
 
 def dictElement(element, prefix=None):
     """Returns a dictionary built from the children of *element*, which must be
