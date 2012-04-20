@@ -597,25 +597,26 @@ def unpickle(filename, **kwargs):
     return obj
 
 
-def rangeString(lint, sep=' ', rng=' to ', exc=False):
-    """Return a structured string for a given list of integers.  Negative 
-    integers are omitted.
+def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
+    """Return a structured string for a given list of integers.
     
     :arg lint: integer list or array
-    :arg sep: range or number separator         
+    :arg sep: range or number separator     
     :arg rng: range symbol
     :arg exc: set **True** if range symbol is exclusive
+    :arg pos: only consider zero and positive integers 
 
-    E.g. for ``sep=' '`` and ``rng=' to '``: 
-        ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1 to 4 10 15 to 17"``
-    for ``sep=','`` and ``rng='-'``:
-        ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1-4,10,15-17"``
-    for ``sep=','`` and ``rng='-'`` and ``exc=True`:
-        ``[1, 2, 3, 4, 10, 15, 16, 17]`` -> ``"1:5,10,15:18"``"""
-
+    >>> lint = [1, 2, 3, 4, 10, 15, 16, 17]
+    >>> rangeString(lint) 
+    '1 to 4 10 15 to 17'
+    >>> rangeString(lint, sep=',', rng='-') 
+    '1-4,10,15-17'
+    >>> rangeString(lint, ',', '-', exc=True)
+    '1:5,10,15:18'
+    """
         
     ints = np.unique(lint)
-    if ints[0] < 0:
+    if pos and ints[0] < 0:
         ints = ints[ints > -1]
 
     prev = ints[0]
