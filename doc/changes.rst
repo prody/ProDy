@@ -28,6 +28,10 @@ Release 1.0.2 (in development)
   * :func:`.printRMSD` function that prints minimum, maximum, and mean RMSD
     values when comparing multiple coordinate sets is implemented.
 
+  * :func:`.findFragments` function that identifies fragments in atom subsets,
+    e.g. :class:`.Selection`, is implemented.
+
+
 **Improvements**:
 
   * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
@@ -37,6 +41,9 @@ Release 1.0.2 (in development)
     well as selection strings.  In repeated use of this function, if selections
     are already made out of the function, considerable speed-ups are achieved 
     when selection is passed instead of selection string.
+    
+  * Fragment iteration (:meth:`.AtomGroup.iterFragments`) is improved to yield
+    items faster. 
 
 **Changes**:
 
