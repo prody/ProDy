@@ -417,7 +417,7 @@ select the Cα and Cβ atoms of residues that have at least one atom within
 Alternatively, this selection could be done as follows:
 
 >>> structure.select('protein and name CA CB and same residue as within 10 of center', center=center)
-<Selection: 'index 576 to 57...07 to 1707 1710' from 1p38 (66 atoms)>
+<Selection: 'index 576 579 5... 1687 1707 1710' from 1p38 (66 atoms)>
 
 Selection operations
 -------------------------------------------------------------------------------
