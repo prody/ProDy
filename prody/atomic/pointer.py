@@ -24,11 +24,12 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from atomic import Atomic
+from bond import Bond
+
+from prody import LOGGER
 
 __all__ = ['AtomPointer']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class AtomPointer(Atomic):
     
@@ -240,3 +241,24 @@ class AtomPointer(Atomic):
         """Return type of data, or ``None`` if data *label* is not present."""
         
         return self._ag.getDataType(label)
+
+    def _iterBonds(self):
+        """Yield pairs of indices for bonded atoms that are within the pointer. 
+        Use :meth:`setBonds` for setting bonds."""
+        
+        if self._ag._bonds is None:
+            raise ValueError('bonds are not set, use `AtomGroup.setBonds`')
+            
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) * 0.5 >= len(self): 
+            for a, b in self._ag._iterBonds():
+                if a in iset and b in iset:
+                    yield a, b
+        else:
+            for a, bmap in zip(indices, self._ag._bmap[indices]):
+                for b in bmap:
+                    if b > -1 and b in iset:
+                        yield a, b
+                iset.remove(a)
+            
