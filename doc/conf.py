@@ -60,11 +60,9 @@ copyright = u'2010-2012, Ahmet Bakan'
 #
 # The short X.Y version.
 def getRevisionNumber():
-    os.system('git log --summary > git.log')
-    logfile = open('git.log')
-    logs = logfile.read()
-    logfile.close()
-    return str(logs.count('Author:'))
+    from subprocess import PIPE, Popen
+    pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
+    return str(pipe.stdout.read().count('Author:'))
 version = '1.0.2-dev'
 # The full version, including alpha/beta/rc tags.
 release =  version
@@ -283,11 +281,12 @@ googleanalytics_enabled = True
 googleanalytics_id = 'UA-19801227-1'
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://matplotlib.sourceforge.net/': None, 
-                       'http://docs.python.org/release/2.6.6/': None,
-                       'http://docs.scipy.org/doc/numpy/': None,
-                       'http://docs.scipy.org/doc/scipy-0.7.x/reference/': None
-                       }
+intersphinx_mapping = {
+    'matplotlib': ('http://matplotlib.sourceforge.net/', None), 
+    'python': ('http://docs.python.org/', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None)
+}
 
 rst_epilog = """
 
@@ -321,7 +320,7 @@ rst_epilog = """
 
 .. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
-.. |questions| replace:: To receive new version announcements, join our 
+.. |questions| replace:: To receive new release announcements, join our 
    ProDy-News Google Group: http://groups.google.com/group/prody-news
     
 .. |suggestions| replace:: Suggestions, feature requests, or
