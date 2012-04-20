@@ -1211,11 +1211,21 @@ class AtomGroup(Atomic):
         """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
         
         if self._bonds is None:
-            raise ValueError('bonds are not set')
+            raise ValueError('bonds are not set, use `setBonds`')
         
         acsi = self._acsi
         for bond in self._bonds:
             yield Bond(self, bond, acsi)
+    
+    def _iterBonds(self):
+        """Yield pairs of bonded atom indices. Use :meth:`setBonds` for setting
+        bonds."""
+        
+        if self._bonds is None:
+            raise ValueError('bonds are not set, use `setBonds`')
+            
+        for a, b in self._bonds:     
+            yield a, b
 
     def numFragments(self):
         """Return number of connected atom subsets."""
