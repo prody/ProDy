@@ -606,12 +606,13 @@ def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     :arg exc: set **True** if range symbol is exclusive
     :arg pos: only consider zero and positive integers 
 
+    >>> from prody.tools import rangeString
     >>> lint = [1, 2, 3, 4, 10, 15, 16, 17]
     >>> rangeString(lint) 
     '1 to 4 10 15 to 17'
     >>> rangeString(lint, sep=',', rng='-') 
     '1-4,10,15-17'
-    >>> rangeString(lint, ',', '-', exc=True)
+    >>> rangeString(lint, ',', ':', exc=True)
     '1:5,10,15:18'
     """
         
