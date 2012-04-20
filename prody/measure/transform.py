@@ -117,6 +117,7 @@ class Transformation(object):
         
         return applyTransformation(self, atoms)
 
+
 def calcTransformation(mobile, target, weights=None):
     """Returns a :class:`Transformation` instance which, when applied to the 
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and 
@@ -157,6 +158,7 @@ def calcTransformation(mobile, target, weights=None):
 
     return Transformation(*getTransformation(mob, tar, weights))
 
+
 def getTransformation(mob, tar, weights=None):
     
     linalg = importLA()
@@ -183,6 +185,7 @@ def getTransformation(mob, tar, weights=None):
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     return rotation, tar_com - np.dot(mob_com, rotation)
+
 
 def applyTransformation(transformation, atoms):
     """Return *atoms* after applying *transformation*.  If *atoms* 
@@ -221,8 +224,10 @@ def applyTransformation(transformation, atoms):
             ag.setACSIndex(acsi)
         return atoms
 
+
 def _applyTransformation(t, coords):
     return t.getTranslation() + np.dot(coords, t.getRotation())
+
     
 def superpose(mobile, target, weights=None):
     """Return *mobile*, after its RMSD minimizing superposition onto *target*, 
@@ -231,6 +236,7 @@ def superpose(mobile, target, weights=None):
     t = calcTransformation(mobile, target, weights)
     result = applyTransformation(t, mobile)
     return (result, t)
+
 
 def moveAtoms(atoms, array):
     """Move or transform *atoms*. *array* must be :class:`numpy.ndarray`.  
@@ -252,6 +258,7 @@ def moveAtoms(atoms, array):
     else:
         raise ValueError('array does not have right shape')
     atoms.setCoords(coords)
+    
     
 def calcRMSD(reference, target=None, weights=None):
     """Return root-mean-square deviation(s) (RMSD) between reference and target 
@@ -317,6 +324,7 @@ ens.getWeights()).round(2) # doctest: +ELLIPSIS
             raise ValueError('weights must have shape ([n_confs,] n_atoms, 1)')
     return getRMSD(ref, tar, weights)
     
+    
 def getRMSD(ref, tar, weights=None):
     if weights is None:
         divByN = 1.0 / ref.shape[0]
@@ -341,6 +349,7 @@ def getRMSD(ref, tar, weights=None):
                 for i, t in enumerate(tar):
                     rmsd[i] = (((ref-t) ** 2) * weights[i]).sum()
                 return np.sqrt(rmsd / weights.sum(1).flatten())
+    
     
 def printRMSD(reference, target=None, weights=None, log=True, msg=None):
     """Print RMSD to the screen.  If *target* has multiple coordinate sets, 
