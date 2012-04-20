@@ -245,25 +245,38 @@ class Atom(AtomPointer):
             return numbonds[self._index]
     
     def iterBonds(self):
-        """Yield bonds formed by the atom.  Bonds must be set first."""
+        """Yield bonds formed by the atom.  Use :meth:`setBonds` for setting
+        bonds."""
         
         ag = self._ag
-        if ag._bmap is not None:
-            acsi = self.getACSIndex()
-            this = self._index
-            for other in self._ag._bmap[this]:
-                if other == -1:
-                    break
-                yield Bond(ag, [this, other], acsi) 
+        acsi = self.getACSIndex()
+        for bond in self._iterBonds():
+            yield Bond(ag, bond, acsi) 
+
+    def _iterBonds(self):
+        """Yield pairs of bonded atom indices."""
+
+        ag = self._ag
+        if ag._bmap is None:
+            raise ValueError('bonds are not set, use `AtomGroup.setBonds`')
+            
+        this = self._index
+        for other in ag._bmap[this]:
+            if other == -1:
+                break
+            yield this, other 
                     
     def iterBonded(self):
-        """Yield bonded atoms.  Bonds must be set first."""
+        """Yield bonded atoms.  Use :meth:`setBonds` for setting bonds."""
         
         ag = self._ag
-        if ag._bmap is not None:
-            acsi = self.getACSIndex()
-            this = self._index
-            for other in self._ag._bmap[this]:
-                if other == -1:
-                    break
-                yield Atom(ag, other, acsi) 
+        if ag._bmap is None:
+            raise ValueError('bonds are not set, use `AtomGroup.setBonds`')
+            
+        acsi = self.getACSIndex()
+        this = self._index
+        for other in self._ag._bmap[this]:
+            if other == -1:
+                break
+            yield Atom(ag, other, acsi) 
+
