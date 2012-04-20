@@ -139,7 +139,7 @@ from functions import loadAtoms, saveAtoms
 
 __all__ += select.__all__
 
-from select import isMacro, isKeyword, isReserved
+from select import isMacro, isKeyword, isReserved, checkSelstr
 atomic.isMacro = isMacro
 atomic.isKeyword = isKeyword
 atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()

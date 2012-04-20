@@ -843,6 +843,7 @@ class SelectionError(Exception):
                ' ' * (loc + 1) + '^ ' + msg)
         Exception.__init__(self, msg)
 
+
 class TypoWarning(object):
     
     """A class used for issuing warning messages when potential typos are
@@ -859,23 +860,30 @@ class TypoWarning(object):
                    ' ' * (shift + 12) + '^ ' + msg)
             LOGGER.warn(msg)
 
+
 def isFloatKeyword(keyword):
     return keyword in KEYWORDS_FLOAT
+
 
 def isIntKeyword(keyword):
     return keyword in KEYWORDS_INTEGER
 
+
 def isNumericKeyword(keyword):
     return keyword in KEYWORDS_NUMERIC
+
 
 def isAlnumKeyword(keyword):
     return keyword in KEYWORDS_STRING
 
+
 def isValuePairedKeyword(keyword):
     return keyword in KEYWORDS_VALUE_PAIRED
 
+
 def isBooleanKeyword(keyword):
     return keyword in KEYWORDS_BOOLEAN
+    
     
 def isKeyword(keyword):
     return isBooleanKeyword(keyword) or isValuePairedKeyword(keyword)
@@ -893,6 +901,7 @@ RESERVED = set(ATOMIC_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
                ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
                 'bonds', 'bmap'])
 
+
 def isReserved(word):
     return (word in RESERVED or isKeyword(word) or word in FUNCTION_MAP)
         
@@ -907,9 +916,11 @@ def getReservedWords():
     words.sort()
     return words
 
+
 getReservedWords.__doc__ += "*{0:s}*.".format('*, *'.join(getReservedWords()))
 
 _specialKeywords = set(['secondary', 'chain', 'altloc', 'segment', 'icode'])
+
 
 def tkn2str(token):
     
@@ -918,8 +929,10 @@ def tkn2str(token):
     else:
         return ' '.join(token)
 
+
 SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex', 
               'segment': 'segindex', 'fragment': 'fragindex'}
+
 
 def expandBoolean(keyword):
     
@@ -944,6 +957,7 @@ def expandBoolean(keyword):
     else:
         return keyword
 
+
 def splitList(alist, sep):
     """Return list of lists obtained by splitting *alist* at the position of 
     *sep*."""
@@ -955,6 +969,29 @@ def splitList(alist, sep):
         else:
             result[-1].append(item)
     return result
+
+
+XYZDIST = set(['x', 'y', 'z', 'within', 'exwithin'])
+
+def checkSelstr(selstr, what, throw=False):
+    """Check *selstr* if it satisfies a selected condition.  For now, only
+    whether coordinate/distance based selection are checked.  If *throw* is 
+    **True** raise a :class:`ValueError` exception, otherwise return **None**.
+    """
+    
+    selstr = selstr.replace('(', ' ( ')
+    selstr = selstr.replace(')', ' ) ')
+    
+    if what in set(['dist']):
+        for item in selstr.split():
+            if item in XYZDIST:
+                if throw:
+                    raise ValueError('invalid selection {0:s}, coordinate '
+                                     'based selections are not accepted'
+                                     .format(repr(selstr)))
+                else:
+                    return False
+
 
 class Select(object):
 
