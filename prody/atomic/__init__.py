@@ -107,8 +107,7 @@ __all__ = ['Atomic', 'AtomGroup',
            'HierView', 'Segment', 'Chain', 'Residue', 'Atom',
            'AtomPointer', 'AtomSubset',
            'Selection', 'AtomMap',
-           'Bond', 'loadAtoms', 'saveAtoms',
-           'select', 'atomgroup', 'hierview']
+           'Bond', 'select', 'atomgroup', 'hierview']
 
 from fields import ATOMIC_FIELDS
 
@@ -123,6 +122,7 @@ from residue import *
 from pointer import *
 from segment import *
 from hierview import *
+from functions import *
 from atomgroup import *
 from selection import *
 
@@ -130,13 +130,14 @@ import atomic
 import select
 import pointer
 import hierview
+import functions
 import atomgroup
 import selection
 
 from atomgroup import SELECT
 from chain import AAMAP, getSequence
-from functions import loadAtoms, saveAtoms
 
+__all__ += functions.__all__
 __all__ += select.__all__
 
 from select import isMacro, isKeyword, isReserved, checkSelstr
