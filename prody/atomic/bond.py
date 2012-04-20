@@ -132,6 +132,7 @@ class Bond(object):
             
         self._acsi = index
 
+
 def evalBonds(bonds, n_atoms):
     """Return an array mapping atoms to their bonded neighbors and an array
     that stores number of bonds made by each atom."""
@@ -146,6 +147,7 @@ def evalBonds(bonds, n_atoms):
         bmap[b, index[b]] = a
         index[bond] += 1
     return bmap, numbonds
+
 
 def trimBonds(bonds, indices):
     """Return bonds made by atoms at given indices."""
