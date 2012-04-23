@@ -305,7 +305,7 @@ hierarchical view."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import numpy as np
+from numpy import unique, zeros, arange, concatenate
 
 from atomgroup import AtomGroup
 from selection import Selection
@@ -313,11 +313,9 @@ from chain import Chain
 from residue import Residue
 from segment import Segment
 
-__all__ = ['HierView']
+from prody import LOGGER, SETTINGS
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER 
-SETTINGS = pkg.SETTINGS
+__all__ = ['HierView']
 
 
 class HierView(object):
@@ -351,6 +349,7 @@ class HierView(object):
         
         if not isinstance(atoms, (AtomGroup, Selection)):
             raise TypeError('atoms must be an AtomGroup or Selection instance')
+        
         self._atoms = atoms
         self.update(**kwargs)
         
@@ -413,45 +412,51 @@ class HierView(object):
         return self._atoms
     
     def update(self, **kwargs):
-        """Rebuild hierarchical view of atoms.  This method is called at 
-        instantiation, but can be used to rebuild the hierarchical view 
-        when attributes of atoms change."""
-        
-        array = np.array
+        """Update (or build) hierarchical view of atoms.  This method is called 
+        at instantiation, but can be used to rebuild the hierarchical view when
+        attributes of atoms change."""
+
         atoms = self._atoms
         if isinstance(atoms, AtomGroup):
             ag = atoms
-            _indices = np.arange(ag._n_atoms)
             selstr = False
+            _indices = arange(atoms._n_atoms)
         else:
             ag = atoms.getAtomGroup()
-            _indices = atoms._indices
+            _indices = atoms._getIndices()
             selstr = atoms.getSelstr()
-        
-        acsi = self._atoms.getACSIndex()
-        
-        n_atoms = len(ag)
-        self._dict = _dict = dict()
-        self._chains = _chains = list()
-        self._residues = _residues = list()
-        self._segments = _segments = list()
 
-        segindex = -1
-        segindices = np.zeros(n_atoms, int)
-        chindex = -1
-        chindices = np.zeros(n_atoms, int)
-        resindex = -1
-        resindices = np.zeros(n_atoms, int)
+        set_indices = False
+        if atoms == ag:
+            set_indices = True
         
+        _dict = dict()
+        _residues = list()
+        _segments = list()
+        _chains = list()
+
+        # also set the attributes, so that when no segments or chains 
+        # are available, num/iter methods won't raise exceptions
+        self._dict = _dict
+        self._residues = _residues
+        self._segments = _segments
+        self._chains = _chains 
+        
+        acsi = atoms.getACSIndex()
+        n_atoms = len(ag)
+
+        # identify segments
+        if set_indices:
+            segindex = -1
+            segindices = zeros(n_atoms, int)
         sgnms = ag._getSegnames()
         if sgnms is None:
             _segments = None
         else:
             if selstr:
                 sgnms = sgnms[_indices]
-            unique = np.unique(sgnms)
             s = sgnms[0]
-            if len(unique) == 1:
+            if len(unique(sgnms)) == 1:
                 if  s != '':
                     segment = Segment(ag, _indices, acsi=acsi, unique=True, 
                                       selstr=selstr)
@@ -461,20 +466,27 @@ class HierView(object):
                 else: 
                     _segments = None
             else:
-                ps = None
+                ps = None       # previous segment name 
                 for i, s in enumerate(sgnms):
                     if s == ps or s in _dict:
                         continue
                     ps = s
-                    segindex += 1
                     idx = _indices[i:][sgnms[i:] == s]
                     segment = Segment(ag, idx, acsi=acsi, unique=True, 
                                        selstr=selstr)
-                    segindices[idx] = segindex
+                    if set_indices:
+                        segindex += 1
+                        segindices[idx] = segindex
                     _dict[s] = segment
                     _segments.append(segment)
                 LOGGER.info('Hierarchical view contains segments.')
 
+        if set_indices:
+            ag._data['segindices'] = segindices
+            chindex = -1
+            chindices = zeros(n_atoms, int)
+
+        # identify chains
         chids = ag._getChids()
         if chids is None:
             _chains = None
@@ -482,7 +494,7 @@ class HierView(object):
             if selstr:
                 chids = chids[_indices]
             if _segments is None:
-                if len(np.unique(chids)) == 1:
+                if len(unique(chids)) == 1:
                     chain = Chain(ag, _indices, acsi=acsi, unique=True,
                                   selstr=selstr)
                     _dict[(None, chids[0] or None)] = chain
@@ -493,11 +505,12 @@ class HierView(object):
                         if c == pc or (None, c) in _dict:
                             continue
                         pc = c
-                        chindex += 1
                         idx = _indices[i:][chids[i:] == c]
                         chain = Chain(ag, idx, acsi=acsi, unique=True,
                                       selstr=selstr)
-                        chindices[idx] = chindex
+                        if set_indices:
+                            chindex += 1
+                            chindices[idx] = chindex
                         _dict[(None, c)] = chain
                         _chains.append(chain)
             else:
@@ -512,19 +525,18 @@ class HierView(object):
                     chain = _dict.get(s_c)
                     if chain is None:
                         segment = _dict[ps]
-                        chindex += 1
                         idx = _indices[_i:i]
                         chain = Chain(ag, idx, acsi=acsi, segment=segment, 
                                        unique=True, selstr=selstr)
-                        chindices[idx] = chindex
+                        if set_indices:
+                            chindex += 1
+                            chindices[idx] = chindex
                         _dict[s_c] = chain
-                        segment._dict[pc] = len(segment._list)
-                        segment._list.append(chain)
                         _chains.append(chain)
                     else:
                         idx = _indices[_i:i]
                         chindices[idx] = chain._indices[0]
-                        chain._indices = np.concatenate((chain._indices, idx))
+                        chain._indices = concatenate((chain._indices, idx))
                     pc = c
                     ps = s
                     _i = i
@@ -533,20 +545,26 @@ class HierView(object):
                 idx = _indices[_i:]
                 if chain is None:
                     segment = _dict[ps]
-                    chindex += 1
-                    chindices[idx] = chindex
+                    if set_indices:
+                        chindex += 1
+                        chindices[idx] = chindex
                     chain = Chain(ag, idx, acsi=acsi, segment=segment, 
                                    unique=True, selstr=selstr)
                     _dict[s_c] = chain
-                    segment._dict[pc] = len(segment._list)
-                    segment._list.append(chain)
                     _chains.append(chain)
                 else:
-                    chindices[idx] = chain._indices[0]
-                    chain._indices = np.concatenate((chain._indices, idx)) 
-        
+                    if set_indices:
+                        chindices[idx] = chain._indices[0]
+                    chain._indices = concatenate((chain._indices, idx)) 
+
+        if set_indices:
+            ag._data['chindices'] = chindices
         if kwargs.get('chain') == True:
             return
+    
+        if set_indices:
+            resindex = -1
+            resindices = zeros(n_atoms, int)
     
         rnums = ag._getResnums()
         if rnums is None:
@@ -573,56 +591,54 @@ class HierView(object):
         pr = rnums[0]
         pi = icods[0] or None          
         pc = chids[0]
-        ps = sgnms[0] or None
+        ps = sgnms[0]
         _j = 0
+        _append = _residues.append
+        _get = _dict.get
+        _set = _dict.__setitem__
         for j, r in enumerate(rnums):
             i = icods[j] or None
-            c = chids[j] or None
+            c = chids[j]
             s = sgnms[j]
             if r != pr or i != pi or c != pc or s != ps:
                 s_c_r_i = (ps, pc, pr, pi)
-                res = _dict.get(s_c_r_i)
+                res = _get(s_c_r_i)
                 if res is None:
-                    chain = _dict.get((ps, pc))
-                    resindex += 1
+                    chain = _get((ps, pc))
                     idx = _indices[_j:j]
                     res = Residue(ag, idx, acsi=acsi, chain=chain, 
                                    unique=True, selstr=selstr)
-                    resindices[idx] = resindex
-                    if chain is not None:
-                        chain._dict[(pr, pi)] = len(chain._list)
-                        chain._list.append(res)
-                    _residues.append(res)
-                    _dict[s_c_r_i] = res
+                    if set_indices:
+                        resindex += 1
+                        resindices[idx] = resindex
+                    _append(res)
+                    _set(s_c_r_i, res)
                 else:
-                    res._indices = np.concatenate((res._indices, 
-                                                   _indices[_j:j]))
+                    res._indices = concatenate((res._indices, _indices[_j:j]))
                 ps = s
                 pc = c
                 pr = r
                 pi = i
                 _j = j 
         s_c_r_i = (ps, pc, pr, pi)
-        res = _dict.get(s_c_r_i)
+        res = _get(s_c_r_i)
         idx = _indices[_j:]
         if res is None:
-            chain = _dict.get((ps, pc))
-            resindex += 1
+            chain = _get((ps, pc))
             res = Residue(ag, idx, acsi=acsi, chain=chain, unique=True, 
                            selstr=selstr)
-            resindices[idx] = resindex
-            if chain is not None:
-                chain._dict[(pr, pi)] = len(chain._list)
-                chain._list.append(res)
-            _residues.append(res)
-            _dict[s_c_r_i] = res
+            if set_indices:
+                resindex += 1
+                resindices[idx] = resindex
+            _append(res)
+            _set(s_c_r_i, res)
         else:
-            resindices[idx] = res._indices[0]
-            res._indices = np.concatenate((res._indices, idx))
+            if set_indices:
+                resindices[idx] = res._indices[0]
+            res._indices = concatenate((res._indices, idx))
         
-        ag._data['segindices'] = segindices
-        ag._data['chindices'] = chindices
-        ag._data['resindices'] = resindices
+        if set_indices:
+            ag._data['resindices'] = resindices
 
     def getResidue(self, chid, resnum, icode=None, segname=None):
         """Return residue with number *resnum* and insertion code *icode* from 
