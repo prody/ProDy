@@ -37,7 +37,9 @@ from selection import Selection
 
 __all__ = ['findFragments', 'loadAtoms', 'saveAtoms']
 
-SKIPSAVE = set(['numbonds', 'fragindices'])
+SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindices'])
+SAVE_SKIP_POINTER = set(['numbonds', 'fragindices', 'segindices', 'chindices', 
+                         'resindices'])
 
 def saveAtoms(atoms, filename=None, **kwargs):
     """Save *atoms* in ProDy internal format.  All atomic classes are accepted 
@@ -52,9 +54,11 @@ def saveAtoms(atoms, filename=None, **kwargs):
     if isinstance(atoms, AtomGroup):
         ag = atoms
         title = ag.getTitle()
+        SKIP = SAVE_SKIP_ATOMGROUP
     else:
         ag = atoms.getAtomGroup()
         title = str(atoms)
+        SKIP = SAVE_SKIP_POINTER
     
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
@@ -83,7 +87,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
                 evalBonds(bonds, len(atoms))
     
     for key, data in ag._data.iteritems():
-        if key in SKIPSAVE:
+        if key in SKIP:
             continue
         if data is not None:
             attr_dict[key] = data 
