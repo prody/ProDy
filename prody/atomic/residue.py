@@ -55,7 +55,13 @@ class Residue(AtomSubset):
     def __init__(self, ag, indices, acsi=None, **kwargs):
         
         AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
-        self._chain = kwargs.get('chain')
+        
+        chain = kwargs.get('chain')
+        if chain is not None:
+            chain._dict[(self.getResnum(), 
+                         self.getIcode() or None)] = len(chain._list)
+            chain._list.append(self)
+        self._chain = chain
 
     def __repr__(self):
 
@@ -146,6 +152,12 @@ class Residue(AtomSubset):
         
         if self._chain:
             return self._chain.getChid()
+
+    def getSegname(self):
+        """Return segment name."""
+        
+        if self._chain:
+            return self._chain.getSegname()
     
     def getSelstr(self):
         """Return selection string that will select this residue."""
