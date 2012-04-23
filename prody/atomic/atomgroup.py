@@ -262,14 +262,13 @@ class AtomGroupMeta(type):
                 # Define public method for retrieving a copy of data array
                 if not field.private:
                     def getData(self, var=field.var, call=field.call):
-                        for meth in call:
-                            getattr(self, meth)()
-                        array = self._data[var]
-                        return array.copy()
+                        if self._data[var] is None:
+                            [getattr(self, meth)() for meth in call]
+                        return self._data[var].copy()
                 # Define private method for retrieving actual data array
                 def _getData(self, var=field.var, call=field.call):
-                    for meth in call:
-                        getattr(self, meth)()
+                    if self._data[var] is None:
+                        [getattr(self, meth)() for meth in call]
                     return self._data[var]
             else:
                 if not field.private:

@@ -22,11 +22,9 @@ from atom import Atom
 from fields import ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
+from prody import LOGGER
 
 __all__ = ['AtomSubset']
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class AtomSubsetMeta(type):
 
@@ -43,10 +41,9 @@ class AtomSubsetMeta(type):
             # Define public method for retrieving a copy of data array
             if field.call:
                 def getData(self, var=field.var, call=field.call):
-                    for meth in call:
-                        getattr(self._ag, meth)()
-                    array = self._ag._data[var]
-                    return array[self._indices]
+                    if self._ag._data[var] is None:
+                        [getattr(self._ag, meth)() for meth in call]
+                    return self._ag._data[var][self._indices]
             else:
                 def getData(self, var=field.var):
                     array = self._ag._data[var]

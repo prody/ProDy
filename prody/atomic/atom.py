@@ -45,10 +45,9 @@ class AtomMeta(type):
             # Define public method for retrieving a copy of data array
             if field.call:
                 def getData(self, var=field.var, call=field.call):
-                    for meth in call:
-                        getattr(self._ag, meth)()
-                    array = self._ag._data[var]
-                    return array[self._index] 
+                    if self._ag._data[var] is None:
+                        [getattr(self._ag, meth)() for meth in call]
+                    return self._ag._data[var][self._index] 
             else:
                 def getData(self, var=field.var):
                     array = self._ag._data[var]
