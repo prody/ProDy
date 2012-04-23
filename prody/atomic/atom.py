@@ -72,7 +72,8 @@ class AtomMeta(type):
                                          'not set')
                 array[self._index] = value
                 if none:
-                    self._ag.__setattr__('_' + none,  None)
+                    [self._ag.__setattr__(nm,  None) if nm[0] == '_' else
+                     self._ag._data.__setitem__(nm,  None) for nm in none]
             setData = wrapSetMethod(setData)
             setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set', False)

@@ -318,7 +318,8 @@ class AtomGroupMeta(type):
                                          '{0:s}'.format(dtype))
                 self._data[var] = array
                 if none:
-                    self.__setattr__('_'+none,  None)
+                    [self.__setattr__(nm,  None) if nm[0] == '_' else
+                     self._data.__setitem__(nm,  None) for nm in none]
             setData = wrapSetMethod(setData)
             setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set')
