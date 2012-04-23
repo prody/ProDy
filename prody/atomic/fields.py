@@ -115,6 +115,7 @@ class Field(object):
         else:
             return docstr
 
+HVNONE = ['_hv', 'segindices', 'chindices', 'resindices']
 
 ATOMIC_FIELDS = {
     'name':      Field('name', '|S6', selstr=('name CA CB',)),
@@ -123,7 +124,7 @@ ATOMIC_FIELDS = {
     'anisou':    Field('anisou', float, doc='anisotropic temperature factor', 
                        ndim=2),
     'chain':     Field('chain', '|S1', var='chids', doc='chain identifier', 
-                       meth='Chid', none='hv', synonym='chid', 
+                       meth='Chid', none=HVNONE, synonym='chid', 
                        selstr=('chain A', 'chid A B C', 'chain _')),
     'element':   Field('element', '|S2', doc='element symbol', 
                        selstr=('element C O N',)),
@@ -134,7 +135,7 @@ ATOMIC_FIELDS = {
                        selstr=('occupancy 1', 'occupancy > 0')),
     'resname':   Field('resname', '|S6', doc='residue name', 
                        selstr=('resname ALA GLY',)),
-    'resnum':    Field('resnum', int, doc='residue number', none='hv',
+    'resnum':    Field('resnum', int, doc='residue number', none=HVNONE,
                        selstr=('resnum 1 2 3', 'resnum 120A 120B', 
                                'resnum 10 to 20', 'resnum 10:20:2', 
                                'resnum < 10'), synonym='resid'),
@@ -144,19 +145,19 @@ ATOMIC_FIELDS = {
                        selstr=('secondary H E', 'secstr H E')),
     'segment':   Field('segment', '|S6', doc='segment name', meth='Segname',
                        selstr=('segment PROT', 'segname PROT'), 
-                       synonym='segname', none='hv'),
+                       synonym='segname', none=HVNONE),
     'siguij':    Field('siguij', float, doc='standard deviations for '
                        'anisotropic temperature factor', 
                        meth='Anistd', ndim=2),
     'serial':    Field('serial', int, doc='serial number (from file)', 
-                       doc_pl='serial numbers (from file)', none='sn2i', 
+                       doc_pl='serial numbers (from file)', none=['_sn2i'], 
                        selstr=('serial 1 2 3', 'serial 1 to 10', 
                        'serial 1:10:2', 'serial < 10')),
     'beta':      Field('beta', float, doc='β-value (temperature factor)', 
                        doc_pl='β-values (or temperature factors)', 
                        selstr=('beta 555.55', 'beta 0 to 500', 'beta 0:500', 
                        'beta < 500')),
-    'icode':     Field('icode', '|S1', doc='insertion code', none='hv', 
+    'icode':     Field('icode', '|S1', doc='insertion code', none=HVNONE, 
                        selstr=('icode A', 'icode _')),
     'type':      Field('type', '|S6', selstr=('type CT1 CT2 CT3',)),
     'charge':    Field('charge', float, doc='partial charge', 
