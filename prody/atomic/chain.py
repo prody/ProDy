@@ -85,10 +85,16 @@ class Chain(AtomSubset):
     def __init__(self, ag, indices, acsi=None, **kwargs):
         
         AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
-        self._segment = kwargs.get('segment')
+        
         self._seq = None
         self._dict = dict()
         self._list = list()
+        
+        segment = kwargs.get('segment')
+        if segment is not None:
+            segment._dict[self.getChid()] = len(segment._list)
+            segment._list.append(self)
+        self._segment = segment
         
     def __len__(self):
         
