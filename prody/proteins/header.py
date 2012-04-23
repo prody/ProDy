@@ -899,14 +899,15 @@ def assignSecstr(header, atoms, coil=False):
     atoms.select('protein').setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
+    getResidue = hierview.getResidue
     for key, value in helix.iteritems():
-        res = hierview.getResidue(*key)
+        res = getResidue(*key)
         if res is None:
             continue
         res.setSecstrs(mapHelix[value[0]])
         count += 1
     for key, res in sheet.iteritems():
-        res = hierview.getResidue(*key)
+        res = getResidue(*key)
         if res is None:
             continue
         res.setSecstrs('E')
