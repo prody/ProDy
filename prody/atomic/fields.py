@@ -33,7 +33,7 @@ class Field(object):
     
     __slots__ = ['name', 'var', 'dtype',  'doc', 'doc_pl', 'meth', 'meth_pl', 
                  'ndim', 'none', 'selstr', 'synonym', 'readonly', 'call', 
-                 'private', 'depr', 'depr_pl']
+                 'private', 'depr', 'depr_pl', 'desc']
                  
     def __init__(self, name, dtype, **kwargs):
         
@@ -47,6 +47,8 @@ class Field(object):
         self.doc = kwargs.get('doc', name)
         #: plural form for documentation
         self.doc_pl = kwargs.get('doc_pl', self.doc + 's')
+        #: description of data field, used in documentation
+        self.desc = kwargs.get('desc')
         #: expected dimension of the data array
         self.ndim = kwargs.get('ndim', 1)
         #: atomic get/set method name
@@ -97,6 +99,9 @@ class Field(object):
             if plural:
                 docstr = 'Return {0:s} array.'.format(self.doc_pl) 
             
+        if self.desc:
+            docstr += '  ' + self.desc
+            
         selstr = self.selstr
         if selex and selstr:
             if plural:
@@ -142,7 +147,8 @@ ATOMIC_FIELDS = {
     'secondary': Field('secondary', '|S1', var='secondaries', 
                        doc='secondary structure assignment', 
                        meth='Secstr', synonym='secstr',
-                       selstr=('secondary H E', 'secstr H E')),
+                       selstr=('secondary H E', 'secstr H E'),
+                       ),
     'segment':   Field('segment', '|S6', doc='segment name', meth='Segname',
                        selstr=('segment PROT', 'segname PROT'), 
                        synonym='segname', none=HVNONE),
@@ -170,20 +176,44 @@ ATOMIC_FIELDS = {
     'resindex':  Field('resindex', int, var='resindices', doc='residue index',  
                        doc_pl='residue indices', meth_pl='Resindices',
                        selstr=('resindex 0',), readonly=True, 
-                       call=['getHierView']),
+                       call=['getHierView'],
+                       desc='Residue indices are assigned to subsets of atoms '
+                            'with distinct sequences of residue number, '
+                            'insertion code, chain identifier, and segment '
+                            'name.  Residue indices start from zero, are '
+                            'incremented by one, and are assigned in the '
+                            'order of appearance in :class:`.AtomGroup` '
+                            'instance.'),
     'chindex':   Field('chindex', int, var='chindices', doc='chain index',  
                        doc_pl='chain indices', meth_pl='Chindices',
                        selstr=('chindex 0',), readonly=True, 
-                       call=['getHierView']),
+                       call=['getHierView'],
+                       desc='Chain indices are assigned to subsets of atoms '
+                            'with distinct pairs of chain identifier and '
+                            ' segment name.  Chain indices start from zero, '
+                            'are incremented by one, and are assigned in the '
+                            'order of appearance in :class:`.AtomGroup` '
+                            'instance.'),
     'segindex':  Field('segindex', int, var='segindices', doc='segment index',  
                        doc_pl='segment indices', meth_pl='Segindices',
                        selstr=['segindex 0',], readonly=True, 
-                       call=['getHierView']),
+                       call=['getHierView'],
+                       desc='Segment indices are assigned to subsets of atoms '
+                            'with distinct segment names.  Segment indices '
+                            'start from zero, are incremented by one, and are '
+                            'assigned in the order of appearance in '
+                            ':class:`.AtomGroup` instance.'),
     'fragindex':  Field('fragindex', int, var='fragindices', 
                        doc='fragment index', doc_pl='fragment indices', 
                        meth_pl='Fragindices', 
                        selstr=['fragindex 0', 'fragment 1'], 
-                       readonly=True, call=['_fragment'], synonym='fragment'),
+                       readonly=True, call=['_fragment'], synonym='fragment',
+                       desc='Fragment indices are assigned to connected '
+                            'subsets of atoms.  Bonds needs to be set using '
+                            ':meth:`.AtomGroup.setBonds` method.  Fragment'
+                            ' indices start from zero, are incremented by '
+                            'one, and are assigned in the order of appearance '
+                            'in :class:`.AtomGroup` instance.'),
     'numbonds':  Field('numbonds', int, var='numbonds', 
                        doc='number of bonds', 
                        selstr=['numbonds 0', 'numbonds 1'], 
