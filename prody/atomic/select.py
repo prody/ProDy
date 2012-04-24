@@ -1214,6 +1214,20 @@ class Select(object):
     def _prepareSelstr(self):
         
         if DEBUG: print('_prepareSelstr', self._selstr) 
+
+        if MACROS:
+            selstr = ' ' + self._selstr + ' '
+            for macro, definition in MACROS.iteritems():
+                selstr = selstr.replace(' ' + macro + ' ', 
+                                        ' (' + definition + ') ')
+                selstr = selstr.replace('(' + macro + ' ', 
+                                        '((' + definition + ') ')
+                selstr = selstr.replace(' ' + macro + ')', 
+                                        ' (' + definition + '))')
+            selstr = selstr[1:-1]
+            self._selstr = selstr        
+        if DEBUG: print('_prepareSelstr', selstr)
+        
         selstr = ' ' + self._selstr + ' '
         selstr = selstr.replace(')and(', ')&&&(')
         selstr = selstr.replace(' and(', ' &&&(')
@@ -1233,17 +1247,6 @@ class Select(object):
         selstr = selstr.replace(' not(', ' !!!(')
         while ' not ' in selstr:
             selstr = selstr.replace(' not ', ' !!! ')
-        
-        if MACROS:
-            for macro in MACROS.iterkeys():
-                selstr = selstr.replace(' ' + macro + ' ', 
-                                        ' (' + MACROS[macro] + ') ')
-                selstr = selstr.replace('(' + macro + ' ', 
-                                        '((' + MACROS[macro] + ') ')
-                selstr = selstr.replace(' ' + macro + ')', 
-                                        ' (' + MACROS[macro] + '))')
-        
-        if DEBUG: print('_prepareSelstr', selstr) 
         return selstr.strip()
 
     def _evalSelstr(self):
@@ -1265,12 +1268,14 @@ class Select(object):
             if DEBUG: print('_evalSelstr using Pyparsing')
             tokens = self._tokenizer.parseString(selstr, 
                                              parseAll=True).asList()
+        except pp.ParseException as err:
+            #raise SelectionError(self._selstr, err.column,
+            raise SelectionError(selstr, err.column, 
+                                 'parsing failed here, ' + str(err))
+        else:    
             if DEBUG: print('_evalSelstr', tokens)
             return tokens[0]
-        except pp.ParseException as err:
-            raise SelectionError(self._selstr, err.column, 
-                                 'parsing failed here')
-    
+
     def _isValid(self, token):
         """Check the validity of part of a selection string. Expects a Python
         :func:`str` or a :func:`list`."""
