@@ -450,10 +450,42 @@ class TestGetSetFunctions(unittest.TestCase):
                                      'failed to reset "backbone' + full + '" '
                                      'atom names definition')
     
-MACROS = [('cacb', 'name CA CB')]
+MACROS = [('cacb', 'name CA CB'), 
+          ('donors', '(protein) and (name N NE NH2 ND2 NE2 ND1 OG OH NH1 '
+                                         'SG OG1 NE2 NZ NE1 ND1 NE2)')]
 
-class TestSelectionMacros(unittest.TestCase):
+class TestMacrosMeta(type):
 
+    def __init__(cls, name, bases, dict):
+
+        count = 0        
+        for name, macro in MACROS:
+
+
+            def testFunction(self, name=name, macro=macro):
+            
+                prody.defSelectionMacro(name, macro)
+                for key, case in SELECTION_TESTS.iteritems():
+                    atoms = case['ag']
+                    sel1 = SELECT.getIndices(atoms, macro)
+                    sel2 = SELECT.getIndices(atoms, name)
+                    self.assertListEqual(list(sel1), list(sel2),
+                                         'failed to select correct selection '
+                                         'using macro')        
+                prody.delSelectionMacro(name)
+            count += 1
+
+            testFunction.__name__ = 'testMacro{0:d}'.format(count)
+            testFunction.__doc__ = 'Test macro *{0:s}*: {1:s}'.format(name, 
+                                     repr(macro))
+            setattr(cls, testFunction.__name__, testFunction)
+
+class TestMacros(unittest.TestCase):
+    
+    """Test selection macros."""
+    
+    __metaclass__ = TestMacrosMeta
+    
     def testMacroFunctions(self):
 
         for name, macro in MACROS:
@@ -461,18 +493,3 @@ class TestSelectionMacros(unittest.TestCase):
             self.assertEqual(prody.getSelectionMacro(name), macro,
                              'failed to get correct macro definition')        
             prody.delSelectionMacro(name)            
-
-    def testSelections(self):
-        
-        for name, macro in MACROS:
-            prody.defSelectionMacro(name, macro)
-            for key, case in SELECTION_TESTS.iteritems():
-                atoms = case['ag']
-                sel1 = SELECT.getIndices(atoms, macro)
-                sel2 = SELECT.getIndices(atoms, name)
-                self.assertListEqual(list(sel1), list(sel2),
-                                     'failed to select correct selection '
-                                     'using macro')        
-            prody.delSelectionMacro(name)
-
-
