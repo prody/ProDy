@@ -286,13 +286,17 @@ class TrajBase(object):
         pass
     
     def next(self):
-        """Return next frame."""
+        """Return next frame.  Note that when atoms are set for the trajectory,
+        this method will return the same frame instance after updating its
+        coordinates."""
         
         pass
 
     def goto(self, n):
         """Go to the frame at index *n*. ``n=0`` will rewind the trajectory
-        to the beginning. ``n=-1`` will go to the last frame."""
+        to the beginning, same as calling :meth:`reset` method. ``n=-1`` 
+        will go to the last frame.  Frame *n* will not be parsed until one 
+        of :meth:`next` or :meth:`nextCoordset` methods is called."""
         
         pass
 
@@ -302,7 +306,8 @@ class TrajBase(object):
         pass
 
     def reset(self):
-        """Go to first frame whose index is 0."""
+        """Go to first frame at index 0.  First frame will not be parsed until
+        one of :meth:`next` or :meth:`nextCoordset` methods is called."""
         
         pass
 
