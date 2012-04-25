@@ -111,6 +111,8 @@ class Trajectory(TrajBase):
         self._trajectories.append(traj)
         self._n_csets += traj.numFrames()
         self._n_files += 1
+        if self._ag is not None:
+            traj.setAtoms(self._ag)
    
     def numFiles(self):
         """Return number of open trajectory files."""
