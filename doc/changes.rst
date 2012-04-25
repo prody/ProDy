@@ -70,6 +70,15 @@ Release 1.0.2 (in development)
 
   * A problem with picking central atom of :class:`.AtomGroup` instances
     in :func:`.pickCentral` function is fixed.
+    
+  * A problem in :class:`.Select` class that caused exceptions when evaluating
+    complex macro definitions is fixed.
+    
+  * Fixed a problem in handling multiple trajectory files.  The problem would
+    emerge when a file was added (:meth:`~.Trajectory.addFile`) to a 
+    :class:`.Trajectory` after atoms were set (:meth:`~.Trajectory.setAtoms`). 
+    Newly added file would not be associated with the atoms and coordinates 
+    parsed from this file would not be set for the :class:`AtomGroup` instance.
 
 
 Release 1.0.1 (Apr 6, 2012)
