@@ -26,7 +26,7 @@ import numpy as np
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
 from prody.tools import importLA, checkCoords
-
+from prody import LOGGER
 import prody
 
 __all__ = ['calcDistance', 'calcCenter', 'calcAngle', 
@@ -35,32 +35,28 @@ __all__ = ['calcDistance', 'calcCenter', 'calcAngle',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral']
            
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-
 RAD2DEG = 180 / np.pi
 
-def calcDistance(one, two):
-    """Return the Euclidean distance between *one* and *two*.
+def calcDistance(atoms1, atoms2):
+    """Return the Euclidean distance between *atoms1* and *atoms2*.  Arguments 
+    may be :class:`~.Atomic` instances or NumPy arrays.  Shape of numpy arrays 
+    must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is 
+    the number of atoms."""
     
-    Arguments may be :class:`~.Atomic` instances or NumPy arrays. 
-    Shape of numpy arrays must be ([M,]N,3), where M is number of coordinate 
-    sets and N is the number of atoms."""
-    
-    if not isinstance(one, np.ndarray):
+    if not isinstance(atoms1, np.ndarray):
         try:
-            one = one.getCoords()
+            atoms1 = atoms1._getCoords()
         except AttributeError:
             raise ValueError('one must be Atom instance or a coordinate array')
-    if not isinstance(two, np.ndarray):
+    if not isinstance(atoms2, np.ndarray):
         try:
-            two = two.getCoords()
+            atoms2 = atoms2._getCoords()
         except AttributeError:
             raise ValueError('one must be Atom instance or a coordinate array')
-    if one.shape[-1] != 3 or two.shape[-1] != 3:
+    if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
     
-    return np.sqrt(np.power(one - two, 2).sum(axis=-1))
+    return np.sqrt(np.power(atoms1 - atoms2, 2).sum(axis=-1))
     
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
     """Return the angle between atoms in degrees."""
@@ -128,8 +124,8 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
 
 def calcOmega(residue, radian=False, dist=4.1):
     """Return ω (omega) angle of *residue* in degrees.  This function checks
-    the distance between Cα atoms of two residues.  Set *dist* to none, to 
-    avoid this check."""
+    the distance between Cα atoms of two residues and raises an exception if
+    the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
@@ -158,8 +154,8 @@ def calcOmega(residue, radian=False, dist=4.1):
 
 def calcPhi(residue, radian=False, dist=4.1):
     """Return φ (phi) angle of *residue* in degrees.  This function checks
-    the distance between Cα atoms of two residues.  Set *dist* to **None**, 
-    to avoid this check."""
+    the distance between Cα atoms of two residues and raises an exception if
+    the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
@@ -200,8 +196,8 @@ def getPhiAtoms(residue):
 
 def calcPsi(residue, radian=False, dist=4.1):
     """Return ψ (psi) angle of *residue* in degrees.  This function checks
-    the distance between Cα atoms of two residues.  Set *dist* to **None**, 
-    to avoid this check."""
+    the distance between Cα atoms of two residues and raises an exception if
+    the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
