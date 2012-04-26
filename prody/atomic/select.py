@@ -838,6 +838,8 @@ class SelectionError(Exception):
     
     def __init__(self, sel, loc=0, msg=''):
         
+        sel = sel.replace(AND, 'and').replace(OR, 'or').replace(NOT, 'not')
+        
         msg = ("An invalid selection string is encountered:\n{0:s}\n"
                .format(repr(sel)) + 
                ' ' * (loc + 1) + '^ ' + msg)
