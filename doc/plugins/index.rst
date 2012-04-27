@@ -36,9 +36,9 @@ network model modes were calculated using ProDy.  Movie was generated using
    .. youtube:: 1OUzdzm68YY
       :width: 400
 
-See `documentation <http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/>`_  
-NMWiz usage for details. NMWiz recognizes :ref:`nmd-format`, which is 
-a simple data format described below.
+See NMWiz `documentation <http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/>`_  
+for usage details.  NMWiz recognizes :ref:`nmd-format`, which is a simple data 
+format described below.
 
 Availability
 ===============================================================================
