@@ -33,18 +33,17 @@ class KDTree(object):
     """This is a Python interface to Thomas Hamelryck's KDTree distributed
     with Biopython."""
     
-    def __init__(self, coords, bucket_size=1, unitcell=None):
+    def __init__(self, coords, unitcell=None, bucket_size=1):
         """
-        :arg coords: coordinate array with shape (N, 3), where N is number of 
-            atoms
+        :arg coords: coordinate array with shape ``(N, 3)``, where N is number 
+            of atoms
         :type coords: :class:`numpy.ndarray`, :class:`.Atomic`
         
-        :arg bucket_size: number of points per 
-        :type bucket_size: int
-        
-        :arg unitcell: unitcell array with shape (3,)
+        :arg unitcell: unitcell array with shape ``(3,)``
         :type unitcell: :class:`numpy.ndarray`
-        """
+        
+        :arg bucket_size: number of points per tree node
+        :type bucket_size: int"""
         
         if not isinstance(coords, ndarray):
             try:
@@ -130,9 +129,3 @@ class KDTree(object):
         else:
             return self._kdtree.get_neighbor_count()
 
-
-def getKDTree(coords, bucket_size=1):
-    """Internal function to get KDTree for coordinates without any checks."""
-
-    from KDTree import KDTree
-    return KDTree(coords, bucket_size)
