@@ -31,6 +31,7 @@ Release 1.0.2 (in development)
   * :func:`.findFragments` function that identifies fragments in atom subsets,
     e.g. :class:`.Selection`, is implemented.
 
+  * A new :class:`.KDTree` interface with coherent method names is implemented.    
 
 **Improvements**:
 
@@ -50,7 +51,10 @@ Release 1.0.2 (in development)
   * There is a change in the behavior of addition operation on instances of 
     :class:`.AtomGroup`.  When operands do not have same number of coordinate 
     sets, the result will have one coordinate set that is concatenation of the 
-    *active coordinate sets* of operands.  
+    *active coordinate sets* of operands.
+    
+  * :func:`.buildKDTree` function is deprecated for removal, use the new 
+    :class:`KDTree` class instead.
 
 **Bugfix**:
 
