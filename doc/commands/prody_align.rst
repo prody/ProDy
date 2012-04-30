@@ -40,16 +40,22 @@ Running :command:`prody align --examples` displays::
   will match chains based on sequence alignment and use best match for
   aligning the structures.
   
-  Fetch PDB structure 2k39 and align models:
+  Fetch PDB structure 2k39 and align models (reference model is the
+  first model):
   
       $ prody align 2k39
   
   Fetch PDB structure 2k39 and align models using backbone of residues
-  with number smaller than 71:
+  with number less than 71:
   
       $ prody align 2k39 --select "backbone and resnum < 71"
   
-  Fetch PDB structures 1p38, 1r39 and 1zz2 and superpose 1r39 and 1zz2
-  onto 1p38 using residues with number smaller than 300:
+  Align 1r39 and 1zz2 onto 1p38 using residues with number less than
+  300:
   
       $ prody align --select "resnum < 300" 1p38 1r39 1zz2
+  
+  Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
+  
+      $ prody align --select "resnum 1 to 70" 1aar 2k39
+  
