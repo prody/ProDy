@@ -65,7 +65,7 @@ if os.name != 'java' and sys.version_info[0] == 2:
         if all([os.path.isfile(os.path.join('prody/kdtree', fn)) 
                 for fn in kdtree_files]):
             EXTENSIONS.append(
-                Extension('prody.kdtree.CKDTree',
+                Extension('prody.kdtree._CKDTree',
                           ['prody/kdtree/KDTree.c',
                            'prody/kdtree/KDTreemodule.c'],
                           include_dirs=[numpy.get_include()],
