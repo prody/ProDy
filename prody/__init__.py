@@ -257,6 +257,11 @@ __all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
            'startLogfile', 'closeLogfile', 
            'plog']
 
+import kdtree
+from kdtree import *
+__all__.extend(kdtree.__all__)
+__all__.append('kdtree')
+
 import atomic 
 from atomic import *
 __all__.extend(atomic.__all__)
