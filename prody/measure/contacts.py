@@ -122,16 +122,16 @@ def buildKDTree(atoms):
             return KDT(coords)
 
 def iterNeighbors(atoms, radius, atoms2=None):
-    """Yield pairs of *atoms* that are those within *radius* of each other,
-    with the distance between them.  If *atoms2* is also provided, one atom 
-    from *atoms* and another from *atoms2* will be yielded."""
+    """Yield pairs of *atoms* that are within *radius* of each other and the 
+    distance between them.  If *atoms2* is also provided, one atom from *atoms*
+    and another from *atoms2* will be yielded."""
     
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance')
     elif not isinstance(radius, (float, int)):
-        raise TypeError('radius must be an Atomic instance')
+        raise TypeError('radius must be a number')
     elif radius <= 0:
-        raise ValueError('radius must have a positive value')
+        raise ValueError('radius must be a positive number')
         
     if atoms2 is None:
         if len(atoms) <= 1:
