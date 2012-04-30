@@ -15,6 +15,7 @@ module.  Some documentation pages include usage examples.
    atomic/index
    dynamics/index
    ensemble/index
+   kdtree/index
    measure/index
    proteins/index
    trajectory/index
