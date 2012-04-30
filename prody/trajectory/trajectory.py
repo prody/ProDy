@@ -86,6 +86,8 @@ class Trajectory(TrajBase):
         for traj in self._trajectories:
             traj.setAtoms(ag, setref)
         TrajBase.setAtoms(self, ag, setref)
+        
+    setAtoms.__doc__ = TrajBase.setAtoms.__doc__
 
     def addFile(self, filename):
         """Add a file to the trajectory instance. Currently only DCD files

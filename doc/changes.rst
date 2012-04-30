@@ -55,7 +55,7 @@ Release 1.0.2 (in development)
     *active coordinate sets* of operands.
     
   * :func:`.buildKDTree` function is deprecated for removal, use the new 
-    :class:`KDTree` class instead.
+    :class:`.KDTree` class instead.
 
 **Bugfix**:
 
@@ -83,7 +83,8 @@ Release 1.0.2 (in development)
     emerge when a file was added (:meth:`~.Trajectory.addFile`) to a 
     :class:`.Trajectory` after atoms were set (:meth:`~.Trajectory.setAtoms`). 
     Newly added file would not be associated with the atoms and coordinates 
-    parsed from this file would not be set for the :class:`AtomGroup` instance.
+    parsed from this file would not be set for the :class:`.AtomGroup` 
+    instance.
 
 
 Release 1.0.1 (Apr 6, 2012)
