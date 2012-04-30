@@ -36,11 +36,15 @@ REPLICATE = array([[x, y, z] for x in _ for y in _ for z in _])
 class KDTree(object):
     
     """An interface to Thomas Hamelryck's C KDTree module that can handle 
-    periodic boundary conditions.
+    periodic boundary conditions.  Both point and neighbor search can be
+    performed using the single :meth:`search` method and results can be
+    retrieved using :meth:`getIndices` and :meth:`getDistances`.
     
-    **Point search**
+    **Periodic Boundary Conditions**
+    
+    *Point search*
 
-    A *point* :meth:`search`, indicated with a question mark (``?``) below,
+    A point search, point indicated with a question mark (``?``) below,
     involves making images of the point in cells sharing a wall or an edge 
     with the unitcell that contains the system.  The search is performed 
     for all images of the *point* (27 in 3-dimensional space) and unique 
@@ -62,7 +66,7 @@ class KDTree(object):
     be in the unitcell, and (ii) all the system must be in the unitcell with 
     parts in its immediate periodic images. 
     
-    **Neighbor search**
+    *Neighbor search*
     
     A neighbor search involves making 26 (or 8 in 2-d) replicas of the system 
     coordinates.  A KDTree is built for the system (``O`` and ``H``) and all 

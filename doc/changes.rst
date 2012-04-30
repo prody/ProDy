@@ -31,7 +31,8 @@ Release 1.0.2 (in development)
   * :func:`.findFragments` function that identifies fragments in atom subsets,
     e.g. :class:`.Selection`, is implemented.
 
-  * A new :class:`.KDTree` interface with coherent method names is implemented.    
+  * A new :class:`.KDTree` interface with coherent method names and capability
+    to handle periodic boundary conditions is implemented.    
 
 **Improvements**:
 
