@@ -25,7 +25,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import unittest
 import numpy as np
 from numpy.testing import *
-from prody.KDTree import getKDTree
+from prody.kdtree import KDTree
 ATOL = 1e-5
 RTOL = 0
 
@@ -35,26 +35,26 @@ class TestKDTree(unittest.TestCase):
     def setUp(self):
         
         self.coords = np.tile(np.arange(10), (3,1)).T.astype(float)
-        self.kdtree = getKDTree(self.coords)
+        self.kdtree = KDTree(self.coords)
         
         
     def testSearch(self):
         
         kdtree = self.kdtree 
         coords = self.coords
-        kdtree.search(np.array([0,0,0]), 10000)
-        indices = kdtree.get_indices()
+        kdtree.search(10000, np.array([0,0,0]))
+        indices = kdtree.getIndices()
         dist = (coords**2).sum(1)**0.5
-        radii = kdtree.get_radii()
+        radii = kdtree.getDistances()
         assert_allclose(radii, dist[indices], rtol=RTOL, atol=ATOL,
                         err_msg='KDTree search failed')
 
     def testAllSearch(self):
         kdtree = self.kdtree 
         coords = self.coords
-        kdtree.all_search(1.75)
-        radii = kdtree.all_get_radii()
-        indices = kdtree.all_get_indices()
+        kdtree.search(1.75)
+        radii = kdtree.getDistances()
+        indices = kdtree.getIndices()
         self.assertEqual(len(indices), 9, 'KDTree all search failed')
         for pair, radius in zip(indices, radii):
             x, y = coords[pair] 
