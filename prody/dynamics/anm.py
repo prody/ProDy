@@ -30,7 +30,7 @@ import numpy as np
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.tools import checkCoords, importLA
-from prody.KDTree import getKDTree
+from prody.kdtree import KDTree
 
 from gnm import GNMBase, ZERO, checkENMParameters
 
@@ -98,7 +98,7 @@ class ANM(GNMBase):
         """Build Hessian matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
-        :type coords: :class:`~numpy.ndarray` or :class:`~.Atomic`
+        :type coords: :class:`numpy.ndarray` or :class:`.Atomic`
         
         :arg cutoff: cutoff distance (Å) for pairwise interactions,
             default is 15.0 Å, minimum is 4.0 Å 
@@ -151,9 +151,9 @@ class ANM(GNMBase):
             
         if kwargs.get('kdtree', False):
             LOGGER.info('Using KDTree for building the Hessian.')
-            kdtree = getKDTree(coords) 
-            kdtree.all_search(cutoff)
-            for i, j in kdtree.all_get_indices():
+            kdtree = KDTree(coords) 
+            kdtree.search(cutoff)
+            for i, j in kdtree.getIndices():
                 i2j = coords[j] - coords[i]
                 dist2 = np.dot(i2j, i2j)
                 g = gamma(dist2, i, j)
@@ -284,7 +284,7 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
     """Return an :class:`ANM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps 
-    selecting a subset of it.  *pdb* can be :class:`~.Atomic` instance."""
+    selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
     
     if isinstance(pdb, str):
         ag = parsePDB(pdb)

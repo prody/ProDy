@@ -29,7 +29,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.measure import getKDTree
+from prody.kdtree import KDTree
 from prody.tools import checkCoords, importLA
 
 from nma import NMA
@@ -147,7 +147,7 @@ class GNM(GNMBase):
         """Build Kirchhoff matrix for given coordinate set.
         
         :arg coords: a coordinate set or anything with getCoordinates method
-        :type coords: :class:`~numpy.ndarray` or :class:`~.Atomic`
+        :type coords: :class:`numpy.ndarray` or :class:`.Atomic`
         
         :arg cutoff: cutoff distance (Å) for pairwise interactions
             default is 10.0 Å, , minimum is 4.0 Å
@@ -196,12 +196,12 @@ class GNM(GNMBase):
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
         
         if kwargs.get('kdtree', True):
-            kdtree = getKDTree(coords) 
-            kdtree.all_search(cutoff)
-            radii = kdtree.all_get_radii()
+            kdtree = KDTree(coords) 
+            kdtree.search(cutoff)
+            dist2 = kdtree.getDistances() ** 2
             r = 0
-            for i, j in kdtree.all_get_indices():
-                g = gamma(radii[r]**2, i, j)
+            for i, j in kdtree.getIndices():
+                g = gamma(dist2[r], i, j)
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
                 kirchhoff[i, i] = kirchhoff[i, i] + g
@@ -311,7 +311,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
     """Return a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps 
-    selecting a subset of it.  *pdb* can be :class:`~.Atomic` instance."""
+    selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
     
     if isinstance(pdb, str):
         ag = parsePDB(pdb)
