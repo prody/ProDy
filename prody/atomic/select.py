@@ -199,7 +199,7 @@ from segment import Segment
 from atommap import AtomMap
 
 from prody.tools import rangeString
-from prody.KDTree import getKDTree
+from prody.kdtree import KDTree
 
 DEBUG = 0
 
@@ -1228,7 +1228,7 @@ class Select(object):
                                         ' (' + definition + '))')
             selstr = selstr[1:-1]
             self._selstr = selstr        
-        if DEBUG: print('_prepareSelstr', selstr)
+            if DEBUG: print('_prepareSelstr', selstr)
         
         selstr = ' ' + self._selstr + ' '
         selstr = selstr.replace(')and(', ')&&&(')
@@ -1550,12 +1550,14 @@ class Select(object):
 
         if other or len(which) < 20:
             kdtree = self._atoms._getKDTree()
-            get_indices = kdtree.get_indices
+            get_indices = kdtree.getIndices
             search = kdtree.search
+            get_count = kdtree.getCount
             torf = zeros(self._ag.numAtoms(), bool)
             for index in which:
-                search(coords[index], within)
-                torf[get_indices()] = True
+                search(within, coords[index])
+                if get_count():
+                    torf[get_indices()] = True
             if self._indices is not None:
                 torf = torf[self._indices]
             if exclude:
@@ -1567,14 +1569,14 @@ class Select(object):
             torf = zeros(self._n_atoms, bool)
             
             cxyz = coords[check]
-            kdtree = getKDTree(coords[which])
-            get_indices = kdtree.get_indices
+            kdtree = KDTree(coords[which])
             search = kdtree.search
+            get_count = kdtree.getCount
             select = []
             append = select.append
             for i, xyz in enumerate(cxyz):
-                search(xyz, within)
-                if len(get_indices()):
+                search(within, xyz)
+                if get_count():
                     append(i)
 
             torf[check[select]] = True

@@ -234,7 +234,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.tools import checkCoords
-from prody.KDTree import getKDTree
+from prody.kdtree import KDTree
 
 from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS, READONLY
@@ -565,7 +565,7 @@ class AtomGroup(Atomic):
                 index = self._acsi
             kdtree = self._kdtrees[index]
             if kdtree is None:
-                kdtree = getKDTree(self._coords[index])
+                kdtree = KDTree(self._coords[index])
                 self._kdtrees[index] = kdtree
             return kdtree
         else:
