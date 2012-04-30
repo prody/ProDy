@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
  
 from numpy import array, ndarray
 
-from prody.measure import _CKDTree 
+from _CKDTree import KDTree as CKDTree 
 
 __all__ = ['KDTree']
 
@@ -62,15 +62,20 @@ class KDTree(object):
         if coords.min() <= -1e6 or coords.max() >= 1e6:
                 raise Exception('coords must be between -1e6 and 1e6')
             
-        self._coords = coords
+        self._point = None
+        self._coords = None
+        self._neighbors = None
         if unitcell is None:
             self._dim = coords.shape[-1]
-            self._kdtree = _CKDTree.KDTree(self._dim, bucket_size)
+            self._kdtree = CKDTree(self._dim, bucket_size)
             self._kdtree.set_data(coords)
-            self._neighbors = None
         else:
-            pass
-            
+            if not isinstance(self._unitcell, ndarray):
+                raise TypeError('unitcell must be a Numpy array')
+            if unitcell.shape != (3,):
+                raise ValueError('unitcell.shape must be (3,)')
+            self._coords = coords
+            self._unitcell = unitcell            
         
     def __call__(self, radius, point=None):
         """Shorthand method for searching and retrieving results."""
@@ -90,19 +95,13 @@ class KDTree(object):
         
         self._point = point
         if point is None:
-            neighbors = self._kdtree.neighbor_search(radius)
-            if neighbors: 
-                indices = [(n.index1, n.index2) for n in neighbors]
-                radii = 
-                return indices, radius
+            self._neighbors = self._kdtree.neighbor_search(radius)
         else:
             if not isinstance(point, ndarray): 
                 raise TypeError('point must be a Numpy array instance')
             if point.shape != (self._dim,):
                 raise ValueError('point.shape must be ' + repr((self._dim,)))
             self._kdtree.search_center_radius(point, radius)
-            return self._kdtree.get_indices(), self._kdtree.get_radii()
-
     
     def getIndices(self):
         """Return array of indices or list of pairs of indices, depending on
@@ -111,7 +110,7 @@ class KDTree(object):
         if self._point is not None:
             return self._kdtree.get_indices()
         else:
-            return array([(n.index1, n.index2) for n in neighbors], int)
+            return array([(n.index1, n.index2) for n in self._neighbors], int)
     
     def getDistances(self):
         """Return array of distances."""
@@ -119,7 +118,7 @@ class KDTree(object):
         if self._point is not None:
             return self._kdtree.get_radii()
         else:
-            return array([n.radius for n in neighbors])
+            return array([n.radius for n in self._neighbors])
     
     def getCount(self:
         """Return number of neighbors."""
