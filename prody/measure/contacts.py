@@ -24,8 +24,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
-from prody.tools import checkCoords
-from prody.KDTree import getKDTree
+from prody.tools import checkCoords, rangeString
+from prody.kdtree import KDTree
 
 __all__ = ['Contacts', 'buildKDTree', 'iterNeighbors']
 
@@ -51,7 +51,7 @@ class Contacts(object):
         else:
             self._ag = atoms.getAtomGroup()
             self._indices = atoms.getIndices()
-            self._kdtree = getKDTree(self._atoms._getCoords())
+            self._kdtree = KDTree(self._atoms._getCoords())
         self._acsi = atoms.getACSIndex()
 
     def __repr__(self):
@@ -86,35 +86,40 @@ class Contacts(object):
                                  'return a numpy.ndarray instance.')
 
         search = self._kdtree.search
-        get_indices = self._kdtree.get_indices
-        indices = []
-        append = indices.append
+        get_indices = self._kdtree.getIndices
+        get_count = self._kdtree.getCount
+        indices = set()
+        update = indices.update
+        within = float(within)
         for xyz in what:
-            search(xyz, float(within))
-            append(get_indices())
-        indices = np.unique(np.concatenate(indices))
-        if len(indices) != 0:
+            search(within, xyz)
+            if get_count():
+                update(get_indices())
+        indices = list(indices)
+        indices.sort()
+        if indices:
             if self._indices is not None:        
                 indices = self._indices[indices]
-            return Selection(self._ag, np.array(indices), 
-                    'index {0:s}'.format(' '.join(np.array(indices, '|S'))), 
-                                         acsi=self._acsi, unique=True)
+            return Selection(self._ag, np.array(indices), 'index ' + 
+                            rangeString(indices), acsi=self._acsi, unique=True)
 
 def buildKDTree(atoms):
-    """Return a KDTree built using coordinates of *atoms*.  *atoms* must be
-    a ProDy object or a :class:`numpy.ndarray` with shape ``(n_atoms,3)``.  
-    This function uses Biopython KDTree module."""
+    """Deprecated, use :class:`.KDTree` instead."""
+    
+    from prody import deprecate
+    deprecate('buildKDTree', 'KDTree')
+    from prody.kdtree.KDTree import KDTree as KDT
     
     if isinstance(atoms, np.ndarray):
         coords = checkCoords(atoms, 'atoms')
-        return getKDTree(coords)
+        return KDT(coords)
     else:
         try:
             coords = atoms._getCoords()
         except AttributeError:
             raise TypeError('invalid type for atoms')
         finally:
-            return getKDTree(coords)
+            return KDT(coords)
 
 def iterNeighbors(atoms, radius, atoms2=None):
     """Yield pairs of *atoms* that are those within *radius* of each other,
@@ -138,11 +143,10 @@ def iterNeighbors(atoms, radius, atoms2=None):
             index = lambda i: indices[i]
         else:
             index = lambda i: i
-        kdtree = getKDTree(atoms._getCoords())
-        kdtree.all_search(radius)
+        kdtree = KDTree(atoms._getCoords())
         
         _dict = {}
-        for (i, j), r in zip(kdtree.all_get_indices(), kdtree.all_get_radii()): 
+        for (i, j), r in zip(kdtree(radius)): 
              
             a1 = _dict.get(i)
             if a1 is None:      
@@ -162,12 +166,11 @@ def iterNeighbors(atoms, radius, atoms2=None):
                 index = lambda i: indices[i]
             else:
                 index = lambda i: i
-            kdtree = getKDTree(atoms._getCoords())
+            kdtree = KDTree(atoms._getCoords())
             
             _dict = {}
             for a2 in atoms2.iterAtoms():
-                kdtree.search(a2._getCoords(), radius)
-                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
+                for i, r in zip(kdtree(radius, a2._getCoords())): 
                     a1 = _dict.get(i)
                     if a1 is None:      
                         a1 = ag[index(i)]
@@ -181,12 +184,11 @@ def iterNeighbors(atoms, radius, atoms2=None):
                 index = lambda i: indices[i]
             else:
                 index = lambda i: i
-            kdtree = getKDTree(atoms2._getCoords())
+            kdtree = KDTree(atoms2._getCoords())
             
             _dict = {}
             for a1 in atoms.iterAtoms():
-                kdtree.search(a1._getCoords(), radius)
-                for i, r in zip(kdtree.get_indices(), kdtree.get_radii()): 
+                for i, r in zip(kdtree(radius, a1._getCoords())): 
                     a2 = _dict.get(i)
                     if a2 is None:      
                         a2 = ag[index(i)]

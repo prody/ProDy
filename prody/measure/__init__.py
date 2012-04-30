@@ -86,8 +86,6 @@ import contacts
 from contacts import *
 __all__.extend(contacts.__all__)
 
-from contacts import getKDTree
-
 import transform
 from transform import *
 __all__.extend(transform.__all__)
