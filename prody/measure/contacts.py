@@ -108,7 +108,7 @@ def buildKDTree(atoms):
     
     from prody import deprecate
     deprecate('buildKDTree', 'KDTree')
-    from prody.kdtree.KDTree import KDTree as KDT
+    from prody.kdtree.KDTreeBio import KDTree as KDT
     
     if isinstance(atoms, np.ndarray):
         coords = checkCoords(atoms, 'atoms')
