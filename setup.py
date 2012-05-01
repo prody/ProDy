@@ -58,11 +58,13 @@ if os.name != 'java' and sys.version_info[0] == 2:
                       ['prody/proteins/cpairwise2.c'],
                       include_dirs=["prody"]
                       ))
+    else:
+        raise Exception('one or more pairwise2 module files are missing')
     if isInstalled('numpy'):
         import numpy
         kdtree_files = ['__init__.py', 'KDTree.c', 'KDTree.h', 'KDTreeBio.py', 
                   'KDTreemodule.c', 'Neighbor.h', 'kdtree.py']
-        if all([os.path.isfile(os.path.join('prody/kdtree', fn)) 
+        if all([os.path.isfile(os.path.join('prody', 'kdtree', fn)) 
                 for fn in kdtree_files]):
             EXTENSIONS.append(
                 Extension('prody.kdtree._CKDTree',
@@ -70,7 +72,11 @@ if os.name != 'java' and sys.version_info[0] == 2:
                            'prody/kdtree/KDTreemodule.c'],
                           include_dirs=[numpy.get_include()],
                           ))
+        else:
+            raise Exception('one or more kdtree module files are missing')
         PACKAGES.append('prody.kdtree')
+    elif isInstalled('numpy'):
+        raise ImportError('numpy is not installed')
 
 SCRIPTS = ['scripts/prody']
 
