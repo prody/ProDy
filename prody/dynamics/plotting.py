@@ -534,7 +534,7 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     if not isinstance(rows, (NMA, ModeSet)):
         raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'
                         .format(type(rows)))
-    if not isinstance(rows, (NMA, ModeSet)):
+    if not isinstance(cols, (NMA, ModeSet)):
         raise TypeError('cols must be an NMA model or a ModeSet, not {0:s}'
                         .format(type(cols)))
     overlap = abs(calcOverlap(rows, cols))
