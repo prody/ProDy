@@ -60,8 +60,8 @@ if os.name != 'java' and sys.version_info[0] == 2:
                       ))
     if isInstalled('numpy'):
         import numpy
-        kdtree_files = ['__init__.py', 'KDTree.c', 'KDTree.h', 'KDTree.py', 
-                  'KDTreemodule.c', 'Neighbor.h']
+        kdtree_files = ['__init__.py', 'KDTree.c', 'KDTree.h', 'KDTreeBio.py', 
+                  'KDTreemodule.c', 'Neighbor.h', 'kdtree.py']
         if all([os.path.isfile(os.path.join('prody/kdtree', fn)) 
                 for fn in kdtree_files]):
             EXTENSIONS.append(
