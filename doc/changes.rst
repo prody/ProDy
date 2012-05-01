@@ -6,6 +6,19 @@
 Changes
 *******************************************************************************
 
+Release 1.1 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`.buildDistMatrix` function that can take periodic boundary 
+    conditions is implemented.
+    
+**Improvements**:
+
+  * :func:`.calcDistance` function is improved to take periodic boundary
+    conditions into account when provided by the users.
+
 Release 1.0.2 (May 1, 2012)
 ===============================================================================
 
