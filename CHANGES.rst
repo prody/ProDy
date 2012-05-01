@@ -6,6 +6,87 @@
 Changes
 *******************************************************************************
 
+Release 1.0.2 (May 1, 2012)
+===============================================================================
+
+**New Features**:
+ 
+  * Methods to deal with connected subsets of atoms are implemented, see
+    :meth:`.AtomGroup.iterFragments` and :meth:`.AtomGroup.numFragments`.
+    
+  * :func:`.pickCentral` method is implemented for picking the atom that
+    is closest to the centroid of a group or subset of atoms.
+    
+  * ProDy configuration option *auto_secondary* is implemented to 
+    allow for parsing and assigning secondary structure information from PDB
+    file header data automatically.  See :func:`.assignSecstr` and 
+    :func:`.confProDy` for usage details. 
+
+  * :program:`prody align` makes use of :option:`--select` when aligning 
+    multiple structures. See usage examples: :ref:`prody-align`
+    
+  * :func:`.printRMSD` function that prints minimum, maximum, and mean RMSD
+    values when comparing multiple coordinate sets is implemented.
+
+  * :func:`.findFragments` function that identifies fragments in atom subsets,
+    e.g. :class:`.Selection`, is implemented.
+
+  * A new :class:`.KDTree` interface with coherent method names and capability
+    to handle periodic boundary conditions is implemented.    
+
+**Improvements**:
+
+  * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
+  
+  * :func:`.sliceMode`, :func:`.sliceModel`, :func:`.sliceVector`, and 
+    :func:`.reduceModel` functions accept :class:`.Selection` instances as 
+    well as selection strings.  In repeated use of this function, if selections
+    are already made out of the function, considerable speed-ups are achieved 
+    when selection is passed instead of selection string.
+    
+  * Fragment iteration (:meth:`.AtomGroup.iterFragments`) is improved to yield
+    items faster. 
+
+**Changes**:
+
+  * There is a change in the behavior of addition operation on instances of 
+    :class:`.AtomGroup`.  When operands do not have same number of coordinate 
+    sets, the result will have one coordinate set that is concatenation of the 
+    *active coordinate sets* of operands.
+    
+  * :func:`.buildKDTree` function is deprecated for removal, use the new 
+    :class:`.KDTree` class instead.
+
+**Bugfix**:
+
+  * A problem in building hierarchical views when making selections using
+    *resindex*, *chindex*, and *segindex* keywords is fixed.  
+
+  * A problem in :class:`.Chain` and :class:`.Residue` selection strings 
+    that would emerge when a :class:`.HierView` is build using a selection
+    is fixed.
+    
+  * A problem with copying :class:`.AtomGroup` instances whose coordinates 
+    are not set is fixed.
+    
+  * :class:`.AtomGroup` fragment detection algorithm is rewritten to avoid
+    the problem of reaching maximum recursion depth for large molecules
+    with the old recursive algorithm.
+
+  * A problem with picking central atom of :class:`.AtomGroup` instances
+    in :func:`.pickCentral` function is fixed.
+    
+  * A problem in :class:`.Select` class that caused exceptions when evaluating
+    complex macro definitions is fixed.
+    
+  * Fixed a problem in handling multiple trajectory files.  The problem would
+    emerge when a file was added (:meth:`~.Trajectory.addFile`) to a 
+    :class:`.Trajectory` after atoms were set (:meth:`~.Trajectory.setAtoms`). 
+    Newly added file would not be associated with the atoms and coordinates 
+    parsed from this file would not be set for the :class:`.AtomGroup` 
+    instance.
+
+
 Release 1.0.1 (Apr 6, 2012)
 ===============================================================================
 

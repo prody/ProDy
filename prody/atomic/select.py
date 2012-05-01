@@ -1141,9 +1141,9 @@ class Select(object):
     def getIndices(self, atoms, selstr, **kwargs):
         """Return indices of atoms matching *selstr*.
         
-        .. note:: The indices correspond to indices in *atoms* argument.  When
-           *atoms* is not an :class:`~.AtomGroup` instance, indexing the 
-           :class:`~.AtomGroup` may return a different set of atoms."""
+        .. note:: The indices correspond to indices in *atoms* argument.  
+           When *atoms* is not an :class:`.AtomGroup` instance, indexing 
+           the :class:`.AtomGroup` may return a different set of atoms."""
         
         torf = self.getBoolArray(atoms, selstr, **kwargs)        
         return torf.nonzero()[0]
