@@ -29,34 +29,131 @@ from prody.tools import importLA, checkCoords
 from prody import LOGGER
 import prody
 
-__all__ = ['calcDistance', 'calcCenter', 'calcAngle', 
+__all__ = ['buildDistMatrix', 'calcDistance', 
+           'calcCenter', 'calcGyradius', 'calcAngle', 
            'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcDeformVector', 'calcGyradius',
+           'calcDeformVector', 
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral']
            
 RAD2DEG = 180 / np.pi
 
-def calcDistance(atoms1, atoms2):
-    """Return the Euclidean distance between *atoms1* and *atoms2*.  Arguments 
-    may be :class:`~.Atomic` instances or NumPy arrays.  Shape of numpy arrays 
-    must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is 
-    the number of atoms."""
+DISTMAT_FORMATS = set(['sym', 'rcd', 'dist'])
+
+def buildDistMatrix(atoms1, atoms2=None, **kwargs):
+    """Return distance matrix.  When *atoms2* is given, a distance matrix 
+    with shape ``(len(atoms1), len(atoms2))`` is built.  When *atoms2* is 
+    **None**, a symmetric matrix with shape ``(len(atoms1), len(atoms1))``
+    is built.  If *unitcell* array is provided, periodic boundary conditions
+    will be taken into account using modulo operator.
+    
+    :arg atoms1: atom or coordinate data
+    :type atoms1: :class:`.Atomic`, :class:`.Frame`, :class:`numpy.ndarray`
+    
+    :arg atoms2: atom or coordinate data
+    :type atoms2: :class:`.Atomic`, :class:`.Frame`, :class:`numpy.ndarray`
+    
+    :arg unitcell: orthorhombic unitcell dimension array with shape ``(3,)``
+    :type unitcell: :class:`numpy.ndarray`
+    
+    :arg format: format of the resulting array, one of ``'sym'`` (symmetric 
+        matrix, default), ``'rcd'`` (arrays of row indices, column indices, 
+        and distances), or ``'dist'`` (only array of distances) 
+    :type format: bool"""
+    
     
     if not isinstance(atoms1, np.ndarray):
         try:
             atoms1 = atoms1._getCoords()
         except AttributeError:
-            raise ValueError('one must be Atom instance or a coordinate array')
+            raise TypeError('atoms1 must be Atomic instance or an array')
+    if atoms2 is None:    
+        symmetric = True
+        atoms2 = atoms1
+    else:
+        symmetric = False
+        if not isinstance(atoms2, np.ndarray):
+            try:
+                atoms2 = atoms2._getCoords()
+            except AttributeError:
+                raise TypeError('atoms2 must be Atomic instance or an array')
+    if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
+        raise ValueError('one and two must have shape ([M,]N,3)')
+        
+    unitcell = kwargs.get('unitcell')
+    if unitcell is not None:
+        if not isinstance(unitcell, np.ndarray): 
+            raise TypeError('unitcell must be an array')
+        elif unitcell.shape != (3,):
+            raise ValueError('unitcell.shape must be (3,)')
+
+    dist = np.zeros((len(atoms1), len(atoms2)))
+    if symmetric:
+        format = kwargs.get('format', 'sym')
+        if format not in DISTMAT_FORMATS:
+            raise ValueError('format must be one of sym, rcd, or arr')
+        if format == 'sym':
+            for i, xyz in enumerate(atoms1[:-1]):
+                dist[i, i+1:] = dist[i+1:, i] = getDistance(xyz, atoms2[i+1:], 
+                                                            unitcell)
+        else:
+            dist = np.concatenate([getDistance(xyz, atoms2[i+1:]) 
+                                   for i, xyz in enumerate(atoms1)])
+            if format == 'rcd':        
+                n_atoms = len(atoms1)
+                rc = np.array([(i, j) for i in xrange(n_atoms) 
+                                      for j in xrange(i + 1, n_atoms)])
+                row, col = rc.T
+                dist = (row, col, dist) 
+                            
+    else:
+        for i, xyz in enumerate(atoms1):
+            dist[i] = getDistance(xyz, atoms2, unitcell)
+    return dist    
+
+
+def calcDistance(atoms1, atoms2, **kwargs):
+    """Return the Euclidean distance between *atoms1* and *atoms2*.  Arguments 
+    may be :class:`~.Atomic` instances or NumPy arrays.  Shape of numpy arrays 
+    must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is 
+    the number of atoms.  If *unitcell* array is provided, periodic boundary 
+    conditions will be taken into account using modulo operator.
+    
+    :arg unitcell: orthorhombic unitcell dimension array with shape ``(3,)``
+    :type unitcell: :class:`numpy.ndarray`"""
+    
+    if not isinstance(atoms1, np.ndarray):
+        try:
+            atoms1 = atoms1._getCoords()
+        except AttributeError:
+            raise TypeError('atoms1 must be Atomic instance or an array')
     if not isinstance(atoms2, np.ndarray):
         try:
             atoms2 = atoms2._getCoords()
         except AttributeError:
-            raise ValueError('one must be Atom instance or a coordinate array')
+            raise TypeError('atoms2 must be Atomic instance or an array')
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
     
-    return np.sqrt(np.power(atoms1 - atoms2, 2).sum(axis=-1))
+    unitcell = kwargs.get('unitcell')
+    if unitcell is not None:
+        if not isinstance(unitcell, np.ndarray): 
+            raise TypeError('unitcell must be an array')
+        elif unitcell.shape != (3,):
+            raise ValueError('unitcell.shape must be (3,)')
+    
+    return getDistance(atoms1, atoms2, unitcell)
+
+    
+def getDistance(coords1, coords2, unitcell=None):
+    
+    if unitcell is None:
+        return np.sqrt(np.power(coords1 - coords2, 2).sum(axis=-1))
+    else:
+        diff = coords1 - coords2
+        np.mod(diff, unitcell, diff)
+        return np.sqrt(np.power(diff, 2).sum(axis=-1))
+    
     
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
     """Return the angle between atoms in degrees."""
@@ -72,6 +169,7 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
     
     return getAngle(atoms1._getCoords(), atoms2._getCoords(), 
                     atoms3._getCoords(), radian)
+
 
 def getAngle(coords1, coords2, coords3, radian):
     """Return bond angle in degrees."""
@@ -104,6 +202,7 @@ def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
     return getDihedral(atoms1._getCoords(), atoms2._getCoords(), 
                        atoms3._getCoords(), atoms4._getCoords(), radian)
     
+    
 def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     """Return the dihedral angle in degrees."""
     
@@ -121,6 +220,7 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
         return sign * rad
     else:
         return sign * rad * RAD2DEG
+
 
 def calcOmega(residue, radian=False, dist=4.1):
     """Return ω (omega) angle of *residue* in degrees.  This function checks
@@ -152,6 +252,7 @@ def calcOmega(residue, radian=False, dist=4.1):
     return getDihedral(CA._getCoords(), C._getCoords(), _N._getCoords(), 
                        _CA._getCoords(), radian)
 
+
 def calcPhi(residue, radian=False, dist=4.1):
     """Return φ (phi) angle of *residue* in degrees.  This function checks
     the distance between Cα atoms of two residues and raises an exception if
@@ -168,6 +269,7 @@ def calcPhi(residue, radian=False, dist=4.1):
     
     return getDihedral(C_._getCoords(), N._getCoords(), CA._getCoords(), 
                        C._getCoords(), radian)
+
 
 def getPhiAtoms(residue):
     """Return the four atoms that form the φ (phi) angle of *residue*."""
@@ -193,6 +295,7 @@ def getPhiAtoms(residue):
         raise ValueError('{0:s} does not have CA atom'.format(str(prev)))
     
     return C_, N, CA, C
+
 
 def calcPsi(residue, radian=False, dist=4.1):
     """Return ψ (psi) angle of *residue* in degrees.  This function checks
@@ -227,6 +330,7 @@ def calcPsi(residue, radian=False, dist=4.1):
     return getDihedral(N._getCoords(), CA._getCoords(), C._getCoords(), 
                        _N._getCoords(), radian)
 
+
 def calcCenter(atoms, weights=None):
     """Return geometric center of *atoms*.  If *weights* is given it must 
     be a flat array with length equal to number of atoms.  Mass center
@@ -250,12 +354,14 @@ def calcCenter(atoms, weights=None):
 
     return getCenter(coords, weights)
 
+
 def getCenter(coords, weights=None):
     
     if weights is None:
         return coords.mean(0)
     else:
         return (coords * weights).mean(0) / weights.sum()
+
 
 def pickCentral(atoms, weights=None):
     """Return :class:`.Atom` that is closest to the center, which is calculated
@@ -277,10 +383,12 @@ def pickCentral(atoms, weights=None):
              index = atoms._getIndices()[index]
     return Atom(ag, index, atoms.getACSIndex())
 
+
 def getCentral(coords, weights=None):
     """Return index of coordinates closest to the center."""
     
     return ((coords - getCenter(coords, weights))**2).sum(1).argmin()
+
 
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
@@ -327,6 +435,7 @@ def calcGyradius(atoms, weights=None):
         d2sum = np.array(rgyr)
     return (d2sum / wsum) ** 0.5
 
+
 def calcDeformVector(from_atoms, to_atoms):
     """Returns deformation from *from_atoms* to *atoms_to* as a 
     :class:`~.Vector` instance."""
@@ -336,6 +445,7 @@ def calcDeformVector(from_atoms, to_atoms):
         name = 'Deformation'
     array = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
     return prody.dynamics.Vector(array, name)
+            
             
 def calcADPAxes(atoms, **kwargs):
     """Return a 3Nx3 array containing principal axes defining anisotropic 
@@ -467,6 +577,7 @@ def calcADPAxes(atoms, **kwargs):
         axes = axes * torf
     return axes
         
+        
 def calcADPs(atom):
     """Calculate anisotropic displacement parameters (ADPs) from 
     anisotropic temperature factors (ATFs).
@@ -490,6 +601,7 @@ def calcADPs(atom):
     element[1,2] = element[2,1] = anisou[5]
     vals, vecs = linalg.eigh(element)
     return vals[[2,1,0]], vecs[:, [2,1,0]] 
+   
    
 def buildADPMatrix(atoms):
     """Return a 3Nx3N symmetric matrix containing anisotropic displacement
