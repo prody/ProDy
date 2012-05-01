@@ -27,7 +27,7 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
 from prody.tools import checkCoords, rangeString
 from prody.kdtree import KDTree
 
-__all__ = ['Contacts', 'buildKDTree', 'iterNeighbors']
+__all__ = ['Contacts', 'iterNeighbors']
 
 class Contacts(object):
     
@@ -103,23 +103,6 @@ class Contacts(object):
             return Selection(self._ag, np.array(indices), 'index ' + 
                             rangeString(indices), acsi=self._acsi, unique=True)
 
-def buildKDTree(atoms):
-    """Deprecated, use :class:`.KDTree` instead."""
-    
-    from prody import deprecate
-    deprecate('buildKDTree', 'KDTree')
-    from prody.kdtree.KDTreeBio import KDTree as KDT
-    
-    if isinstance(atoms, np.ndarray):
-        coords = checkCoords(atoms, 'atoms')
-        return KDT(coords)
-    else:
-        try:
-            coords = atoms._getCoords()
-        except AttributeError:
-            raise TypeError('invalid type for atoms')
-        finally:
-            return KDT(coords)
 
 def iterNeighbors(atoms, radius, atoms2=None):
     """Yield pairs of *atoms* that are within *radius* of each other and the 
