@@ -97,7 +97,8 @@ class KDTree(object):
             of atoms
         :type coords: :class:`numpy.ndarray`, :class:`.Atomic`, :class:`.Frame`
         
-        :arg unitcell: unitcell array with shape ``(3,)``
+        :arg unitcell: orthorhombic unitcell dimension array with shape 
+            ``(3,)``
         :type unitcell: :class:`numpy.ndarray`
         
         :arg bucketsize: number of points per tree node, default is 10
@@ -219,6 +220,8 @@ class KDTree(object):
                     coords = self._coords
                     coords = concatenate([coords + rep 
                                           for rep in self._replicate])
+                    #print 'replicate', time()-t
+                    #t=time()
                     kdtree = CKDTree(3, self._bucketsize)
                     kdtree.set_data(coords)
                     self._kdtree2 = kdtree
