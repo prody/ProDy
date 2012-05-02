@@ -44,6 +44,7 @@ try:
     import nose
     
 except ImportError:
+
     LOGGER.warning('Failed to import nose, using unittest for testing.')
     LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
     import unittest
@@ -51,7 +52,8 @@ except ImportError:
         testrunner = unittest.TextTestRunner(stream, descriptions, 
                                              verbosity)
         for module in ['test_datafiles', 'test_atomic', 'test_dynamics', 
-                       'test_ensemble', 'test_kdtree', 'test_pairwise2', 
+                       'test_ensemble', 'test_kdtree.test_kdtree', 
+                       'test_pairwise2', 
                        'test_proteins', 'test_select', 
                        'test_measure.test_measure']:
             testrunner.run(unittest.defaultTestLoader.
