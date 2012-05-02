@@ -153,9 +153,6 @@ def getDistance(coords1, coords2, unitcell=None):
     
     diff = coords1 - coords2
     if unitcell is not None:
-        #diff = absolute(diff, diff)
-        #torf = diff > unitcell * 0.5
-        #mod(diff, unitcell, diff)
         diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
     return sqrt(power(diff, 2, diff).sum(axis=-1))
     
