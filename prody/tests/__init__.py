@@ -52,7 +52,8 @@ except ImportError:
                                              verbosity)
         for module in ['test_datafiles', 'test_atomic', 'test_dynamics', 
                        'test_ensemble', 'test_kdtree', 'test_pairwise2', 
-                       'test_proteins', 'test_select',]:
+                       'test_proteins', 'test_select', 
+                       'test_measure.test_measure']:
             testrunner.run(unittest.defaultTestLoader.
                            loadTestsFromName('prody.tests.' + module))
 else:

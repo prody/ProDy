@@ -90,6 +90,7 @@ include prody/tests/test_kdtree.py
 include prody/tests/test_pairwise2.py
 include prody/tests/test_proteins.py
 include prody/tests/test_select.py
+include prody/tests/test_measure/test_measure.py
 include prody/trajectory/__init__.py
 include prody/trajectory/dcdfile.py
 include prody/trajectory/frame.py
@@ -107,6 +108,8 @@ include prody/tests/data/gnm1ubi_vectors.dat
 include prody/tests/data/pdb1ejg_oneatom.pdb
 include prody/tests/data/pdb1ejg.pdb
 include prody/tests/data/pdb1r19_dssp.pdb
+include prody/tests/data/pdb1ubi_ca.pdb
+include prody/tests/data/pdb1ubi.pdb
 include prody/tests/data/pdb1ubi_ca.pdb
 include prody/tests/data/pdb2k39_truncated.pdb
 include prody/tests/data/pdb3mht.pdb
