@@ -23,8 +23,8 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import unittest
-import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy import array, ones, arange
+from numpy.testing import assert_approx_equal, assert_equal
 
 from prody.tests.test_datafiles import parseDatafile
 
@@ -43,22 +43,21 @@ class TestDihedrals(unittest.TestCase):
     
     """Test functions that calculate unittests."""
     
-    
     def testCalcPsi(self):
         
-        assert_almost_equal(14.386, calcPsi(UBI_GLY10), 2)
+        assert_approx_equal(14.386, calcPsi(UBI_GLY10), 2)
         
     def testCalcPhi(self):
         
-        assert_almost_equal(87.723, calcPhi(UBI_GLY10), 2)
+        assert_approx_equal(87.723, calcPhi(UBI_GLY10), 2)
 
     def testNTerPsi(self):
         
-        assert_almost_equal(153.553, calcPsi(UBI_NTER), 2)
+        assert_approx_equal(153.553, calcPsi(UBI_NTER), 2)
         
     def testCTerPhi(self):
         
-        assert_almost_equal(174.160, calcPhi(UBI_CTER), 2)
+        assert_approx_equal(174.160, calcPhi(UBI_CTER), 2)
     
     def testNTerPhi(self):
         
@@ -67,3 +66,17 @@ class TestDihedrals(unittest.TestCase):
     def testCTerPsi(self):
         
         self.assertRaises(ValueError, calcPsi, (UBI_CTER))
+        
+        
+XYZONE = ones((5,3)) * arange(5).reshape((5,1))
+XYZTWO = ones((5,3)) * arange(5).reshape((5,1)) * 3
+UCELL = ones(3) * 5
+
+class TestDistances(unittest.TestCase):
+    
+    
+    def testUnitcell(self):
+        
+        dist1 = calcDistance(XYZONE, XYZTWO, unitcell=UCELL)
+        dist2 = calcDistance(XYZTWO, XYZONE, unitcell=UCELL)
+        assert_equal(dist1, dist2)
