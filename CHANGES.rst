@@ -6,12 +6,26 @@
 Changes
 *******************************************************************************
 
+Release 1.0.4 (May 2, 2012)
+===============================================================================
+
+**Bugfix**:
+
+  * Fixed a problem :func:`.calcPhi` function.
+  
+  * Fixed a problem in :meth:`.KDTree.getDistances` method that caused a 
+    problem when unitcell is provided.
+  
+  * Fixed a problem in :func:`.buildDistMatrix` and :func:`.calcDistance`
+    functions causing miscalculations when unitcell is given. 
+
+
 Release 1.0.3 (May 1, 2012)
 ===============================================================================
 
 **Bugfix**:
 
-  * Fixed :mod:`kdtree` import problem.
+  * Fixed :mod:`.kdtree` import problem.
 
 **New Features**:
 
