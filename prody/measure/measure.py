@@ -22,8 +22,8 @@ and measuring quantities."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import abs, mod, ndarray, power, sqrt, array, zeros, arccos, cross
-from numpy import sign, tile, concatenate, pi
+from numpy import absolute, mod, ndarray, power, sqrt, array, zeros, arccos
+from numpy import sign, tile, concatenate, pi, cross, subtract, round
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
 from prody.tools import importLA, checkCoords
@@ -39,9 +39,9 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            
 RAD2DEG = 180 / pi
 
-DISTMAT_FORMATS = set(['sym', 'rcd', 'dist'])
+DISTMAT_FORMATS = set(['mat', 'rcd', 'arr'])
 
-def buildDistMatrix(atoms1, atoms2=None, **kwargs):
+def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
     """Return distance matrix.  When *atoms2* is given, a distance matrix 
     with shape ``(len(atoms1), len(atoms2))`` is built.  When *atoms2* is 
     **None**, a symmetric matrix with shape ``(len(atoms1), len(atoms1))``
@@ -57,9 +57,9 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
     :arg unitcell: orthorhombic unitcell dimension array with shape ``(3,)``
     :type unitcell: :class:`numpy.ndarray`
     
-    :arg format: format of the resulting array, one of ``'sym'`` (symmetric 
-        matrix, default), ``'rcd'`` (arrays of row indices, column indices, 
-        and distances), or ``'dist'`` (only array of distances) 
+    :arg format: format of the resulting array, one of ``'mat'`` (matrix, 
+        default), ``'rcd'`` (arrays of row indices, column indices, and 
+        distances), or ``'arr'`` (only array of distances) 
     :type format: bool"""
     
     
@@ -81,7 +81,6 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
         
-    unitcell = kwargs.get('unitcell')
     if unitcell is not None:
         if not isinstance(unitcell, ndarray): 
             raise TypeError('unitcell must be an array')
@@ -90,15 +89,14 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
 
     dist = zeros((len(atoms1), len(atoms2)))
     if symmetric:
-        format = kwargs.get('format', 'sym')
         if format not in DISTMAT_FORMATS:
-            raise ValueError('format must be one of sym, rcd, or arr')
-        if format == 'sym':
+            raise ValueError('format must be one of mat, rcd, or arr')
+        if format == 'mat':
             for i, xyz in enumerate(atoms1[:-1]):
                 dist[i, i+1:] = dist[i+1:, i] = getDistance(xyz, atoms2[i+1:], 
                                                             unitcell)
         else:
-            dist = concatenate([getDistance(xyz, atoms2[i+1:]) 
+            dist = concatenate([getDistance(xyz, atoms2[i+1:], unitcell) 
                                 for i, xyz in enumerate(atoms1)])
             if format == 'rcd':        
                 n_atoms = len(atoms1)
@@ -113,7 +111,7 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
     return dist    
 
 
-def calcDistance(atoms1, atoms2, **kwargs):
+def calcDistance(atoms1, atoms2, unitcell=None):
     """Return the Euclidean distance between *atoms1* and *atoms2*.  Arguments 
     may be :class:`~.Atomic` instances or NumPy arrays.  Shape of numpy arrays 
     must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is 
@@ -142,7 +140,6 @@ def calcDistance(atoms1, atoms2, **kwargs):
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
     
-    unitcell = kwargs.get('unitcell')
     if unitcell is not None:
         if not isinstance(unitcell, ndarray): 
             raise TypeError('unitcell must be an array')
@@ -154,13 +151,13 @@ def calcDistance(atoms1, atoms2, **kwargs):
     
 def getDistance(coords1, coords2, unitcell=None):
     
-    if unitcell is None:
-        return sqrt(power(coords1 - coords2, 2).sum(axis=-1))
-    else:
-        diff = coords1 - coords2
-        diff = abs(diff, diff)
-        mod(diff, unitcell, diff)
-        return sqrt(power(diff, 2).sum(axis=-1))
+    diff = coords1 - coords2
+    if unitcell is not None:
+        #diff = absolute(diff, diff)
+        #torf = diff > unitcell * 0.5
+        #mod(diff, unitcell, diff)
+        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
+    return sqrt(power(diff, 2, diff).sum(axis=-1))
     
     
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
