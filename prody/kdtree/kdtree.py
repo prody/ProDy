@@ -274,7 +274,7 @@ class KDTree(object):
                 else:
                     return array([n.radius for n in self._neighbors])
             else:
-                _dict = self._dict
+                _dict = self._pbcdict
                 return array([_dict[i] for i in self._pdbkeys])
     
     def getCount(self):
