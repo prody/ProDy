@@ -26,7 +26,6 @@ Identify contacts
 Following class and functions are for contact identifications:
 
   * :class:`~.Contacts` - identify intermolecular contacts
-  * :func:`~.buildKDTree` - build a KDTree for given atoms or coordinate set
   * :func:`~.iterNeighbors` - yield interacting atom pairs
 
 Measure quantities

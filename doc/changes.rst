@@ -11,13 +11,21 @@ Release 1.0.4 (May 2, 2012)
 
 **Bugfix**:
 
-  * Fixed a problem :func:`.calcPhi` function.
+  * Fixed a problem in :func:`.calcPhi` function that raised a name error.
   
-  * Fixed a problem in :meth:`.KDTree.getDistances` method that caused a 
-    problem when unitcell is provided.
+  * Fixed a problem in :meth:`.KDTree.getDistances` method that raised  a 
+    name error when unitcell is provided.
   
   * Fixed a problem in :func:`.buildDistMatrix` and :func:`.calcDistance`
     functions causing miscalculations when unitcell is given. 
+
+  * Revised :class:`.KDTree` methods dealing with to handle special cases
+    where unitcell might have some dimensions zero.
+
+**Changes**:
+
+  * :func:`.buildKDTree` method is removed, earlier than planned due to
+    unexpected bugfix releases.
 
 
 Release 1.0.3 (May 1, 2012)
