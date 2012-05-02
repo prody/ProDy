@@ -62,8 +62,8 @@ if os.name != 'java' and sys.version_info[0] == 2:
         raise Exception('one or more pairwise2 module files are missing')
     if isInstalled('numpy'):
         import numpy
-        kdtree_files = ['__init__.py', 'KDTree.c', 'KDTree.h', 'KDTreeBio.py', 
-                  'KDTreemodule.c', 'Neighbor.h', 'kdtree.py']
+        kdtree_files = ['__init__.py', 'KDTree.c', 'KDTree.h',
+                        'KDTreemodule.c', 'Neighbor.h', 'kdtree.py']
         if all([os.path.isfile(os.path.join('prody', 'kdtree', fn)) 
                 for fn in kdtree_files]):
             EXTENSIONS.append(

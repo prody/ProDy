@@ -49,10 +49,10 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
     will be taken into account.
     
     :arg atoms1: atom or coordinate data
-    :type atoms1: :class:`.Atomic`, :class:`.Frame`, :class:`numpy.ndarray`
+    :type atoms1: :class:`.Atomic`, :class:`numpy.ndarray`
     
     :arg atoms2: atom or coordinate data
-    :type atoms2: :class:`.Atomic`, :class:`.Frame`, :class:`numpy.ndarray`
+    :type atoms2: :class:`.Atomic`, :class:`numpy.ndarray`
     
     :arg unitcell: orthorhombic unitcell dimension array with shape ``(3,)``
     :type unitcell: :class:`numpy.ndarray`
@@ -119,6 +119,12 @@ def calcDistance(atoms1, atoms2, **kwargs):
     must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is 
     the number of atoms.  If *unitcell* array is provided, periodic boundary 
     conditions will be taken into account.
+    
+    :arg atoms1: atom or coordinate data
+    :type atoms1: :class:`.Atomic`, :class:`numpy.ndarray`
+    
+    :arg atoms2: atom or coordinate data
+    :type atoms2: :class:`.Atomic`, :class:`numpy.ndarray`
     
     :arg unitcell: orthorhombic unitcell dimension array with shape ``(3,)``
     :type unitcell: :class:`numpy.ndarray`"""

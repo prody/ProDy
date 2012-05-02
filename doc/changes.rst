@@ -11,9 +11,9 @@ Release 1.0.4 (May 2, 2012)
 
 **Bugfix**:
 
-  * Fixed a problem :mod:`.calcPhi` function.
+  * Fixed a problem :func:`.calcPhi` function.
   
-  * Fixed a problem in :class:`.KDTree.getDistances` method that caused a 
+  * Fixed a problem in :meth:`.KDTree.getDistances` method that caused a 
     problem when unitcell is provided.
   
   * Fixed a problem in :func:`.buildDistMatrix` and :func:`.calcDistance`
