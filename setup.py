@@ -43,7 +43,8 @@ PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
             'prody.routines']
 PACKAGE_DATA = {}
 if sys.version_info[:2] > (2,6):
-    PACKAGES.append('prody.tests')
+    PACKAGES.extend(['prody.tests', 'prody.tests.test_kdtree', 
+                     'prody.tests.test_measure'])
     PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat', 
                                    'data/*.coo', 'data/dcd*.dcd']
 
