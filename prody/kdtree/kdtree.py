@@ -63,8 +63,8 @@ class KDTree(object):
          |_________|_________|_________|
     
     There are two requirements for this approach to work: (i) the *center* must 
-    be in the unitcell, and (ii) all system atoms must be in the unitcell with 
-    parts in its immediate periodic images. 
+    be in the original unitcell, and (ii) the system must be in the original 
+    unitcell with parts in its immediate periodic images. 
     
     *Pair search*
     
