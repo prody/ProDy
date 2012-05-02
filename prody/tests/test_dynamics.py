@@ -35,7 +35,7 @@ ATOL = 1e-5
 RTOL = 0
 
 
-ATOMS = parseDatafile('1ubi')
+ATOMS = parseDatafile('1ubi_ca')
 COORDS = ATOMS.getCoords() 
 
 ANM_HESSIAN = parseDatafile('anm1ubi_hessian', symmetric=True)

@@ -68,15 +68,25 @@ class TestDihedrals(unittest.TestCase):
         self.assertRaises(ValueError, calcPsi, (UBI_CTER))
         
         
-XYZONE = ones((5,3)) * arange(5).reshape((5,1))
-XYZTWO = ones((5,3)) * arange(5).reshape((5,1)) * 3
-UCELL = ones(3) * 5
+SYM_ONE = ones((5,3)) * arange(5).reshape((5,1))
+SYM_TWO = ones((5,3)) * arange(5).reshape((5,1)) * 3
+SYM_UC = ones(3) * 5
+
+PBC_ONE = array([7., 0., 0.])
+PBC_TWO = array([1., 0., 0.])
+PBC_UC = array([5., 5., 5.])
+PBC_DIST = 1.
 
 class TestDistances(unittest.TestCase):
     
     
-    def testUnitcell(self):
+    def testPBCSymmetry(self):
         
-        dist1 = calcDistance(XYZONE, XYZTWO, unitcell=UCELL)
-        dist2 = calcDistance(XYZTWO, XYZONE, unitcell=UCELL)
+        dist1 = calcDistance(SYM_ONE, SYM_TWO, unitcell=SYM_UC)
+        dist2 = calcDistance(SYM_TWO, SYM_ONE, unitcell=SYM_UC)
         assert_equal(dist1, dist2)
+        
+    def testPBC(self):
+        
+        assert_equal(PBC_DIST, calcDistance(PBC_ONE, PBC_TWO, unitcell=PBC_UC))
+        assert_equal(PBC_DIST, calcDistance(PBC_TWO, PBC_ONE, unitcell=PBC_UC))

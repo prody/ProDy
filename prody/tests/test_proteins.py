@@ -100,7 +100,7 @@ class TestParsePDB(unittest.TestCase):
         
         self.pdb = DATA_FILES['multi_model_truncated']
         self.one = DATA_FILES['oneatom']
-        self.ca = DATA_FILES['1ubi']
+        self.ca = DATA_FILES['1ubi_ca']
          
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""

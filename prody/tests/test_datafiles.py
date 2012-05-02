@@ -74,6 +74,12 @@ DATA_FILES = {
     },
     '1ubi': {
         'pdb': '1ubi',
+        'file': 'pdb1ubi.pdb',
+        'n_atoms': 683,
+        'models': 1
+    },
+    '1ubi_ca': {
+        'pdb': '1ubi',
         'file': 'pdb1ubi_ca.pdb',
         'n_atoms': 76,
         'models': 1
