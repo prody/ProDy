@@ -22,8 +22,8 @@ and measuring quantities."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import abs, mod, ndarray, power, sqrt
-import numpy as np
+from numpy import abs, mod, ndarray, power, sqrt, array, zeros, arccos, cross
+from numpy import sign, tile, concatenate, pi
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
 from prody.tools import importLA, checkCoords
@@ -37,7 +37,7 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral']
            
-RAD2DEG = 180 / np.pi
+RAD2DEG = 180 / pi
 
 DISTMAT_FORMATS = set(['sym', 'rcd', 'dist'])
 
@@ -63,7 +63,7 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
     :type format: bool"""
     
     
-    if not isinstance(atoms1, np.ndarray):
+    if not isinstance(atoms1, ndarray):
         try:
             atoms1 = atoms1._getCoords()
         except AttributeError:
@@ -73,7 +73,7 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
         atoms2 = atoms1
     else:
         symmetric = False
-        if not isinstance(atoms2, np.ndarray):
+        if not isinstance(atoms2, ndarray):
             try:
                 atoms2 = atoms2._getCoords()
             except AttributeError:
@@ -83,12 +83,12 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
         
     unitcell = kwargs.get('unitcell')
     if unitcell is not None:
-        if not isinstance(unitcell, np.ndarray): 
+        if not isinstance(unitcell, ndarray): 
             raise TypeError('unitcell must be an array')
         elif unitcell.shape != (3,):
             raise ValueError('unitcell.shape must be (3,)')
 
-    dist = np.zeros((len(atoms1), len(atoms2)))
+    dist = zeros((len(atoms1), len(atoms2)))
     if symmetric:
         format = kwargs.get('format', 'sym')
         if format not in DISTMAT_FORMATS:
@@ -98,12 +98,12 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
                 dist[i, i+1:] = dist[i+1:, i] = getDistance(xyz, atoms2[i+1:], 
                                                             unitcell)
         else:
-            dist = np.concatenate([getDistance(xyz, atoms2[i+1:]) 
-                                   for i, xyz in enumerate(atoms1)])
+            dist = concatenate([getDistance(xyz, atoms2[i+1:]) 
+                                for i, xyz in enumerate(atoms1)])
             if format == 'rcd':        
                 n_atoms = len(atoms1)
-                rc = np.array([(i, j) for i in xrange(n_atoms) 
-                                      for j in xrange(i + 1, n_atoms)])
+                rc = array([(i, j) for i in xrange(n_atoms) 
+                                   for j in xrange(i + 1, n_atoms)])
                 row, col = rc.T
                 dist = (row, col, dist) 
                             
@@ -179,7 +179,7 @@ def getAngle(coords1, coords2, coords3, radian):
     v1 = coords1 - coords2
     v2 = coords3 - coords2
     
-    rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
     if radian:    
         return rad
     else:
@@ -212,12 +212,12 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     a2 = coords3 - coords2
     a3 = coords4 - coords3
     
-    v1 = np.cross(a1, a2)
+    v1 = cross(a1, a2)
     v1 = v1 / (v1 * v1).sum(-1)**0.5  
-    v2 = np.cross(a2, a3)
+    v2 = cross(a2, a3)
     v2 = v2 / (v2 * v2).sum(-1)**0.5  
-    sign = np.sign((v1 * a3).sum(-1))
-    rad = np.arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    sign = sign((v1 * a3).sum(-1))
+    rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
     if radian:    
         return sign * rad
     else:
@@ -353,7 +353,7 @@ def calcCenter(atoms, weights=None):
         raise type(err)(err)
     
     if weights is not None:
-        if not isinstance(weights, np.ndarray):
+        if not isinstance(weights, ndarray):
             raise TypeError('weights must be a numpy array')
         elif weights.ndim != 1:
             raise ValueError('weights must be a 1 dimensional array')
@@ -401,7 +401,7 @@ def getCentral(coords, weights=None):
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
     
-    if not isinstance(atoms, np.ndarray):
+    if not isinstance(atoms, ndarray):
         try:
             coords = atoms._getCoords()
         except AttributeError:
@@ -440,7 +440,7 @@ def calcGyradius(atoms, weights=None):
                 com = (coords * weights).mean(0) / wsum
                 d2sum = (((coords - com)**2).sum(1) * weights).sum()
                 rgyr.append(d2sum)
-        d2sum = np.array(rgyr)
+        d2sum = array(rgyr)
     return (d2sum / wsum) ** 0.5
 
 
@@ -451,8 +451,8 @@ def calcDeformVector(from_atoms, to_atoms):
     name = '{0:s} => {1:s}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30: 
         name = 'Deformation'
-    array = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
-    return prody.dynamics.Vector(array, name)
+    arr = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
+    return prody.dynamics.Vector(arr, name)
             
             
 def calcADPAxes(atoms, **kwargs):
@@ -522,11 +522,11 @@ def calcADPAxes(atoms, **kwargs):
         raise ValueError('anisotropic temperature factors are not set')
     n_atoms = atoms.numAtoms()
 
-    axes = np.zeros((n_atoms*3, 3))    
-    variances = np.zeros((n_atoms, 3))
-    stddevs = np.zeros((n_atoms, 3))
+    axes = zeros((n_atoms*3, 3))    
+    variances = zeros((n_atoms, 3))
+    stddevs = zeros((n_atoms, 3))
     anisou = anisous[0]
-    element = np.zeros((3,3))
+    element = zeros((3,3))
     element[0,0] = anisou[0]
     element[1,1] = anisou[1]
     element[2,2] = anisou[2]
@@ -559,7 +559,7 @@ def calcADPAxes(atoms, **kwargs):
         stddevs[i] = vals
         # Make sure the direction that correlates with the previous atom
         # is selected 
-        vals = vals * np.sign((vecs * axes[(i-1)*3:(i)*3,:]).sum(0))
+        vals = vals * sign((vecs * axes[(i-1)*3:(i)*3,:]).sum(0))
         axes[i*3:(i+1)*3,:] = vals * vecs
     # Resort the columns before returning array
     axes = axes[:, [2,1,0]]
@@ -581,7 +581,7 @@ def calcADPAxes(atoms, **kwargs):
         variances = variances[:, [2,1,0]]
         torf = variances[:,dim] / variances[:,0] <= ratio
     if torf is not None:
-        torf =np.tile(torf.reshape((n_atoms,1)), (1,3)).reshape((n_atoms*3, 1))
+        torf = tile(torf.reshape((n_atoms,1)), (1,3)).reshape((n_atoms*3, 1))
         axes = axes * torf
     return axes
         
@@ -600,7 +600,7 @@ def calcADPs(atom):
     anisou = atom.getAnisou()
     if anisou is None:
         raise ValueError('atom does not have anisotropic temperature factors')
-    element = np.zeros((3,3))
+    element = zeros((3,3))
     element[0,0] = anisou[0]
     element[1,1] = anisou[1]
     element[2,2] = anisou[2]
@@ -628,11 +628,11 @@ def buildADPMatrix(atoms):
         raise ValueError('anisotropic temperature factors are not set')
     n_atoms = atoms.numAtoms()
     n_dof = n_atoms * 3
-    adp = np.zeros((n_dof, n_dof))
+    adp = zeros((n_dof, n_dof))
     
     for i in range(n_atoms):
         anisou = anisous[i]
-        element = np.zeros((3,3))
+        element = zeros((3,3))
         element[0,0] = anisou[0]
         element[1,1] = anisou[1]
         element[2,2] = anisou[2]
