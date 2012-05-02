@@ -36,19 +36,19 @@ REPLICATE = array([[x, y, z] for x in _ for y in _ for z in _])
 class KDTree(object):
     
     """An interface to Thomas Hamelryck's C KDTree module that can handle 
-    periodic boundary conditions.  Both point and neighbor search can be
-    performed using the single :meth:`search` method and results can be
-    retrieved using :meth:`getIndices` and :meth:`getDistances`.
+    periodic boundary conditions.  Both point and pair search are performed 
+    using the single :meth:`search` method and results are retrieved using 
+    :meth:`getIndices` and :meth:`getDistances`.
     
     **Periodic Boundary Conditions**
     
     *Point search*
 
-    A point search, point indicated with a question mark (``?``) below,
-    involves making images of the point in cells sharing a wall or an edge 
-    with the unitcell that contains the system.  The search is performed 
-    for all images of the *point* (27 in 3-dimensional space) and unique 
-    indices with the minimum distance from them to the *point* is returned.
+    A point search around a *center*, indicated with a question mark (``?``) 
+    below, involves making images of the point in cells sharing a wall or an 
+    edge with the unitcell that contains the system.  The search is performed 
+    for all images of the *center* (27 in 3-dimensional space) and unique 
+    indices with the minimum distance from them to the *center* are returned.
     ::
 
           _____________________________
@@ -56,22 +56,22 @@ class KDTree(object):
          |       ? |       ? |      ?  |
          |_________|_________|_________|
          |        4|o  h h  5|        6| ? and H interact in periodic image 4
-         |       ?H| h  o  ? |      ?  | 4 but not in the original unitcell (0)   
+         |       ?H| h  o  ? |      ?  | but not in the original unitcell (0)   
          |_________|_________|_________| 
          |        7|        8|        9|
          |       ? |       ? |      ?  |
          |_________|_________|_________|
     
-    There are two requirements for this approach to work: (i) the point must 
-    be in the unitcell, and (ii) all the system must be in the unitcell with 
+    There are two requirements for this approach to work: (i) the *center* must 
+    be in the unitcell, and (ii) all system atoms must be in the unitcell with 
     parts in its immediate periodic images. 
     
-    *Neighbor search*
+    *Pair search*
     
-    A neighbor search involves making 26 (or 8 in 2-d) replicas of the system 
+    A pair search involves making 26 (or 8 in 2-d) replicas of the system 
     coordinates.  A KDTree is built for the system (``O`` and ``H``) and all 
-    its replicas (``o`` and ``h``).  After neighbor search is performed, unique
-    pairs of indices and minimum distance between them is returned.
+    its replicas (``o`` and ``h``).  After pair search is performed, unique
+    pairs of indices and minimum distance between them are returned.
     ::
 
           _____________________________
@@ -161,48 +161,49 @@ class KDTree(object):
             self._pbckeys = []   
             self._n_atoms = coords.shape[0]         
         
-    def __call__(self, radius, point=None):
+    def __call__(self, radius, center=None):
         """Shorthand method for searching and retrieving results."""
         
-        self.search(radius, point)       
+        self.search(radius, center)       
         return self.getIndices(), self.getDistances()
 
-    def search(self, radius, point=None):
-        """Search pairs within *radius* of each other or within *radius* of
-        *point*.
+    def search(self, radius, center=None):
+        """Search pairs within *radius* of each other or points within *radius*
+        of *center*.
         
         :arg radius: distance (Å)
         :type radius: float
 
-        :arg point: a point in Cartesian coordinate system
-        :type point: :class:`numpy.ndarray`"""
+        :arg center: a point in Cartesian coordinate system
+        :type center: :class:`numpy.ndarray`"""
         
         if not isinstance(radius, (float, int)):
             raise TypeError('radius must be a number')
         if radius <= 0:
             raise TypeError('radius must be a positive number')
         
-        if point is not None:
-            if not isinstance(point, ndarray): 
-                raise TypeError('point must be a Numpy array instance')
-            if point.shape != (3,):
-                raise ValueError('point.shape must be (3,)')
+        if center is not None:
+            if not isinstance(center, ndarray): 
+                raise TypeError('center must be a Numpy array instance')
+            if center.shape != (3,):
+                raise ValueError('center.shape must be (3,)')
             
             if self._unitcell is None:
-                self._kdtree.search_center_radius(point, radius)
+                self._kdtree.search_center_radius(center, radius)
                 self._neighbors = None
                 
             else:
-                _dict = {}
                 kdtree = self._kdtree
                 search = kdtree.search_center_radius
                 get_radii = kdtree.get_radii
                 get_indices = kdtree.get_indices
                 get_count = kdtree.get_count
+
+                _dict = {}
                 _dict_get = _dict.get
                 _dict_set = _dict.__setitem__
-                for point in point + self._replicate:
-                    search(point, radius)
+                for center in center + self._replicate:
+                    search(center, radius)
                     if get_count():
                         [_dict_set(i, min(r, _dict_get(i, 1e6)))
                          for i, r in zip(get_indices(), get_radii())]
@@ -214,44 +215,34 @@ class KDTree(object):
                 self._neighbors = self._kdtree.neighbor_search(radius)
             else:
                 kdtree = self._kdtree2
-                #from time import time
                 if kdtree is None:
-                    #t=time()
                     coords = self._coords
                     coords = concatenate([coords + rep 
                                           for rep in self._replicate])
-                    #print 'replicate', time()-t
-                    #t=time()
                     kdtree = CKDTree(3, self._bucketsize)
                     kdtree.set_data(coords)
                     self._kdtree2 = kdtree
-                    #print 'kdtree', time()-t
+                n_atoms = len(self._coords)
                 _dict = {}
-                #t=time()
                 neighbors = kdtree.neighbor_search(radius)
-                #print 'search', time()-t
                 if kdtree.neighbor_get_count():
-                    #t=time()
-                    _dict_get = _dict.get
-                    _dict_set = _dict.__setitem__
-                    ijd = array([(n.index1, n.index2, n.radius) 
-                                 for n in neighbors])
-                    ij = ijd[:,:2].astype(int)
-                    ij.sort(1)
-                    mod(ij, self._n_atoms, ij)
-                    #print 'preps', time()-t
-                    #t=time()
-                    ij = [tuple(i) for i in ij]
-                    [_dict_set(i, min(r, _dict_get(i, 1e6)))
-                     for i, r in zip(ij, ijd[:,2])]
-                    #print 'unique', time()-t
+                    _get = _dict.get
+                    _set = _dict.__setitem__
+                    
+                    for nb in neighbors:
+                        i = nb.index1 % n_atoms
+                        j = nb.index2 % n_atoms
+                        if i < j: 
+                            _set((i, j), min(nb.radius, _get((i, j), 1e6)))
+                        elif j < i:
+                            _set((j, i), min(nb.radius, _get((j, i), 1e6)))
                 self._pbcdict = _dict
                 self._pdbkeys = _dict.keys() 
                     
     
     def getIndices(self):
-        """Return array of indices or list of pairs of indices, depending on
-        the type of the most recent search."""
+        """Return array of indices for points or pairs, depending on the type 
+        of the most recent search."""
 
         if self.getCount():
             if self._unitcell is None:        
@@ -278,7 +269,7 @@ class KDTree(object):
                 return array([_dict[i] for i in self._pdbkeys])
     
     def getCount(self):
-        """Return number of neighbors."""
+        """Return number of points or pairs."""
 
         if self._unitcell is None:        
             if self._neighbors is None:
