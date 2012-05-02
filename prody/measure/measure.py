@@ -22,6 +22,7 @@ and measuring quantities."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from numpy import abs, mod, ndarray, power, sqrt
 import numpy as np
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
@@ -45,7 +46,7 @@ def buildDistMatrix(atoms1, atoms2=None, **kwargs):
     with shape ``(len(atoms1), len(atoms2))`` is built.  When *atoms2* is 
     **None**, a symmetric matrix with shape ``(len(atoms1), len(atoms1))``
     is built.  If *unitcell* array is provided, periodic boundary conditions
-    will be taken into account using modulo operator.
+    will be taken into account.
     
     :arg atoms1: atom or coordinate data
     :type atoms1: :class:`.Atomic`, :class:`.Frame`, :class:`numpy.ndarray`
@@ -117,17 +118,17 @@ def calcDistance(atoms1, atoms2, **kwargs):
     may be :class:`~.Atomic` instances or NumPy arrays.  Shape of numpy arrays 
     must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is 
     the number of atoms.  If *unitcell* array is provided, periodic boundary 
-    conditions will be taken into account using modulo operator.
+    conditions will be taken into account.
     
     :arg unitcell: orthorhombic unitcell dimension array with shape ``(3,)``
     :type unitcell: :class:`numpy.ndarray`"""
     
-    if not isinstance(atoms1, np.ndarray):
+    if not isinstance(atoms1, ndarray):
         try:
             atoms1 = atoms1._getCoords()
         except AttributeError:
             raise TypeError('atoms1 must be Atomic instance or an array')
-    if not isinstance(atoms2, np.ndarray):
+    if not isinstance(atoms2, ndarray):
         try:
             atoms2 = atoms2._getCoords()
         except AttributeError:
@@ -137,7 +138,7 @@ def calcDistance(atoms1, atoms2, **kwargs):
     
     unitcell = kwargs.get('unitcell')
     if unitcell is not None:
-        if not isinstance(unitcell, np.ndarray): 
+        if not isinstance(unitcell, ndarray): 
             raise TypeError('unitcell must be an array')
         elif unitcell.shape != (3,):
             raise ValueError('unitcell.shape must be (3,)')
@@ -148,11 +149,12 @@ def calcDistance(atoms1, atoms2, **kwargs):
 def getDistance(coords1, coords2, unitcell=None):
     
     if unitcell is None:
-        return np.sqrt(np.power(coords1 - coords2, 2).sum(axis=-1))
+        return sqrt(power(coords1 - coords2, 2).sum(axis=-1))
     else:
         diff = coords1 - coords2
-        np.mod(diff, unitcell, diff)
-        return np.sqrt(np.power(diff, 2).sum(axis=-1))
+        diff = abs(diff, diff)
+        mod(diff, unitcell, diff)
+        return sqrt(power(diff, 2).sum(axis=-1))
     
     
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
@@ -261,17 +263,13 @@ def calcPhi(residue, radian=False, dist=4.1):
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
 
-    C_, N, CA, C = getPhiAtoms(residue)
+    C_, N, CA, C = getPhiAtoms(residue, dist=dist)
 
-    if dist and dist < calcDistance(CA, CA_):
-        raise ValueError('{0:s} and {1:s} does not seem to be connected'
-                         .format(str(residue), str(prev)))
-    
     return getDihedral(C_._getCoords(), N._getCoords(), CA._getCoords(), 
                        C._getCoords(), radian)
 
 
-def getPhiAtoms(residue):
+def getPhiAtoms(residue, dist=4.1):
     """Return the four atoms that form the φ (phi) angle of *residue*."""
     
     prev = residue.getPrev()
@@ -291,8 +289,12 @@ def getPhiAtoms(residue):
     if C is None:
         raise ValueError('{0:s} does not have C atom'.format(str(residue)))
     CA_ = prev['CA']
-    if C_ is None:
+    if CA_ is None:
         raise ValueError('{0:s} does not have CA atom'.format(str(prev)))
+
+    if dist and dist < calcDistance(CA, CA_):
+        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+                         .format(str(residue), str(prev)))
     
     return C_, N, CA, C
 
@@ -305,6 +307,14 @@ def calcPsi(residue, radian=False, dist=4.1):
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
         
+    N, CA, C, _N = getPsiAtoms(residue, dist=dist)
+    
+    return getDihedral(N._getCoords(), CA._getCoords(), C._getCoords(), 
+                       _N._getCoords(), radian)
+
+def getPsiAtoms(residue, dist=4.1):
+    """Return the four atoms that form the φ (phi) angle of *residue*."""
+    
     next = residue.getNext()
     if not isinstance(next, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
@@ -326,10 +336,8 @@ def calcPsi(residue, radian=False, dist=4.1):
     if dist and dist < calcDistance(CA, _CA):
         raise ValueError('{0:s} and {1:s} does not seem to be connected'
                          .format(str(residue), str(next)))
-    
-    return getDihedral(N._getCoords(), CA._getCoords(), C._getCoords(), 
-                       _N._getCoords(), radian)
-
+                        
+    return N, CA, C, _N
 
 def calcCenter(atoms, weights=None):
     """Return geometric center of *atoms*.  If *weights* is given it must 
