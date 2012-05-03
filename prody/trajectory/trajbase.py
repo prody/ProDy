@@ -127,21 +127,21 @@ class TrajBase(object):
         return len(self._indices) 
     
     def getAtoms(self):
-        """Return associated atom group."""
+        """Return associated :class:`.AtomGroup` instance."""
         
         return self._ag
     
     def setAtoms(self, ag, setref=True):
-        """Associate the trajectory with an :class:`~.AtomGroup`.  Note that  
-        the active coordinate set of the :class:`~.AtomGroup`, if it has one, 
-        will be set as the reference coordinates for the trajectory.  If you 
-        want to preserve the present reference coordinates, pass 
-        ``setref=False``.  When a frame is parsed from the trajectory,
-        coordinates of :class:`~.AtomGroup` instance will be updated.
+        """Associate the trajectory with an :class:`.AtomGroup` instance.  Note
+        that the active coordinate set of the :class:`.AtomGroup`, if it has 
+        one, will be set as the reference coordinates for the trajectory. To 
+        preserve the present reference coordinates, pass ``setref=False``.  
+        When a new frame is parsed from the trajectory file, coordinates of 
+        the :class:`.AtomGroup` instance will be updated.
         
-        .. warning:: Note that frames parsed from the trajectory file will
-           overwrite all coordinate sets present in the :class:`~.AtomGroup`.
-        """
+        .. warning:: Note that frames parsed from the trajectory file 
+           will overwrite all coordinate sets present in the associated 
+           :class:`~.AtomGroup` instance."""
         
         if ag is None:
             self._ag = None
@@ -286,9 +286,9 @@ class TrajBase(object):
         pass
     
     def next(self):
-        """Return next frame.  Note that when atoms are set for the trajectory,
-        this method will return the same frame instance after updating its
-        coordinates."""
+        """Return next coordinate set in a :class:`.Frame` instance.  Note that
+        when atoms are set for the trajectory, this method will return the same
+        frame instance after updating its coordinates."""
         
         pass
 
