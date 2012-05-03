@@ -159,13 +159,20 @@ class KDTree(object):
             self._kdtree2 = None
             self._pbcdict = {}
             self._pbckeys = []   
-            self._n_atoms = coords.shape[0]         
+            self._n_atoms = coords.shape[0]      
+        self._none = kwargs.pop('none', lambda: None)
+        assert callable(self._none), 'none argument must be callable'
+        self._oncall = kwargs.pop('oncall', 'both')
+        assert self._oncall in ('both', 'dist'), 'oncall must be both or dist'
         
     def __call__(self, radius, center=None):
         """Shorthand method for searching and retrieving results."""
         
-        self.search(radius, center)       
-        return self.getIndices(), self.getDistances()
+        self.search(radius, center)
+        if self._oncall == 'both':
+            return self.getIndices(), self.getDistances()
+        elif self._oncall == 'dist':
+            return self.getDistances()
 
     def search(self, radius, center=None):
         """Search pairs within *radius* of each other or points within *radius*
@@ -253,7 +260,7 @@ class KDTree(object):
                                   for n in self._neighbors], int)
             else:
                 return array(self._pdbkeys)
-            
+        return self._none()   
     
     def getDistances(self):
         """Return array of distances."""
@@ -267,6 +274,7 @@ class KDTree(object):
             else:
                 _dict = self._pbcdict
                 return array([_dict[i] for i in self._pdbkeys])
+        return self._none()
     
     def getCount(self):
         """Return number of points or pairs."""
