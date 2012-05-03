@@ -301,7 +301,10 @@ class TrajBase(object):
         pass
 
     def skip(self, n):
-        """Skip *n* frames. *n* must be a positive integer."""
+        """Skip *n* frames.  *n* must be a positive integer.  Skipping some 
+        frames will only change the next frame index (:meth:`getNextIndex`)
+        Next frame will not be parsed until one of :meth:`next` or 
+        :meth:`nextCoordset` methods is called."""
         
         pass
 
