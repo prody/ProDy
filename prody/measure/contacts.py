@@ -126,7 +126,7 @@ def iterNeighbors(atoms, radius, atoms2=None):
             index = lambda i: indices[i]
         else:
             index = lambda i: i
-        kdtree = KDTree(atoms._getCoords())
+        kdtree = KDTree(atoms._getCoords(), none=list)
         
         _dict = {}
         for (i, j), r in zip(*kdtree(radius)): 
@@ -148,7 +148,7 @@ def iterNeighbors(atoms, radius, atoms2=None):
                 index = lambda i: indices[i]
             else:
                 index = lambda i: i
-            kdtree = KDTree(atoms._getCoords())
+            kdtree = KDTree(atoms._getCoords(), none=list)
             
             _dict = {}
             for a2 in atoms2.iterAtoms():
@@ -166,7 +166,7 @@ def iterNeighbors(atoms, radius, atoms2=None):
                 index = lambda i: indices[i]
             else:
                 index = lambda i: i
-            kdtree = KDTree(atoms2._getCoords())
+            kdtree = KDTree(atoms2._getCoords(), none=list)
             
             _dict = {}
             for a1 in atoms.iterAtoms():
