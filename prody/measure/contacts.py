@@ -129,8 +129,7 @@ def iterNeighbors(atoms, radius, atoms2=None):
         kdtree = KDTree(atoms._getCoords())
         
         _dict = {}
-        for (i, j), r in zip(kdtree(radius)): 
-             
+        for (i, j), r in zip(*kdtree(radius)): 
             a1 = _dict.get(i)
             if a1 is None:      
                 a1 = ag[index(i)]
@@ -153,7 +152,7 @@ def iterNeighbors(atoms, radius, atoms2=None):
             
             _dict = {}
             for a2 in atoms2.iterAtoms():
-                for i, r in zip(kdtree(radius, a2._getCoords())): 
+                for i, r in zip(*kdtree(radius, a2._getCoords())): 
                     a1 = _dict.get(i)
                     if a1 is None:      
                         a1 = ag[index(i)]
@@ -171,7 +170,7 @@ def iterNeighbors(atoms, radius, atoms2=None):
             
             _dict = {}
             for a1 in atoms.iterAtoms():
-                for i, r in zip(kdtree(radius, a1._getCoords())): 
+                for i, r in zip(*kdtree(radius, a1._getCoords())): 
                     a2 = _dict.get(i)
                     if a2 is None:      
                         a2 = ag[index(i)]
