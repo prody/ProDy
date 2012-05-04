@@ -9,11 +9,20 @@ Changes
 Release 1.1 (in development)
 ===============================================================================
 
+
+**New Features**:
+
+  * :func:`.iterFragments` function is added.
+  * :func:`.findNeighbors` function is added.
+
 **Bugfixes**:
 
   * Fixed several problems in :func:`.iterNeighbors` function and 
     :class:`.Contacts` class that were introduced after transition to new
     :class:`.KDTree` interface. 
+ 
+  * Fixed a problem in setting selection strings of fragments identified using
+    :func:`findFragments`.
     
 
 Release 1.0.4 (May 2, 2012)
