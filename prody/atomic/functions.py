@@ -34,7 +34,7 @@ from fields import ATOMIC_ATTRIBUTES
 from selection import Selection
 
 
-__all__ = ['findFragments', 'loadAtoms', 'saveAtoms']
+__all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms']
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindices'])
 SAVE_SKIP_POINTER = set(['numbonds', 'fragindices', 'segindices', 'chindices', 
@@ -136,59 +136,73 @@ def loadAtoms(filename):
     return ag
 
 
-def findFragments(atoms):
-    """Return a list of fragments, i.e. connected atom subsets."""
+def iterFragments(atoms):
+    """Yield fragments, connected subsets in *atoms*, as :class:`Selection` 
+    instances."""
     
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance')
     if isinstance(atoms, AtomGroup):
-        return list(atoms.iterFragments())    
-    ag = atoms.getAtomGroup()
+        ag = atoms
+        atoms.iterFragments().next()
+        fragments = atoms._fragments
+    else:
+        ag = atoms.getAtomGroup()
     
-    bonds = atoms._iterBonds()
+        bonds = atoms._iterBonds()
     
-    fids = zeros((len(ag)), int)
-    fdict = {}
-    c = 0
-    for a, b in bonds:
-        af = fids[a]
-        bf = fids[b]
-        if af and bf:
-            if af != bf:
-                frag = fdict[af]
-                temp = fdict[bf]
-                fids[temp] = af
-                frag.extend(temp)
-                fdict.pop(bf)
-        elif af:
-            fdict[af].append(b)
-            fids[b] = af
-        elif bf:
-            fdict[bf].append(a)
-            fids[a] = bf
-        else:
-            c += 1
-            fdict[c] = [a, b]
-            fids[a] = fids[b] = c
-    fragments = []
-    append = fragments.append
-    fidset = set()
-    indices = atoms._getIndices()
-    for i, fid in zip(indices, fids[indices]):
-        if fid in fidset:
-            continue
-        elif fid:
-            fidset.add(fid)
-            indices = fdict[fid]
-            indices.sort()
-            append(indices)
-        else:
-            # these are non-bonded atoms, e.g. ions
-            append([i])
-    acsi = atoms.getACSIndex()
+        fids = zeros((len(ag)), int)
+        fdict = {}
+        c = 0
+        for a, b in bonds:
+            af = fids[a]
+            bf = fids[b]
+            if af and bf:
+                if af != bf:
+                    frag = fdict[af]
+                    temp = fdict[bf]
+                    fids[temp] = af
+                    frag.extend(temp)
+                    fdict.pop(bf)
+            elif af:
+                fdict[af].append(b)
+                fids[b] = af
+            elif bf:
+                fdict[bf].append(a)
+                fids[a] = bf
+            else:
+                c += 1
+                fdict[c] = [a, b]
+                fids[a] = fids[b] = c
+        fragments = []
+        append = fragments.append
+        fidset = set()
+        indices = atoms._getIndices()
+        for i, fid in zip(indices, fids[indices]):
+            if fid in fidset:
+                continue
+            elif fid:
+                fidset.add(fid)
+                indices = fdict[fid]
+                indices.sort()
+                append(indices)
+            else:
+                # these are non-bonded atoms, e.g. ions
+                append([i])
 
-    return [Selection(ag, frag, 'index ' + rangeString(frag), acsi, 
-            unique=True) for frag in fragments]
+    acsi = atoms.getACSIndex()
+    for indices in fragments:
+        yield Selection(ag, indices, 'index ' + rangeString(indices), acsi, 
+                        unique=True)
+
+
+
+def findFragments(atoms):
+    """Return list of fragments, connected subsets in *atoms*.  See also 
+    :func:`iterFragments`."""
+    
+    return list(iterFragments(atoms))
+
 
 
 def isAtomic(name, atoms, atype=Atomic, error=TypeError):
