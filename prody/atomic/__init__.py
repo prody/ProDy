@@ -153,6 +153,8 @@ from chain import AAMAP, getSequence
 __all__ += functions.__all__
 __all__ += select.__all__
 
+from functions import isAtomic, isSubset
+
 from select import isMacro, isKeyword, isReserved, checkSelstr
 atomic.isMacro = isMacro
 atomic.isKeyword = isKeyword
