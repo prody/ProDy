@@ -189,3 +189,32 @@ def findFragments(atoms):
 
     return [Selection(ag, frag, rangeString(frag), acsi, unique=True)
             for frag in fragments]
+
+
+def isAtomic(name, atoms, atype=Atomic, error=TypeError):
+    """Perform an argument type check."""
+    
+    isatomic = isinstance(atoms, atype)
+    if error and not isatomic:
+        
+        if isinstance(atype, (tuple, list)):
+            what = ', '.join([repr(t.__name__) for t in atype[:-1]]
+                             ) + ', or ' + repr(atype[-1].__name__)
+        else:
+            what = repr(atype.__name__)
+
+        raise error('{0:s} must be a {1:s} instance, not {2:s}'
+                    .format(name, what, repr(type(atoms).__name__)))
+    return isatomic
+
+def isSubset(name, atoms, ag, error=ValueError):
+    """Perform an argument type and relation check."""
+    
+    
+    issubset = atoms in ag 
+    if error and not issubset:
+        raise error('{0:s} ({1:s}) must be a subset of {2:s}'
+                    .format(name, str(atoms), str(ag)))
+    return issubset
+        
+    
