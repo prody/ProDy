@@ -27,7 +27,7 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
 from prody.tools import checkCoords, rangeString
 from prody.kdtree import KDTree
 
-__all__ = ['Contacts', 'iterNeighbors']
+__all__ = ['Contacts', 'iterNeighbors', 'findNeighbors']
 
 class Contacts(object):
     
@@ -176,3 +176,11 @@ def iterNeighbors(atoms, radius, atoms2=None):
                         a2 = ag[index(i)]
                         _dict[i] = a2
                     yield (a1, a2, r)   
+
+
+def findNeighbors(atoms, radius, atoms2=None):
+    """Return list of pairs of *atoms* that are within *radius* of each other 
+    and the distance between them.  If *atoms2* is also provided, one atom 
+    from *atoms* and another from *atoms2* will be returned."""
+
+    return list(iterNeighbors(atoms, radius, atoms2))
