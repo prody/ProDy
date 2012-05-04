@@ -187,15 +187,15 @@ def findFragments(atoms):
             append([i])
     acsi = atoms.getACSIndex()
 
-    return [Selection(ag, frag, rangeString(frag), acsi, unique=True)
-            for frag in fragments]
+    return [Selection(ag, frag, 'index ' + rangeString(frag), acsi, 
+            unique=True) for frag in fragments]
 
 
 def isAtomic(name, atoms, atype=Atomic, error=TypeError):
     """Perform an argument type check."""
     
     isatomic = isinstance(atoms, atype)
-    if error and not isatomic:
+    if issubclass(error, Exception) and not isatomic:
         
         if isinstance(atype, (tuple, list)):
             what = ', '.join([repr(t.__name__) for t in atype[:-1]]
@@ -208,11 +208,10 @@ def isAtomic(name, atoms, atype=Atomic, error=TypeError):
     return isatomic
 
 def isSubset(name, atoms, ag, error=ValueError):
-    """Perform an argument type and relation check."""
-    
+    """Perform an argument type and relation check."""    
     
     issubset = atoms in ag 
-    if error and not issubset:
+    if issubclass(error, Exception) and not issubset:
         raise error('{0:s} ({1:s}) must be a subset of {2:s}'
                     .format(name, str(atoms), str(ag)))
     return issubset
