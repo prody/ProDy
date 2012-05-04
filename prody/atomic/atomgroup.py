@@ -519,10 +519,8 @@ class AtomGroup(Atomic):
 
     def __contains__(self, item):
         
-        torf = False
-        if isinstance(item, Atomic):
-            torf = self == item or self == item.getAtomGroup()
-        return torf
+        return isinstance(item, Atomic) and (self == item or 
+                                             self == item.getAtomGroup())
     
     def __iter__(self):
         """Yield atom instances."""
