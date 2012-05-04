@@ -975,11 +975,11 @@ def splitList(alist, sep):
 
 XYZDIST = set(['x', 'y', 'z', 'within', 'exwithin'])
 
-def checkSelstr(selstr, what, throw=False):
+def checkSelstr(selstr, what, error=ValueError):
     """Check *selstr* if it satisfies a selected condition.  For now, only
-    whether coordinate/distance based selection are checked.  If *throw* is 
-    **True** raise a :class:`ValueError` exception, otherwise return **None**.
-    """
+    whether coordinate/distance based selection are checked.  If *error* is 
+    a subclass of :class:`Exception`, an exception will be raised, otherwise 
+    return **True** or **False** will be returned."""
     
     selstr = selstr.replace('(', ' ( ')
     selstr = selstr.replace(')', ' ) ')
@@ -987,10 +987,10 @@ def checkSelstr(selstr, what, throw=False):
     if what in set(['dist']):
         for item in selstr.split():
             if item in XYZDIST:
-                if throw:
-                    raise ValueError('invalid selection {0:s}, coordinate '
-                                     'based selections are not accepted'
-                                     .format(repr(selstr)))
+                if issubclass(error, Exception):
+                    raise error('invalid selection {0:s}, coordinate '
+                                'based selections are not accepted'
+                                .format(repr(selstr)))
                 else:
                     return False
 
