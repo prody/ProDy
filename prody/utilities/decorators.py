@@ -55,13 +55,10 @@ def checkTypes(**types):
                     
                     tps = types[arg]
                     if isinstance(tps, (list, tuple)):
-                        if len(tps) > 2:
+                        if len(tps) > 1:
                             tstr = 'one of ' + ', '.join([tp.__name__ 
                                                 for tp in tps[:-1]]
                                                 ) + ', or ' + tps[-1].__name__
-                                                
-                        elif len(tps) == 2:
-                            tstr = tps[0].__name__ + ' or ' + tps[1].__name__
                         
                         else:
                             tstr = tps[0].__name__
@@ -69,8 +66,8 @@ def checkTypes(**types):
                     else:
                         tstr = tps.__name__
                     
-                    raise TypeError('`{0:s}` must be {1:s}, not {2:s}'
-                                    .format(arg, tstr, type(val).__name__))
+                    raise TypeError('`{0:s}` must be an instance of {1:s}, '
+                            'not {2:s}'.format(arg, tstr, type(val).__name__))
                 
         func.func_typecheck = func_typecheck
         return func
