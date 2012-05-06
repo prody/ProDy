@@ -47,6 +47,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.ensemble import Ensemble, Conformation
+from prody.utilities import checkTypes
 
 from nma import NMA
 from gnm import GNMBase
@@ -510,11 +511,17 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     plt.ylabel('{0:s} coordinate'.format(mode_y))
     return show
 
+
+@checkTypes(rows=(NMA, ModeSet), cols=(NMA, ModeSet))
 def showOverlapTable(rows, cols, *args, **kwargs):
     """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *rows* and 
     *cols* are sets of normal modes, and correspond to rows and columns of the 
-    displayed matrix.  Note that mode indices are increased by 1.  List of 
-    modes should contain a set of contiguous modes from the same model. 
+    displayed overlap matrix.  Note that mode indices are incremented by 1.  
+    List of modes should contain a set of contiguous modes from the same model. 
+    
+    Default arguments for :func:`~matplotlib.pyplot.pcolor`:
+        
+      * ``cmap=plt.cm.jet``
     
     .. plot::
        :context:
@@ -530,19 +537,17 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         
        plt.close('all')"""
     
+    globals()['showOverlapTable'].func_typecheck(locals())
+    
     import matplotlib.pyplot as plt
-    if not isinstance(rows, (NMA, ModeSet)):
-        raise TypeError('rows must be an NMA model or a ModeSet, not {0:s}'
-                        .format(type(rows)))
-    if not isinstance(cols, (NMA, ModeSet)):
-        raise TypeError('cols must be an NMA model or a ModeSet, not {0:s}'
-                        .format(type(cols)))
+    
     overlap = abs(calcOverlap(rows, cols))
     if isinstance(rows, NMA):
         rows = rows[:]
     if isinstance(cols, NMA):
         cols = cols[:]
-    show = (plt.pcolor(overlap, cmap=plt.cm.jet, *args, **kwargs), 
+    cmap = kwargs.pop('cmap', plt.cm.jet)
+    show = (plt.pcolor(overlap, cmap=cmap, *args, **kwargs), 
             plt.colorbar())
     x_range = np.arange(1, len(cols)+1)
     plt.xticks(x_range-0.5, x_range)
