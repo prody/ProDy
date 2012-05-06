@@ -17,9 +17,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module contains tools for handling files, logging, type checking, etc.
-Contents of this module is not included ``from prody import *``, so they
-need to be imported as ``from prody.utilities import *``.
+Contents of this module are not included in ProDy namespace, so they need to be
+imported as ``from prody.utilities import *``.
 
+
+Decorators
+==============================================================================
+
+  * :func:`.checkTypes`
 
 """
 
