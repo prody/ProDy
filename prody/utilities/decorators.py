@@ -27,8 +27,9 @@ def checkTypes(**types):
     single line needs to be added inside the function to make the call for
     type checking.  
     
+    >>> from prody.utilities import checkTypes
     >>> @checkTypes(n=int, i=int)
-    >>> def incr(n, i):
+    ... def incr(n, i):
     ...     '''Increment *n* by *i*, both arguments must be integers.'''
     ...     
     ...     globals()['incr'].func_typecheck(locals())
@@ -37,11 +38,11 @@ def checkTypes(**types):
     11
     >>> incr(10., 1)
     Traceback (most recent call last):
-      File "checkers.py", line 81, in <module>
+      File "decorators.py", line 81, in <module>
         incr(10., 1)
-      File "checkers.py", line 78, in incr
+      File "decorators.py", line 78, in incr
         globals()['incr'].func_typecheck(locals())
-      File "checkers.py", line 65, in func_typecheck
+      File "decorators.py", line 65, in func_typecheck
         .format(arg, tstr, type(val).__name__))
     TypeError: `n` must be int, not float"""
 
