@@ -21,9 +21,10 @@ Contents of this module are not included in ProDy namespace, so they need to be
 imported as ``from prody.utilities import *``.
 
 
-Decorators
+Checkers
 ==============================================================================
 
+  * :func:`.checkCoords`
   * :func:`.checkTypes`
 
 """
@@ -34,6 +35,6 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 __all__ = []
 
-import decorators
-from decorators import *
-__all__.extend(decorators.__all__)
+import checkers
+from checkers import *
+__all__.extend(checkers.__all__)

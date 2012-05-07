@@ -250,8 +250,8 @@ class Ensemble(object):
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')
-        self._coords = checkCoords(coords, arg='coords', 
-                                   n_atoms=self._n_atoms, cset=False)
+        self._coords = checkCoords(coords, 'coords', n_atoms=self._n_atoms, 
+                                   cset=False)
         
     def getWeights(self):
         """Return a copy of weights of selected atoms."""
@@ -310,8 +310,8 @@ class Ensemble(object):
                 raise TypeError('coords must be a Numpy array or '
                                 'ProDy Atomic or Ensemble instance')
         
-        coords = checkCoords(coords, arg='coords', cset=True, 
-                             n_atoms=self._n_atoms, reshape=True)
+        coords = checkCoords(coords, 'coords', cset=True, 
+                            n_atoms=self._n_atoms, reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coords.shape[-2]
         n_confs = coords.shape[0]

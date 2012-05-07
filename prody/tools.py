@@ -55,6 +55,10 @@ __all__ = ['PackageLogger', 'PackageSettings',
         'importLA',
         'dictElement']
 
+from prody import utilities
+from prody.utilities import *
+__all__.extend(utilities.__all__)
+
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
 PLATFORM = platform.system()
@@ -423,41 +427,6 @@ def getPackagePath():
             path = raw_input('Please specify a valid folder name with write ' 
                              'access:')
     return path
-
-
-def checkCoords(array, arg='array', cset=False, n_atoms=None, 
-                    reshape=None, dtype=(float,)):
-    """Check the fitness of *array* to be a coordinate set.  An exception
-    is raised if array is not suitable."""
-
-    assert isinstance(arg, str), 'arg must be a string'
-    assert isinstance(cset, bool), 'cset must be a boolean'
-    assert n_atoms is None or isinstance(n_atoms, int) and n_atoms >= 0, \
-        'n_atoms must be a positive integer'
-    assert reshape is None or isinstance(reshape, bool), \
-        'reshape must be a boolean'
-    if not isinstance(dtype, tuple):
-        dtype = (dtype, )
-
-    if not isinstance(array, np.ndarray):
-        raise TypeError(arg + ' must be a Numpy array')
-    elif cset and array.ndim not in (2,3): 
-        raise ValueError(arg + '.ndim must be 2 or 3')
-    elif not cset and array.ndim != 2:
-        raise ValueError(arg + '.ndim must be 2')
-    elif array.shape[-1] != 3:
-        raise ValueError(arg + '.shape[-1] of 3, i.e. ([n_csets,]n_atoms,3)')
-    if n_atoms is not None and n_atoms != 0 and array.shape[-2] != n_atoms:
-        raise ValueError(arg + ' size do not match number of atoms')
-    if array.dtype not in dtype:
-        try:
-            array = array.astype(dtype[0])
-        except ValueError:
-            raise ValueError(arg + '.astype(' + str(dtype[0]) + ') fails, '
-                            'float type could not be assigned')
-    if cset and reshape and array.ndim == 2:
-        array = array.reshape([1, array.shape[0], 3])
-    return array
 
 
 OPEN = {
