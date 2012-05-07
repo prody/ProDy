@@ -48,7 +48,10 @@ def checkCoords(array, name='array', cset=False, n_atoms=None, reshape=None,
     
     :arg dtype: acceptable data types for array elements, default is 
         :func:`float`
-    :type dtype: type"""
+    :type dtype: type
+    
+    :returns: coordinate array is returned, after its shape or element data 
+        type is changed when needed"""
 
     assert isinstance(name, str), 'name must be a string'
     assert isinstance(cset, bool), 'cset must be a boolean'
@@ -97,23 +100,23 @@ def checkTypes(**types):
     ... def incr(n, i):
     ...     '''Increment *n* by *i*, both arguments must be integers.'''
     ...     
-    ...     globals()['incr'].func_typecheck(locals())
+    ...     globals()['incr'].checktypes(locals())
     ...     return n + i
     >>> incr(10, 1)
     11
     >>> incr(10., 1)
     Traceback (most recent call last):
-      File "decorators.py", line 81, in <module>
+      File "checkers.py", line 81, in <module>
         incr(10., 1)
-      File "decorators.py", line 78, in incr
+      File "checkers.py", line 78, in incr
         globals()['incr'].func_typecheck(locals())
-      File "decorators.py", line 65, in func_typecheck
+      File "checkers.py", line 65, in func_typecheck
         .format(arg, tstr, type(val).__name__))
     TypeError: `n` must be int, not float"""
 
     def decorate(func):
     
-        def func_typecheck(local, types=types):
+        def checktypes(local, types=types):
             
             for arg, val in local.iteritems():
                 
@@ -135,7 +138,7 @@ def checkTypes(**types):
                     raise TypeError('`{0:s}` must be an instance of {1:s}, '
                             'not {2:s}'.format(arg, tstr, type(val).__name__))
                 
-        func.func_typecheck = func_typecheck
+        func.checktypes = checktypes
         return func
     return decorate 
     
@@ -146,7 +149,7 @@ if __name__ == '__main__':
     def incr(n, i):
         '''Increment *n* by *i*, both arguments must be integers.'''
         
-        globals()['incr'].func_typecheck(locals())
+        globals()['incr'].checktypes(locals())
         return n + i
     incr(10, 1)
     incr(10., 1)

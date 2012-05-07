@@ -537,7 +537,7 @@ def showOverlapTable(rows, cols, *args, **kwargs):
         
        plt.close('all')"""
     
-    globals()['showOverlapTable'].func_typecheck(locals())
+    globals()['showOverlapTable'].checktypes(locals())
     
     import matplotlib.pyplot as plt
     
