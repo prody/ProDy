@@ -29,7 +29,8 @@ import numpy as np
 
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
-from prody.tools import getsize, checkCoords, now
+from prody.tools import getsize, now
+from prody.utilities import checkCoords
 
 from frame import Frame
 from trajbase import TrajBase

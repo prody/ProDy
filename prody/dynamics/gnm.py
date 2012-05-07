@@ -30,7 +30,8 @@ import numpy as np
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.kdtree import KDTree
-from prody.tools import checkCoords, importLA
+from prody.tools import importLA
+from prody.utilities import checkCoords
 
 from nma import NMA
 from gamma import Gamma
@@ -173,7 +174,7 @@ class GNM(GNMBase):
         
         if not isinstance(coords, np.ndarray):
             try:
-                coords = coords.getCoords()
+                coords = coords._getCoords()
             except AttributeError:
                 raise TypeError('coords must be a Numpy array or must have '
                                 'getCoordinates attribute')

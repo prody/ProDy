@@ -233,8 +233,8 @@ from types import NoneType
 import numpy as np
 
 from prody import LOGGER
-from prody.tools import checkCoords
 from prody.kdtree import KDTree
+from prody.utilities import checkCoords
 
 from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS, READONLY
@@ -628,9 +628,8 @@ class AtomGroup(Atomic):
         if not isinstance(coords, np.ndarray):
             coords = coords.getCoordsets()
 
-        coords = checkCoords(coords, 'coords',
-                                  cset=True, n_atoms=self._n_atoms,
-                                  reshape=True)
+        coords = checkCoords(coords, 'coords', cset=True, 
+                             n_atoms=self._n_atoms, reshape=True)
         if self._n_atoms == 0:
             self._n_atoms = coords.shape[-2] 
             

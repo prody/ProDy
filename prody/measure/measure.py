@@ -26,7 +26,8 @@ from numpy import absolute, mod, ndarray, power, sqrt, array, zeros, arccos
 from numpy import sign, tile, concatenate, pi, cross, subtract, round
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
-from prody.tools import importLA, checkCoords
+from prody.tools import importLA
+from prody.utilities import checkCoords
 from prody import LOGGER
 import prody
 

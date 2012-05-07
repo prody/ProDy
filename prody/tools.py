@@ -43,7 +43,6 @@ pkg = __import__(__package__)
 
 __all__ = ['PackageLogger', 'PackageSettings',
         'getPackagePath', 'setPackagePath',
-        'checkCoords', 
         'gunzip', 'openFile', 'openDB',
         'isExecutable', 'isReadable', 'isWritable', 
         'makePath', 'relpath', 'which', 

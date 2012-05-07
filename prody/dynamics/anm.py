@@ -29,8 +29,9 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.tools import checkCoords, importLA
+from prody.tools import importLA
 from prody.kdtree import KDTree
+from prody.utilities import checkCoords
 
 from gnm import GNMBase, ZERO, checkENMParameters
 

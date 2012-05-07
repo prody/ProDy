@@ -22,7 +22,7 @@ Release 1.1 (in development)
     :class:`.KDTree` interface. 
  
   * Fixed a problem in setting selection strings of fragments identified using
-    :func:`findFragments`.
+    :func:`.findFragments`.
     
 
 Release 1.0.4 (May 2, 2012)
