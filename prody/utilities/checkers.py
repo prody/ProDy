@@ -100,7 +100,7 @@ def checkTypes(**types):
     ... def incr(n, i):
     ...     '''Increment *n* by *i*, both arguments must be integers.'''
     ...     
-    ...     globals()['incr'].checktypes(locals())
+    ...     globals()['incr'].check_types(locals())
     ...     return n + i
     >>> incr(10, 1)
     11
@@ -116,7 +116,7 @@ def checkTypes(**types):
 
     def decorate(func):
     
-        def checktypes(local, types=types):
+        def check_types(local, types=types):
             
             for arg, val in local.iteritems():
                 
@@ -138,7 +138,7 @@ def checkTypes(**types):
                     raise TypeError('`{0:s}` must be an instance of {1:s}, '
                             'not {2:s}'.format(arg, tstr, type(val).__name__))
                 
-        func.checktypes = checktypes
+        func.check_types = check_types
         return func
     return decorate 
     
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     def incr(n, i):
         '''Increment *n* by *i*, both arguments must be integers.'''
         
-        globals()['incr'].checktypes(locals())
+        globals()['incr'].check_types(locals())
         return n + i
     incr(10, 1)
     incr(10., 1)
