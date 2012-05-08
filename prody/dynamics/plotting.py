@@ -47,7 +47,6 @@ import numpy as np
 
 from prody import LOGGER
 from prody.ensemble import Ensemble, Conformation
-from prody.utilities import checkTypes
 
 from nma import NMA
 from gnm import GNMBase
@@ -512,7 +511,6 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     return show
 
 
-@checkTypes(rows=(NMA, ModeSet), cols=(NMA, ModeSet))
 def showOverlapTable(rows, cols, *args, **kwargs):
     """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *rows* and 
     *cols* are sets of normal modes, and correspond to rows and columns of the 
@@ -536,8 +534,6 @@ def showOverlapTable(rows, cols, *args, **kwargs):
        :nofigs:
         
        plt.close('all')"""
-    
-    globals()['showOverlapTable'].check_types(locals())
     
     import matplotlib.pyplot as plt
     
