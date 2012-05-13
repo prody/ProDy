@@ -147,7 +147,7 @@ class GNM(GNMBase):
     def buildKirchhoff(self, coords, cutoff=10., gamma=1., **kwargs):
         """Build Kirchhoff matrix for given coordinate set.
         
-        :arg coords: a coordinate set or anything with getCoordinates method
+        :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray` or :class:`.Atomic`
         
         :arg cutoff: cutoff distance (Å) for pairwise interactions
@@ -172,13 +172,16 @@ class GNM(GNMBase):
         When Scipy is available, user can select to use sparse matrices for
         efficient usage of memory at the cost of computation speed."""
         
-        if not isinstance(coords, np.ndarray):
+        try:
+            coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                      coords.getCoords()) 
+        except AttributeError:
             try:
-                coords = coords._getCoords()
-            except AttributeError:
-                raise TypeError('coords must be a Numpy array or must have '
-                                'getCoordinates attribute')
-        coords = checkCoords(coords, 'coords')
+                checkCoords(coords)
+            except TypeError:
+                raise TypeError('coords must be a Numpy array or an object '
+                                'with `getCoords` method')
+
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff

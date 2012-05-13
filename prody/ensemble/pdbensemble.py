@@ -160,55 +160,53 @@ class PDBEnsemble(Ensemble):
     iterpose.__doc__ = Ensemble.iterpose.__doc__
     
 
-    def addCoordset(self, coords, weights=None, allcsets=True, label=None):
-        """Add coordinate set(s) to the ensemble.  :class:`~.Atomic` instances 
-        are accepted as *coords* argument.  If *allcsets* is ``True``, all 
-        coordinate sets from the :class:`~.Atomic` instance will be appended 
-        to the ensemble.  Otherwise, only the active coordinate set will be 
-        appended.  *weights* is an optional argument. If provided, its length 
-        must match number of atoms.  Weights of missing (not resolved) atoms 
-        must be equal to ``0`` and weights of those that are resolved can be 
-        anything greater than ``0``.  If not provided, weights of all atoms 
-        for this coordinate set will be set equal to ``1``. *label*, which 
-        may be a PDB identifier or a list of identifiers, is used to label 
-        conformations."""
+    def addCoordset(self, coords, weights=None, label=None):
+        """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
+        array with suitable shape and dimensionality, or an object with 
+        :meth:`getCoordsets` method.  *weights* is an optional argument.  
+        If provided, its length must match number of atoms.  Weights of 
+        missing (not resolved) atoms must be ``0`` and weights of those 
+        that are resolved can be anything greater than ``0``.  If not 
+        provided, weights of all atoms for this coordinate set will be 
+        set equal to ``1``. *label*, which may be a PDB identifier or a 
+        list of identifiers, is used to label conformations."""
         
-        assert isinstance(allcsets, bool), 'allcsets must be boolean'
-        if weights is not None:
-            assert isinstance(weights, np.ndarray), 'weights must be ndarray'
-        if label is not None:
-            assert isinstance(label, (str, list)), 'label must be str or list'
-        ag = None
-        if isinstance(coords, Atomic):
-            atoms = coords
-            if allcsets:
-                coords = atoms._getCoordsets()
-            else: 
-                coords = atoms._getCoords()
-            if isinstance(coords, AtomGroup):
-                ag = atoms
+
+        atoms = coords
+        try:
+            if self._coords is not None and hasattr(coords, '_getCoordsets'): 
+                coords = coords._getCoordsets()
             else:
-                ag = atoms.getAtomGroup()
-            label = label or ag.getTitle()
-        elif isinstance(coords, np.ndarray):
+                coords = coords.getCoordsets()
+                
+        except AttributeError:
             label = label or 'Unknown'
+
         else:
-            try:
-                if allcsets:
-                    coords = coords._getCoordsets()
-                else: 
-                    coords = coords._getCoords()
-            except AttributeError:            
-                raise TypeError('coords must be a Numpy array or must have '
-                                '`getCoords` attribute')
-
-            label = label or str(coords)
-
-        coords = checkCoords(coords, 'coords', cset=True, 
-                             n_atoms=self._n_atoms, reshape=True)
+            if coords is None:
+                raise ValueError('coordinates are not set')
+            elif label is None and isinstance(atoms, Atomic):
+                ag = atoms
+                if not isinstance(atoms, AtomGroup):
+                    ag = atoms.getAtomGroup()
+                label = ag.getTitle()
+                if coords.shape[0] < ag.numCoordsets():
+                    label += 'm' + str(atoms.getACSIndex())
+            else:
+                label = label or str(coords)
+        try:
+            checkCoords(coords, csets=True, natoms=self._n_atoms)
+        except TypeError:
+            raise TypeError('coords must be a Numpy array or must have '
+                            '`getCoords` attribute')
+        
+        if coords.ndim == 2:
+            coords = coords.reshape((1, self._n_atoms, 3))
+        
         n_csets, n_atoms, _ = coords.shape
-        if self._n_atoms == 0:
+        if not self._n_atoms:
             self._n_atoms = n_atoms
+            
         if weights is None:
             weights = np.ones((n_csets, n_atoms, 1), dtype=float)
         else:
@@ -225,11 +223,7 @@ class PDBEnsemble(Ensemble):
                 self._labels.extend(label)
                                  
         else:
-            if ag is not None and ag.numCoordsets() > 1:
-                self._labels.append('{0:s}_m{1:d}'.format(label, 
-                                         atoms.getACSIndex()))
-            else:                
-                self._labels.append(label)
+            self._labels.append(label)
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights

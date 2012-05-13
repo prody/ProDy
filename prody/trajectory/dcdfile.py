@@ -26,6 +26,7 @@ from time import time
 from struct import calcsize, unpack, pack
 
 import numpy as np
+from numpy import float32
 
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
@@ -209,7 +210,7 @@ class DCDFile(TrajFile):
                 self._bytes_per_frame = 56 + self._n_floats * 4
             else:
                 self._bytes_per_frame = self._n_floats * 4
-            self._dtype = np.float32
+            self._dtype = float32
         
         self._first_byte = self._file.tell()
         n_csets = (getsize(self._filename) - self._first_byte
@@ -276,7 +277,8 @@ class DCDFile(TrajFile):
         xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
         xyz = xyz.reshape((n_atoms, 3))
         if self._ag is not None:
-            self._ag._setCoords(xyz, self._title + ' frame ' + str(self._nfi))
+            self._ag._setCoords(xyz, self._title + ' frame ' + str(self._nfi),
+                                overwrite=True)
         self._nfi += 1
         return xyz
 
@@ -304,8 +306,8 @@ class DCDFile(TrajFile):
                 
         if self._closed: 
             raise ValueError('I/O operation on closed file')
-        if self._indices is None and \
-            (indices is None or indices == slice(None)):
+        if (self._indices is None and 
+            (indices is None or indices == slice(None))):
             nfi = self._nfi
             self.reset()
             n_floats = self._n_floats + self._unitcell * 14
@@ -350,16 +352,15 @@ class DCDFile(TrajFile):
             raise IOError('File not open for writing')
         if not isinstance(coords, np.ndarray): 
             coords = coords._getCoordsets()
-        coords = checkCoords(coords, 'coords', True, dtype=np.float32)
+        checkCoords(coords, csets=True, natoms=self._n_atoms, dtype=None)
+        if coords.dtype != float32:
+            coords = coords.astype(float32)
         n_atoms = coords.shape[-2]
         if coords.ndim == 2:
             coords = [coords]
         if self._n_atoms == 0:
             self._n_atoms = n_atoms
-        else:
-            if self._n_atoms != n_atoms:
-                raise ValueError('coords to not have correct number '
-                                 'of atoms')
+
         dcd = self._file
         pack_i_4N = pack('i', self._n_atoms * 4)
         if self._n_csets == 0:

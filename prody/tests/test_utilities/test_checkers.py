@@ -36,24 +36,21 @@ class TestCheckCoords(unittest.TestCase):
     
     def testInvalidCoords(self):
         
-        self.assertRaises(ValueError, checkCoords, [None])
+        self.assertRaises(TypeError, checkCoords, [None])
         
-    def testCoordsEquality(self):
+    def testCoords(self):
         
-        assert_equal(COORDS, checkCoords(COORDS))
+        self.assertTrue(checkCoords(COORDS))
         
-    def testCoordsIdentity(self):
+    def testCoordset(self):
         
-        self.assertIsNot(COORDS, checkCoords(COORDS))
+        self.assertTrue(checkCoords(COORDSET, csets=True))
+
+
+    def testCoordsetNatoms(self):
         
-        
-    def testCoordsetEquality(self):
-        
-        assert_equal(COORDSET, checkCoords(COORDSET, cset=True))
-        
-    def testCoordsetIdentity(self):
-        
-        self.assertIsNot(COORDSET, checkCoords(COORDSET, cset=True))
+        self.assertRaises(ValueError, checkCoords, COORDSET, csets=True, 
+                          natoms=20)
 
 
 class testCheckTypes(unittest.TestCase):

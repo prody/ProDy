@@ -538,7 +538,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     if addcoords:
                         atomgroup.addCoordset(coordinates[:acount])
                     else:
-                        atomgroup.setCoords(coordinates[:acount])
+                        atomgroup._setCoords(coordinates[:acount])
                 else:
                     coordsets = np.zeros((diff/acount+1, acount, 3))
                     coordsets[0] = coordinates[:acount]
@@ -619,18 +619,18 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if addcoords:
                 atomgroup.addCoordset(coordsets)
             else:
-                atomgroup.setCoords(coordsets)
+                atomgroup._setCoords(coordsets)
         else:
             if addcoords:
                 atomgroup.addCoordset(coordsets[:nmodel])
             else:
-                atomgroup.setCoords(coordsets[:nmodel])
+                atomgroup._setCoords(coordsets[:nmodel])
     elif not END:
         # this means last line wast an ATOM line, so atomgroup is not decorated
         if addcoords:
             atomgroup.addCoordset(coordinates[:acount])
         else:
-            atomgroup.setCoords(coordinates[:acount])
+            atomgroup._setCoords(coordinates[:acount])
         if not only_subset:
             atomnames = np.char.strip(atomnames[:acount])
             resnames = np.char.strip(resnames[:acount])

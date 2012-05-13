@@ -87,6 +87,13 @@ class Ensemble(object):
         if self._confs is None:
             return None
         
+        # use sth like follows
+        # which = np.arange(self._n_csets)[index].nonzero()[0]
+        # if len(which) == 1:
+        #       return getConf...
+        # else: 
+        #     return SubEnsemble
+        
         if isinstance(index, int):
             return self.getConformation(index) 
             
@@ -243,16 +250,28 @@ class Ensemble(object):
         return self._coords[self._indices]
 
     def setCoords(self, coords):
-        """Set reference coordinates."""
+        """Set *coords* as the ensemble reference coordinate set.  *coords* 
+        must be an object with :meth:`getCoords` method, or a Numpy array with 
+        suitable data type, shape, and dimensionality."""
 
-        if not isinstance(coords, np.ndarray):
-            try:
-                coords = coords.getCoords()
-            except AttributeError:
-                raise TypeError('coords must be a Numpy array or must have '
-                                'getCoordinates attribute')
-        self._coords = checkCoords(coords, 'coords', n_atoms=self._n_atoms, 
-                                   cset=False)
+        atoms = coords
+        try:
+            coords = atoms.getCoords()
+        except AttributeError:
+            pass
+        else:
+            if coords is None:
+                raise ValueError('coordinates of {0:s} are not set'
+                                 .format(str(atoms)))
+            
+        try:
+            checkCoords(coords, natoms=self._n_atoms)
+        except TypeError:
+            raise TypeError('coords must be a numpy array or an object '
+                            'with `getCoords` method')
+
+        self._coords = coords
+        self._n_atoms = coords.shape[0]
         
     def getWeights(self):
         """Return a copy of weights of selected atoms."""
@@ -289,33 +308,38 @@ class Ensemble(object):
 
         return self._n_csets
 
-    def addCoordset(self, coords, allcests=True):
-        """Add coordinate set(s) as to the ensemble.  :class:`~.Atomic` 
-        instances are accepted as *coords* argument.  If *allcests* is 
-        ``True``, all coordinate sets from the :class:`~.Atomic` instance 
-        will be appended to the ensemble.  Otherwise, only the active 
-        coordinate set will be appended."""
+    def addCoordset(self, coords):
+        """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
+        array with suitable data type, shape and dimensionality, or an object 
+        with :meth:`getCoordsets` method."""
         
-        assert isinstance(allcests, bool), 'allcests must be boolean'
-        if not isinstance(coords, np.ndarray):
-            if isinstance(coords, (Atomic, Ensemble)):
-                atoms = coords
-                if allcests:
-                    coords = atoms.getCoordsets()
-                else:
-                    coords = atoms.getCoords()
-                if coords is None:
-                    raise ValueError('{0:s} must contain coordinate data'
-                                     .format(atoms))
+        n_atoms = self._n_atoms
+        try:
+            if self._coords is not None and hasattr(coords, '_getCoordsets'): 
+                coords = coords._getCoordsets()
             else:
-                raise TypeError('coords must be a Numpy array or '
-                                'ProDy Atomic or Ensemble instance')
+                coords = coords.getCoordsets()
+                
+        except AttributeError:
+            pass
+        else:
+            if coords is None:
+                raise ValueError('coordinates are not set')
+            
+        try:
+            checkCoords(coords, csets=True, natoms=n_atoms)
+        except TypeError:
+            raise TypeError('coords must be a numpy array or an object '
+                            'with `getCoords` method')
         
-        coords = checkCoords(coords, 'coords', cset=True, 
-                            n_atoms=self._n_atoms, reshape=True)
-        if self._n_atoms == 0:
-            self._n_atoms = coords.shape[-2]
-        n_confs = coords.shape[0]
+        if not n_atoms:
+            self._n_atoms = n_atoms = coords.shape[-2]
+            
+        if coords.ndim == 2:
+            coords = coords.reshape((1, n_atoms, 3))
+            n_confs = 1
+        else:
+            n_confs = coords.shape[0]
             
         if self._confs is None: 
             self._confs = coords

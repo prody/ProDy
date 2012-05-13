@@ -15,6 +15,11 @@ Release 1.1 (in development)
   * :func:`.iterFragments` function is added.
   * :func:`.findNeighbors` function is added.
 
+**Changes**:
+
+  * Color scale used by :func:`showOverlapTable` is normalized by default.
+
+
 **Bugfixes**:
 
   * Fixed several problems in :func:`.iterNeighbors` function and 
@@ -23,6 +28,9 @@ Release 1.1 (in development)
  
   * Fixed a problem in setting selection strings of fragments identified using
     :func:`.findFragments`.
+    
+  * Fixed a problem in :func:`calcCenter` related to weighted center 
+    calculation.
     
 
 Release 1.0.4 (May 2, 2012)

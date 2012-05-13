@@ -42,11 +42,11 @@ The best way to start constructing an :class:`AtomGroup` is by setting the
 coordinates first. Number of atoms will be automatically set according to
 the size of the coordinate data array:
 
->>> coords = np.array( [ [1, 0, 0], [0, 0, 0], [0, 0, 1] ] )
+>>> coords = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 1]], dtype=float)
 >>> print( coords )
-[[1 0 0]
- [0 0 0]
- [0 0 1]]
+[[ 1.  0.  0.]
+ [ 0.  0.  0.]
+ [ 0.  0.  1.]]
 >>> wtr1.setCoords( coords )
 >>> wtr1
 <AtomGroup: Water (3 atoms)>
@@ -98,7 +98,7 @@ Coordinate sets
 
 Let's add another coordinate set to the atom group:
 
->>> wtr1.addCoordset( np.array( [ [0, 1, 0], [0, 0, 0], [0, 0, 1] ] ) )
+>>> wtr1.addCoordset(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]], dtype=float))
 >>> wtr1
 <AtomGroup: Water (3 atoms; active #0 of 2 coordsets)>
 
@@ -615,129 +615,122 @@ class AtomGroup(Atomic):
             return self._coords[self._acsi]
 
     def setCoords(self, coords, label=None):
-        """Set coordinates.  *coords* may be a :class:`numpy.ndarray` instance 
-        or an object instance with ``getCoordsets`` method.  If the shape of 
-        the coordinates array is (n_csets,n_atoms,3), the given array will 
-        replace all coordinate sets.  To avoid it, :meth:`addCoordset` may be 
-        used.  If the shape of the *coords* array is (n_atoms,3) or 
-        (1,n_atoms,3), the coordinate set will replace the coordinates of the 
-        currently active set.  *label* argument may be used to label coordinate
-        sets.  *label* may be a string or a list of strings length equal to 
-        the number of coordinate sets."""
+        """Set coordinates of atoms.  *coords* may be any array like object
+        or an object instance with :meth:`getCoords` method.  If the shape of 
+        coordinate array is ``(n_csets > 1, n_atoms, 3)``, it will replace all 
+        coordinate sets and the active coordinate set index  will reset to 
+        zero.  This situation can be avoided using :meth:`addCoordset`.  
+        If shape of *coords* is ``(n_atoms, 3)`` or ``(1, n_atoms, 3)``, it 
+        will replace the active coordinate set.  *label* argument may be used 
+        to label coordinate set(s).  *label* may be a string or a list of 
+        strings length equal to the number of coordinate sets."""
 
-        if not isinstance(coords, np.ndarray):
-            coords = coords.getCoordsets()
-
-        coords = checkCoords(coords, 'coords', cset=True, 
-                             n_atoms=self._n_atoms, reshape=True)
-        if self._n_atoms == 0:
-            self._n_atoms = coords.shape[-2] 
-            
-        acsi = None
-        if self._coords is None:
-            self._coords = coords
-            self._n_csets = coords.shape[0]
-            self._acsi = 0
-            self._setTimeStamp()
-            if isinstance(label, (NoneType, str)):
-                self._cslabels = [label] * self._n_csets
-            elif isinstance(label, (list, tuple)):
-                if len(label) == self._n_csets:
-                    self._cslabels = label
-                else:
-                    self._cslabels = [None] * self._n_csets
-                    LOGGER.warning('Length of `label` does not match number '
-                                   'of coordinate sets.')
+        atoms = coords
+        try:
+            if self._coords is None and hasattr(atoms, '_getCoords'): 
+                coords = atoms._getCoords()
+            else:
+                coords = atoms.getCoords()
+        except AttributeError:
+            if self._coords is None:
+                coords = np.array(coords)
         else:
-            if coords.shape[0] == 1:
-                acsi = self._acsi
-                self._coords[acsi] = coords[0]
-                self._setTimeStamp(acsi)
-                if isinstance(label, str):
-                    self._cslabels[self._acsi] = label
-            else:
-                self._coords = coords
-                self._n_csets = coords.shape[0]
-                self._acsi = min(self._n_csets - 1, self._acsi)
-                self._setTimeStamp()
-                
-        if acsi is None:
-            if isinstance(label, (str, NoneType)):
-                self._cslabels = [label] * self._n_csets
-            elif isinstance(label, (list, tuple)):
-                if len(label) == self._n_csets:
-                    if all([isinstance(lbl, str) for lbl in label]):
-                        self._cslabels += label
-                    else:
-                        LOGGER.warning('all items of label must be strings')
-                else:
-                    LOGGER.warning('label must have same length as the '
-                                   'coords array')
-            else:
-                LOGGER.warning('label must be a string or list of strings')
-                
-        elif label is not None:
-            if isinstance(label, str):
-                self._cslabels[acsi] = label
-            elif isinstance(label, (list, tuple)):
-                if len(label) == 1:
-                    if isinstance(label[0], str):
-                        self._cslabels[acsi] = label
-                    else:
-                        LOGGER.warning('all items of label must be strings')
-                else:
-                    LOGGER.warning('length of label must be one')
-            else:
-                LOGGER.warning('label must be a string or list of strings')    
-    
-    def _setCoords(self, coords, label=None):
-        """Set coordinates without date type checking.  *coords* must 
+            if coords is None:
+                raise ValueError('coordinates of {0:s} are not set'
+                                 .format(str(atoms)))
+        
+        try:
+            checkCoords(coords, csets=True, dtype=(float, np.float32))
+        except TypeError:
+            raise TypeError('coords must be a numpy array or an '
+                            'object with `getCoords` method')
+
+        self._setCoords(coords, label=label)
+        
+    def _setCoords(self, coords, label=None, overwrite=False):
+        """Set coordinates without data type checking.  *coords* must 
         be a :class:`numpy.ndarray`, but may have data type other than 
         :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label* 
         argument may be used to label coordinate sets.  *label* may be 
         a string or a list of strings length equal to the number of 
         coordinate sets."""
-
-        n_atoms = self._n_atoms
-        if self._n_atoms: 
-            if coords.shape[-2] != self._n_atoms:
-                raise ValueError('coords have incorrect number of atoms')
-        else:
-            n_atoms = coords.shape[-2]
-            self._n_atoms = n_atoms
         
-        if coords.ndim == 2:
-            coords = coords.reshape((1, n_atoms, 3))
-            self._cslabels = [label]
-            self._n_csets = 1
+        n_atoms = self._n_atoms
+        if n_atoms: 
+            if coords.shape[-2] != n_atoms:
+                raise ValueError('coords array has incorrect number of atoms')
         else:
-            self._n_csets = coords.shape[0]
-            if isinstance(label, (NoneType, str)):
-                self._cslabels = [label] * self._n_csets
-            elif isinstance(label, (list, tuple)):
-                if len(label) == self._n_csets:
-                    self._cslabels = label
+            self._n_atoms = n_atoms = coords.shape[-2] 
+            
+        ndim = coords.ndim
+        shape = coords.shape
+        if self._coords is None or overwrite or (ndim == 3 and shape[0] > 1):
+            if ndim == 2:
+                self._coords = coords.reshape((1, n_atoms, 3))
+                if label is None:
+                    self._cslabels = [None]
                 else:
-                    self._cslabels = [None] * self._n_csets
-                    LOGGER.warning('Length of `label` does not match number '
-                                   'of coordinate sets.')
-        self._coords = coords
-        self._acsi = 0
-        self._setTimeStamp()
+                    self._cslabels = [str(label)]
+                self._n_csets = n_csets = 1
+
+            else:
+                self._coords = coords
+                self._n_csets = n_csets = shape[0]
+
+                if isinstance(label, (NoneType, str)):
+                    self._cslabels = [label] * n_csets
+                
+                elif isinstance(label, (list, tuple)):
+                    if len(label) == n_csets:
+                        self._cslabels = list(label)
+
+                    else:
+                        self._cslabels = [None] * n_csets
+                        LOGGER.warn('Number of labels does not match number '
+                                    'of coordinate sets.')
+                else:
+                    LOGGER.warn('Wrong type for `label` argument.')
+            self._acsi = 0
+            self._setTimeStamp()
+
+        else:
+            acsi = self._acsi
+            if ndim == 2:
+                self._coords[acsi] = coords
+            else:
+                self._coords[acsi] = coords[0]
+            self._setTimeStamp(acsi)
+            if label is not None:
+                self._cslabels[acsi] = str(label)
     
     def addCoordset(self, coords, label=None):
-        """Add a coordinate set.  *coords* argument may be an object instance 
-        with ``getCoordsets`` method."""
+        """Add a coordinate set.  *coords* argument may be an object with 
+        :meth:`getCoordsets` method."""
         
-        if not isinstance(coords, np.ndarray):
-            coords = coords.getCoordsets()
-
         if self._coords is None:
-            self.setCoords(coords)
-            return
+            return self.setCoords(coords)
 
-        coords = checkCoords(coords, 'coords', cset=True, 
-                             n_atoms=self._n_atoms, reshape=True)
+        n_atoms = self._n_atoms
+        try:
+            coords = (coords._getCoordsets() 
+                      if hasattr(coords, '_getCoordsets') else
+                      coords.getCoordsets())
+        except AttributeError:
+            pass
+        else:
+            if coords is None:
+                raise ValueError('coordinates of {0:s} are not set'
+                                 .format(str(atoms)))
+
+        try:
+            checkCoords(coords, csets=True, natoms=n_atoms, dtype=None)
+        except TypeError:
+            raise TypeError('coords must be a numpy array or an '
+                            'object with `getCoords` method')
+                            
+        if coords.ndim == 2:
+            coords = coords.reshape((1, n_atoms, 3))
+            
         diff = coords.shape[0]
         self._coords = np.concatenate((self._coords, coords), axis=0)
         self._n_csets = self._coords.shape[0]
@@ -747,28 +740,25 @@ class AtomGroup(Atomic):
         self._timestamps[len(timestamps):] = time()
         self._kdtrees.extend([None] * diff)
         if isinstance(label, (str, NoneType)):
-            self._cslabels += [label] * diff
+            self._cslabels.extend([label] * diff)
         elif isinstance(label, (list, tuple)):
             if len(label) == diff:
-                if all([isinstance(lbl, str) for lbl in label]):
-                    self._cslabels += label
-                else:
-                    LOGGER.warning('all items of `label` must be strings')
+                self._cslabels.extend([str(lbl) for lbl in label])
             else:
-                LOGGER.warning('`label` list must have same length as the '
-                               '`coords` array')
+                LOGGER.warn('Number of labels does not match number '
+                            'of coordinate sets.')
         else:
-            LOGGER.warning('`label` must be a string or list of strings')
+            LOGGER.warn('Wrong type for `label` argument.')
         
     def delCoordset(self, index):
         """Delete a coordinate set from the atom group."""
         
-        if self._n_csets == 0:
+        n_csets = self._n_csets
+        if not n_csets:
             raise AttributeError('coordinates are not set')
 
-        which = np.ones(self._n_csets, bool)
+        which = np.ones(n_csets, bool)
         which[index] = False
-        n_csets = self._n_csets
         which = which.nonzero()[0]
         if len(which) == 0:
             self._coords = None

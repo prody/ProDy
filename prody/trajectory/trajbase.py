@@ -211,16 +211,29 @@ class TrajBase(object):
         return self._coords[self._indices]
 
     def setCoords(self, coords):
-        """Set reference coordinates."""
+        """Set *coords* as the trajectory reference coordinate set.  *coords* 
+        must be an object with :meth:`getCoords` method, or a Numpy array with 
+        suitable data type, shape, and dimensionality."""
 
-        if not isinstance(coords, np.ndarray):
-            try:
-                coords = coords.getCoords()
-            except AttributeError:
-                raise TypeError('coords must be a Numpy array or must have '
-                                'getCoordinates attribute')
-        self._coords = checkCoords(coords, arg='coords', 
-                                   n_atoms=self._n_atoms, cset=False)
+        atoms = coords
+        try:
+            coords = atoms.getCoords()
+        except AttributeError:
+            pass
+        else:
+            if coords is None:
+                raise ValueError('coordinates of {0:s} are not set'
+                                 .format(str(atoms)))
+            
+        try:
+            checkCoords(coords, natoms=self._n_atoms)
+        except TypeError:
+            raise TypeError('coords must be a numpy array or an object '
+                            'with `getCoords` method')
+
+        self._coords = coords
+
+        self._coords = coords
         
     def setWeights(self, weights):
         """Set atomic weights."""

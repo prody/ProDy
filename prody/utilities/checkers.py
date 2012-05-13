@@ -20,64 +20,72 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import array
+from numpy import float32
 
 __all__ = ['checkCoords', 'checkTypes']
 
+COORDS_NDIM = set([2])
+CSETS_NDIMS = set([2, 3])
 
-def checkCoords(coords, name='coords', cset=False, n_atoms=None, reshape=None, 
-                dtype=float):
-    """Return a copy of *coords* as a :class:`numpy.ndarray` instance after its
-    dimensionality and shape are checked for fitness to be a coordinate set.
+def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32), 
+                name='coords'):
+    """Return **True** if shape, dimensionality, and data type of *coords*
+    array are as expected.
     
-    :arg coords: coordinate data, any array like object 
+    :arg coords: coordinate array 
     
-    :arg name: name of *coords* argument
+    :arg csets: whether multiple coordinate sets (i.e. ``.ndim in (2, 3)``) are 
+        allowed, default is **False**
     
-    :arg cset: allow multiple coordinate sets, default is **False**
+    :arg natoms: number of atoms, if **None** number of atoms is not checked
     
-    :arg n_atoms: number of atoms
+    :arg dtype: allowed data type(s), default is ``(float, numpy.float32)``, 
+        if **None** data type is not checked
     
-    :arg reshape: reshape *coords* to multiple coordinate set  
+    :arg name: name of the coordinate argument
     
-    :arg dtype: allowed data types, default is :func:`float`
-    
-    :returns: coordinate array
-    
-    .. note::  Note that the array that this function returns is not the array 
-        that is given as input.  This helps ProDy classes to internalize the
-        data.
-    """
-
-    if not isinstance(dtype, tuple):
-        dtype = (dtype, )
-
-    coords = array(coords, dtype=dtype[0])
-    ndim = coords.ndim
-    shape = coords.shape
-    
-    if cset and ndim not in (2,3): 
-        raise ValueError(str(name) + '.ndim must be 2 or 3')
+    :raises: :exc:`TypeError` when *coords* is not an instance of 
+        :class:`numpy.ndarray`
         
-    elif not cset and ndim != 2:
-        raise ValueError(str(name) + '.ndim must be 2')
-        
+    :raises: :exc:`ValueError` when wrong shape, dimensionality, or data type
+        is encountered"""
+
+    try:
+        ndim = coords.ndim
+        shape = coords.shape
+    except AttributeError:
+        raise TypeError('coords must be a numpy.ndarray instance')
+
+    ndims = CSETS_NDIMS if csets else COORDS_NDIM    
+    if ndim not in ndims: 
+        raise ValueError(str(name) + '.ndim must be ' + 
+                         ' or '.join([str(d) for d in ndims]))
+
     elif shape[-1] != 3:
         raise ValueError(str(name) + '.shape[-1] must be 3')
         
-    if n_atoms and shape[-2] != n_atoms:
-        raise ValueError(str(name) + ' size do not match number of atoms')
+    elif natoms and shape[-2] != natoms:
+        raise ValueError(str(name) + '.shape[-2] must match number of atoms')
         
-    if cset and reshape and ndim == 2:
-        coords = coords.reshape([1, shape[0], 3])
-        
-    return coords
-
+    elif dtype: 
+        if isinstance(dtype, type) and coords.dtype != dtype:
+            raise ValueError(str(name) + '.dtype must be ' + dtype.__name__)
+        elif coords.dtype not in dtype:
+            if len(dtype) > 1:
+                msg = ', '.join([repr(dt.__name__) for dt in dtype[:-1]]
+                                ) + ', or ' + repr(dtype[-1].__name__)
+            else:
+                msg = dtype[0].__name__
+            raise ValueError(str(name) + '.dtype must be ' + msg)
+  
+    return True
 
 def checkTypes(args, **types):
-    """Return **True** if types of *args* match those given in *types*, 
-    otherwise raise a :class:`TypeError`.
-    
+    """Return **True** if types of all *args* match those given in *types*.
+   
+    :raises: :exc:`TypeError` when type of an argument is not one of allowed 
+        types
+        
     ::
         
         def incr(n, i):

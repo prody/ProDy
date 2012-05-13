@@ -342,24 +342,30 @@ def getPsiAtoms(residue, dist=4.1):
 
 def calcCenter(atoms, weights=None):
     """Return geometric center of *atoms*.  If *weights* is given it must 
-    be a flat array with length equal to number of atoms.  Mass center
-    of atoms can be calculated by setting weights equal to mass, i.e.
+    be a flat array with length equal to number of atoms.  Mass center of 
+    atoms can be calculated by setting weights equal to atom masses, i.e.
     ``weights=atoms.getMasses()``."""
     
     try: 
         coords = atoms._getCoords()
     except AttributeError:
-        coords = checkCoords(atoms, 'atoms')
-    except Exception as err:
-        raise type(err)(err)
+        coords = atoms
+        checkCoords(coords, csets=True, dtype=None, name='atoms')
     
     if weights is not None:
-        if not isinstance(weights, ndarray):
+        try:
+            ndim, shape = weights.ndim, weights.shape
+        except AttributeError:
             raise TypeError('weights must be a numpy array')
-        elif weights.ndim != 1:
-            raise ValueError('weights must be a 1 dimensional array')
-        elif weights.shape[0] != coords.shape[0]:
-            raise ValueError('weights length must be equal to number of atoms')
+        else:
+            if shape[0] != coords.shape[-2]:
+                raise ValueError('weights.shape[0] must be equal to number of '
+                                 'atoms')
+            if ndim != 2:
+                try:
+                    weights = weights.reshape((shape[0], 1))
+                except ValueError:
+                    raise ValueError('weights.shape must be a (n_atoms, 1)')
 
     return getCenter(coords, weights)
 
@@ -367,9 +373,9 @@ def calcCenter(atoms, weights=None):
 def getCenter(coords, weights=None):
     
     if weights is None:
-        return coords.mean(0)
+        return coords.mean(-2)
     else:
-        return (coords * weights).mean(0) / weights.sum()
+        return (coords * weights).sum(-2) / weights.sum()
 
 
 def pickCentral(atoms, weights=None):
