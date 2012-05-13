@@ -29,7 +29,8 @@ from numpy.testing import assert_approx_equal, assert_equal
 from prody.tests.test_datafiles import parseDatafile
 
 from prody.measure import calcDistance, buildDistMatrix
-from prody.measure import calcAngle, calcPsi, calcPhi 
+from prody.measure import calcAngle, calcPsi, calcPhi
+from prody.measure import calcCenter
 ATOL = 1e-5
 RTOL = 0
 
@@ -90,3 +91,26 @@ class TestDistances(unittest.TestCase):
         
         assert_equal(PBC_DIST, calcDistance(PBC_ONE, PBC_TWO, unitcell=PBC_UC))
         assert_equal(PBC_DIST, calcDistance(PBC_TWO, PBC_ONE, unitcell=PBC_UC))
+
+ATOMS = parseDatafile('multi_model_truncated')
+CENTERS = ATOMS.getCoordsets().mean(-2)
+
+class TestCenter(unittest.TestCase):
+    
+    def testCenter(self):
+        
+        assert_equal(calcCenter(ATOMS), CENTERS[0])
+        
+    def testCenterWithWeights(self):
+        
+        assert_equal(calcCenter(ATOMS, weights=ones(len(ATOMS))), 
+                     CENTERS[0])
+    
+    def testMultiCoordsets(self):
+        
+        assert_equal(calcCenter(ATOMS.getCoordsets()), CENTERS)
+
+    def testMultiCoordsetsWithWeights(self):
+        
+        assert_equal(calcCenter(ATOMS.getCoordsets(), 
+                                weights=ones(len(ATOMS))), CENTERS)
