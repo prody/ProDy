@@ -184,7 +184,7 @@ class TestParsePDB(unittest.TestCase):
         path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
         ag = prody.AtomGroup('One atom')
-        ag.setCoords(prody.np.array([[0, 0, 0]]))
+        ag.setCoords(np.array([[0., 0., 0.]]))
         self.assertRaises(ValueError, parsePDB, path, ag=ag)
         ag = prody.AtomGroup('Test')
         self.assertEqual(parsePDB(path, ag=ag).numAtoms(), 
@@ -268,8 +268,9 @@ class TestWritePDB(unittest.TestCase):
             out = parsePDB(writePDB(self.tmp, self.ag, model=i+1))
             self.assertEqual(out.numCoordsets(), 1,
                 'writePDB failed to write correct number of models')
-            self.assertTrue(np.all(out.getCoords() == self.ag.getCoordsets(i)),
-                'writePDB failed to write coordinates correctly')
+            assert_equal(out.getCoords(), self.ag.getCoordsets(i),
+                         'writePDB failed to write model {0:d} coordinates '
+                         'correctly'.format(i+1))
                 
     @dec.slow
     def tearDown(self):
