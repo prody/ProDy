@@ -35,7 +35,7 @@ try:
 except ImportError:
     raise ImportError('numpy not found, it is a required package')
 
-from tools import *
+from utilities import *
 
 import warnings
 

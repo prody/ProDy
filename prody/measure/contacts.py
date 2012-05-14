@@ -24,8 +24,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
-from prody.tools import rangeString
 from prody.kdtree import KDTree
+from prody.utilities import rangeString
 
 __all__ = ['Contacts', 'iterNeighbors', 'findNeighbors']
 

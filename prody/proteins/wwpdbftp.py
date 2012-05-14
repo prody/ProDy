@@ -25,7 +25,7 @@ import os.path
 import shutil
 from glob import glob
 
-from prody.tools import makePath, gunzip, relpath
+from prody.utilities import makePath, gunzip, relpath
 from localpdb import getPDBLocalFolder, getPDBMirrorPath
 
 __all__ = ['getWWPDBFTPServer', 'setWWPDBFTPServer', 'fetchPDB',]

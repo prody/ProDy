@@ -24,14 +24,16 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import os
 from time import time
 from struct import calcsize, unpack, pack
+from os.path import getsize
+import datetime
 
 import numpy as np
 from numpy import float32
 
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
-from prody.tools import getsize, now
 from prody.utilities import checkCoords
+from prody import LOGGER
 
 from frame import Frame
 from trajbase import TrajBase
@@ -40,8 +42,7 @@ from trajectory import Trajectory
 
 __all__ = ['DCDFile', 'parseDCD', 'writeDCD']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
+now = datetime.datetime.now
 
 DEBUG = False
 

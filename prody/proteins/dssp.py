@@ -28,7 +28,7 @@ import numpy as np
 
 from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import AtomGroup
-from prody.tools import gunzip, which, PLATFORM
+from prody.utilities import gunzip, which, PLATFORM
 
 from pdbfile import parsePDB
 from wwpdbftp import fetchPDB

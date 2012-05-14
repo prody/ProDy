@@ -26,8 +26,7 @@ import numpy as np
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD
-from prody.tools import importLA
-from prody.utilities import checkCoords
+from prody.utilities import importLA, checkCoords
 
 from conformation import *
 

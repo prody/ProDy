@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import os.path
 
 from prody import LOGGER
-from prody.tools import dictElement
+from prody.utilities import dictElement
 
 __all__ = ['PDBBlastRecord', 'blastPDB']
            

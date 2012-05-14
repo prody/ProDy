@@ -20,5 +20,5 @@ module.  Some documentation pages include usage examples.
    proteins/index
    trajectory/index
    utilities/index
-   tools
    tests
+   tools

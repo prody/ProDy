@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
-from prody.tools import openFile
+from prody.utilities import openFile
 from prody import getPackagePath
 
 __all__ = ['fetchPDBClusters', 'loadPDBClusters', 'getPDBCluster',]

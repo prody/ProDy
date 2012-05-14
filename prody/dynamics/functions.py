@@ -26,7 +26,7 @@ import os.path
 import numpy as np
 
 from prody.atomic import AtomGroup
-from prody.tools import openFile, isExecutable, which, PLATFORM
+from prody.utilities import openFile, isExecutable, which, PLATFORM
 
 from nma import NMA
 from anm import ANM

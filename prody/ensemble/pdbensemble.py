@@ -24,8 +24,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, getTransformation
-from prody.tools import importLA
-from prody.utilities import checkCoords
+from prody.utilities import importLA, checkCoords
 from prody import LOGGER
 
 from ensemble import Ensemble

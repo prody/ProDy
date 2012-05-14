@@ -25,7 +25,7 @@ import numpy as np
 
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, checkWeights
-from prody.tools import checkCoords
+from prody.utilities import checkCoords
 
 from frame import Frame
 

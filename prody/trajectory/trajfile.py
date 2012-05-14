@@ -27,7 +27,7 @@ import numpy as np
 
 from trajbase import TrajBase
 
-from prody.tools import relpath
+from prody.utilities import relpath
 
 __all__ = ['TrajFile']
 

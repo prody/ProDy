@@ -25,7 +25,7 @@ import numpy as np
 
 from prody import deprecate
 from prody.atomic import Atomic, AtomGroup, AtomSubset, AtomMap, AtomPointer
-from prody.tools import importLA
+from prody.utilities import importLA
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'calcRMSD', 'calcTransformation', 'superpose', 'moveAtoms',

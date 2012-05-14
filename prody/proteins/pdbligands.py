@@ -26,7 +26,7 @@ import os.path
 import numpy as np
 
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
-from prody.tools import openFile, makePath
+from prody.utilities import openFile, makePath
 from prody import getPackagePath
 
 __all__ = ['fetchPDBLigand']

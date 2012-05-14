@@ -26,9 +26,8 @@ import os.path
 
 import numpy as np
 
-from prody.atomic import ATOMIC_FIELDS
-from prody.atomic import AtomGroup
-from prody.tools import openFile
+from prody.atomic import ATOMIC_FIELDS, AtomGroup
+from prody.utilities import openFile
 
 __all__ = ['parsePSF']
 

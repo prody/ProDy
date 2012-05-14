@@ -30,7 +30,7 @@ from numpy.testing import *
 
 from prody import *
 from prody.atomic.fields import READONLY
-from prody.tools import *
+from prody.utilities import *
 from test_datafiles import *
 
 prody.setVerbosity('none')

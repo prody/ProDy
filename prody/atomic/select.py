@@ -198,7 +198,7 @@ from selection import Selection
 from segment import Segment
 from atommap import AtomMap
 
-from prody.tools import rangeString
+from prody.utilities import rangeString
 from prody.kdtree import KDTree
 
 DEBUG = 0

@@ -93,7 +93,7 @@ import numpy as np
 
 from prody import measure
 from prody.measure import getRMSD
-from prody.tools import importLA
+from prody.utilities import importLA
 
 __all__ = ['Frame']
 

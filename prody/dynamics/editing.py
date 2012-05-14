@@ -25,7 +25,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
 from prody.atomic import Selection, SELECT
-from prody.tools import importLA
+from prody.utilities import importLA
 from prody import LOGGER
 
 from nma import NMA

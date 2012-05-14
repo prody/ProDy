@@ -30,7 +30,7 @@ import numpy as np
 from prody.atomic import Atomic, Atom, AtomGroup
 from prody.atomic import getBackboneAtomNames, getKeywordResnames 
 from prody.atomic import ATOMIC_FIELDS
-from prody.tools import openFile
+from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
 from wwpdbftp import fetchPDB

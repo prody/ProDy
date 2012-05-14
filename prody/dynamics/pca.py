@@ -29,7 +29,7 @@ import numpy as np
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble, PDBEnsemble
 from prody.trajectory import TrajBase
-from prody.tools import importLA
+from prody.utilities import importLA
 
 from nma import NMA
 

@@ -92,7 +92,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody.tools import rangeString
+from prody.utilities import rangeString
 
 from atom import Atom
 from fields import ATOMIC_FIELDS

@@ -30,7 +30,7 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
-from prody.tools import openFile
+from prody.utilities import openFile
 
 from wwpdbftp import fetchPDB
 

@@ -25,7 +25,7 @@ import os.path
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB
-from prody.tools import openFile
+from prody.utilities import openFile
 from prody import LOGGER
 
 from ensemble import *

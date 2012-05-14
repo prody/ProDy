@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody.tools import *
+from prody.utilities import openFile
 
 from nma import NMA
 from modeset import ModeSet

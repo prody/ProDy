@@ -26,7 +26,7 @@ import os.path
 import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
-from prody.tools import openFile
+from prody.utilities import openFile
 
 __all__ = ['showProtein', 'writePQR', ]
 

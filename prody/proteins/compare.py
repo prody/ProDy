@@ -30,7 +30,6 @@ from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
 from prody.atomic import getKeywordResnames
 from prody.measure import calcTransformation, calcRMSD, printRMSD
-from prody.tools import which
 from prody import LOGGER, SELECT
 
 __all__ = ['matchChains',

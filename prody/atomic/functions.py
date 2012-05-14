@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import load, savez, zeros
 
-from prody.tools import openFile, rangeString
+from prody.utilities import openFile, rangeString
 from prody import LOGGER
 
 from atomic import Atomic

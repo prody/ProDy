@@ -19,6 +19,8 @@ Release 1.1 (in development)
 
   * Color scale used by :func:`showOverlapTable` is normalized by default.
 
+  * :mod:`tools` module is depracated for removal, use :mod:`utilities` 
+    instead.
 
 **Bugfixes**:
 

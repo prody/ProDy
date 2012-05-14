@@ -16,16 +16,47 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains tools for handling files, logging, type checking, etc.
-Contents of this module are not included in ProDy namespace, so they need to be
-imported as ``from prody.utilities import *``.
+"""This module provides utility functions for handling files, logging, type 
+checking, etc.  Contents of this module are not included in ProDy namespace, 
+so they need to be imported as ``from prody.utilities import *``.
 
 
-Checkers
-==============================================================================
+Package Utilities
+===============================================================================
+
+  * :class:`.PackageLogger`
+  * :class:`.PackageSettings`
+  * :func:`.getPackagePath`
+  * :func:`.setPackagePath`
+
+Type/Value Checkers
+===============================================================================
 
   * :func:`.checkCoords`
   * :func:`.checkTypes`
+
+Path/file handling
+===============================================================================
+
+  * :func:`.gunzip`
+  * :func:`.openFile`
+  * :func:`.openDB`
+  * :func:`.isExecutable`
+  * :func:`.isReadable`
+  * :func:`.isWritable`
+  * :func:`.makePath`
+  * :func:`.relpath`
+  * :func:`.which`
+  * :func:`.pickle`
+  * :func:`.unpickle`
+
+Miscellaneous
+===============================================================================
+
+  * :func:`.rangeString`
+  * :func:`.alnum`
+  * :func:`.importLA`
+  * :func:`.dictElement`
 
 """
 
@@ -38,3 +69,19 @@ __all__ = []
 import checkers
 from checkers import *
 __all__.extend(checkers.__all__)
+
+import logger
+from logger import *
+__all__.extend(logger.__all__)
+
+import settings
+from settings import *
+__all__.extend(settings.__all__)
+
+import pathtools
+from pathtools import *
+__all__.extend(pathtools.__all__)
+
+import misctools
+from misctools import *
+__all__.extend(misctools.__all__)
