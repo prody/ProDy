@@ -17,9 +17,9 @@ Release 1.1 (in development)
 
 **Changes**:
 
-  * Color scale used by :func:`showOverlapTable` is normalized by default.
+  * Color scale used by :func:`.showOverlapTable` is normalized by default.
 
-  * :mod:`tools` module is depracated for removal, use :mod:`utilities` 
+  * :mod:`.tools` module is depracated for removal, use :mod:`.utilities` 
     instead.
 
 **Bugfixes**:
@@ -31,7 +31,7 @@ Release 1.1 (in development)
   * Fixed a problem in setting selection strings of fragments identified using
     :func:`.findFragments`.
     
-  * Fixed a problem in :func:`calcCenter` related to weighted center 
+  * Fixed a problem in :func:`.calcCenter` related to weighted center 
     calculation.
     
 
