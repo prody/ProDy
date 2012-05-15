@@ -348,8 +348,14 @@ def calcCenter(atoms, weights=None):
     try: 
         coords = atoms._getCoords()
     except AttributeError:
-        coords = atoms
-        checkCoords(coords, csets=True, dtype=None, name='atoms')
+        try:
+            coords = atoms.getCoords()
+        except AttributeError:
+            coords = atoms
+            try:
+                checkCoords(coords, csets=True, dtype=None, name='atoms')
+            except TypeError:
+                raise TypeError('atoms must be an Atomic instance')
     
     if weights is not None:
         try:
