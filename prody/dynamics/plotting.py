@@ -511,7 +511,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     return show
 
 
-def showOverlapTable(rows, cols, *args, **kwargs):
+def showOverlapTable(rows, cols, **kwargs):
     """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *rows* and 
     *cols* are sets of normal modes, and correspond to rows and columns of the 
     displayed overlap matrix.  Note that mode indices are incremented by 1.  
@@ -520,6 +520,7 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
         
       * ``cmap=plt.cm.jet``
+      * ``norm=plt.normalize(0, 1)``
     
     .. plot::
        :context:
@@ -543,7 +544,8 @@ def showOverlapTable(rows, cols, *args, **kwargs):
     if isinstance(cols, NMA):
         cols = cols[:]
     cmap = kwargs.pop('cmap', plt.cm.jet)
-    show = (plt.pcolor(overlap, cmap=cmap, *args, **kwargs), 
+    norm = kwargs.pop('norm', plt.normalize(0, 1))
+    show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
     x_range = np.arange(1, len(cols)+1)
     plt.xticks(x_range-0.5, x_range)
