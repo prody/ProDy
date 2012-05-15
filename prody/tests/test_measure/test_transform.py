@@ -24,35 +24,40 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import unittest
-from numpy import zeros, ones
+from numpy import zeros, ones, eye
 from numpy.testing import assert_equal
 
 from prody.tests.test_datafiles import parseDatafile
 
 from prody.measure import moveAtoms
 
+UBI = parseDatafile('1ubi')
 
 class TestMoveAtoms(unittest.TestCase):
     
     
-    def setUp(self):
-        
-        self.ag = parseDatafile('1ubi')
-    
     def testToArgument(self):
         
-        atoms = self.ag.ca
+        atoms = UBI.ca
         
-        coords = self.ag.getCoords()
+        coords = UBI.getCoords()
         center = atoms._getCoords().mean(0)
         moveAtoms(atoms, to=zeros(3), ag=True)
-        assert_equal(self.ag._getCoords(), coords - center)
+        assert_equal(UBI._getCoords(), coords - center)
         
     def testByArgument(self):
         
-        atoms = self.ag
+        atoms = UBI
         offset = ones(3) * 10.
         coords = atoms.getCoords()
         moveAtoms(atoms, by=offset)
         assert_equal(atoms._getCoords(), coords + offset)
+        
+    def testTransformation(self):
+        
+        atoms = UBI.ca
+        coords = UBI.getCoords()
+        matrix = eye(4)
+        moveAtoms(atoms, by=matrix, ag=True)
+        assert_equal(UBI._getCoords(), coords)
         

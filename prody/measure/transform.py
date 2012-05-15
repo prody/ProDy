@@ -311,25 +311,37 @@ def moveAtoms(atoms, **kwargs):
         except AttributeError: 
             raise TypeError('by must be a numpy array')
 
-        try:
-            coords = atoms._getCoords()
-        except AttributeError:
-            try:
-                coords = atoms.getCoords()
-            except AttributeError:
-                raise TypeError('atoms must be an Atomic instance')
 
         if shape == (4, 4):
-            coords = np.dot(coords, offset[:3,:3])
-            coords += offset[3,:3]
             if kwargs.pop('ag', False):
                 try:
                     atoms = atoms.getAtomGroup()
                 except AttributeError:
                     # itself must be an AtomGroup
                     pass
+            try:
+                coords = atoms._getCoords()
+            except AttributeError:
+                try:
+                    coords = atoms.getCoords()
+                except AttributeError:
+                    raise TypeError('atoms must be an Atomic instance')
+
+            coords = np.dot(coords, offset[:3,:3])
+            coords += offset[3,:3]
+
             atoms.setCoords(coords)
         else:
+
+            try:
+                coords = atoms._getCoords()
+            except AttributeError:
+                try:
+                    coords = atoms.getCoords()
+                except AttributeError:
+                    raise TypeError('atoms must be an Atomic instance')
+
+
             try:
                 natoms = atoms.numAtoms()
             except AttributeError: 
