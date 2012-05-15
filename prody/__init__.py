@@ -86,7 +86,7 @@ if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
 
 LOGGER = PackageLogger('.prody')
 
-SETTINGS = PackageSettings(logger=LOGGER) 
+SETTINGS = PackageSettings('prody', logger=LOGGER) 
 SETTINGS.load()
 
 
