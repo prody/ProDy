@@ -15,12 +15,21 @@ Release 1.1 (in development)
   * :func:`.iterFragments` function is added.
   * :func:`.findNeighbors` function is added.
 
+**Improvements**:
+
+  * :func:`.moveAtoms` function is improved to move atoms to a specified 
+    location.
+
 **Changes**:
 
   * Color scale used by :func:`.showOverlapTable` is normalized by default.
 
   * :mod:`.tools` module is depracated for removal, use :mod:`.utilities` 
     instead.
+    
+  * *array* argument in :func:`.moveAtoms` is replaced with *by* keyword 
+    argument.
+
 
 **Bugfixes**:
 

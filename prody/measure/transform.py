@@ -27,6 +27,8 @@ from prody import deprecate
 from prody.atomic import Atomic, AtomGroup, AtomSubset, AtomMap, AtomPointer
 from prody.utilities import importLA
 
+from measure import calcCenter
+
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'calcRMSD', 'calcTransformation', 'superpose', 'moveAtoms',
            'printRMSD']
@@ -259,6 +261,109 @@ def moveAtoms(atoms, array):
         raise ValueError('array does not have right shape')
     atoms.setCoords(coords)
     
+def moveAtoms(atoms, **kwargs):
+    """Move *atoms* *to* a new location or *by* an offset.  This method will
+    change the active coordinate set of the *atoms*.  Note that only one of 
+    *to* or *by* keyword arguments is expected.
+    
+    ::
+       
+       # move protein so that its centroid is at the origin, [0., 0., 0.]
+       moveAtoms(protein, to=np.zeros(3)) 
+       
+       # move protein so that its mass center is at the origin
+       moveAtoms(protein, to=np.zeros(3), weights=protein.getMasses())
+    
+       # move protein so that centroid of Cα atoms is at the origin
+       moveAtoms(protein.ca, to=np.zeros(3), ag=True) 
+
+       # move protein by 10 A along each direction
+       moveAtoms(protein, by=np.ones(3) * 10)
+
+
+    :arg by: an offset array with shape ``([1,] 3)`` or ``(n_atoms, 3)`` or
+        a transformation matrix with shape ``(4, 4)``   
+    :type by: :class:`numpy.ndarray`
+    
+    :arg to: a point array with shape ``([1,] 3)``   
+    :type to: :class:`numpy.ndarray`
+    
+    :arg ag: when *atoms* is a :class:`.AtomSubset`, apply translation vector
+        (*to*) or transformation matrix to the :class:`.AtomGroup`, 
+        default is **False** 
+    :type ag: bool
+    
+    :arg weights: array of atomic weights with shape ``(n_atoms[, 1])``
+    :type weights: :class:`numpy.ndarray`
+    
+    When *to* argument is passed, :func:`.calcCenter` function is used to 
+    calculate centroid or mass center."""
+    
+    point = kwargs.pop('to', None)
+    if point is None:
+        offset = kwargs.pop('by', None)
+        if offset is None:
+            raise TypeError('moveAtoms() expects one of {0:s} or {1:s} '
+                            'arguments'.format(repr('to'), repr('by')))
+
+        try:
+            shape = offset.shape            
+        except AttributeError: 
+            raise TypeError('by must be a numpy array')
+
+        try:
+            coords = atoms._getCoords()
+        except AttributeError:
+            try:
+                coords = atoms.getCoords()
+            except AttributeError:
+                raise TypeError('atoms must be an Atomic instance')
+
+        if shape == (4, 4):
+            coords = np.dot(coords, offset[:3,:3])
+            coords += offset[3,:3]
+            if kwargs.pop('ag', False):
+                try:
+                    atoms = atoms.getAtomGroup()
+                except AttributeError:
+                    # itself must be an AtomGroup
+                    pass
+            atoms.setCoords(coords)
+        else:
+            try:
+                natoms = atoms.numAtoms()
+            except AttributeError: 
+                raise TypeError('atoms must be an Atomic instance')
+            if shape == (3,) or shape == (1, 3) or shape == (natoms, 3):
+                atoms.setCoords(coords + offset)
+            else:
+                raise ValueError('by.shape is not valid')
+        
+    else:
+        try:
+            shape = point.shape            
+        except AttributeError: 
+            raise TypeError('to must be a numpy array')
+        if shape != (3,) and shape != (1, 3): 
+            raise ValueError('to.shape must be ([1,] 3)')
+    
+        center = calcCenter(atoms, weights=kwargs.pop('weights', None))
+        offset = point - center
+        if kwargs.pop('ag', False):
+            try:
+                atoms = atoms.getAtomGroup()
+            except AttributeError:
+                # itself must be an AtomGroup
+                pass
+
+        try:
+            coords = atoms._getCoords()
+        except AttributeError:
+            try:
+                coords = atoms.getCoords()
+            except AttributeError:
+                raise TypeError('atoms must be an Atomic instance')
+        atoms.setCoords(coords + offset)
     
 def calcRMSD(reference, target=None, weights=None):
     """Return root-mean-square deviation(s) (RMSD) between reference and target 
