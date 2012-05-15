@@ -139,9 +139,11 @@ class TrajBase(object):
         When a new frame is parsed from the trajectory file, coordinates of 
         the :class:`.AtomGroup` instance will be updated.
         
-        .. warning:: Note that frames parsed from the trajectory file 
-           will overwrite all coordinate sets present in the associated 
-           :class:`~.AtomGroup` instance."""
+        .. warning:: 
+           
+           Note that frames parsed from the trajectory file will overwrite all
+           coordinate sets present in the associated :class:`~.AtomGroup` 
+           instance."""
         
         if ag is None:
             self._ag = None
