@@ -42,7 +42,7 @@ UBI_CTER = UBI['A', 76]
 
 class TestDihedrals(unittest.TestCase):
     
-    """Test functions that calculate unittests."""
+    """Test functions that calculate dihedral angles."""
     
     def testCalcPsi(self):
         
