@@ -462,7 +462,6 @@ class HierView(object):
                                       selstr=selstr)
                     _dict[s] = segment
                     _segments.append(segment)
-                    LOGGER.info('Hierarchical view contains segments.')
                 else: 
                     _segments = None
             else:
@@ -479,7 +478,6 @@ class HierView(object):
                         segindices[idx] = segindex
                     _dict[s] = segment
                     _segments.append(segment)
-                LOGGER.info('Hierarchical view contains segments.')
 
         if set_indices:
             ag._data['segindices'] = segindices
