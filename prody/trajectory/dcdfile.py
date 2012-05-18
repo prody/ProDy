@@ -335,13 +335,16 @@ class DCDFile(TrajFile):
     getCoordsets.__doc__ = TrajBase.getCoordsets.__doc__
 
     def write(self, coords, unitcell=None, **kwargs):
-        """Write *coords* to a file open in 'a' or 'w' mode.  Number of atoms 
-        will be determined from the file or based on the size of the first 
-        coordinate set written.  If *unitcell* is provided for the first 
-        coordinate set, it will be expected for the following coordinate sets 
-        as well.  If *coords* is an :class:`~.Atomic` or :class:`~.Ensemble` 
-        all coordinate sets will be written.  The following keywords are used 
-        when writing the first coordinate set:        
+        """Write *coords* to a file open in 'a' or 'w' mode.  *coords* may be
+        a NUmpy array or a ProDy object that stores or points to coordinate 
+        data.  Note that all coordinate sets of ProDy object will be written.
+        Number of atoms will be determined from the file or based on the size
+        of the first coordinate set written.  If *unitcell* is provided for 
+        the first coordinate set, it will be expected for the following 
+        coordinate sets as well.  If *coords* is an :class:`~.Atomic` or 
+        :class:`~.Ensemble` all coordinate sets will be written.  
+
+        Following keywords are used when writing the first coordinate set:        
             
         :arg timestep: timestep used for integration, default is 1
         :arg firsttimestep: number of the first timestep, default is 0
@@ -351,16 +354,31 @@ class DCDFile(TrajFile):
             raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
             raise IOError('File not open for writing')
-        if not isinstance(coords, np.ndarray): 
+        
+        try: 
             coords = coords._getCoordsets()
-        checkCoords(coords, csets=True, natoms=self._n_atoms, dtype=None)
+        except AttributeError:
+            try:
+                coords = coords._getCoords()
+            except AttributeError:
+                checkCoords(coords, csets=True, dtype=None)
+            else:
+                if unitcell is None:
+                    try:
+                        coords = coords.getUnitcell()
+                    except AttributeError:
+                        pass
+                    
         if coords.dtype != float32:
             coords = coords.astype(float32)
         n_atoms = coords.shape[-2]
-        if coords.ndim == 2:
-            coords = [coords]
         if self._n_atoms == 0:
             self._n_atoms = n_atoms
+        elif self._n_atoms != n_atoms:
+            raise ValueError('coords does not have correct number of atoms')
+        if coords.ndim == 2:
+            coords = [coords]
+            
 
         dcd = self._file
         pack_i_4N = pack('i', self._n_atoms * 4)
