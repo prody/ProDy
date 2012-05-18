@@ -718,13 +718,13 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
             atomgroup.addCoordset(xyz)
 
 _writePDBdoc = """
-    :arg atoms: Atomic data container.
+    :arg atoms: atomic object
     :type atoms: :class:`~.Atomic` 
     
-    :arg model: Model index or list of model indices.
+    :arg model: model index or list of model indices
     :type model: int, list
         
-    If *models* is ``None``, all coordinate sets will be written. Model 
+    If *model* is ``None``, all coordinate sets will be written. Model 
     indices start from 1.
     
     *atoms* instance must at least contain coordinates and atom names data.
