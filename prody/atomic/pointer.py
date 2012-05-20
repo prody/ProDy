@@ -225,13 +225,6 @@ class AtomPointer(Atomic):
         if self._ag._n_csets:
             return self._ag._cslabels[self.getACSIndex()]
     
-    def copy(self):
-        """Make a copy of atoms."""
-        
-        return self._ag.copy(self)
-    
-    __copy__ = copy
-
     def isData(self, label):
         """Return ``True`` if data *label* is present."""
         
