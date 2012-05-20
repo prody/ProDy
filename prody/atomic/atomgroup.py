@@ -841,108 +841,26 @@ class AtomGroup(Atomic):
         self._acsi = index
         
     def copy(self, which=None):
-        """Return a copy of atomic data indicated by *which* in a new 
-        :class:`AtomGroup` instance. *which* may be one of:
-          
-          * ``None``, make a copy of the :class:`AtomGroup` instance
-          * a :class:`.Selection`, :class:`.Residue`, :class:`.Chain`, 
-            :class:`.Atom`, :class:`.Segment`, :class:`.AtomMap` instance
-          * a list or an array of indices
-          * a selection string"""
+        """Return a copy of atoms (and atomic data) in a new :class:`AtomGroup`
+        instance.
         
-        title = self._title
-        atommap = False
-        copy_coords = self._coords is not None
+        *which* argument is deprecated for removal in v1.2, instead make 
+        the :class:`.Selection`, :class:`.Residue`, :class:`.Chain`, 
+        :class:`.Atom`, :class:`.Segment`, or :class:`.AtomMap` instance
+        that you want and use its :meth:`.Atomic.copy` method."""
+        
         if which is None:
-            indices = None
-            newmol = AtomGroup('{0:s}'.format(title))
-            if copy_coords:
-                newmol.setCoords(self._coords.copy())
-            
-        elif isinstance(which, int):
-            indices = [which]
-            newmol = AtomGroup('{0:s} index {1:d}'.format(title, which))
-            
-        elif isinstance(which, str):
-            indices = SELECT.getIndices(self, which)
-            if len(indices) == 0:
-                return None
-            newmol = AtomGroup('{0:s} selection {1:s}'
-                               .format(title, repr(which)))
-            
-        elif isinstance(which, (list, np.ndarray)):
-            if isinstance(which, list):
-                indices = np.array(which)
-            elif which.ndim != 1:
-                raise ValueError('which must be a 1d array')
-            else:
-                indices = which
-            newmol = AtomGroup('{0:s} subset'.format(title))
-            
+            return Atomic.copy(self)
+        elif isinstance(which, Atomic):
+            return Atomic.copy(which)
         else:
-            if isinstance(which, Atom):
-                idx = which.getIndex()
-                indices = [idx]
-                newmol = AtomGroup('{0:s} index {1:d}'.format(title, idx))
-            elif isinstance(which, AtomSubset):
-                indices = which._getIndices()
-                newmol = AtomGroup('{0:s} selection {1:s}'
-                                   .format(title, repr(which.getSelstr())))
-            elif isinstance(which, AtomMap):
-                indices = np.unique(which._getIndices())
-                newmol = AtomGroup('{0:s} mapping {1:s}'
-                                   .format(title, repr(which.getTitle())))
-                atommap = True
+            import warnings
+            warnings.warn('*which* argument of AtomGroup.copy() is deprecated '
+                          'for removal in v1.2', stacklevel=2)
+            if isinstance(which, str):
+                return self.select(which).copy()
             else:
-                raise TypeError('{0:s} is not a valid type'.format(
-                                                                type(which)))            
-                               
-        if indices is not None:
-            if atommap:
-                if copy_coords:
-                    newmol.setCoords(which.getCoords())
-                newmol.setData('dummy', which.getDummyFlags())
-                newmol.setData('mapped', which.getMappedFlags())
-            elif copy_coords:
-                newmol.setCoords(self._coords[:, indices])
-            if not copy_coords:
-                newmol._n_atoms = len(indices)
-            
-        for key, array in self._data.iteritems():
-            if key in READONLY:
-                continue
-            if array is not None:
-                if atommap:
-                    if key in ATOMIC_ATTRIBUTES:
-                        newmol._data[key] = getattr(which, 'get' + 
-                                            ATOMIC_ATTRIBUTES[key].meth_pl)()
-                    else:
-                        newmol._data[key] = which.getData(key)
-                else:
-                    if indices is None:
-                        newmol._data[key] = array.copy()
-                    else:
-                        newmol._data[key] = array[indices]
-        
-        newmol._cslabels = list(self._cslabels)
-        bonds = self._bonds
-        bmap = self._bmap
-        if bonds is not None and bmap is not None:
-            if indices is None:
-                newmol._bonds = bonds.copy()
-                newmol._bmap = bmap.copy()
-                newmol._data['numbonds'] = self._data['numbonds'].copy()
-                if self._data['fragindices'] is not None:
-                    newmol._data['fragindices'
-                        ] = self._data['fragindices'].copy()
-            else:
-                bonds = trimBonds(bonds, indices)
-                if bonds is not None:
-                    newmol.setBonds(bonds)
-                newmol._data['fragindices'] = None
-        return newmol
-    
-    __copy__ = copy
+                return self[which].copy()
     
     def getHierView(self):
         """Return a hierarchical view of the atom group."""
