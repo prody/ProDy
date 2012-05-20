@@ -56,9 +56,8 @@ today = date.today()
 if today.year == 2012:
     warnings.filterwarnings('default', category=DeprecationWarning)
 
-def deprecate(dep, alt, ver='1.1', sl=3):
-    """Issue a deprecation warning for *dep* and recommend using *alt*, if 
-    current year is 2012."""
+def deprecate(dep, alt, ver='1.2', sl=3):
+    """Issue a deprecation warning for *dep* and recommend using *alt*."""
 
     warnings.warn('`{0:s}` is deprecated for removal in v{1:s}, use `{2:s}`.'
                   .format(dep, ver, alt), DeprecationWarning, stacklevel=sl)
@@ -129,11 +128,12 @@ if _:
 def confProDy(*args, **kwargs):
     """Configure ProDy."""
 
+    settings = None
     if args:
         if len(args) == 1:
-            return SETTINGS.get(args[0])
+            settings = SETTINGS.get(args[0])
         else:
-            return [SETTINGS.get(option) for option in args]
+            settings = [SETTINGS.get(option) for option in args]
 
     for option, value in kwargs.iteritems():    
         if isinstance(option, str):
@@ -142,15 +142,15 @@ def confProDy(*args, **kwargs):
                 if type(value) == type_:
                     SETTINGS[option] = value
                     SETTINGS.save()
-                    LOGGER.debug('ProDy configuration is set: {0:s}={1:s}'
-                                 .format(option, str(value)))
+                    LOGGER.info('ProDy is configured: {0:s}={1:s}'
+                                .format(option, repr(value)))
                 else:
                     raise TypeError('value must be a ' + type_.__name__)
-                    
             else:
                 raise KeyError("'{0:s}' is not a valid option".format(option))
         else:
             raise TypeError('option must be a string')
+    return settings
 
 confProDy.__doc__ += docstring
 
