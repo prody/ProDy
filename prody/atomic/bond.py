@@ -148,18 +148,14 @@ def evalBonds(bonds, n_atoms):
         index[bond] += 1
     return bmap, numbonds
 
+from time import time
 
 def trimBonds(bonds, indices):
     """Return bonds made by atoms at given indices."""
     
-    newindices = np.zeros(indices.max()+1, int)
-    newindices[indices] = np.arange(len(indices))
     iset = set(indices)
-    newbonds = []
-    for i, bond in enumerate(bonds):
-        if bond[0] in iset and bond[1] in iset:
-            newbonds.append(newindices[bond])
-
-    newbonds = np.array(newbonds)
-    if len(newbonds) > 0:
-        return newbonds
+    bonds = [bond for bond in bonds if bond[0] in iset and bond[1] in iset]
+    if bonds:
+        newindices = np.zeros(indices.max()+1, int)
+        newindices[indices] = np.arange(len(indices))
+        return newindices[np.array(bonds)]
