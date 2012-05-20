@@ -156,14 +156,20 @@ __all__ += select.__all__
 from functions import isAtomic, isSubset
 
 from select import isMacro, isKeyword, isReserved, checkSelstr
+
 atomic.isMacro = isMacro
 atomic.isKeyword = isKeyword
 atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()
+atomic.AtomGroup = AtomGroup
+atomic.Selection = Selection
+
 atomgroup.isReserved = isReserved
 atomgroup.HierView = HierView
+
 pointer.AtomMap = AtomMap
 pointer.AtomGroup = AtomGroup
 pointer.Selection = Selection
+
 selection.HierView = HierView
 
 import numpy as np
