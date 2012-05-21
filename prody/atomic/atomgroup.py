@@ -234,7 +234,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.kdtree import KDTree
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, rangeString
 
 from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS, READONLY
@@ -438,27 +438,23 @@ class AtomGroup(Atomic):
             n_atoms = self._n_atoms
             if index >= n_atoms or index < -n_atoms:
                 raise IndexError('index out of bounds')
-            if index < 0:
-                index = n_atoms + index
-            return Atom(self, index, acsi)
+            return Atom(self, index if index >= 0 else n_atoms + index, acsi)
         
         elif isinstance(index, slice):
             start, stop, step = index.indices(self._n_atoms)
-            if start is None:
-                start = 0
-            if step is None:
-                step = 1
-            index = np.arange(start,stop,step)
-            if len(index) > 0:
+            start = start or 0
+            index = np.arange(start, stop, step)
+            if len(index):
+                if start > stop:
+                    index = index[::-1]
                 selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
-                return Selection(self, index, selstr, acsi)
+                return Selection(self, index, selstr, acsi, unique=True)
         
         elif isinstance(index, (list, np.ndarray)):
             unique = np.unique(index)
             if unique[0] < 0 or unique[-1] >= self._n_atoms:
                 raise IndexError('index out of range')
-            return Selection(self, unique,  
-                             'index ' + ' '.join(np.array(index, '|S')), 
+            return Selection(self, unique, 'index ' + rangeString(index), 
                              acsi, unique=True)
         
         elif isinstance(index, (str, tuple)):
