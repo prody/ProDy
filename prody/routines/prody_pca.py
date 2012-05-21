@@ -63,7 +63,7 @@ def prody_pca(opt):
         pca = prody.PCA(dcd.getTitle())
         if len(dcd) > 1000:
             pca.buildCovariance(dcd)
-            pca.calcModes(dcd)
+            pca.calcModes(nmodes)
         else:
             pca.performSVD(dcd[:])
     else:
