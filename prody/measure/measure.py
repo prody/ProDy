@@ -460,8 +460,14 @@ _MSF_DOCSTRING = """  *coordsets* may be an
     instance of :class:`.Ensemble`, :class:`.TrajBase`, or :class:`.Atomic`.  
     For trajectory objects, e.g. :class:`.DCDFile`, frames will be considered 
     after they are superposed. For other ProDy objects, coordinate sets should
-    be aligned prior to MSF calculation."""
-
+    be aligned prior to MSF calculation.
+    
+    Note that using trajectory files that store 32-bit coordinate will result
+    in lower precision in calculations.  Over 10,000 frames this may result
+    in up to 5% difference from the values calculated using 64-bit arrays.
+    To ensure higher-precision calculations for :class:`.DCDFile` instances, 
+    you may use *astype* argument, i.e. ``astype=float``, to auto recast
+    coordinate data to double-precision (64-bit) floating-point format."""
 
 def calcMSF(coordsets):
     """Calculate mean square fluctuation(s) (MSF)."""
@@ -483,19 +489,23 @@ def calcMSF(coordsets):
         msf = var(coordsets, 0).sum(1)
     else:
         nfi = coordsets.getNextIndex()
-        natoms = coordsets.numAtoms()
+        natoms = coordsets.numSelected()
         total = zeros((natoms, 3))
         sqsum = zeros((natoms, 3))
 
+        LOGGER.progress('Evaluating {0:d} frames from {1:s}:'
+                        .format(ncsets, str(coordsets)), ncsets)
         ncsets = 0
         coordsets.reset()
         for frame in coordsets:
             frame.superpose()
-            coords = frame._getCoords().astype(float)
+            coords = frame._getCoords()
             total += coords
             sqsum += coords ** 2
             ncsets += 1
-        msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)  
+            LOGGER.update(ncsets)
+        msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)
+        LOGGER.clear()  
         coordsets.goto(nfi)        
     return msf
 

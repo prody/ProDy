@@ -121,12 +121,16 @@ class TestCenter(unittest.TestCase):
 
 class TestMSF(unittest.TestCase):
 
-    def setUp(self):
-        
-        self.dcd = DCDFile(getDatafilePath('dcd'))
-        self.ens = parseDatafile('dcd')
-        self.ens.superpose()
-
     def testMSF(self):
-    
-        assert_array_almost_equal(calcMSF(self.dcd), calcMSF(self.ens), 5)
+        
+        dcd = DCDFile(getDatafilePath('dcd'))
+        ens = parseDatafile('dcd')
+        ens.superpose()
+        assert_array_almost_equal(calcMSF(dcd), calcMSF(ens), 4)
+
+    def testMSFfloat(self):
+        
+        dcd = DCDFile(getDatafilePath('dcd'), astype=float)
+        ens = parseDatafile('dcd', astype=float)
+        ens.superpose()
+        assert_array_almost_equal(calcMSF(dcd), calcMSF(ens), 10)
