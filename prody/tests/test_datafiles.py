@@ -125,6 +125,10 @@ __all__ = ['parseDatafile', 'getDatafilePath',
 
 def getDatafilePath(filename):
 
+    try:
+        filename = DATA_FILES[filename]['file']
+    except KeyError:
+        pass
     assert isinstance(filename, str), 'filename must be a string'
     fn = os.path.join(TESTS_PATH, 'data', filename)
     assert os.path.isfile(fn), 'No such file: "{0:s}"'.format(fn)
