@@ -83,8 +83,9 @@ class Atomic(object):
             indices = self._getIndices()
             if hasattr(self, 'getDummyFlags'):
                 new = AtomGroup(ag.getTitle() + ' mapping ' + self.getTitle())
-                new.setData('dummy', which.getDummyFlags())
-                new.setData('mapped', which.getMappedFlags())
+                new._n_atoms = len(self)
+                new.setData('dummy', self.getDummyFlags())
+                new.setData('mapped', self.getMappedFlags())
                 atommap = True
             else:
                 new = AtomGroup(ag.getTitle() + ' selection ' + 
