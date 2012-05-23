@@ -14,6 +14,7 @@ Release 1.1 (in development)
 
   * :func:`.iterFragments` function is added.
   * :func:`.findNeighbors` function is added.
+  * :func:`.calcMSF` and :func:`.calcRMSF` functions are added.
 
 **Improvements**:
 
@@ -30,6 +31,9 @@ Release 1.1 (in development)
   * *array* argument in :func:`.moveAtoms` is replaced with *by* keyword 
     argument.
 
+  * *which* argument in :meth:`.AtomGroup.copy` method is deprecated for
+    removal in version 1.2.
+
 
 **Bugfixes**:
 
@@ -42,7 +46,12 @@ Release 1.1 (in development)
     
   * Fixed a problem in :func:`.calcCenter` related to weighted center 
     calculation.
-    
+
+  * Fixed a problem of in copying :class:`.AtomMap` instances, which would 
+    emerge when bond information was present in unusual mappings, such as 
+    when atom orders are changed or an atom is present multiple times in the
+    mapping.
+
 
 Release 1.0.4 (May 2, 2012)
 ===============================================================================

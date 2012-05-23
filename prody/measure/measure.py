@@ -23,7 +23,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import absolute, mod, ndarray, power, sqrt, array, zeros, arccos
-from numpy import sign, tile, concatenate, pi, cross, subtract, round
+from numpy import sign, tile, concatenate, pi, cross, subtract, round, var
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
 from prody.utilities import importLA, checkCoords
@@ -33,6 +33,7 @@ import prody
 __all__ = ['buildDistMatrix', 'calcDistance', 
            'calcCenter', 'calcGyradius', 'calcAngle', 
            'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
+           'calcMSF', 'calcRMSF',
            'calcDeformVector', 
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral']
@@ -454,6 +455,58 @@ def calcGyradius(atoms, weights=None):
                 rgyr.append(d2sum)
         d2sum = array(rgyr)
     return (d2sum / wsum) ** 0.5
+
+_MSF_DOCSTRING = """  *coordsets* may be an 
+    instance of :class:`.Ensemble`, :class:`.TrajBase`, or :class:`.Atomic`.  
+    For trajectory objects, e.g. :class:`.DCDFile`, frames will be considered 
+    after they are superposed. For other ProDy objects, coordinate sets should
+    be aligned prior to MSF calculation."""
+
+
+def calcMSF(coordsets):
+    """Calculate mean square fluctuation(s) (MSF)."""
+    
+    try:
+        ncsets = coordsets.numFrames()
+    except AttributeError:
+        try:
+            coordsets = coordsets.getCoordsets()
+        except AttributeError:
+            pass
+        try:
+            ndim, shape = coordsets.ndim, coordsets.shape
+        except:
+            raise TypeError('coordsets must be a Numpy array or a ProDy '
+                            'object with `getCoordsets` method')
+        if ndim != 3 or shape[0] == 1: 
+            raise ValueError('coordsets must contain multiple coordinate sets') 
+        msf = var(coordsets, 0).sum(1)
+    else:
+        nfi = coordsets.getNextIndex()
+        natoms = coordsets.numAtoms()
+        total = zeros((natoms, 3))
+        sqsum = zeros((natoms, 3))
+
+        ncsets = 0
+        coordsets.reset()
+        for frame in coordsets:
+            frame.superpose()
+            coords = frame._getCoords().astype(float)
+            total += coords
+            sqsum += coords ** 2
+            ncsets += 1
+        msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)  
+        coordsets.goto(nfi)        
+    return msf
+
+calcMSF.__doc__ += _MSF_DOCSTRING
+
+def calcRMSF(coordsets): 
+    """Return root mean square fluctuation(s) (RMSF)."""
+    
+    return calcMSF(coordsets) ** 0.5    
+
+calcRMSF.__doc__ += _MSF_DOCSTRING
 
 
 def calcDeformVector(from_atoms, to_atoms):

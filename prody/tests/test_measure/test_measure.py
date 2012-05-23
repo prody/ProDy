@@ -25,12 +25,16 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import unittest
 from numpy import array, ones, arange
 from numpy.testing import assert_approx_equal, assert_equal
+from numpy.testing import assert_array_almost_equal
 
-from prody.tests.test_datafiles import parseDatafile
+from prody.tests.test_datafiles import parseDatafile, getDatafilePath
 
+from prody.trajectory import DCDFile
 from prody.measure import calcDistance, buildDistMatrix
 from prody.measure import calcAngle, calcPsi, calcPhi
 from prody.measure import calcCenter
+from prody.measure import calcMSF
+
 ATOL = 1e-5
 RTOL = 0
 
@@ -114,3 +118,15 @@ class TestCenter(unittest.TestCase):
         
         assert_equal(calcCenter(ATOMS.getCoordsets(), 
                                 weights=ones(len(ATOMS))), CENTERS)
+
+class TestMSF(unittest.TestCase):
+
+    def setUp(self):
+        
+        self.dcd = DCDFile(getDatafilePath('dcd'))
+        self.ens = parseDatafile('dcd')
+        self.ens.superpose()
+
+    def testMSF(self):
+    
+        assert_array_almost_equal(calcMSF(self.dcd), calcMSF(self.ens), 5)
