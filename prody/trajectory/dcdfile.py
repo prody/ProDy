@@ -52,11 +52,12 @@ RECSCALE64BIT = 2
 
 class DCDFile(TrajFile):
     
-    """A class for reading and writing DCD files. DCD header and first frame is
-    parsed at instantiation.  Coordinates from the first frame is set as the 
-    reference coordinate set.  This class has been tested for 32-bit DCD files.
-    32-bit floating-point coordinate data can be converted automatically to 
-    64-bit using *astype* keyword argument, i.e. ``astype=float``."""
+    """A class for reading and writing DCD files. DCD header and first frame 
+    is parsed at instantiation.  Coordinates from the first frame is set as 
+    the reference coordinate set.  This class has been tested for 32-bit DCD 
+    files.  32-bit floating-point coordinate array can be casted automatically 
+    to a specified, such as 64-bit, using *astype* keyword argument, i.e. 
+    ``astype=float``, using :meth:`ndarray.astype` method."""
     
     def __init__(self, filename, mode='r', **kwargs):
         
@@ -335,6 +336,8 @@ class DCDFile(TrajFile):
             data = data[:, :, 1:-1]
             data = data.transpose(0, 2, 1)
             self.goto(nfi)
+            if self._astype is not None and self._astype != data.dtype:
+                data = data.astype(self._astype)
             return data
         else:            
             return TrajFile.getCoordsets(self, indices)
@@ -469,7 +472,7 @@ class DCDFile(TrajFile):
             self._file.flush()
             os.fsync(self._file.fileno())
             
-def parseDCD(filename, start=None, stop=None, step=None):
+def parseDCD(filename, start=None, stop=None, step=None, astype=None):
     """Parse CHARMM format DCD files (also NAMD 2.1 and later).  Returns an 
     :class:`Ensemble` instance. Conformations in the ensemble will be ordered 
     as they appear in the trajectory file.  Use :class:`DCDFile` class for 
@@ -485,9 +488,12 @@ def parseDCD(filename, start=None, stop=None, step=None):
     :type stop: int
         
     :arg step: steps between reading frames, default is 1 meaning every frame
-    :type step: int"""
+    :type step: int
     
-    dcd = DCDFile(filename)
+    :arg astype: cast coordinate array to specified type 
+    :type astype: type"""
+    
+    dcd = DCDFile(filename, astype=astype)
     time_ = time()
     n_frames = dcd.numFrames()
     LOGGER.info('DCD file contains {0:d} coordinate sets for {1:d} atoms.'

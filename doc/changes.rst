@@ -15,6 +15,10 @@ Release 1.1 (in development)
   * :func:`.iterFragments` function is added.
   * :func:`.findNeighbors` function is added.
   * :func:`.calcMSF` and :func:`.calcRMSF` functions are added.
+  * :class:`.DCDFile` and :func:`.parseDCD` take *astype* keyword argument for
+    automatic type recasting for coordinate arrays.  This option can be used
+    to convert 32-bit coordinate arrays to 64-bit automatically for higher 
+    precision calculations.
 
 **Improvements**:
 
@@ -33,6 +37,9 @@ Release 1.1 (in development)
 
   * *which* argument in :meth:`.AtomGroup.copy` method is deprecated for
     removal in version 1.2.
+
+  * :class:`.DCDFile` does not log information for most common type of DCD
+    file, i.e. 32-bit CHARMM format.
 
 
 **Bugfixes**:
