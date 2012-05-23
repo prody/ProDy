@@ -457,8 +457,8 @@ def calcGyradius(atoms, weights=None):
 
 
 def calcDeformVector(from_atoms, to_atoms):
-    """Returns deformation from *from_atoms* to *atoms_to* as a 
-    :class:`~.Vector` instance."""
+    """Return deformation from *from_atoms* to *atoms_to* as a :class:`.Vector`
+    instance."""
     
     name = '{0:s} => {1:s}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30: 

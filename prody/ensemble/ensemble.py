@@ -554,9 +554,9 @@ class Ensemble(object):
         LOGGER.timing('Iterative superposition completed in %.2fs.')
 
     def getMSFs(self):
-        """Calculate and return mean square fluctuations (MSFs).  Note that 
-        you may need to align the conformations using :meth:`superpose` or 
-        :meth:`iterpose` before calculating MSFs."""
+        """Return mean square fluctuations (MSFs).  Conformations should be 
+        aligned using one of :meth:`superpose` or :meth:`iterpose` prior to
+        MSF calculation."""
         
         if self._confs is None: 
             return
@@ -574,9 +574,9 @@ class Ensemble(object):
         return ssqf.sum(1) / self._n_csets
     
     def getRMSFs(self):
-        """Calculate and return root mean square fluctuations (RMSFs).  
-        Note that you may need to align the conformations using 
-        :meth:`superpose` or meth:`iterpose` before calculating RMSFs."""
+        """Return root mean square fluctuations (RMSFs).  Conformations should
+        be aligned using one of :meth:`superpose` or :meth:`iterpose` prior to
+        RMSF calculation."""
 
         return self.getMSFs() ** 0.5
             
@@ -595,9 +595,9 @@ class Ensemble(object):
         return self._getCoordsets() - self._coords 
         
     def getRMSDs(self):
-        """Calculate and return root mean square deviations (RMSDs).  Note 
-        that you might need to align the conformations using :meth:`superpose` 
-        or :meth:`iterpose` before calculating RMSDs."""
+        """Return root mean square deviations (RMSDs).  Conformations should
+        be aligned using one of :meth:`superpose` or :meth:`iterpose` prior 
+        to RMSD calculation."""
         
         if self._confs is None or self._coords is None: 
             return None
