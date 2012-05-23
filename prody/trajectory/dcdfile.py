@@ -52,13 +52,16 @@ RECSCALE64BIT = 2
 
 class DCDFile(TrajFile):
     
-    """A class for reading DCD files. DCD header and first frame is parsed at 
-    instantiation.  Coordinates from the first frame is set as the reference 
-    coordinates."""
+    """A class for reading and writing DCD files. DCD header and first frame is
+    parsed at instantiation.  Coordinates from the first frame is set as the 
+    reference coordinate set.  This class has been tested for 32-bit DCD files.
+    32-bit floating-point coordinate data can be converted automatically to 
+    64-bit using *astype* keyword argument, i.e. ``astype=float``."""
     
-    def __init__(self, filename, mode='r'):
+    def __init__(self, filename, mode='r', **kwargs):
         
         TrajFile.__init__(self, filename, mode)
+        self._astype = kwargs.get('astype', None)
         if self._mode != 'w':
             self._parseHeader()
             
@@ -93,8 +96,9 @@ class DCDFile(TrajFile):
                         'endianness.')
             rec_scale = RECSCALE64BIT
         elif temp[0] == 84 and temp[1] == dcdcordmagic:
-            LOGGER.info('Detected standard 32-bit DCD file of native '
-                        'endianness.')
+            pass
+            #LOGGER.info('Detected standard 32-bit DCD file of native '
+            #            'endianness.')
         else:
             if unpack('>ii', bits) == temp:
                 endian = '>'
@@ -136,7 +140,7 @@ class DCDFile(TrajFile):
             charmm = True
 
         if charmm:
-            LOGGER.info('CHARMM format DCD file (also NAMD 2.1 and later).')
+            #LOGGER.info('CHARMM format DCD file (also NAMD 2.1 and later).')
             temp = unpack(endian + 'i'*9 + 'f' + 'i'*10 , bits)
         else:
             LOGGER.info('X-PLOR format DCD file (also NAMD 2.0 and earlier) '
@@ -281,6 +285,9 @@ class DCDFile(TrajFile):
             self._ag._setCoords(xyz, self._title + ' frame ' + str(self._nfi),
                                 overwrite=True)
         self._nfi += 1
+        if self._astype is not None and self._astype != xyz.dtype: 
+            xyz= xyz.astype(self._astype)
+        
         return xyz
 
     nextCoordset.__doc__ = TrajBase.nextCoordset.__doc__  
