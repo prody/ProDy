@@ -13,17 +13,22 @@ Release 1.1 (in development)
 **New Features**:
 
   * :func:`.iterFragments` function is added.
+
   * :func:`.findNeighbors` function is added.
+
   * :func:`.calcMSF` and :func:`.calcRMSF` functions are added.
-  * :class:`.DCDFile` and :func:`.parseDCD` take *astype* keyword argument for
-    automatic type recasting for coordinate arrays.  This option can be used
-    to convert 32-bit coordinate arrays to 64-bit automatically for higher 
-    precision calculations.
+  
+  * :func:`.wrapAtoms` functions is added.
 
 **Improvements**:
 
   * :func:`.moveAtoms` function is improved to move atoms to a specified 
     location.
+
+  * :class:`.DCDFile` and :func:`.parseDCD` take *astype* keyword argument for
+    automatic type recasting for coordinate arrays.  This option can be used
+    to convert 32-bit coordinate arrays to 64-bit automatically for higher 
+    precision calculations.
 
 **Changes**:
 

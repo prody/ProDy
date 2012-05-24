@@ -56,7 +56,7 @@ class KDTree(object):
          |       ? |       ? |      ?  |
          |_________|_________|_________|
          |        4|o  h h  5|        6| ? and H interact in periodic image 4
-         |       ?H| h  o  ? |      ?  | but not in the original unitcell (0)   
+         |       ?H| h  o  ? |      ?  | but not in the original unitcell (5)   
          |_________|_________|_________| 
          |        7|        8|        9|
          |       ? |       ? |      ?  |
@@ -64,7 +64,7 @@ class KDTree(object):
     
     There are two requirements for this approach to work: (i) the *center* must 
     be in the original unitcell, and (ii) the system must be in the original 
-    unitcell with parts in its immediate periodic images. 
+    unitcell with parts in its immediate periodic images.
     
     *Pair search*
     
@@ -86,10 +86,12 @@ class KDTree(object):
          |_________|_________|_________|
     
     Only requirement for this approach to work is that the system must be
-    in the original unitcell with parts in its immediate periodic images.      
+    in the original unitcell with parts in its immediate periodic images.
     
-
-    """
+    
+    .. seealso::
+       :func:`.wrapAtoms` can be used for wrapping atoms into the single 
+       periodic image of the system."""
     
     def __init__(self, coords, **kwargs):
         """
