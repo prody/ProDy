@@ -380,7 +380,7 @@ class HierView(object):
         
         _dict = self._dict
         if isinstance(key, str):
-            return _dict.get(key, self._dict.get((None, key)))
+            return _dict.get(key, self._dict.get((self._getSegname(), key)))
         
         elif isinstance(key, tuple):
             length = len(key)
@@ -390,11 +390,12 @@ class HierView(object):
 
             if length == 2:
                 return _dict.get(key,
-                        _dict.get((None, None, key[0], key[1] or None), 
-                        _dict.get((None, key[0], key[1], None))))
+                        _dict.get((self._getSegname(), self._getChid(), 
+                                   key[0], key[1] or None), 
+                        _dict.get((self._getSegname(), key[0], key[1], None))))
         
             if length == 3:
-                return _dict.get((None, key[0] or None, 
+                return _dict.get((self._getSegname(), key[0] or None, 
                                        key[1], key[2] or None), 
                           _dict.get((key[0] or None, key[1] or None, 
                                      key[2], None)))
@@ -404,7 +405,19 @@ class HierView(object):
                                   key[2], key[3] or None))
         
         elif isinstance(key, int):
-            return _dict.get((None, None, key, None))
+            return _dict.get((self._getSegname(), self._getChid(), key, None))
+
+    def _getSegname(self):
+        """Return name of the segment when there is only one segment."""
+        
+        if self.numSegments() == 1:
+            return self._segments[0].getSegname()
+
+    def _getChid(self):
+        """Return identifier of the chain when there is only one chain."""
+        
+        if self.numChains() == 1:
+            return self._chains[0].getChid()
 
     def getAtoms(self):
         """Return atoms for which the hierarchical view was built."""
