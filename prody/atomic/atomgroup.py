@@ -69,7 +69,7 @@ Accessing data will return a copy of the data:
 Individual atoms
 ===============================================================================
 
-Atoms are represented by instance of :class:`~.Atom`.
+Atoms are represented by instance of :class:`.Atom`.
 
 Iteration
 -------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ Coordinates for the atom group will be returned from the active coordinate set
 
 **Iterations**
 
-Coordinate sets can also be iterated over for :class:`~.Atom` and 
+Coordinate sets can also be iterated over for :class:`.Atom` and
 :class:`AtomGroup` instances:
 
 >>> for xyz in a.iterCoordsets(): print( xyz )
@@ -207,7 +207,7 @@ Let's merge two water atom groups:
 Hierarchical view
 ===============================================================================
 
-Hierarchical views of atom groups are represented by :class:`~.HierView`.
+Hierarchical views of atom groups are represented by :class:`.HierView`.
 
 Residues (and also chains) in an atom group can also be iterated over
 
@@ -354,28 +354,28 @@ class AtomGroup(Atomic):
     **Coordinate sets**
     
     To access and modify data associated with a subset of atoms in an atom 
-    group, :class:`~.Selection` instances may be used.  A :class:`~.Selection` 
+    group, :class:`.Selection` instances may be used.  A :class:`.Selection` 
     has initially the same coordinate set as the *active coordinate set*, but 
-    it may be changed using :meth:`~.Selection.setACSIndex()` method.
+    it may be changed using :meth:`.Selection.setACSIndex()` method.
     
     **Customizations**
     
     Following built-in functions are customized for this class:
     
     * :func:`len` returns the number of atoms, i.e. :meth:`numAtoms`
-    * :func:`iter` yields :class:`~.Atom` instances
+    * :func:`iter` yields :class:`.Atom` instances
     
     Indexing :class:`AtomGroup` instances by:
-         - *int* (:func:`int`), e.g, ``10``, returns an :class:`~.Atom`
+         - *int* (:func:`int`), e.g, ``10``, returns an :class:`.Atom`
          - *slice* (:func:`slice`), e.g, ``10:20:2``, returns a 
-           :class:`~.Selection`
+           :class:`.Selection`
          - *segment name* (:func:`str`), e.g. ``"PROT"``, returns a 
-           a :class:`~.Segment` 
+           a :class:`.Segment` 
          - *chain identifier* (:func:`str`), e.g. ``"A"``, returns a 
-           a :class:`~.Chain`
+           a :class:`.Chain`
          - *[segment name,] chain identifier, residue number[, insertion code]* 
            (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
-           ``"PROT", "A", 10, "B"``, returns a :class:`~.Residue`
+           ``"PROT", "A", 10, "B"``, returns a :class:`.Residue`
     
     *Addition*
         
@@ -903,7 +903,7 @@ class AtomGroup(Atomic):
             * start with a letter
             * contain only alphanumeric characters and underscore
             * not be a reserved word 
-              (see :func:`~.getReservedWords`)
+              (see :func:`.getReservedWords`)
 
         *data* must be a :func:`list` or a :class:`numpy.ndarray`, its length 
         must be equal to the number of atoms, and the type of data array must 
@@ -1076,7 +1076,7 @@ class AtomGroup(Atomic):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
         array of pairs of indices.  All bonds must be set at once.  Bonding
         information can be used to make atom selections, e.g. ``"bonded to 
-        index 1"``.  See :mod:`~.select` module documentation for details.   
+        index 1"``.  See :mod:`.select` module documentation for details.   
         Also, a data array with number of bonds will be generated and stored 
         with label *numbonds*.  This can be used in atom selections, e.g. 
         ``'numbonds 0'`` can be used to select ions in a system."""
@@ -1102,8 +1102,7 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numBonds(self):
-        """Return number of bonds.  Use :meth:`setBonds` for setting bonds.
-        """
+        """Return number of bonds.  Use :meth:`setBonds` for setting bonds."""
         
         if self._bonds is not None:
             return self._bonds.shape[0]

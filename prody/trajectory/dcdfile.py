@@ -56,8 +56,8 @@ class DCDFile(TrajFile):
     is parsed at instantiation.  Coordinates from the first frame is set as 
     the reference coordinate set.  This class has been tested for 32-bit DCD 
     files.  32-bit floating-point coordinate array can be casted automatically 
-    to a specified, such as 64-bit, using *astype* keyword argument, i.e. 
-    ``astype=float``, using :meth:`ndarray.astype` method."""
+    to a specified type, such as 64-bit float, using *astype* keyword argument, 
+    i.e. ``astype=float``, using :meth:`ndarray.astype` method."""
     
     def __init__(self, filename, mode='r', **kwargs):
         
