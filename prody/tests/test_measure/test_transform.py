@@ -24,17 +24,17 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import unittest
-from numpy import zeros, ones, eye
+from numpy import zeros, ones, eye, all
 from numpy.testing import assert_equal
 
 from prody.tests.test_datafiles import parseDatafile
 
-from prody.measure import moveAtoms
+from prody.measure import moveAtoms, wrapAtoms
 
 UBI = parseDatafile('1ubi')
 
+
 class TestMoveAtoms(unittest.TestCase):
-    
     
     def testToArgument(self):
         
@@ -60,4 +60,17 @@ class TestMoveAtoms(unittest.TestCase):
         matrix = eye(4)
         moveAtoms(atoms, by=matrix, ag=True)
         assert_equal(UBI._getCoords(), coords)
+    
+        
+class TestWrapAtoms(unittest.TestCase):
+    
+    def testWrap(self):
+        
+        xyz = UBI.getCoords()
+        xyzmin = xyz.min(0) - 0.5
+        unitcell = xyz.max(0) - xyzmin + 0.5
+        center = xyzmin - unitcell / 2
+        wrapAtoms(UBI, unitcell, center)
+        diff = xyz - UBI.getCoords() 
+        self.assertTrue(all(diff == unitcell))
         

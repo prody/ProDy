@@ -30,7 +30,8 @@ from prody.utilities import importLA
 from measure import calcCenter
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
-           'calcRMSD', 'calcTransformation', 'superpose', 'moveAtoms',
+           'calcRMSD', 'calcTransformation', 'superpose', 
+           'moveAtoms', 'wrapAtoms',
            'printRMSD']
            
 pkg = __import__(__package__)
@@ -535,3 +536,57 @@ def alignCoordsets(atoms, selstr='calpha', weights=None):
         ag.setACSIndex(i)
         calcTransformation(mob, tar, weights).apply(ag)
     ag.setACSIndex(agacsi)
+
+
+def wrapAtoms(frame, unitcell=None, center=np.array([0., 0., 0.])):
+    """Wrap atoms into an image of the system simulated under periodic boundary
+    conditions. When *frame* is a :class:`.Frame`, unitcell information will be
+    retrieved automatically.  
+    
+    .. note::
+       This function will wrap all atoms into the specified periodic image, so 
+       covalent bonds will be broken.
+    
+    :arg frame: a frame instance or a coordinate set
+    :type frame: :class:`.Frame`, :class:`.AtomGroup`, :class:`numpy.ndarray`
+    
+    :arg unitcell: orthorhombic unitcell array with shape (3,)
+    :type unitcell: :class:`numpy.ndarray`
+    
+    :arg center: coordinates of the center of the wrapping cell, default is 
+        the origin of the Cartesian coordinate system
+    :type center: :class:`numpy.ndarray`"""
+    
+    try:    
+        coords = frame._getCoords()
+    except AttributeError:
+        coords = frame
+    else:
+        try:
+            frame.getAtomGroup()
+        except AttributeError:
+            pass
+        else:
+            raise TypeError('frame must be a Frame, AtomGroup, or numpy array,'
+                            ' not a ' + str(type(frame)))            
+
+    if unitcell is None:
+        try:
+            unitcell = frame.getUnitcell()[:3]
+        except AttributeError:
+            raise TypeError('unitcell information must be provided')
+    
+    half = unitcell / 2
+    ucmin = center - half
+    ucmax = center + half
+    for axis in range(3):
+        xyz = coords[:, axis]
+        which = (xyz < ucmin[axis]).nonzero()[0]
+        while len(which):
+            coords[which, axis] += unitcell[axis]
+            which = which[coords[which, axis] < ucmin[axis]]
+        which = (xyz > ucmax[axis]).nonzero()[0]
+        while len(which):
+            coords[which, axis] -= unitcell[axis]
+            which = which[coords[which, axis] > ucmax[axis]]
+    return frame
