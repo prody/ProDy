@@ -990,7 +990,7 @@ def buildBiomolecules(header, atoms, biomol=None):
             
             for chid in mt[0]:
                 chids_used.append(chid)
-                newag = atoms.copy('chain ' + chid)
+                newag = atoms.select('chain ' + chid).copy()
                 if newag is None:
                     continue
                 
