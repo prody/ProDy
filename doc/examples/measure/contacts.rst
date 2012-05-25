@@ -47,10 +47,10 @@ Contacts between different atom groups
 In some cases, the protein and the ligand may be in separate files. 
 We will imitate this case by making copies of protein and ligand.
 
->>> inhibitor = pdb.copy('resname B11')
+>>> inhibitor = pdb.select('resname B11').copy()
 >>> inhibitor
 <AtomGroup: 1zz2 selection 'resname B11' (33 atoms)>
->>> protein = pdb.copy('protein')
+>>> protein = pdb.select('protein').copy()
 >>> protein
 <AtomGroup: 1zz2 selection 'protein' (2716 atoms)>
 
