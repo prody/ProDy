@@ -23,10 +23,10 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
+from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset, HierView
 from prody.atomic import Selection, SELECT
 from prody.utilities import importLA
-from prody import LOGGER
+from prody import LOGGER, _PY3K
 
 from nma import NMA
 from modeset import ModeSet
@@ -35,58 +35,117 @@ from gnm import GNM
 from anm import ANM
 from pca import PCA
 
-__all__ = ['extendModel', 
+if not _PY3K:
+    range = xrange
+
+__all__ = ['extendModel', 'extendMode', 'extendVector',
            'sliceMode', 'sliceModel', 'sliceVector',
            'reduceModel',]
 
+def extend(model, nodes, atoms):
+    """Return mapping indices and an :class:`.AtomMap`."""
+
+    try:        
+        n_atoms = model.numAtoms()
+        is3d = model.is3d()
+    except AttributeError:
+        raise ValueError('model must be an NMA instance')
+    
+    try:        
+        n_nodes = nodes.numAtoms()
+        i_nodes = nodes.iterAtoms()
+    except AttributeError:
+        raise ValueError('nodes must be an Atomic instance')
+    
+    if n_atoms != n_nodes:
+        raise ValueError('atom numbers must be the same')
+
+    if not nodes in atoms:
+        raise ValueError('nodes must be a subset of atoms')
+    
+                
+    atom_indices = []
+    indices = []
+    hierview = HierView(atoms)._dict
+    
+    for i, node in enumerate(i_nodes):
+        res = hierview.pop((node.getSegname() or None, node.getChid() or None, 
+                           node.getResnum(), node.getIcode() or None), None)
+        if res is None:
+            raise ValueError('atoms must contain a residue for all atoms')
+        atom_indices.append(res._getIndices())
+        if is3d:
+            indices.append(list(range(i*3, (i+1)*3)) * len(res))
+        else:
+            indices.append([i] * len(res))
+    atom_indices = np.concatenate(atom_indices)
+    indices = np.concatenate(indices)
+    
+    try:
+        ag = atoms.getAtomGroup()
+    except AttributeError: 
+        ag = atoms
+    atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
+                      np.array([]), str(atoms), atoms.getACSIndex())
+    return indices, atommap
 
 
 def extendModel(model, nodes, atoms):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
     may be :class:`~.ANM`, :class:`~.GNM`, :class:`~.PCA`, or :class:`~.NMA` 
-    instance.  This will take part of the normal modes for each node (i.e. Cα 
+    instance.  This function will take part of the normal modes for each node 
+    (i.e. Cα atoms) and extend it to all other atoms in the same residue.  For 
+    each atom in *nodes* argument *atoms* argument must contain a corresponding
+    residue.  Note that modes in the extended model will not be normalized.  
+    For a usage example see :ref:`extendmodel`."""
+    
+    try:        
+        evecs = model._getArray()
+        evals = model.getEigvals()
+    except AttributeError:
+        raise ValueError('model must be an NMA instance')
+    
+    indices, atommap = extend(model, nodes, atoms)
+    
+    evecs = evecs[indices, :]
+    extended = NMA('Extended ' + str(model))
+    extended.setEigens(evecs, evals)
+    return extended, atommap
+
+    
+def extendMode(mode, nodes, atoms):
+    """Extend a coarse grained normal *mode* built for *nodes* to *atoms*.  
+    This function will take part of the normal modes for each node (i.e. Cα 
     atoms) and extend it to all other atoms in the same residue.  For each atom
-    in *nodes* argument *atoms* argument must contain a corresponding residue.  
-    Note that modes in the extended model will not be normalized.  For a usage
-    example see :ref:`extendmodel`."""
+    in *nodes* argument *atoms* argument must contain a corresponding residue.
+    """
     
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    if not isinstance(nodes, Atomic):
-        raise TypeError('nodes must be an Atomic instance')
-    if model.numAtoms() != nodes.numAtoms():
-        raise ValueError('model and nodes must have same number of atoms')
+    try:        
+        vec = mode._getArray()
+        std = mode.getVariance() ** 0.5
+    except AttributeError:
+        raise ValueError('mode must be a normal Mode instance')
     
-    if isinstance(atoms, Atomic):
-        is3d = model.is3d()            
-        atom_indices = []
-        indices = []
-        hierview = atoms.getHierView()
-        for i, node in enumerate(nodes):
-            res = hierview[node.getChid(), node.getResnum(), node.getIcode()]
-            if res is None:
-                raise ValueError('hierview must contain a residue for all atoms')
-            atom_indices.append(res.getIndices())
-            if is3d:
-                indices.append(range(i*3, (i+1)*3) * len(res))
-            else:
-                indices.append([i] * len(res))
-        atom_indices = np.concatenate(atom_indices)
-        indices = np.concatenate(indices)
-        
-        array = model.getArray()[indices,:]
-        extended = NMA('Extended ' + str(model))
-        extended.setEigens(array, model.getEigvals())
-        if isinstance(atoms, AtomGroup):
-            ag = atoms
-        else: 
-            ag = atoms.getAtomGroup()
-        atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
-                          np.array([]), str(atoms), atoms.getACSIndex())
-        return extended, atommap
-    else:
-        raise TypeError('atoms must be an Atomic instance')
+    indices, atommap = extend(mode, nodes, atoms)
+    extended = Vector(vec[indices] * std, 'Extended ' + str(mode), mode.is3d())
+    return extended, atommap
+
+
+def extendVector(vector, nodes, atoms):
+    """Extend a coarse grained *vector* for *nodes* to *atoms*.  This function
+    will take part of the normal modes for each node (i.e. Cα atoms) and extend
+    it to all other atoms in the same residue.  For each atom in *nodes*,
+    *atoms* argument must contain a corresponding residue."""
     
+    try:        
+        vec = vector._getArray()
+    except AttributeError:
+        raise ValueError('vector must be a Vector instance')
+    
+    indices, atommap = extend(vector, nodes, atoms)
+    extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
+    return extended, atommap
+
 
 def sliceVector(vector, atoms, select):
     """Return part of the *vector* for *atoms* matching *select*.  Note that 
