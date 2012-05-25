@@ -20,6 +20,8 @@ Release 1.1 (in development)
   
   * :func:`.wrapAtoms` functions is added.
 
+  * :func:`.extendMode` and :func:`.extendVector` functions are added.
+
 **Improvements**:
 
   * :func:`.moveAtoms` function is improved to move atoms to a specified 
@@ -29,6 +31,9 @@ Release 1.1 (in development)
     automatic type recasting for coordinate arrays.  This option can be used
     to convert 32-bit coordinate arrays to 64-bit automatically for higher 
     precision calculations.
+
+  * *protein* is added as a subset to :func:`.parsePDB` and :func:`.parsePQR`
+    functions.
 
 **Changes**:
 
