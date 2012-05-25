@@ -90,6 +90,13 @@ def prody_pca(opt):
         prody.saveModel(pca)
     prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), pca[:nmodes], select)
 
+    if opt.extend:
+        if opt.extend == 'all':
+            extended = prody.extendModel(pca[:nmodes], select, pdb)        
+        else:
+            extended = prody.extendModel(pca[:nmodes], select, select | pdb.bb)
+        prody.writeNMD(os.path.join(outdir, prefix + '_extended.nmd'), 
+                       *extended)
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     if outall or opt.eigen:

@@ -58,6 +58,11 @@ def addNMAOutput(parser):
                         default=False, help='write covariance matrix')
     parser.add_argument('-z', '--npz', dest='npz', action='store_true', 
                         default=False, help='write compressed ProDy data file')
+    parser.add_argument('-t', '--extend', dest='extend', type=str,
+                        metavar='STR', choices=set(['bb', 'all', 'backbone']),
+                        help='output NMD files for the model extended to '
+                             '"backbone" ("bb") or "all" atoms of the residue,'
+                             ' model must have one node per residue')
     return parser
 
 def addNMAOutputOptions(parser, prefix):

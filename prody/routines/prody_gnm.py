@@ -60,6 +60,15 @@ def prody_gnm(opt):
     if opt.npz:
         prody.saveModel(gnm)
     prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), gnm, select)
+    
+    if opt.extend:
+        if opt.extend == 'all':
+            extended = prody.extendModel(gnm, select, pdb)        
+        else:
+            extended = prody.extendModel(gnm, select, select | pdb.bb)
+        prody.writeNMD(os.path.join(outdir, prefix + '_extended.nmd'), 
+                       *extended)
+    
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     

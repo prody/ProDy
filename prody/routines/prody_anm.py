@@ -62,6 +62,14 @@ def prody_anm(opt):
         prody.saveModel(anm)
     prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), anm, select)
 
+    if opt.extend:
+        if opt.extend == 'all':
+            extended = prody.extendModel(anm, select, pdb)        
+        else:
+            extended = prody.extendModel(anm, select, select | pdb.bb)
+        prody.writeNMD(os.path.join(outdir, prefix + '_extended.nmd'), 
+                       *extended)
+        
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
 
