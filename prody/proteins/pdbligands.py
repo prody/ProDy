@@ -42,10 +42,10 @@ def fetchPDBLigand(cci, filename=None):
     will be saved with that name.
     
     If you query ligand data frequently, you may configure ProDy to save XML 
-    files into a folder in you computer.  Set ``ligand_xml_save`` option to
-    True, i.e. ``confProDy(ligand_xml_save=True)``.  Compressed XML files will 
-    be save to ProDy package folder, e.g. :file:`/home/user/.prody/pdbligands`.
-    Each file is around 5Kb when compressed. 
+    files in your computer.  Set ``ligand_xml_save`` option **True**, i.e. 
+    ``confProDy(ligand_xml_save=True)``.  Compressed XML files will be save 
+    to ProDy package folder, e.g. :file:`/home/user/.prody/pdbligands`.  Each 
+    file is around 5Kb when compressed. 
     
     This function is compatible with PDBx/PDBML v 4.0.
     
@@ -79,7 +79,7 @@ def fetchPDBLigand(cci, filename=None):
         inp = openFile(cci)
         xml = inp.read()
         inp.close()
-    elif len(cci) > 4 or not cci.isalnum(): 
+    elif len(cci) > 4 or not cci.isalnum():
         raise ValueError('cci must be 3-letters long and alphanumeric or '
                          'a valid filename')
     else:
