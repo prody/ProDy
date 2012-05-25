@@ -108,7 +108,10 @@ def extendModel(model, nodes, atoms):
     indices, atommap = extend(model, nodes, atoms)
     
     evecs = evecs[indices, :]
-    extended = NMA('Extended ' + str(model))
+    if model.is3d():
+        extended = NMA('Extended ' + str(model))
+    else:
+        extended = GNM('Extended ' + str(model))
     extended.setEigens(evecs, evals)
     return extended, atommap
 
