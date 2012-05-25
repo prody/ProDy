@@ -319,7 +319,7 @@ class VectorBase(object):
         pass
     
     def is3d(self):
-        """Return true if vector is 3d."""
+        """Return **True** if vector is 3d."""
         
         pass
 
@@ -381,7 +381,7 @@ class Mode(VectorBase):
         return self.getEigval()
     
     def is3d(self):
-        """Return ``True`` if mode instance is from a 3-dimensional model."""
+        """Return **True** if mode instance is from a 3-dimensional model."""
         
         return self._model._is3d
     
@@ -485,6 +485,9 @@ class Vector(VectorBase):
         return self._title 
     
     def is3d(self):
+        """Return **True** if vector instance describes a 3-dimensional 
+        property, such as a deformation for a set of atoms."""
+        
         return self._is3d
     
     def getTitle(self):
@@ -514,8 +517,8 @@ class Vector(VectorBase):
                       '({0:s})/||{0:s}||'.format(self._title), self._is3d)
 
     def numDOF(self):
-
         """Return number of degrees of freedom."""
+        
         return len(self._array)
 
     def numAtoms(self):
