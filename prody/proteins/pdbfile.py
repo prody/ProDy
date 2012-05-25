@@ -30,7 +30,7 @@ import numpy as np
 from prody.atomic import Atomic, Atom, AtomGroup
 from prody.atomic import getBackboneAtomNames, getKeywordResnames 
 from prody.atomic import ATOMIC_FIELDS
-from prody.utilities import openFile
+from prody.utilities import openFile, Everything
 from prody import LOGGER, SETTINGS
 
 from wwpdbftp import fetchPDB
@@ -60,8 +60,8 @@ _parsePQRdoc = """
     :type chain: str
 
     :arg subset: a predefined keyword to parse subset of atoms, valid keywords 
-        are ``"calpha"`` (``"ca"``) or ``"backbone"`` (``"bb"``), or **None** 
-        (read all atoms), e.g. ``subset='bb'``
+        are ``'calpha'`` (``'ca'``), ``'backbone'`` (``'bb'``), ``'protein'``,
+        or **None** (read all atoms), e.g. ``subset='bb'``
     :type subset: str
 """
 
@@ -93,7 +93,8 @@ _parsePDBdoc = _parsePQRdoc + """
     
     """
     
-_PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
+_PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb',
+               'protein': 'protein'}
 
 def parsePDB(pdb, **kwargs):
     """Return an :class:`.AtomGroup` and/or dictionary containing header data 
@@ -154,13 +155,15 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('model must be an integer, {0:s} is invalid'
                             .format(str(model)))
     title_suffix = ''
-    if subset is not None: 
-        if not isinstance(subset, str):
+    if subset: 
+        try:
+            subset = _PDBSubsets[subset.lower()]
+        except AttributeError:
             raise TypeError('subset must be a string')
-        elif subset.lower() not in _PDBSubsets:
+        except KeyError:
             raise ValueError('{0:s} is not a valid subset'
                              .format(repr(subset)))
-        title_suffix = '_' + _PDBSubsets[subset]
+        title_suffix = '_' + subset
     if chain is not None:
         if not isinstance(chain, str):
             raise TypeError('chain must be a string')
@@ -252,13 +255,15 @@ def parsePQR(filename, **kwargs):
             fn, ext = os.path.splitext(fn)
         title = fn.lower()
     title_suffix = ''
-    if subset is not None:
-        if not isinstance(subset, str):
+    if subset: 
+        try:
+            subset = _PDBSubsets[subset.lower()]
+        except AttributeError:
             raise TypeError('subset must be a string')
-        elif subset.lower() not in _PDBSubsets:
+        except KeyError:
             raise ValueError('{0:s} is not a valid subset'
                              .format(repr(subset)))
-        title_suffix = '_' + _PDBSubsets[subset]
+        title_suffix = '_' + subset
     if chain is not None:
         if not isinstance(chain, str):
             raise TypeError('chain must be a string')
@@ -303,12 +308,13 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     else:
         isPDB = False
     
-    if subset is not None:
-        subset = subset.lower()
-        if subset in ('calpha', 'ca'):
+    if subset:
+        if subset == 'ca':
             subset = set(('CA',))
-        elif subset in ('backbone', 'bb'):
+        elif subset in 'bb':
             subset = set(getBackboneAtomNames())
+        else:
+            subset = Everything()
         only_subset = True
         protein_resnames = set(getKeywordResnames('protein'))
     else:
