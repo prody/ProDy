@@ -22,8 +22,16 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import unique
 
-__all__ = ['rangeString', 'alnum', 'importLA', 'dictElement']
+__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement']
         
+class Everything(object):
+    
+    """Everything is here."""
+    
+    def __contains__(self, what):
+        
+        return True
+
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Return a structured string for a given list of integers.
     
