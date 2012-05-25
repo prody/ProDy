@@ -172,7 +172,6 @@ class TestParsePDB(unittest.TestCase):
 
         path = getDatafilePath(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, subset=['A'])
-        self.assertRaises(ValueError, parsePDB, path, subset='')
         self.assertEqual(parsePDB(path, subset='ca').numAtoms(), 10,
                         'failed to parse correct number of "ca" atoms')
         self.assertEqual(parsePDB(path, subset='bb').numAtoms(), 40,
