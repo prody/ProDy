@@ -15,9 +15,9 @@ Usage
 Running :command:`prody eda -h` displays::
 
   usage: prody eda [-h] [--quiet] [--examples] [-n INT] [-s SELSTR] [-a]
-                   [-o PATH] [-e] [-r] [-q] [-v] [-z] [-j] [-p STR] [-f STR]
-                   [-d STR] [-x STR] [-A] [-R] [-Q] [-J STR] [-F STR] [-D INT]
-                   [-W FLOAT] [-H FLOAT] [--psf PSF | --pdb PDB]
+                   [-o PATH] [-e] [-r] [-q] [-v] [-z] [-t STR] [-j] [-p STR]
+                   [-f STR] [-d STR] [-x STR] [-A] [-R] [-Q] [-J STR] [-F STR]
+                   [-D INT] [-W FLOAT] [-H FLOAT] [--psf PSF | --pdb PDB]
                    coords
   
   positional arguments:
@@ -49,6 +49,9 @@ Running :command:`prody eda -h` displays::
                           write square-fluctuations
     -v, --covariance      write covariance matrix
     -z, --npz             write compressed ProDy data file
+    -t STR, --extend STR  output NMD files for the model extended to "backbone"
+                          ("bb") or "all" atoms of the residue, model must have
+                          one node per residue
     -j, --projection      write projections onto PCs
   
   output options:

@@ -14,8 +14,9 @@ Running :command:`prody gnm -h` displays::
 
   usage: prody gnm [-h] [--quiet] [--examples] [-n INT] [-s SELSTR] [-c FLOAT]
                    [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-q] [-v] [-z]
-                   [-b] [-k] [-p STR] [-f STR] [-d STR] [-x STR] [-A] [-R] [-Q]
-                   [-B] [-K] [-M STR] [-F STR] [-D INT] [-W FLOAT] [-H FLOAT]
+                   [-t STR] [-b] [-k] [-p STR] [-f STR] [-d STR] [-x STR] [-A]
+                   [-R] [-Q] [-B] [-K] [-M STR] [-F STR] [-D INT] [-W FLOAT]
+                   [-H FLOAT]
                    pdb
   
   positional arguments:
@@ -50,6 +51,9 @@ Running :command:`prody gnm -h` displays::
                           write square-fluctuations
     -v, --covariance      write covariance matrix
     -z, --npz             write compressed ProDy data file
+    -t STR, --extend STR  output NMD files for the model extended to "backbone"
+                          ("bb") or "all" atoms of the residue, model must have
+                          one node per residue
     -b, --beta-factors    write B-factors
     -k, --kirchhoff       write Kirchhoff matrix
   
