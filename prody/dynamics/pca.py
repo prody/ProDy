@@ -67,13 +67,13 @@ class PCA(NMA):
         """Build a weighted covariance matrix for *coordsets*.  *coordsets* 
         argument may be an instance of one of the following:
           
-        * :class:`~.Atomic`
-        * :class:`~.Ensemble`
-        * :class:`~.PDBEnsemble`
-        * :class:`~.Trajectory`
+        * :class:`.Atomic`
+        * :class:`.Ensemble`
+        * :class:`.PDBEnsemble`
+        * :class:`.Trajectory`
         * :class:`numpy.ndarray`
 
-        :class:`~numpy.ndarray` and :class:`~.Trajectory` instances are accepted
+        :class:`~numpy.ndarray` and :class:`.Trajectory` instances are accepted
         as *coordsets* argument.
         
         A NumPy array passed as *coordsets* argument must have the shape 
@@ -85,7 +85,7 @@ class PCA(NMA):
         average of coordinate sets in the trajectory. 
          
         .. note::        
-           If *coordsets* is a :class:`~.PDBEnsemble` instance,
+           If *coordsets* is a :class:`.PDBEnsemble` instance,
            coordinates are treated specially.  Let's say **C**\_ij is the 
            super element of the covariance matrix that corresponds to atoms 
            *i* and *j*.  This super element is divided by number of coordinate
@@ -109,7 +109,7 @@ class PCA(NMA):
             coordsets = coordsets._getCoordsets()
         
         if isinstance(coordsets, TrajBase):
-            nfi = coordsets.getNextIndex()
+            nfi = coordsets.nextIndex()
             coordsets.reset()
             n_atoms = coordsets.numSelected()
             dof = n_atoms * 3
@@ -227,7 +227,7 @@ class PCA(NMA):
 
     def performSVD(self, coordsets):
         """Calculate principal modes using singular value decomposition (SVD).
-        *coordsets* argument may be a :class:`~.Atomic`, :class:`~.Ensemble`, 
+        *coordsets* argument may be a :class:`.Atomic`, :class:`.Ensemble`, 
         or :class:`numpy.ndarray` instance.  If *coordsets* is a numpy array it
         must have the shape ``(n_csets, n_atoms, 3)``.  :class:`numpy.ndarray`
         instances are accepted as *coordsets* argument.

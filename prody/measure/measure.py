@@ -488,7 +488,7 @@ def calcMSF(coordsets):
             raise ValueError('coordsets must contain multiple coordinate sets') 
         msf = var(coordsets, 0).sum(1)
     else:
-        nfi = coordsets.getNextIndex()
+        nfi = coordsets.nextIndex()
         natoms = coordsets.numSelected()
         total = zeros((natoms, 3))
         sqsum = zeros((natoms, 3))

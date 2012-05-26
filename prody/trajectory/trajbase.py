@@ -267,6 +267,11 @@ class TrajBase(object):
         return self._n_csets
     
     def getNextIndex(self):
+        """Deprecated for removal in v1.2, use :meth:`nextIndex` instead."""
+        
+        return self._nfi
+    
+    def nextIndex(self):
         """Return the index of the next frame."""
         
         return self._nfi
@@ -317,7 +322,7 @@ class TrajBase(object):
 
     def skip(self, n):
         """Skip *n* frames.  *n* must be a positive integer.  Skipping some 
-        frames will only change the next frame index (:meth:`getNextIndex`)
+        frames will only change the next frame index (:meth:`nextIndex`)
         Next frame will not be parsed until one of :meth:`next` or 
         :meth:`nextCoordset` methods is called."""
         

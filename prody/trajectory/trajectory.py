@@ -70,7 +70,7 @@ class Trajectory(TrajBase):
         self._cfi += 1
         if self._cfi < self._n_files: 
             self._trajectory = self._trajectories[self._cfi]
-            if self._trajectory.getNextIndex() > 0:
+            if self._trajectory.nextIndex() > 0:
                 self._trajectory.reset()
 
     def _gotoFile(self, i):
@@ -78,7 +78,7 @@ class Trajectory(TrajBase):
         if i < self._n_files:
             self._cfi = i
             self._trajectory = self._trajectories[i]
-            if self._trajectory.getNextIndex() > 0:
+            if self._trajectory.nextIndex() > 0:
                 self._trajectory.reset()
         
     def setAtoms(self, ag, setref=True):
@@ -249,7 +249,7 @@ class Trajectory(TrajBase):
             n = left
         while self._nfi < self._n_csets and n > 0:
             traj = self._trajectory
-            skip = min(n, traj.numFrames() - traj.getNextIndex())
+            skip = min(n, traj.numFrames() - traj.nextIndex())
             traj.skip(skip)
             if n > skip:
                 self._nextFile()

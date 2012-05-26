@@ -129,7 +129,7 @@ def calcProjection(ensemble, modes, rmsd=True):
     elif isinstance(ensemble, (Ensemble, Conformation)):
         deviations = ensemble.getDeviations()
     else:
-        nfi = ensemble.getNextIndex()
+        nfi = ensemble.nextIndex()
         ensemble.goto(0)
         deviations = np.array([frame.getDeviations() for frame in ensemble])
         ensemble.goto(nfi)

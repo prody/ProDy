@@ -542,7 +542,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if isinstance(trajectory, TrajBase):
         isTrajectory = True
         unitcell = trajectory.hasUnitcell()
-        nfi = trajectory.getNextIndex() 
+        nfi = trajectory.nextIndex() 
         trajectory.reset()
         pack_i_48 = pack('i', 48)
         if isinstance(trajectory, Trajectory):
