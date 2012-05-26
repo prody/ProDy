@@ -351,7 +351,9 @@ def writeNMD(filename, modes, atoms):
     try:
         data = atoms.getResnums()
         if data is not None:
-            out.write('resids {0:s}\n'.format(' '.join(data.astype('|S5'))))
+            out.write('resids ')
+            data.tofile(out, ' ')
+            out.write('\n')
     except:
         pass
     try:
@@ -364,21 +366,21 @@ def writeNMD(filename, modes, atoms):
     try:
         data = atoms.getBetas()
         if data is not None:
-            out.write('bfactors {0:s}\n'.format(' '.join(
-                            [str(x) for x in data.flatten()])))
+            out.write('bfactors ')
+            data.tofile(out, ' ', '%.2f')
+            out.write('\n')
     except:
         pass
     
-    if coords.dtype != float:
-        coords = coords.astype(float)
     format = '{0:.3f}'.format
-    out.write('coordinates {0:s}\n'
-              .format(' '.join(map(format, coords.flatten()))))
-    
+    out.write('coordinates ')
+    coords.tofile(out, ' ', '%.3f')
+    out.write('\n')
     count = 0
     if isinstance(modes, Vector):
-        out.write('mode 1 {0:.2f} {1:s}\n'.format(abs(modes), ' '.join(
-                            [str(x) for x in modes.getNormed()._getArray()])))
+        out.write('mode 1 {0:.2f} '.format(abs(modes)))
+        modes.getNormed()._getArray().tofile(out, ' ', '%.3f')
+        out.write('\n')
         count += 1
     else:
         if isinstance(modes, Mode):
@@ -386,12 +388,10 @@ def writeNMD(filename, modes, atoms):
         for mode in modes:
             if mode.getEigval() < ZERO:
                 continue
-            arr = mode._getArray()
-            if arr.dtype != float:
-                arr = arr.astype(float)
-            out.write('mode {0:d} {1:.2f} {2:s}\n'.format(
-                       mode.getIndex()+1, mode.getVariance()**0.5, 
-                      ' '.join(map(format, arr))))
+            out.write('mode {0:d} {1:.2f} '.format(
+                       mode.getIndex()+1, mode.getVariance()**0.5))
+            arr = mode._getArray().tofile(out, ' ', '%.3f')
+            out.write('\n')
             count += 1
     if count == 0:
         LOGGER.warning('No normal mode data was written. '
