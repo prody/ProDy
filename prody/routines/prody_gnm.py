@@ -66,8 +66,8 @@ def prody_gnm(opt):
             extended = prody.extendModel(gnm, select, pdb)        
         else:
             extended = prody.extendModel(gnm, select, select | pdb.bb)
-        prody.writeNMD(os.path.join(outdir, prefix + '_extended.nmd'), 
-                       *extended)
+        prody.writeNMD(os.path.join(outdir, prefix + '_extended_' + 
+                       opt.extend + '.nmd'), *extended)
     
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
