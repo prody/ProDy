@@ -361,11 +361,10 @@ orange3"
   variable prodyRmCoords 0
   variable prodyPCAfile "DCD"
   variable prodyPCAfiletype "DCD file"
-  variable prodyAllfig 0
-  variable prodyAllnum 0
   variable prodyTask ""
   variable prodyFrame 0
   variable prodyCutoff 15
+  variable prodyExtend none
   variable prodyGNMCutoff 10
   variable prodyGamma 1
   variable prodyNModes 10
@@ -648,6 +647,16 @@ orange3"
     grid [entry $wf.gammaEntry -width 4 -textvariable ::NMWiz::prodyGamma] \
       -row 8 -column 4 -sticky w    
 
+    grid [label $wf.extendLabel -text "Extend model to:"] \
+      -row 9 -column 1 -sticky w
+    grid [frame $wf.extendto] \
+      -row 9 -column 2 -columnspan 3 -sticky w    
+    radiobutton $wf.extendto.all -text "all atoms"  -value "all" -variable ::NMWiz::prodyExtend
+    radiobutton $wf.extendto.bb -text "backbone"  -value "bb" -variable ::NMWiz::prodyExtend
+    radiobutton $wf.extendto.none -text "none"  -value "none" -variable ::NMWiz::prodyExtend
+    pack $wf.extendto.all $wf.extendto.bb $wf.extendto.none -side left
+
+
     # GNM frame
     set wf [labelframe $prodyGUI.gnmFrame -text "GNM Settings" -bd 2]
     grid [label $wf.modesLabel -text "Number of modes:"] \
@@ -669,6 +678,16 @@ orange3"
       -row 8 -column 3 -sticky w
     grid [entry $wf.gammaEntry -width 4 -textvariable ::NMWiz::prodyGamma] \
       -row 8 -column 4 -sticky w    
+      
+    grid [label $wf.extendLabel -text "Extend model to:"] \
+      -row 9 -column 1 -sticky w
+    grid [frame $wf.extendto] \
+      -row 9 -column 2 -columnspan 3 -sticky w    
+    radiobutton $wf.extendto.all -text "all atoms"  -value "all" -variable ::NMWiz::prodyExtend
+    radiobutton $wf.extendto.bb -text "backbone"  -value "bb" -variable ::NMWiz::prodyExtend
+    radiobutton $wf.extendto.none -text "none"  -value "none" -variable ::NMWiz::prodyExtend
+    pack $wf.extendto.all $wf.extendto.bb $wf.extendto.none -side left
+
 
     # PCA frame
     set wf [labelframe $prodyGUI.pcaFrame -text "PCA (EDA) Settings" -bd 2]
@@ -707,6 +726,15 @@ orange3"
     }
     pack $wf.filetypeFrame.list -side left -anchor w -fill x
     variable prodyPCAfiletype "DCD file"
+
+    grid [label $wf.extendLabel -text "Extend model to:"] \
+      -row 12 -column 1 -sticky w
+    grid [frame $wf.extendto] \
+      -row 12 -column 2 -columnspan 3 -sticky w    
+    radiobutton $wf.extendto.all -text "all atoms"  -value "all" -variable ::NMWiz::prodyExtend
+    radiobutton $wf.extendto.bb -text "backbone"  -value "bb" -variable ::NMWiz::prodyExtend
+    radiobutton $wf.extendto.none -text "none"  -value "none" -variable ::NMWiz::prodyExtend
+    pack $wf.extendto.all $wf.extendto.bb $wf.extendto.none -side left
 
 
     # Submit button
@@ -1060,27 +1088,33 @@ orange3"
       return 
     }
     set pdbfn [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix.pdb]
-    set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    if {$::NMWiz::prodyExtend == "none"} {
+      set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    } elseif {$::NMWiz::prodyExtend == "all"} {
+      set sel [atomselect $::NMWiz::prodyMolid "same residue as ($::NMWiz::prodySelstr)"]
+    } elseif {$::NMWiz::prodyExtend == "bb"} {
+      set sel [atomselect $::NMWiz::prodyMolid "$::NMWiz::prodySelstr or (backbone and same residue as ($::NMWiz::prodySelstr))"]
+    }    
+    
     $sel frame $::NMWiz::prodyFrame
     $sel writepdb $pdbfn
     $sel delete
     
-    set allnum ""
-    if {$::NMWiz::prodyAllnum} {
-      set allnum "-a"
-    } 
-    set allfig ""
-    if {$::NMWiz::prodyAllfig} {
-      set allfig "-A"
-    }    
     set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]    
-    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s \"all\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
-    set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
+    if {$::NMWiz::prodyExtend == "none"} {
+      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
+      set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
+      set nmdfile "$prefix.nmd"
+    } else {
+      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
+      set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend "$pdbfn"]
+      set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
+    }
 
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy ANM calculation is finished and results are being loaded."
-      ::NMWiz::loadNMD "$prefix.nmd"
+      ::NMWiz::loadNMD $nmdfile
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       }
@@ -1109,27 +1143,32 @@ orange3"
       return 
     }
     set pdbfn [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix.pdb]
-    set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    if {$::NMWiz::prodyExtend == "none"} {
+      set sel [atomselect $::NMWiz::prodyMolid $::NMWiz::prodySelstr]
+    } elseif {$::NMWiz::prodyExtend == "all"} {
+      set sel [atomselect $::NMWiz::prodyMolid "same residue as ($::NMWiz::prodySelstr)"]
+    } elseif {$::NMWiz::prodyExtend == "bb"} {
+      set sel [atomselect $::NMWiz::prodyMolid "$::NMWiz::prodySelstr or (backbone and same residue as ($::NMWiz::prodySelstr))"]
+    }
     $sel frame $::NMWiz::prodyFrame
     $sel writepdb $pdbfn
     $sel delete
     
-    set allnum ""
-    if {$::NMWiz::prodyAllnum} {
-      set allnum "-a"
-    } 
-    set allfig ""
-    if {$::NMWiz::prodyAllfig} {
-      set allfig "-A"
-    }    
-    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]    
-    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s \"all\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
-    set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
+    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
+    if {$::NMWiz::prodyExtend == "none"} {
+      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
+      set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
+      set nmdfile "$prefix.nmd"
+    } else {
+      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
+      set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend "$pdbfn"]
+      set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
+    }
 
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy GNM calculation is finished and results are being loaded."
-      ::NMWiz::loadNMD "$prefix.nmd"
+      ::NMWiz::loadNMD $nmdfile
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       } 
@@ -1169,30 +1208,40 @@ orange3"
     if {$end == "end"} {
       set end [expr $::NMWiz::prodyNFrames -1]
     }
+    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
     #vmdcon -info "animate write pdb $pdbfn beg $::NMWiz::prodyFirstFrame end $end skip $::NMWiz::prodySkipFrame waitfor all sel $sel $::NMWiz::prodyMolid"
-    if {$::NMWiz::prodyPCAfile == "DCD"} {
+    if {$::NMWiz::prodyPCAfile == "DCD" | $::NMWiz::prodyExtend != "none"} {
       set nwritten [animate write dcd $pdbfn beg $::NMWiz::prodyFirstFrame end $end skip $::NMWiz::prodySkipFrame waitfor all sel $sel $::NMWiz::prodyMolid]
+      if {$::NMWiz::prodyExtend != "none"} {
+        $sel delete
+        if {$::NMWiz::prodyExtend == "all"} {
+          set sel [atomselect $::NMWiz::prodyMolid "same residue as ($::NMWiz::prodySelstr)"]
+        } elseif {$::NMWiz::prodyExtend == "bb"} {
+          set sel [atomselect $::NMWiz::prodyMolid "$::NMWiz::prodySelstr or (backbone and same residue as ($::NMWiz::prodySelstr))"]
+        }
+        $sel writepdb $prefix.pdb
+      }
     } else {
       set nwritten [animate write pdb $pdbfn beg $::NMWiz::prodyFirstFrame end $end skip $::NMWiz::prodySkipFrame waitfor all sel $sel $::NMWiz::prodyMolid]
     }
     vmdcon -info "$nwritten frames are written as $pdbfn"
     
     $sel delete
-    set allnum ""
-    if {$::NMWiz::prodyAllnum} {
-      set allnum "-a"
-    } 
-    set allfig ""
-    if {$::NMWiz::prodyAllfig} {
-      set allfig "-A"
-    } 
-    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
-    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
-    set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
+
+    if {$::NMWiz::prodyExtend == "none"} {
+      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
+      set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
+      set nmdfile "$prefix.nmd"
+    } else {
+      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
+      set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb "$prefix.pdb" "$pdbfn"]
+      set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
+    }
+    
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
         -message "ProDy PCA calculation is finished and results are being loaded."
-      ::NMWiz::loadNMD "$prefix.nmd"
+      ::NMWiz::loadNMD $nmdfile 
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       }  
