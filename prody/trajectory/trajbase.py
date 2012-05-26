@@ -269,6 +269,8 @@ class TrajBase(object):
     def getNextIndex(self):
         """Deprecated for removal in v1.2, use :meth:`nextIndex` instead."""
         
+        from prody import deprecate
+        deprecate('getNextIndex', 'nextIndex')
         return self._nfi
     
     def nextIndex(self):

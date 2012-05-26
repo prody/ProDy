@@ -54,7 +54,9 @@ Release 1.1 (in development)
 
   * :class:`.DCDFile` does not log information for most common type of DCD
     file, i.e. 32-bit CHARMM format.
-
+    
+  * :meth:`.Trajectory.getNextIndex` method is deprecated for removal in v1.2,
+    use :meth:`~.Trajectory.nextIndex` instead.
 
 **Bugfixes**:
 
