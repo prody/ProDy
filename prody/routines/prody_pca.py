@@ -43,20 +43,32 @@ def prody_pca(opt):
     nmodes, selstr = opt.nmodes, opt.select
     
     if os.path.splitext(coords)[1].lower() == '.dcd':     
-        ag = opt.psf or opt.pdb
-        if ag:
-            if os.path.splitext(ag)[1].lower() == '.psf':
-                ag = prody.parsePSF(ag)
+        pdb = opt.psf or opt.pdb
+        if pdb:
+            if os.path.splitext(pdb)[1].lower() == '.psf':
+                pdb = prody.parsePSF(pdb)
             else:
-                ag = prody.parsePDB(ag)
+                pdb = prody.parsePDB(pdb)
         dcd = prody.DCDFile(opt.coords)
+        if prefix == '_pca' or prefix == '_eda':
+            prefix = dcd.getTitle() + prefix
+
         if len(dcd) < 2:
             opt.subparser.error("DCD file must contain multiple frames.")
-        if ag:
-            dcd.setAtomGroup(ag)
-            select = dcd.select(selstr)
-            LOGGER.info('{0:d} atoms are selected for calculations.'
-                        .format(len(select)))
+        if pdb:
+            if pdb.numAtoms() == dcd.numAtoms():
+                dcd.setAtoms(pdb)
+                select = dcd.select(selstr)
+                LOGGER.info('{0:d} atoms are selected for calculations.'
+                            .format(len(select)))
+            else:
+                select = pdb.select(selstr)
+                if select.numAtoms() != dcd.numAtoms():
+                    raise ValueError('number of selected atoms ({0:d}) does '
+                                     'not match number of atoms in the DCD '
+                                     'file ({1:d})'.format(select.numAtoms(),
+                                                           dcd.numAtoms()))
+                
         else:
             select = prody.AtomGroup()
             select.setCoords(dcd.getCoords())
@@ -65,13 +77,15 @@ def prody_pca(opt):
             pca.buildCovariance(dcd)
             pca.calcModes(nmodes)
         else:
-            pca.performSVD(dcd[:])
+            ens = dcd[:]
+            ens.iterpose()
+            pca.performSVD(ens)
     else:
         pdb = prody.parsePDB(opt.coords)
         if pdb.numCoordsets() < 2:
             opt.subparser.error("PDB file must contain multiple models.")
-        if prefix == '_pca':
-            prefix = pdb.getTitle() + '_pca'
+        if prefix == '_pca' or prefix == '_eda':
+            prefix = pdb.getTitle() + prefix
         select = pdb.select(selstr)
         LOGGER.info('{0:d} atoms are selected for calculations.'
                     .format(len(select)))
@@ -89,14 +103,18 @@ def prody_pca(opt):
     if opt.npz:
         prody.saveModel(pca)
     prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), pca[:nmodes], select)
-
     if opt.extend:
-        if opt.extend == 'all':
-            extended = prody.extendModel(pca[:nmodes], select, pdb)        
+        if pdb:
+            if opt.extend == 'all':
+                extended = prody.extendModel(pca[:nmodes], select, pdb)        
+            else:
+                extended = prody.extendModel(pca[:nmodes], select, 
+                                             select | pdb.bb)
+            prody.writeNMD(os.path.join(outdir, prefix + '_extended_' + 
+                           opt.extend + '.nmd'), *extended)
         else:
-            extended = prody.extendModel(pca[:nmodes], select, select | pdb.bb)
-        prody.writeNMD(os.path.join(outdir, prefix + '_extended.nmd'), 
-                       *extended)
+            prody.LOGGER.warn('Model could not be extended, provide a PDB or '
+                              'PSF file.')
     outall = opt.all
     delim, ext, format = opt.delim, opt.ext, opt.numformat
     if outall or opt.eigen:
