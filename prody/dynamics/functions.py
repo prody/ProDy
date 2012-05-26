@@ -99,7 +99,6 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     return filename
 
 
-
 def loadModel(filename):
     """Return NMA instance after loading it from file (*filename*).  
     This function makes use of :func:`numpy.load` function.  See 
@@ -138,6 +137,7 @@ def loadModel(filename):
             dict_[attr] = attr_dict[attr]
     return nma
 
+
 def saveVector(vector, filename, **kwargs):
     """Save *vector* data as :file:`filename.vec.npz`.  Upon successful 
     completion of saving, filename is returned.  This function makes use 
@@ -155,6 +155,7 @@ def saveVector(vector, filename, **kwargs):
     ostream.close()
     return filename
 
+
 def loadVector(filename):
     """Return :class:`~.Vector` instance after loading it from file 
     (*filename*). This function makes use of :func:`numpy.load` function.  
@@ -166,6 +167,7 @@ def loadVector(filename):
     except KeyError:
         title = str(attr_dict['name'])
     return Vector(attr_dict['array'], title, bool(attr_dict['is3d']))
+
 
 def getVMDpath():
     """Return VMD path set by user or one identified automatically."""
@@ -228,6 +230,7 @@ def setVMDpath(path):
         LOGGER.info("VMD path is set to '{0:s}'.".format(path))
     else:
         raise OSError('{0:s} is not executable.'.format(str(path)))
+
 
 def parseNMD(filename, type=NMA):
     """Returns normal mode and atomic data parsed from an NMD file.
@@ -362,20 +365,20 @@ def writeNMD(filename, modes, atoms):
         data = atoms.getBetas()
         if data is not None:
             out.write('bfactors {0:s}\n'.format(' '.join(
-                            ['{0:.3f}'.format(x) for x in data.flatten()])))
+                            [str(x) for x in data.flatten()])))
     except:
         pass
     
     if coords.dtype != float:
         coords = coords.astype(float)
-    
-    out.write('coordinates {0:s}\n'.format(
-                    ' '.join(['{0:.3f}'.format(x) for x in coords.flatten()])))
+    format = '{0:.3f}'.format
+    out.write('coordinates {0:s}\n'
+              .format(' '.join(map(format, coords.flatten()))))
     
     count = 0
     if isinstance(modes, Vector):
         out.write('mode 1 {0:.2f} {1:s}\n'.format(abs(modes), ' '.join(
-                ['{0:.3f}'.format(x) for x in modes.getNormed()._getArray()])))
+                            [str(x) for x in modes.getNormed()._getArray()])))
         count += 1
     else:
         if isinstance(modes, Mode):
@@ -383,10 +386,12 @@ def writeNMD(filename, modes, atoms):
         for mode in modes:
             if mode.getEigval() < ZERO:
                 continue
+            arr = mode._getArray()
+            if arr.dtype != float:
+                arr = arr.astype(float)
             out.write('mode {0:d} {1:.2f} {2:s}\n'.format(
                        mode.getIndex()+1, mode.getVariance()**0.5, 
-                       ' '.join(
-                            ['{0:.3f}'.format(x) for x in mode._getArray()])))
+                      ' '.join(map(format, arr))))
             count += 1
     if count == 0:
         LOGGER.warning('No normal mode data was written. '
