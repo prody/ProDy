@@ -1987,6 +1987,7 @@ setmode, getlen, setlen, addmode"
         foreach atnm $atomnames {
           lappend betalist 0
         } 
+        variable length [lindex $lengths 0]
         variable scalearrows_list
         variable rmsd 2
         variable rmsdprev 0
@@ -2000,7 +2001,8 @@ setmode, getlen, setlen, addmode"
         }
         variable scalearrows
         set scalearrows [lindex $scalearrows_list 0]
-        
+        variable scalarprev 0
+                
         variable arridlist
         variable animidlist
         variable colorlist
@@ -2039,7 +2041,6 @@ setmode, getlen, setlen, addmode"
           lset colorlist 0 $::NMWiz::defaultColor  
         }
         variable color [lindex $colorlist 0]
-        
       }
       
       #vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -2323,7 +2324,8 @@ setmode, getlen, setlen, addmode"
         variable selstr
         variable ndim
 
-        set length [lindex $lengths [lsearch $indices $activemode]]
+        variable length
+        #set length [lindex $lengths [lsearch $indices $activemode]]
         set mode [lindex $modes [lsearch $indices $activemode]]
         variable msformode
         if {$msformode == "Mobility"} {
@@ -2378,16 +2380,40 @@ setmode, getlen, setlen, addmode"
           set rmsd 0.1
         }
         variable scalearrows
+        variable scalarprev
         variable lengths
         variable modes
         variable activemode
         variable indices
         variable n_atoms
         set whichmode [lsearch $indices $activemode]
-        set length [lindex $lengths $whichmode]
+        variable length [lindex $lengths $whichmode]
         set scalearrows [expr [sign $scalearrows] * $rmsd / $length / [veclength [lindex $modes $whichmode]] * $n_atoms ** 0.5 ]
-        vmdcon -info "Mode $activemode is scaled by [format %.2f $scalearrows](x[format %.2f $length]) for [format %.2f $rmsd] A RMSD."
+        set scalarprev $scalearrows
+        #vmdcon -info "Mode $activemode is scaled by [format %.2f $scalearrows](x[format %.2f $length]) for [format %.2f $rmsd] A RMSD."
         variable rmsdprev $rmsd
+      }
+
+      proc evalScale {} {
+        variable scalearrows
+        variable rmsd
+        if {![string is double $scalearrows]} {
+          set rmsd 2
+          [namespace current]::evalRMSD
+          return
+        }
+        variable lengths
+        variable modes
+        variable activemode
+        variable indices
+        variable n_atoms
+        set whichmode [lsearch $indices $activemode]
+        variable length [lindex $lengths $whichmode]
+        variable scaleprev $scalearrows
+        variable rmsdprev
+        set rmsd [expr [sign $scalearrows] * $scalearrows * $length * [veclength [lindex $modes $whichmode]] / $n_atoms ** 0.5]
+        set rmsdprev $rmsd
+        #vmdcon -info "Mode $activemode is scaled by [format %.2f $scalearrows](x[format %.2f $length]) for [format %.2f $rmsd] A RMSD."
       }
 
       proc drawArrows {} {
@@ -2395,12 +2421,17 @@ setmode, getlen, setlen, addmode"
         variable rmsdprev
         variable activeindex
         variable activeindexprev
-        if {$rmsdprev != $rmsd || $activeindex!= $activeindexprev} {[namespace current]::evalRMSD}
+        variable scalearrows 
+        variable scalarprev
+        if {$rmsdprev != $rmsd || $activeindex != $activeindexprev} {
+          [namespace current]::evalRMSD
+        } elseif {$scalarprev != $scalearrows || $activeindex != $activeindexprev} {
+          [namespace current]::evalScale
+        }
         variable color
         variable material
         variable resolution
         variable coordinates
-        variable scalearrows
         variable sense
         variable arrid
         variable activemode
@@ -2432,7 +2463,8 @@ setmode, getlen, setlen, addmode"
         graphics $arrid color $color
         graphics $arrid materials on
         graphics $arrid material $material
-        set length [lindex $lengths $whichmode]
+        #set length [lindex $lengths $whichmode]
+        variable length
         set mode [vecscale [expr $length * $scalearrows] [lindex $modes $whichmode]]
         
         variable bothdirections
@@ -2572,7 +2604,8 @@ setmode, getlen, setlen, addmode"
           
         }
 
-        set length [lindex $lengths [lsearch $indices $activemode]]
+        variable length
+        #set length [lindex $lengths [lsearch $indices $activemode]]
         set mode [vecscale [expr $length * [::tcl::mathfunc::abs $scalearrows]] [lindex $modes [lsearch $indices $activemode]]]
         set coords [vecadd $coordinates $mode]
         set mode [::NMWiz::array2xyz [vecscale $mode [expr  -2.0 / $nframes]]]
@@ -2704,9 +2737,9 @@ setmode, getlen, setlen, addmode"
         variable lengths
         variable activeindex 
         variable ndim
-        variable activeindexprev $activeindex
         set inactiveindex $activeindex 
         set activeindex [lsearch $indices $activemode]
+        variable length [lindex $lengths $activeindex]
         if {$ndim == 3} {
           variable scalearrows_list
           variable rmsd_list
@@ -2787,6 +2820,7 @@ setmode, getlen, setlen, addmode"
         } else {
           [namespace current]::calcMSF          
         }
+        variable activeindexprev $activeindex
         
       }
       
@@ -2856,7 +2890,28 @@ setmode, getlen, setlen, addmode"
         #blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3
 
         if {$ndim == 3} {
-          grid [label $wam.scale_label -text "RMSD (A):"] \
+          
+          grid [label $wam.scale_label -text "Scale by:"] \
+            -row 1 -column 1 -sticky w
+          grid [frame $wam.scale_frame] \
+            -row 1 -column 2 -columnspan 3 -sticky w
+          entry $wam.scale_frame.entry -width 4 -state readonly -textvariable ${ns}::length
+          label $wam.scale_frame.times -text "x"
+          entry $wam.scale_frame.scalar -width 6 -textvariable ${ns}::scalearrows
+          button $wam.scale_frame.incr1 -text "+1" -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 1]; ${ns}::autoUpdate"
+          button $wam.scale_frame.incr5 -text "+5" -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows + 5]; ${ns}::autoUpdate"
+          button $wam.scale_frame.decr5 -text "-5" -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 5]; ${ns}::autoUpdate"
+          button $wam.scale_frame.decr1 -text "-1" -command \
+            "set ${ns}::scalearrows \[expr \$${ns}::scalearrows - 1]; ${ns}::autoUpdate"
+          pack $wam.scale_frame.entry $wam.scale_frame.times $wam.scale_frame.scalar \
+            $wam.scale_frame.incr1 $wam.scale_frame.incr5 \
+            $wam.scale_frame.decr5 $wam.scale_frame.decr1 \
+            -side left -anchor w -fill x
+            
+          grid [label $wam.rmsd_label -text "RMSD (A):"] \
             -row 2 -column 1 -sticky w
           grid [frame $wam.adjust_frame] \
             -row 2 -column 2 -columnspan 3 -sticky w
