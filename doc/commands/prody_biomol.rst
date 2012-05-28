@@ -4,9 +4,6 @@
 prody biomol
 *******************************************************************************
 
-Generate biomolecule structure using the transformation from the header 
-section of the PDB file.
-
 Usage
 ===============================================================================
 

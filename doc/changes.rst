@@ -21,6 +21,8 @@ Release 1.1 (in development)
   * :func:`.wrapAtoms` functions is added.
 
   * :func:`.extendMode` and :func:`.extendVector` functions are added.
+  
+  * :ref:`prody-contacts` command is added.
 
 **Improvements**:
 

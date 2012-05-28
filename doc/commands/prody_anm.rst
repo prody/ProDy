@@ -4,9 +4,6 @@
 prody anm
 *******************************************************************************
 
-Perform ANM calculations and output the results in plain text, NMD, and 
-graphical formats.
-
 Usage
 ===============================================================================
 

@@ -4,15 +4,13 @@
 prody align
 *******************************************************************************
 
-Align models in a PDB file or multiple structures in separate PDB files.
-
 Usage
 ===============================================================================
 
 Running :command:`prody align -h` displays::
 
-  usage: prody align [-h] [--quiet] [--examples] [-p STR] [-s SELSTR] [-m INT]
-                     [-i INT] [-o INT]
+  usage: prody align [-h] [--quiet] [--examples] [-p STR] [-x STR] [-s SELSTR]
+                     [-m INT] [-i INT] [-o INT]
                      pdb [pdb ...]
   
   positional arguments:
@@ -22,7 +20,8 @@ Running :command:`prody align -h` displays::
     -h, --help            show this help message and exit
     --quiet               suppress info messages to stderr
     --examples            show usage examples and exit
-    -p STR, --prefix STR  prefix for output files, default is PDB_aligned
+    -p STR, --prefix STR  output filename prefix (default: PDB filename)
+    -x STR, --suffix STR  output filename suffix (default: _aligned)
     -s SELSTR, --select SELSTR
                           selection string (default: "calpha")
     -m INT, --model INT   for NMR files, reference model index (default: 1)

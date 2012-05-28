@@ -4,11 +4,6 @@
 prody pca
 *******************************************************************************
 
-Perform PCA/EDA calculations and output the results in plain text, NMD, and 
-graphical formats.
-
-Download example :download:`MDM2 trajectory files </doctest/mdm2.tar.gz>`.
-
 Usage
 ===============================================================================
 

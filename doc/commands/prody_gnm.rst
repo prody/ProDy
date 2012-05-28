@@ -4,9 +4,6 @@
 prody gnm
 *******************************************************************************
 
-Perform GNM calculations and output the results in plain text NMD, and 
-graphical formats.
-
 Usage
 ===============================================================================
 

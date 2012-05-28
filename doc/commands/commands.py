@@ -2,12 +2,13 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
-from os import path
-from glob import glob
+import imp
 from subprocess import Popen, PIPE
 
-import prody
-from prody import routines
+path = [imp.find_module('prody')[1]]
+routines = imp.load_module('prody.routines', 
+                           *imp.find_module('routines', path))
+
 
 pipe = Popen(['prody', '-h'], stdout=PIPE, stderr=PIPE)
 with open('prody.txt', 'w') as rst:
@@ -15,7 +16,7 @@ with open('prody.txt', 'w') as rst:
 
 for cmd in routines.PRODY_COMMANDS: 
     
-    pkg = getattr(getattr(prody, 'routines'), 'prody_' + cmd)
+    #pkg = getattr('routines', 'prody_' + cmd)
     
     with open('prody_' + cmd + '.rst', 'w') as rst:
         rst.write(""".. _prody-{cmd:s}:
@@ -24,14 +25,12 @@ for cmd in routines.PRODY_COMMANDS:
 prody {cmd:s}
 *******************************************************************************
 
-{doc:s}
-
 Usage
 ===============================================================================
 
 Running :command:`prody {cmd} -h` displays::
 
-""".format(cmd=cmd, doc=pkg.__doc__))
+""".format(cmd=cmd))
     
         pipe = Popen(['prody', cmd, '-h'], stdout=PIPE, stderr=PIPE)
         for line in pipe.stdout.readlines():    

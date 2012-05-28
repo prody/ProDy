@@ -18,6 +18,7 @@ module.  Some documentation pages include usage examples.
    kdtree/index
    measure/index
    proteins/index
+   routines/index
    trajectory/index
    utilities/index
    tests
