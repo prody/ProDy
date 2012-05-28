@@ -60,6 +60,7 @@ except ImportError:
                        'test_kdtree.test_kdtree', 
                        'test_pairwise2', 
                        'test_proteins', 
+                       'test_measure.test_contacts',
                        'test_measure.test_measure',
                        'test_measure.test_transform',
                        'test_utilites.test_checkers',
