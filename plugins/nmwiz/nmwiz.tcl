@@ -361,6 +361,7 @@ orange3"
   variable prodyRmCoords 0
   variable prodyPCAfile "DCD"
   variable prodyPCAfiletype "DCD file"
+  variable prodyPCAAligned 0
   variable prodyTask ""
   variable prodyFrame 0
   variable prodyCutoff 15
@@ -724,8 +725,12 @@ orange3"
           -command "set ::NMWiz::prodyPCAfile $script;"
       incr counter  
     }
-    pack $wf.filetypeFrame.list -side left -anchor w -fill x
+    checkbutton $wf.filetypeFrame.alignedEntry -text " aligned" \
+        -variable ::NMWiz::prodyPCAAligned
+    pack $wf.filetypeFrame.list $wf.filetypeFrame.alignedEntry -side left \
+      -anchor w -fill x
     variable prodyPCAfiletype "DCD file"
+
 
     grid [label $wf.extendLabel -text "Extend model to:"] \
       -row 12 -column 1 -sticky w
@@ -1228,15 +1233,26 @@ orange3"
     
     $sel delete
 
-    if {$::NMWiz::prodyExtend == "none"} {
-      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
-      set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
-      set nmdfile "$prefix.nmd"
+    if {$::NMWiz::prodyPCAAligned} {
+      if {$::NMWiz::prodyExtend == "none"} {
+        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
+        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
+        set nmdfile "$prefix.nmd"
+      } else {
+        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
+        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb "$prefix.pdb" "$pdbfn"]
+        set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
+      }
     } else {
-      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
-      set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb "$prefix.pdb" "$pdbfn"]
-      set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
-    }
+      if {$::NMWiz::prodyExtend == "none"} {
+        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
+        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
+        set nmdfile "$prefix.nmd"
+      } else {
+        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
+        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb "$prefix.pdb" "$pdbfn"]
+        set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
+      }    }
     
     if {$status != -1} {
       tk_messageBox -type ok -title "INFO" \
@@ -1244,11 +1260,17 @@ orange3"
       ::NMWiz::loadNMD $nmdfile 
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
+        if {$::NMWiz::prodyExtend == "none"} {
+          file delete -force $prefix.pdb
+        }
       }  
     }  else {
       tk_messageBox -type ok -title "ERROR" \
         -message "An error occured."
       file delete -force $pdbfn
+      if {$::NMWiz::prodyExtend == "none"} {
+        file delete -force $prefix.pdb
+      }
     }
   }
 
