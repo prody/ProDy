@@ -68,18 +68,22 @@ def prody_pca(opt):
                                      'not match number of atoms in the DCD '
                                      'file ({1:d})'.format(select.numAtoms(),
                                                            dcd.numAtoms()))
-                
+                if pdb.numCoordsets():
+                    dcd.setCoords(select.getCoords())
+                    
         else:
             select = prody.AtomGroup()
             select.setCoords(dcd.getCoords())
         pca = prody.PCA(dcd.getTitle())
         if len(dcd) > 1000:
-            pca.buildCovariance(dcd)
+            pca.buildCovariance(dcd, aligned=opt.aligned)
             pca.calcModes(nmodes)
+            ensemble = dcd
         else:
-            ens = dcd[:]
-            ens.iterpose()
-            pca.performSVD(ens)
+            ensemble = dcd[:]
+            if not opt.aligned:
+                ensemble.iterpose()
+            pca.performSVD(ensemble)
     else:
         pdb = prody.parsePDB(opt.coords)
         if pdb.numCoordsets() < 2:
@@ -96,7 +100,8 @@ def prody_pca(opt):
                     .format(len(select)))
         ensemble = prody.Ensemble(select)
         pca = prody.PCA(pdb.getTitle())
-        ensemble.iterpose()
+        if not opt.aligned:
+            ensemble.iterpose()
         pca.performSVD(ensemble)
 
     LOGGER.info('Writing numerical output.')
@@ -247,9 +252,11 @@ Perform EDA for backbone atoms:
 
     group = subparser.add_mutually_exclusive_group()
     group.add_argument('--psf', 
-        help='PSF filename (must have same number of atoms as DCDs)')
+        help='PSF filename')
     group.add_argument('--pdb', 
-        help='PDB filename (must have same number of atoms as DCDs)')
+        help='PDB filename')
+    subparser.add_argument('--aligned', dest='aligned', action='store_true', 
+                        default=False, help='trajectory is already aligned')
 
     subparser.add_argument('coords', help='PDB or DCD filename')
 
