@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import numpy as np
+from numpy import array, ndarray
 
 from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
 from prody.kdtree import KDTree
@@ -31,28 +31,55 @@ __all__ = ['Contacts', 'iterNeighbors', 'findNeighbors']
 
 class Contacts(object):
     
-    """A class for identification of contacts in or between atom groups.  
+    """A class for contact identification.    
     Contacts are identified using the coordinates of atoms at the time
     of instantiation."""
     
-    def __init__(self, atoms):
-        """*atoms* for which contacts will be identified. *atoms* can be
-        instances of one of :class:`~.AtomGroup`, :class:`~.Selection`, 
-        :class:`~.Chain`, or :class:`~.Segment`."""
+    def __init__(self, atoms, unitcell=None):
+        """*atoms* must be an :class:`.Atomic` instance.  When an orthorhombic
+        *unitcell* array is given"""
 
-        if not isinstance(atoms, (AtomGroup, AtomSubset)):                
-            raise TypeError('{0:s} is not a valid type for atoms'
-                            .format(type(atoms)))
-        self._atoms = atoms
-        if isinstance(atoms, AtomGroup):
-            self._ag = atoms 
-            self._indices = None
-            self._kdtree = atoms._getKDTree()
+        try:
+            self._acsi = atoms.getACSIndex()
+        except AttributeError:
+            try:
+                self._ag = atoms.getAtoms()
+                unitcell = unitcell or atoms.getUnitcell()[:3]
+                self._indices = atoms.getSelection()                
+            except AttributeError:
+                try:
+                    ndim, shape = atoms.ndim, atoms.shape
+                except AttributeError:
+                    raise TypeError('atoms must be an Atomic or Frame instance'
+                                    ', not a {0:s}'.format(type(atoms)))
+                else:
+                    if not (ndim == 2 and shape[1] == 3):
+                        raise ValueError('atoms.shape must be (n_atoms, 3) or '
+                                         '(3,).')
+                    self._ag = None
+                    self._indices = None
+                    self._kdtree = KDTree(atoms, unitcell=unitcell)
+            else:
+                if self._ag is not None:
+                    self._acsi = self._ag.getACSIndex()
+                    if self._indices is not None:
+                        self._indices = self._indices.getIndices()
+                else:
+                    self._acsi = None
+                self._kdtree = KDTree(self._atoms._getCoords(), 
+                                      unitcell=unitcell)
         else:
-            self._ag = atoms.getAtomGroup()
-            self._indices = atoms.getIndices()
-            self._kdtree = KDTree(self._atoms._getCoords())
-        self._acsi = atoms.getACSIndex()
+            try:        
+                self._ag = atoms.getAtomGroup()
+                self._indices = atoms.getIndices()
+                self._kdtree = KDTree(self._atoms._getCoords(), 
+                                      unitcell=unitcell)
+            except AttributeError:
+                self._ag = atoms 
+                self._indices = None
+                self._kdtree = KDTree(atoms._getCoords(), unitcell=unitcell)
+        self._unitcell = unitcell
+        self._atoms = atoms
 
     def __repr__(self):
         
@@ -63,45 +90,62 @@ class Contacts(object):
         
         return 'Contacts ' + str(self._atoms)
 
-
-    def select(self, within, what):
-        """Select atoms *within* of *what*.  *within* is distance in Å and 
-        *what* can be point(s) in 3-d space (:class:`~numpy.ndarray` with 
-        shape N,3) or a set of atoms, i.e. :class:`~atomic.bases.Atomic` 
-        instances."""
+    def __call__(self, radius, center):
+        """Select atoms radius *radius* (Å) of *center*, which can be point(s)
+        in 3-d space (:class:`numpy.ndarray` with shape ``(n_atoms, 3)``) or a
+        set of atoms, e.g. :class:`.Selection`."""
         
-        if isinstance(what, np.ndarray):
-            if what.ndim == 1 and len(what) == 3:
-                what = [what]
-            elif not (what.ndim == 2 and what.shape[1] == 3):
-                raise ValueError('*what* must be a coordinate array, '
-                                 'shape (N, 3) or (3,).')
-        else:
+        try:
+            center = center._getCoords()
+        except AttributeError:
             try:
-                what = what._getCoords()
-            except:
-                raise TypeError('*what* must have a getCoords() method.')
-            if not isinstance(what, np.ndarray):
-                raise ValueError('what.getCoords() method must '
-                                 'return a numpy.ndarray instance.')
+                ndim, shape = center.ndim, center.shape
+            except AttributeError:
+                raise TypeError('center must be an Atomic instance or a'
+                                'coordinate array')
+            else:        
+                if shape == (3,):
+                    center = [center]
+                elif not ndim == 2 and shape[1] == 3:
+                    raise ValueError('center.shape must be (n_atoms, 3) or'
+                                     '(3,)')
+        else:
+            if center is None:
+                raise ValueError('center does not have coordinate data')
 
         search = self._kdtree.search
         get_indices = self._kdtree.getIndices
         get_count = self._kdtree.getCount
         indices = set()
         update = indices.update
-        within = float(within)
-        for xyz in what:
-            search(within, xyz)
+        radius = float(radius)
+        for xyz in center:
+            search(radius, xyz)
             if get_count():
                 update(get_indices())
         indices = list(indices)
-        indices.sort()
         if indices:
-            if self._indices is not None:        
-                indices = self._indices[indices]
-            return Selection(self._ag, np.array(indices), 'index ' + 
-                            rangeString(indices), acsi=self._acsi, unique=True)
+            indices.sort()
+            if self._ag is None:
+                return array(indices)
+            else:
+                if self._indices is not None:        
+                    indices = self._indices[indices]
+                return Selection(self._ag, array(indices), 'index ' + 
+                                 rangeString(indices), acsi=self._acsi, 
+                                 unique=True)
+
+    select = __call__
+
+    def getAtoms(self):
+        """Return atoms, or coordinate array, provided at instantiation.."""
+        
+        return self._atoms
+    
+    def getUnitcell(self):
+        """Return unitcell array, or **None** if one was not provided."""
+        
+        return self._unitcell.copy()
 
 
 def iterNeighbors(atoms, radius, atoms2=None):
