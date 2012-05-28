@@ -18,6 +18,7 @@ Running :command:`prody eda -h` displays::
                    [-o PATH] [-e] [-r] [-q] [-v] [-z] [-t STR] [-j] [-p STR]
                    [-f STR] [-d STR] [-x STR] [-A] [-R] [-Q] [-J STR] [-F STR]
                    [-D INT] [-W FLOAT] [-H FLOAT] [--psf PSF | --pdb PDB]
+                   [--aligned]
                    coords
   
   positional arguments:
@@ -27,8 +28,9 @@ Running :command:`prody eda -h` displays::
     -h, --help            show this help message and exit
     --quiet               suppress info messages to stderr
     --examples            show usage examples and exit
-    --psf PSF             PSF filename (must have same number of atoms as DCDs)
-    --pdb PDB             PDB filename (must have same number of atoms as DCDs)
+    --psf PSF             PSF filename
+    --pdb PDB             PDB filename
+    --aligned             trajectory is already aligned
   
   parameters:
     -n INT, --number-of-modes INT

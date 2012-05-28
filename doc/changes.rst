@@ -75,6 +75,16 @@ Release 1.1 (in development)
     when atom orders are changed or an atom is present multiple times in the
     mapping.
 
+:ref:`nmwiz`
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * Mode scaling options are improved.
+
+  * Options added for extending coarse grained NMA models to residue backbone
+    or all atoms.
+
 
 Release 1.0.4 (May 2, 2012)
 ===============================================================================
