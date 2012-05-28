@@ -311,7 +311,7 @@ namespace eval ::NMWiz:: {
       set ::NMWiz::preserview 1
     }
     
-    grid [checkbutton $wmf.preserview -text "preserve current view" \
+    grid [checkbutton $wmf.preserview -text " preserve current view" \
         -variable ::NMWiz::preserview] \
       -row 10 -column 0 -columnspan 3 -sticky w
 
@@ -618,7 +618,7 @@ orange3"
     grid [entry $wf.filepEntry -width 20 -textvariable ::NMWiz::prodyPrefix] \
       -row 9 -column 2 -columnspan 2 -sticky we
 
-    grid [checkbutton $wf.rmfileEntry -text "remove coordinate file upon job completion." \
+    grid [checkbutton $wf.rmfileEntry -text " remove coordinate file upon job completion" \
         -variable ::NMWiz::prodyRmCoords] \
       -row 10 -column 1 -columnspan 3 -sticky w
 
@@ -3078,19 +3078,19 @@ setmode, getlen, setlen, addmode"
 
         set wgo [labelframe $w.graphics_options -text "Mode Graphics Options" -bd 2]
         
-        grid [checkbutton $wgo.auto_check -text "auto update graphics" \
+        grid [checkbutton $wgo.auto_check -text " auto update graphics" \
             -variable ${ns}::autoupdate] \
           -row 0 -column 1 -sticky w
 
-        grid [checkbutton $wgo.hideprev_check -text "auto hide inactive mode" \
+        grid [checkbutton $wgo.hideprev_check -text " auto hide inactive mode" \
             -variable ${ns}::hideprev] \
           -row 0 -column 2 -sticky w
 
-        grid [checkbutton $wgo.both_check -text "draw in both directions" \
+        grid [checkbutton $wgo.both_check -text " draw in both directions" \
             -variable ${ns}::bothdirections] \
           -row 7 -column 1 -sticky w
 
-        grid [checkbutton $wgo.porcupine_check -text "use porcupine style" \
+        grid [checkbutton $wgo.porcupine_check -text " use porcupine style" \
             -variable ${ns}::porcupine] \
           -row 7 -column 2 -sticky w
 
@@ -3175,7 +3175,7 @@ setmode, getlen, setlen, addmode"
 
         set wpgo [labelframe $w.prograph_options -text "Molecule Representations" -bd 2]
         
-        grid [checkbutton $wpgo.selstr_check -text "show only selected atoms" \
+        grid [checkbutton $wpgo.selstr_check -text " show only selected atoms" \
             -variable ${ns}::selrep -command "${ns}::autoUpdate"] \
           -row 0 -column 1 -columnspan 2 -sticky w
         
@@ -3296,11 +3296,11 @@ setmode, getlen, setlen, addmode"
 
         set wao [labelframe $w.animation_options -text "Animation Options" -bd 2]
         
-        grid [checkbutton $wao.auto_check -text "auto animate" \
+        grid [checkbutton $wao.auto_check -text " auto animate" \
             -variable ${ns}::autoanimate] \
           -row 0 -column 1 -columnspan 2 -sticky w
         
-        grid [checkbutton $wao.autoplay_check -text "continuous autoplay" -variable ${ns}::autoplay] \
+        grid [checkbutton $wao.autoplay_check -text " continuous autoplay" -variable ${ns}::autoplay] \
           -row 0 -column 3 -columnspan 2 -sticky w
           
         grid [label $wao.nframes_label -text "Number of frames:"] \
@@ -3317,7 +3317,7 @@ setmode, getlen, setlen, addmode"
 
         set wpo [labelframe $w.plotting_options -text "Plotting Options" -bd 2]
 
-        grid [checkbutton $wpo.overplot_check -text "add new plot to most recent MultiPlot" \
+        grid [checkbutton $wpo.overplot_check -text " add new plot to most recent MultiPlot" \
             -variable ${ns}::overplot] \
           -row 0 -column 1 -columnspan 2 -sticky w
   
