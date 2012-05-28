@@ -202,11 +202,20 @@ for proteins loaded in VMD.  User needs to download and install
 <p>ProDy interface lists molecules available for calculations.
 If all molecules loaded in VMD are not displayed, click <span class="button">
 Update</span>. ANM and GNM calculations require a coordinate set. PCA 
-calculations require multiple coordinate sets. Note that you can perform 
-atomistic calculations by changing the atom selection. If you perform atomistic
-ANM or GNM calculations adjust the cutoff distance parameter accordingly.
-Upon completion of the calculations, NMWiz automatically loads the results.</p>
+calculations require multiple coordinate sets.  If coordinate sets
+are aligned, this can be specified and ProDy calculations will take shorter
+to complete. Note that you can perform atomistic calculations by changing 
+the atom selection. If you perform atomistic ANM or GNM calculations adjust 
+the cutoff distance parameter accordingly. Upon completion of the 
+calculations, NMWiz automatically loads the results.</p>
 
+<p>ProDy allows for extending a coarse grained ANM, GNM, or PCA model to
+all or backbone atoms of the residue. This option does not affect the 
+calculations, but can be used to improve visualization and animations.  
+Depending on the selected option, the resulting NMD file will contain 
+backbone or all atoms of the protein, which allows for using protein 
+representation that requires secondary structure calcualtion from 
+backbone atoms, such as NewCartoon.</p>
 
 <h3>Structure Comparison</h3>
 <p>NMWiz can be used to generate deformation vector arrows for a pair related 
