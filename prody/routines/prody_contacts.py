@@ -95,9 +95,9 @@ def addCommand(commands):
 Fetch PDB structure 1zz2, save PDB files for individual ligands, and identify 
 contacting residues of the target protein:
     
-    $ prody select -o lig_B11 1zz2 "resname B11"
-    $ prody select -o lig_BOG 1zz2 "resname BOG"
-    $ prody contacts -r 4.0 -t residue -s protein 1zz2 lig_B11.pdb lig_BOG.pdb
+    $ prody select -o B11 1zz2 "resname B11"
+    $ prody select -o BOG 1zz2 "resname BOG"
+    $ prody contacts -r 4.0 -t residue -s protein 1zz2 B11.pdb BOG.pdb
     """
     )
         
