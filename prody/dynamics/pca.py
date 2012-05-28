@@ -177,16 +177,16 @@ class PCA(NMA):
         
     def calcModes(self, n_modes=20, turbo=True):
         """Calculate principal (or essential) modes.  This method uses 
-        :func:`scipy.linalg.eigh` function to diagonalize covariance matrix. 
-        When Scipy is not found, :func:`numpy.linalg.eigh` is used.
+        :func:`scipy.linalg.eigh`, or :func:`numpy.linalg.eigh`, function 
+        to diagonalize the covariance matrix.
         
-        :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
-                      If ``None`` is given, all modes will be calculated. 
-        :type n_modes: int or None, default is 20
+        :arg n_modes: number of non-zero eigenvalues/vectors to calculate, 
+            default is 20, for **None** all modes will be calculated 
+        :type n_modes: int
         
-        :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
-        """
+        :arg turbo: when available, use a memory intensive but faster way to 
+            calculate modes, default is **True**        
+        :type turbo: bool"""
         
         linalg = importLA()
         if self._cov is None:
