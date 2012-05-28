@@ -71,12 +71,12 @@ class Contacts(object):
         else:
             try:        
                 self._ag = atoms.getAtomGroup()
-                self._indices = atoms.getIndices()
-                self._kdtree = KDTree(self._atoms._getCoords(), 
-                                      unitcell=unitcell)
             except AttributeError:
                 self._ag = atoms 
                 self._indices = None
+                self._kdtree = KDTree(atoms._getCoords(), unitcell=unitcell)
+            else:
+                self._indices = atoms._getIndices()
                 self._kdtree = KDTree(atoms._getCoords(), unitcell=unitcell)
         self._unitcell = unitcell
         self._atoms = atoms
@@ -148,7 +148,7 @@ class Contacts(object):
         return self._unitcell.copy()
 
 
-def iterNeighbors(atoms, radius, atoms2=None):
+def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
     """Yield pairs of *atoms* that are within *radius* of each other and the 
     distance between them.  If *atoms2* is also provided, one atom from *atoms*
     and another from *atoms2* will be yielded."""
