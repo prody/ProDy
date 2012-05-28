@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defined a routine for contact identification."""
+"""This module defines a routine for contact identification."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -26,8 +26,9 @@ from actions import *
 __all__ = ['prody_contacts']
 
 def prody_contacts(**kwargs):
-    """Identify contacts of a target structure with one or more other 
-    structures, such as ligands.
+    """Identify contacts of a target structure with one or more ligands.
+    Contacting atoms (or extended subset of atoms, such as residues) are 
+    outputted in PDB file format.
     
     :arg target: target PDB identifier or filename
     :type target: str
