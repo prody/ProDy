@@ -1,7 +1,7 @@
-**************************
-prody.routines.prody_align
-**************************
+*****************************
+prody.routines.prody_contacts
+*****************************
 
-.. automodule:: prody.routines.prody_align
+.. automodule:: prody.routines.prody_contacts
    :members:
    :undoc-members:
