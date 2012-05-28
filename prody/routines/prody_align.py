@@ -22,54 +22,83 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from actions import *
 
-def prody_align(opt):
-    """Align models in a PDB file or a PDB file onto others."""
+__all__ = ['prody_align']
+
+def prody_align(**kwargs):
+    """Align models in a PDB file or multiple structures in separate PDB files.
+    
+    :arg pdb: list of PDB identifiers or filenames
+    :type pdb: list
+    
+    :arg prefix: prefix for output file, default is PDB filename itself
+    :type prefix: str
+    
+    :arg suffix: output filename suffix, default is ``'_aligned'``
+    :type suffix: str
+    
+    :arg select: atom selection string
+    :type select: str
+    
+    :arg model: for NMR files, reference model index, default is 1
+    :type model: int
+    
+    :arg seqid: percent sequence identity, default is 90
+    :type seqid: int
+    
+    :arg overlap: percent sequence overlap, default is 90
+    :type overlap: int"""
             
     import prody
     LOGGER = prody.LOGGER
 
-    args = opt.pdb
-    if len(args) == 1:
-        pdb = args[0]
+    pdbs = kwargs.get('pdb')
+    selstr = kwargs.get('select')
+    suffix = kwargs.get('suffix', '_aligned')
+    if len(pdbs) == 1:
+        pdb = pdbs[0]
         LOGGER.info('Aligning multiple models in: ' + pdb)
-        selstr, prefix, model = opt.select, opt.prefix, opt.model
+        prefix = kwargs.get('prefix')
+        model = kwargs.get('model')
         pdb = prody.parsePDB(pdb)
         pdbselect = pdb.select(selstr)
         if pdbselect is None:
-            opt.subparser.error('Selection {0:s} do not match any atoms.'
-                               .format(repr(selstr)))
+            subparser = kwargs.get('subparser')
+            if subparser:
+                subparser.error('Selection {0:s} do not match any atoms.'
+                                .format(repr(selstr)))
+            else:
+                raise ValueError('select does not match any atoms')
         LOGGER.info('{0:d} atoms will be used for alignment.'
                     .format(len(pdbselect)))
         pdbselect.setACSIndex(model-1)
         prody.printRMSD(pdbselect, msg='Before alignment ')
         prody.alignCoordsets(pdbselect)
         prody.printRMSD(pdbselect, msg='After alignment  ')
-        if prefix == '':
-            prefix = pdb.getTitle() + '_aligned'
-        outfn = prefix + '.pdb'
+        outfn = (prefix or pdb.getTitle()) + suffix + '.pdb'
         LOGGER.info('Writing file: ' + outfn)
         prody.writePDB(outfn, pdb)
     else:
-        reffn = args.pop(0)
-        seqid=opt.seqid
-        overlap=opt.overlap
+        reffn = pdbs.pop(0)
+        seqid = kwargs.get('seqid')
+        overlap = kwargs.get('overlap')
         LOGGER.info('Aligning structures onto: ' + reffn)
         ref = prody.parsePDB(reffn)
-        for arg in args:
+        for arg in pdbs:
             if arg == reffn:
                 continue
-            if '_aligned.pdb' in arg:
-                continue
+            #if '_aligned.pdb' in arg:
+            #    continue
             pdb = prody.parsePDB(arg)
             result = prody.matchAlign(pdb, ref, seqid=seqid, overlap=overlap, 
-                                      tarsel=opt.select, allcsets=True,
+                                      tarsel=selstr, allcsets=True,
                                       cslabel='Model', csincr=1) 
             if result:
-                outfn = pdb.getTitle() + '_aligned.pdb'
+                outfn = pdb.getTitle() + suffix + '.pdb'
                 LOGGER.info('Writing file: ' + outfn)
                 prody.writePDB(outfn, pdb)
             else:
-                LOGGER.warning('Failed to align ' + arg)
+                LOGGER.warn('Failed to align ' + arg)
+   
                 
 def addCommand(commands):
 
@@ -109,7 +138,10 @@ Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
         
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 
         default='', metavar='STR', 
-        help=('prefix for output files, default is PDB_aligned'))
+        help=('output filename prefix, default is PDB'))
+    subparser.add_argument('-x', '--suffix', dest='suffix', type=str, 
+        default='_aligned', metavar='STR', 
+        help=('output filename suffix (default: %(default)s)'))
     subparser.add_argument('-s', '--select', dest='select', type=str, 
         default='calpha', metavar='SELSTR',
         help='selection string (default: "%(default)s")')
@@ -123,8 +155,8 @@ Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
         default=90, metavar='INT',
         help=('percent sequence overlap (default: %(default)s)'))
 
-    subparser.add_argument('pdb', nargs='+', 
+    subparser.add_argument('pdb', nargs='+',
         help='PDB identifier(s) or filename(s)')
             
-    subparser.set_defaults(func=prody_align)
+    subparser.set_defaults(func=lambda opt: prody_align(**opt.__dict__))
     subparser.set_defaults(subparser=subparser)
