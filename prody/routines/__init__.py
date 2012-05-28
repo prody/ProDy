@@ -15,15 +15,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines ProDy routines used as command line programs."""
+"""This module defines ProDy routines that are used as command line programs:
+
+  * :func:`.prody_align`
+
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+import imp
 import sys
 import argparse
 
 from actions import *
+
+path_prody = imp.find_module('prody')[1]
+path_routines = imp.find_module('routines', [path_prody])[1]
 
 PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
                   'catdcd', 'fetch', 'select', ] 
@@ -49,8 +57,10 @@ prody_commands = prody_parser.add_subparsers(
     
     
 for cmd in PRODY_COMMANDS:    
-    pkg = __import__('prody_' + cmd, globals(), locals(), [], -1)
-    pkg.addCommand(prody_commands)
+    cmd = 'prody_' + cmd
+    mod = imp.load_module('prody.routines.' + cmd, 
+                          *imp.find_module(cmd, [path_routines]))
+    mod.addCommand(prody_commands)  
 
 def prody_main():
     
