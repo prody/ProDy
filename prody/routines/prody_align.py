@@ -138,7 +138,7 @@ Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
         
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 
         default='', metavar='STR', 
-        help=('output filename prefix, default is PDB'))
+        help=('output filename prefix (default: PDB filename)'))
     subparser.add_argument('-x', '--suffix', dest='suffix', type=str, 
         default='_aligned', metavar='STR', 
         help=('output filename suffix (default: %(default)s)'))
