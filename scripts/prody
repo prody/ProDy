@@ -20,12 +20,11 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import imp
-import os.path
 
-mod = imp.find_module('prody')
-mod = list(mod)
-mod[1] = os.path.join(mod[1], 'routines')
-routines = imp.load_module('prody.routines', *mod)
+path = [imp.find_module('prody')[1]]
+routines = imp.load_module('prody.routines', 
+                           *imp.find_module('routines', path))
+
 
 if __name__ == '__main__':
     routines.prody_main()
