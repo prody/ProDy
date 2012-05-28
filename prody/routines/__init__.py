@@ -18,6 +18,7 @@
 """This module defines ProDy routines that are used as command line programs:
 
   * :func:`.prody_align`
+  * :func:`.prody_contacts`
 
 """
 
