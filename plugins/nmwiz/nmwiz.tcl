@@ -163,7 +163,7 @@ namespace eval ::NMWiz:: {
       $log.text insert end "\nOptions:\n\n"
       $log.text insert end "User can select the representation and coloring scheme. User can change the molecule representation settings manually, by setting 'Show structure as' to 'Custom'.\n\n"      
       $log.text insert end "Structure can be colored based on the `Mobility` of the residues in the active mode, based on 'Bfactors' that came in NMD file, or based on residue/atom 'Index'.\n\n"
-      $log.text insert end "In addition to the standard representations (Tube/Trace/Licorice), structure can be represented as an elastic network."
+      $log.text insert end "In addition to the standard representations (e.g. Tube/Trace/Licorice), structure can be represented as an elastic network."
       $log.text insert end "User can set the cutoff distance, width of dynamic bonds, and node spheres. Note that changing the cutoff distance distance only affects representation, not the precalculated normal mode data.\n\n"
       $log.text insert end "*TIP*: When visualizing a large system, display molecule at lower resolutions and/or try displaying fewer atoms if all atoms are displayed."
     } elseif {$context == "prody"} {
@@ -2313,7 +2313,36 @@ setmode, getlen, setlen, addmode"
           }
         } else {
           mol addrep $targetid
-          mol modstyle 0 $targetid $showproteinas $tuberadius $resolution_protein
+          switch $showproteinas {
+            "Ribbons" {
+              mol modstyle 0 $targetid $showproteinas 0.3 $resolution_protein 2
+            }
+            "NewRibbons" {
+              mol modstyle 0 $targetid $showproteinas 0.3 $resolution_protein 3
+            }
+            "Cartoon" {
+              mol modstyle 0 $targetid $showproteinas 2.1 $resolution_protein 5
+            }
+            "NewCartoon" {
+              mol modstyle 0 $targetid $showproteinas 0.3 $resolution_protein 4.1
+            }
+            "CPK" {
+              mol modstyle 0 $targetid $showproteinas 1.0 0.3 $resolution_protein $resolution_protein
+            }
+            "VDW" {
+              mol modstyle 0 $targetid $showproteinas $spherescale $resolution_protein
+            }
+            "Lines" {
+              mol modstyle 0 $targetid $showproteinas
+            }
+            "Licorice" {
+              mol modstyle 0 $targetid $showproteinas $tuberadius $resolution_protein $resolution_protein
+            }
+            default {
+              mol modstyle 0 $targetid $showproteinas $tuberadius $resolution_protein
+            }            
+          }
+          
           mol modmaterial 0 $targetid $material_protein
           if {$selrep} {
             mol modselect 0 $targetid $selstr
@@ -3157,10 +3186,17 @@ setmode, getlen, setlen, addmode"
         tk_optionMenu $wpgo.protas_frame.list ${ns}::showproteinas "Tube"
         $wpgo.protas_frame.list.menu delete 0
         $wpgo.protas_frame.list.menu add radiobutton -label "Custom" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
-        $wpgo.protas_frame.list.menu add radiobutton -label "Licorice" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.protas_frame.list.menu add radiobutton -label "Network" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Lines" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "VDW" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "CPK" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Licorice" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.protas_frame.list.menu add radiobutton -label "Trace" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.protas_frame.list.menu add radiobutton -label "Tube" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Ribbons" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "NewRibbons" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "Cartoon" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
+        $wpgo.protas_frame.list.menu add radiobutton -label "NewCartoon" -variable ${ns}::showproteinas -command "${ns}::updateProtRep \$${ns}::molid"
         pack $wpgo.protas_frame.list -side left -anchor w -fill x
 
         grid [label $wpgo.procolor_label -text "Color scheme:"] \
