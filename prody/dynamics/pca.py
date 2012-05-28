@@ -63,34 +63,29 @@ class PCA(NMA):
         self._n_atoms = self._dof / 3
         self._trace = self._cov.trace()
 
-    def buildCovariance(self, coordsets):
+    def buildCovariance(self, coordsets, **kwargs):
         """Build a weighted covariance matrix for *coordsets*.  *coordsets* 
         argument may be an instance of one of the following:
           
         * :class:`.Atomic`
         * :class:`.Ensemble`
-        * :class:`.PDBEnsemble`
-        * :class:`.Trajectory`
+        * :class:`.TrajBase`
         * :class:`numpy.ndarray`
 
-        :class:`~numpy.ndarray` and :class:`.Trajectory` instances are accepted
-        as *coordsets* argument.
-        
         A NumPy array passed as *coordsets* argument must have the shape 
         (n_coordsets, n_atoms, 3).
         
-        When a trajectory instance is passed as *coordsets* argument, 
-        covariance will be built by aligning frames to the reference 
-        coordinates.  Reference coordinates will be considered as the 
-        average of coordinate sets in the trajectory. 
+        When *coordsets* is a object, such as :class:`.DCDFile` a instance, 
+        covariance will be built by superposing frames onto the reference 
+        coordinate set (see :meth:`.Frame.superpose`).  If frames are already 
+        aligned, use ``aligned=True`` argument to skip this step. 
          
         .. note::        
-           If *coordsets* is a :class:`.PDBEnsemble` instance,
-           coordinates are treated specially.  Let's say **C**\_ij is the 
-           super element of the covariance matrix that corresponds to atoms 
-           *i* and *j*.  This super element is divided by number of coordinate
-           sets (PDB structures) in which both of these atoms are observed 
-           together."""
+           If *coordsets* is a :class:`.PDBEnsemble` instance, coordinates are 
+           treated specially.  Let's say **C**\_ij is the element of the 
+           covariance matrix that corresponds to atoms *i* and *j*.  This 
+           super element is divided by number of coordinate sets (PDB models or
+           structures) in which both of these atoms are observed together."""
         
         if not isinstance(coordsets, (Ensemble, Atomic, TrajBase, np.ndarray)):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
@@ -121,8 +116,10 @@ class PCA(NMA):
                             .format(n_frames))
             coordsum = np.zeros(dof)
             LOGGER.progress('Calculating covariance', n_frames)
+            align = not kwargs.get('aligned', False) 
             for frame in coordsets:
-                frame.superpose()
+                if align:
+                    frame.superpose()
                 coords = frame._getCoords().flatten()
                 coordsum += coords
                 cov += np.outer(coords, coords)
@@ -228,9 +225,9 @@ class PCA(NMA):
     def performSVD(self, coordsets):
         """Calculate principal modes using singular value decomposition (SVD).
         *coordsets* argument may be a :class:`.Atomic`, :class:`.Ensemble`, 
-        or :class:`numpy.ndarray` instance.  If *coordsets* is a numpy array it
-        must have the shape ``(n_csets, n_atoms, 3)``.  :class:`numpy.ndarray`
-        instances are accepted as *coordsets* argument.
+        or :class:`numpy.ndarray` instance.  If *coordsets* is a numpy array,
+        its shape must be ``(n_csets, n_atoms, 3)``.  Note that coordinate
+        sets must be aligned prior to SVD calculations.
         
         This is a considerably faster way of performing PCA calculations 
         compared to eigenvalue decomposition of covariance matrix, but is
@@ -282,9 +279,9 @@ class PCA(NMA):
                          .format(self._n_modes, time.time()-start))
         
     def addEigenpair(self, eigenvector, eigenvalue=None):
-        """Add *eigenvector* and *eigenvalue* pair to :class:`NMA` instance.
-        If *eigenvalue* is not given, it will be set to 1.  Eigenvalue is also 
-        set as the variance."""
+        """Add *eigenvector* and *eigenvalue* pair to the class instance.  If 
+        *eigenvalue* is not given, it will be set to 1.  Eigenvalue is also set
+        as the variance of the mode."""
 
         NMA.addEigenpair(self, eigenvector, eigenvalue)
         self._vars = self._eigvals.copy()
@@ -294,11 +291,11 @@ class PCA(NMA):
         """Set eigenvectors and eigenvalues.
         
         :arg vectors: eigenvectors
-        :type vectors: numpy.ndarray
+        :type vectors: :class:`numpy.ndarray`
         
-        :arg values: Eigenvalues. When ``None`` is passed (default value), 
-            all eigenvalues will be set to ``1``.
-        :type values: numpy.ndarray
+        :arg values: eigenvalues, when not provided, all eigenvalues will be 
+            set to 1
+        :type values: :class:`numpy.ndarray`
         
         For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
         and values must have shape ``(M,)``.  Eigenvalues are also set as the 
