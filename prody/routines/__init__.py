@@ -34,7 +34,7 @@ path_prody = imp.find_module('prody')[1]
 path_routines = imp.find_module('routines', [path_prody])[1]
 
 PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
-                  'catdcd', 'fetch', 'select', ] 
+                  'catdcd', 'contacts', 'fetch', 'select', ] 
 
 __all__ = ['main']
 
