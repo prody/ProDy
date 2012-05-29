@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from fields import ATOMIC_FIELDS, READONLY
+from fields import ATOMIC_FIELDS, ATOMIC_ATTRIBUTES, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from bond import Bond
@@ -213,23 +213,33 @@ class Atom(AtomPointer):
             yield self._ag._coords[i, self._index]
     
     def getData(self, label):
-        """Return data *label*, if it exists."""
+        """Return a copy of data associated with *label*, if it is present."""
         
-        if self._ag.isData(label):
-            return self._ag._data[label][self._index]
+        try:
+            data = self._ag._data[label]
+        except KeyError:
+            pass
+        else:
+            return data[self._index]
     
     _getData = getData
     
     def setData(self, label, data):
-        """Update *data* with *label* for the atom."""
+        """Update *data* associated with *label*.
         
-        if self._ag.isData(label):
-            if label in READONLY:
-                raise AttributeError("{0:s} is read-only".format(label))
+        :raise AttributeError: when data associated with *label* is not present
+        """
+        
+        if label in READONLY:
+            raise AttributeError('{0:s} is read-only'.format(repr(label)))
+        if label in ATOMIC_ATTRIBUTES:
+            raise AttributeError('{0:s} must be changed using `set{1:s}` '
+                'method'.format(repr(label), ATOMIC_ATTRIBUTES[label].meth))
+        try:
             self._ag._data[label][self._index] = data 
-        else:
-            raise AttributeError("AtomGroup '{0:s}' has no data associated "
-                      "with label '{1:s}'".format(self._ag.getTitle(), label))
+        except KeyError:
+            raise AttributeError('data with label {0:s} must be set for '
+                                 'AtomGroup first'.format(repr(label)))
     
     def getSelstr(self):
         """Return selection string that will select this atom."""

@@ -319,14 +319,16 @@ class AtomMap(AtomPointer):
     
     _iterCoordsets = iterCoordsets
 
-    
     def getData(self, label):
-        """Return a copy of data associated with *label*, if it exists."""
+        """Return a copy of data associated with *label*, if it is present."""
         
-        if self._ag.isData(label):
-            data = self._ag._data[label][self._indices]
+        try:
+            data = self._ag._data[label]
+        except KeyError:
+            pass
+        else:
             result = np.zeros((self._len,) + data.shape[1:], data.dtype)
-            result[self._mapping] = data
+            result[self._mapping] = data[self._indices]
             return result
 
     _getData = getData

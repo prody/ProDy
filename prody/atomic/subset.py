@@ -19,7 +19,7 @@
 import numpy as np
 
 from atom import Atom
-from fields import ATOMIC_FIELDS, READONLY
+from fields import ATOMIC_FIELDS, ATOMIC_ATTRIBUTES, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from prody import LOGGER
@@ -183,24 +183,30 @@ class AtomSubset(AtomPointer):
     __iter__ = iterAtoms
     
     def getData(self, label):
-        """Return a copy of the data associated with *label*, if it exists."""
+        """Return a copy of data associated with *label*, if it is present."""
         
-        data = self._ag._getData(label)
-        if data is not None:
+        try:
+            data = self._ag._data[label]
+        except KeyError:
+            pass
+        else:
             return data[self._indices]
     
     _getData = getData
     
     def setData(self, label, data):
-        """Update *data* with label *label* for the atom subset.
+        """Update *data* associated with *label*.
         
         :raise AttributeError: when data associated with *label* is not present
         """
         
-        if self._ag.isData(label):
-            if label in READONLY:
-                raise AttributeError("{0:s} is read-only".format(label))
-            self._ag._data[label][self._indices] = data 
-        else:
-            raise AttributeError("AtomGroup '{0:s}' has no data with label "
-                            "'{1:s}'".format(self._ag.getTitle(), label))
+        if label in READONLY:
+            raise AttributeError('{0:s} is read-only'.format(repr(label)))
+        if label in ATOMIC_ATTRIBUTES:
+            raise AttributeError('{0:s} must be changed using `set{1:s}` '
+                'method'.format(repr(label), ATOMIC_ATTRIBUTES[label].meth_pl))
+        try:
+            self._ag._data[label][self._index] = data 
+        except KeyError:
+            raise AttributeError('data with label {0:s} must be set for '
+                                 'AtomGroup first'.format(repr(label)))
