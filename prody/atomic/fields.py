@@ -203,21 +203,21 @@ ATOMIC_FIELDS = {
                             'start from zero, are incremented by one, and are '
                             'assigned in the order of appearance in '
                             ':class:`.AtomGroup` instance.'),
-    'fragindex':  Field('fragindex', int, var='fragindices', 
+    'fragindex': Field('fragindex', int, var='fragindices', 
                        doc='fragment index', doc_pl='fragment indices', 
                        meth_pl='Fragindices', 
                        selstr=['fragindex 0', 'fragment 1'], 
                        readonly=True, call=['_fragment'], synonym='fragment',
                        desc='Fragment indices are assigned to connected '
                             'subsets of atoms.  Bonds needs to be set using '
-                            ':meth:`.AtomGroup.setBonds` method.  Fragment'
-                            ' indices start from zero, are incremented by '
+                            ':meth:`.AtomGroup.setBonds` method.  Fragment '
+                            'indices start from zero, are incremented by '
                             'one, and are assigned in the order of appearance '
                             'in :class:`.AtomGroup` instance.'),
-    'numbonds':  Field('numbonds', int, var='numbonds', 
+    'numbonds':  Field('numbonds', int, var='numbonds', meth_pl='Numbonds',
                        doc='number of bonds', 
                        selstr=['numbonds 0', 'numbonds 1'], 
-                       readonly=True, private=True)
+                       readonly=True, private=True),
 }
 
 
