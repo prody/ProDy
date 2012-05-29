@@ -93,7 +93,7 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Identify contacts of a target structure with one or more ligands.
 
-Fetch PDB structure 1zz2, save PDB files for individual ligands, and identify 
+Fetch PDB structure 1zz2, save PDB files for individual ligands, and identify \
 contacting residues of the target protein:
     
     $ prody select -o B11 1zz2 "resname B11"
@@ -112,8 +112,7 @@ contacting residues of the target protein:
     subparser.add_argument('-t', '--extend', dest='extend', type=str, 
         default='_aligned', metavar='STR', 
         choices=set(['residue', 'chain', 'segment']),
-        help=('output same residue residue, chain, or segment as the '
-              'contacts'))
+        help=('output same residue, chain, or segment as contacting atoms'))
 
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 
         default='', metavar='STR', 
