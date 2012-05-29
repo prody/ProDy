@@ -772,7 +772,7 @@ class AtomGroup(Atomic):
     
     def getCoordsets(self, indices=None):
         """Return a copy of coordinate set(s) at given *indices*.  *indices* 
-        may  be an integer, a list of integers, or ``None`` meaning all 
+        may  be an integer, a list of integers, or **None** meaning all 
         coordinate sets."""
         
         if self._coords is None:
@@ -951,7 +951,7 @@ class AtomGroup(Atomic):
     
     def delData(self, label):
         """Return data associated with *label* and remove it from the atom 
-        group.  If data associated with *label* is not found, ``None`` will 
+        group.  If data associated with *label* is not found, **None** will 
         be returned."""
         
         if not isinstance(label, str):
@@ -959,7 +959,7 @@ class AtomGroup(Atomic):
         return self._data.pop(label, None)
     
     def getData(self, label):
-        """Return a copy of the data array associated with *label*, or ``None`` 
+        """Return a copy of the data array associated with *label*, or **None** 
         if such data is not present."""
         
         data = self._data.get(label, None)
@@ -969,43 +969,41 @@ class AtomGroup(Atomic):
             return data.copy()
 
     def _getData(self, label):
-        """Return data array associated with *label*, or ``None`` if such data 
+        """Return data array associated with *label*, or **None** if such data 
         is not present."""
         
-        data = self._data.get(label, None)
-        if data is None:
-            return None
-        else:
-            return data
+        return self._data.get(label, None)
 
     def isData(self, label):
-        """Return **True** if data with *label* is set by user."""
+        """Return **True** if data associated with *label* is provided by the 
+        user."""
         
-        return label in self._data and self._data[label] is not None
+        return label in self._data and not label in ATOMIC_ATTRIBUTES
   
     def getDataLabels(self):
-        """Return list of user data labels."""
+        """Return list of data labels provided by the user."""
         
         return [key for key, data in self._data.iteritems() 
-                    if data is not None]
+                    if not key in ATOMIC_ATTRIBUTES]
         
     def getDataType(self, label):
         """Return type of the user data (i.e. data.dtype) associated with
-        *label*, or ``None`` label is not used."""
-        
-        try:
-            return self._data[label].dtype
-        except KeyError:
-            return None
+        *label*, or **None** label is not used."""
+
+        if label not in ATOMIC_ATTRIBUTES:        
+            try:
+                return self._data[label].dtype
+            except KeyError:
+                return None
     
     def getBySerial(self, serial, stop=None, step=None):
         """Get an atom(s) by *serial* number (range).  *serial* must be zero or 
-        a positive integer. *stop* may be ``None``, or an integer greater than 
+        a positive integer. *stop* may be **None**, or an integer greater than 
         *serial*.  ``getBySerial(i, j)`` will return atoms whose serial numbers
         are i+1, i+2, ..., j-1.  Atom whose serial number is *stop* will be 
         excluded as it would be in indexing a Python :class:`list`.  *step* 
         (default is 1) specifies increment.  If atoms with matching serial 
-        numbers are not found, ``None`` will be returned."""
+        numbers are not found, **None** will be returned."""
 
         if not isinstance(serial, int):
             raise TypeError('serial must be an integer')
