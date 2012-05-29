@@ -142,10 +142,10 @@ Number ranges can be passed as follows:
   * ``'resnum 5 10:15'`` selects residues 5, 10, 11, 12, 13, and 14 
     (:, colon, works as it does in Python slicing operations)
   * ``'resnum 1:10:2'`` selects residues 1, 3, 5, 7, and 9
-  * ``'x 1 to 10'`` selects atoms whose x coordinates are greater or equal to 1
-    or smaller or equal to 10  
-  * ``'x 1:10'`` selects atoms whose x coordinates are greater or equal to 1
-    or smaller or equal to 10
+  * ``'x 1 to 10'`` selects atoms whose x coordinates are greater than or 
+    equal to 1 and less than or equal to 10  
+  * ``'x 1:10'`` selects atoms whose x coordinates are greater than or 
+    equal to 1 and less than or equal to 10
     
 Number ranges involving negative numbers must be entered between grave accent 
 symbols, e.g. ``'resnum `-3 to 10`'``, ``'resnum `-3:10:2`'``
@@ -236,23 +236,6 @@ for key, field in ATOMIC_FIELDS.iteritems():
     if field.synonym:
         KEYWORDS_SYNONYMS[field.synonym] = key
 ATOMIC_ATTRIBUTES = ATOMIC_ATTRIBUTES
-# 21st and 22nd amino acids	    3-Letter	1-Letter
-# Selenocysteine	            Sec	        U
-# Pyrrolysine	                Pyl	        O
-
-# Ambiguous Amino Acids	                3-Letter	1-Letter
-# Asparagine or aspartic acid	        Asx	        B
-# Glutamine or glutamic acid	        Glx	        Z
-# Leucine or Isoleucine	                Xle	        J
-# Unspecified or unknown amino acid     Xaa         X
-
-# Phosphorylated amino acids           3-Letter	    1-Letter
-# Phosphothreonine                     TPO          T
-# O-Phosphotyrosine                    PTR          Y
-# Phosphoserine                        SEP          S
-
-# Other amino acids           3-Letter	    1-Letter
-# S-Hydroxycysteine           CSO           C
 
 KEYWORD_RESNAMES = {
     'protein': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
@@ -353,6 +336,56 @@ for key in keys:
         repr(key), repr(KEYWORD_RESNAMES_READONLY[key]))
 
 __doc__ += """
+
+.. _non-standard:
+
+Non-standard amino acids
+-------------------------------------------------------------------------------
+
+ProDy recognizes some non-standard amino acids that are listed below.  Most
+of these amino acid types are ambiguous, phosphorylated, tautomeric, or 
+modified states of standard amino-acid types.  Residues with these 3-letter
+codes will be selected for *protein* or other suitable keywords listed above.
+Some of these non-standard amino acid types are associated with other
+heterogeneous compounds in the PDB.  Such amino acid codes, which may cause
+conflicts in atoms selections are specified in the last column. 
+
+==========  ===========================  ==============  ===  ========
+AA Code     Amino acid                   Notes           PDB  Conflict
+==========  ===========================  ==============  ===  ========
+`SEC`_ (U)  Selenocysteine               modified        Yes  No
+`ASX`_ (B)  asparagine or aspartic acid  ambiguous       Yes  No
+`GLX`_ (Z)  glutamine or glutamic acid   ambiguous       Yes  No
+XLE (J)     leucine or isoleucine        ambiguous       No   No
+`XAA`_ (X)  unspecified or unknown       unspecified     No   Yes
+`TPO`_ (T)  phosphothreonine             phosphorylated  Yes  No
+`PTR`_ (Y)  O-phosphotyrosine            phosphorylated  Yes  No
+`SEP`_ (S)  phosphoserine                phosphorylated  Yes  No
+`HIP`_ (H)  ND1-phosphohistidine         phosphorylated  Yes  No
+`CSO`_ (C)  S-hydroxycysteine            modified        Yes  No
+`HSD`_ (H)  histidine, H on ND1 (ND1-H)  prototropic     No   Yes
+            in CHARMM force field        tautomer
+`HSE`_ (H)  histidine (NE2-H) in CHARMM  prototropic     Yes  No
+            also known as homoserine in  tautomer,            
+            PDB                          modified       
+`HSP`_ (H)   histidine, protonated       protonated      No   Yes
+==========  ===========================  ==============  ===  ========
+
+.. _SEC: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=SEC
+.. _ASX: http://ligand-expo.rcsb.org/reports/A/ASX/index.html
+.. _GLX: http://ligand-expo.rcsb.org/reports/G/GLX/index.html
+.. _XAA: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=XAA
+.. _TPO: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=TPO
+.. _PTR: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=PTR
+.. _SEP: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=SEP
+.. _HIP: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HIP
+.. _CSO: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=CSO
+.. _HSD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HSD
+.. _HSE: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HSE
+.. _HSP: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HSP
+
+Additional keywords
+-------------------------------------------------------------------------------
 
 Following are additional keywords whose definitions are more restricted:
 
@@ -1286,7 +1319,7 @@ class Select(object):
         
         if isinstance(token, str):
             return (isBooleanKeyword(token) or
-                   self._atoms.getDataType(token) == bool)   
+                   self._atoms.getDataType(token) == bool)
         elif isinstance(token, list):
             tkn = token[0]
             return (isBooleanKeyword(tkn) or
