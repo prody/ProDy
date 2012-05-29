@@ -100,7 +100,7 @@ Functions
 Following functions can be used for permanent data storage:
     
   * :func:`.loadAtoms`
-  * :func:`saveAtoms`
+  * :func:`.saveAtoms`
   
 Following function can be used to identify fragments in a group 
 (:class:`.AtomGroup`) or subset (:class:`.Selection`) of atoms:
