@@ -33,8 +33,8 @@ from bond import trimBonds, evalBonds
 from fields import ATOMIC_ATTRIBUTES
 from selection import Selection
 
-
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms']
+
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindices'])
 SAVE_SKIP_POINTER = set(['numbonds', 'fragindices', 'segindices', 'chindices', 
@@ -100,7 +100,7 @@ SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
                 'coordinates', 'cslabels', 'numbonds'])
 
 def loadAtoms(filename):
-    """Return :class:`AtomGroup` instance from *filename*.  This function makes
+    """Return :class:`.AtomGroup` instance from *filename*.  This function makes
     use of :func:`numpy.load` function.  See also :func:`saveAtoms`."""
     
     LOGGER.timeit()
@@ -137,7 +137,7 @@ def loadAtoms(filename):
 
 
 def iterFragments(atoms):
-    """Yield fragments, connected subsets in *atoms*, as :class:`Selection` 
+    """Yield fragments, connected subsets in *atoms*, as :class:`.Selection` 
     instances."""
     
     if not isinstance(atoms, Atomic):
@@ -196,13 +196,11 @@ def iterFragments(atoms):
                         unique=True)
 
 
-
 def findFragments(atoms):
     """Return list of fragments, connected subsets in *atoms*.  See also 
     :func:`iterFragments`."""
     
     return list(iterFragments(atoms))
-
 
 
 def isAtomic(name, atoms, atype=Atomic, error=TypeError):
@@ -220,6 +218,7 @@ def isAtomic(name, atoms, atype=Atomic, error=TypeError):
         raise error('{0:s} must be a {1:s} instance, not {2:s}'
                     .format(name, what, repr(type(atoms).__name__)))
     return isatomic
+
 
 def isSubset(name, atoms, ag, error=ValueError):
     """Perform an argument type and relation check."""    

@@ -24,7 +24,7 @@
 Atomic classes
 ===============================================================================
 
-ProDy stores atomic data in instances of :class:`~.AtomGroup` class, which 
+ProDy stores atomic data in instances of :class:`.AtomGroup` class, which 
 supports multiple coordinate sets, e.g. models from an NMR structure or 
 snapshots from a molecular dynamics trajectory.
  
@@ -35,28 +35,28 @@ Instances of the class can be obtained by parsing a PDB file as follows:
 >>> ag
 <AtomGroup: 1aar (1218 atoms)>
 
-All atomic data in :class:`~.AtomGroup` instances and comes
+All atomic data in :class:`.AtomGroup` instances and comes
 with other classes acting as pointers to provide convenient read/write access 
 to such data.  These classes are:
 
-* :class:`~.Selection` - Points to an arbitrary subset of atoms. See 
+* :class:`.Selection` - Points to an arbitrary subset of atoms. See 
   :ref:`selections` and :ref:`selection-operations` for usage examples.
 
-* :class:`~.Segment` - Points to atoms that have the same segment name.
+* :class:`.Segment` - Points to atoms that have the same segment name.
 
-* :class:`~.Chain` - Points to atoms in a segment that have the same chain 
+* :class:`.Chain` - Points to atoms in a segment that have the same chain 
   identifier.
 
-* :class:`~.Residue` - Points to atoms in a chain that have the same 
+* :class:`.Residue` - Points to atoms in a chain that have the same 
   residue number and insertion code.
                       
-* :class:`~.AtomMap` - Points to arbitrary subsets of atoms while 
+* :class:`.AtomMap` - Points to arbitrary subsets of atoms while 
   allowing for duplicates and missing atoms.  Indices of atoms are stored 
   in the order provided by the user.
     
-* :class:`~.Atom` - Points to a single atom
+* :class:`.Atom` - Points to a single atom
 
-* :class:`~.Bond` - Points to two connected atoms
+* :class:`.Bond` - Points to two connected atoms
 
 Atom selections
 ===============================================================================
@@ -99,13 +99,14 @@ Functions
 
 Following functions can be used for permanent data storage:
     
-  * :func:`loadAtoms`
+  * :func:`.loadAtoms`
   * :func:`saveAtoms`
   
 Following function can be used to identify fragments in a group 
 (:class:`.AtomGroup`) or subset (:class:`.Selection`) of atoms:
     
-  * :func:`findFragments`"""
+  * :func:`.findFragments`
+  * :func:`.iterFragments`"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
