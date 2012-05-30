@@ -163,9 +163,6 @@ confProDy.__doc__ += """
       confProDy(backup=True, backup_ext='.bak')
       confProDy(backup_ext='.BAK')"""
 
-class ProDyException(Exception):
-    pass
-
 def plog(*text):
     """Log *text* using ProDy logger at log level info.  Multiple arguments 
     are accepted.  Each argument will be converted to string and joined using 
