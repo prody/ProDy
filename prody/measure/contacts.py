@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import array, ndarray
 
-from prody.atomic import Atomic, AtomGroup, AtomSubset, Selection
+from prody.atomic import Atomic, Atom, AtomGroup, AtomSubset, Selection
 from prody.kdtree import KDTree
 from prody.utilities import rangeString
 
@@ -151,80 +151,151 @@ class Contacts(object):
 def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
     """Yield pairs of *atoms* that are within *radius* of each other and the 
     distance between them.  If *atoms2* is also provided, one atom from *atoms*
-    and another from *atoms2* will be yielded."""
+    and another from *atoms2* will be yielded.  If one of *atoms* or *atoms2* 
+    is a coordinate array, pairs of indices and distances will be yielded.
+    When orthorhombic *unitcell* dimensions are provided, periodic boundary
+    conditions will be taken into account (see :class:`.KDTree` and also 
+    :func:`wrapAtoms` for details).  If *atoms* is a :class:`.Frame` instance 
+    and *unitcell* is not provided, unitcell information from frame will be 
+    if available."""
     
-    if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance')
-    elif not isinstance(radius, (float, int)):
-        raise TypeError('radius must be a number')
-    elif radius <= 0:
+    radius = float(radius)
+    if radius <= 0:
         raise ValueError('radius must be a positive number')
-        
-    if atoms2 is None:
-        if len(atoms) <= 1:
-            raise ValueError('length of atoms must be more than 1')
-        ag = atoms
-        if not isinstance(ag, AtomGroup):
-            ag = ag.getAtomGroup()
-            indices = atoms._getIndices()
-            index = lambda i: indices[i]
+
+    try:
+        acsi = atoms.getACSIndex()
+    except AttributeError:
+        try:
+            ndim, shape = atoms.ndim, atoms.shape
+        except AttributeError:
+            try:
+                uc = atoms.getUnitcell()[:3]
+            except AttributeError:
+                raise TypeError('atoms must be an Atomic or Frame instance or '
+                                'a coordinate array')
+            else:
+                coords = atoms._getCoords()
+                ag = atoms.getAtoms()
+                if unitcell is None:
+                    unitcell = uc
+                if ag is not None:
+                    acsi = ag.getACSIndex()
+                    _ = atoms.getSelection()
+                    if _:
+                        indices = _._getIndices()
+                        index = lambda i: indices[i]
+                    else:
+                        index = lambda i: i                        
         else:
+            if ndim > 2:
+                raise ValueError('number of dimensions of coordinate array '
+                                 'must be 1 or 2')
+            coords = atoms
+            ag = None
+            acsi = None
+    else:
+        coords = atoms._getCoords()
+        try:
+            ag = atoms.getAtomGroup()
+            indices = atoms.getIndices()
+            index = lambda i: indices[i]
+        except AttributeError:
+            ag = atoms
             index = lambda i: i
-        kdtree = KDTree(atoms._getCoords(), none=list)
+    
+    if coords.ndim == 1:
+        coords = array([coords])
+
+    if atoms2 is None:
+        if len(coords) <= 1:
+            raise ValueError('atoms must be more than 1')
+
+        kdtree = KDTree(coords, unitcell=unitcell, none=list)
         
         _dict = {}
-        for (i, j), r in zip(*kdtree(radius)): 
-            a1 = _dict.get(i)
-            if a1 is None:      
-                a1 = ag[index(i)]
-                _dict[i] = a1
-            a2 = _dict.get(j)
-            if a2 is None:      
-                a2 = ag[index(j)]
-                _dict[j] = a2
-            yield (a1, a2, r)   
+        if ag is None:
+            for (i, j), r in zip(*kdtree(radius)):
+                yield (i, j, r)
+        else:
+            for (i, j), r in zip(*kdtree(radius)): 
+                a1 = _dict.get(i)
+                if a1 is None:   
+                    a1 = Atom(ag, index(i), acsi)
+                    _dict[i] = a1
+                a2 = _dict.get(j)
+                if a2 is None:      
+                    a2 = Atom(ag, index(j), acsi)
+                    _dict[j] = a2
+                yield (a1, a2, r)
     else:
-        if len(atoms) >= len(atoms2): 
-            ag = atoms
-            if not isinstance(ag, AtomGroup):
-                ag = ag.getAtomGroup()
-                indices = atoms._getIndices()
-                index = lambda i: indices[i]
+        try:
+            coords2 = atoms2._getCoords()
+        except AttributeError:
+            try:
+                ndim, shape = atoms2.ndim, atoms2.shape
+            except AttributeError:
+                raise TypeError('atoms2 must be an Atomic or Frame instance or '
+                                'a coordinate array')
             else:
-                index = lambda i: i
-            kdtree = KDTree(atoms._getCoords(), none=list)
-            
+                if ndim > 2:
+                    raise ValueError('number of dimensions of second '
+                                     'coordinate array must be 1 or 2')
+                coords2 = atoms2
+                ag2 = None
+                acsi2 = None
+        else:
+            try:
+                acsi2 = atoms2.getACSIndex()
+            except AttributeError:
+                acsi2 = None
+                ag2 = None
+                index2 = None
+            else:
+                try:
+                    ag2 = atoms2.getAtomGroup()
+                    indices2 = atoms2.getIndices()
+                    index2 = lambda i: indices2[i]
+                except AttributeError:
+                    ag2 = atoms2
+                    index2 = lambda i: i
+        
+        if coords2.ndim == 1:
+            coords2 = array([coords2])
+        if len(coords) >= len(coords2): 
+            kdtree = KDTree(coords, unitcell=unitcell, none=list)
             _dict = {}
-            for a2 in atoms2.iterAtoms():
-                for i, r in zip(*kdtree(radius, a2._getCoords())): 
-                    a1 = _dict.get(i)
-                    if a1 is None:      
-                        a1 = ag[index(i)]
-                        _dict[i] = a1
-                    yield (a1, a2, r)   
+            if ag is None or ag2 is None:
+                for j, xyz in enumerate(coords2):
+                    for i, r in zip(*kdtree(radius, xyz)):
+                        yield (i, j, r)
+            else:
+                for a2 in atoms2.iterAtoms():
+                    for i, r in zip(*kdtree(radius, a2._getCoords())): 
+                        a1 = _dict.get(i)
+                        if a1 is None:      
+                            a1 = Atom(ag, index(i), acsi)
+                            _dict[i] = a1
+                        yield (a1, a2, r)   
         else:    
-            ag = atoms2
-            if not isinstance(ag, AtomGroup):
-                ag = ag.getAtomGroup()
-                indices = atoms2._getIndices()
-                index = lambda i: indices[i]
-            else:
-                index = lambda i: i
-            kdtree = KDTree(atoms2._getCoords(), none=list)
-            
+            kdtree = KDTree(coords2, unitcell=unitcell, none=list)
             _dict = {}
-            for a1 in atoms.iterAtoms():
-                for i, r in zip(*kdtree(radius, a1._getCoords())): 
-                    a2 = _dict.get(i)
-                    if a2 is None:      
-                        a2 = ag[index(i)]
-                        _dict[i] = a2
-                    yield (a1, a2, r)   
+            if ag is None or ag2 is None:
+                for i, xyz in enumerate(coords):
+                    for j, r in zip(*kdtree(radius, xyz)):
+                        yield (i, j, r)
+            else:
+                for a1 in atoms.iterAtoms():
+                    for i, r in zip(*kdtree(radius, a1._getCoords())): 
+                        a2 = _dict.get(i)
+                        if a2 is None:      
+                            a2 = Atom(ag2, index2(i), acsi2)
+                            _dict[i] = a2
+                        yield (a1, a2, r)   
 
 
-def findNeighbors(atoms, radius, atoms2=None):
-    """Return list of pairs of *atoms* that are within *radius* of each other 
-    and the distance between them.  If *atoms2* is also provided, one atom 
-    from *atoms* and another from *atoms2* will be returned."""
+def findNeighbors(atoms, radius, atoms2=None, unitcell=None):
+    """Return list of neighbors that are within *radius* of each other and the
+    distance between them.  See :func:`iterNeighbors` for more details."""
 
-    return list(iterNeighbors(atoms, radius, atoms2))
+    return list(iterNeighbors(atoms, radius, atoms2, unitcell))

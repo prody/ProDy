@@ -22,24 +22,26 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import unittest
 from numpy import array, concatenate, unique
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 from prody.tests.test_datafiles import parseDatafile, getDatafilePath
 
-from prody.measure import Contacts
+from prody.measure import Contacts, findNeighbors, iterNeighbors
+from prody.measure import buildDistMatrix, calcDistance
 
 
 UBI = parseDatafile('1ubi')
-XYZ = UBI._getCoords()
-MIN = XYZ.min(0)
-MAX = XYZ.max(0)
-UC = MAX - MIN
+UBI_XYZ = UBI._getCoords()
+UBI_MIN = UBI_XYZ.min(0)
+UBI_MAX = UBI_XYZ.max(0)
+UBI_UC = UBI_MAX - UBI_MIN
 N0P = [-1, 0, 1]
-EDGES = MIN + UC * array([(i, j, k) for i in N0P for j in N0P for k in N0P])
-RADIUS = 20 
+UBI_EDGES = UBI_MIN + UBI_UC * array([(i, j, k) for i in N0P 
+                                                for j in N0P for k in N0P])
+UBI_RADIUS = 20 
 
-CONTACTS = Contacts(XYZ)
-CONTACTS_PBC = Contacts(XYZ, UC)
+UBI_CONTACTS = Contacts(UBI_XYZ)
+UBI_CONTACTS_PBC = Contacts(UBI_XYZ, UBI_UC)
 
 
 class TestContacts(unittest.TestCase):
@@ -48,13 +50,93 @@ class TestContacts(unittest.TestCase):
     
     def testPBCvsNONE(self):
         
-        wout_pbc = unique(concatenate([CONTACTS(RADIUS, EDGES)]))
-        with_pbc = CONTACTS_PBC(RADIUS, MIN)
+        wout_pbc = unique(concatenate([UBI_CONTACTS(UBI_RADIUS, UBI_EDGES)]))
+        with_pbc = UBI_CONTACTS_PBC(UBI_RADIUS, UBI_MIN)
         assert_array_equal(wout_pbc, with_pbc)
         
     def testMINvsMAX(self):
         
-        assert_array_equal(CONTACTS_PBC(RADIUS, MIN), 
-                           CONTACTS_PBC(RADIUS, MAX))
+        assert_array_equal(UBI_CONTACTS_PBC(UBI_RADIUS, UBI_MIN), 
+                           UBI_CONTACTS_PBC(UBI_RADIUS, UBI_MAX))
         
+
+UCA = UBI.ca.copy()[::2].copy()
+UCA_XYZ = UCA._getCoords()
+UCA_MIN = UCA_XYZ.min(0)
+UCA_MAX = UCA_XYZ.max(0)
+UCA_UC = UCA_MAX - UCA_MIN
+N0P = [-1, 0, 1]
+UCA_EDGES = UCA_MIN + UCA_UC * array([(i, j, k) for i in N0P 
+                                                for j in N0P for k in N0P])
+UCA_RADIUS = 20 
+
+UCA_CONTACTS = Contacts(UCA_XYZ)
+UCA_CONTACTS_PBC = Contacts(UCA_XYZ, UCA_UC)
         
+class TestNeighbors(unittest.TestCase):
+    
+    def testPBC(self):
+        
+        neighbors = findNeighbors(UCA_XYZ, UCA_RADIUS, unitcell=UCA_UC)
+        n_neighbors = (buildDistMatrix(UCA_XYZ, unitcell=UCA_UC, 
+                                       format='arr') <= UCA_RADIUS).sum()
+        assert_equal(len(neighbors), n_neighbors)
+        
+    def testNoPBC(self):
+        
+        neighbors = findNeighbors(UCA_XYZ, UCA_RADIUS)
+        n_neighbors = (buildDistMatrix(UCA_XYZ, 
+                                       format='arr') <= UCA_RADIUS).sum()
+        assert_equal(len(neighbors), n_neighbors)
+
+    def testCoordArgumentSwitching(self):
+        
+        dist = 12.
+        neighbors1 = findNeighbors(UCA_XYZ, dist, UCA_XYZ[1])
+        neighbors2 = findNeighbors(UCA_XYZ[1], dist, UCA_XYZ)
+        n_neighbors = (calcDistance(UCA_XYZ, UCA_XYZ[1]) <= dist).sum()
+        assert_equal(len(neighbors1), n_neighbors)
+        neighbors1.sort()
+        neighbors2.sort()
+        assert_array_equal(array(neighbors1)[:,-1], 
+                           array(neighbors2)[:,-1])
+        
+    def testAtomicArgumentSwitching(self):
+        
+        dist = 12.
+        neighbors1 = [(a.getIndex(), d) 
+                      for a, b, d in iterNeighbors(UCA, dist, UCA[1])]
+        neighbors2 = [(b.getIndex(), d)
+                      for a, b, d in iterNeighbors(UCA[1], dist, UCA)]
+        n_neighbors = (calcDistance(UCA, UCA[1]) <= dist).sum()
+        assert_equal(len(neighbors1), n_neighbors)
+        neighbors1.sort()
+        neighbors2.sort()
+        self.assertEqual(neighbors1, neighbors2)
+        
+    def testPBCCoordArgumentSwitching(self):
+        
+        dist = 12.
+        neighbors1 = findNeighbors(UCA_XYZ, dist, UCA_XYZ[1], unitcell=UCA_UC)
+        neighbors2 = findNeighbors(UCA_XYZ[1], dist, UCA_XYZ, unitcell=UCA_UC)
+        n_neighbors = (calcDistance(UCA_XYZ, UCA_XYZ[1], unitcell=UCA_UC) <= 
+                       dist).sum()
+        assert_equal(len(neighbors1), n_neighbors)
+        neighbors1.sort()
+        neighbors2.sort()
+        assert_array_equal(array(neighbors1)[:,-1], 
+                           array(neighbors2)[:,-1])
+        
+    def testPBCAtomicArgumentSwitching(self):
+        
+        dist = 12.
+        neighbors1 = [(a.getIndex(), d) for a, b, d in 
+                            iterNeighbors(UCA, dist, UCA[1], unitcell=UCA_UC)]
+        neighbors2 = [(b.getIndex(), d) for a, b, d in 
+                            iterNeighbors(UCA[1], dist, UCA, unitcell=UCA_UC)]
+        n_neighbors = (calcDistance(UCA, UCA[1], unitcell=UCA_UC) <= 
+                       dist).sum()
+        assert_equal(len(neighbors1), n_neighbors)
+        neighbors1.sort()
+        neighbors2.sort()
+        self.assertEqual(neighbors1, neighbors2)
