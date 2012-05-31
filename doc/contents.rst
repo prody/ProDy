@@ -14,6 +14,7 @@ ProDy Documentation Contents
 
    getprody 
    tutorial
+   tutorials/index
    examples/index
    reference/index
    plugins/index

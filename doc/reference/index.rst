@@ -1,7 +1,7 @@
 .. _reference:
 
 *******************************************************************************
-Reference
+Library Reference
 *******************************************************************************
 This section documents ProDy classes and functions.  Each module page 
 provides a list of classes and functions contained in the respective 
