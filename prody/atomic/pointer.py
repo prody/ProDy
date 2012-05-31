@@ -169,7 +169,7 @@ class AtomPointer(Atomic):
             unmapped.append(np.array([]))
             
         return AtomMap(ag, indices, np.concatenate(mapping), 
-                           np.concatenate(unmapped), title, acsi)
+                       np.concatenate(unmapped), title, acsi, intarrays=True)
                        
     def _getTimeStamp(self, index=None):
         

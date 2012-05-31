@@ -86,7 +86,7 @@ def extend(model, nodes, atoms):
     except AttributeError: 
         ag = atoms
     atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
-                      np.array([]), str(atoms), atoms.getACSIndex())
+                      None, str(atoms), atoms.getACSIndex(), intarrays=True)
     return indices, atommap
 
 
