@@ -240,9 +240,7 @@ from atomic import Atomic
 from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from atom import Atom
-from bond import Bond, evalBonds, trimBonds
-from atommap import AtomMap
-from subset import AtomSubset
+from bond import Bond, evalBonds
 from selection import Selection
 
 __all__ = ['AtomGroup']
