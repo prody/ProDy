@@ -37,7 +37,7 @@
 
 package require exectool
 package require multiplot
-package provide nmwiz 1.1
+package provide nmwiz 1.2
 
 
 proc sign x {expr {($x>0) - ($x<0)}}
@@ -1786,7 +1786,7 @@ setmode, getlen, setlen, addmode"
           ${ns}::drawArrows
         } elseif {$cmd=="nummodes"} {
           variable numofmodes
-          return $numofmodes
+          return $numofmode
         
         } elseif {$cmd=="numatoms"} {
           variable n_atoms
