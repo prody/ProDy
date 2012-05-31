@@ -26,8 +26,8 @@ How AtomMap's work
     
 :class:`AtomMap` class adds great flexibility to manipulating atomic data.
 
-First let's see how an instance of :class:`~.Selection` (:class:`~.Chain`, or 
-:class:`~.Residue`) works.  Below table shows indices for a selection of atoms 
+First let's see how an instance of :class:`.Selection` (:class:`.Chain`, or 
+:class:`.Residue`) works.  Below table shows indices for a selection of atoms 
 in an :class:`~.AtomGroup` and values returned when 
 :meth:`~.Selection.getNames`, :meth:`~.Selection.getResnames` and
 :meth:`~.Selection.getResnums` methods are called.
@@ -80,8 +80,8 @@ For unmapped atoms, numeric attributes are set to 0, others to empty string,
 i.e. ``""``.
 
 .. seealso::
-   :class:`AtomMap` are used by :mod:`~prody.proteins` module chain functions
-   that match or map protein chains.  :ref:`pca-xray` and :ref:`pca-dimer` 
+   :class:`AtomMap` are used by :mod:`.proteins` module functions that 
+   match or map protein chains.  :ref:`pca-xray` and :ref:`pca-dimer` 
    examples that make use of these functions and :class:`AtomMap` class.
 
 
@@ -90,7 +90,7 @@ i.e. ``""``.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import numpy as np
+from numpy import arange, array, ndarray, ones, zeros 
 
 from prody.utilities import rangeString
 
@@ -119,7 +119,7 @@ class AtomMapMeta(type):
                     for meth in call:
                         getattr(self._ag, meth)()
                     data = self._ag._data[var][self._indices]
-                    result = np.zeros((self._len,) + data.shape[1:], dtype)
+                    result = zeros((self._len,) + data.shape[1:], dtype)
                     result[self._mapping] = data
                     return result 
     
@@ -129,7 +129,7 @@ class AtomMapMeta(type):
                     if array is None:
                         return None
                     data = self._ag._data[var][self._indices]
-                    result = np.zeros((self._len,) + data.shape[1:], dtype)
+                    result = zeros((self._len,) + data.shape[1:], dtype)
                     result[self._mapping] = data
                     return result
     
@@ -155,7 +155,7 @@ class AtomMap(AtomPointer):
     __metaclass__ = AtomMapMeta
     
     __slots__ = ['_ag', '_indices', '_acsi', '_mapping', '_dummies', '_title',
-                 '_len']
+                 '_len', '_idarray']
     
     def __init__(self, ag, indices, mapping, dummies, title='Unnamed',
                  acsi=None, **kwargs):
@@ -180,29 +180,25 @@ class AtomMap(AtomPointer):
         
         AtomPointer.__init__(self, ag, acsi)
         
-        if not isinstance(indices, np.ndarray):
-            self._indices = np.array(indices, int)
-        elif not indices.dtype == int:
-            self._indices = indices.astype(int)
-        else:
+        if kwargs.get('intarrays'):
             self._indices = indices
-
-        if not isinstance(mapping, np.ndarray):
-            self._mapping = np.array(mapping, int)
-        elif not mapping.dtype == int:
-            self._mapping = mapping.astype(int)
-        else:
             self._mapping = mapping
-
-        if not isinstance(dummies, np.ndarray):
-            self._dummies = np.array(dummies, int)
-        elif not dummies.dtype == int:
-            self._dummies = dummies.astype(int)
-        else:
-            self._dummies = dummies
+            if dummies is None:
+                self._dummies = array([], int)
+            else:
+                self._dummies = dummies
+        else:            
+            self._indices = array(indices, int)
+            self._mapping = array(mapping, int)
+            if dummies is None:
+                self._dummies = array([], int)
+            else:
+                self._dummies = dummies
         
+        self._idarray = None
         self._title = str(title)
         self._len = len(self._dummies) + len(self._mapping)
+        
     
     def __repr__(self):
         
@@ -228,6 +224,34 @@ class AtomMap(AtomPointer):
     
         return self._len
     
+    def __getitem__(self, index):
+
+        if self._idarray is None:        
+            idarray = zeros(self._len, int)
+            idarray[self._mapping] = self._indices
+            if len(self._dummies):
+                idarray[self._dummies] = -1
+            self._idarray = idarray
+            indices = idarray[index]
+        else:
+            indices = self._idarray[index]
+        
+        try:
+            n_sel = len(indices)
+        except TypeError: 
+            if indices > -1:
+                return self._ag[indices]
+        else:
+            mapping = (indices > -1).nonzero()[0]
+            if len(mapping) < n_sel:
+                return AtomMap(self._ag, indices, mapping, 
+                               (indices == -1).nonzero()[0], 
+                               self._title + repr(index), self._acsi)
+            else:
+                return AtomMap(self._ag, indices, mapping, None,
+                               self._title + repr(index), self._acsi)
+        
+    
     def getTitle(self):
         """Return title of the instance."""
         
@@ -247,7 +271,7 @@ class AtomMap(AtomPointer):
         """Yield atoms. Note that ``None`` will be yielded for dummy atoms."""
     
         acsi = self.getACSIndex()
-        indices = np.zeros(self._len, int)
+        indices = zeros(self._len, int)
         indices[self._dummies] = -1
         indices[self._mapping] = self._indices
         ag = self._ag
@@ -264,7 +288,7 @@ class AtomMap(AtomPointer):
         
         coords = self._ag._getCoordsets()
         if coords is not None:
-            xyz = np.zeros((self._len, 3), float)
+            xyz = zeros((self._len, 3), float)
             xyz[self._mapping] = coords[self.getACSIndex(), self._indices] 
             return xyz
     
@@ -287,14 +311,14 @@ class AtomMap(AtomPointer):
         if coords is not None:
             n_csets = self._ag.numCoordsets()
             if indices is None:
-                indices = np.arange(n_csets)
+                indices = arange(n_csets)
             elif isinstance(indices, (int, long)):
-                indices = np.array([indices])
+                indices = array([indices])
             elif isinstance(indices, slice):
-                indices = np.arange(indices.indices(n_csets))
+                indices = arange(indices.indices(n_csets))
             
             try:
-                coordsets = np.zeros((len(indices), self._len, 3))
+                coordsets = zeros((len(indices), self._len, 3))
                 coordsets[:, self._mapping] = coords[indices][:, self._indices]  
                 return coordsets
             
@@ -313,7 +337,7 @@ class AtomMap(AtomPointer):
             n_atoms = self._len
             indices = self._indices
             for i in range(self._ag.numCoordsets()):
-                xyz = np.zeros((n_atoms, 3), float)
+                xyz = zeros((n_atoms, 3), float)
                 xyz[mapping] = coords[i, indices] 
                 yield xyz
     
@@ -327,7 +351,7 @@ class AtomMap(AtomPointer):
         except KeyError:
             pass
         else:
-            result = np.zeros((self._len,) + data.shape[1:], data.dtype)
+            result = zeros((self._len,) + data.shape[1:], data.dtype)
             result[self._mapping] = data[self._indices]
             return result
 
@@ -356,7 +380,7 @@ class AtomMap(AtomPointer):
     def getDummyFlags(self):
         """Return an array with 1s for dummy atoms."""
         
-        flags = np.zeros(self._len, bool)
+        flags = zeros(self._len, bool)
         if len(self._dummies):
             flags[self._dummies] = 1
         return flags
@@ -364,7 +388,7 @@ class AtomMap(AtomPointer):
     def getMappedFlags(self):
         """Return an array with 1s for mapped atoms."""
         
-        flags = np.ones(self._len, bool)
+        flags = ones(self._len, bool)
         if len(self._dummies):
             flags[self._dummies] = 0
         return flags
