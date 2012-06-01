@@ -72,8 +72,12 @@ def prody_contacts(**kwargs):
         ligand = prody.parsePDB(pdb)
         sel = contacts(radius, ligand)
         if sel:
+            LOGGER.info('{0:d} atoms from {1:s} contact {2:s}.'
+                        .format(len(sel), pdb, target.getTitle()))
             if extend:
                 sel = target.select('same ' + extend + ' as sel', sel=sel)
+                LOGGER.info('Selection is extended to {0:d} atoms of the same '
+                            '{1:s}(s).'.format(len(sel), extend))
             pdbfn = outfn(ligand.getTitle())
             LOGGER.info('Writing file: ' + pdbfn)
             prody.writePDB(pdbfn, sel)
@@ -110,12 +114,11 @@ contacting residues of the target protein:
         help='contact radius (default: %(default)s)')
     
     subparser.add_argument('-t', '--extend', dest='extend', type=str, 
-        default='_aligned', metavar='STR', 
-        choices=set(['residue', 'chain', 'segment']),
+        metavar='STR', choices=set(['residue', 'chain', 'segment']),
         help=('output same residue, chain, or segment as contacting atoms'))
 
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 
-        default='', metavar='STR', 
+        metavar='STR', 
         help=('output filename prefix (default: target filename)'))
         
     subparser.add_argument('-x', '--suffix', dest='suffix', type=str, 
