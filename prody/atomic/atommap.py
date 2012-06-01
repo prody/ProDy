@@ -245,11 +245,13 @@ class AtomMap(AtomPointer):
             mapping = (indices > -1).nonzero()[0]
             if len(mapping) < n_sel:
                 return AtomMap(self._ag, indices, mapping, 
-                               (indices == -1).nonzero()[0], 
-                               self._title + repr(index), self._acsi)
+                       (indices == -1).nonzero()[0], 
+                       '({0:s})[{1:s}]'.format(self._title, repr(index)), 
+                       self._acsi, intarrays=True)
             else:
                 return AtomMap(self._ag, indices, mapping, None,
-                               self._title + repr(index), self._acsi)
+                       '({0:s})[{1:s}]'.format(self._title, repr(index)), 
+                       self._acsi, intarrays=True)
         
     
     def getTitle(self):
