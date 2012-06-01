@@ -157,7 +157,7 @@ class AtomMap(AtomPointer):
     __slots__ = ['_ag', '_indices', '_acsi', '_mapping', '_dummies', '_title',
                  '_len', '_idarray']
     
-    def __init__(self, ag, indices, mapping, dummies, title='Unnamed',
+    def __init__(self, ag, indices, mapping, dummies, title='Unknown',
                  acsi=None, **kwargs):
         """Instantiate an atom map.        
         
@@ -175,8 +175,9 @@ class AtomMap(AtomPointer):
         Following built-in functions are customized for this class:
         
         * :func:`len` returns the number of atoms in the instance.
-        * :func:`iter` yields :class:`~.Atom` instances.
-        * Indexing is not available."""
+        * :func:`iter` yields :class:`.Atom` instances.
+        * Indexing returns an :class:`.Atom` or an :class:`.AtomMap` instance
+          depending on the type and value of the index."""
         
         AtomPointer.__init__(self, ag, acsi)
         
