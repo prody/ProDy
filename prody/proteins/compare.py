@@ -651,10 +651,10 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices2 = np.array(indices2, int)
         lengh = len(indices1)
         
-        match1 = AM(atoms1, indices1, np.arange(lengh), np.array([], int),
+        match1 = AM(atoms1, indices1, np.arange(lengh), None,
                     simpch1.getTitle() + ' -> ' + simpch2.getTitle(),
                     acsi=atoms1.getACSIndex(), allintarrays=True) 
-        match2 = AM(atoms2, indices2, np.arange(lengh), np.array([], int),
+        match2 = AM(atoms2, indices2, np.arange(lengh), None,
                     simpch2.getTitle() + ' -> ' + simpch1.getTitle(),
                     acsi=atoms2.getACSIndex(), allintarrays=True) 
                                  
@@ -900,7 +900,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         selection = AM(target_ag,
                        indices_target,
                        np.arange(len(indices_target)),
-                       np.array([]),
+                       None,
                        simple_target.getTitle() + ' -> ' + 
                                        simple_chain.getTitle(),
                        acsi=target_chain.getACSIndex())

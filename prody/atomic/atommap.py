@@ -193,7 +193,7 @@ class AtomMap(AtomPointer):
             if dummies is None:
                 self._dummies = array([], int)
             else:
-                self._dummies = dummies
+                self._dummies = array(dummies, int)
         
         self._idarray = None
         self._title = str(title)
