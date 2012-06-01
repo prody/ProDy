@@ -48,6 +48,7 @@ if sys.version_info[:2] > (2,6):
                      'prody.tests.test_dynamics', 
                      'prody.tests.test_kdtree', 
                      'prody.tests.test_measure',
+                     'prody.tests.test_proteins',
                      'prody.tests.test_utilities',])
     PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat', 
                                    'data/*.coo', 'data/dcd*.dcd']
