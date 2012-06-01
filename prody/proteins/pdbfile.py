@@ -60,8 +60,8 @@ _parsePQRdoc = """
     :type chain: str
 
     :arg subset: a predefined keyword to parse subset of atoms, valid keywords 
-        are ``'calpha'`` (``'ca'``), ``'backbone'`` (``'bb'``), ``'protein'``,
-        or **None** (read all atoms), e.g. ``subset='bb'``
+        are ``'calpha'`` (``'ca'``), ``'backbone'`` (``'bb'``), or **None** 
+        (read all atoms), e.g. ``subset='bb'``
     :type subset: str
 """
 
@@ -93,8 +93,7 @@ _parsePDBdoc = _parsePQRdoc + """
     
     """
     
-_PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb',
-               'protein': 'protein'}
+_PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
 def parsePDB(pdb, **kwargs):
     """Return an :class:`.AtomGroup` and/or dictionary containing header data 
@@ -313,8 +312,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             subset = set(('CA',))
         elif subset in 'bb':
             subset = set(getBackboneAtomNames())
-        else:
-            subset = Everything()
         only_subset = True
         protein_resnames = set(getKeywordResnames('protein'))
     else:
