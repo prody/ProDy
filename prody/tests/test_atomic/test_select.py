@@ -30,7 +30,7 @@ import sys
 import numpy as np
 
 from prody import *
-from test_datafiles import *
+from prody.tests.test_datafiles import *
 
 
 prody.atomic.select.DEBUG = False

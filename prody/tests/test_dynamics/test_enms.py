@@ -27,7 +27,7 @@ import numpy as np
 from numpy.testing import *
 
 from prody import *
-from test_datafiles import *
+from prody.tests.test_datafiles import *
 
 prody.setVerbosity('none')
 
