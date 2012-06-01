@@ -38,7 +38,7 @@ from prody import _PY3K
 if not _PY3K:
     range = xrange
 
-ATOMS = parseDatafile('1ubi', subset='protein')
+ATOMS = parseDatafile('1ubi').protein.copy()
 ANM, NODES = calcANM(ATOMS)
 GNM = calcGNM(ATOMS)[0]
 
