@@ -34,9 +34,6 @@ Release 1.1 (in development)
     to convert 32-bit coordinate arrays to 64-bit automatically for higher 
     precision calculations.
 
-  * *protein* is added as a subset to :func:`.parsePDB` and :func:`.parsePQR`
-    functions.
-
   * Commands :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` can
     extend a coarse grained model to backbone or all atoms of the residues.
     See their documentation pages.
