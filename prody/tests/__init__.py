@@ -58,11 +58,11 @@ except ImportError:
                        'test_dynamics.test_editing', 
                        'test_ensemble', 
                        'test_kdtree.test_kdtree', 
-                       'test_pairwise2', 
-                       'test_proteins', 
                        'test_measure.test_contacts',
                        'test_measure.test_measure',
                        'test_measure.test_transform',
+                       'test_proteins.test_pairwise2', 
+                       'test_proteins.test_proteins', 
                        'test_utilites.test_checkers',
                        'test_utilites.test_misctools',]:
             testrunner.run(unittest.defaultTestLoader.
