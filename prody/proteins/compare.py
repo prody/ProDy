@@ -32,8 +32,7 @@ from prody.atomic import getKeywordResnames
 from prody.measure import calcTransformation, calcRMSD, printRMSD, calcDistance
 from prody import LOGGER, SELECT
 
-__all__ = ['countUnpairedBreaks',
-           'matchChains', 'matchAlign', 'mapOntoChain',
+__all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
            'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore',
            'getGapPenalty', 'setGapPenalty',
@@ -282,7 +281,8 @@ class SimpleChain(object):
 
 
 def countUnpairedBreaks(chone, chtwo, resnum=True):
-    """Return number of unpaired breaks in aligned chains *chone* and *chtwo*, 
+    """This function is under development.
+    Return number of unpaired breaks in aligned chains *chone* and *chtwo*, 
     which are expected to be :class:`.AtomMap` instances obtained from one of 
     :func:`.matchChains` or :func:`.mapOntoChain` functions. 
     
@@ -341,13 +341,15 @@ def countUnpairedBreaks(chone, chtwo, resnum=True):
     
     brone = calcDistance(chone[1:], chone[:-1]) > 4.
     brtwo = calcDistance(chtwo[1:], chtwo[:-1]) > 4.
+    from code import interact
+    #interact(local=locals())
     
     brone[(rnone[1:] - rnone[:-1]) > 1] = False
     brtwo[(rntwo[1:] - rntwo[:-1]) > 1] = False
     
     brone = set(brone.nonzero()[0])
     brtwo = set(brtwo.nonzero()[0])
-    
+    #interact(local=locals())
     return len(brone.union(brtwo)) - len(brone.intersection(brtwo))
     
 
