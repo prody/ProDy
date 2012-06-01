@@ -29,12 +29,11 @@ from prody.atomic import AtomMap as AM
 from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
 from prody.atomic import getKeywordResnames
-from prody.measure import calcTransformation, calcRMSD, printRMSD
+from prody.measure import calcTransformation, calcRMSD, printRMSD, calcDistance
 from prody import LOGGER, SELECT
 
-__all__ = ['matchChains',
-           'matchAlign',
-           'mapOntoChain',
+__all__ = ['countUnpairedBreaks',
+           'matchChains', 'matchAlign', 'mapOntoChain',
            'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore',
            'getGapPenalty', 'setGapPenalty',
@@ -281,6 +280,76 @@ class SimpleChain(object):
         self._title = 'Chain {0:s} from {1:s}'.format(chain.getChid(),
                                              chain.getAtomGroup().getTitle())
 
+
+def countUnpairedBreaks(chone, chtwo, resnum=True):
+    """Return number of unpaired breaks in aligned chains *chone* and *chtwo*, 
+    which are expected to be :class:`.AtomMap` instances obtained from one of 
+    :func:`.matchChains` or :func:`.mapOntoChain` functions. 
+    
+    Pairwise global or local alignment of chains with missing residues may be
+    problematic, as in the following illustrations for example.  This function
+    helps identifying some of these problems.
+     
+    Breaks in a chain are determined using Cα-Cα distances between consecutive
+    residues, i.e. Cα to Cα distance larger than 4 Å corresponds to a break or
+    gap of 1 or more residues.  This function counts such breaks in *chone* or 
+    *chtwo* that is not paired with a break in the other.
+    
+    The following example illustrates a problem that may occur when aligning
+    two structures of the same protein chain where one of the chains have
+    a few missing residues::
+        
+      Correct alignment: A.L.R.S - - V.W.Y.K.L  -> no unpaired breaks
+      Target chain     : A.L.R.S.V.T.V.W.Y.K.L
+      Wrong alignment  : A.L.R.S_V - - W.Y.K.L  
+                                |
+                                --> 1 unpaired break, counted
+      
+      Key:
+          - (dash) is a gap in the alignment
+          . (dot) is a peptide bond
+          _ (underscore) is a break
+      
+    In this case, one unpaired break is an indicator of the problem in the 
+    alignment.
+
+    The following example illustrates a case where an unpaired break is due to
+    an insertion in the homologous chain::
+
+      Target chain     : 1A.2L.3R.4S.5V.6T.7V
+      Homologous chain : 1A.2L.3K.4S.6V_9S.10L  
+                                       |
+                                       --> 1 unpaired break, not counted
+      
+    In this case, residue numbers are used to determine whether the unpaired
+    break is due to an insertion/deletion in the chain or misalignment."""
+
+    try:    
+        if chone.numAtoms() != chtwo.numAtoms():
+            raise ValueError('number of atoms do not match')
+    except AttributeError:
+        raise TypeError('one and two must be Atomic instances')
+    
+    mapped = chone.getMappedFlags() * chtwo.getMappedFlags()
+    if mapped.sum() == 0:
+        raise ValueError('chains do not have common mapped atoms')
+    chone = chone[mapped]
+    chtwo = chtwo[mapped]
+    
+    rnone = chone.getResnums()
+    rntwo = chtwo.getResnums()
+    
+    brone = calcDistance(chone[1:], chone[:-1]) > 4.
+    brtwo = calcDistance(chtwo[1:], chtwo[:-1]) > 4.
+    
+    brone[(rnone[1:] - rnone[:-1]) > 1] = False
+    brtwo[(rntwo[1:] - rntwo[:-1]) > 1] = False
+    
+    brone = set(brone.nonzero()[0])
+    brtwo = set(brtwo.nonzero()[0])
+    
+    return len(brone.union(brtwo)) - len(brone.intersection(brtwo))
+    
 
 _SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
 
@@ -578,16 +647,16 @@ def matchChains(atoms1, atoms2, **kwargs):
                     except ValueError:
                         pass
 
-        indices1 = np.array(indices1)
-        indices2 = np.array(indices2)
+        indices1 = np.array(indices1, int)
+        indices2 = np.array(indices2, int)
         lengh = len(indices1)
         
-        match1 = AM(atoms1, indices1, np.arange(lengh), np.array([]),
+        match1 = AM(atoms1, indices1, np.arange(lengh), np.array([], int),
                     simpch1.getTitle() + ' -> ' + simpch2.getTitle(),
-                    acsi=atoms1.getACSIndex()) 
-        match2 = AM(atoms2, indices2, np.arange(lengh), np.array([]),
+                    acsi=atoms1.getACSIndex(), allintarrays=True) 
+        match2 = AM(atoms2, indices2, np.arange(lengh), np.array([], int),
                     simpch2.getTitle() + ' -> ' + simpch1.getTitle(),
-                    acsi=atoms2.getACSIndex()) 
+                    acsi=atoms2.getACSIndex(), allintarrays=True) 
                                  
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
@@ -908,3 +977,12 @@ def getAlignedMapping(target, chain):
         elif b not in (GAP, NONE_A):
                 bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
+
+
+if __name__ == '__main__':
+    
+    from prody import *
+    p = parsePDB('1p38')
+    r = parsePDB('1r39')
+    chtwo, chone = mapOntoChain(r, p['A'])[0][:2]
+    print countUnpairedBreaks(chone, chtwo)

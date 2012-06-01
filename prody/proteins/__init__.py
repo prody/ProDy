@@ -120,9 +120,13 @@ Following functions can be used to match, align, and map polypeptide chains:
   * :func:`.matchChains` - finds matching chains in two protein structures
   * :func:`.matchAlign` - finds best matching chains and aligns structures
   * :func:`.mapOntoChain` - maps chains in a structure onto a reference chain
+ 
+Following functions are for checking quality of alignments: 
+  
+  * :func:`.countUnpairedBreaks` - check two chains for misaligned parts
         
 
-The following functions can be used to adjust alignment parameters: 
+Following functions can be used to adjust alignment parameters: 
         
   * :func:`.getAlignmentMethod`, :func:`.setAlignmentMethod`
   * :func:`.getMatchScore`, :func:`.setMatchScore`
