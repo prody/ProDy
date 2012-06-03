@@ -1,7 +1,7 @@
 .. _nmwiz:
 
 *******************************************************************************
-NMWiz VMD plugin
+Normal Mode Wizard
 *******************************************************************************
 
 Normal Mode Wizard (NMWiz) is a `VMD <www.ks.uiuc.edu/Research/vmd/>`_ 
@@ -40,7 +40,7 @@ network model modes were calculated using ProDy.  Movie was generated using
    .. youtube:: 1OUzdzm68YY
       :width: 400
 
-See `NMWiz documentation`_ or :ref:`NMWiz Tutorial` for usage details.  NMWiz 
+See `NMWiz documentation`_ or :ref:`nmwiz-tutorial` for usage details.  NMWiz 
 recognizes :ref:`nmd-format`.
 
 .. _NMWiz documentation: http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/
