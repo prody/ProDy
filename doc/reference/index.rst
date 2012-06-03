@@ -23,3 +23,4 @@ module.  Some documentation pages include usage examples.
    utilities/index
    tests
    tools
+   appendices/index

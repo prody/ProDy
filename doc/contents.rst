@@ -12,9 +12,8 @@ ProDy Documentation Contents
    :maxdepth: 3
    :glob:
 
-   getprody 
-   tutorial
-   tutorials/index
+   getprody
+   tutorial/index
    examples/index
    reference/index
    plugins/index
