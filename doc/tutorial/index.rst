@@ -10,7 +10,7 @@ ProDy Tutorial
    :maxdepth: 2
    
    foreword
-   intro
+   starthere
    basics
    dynamics
    nmwiz
