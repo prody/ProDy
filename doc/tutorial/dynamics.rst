@@ -4,6 +4,19 @@
 Dynamics Analysis
 *******************************************************************************
 
+>>> from prody import *
+
+.. plot::
+   :nofigs: 
+   :context: 
+    
+   from prody import *
+   import matplotlib.pyplot as plt
+   import numpy as np
+   structure = parsePDB('1p38')
+
+   plt.close('all')
+
 PCA Calculations
 ===============================================================================
 
@@ -32,7 +45,7 @@ Print the fraction of variance for top raking 4 PCs:
 0.08
 0.07
 
-PCA data can be saved on disck using :func:`~.saveModel`
+PCA data can be saved on disck using :func:`.saveModel`
 function:
 
 >>> saveModel(pca)
@@ -40,12 +53,12 @@ function:
 
 This functions writes data in binary format, so is an efficient way of 
 storing data permanently.  In a later session, this data can be loaded using 
-:func:`~.loadModel` function.
+:func:`.loadModel` function.
 
 Write NMD Files 
 ===============================================================================
 
-The :func:`~.writeNMD` function writes PCA results 
+The :func:`.writeNMD` function writes PCA results 
 in NMD format. NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
 
 >>> writeNMD('ubi_pca.nmd', pca[:3], ubi_selection)
@@ -55,7 +68,7 @@ Write Data Files
 ===============================================================================
 
 Additionally, results can be written in plain text files for analysis with
-other programs using the :func:`~.writeArray` function:
+other programs using the :func:`.writeArray` function:
 
 >>> writeArray('ubi_pca_modes.txt', pca.getArray(), format='%8.3f')
 'ubi_pca_modes.txt'
@@ -64,7 +77,7 @@ other programs using the :func:`~.writeArray` function:
 ANM Calculations
 ===============================================================================
 
-Anisotropic network model (:class:`~.ANM`) analysis can be 
+Anisotropic network model (:class:`.ANM`) analysis can be 
 performed in two ways:
 
 The shorter way, which may be suitable for interactive sessions:
@@ -84,10 +97,10 @@ The longer and more controlled way:
 The above longer way gives more control to the user. For example, instead of 
 building the Hessian matrix using uniform force constant and cutoff distance, 
 customized force constant functions (see :ref:`gamma`) or a pre-calculated matrix 
-(see :meth:`~.ANM.setHessian`) may be used. 
+(see :meth:`.ANM.setHessian`) may be used. 
 
-Individual :class:`~.Mode` instances can be accessed by 
-indexing the :class:`~.ANM` instance:
+Individual :class:`.Mode` instances can be accessed by 
+indexing the :class:`.ANM` instance:
 
 >>> slowest_mode = anm[0]
 >>> print( slowest_mode )
@@ -98,7 +111,7 @@ Mode 1 from ANM ubi
 Note that indices in Python start from zero (0). 
 0th mode is the 1st non-zero mode in this case.
 
-The :func:`~.writeNMD` function writes ANM results 
+The :func:`.writeNMD` function writes ANM results 
 in NMD format. NMD files can be viewed using the :ref:`nmwiz` VMD plugin. 
 
 >>> writeNMD('p38_anm.nmd', anm[:6], ubi_selection) 
@@ -112,7 +125,7 @@ Comparative Analysis
 
 ProDy comes with many built-in functions to facilitate a comparative analysis
 of experimental and theoretical data. For example, using 
-:func:`~.printOverlapTable` function you can see the agreement between 
+:func:`.printOverlapTable` function you can see the agreement between 
 experimental (PCA) modes and theoretical (ANM) modes calculated above:
 
 >>> printOverlapTable(pca[:4], anm[:4])
@@ -135,7 +148,7 @@ highest overlap (cosine-correlation).
    pca = loadModel('Ubiquitin.pca.npz')
    anm = loadModel('ubi.anm.npz')
 
-We can also make a plot of this table using :func:`~.showOverlapTable`
+We can also make a plot of this table using :func:`.showOverlapTable`
 function:
 
 .. plot::
@@ -160,12 +173,12 @@ External Data
 ===============================================================================
 
 Normal mode data from other NMA, EDA, or PCA programs can be parsed using
-:func:`~.parseModes` function for ProDy analysis. 
+:func:`.parseModes` function for ProDy analysis. 
 
 In this case, we will parse ANM modes for p38 MAP Kinase calculated using 
 `ANM server <http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi>`_  as the 
-external software.  We use :download:`oanm.eigvals <doctest/oanm_eigvals.txt>` 
-and :download:`oanm.slwevs <doctest/oanm_slwevs.txt>` files from the ANM 
+external software.  We use :download:`oanm.eigvals </doctest/oanm_eigvals.txt>` 
+and :download:`oanm.slwevs </doctest/oanm_slwevs.txt>` files from the ANM 
 server. 
 
 You can either download these files to your current working directory from here
@@ -196,8 +209,8 @@ or obtain them for another protein from the ANM server.
 Plotting Data 
 ===============================================================================
 
-If you have `Matplotlib`_, you can use ProDy functions whose name start with
-``show`` to plot data:
+If you have `Matplotlib <http://matplotlib.sourceforge.net>`_, you can use 
+ProDy functions whose name start with ``show`` to plot data:
 
 .. plot::
    :include-source:

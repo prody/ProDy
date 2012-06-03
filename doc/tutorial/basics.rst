@@ -14,7 +14,7 @@ There are other ways to import ProDy contents. You may use
 ``import prody as pd`` and prefix all functions calls with ``pd.``, 
 if you prefer not to overcrowd your namespace.
 Alternatively, if you want to use functions in a specific module, 
-:mod:`~.proteins` let's say, you can use ``from prody.proteins import *``. 
+:mod:`.proteins` let's say, you can use ``from prody.proteins import *``. 
 You should, however, avoid using ``from prody.proteins.pdbfile import *``, 
 because location of methods in submodules may change without notice.
 
@@ -33,7 +33,7 @@ Protein structure
 ===============================================================================
 
 Protein structure files in :file:`.pdb` format are the standard input for 
-ProDy.  PDB files are parsed using :func:`~.parsePDB` (see 
+ProDy.  PDB files are parsed using :func:`.parsePDB` (see 
 :ref:`pdbparser-performance` and :ref:`pdbparser-performance-2` for 
 benchmarks).  It is sufficient to pass a PDB identifier to read the file, and 
 the parser will download it automatically if needed.
@@ -50,11 +50,11 @@ You can tell ProDy where to get PDB files from or where to store downloaded
 files:
 
   * one of the `wwPDB <http://www.wwpdb.org/>`_ FTP servers in US, Europe or
-    Japan can be picked for downloads using :func:`~.setWWPDBFTPServer`
+    Japan can be picked for downloads using :func:`.setWWPDBFTPServer`
   * a local PDB mirror can be be set for faster access to files using
-    :func:`~.setPDBMirrorPath` 
+    :func:`.setPDBMirrorPath` 
   * a local folder can be set for storing downloaded files for later access
-    using :func:`~.setPDBLocalFolder` 
+    using :func:`.setPDBLocalFolder` 
 
 Note that when these functions are used, ProDy will save your settings as 
 :file:`.prodyrc` in your home folder.
@@ -64,8 +64,8 @@ Quick visualization
 -------------------------------------------------------------------------------
 
 :file:`1p38.pdb` contains an unbound structure of the p38 MAP kinase.
-If you have `Matplotlib`_ installed, you can take 
-a quick look at what you parsed using :func:`~.showProtein` function:  
+If you have `Matplotlib <http://matplotlib.sourceforge.net>`_ installed, you 
+can take a quick look at what you parsed using :func:`.showProtein` function:  
 
 
 >>> import matplotlib.pyplot as plt
@@ -88,14 +88,14 @@ a quick look at what you parsed using :func:`~.showProtein` function:
    
    plt.close('all')
 
-:func:`~.parsePDB` returns data in an :class:`~.AtomGroup` 
+:func:`.parsePDB` returns data in an :class:`.AtomGroup` 
 instance. 
 
 
 Atomic data
 -------------------------------------------------------------------------------
 
-To get information on an :class:`~.AtomGroup` instance, 
+To get information on an :class:`.AtomGroup` instance, 
 type in the variable name and hit :kbd:`enter` key:
 
 >>> structure
@@ -115,19 +115,19 @@ For example:
  [  1.323  30.027  65.103]]
  
 The list of methods for getting and setting atomic data is provided in
-:class:`~.AtomGroup` reference documentation. 
+:class:`.AtomGroup` reference documentation. 
 
 **Indexing**:
 
-An individual :class:`~.Atom` can be accessed by indexing atom group 
+An individual :class:`.Atom` can be accessed by indexing atom group 
 instances:
 
 >>> atom = structure[0]
 >>> atom
 <Atom: N from 1p38 (index 0)>
 
-Not that all ``get/set`` functions defined for :class:`~.AtomGroup` 
-instances are also defined for :class:`~.Atom` instances, using singular
+Not that all ``get/set`` functions defined for :class:`.AtomGroup` 
+instances are also defined for :class:`.Atom` instances, using singular
 form of the function name.  
 
 >>> atom.getResname()
@@ -145,13 +145,13 @@ Hierarchical view
 -------------------------------------------------------------------------------
 
 You can also access specific chains or residues in an atom group.  Indexing
-by a single letter identifier will return a :class:`~.Chain` instance: 
+by a single letter identifier will return a :class:`.Chain` instance: 
 
 >>> structure['A']
 <Chain: A from 1p38 (480 residues, 2962 atoms)>
 
 Indexing atom group with a chain identifier and a residue number will return
-:class:`~.Residue` instance:
+:class:`.Residue` instance:
 
 >>> structure['A', 100]
 <Residue: ASN 100 from Chain A from 1p38 (8 atoms)>
@@ -163,7 +163,7 @@ for more on hierarchical views.
 Writing PDB files
 -------------------------------------------------------------------------------
 
-PDB files can be written using the :func:`~.writePDB` function.
+PDB files can be written using the :func:`.writePDB` function.
 The function accepts objects containing or referring to atomic data.
 
 Writing selected atoms:
@@ -184,7 +184,7 @@ For more PDB writing examples see :ref:`writepdb`.
 More examples
 -------------------------------------------------------------------------------
 
-:func:`~.parsePDB` function is very flexible and can be extremely
+:func:`.parsePDB` function is very flexible and can be extremely
 efficient depending on what you want to extract from a PDB file.  It can be 
 used to parse specific chains, models, alternate locations, or well-defined 
 subsets of atoms from a file.  A detailed usage example can be found in 
@@ -192,12 +192,12 @@ subsets of atoms from a file.  A detailed usage example can be found in
 
 ProDy can parse other file types, including :file:`.psf` and :file:`.pqr` files.
 All of the functions for accessing and handling protein structural data are 
-described in :mod:`~.proteins` module reference documentation.
+described in :mod:`.proteins` module reference documentation.
 Also, :ref:`fetchpdb` and :ref:`blastpdb` examples show other ways to 
 access the Protein Data Bank (|pdb|) content.
 
 For more details on atomic objects see :ref:`atomic`.  
-:class:`~.AtomGroup` instances can be build from scratch or 
+:class:`.AtomGroup` instances can be build from scratch or 
 parsers for other file types (e.g. mol2) can be developed. The example in 
 :ref:`atomgroup` can be helpful to this aim.
 
@@ -205,7 +205,7 @@ parsers for other file types (e.g. mol2) can be developed. The example in
 Atom selections
 ===============================================================================
 
-:class:`~.AtomGroup` instances have a plain view of atoms for efficiency, 
+:class:`.AtomGroup` instances have a plain view of atoms for efficiency, 
 but they are coupled with a powerful atom selection engine.  You can get well 
 defined atom subsets by passing simple keywords or make rather sophisticated 
 selections using composite statements.  Selection keywords and grammar is very 
@@ -220,10 +220,9 @@ Keyword selections
 <Selection: 'protein' from 1p38 (2833 atoms)>
 
 Using the "protein" keyword we selected 2833 atoms out of 2962 atoms. 
-:meth:`~.Atomic.select` method returned a :class:`~.Selection` 
-instance.  Note that all ``get`` and ``set`` methods defined for
-the :class:`~.AtomGroup` class are also defined for 
-:class:`~.Selection` class. For example:
+:meth:`~.Atomic.select` method returned a :class:`.Selection` instance.  
+Note that all ``get`` and ``set`` methods defined for the :class:`.AtomGroup` 
+class are also defined for :class:`.Selection` class. For example:
 
 >>> print( protein.getResnames() )
 ['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
@@ -259,7 +258,7 @@ Composite selections
 -------------------------------------------------------------------------------
 
 Let's try a more sophisticated selection.  We first calculate the geometric 
-center of the protein atoms using :func:`~.calcCenter` function.  Then, we 
+center of the protein atoms using :func:`.calcCenter` function.  Then, we 
 select the Cα and Cβ atoms of residues that have at least one atom within 
 10 Å away from the geometric center.
 
@@ -277,7 +276,7 @@ Alternatively, this selection could be done as follows:
 Selection operations
 -------------------------------------------------------------------------------
 
-:class:`~.Selection` instances can used with bitwise operators:
+:class:`.Selection` instances can used with bitwise operators:
 
 >>> ca = structure.select('name CA') 
 >>> cb = structure.select('name CB')
@@ -315,7 +314,7 @@ or changing the source code.  See the following pages:
 
   * :ref:`selections` for description of all selection keywords
   * :ref:`selection-operations` for handy features of 
-    :class:`~.Selection` objects
+    :class:`.Selection` objects
   * :ref:`contacts` for selecting interacting atoms
 
 
