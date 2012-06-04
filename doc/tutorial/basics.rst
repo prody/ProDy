@@ -130,7 +130,7 @@ For more details on atomic objects see :ref:`atomic`.
 parsers for other file types (e.g. mol2) can be developed. The example in 
 :ref:`atomgroup` can be helpful to this aim.
 
-Atomic data
+Atomic Data
 ===============================================================================
 
 :func:`.parsePDB` returns data in an :class:`.AtomGroup` instance.  
@@ -221,7 +221,7 @@ successfully written.  This is a general behavior for ProDy output functions.
 For more PDB writing examples see :ref:`writepdb`.
 
 
-Atom selections
+Atom Selections
 ===============================================================================
 
 :class:`.AtomGroup` instances have a plain view of atoms for efficiency, 
@@ -335,9 +335,78 @@ or changing the source code.  See the following pages:
   * :ref:`contacts` for selecting interacting atoms
   
 
-Measure and Transform
+Analyze Structures
 ===============================================================================
 
+Measure geometric properties
+-------------------------------------------------------------------------------
+
+ProDy offers several functions for analyzing molecular structure in 
+:mod:`.measure` module. For example, you can calculate phi (φ) and psi (ψ)
+for the 10th residue, or the radius of gyration of the protein as follows:
+
+>>> print calcPhi(structure[10,]).round(2)
+-115.54
+>>> print calcPsi(structure[10,]).round(2)
+147.49
+>>> print calcGyradius(structure).round(2)
+22.06
+
+Most functions start with ``calc`` prefix.  You can type in ``calc`` and press
+tab to see what is available in an IPython session.
+
+Compare chains
+-------------------------------------------------------------------------------
+
+You can also compare different structures using some of the methods in
+:mod:`.proteins` module.  Let's parse another p38 MAP kinase structure
+
+>>> bound = parsePDB('1zz2')
+
+You can find similar chains in structure 1p38 and 1zz2 using 
+:func:`.matchChains` function:
+
+>>> apo_chA, bnd_chA, seqid, overlap = matchChains(structure, bound)[0]
+>>> apo_chA
+<AtomMap: Chain A from 1p38 -> Chain A from 1zz2 from 1p38 (337 atoms)>
+>>> bnd_chA
+<AtomMap: Chain A from 1zz2 -> Chain A from 1p38 from 1zz2 (337 atoms)>
+>>> print int(seqid) # precent sequence identity between two chains
+99
+>>> print int(overlap) # percent overlap between two chains
+96
+
+Matching Cα atoms are selected and returned as :class:`.AtomMap` instances.
+We can use them to calculate RMSD and superpose structures.
+
+>>> print calcRMSD(bnd_chA, apo_chA)
+72.9302308695
+>>> bnd_chA, transformation = superpose(bnd_chA, apo_chA)
+>>> print calcRMSD(bnd_chA, apo_chA)
+1.86280149087
+
+>>> plt.figure(figsize=(5,4)) # doctest: +SKIP
+>>> showProtein(structure) # doctest: +SKIP
+>>> showProtein(bound) # doctest: +SKIP
+>>> plt.legend(prop={'size': 10}) # doctest: +SKIP
+
+.. plot::
+   :context:
+   
+   import matplotlib.pyplot as plt
+   bound = parsePDB('1zz2')
+   matchAlign(structure, bound)
+   plt.figure(figsize=(5,4))
+   showProtein(structure)
+   showProtein(bound)
+   plt.legend(prop={'size': 10})
+
+   
+.. plot::
+   :nofigs: 
+   :context: 
+   
+   plt.close('all')
 
 
 ProDy Verbosity

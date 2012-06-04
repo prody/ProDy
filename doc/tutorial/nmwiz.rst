@@ -39,32 +39,27 @@ network model modes were calculated using ProDy.  Movie was generated using
       :width: 400
 
 
-Fetch PDB files
-===============================================================================
-
-Let's fetch some PDB files that contain solution (NMR) and X-ray structure 
-using :ref:`prody-fetch` command::
-
-  $ prody fetch 2k39 1dlo 1p38
-
-Alternatively, you may use a browser to download these files.  
-
-First, let's load :file:`2k39.pdb` file into VMD at startup as follows::
-
-  $ vmd 2k38.pdb
-  
-This file contains 116 solution structure models of the protein Ubiquitin, so 
-it will be suitable for comparison of theoretical predictions with experimental
-data.
-
-
 Experiment vs. Theory
 ===============================================================================
 
 We will use ProDy Interface of NMWiz plugin to perform a comparative analysis 
 of ubiquitin dynamics predicted using theory using anisotropic network model
 (ANM) and inferred from experimental structures using principal component 
-analysis (PCA). 
+analysis (PCA).
+
+Let's fetch a PDB files that contains a solution (NMR) structure using 
+:ref:`prody-fetch` command::
+
+  $ prody fetch 2k39
+
+Alternatively, you may use a browser to download these files.  
+:file:`2k39.pdb` file can be loaded into VMD at startup as follows::
+
+  $ vmd 2k38.pdb
+  
+This file contains 116 solution structure models of the protein Ubiquitin, so 
+it will be suitable for comparison of theoretical predictions with experimental
+data. 
 
 :guilabel:`NMWiz - Main` window can be accessed via the 
 :menuselection:`Extensions --> Analysis` menu of :guilabel:`VMD Main` 
@@ -83,7 +78,7 @@ we are interested in.
 We enter the selection string ``resid <= 70 and protein and name CA`` and 
 click :guilabel:`Select`.  70 Cα atoms will be selected for calculations.
 
-ANM Calculations
+ANM Calculation
 -------------------------------------------------------------------------------
 
 First, we perform ANM calculations, which is the job type selected by default.  
@@ -103,7 +98,7 @@ This action will run :ref:`prody-anm` command in the background and load the
 results when calculations are finished.    
 
 
-PCA Calculations
+PCA Calculation
 -------------------------------------------------------------------------------
 
 Now, we will use all ubiquitin models for the PCa calculation.  Select
@@ -144,7 +139,7 @@ Load the contents of this file into VMD as follows::
 
 Click on :guilabel:`ProDy Interface` for performing ANM and EDA jobs.
 
-ANM Calculations
+ANM Calculation
 -------------------------------------------------------------------------------
 
 We will perform ANM calculations for all Cα atoms and keep the rest of the 
@@ -159,7 +154,7 @@ parameters unchanged.  Click :guilabel:`Submit Job` and results obtained from
    EDA 1 (orange) vs. ANM mode 2 (lime green)
 
 
-EDA Calculations
+EDA Calculation
 -------------------------------------------------------------------------------
 
 Select :guilabel:`PCA Calculation` in the :guilabel:`ProDy Job Settings` panel.
@@ -196,3 +191,56 @@ calculations:
 
 Extending a Model
 ===============================================================================
+
+In previous calculations, we used Cα atoms and the results retrieved from
+ProDy contained only a trace of the structure.  VMD requires more information
+(at least a complete backbone) for displaying cartoon and ribbon 
+representation of proteins which are suitable for publications.  In this
+part, we will use :guilabel:`Extend model to` option for extending the
+model to backbone atoms of the protein.
+
+.. figure:: nmwiz_1dlo_ANM1.png
+   :align: right
+   :scale: 50 %
+   :target: ../_images/nmwiz_1dlo_ANM1.png
+   
+   ANM mode 1 for HIV Reverse Transcriptase
+   
+ANM Calculation
+-------------------------------------------------------------------------------
+
+Let's fetch an X-ray structure of the protein HIV reverse transcriptase (RT)
+and load into VMD::
+
+  $ prody fetch 1dlo
+  $ vmd 1dlo.pdb
+  
+In the :guilabel:`ProDy Interface`, we select :guilabel:`ANM Calculation`,
+check :guilabel:`backbone` option, and click :guilabel:`Submit Job`.  
+Model will be calculated for 971 selected Cα atoms, but the normal modes will 
+be extended to all backbone atoms.
+
+
+Visualization
+-------------------------------------------------------------------------------
+
+When the results are loaded, you will see four arrows per residue (or node).
+Change the :guilabel:`Selection` string to read ``name CA`` and click 
+:guilabel:`Redraw`.  This will draw only one arrow per mode.
+
+RT is a large structure and updating the display with every little change you
+make might be time consuming.  You can uncheck :guilabel:`auto update graphics`
+option in :guilabel:`Mode Graphics Options` panel.  
+
+To get the view displayed in the figure, you will need to hide arrows that
+are shorter than a given length using :guilabel:`Draw if longer than` option
+and draw an arrow for every forth residue using the selection
+``name CA and resid % 4 == 0``. The protein representation is *NewCartoon*.
+
+Animation
+-------------------------------------------------------------------------------
+
+You can generate a trajectory along the selected mode by clicking 
+:guilabel:`Make` in :guilabel:`Animation` row. For large proteins,
+keeping the :guilabel:`Graphics resolution` low (10) will make
+the animation run smoother.
