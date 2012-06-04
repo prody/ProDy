@@ -5,18 +5,40 @@ ProDy Basics
 *******************************************************************************
 
 In the rest of this tutorial, it is assumed that the user is typing commands 
-in a Python shell. To begin the Tutorial, import all the functions and classes 
-from ProDy into the current namespace as follows:
+in a Python shell.  ProDy will automatically download and save some files,
+so you may want start a Python shell from inside of a directory that you may 
+make for this tutorial::
+
+  $ mkdir pdtut
+  $ cd pdtut
+  $ ipython --pylab
+  
+if you are using or::
+  
+  $ ipython -pylab
+  
+if you are using an older version of `IPython <ipython.org>`_.
+
+On Windows, after you make the directory, you can make a shift-right click in 
+it in Windows Explorer and then select :menuselection:`Open command window here`
+option. 
+
+
+Import from ProDy
+===============================================================================
+
+To begin the Tutorial, import all the functions and classes from ProDy into the
+current namespace as follows:
 
 >>> from prody import *
 
-There are other ways to import ProDy contents. You may use 
-``import prody as pd`` and prefix all functions calls with ``pd.``, 
-if you prefer not to overcrowd your namespace.
-Alternatively, if you want to use functions in a specific module, 
-:mod:`.proteins` let's say, you can use ``from prody.proteins import *``. 
-You should, however, avoid using ``from prody.proteins.pdbfile import *``, 
-because location of methods in submodules may change without notice.
+There are other ways to import ProDy contents.  You may use 
+``import prody as pd`` and prefix all functions calls with ``pd.``, if you 
+prefer not to overcrowd your namespace.  Alternatively, if you want to use 
+functions in a specific module, :mod:`.proteins` let's say, you can use 
+``from prody.proteins import *``.  You should, however, avoid using 
+``from prody.proteins.pdbfile import *``, because location of methods in 
+submodules may change without notice.
 
 .. plot::
    :nofigs: 
@@ -88,15 +110,32 @@ can take a quick look at what you parsed using :func:`.showProtein` function:
    
    plt.close('all')
 
-:func:`.parsePDB` returns data in an :class:`.AtomGroup` 
-instance. 
-
-
-Atomic data
+More examples
 -------------------------------------------------------------------------------
 
-To get information on an :class:`.AtomGroup` instance, 
-type in the variable name and hit :kbd:`enter` key:
+:func:`.parsePDB` function is very flexible and can be extremely
+efficient depending on what you want to extract from a PDB file.  It can be 
+used to parse specific chains, models, alternate locations, or well-defined 
+subsets of atoms from a file.  A detailed usage example can be found in 
+:ref:`parsepdb`.  
+
+ProDy can parse other file types, including :file:`.psf` and :file:`.pqr` files.
+All of the functions for accessing and handling protein structural data are 
+described in :mod:`.proteins` module reference documentation.
+Also, :ref:`fetchpdb` and :ref:`blastpdb` examples show other ways to 
+access the Protein Data Bank (|pdb|) content.
+
+For more details on atomic objects see :ref:`atomic`.  
+:class:`.AtomGroup` instances can be build from scratch or 
+parsers for other file types (e.g. mol2) can be developed. The example in 
+:ref:`atomgroup` can be helpful to this aim.
+
+Atomic data
+===============================================================================
+
+:func:`.parsePDB` returns data in an :class:`.AtomGroup` instance.  
+To get information on an :class:`.AtomGroup` instance, type in the 
+variable name and hit :kbd:`enter` key:
 
 >>> structure
 <AtomGroup: 1p38 (2962 atoms)>
@@ -126,7 +165,7 @@ instances:
 >>> atom
 <Atom: N from 1p38 (index 0)>
 
-Not that all ``get/set`` functions defined for :class:`.AtomGroup` 
+Note that all ``get/set`` functions defined for :class:`.AtomGroup` 
 instances are also defined for :class:`.Atom` instances, using singular
 form of the function name.  
 
@@ -180,26 +219,6 @@ Writing a chain:
 As you may have noticed, this function returns the file name after it is
 successfully written.  This is a general behavior for ProDy output functions.
 For more PDB writing examples see :ref:`writepdb`.
-
-More examples
--------------------------------------------------------------------------------
-
-:func:`.parsePDB` function is very flexible and can be extremely
-efficient depending on what you want to extract from a PDB file.  It can be 
-used to parse specific chains, models, alternate locations, or well-defined 
-subsets of atoms from a file.  A detailed usage example can be found in 
-:ref:`parsepdb`.  
-
-ProDy can parse other file types, including :file:`.psf` and :file:`.pqr` files.
-All of the functions for accessing and handling protein structural data are 
-described in :mod:`.proteins` module reference documentation.
-Also, :ref:`fetchpdb` and :ref:`blastpdb` examples show other ways to 
-access the Protein Data Bank (|pdb|) content.
-
-For more details on atomic objects see :ref:`atomic`.  
-:class:`.AtomGroup` instances can be build from scratch or 
-parsers for other file types (e.g. mol2) can be developed. The example in 
-:ref:`atomgroup` can be helpful to this aim.
 
 
 Atom selections
@@ -287,9 +306,8 @@ Selection operations
 Selections simplified
 -------------------------------------------------------------------------------
 
-In interactive sessions, typing in ``.select('backbone')`` or even 
-``.select('bb')`` may be time consuming.  An alternative to this is using
-dot operator:
+In interactive sessions, an alternative to typing in ``.select('protein')`` 
+or ``.select('backbone')`` is using dot operator:
 
 >>> structure.protein
 <Selection: 'protein' from 1p38 (2833 atoms)>
@@ -313,13 +331,17 @@ selection engine, without the need for writing nested loops with comparisons
 or changing the source code.  See the following pages:
 
   * :ref:`selections` for description of all selection keywords
-  * :ref:`selection-operations` for handy features of 
-    :class:`.Selection` objects
+  * :ref:`selection-operations` for handy features of :class:`.Selection`
   * :ref:`contacts` for selecting interacting atoms
+  
+
+Measure and Transform
+===============================================================================
 
 
-ProDy verbosity
--------------------------------------------------------------------------------
+
+ProDy Verbosity
+===============================================================================
 
 Finally, you might have noted that ProDy prints some information to the console
 after parsing a file or doing some calculations. For example, PDB parser will 
@@ -330,7 +352,7 @@ print what was parsed and how long it took to the screen::
 
 This behavior is useful in interactive sessions, but may be problematic for
 automated tasks as the messages are printed to stderr. The level of verbosity 
-can be adjusted using :func:`setVerbosity` function, and 
+can be adjusted using :func:`.setVerbosity` function, and 
 ``setVerbosity(None)`` will stop all information messages.
 
 |questions|

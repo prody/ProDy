@@ -1,4 +1,4 @@
-.. _commands-tutorial::
+.. _commands-tutorial:
 
 *******************************************************************************
 Commands Tutorial

@@ -42,11 +42,11 @@ ProDy documentation is organized in three main sections:
 
   * :mod:`.atomic` - efficient handling of atomic data
   * :mod:`.dynamics` - analysis and modeling of protein dynamics
-  * :mod:`.ensemble` - analysis of ensembles and trajectories
-  * :mod:`.measure` - analysis of geometrical properties 
+  * :mod:`.ensemble` - analysis of arbitrary conformational ensembles
+  * :mod:`.measure` - measure properties, transform coordinates 
   * :mod:`.proteins` - structure analysis, IO, and data retrieval
-  * :mod:`.select` - atom selections
   * :mod:`.trajectory` - trajectory IO
+  * :mod:`.utilities` - helper functions and classes
   
 In interactive sessions, the reference documentation can be accessed 
 using the built-in Python function :func:`help`:: 

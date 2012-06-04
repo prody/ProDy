@@ -4,6 +4,10 @@
 Dynamics Analysis
 *******************************************************************************
 
+In this section, we will show how to perform quick PCA and ANM analysis 
+using a solution structure of ubiquitin.  If you started a new Python session,
+import ProDy contents:
+
 >>> from prody import *
 
 .. plot::
@@ -20,10 +24,8 @@ Dynamics Analysis
 PCA Calculations
 ===============================================================================
 
-We show how to perform principal component analysis (:class:`.PCA`) 
-of a set of NMR models for ubiquitin (PDB ID: 2k39).
-
-Parse and align the coordinate data:
+We perform principal component analysis (:class:`.PCA`) of NMR models 
+in PDB file 2k39 as follows:
 
 >>> ubi = parsePDB('2k39', subset='calpha')
 >>> ubi_selection = ubi.select('resnum < 71')
@@ -54,25 +56,6 @@ function:
 This functions writes data in binary format, so is an efficient way of 
 storing data permanently.  In a later session, this data can be loaded using 
 :func:`.loadModel` function.
-
-Write NMD Files 
-===============================================================================
-
-The :func:`.writeNMD` function writes PCA results 
-in NMD format. NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
-
->>> writeNMD('ubi_pca.nmd', pca[:3], ubi_selection)
-'ubi_pca.nmd'
-
-Write Data Files 
-===============================================================================
-
-Additionally, results can be written in plain text files for analysis with
-other programs using the :func:`.writeArray` function:
-
->>> writeArray('ubi_pca_modes.txt', pca.getArray(), format='%8.3f')
-'ubi_pca_modes.txt'
-
 
 ANM Calculations
 ===============================================================================
@@ -168,6 +151,22 @@ This was a short example for a simple case. :ref:`pca` section contains more
 comprehensive examples for heterogeneous datasets. :ref:`pca-xray-analysis` 
 shows more analysis function usage examples and :ref:`dynamics` module 
 documentation lists all of the analysis functions. 
+
+Output Data Files 
+===============================================================================
+
+The :func:`.writeNMD` function writes PCA results in NMD format.  
+NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
+
+>>> writeNMD('ubi_pca.nmd', pca[:3], ubi_selection)
+'ubi_pca.nmd'
+
+Additionally, results can be written in plain text files for analysis with
+other programs using the :func:`.writeArray` function:
+
+>>> writeArray('ubi_pca_modes.txt', pca.getArray(), format='%8.3f')
+'ubi_pca_modes.txt'
+
 
 External Data 
 ===============================================================================

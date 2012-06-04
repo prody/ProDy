@@ -1,47 +1,60 @@
 .. _nmwiz:
 
 *******************************************************************************
-Normal Mode Wizard
+Getting NMWiz
 *******************************************************************************
 
-Normal Mode Wizard (NMWiz) is a `VMD <www.ks.uiuc.edu/Research/vmd/>`_ 
-plugin designed for visual comparative analysis of normal mode data, 
-i.e. modes may come from principal component, essential dynamics, normal 
-mode analysis or may be any vector describing a molecular motion. 
+Normal Mode Wizard (NMWiz) is a VMD plugin designed for visual comparative 
+analysis of normal mode data.  NMWiz is available with `VMD`_ 1.9.1 or later.
 
-NMWiz can be used for:
+.. _VMD: http://www.ks.uiuc.edu/Development/Download/download.cgi?PackageName=VMD
 
-  * drawing normal modes arrows
-  * making animations (conformations along a normal mode)
-  * plotting square-fluctuations (labeling and highlighting residues)
-  * comparing two structures and drawing deformation arrows
-  
-NMWiz is available with `VMD 1.9.1`_  or later.
-
-.. _VMD 1.9.1: http://www.ks.uiuc.edu/Development/Download/download.cgi?PackageName=VMD
-  
-Following molecular representations are prepared using NMWiz:
-  
-+--------------------------------------------------+------------------------------------------------+------------------------------------------------+
-|                                                  | Example figures                                |                                                |
-+==================================================+================================================+================================================+
-| .. image:: /_static/gallery/p38_modes_123_sm.png | .. image:: /_static/gallery/p38_anm_pca_sm.png | .. image:: /_static/gallery/p38_network_sm.png |
-+--------------------------------------------------+------------------------------------------------+------------------------------------------------+
-| ANM modes 1-3 for p38 MAPK                       | ANM and PCA modes for p38                      | p38 network model                              |
-+--------------------------------------------------+------------------------------------------------+------------------------------------------------+
-
-NMWiz can also be used to generate trajectories on the fly.  The movie shows 
-normal mode representation and animation generated using NMWiz.  Anisotropic 
-network model modes were calculated using ProDy.  Movie was generated using 
-`VMD Movie Plugin <http://www.ks.uiuc.edu/Research/vmd/plugins/vmdmovie/>`_.
-
-.. only:: html
-
-   .. youtube:: 1OUzdzm68YY
-      :width: 400
-
-See `NMWiz documentation`_ or :ref:`nmwiz-tutorial` for usage details.  NMWiz 
+See :ref:`nmwiz-tutorial` or `NMWiz documentation`_ for usage details.  NMWiz 
 recognizes :ref:`nmd-format`.
 
 .. _NMWiz documentation: http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/
 
+
+Manual Updates
+-------------------------------------------------------------------------------
+
+NMWiz plugin distributed with VMD is updated when changes and improvements 
+are available (see :ref:`changes`).  In the case that updates are not yet 
+available in the latest version of VMD, you can follow below instructions 
+to update your NMWiz copy.  These instructions apply to all computer 
+architectures and operating systems that VMD runs on, but may require 
+root (or administrator) access.
+
+#. Retrieve plugin files from 
+   https://github.com/abakan/ProDy/tree/master/plugins/nmwiz
+  
+  * :file:`nmwiz.tcl`
+  * :file:`pkgIndex.tcl`
+
+#. Check the version number in :file:`pkgIndex.tcl`.
+
+#. Copy files into :file:`nmwiz{x.y}` folder in the VMD plugins directory 
+   (:file:`$VMDDIR/plugins/noarch/tcl/`).  You may need to make the directory
+   first.
+
+#. If this is not an update, insert the following line to 
+   :file:`$VMDDIR/scripts/vmd/loadplugins.tcl` file in VMD directory at 
+   line number 143 (or a suitable place you like)::
+
+    vmd_install_extension nmwiz nmwiz_tk "Analysis/Normal Mode Wizard"
+
+
+If you are not sure where VMD directory is located, run :program:`vmd`, and 
+type the following command line in the VMD console::
+
+    global env; puts $env(VMDDIR)
+
+Once you perform these steps, NMWiz GUI will show up in 
+:menuselection:`Extensions --> Analysis` menu of VMD main window. 
+It is also possible to make it appear in another :menuselection:`Extensions` 
+submenu by replacing *Analysis* in step 3 with another submenu name.
+
+Alternatively, instructions for installing `3rd-party`_ plugins may be helpful
+too.
+
+.. _3rd-party: http://physiology.med.cornell.edu/faculty/hweinstein/vmdplugins/installation.html
