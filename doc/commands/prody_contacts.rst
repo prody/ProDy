@@ -25,8 +25,8 @@ Running :command:`prody contacts -h` displays::
                           selection string for target
     -r FLOAT, --radius FLOAT
                           contact radius (default: 4.0)
-    -t STR, --extend STR  output same residue residue, chain, or segment as the
-                          contacts
+    -t STR, --extend STR  output same residue, chain, or segment as contacting
+                          atoms
     -p STR, --prefix STR  output filename prefix (default: target filename)
     -x STR, --suffix STR  output filename suffix (default: _contacts)
 
@@ -38,8 +38,7 @@ Running :command:`prody contacts --examples` displays::
   Identify contacts of a target structure with one or more ligands.
   
   Fetch PDB structure 1zz2, save PDB files for individual ligands, and
-  identify
-  contacting residues of the target protein:
+  identify contacting residues of the target protein:
   
       $ prody select -o B11 1zz2 "resname B11"
       $ prody select -o BOG 1zz2 "resname BOG"
