@@ -240,7 +240,7 @@ ATOMIC_ATTRIBUTES = ATOMIC_ATTRIBUTES
 KEYWORD_RESNAMES = {
     'protein': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
                 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
-                'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 
+                'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 'HIP',
                 'GLX', 'ASX', 'SEC', 'PYL', 'XLE', 'CSO', 'TPO', 'PTR', 'SEP'],
     'nucleic': ['GUA', 'ADE', 'CYT', 'THY', 'URA', 'DA', 'DC', 'DG', 'DT', 
                 'A', 'C', 'G', 'T', 'U'],
