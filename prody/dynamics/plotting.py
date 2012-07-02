@@ -511,11 +511,11 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     return show
 
 
-def showOverlapTable(rows, cols, **kwargs):
-    """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *rows* and 
-    *cols* are sets of normal modes, and correspond to rows and columns of the 
-    displayed overlap matrix.  Note that mode indices are incremented by 1.  
-    List of modes should contain a set of contiguous modes from the same model. 
+def showOverlapTable(modes_x, modes_y, **kwargs):
+    """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *modes_x* 
+    and *modes_y* are sets of normal modes, and correspond to x and y axes of 
+    the plot.  Note that mode indices are incremented by 1.  List of modes 
+    is assumed to contain a set of contiguous modes from the same model. 
     
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
         
@@ -538,22 +538,23 @@ def showOverlapTable(rows, cols, **kwargs):
     
     import matplotlib.pyplot as plt
     
-    overlap = abs(calcOverlap(rows, cols))
-    if isinstance(rows, NMA):
-        rows = rows[:]
-    if isinstance(cols, NMA):
-        cols = cols[:]
+    overlap = abs(calcOverlap(modes_y, modes_x))
+    if overlap.ndim == 0:
+        overlap = np.array([[overlap]])
+    elif overlap.ndim == 1:
+        overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
+
     cmap = kwargs.pop('cmap', plt.cm.jet)
     norm = kwargs.pop('norm', plt.normalize(0, 1))
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
-    x_range = np.arange(1, len(cols)+1)
+    x_range = np.arange(1, modes_x.numModes() + 1)
     plt.xticks(x_range-0.5, x_range)
-    plt.xlabel(str(cols))
-    y_range = np.arange(1, len(rows)+1)
+    plt.xlabel(str(modes_x))
+    y_range = np.arange(1, modes_y.numModes() + 1)
     plt.yticks(y_range-0.5, y_range)
-    plt.ylabel(str(rows))
-    plt.axis([0, len(cols), 0, len(rows)])
+    plt.ylabel(str(modes_y))
+    plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
     return show
 
 def showCrossCorr(modes, *args, **kwargs):
