@@ -338,7 +338,11 @@ class VectorBase(object):
             return self._getArray().reshape((self.numAtoms(), 3))
         else:
             return self._getArray()
+     
+    def numModes(self):   
+        """Return 1."""
         
+        return 1
 
 class Mode(VectorBase):
 
