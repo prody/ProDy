@@ -1815,6 +1815,8 @@ setmode, getlen, setlen, addmode"
           $w.active_mode.active.list.menu add radiobutton -label $index \
               -variable ${ns}::activemode \
               -command "${ns}::changeMode;"
+          $w.graphics_options.copyfrom.list.menu add radiobutton -label $index \
+              -variable ${ns}::copyfrom
 
           variable arridlist          
           lappend arridlist -1
@@ -1922,6 +1924,7 @@ setmode, getlen, setlen, addmode"
         variable title $t
         variable lengths $l
         variable indices $i
+        variable copyfrom [lindex $i 0]
         variable atomnames $an
         variable resnames $rn
         variable chainids $ci
@@ -2421,6 +2424,27 @@ setmode, getlen, setlen, addmode"
         if {$autoupdate} {
           [namespace current]::drawArrows
         }
+      }
+      
+      proc copySettings {} {
+        
+        variable indices
+        variable copyfrom 
+        set from [lsearch $indices $copyfrom]
+        variable hide_shorter_list 
+        variable cylinder_radius_list
+        variable cone_radius_list
+        variable cone_height_list
+        variable resolution_list
+        variable material_list
+      
+        variable hide_shorter [lindex $hide_shorter_list $from]
+        variable cylinder_radius [lindex $cylinder_radius_list $from]
+        variable cone_radius [lindex $cone_radius_list $from]
+        variable cone_height [lindex $cone_height_list $from]
+        variable resolution [lindex $resolution_list $from]
+        variable material [lindex $material_list $from]
+        [namespace current]::autoUpdate
       }
       
       proc evalRMSD {} {
@@ -3172,6 +3196,22 @@ setmode, getlen, setlen, addmode"
               -command "${ns}::autoUpdate"  
         } 
         pack $wgo.resolution_frame.list -side left -anchor w -fill x
+        
+        grid [label $wgo.copyfrom_label -text "Copy settings from mode:"] \
+          -row 22 -column 1 -sticky w
+        grid [frame $wgo.copyfrom] \
+          -row 22 -column 2 -sticky w
+        tk_optionMenu $wgo.copyfrom.list ${ns}::copyfrom 0
+        $wgo.copyfrom.list.menu delete 0
+        variable indices
+        variable lengths
+        foreach index $indices length $lengths {
+          $wgo.copyfrom.list.menu add radiobutton -label $index \
+              -variable ${ns}::copyfrom
+        }
+        button $wgo.copyfrom.copy -text "Copy" -command "${ns}::copySettings"
+        pack $wgo.copyfrom.list $wgo.copyfrom.copy -side left -anchor w -fill x
+        
 
         set wpgo [labelframe $w.prograph_options -text "Molecule Representations" -bd 2]
         
