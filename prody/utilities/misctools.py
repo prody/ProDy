@@ -20,9 +20,12 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from textwrap import wrap as textwrap
+
 from numpy import unique
 
-__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement']
+__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
+           'tabulate', 'wrap']
         
 class Everything(object):
     
@@ -114,3 +117,47 @@ def dictElement(element, prefix=None):
         else:
             dict_[tag] = child
     return dict_
+
+
+def wrap(text, width=70, join='\n'):
+    """Return wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
+    """
+    
+    return join.join(textwrap(text, width))
+    
+def tabulate(*cols, **kwargs):
+    """Return a table for columns of data. 
+    
+    :kwarg header: make first row a header, default is **True**
+    :type header: bool
+    :kwarg width: 79
+    :type width: int
+    :kwargs space: number of white space characters between columns,
+         default is 2
+    :type space: int
+    
+    """
+    
+    space = kwargs.get('space', 2)
+    widths = [max(map(len, cols[0]))]
+    widths.append(kwargs.get('width', 79) - sum(widths) - len(widths) * space)
+    space *= ' '
+    bars = (space).join(['=' * width for width in widths])
+    lines = [bars]
+    
+    for irow, items in enumerate(zip(*cols)):
+        rows = []
+        map(rows.append, [textwrap(item, widths[icol]) if icol else 
+                          [item.ljust(widths[icol])] 
+                          for icol, item in enumerate(items)])
+        maxlen = max(map(len, rows))
+        if maxlen > 1:     
+            for i, row in enumerate(rows):
+                row.extend([' ' * widths[i]] * (maxlen - len(row)))
+        for line in zip(*rows):
+            lines.append(space.join(line))
+        if not irow and kwargs.get('header', True):
+            lines.append(bars)
+    if irow > 1:
+        lines.append(bars)
+    return '\n'.join(lines)

@@ -57,6 +57,7 @@ Miscellaneous
   * :func:`.alnum`
   * :func:`.importLA`
   * :func:`.dictElement`
+  * :func:`.wrap`
 
 """
 
