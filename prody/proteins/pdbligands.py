@@ -204,9 +204,9 @@ def fetchPDBLigand(cci, filename=None):
     model.setResnums(resnums)
     model.setElements(elements)
     model.setCharges(charges)
-    model.setData('leaving_atom_flags', leaving_atom_flags)
-    model.setData('aromatic_flags', aromatic_flags)
-    model.setData('stereo_configs', stereo_configs)
+    model.setFlags('leaving_atom_flags', leaving_atom_flags)
+    model.setFlags('aromatic_flags', aromatic_flags)
+    model.setFlags('stereo_configs', stereo_configs)
     model.setData('ordinals', ordinals)
     model.setData('alternate_atomnames', alternate_atomnames)
     dict_['model'] = model

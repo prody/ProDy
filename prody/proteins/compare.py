@@ -28,7 +28,7 @@ PW2 = None
 from prody.atomic import AtomMap as AM
 from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
-from prody.atomic import getKeywordResnames
+from prody.atomic import flags
 from prody.measure import calcTransformation, calcRMSD, printRMSD, calcDistance
 from prody import LOGGER, SELECT
 
@@ -260,7 +260,7 @@ class SimpleChain(object):
         gaps = self._gaps
         residues = list(chain.iterResidues())
         temp = residues[0].getResnum()-1
-        protein_resnames = set(getKeywordResnames('protein'))
+        protein_resnames = flags.AMINOACIDS
         for res in chain:
             if not res.getResname() in protein_resnames:
                 continue

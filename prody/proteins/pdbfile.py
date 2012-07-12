@@ -28,7 +28,7 @@ import os.path
 import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup
-from prody.atomic import getBackboneAtomNames, getKeywordResnames 
+from prody.atomic import flags 
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, Everything
 from prody import LOGGER, SETTINGS
@@ -311,9 +311,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         if subset == 'ca':
             subset = set(('CA',))
         elif subset in 'bb':
-            subset = set(getBackboneAtomNames())
+            subset = flags.BACKBONE
         only_subset = True
-        protein_resnames = set(getKeywordResnames('protein'))
+        protein_resnames = flags.AMINOACIDS
     else:
         only_subset = False
     if chain is None:
@@ -336,7 +336,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     resnames = np.zeros(asize, dtype=ATOMIC_FIELDS['resname'].dtype)
     resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
     chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
-    hetero = np.zeros(asize, dtype=ATOMIC_FIELDS['hetero'].dtype)
+    hetero = np.zeros(asize, dtype=bool)
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
@@ -479,8 +479,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     np.zeros(asize, ATOMIC_FIELDS['resnum'].dtype)))
                 chainids = np.concatenate((chainids,
                     np.zeros(asize, ATOMIC_FIELDS['chain'].dtype)))
-                hetero = np.concatenate((hetero,
-                    np.zeros(asize, ATOMIC_FIELDS['hetero'].dtype)))
+                hetero = np.concatenate((hetero, np.zeros(asize, bool)))
                 altlocs = np.concatenate((altlocs,
                     np.zeros(asize, ATOMIC_FIELDS['altloc'].dtype)))
                 icodes = np.concatenate((icodes,
@@ -553,7 +552,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setResnames(resnames[:acount])
                 atomgroup.setResnums(resnums[:acount])
                 atomgroup.setChids(chainids[:acount])
-                atomgroup.setHeteros(hetero[:acount])
+                atomgroup.setFlags('hetatm', hetero[:acount])
                 atomgroup.setAltlocs(altlocs[:acount])
                 atomgroup.setIcodes(np.char.strip(icodes[:acount]))
                 atomgroup.setSerials(serials[:acount])
@@ -641,7 +640,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setResnames(resnames[:acount])
         atomgroup.setResnums(resnums[:acount])
         atomgroup.setChids(chainids[:acount])
-        atomgroup.setHeteros(hetero[:acount])
+        atomgroup.setFlags('hetatm', hetero[:acount])
         atomgroup.setAltlocs(altlocs[:acount])
         atomgroup.setIcodes(np.char.strip(icodes[:acount]))
         atomgroup.setSerials(serials[:acount])
@@ -790,7 +789,9 @@ def writePDBStream(stream, atoms, model=None):
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
     hetero = ['ATOM'] * n_atoms 
-    heteroflags = atoms._getHeteros()
+    heteroflags = atoms._getFlags('hetatm')
+    if heteroflags is None:
+        heteroflags = atoms._getFlags('hetero')
     if heteroflags is not None:
         hetero = np.array(hetero, '|S6')
         hetero[heteroflags] = 'HETATM'

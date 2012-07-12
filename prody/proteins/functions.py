@@ -71,7 +71,9 @@ def writePQR(filename, atoms):
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
     hetero = ['ATOM'] * n_atoms 
-    heteroflags = atoms._getHeteros()
+    heteroflags = atoms._getFlags('hetatm')
+    if heteroflags is None:
+        heteroflags = atoms._getFlags('hetero')
     if heteroflags is not None:
         hetero = np.array(hetero, '|S6')
         hetero[heteroflags] = 'HETATM'
