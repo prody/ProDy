@@ -21,24 +21,29 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from textwrap import wrap
 
 from numpy import load, savez, zeros
 
 from prody.utilities import openFile, rangeString
 from prody import LOGGER
 
+import flags
+import select
+
 from atomic import Atomic
 from atomgroup import AtomGroup
 from bond import trimBonds, evalBonds
-from fields import ATOMIC_ATTRIBUTES
+from fields import ATOMIC_FIELDS
 from selection import Selection
 
-__all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms']
+__all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
+           'isReserved', 'getReservedWords',]
 
 
-SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindices'])
-SAVE_SKIP_POINTER = set(['numbonds', 'fragindices', 'segindices', 'chindices', 
-                         'resindices'])
+SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
+SAVE_SKIP_POINTER = set(['numbonds', 'fragindex', 'segindex', 'chindex', 
+                         'resindex'])
 
 def saveAtoms(atoms, filename=None, **kwargs):
     """Save *atoms* in ProDy internal format.  All atomic classes are accepted 
@@ -76,9 +81,9 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bonds'] = bonds
             attr_dict['bmap'] = bmap
             attr_dict['numbonds'] = ag._data['numbonds']
-            frags = ag._data['fragindices']
+            frags = ag._data['fragindex']
             if frags is not None:
-                attr_dict['fragindices'] = frags
+                attr_dict['fragindex'] = frags
         else:
             bonds = trimBonds(bonds, atoms._getIndices())
             attr_dict['bonds'] = bonds
@@ -124,7 +129,7 @@ def loadAtoms(filename):
     for key, data in attr_dict.iteritems():
         if key in SKIPLOAD:
             continue
-        if key in ATOMIC_ATTRIBUTES:
+        if key in ATOMIC_FIELDS:
             ag._data[key] = data
         else:
             ag.setData(key, data)
@@ -140,55 +145,59 @@ def iterFragments(atoms):
     """Yield fragments, connected subsets in *atoms*, as :class:`.Selection` 
     instances."""
     
-    if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance')
-    if isinstance(atoms, AtomGroup):
-        ag = atoms
-        atoms.iterFragments().next()
-        fragments = atoms._fragments
-    else:
+    try:
+        return atoms.iterFragments()
+    except AttributeError:
+        pass
+    
+    try:
         ag = atoms.getAtomGroup()
+    except AttributeError:
+        raise TypeError('atoms must be an Atomic instance')
+        
+    bonds = atoms._iterBonds()
+    return _iterFragments(atoms, ag, bonds)
     
-        bonds = atoms._iterBonds()
+def _iterFragments(atoms, ag, bonds):
     
-        fids = zeros((len(ag)), int)
-        fdict = {}
-        c = 0
-        for a, b in bonds:
-            af = fids[a]
-            bf = fids[b]
-            if af and bf:
-                if af != bf:
-                    frag = fdict[af]
-                    temp = fdict[bf]
-                    fids[temp] = af
-                    frag.extend(temp)
-                    fdict.pop(bf)
-            elif af:
-                fdict[af].append(b)
-                fids[b] = af
-            elif bf:
-                fdict[bf].append(a)
-                fids[a] = bf
-            else:
-                c += 1
-                fdict[c] = [a, b]
-                fids[a] = fids[b] = c
-        fragments = []
-        append = fragments.append
-        fidset = set()
-        indices = atoms._getIndices()
-        for i, fid in zip(indices, fids[indices]):
-            if fid in fidset:
-                continue
-            elif fid:
-                fidset.add(fid)
-                indices = fdict[fid]
-                indices.sort()
-                append(indices)
-            else:
-                # these are non-bonded atoms, e.g. ions
-                append([i])
+    fids = zeros((len(ag)), int)
+    fdict = {}
+    c = 0
+    for a, b in bonds:
+        af = fids[a]
+        bf = fids[b]
+        if af and bf:
+            if af != bf:
+                frag = fdict[af]
+                temp = fdict[bf]
+                fids[temp] = af
+                frag.extend(temp)
+                fdict.pop(bf)
+        elif af:
+            fdict[af].append(b)
+            fids[b] = af
+        elif bf:
+            fdict[bf].append(a)
+            fids[a] = bf
+        else:
+            c += 1
+            fdict[c] = [a, b]
+            fids[a] = fids[b] = c
+    fragments = []
+    append = fragments.append
+    fidset = set()
+    indices = atoms._getIndices()
+    for i, fid in zip(indices, fids[indices]):
+        if fid in fidset:
+            continue
+        elif fid:
+            fidset.add(fid)
+            indices = fdict[fid]
+            indices.sort()
+            append(indices)
+        else:
+            # these are non-bonded atoms, e.g. ions
+            append([i])
 
     acsi = atoms.getACSIndex()
     for indices in fragments:
@@ -201,6 +210,34 @@ def findFragments(atoms):
     :func:`iterFragments`."""
     
     return list(iterFragments(atoms))
+
+
+RESERVED = set(ATOMIC_FIELDS.keys() +
+               ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
+                'bonded', 'exbonded', 'to', 'all', 'none'] +
+               flags.PLANTERS.keys() +
+               select.FUNCTION_MAP.keys() + 
+               select.KEYWORDS_SYNONYMS.keys() + 
+               list(select.KEYWORDS_VALUE_PAIRED) +
+               ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
+                'bonds', 'bmap'])
+
+def isReserved(word):
+    """Return **True** if *word* is a reserved word (:func:`getReservedWords`).
+    """
+    
+    return word in RESERVED
+        
+def getReservedWords():
+    """Return list of words that are reserved for atom selections and internal 
+    variables. These words are: """
+
+    words = list(RESERVED)
+    words.sort()
+    return words
+
+_ = getReservedWords.__doc__ + '*' + '*, *'.join(getReservedWords()) + '*.'
+getReservedWords.__doc__ = '\n'.join(wrap(_, 79))
 
 
 def isAtomic(name, atoms, atype=Atomic, error=TypeError):
@@ -229,4 +266,4 @@ def isSubset(name, atoms, ag, error=ValueError):
                     .format(name, str(atoms), str(ag)))
     return issubset
         
-    
+
