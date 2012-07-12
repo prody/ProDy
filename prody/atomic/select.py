@@ -16,15 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" This module defines a class for selecting subsets of atoms and functions 
-to learn and change definitions of selection keywords.
+""" This module defines a class for selecting subsets of atoms.  Read this
+page in interactive sessions using ``help(select)``.
 
 .. _selections:
 
 
 Atom selections
 ===============================================================================
-
 
 ProDy offers a powerful atom selector for :class:`~.AtomGroup` and other 
 :mod:`~prody.atomic` classes.  The keywords, selection grammar, and features 
@@ -36,14 +35,20 @@ contacts.  This section describes the keywords and selection syntax.
 |more| See :ref:`contacts` and :ref:`selection-operations` for more usage
 examples.
 
-The contents of this web page can be viewed in an interactive session as 
-follows:
-    
->>> from prody import *
->>> # help(select)
 
+Atom flags 
+===============================================================================
+
+All :ref:`flags` can be used as keywords in atom selections:
+   
+>>> from prody import * 
+>>> p = parsePDB('1ubi')
+>>> p.select('protein')
+<Selection: 'protein' from 1ubi (602 atoms)>
+>>> p.select('water')
+<Selection: 'water' from 1ubi (81 atoms)>
     
-Atom attributes 
+Atom data fields 
 ===============================================================================
 
 Below is the list of atomic attributes that can be used in atom selections:
@@ -83,14 +88,14 @@ radius [*]       float, range    atomic radius
 ===============  ==============  ============================================
 
 **[*]** These atomic attributes are not set by the PDB parser when a PDB file 
-is parsed. Using them before they are set will raise selection error. 
-Secondary structure assignments can be made using :func:`~.assignSecstr` 
+is parsed. Using them before they are set will raise a selection error. 
+Secondary structure assignments can be made using :func:`.assignSecstr` 
 function.
 
 **[†]** Alternate locations are parsed as alternate coordinate sets. This
 keyword will work for alternate location specified by "A". This to work for
 alternate locations indicated by other letters, they must be parsed 
-specifically by passing the identifier to the :func:`~.parsePDB`.
+specifically by passing the identifier to the :func:`.parsePDB`.
 
 **[‡]** Atoms with unspecified alternate location/chain/segment/icode/secondary 
 structure identifiers can be selected using "_". This character is replaced 
@@ -106,8 +111,8 @@ to the residue number. "_" stands for empty insertion code. For example:
 
 **[¶]** Distinct residues, chains, and segments can be selected using 
 *resindex*, *chindex*, and *segindex* keywords, respectively.  Unique
-numbers to these entitites are assigned by :class:`~.HierView` class
-upon building of a hierarchical view for an :class:`~.AtomGroup`.
+numbers to these entitites are assigned by :class:`.HierView` class
+upon building of a hierarchical view for an :class:`.AtomGroup`.
 Note that hierarchical views are build automatically when needed.
 
 **[\\\\]** Distinct fragments are connected subsets of atoms.  Fragments are 
@@ -171,342 +176,6 @@ For example ``'resname "A.."'`` will select residues whose names start with
 letter A and are three-characters long.
 
 For more information on regular expressions see :mod:`re`. 
-
-"""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
-
-import re as RE
-from types import NoneType
-
-import numpy as np
-from numpy import ndarray, ones, zeros, invert, unique, concatenate
-
-import pyparsing as pp
-pp.ParserElement.enablePackrat()
-
-from prody import LOGGER, SETTINGS
-
-from atomic import Atomic
-from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
-
-from atomgroup import AtomGroup 
-from chain import Chain, getSequence, AAMAP
-from pointer import AtomPointer
-from selection import Selection
-from segment import Segment
-from atommap import AtomMap
-
-from prody.utilities import rangeString
-from prody.kdtree import KDTree
-
-DEBUG = 0
-
-__all__ = ['Select', 'SelectionError', 'TypoWarning',
-           'getKeywordResnames', 'setKeywordResnames',
-           'getBackboneAtomNames', 'setBackboneAtomNames',
-           'getBackboneAtomNames', 'setBackboneAtomNames',
-           'getAtomNameRegex', 'setAtomNameRegex',
-           'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
-           'getReservedWords']
-
-KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
-                       'segment', 'altloc', 'secondary', 'icode',
-                       'chid', 'secstr', 'segname', 'sequence'])
-
-ALNUM_VALLEN = {}
-for key, field in ATOMIC_FIELDS.iteritems():
-    if isinstance(field.dtype, str) and field.dtype.startswith('|S'):
-        itemsize = np.dtype(field.dtype).itemsize
-        ALNUM_VALLEN[key] = itemsize
-        if field.synonym:
-            ALNUM_VALLEN[field.synonym] = itemsize
-
-KEYWORDS_INTEGER = set(['serial', 'index', 'resnum', 'resid', 
-                        'segindex', 'chindex', 'resindex', 
-                        'fragindex', 'fragment', 'numbonds'])
-KEYWORDS_FLOAT = set(['x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
-                      'radius', 'charge'])
-KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
-
-KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING)
-KEYWORDS_SYNONYMS = {}
-for key, field in ATOMIC_FIELDS.iteritems(): 
-    if field.synonym:
-        KEYWORDS_SYNONYMS[field.synonym] = key
-ATOMIC_ATTRIBUTES = ATOMIC_ATTRIBUTES
-
-KEYWORD_RESNAMES = {
-    'protein': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 
-                'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
-                'SER', 'THR', 'TRP', 'TYR', 'VAL', 'HSD', 'HSE', 'HSP', 'HIP',
-                'GLX', 'ASX', 'SEC', 'PYL', 'XLE', 'CSO', 'TPO', 'PTR', 'SEP'],
-    'nucleic': ['GUA', 'ADE', 'CYT', 'THY', 'URA', 'DA', 'DC', 'DG', 'DT', 
-                'A', 'C', 'G', 'T', 'U'],
-
-    'acidic': ['ASP', 'GLU', 'TPO', 'PTR', 'SEP'],
-    'aliphatic': ['ALA', 'GLY', 'ILE', 'LEU', 'VAL', 'XLE'],
-    'aromatic': ['HIS', 'PHE', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'],
-    'basic': ['LYS', 'ARG', 'HIS', 'HSP', 'HSD'],
-    'buried': 'ALA LEU VAL ILE XLE PHE CYS MET TRP'.split(),
-    'cyclic': ['HIS', 'PHE', 'PRO', 'TRP', 'TYR', 'HSD', 'HSE', 'HSP'],
-    'hydrophobic': ['ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'VAL', 
-                    'XLE'],
-    'small': ['ALA', 'GLY', 'SER'],
-    'medium': ['VAL', 'THR', 'ASP', 'ASN', 'ASX', 'PRO', 'CYS', 'SEC'],
-    
-    'water': ['HOH', 'WAT', 'TIP3', 'H2O',
-              'HH0', 'OHH', 'OH2', 'SOL', 'TIP', 'TIP2', 'TIP4'],
-    'lipid': 'DLPE DMPC DPPC GPC LPPC PALM PC PGCL POPC POPE'.split(),
-    'heme': 'HEM HEME'.split(),
-    'ion': ('AL BA CA CAL CD CES CLA CL CO CS CU CU1 CUA HG IN IOD K MG MN3 '
-            'MO3 MO4 MO5 MO6 NA NAW OC7 PB POT PT RB SOD TB TL WO4 YB ZN ZN1 '
-            'ZN2').split(),
-    'sugar': ['AGLC'],
-    
-    'at': 'ADE A THY T'.split(),
-    'cg': 'CYT C GUA G'.split(),
-    'purine': 'ADE A GUA G'.split(),
-    'pyrimidine': 'CYT C THY T URA U'.split(),
-}
-
-KEYWORD_RESNAMES_READONLY = {
-    'acyclic': 'protein and not cyclic',
-    'charged': 'acidic or basic',
-    'large': 'not (small or medium)',
-    'neutral': 'protein and not charged',
-    'polar': 'protein and not hydrophobic',
-    'surface': 'protein and not buried',
-}
-
-def _setReadonlyResidueNames():
-    protein = set(KEYWORD_RESNAMES['protein'])
-    KEYWORD_RESNAMES['acyclic'] = list(protein.difference(
-        set(KEYWORD_RESNAMES['cyclic'])))
-    KEYWORD_RESNAMES['charged'] = list(set(KEYWORD_RESNAMES['acidic'] + 
-        KEYWORD_RESNAMES['basic']))
-    KEYWORD_RESNAMES['large'] = list(protein.difference(
-        set(KEYWORD_RESNAMES['small'] + KEYWORD_RESNAMES['medium'])))
-    KEYWORD_RESNAMES['neutral'] = list(protein.difference(
-        set(KEYWORD_RESNAMES['charged'])))
-    KEYWORD_RESNAMES['polar'] = list(protein.difference(
-        set(KEYWORD_RESNAMES['hydrophobic'])))
-    KEYWORD_RESNAMES['surface'] = list(protein.difference(
-        set(KEYWORD_RESNAMES['buried'])))
-    
-_setReadonlyResidueNames()
-
-__doc__ += """
-
-Keywords arguments
-===============================================================================
-
-Below is the list of keywords defined based on residue type and/or property.
-These definitions can be retrieved or altered using :func:`getKeywordResnames` 
-and :func:`setKeywordResnames`, respectively.
-
-=============  ================================================================
-Keyword        Description
-=============  ================================================================
-"""
-keys = KEYWORD_RESNAMES.keys()
-keys.sort()
-from textwrap import wrap
-for key in keys:
-    lines = wrap('resname ' + ' '.join(KEYWORD_RESNAMES[key]))
-    if key in KEYWORD_RESNAMES_READONLY:
-        __doc__ += '{0:13s}  {1:s}\n'.format(key + ' [#]', lines[0])
-    else:
-        __doc__ += '{0:13s}  {1:s}\n'.format(key, lines[0])
-    for line in lines[1:]:
-        __doc__ += '{0:13s}  {1:s}\n'.format('', line)
-
-__doc__ += """\
-=============  ================================================================
-
-**[#]** Definitions of these keywords are based on others and cannot be changed
-directly: 
-    
-"""
-keys = KEYWORD_RESNAMES_READONLY.keys()
-keys.sort()
-for key in keys:
-    __doc__ += '  * ``{0:s}`` is ``{1:s}``\n'.format(
-        repr(key), repr(KEYWORD_RESNAMES_READONLY[key]))
-
-__doc__ += """
-
-.. _non-standard:
-
-Non-standard amino acids
--------------------------------------------------------------------------------
-
-ProDy recognizes some non-standard amino acids that are listed below.  Most
-of these amino acid types are ambiguous, phosphorylated, tautomeric, or 
-modified states of standard amino-acid types.  Residues with these 3-letter
-codes will be selected for *protein* or other suitable keywords listed above.
-Some of these non-standard amino acid types are associated with other
-heterogeneous compounds in the PDB.  Such amino acid codes, which may cause
-conflicts in atoms selections are specified in the last column. 
-
-==========  ===========================  ==============  ===  ========
-AA Code     Amino acid                   Notes           PDB  Conflict
-==========  ===========================  ==============  ===  ========
-`SEC`_ (U)  Selenocysteine               modified        Yes  No
-`ASX`_ (B)  asparagine or aspartic acid  ambiguous       Yes  No
-`GLX`_ (Z)  glutamine or glutamic acid   ambiguous       Yes  No
-XLE (J)     leucine or isoleucine        ambiguous       No   No
-`XAA`_ (X)  unspecified or unknown       unspecified     No   Yes
-`TPO`_ (T)  phosphothreonine             phosphorylated  Yes  No
-`PTR`_ (Y)  O-phosphotyrosine            phosphorylated  Yes  No
-`SEP`_ (S)  phosphoserine                phosphorylated  Yes  No
-`HIP`_ (H)  ND1-phosphohistidine         phosphorylated  Yes  No
-`CSO`_ (C)  S-hydroxycysteine            modified        Yes  No
-`HSD`_ (H)  histidine, H on ND1 (ND1-H)  prototropic     No   Yes
-            in CHARMM force field        tautomer
-`HSE`_ (H)  histidine (NE2-H) in CHARMM  prototropic     Yes  No
-            also known as homoserine in  tautomer,            
-            PDB                          modified       
-`HSP`_ (H)   histidine, protonated       protonated      No   Yes
-==========  ===========================  ==============  ===  ========
-
-.. _SEC: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=SEC
-.. _ASX: http://ligand-expo.rcsb.org/reports/A/ASX/index.html
-.. _GLX: http://ligand-expo.rcsb.org/reports/G/GLX/index.html
-.. _XAA: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=XAA
-.. _TPO: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=TPO
-.. _PTR: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=PTR
-.. _SEP: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=SEP
-.. _HIP: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HIP
-.. _CSO: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=CSO
-.. _HSD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HSD
-.. _HSE: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HSE
-.. _HSP: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HSP
-
-Additional keywords
--------------------------------------------------------------------------------
-
-Following are additional keywords whose definitions are more restricted:
-
-===============  ==============================================================
-Keyword          Description
-===============  ==============================================================
-all              all atoms
-none             nothing (returns **None**)
-hetero           non-protein/nucleic atoms, same as
-                 ``'not (protein or nucleic)'``
-calpha (ca)      Cα atoms of protein residues, same as 
-                 ``'name CA and protein'``
-backbone (bb)    backbone atoms of protein residues, same as
-                 ``'name CA C O N and protein'``
-backbonefull     backbone atoms of protein residues, same as
-                 ``'name CA C O N H H1 H2 H3 OXT and protein'``
-bbful            same as ``'backbonefull'`` 
-sidechain (sc)   side-chain atoms of protein residues, same as
-                 ``'not name CA C O N H and protein'``
-carbon           carbon atoms, same as ``'name "C.*" and not resname ion'``
-hydrogen         hydrogen atoms, same as ``'name "[1-9]?H.*"'``
-noh              non hydrogen atoms, same as ``'not name "[1-9]?H.*"'``
-nitrogen         nitrogen atoms, same as ``'name "N.*"'``
-oxygen           oxygen atoms, same as ``'name "O.*"'``
-sulfur           sulfur atoms, same as ``'name "S.*"'``
-extended         residue in extended conformation, same as ``'secondary E'``
-helix            residue in α-helix conformation, same as ``'secondary H'``
-helix_3_10       residue in 3_10-helix conformation, same as ``'secondary G'``
-helix_pi         residue in π-helix conformation, same as ``'secondary I'``
-turn             residue in hydrogen bonded turn conformation, same as
-                 ``'secondary T'``
-bridge           residue in isolated beta-bridge conformation, same as
-                 ``'secondary B'``
-bend             residue in bend conformation, same as ``'secondary S'``
-coil             residue not in one of above conformations, same as
-                 ``'secondary C'``
-===============  ==============================================================
-
-Among these list of backbone atom names can be changed using 
-:func:`setBackboneAtomNames`  and regular expressions for element types
-can be changed using :func:`setAtomNameRegex`.
-
-Below functions can be used to learn and change the definitions of 
-some selection keywords:
-
-  * Learn keyword definitions:
-    
-    * :func:`getAtomNameRegex`
-    * :func:`getBackboneAtomNames`
-    * :func:`getKeywordResnames` 
-    
-  * Change keyword definitions:
-    
-    * :func:`setAtomNameRegex`
-    * :func:`setBackboneAtomNames`
-    * :func:`setKeywordResnames`
-
-
-"""
-
-SECSTR_MAP = {
-    'extended': 'E',
-    'helix': 'H',
-    'helix_pi': 'G',
-    'helix_3_10': 'I',
-    'turn': 'T',
-    'bridge': 'B',
-    'bend': 'S',
-    'coil': 'C',
-
-}
-    
-KEYWORD_NAME_REGEX = {
-    'carbon': RE.compile('C.*'),
-    'hydrogen': RE.compile('[0-9]?H.*'),
-    'nitrogen': RE.compile('N.*'),
-    'oxygen': RE.compile('O.*'),
-    'sulfur': RE.compile('S.*'),
-}
-
-SRE_Pattern = type(KEYWORD_NAME_REGEX['carbon'])
-
-BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O'))
-BACKBONE_FULL_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 
-                                'H', 'H1', 'H2', 'H3', 'OXT'))
-
-KEYWORD_MAP = {}
-def _buildKeywordMap():
-    global KEYWORD_MAP
-    
-    protein = KEYWORD_RESNAMES['protein']
-    #'keyword' : (residue_names, invert, atom_names, atom_names_not),
-    for keyword, resnames in KEYWORD_RESNAMES.iteritems():
-        KEYWORD_MAP[keyword] = (resnames, False, None, False)
-
-    KEYWORD_MAP['alpha'] = (protein, False, ['CA'], False)
-    KEYWORD_MAP['calpha'] = (protein, False, ['CA'], False)
-    KEYWORD_MAP['ca'] = KEYWORD_MAP['calpha']
-    KEYWORD_MAP['backbone'] = (protein, False, BACKBONE_ATOM_NAMES, False)
-    KEYWORD_MAP['bb'] = KEYWORD_MAP['backbone']
-    KEYWORD_MAP['backbonefull'] = (protein, False, 
-                                   BACKBONE_FULL_ATOM_NAMES, False)
-    KEYWORD_MAP['bbfull'] = KEYWORD_MAP['backbonefull']
-    KEYWORD_MAP['sidechain'] = (protein, False, BACKBONE_FULL_ATOM_NAMES, True)
-    KEYWORD_MAP['sc'] = KEYWORD_MAP['sidechain']
-
-    KEYWORD_MAP['hetero'] = (protein + KEYWORD_RESNAMES['nucleic'], True, 
-                             None, False) 
-
-    for name, regex in KEYWORD_NAME_REGEX.iteritems():
-        KEYWORD_MAP[name] = (None, False, [regex], False)
-    
-    KEYWORD_MAP['carbon'] = (KEYWORD_RESNAMES['ion'], True, 
-                             [KEYWORD_NAME_REGEX['carbon']], False)
-    KEYWORD_MAP['noh'] = (None, False, [KEYWORD_NAME_REGEX['hydrogen']], True)
-    
-_buildKeywordMap()
-KEYWORDS_BOOLEAN = set(['all', 'none'] + KEYWORD_MAP.keys() + 
-                       SECSTR_MAP.keys())
-
-__doc__ += """
 
 Numerical comparisons
 ===============================================================================
@@ -619,10 +288,10 @@ A selection can be expanded to include the atoms in the same *residue*,
 at least an atom within 4 Å of any water molecule.
 
 Additionally, a selection may be expanded to the immediately bonded atoms using
-``bonded to ...`` method, e.f. ``bonded to calpha`` will select atoms bonded 
-to Cα.  For this to work, bonds must be set by the user using :meth:`.AtomGroup
-.setBonds` method.  It is also possible to select bonded atoms by excluding the
-atoms from which the bonds will originate, i.e. ``exbonded to ...``.  
+``bonded to ...`` setting, e.f. ``bonded to calpha`` will select atoms bonded 
+to Cα atoms.  For this setting to work, bonds must be set by the user using the
+:meth:`.AtomGroup.setBonds` method.  It is also possible to select bonded atoms
+by excluding the originating atoms using ``exbonded to ...`` setting.  
 
 Selection macros
 ===============================================================================
@@ -634,10 +303,79 @@ manipulating selection macros:
     
   * :func:`defSelectionMacro`
   * :func:`delSelectionMacro`
-  * :func:`getSelectionMacro`  
+  * :func:`getSelectionMacro`"""
 
-  
-"""
+__author__ = 'Ahmet Bakan'
+__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
+
+import re as RE
+from types import NoneType
+
+import numpy as np
+from numpy import array, ndarray, ones, zeros, arange
+from numpy import invert, unique, concatenate
+
+import pyparsing as pp
+pp.ParserElement.enablePackrat()
+
+from prody import LOGGER, SETTINGS
+
+from atomic import Atomic
+from fields import ATOMIC_FIELDS
+from flags import PLANTERS as FLAG_PLANTERS
+
+from atomgroup import AtomGroup 
+from chain import Chain, getSequence, AAMAP
+from pointer import AtomPointer
+from selection import Selection
+from segment import Segment
+from atommap import AtomMap
+
+from prody.utilities import rangeString
+from prody.kdtree import KDTree
+
+DEBUG = 0
+
+__all__ = ['Select', 'SelectionError', 'TypoWarning',
+           'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
+           'isSelectionMacro']
+           
+SRE_Pattern = type(RE.compile('C.*'))
+
+DTYPES_NUMERIC = set([np.int, np.int8, np.int16, np.int32, np.int64, np.float, 
+                      np.float16, np.float32, np.float64, np.float128])
+
+
+KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
+                       'segment', 'altloc', 'secondary', 'icode',
+                       'chid', 'secstr', 'segname', 'sequence'])
+FIELDS_ALNUM = dict()
+FIELDS_NUMERIC = set()
+for name, field in ATOMIC_FIELDS.iteritems():
+    if field.ndim == 1:
+        if field.dtype in DTYPES_NUMERIC:
+            FIELDS_NUMERIC.add(name)
+            if field.synonym:
+                FIELDS_NUMERIC.add(field.synonym)
+        else:
+            itemsize = np.dtype(field.dtype).itemsize
+            FIELDS_ALNUM[name] = itemsize
+            if field.synonym:
+                FIELDS_ALNUM[field.synonym] = itemsize
+
+
+KEYWORDS_INTEGER = set(['serial', 'index', 'resnum', 'resid', 
+                        'segindex', 'chindex', 'resindex', 
+                        'fragindex', 'fragment', 'numbonds'])
+KEYWORDS_FLOAT = set(['x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass', 
+                      'radius', 'charge'])
+KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
+
+KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING)
+KEYWORDS_SYNONYMS = {}
+for key, field in ATOMIC_FIELDS.iteritems(): 
+    if field.synonym:
+        KEYWORDS_SYNONYMS[field.synonym] = key
 
 FUNCTION_MAP = {
     'sqrt'  : np.sqrt,
@@ -673,14 +411,18 @@ BINOP_MAP = {
     '==' : lambda a, b: a == b,
     '!=' : lambda a, b: a != b,
 }
+    
+AND = '&&&'
+NOT = '!!!'
+OR  = '||'
 
-COMPARISONS = set(('<', '>', '>=', '<=', '==', '=', '!='))
-
+_TOSPACE = set(['secondary', 'chain', 'altloc', 'segment', 'icode'])
+    
 ATOMGROUP = None
 
 MACROS = SETTINGS.get('selection_macros', {})
 
-def isMacro(word):
+def isSelectionMacro(word):
     
     return word in MACROS
 
@@ -702,9 +444,9 @@ def defSelectionMacro(name, selstr):
     
     if not isinstance(name, str) or not isinstance(selstr, str):
         raise TypeError('both name and selstr must be strings')
-    elif isKeyword(name):
-        raise ValueError("{0:s} is an existing keyword, cannot be used as a "
-                         "macro name".format(repr(name)))
+    elif isReserved(name):
+        raise ValueError('{0:s} is a reserved word and cannot be used as a '
+                         'macro name'.format(repr(name)))
     elif not (name.isalpha() and name.islower()):
         raise ValueError('macro names must be all lower case letters, {0:s} '
                          'is not a valid macro name'.format(repr(name)))
@@ -748,123 +490,6 @@ def getSelectionMacro(name=None):
         LOGGER.info("{0:s} is not a user defined macro name."
                     .format(repr(name)))
 
-mapField2Var = {}
-for field in ATOMIC_FIELDS.values():
-    mapField2Var[field.name] = field.var
-
-def getKeywordResnames(keyword):
-    """Return residue names associated with a keyword.
-    
-    >>> getKeywordResnames('acidic')
-    ['ASP', 'GLU', 'PTR', 'SEP', 'TPO']"""
-    
-    assert isinstance(keyword, str), 'keyword must be a string instance'
-    try:
-        resnames = KEYWORD_RESNAMES[keyword]
-        resnames.sort()
-        return resnames  
-    except KeyError:
-        if keyword in KEYWORD_RESNAMES_READONLY:
-            LOGGER.warn('{0:s} is defined as {1:s}'.format(repr(keyword), 
-                                    repr(KEYWORD_RESNAMES_READONLY[keyword])))
-        else:
-            LOGGER.warn("{0:s} is not a keyword".format(repr(keyword)))
-
-def setKeywordResnames(keyword, resnames):
-    """Change the list of residue names associated with a keyword.  *keyword* 
-    must be a string, and *resnames* may be a list, tuple, or set of strings. 
-    The existing list of residue names will be overwritten with the given 
-    residue names.  Note that changes in keyword definitions are not saved 
-    permanently.
-    
-    >>> setKeywordResnames('acidic', ['ASP', 'GLU', 'PTR', 'SEP', 'TPO'])"""
-    
-    if not isinstance(keyword, str):
-        raise TypeError('keyword must be a string')
-    if not isinstance(resnames, (list, tuple, set)):
-        raise TypeError('resnames must be a list, set, or tuple')
-    if not areAllStrings(resnames):
-        raise TypeError('all items in resnames must be string instances')
-    
-    if keyword in KEYWORD_RESNAMES_READONLY:
-        LOGGER.warn("{0:s} is defined as {1:s} and cannot be changed directly"
-            .format(repr(keyword), repr(KEYWORD_RESNAMES_READONLY[keyword])))
-        return
-    if keyword in KEYWORD_RESNAMES:
-        for rn in resnames:
-            if not isinstance(rn, str):
-                raise TypeError('all items in resnames must be strings')
-        KEYWORD_RESNAMES[keyword] = list(set(resnames))
-        _setReadonlyResidueNames()
-    else:
-        raise ValueError("{0:s} is not a valid keyword".format(repr(keyword)))
-
-def getAtomNameRegex(name):
-    """Return regular expression used for selecting common elements.
-    
-    >>> getAtomNameRegex('nitrogen')
-    'N.*'"""
-    
-    assert isinstance(name, str), 'name must be a string instance'
-    try:
-        return KEYWORD_NAME_REGEX[name].pattern   
-    except KeyError:
-        LOGGER.warn('{0:s} is not a valid element'.format(name))
-
-def setAtomNameRegex(name, regex):
-    """Set regular expression used for selecting common elements.  Note that 
-    changes in keyword definitions are not saved permanently.
-    
-    >>> setAtomNameRegex('nitrogen', 'N.*')"""
-    
-    assert isinstance(name, str), 'name must be a string instance'
-    if not name in KEYWORD_NAME_REGEX:
-        raise ValueError("{0:s} is not a valid keyword".format(repr(name)))
-    if not isinstance(regex, str):
-        raise TypeError("regex must be a string instance")
-    try:
-        regex = RE.compile(regex)
-    except:
-        raise ValueError("{0:s} is not a valid regular expression"
-                         .format(repr(regex)))
-    else:
-        KEYWORD_NAME_REGEX[name] = regex
-
-def getBackboneAtomNames(full=False):
-    """Return protein backbone atom names.  ``full=True`` argument returns 
-    atom names for *backbonefull* keyword.
-    
-    >>> getBackboneAtomNames()
-    ['C', 'CA', 'N', 'O']"""
-    
-    assert isinstance(full, bool), 'full must be a boolean instance'
-    if full:
-        bban = list(BACKBONE_FULL_ATOM_NAMES)
-    else:
-        bban = list(BACKBONE_ATOM_NAMES)
-    bban.sort()
-    return bban 
-
-def setBackboneAtomNames(backbone_atom_names, full=False):
-    """Set protein backbone atom names.  Atom names for *backbonefull* keyword 
-    can be set by passing ``full=True`` argument.  Note that changes in keyword
-    definitions are not saved permanently."""
-    
-    if not isinstance(backbone_atom_names, (list, tuple, set)):
-        raise TypeError('backbone_atom_names must be a list, tuple, or set')
-    if not areAllStrings(backbone_atom_names):
-        raise TypeError('all items in backbone_atom_names must be string '
-                        'instances')
-    assert isinstance(full, bool), 'full must be a boolean instance'
-    if full:    
-        global BACKBONE_FULL_ATOM_NAMES
-        BACKBONE_FULL_ATOM_NAMES = set(backbone_atom_names)
-    else:
-        global BACKBONE_ATOM_NAMES
-        BACKBONE_ATOM_NAMES = set(backbone_atom_names)
-    _buildKeywordMap()
-
-
 class SelectionError(Exception):    
     
     """Exception raised when there are errors in the selection string."""
@@ -895,13 +520,10 @@ class TypoWarning(object):
                    ' ' * (shift + 12) + '^ ' + msg)
             LOGGER.warn(msg)
 
+KEYWORDS_BOOLEAN = FLAG_PLANTERS.keys()
 
 def isFloatKeyword(keyword):
     return keyword in KEYWORDS_FLOAT
-
-
-def isIntKeyword(keyword):
-    return keyword in KEYWORDS_INTEGER
 
 
 def isNumericKeyword(keyword):
@@ -911,51 +533,14 @@ def isNumericKeyword(keyword):
 def isAlnumKeyword(keyword):
     return keyword in KEYWORDS_STRING
 
-
 def isValuePairedKeyword(keyword):
     return keyword in KEYWORDS_VALUE_PAIRED
 
-
 def isBooleanKeyword(keyword):
     return keyword in KEYWORDS_BOOLEAN
-    
-    
+
 def isKeyword(keyword):
     return isBooleanKeyword(keyword) or isValuePairedKeyword(keyword)
-
-AND = '&&&'
-NOT = '!!!'
-OR  = '||'
-
-
-
-RESERVED = set(ATOMIC_FIELDS.keys() + ATOMIC_ATTRIBUTES.keys() +
-               ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
-                'bonded', 'exbonded', 'to'] +
-               KEYWORDS_SYNONYMS.keys() + 
-               ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
-                'bonds', 'bmap'])
-
-
-def isReserved(word):
-    return (word in RESERVED or isKeyword(word) or word in FUNCTION_MAP)
-        
-        
-def getReservedWords():
-    """Return a list of words reserved for atom selections and internal 
-    variables. These words are: """
-
-    words = list(set(list(RESERVED) + FUNCTION_MAP.keys() + 
-                     list(KEYWORDS_BOOLEAN) + list(KEYWORDS_VALUE_PAIRED)))
-    
-    words.sort()
-    return words
-
-
-getReservedWords.__doc__ += "*{0:s}*.".format('*, *'.join(getReservedWords()))
-
-_specialKeywords = set(['secondary', 'chain', 'altloc', 'segment', 'icode'])
-
 
 def tkn2str(token):
     
@@ -967,30 +552,6 @@ def tkn2str(token):
 
 SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex', 
               'segment': 'segindex', 'fragment': 'fragindex'}
-
-
-def expandBoolean(keyword):
-    
-    if keyword in KEYWORD_MAP:
-        (resnames, rn_invert, names, an_invert) = KEYWORD_MAP[keyword]
-        tokens = []
-        if names is not None:
-            if an_invert:
-                tokens.append(NOT)
-            tokens.append('name')
-            tokens.extend(names)
-            if resnames is not None:
-                tokens.append(AND)
-        if resnames is not None:
-            if rn_invert:
-                tokens.append(NOT)
-            tokens.append('resname')
-            tokens.extend(resnames)
-        return tokens
-    elif keyword in SECSTR_MAP:
-        return ['secondary', SECSTR_MAP[keyword]]
-    else:
-        return keyword
 
 
 def splitList(alist, sep):
@@ -1108,6 +669,16 @@ class Select(object):
         self._tokenizer.setParseAction(self._defaultAction)
         self._tokenizer.leaveWhitespace()
         
+        self._map = fmap = {}
+        for field in KEYWORDS_STRING:
+            fmap[field] = self._evalAlnum
+        for field in FIELDS_NUMERIC:
+            fmap[field] = self._evalFloat
+        fmap.update([('resnum', self._resnum), ('resid', self._resnum), 
+                     ('serial', self._serial), ('index', self._index),
+                     ('sequence', self._sequence), ('x', self._evalFloat), 
+                     ('y', self._evalFloat), ('z', self._evalFloat),
+                     (NOT, self._not)])
         
     def _reset(self):
 
@@ -1119,45 +690,48 @@ class Select(object):
         self._data.clear()
         
     def getBoolArray(self, atoms, selstr, **kwargs):
-        """Return a boolean array with ``True`` values for *atoms* matching 
-        *selstr*.
-        
-        .. note:: The length of the boolean :class:`numpy.ndarray` will be
-           equal to the number of atoms in *atoms* argument."""
+        """Return a boolean array with **True** values for *atoms* matching 
+        *selstr*.  The length of the boolean :class:`numpy.ndarray` will be
+        equal to the number of atoms in *atoms* argument."""
         
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance, not {0:s}'
                             .format(type(atoms)))
-        elif not isinstance(selstr, str):
-            raise TypeError('selstr must be a string, not a {0:s}'
-                            .format(type(selstr)))
+
         self._reset()
 
-        if any([isReserved(key) for key in kwargs.iterkeys()]):   
-            for key in kwargs.iterkeys():
-                if isReserved(key):
-                    raise SelectionError(selstr, selstr.find(key), "{0:s} "
-                        "is a reserved word and cannot be used as a keyword "
-                        "argument".format(repr(key)))
+        for key in kwargs.iterkeys():
+            if isReserved(key):
+                loc = selstr.find(key)
+                if loc > -1:
+                    raise SelectionError(selstr, loc, "{0:s} is a reserved "
+                                "word and cannot be used as a keyword argument"
+                                .format(repr(key)))
 
-        if isinstance(atoms, AtomGroup): 
-            self._ag = atoms
-            self._atoms = atoms
-            self._indices = None
-        else:
-            self._ag = atoms.getAtomGroup()
-            self._indices = atoms._getIndices()
-            if isinstance(atoms, AtomMap):
-                self._atoms = Selection(self._ag, self._indices, '', )
-                self._atoms._indices = self._indices
-            else: 
-                self._atoms = atoms
         self._n_atoms = atoms.numAtoms()
         self._selstr = selstr
         self._kwargs = kwargs
         
         if DEBUG:
             print('getBoolArray', selstr)
+            
+        self._evalAtoms(atoms)
+            
+        selstr = selstr.strip() 
+        if (len(selstr.split()) == 1 and selstr.isalnum() and 
+            selstr not in MACROS):
+            if selstr == 'none':
+                return zeros(atoms.numAtoms(), bool)
+            elif selstr == 'all':
+                return ones(atoms.numAtoms(), bool)
+            elif atoms.isFlagLabel(selstr):
+                return atoms.getFlags(selstr)
+            elif isValuePairedKeyword(selstr):
+                raise SelectionError(selstr, 0, 'must be followed by values')
+            else:
+                raise SelectionError(selstr, 0, 'is not a valid selection or '
+                                     'user data label')
+            
         torf = self._evalSelstr()
         if not isinstance(torf, ndarray):
             if DEBUG: print(torf)
@@ -1172,17 +746,33 @@ class Select(object):
         return torf
     
     def getIndices(self, atoms, selstr, **kwargs):
-        """Return indices of atoms matching *selstr*.
+        """Return indices of atoms matching *selstr*.  Indices correspond to 
+        the order in *atoms* argument.  If *atoms* is a subset of atoms, they 
+        should not be used for indexing the corresponding :class:`.AtomGroup`
+        instance."""
         
-        .. note:: The indices correspond to indices in *atoms* argument.  
-           When *atoms* is not an :class:`.AtomGroup` instance, indexing 
-           the :class:`.AtomGroup` may return a different set of atoms."""
-        
-        torf = self.getBoolArray(atoms, selstr, **kwargs)        
-        return torf.nonzero()[0]
+        selstr = selstr.strip() 
+        if (len(selstr.split()) == 1 and selstr.isalnum() and 
+            selstr not in MACROS):
+            self._evalAtoms(atoms)
+            if selstr == 'none':
+                return array([])
+            elif selstr == 'all':
+                return arange(atoms.numAtoms())
+            elif atoms.isFlagLabel(selstr):
+                return atoms._getFlags(selstr).nonzero()[0]
+            elif isValuePairedKeyword(selstr):
+                raise SelectionError(selstr, 0, 'must be followed by values')
+            else:
+                raise SelectionError(selstr, 0, 'is not a valid selection or '
+                                     'user data label')
+        else:
+            torf = self.getBoolArray(atoms, selstr, **kwargs)        
+            return torf.nonzero()[0]
         
     def select(self, atoms, selstr, **kwargs):
         """Return a subset of atoms matching *selstr* as a :class:`Selection`.
+        If selection string does not match any atoms, **None** is returned.
         
         :arg atoms: atoms to be evaluated    
         :type atoms: :class:`~.Atomic`
@@ -1195,9 +785,6 @@ class Select(object):
         are returned.
 
         .. note:
-
-            * If selection string does not match any atoms, ``None`` is 
-              returned.
               
             * :meth:`select` accepts arbitrary keyword arguments which enables 
               identification of intermolecular contacts. See :ref:`contacts` 
@@ -1205,26 +792,27 @@ class Select(object):
         
             * A special case for making atom selections is passing an
               :class:`~.AtomMap` instance as *atoms* argument.  Dummy 
-              atoms will not be included in the result but, the order 
+              atoms will not be included in the result, but the order 
               of atoms will be preserved."""
         
         self._ss2idx = False
         self._replace = False
         
+        self._selstr = selstr
         indices = self.getIndices(atoms, selstr, **kwargs)
         
+        self._kwargs = None
+
+        if len(indices) == 0:
+            return None
+
         if not isinstance(atoms, AtomGroup):
             indices = self._indices[indices]
             
         ag = self._ag
 
-        self._kwargs = None
-
-        if len(indices) == 0:
-            return None
-            
-        elif isinstance(atoms, AtomMap):
-            return AtomMap(ag, indices, np.arange(len(indices)), 
+        if isinstance(atoms, AtomMap):
+            return AtomMap(ag, indices, arange(len(indices)), 
                      np.array([]), 'Selection {0:s} from AtomMap {1:s}'
                     .format(repr(selstr), atoms.getTitle()), 
                             atoms.getACSIndex())
@@ -1245,6 +833,24 @@ class Select(object):
             
             return Selection(ag, indices, selstr, atoms.getACSIndex(),
                              unique=True)
+        
+    def _evalAtoms(self, atoms):
+        
+        try:
+            self._ag = atoms.getAtomGroup()
+        except AttributeError:
+            self._ag = atoms
+            self._atoms = atoms
+            self._indices = None
+        else:
+            self._indices = atoms._getIndices()
+            try:
+                atoms.getDummyFlags()
+            except AttributeError:
+                self._atoms = atoms
+            else: 
+                self._atoms = Selection(self._ag, self._indices, '', )
+                self._atoms._indices = self._indices
         
     def _prepareSelstr(self):
         
@@ -1285,18 +891,6 @@ class Select(object):
         return selstr.strip()
 
     def _evalSelstr(self):
-        selstr = self._selstr.strip() 
-        if DEBUG: print('_evalSelstr', selstr)
-        if len(selstr.split()) == 1 and selstr not in MACROS:
-            if isBooleanKeyword(selstr):
-                return self._evalBoolean(self._selstr, 0, selstr)
-            elif self._ag.isData(selstr):
-                return self._evalUserdata(self._selstr, 0, selstr)
-            elif isValuePairedKeyword(selstr):
-                raise SelectionError(selstr, 0, 'must be followed by values')
-            else:
-                raise SelectionError(selstr, 0, 'is not a valid selection or '
-                                     'user data label')
         
         selstr = self._prepareSelstr()
         try:
@@ -1318,13 +912,13 @@ class Select(object):
         if DEBUG: print('_isValid', token)
         
         if isinstance(token, str):
-            return (isBooleanKeyword(token) or
+            return (self._atoms.isFlagLabel(token) or
                    self._atoms.getDataType(token) == bool)
         elif isinstance(token, list):
             tkn = token[0]
-            return (isBooleanKeyword(tkn) or
+            return (self._atoms.isFlagLabel(tkn) or
                     isValuePairedKeyword(tkn) or tkn in self._kwargs or
-                    self._atoms.isData(tkn) or tkn == NOT)
+                    self._atoms.isDataLabel(tkn) or tkn == NOT)
         return False
         
     def _defaultAction(self, sel, loc, tkns):
@@ -1349,10 +943,14 @@ class Select(object):
         if DEBUG: print('_evaluate', tkns)
         
         if isinstance(tkns, str):
-            if isBooleanKeyword(tkns):
-                return self._evalBoolean(sel, loc, tkns, evalonly=evalonly, 
-                                         rtrn=True)
-            elif self._ag.isData(tkns):
+            if tkns == 'none':
+                return zeros(self._n_atoms, bool)
+            if self._atoms.isFlagLabel(tkns):
+                if evalonly is None:
+                    return self._atoms.getFlags(tkns)
+                else:
+                    return self._atoms._getFlags(tkns)[evalonly]
+            elif self._ag.isDataLabel(tkns):
                 return self._evalUserdata(sel, loc, tkns, evalonly=evalonly)
             else:
                 return SelectionError(sel, loc, "{0:s} is not understood"
@@ -1362,12 +960,16 @@ class Select(object):
     
         keyword = tkns[0]
         if len(tkns) == 1:
-            if isBooleanKeyword(keyword):
-                return self._evalBoolean(sel, loc, keyword, evalonly=evalonly, 
-                                         rtrn=True)
+            if keyword == 'none':
+                return zeros(self._n_atoms, bool)
+            if self._atoms.isFlagLabel(keyword):
+                if evalonly is None:
+                    return self._atoms.getFlags(keyword)
+                else:
+                    return self._atoms._getFlags(keyword)[evalonly]
             elif isNumericKeyword(keyword):
                 return self._evalNumeric(sel, loc, keyword)
-            elif self._ag.isData(keyword):
+            elif self._ag.isDataLabel(keyword):
                 return self._evalUserdata(sel, loc, keyword, evalonly=evalonly)
             elif isinstance(keyword, ndarray):
                 return keyword
@@ -1390,9 +992,14 @@ class Select(object):
                     return float(keyword)
                 except ValueError:
                     pass
+        
+        #try: 
+        #    return self._map[keyword](sel, loc, keyword, tkns[1:], evalonly)
+        #except KeyError:
+        #    pass
+        
         elif isAlnumKeyword(keyword):
-            return self._evalAlnum(sel, loc, keyword, tkns[1:], 
-                                   evalonly=evalonly)
+            return self._evalAlnum(sel, loc, keyword, tkns[1:], evalonly=evalonly)
         elif keyword in ('resnum', 'resid'):
             return self._resnum(sel, loc, tkns[1:], evalonly=evalonly)
         elif keyword == 'index':
@@ -1400,11 +1007,10 @@ class Select(object):
         elif keyword == 'serial':
             return self._serial(sel, loc, tkns[1:], evalonly=evalonly)
         elif isNumericKeyword(keyword):
-            return self._evalFloat(sel, loc, keyword, tkns[1:], 
-                                   evalonly=evalonly)
+            return self._evalFloat(sel, loc, keyword, tkns[1:], evalonly=evalonly)
         elif keyword == NOT:
             return self._not(sel, loc, tkns, evalonly=evalonly)
-        elif self._ag.isData(keyword):
+        elif self._ag.isDataLabel(keyword):
             return self._evalUserdata(sel, loc, keyword, tkns[1:], 
                                       evalonly=evalonly)
         
@@ -1524,10 +1130,11 @@ class Select(object):
         """Negate selection."""
         
         if DEBUG: print('_not', tokens)
-        if isinstance(tokens[1], ndarray):
-            torf = tokens[1]
+        which = int(tokens[0] == NOT)
+        if isinstance(tokens[which], ndarray):
+            torf = tokens[which]
         else:
-            torf = self._evaluate(sel, loc, tokens[1:], evalonly=evalonly)
+            torf = self._evaluate(sel, loc, tokens[which:], evalonly=evalonly)
             if isinstance(torf, (SelectionError, NoneType)):
                 return torf
         invert(torf, torf)
@@ -1571,7 +1178,7 @@ class Select(object):
                         "coordinates of {0:s} are not set".format(repr(which)))
             exclude=False
             self._ss2idx = True
-            which = np.arange(len(coords))
+            which = arange(len(coords))
             other = True
         elif isinstance(which, ndarray) and which.dtype == np.bool: 
             which = which.nonzero()[0]
@@ -1794,7 +1401,7 @@ class Select(object):
             return self._serial(sel, loc)
         elif isNumericKeyword(token): 
             return self._getData(sel, loc, token)
-        elif self._ag.isData(token):
+        elif self._ag.isDataLabel(token):
             data = self._getData(sel, loc, token)
             if data.dtype in (float, int):
                 return data
@@ -1852,51 +1459,18 @@ class Select(object):
             raise SelectionError(sel, loc, "functions (sin/abs/etc.) must have"
                                         " numeric arguments, e.g. 'sin(x)'")
 
-    def _evalUserdata(self, sel, loc, keyword, values=None, 
-                      evalonly=None):
+    def _evalUserdata(self, sel, loc, keyword, values=None, evalonly=None):
         
         if DEBUG: print('_evalUserdata', keyword, values)
         data = self._atoms.getData(keyword)
-        if values is None:
-            if data.dtype == bool:
-                if evalonly is None:
-                    return data
-                else:
-                    return data[evalonly]
-            else:
-                return SelectionError(sel, loc, "data type of {0:s} must be "
-                                      "bool".format(repr(keyword)))
-        else:
-            if data.dtype in (int, float):
-                return self._evalFloat(sel, loc, keyword, values, 
-                                       evalonly=evalonly)
-            elif data.dtype.type == np.string_:
-                return self._evalAlnum(sel, loc, keyword, values, 
-                                       evalonly=evalonly)
-            else:
-                return SelectionError(sel, loc, "data type of {0:s} must be "
-                                  "int, float, or str".format(repr(keyword)))
 
-    def _evalBoolean(self, sel, loc, keyword, evalonly=None, rtrn=False):
-        """Evaluate a boolean keyword."""
-    
-        if DEBUG: print('_evalBoolean', keyword)
-        if evalonly is None:
-            n_atoms = self._n_atoms
-        else:        
-            n_atoms = len(evalonly)
-        
-        if keyword == 'all':
-            return ones(n_atoms, bool)
-        elif keyword == 'none':
-            return zeros(n_atoms, bool)
+        if data.dtype in DTYPES_NUMERIC:
+            return self._evalFloat(sel, loc, keyword, values, evalonly)
+        elif data.dtype.type == np.string_:
+            return self._evalAlnum(sel, loc, keyword, values, evalonly)
         else:
-            keyword = expandBoolean(keyword)
-            torf = self._and(sel, loc, [keyword], rtrn=rtrn)
-            if evalonly is None or isinstance(torf, SelectionError):
-                return torf
-            else:
-                return torf[evalonly] 
+            return SelectionError(sel, loc, "data type of {0:s} must be "
+                              "int, float, or str".format(repr(keyword)))
 
     def _evalAlnum(self, sel, loc, keyword, values, evalonly=None):
         """Evaluate keywords associated with alphanumeric data, e.g. residue 
@@ -1912,7 +1486,7 @@ class Select(object):
         if isinstance(data, SelectionError):
             return data
             
-        if keyword in _specialKeywords:
+        if keyword in _TOSPACE:
             for i, value in enumerate(values):
                 if value == '_':
                     values[i] = ' '
@@ -1922,7 +1496,7 @@ class Select(object):
             data = data[evalonly]
         if DEBUG: print('_evalAlnum set(data)', set(data))
         n_atoms = len(data)
-        vallen = ALNUM_VALLEN[keyword]
+        vallen = FIELDS_ALNUM[keyword]
 
         regexps = []
         strings = []
@@ -2138,7 +1712,7 @@ class Select(object):
         if DEBUG: print('_index', token)
         
         if token is None:
-            return self._indices or np.arange(self._ag._n_atoms)
+            return self._indices or arange(self._ag._n_atoms)
         torf = zeros(self._ag._n_atoms, np.bool)
         
         numbers = self._getNumRange(sel, loc, token)
@@ -2236,7 +1810,7 @@ class Select(object):
         """Return atomic data."""
         
         data = self._data.get(keyword)
-        if data is None:        
+        if data is None:
             field = ATOMIC_FIELDS.get(keyword)
             if field is None:
                 data = self._ag._getData(keyword)
