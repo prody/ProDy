@@ -1121,7 +1121,7 @@ class Select(object):
                     evalonly = evalonly[invert(torf, torf).nonzero()]
         return selection
 
-    def _and(self, sel, loc, tokens, rtrn=False):
+    def _and(self, sel, loc, tokens):
         """Evaluate statements containing ``'and'`` operator."""
         
         if DEBUG: print('_and\n_and tokens '+str(tokens))
@@ -1154,10 +1154,7 @@ class Select(object):
                         .format(repr(' '.join([str(tkn) for tkn in token]))))
             torf = self._evaluate(sel, loc, token, evalonly=evalonly)
             if isinstance(torf, SelectionError):
-                if rtrn:
-                    return torf
-                else:
-                    raise torf
+                raise torf
             if evalonly is None:
                 selection = torf
                 evalonly = selection.nonzero()[0]
