@@ -589,6 +589,66 @@ def checkSelstr(selstr, what, error=ValueError):
                 else:
                     return False
 
+def evalNumeric(sel, loc, token, allnum=True):
+    """Return a list of ranges, integers, and floats extracted from the token.
+    If *allnum* is **True**, a :class:`SelectionError` will be returned.
+    """
+    
+    if isinstance(token, ndarray):
+        return token
+    for tkn in token:
+        if isinstance(tkn, SRE_Pattern):
+            return SelectionError(sel, loc, 'values must be numbers or ranges')
+        
+    tknstr = ' '.join(' '.join(token).split())
+    tknstr = tknstr.replace(' to ', 'to').replace(
+                                        'to ', 'to').replace(' to', 'to')
+    tknstr = tknstr.replace(' : ', ':').replace(
+                                        ': ', ':').replace(' :', ':')
+
+    token = []
+    for item in tknstr.split():
+        if 'to' in item:
+            # to means upper bound is included in the range
+            # boundaries are placed in a LIST
+            items = item.split('to')
+            if len(items) != 2:
+                return SelectionError(sel, loc, "{0:s} is not understood"
+                                 .format(repr(' to '.join(items))))
+            try:
+                token.append([float(items[0]), float(items[1])])
+            except:
+                return SelectionError(sel, loc, "'to' must be surrounded "
+                                      "by numbers")
+        elif ':' in item:
+            # : means upper bound is NOT included in the range
+            # boundaries are placed in a TUPLE
+            items = item.split(':')
+            if not len(items) in (2, 3):
+                return SelectionError(sel, loc, "{0:s} is not understood"
+                                     .format(repr(':'.join(items))))
+            try:
+                if len(items) == 2:
+                    token.append( (int(items[0]), int(items[1])) )
+                else:
+                    token.append((int(items[0]), int(items[1]),
+                                  int(items[2])))
+            except:
+                return SelectionError(sel, loc, "':' must be surrounded "
+                                      "by integers")
+        else:
+            try: 
+                item = int(item)
+            except ValueError:
+                try:
+                    item = float(item)
+                except ValueError:
+                    if allnum:
+                        return SelectionError(sel, loc, 
+                                              'all values must be numbers')
+            token.append(item)
+    return token
+
 
 class Select(object):
 
@@ -1588,7 +1648,7 @@ class Select(object):
         n_atoms = len(data)
         torf = zeros(n_atoms, np.bool)
 
-        numbers = self._getNumRange(sel, loc, values)
+        numbers = evalNumeric(sel, loc, values)
         if isinstance(numbers, SelectionError):
             return numbers
     
@@ -1625,7 +1685,7 @@ class Select(object):
         torf = zeros(n_atoms, np.bool)
         
         if numRange:
-            token = self._getNumRange(sel, loc, token, False)
+            token = evalNumeric(sel, loc, token, False)
             if isinstance(token, SelectionError):
                 return token
         
@@ -1670,7 +1730,7 @@ class Select(object):
         except (AttributeError, ValueError) as err:
             return SelectionError(sel, loc, str(err))
         
-        numbers = self._getNumRange(sel, loc, token)
+        numbers = evalNumeric(sel, loc, token)
         if isinstance(numbers, SelectionError):
             return numbers
         indices = []
@@ -1708,7 +1768,7 @@ class Select(object):
             return self._indices or arange(self._ag._n_atoms)
         torf = zeros(self._ag._n_atoms, np.bool)
         
-        numbers = self._getNumRange(sel, loc, token)
+        numbers = evalNumeric(sel, loc, token)
         if isinstance(numbers, SelectionError):
             return numbers
     
@@ -1736,68 +1796,6 @@ class Select(object):
                 return torf[self._indices]
             else:
                 return torf[self._indices][evalonly]
-
-    def _getNumRange(self, sel, loc, token, intfloat=True):
-        """Evaluate numeric values. Identify ranges, integers, and floats,
-        put them in a list and return."""
-        
-        if DEBUG: print('_getNumRange', type(token), token)
-        if isinstance(token, ndarray):
-            return token
-        if any([isinstance(tkn, SRE_Pattern) for tkn in token]):
-            return SelectionError(sel, loc, 'values must be numbers or ranges')
-            
-        tknstr = ' '.join(token)
-        while '  ' in tknstr:
-            tknstr = tknstr.replace('  ', ' ')
-        tknstr = tknstr.replace(' to ', 'to').replace(
-                                            'to ', 'to').replace(' to', 'to')
-        tknstr = tknstr.replace(' : ', ':').replace(
-                                            ': ', ':').replace(' :', ':')
-
-        token = []
-        for item in tknstr.split():
-            if 'to' in item:
-                # to means upper bound is included in the range
-                # boundaries are placed in a LIST
-                items = item.split('to')
-                if len(items) != 2:
-                    return SelectionError(sel, loc, "{0:s} is not understood"
-                                     .format(repr(' to '.join(items))))
-                try:
-                    token.append([float(items[0]), float(items[1])])
-                except:
-                    return SelectionError(sel, loc, "'to' must be surrounded "
-                                          "by numbers")
-            elif ':' in item:
-                # : means upper bound is NOT included in the range
-                # boundaries are placed in a TUPLE
-                items = item.split(':')
-                if not len(items) in (2, 3):
-                    return SelectionError(sel, loc, "{0:s} is not understood"
-                                         .format(repr(':'.join(items))))
-                try:
-                    if len(items) == 2:
-                        token.append( (int(items[0]), int(items[1])) )
-                    else:
-                        token.append((int(items[0]), int(items[1]),
-                                      int(items[2])))
-                except:
-                    return SelectionError(sel, loc, "':' must be surrounded "
-                                          "by integers")
-            else:
-                try: 
-                    item = int(item)
-                except ValueError:
-                    try:
-                        item = float(item)
-                    except ValueError:
-                        if intfloat:
-                            return SelectionError(sel, loc, "all values must "
-                                                  "be numbers")
-                token.append(item)
-        if DEBUG: print('_getNumRange', token)            
-        return token
     
     def _getData(self, sel, loc, keyword):
         """Return atomic data."""
