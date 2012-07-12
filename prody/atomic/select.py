@@ -1446,43 +1446,6 @@ class Select(object):
             left = BINOP_MAP[op](left, right)
         return left
     
-    def _evalNumeric(self, sel, loc, token):
-        """Evaluate a number operand or a numeric keyword."""
-        
-        if DEBUG: print('_evalNumeric', token)
-        if isinstance(token, (ndarray, float)):
-            return token
-        elif isFloatKeyword(token):
-            return self._evalFloat(sel, loc, token)
-        elif token in ('resnum', 'resid'):
-            return self._resnum(sel, loc)
-        elif token == 'index':
-            return self._index(sel, loc)
-        elif token == 'serial':
-            return self._serial(sel, loc)
-        elif isNumericKeyword(token): 
-            return self._getData(sel, loc, token)
-        elif self._ag.isDataLabel(token):
-            data = self._getData(sel, loc, token)
-            if data.dtype in (float, int):
-                return data
-            else:
-                return SelectionError(sel, loc, "data type of {0:s} must be "
-                                      "int or float".format(repr(token)))
-                
-        elif isinstance(token, SRE_Pattern):
-            return SelectionError(sel, loc, 'regular expressions cannot be '
-                                  'used as numeric values')
-        else:
-            try:
-                token = float(token)
-            except ValueError:
-                pass
-            else:
-                return token
-        return SelectionError(sel, loc, "{0:s} does not have a numeric value"
-                              .format(repr(token)))
-    
     def _sign(self, sel, loc, tokens):
         """Change the sign of a selection argument."""
         
@@ -1519,6 +1482,43 @@ class Select(object):
         else:
             raise SelectionError(sel, loc, "functions (sin/abs/etc.) must have"
                                         " numeric arguments, e.g. 'sin(x)'")
+
+    def _evalNumeric(self, sel, loc, token):
+        """Evaluate a number operand or a numeric keyword."""
+        
+        if DEBUG: print('_evalNumeric', token)
+        if isinstance(token, (ndarray, float)):
+            return token
+        elif isFloatKeyword(token):
+            return self._evalFloat(sel, loc, token)
+        elif token in ('resnum', 'resid'):
+            return self._resnum(sel, loc)
+        elif token == 'index':
+            return self._index(sel, loc)
+        elif token == 'serial':
+            return self._serial(sel, loc)
+        elif isNumericKeyword(token): 
+            return self._getData(sel, loc, token)
+        elif self._ag.isDataLabel(token):
+            data = self._getData(sel, loc, token)
+            if data.dtype in (float, int):
+                return data
+            else:
+                return SelectionError(sel, loc, "data type of {0:s} must be "
+                                      "int or float".format(repr(token)))
+                
+        elif isinstance(token, SRE_Pattern):
+            return SelectionError(sel, loc, 'regular expressions cannot be '
+                                  'used as numeric values')
+        else:
+            try:
+                token = float(token)
+            except ValueError:
+                pass
+            else:
+                return token
+        return SelectionError(sel, loc, "{0:s} does not have a numeric value"
+                              .format(repr(token)))
 
     def _evalUserdata(self, sel, loc, keyword, values=None, evalonly=None):
         
