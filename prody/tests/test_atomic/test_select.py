@@ -52,7 +52,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('all', 3211),
                      ('acidic', 334),
                      ('acyclic', 2040),
-                     ('aliphatic', 730),
+                     ('aliphatic', 821),
                      ('aromatic', 475),
                      ('at', 0),
                      ('basic', 450),
@@ -92,7 +92,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('sulfur', 14),
                      ('extended', 503),
                      ('helix', 763),
-                     ('helix_3_10', 0),
+                     ('helix310', 118),
                      ('turn', 0),
                      ('bridge', 0),
                      ('bend', 0),
@@ -352,7 +352,7 @@ pdb3mht.setCharges(pdb3mht.getOccupancies())
 pdb3mht.setMasses(pdb3mht.getBetas())
 pdb3mht.setData('temp', pdb3mht.getBetas())
 pdb3mht.setData('oc10', pdb3mht.getOccupancies() * 10)
-pdb3mht.setData('occ', pdb3mht.getOccupancies().astype(bool))
+pdb3mht.setFlags('occ', pdb3mht.getOccupancies().astype(bool))
     
 SELECT = prody.Select()
 
@@ -417,7 +417,7 @@ class TestSelect(unittest.TestCase):
     
     __metaclass__ = TestSelectMeta
 
-
+'''
 class TestGetSetFunctions(unittest.TestCase):
     
     def testGetBackboneAtomNames(self):
@@ -493,3 +493,4 @@ class TestMacros(unittest.TestCase):
             self.assertEqual(prody.getSelectionMacro(name), macro,
                              'failed to get correct macro definition')        
             prody.delSelectionMacro(name)            
+'''
