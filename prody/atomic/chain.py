@@ -176,7 +176,7 @@ class Chain(AtomSubset):
     def getChid(self):
         """Return chain identifier."""
         
-        return self._ag._data['chids'][self._indices[0]]
+        return self._ag._getChids()[self._indices[0]]
     
     def setChid(self, chid):
         """Set chain identifier."""

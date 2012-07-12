@@ -116,7 +116,7 @@ class Residue(AtomSubset):
     def getResnum(self):
         """Return residue number."""
         
-        return int(self._ag._data['resnums'][self._indices[0]])
+        return int(self._ag._getResnums()[self._indices[0]])
     
     def setResnum(self, number):
         """Set residue number."""
@@ -126,7 +126,7 @@ class Residue(AtomSubset):
     def getResname(self):
         """Return residue name."""
         
-        data = self._ag._data['resnames']
+        data = self._ag._getResnames()
         if data is not None:
             return data[self._indices[0]]
     
@@ -138,7 +138,7 @@ class Residue(AtomSubset):
     def getIcode(self):
         """Return residue insertion code."""
         
-        data = self._ag._data['icodes']
+        data = self._ag._getIcodes()
         if data is not None:
             return data[self._indices[0]]
         

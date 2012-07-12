@@ -225,15 +225,34 @@ class AtomPointer(Atomic):
         if self._ag._n_csets:
             return self._ag._cslabels[self.getACSIndex()]
     
-    def isData(self, label):
-        """Return ``True`` if data *label* is present."""
+    def isDataLabel(self, label):
+        """Return **True** if data associated with *label* is present."""
         
-        return self._ag.isData(label)
+        return self._ag.isDataLabel(label)
 
     def getDataType(self, label):
         """Return type of data, or ``None`` if data *label* is not present."""
         
         return self._ag.getDataType(label)
+
+    def isFlagLabel(self, label):
+        """Return **True** if a flag associated with *label* is present."""
+        
+        return self._ag.isFlagLabel(label)
+    
+    def _getFlags(self, label):
+        """Return atom flags."""
+        
+        flags = self._ag._getFlags(label)
+        if flags is not None:
+            return flags[self._getIndices()]
+
+    def _getSubset(self, label):
+        
+        subset = np.array(list(set(self._ag._getSubset(label)
+                          ).intersection(set(self._getIndices()))))
+        subset.sort()
+        return subset
 
     def _iterBonds(self):
         """Yield pairs of indices for bonded atoms that are within the pointer. 

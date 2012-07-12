@@ -105,7 +105,7 @@ class AtomMapMeta(type):
     
     def __init__(cls, name, bases, dict):
         
-        for field in ATOMIC_FIELDS.values():
+        for fname, field in ATOMIC_FIELDS.iteritems():
             
             if field.private:
                 continue
@@ -113,24 +113,11 @@ class AtomMapMeta(type):
             meth = field.meth_pl
             getMeth = 'get' + meth
     
-            if field.call:
-                def getData(self, var=field.var, call=field.call, 
-                            dtype=field.dtype):
-                    for meth in call:
-                        getattr(self._ag, meth)()
-                    data = self._ag._data[var][self._indices]
+            def getData(self, meth=field.meth_pl, dtype=field.dtype):
+                data = getattr(self._ag, '_get' + meth)()
+                if data is not None:
                     result = zeros((self._len,) + data.shape[1:], dtype)
-                    result[self._mapping] = data
-                    return result 
-    
-            else:
-                def getData(self, var=field.var, dtype=field.dtype):
-                    array = self._ag._data[var]
-                    if array is None:
-                        return None
-                    data = self._ag._data[var][self._indices]
-                    result = zeros((self._len,) + data.shape[1:], dtype)
-                    result[self._mapping] = data
+                    result[self._mapping] = data[self._indices]
                     return result
     
             getData = wrapGetMethod(getData)
@@ -359,6 +346,17 @@ class AtomMap(AtomPointer):
             return result
 
     _getData = getData
+
+    def getFlags(self, label):
+        """Return a copy of atom flag values."""
+
+        agflags = self._ag._getFlags(label)
+        if agflags is not None:
+            flags = zeros(self._len, bool)
+            flags[self._mapping] = agflags[self._indices]
+            return flags
+
+    _getFlags = getFlags
 
     def getIndices(self):
         """Return a copy of indices of mapped atoms."""

@@ -81,7 +81,7 @@ class Segment(AtomSubset):
     def getSegname(self):
         """Return segment name."""
         
-        return self._ag._data['segments'][self._indices[0]]
+        return self._ag._getSegnames()[self._indices[0]]
     
     def setSegname(self, segname):
         """Set segment name."""

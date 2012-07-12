@@ -16,24 +16,41 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines atomic data fields which are used by meta classes
-for decorating :class:`.Atomic` classes."""
+"""This module defines atomic data fields.  You can read this page in 
+interactive sessions using ``help(fields)``.
+
+.. _fields:
+    
+Atomic data fields
+===============================================================================
+
+Data parsed from PDB and other supported files for these fields are stored in 
+:class:`.AtomGroup` instances.  Available data fields are listed in the table
+below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
+``set`` for handling parsed data:  
+
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from textwrap import wrap as textwrap
+
+from flags import FIELDS as FLAG_FIELDS
+
+from prody.utilities import tabulate, wrap
+
 __all__ = ['Field']
 
-READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex',
-                'resindices', 'chindices', 'segindices'])
+READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex'])
 
 class Field(object):
     
     """Atomic data field."""
     
-    __slots__ = ['name', 'var', 'dtype',  'doc', 'doc_pl', 'meth', 'meth_pl', 
+    __slots__ = ['name', 'dtype',  'doc', 'doc_pl', 'meth', 'meth_pl', 
                  'ndim', 'none', 'selstr', 'synonym', 'readonly', 'call', 
-                 'private', 'depr', 'depr_pl', 'desc']
+                 'private', 'depr', 'depr_pl', 'desc', 'flags']
                  
     def __init__(self, name, dtype, **kwargs):
         
@@ -42,8 +59,6 @@ class Field(object):
         #: data type (primitive Python types)
         self.dtype = dtype
         #: internal variable name used as key for :class:`.AtomGroup` ``_data``
-        self.var = kwargs.get('var', name + 's')
-        #: data field name, as used in documentation
         self.doc = kwargs.get('doc', name)
         #: plural form for documentation
         self.doc_pl = kwargs.get('doc_pl', self.doc + 's')
@@ -76,7 +91,9 @@ class Field(object):
         #: define only _getMethod for :class:`.AtomGroup` to be used by 
         #: :class:`.Select` class
         self.private = kwargs.get('private', False)
-        
+        #: **True** when there are flags associated with the data field 
+        self.flags = kwargs.get('flags', False)
+    
     def getDocstr(self, meth, plural=True, selex=True):
         """Return documentation string for the field."""
         
@@ -116,11 +133,11 @@ class Field(object):
             if self.synonym is not None:
                 selex = selex + ('  Note that *{0:s}* is a synonym for '
                     '*{1:s}*.').format(self.synonym, self.name)
-            return docstr + selex
+            return wrap(docstr + selex)
         else:
-            return docstr
+            return wrap(docstr)
 
-HVNONE = ['_hv', 'segindices', 'chindices', 'resindices']
+HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 
 ATOMIC_FIELDS = {
     'name':      Field('name', '|S6', selstr=('name CA CB',)),
@@ -128,14 +145,12 @@ ATOMIC_FIELDS = {
                        selstr=('altloc A B', 'altloc _'),),
     'anisou':    Field('anisou', float, doc='anisotropic temperature factor', 
                        ndim=2),
-    'chain':     Field('chain', '|S1', var='chids', doc='chain identifier', 
+    'chain':     Field('chain', '|S1',  doc='chain identifier', 
                        meth='Chid', none=HVNONE, synonym='chid', 
                        selstr=('chain A', 'chid A B C', 'chain _')),
     'element':   Field('element', '|S2', doc='element symbol', 
                        selstr=('element C O N',)),
-    'hetero':    Field('hetero', bool, doc='hetero flag', 
-                       selstr=('hetero', 'hetero and not water')),
-    'occupancy': Field('occupancy', float, var='occupancies', 
+    'occupancy': Field('occupancy', float, 
                        doc='occupancy value', meth_pl='Occupancies',
                        selstr=('occupancy 1', 'occupancy > 0')),
     'resname':   Field('resname', '|S6', doc='residue name', 
@@ -144,7 +159,7 @@ ATOMIC_FIELDS = {
                        selstr=('resnum 1 2 3', 'resnum 120A 120B', 
                                'resnum 10 to 20', 'resnum 10:20:2', 
                                'resnum < 10'), synonym='resid'),
-    'secondary': Field('secondary', '|S1', var='secondaries', 
+    'secondary': Field('secondary', '|S1',  
                        doc='secondary structure assignment', 
                        meth='Secstr', synonym='secstr',
                        selstr=('secondary H E', 'secstr H E'),
@@ -168,12 +183,12 @@ ATOMIC_FIELDS = {
     'type':      Field('type', '|S6', selstr=('type CT1 CT2 CT3',)),
     'charge':    Field('charge', float, doc='partial charge', 
                        selstr=('charge 1', 'abs(charge) == 1', 'charge < 0')),
-    'mass':      Field('mass', float, var='masses', doc_pl='masses', 
+    'mass':      Field('mass', float, doc_pl='masses', 
                        meth_pl='Masses', selstr=('12 <= mass <= 13.5',)),
-    'radius':    Field('radius', float, var='radii', doc='radius',  
+    'radius':    Field('radius', float, doc='radius',  
                        doc_pl='radii', meth_pl='Radii', 
                        selstr=('radii < 1.5', 'radii ** 2 < 2.3')),
-    'resindex':  Field('resindex', int, var='resindices', doc='residue index',  
+    'resindex':  Field('resindex', int, doc='residue index',  
                        doc_pl='residue indices', meth_pl='Resindices',
                        selstr=('resindex 0',), readonly=True, 
                        call=['getHierView'],
@@ -184,7 +199,7 @@ ATOMIC_FIELDS = {
                             'incremented by one, and are assigned in the '
                             'order of appearance in :class:`.AtomGroup` '
                             'instance.'),
-    'chindex':   Field('chindex', int, var='chindices', doc='chain index',  
+    'chindex':   Field('chindex', int, doc='chain index',  
                        doc_pl='chain indices', meth_pl='Chindices',
                        selstr=('chindex 0',), readonly=True, 
                        call=['getHierView'],
@@ -194,7 +209,7 @@ ATOMIC_FIELDS = {
                             'are incremented by one, and are assigned in the '
                             'order of appearance in :class:`.AtomGroup` '
                             'instance.'),
-    'segindex':  Field('segindex', int, var='segindices', doc='segment index',  
+    'segindex':  Field('segindex', int, doc='segment index',  
                        doc_pl='segment indices', meth_pl='Segindices',
                        selstr=['segindex 0',], readonly=True, 
                        call=['getHierView'],
@@ -203,7 +218,7 @@ ATOMIC_FIELDS = {
                             'start from zero, are incremented by one, and are '
                             'assigned in the order of appearance in '
                             ':class:`.AtomGroup` instance.'),
-    'fragindex': Field('fragindex', int, var='fragindices', 
+    'fragindex': Field('fragindex', int, 
                        doc='fragment index', doc_pl='fragment indices', 
                        meth_pl='Fragindices', 
                        selstr=['fragindex 0', 'fragment 1'], 
@@ -214,17 +229,55 @@ ATOMIC_FIELDS = {
                             'indices start from zero, are incremented by '
                             'one, and are assigned in the order of appearance '
                             'in :class:`.AtomGroup` instance.'),
-    'numbonds':  Field('numbonds', int, var='numbonds', meth_pl='Numbonds',
+    'numbonds':  Field('numbonds', int, meth_pl='Numbonds',
                        doc='number of bonds', 
                        selstr=['numbonds 0', 'numbonds 1'], 
                        readonly=True, private=True),
 }
 
 
-ATOMIC_ATTRIBUTES = {}
-for field in ATOMIC_FIELDS.values():
-    ATOMIC_ATTRIBUTES[field.var] = field
+keys = ATOMIC_FIELDS.keys()
+keys.sort()
+docs = ['Description'] + [ATOMIC_FIELDS[key].doc + (' *(read only)*' 
+                          if ATOMIC_FIELDS[key].readonly else '') 
+                          for key in keys]
+__doc__ += tabulate(['Field'] + ['*' + key + '*' for key in keys], 
+                    docs, header=True)
 
+
+__doc__ += """
+
+
+Note that for fields noted as *read only*, a ``set`` methods are not available.
+
+Selection examples
+===============================================================================
+
+Many of these data fields can be used to make atom selections. For example,
+the following will select atoms whose residue names are ALA:
+    
+>>> from prody import *
+>>> ubi = parsePDB('1ubi')
+>>> ubi.select('resname ALA')
+<Selection: 'resname ALA' from 1ubi (10 atoms)>
+
+Following table lists some selection examples: 
+
+"""
+
+keys = [key for key in keys if ATOMIC_FIELDS[key].selstr]
+sels = ['Examples'] + ["``'" + "'``, ``'".join(ATOMIC_FIELDS[key].selstr) +  
+                       "'``" + ( ' Note that *{0:s}* is a synonym for *{1:s}*.'
+                       .format(ATOMIC_FIELDS[key].synonym, key) 
+                       if ATOMIC_FIELDS[key].synonym else '') for key in keys]
+
+__doc__ += tabulate(['Field'] + ['*' + key + '*' for key in keys], 
+                    sels, header=True)
+
+
+
+for key in FLAG_FIELDS.iterkeys():
+    ATOMIC_FIELDS[key].flags = True
 
 def wrapGetMethod(fn):
     def getMethod(self):

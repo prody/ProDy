@@ -22,18 +22,18 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import zeros
+from numpy import all, zeros
 
 from prody import LOGGER
 
 from bond import trimBonds
-from fields import ATOMIC_ATTRIBUTES, READONLY
+from fields import ATOMIC_FIELDS, READONLY
 
 __all__ = ['Atomic']
 
-isMacro = lambda none: None
-isKeyword = lambda none: None
 SELECT = None
+isKeyword = None
+isSelectionMacro = None
 
 class Atomic(object):
     
@@ -56,13 +56,28 @@ class Atomic(object):
             return object.__getattribute__(self, name)
 
         except AttributeError:
-            selstr = name
-            items = name.split('_')
-            word = items[0]
-            if (isKeyword(word) or word == 'not' or isMacro(word) or
-                self.isData(word)):
-                selstr = ' '.join(items)
-                return SELECT.select(self, selstr)
+            if name.startswith('is') and self.isFlagLabel(name[2:]):
+                return all(self._getFlags(name[2:]))
+            else:
+                if self.isFlagLabel(name):
+                    try:
+                        ag = self.getAtomGroup()
+                    except AttributeError:
+                        ag = self
+                        selstr = name
+                    else:
+                        selstr = '({0:s}) and ({1:s})'.format(name, 
+                                                              self.getSelstr())
+                    return Selection(ag, self._getSubset(name), selstr, 
+                                     self.getACSIndex(), unique=True)
+                else:
+                    selstr = name
+                    items = name.split('_')
+                    word = items[0]
+                    if (isKeyword(word) or word == 'not' or 
+                        isSelectionMacro(word) or self.isDataLabel(word)):
+                        selstr = ' '.join(items)
+                        return SELECT.select(self, selstr)
 
         raise AttributeError("'{0:s}' object has no attribute '{1:s}' "
                              "and '{2:s}' is not a valid selection string"
@@ -103,12 +118,12 @@ class Atomic(object):
         for key, array in ag._data.iteritems():
             if key in READONLY or array is None:
                 continue
-            if key in ATOMIC_ATTRIBUTES:
+            if key in ATOMIC_FIELDS:
                 if indices is None:
                     new._data[key] = array.copy()
                 elif atommap:
                     new._data[key] = getattr(self, 'get' + 
-                                             ATOMIC_ATTRIBUTES[key].meth_pl)()
+                                             ATOMIC_FIELDS[key].meth_pl)()
                 else:
                     new._data[key] = array[indices]
             else:
@@ -121,8 +136,8 @@ class Atomic(object):
                 new._bonds = bonds.copy()
                 new._bmap = bmap.copy()
                 new._data['numbonds'] = ag._data['numbonds'].copy()
-                if ag._data['fragindices'] is not None:
-                    new._data['fragindices'] = ag._data['fragindices'].copy()
+                if ag._data['fragindex'] is not None:
+                    new._data['fragindex'] = ag._data['fragindex'].copy()
             elif atommap:
                 if len(set(indices)) == len(indices): 
                     bonds = trimBonds(bonds, indices)

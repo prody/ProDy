@@ -19,7 +19,7 @@
 import numpy as np
 
 from atom import Atom
-from fields import ATOMIC_FIELDS, ATOMIC_ATTRIBUTES, READONLY
+from fields import ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from prody import LOGGER
@@ -30,7 +30,7 @@ class AtomSubsetMeta(type):
 
     def __init__(cls, name, bases, dict):
 
-        for field in ATOMIC_FIELDS.values():
+        for fname, field in ATOMIC_FIELDS.iteritems():
             
             if field.private:
                 continue
@@ -39,17 +39,10 @@ class AtomSubsetMeta(type):
             getMeth = 'get' + meth
             setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
-            if field.call:
-                def getData(self, var=field.var, call=field.call):
-                    if self._ag._data[var] is None:
-                        [getattr(self._ag, meth)() for meth in call]
-                    return self._ag._data[var][self._indices]
-            else:
-                def getData(self, var=field.var):
-                    array = self._ag._data[var]
-                    if array is None:
-                        return None
-                    return array[self._indices] 
+            def getData(self, meth=field.meth_pl, call=field.call):
+                data = getattr(self._ag, '_get' + meth)()
+                if data is not None:
+                    return data[self._indices]
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get')
@@ -60,7 +53,7 @@ class AtomSubsetMeta(type):
                 continue
             
             # Define public method for setting values in data array
-            def setData(self, value, var=field.var, none=field.none):
+            def setData(self, value, var=fname, none=field.none):
                 array = self._ag._data[var]
                 if array is None:
                     raise AttributeError(var + ' data is not set')
@@ -202,11 +195,20 @@ class AtomSubset(AtomPointer):
         
         if label in READONLY:
             raise AttributeError('{0:s} is read-only'.format(repr(label)))
-        if label in ATOMIC_ATTRIBUTES:
+        if label in ATOMIC_FIELDS:
             raise AttributeError('{0:s} must be changed using `set{1:s}` '
-                'method'.format(repr(label), ATOMIC_ATTRIBUTES[label].meth_pl))
+                'method'.format(repr(label), ATOMIC_FIELDS[label].meth_pl))
         try:
             self._ag._data[label][self._index] = data 
         except KeyError:
             raise AttributeError('data with label {0:s} must be set for '
                                  'AtomGroup first'.format(repr(label)))
+
+    def getFlags(self, label):
+        """Return a copy of atom flag values."""
+        
+        return self._ag._getFlags(label)[self._indices]
+    
+    def setFlags(self, label):
+        
+        pass

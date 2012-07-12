@@ -237,11 +237,16 @@ from prody.kdtree import KDTree
 from prody.utilities import checkCoords, rangeString
 
 from atomic import Atomic
-from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS, READONLY
+from fields import ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
+from flags import PLANTERS as FLAG_PLANTERS
+from flags import ALIASES as FLAG_ALIASES
+from flags import FIELDS as FLAG_FIELDS
 from atom import Atom
 from bond import Bond, evalBonds
 from selection import Selection
+
+import flags
 
 __all__ = ['AtomGroup']
 
@@ -251,7 +256,7 @@ class AtomGroupMeta(type):
 
     def __init__(cls, name, bases, dict):
     
-        for field in ATOMIC_FIELDS.values():
+        for fname, field in ATOMIC_FIELDS.iteritems():
 
             meth = field.meth_pl
             getMeth = 'get' + meth
@@ -259,24 +264,28 @@ class AtomGroupMeta(type):
             if field.call:
                 # Define public method for retrieving a copy of data array
                 if not field.private:
-                    def getData(self, var=field.var, call=field.call):
-                        if self._data[var] is None:
+                    def getData(self, var=fname, call=field.call):
+                        try:
+                            return self._data[var].copy()
+                        except KeyError:
                             [getattr(self, meth)() for meth in call]
-                        return self._data[var].copy()
+                            return self._data[var].copy()
                 # Define private method for retrieving actual data array
-                def _getData(self, var=field.var, call=field.call):
-                    if self._data[var] is None:
+                def _getData(self, var=fname, call=field.call):
+                    try:
+                        return self._data[var]
+                    except KeyError:
                         [getattr(self, meth)() for meth in call]
-                    return self._data[var]
+                        return self._data[var].copy()
             else:
                 if not field.private:
-                    def getData(self, var=field.var):
-                        array = self._data[var]
-                        if array is None:
-                            return None
-                        return array.copy() 
-                def _getData(self, var=field.var):
-                    return self._data[var]
+                    def getData(self, var=fname):
+                        try:
+                            return self._data[var].copy()
+                        except KeyError: 
+                            pass
+                def _getData(self, var=fname):
+                    return self._data.get(var)
 
             if not field.private:
                 getData = wrapGetMethod(getData)
@@ -293,12 +302,13 @@ class AtomGroupMeta(type):
                 continue
             
             # Define public method for setting values in data array
-            def setData(self, array, var=field.var, dtype=field.dtype, 
-                        ndim=field.ndim, none=field.none):
+            def setData(self, array, var=fname, dtype=field.dtype, 
+                        ndim=field.ndim, none=field.none, flags=field.flags):
                 if self._n_atoms == 0:
                     self._n_atoms = len(array)
                 elif len(array) != self._n_atoms:
-                    raise ValueError('length of array must match numAtoms')
+                    raise ValueError('length of array must match number of '
+                                     'atoms')
                     
                 if isinstance(array, list):
                     array = np.array(array, dtype)
@@ -317,6 +327,9 @@ class AtomGroupMeta(type):
                 if none:
                     [self.__setattr__(nm,  None) if nm[0] == '_' else
                      self._data.__setitem__(nm,  None) for nm in none]
+                if flags and self._flags:
+                    self._resetFlags(var)
+                    
             setData = wrapSetMethod(setData)
             setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set')
@@ -337,7 +350,7 @@ class AtomGroup(Atomic):
     
     *get* methods, e.g. :meth:`getResnames`, return copies of the data arrays. 
     
-    *set* methods, e.g. :meth:`setResnums`, accept data in :class:`list` or 
+    *set* methods, e.g. :meth:`setResnums`, accept data in :func:`list` or 
     :class:`~numpy.ndarray` instances.  The length of the list or array must 
     match the number of atoms in the atom group.  These methods set attributes 
     of all atoms at once.
@@ -377,10 +390,10 @@ class AtomGroup(Atomic):
     
     *Addition*
         
-    Addition of two :class:`AtomGroup`, let's say *A* and *B*, instances 
+    Addition of two :class:`AtomGroup` instances, let's say *A* and *B*, 
     results in a new :class:`AtomGroup` instance, say *C*.  *C* stores an 
     independent copy of the data of *A* and *B*.  If *A* or *B* is missing
-    a certain data type, that zero values will be used for that part in *C*.
+    a certain data type, zero values will be used for that part in *C*.
     If *A* and *B* has same number of coordinate sets, *C* will have a copy
     of all coordinate sets, otherwise *C* will have a single coordinate set,
     which is a copy of of active coordinate sets of *A* and *B*."""
@@ -389,7 +402,8 @@ class AtomGroup(Atomic):
     
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i', 
                  '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
-                 '_acsi', '_n_csets', '_data', '_fragments']
+                 '_acsi', '_n_csets', '_data', '_fragments',
+                 '_flags', '_flagts', '_subsets']
     
     def __init__(self, title='Unnamed'):
         
@@ -402,13 +416,17 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
+        self._fragments = None
         
         self._cslabels = []
         self._acsi = None
         self._n_csets = 0
         
-        self._data = dict([(field.var, None) 
-                           for field in ATOMIC_FIELDS.itervalues()])
+        self._data = dict()
+
+        self._flags = None
+        self._flagts = None
+        self._subsets = None 
 
     def __repr__(self):
 
@@ -489,8 +507,7 @@ class AtomGroup(Atomic):
                         .format(new.getTitle()))
         
         for key in set(self._data.keys() + other._data.keys()):
-            if key in ATOMIC_ATTRIBUTES and \
-                ATOMIC_ATTRIBUTES[key].readonly:
+            if key in ATOMIC_FIELDS and ATOMIC_FIELDS[key].readonly:
                 continue
             this = self._data.get(key)
             that = other._data.get(key)
@@ -567,7 +584,7 @@ class AtomGroup(Atomic):
         """Return a mapping of serial numbers to indices."""
         
         if self._sn2i is None:
-            serials = self._data['serials']  
+            serials = self._data['serial']  
             if serials is None:
                 raise AttributeError('atom serial numbers are not set')
             unique = np.unique(serials) 
@@ -591,10 +608,13 @@ class AtomGroup(Atomic):
         
         self._title = str(title)
     
-    def numAtoms(self):
-        """Return number of atoms."""
+    def numAtoms(self, flag=None):
+        """Return number of atoms, or number of atoms with given *flag*."""
         
-        return self._n_atoms
+        if flag is None:
+            return self._n_atoms
+        else:
+            return len(self._getSubset(flag))
     
     def getCoords(self):
         """Return a copy of coordinates from active coordinate set."""
@@ -643,7 +663,7 @@ class AtomGroup(Atomic):
         
     def _setCoords(self, coords, label=None, overwrite=False):
         """Set coordinates without data type checking.  *coords* must 
-        be a :class:`numpy.ndarray`, but may have data type other than 
+        be a :class:`~numpy.ndarray`, but may have data type other than 
         :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label* 
         argument may be used to label coordinate sets.  *label* may be 
         a string or a list of strings length equal to the number of 
@@ -903,20 +923,13 @@ class AtomGroup(Atomic):
             * not be a reserved word 
               (see :func:`.getReservedWords`)
 
-        *data* must be a :func:`list` or a :class:`numpy.ndarray`, its length 
-        must be equal to the number of atoms, and the type of data array must 
-        be one of:
-            
-            * :func:`bool`
-            * :func:`float`
-            * :func:`int`
-            * :func:`str`
-        
-        If a :class:`list` is given, its type must match one of the above after 
-        it is converted to an :class:`numpy.ndarray`.  If the dimension of the 
-        *data* array is 1 (i.e. ``data.ndim==1``), *label* can be used to make
-        atom selections, e.g. ``"label 1 to 10"`` or ``"label C1 C2"``.  Note 
-        that, if data with *label* is present, it will be overridden."""
+        *data* must be a :func:`list` or a :class:`~numpy.ndarray` and its 
+        length must be equal to the number of atoms, and the type of data 
+        array must be one of :func:`float`, :func:`int`, or :func:`str`.  
+        If the dimension of the *data* array is 1, i.e. ``data.ndim==1``,
+        *label* can be used to make atom selections, e.g. ``"label 1 to 10"`` 
+        or ``"label C1 C2"``.  Note that, if data with *label* is present, 
+        it will be overwritten."""
         
         if not isinstance(label, str):
             raise TypeError('label must be a string')
@@ -931,20 +944,22 @@ class AtomGroup(Atomic):
                              'underscore, {0:s} is not valid'.format(label))
             
         if isReserved(label):
-            raise ValueError('label cannot be a reserved word or a selection '
-                             'keyword, {0:s} is invalid'.format(repr(label)))
+            raise ValueError('label cannot be a reserved word, {0:s} is not '
+                             'valid'.format(repr(label)))
         if len(data) != self._n_atoms:
             raise ValueError('length of data array must match number of atoms')
         if isinstance(data, list):
             data = np.array(data)
         elif not isinstance(data, np.ndarray):
             raise TypeError('data must be a numpy.ndarray instance')
-        if not data.dtype in (np.float, np.int, np.bool) and \
-              data.dtype.type != np.string_:
+        if (not data.dtype in (np.float, np.int, np.bool) and
+            data.dtype.type != np.string_):
             raise TypeError('type of data array must be float, int, or '
                             'string_, {0:s} is not valid'.format(
                             str(data.dtype)))
-            
+        if data.dtype == np.bool:
+            LOGGER.warn('`setData` will not accept arrays with boolean data '
+                        'type from v1.2 and on, use `setFlags` instead.')
         self._data[label] = data
     
     def delData(self, label):
@@ -961,9 +976,7 @@ class AtomGroup(Atomic):
         if such data is not present."""
         
         data = self._data.get(label, None)
-        if data is None:
-            return None
-        else:
+        if data is not None:
             return data.copy()
 
     def _getData(self, label):
@@ -973,27 +986,150 @@ class AtomGroup(Atomic):
         return self._data.get(label, None)
 
     def isData(self, label):
-        """Return **True** if data associated with *label* is provided by the 
-        user."""
+        """Deprecated, use :meth:`isDataLabel` instead."""
         
-        return label in self._data and not label in ATOMIC_ATTRIBUTES
+        from prody import deprecate
+        deprecate('isData', 'isDataLabel', 'v1.3')
+        return self.isDataLabel(label)
+        
+    def isDataLabel(self, label):
+        """Return **True** if data associated with *label* is present."""
+        
+        return label in self._data and not label in ATOMIC_FIELDS
   
     def getDataLabels(self):
         """Return list of data labels provided by the user."""
         
         return [key for key, data in self._data.iteritems() 
-                    if not key in ATOMIC_ATTRIBUTES]
+                    if not key in ATOMIC_FIELDS]
         
     def getDataType(self, label):
-        """Return type of the user data (i.e. data.dtype) associated with
-        *label*, or **None** label is not used."""
+        """Return type of the data (i.e. data.dtype) associated with *label*, 
+        or **None** label is not used."""
 
-        if label not in ATOMIC_ATTRIBUTES:        
-            try:
-                return self._data[label].dtype
-            except KeyError:
-                return None
+        try:
+            return self._data[label].dtype
+        except KeyError:
+            return None
     
+    def isFlagLabel(self, label):
+        """Return **True** if a flag associated with *label* is present."""
+        
+        return label in FLAG_PLANTERS or label in (self._flags or {})
+    
+    def getFlags(self, label):
+        """Return a copy of atom flag values."""
+        
+        flags = self._getFlags(label)
+        if flags is not None:
+            return flags.copy()
+        
+    def _getFlags(self, label):
+        """Return atom flag values."""
+        
+        if self._flagts:
+            if flags.TIMESTAMP != self._flagts:
+                self._resetFlags()
+                self._flagts = flags.TIMESTAMP
+        else:
+            if self._flags is None:
+                self._flags = {}
+                self._subsets = {}
+            self._flagts = flags.TIMESTAMP
+
+        try:
+            return self._flags[label]
+        except KeyError:
+            try:
+                return FLAG_PLANTERS[label](self, label)
+            except KeyError:
+                pass
+    
+    def setFlags(self, label, flags):
+        """Set atom flags."""
+        
+        if self._flags is None:
+            self._flags = {}
+            self._subsets = {}
+        
+        try:
+            ndim, dtype = flags.ndim, flags.dtype
+        except AttributeError:
+            flags = np.array(flags)
+            ndim, dtype = flags.ndim, flags.dtype
+        if ndim != 1:
+            raise ValueError('flags.ndim must be 1')
+        if dtype != bool:
+            raise ValueError('flags.dtype must be bool')
+        if len(flags) != self._n_atoms:
+            raise ValueError('len(flags) must be equal to number of atoms')
+        self._flags[label] = flags
+    
+    def _setFlags(self, flags, *labels):
+        """Set atom flags."""
+
+        if self._flags is None:
+            self._flags = {}
+            self._subsets = {}
+        for label in labels:
+            self._flags[label] = flags
+    
+    def _setSubset(self, indices, *labels):
+        """Set indices of a subset of atoms."""
+
+        for label in labels:
+            self._subsets[label] = indices
+            
+    def _getSubset(self, label):
+        """Return indices of atoms."""
+        
+        if self._flagts:
+            if flags.TIMESTAMP != self._flagts:
+                self._resetFlags()
+                self._flagts = flags.TIMESTAMP
+        else:
+            if self._flags is None:
+                self._flags = {}
+                self._subsets = {}
+            self._flagts = flags.TIMESTAMP
+
+        try:
+            return self._subsets[label]
+        except KeyError:
+            flgs = self._getFlags(label)
+            try:
+                return self._subsets[label]
+            except KeyError:
+                indices = flgs.nonzero()[0]
+                self._setSubset(indices, *FLAG_ALIASES.get(label, [label]))
+                return indices.copy()
+    
+    def getFlagLabels(self):
+        """Return list of atom flag labels provided by the users."""
+
+        return [key for key in (self._flags or {}).iterkeys() 
+                    if not key in FLAG_PLANTERS]
+
+    def _resetFlags(self, field=None):
+        """Reset flags and subsets associated with *field*."""
+       
+        flags = self._flags
+        if flags is not None:        
+            if field:        
+                labels = FLAG_FIELDS[field]
+            else:
+                labels = FLAG_PLANTERS.keys()
+            subsets = self._subsets
+            if len(labels) < len(flags):
+                for label in labels:
+                    flags.pop(label, None)
+                    subsets.pop(label, None)
+            else:
+                for label in flags.iterkeys():
+                    if label in labels:
+                        flags.pop(flag, None)
+                        subsets.pop(flag, None)
+
     def getBySerial(self, serial, stop=None, step=None):
         """Get an atom(s) by *serial* number (range).  *serial* must be zero or 
         a positive integer. *stop* may be **None**, or an integer greater than 
@@ -1094,7 +1230,6 @@ class AtomGroup(Atomic):
         
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
-        self._data['fragindices'] = None
         self._fragments = None
 
     def numBonds(self):
@@ -1102,40 +1237,37 @@ class AtomGroup(Atomic):
         
         if self._bonds is not None:
             return self._bonds.shape[0]
+        return 0
 
     def iterBonds(self):
         """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
         
-        if self._bonds is None:
-            raise ValueError('bonds are not set, use `setBonds`')
-        
-        acsi = self._acsi
-        for bond in self._bonds:
-            yield Bond(self, bond, acsi)
+        if self._bonds is not None:
+            acsi = self._acsi
+            for bond in self._bonds:
+                yield Bond(self, bond, acsi)
     
     def _iterBonds(self):
         """Yield pairs of bonded atom indices. Use :meth:`setBonds` for setting
         bonds."""
         
-        if self._bonds is None:
-            raise ValueError('bonds are not set, use `setBonds`')
-            
-        for a, b in self._bonds:     
-            yield a, b
+        if self._bonds is not None:
+            for a, b in self._bonds:     
+                yield a, b
 
     def numFragments(self):
         """Return number of connected atom subsets."""
         
         self._fragment()
-        return self._data['fragindices'].max() + 1
+        return self._data['fragindex'].max() + 1
         
     def iterFragments(self):
         """Yield connected atom subsets as :class:`.Selection` instances."""
         
-        self._fragment()
-        frags = self._data['fragindices']
-        acsi = self._acsi
-        if frags is not None:
+        if self._bmap is not None:
+
+            frags = self._data.get('fragindex')
+            acsi = self._acsi
             if self._fragments is None:
                 fragments = []
                 append = fragments.append
@@ -1154,53 +1286,52 @@ class AtomGroup(Atomic):
         """Set unique fragment indices to connected atom subsets using bond 
         information."""
         
-        if self._data['fragindices'] is None:
-            if self._bmap is None:
-                raise ValueError('bonds must be set for fragment '
-                                 'determination, use `setBonds`')
-            
-            fids = np.zeros(self._n_atoms, int)
-            fdict = {}
-            c = 0
-            for a, b in self._bonds:
-                af = fids[a]
-                bf = fids[b]
-                if af and bf:
-                    if af != bf:
-                        frag = fdict[af]
-                        temp = fdict[bf]
-                        fids[temp] = af
-                        frag.extend(temp)
-                        fdict.pop(bf)
-                elif af:
-                    fdict[af].append(b)
-                    fids[b] = af
-                elif bf:
-                    fdict[bf].append(a)
-                    fids[a] = bf
-                else:
-                    c += 1
-                    fdict[c] = [a, b]
-                    fids[a] = fids[b] = c
-            fragindices = np.zeros(self._n_atoms, int)
-            fragments = []
-            append = fragments.append
-            fidset = set()
-            c = 0
-            for i, fid in enumerate(fids):
-                if fid in fidset:
-                    continue
-                elif fid:
-                    fidset.add(fid)
-                    indices = fdict[fid]
-                    indices.sort()
-                    append(indices)
-                    fragindices[indices] = c
-                    c += 1
-                else:
-                    # these are non-bonded atoms, e.g. ions
-                    fragindices[i] = c
-                    append([i])
-                    c += 1
-            self._data['fragindices'] = fragindices
-            self._fragments = fragments
+        if self._bmap is None:
+            raise ValueError('bonds must be set for fragment determination, '
+                             'use `setBonds`')
+        
+        fids = np.zeros(self._n_atoms, int)
+        fdict = {}
+        c = 0
+        for a, b in self._bonds:
+            af = fids[a]
+            bf = fids[b]
+            if af and bf:
+                if af != bf:
+                    frag = fdict[af]
+                    temp = fdict[bf]
+                    fids[temp] = af
+                    frag.extend(temp)
+                    fdict.pop(bf)
+            elif af:
+                fdict[af].append(b)
+                fids[b] = af
+            elif bf:
+                fdict[bf].append(a)
+                fids[a] = bf
+            else:
+                c += 1
+                fdict[c] = [a, b]
+                fids[a] = fids[b] = c
+        fragindices = np.zeros(self._n_atoms, int)
+        fragments = []
+        append = fragments.append
+        fidset = set()
+        c = 0
+        for i, fid in enumerate(fids):
+            if fid in fidset:
+                continue
+            elif fid:
+                fidset.add(fid)
+                indices = fdict[fid]
+                indices.sort()
+                append(indices)
+                fragindices[indices] = c
+                c += 1
+            else:
+                # these are non-bonded atoms, e.g. ions
+                fragindices[i] = c
+                append([i])
+                c += 1
+        self._data['fragindex'] = fragindices
+        self._fragments = fragments

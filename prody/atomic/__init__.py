@@ -16,11 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for handling atomic data.
+"""This module defines classes for handling atomic data.  Read this page using
+``help(atomic)``.
 
 .. _atomic:
-    
-    
+
 Atomic classes
 ===============================================================================
 
@@ -35,9 +35,8 @@ Instances of the class can be obtained by parsing a PDB file as follows:
 >>> ag
 <AtomGroup: 1aar (1218 atoms)>
 
-All atomic data in :class:`.AtomGroup` instances and comes
-with other classes acting as pointers to provide convenient read/write access 
-to such data.  These classes are:
+In addition to :class:`.AtomGroup` class, following classes that act as 
+pointers provide convenient access subset of data:
 
 * :class:`.Selection` - Points to an arbitrary subset of atoms. See 
   :ref:`selections` and :ref:`selection-operations` for usage examples.
@@ -58,15 +57,45 @@ to such data.  These classes are:
 
 * :class:`.Bond` - Points to two connected atoms
 
+Atom data fields
+===============================================================================
+
+:ref:`fields` defines an interface for handling data parsed from molecular
+data files, in particular PDB files.  Aforementioned classes offer ``get``
+and ``set`` functions for manipulating this data.  For example, the following 
+prints residue names:
+
+>>> print(ag.getResnames())
+['MET' 'MET' 'MET' ..., 'HOH' 'HOH' 'HOH']
+
+Atom flags
+===============================================================================
+
+:ref:`flags` module defines a way to mark atoms with certain properties, such
+as atoms that are part of a **protein**.  Following example checks whether
+all atoms of *ag* are protein atoms: 
+    
+>>> ag.isprotein
+False
+
+This indicates that there are some non-protein atoms, probably water atoms. 
+We can easily make a count as follows:
+
+>>> ag.numAtoms('protein')
+1203
+>>> ag.numAtoms('hetero')
+15
+>>> ag.numAtoms('water')
+15
+
+
 Atom selections
 ===============================================================================
 
-Flexible and powerful atom selections is one of the most important features 
-of ProDy.  The details of the selection grammar is described in 
-:ref:`selections`. 
-
-Using the flexibility of Python, atom selections are made much easier by
-overriding the ``.`` operator, so the following are interpreted as selections:
+:ref:`selections` offer a flexible and powerful way to access subsets of 
+selections and is one of the most important features of ProDy.   The details 
+of the selection grammar is described in :ref:`selections`.  Following examples
+show how to make quick selections using the overloaded ``.`` operator:
     
 >>> ag.chain_A # selects chain A
 <Selection: 'chain A' from 1aar (608 atoms)>
@@ -82,15 +111,14 @@ It is also possible to combine selections with ``and`` and ``or`` operators:
 >>> ag.acidic_or_basic
 <Selection: 'acidic or basic' from 1aar (422 atoms)>
 
-
 Using dot operator will behave like the logical ``and`` operator:
     
 >>> ag.chain_A.backbone
 <Selection: '(backbone) and (chain A)' from 1aar (304 atoms)>
   
-For this to work, the first word following the dot operator must be a selection
-keyword, e.g. ``resname``, ``name``, ``apolar``, ``protein``, etc. 
-Underscores will be interpreted as white space, as obvious from the
+For this to work, the first word following the dot operator must be a flag 
+label or a field name, e.g. ``resname``, ``name``, ``apolar``, ``protein``, 
+etc.  Underscores will be interpreted as white space, as obvious from the
 previous examples.  The limitation of this is that parentheses, special 
 characters cannot be used.
 
@@ -106,12 +134,16 @@ Following function can be used to identify fragments in a group
 (:class:`.AtomGroup`) or subset (:class:`.Selection`) of atoms:
     
   * :func:`.findFragments`
-  * :func:`.iterFragments`"""
+  * :func:`.iterFragments`
+  
+Following function can be used check whether a word is reserved because
+it is used internally by :mod:`.prody.atomic` classes:
+
+  * :func:`.isReserved`
+  * :func:`.getReservedWords`"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
-
-from fields import ATOMIC_ATTRIBUTES, ATOMIC_FIELDS
 
 import prody
 LOGGER = prody.LOGGER
@@ -121,7 +153,7 @@ __all__ = ['Atomic', 'AtomGroup',
            'HierView', 'Segment', 'Chain', 'Residue', 'Atom',
            'AtomPointer', 'AtomSubset',
            'Selection', 'AtomMap',
-           'Bond', 'select', 'atomgroup', 'hierview']
+           'Bond', 'select', 'atomgroup', 'hierview', 'fields', 'flags']
 
 from fields import ATOMIC_FIELDS
 
@@ -140,6 +172,7 @@ from functions import *
 from atomgroup import *
 from selection import *
 
+import flags
 import atomic
 import select
 import pointer
@@ -156,11 +189,11 @@ __all__ += select.__all__
 
 from functions import isAtomic, isSubset
 
-from select import isMacro, isKeyword, isReserved, checkSelstr
+from select import checkSelstr, isKeyword, isSelectionMacro
 
-atomic.isMacro = isMacro
-atomic.isKeyword = isKeyword
 atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()
+atomic.isSelectionMacro = isSelectionMacro
+atomic.isKeyword = isKeyword
 atomic.AtomGroup = AtomGroup
 atomic.Selection = Selection
 
@@ -170,6 +203,9 @@ atomgroup.HierView = HierView
 pointer.AtomMap = AtomMap
 pointer.AtomGroup = AtomGroup
 pointer.Selection = Selection
+
+select.flags = flags
+select.isReserved = isReserved
 
 selection.HierView = HierView
 
@@ -184,7 +220,7 @@ ATOMGROUP.setResnums(np.arange(1,n_atoms+1))
 ATOMGROUP.setChids(['A']*n_atoms)
 ATOMGROUP.setAltlocs([' ']*n_atoms)
 ATOMGROUP.setElements(['C']*n_atoms)
-ATOMGROUP.setHeteros([False]*n_atoms)
+ATOMGROUP.setFlags('hetatm', [False]*n_atoms)
 ATOMGROUP.setOccupancies([1]*n_atoms)
 ATOMGROUP.setSecstrs(['H']*n_atoms)
 ATOMGROUP.setSegnames(['PDB']*n_atoms)

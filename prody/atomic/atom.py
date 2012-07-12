@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from fields import ATOMIC_FIELDS, ATOMIC_ATTRIBUTES, READONLY
+from fields import ATOMIC_FIELDS, READONLY
 from fields import wrapGetMethod, wrapSetMethod
 from pointer import AtomPointer
 from bond import Bond
@@ -34,7 +34,7 @@ class AtomMeta(type):
 
     def __init__(cls, name, bases, dict):
         
-        for field in ATOMIC_FIELDS.values():
+        for fname, field in ATOMIC_FIELDS.iteritems():
             
             if field.private:
                 continue
@@ -43,17 +43,10 @@ class AtomMeta(type):
             getMeth = 'get' + meth
             setMeth = 'set' + meth
             # Define public method for retrieving a copy of data array
-            if field.call:
-                def getData(self, var=field.var, call=field.call):
-                    if self._ag._data[var] is None:
-                        [getattr(self._ag, meth)() for meth in call]
-                    return self._ag._data[var][self._index] 
-            else:
-                def getData(self, var=field.var):
-                    array = self._ag._data[var]
-                    if array is None:
-                        return None
-                    return array[self._index] 
+            def getData(self, meth=field.meth_pl, call=field.call):
+                data = getattr(self._ag, '_get' + meth)()
+                if data is not None:
+                    return data[self._index] 
             getData = wrapGetMethod(getData)
             getData.__name__ = getMeth
             getData.__doc__ = field.getDocstr('get', False)
@@ -64,7 +57,7 @@ class AtomMeta(type):
                 continue
             
             # Define public method for setting values in data array
-            def setData(self, value, var=field.var, none=field.none):
+            def setData(self, value, var=fname, none=field.none):
                 array = self._ag._data[var]
                 if array is None:
                     raise AttributeError('attribute of the AtomGroup is '
@@ -227,19 +220,27 @@ class Atom(AtomPointer):
     def setData(self, label, data):
         """Update *data* associated with *label*.
         
-        :raise AttributeError: when data associated with *label* is not present
-        """
+        :raise AttributeError: when *label* is not in use"""
         
         if label in READONLY:
             raise AttributeError('{0:s} is read-only'.format(repr(label)))
-        if label in ATOMIC_ATTRIBUTES:
+        if label in ATOMIC_FIELDS:
             raise AttributeError('{0:s} must be changed using `set{1:s}` '
-                'method'.format(repr(label), ATOMIC_ATTRIBUTES[label].meth))
+                'method'.format(repr(label), ATOMIC_FIELDS[label].meth))
         try:
             self._ag._data[label][self._index] = data 
         except KeyError:
             raise AttributeError('data with label {0:s} must be set for '
                                  'AtomGroup first'.format(repr(label)))
+    
+    def getFlag(self, label):
+        """Return atom flag."""
+                
+        return self._ag._getFlags(label)[self._index]
+    
+    def setFlag(self, label, value):
+        
+        pass
     
     def getSelstr(self):
         """Return selection string that will select this atom."""

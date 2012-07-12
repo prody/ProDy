@@ -493,7 +493,7 @@ class HierView(object):
                     _segments.append(segment)
 
         if set_indices:
-            ag._data['segindices'] = segindices
+            ag._data['segindex'] = segindices
             chindex = -1
             chindices = zeros(n_atoms, int)
 
@@ -569,7 +569,7 @@ class HierView(object):
                     chain._indices = concatenate((chain._indices, idx)) 
 
         if set_indices:
-            ag._data['chindices'] = chindices
+            ag._data['chindex'] = chindices
         if kwargs.get('chain') == True:
             return
     
@@ -649,7 +649,7 @@ class HierView(object):
             res._indices = concatenate((res._indices, idx))
         
         if set_indices:
-            ag._data['resindices'] = resindices
+            ag._data['resindex'] = resindices
 
     def getResidue(self, chid, resnum, icode=None, segname=None):
         """Return residue with number *resnum* and insertion code *icode* from 
