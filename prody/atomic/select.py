@@ -351,17 +351,20 @@ KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element',
                        'chid', 'secstr', 'segname', 'sequence'])
 FIELDS_ALNUM = dict()
 FIELDS_NUMERIC = set()
+FIELDS_SYNONYMS = dict()
 for name, field in ATOMIC_FIELDS.iteritems():
     if field.ndim == 1:
         if field.dtype in DTYPES_NUMERIC:
             FIELDS_NUMERIC.add(name)
             if field.synonym:
                 FIELDS_NUMERIC.add(field.synonym)
+                FIELDS_SYNONYMS[field.synonym] = name
         else:
             itemsize = np.dtype(field.dtype).itemsize
             FIELDS_ALNUM[name] = itemsize
             if field.synonym:
                 FIELDS_ALNUM[field.synonym] = itemsize
+                FIELDS_SYNONYMS[field.synonym] = name 
 
 
 KEYWORDS_INTEGER = set(['serial', 'index', 'resnum', 'resid', 
@@ -372,10 +375,8 @@ KEYWORDS_FLOAT = set(['x', 'y', 'z', 'beta', 'mass', 'occupancy', 'mass',
 KEYWORDS_NUMERIC = KEYWORDS_FLOAT.union(KEYWORDS_INTEGER)    
 
 KEYWORDS_VALUE_PAIRED = KEYWORDS_NUMERIC.union(KEYWORDS_STRING)
-KEYWORDS_SYNONYMS = {}
-for key, field in ATOMIC_FIELDS.iteritems(): 
-    if field.synonym:
-        KEYWORDS_SYNONYMS[field.synonym] = key
+
+XYZMAP = {'x': 0, 'y': 1, 'z': 2}
 
 FUNCTION_MAP = {
     'sqrt'  : np.sqrt,
@@ -1481,7 +1482,6 @@ class Select(object):
         if keyword == 'sequence':
             return self._sequence(sel, loc, keyword, values, evalonly)
     
-        keyword = KEYWORDS_SYNONYMS.get(keyword, keyword)
         data = self._getData(sel, loc, keyword)
         if isinstance(data, SelectionError):
             return data
@@ -1577,15 +1577,8 @@ class Select(object):
         If *values* is not passed, return the attribute array."""
         
         if DEBUG: print('_evalFloat', keyword, values)
-        keyword = KEYWORDS_SYNONYMS.get(keyword, keyword)
-        if keyword == 'x':
-            data = self._getCoords(sel, loc)[:,0]
-        elif keyword == 'y':
-            data = self._getCoords(sel, loc)[:,1]
-        elif keyword == 'z':
-            data = self._getCoords(sel, loc)[:,2]
-        else:
-            data = self._getData(sel, loc, keyword)
+
+        data = self._getData(sel, loc, keyword)
     
         if values is None or isinstance(data, SelectionError): 
             return data
@@ -1809,9 +1802,16 @@ class Select(object):
     def _getData(self, sel, loc, keyword):
         """Return atomic data."""
         
+        try:
+            idx = XYZMAP[keyword]
+        except KeyError:
+            pass
+        else:
+            return self._getCoords(sel, loc)[:,idx]
+        
         data = self._data.get(keyword)
         if data is None:
-            field = ATOMIC_FIELDS.get(keyword)
+            field = ATOMIC_FIELDS.get(FIELDS_SYNONYMS.get(keyword, keyword))
             if field is None:
                 data = self._ag._getData(keyword)
                 if data is None:
