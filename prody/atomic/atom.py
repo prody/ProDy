@@ -63,9 +63,7 @@ class AtomMeta(type):
                     raise AttributeError('attribute of the AtomGroup is '
                                          'not set')
                 array[self._index] = value
-                if none:
-                    [self._ag.__setattr__(nm,  None) if nm[0] == '_' else
-                     self._ag._data.__setitem__(nm,  None) for nm in none]
+                if none: self._ag._none(none)
             setData = wrapSetMethod(setData)
             setData.__name__ = setMeth 
             setData.__doc__ = field.getDocstr('set', False)

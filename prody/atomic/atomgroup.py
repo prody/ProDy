@@ -324,9 +324,7 @@ class AtomGroupMeta(type):
                         raise ValueError('array cannot be assigned type '
                                          '{0:s}'.format(dtype))
                 self._data[var] = array
-                if none:
-                    [self.__setattr__(nm,  None) if nm[0] == '_' else
-                     self._data.__setitem__(nm,  None) for nm in none]
+                if none: self._none(none)
                 if flags and self._flags:
                     self._resetFlags(var)
                     
@@ -541,6 +539,12 @@ class AtomGroup(Atomic):
             yield Atom(self, index, acsi)
 
     iterAtoms = __iter__
+
+    def _none(self, attrs):
+        """Set *attrs* **None** or remove them from data dictionary."""
+        
+        [self.__setattr__(nm,  None) if nm[0] == '_' else
+         self._data.pop(nm,  None) for nm in attrs]
 
     def _getTimeStamp(self, index):
         """Return time stamp showing when coordinates were last changed."""
@@ -938,7 +942,7 @@ class AtomGroup(Atomic):
         if not label[0].isalpha():
             raise ValueError('label must start with a letter')
         if label in READONLY:
-            raise AttributeError("{0:s} is read-only".format(label))
+            raise AttributeError('{0:s} is read-only'.format(label))
         if not (''.join((''.join(label.split('_'))).split())).isalnum():
             raise ValueError('label may contain alphanumeric characters and '
                              'underscore, {0:s} is not valid'.format(label))
