@@ -615,10 +615,7 @@ class AtomGroup(Atomic):
     def numAtoms(self, flag=None):
         """Return number of atoms, or number of atoms with given *flag*."""
         
-        if flag is None:
-            return self._n_atoms
-        else:
-            return len(self._getSubset(flag))
+        return len(self._getSubset(flag)) if flag else self._n_atoms
     
     def getCoords(self):
         """Return a copy of coordinates from active coordinate set."""

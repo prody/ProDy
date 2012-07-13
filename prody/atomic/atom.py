@@ -109,10 +109,10 @@ class Atom(AtomPointer):
         
         return self._index
     
-    def numAtoms(self):
-        """Return number of atoms."""
+    def numAtoms(self, flag=None):
+        """Return number of atoms, or number of atoms with given *flag*."""
         
-        return 1
+        return len(self._getSubset(flag)) if flag else 1
     
     def getIndex(self):
         """Return index of the atom."""

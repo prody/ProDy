@@ -158,10 +158,10 @@ class AtomSubset(AtomPointer):
         
         return self._indices
     
-    def numAtoms(self):
-        """Return number of atoms."""
+    def numAtoms(self, flag=None):
+        """Return number of atoms, or number of atoms with given *flag*."""
         
-        return len(self._indices)
+        return len(self._getSubset(flag)) if flag else len(self._indices)
 
     def iterAtoms(self):
         """Yield atoms."""
