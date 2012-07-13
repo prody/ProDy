@@ -313,7 +313,7 @@ from types import NoneType
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
-from numpy import invert, unique, concatenate
+from numpy import invert, unique, concatenate, all
 
 import pyparsing as pp
 pp.ParserElement.enablePackrat()
@@ -709,7 +709,7 @@ class Select(object):
         functions = pp.Keyword(funcnames[0])
         for func in funcnames[1:]:
             functions = functions | pp.Keyword(func)
-        self._tokenizer = pp.operatorPrecedence(
+        self._parser = pp.operatorPrecedence(
              oneormore,
              [(functions, 1, pp.opAssoc.RIGHT, self._func),
               (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
@@ -727,8 +727,8 @@ class Select(object):
               (pp.Keyword(OR), 2, pp.opAssoc.LEFT, self._or),]
             )
 
-        self._tokenizer.setParseAction(self._defaultAction)
-        self._tokenizer.leaveWhitespace()
+        self._parser.setParseAction(self._defaultAction)
+        self._parser.leaveWhitespace()
         
         self._map = fmap = {}
         for field in KEYWORDS_STRING:
@@ -956,12 +956,22 @@ class Select(object):
         selstr = self._prepareSelstr()
         try:
             if DEBUG: print('_evalSelstr using Pyparsing')
-            tokens = self._tokenizer.parseString(selstr, 
-                                             parseAll=True).asList()
+            tokens = self._parser.parseString(selstr, parseAll=True).asList()
         except pp.ParseException as err:
-            #raise SelectionError(self._selstr, err.column,
-            raise SelectionError(selstr, err.column, 
-                                 'parsing failed here, ' + str(err))
+            which = selstr.rfind(' ', 0, err.column)
+            if which > -1:
+                if selstr[which + 1] == '(':
+                    msg = ('an arithmetic, comparison, or logical operator '
+                           'must precede the opening parenthesis')
+                elif selstr[which - 1] == ')':
+                    msg = ('an arithmetic, comparison, or logical operator '
+                           'must follow the closing parenthesis')
+                else:
+                    msg = 'parsing failed here'
+            else:
+                msg = 'parsing failed here'
+                
+            raise SelectionError(selstr, err.column, msg + '\n' + str(err))
         else:    
             if DEBUG: print('_evalSelstr', tokens)
             return tokens[0]
@@ -987,11 +997,16 @@ class Select(object):
         selection string, e.g. ``'index 5'``, or part of a selection string 
         in parentheses, e.g. for ``'index 5'`` in ``'within 5 of (index 5)'``.
         """
-        
         if DEBUG: print('_defaulAction', tkns)
         
+        import code 
+        #code.interact(local=locals())
         if isinstance(tkns[0], ndarray):
             return tkns[0]
+        #elif len(tkns) == 1 and self._atoms.isFlagLabel(tkns[0]):
+        #    #code.interact(local=locals())
+        #    print 'defaultAction flag'
+        #    return [self._atoms.getFlags(tkns[0])]
         torf = self._evaluate(sel, loc, tkns)
         if isinstance(torf, SelectionError):
             raise torf
@@ -1008,7 +1023,7 @@ class Select(object):
                 return zeros(self._n_atoms, bool)
             if self._atoms.isFlagLabel(tkns):
                 if evalonly is None:
-                    return self._atoms.getFlags(tkns)
+                    return self._atoms.getFlags(tkns) # get a copy of flags
                 else:
                     return self._atoms._getFlags(tkns)[evalonly]
             elif self._ag.isDataLabel(tkns):
@@ -1025,7 +1040,7 @@ class Select(object):
                 return zeros(self._n_atoms, bool)
             if self._atoms.isFlagLabel(keyword):
                 if evalonly is None:
-                    return self._atoms.getFlags(keyword)
+                    return self._atoms.getFlags(keyword) # get a copy of flags
                 else:
                     return self._atoms._getFlags(keyword)[evalonly]
             elif isNumericKeyword(keyword):
@@ -1053,7 +1068,13 @@ class Select(object):
                     return float(keyword)
                 except ValueError:
                     pass
-        
+        elif self._atoms.isFlagLabel(keyword):
+            if evalonly is None:
+                return all((self._atoms._getFlags(keyword), 
+                            self._evaluate(sel, loc, tkns[1:])), 0)
+            else:
+                return all((self._atoms._getFlags(keyword)[evalonly], 
+                            self._evaluate(sel, loc, tkns[1:], evalonly)), 0)
         #try: 
         #    return self._map[keyword](sel, loc, keyword, tkns[1:], evalonly)
         #except KeyError:
@@ -1142,7 +1163,7 @@ class Select(object):
             if len(arrays) == 1:
                 selection = arrays[0]
             else:
-                selection = np.all(arrays, 0, arrays[0])
+                selection = all(arrays, 0, arrays[0])
             if tokens:
                 evalonly = selection.nonzero()[0]
 
@@ -1467,8 +1488,9 @@ class Select(object):
         tokens = list(tokens[0])
         
         if len(tokens) != 2:
-            raise SelectionError(sel, loc, "functions (sin/abs/etc.) must have"
-                    " a single numeric keyword as argument, e.g. 'sin(x)'")
+            raise SelectionError(sel, loc, '{0:s} is unary function and '
+                                 'accepts a single numeric argument, e.g. '
+                                 '{0:s}(x)'.format(tokens[0]))
         arg = tokens[1]
         if not isinstance(arg, (ndarray, float)):
             arg = self._evaluate(sel, loc, arg)
@@ -1477,8 +1499,8 @@ class Select(object):
             arg.dtype in (float, int)):
             return FUNCTION_MAP[tokens[0]](arg)
         else:
-            raise SelectionError(sel, loc, "functions (sin/abs/etc.) must have"
-                                        " numeric arguments, e.g. 'sin(x)'")
+            raise SelectionError(sel, loc, '{0:s} accepts only numeric '
+                                 'arguments, e.g. {0:s}(x)'.format(tokens[0]))
 
     def _evalNumeric(self, sel, loc, token):
         """Evaluate a number operand or a numeric keyword."""
