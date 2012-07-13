@@ -342,8 +342,8 @@ Measure geometric properties
 -------------------------------------------------------------------------------
 
 ProDy offers several functions for analyzing molecular structure in 
-:mod:`.measure` module. For example, you can calculate phi (φ) and psi (ψ)
-for the 10th residue, or the radius of gyration of the protein as follows:
+:mod:`~prody.measure` module. For example, you can calculate phi (φ) and psi 
+(ψ) for the 10th residue, or the radius of gyration of the protein as follows:
 
 >>> print calcPhi(structure[10,]).round(2)
 -115.54

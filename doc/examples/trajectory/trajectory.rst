@@ -107,12 +107,12 @@ Parse frames one-by-one
 >>> structure = parsePDB('mdm2.pdb')
 >>> dcd.setAtoms(structure)
 
->>> dcd.getNextIndex()
+>>> dcd.nextIndex()
 0
 >>> frame = dcd.next()
 >>> frame
 <Frame: 0 from mdm2 (1449 atoms)>
->>> dcd.getNextIndex()
+>>> dcd.nextIndex()
 1
 
 >>> print frame.getRMSD().round(2)

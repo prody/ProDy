@@ -11,7 +11,8 @@ Release 1.2 (in development)
 
 **New Features**:
 
-  * :ref:`flags`, that are used in :ref:`selections`, is implemented.
+  * :ref:`flags`, that are used in :ref:`selections`, is implemented.  See
+    its documentation for handy usage examples.
     
 **Improvements**:
 
@@ -24,8 +25,8 @@ Release 1.2 (in development)
   * :func:`.showOverlapTable` displays first set of modes along x axis of the 
     plot.
 
-  * :meth:`.AtomGroup.setData` will not accept arrays with boolean data type
-    starting from v1.2, use :meth:`.AtomGroup.setFlags` instead.
+  * :meth:`.AtomGroup.setData` does not accept arrays with boolean data type, 
+    use :meth:`.AtomGroup.setFlags` instead.
 
 Release 1.1 (June 1, 2012)
 ===============================================================================
