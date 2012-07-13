@@ -215,9 +215,8 @@ def findFragments(atoms):
 RESERVED = set(ATOMIC_FIELDS.keys() +
                ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
                 'bonded', 'exbonded', 'to', 'all', 'none'] +
-               flags.PLANTERS.keys() +
-               select.FUNCTION_MAP.keys() + 
-               select.KEYWORDS_SYNONYMS.keys() + 
+               flags.PLANTERS.keys() + select.FUNCTION_MAP.keys() + 
+               select.FIELDS_SYNONYMS.keys() + 
                list(select.KEYWORDS_VALUE_PAIRED) +
                ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
                 'bonds', 'bmap'])
