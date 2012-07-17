@@ -717,7 +717,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         if success > 0:
             LOGGER.info('Altloc {0:s} is appended as a coordinate set to the '
                         'atom group.'.format(repr(key), atomgroup.getTitle()))
-            atomgroup.addCoordset(xyz)
+            atomgroup.addCoordset(xyz, label='altloc ' + key)
 
 _writePDBdoc = """
     :arg atoms: atomic object
@@ -758,36 +758,48 @@ def writePDBStream(stream, atoms, model=None):
         raise ValueError('model index or indices is not valid')
         
     n_atoms = atoms.numAtoms()
+    
     atomnames = atoms.getNames()
     if atomnames is None:
         raise RuntimeError('atom names are not set')
     for i, an in enumerate(atomnames):
-        lenan = len(an)
-        if lenan < 4:
+        #lenan = len(an)
+        if len(an) < 4:
             atomnames[i] = ' ' + an
-        elif lenan > 4:
-            atomnames[i] = an[:4]
+        #elif lenan > 4:
+        #    atomnames[i] = an[:4]
+    
+    altlocs = atoms._getAltlocs()
+    if altlocs is None:
+        altlocs = np.zeros(n_atoms, '|S1')
+
     resnames = atoms._getResnames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
+    
+    chainids = atoms._getChids()
+    if chainids is None: 
+        chainids = np.zeros(n_atoms, '|S1')
+    
     resnums = atoms._getResnums()
     if resnums is None:
         resnums = np.ones(n_atoms, int)
     else:
         if resnums.dtype != int:
             resnums = resnums.astype(int)
-    chainids = atoms._getChids()
-    if chainids is None: 
-        chainids = np.zeros(n_atoms, '|S1')
+    
     occupancies = atoms._getOccupancies()
     if occupancies is None:
         occupancies = np.zeros(n_atoms, float)
+    
     bfactors = atoms._getBetas()
     if bfactors is None:
         bfactors = np.zeros(n_atoms, float)
+    
     icodes = atoms._getIcodes()
     if icodes is None:
         icodes = np.zeros(n_atoms, '|S1')
+    
     hetero = ['ATOM'] * n_atoms 
     heteroflags = atoms._getFlags('hetatm')
     if heteroflags is None:
@@ -795,12 +807,11 @@ def writePDBStream(stream, atoms, model=None):
     if heteroflags is not None:
         hetero = np.array(hetero, '|S6')
         hetero[heteroflags] = 'HETATM'
+    
     elements = atoms._getElements()
     if elements is None:
         elements = np.zeros(n_atoms, '|S1')
-    altlocs = atoms._getAltlocs()
-    if altlocs is None:
-        altlocs = np.zeros(n_atoms, '|S1')
+    
     segments = atoms._getSegnames()
     if segments is None:
         segments = np.zeros(n_atoms, '|S6')
