@@ -75,7 +75,7 @@ class AtomPointer(Atomic):
         ones = np.ones(self._ag.numAtoms(), bool)
         ones[self._getIndices()] = False
         return Selection(self._ag, ones.nonzero()[0], 
-                         "not ({0:s}) ".format(self.getSelstr()), 
+                         "not ({0:s})".format(self.getSelstr()), 
                          self.getACSIndex(), unique=True)
 
     def __or__(self, other):
@@ -136,13 +136,14 @@ class AtomPointer(Atomic):
         """Returns an :class:`~.AtomMap` instance. Order of pointed atoms are
         preserved."""
         
-        if not isinstance(other, AtomPointer):
+        try:
+            ag = other.getAtomGroup()
+        except AttributeError:
             raise TypeError('unsupported operand type(s) for +: {0:s} and '
                             '{1:s}'.format(repr(type(self).__name__), 
                                            repr(type(other).__name__)))
-                    
-        ag = self._ag
-        if ag != other._ag:
+                            
+        if ag != self._ag:
             raise ValueError('AtomPointer instances must point to the same '
                              'AtomGroup instance')
         acsi = self.getACSIndex()
@@ -154,22 +155,18 @@ class AtomPointer(Atomic):
         indices = np.concatenate([self._getIndices(), other._getIndices()])
         length = len(self)
         
-        if isinstance(self, AtomMap):
-            mapping = [self._getMapping()]
-            unmapped = [self._dummies]
-        else:
-            mapping = [np.arange(length)]
-            unmapped = [np.array([])]
-        
-        if isinstance(other, AtomMap):
-            mapping.append(other._getMapping() + length)
-            unmapped.append(other._dummies + length) 
-        else:
-            mapping.append(np.arange(length, length + len(other)))
-            unmapped.append(np.array([]))
+        dummies = 0
+        try:
+            dummies += self.numDummies()
+        except AttributeError:
+            pass
+        try:
+            dummies += other.numDummies()
+        except AttributeError:
+            pass
             
-        return AtomMap(ag, indices, np.concatenate(mapping), 
-                       np.concatenate(unmapped), title, acsi, intarrays=True)
+        return AtomMap(ag, indices, acsi, title=title, intarrays=True,
+                       dummies=dummies)
                        
     def _getTimeStamp(self, index=None):
         
