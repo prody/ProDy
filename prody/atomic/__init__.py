@@ -175,6 +175,7 @@ from selection import *
 import flags
 import atomic
 import select
+import atommap
 import pointer
 import hierview
 import functions
@@ -201,6 +202,7 @@ atomic.Selection = Selection
 atomgroup.isReserved = isReserved
 atomgroup.HierView = HierView
 
+pointer.atommap = atommap
 pointer.AtomMap = AtomMap
 pointer.AtomGroup = AtomGroup
 pointer.Selection = Selection

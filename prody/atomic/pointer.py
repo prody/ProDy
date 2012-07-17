@@ -55,16 +55,23 @@ class AtomPointer(Atomic):
 
     def __contains__(self, item):
         
-        return (isinstance(item, AtomPointer) and
-                self._ag == item.getAtomGroup() and len(item) <= len(self) and 
-                set(item._getIndices()).issubset(set(self._getIndices())))
+        try:
+            ag = item.getAtomGroup()
+        except AttributeError:
+            return False
+        else:
+            return (self._ag == ag and len(item) <= len(self) and 
+                    set(item._getIndices()).issubset(set(self._getIndices())))
     
     def __eq__(self, other):
         
-        return (isinstance(other, AtomPointer) and 
-                self._ag == other.getAtomGroup() and 
-                len(other) == len(self) and 
-                np.all(self._getIndices() == other._getIndices()))
+        try:
+            ag = other.getAtomGroup()
+        except AttributeError:
+            return False
+        else:
+            return (self._ag == ag and len(other) == len(self) and 
+                    np.all(self._getIndices() == other._getIndices()))
     
     def __ne__(self, other):
         
@@ -73,9 +80,9 @@ class AtomPointer(Atomic):
     def __invert__(self):
         
         ones = np.ones(self._ag.numAtoms(), bool)
-        ones[self._getIndices()] = False
+        ones[self._indices] = False
         return Selection(self._ag, ones.nonzero()[0], 
-                         "not ({0:s})".format(self.getSelstr()), 
+                         'not ({0:s})'.format(self.getSelstr()), 
                          self.getACSIndex(), unique=True)
 
     def __or__(self, other):
@@ -83,10 +90,12 @@ class AtomPointer(Atomic):
         if self is other:
             return self
     
-        if not isinstance(other, AtomPointer):
+        try:
+            ag = other.getAtomGroup()
+        except AttributeError:
             raise TypeError('other must be an AtomPointer')
             
-        if self._ag != other.getAtomGroup():
+        if self._ag != ag:
             raise ValueError('both selections must be from the same AtomGroup')
             
         acsi = self.getACSIndex()
@@ -97,6 +106,8 @@ class AtomPointer(Atomic):
             
         indices = np.unique(np.concatenate((self._getIndices(), 
                                             other._getIndices())))
+        if indices[-1] == atommap.DUMMY:
+            indices = indices[:-1]
         return Selection(self._ag, indices, '({0:s}) or ({1:s})'.format(
                                     self.getSelstr(), other.getSelstr()), 
                                     acsi, unique=True)
@@ -106,10 +117,12 @@ class AtomPointer(Atomic):
         if self is other:
             return self
     
-        if not isinstance(other, AtomPointer):
+        try:
+            ag = other.getAtomGroup()
+        except AttributeError:
             raise TypeError('other must be an AtomPointer')
             
-        if self._ag != other.getAtomGroup():
+        if self._ag != ag:
             raise ValueError('both selections must be from the same AtomGroup')
     
         acsi = self.getACSIndex()
@@ -129,11 +142,13 @@ class AtomPointer(Atomic):
         indices = indices.intersection(other.getIndices())
         if indices:
             indices = np.unique(indices)
+            if indices[-1] == atommap.DUMMY:
+                indices = indices[:-1]
             return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
                                     self.getSelstr(), other.getSelstr()), acsi)
 
     def __add__(self, other):
-        """Returns an :class:`~.AtomMap` instance. Order of pointed atoms are
+        """Returns an :class:`.AtomMap` instance. Order of pointed atoms are
         preserved."""
         
         try:
