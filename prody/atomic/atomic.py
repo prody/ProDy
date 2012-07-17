@@ -68,8 +68,15 @@ class Atomic(object):
                     else:
                         selstr = '({0:s}) and ({1:s})'.format(name, 
                                                               self.getSelstr())
-                    return Selection(ag, self._getSubset(name), selstr, 
-                                     self.getACSIndex(), unique=True)
+                    try:
+                        dummies = self.numDummies()
+                    except AttributeError:
+                        return Selection(ag, self._getSubset(name), selstr, 
+                                         self.getACSIndex(), unique=True)
+                    else:
+                        return AtomMap(ag, self._getSubset(name), 
+                                       self.getACSIndex(), intarrays=True,
+                                       dummies=dummies)
                 else:
                     selstr = name
                     items = name.split('_')
@@ -87,7 +94,7 @@ class Atomic(object):
         """Return a copy of atoms (and atomic data) in a new :class:`AtomGroup`
         instance."""
         
-        atommap = False
+        dummies = None
         indices = None
         try:
             ag = self.getAtomGroup()
@@ -95,40 +102,44 @@ class Atomic(object):
             ag = self
             new = AtomGroup(ag.getTitle())
         else:
-            indices = self._getIndices()
-            if hasattr(self, 'getDummyFlags'):
-                new = AtomGroup(ag.getTitle() + ' mapping ' + self.getTitle())
-                new._n_atoms = len(self)
-                new.setData('dummy', self.getDummyFlags())
-                new.setData('mapped', self.getMappedFlags())
-                atommap = True
+            indices = self.getIndices()
+            new = AtomGroup(ag.getTitle() + ' ' + str(self))
+            try:
+                dummies = self.numDummies()
+            except AttributeError:
+                pass
             else:
-                new = AtomGroup(ag.getTitle() + ' selection ' + 
-                                repr(self.getSelstr()))
+                if dummies:
+                    dummy = self.getDummyFlags()
+                    mapped = self.getMappedFlags()
 
-        coords = ag._getCoordsets()
-        if coords is not None:
-            if indices is None or atommap:
-                new.setCoords(self.getCoordsets())
-            else:
-                # for an Atom, array from getCoordsets will have wrong shape  
-                new.setCoords(coords[:, indices])
-            new._cslabels = ag.getCSLabels()
+        try:
+            self.getIndex()
+        except AttributeError:
+            this = self
+        else:
+            this = self.all
+
+        if self.numCoordsets():
+            new.setCoords(this.getCoordsets(), label=ag.getCSLabels())
         
         for key, array in ag._data.iteritems():
-            if key in READONLY or array is None:
+            if key in READONLY:
                 continue
-            if key in ATOMIC_FIELDS:
-                if indices is None:
-                    new._data[key] = array.copy()
-                elif atommap:
-                    new._data[key] = getattr(self, 'get' + 
-                                             ATOMIC_FIELDS[key].meth_pl)()
-                else:
-                    new._data[key] = array[indices]
+            try:
+                field = ATOMIC_FIELDS[key]
+            except KeyError:
+                new._data[key] = this.getData(key)
             else:
-                new._data[key] = self.getData(key)
+                meth = field.meth_pl
+                getattr(new, 'set' + meth)(getattr(this, 'get' + meth)())
                 
+        for label in ag.getFlagLabels():
+            new.setFlags(label, this.getFlags(label))
+        if dummies:
+            new.setFlags('dummy', dummy)
+            new.setFlags('mapped', mapped)
+            
         bonds = ag._bonds
         bmap = ag._bmap
         if bonds is not None and bmap is not None:
@@ -138,16 +149,14 @@ class Atomic(object):
                 new._data['numbonds'] = ag._data['numbonds'].copy()
                 if ag._data['fragindex'] is not None:
                     new._data['fragindex'] = ag._data['fragindex'].copy()
-            elif atommap:
+            elif dummies is not None:
+                if dummies:
+                    indices = indices[self._getMapping()]
                 if len(set(indices)) == len(indices): 
-                    bonds = trimBonds(bonds, indices)
-                    if bonds is not None:
-                        revmap = zeros(len(ag), int)
-                        revmap[indices] = self._getMapping()
-                        new.setBonds(revmap[bonds])
+                    new.setBonds(trimBonds(bonds, indices))
                 else:
-                    LOGGER.warn('Bond information is not copied to {0:s}.'
-                                .format(new.getTitle()))
+                    LOGGER.warn('Duplicate atoms in mapping, bonds are '
+                                'not copied.')
             else:
                 bonds = trimBonds(bonds, indices)
                 if bonds is not None:
