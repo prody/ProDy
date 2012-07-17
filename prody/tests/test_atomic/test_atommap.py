@@ -36,18 +36,27 @@ prody.setVerbosity('none')
 
 AG = parseDatafile('1ubi')
 
+AM = AtomMap(AG, range(9, -1, -1) + range(11, 20), 
+             mapping=range(10) + range(11, 20), dummies=[10])
+
+
 class TestInstantiation(unittest.TestCase):
     
 
     def testInstantiation(self):
         
-        indices = range(9, -1, -1) + range(11, 20)
-        mapping = range(10) + range(11, 20)
-        dummies = [10]
-        combine = range(9, -1, -1) + [atommap.DUMMY] + range(11, 20)
+        am = AtomMap(AG, range(9, -1, -1) + [atommap.DUMMY] + range(11, 20), 
+                     dummies=True)
+
+        self.assertEqual(AM, am)
+
+
+class TestSelection(unittest.TestCase):
+    
+    def testAllSelection(self):
         
-        ONE = AtomMap(AG, indices, mapping=mapping, dummies=dummies)
-        TWO = AtomMap(AG, combine, dummies=True)
-
-        self.assertEqual(ONE, TWO)
-
+        self.assertEqual(AM, AM.all)
+    
+    def testChainSelection(self):
+        
+        self.assertEqual(AM, AM.select('chain A _'))
