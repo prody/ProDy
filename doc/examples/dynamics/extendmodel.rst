@@ -37,7 +37,7 @@ ANM modes are extended using the :func:`~.extendModel` function:
 >>> bb_anm
 <NMA: Extended ANM 1p38 (20 modes; 1404 atoms)>
 >>> bb_atoms
-<AtomMap: Selection 'backbone' from 1p38 from 1p38 (1404 atoms)>
+<AtomMap: Selection 'backbone' from 1p38 (1404 atoms)>
 
 Note that :class:`~.GNM`, :class:`~.PCA`, and :class:`~.NMA` instances can also
 be used as input to this function.

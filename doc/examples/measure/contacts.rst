@@ -49,10 +49,10 @@ We will imitate this case by making copies of protein and ligand.
 
 >>> inhibitor = pdb.select('resname B11').copy()
 >>> inhibitor
-<AtomGroup: 1zz2 selection 'resname B11' (33 atoms)>
+<AtomGroup: 1zz2 Selection 'resname B11' (33 atoms)>
 >>> protein = pdb.select('protein').copy()
 >>> protein
-<AtomGroup: 1zz2 selection 'protein' (2716 atoms)>
+<AtomGroup: 1zz2 Selection 'protein' (2716 atoms)>
 
 We see that inhibitor molecule contains 33 atoms.
 
@@ -61,7 +61,7 @@ within 4 Å of the inhibitor.
 
 >>> contacts = protein.select('within 4 of inhibitor', inhibitor=inhibitor)
 >>> contacts
-<Selection: 'index 227 230 2... 1354 1356 1358' from 1zz2 selection 'protein' (50 atoms)>
+<Selection: 'index 227 230 2... 1354 1356 1358' from 1zz2 Selection 'protein' (50 atoms)>
 
 We found that 50 protein atoms are contacting with the inhibitor.
 In this case, we passed the atom group *inhibitor* as a keyword argument 
@@ -77,7 +77,7 @@ residues that have at least one atom interacting with the inhibitor:
 
 >>> contacts_ca = protein.select('calpha and (same residue as within 4 of inhibitor)', inhibitor=inhibitor)
 >>> contacts_ca
-<Selection: 'index 225 232 2... 1328 1351 1359' from 1zz2 selection 'protein' (20 atoms)>
+<Selection: 'index 225 232 2... 1328 1351 1359' from 1zz2 Selection 'protein' (20 atoms)>
 
 In this case, ``'calpha and (same residue as within 4 of inhibitor)'`` is 
 interpreted as select Cα atoms of residues that have at least
@@ -106,7 +106,7 @@ recommended.
 >>> protein_contacts = Contacts(protein)
 >>> # The following corresponds to "within 5 of inhibitor"
 >>> protein_contacts.select(4, inhibitor)
-<Selection: 'index 227 230 2... 1354 1356 1358' from 1zz2 selection 'protein' (50 atoms)>
+<Selection: 'index 227 230 2... 1354 1356 1358' from 1zz2 Selection 'protein' (50 atoms)>
 
 This method is 20 times faster than the one in the previous part, but it is
 limited to selecting only contacting atoms (other selection arguments cannot be 

@@ -41,9 +41,9 @@ method by passing a name for the attribute and the data:
 >>> ag.setData('myresnum', myresnum)
 
 We can check if a custom atomic attribute exists using 
-:meth:`.AtomGroup.isData` method:
+:meth:`.AtomGroup.isDataLabel` method:
 
->>> ag.isData('myresnum')
+>>> ag.isDataLabel('myresnum')
 True
 
 
