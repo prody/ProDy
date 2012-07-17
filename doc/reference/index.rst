@@ -22,5 +22,4 @@ module.  Some documentation pages include usage examples.
    trajectory/index
    utilities/index
    tests
-   tools
    appendices/index
