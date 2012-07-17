@@ -521,7 +521,7 @@ class TypoWarning(object):
                    ' ' * (shift + 12) + '^ ' + msg)
             LOGGER.warn(msg)
 
-KEYWORDS_BOOLEAN = FLAG_PLANTERS.keys()
+KEYWORDS_BOOLEAN = set(FLAG_PLANTERS.keys() + ['all', 'none'])
 
 def isFloatKeyword(keyword):
     return keyword in KEYWORDS_FLOAT
@@ -836,14 +836,13 @@ class Select(object):
         If selection string does not match any atoms, **None** is returned.
         
         :arg atoms: atoms to be evaluated    
-        :type atoms: :class:`~.Atomic`
+        :type atoms: :class:`.Atomic`
         
         :arg selstr: selection string
         :type selstr: str
         
-        If type of *atoms* is :class:`~.AtomMap`, an :class:`~.AtomMap` 
-        instance is returned. Otherwise, :class:`~.Selection` instances 
-        are returned.
+        If type of *atoms* is :class:`.AtomMap`, an :class:`.AtomMap` instance
+        is returned.  Otherwise, :class:`.Selection` instances are returned.
 
         .. note:
               
@@ -852,7 +851,7 @@ class Select(object):
               for details.
         
             * A special case for making atom selections is passing an
-              :class:`~.AtomMap` instance as *atoms* argument.  Dummy 
+              :class:`.AtomMap` instance as *atoms* argument.  Dummy 
               atoms will not be included in the result, but the order 
               of atoms will be preserved."""
         
@@ -872,12 +871,9 @@ class Select(object):
             
         ag = self._ag
 
-        if isinstance(atoms, AtomMap):
-            return AtomMap(ag, indices, arange(len(indices)), 
-                     np.array([]), 'Selection {0:s} from AtomMap {1:s}'
-                    .format(repr(selstr), atoms.getTitle()), 
-                            atoms.getACSIndex())
-        else:
+        try:
+            dummies = atoms.numDummies()
+        except AttributeError:
             if self._ss2idx:
                 selstr = 'index {0:s}'.format(rangeString(indices))
             else:
@@ -894,24 +890,30 @@ class Select(object):
             
             return Selection(ag, indices, selstr, atoms.getACSIndex(),
                              unique=True)
+        else:
+            return AtomMap(ag, indices, atoms.getACSIndex(), dummies=dummies,
+               title='Selection {0:s} from '.format(repr(selstr)) + str(atoms))
         
     def _evalAtoms(self, atoms):
         
+        self._atoms = atoms
         try:
             self._ag = atoms.getAtomGroup()
         except AttributeError:
             self._ag = atoms
-            self._atoms = atoms
             self._indices = None
         else:
             self._indices = atoms._getIndices()
-            try:
-                atoms.getDummyFlags()
-            except AttributeError:
-                self._atoms = atoms
-            else: 
-                self._atoms = Selection(self._ag, self._indices, '', )
-                self._atoms._indices = self._indices
+            if len(self._indices) == 1:
+                try:                
+                    index = atoms.getIndex()
+                except AttributeError:
+                    pass
+                else:
+                    self._atoms = Selection(self._ag, array([index]), 
+                                    'index ' + str(index), atoms.getACSIndex())
+
+                
         
     def _prepareSelstr(self):
         
@@ -1830,7 +1832,7 @@ class Select(object):
         if data is None:
             field = ATOMIC_FIELDS.get(FIELDS_SYNONYMS.get(keyword, keyword))
             if field is None:
-                data = self._ag._getData(keyword)
+                data = self._atoms._getData(keyword)
                 if data is None:
                     return SelectionError(sel, loc, "{0:s} is not a valid "
                           "keyword or user data label".format(repr(keyword)))
@@ -1839,18 +1841,19 @@ class Select(object):
                                           "array".format(repr(keyword)))
             else:
                 try:
-                    data = getattr(self._ag, '_get' + field.meth_pl)()
+                    data = getattr(self._atoms, '_get' + field.meth_pl)()
                 except Exception as err: 
                     return SelectionError(sel, loc, str(err))
                 if data is None:
                     return SelectionError(sel, loc, "{0:s} is not set by "
                                           "user".format(repr(keyword)))
             self._data[keyword] = data
-        indices = self._indices
-        if indices is None:               
-            return data
-        else:
-            return data[indices]
+        return data
+        #indices = self._indices
+        #if indices is None or self._dummies is None:               
+        #    return data
+        #elif self._dummies is None:
+        #    return data[indices]
     
     def _getCoords(self, sel, loc):
         """Return coordinates of selected atoms.  This method is reduces array 
