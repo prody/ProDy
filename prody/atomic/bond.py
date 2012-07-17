@@ -148,10 +148,9 @@ def evalBonds(bonds, n_atoms):
         index[bond] += 1
     return bmap, numbonds
 
-from time import time
 
 def trimBonds(bonds, indices):
-    """Return bonds made by atoms at given indices."""
+    """Return bonds between atoms at given indices."""
     
     iset = set(indices)
     bonds = [bond for bond in bonds if bond[0] in iset and bond[1] in iset]
