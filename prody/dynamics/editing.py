@@ -85,8 +85,8 @@ def extend(model, nodes, atoms):
         ag = atoms.getAtomGroup()
     except AttributeError: 
         ag = atoms
-    atommap = AtomMap(ag, atom_indices, np.arange(len(atom_indices)), 
-                      None, str(atoms), atoms.getACSIndex(), intarrays=True)
+    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(), 
+                      title=str(atoms), intarrays=True)
     return indices, atommap
 
 
