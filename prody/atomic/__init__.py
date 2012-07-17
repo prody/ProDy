@@ -194,6 +194,7 @@ from select import checkSelstr, isKeyword, isSelectionMacro
 atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()
 atomic.isSelectionMacro = isSelectionMacro
 atomic.isKeyword = isKeyword
+atomic.AtomMap = AtomMap
 atomic.AtomGroup = AtomGroup
 atomic.Selection = Selection
 

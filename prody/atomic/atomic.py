@@ -75,8 +75,9 @@ class Atomic(object):
                                          self.getACSIndex(), unique=True)
                     else:
                         return AtomMap(ag, self._getSubset(name), 
-                                       self.getACSIndex(), intarrays=True,
-                                       dummies=dummies)
+                        self.getACSIndex(), intarrays=True, dummies=dummies,
+                        title='Selection {0:s} from '.format(repr(name)) + 
+                        str(self))
                 else:
                     selstr = name
                     items = name.split('_')
