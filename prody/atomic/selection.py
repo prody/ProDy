@@ -56,7 +56,7 @@ These two selections can be combined as follows:
 
 >>> betas_gly_alphas = betas | gly_alphas
 >>> print( betas_gly_alphas )
-Selection '(name CB and pr...nd resname GLY)' from 1p38
+Selection '(name CB and pr...nd resname GLY)'
 >>> print( len(betas_gly_alphas) )
 351
 
@@ -77,14 +77,14 @@ charged and medium size residues in a protein:
 
 >>> charged = prot.select('charged')
 >>> print( charged )
-Selection 'charged' from 1p38
+Selection 'charged'
 >>> medium = prot.select('medium')
 >>> print( medium )
-Selection 'medium' from 1p38
+Selection 'medium'
 
 >>> medium_charged = medium & charged
 >>> print( medium_charged )
-Selection '(medium) and (charged)' from 1p38
+Selection '(medium) and (charged)'
 >>> print( medium_charged.getSelstr() )
 (medium) and (charged)
 
@@ -106,14 +106,14 @@ It is also possible to invert a selection:
 
 >>> only_protein = prot.select('protein')
 >>> print( only_protein )
-Selection 'protein' from 1p38
+Selection 'protein'
 >>> only_non_protein = ~only_protein
 >>> print( only_non_protein )
-Selection 'not (protein) ' from 1p38
+Selection 'not (protein)'
 
 >>> water = prot.select('water')
 >>> print( water )
-Selection 'water' from 1p38
+Selection 'water'
 
 The above shows that 1p38 does not contain any non-water 
 hetero atoms.
@@ -221,9 +221,9 @@ class Selection(AtomSubset):
                     repr(selstr), self._ag.getTitle(), len(self), n_csets)
             else:
                 return ('<Selection: {0:s} from {1:s} ({2:d} atoms; '
-                        'active of {3:d} coordsets)>').format(repr(selstr), 
-                        self._ag.getTitle(), len(self), self.getACSIndex(), 
-                        n_csets)
+                        'active #{3:d} of {4:d} coordsets)>').format(
+                        repr(selstr), self._ag.getTitle(), len(self), 
+                        self.getACSIndex(), n_csets)
         else:
             return ('<Selection: {0:s} from {1:s} ({2:d} atoms; no '
                     'coordinates)>').format(repr(selstr), self._ag.getTitle(), 
@@ -231,8 +231,7 @@ class Selection(AtomSubset):
 
     def __str__(self):
 
-        return 'Selection {0:s} from {1:s}'.format(
-                repr(ellipsis(self._selstr)), self._ag.getTitle())
+        return 'Selection {0:s}'.format(repr(ellipsis(self._selstr)))
     
     def getSelstr(self):
         """Return selection string that selects this atom subset."""
