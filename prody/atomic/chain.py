@@ -90,11 +90,14 @@ class Chain(AtomSubset):
         self._dict = dict()
         self._list = list()
         
-        segment = kwargs.get('segment')
-        if segment is not None:
+        try:
+            segment = kwargs['segment']
+        except KeyError:
+            self._segment = None
+        else:
             segment._dict[self.getChid()] = len(segment._list)
             segment._list.append(self)
-        self._segment = segment
+            self._segment = segment
         
     def __len__(self):
         

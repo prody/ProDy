@@ -47,7 +47,7 @@ class Residue(AtomSubset):
     <Atom: CA from 1p38 (index 1)>
     >>> res['CB']
     <Atom: CB from 1p38 (index 4)>
-    >>> print res['H'] # X-ray structure 1p38 does not contain H atoms
+    >>> print res['H'] # X-ray structure 1p38 does not have any H atoms
     None"""
      
     __slots__ = ['_ag', '_indices', '_acsi', '_selstr', '_chain']        
