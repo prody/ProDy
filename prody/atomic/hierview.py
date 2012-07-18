@@ -378,9 +378,9 @@ class HierView(object):
     
     def __getitem__(self, key):
         
-        _dict = self._dict
+        get = self._dict.get
         if isinstance(key, str):
-            return _dict.get(key, self._dict.get((self._getSegname(), key)))
+            return get(key, get((self._getSegname(), key)))
         
         elif isinstance(key, tuple):
             length = len(key)
@@ -389,23 +389,23 @@ class HierView(object):
                 return self.__getitem__(key[0])
 
             if length == 2:
-                return _dict.get(key,
-                        _dict.get((self._getSegname(), self._getChid(), 
+                return get(key,
+                        get((self._getSegname(), self._getChid(), 
                                    key[0], key[1] or None), 
-                        _dict.get((self._getSegname(), key[0], key[1], None))))
+                        get((self._getSegname(), key[0], key[1], None))))
         
             if length == 3:
-                return _dict.get((self._getSegname(), key[0] or None, 
+                return get((self._getSegname(), key[0] or None, 
                                        key[1], key[2] or None), 
-                          _dict.get((key[0] or None, key[1] or None, 
-                                     key[2], None)))
+                          get((key[0] or None, key[1] or None, key[2], None)))
         
             if length == 4:
-                return _dict.get((key[0] or None, key[1] or None, 
-                                  key[2], key[3] or None))
+                key = key[0] or None, key[1] or None, key[2], key[3] or None
+                return get(key)
         
         elif isinstance(key, int):
-            return _dict.get((self._getSegname(), self._getChid(), key, None))
+            key = self._getSegname(), self._getChid(), key, None
+            return get(key)
 
     def _getSegname(self):
         """Return name of the segment when there is only one segment."""
@@ -506,8 +506,8 @@ class HierView(object):
                 chids = chids[_indices]
             if _segments is None:
                 if len(unique(chids)) == 1:
-                    chain = Chain(ag, _indices, acsi=acsi, unique=True,
-                                  selstr=selstr)
+                    chain = Chain(ag, _indices, acsi, 
+                                  unique=True, selstr=selstr)
                     _dict[(None, chids[0] or None)] = chain
                     _chains.append(chain)
                 else:
@@ -517,8 +517,8 @@ class HierView(object):
                             continue
                         pc = c
                         idx = _indices[i:][chids[i:] == c]
-                        chain = Chain(ag, idx, acsi=acsi, unique=True,
-                                      selstr=selstr)
+                        chain = Chain(ag, idx, acsi, 
+                                      unique=True, selstr=selstr)
                         if set_indices:
                             chindex += 1
                             chindices[idx] = chindex
@@ -537,8 +537,8 @@ class HierView(object):
                     if chain is None:
                         segment = _dict[ps]
                         idx = _indices[_i:i]
-                        chain = Chain(ag, idx, acsi=acsi, segment=segment, 
-                                       unique=True, selstr=selstr)
+                        chain = Chain(ag, idx, acsi, unique=True, 
+                                      segment=segment, selstr=selstr)
                         if set_indices:
                             chindex += 1
                             chindices[idx] = chindex
@@ -559,8 +559,8 @@ class HierView(object):
                     if set_indices:
                         chindex += 1
                         chindices[idx] = chindex
-                    chain = Chain(ag, idx, acsi=acsi, segment=segment, 
-                                   unique=True, selstr=selstr)
+                    chain = Chain(ag, idx, acsi, segment=segment, 
+                                  unique=True, selstr=selstr)
                     _dict[s_c] = chain
                     _chains.append(chain)
                 else:
@@ -618,12 +618,13 @@ class HierView(object):
                     chain = _get((ps, pc))
                     idx = _indices[_j:j]
                     res = Residue(ag, idx, acsi=acsi, chain=chain, 
-                                   unique=True, selstr=selstr)
+                                  unique=True, selstr=selstr)
+                    #res = idx
                     if set_indices:
                         resindex += 1
                         resindices[idx] = resindex
-                    _append(res)
                     _set(s_c_r_i, res)
+                    _append(res)
                 else:
                     res._indices = concatenate((res._indices, _indices[_j:j]))
                 ps = s
@@ -637,7 +638,8 @@ class HierView(object):
         if res is None:
             chain = _get((ps, pc))
             res = Residue(ag, idx, acsi=acsi, chain=chain, unique=True, 
-                           selstr=selstr)
+                          selstr=selstr)
+            #res = idx
             if set_indices:
                 resindex += 1
                 resindices[idx] = resindex
