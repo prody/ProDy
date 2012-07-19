@@ -1786,7 +1786,8 @@ class Select(object):
         if DEBUG: print('_index', token)
         
         if token is None:
-            return self._indices or arange(self._ag._n_atoms)
+            return (self._indices if self._indices is not None else 
+                    arange(self._ag._n_atoms))
         torf = zeros(self._ag._n_atoms, np.bool)
         
         numbers = evalNumeric(sel, loc, token)

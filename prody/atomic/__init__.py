@@ -209,6 +209,7 @@ pointer.Selection = Selection
 
 select.flags = flags
 select.isReserved = isReserved
+select.HierView = HierView
 
 selection.HierView = HierView
 
