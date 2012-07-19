@@ -66,11 +66,11 @@ def extend(model, nodes, atoms):
                 
     atom_indices = []
     indices = []
-    hierview = HierView(atoms)._dict
+    get = HierView(atoms).getResidue
     
     for i, node in enumerate(i_nodes):
-        res = hierview.pop((node.getSegname() or None, node.getChid() or None, 
-                           node.getResnum(), node.getIcode() or None), None)
+        res = get(node.getChid() or None, node.getResnum(), 
+                  node.getIcode() or None, node.getSegname() or None)
         if res is None:
             raise ValueError('atoms must contain a residue for all atoms')
         atom_indices.append(res._getIndices())
