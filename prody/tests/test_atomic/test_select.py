@@ -48,6 +48,7 @@ pdb3mht = prody.parsePDB(getDatafilePath('pdb3mht.pdb'), secondary=True)
 SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': len(pdb3mht),
      'ag': pdb3mht,
+     'all': pdb3mht.all,
      'keyword':     [('none', 0),
                      ('all', 3211),
                      ('acidic', 334),
@@ -323,6 +324,7 @@ else:
     SELECTION_TESTS['imatinib'] = {
         'n_atoms': len(ag),
         'ag': ag,
+        'all': ag.all,
         'bondedto': [('bonded to index 0', ag[0].numBonds() + 1),
                      ('exbonded to index 0', ag[0].numBonds()),
                      ('bonded to index 67', ag[67].numBonds() + 1),
@@ -418,6 +420,48 @@ class TestSelectMeta(type):
                     testFunction.__doc__ = 'Test {0:s} selections "{1:s}"'\
                                             .format(type_, test[0])
                     setattr(cls, testFunction.__name__, testFunction)
+
+                    def testFunction(self, pdb=key, test=test, type_=type_, 
+                                     **kwargs):
+                
+                        atoms = SELECTION_TESTS[pdb]['all']
+                    
+                        selstr = test[0]
+                        natoms = test[1]
+                        selstr2 = None
+                        kwargs = EMPTYDICT
+                        if len(test) == 3:
+                            selstr2 = test[2]
+                        if len(test) == 4:
+                            kwargs = test[3]
+                            
+                        if natoms is None:
+                            self.assertRaises(prody.select.SelectionError,
+                                SELECT.getIndices, atoms, selstr, **kwargs)
+                        elif selstr2 is None:
+                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                            self.assertEqual(len(sel), natoms,
+                                'selection "{0:s}" for {1:s} failed, expected '
+                                '{2:d}, selected {3:d}'
+                                .format(selstr, str(atoms), natoms, len(sel)))
+                        else:
+                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                            sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
+                            self.assertTrue(len(sel) == len(sel2) == natoms and
+                                    np.all(sel == sel2),
+                                'selection strings "{0:s}" and "{1:s}" for '
+                                '{2:s} failed to select same number of atoms, '
+                                'expected ({3:d})'
+                                .format(selstr, selstr2, str(atoms), natoms))
+                                
+                    #testFunction.__name__ = 'test' + type_.title() + 'Selections'
+                    count += 1
+                    testFunction.__name__ = 'test{0:s}Selection{1:d}'.format(
+                                                        type_.title(), count)
+                    testFunction.__doc__ = 'Test {0:s} selections "{1:s}"'\
+                                            .format(type_, test[0])
+                    setattr(cls, testFunction.__name__, testFunction)
+
 
 class TestSelect(unittest.TestCase):
     
