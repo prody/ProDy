@@ -285,4 +285,3 @@ class AtomPointer(Atomic):
                     if b > -1 and b in iset:
                         yield a, b
                 iset.remove(a)
-            

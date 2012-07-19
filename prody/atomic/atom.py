@@ -289,3 +289,18 @@ class Atom(AtomPointer):
                 break
             yield Atom(ag, other, acsi) 
 
+    def getHereto(self):
+        """Deprecated for removal in v1.3, use ``getFlag('hetatm')`` instead.
+        """
+        
+        from prody import deprecate
+        deprecate('getHerero', "getFlag('hetatm')", '1.3')
+        return self.getFlag('hetatm')
+    
+    def setHereto(self, data):
+        """Deprecated for removal in v1.3, use ``setFlag('hetatm', data)``
+        instead."""
+        
+        from prody import deprecate
+        deprecate('setHerero', "setFlag('hetatm', data)", '1.3')
+        return self.setFlag('hetatm', data)
