@@ -22,11 +22,23 @@ sets and handling periodic boundary conditions."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
  
+from os.path import isdir, isfile, join
+ 
 from numpy import array, ndarray, concatenate, mod
 
 from prody import LOGGER
 
-from _CKDTree import KDTree as CKDTree 
+try:
+    from _CKDTree import KDTree as CKDTree
+except ImportError as err: 
+    if isdir('prody') and isfile(join('prody', 'kdtree', 'KDTreemodule.c')):
+        raise ImportError(str(err) + '\nIt looks like you have just installed '
+                          'ProDy and you are trying to import it while you are'
+                          ' still in the installation directory.  If this is '
+                          'the case, can you try importing ProDy again after '
+                          'you change the current directory?')
+    else:
+        raise ImportError(str(err))
 
 __all__ = ['KDTree']
 
