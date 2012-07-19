@@ -16,6 +16,10 @@ Release 1.2 (in development)
     
 **Improvements**:
 
+  * :class:`.HierView` instances are built more efficiently.  Two times 
+    speed-up is achieved by delaying instantiation of :class:`.Chain` and 
+    :class:`.Residues` instances until they are needed.      
+
   * Multiple :ref:`flags` can be used in :ref:`selections` without using
     ``'and'`` operator, e.g. ``'sidechain carbon'`` is the same as 
     ``'sidechain and carbon'``.
@@ -27,6 +31,12 @@ Release 1.2 (in development)
 
   * :meth:`.AtomGroup.setData` does not accept arrays with boolean data type, 
     use :meth:`.AtomGroup.setFlags` instead.
+
+**Deprecations**:
+
+  * :meth:`.AtomGroup.getHeretos` method has been deprecated for removal in
+    v1.3, use ``getFlags('hetatm')`` instead.
+
 
 Release 1.1 (June 1, 2012)
 ===============================================================================
