@@ -31,9 +31,12 @@ if not (2,6) <= sys.version_info[:2] <= (2,7):
                     "using Python " + platform.python_version())
 
 try:
-    import numpy as np
+    import numpy
 except ImportError:
-    raise ImportError('numpy not found, it is a required package')
+    raise ImportError('Numpy is a required package for ProDy')
+else:
+    if tuple(map(int, numpy.__version__.split('.')[:2])) < (1, 4):
+        raise ImportError('Numpy v1.4 or later is required for ProDy')
 
 from utilities import *
 
@@ -77,7 +80,7 @@ def turnonDepracationWarnings(action='always'):
     warnings.filterwarnings(action, category=DeprecationWarning)
 
     
-_PY3K = sys.version_info[0] > 2
+_PY3K = PY3K = sys.version_info[0] > 2
 
 PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
 if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
