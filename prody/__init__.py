@@ -25,22 +25,22 @@ import os
 import sys
 import os.path
 import platform
+import warnings
 
 if not (2,6) <= sys.version_info[:2] <= (2,7):
     raise Exception("prody is compatible with Python 2.6 and 2.7, you are "
                     "using Python " + platform.python_version())
 
 try:
-    import numpy
+    import numpy as np
 except ImportError:
     raise ImportError('Numpy is a required package for ProDy')
 else:
-    if tuple(map(int, numpy.__version__.split('.')[:2])) < (1, 4):
+    if tuple(map(int, np.__version__.split('.')[:2])) < (1, 4):
         raise ImportError('Numpy v1.4 or later is required for ProDy')
 
-from utilities import *
-
-import warnings
+from utilities import USERHOME, PackageLogger, PackageSettings
+from utilities import getPackagePath
 
 DEPRECATION_WARNINGS = False
 
