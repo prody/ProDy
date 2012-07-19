@@ -232,9 +232,11 @@ def calcOmega(residue, radian=False, dist=4.1):
 
     if not isinstance(residue, Residue):
         raise TypeError('{0:s} must be a Residue instance')
+    
     next = residue.getNext()
     if not isinstance(next, Residue):
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+    
     CA = residue['CA']
     if CA is None:
         raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
@@ -274,8 +276,13 @@ def getPhiAtoms(residue, dist=4.1):
     """Return the four atoms that form the φ (phi) angle of *residue*."""
     
     prev = residue.getPrev()
-    if not isinstance(prev, Residue):
+    try:
+        isaa = prev.isaminoacid
+    except AttributeError:
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+    
+    if not isaa:
+        raise ValueError('{0:s} is not an amino acid'.format(str(prev)))
 
     C_ = prev['C']
     if C_ is None:
@@ -317,8 +324,14 @@ def getPsiAtoms(residue, dist=4.1):
     """Return the four atoms that form the φ (phi) angle of *residue*."""
     
     next = residue.getNext()
-    if not isinstance(next, Residue):
+    try:
+        isaa = next.isaminoacid
+    except AttributeError:
         raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+
+    if not isaa:
+        raise ValueError('{0:s} is not an amino acid'.format(str(next)))
+    
     N = residue['N']
     if N is None:
         raise ValueError('{0:s} does not have N atom'.format(str(residue)))
