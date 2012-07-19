@@ -24,7 +24,7 @@ everything from the ProDy package:
 
 >>> from prody import *
 
-Then we parses a structure to get an :class:`~.AtomGroup` instance which has a 
+Then we parses a structure to get an :class:`.AtomGroup` instance which has a 
 plain view of atoms: 
 
 >>> structure = parsePDB('3mkb')
@@ -46,7 +46,7 @@ A hierarchical view of the structure can be simply get by calling the
 Indexing
 -------------------------------------------------------------------------------
 
-Indexing :class:`HierView` instances return :class:`~.Chain`:
+Indexing :class:`HierView` instances return :class:`.Chain`:
 
 >>> hv['A']
 <Chain: A from 3mkb (254 residues, 1198 atoms)>
@@ -61,7 +61,7 @@ The length of the *hv* variable gives the number of chains in the structure:
 >>> hv.numChains()
 4
 
-It is also possible to get a :class:`~.Residue` by 
+It is also possible to get a :class:`.Residue` by 
 directly indexing the :class:`HierView` instance:
 
 >>> hv['A', 100]
@@ -124,7 +124,7 @@ Length of the chain equals to the number of residues in it:
 Indexing
 -------------------------------------------------------------------------------
 
-Indexing a :class:`~.Chain` instance returns a :class:`~.Residue` instance.
+Indexing a :class:`.Chain` instance returns a :class:`.Residue` instance.
 
 >>> chA[1]
 <Residue: ALA 1 from Chain A from 3mkb (5 atoms)>
@@ -163,8 +163,8 @@ This enables getting a :func:`list` of residues simply as follows:
 Get data
 -------------------------------------------------------------------------------
 
-All methods defined for :class:`~.AtomGroup` class are also defined for 
-:class:`~.Chain` and :class:`~.Residue` classes:
+All methods defined for :class:`.AtomGroup` class are also defined for 
+:class:`.Chain` and :class:`.Residue` classes:
 
 >>> print( chA.getCoords() ) # doctest: +ELLIPSIS
 [[ -2.139  17.026 -13.287]
@@ -180,7 +180,7 @@ All methods defined for :class:`~.AtomGroup` class are also defined for
 Selections
 -------------------------------------------------------------------------------
 
-Finally, you can select atoms from a :class:`~.Chain` instance:
+Finally, you can select atoms from a :class:`.Chain` instance:
 
 >>> chA_backbone = chA.select('backbone')
 >>> chA_backbone
@@ -206,7 +206,7 @@ Residues
 Indexing
 -------------------------------------------------------------------------------
 
-:class:`~.Residue` instances can be indexed to get individual atoms:
+:class:`.Residue` instances can be indexed to get individual atoms:
 
 >>> chA_res1['CA']
 <Atom: CA from 3mkb (index 1)>
@@ -237,8 +237,8 @@ This makes it easy to get a :func:`list` of atoms:
 Get data
 -------------------------------------------------------------------------------
 
-All methods defined for :class:`~.AtomGroup` class are also defined for 
-:class:`~.Residue` class:
+All methods defined for :class:`.AtomGroup` class are also defined for 
+:class:`.Residue` class:
 
 >>> print( chA_res1.getCoords() )
 [[ -2.139  17.026 -13.287]
@@ -252,7 +252,7 @@ All methods defined for :class:`~.AtomGroup` class are also defined for
 Selections
 -------------------------------------------------------------------------------
 
-Finally, you can select atoms from a :class:`~.Residue` instance:
+Finally, you can select atoms from a :class:`.Residue` instance:
 
 >>> chA_res1_bb = chA_res1.select('backbone')
 >>> chA_res1_bb
@@ -274,8 +274,8 @@ The lowest level of the hierarchical view contains :class:`Atom` instances.
 
 *Get atomic data*
 
-All methods defined for :class:`~.AtomGroup` class are also defined for 
-:class:`~.Atom` class with the difference that method names are singular 
+All methods defined for :class:`.AtomGroup` class are also defined for 
+:class:`.Atom` class with the difference that method names are singular 
 (except for coordinates):
 
 >>> print( chA_res1_CA.getCoords() )
@@ -286,7 +286,7 @@ All methods defined for :class:`~.AtomGroup` class are also defined for
 State Changes 
 ===============================================================================
 
-A :class:`HierView` instance represents the state of an :class:`~.AtomGroup` 
+A :class:`HierView` instance represents the state of an :class:`.AtomGroup` 
 instance at the time it is built.  When chain identifiers or residue numbers 
 change, the state that hierarchical view represents may not match the current 
 state of the atom group:
@@ -320,26 +320,26 @@ __all__ = ['HierView']
 
 class HierView(object):
     
-    """Hierarchical views can be generated for :class:`~.AtomGroup` and 
-    :class:`~.Selection` instances.  Indexing a :class:`HierView` instance 
-    returns a :class:`~.Chain`  instance.
+    """Hierarchical views can be generated for :class:`.AtomGroup` and 
+    :class:`.Selection` instances.  Indexing a :class:`HierView` instance 
+    returns a :class:`.Chain`  instance.
     
     Some :class:`object` methods are customized as follows:
     
     * :func:`len` returns the number of atoms, i.e. :meth:`numChains`
-    * :func:`iter` yields :class:`~.Chain` instances
+    * :func:`iter` yields :class:`.Chain` instances
     * indexing by:
-         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns 
-           a :class:`~.Segment` 
+         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns
+           a :class:`.Segment` 
          - *chain identifier* (:func:`str`), e.g. ``"A"``, returns 
-           a :class:`~.Chain`
+           a :class:`.Chain`
          - *[segment name,] chain identifier, residue number[, insertion code]* 
            (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
-           ``"PROT", "A", 10, "B"``, returns a :class:`~.Residue`
+           ``"PROT", "A", 10, "B"``, returns a :class:`.Residue`
         
-    Note that when an :class:`~.AtomGroup` instance have distinct segments, 
+    Note that when an :class:`.AtomGroup` instance have distinct segments, 
     they will be considered when building the hierarchical view.  
-    A :class:`~.Segment` instance will be generated for each distinct segment 
+    A :class:`.Segment` instance will be generated for each distinct segment 
     name.  Then, for each segment chains and residues will be evaluated.  
     Having segments in the structure will not change most behaviors of this 
     class, except indexing.  For example, when indexing a hierarchical view 
@@ -367,20 +367,14 @@ class HierView(object):
         
         return 'HierView of {0:s}'.format(str(self._atoms))
     
-    def __iter__(self):
-        """Iterate over chains."""
-        
-        return self._chains.__iter__()
-    
     def __len__(self):
         
         return len(self._chains)
     
     def __getitem__(self, key):
         
-        get = self._dict.get
         if isinstance(key, str):
-            return get(key, get((self._getSegname(), key)))
+            return self.getSegment(key) or self.getChain(key)
         
         elif isinstance(key, tuple):
             length = len(key)
@@ -389,35 +383,78 @@ class HierView(object):
                 return self.__getitem__(key[0])
 
             if length == 2:
-                return get(key,
-                        get((self._getSegname(), self._getChid(), 
-                                   key[0], key[1] or None), 
-                        get((self._getSegname(), key[0], key[1], None))))
+                return (self.getChain(*key) or self.getResidue(*key) or
+                        self.getResidue(None, key[0], key[1]))
         
             if length == 3:
-                return get((self._getSegname(), key[0] or None, 
-                                       key[1], key[2] or None), 
-                          get((key[0] or None, key[1] or None, key[2], None)))
+                return self.getResidue(*key) or self.getResidue(key[1],
+                                                key[2], None, key[0]) 
         
             if length == 4:
-                key = key[0] or None, key[1] or None, key[2], key[3] or None
-                return get(key)
+                return getResidue(key[1], key[2], key[3], key[0])
         
         elif isinstance(key, int):
-            key = self._getSegname(), self._getChid(), key, None
-            return get(key)
+            return self.getResidue(None, key)
 
     def _getSegname(self):
         """Return name of the segment when there is only one segment."""
         
         if self.numSegments() == 1:
-            return self._segments[0].getSegname()
+            return self._ag._getSegnames()[0]
 
     def _getChid(self):
         """Return identifier of the chain when there is only one chain."""
         
         if self.numChains() == 1:
-            return self._chains[0].getChid()
+            return self._ag._getChids()[0]
+
+    def _getResidue(self, index):
+        
+        try:
+            residue = self._residues[index]
+        except IndexError:
+            pass
+        else:
+            if residue is not None:
+                try:
+                    residue.getAtomGroup()
+                except AttributeError:
+                    residue = self._residues[index] = Residue(self._ag, 
+                                            residue, self, self._acsi, 
+                                            unique=True, selstr=self._selstr)
+            return residue
+
+    def _getChain(self, index):
+        
+        try:
+            chain = self._chains[index]
+        except IndexError:
+            pass
+        else:
+            if chain is not None:
+                try:
+                    chain.getAtomGroup()
+                except AttributeError:
+                    chain = self._chains[index] = Chain(self._ag, 
+                                            chain, self, self._acsi, 
+                                            unique=True, selstr=self._selstr)
+            return chain
+
+    def _getSegment(self, index):
+        
+        try:
+            segment = self._segments[index]
+        except IndexError:
+            pass
+        else:
+            if segment is not None:
+                try:
+                    segment.getAtomGroup()
+                except AttributeError:
+                    segment = self._segments[index] = Segment(self._ag, 
+                                            segment, self, self._acsi, 
+                                            unique=True, selstr=self._selstr)
+            return segment
 
     def getAtoms(self):
         """Return atoms for which the hierarchical view was built."""
@@ -429,52 +466,73 @@ class HierView(object):
         at instantiation, but can be used to rebuild the hierarchical view when
         attributes of atoms change."""
 
-        atoms = self._atoms
-        if isinstance(atoms, AtomGroup):
-            ag = atoms
-            selstr = False
-            _indices = arange(atoms._n_atoms)
+        self._acsi = self._atoms.getACSIndex()
+        try:
+            self._ag = self._atoms.getAtomGroup()
+        except AttributeError:
+            self._selstr = None
+            self._update(**kwargs)
         else:
-            ag = atoms.getAtomGroup()
-            _indices = atoms._getIndices()
-            selstr = atoms.getSelstr()
+            self._selhv(**kwargs)
 
-        set_indices = False
-        if atoms == ag:
-            set_indices = True
-        
-        _dict = dict()
-        _residues = list()
-        _segments = list()
-        _chains = list()
+    def _selhv(self, **kwargs):
 
-        # also set the attributes, so that when no segments or chains 
-        # are available, num/iter methods won't raise exceptions
-        self._dict = _dict
-        self._residues = _residues
-        self._segments = _segments
-        self._chains = _chains 
+        atoms = self._atoms
+        ag = self._ag
+        indices = atoms._getIndices()
+        self._selstr = atoms.getSelstr()
         
-        acsi = atoms.getACSIndex()
+        self._dict = ag.getHierView()._dict
+
+        self._segments = _segments = [None] * ag.numSegments()
+        self._residues = _residues = [None] * ag.numResidues() 
+        self._chains = _chains = [None] * ag.numChains()
+
+        for hvidx, _list in [(atoms._getSegindices(), _segments),
+                             (atoms._getChindices(), _chains),
+                             (atoms._getResindices(), _residues),]: 
+            if not _list: continue
+            pidx = hvidx[0]
+            pi = 0
+            for i, idx in enumerate(hvidx):
+                if pidx == idx: continue
+                subset = _list[pidx]
+                if subset is None:
+                    _list[pidx] = indices[pi:i]
+                else:
+                    _list[pidx] = concatenate((subset, indices[pi:i]))
+                pidx, pi = idx, i
+            subset = _list[pidx]
+            if subset is None:
+                _list[pidx] = indices[pi:]
+            else:
+                _list[pidx] = concatenate((subset, indices[pi:]))
+            
+    def _update(self, **kwargs):
+            
+        atoms = ag = self._ag = self._atoms
         n_atoms = len(ag)
+        _indices = arange(n_atoms)
+
+        self._dict = _dict = dict()
+        self._residues = _residues = list()
+        self._segments = _segments = list()
+        self._chains = _chains = list()
 
         # identify segments
-        if set_indices:
-            segindex = -1
-            segindices = zeros(n_atoms, int)
+        segindex = -1
+        segindices = zeros(n_atoms, int)
+
         sgnms = ag._getSegnames()
         if sgnms is None:
             _segments = None
         else:
-            if selstr:
-                sgnms = sgnms[_indices]
             s = sgnms[0]
             if len(unique(sgnms)) == 1:
-                if  s != '':
-                    segment = Segment(ag, _indices, acsi=acsi, unique=True, 
-                                      selstr=selstr)
-                    _dict[s] = segment
-                    _segments.append(segment)
+                # 1 segment
+                if s:
+                    _segments.append(_indices)
+                    _dict[s] = 0
                 else: 
                     _segments = None
             else:
@@ -484,32 +542,25 @@ class HierView(object):
                         continue
                     ps = s
                     idx = _indices[i:][sgnms[i:] == s]
-                    segment = Segment(ag, idx, acsi=acsi, unique=True, 
-                                       selstr=selstr)
-                    if set_indices:
-                        segindex += 1
-                        segindices[idx] = segindex
-                    _dict[s] = segment
-                    _segments.append(segment)
+                    segindex += 1
+                    segindices[idx] = segindex
+                    _dict[s] = segindex
+                    _segments.append(idx)
 
-        if set_indices:
-            ag._data['segindex'] = segindices
-            chindex = -1
-            chindices = zeros(n_atoms, int)
+        ag._data['segindex'] = segindices
 
         # identify chains
+        chindex = -1
+        chindices = zeros(n_atoms, int)
+
         chids = ag._getChids()
         if chids is None:
             _chains = None
         else:
-            if selstr:
-                chids = chids[_indices]
             if _segments is None:
                 if len(unique(chids)) == 1:
-                    chain = Chain(ag, _indices, acsi, 
-                                  unique=True, selstr=selstr)
-                    _dict[(None, chids[0] or None)] = chain
-                    _chains.append(chain)
+                    _dict[(None, chids[0] or None)] = 0
+                    _chains.append(_indices)
                 else:
                     pc = None
                     for i, c in enumerate(chids):
@@ -517,13 +568,10 @@ class HierView(object):
                             continue
                         pc = c
                         idx = _indices[i:][chids[i:] == c]
-                        chain = Chain(ag, idx, acsi, 
-                                      unique=True, selstr=selstr)
-                        if set_indices:
-                            chindex += 1
-                            chindices[idx] = chindex
-                        _dict[(None, c)] = chain
-                        _chains.append(chain)
+                        chindex += 1
+                        chindices[idx] = chindex
+                        _dict[(None, c)] = chindex
+                        _chains.append(idx)
             else:
                 pc = chids[0]
                 ps = sgnms[0]
@@ -533,55 +581,47 @@ class HierView(object):
                     if c == pc and s == ps:
                         continue
                     s_c = (ps, pc or None)
-                    chain = _dict.get(s_c)
-                    if chain is None:
+                    cid = _dict.get(s_c)
+                    idx = _indices[_i:i]
+                    if cid is None:
                         segment = _dict[ps]
-                        idx = _indices[_i:i]
-                        chain = Chain(ag, idx, acsi, unique=True, 
-                                      segment=segment, selstr=selstr)
-                        if set_indices:
-                            chindex += 1
-                            chindices[idx] = chindex
-                        _dict[s_c] = chain
-                        _chains.append(chain)
+                        chindex += 1
+                        chindices[idx] = chindex
+                        _dict[s_c] = chindex
+                        _chains.append(idx)
                     else:
-                        idx = _indices[_i:i]
+                        chain = _chains[cid]
                         chindices[idx] = chain._indices[0]
-                        chain._indices = concatenate((chain._indices, idx))
+                        _chains[cid] = concatenate((chain, idx))
                     pc = c
                     ps = s
                     _i = i
                 s_c = (ps, pc or None)
-                chain = _dict.get(s_c)
+                cid = _dict.get(s_c)
                 idx = _indices[_i:]
-                if chain is None:
+                if cid is None:
                     segment = _dict[ps]
-                    if set_indices:
-                        chindex += 1
-                        chindices[idx] = chindex
-                    chain = Chain(ag, idx, acsi, segment=segment, 
-                                  unique=True, selstr=selstr)
-                    _dict[s_c] = chain
-                    _chains.append(chain)
+                    chindex += 1
+                    chindices[idx] = chindex
+                    _dict[s_c] = chindex
+                    _chains.append(idx)
                 else:
-                    if set_indices:
-                        chindices[idx] = chain._indices[0]
-                    chain._indices = concatenate((chain._indices, idx)) 
+                    chain = _chains[cid]
+                    chindices[idx] = chain._indices[0]
+                    _chains[cid] = concatenate((chain, idx))
 
-        if set_indices:
-            ag._data['chindex'] = chindices
+        ag._data['chindex'] = chindices
+
         if kwargs.get('chain') == True:
             return
     
-        if set_indices:
-            resindex = -1
-            resindices = zeros(n_atoms, int)
+        # identify residues
+        resindex = -1
+        resindices = zeros(n_atoms, int)
     
         rnums = ag._getResnums()
         if rnums is None:
             raise ValueError('resnums are not set')
-        if selstr:
-            rnums = rnums[_indices]
         nones = None
         if _segments is None:
             if nones is None:
@@ -596,8 +636,6 @@ class HierView(object):
             if nones is None:
                 nones = [None] * len(rnums)
             icods = nones
-        elif selstr:
-                icods = icods[_indices]
 
         pr = rnums[0]
         pi = icods[0] or None          
@@ -613,89 +651,144 @@ class HierView(object):
             s = sgnms[j]
             if r != pr or i != pi or c != pc or s != ps:
                 s_c_r_i = (ps, pc, pr, pi)
-                res = _get(s_c_r_i)
-                if res is None:
-                    chain = _get((ps, pc))
-                    idx = _indices[_j:j]
-                    res = Residue(ag, idx, acsi=acsi, chain=chain, 
-                                  unique=True, selstr=selstr)
-                    #res = idx
-                    if set_indices:
-                        resindex += 1
-                        resindices[idx] = resindex
-                    _set(s_c_r_i, res)
-                    _append(res)
+                rid = _get(s_c_r_i)
+                idx = _indices[_j:j]
+                if rid is None:
+                    resindex += 1
+                    resindices[idx] = resindex
+                    _set(s_c_r_i, resindex)
+                    _append(idx)
                 else:
-                    res._indices = concatenate((res._indices, _indices[_j:j]))
+                    residue = _residues[rid]
+                    resindices[idx] = residue[0]
+                    _residues[rid] = concatenate((residue, idx))
                 ps = s
                 pc = c
                 pr = r
                 pi = i
                 _j = j 
         s_c_r_i = (ps, pc, pr, pi)
-        res = _get(s_c_r_i)
+        rid = _get(s_c_r_i)
         idx = _indices[_j:]
-        if res is None:
-            chain = _get((ps, pc))
-            res = Residue(ag, idx, acsi=acsi, chain=chain, unique=True, 
-                          selstr=selstr)
-            #res = idx
-            if set_indices:
-                resindex += 1
-                resindices[idx] = resindex
-            _append(res)
-            _set(s_c_r_i, res)
+        if rid is None:
+            resindex += 1
+            resindices[idx] = resindex
+            _append(idx)
+            _set(s_c_r_i, resindex)
         else:
-            if set_indices:
-                resindices[idx] = res._indices[0]
-            res._indices = concatenate((res._indices, idx))
+            residue = _residues[rid]
+            resindices[idx] = residue[0]
+            _residues[rid] = concatenate((residue, idx))
         
-        if set_indices:
-            ag._data['resindex'] = resindices
+        ag._data['resindex'] = resindices
 
     def getResidue(self, chid, resnum, icode=None, segname=None):
         """Return residue with number *resnum* and insertion code *icode* from 
         the chain with identifier *chid* in segment with name *segname*."""
         
-        return self._dict.get((segname or None, chid or None, 
-                               resnum, icode or None))
+        try:
+            index = self._dict[(segname or self._getSegname(), 
+                                chid or self._getChid(), 
+                                resnum, icode or None)]
+        except KeyError:
+            pass
+        else:
+            return self._getResidue(index)
 
     def numResidues(self):
         """Return number of residues."""
         
-        return len(self._residues)    
+        return (len(self._residues) if self._ag is self._atoms else
+                len(self._residues) - self._residues.count(None))
 
     def iterResidues(self):
-        """Iterate over residues."""
+        """Yield residues."""
         
-        return self._residues.__iter__()
+        alist = self._residues
+        ag = self._ag
+        acsi = self._acsi
+        selstr = self._selstr
+        for i, item in enumerate(alist):
+            if item is None:
+                continue
+            try:
+                item.dtype
+            except AttributeError:
+                pass
+            else:
+                item = alist[i] = Residue(ag, item, self, acsi, selstr=selstr,
+                                          unique=True)
+            yield item
                 
     def getChain(self, chid, segname=None):
         """Return chain with identifier *chid*, if it is present."""
         
-        return self._dict.get((segname or None, chid or None))
+        try:
+            index = self._dict[(segname or self._getSegname(), 
+                                chid or None)]
+        except KeyError:
+            pass
+        else:
+            return self._getChain(index)
 
     def iterChains(self):
-        """Iterate over chains."""
+        """Yield chains."""
 
-        return self._chains.__iter__()
+        alist = self._chains
+        ag = self._ag
+        acsi = self._acsi
+        selstr = self._selstr
+        for i, item in enumerate(alist):
+            if item is None:
+                continue
+            try:
+                item.dtype
+            except AttributeError:
+                pass
+            else:
+                item = alist[i] = Chain(ag, item, self, acsi, selstr=selstr,
+                                        unique=True)
+            yield item
+    
+    __iter__ = iterChains
     
     def numChains(self):
         """Return number of chains."""
         
-        return len(self._chains)
+        return (len(self._chains) if self._ag is self._atoms else
+                len(self._chains) - self._chains.count(None))
 
     def getSegment(self, segname):
         """Return segment with name *segname*, if it is present."""
         
-        return self._dict.get(segname or None)
+        try:
+            index = self._dict[segname or None]
+        except KeyError:
+            pass
+        else:
+            return self._getSegment(index)
 
     def numSegments(self):
         """Return number of chains."""
         
-        return len(self._segments)
+        return (len(self._segments) if self._ag is self._atoms else
+                len(self._segments) - self._segments.count(None))
 
     def iterSegments(self):
-        """Iterate over segments."""
+        """Yield segments."""
 
-        return self._segments.__iter__()
+        alist = self._segments
+        ag = self._ag
+        acsi = self._acsi
+        selstr = self._selstr
+        for i, item in enumerate(alist):
+            if item is None:
+                continue
+            try:
+                item.dtype
+            except AttributeError:
+                pass
+            else:
+                item = alist[i] = Segment(ag, item, self, acsi, selstr=selstr,
+                                          unique=True)
+            yield item
