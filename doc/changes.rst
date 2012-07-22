@@ -18,7 +18,7 @@ Release 1.2 (in development)
 
   * :class:`.HierView` instances are built more efficiently.  Two times 
     speed-up is achieved by delaying instantiation of :class:`.Chain` and 
-    :class:`.Residues` instances until they are needed.      
+    :class:`.Residue` instances until they are needed.      
 
   * Multiple :ref:`flags` can be used in :ref:`selections` without using
     ``'and'`` operator, e.g. ``'sidechain carbon'`` is the same as 
@@ -36,7 +36,18 @@ Release 1.2 (in development)
 
   * :meth:`.AtomGroup.getHeretos` method has been deprecated for removal in
     v1.3, use ``getFlags('hetatm')`` instead.
+    
 
+:ref:`nmwiz`
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * :gui:`ProDy Interface` shows the size of the trajectory file written for 
+    PCA calculations.
+    
+  * :gui:`Mode Graphics Options` allows for copying arrows settings from one
+    mode to another. 
 
 Release 1.1 (June 1, 2012)
 ===============================================================================
