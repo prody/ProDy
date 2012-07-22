@@ -360,7 +360,6 @@ orange3"
   variable prodyPrefix ""
   variable prodyRmCoords 0
   variable prodyPCAfile "DCD"
-  variable prodyPCAfiletype "DCD file"
   variable prodyPCAAligned 0
   variable prodyTask ""
   variable prodyFrame 0
@@ -370,7 +369,7 @@ orange3"
   variable prodyGamma 1
   variable prodyNModes 10
   variable prodyFirstFrame 0
-  variable prodySkipFrame 0 
+  variable prodySkipFrame 1 
   variable prodyLastFrame end
 
   variable fromolMolecule
@@ -695,42 +694,50 @@ orange3"
     
     grid [label $wf.modesLabel -text "Number of modes:"] \
       -row 6 -column 1 -sticky w
-    grid [entry $wf.modesEntry -width 4 -textvariable ::NMWiz::prodyNModes] \
-      -row 6 -column 2 -sticky w
+    grid [entry $wf.modesEntry -width 4 -textvariable ::NMWiz::prodyNModes \
+      ] -row 6 -column 2 -sticky w
       
-    grid [label $wf.skipLabel -text "Skip frame:"] \
+    grid [label $wf.skipLabel -text "Frame stride:"] \
       -row 6 -column 3 -sticky w
-    grid [entry $wf.skipEntry -width 4 -textvariable ::NMWiz::prodySkipFrame] \
-      -row 6 -column 4 -sticky w
+    grid [entry $wf.skipEntry -width 4 -textvariable ::NMWiz::prodySkipFrame \
+          -validate all -validatecommand ::NMWiz::calcOutputSize \
+      ] -row 6 -column 4 -sticky w
 
     grid [label $wf.firstLabel -text "First frame:"] \
       -row 8 -column 1 -sticky w
-    grid [entry $wf.firstEntry -width 4 -textvariable ::NMWiz::prodyFirstFrame] \
-      -row 8 -column 2 -sticky w    
+    grid [entry $wf.firstEntry -width 4 -textvariable ::NMWiz::prodyFirstFrame \
+          -validate all -validatecommand ::NMWiz::calcOutputSize \
+      ] -row 8 -column 2 -sticky w    
 
     grid [label $wf.lastLabel -text "Last frame:"] \
       -row 8 -column 3 -sticky w
-    grid [entry $wf.lastEntry -width 4 -textvariable ::NMWiz::prodyLastFrame] \
-      -row 8 -column 4 -sticky w
+    grid [entry $wf.lastEntry -width 4 -textvariable ::NMWiz::prodyLastFrame \
+          -validate all -validatecommand ::NMWiz::calcOutputSize \
+      ] -row 8 -column 4 -sticky w
 
-    grid [label $wf.filetypeLabel -text "Trajectory file type:"] \
+    grid [label $wf.filetypeLabel -text "Trajectory type:"] \
       -row 10 -column 1 -sticky w
     grid [frame $wf.filetypeFrame] \
       -row 10 -column 2 -columnspan 3 -sticky ew
-    tk_optionMenu $wf.filetypeFrame.list ::NMWiz::prodyPCAfiletype "dcd" 
+    tk_optionMenu $wf.filetypeFrame.list ::NMWiz::prodyPCAfile "DCD" 
     $wf.filetypeFrame.list.menu delete 0 last
     foreach script "DCD PDB" {
-      $wf.filetypeFrame.list.menu add radiobutton -label "$script file" \
-          -variable ::NMWiz::prodyPCAfiletype \
-          -command "set ::NMWiz::prodyPCAfile $script;"
+      $wf.filetypeFrame.list.menu add radiobutton -label "$script" \
+          -variable ::NMWiz::prodyPCAfile \
+          -command "::NMWiz::calcOutputSize"
       incr counter  
     }
     checkbutton $wf.filetypeFrame.alignedEntry -text " aligned" \
         -variable ::NMWiz::prodyPCAAligned
+    
     pack $wf.filetypeFrame.list $wf.filetypeFrame.alignedEntry -side left \
       -anchor w -fill x
-    variable prodyPCAfiletype "DCD file"
+    variable prodyPCAfiletype "DCD"
 
+    grid [label $wf.infolabel -text "Trajectory info:"] \
+      -row 11 -column 1 -sticky w
+    grid [label $wf.infoentry -text "" ] \
+      -row 11 -column 2 -columnspan 3 -sticky w
 
     grid [label $wf.extendLabel -text "Extend model to:"] \
       -row 12 -column 1 -sticky w
@@ -781,6 +788,44 @@ orange3"
       variable prodyMolecule "[::NMWiz::cleanMolName $prodyMolid] ($prodyMolid)"
     }
     ::NMWiz::prodyUpdateMolinfo
+    ::NMWiz::calcOutputSize
+  }
+  
+  proc calcOutputSize {} {
+  
+    variable prodyScript
+    if {$prodyScript != "PCA"} { return 1}
+     
+    set numframes [molinfo $::NMWiz::prodyMolid get numframes]
+    
+    if {!([string is digit $::NMWiz::prodyFirstFrame] && $::NMWiz::prodyFirstFrame >= 0 && 
+        $::NMWiz::prodyFirstFrame < $numframes)} { return 1}
+    set first $::NMWiz::prodyFirstFrame
+    
+    if {!([string is digit $::NMWiz::prodySkipFrame] && $::NMWiz::prodySkipFrame > 0 && 
+        $::NMWiz::prodySkipFrame < $numframes)} {return 1}
+     set skip $::NMWiz::prodySkipFrame
+    
+    if {!($::NMWiz::prodyLastFrame == "end" || ([string is digit $::NMWiz::prodyLastFrame]
+       && $::NMWiz::prodyLastFrame > 0 && $::NMWiz::prodyLastFrame < $numframes))} {return 1}
+      
+    if {$::NMWiz::prodyLastFrame == "end"} {
+      set last [expr $numframes - 1]
+    } else {
+      set last $::NMWiz::prodyLastFrame
+    }
+    
+    set count 0 
+    for {set i $first} {$i <= $last} {incr i $skip} {
+      incr count
+    }
+    if {$::NMWiz::prodyPCAfile == "DCD"} {
+      set size [expr ($count * (56 + ($::NMWiz::prodySelAtoms + 2) * 12. ) + 276.)/ 1048576 ]
+    } else {
+      set size [expr ($count * ($::NMWiz::prodySelAtoms * 79. + 4) + 71.) / 1048576]
+    }
+    .nmwizprody.pcaFrame.infoentry configure -text [format "$count frames (~%.2f MB)" $size]
+    return 1
   }
 
   proc strcompUpdateMolList {} {
@@ -1001,6 +1046,7 @@ orange3"
     variable prodyGUI
     $prodyGUI.mainFrame.selinfoLabel configure \
       -text "$prodySelAtoms atoms are selected"
+    ::NMWiz::calcOutputSize  
   }
   
   proc fromolUpdateSelection {} {
@@ -1042,6 +1088,7 @@ orange3"
       pack forget $prodyGUI.submitFrame
       pack $prodyGUI.pcaFrame -side top -fill x -expand 1
       pack $prodyGUI.submitFrame -side top -fill x -expand 1
+      ::NMWiz::calcOutputSize
     }
   }
   
@@ -1195,10 +1242,10 @@ orange3"
         -message "First frame must be a number and must be in the valid range."
       return 
     }
-    if {!([string is digit $::NMWiz::prodySkipFrame] && $::NMWiz::prodySkipFrame >= 0 && 
+    if {!([string is digit $::NMWiz::prodySkipFrame] && $::NMWiz::prodySkipFrame > 0 && 
         $::NMWiz::prodySkipFrame < [molinfo $::NMWiz::prodyMolid get numframes])} {
       tk_messageBox -type ok -title "ERROR" \
-        -message "Skip frame must be a number and must be in the valid range."
+        -message "Frame stride must be a positive number and must be in the valid range."
       return 
     }
     if {!($::NMWiz::prodyLastFrame == "end" || ([string is digit $::NMWiz::prodyLastFrame]
