@@ -27,7 +27,7 @@ from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, checkWeights
 from prody.utilities import checkCoords
 
-from frame import Frame
+from .frame import Frame
 
 __all__ = ['TrajBase']
 
@@ -265,13 +265,6 @@ class TrajBase(object):
         """Return number of frames."""
         
         return self._n_csets
-    
-    def getNextIndex(self):
-        """Deprecated for removal in v1.2, use :meth:`nextIndex` instead."""
-        
-        from prody import deprecate
-        deprecate('getNextIndex', 'nextIndex')
-        return self._nfi
     
     def nextIndex(self):
         """Return the index of the next frame."""
