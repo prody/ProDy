@@ -855,28 +855,6 @@ class AtomGroup(Atomic):
             index += n_csets 
         self._acsi = index
         
-    def copy(self, which=None):
-        """Return a copy of atoms (and atomic data) in a new :class:`AtomGroup`
-        instance.
-        
-        *which* argument is deprecated for removal in v1.2, instead make 
-        the :class:`.Selection`, :class:`.Residue`, :class:`.Chain`, 
-        :class:`.Atom`, :class:`.Segment`, or :class:`.AtomMap` instance
-        that you want and use its :meth:`.Atomic.copy` method."""
-        
-        if which is None:
-            return Atomic.copy(self)
-        elif isinstance(which, Atomic):
-            return Atomic.copy(which)
-        else:
-            import warnings
-            warnings.warn('*which* argument of AtomGroup.copy() is deprecated '
-                          'for removal in v1.2', stacklevel=2)
-            if isinstance(which, str):
-                return self.select(which).copy()
-            else:
-                return self[which].copy()
-    
     def getHierView(self):
         """Return a hierarchical view of the atom group."""
         
