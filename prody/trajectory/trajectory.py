@@ -54,7 +54,7 @@ class Trajectory(TrajBase):
         
         if self._closed:
             return '<Trajectory: {0:s} (closed)>'.format(self._title)
-        if self.indices is None:
+        if self._indices is None:
             return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
                     'frames; {4:d} atoms)>').format(
                     self._title, self._n_files, self._nfi, 
