@@ -74,7 +74,7 @@ class Conformation(object):
         return self._ensemble.getSelection()        
 
     def getIndex(self):
-        """Return index."""
+        """Return conformation index."""
         
         return self._index
     
