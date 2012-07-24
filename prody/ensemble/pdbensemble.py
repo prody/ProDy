@@ -128,13 +128,13 @@ class PDBEnsemble(Ensemble):
             trans = np.zeros((self._n_csets, 4, 4))
         else:
             trans = None
-        if self._sel is None:
+        indices = self._indices
+        if indices is None:
             weights = self._weights
             coords = self._coords
             confs = self._confs
             confs_selected = self._confs
         else:
-            indices = self._indices
             weights = self._weights[:, indices]
             coords = self._coords[indices]
             confs = self._confs
@@ -258,7 +258,7 @@ class PDBEnsemble(Ensemble):
         elif isinstance(indices, (int, long)): 
             indices = np.array([indices])
         coords = self._coords
-        if self._sel is None:
+        if self._indices is None:
             confs = self._confs[indices].copy()
             for i, w in enumerate(self._weights[indices]):
                 which = w.flatten()==0
@@ -344,10 +344,10 @@ class PDBEnsemble(Ensemble):
         if self._confs is None or self._coords is None: 
             return None
     
-        if self._sel is None:
+        indices = self._indices
+        if indices is None:
             return getRMSD(self._coords, self._confs, self._weights)
         else:
-            indices = self._indices
             return getRMSD(self._coords[indices], self._confs[:,indices],
                            self._weights[:, indices])
 
