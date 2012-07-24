@@ -23,11 +23,10 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody import deprecate
 from prody.atomic import Atomic, AtomGroup, AtomSubset, AtomMap, AtomPointer
 from prody.utilities import importLA
 
-from measure import calcCenter
+from .measure import calcCenter
 
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'calcRMSD', 'calcTransformation', 'superpose', 
@@ -86,12 +85,6 @@ class Transformation(object):
         elif translation.shape != (3,):
             raise ValueError('translation must be an ndarray of length 3')
         self._matrix[:3, 3] = translation
-    
-    def get4x4Matrix(self):
-        """Deprecated for removal in v1.1, use :meth:`getMatrix` instead."""
-        
-        deprecate('get4x4Matrix', 'getMatrix')
-        return self.getMatrix()
     
     def getMatrix(self):
         """Returns a copy of the 4x4 transformation matrix whose top left is 
