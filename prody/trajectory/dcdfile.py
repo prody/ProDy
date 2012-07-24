@@ -268,7 +268,7 @@ class DCDFile(TrajFile):
             #Skip extended system coordinates (unit cell data)
             if self._unitcell:
                 self._file.seek(56, 1)
-            if self._sel is None:
+            if self._indices is None:
                 return self._nextCoordset()
             else:            
                 return self._nextCoordset()[self._indices]
