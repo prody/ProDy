@@ -36,14 +36,13 @@ class Ensemble(object):
     
     """A class for analysis of arbitrary conformational ensembles. 
     
-    Indexing (e.g. ``ens[0]``) returns a :class:`~.Conformation` instance that 
-    points to a coordinate set in the ensemble. Slicing (e.g. ``ens[:10]``) 
-    returns an :class:`Ensemble` instance that contains subset of conformations
-    (coordinate sets). The ensemble obtained by slicing will have a copy of 
-    the reference coordinates."""
+    Indexing (e.g. ``ens[0]``) returns a :class:`.Conformation` instance that 
+    points to a coordinate set in the ensemble.  Slicing (e.g. ``ens[0:10]``) 
+    returns an :class:`Ensemble` instance that contains a copy of the subset 
+    of conformations (coordinate sets). """
 
     def __init__(self, title='Unknown'):
-        """Instantiate with a *title* or a :class:`~.Atomic` instance.  All 
+        """Instantiate with a *title* or a :class:`.Atomic` instance.  All 
         coordinate sets from atomic instances will be added to the ensemble."""
         
         self._title = str(title).strip()
@@ -52,8 +51,7 @@ class Ensemble(object):
         self._n_atoms = 0
         self._n_csets = 0 # number of conformations/frames/coordinate sets
         self._weights = None
-        self._ag = None
-        self._sel = None
+        self._atoms = None
         self._indices = None # indices of selected atoms
 
         self._confs = None       # coordinate sets
@@ -64,7 +62,7 @@ class Ensemble(object):
     
     def __repr__(self):
     
-        if self._sel is None:
+        if self._indices is None:
             return ('<Ensemble: {0:s} ({1:d} conformations; {2:d} atoms)>'
                     ).format(self._title, len(self), self._n_atoms)
         else:
@@ -161,81 +159,59 @@ class Ensemble(object):
         
         return self._n_atoms
    
-    def numCoordsets(self):
-        """Return number of coordinate sets, i.e conformations or frames."""
+    def numConfs(self):
+        """Return number of conformations."""
         
         return self._n_csets
+    
+    numCoordsets = numConfs
     
     def numSelected(self):  
         """Return number of selected atoms."""
         
-        if self._sel is None:
-            return self._n_atoms
-        return len(self._indices) 
+        return self._n_atoms if self._indices is None else len(self._indices) 
     
     def getAtoms(self):
         """Return associated atom group."""
         
-        return self._ag
+        return self._atoms
     
-    def setAtoms(self, ag, setref=True):
-        """Associate the instance with an :class:`~.AtomGroup`.  Note that at 
-        association, active coordinate set of the :class:`~.AtomGroup`, if it 
-        has one, will be set as the reference coordinates for the ensemble or 
-        trajectory.  Changes in :class:`~.AtomGroup` active coordinate set will
-        not be reflected to the reference coordinates. If you want to preserve 
-        the present reference coordinates, pass ``setref=False``."""
+    def setAtoms(self, atoms):
+        """Set *atoms* for the conformational ensemble.  *atoms* must be an 
+        :class:`.Atomic` instance.  When *atoms* indicate a subset of the atoms
+        in the ensemble, corresponding subset of coordinates will be considered
+        in superpositions or returned to the user.  Setting atoms also allows 
+        some ProDy functions to access atomic data when needed. For example, an
+        ensemble becomes a suitable argument for :func:`.writePDB` after its
+        atoms are set."""
         
-        if ag is None:
-            self._ag = None
-        else:
-            if not isinstance(ag, AtomGroup):
-                raise TypeError('ag must be an AtomGroup instance')
-            if self._n_atoms != 0 and ag.numAtoms() != self._n_atoms:
-                raise ValueError('AtomGroup must have same number of atoms')
-            self._ag = ag
-            if setref:
-                coords = ag.getCoords()
-                if coords is not None:
-                    self._coords = coords 
-                    LOGGER.info('Coordinates of {0:s} is set as the reference '
-                               'for {1:s}.'.format(ag.getTitle(), self._title))
-        self._sel = None
+        self._atoms = atoms
         self._indices = None
-        
-    def getSelection(self):
-        """Return the current selection. If ``None`` is returned, it means
-        that all atoms are selected."""
-        
-        return self._sel
-    
-    def select(self, selstr):
-        """Select a subset atoms. When a subset of atoms are selected, their 
-        coordinates will be evaluated in, for example, RMSD calculations. 
-        If *selstr* results in selecting no atoms, all atoms will be 
-        considered. For more information on atom selections see 
-        :ref:`selections`."""
-        
-        if selstr is None:
-            self._sel = None
-            self._indices = None
+        if atoms is None:
+            return
+        try:
+            atoms.getACSIndex()
+        except AttributeError:
+            raise TypeError('atoms must be an Atomic instance')
+        if self._n_atoms:
+            if atoms.numAtoms() == self.numAtoms():
+                return
+            try:
+                ag = atoms.getAtomGroup()
+            except AttributeError:
+                raise ValueError('atoms must indicate a subset or must '
+                                   'match the ensemble size')
+            else:
+                self._indices = atoms.getIndices()
         else:
-            if self._ag is None:
-                raise AttributeError(self.__class__.__name__ + ' must be be '
-                                     'associated with an AtomGroup, use '
-                                     '`setAtoms` method.')
-            sel = self._ag.select(selstr)
-            if sel is not None:
-                self._indices = sel.getIndices()
-            self._sel = sel
-            return sel
-    
+            self._n_atoms = atoms.numAtoms()
+            
     def getCoords(self):
         """Return a copy of reference coordinates for selected atoms."""
         
         if self._coords is None:
             return None
-        if self._sel is None:
+        if self._indices is None:
             return self._coords.copy()
         return self._coords[self._indices]
     
@@ -244,14 +220,14 @@ class Ensemble(object):
 
         if self._coords is None:
             return None
-        if self._sel is None:
+        if self._indices is None:
             return self._coords
         return self._coords[self._indices]
 
     def setCoords(self, coords):
         """Set *coords* as the ensemble reference coordinate set.  *coords* 
-        must be an object with :meth:`getCoords` method, or a Numpy array with 
-        suitable data type, shape, and dimensionality."""
+        may be an array with suitable data type, shape, and dimensionality, or
+        an object with :meth:`getCoords` method."""
 
         atoms = coords
         try:
@@ -277,7 +253,7 @@ class Ensemble(object):
         
         if self._weights is None:
             return None
-        if self._sel is None:
+        if self._indices is None:
             return self._weights.copy()
         if self._weights.ndim == 2:
             return self._weights[self._indices]
@@ -288,7 +264,7 @@ class Ensemble(object):
 
         if self._weights is None:
             return None
-        if self._sel is None:
+        if self._indices is None:
             return self._weights
         if self._weights.ndim == 2:
             return self._weights[self._indices]
@@ -301,11 +277,6 @@ class Ensemble(object):
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
         self._weights = checkWeights(weights, self._n_atoms, None)
-
-    def numConfs(self):  
-        """Return number of conformations."""
-
-        return self._n_csets
 
     def addCoordset(self, coords):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
@@ -417,7 +388,7 @@ class Ensemble(object):
         """Iterate over coordinate sets. A copy of each coordinate set for
         selected atoms is returned. Reference coordinates are not included."""
         
-        if self._sel is None:
+        if self._indices is None:
             for conf in self._confs:
                 yield conf.copy()
         else:
@@ -521,7 +492,9 @@ class Ensemble(object):
         mean coordinates are calculated, and are set as the new reference 
         coordinates.  This is repeated until reference coordinates do not 
         change.  This is determined by the value of RMSD between the new and 
-        old reference coordinates.        
+        old reference coordinates.  Note that at the end of the iterative 
+        procedure the reference coordinate set will be average of conformations
+        in the ensemble. 
         
         :arg rmsd: change in reference coordinates to determine convergence,
             default is 0.0001 Å RMSD
@@ -530,8 +503,8 @@ class Ensemble(object):
         if self._coords is None:
             raise AttributeError('coordinates are not set, use `setCoords`')
         if self._confs is None or len(self._confs) == 0: 
-            raise AttributeError('conformations are not set, use `addCoordset`'
-                                 )
+            raise AttributeError('conformations are not set, use' 
+                                    '`addCoordset`')
         LOGGER.info('Starting iterative superposition:')
         LOGGER.timeit()
         rmsdif = 1
@@ -554,9 +527,9 @@ class Ensemble(object):
         LOGGER.timing('Iterative superposition completed in %.2fs.')
 
     def getMSFs(self):
-        """Return mean square fluctuations (MSFs).  Conformations should be 
-        aligned using one of :meth:`superpose` or :meth:`iterpose` prior to
-        MSF calculation."""
+        """Return mean square fluctuations (MSFs) for selected atoms.  
+        Conformations can be aligned using one of :meth:`superpose` or 
+        :meth:`iterpose` methods prior to MSF calculation."""
         
         if self._confs is None: 
             return
@@ -574,16 +547,16 @@ class Ensemble(object):
         return ssqf.sum(1) / self._n_csets
     
     def getRMSFs(self):
-        """Return root mean square fluctuations (RMSFs).  Conformations should
-        be aligned using one of :meth:`superpose` or :meth:`iterpose` prior to
-        RMSF calculation."""
+        """Return root mean square fluctuations (RMSFs) for selected atoms.  
+        Conformations can be aligned using one of :meth:`superpose` or 
+        :meth:`iterpose` methods prior to RMSF calculation."""
 
         return self.getMSFs() ** 0.5
             
     def getDeviations(self):
-        """Return deviations from reference coordinates.  Note that you
-        might need to align the conformations using :meth:`superpose` or 
-        :meth:`iterpose` before calculating deviations."""
+        """Return deviations from reference coordinates for selected atoms.  
+        Conformations can be aligned using one of :meth:`superpose` or 
+        :meth:`iterpose` methods prior to calculating deviations."""
         
         if not isinstance(self._confs, np.ndarray):
             LOGGER.warning('Conformations are not set.')
@@ -595,9 +568,9 @@ class Ensemble(object):
         return self._getCoordsets() - self._coords 
         
     def getRMSDs(self):
-        """Return root mean square deviations (RMSDs).  Conformations should
-        be aligned using one of :meth:`superpose` or :meth:`iterpose` prior 
-        to RMSD calculation."""
+        """Return root mean square deviations (RMSDs) for selected atoms.  
+        Conformations can be aligned using one of :meth:`superpose` or 
+        :meth:`iterpose` methods prior to RMSD calculation."""
         
         if self._confs is None or self._coords is None: 
             return None
