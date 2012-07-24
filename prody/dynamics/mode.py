@@ -185,7 +185,6 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
-import prody
 
 __all__ = ['Mode', 'Vector']
            
@@ -423,22 +422,10 @@ class Mode(VectorBase):
     
     getEigvec = getArray
     
-    def getEigenvector(self):
-        """Deprecated, use :meth:`getEigvec` instead."""
-        
-        prody.deprecate('getEigenvector', 'getEigvec')
-        return self.getEigvec()
-
     def _getArray(self):
         """Return a copy of the normal mode array (eigenvector)."""
     
         return self._model._array[:, self._index]
-    
-    def getEigenvalue(self):
-        """Deprecated, use :meth:`getEigval` instead."""
-        
-        prody.deprecate('getEigenvalue', 'getEigval')
-        return self.getEigval()
         
     def getEigval(self):
         """Return normal mode eigenvalue."""
@@ -450,12 +437,6 @@ class Mode(VectorBase):
         eigenvalue is returned."""
         
         return self._model._vars[self._index]
-
-    def getCovariance(self):
-        """Deprecated, use :func:`~.calcCovariance` instead."""
-        
-        prody.deprecate('getCovariance', 'calcCovariance')
-        return prody.calcCovariance(self)
 
 
 class Vector(VectorBase):
