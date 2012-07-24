@@ -25,21 +25,19 @@ import os.path
 
 import numpy as np
 
-from trajbase import TrajBase
-
+from prody import LOGGER
 from prody.utilities import relpath
+
+from .trajbase import TrajBase
 
 __all__ = ['TrajFile']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class TrajFile(TrajBase):
     
-    """A base class for providing a consistent interface over trajectories in 
-    different formats.  Derived classes are:
+    """A base class for trajectory file classes:
     
-      * :class:`~.DCDFile`"""
+      * :class:`.DCDFile`"""
     
     
     def __init__(self, filename, mode='r'):
@@ -85,7 +83,7 @@ class TrajFile(TrajBase):
             return ('<{0:s}: {1:s} (closed)>').format(
                         self.__class__.__name__, self._title)
         if self._mode == 'r':
-            if self._sel is None:            
+            if self._indices is None:            
                 return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames; '
                         '{4:d} atoms)>').format(
                         self.__class__.__name__, self._title, 
