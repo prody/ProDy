@@ -59,9 +59,10 @@ If you are analyzing a small trajectory, you can use an
 trajectory at once using :func:`~.parseDCD`:
 
 >>> ensemble = parseDCD('mdm2.dcd')
->>> ensemble.setAtoms( structure )
->>> ensemble.select('calpha')
-<Selection: 'calpha' from mdm2 (85 atoms)>
+>>> ensemble.setCoords(structure)
+>>> ensemble.setAtoms(structure.calpha)
+>>> ensemble
+<Ensemble: mdm2 (0:500:1) (500 conformations; selected 85 of 1449 atoms)>
 >>> ensemble.superpose()
 >>> eda_ensemble = EDA('MDM2 Ensemble')
 >>> eda_ensemble.buildCovariance( ensemble )

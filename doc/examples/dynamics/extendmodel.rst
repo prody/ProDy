@@ -68,7 +68,7 @@ Write PDB file
 
 Generated conformers can be written in PDB format as follows: 
 
->>> backbone = p38.copy( bb_atoms )
+>>> backbone = bb_atoms.copy()
 >>> backbone.addCoordset(ensemble)
 >>> writePDB('p38_backbone_ensemble.pdb', backbone)
 'p38_backbone_ensemble.pdb'

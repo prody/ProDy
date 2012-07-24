@@ -41,7 +41,7 @@ repeat this calculation for all atoms):
 We use residues 1 to 70, as residues 71 to 76 are very mobile and including
 them skews the results.
 
->>> ubi = ubi.copy('resnum < 71')
+>>> ubi = ubi.select('resnum < 71').copy()
 
 >>> ensemble = Ensemble('Ubiquitin NMR ensemble')
 >>> ensemble.setCoords( ubi.getCoords() )

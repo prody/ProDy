@@ -56,6 +56,7 @@ be parsed at once. This function returns an :class:`~.Ensemble` instance:
 Let's associate this ensemble with the *structure* we parsed from the PDB file:
 
 >>> ensemble.setAtoms(structure)
+>>> ensemble.setCoords(structure)
 
 This operation set the coordinates of the *structure* as the reference
 coordinates of the *ensemble*. Now we can :meth:`.Ensemble.superpose` 
@@ -76,8 +77,7 @@ Preceding calculations used all atoms in the structure. When we are interested
 in a subset of atoms, let's say Cα atoms, we can make a selection before
 performing calculations:
 
->>> ensemble.select('calpha')
-<Selection: 'calpha' from mdm2 (85 atoms)>
+>>> ensemble.setAtoms(structure.calpha)
 >>> ensemble
 <Ensemble: mdm2 (0:500:1) (500 conformations; selected 85 of 1449 atoms)>
 >>> ensemble.superpose()
@@ -106,6 +106,7 @@ Parse frames one-by-one
 
 >>> structure = parsePDB('mdm2.pdb')
 >>> dcd.setAtoms(structure)
+>>> dcd.setCoords(structure)
 
 >>> dcd.nextIndex()
 0
