@@ -360,7 +360,7 @@ class AtomGroup(Atomic):
     using :meth:`setACSIndex()` method.  :meth:`getCoords` returns coordinates
     from the *active set*.
     
-    **Coordinate sets**
+    **Atom subsets**
     
     To access and modify data associated with a subset of atoms in an atom 
     group, :class:`.Selection` instances may be used.  A :class:`.Selection` 
