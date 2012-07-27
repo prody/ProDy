@@ -343,7 +343,7 @@ __all__ = ['Select', 'SelectionError', 'TypoWarning',
 SRE_Pattern = type(RE.compile('C.*'))
 
 DTYPES_NUMERIC = set([np.int, np.int8, np.int16, np.int32, np.int64, np.float, 
-                      np.float16, np.float32, np.float64, np.float128])
+                      np.float16, np.float32, np.float64])
 
 
 KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
