@@ -66,12 +66,6 @@ class Conformation(object):
         """Return associated atom group."""
         
         return self._ensemble.getAtoms()        
-    
-    def getSelection(self):
-        """Return the current selection. If ``None`` is returned, it means
-        that all atoms are selected."""
-        
-        return self._ensemble.getSelection()        
 
     def getIndex(self):
         """Return conformation index."""
