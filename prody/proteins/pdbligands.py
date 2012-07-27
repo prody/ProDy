@@ -25,15 +25,12 @@ import os.path
 
 import numpy as np
 
+from prody import LOGGER, SETTINGS, getPackagePath
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
 from prody.utilities import openFile, makePath
-from prody import getPackagePath
 
 __all__ = ['fetchPDBLigand']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
 
 def fetchPDBLigand(cci, filename=None):
     """Fetch PDB ligand data from `Ligand Expo <http://ligand-expo.rcsb.org/>`_

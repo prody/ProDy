@@ -23,14 +23,10 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
+from prody import LOGGER, SETTINGS, getPackagePath
 from prody.utilities import openFile
-from prody import getPackagePath
 
 __all__ = ['fetchPDBClusters', 'loadPDBClusters', 'getPDBCluster',]
-           
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
 
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
                 90: None, 95: None, 100: None}

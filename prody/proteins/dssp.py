@@ -26,17 +26,15 @@ import os.path
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import AtomGroup
 from prody.utilities import gunzip, which, PLATFORM
 
-from pdbfile import parsePDB
-from wwpdbftp import fetchPDB
+from .pdbfile import parsePDB
+from .wwpdbftp import fetchPDB
 
 __all__ = ['execDSSP', 'parseDSSP', 'performDSSP']
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
     """Execute DSSP for given *pdb*.  *pdb* can be a PDB identifier or a PDB 

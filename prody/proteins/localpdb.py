@@ -23,12 +23,11 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
+from prody import LOGGER, SETTINGS
+
 __all__ = ['getPDBLocalFolder', 'getPDBMirrorPath', 
            'setPDBLocalFolder', 'setPDBMirrorPath',]
            
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
 
 def getPDBLocalFolder():
     """Return the path to a local PDB folder and folder structure specifier. 

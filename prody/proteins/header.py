@@ -26,19 +26,17 @@ import os.path
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
 from prody.utilities import openFile
 
-from wwpdbftp import fetchPDB
+from .wwpdbftp import fetchPDB
 
 __all__ = ['Chemical', 'Polymer', 'DBRef', 'parsePDBHeader',
            'assignSecstr', 'buildBiomolecules']
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class Chemical(object):
     

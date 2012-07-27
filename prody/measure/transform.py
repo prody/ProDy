@@ -23,6 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup, AtomSubset, AtomMap, AtomPointer
 from prody.utilities import importLA
 
@@ -33,8 +34,6 @@ __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'moveAtoms', 'wrapAtoms',
            'printRMSD']
            
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class Transformation(object):
     

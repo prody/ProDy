@@ -25,14 +25,13 @@ import os.path
 import shutil
 from glob import glob
 
+from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath
-from localpdb import getPDBLocalFolder, getPDBMirrorPath
+
+from .localpdb import getPDBLocalFolder, getPDBMirrorPath
 
 __all__ = ['getWWPDBFTPServer', 'setWWPDBFTPServer', 'fetchPDB',]
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
            
 _PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
                        '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ',

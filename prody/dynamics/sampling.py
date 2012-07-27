@@ -33,17 +33,16 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup 
 from prody.ensemble import Ensemble
 
-from nma import NMA
-from mode import Mode, VectorBase, Vector
-from modeset import ModeSet
+from .nma import NMA
+from .mode import Mode, VectorBase, Vector
+from .modeset import ModeSet
 
 __all__ = ['deformAtoms', 'sampleModes', 'traverseMode',]
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     """Return an ensemble of randomly sampled conformations along given 

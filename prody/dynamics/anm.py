@@ -27,17 +27,15 @@ from types import FunctionType
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.utilities import importLA, checkCoords
 from prody.kdtree import KDTree
 
-from gnm import GNMBase, ZERO, checkENMParameters
+from .gnm import GNMBase, ZERO, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class ANM(GNMBase):
 

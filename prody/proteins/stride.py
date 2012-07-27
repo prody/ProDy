@@ -26,17 +26,16 @@ import os.path
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import AtomGroup
 from prody.utilities import gunzip, which, PLATFORM
 
-from pdbfile import parsePDB
-from wwpdbftp import fetchPDB
+from .pdbfile import parsePDB
+from .wwpdbftp import fetchPDB
 
 __all__ = ['execSTRIDE', 'parseSTRIDE', 'performSTRIDE']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 def execSTRIDE(pdb, outputname=None, outputdir=None):
     """Execute STRIDE program for given *pdb*.  *pdb* can be an identifier or 

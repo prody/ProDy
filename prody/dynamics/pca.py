@@ -26,17 +26,16 @@ import time
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble, PDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
 
-from nma import NMA
+from .nma import NMA
 
 __all__ = ['PCA', 'EDA']
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 class PCA(NMA):
     

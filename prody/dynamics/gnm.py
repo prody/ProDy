@@ -27,18 +27,16 @@ from types import FunctionType
 
 import numpy as np
 
+from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.kdtree import KDTree
 from prody.utilities import importLA, checkCoords
 
-from nma import NMA
-from gamma import Gamma
+from .nma import NMA
+from .gamma import Gamma
 
 __all__ = ['GNM', 'calcGNM']
-
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
 
 ZERO = 1e-6
 

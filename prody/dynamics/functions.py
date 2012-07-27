@@ -25,15 +25,16 @@ import os.path
 
 import numpy as np
 
+from prody import LOGGER, SETTINGS
 from prody.atomic import AtomGroup
 from prody.utilities import openFile, isExecutable, which, PLATFORM
 
-from nma import NMA
-from anm import ANM
-from gnm import GNM, GNMBase, ZERO
-from pca import PCA, EDA
-from mode import Vector, Mode
-from modeset import ModeSet
+from .nma import NMA
+from .anm import ANM
+from .gnm import GNM, GNMBase, ZERO
+from .pca import PCA, EDA
+from .mode import Vector, Mode
+from .modeset import ModeSet
 
 __all__ = ['parseArray', 'parseModes', 'parseNMD',
            'writeArray', 'writeModes', 'parseSparseMatrix',
@@ -41,9 +42,6 @@ __all__ = ['parseArray', 'parseModes', 'parseNMD',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
            'getVMDpath', 'setVMDpath', 'viewNMDinVMD',]
 
-pkg = __import__(__package__)
-LOGGER = pkg.LOGGER
-SETTINGS = pkg.SETTINGS
            
 def saveModel(nma, filename=None, matrices=False, **kwargs):
     """Save *nma* model data as :file:`filename.nma.npz`.  By default, 
