@@ -24,8 +24,9 @@ Atoms and Frames
 ================
 
 :class:`Frame` instances store only coordinate and some frame related metadata.
-Setting atoms of a trajectory (using :meth:`~Trajectory.setAtoms`) links 
-:class:`Frame` and :class:`~.AtomGroup` instances. Let's see how this works:  
+Linking atoms to a trajectory (using :meth:`~Trajectory.linkAtomGroup`) makes
+:class:`Frame` and :class:`.AtomGroup` instance share the same coordinate data.
+Let's see how this works:  
  
 Example input:
  
@@ -51,10 +52,11 @@ When you are not referring to any of these frames anymore in your code,
 Python garbage collector will free or reuse the memory space that was used by 
 those frames.
 
-When an :class:`~.AtomGroup` is set, things are different.
+When an :class:`.AtomGroup` is linked to the trajectory as follows, things 
+work differently:
 
 >>> pdb = parsePDB('mdm2.pdb')
->>> dcd.setAtoms(pdb)
+>>> dcd.linkAtomGroup(pdb)
 >>> dcd.reset()
 
 We get :class:`Frame` instances in the same way:
@@ -81,8 +83,8 @@ objects in this case:
 True
 
 As you see, a new frame was not instantiated.  The same frame is reused and
-it always points to the coordinates stored in the :class:`~.AtomGroup`.
-You can also make :class:`~.Selection` instances that will point to the same 
+it always points to the coordinates stored in the :class:`.AtomGroup`.
+You can also make :class:`.Selection` instances that will point to the same 
 coordinate set.  This will allow making a more elaborate analysis of frames.  
 For an example see :ref:`trajectory2`."""
 
@@ -116,7 +118,7 @@ class Frame(object):
     def __repr__(self):
 
         sel = ''
-        if self.getSelection() is not None:
+        if self._traj._indices is not None:
             sel = 'selected {0:d} of '.format(self.numSelected())
 
         return ('<Frame: {0:d} from {1:s} ({2:s}{3:d} atoms)>').format(
@@ -141,12 +143,6 @@ class Frame(object):
         """Return associated atom group."""
         
         return self._traj.getAtoms()        
-    
-    def getSelection(self):
-        """Return the current selection. If ``None`` is returned, it means
-        that all atoms are selected."""
-        
-        return self._traj.getSelection()        
     
     def getIndex(self):
         """Return index."""

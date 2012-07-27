@@ -81,13 +81,21 @@ class Trajectory(TrajBase):
             if self._trajectory.nextIndex() > 0:
                 self._trajectory.reset()
         
-    def setAtoms(self, ag, setref=True):
+    def setAtoms(self, atoms):
         
         for traj in self._trajectories:
-            traj.setAtoms(ag, setref)
-        TrajBase.setAtoms(self, ag, setref)
+            traj.setAtoms(atoms)
+        TrajBase.setAtoms(self, atoms)
         
     setAtoms.__doc__ = TrajBase.setAtoms.__doc__
+    
+    def linkAtomGroup(self, ag):
+        
+        for traj in self._trajectories:
+            traj.linkAtomGroup(ag)
+        TrajBase.linkAtomGroup(self, ag)
+    
+    linkAtomGroup.__doc__ = TrajBase.linkAtomGroup.__doc__
 
     def addFile(self, filename):
         """Add a file to the trajectory instance. Currently only DCD files
@@ -203,10 +211,10 @@ class Trajectory(TrajBase):
                 self._ag.setACSLabel(self._title + ' frame ' + str(self._nfi))
                 traj = self._trajectory
             self._nfi += 1
-            if self._indices is None: 
-                return traj.nextCoordset()
-            else:
-                return traj.nextCoordset()[self._indices]
+            #if self._indices is None: 
+            return traj.nextCoordset()
+            #else:
+            #    return traj.nextCoordset()[self._indices]
 
     nextCoordset.__doc__ = TrajBase.nextCoordset.__doc__
     
