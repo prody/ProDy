@@ -177,34 +177,52 @@ class Ensemble(object):
         return self._atoms
     
     def setAtoms(self, atoms):
-        """Set *atoms* for the conformational ensemble.  *atoms* must be an 
-        :class:`.Atomic` instance.  When *atoms* indicate a subset of the atoms
-        in the ensemble, corresponding subset of coordinates will be considered
-        in superpositions or returned to the user.  Setting atoms also allows 
-        some ProDy functions to access atomic data when needed. For example, an
-        ensemble becomes a suitable argument for :func:`.writePDB` after its
-        atoms are set."""
+        """Set *atoms* that will be considered in calculations and coordinate 
+        requests.  *atoms* may be an :class:`.AtomGroup` or :class:`.Selection`
+        instance that indicates all or a subset of atoms in the ensemble.  
+        When a subset of atoms is set, corresponding subset of coordinates will
+        be considered in, for example, alignments and RMSD calculations.
+        Setting atoms also allows some ProDy functions to access atomic data 
+        when needed. For example, :class:`.Ensemble` and :class:`.Conformation`
+        instances become suitable arguments for :func:`.writePDB` after atoms 
+        are set. Passing **None** as *atoms* argument will deselect atoms."""
         
-        self._atoms = atoms
-        self._indices = None
         if atoms is None:
+            self._atoms = self._indices = None
             return
+        
         try:
             atoms.getACSIndex()
         except AttributeError:
             raise TypeError('atoms must be an Atomic instance')
-        if self._n_atoms:
-            if atoms.numAtoms() == self.numAtoms():
-                return
-            try:
-                ag = atoms.getAtomGroup()
-            except AttributeError:
-                raise ValueError('atoms must indicate a subset or must '
-                                   'match the ensemble size')
+        
+        n_atoms = self._n_atoms
+        if n_atoms:
+            
+            if atoms.numAtoms() > n_atoms:
+                raise ValueError('atoms must be same size or smaller than '
+                                 'the ensemble')
+            
+            elif atoms.numAtoms() == n_atoms:
+                self._atoms = atoms
+                self._indices = None
+            
             else:
-                self._indices = atoms.getIndices()
+                try:
+                    ag = atoms.getAtomGroup()
+                except AttributeError:
+                    raise ValueError('atoms must indicate a subset or must '
+                                     'match the ensemble size')
+                else:
+                    if ag.numAtoms() != n_atoms:
+                        raise ValueError('atoms must point to an AtomGroup '
+                                         'of the same size as the ensemble')
+                    self._atoms = atoms
+                    self._indices = atoms.getIndices()
+        
         else:
             self._n_atoms = atoms.numAtoms()
+            self._atoms = atoms
             
     def getCoords(self):
         """Return a copy of reference coordinates for selected atoms."""
