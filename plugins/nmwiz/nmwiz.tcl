@@ -2317,39 +2317,66 @@ setmode, getlen, setlen, addmode"
           mol delrep $i $targetid
         }
         
-        #if {$proteincolor != "Mobility" && $proteincolor != "Bfactors"} {
-        #  set vmdcolorid [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $proteincolor]
-        #} else {
-        #  set vmdcolorid 0
-        #}
-        
         set all [atomselect $targetid "all"]
-        if {$proteincolor == "Bfactors"} {
-          $all set beta $bfactors
-        } elseif {$proteincolor == "Mobility"} {
-          $all set beta $betalist
-        } 
+        if {$proteincolor == "Bfactors" | $proteincolor == "Mobility"} {
+          if {$proteincolor == "Bfactors"} {
+            $all set beta $bfactors
+          } elseif {$proteincolor == "Mobility"} {
+            $all set beta $betalist
+          }
+          set betas [$all get beta] 
+          set min [::tcl::mathfunc::min {*}$betas]
+          set midpoint [expr $min + ([::tcl::mathfunc::max {*}$betas] - $min) / 2 ]
+        }
         $all delete
         
+        variable msformode
         if {$showproteinas == "Network"} {
           mol addrep $targetid
-          mol modstyle 0 $targetid VDW $spherescale $resolution_protein
+          mol modstyle 0 $targetid DynamicBonds $cutoffdistance $bondradius $resolution_protein
           mol modmaterial 0 $targetid $material_protein
           mol addrep $targetid
-          mol modstyle 1 $targetid DynamicBonds $cutoffdistance $bondradius $resolution_protein
+          mol modstyle 1 $targetid VDW $spherescale $resolution_protein
           mol modmaterial 1 $targetid $material_protein
           if {$proteincolor == "Mobility"} {
-            mol modcolor 0 $targetid Beta
-            mol scaleminmax $targetid 0 $betamin $betamax 
-            mol modcolor 1 $targetid Beta
-            mol scaleminmax $targetid 1 $betamin $betamax
-            color scale midpoint 0.1 
+            if {$msformode == "Eigenvector"} {
+                mol modcolor 0 $targetid Beta
+
+                mol addrep $targetid
+                mol modstyle 2 $targetid DynamicBonds $cutoffdistance $bondradius $resolution_protein
+                mol modmaterial 2 $targetid $material_protein
+    
+                mol modcolor 1 $targetid ColorID 0
+                mol modselect 1 $targetid "beta <= 0"
+                mol modcolor 2 $targetid ColorID 0
+                mol modselect 2 $targetid "beta <= 0"
+                
+                mol addrep $targetid
+                mol modstyle 3 $targetid VDW $spherescale $resolution_protein
+                mol modmaterial 3 $targetid $material_protein
+                mol addrep $targetid
+                mol modstyle 4 $targetid DynamicBonds $cutoffdistance $bondradius $resolution_protein
+                mol modmaterial 4 $targetid $material_protein
+                
+                mol modcolor 3 $targetid ColorID 1
+                mol modselect 3 $targetid "beta > 0"
+                mol modcolor 4 $targetid ColorID 1
+                mol modselect 4 $targetid "beta > 0"
+
+
+            } else { 
+              mol modcolor 0 $targetid Beta
+              mol scaleminmax $targetid 0 $betamin $betamax 
+              mol modcolor 1 $targetid Beta
+              mol scaleminmax $targetid 1 $betamin $betamax
+              color scale midpoint $midpoint
+            } 
           } elseif {$proteincolor == "Bfactors"} {
             mol modcolor 0 $targetid Beta
             mol scaleminmax $targetid 0 $bfactormin $bfactormax 
             mol modcolor 1 $targetid Beta
             mol scaleminmax $targetid 1 $bfactormin $bfactormax
-            color scale midpoint 0.1 
+            color scale midpoint $midpoint
           } else {
             mol modcolor 0 $targetid $proteincolor
             mol modcolor 1 $targetid $proteincolor
@@ -2362,49 +2389,64 @@ setmode, getlen, setlen, addmode"
             mol modselect 1 $targetid $selstr
           }
         } else {
-          mol addrep $targetid
-          switch $showproteinas {
-            "Ribbons" {
-              mol modstyle 0 $targetid $showproteinas 0.3 $resolution_protein 2
-            }
-            "NewRibbons" {
-              mol modstyle 0 $targetid $showproteinas 0.3 $resolution_protein 3
-            }
-            "Cartoon" {
-              mol modstyle 0 $targetid $showproteinas 2.1 $resolution_protein 5
-            }
-            "NewCartoon" {
-              mol modstyle 0 $targetid $showproteinas 0.3 $resolution_protein 4.1
-            }
-            "CPK" {
-              mol modstyle 0 $targetid $showproteinas 1.0 0.3 $resolution_protein $resolution_protein
-            }
-            "VDW" {
-              mol modstyle 0 $targetid $showproteinas $spherescale $resolution_protein
-            }
-            "Lines" {
-              mol modstyle 0 $targetid $showproteinas
-            }
-            "Licorice" {
-              mol modstyle 0 $targetid $showproteinas $tuberadius $resolution_protein $resolution_protein
-            }
-            default {
-              mol modstyle 0 $targetid $showproteinas $tuberadius $resolution_protein
-            }            
+          if {$msformode == "Eigenvector"} { 
+            set n_reps 2 
+          } else {
+            set n_reps 1
           }
-          
+          for {set i 0} {$i < $n_reps} {incr i} {
+              mol addrep $targetid
+              switch $showproteinas {
+                "Ribbons" {
+                  mol modstyle $i $targetid $showproteinas 0.3 $resolution_protein 2
+                }
+                "NewRibbons" {
+                  mol modstyle $i $targetid $showproteinas 0.3 $resolution_protein 3
+                }
+                "Cartoon" {
+                  mol modstyle $i $targetid $showproteinas 2.1 $resolution_protein 5
+                }
+                "NewCartoon" {
+                  mol modstyle $i $targetid $showproteinas 0.3 $resolution_protein 4.1
+                }
+                "CPK" {
+                  mol modstyle $i $targetid $showproteinas 1.0 0.3 $resolution_protein $resolution_protein
+                }
+                "VDW" {
+                  mol modstyle $i $targetid $showproteinas $spherescale $resolution_protein
+                }
+                "Lines" {
+                  mol modstyle $i $targetid $showproteinas
+                }
+                "Licorice" {
+                  mol modstyle $i $targetid $showproteinas $tuberadius $resolution_protein $resolution_protein
+                }
+                default {
+                  mol modstyle $i $targetid $showproteinas $tuberadius $resolution_protein
+                }            
+              }
+          }
+         
           mol modmaterial 0 $targetid $material_protein
           if {$selrep} {
             mol modselect 0 $targetid $selstr
           }
           if {$proteincolor == "Mobility"} {
-            mol modcolor 0 $targetid Beta
-            mol scaleminmax $targetid 0 $betamin $betamax
-            color scale midpoint 0.1 
+            variable msformode
+            if {$msformode == "Eigenvector"} {
+                mol modcolor 0 $targetid ColorID 0
+                mol modselect 0 $targetid "beta <= 0"
+                mol modcolor 1 $targetid ColorID 1
+                mol modselect 1 $targetid "beta > 0"
+            } else {          
+                mol modcolor 0 $targetid Beta
+                mol scaleminmax $targetid 0 $betamin $betamax
+                color scale midpoint  $midpoint 
+            }
           } elseif {$proteincolor == "Bfactors"} {
             mol modcolor 0 $targetid Beta
             mol scaleminmax $targetid 0 $bfactormin $bfactormax
-            color scale midpoint 0.1 
+            color scale midpoint  $midpoint
           } else {
             mol modcolor 0 $targetid $proteincolor
             #mol modcolor 0 $targetid ColorID $vmdcolorid
@@ -2426,7 +2468,6 @@ setmode, getlen, setlen, addmode"
         variable ndim
 
         variable length
-        #set length [lindex $lengths [lsearch $indices $activemode]]
         set mode [lindex $modes [lsearch $indices $activemode]]
         variable msformode
         if {$msformode == "Mobility"} {
@@ -2434,7 +2475,6 @@ setmode, getlen, setlen, addmode"
         } else {
           set mode [vecscale $length $mode]
         }
-        
 
         set index 0
         variable betalist {}
@@ -2460,10 +2500,9 @@ setmode, getlen, setlen, addmode"
         set all [atomselect $molid "all"] 
         $all set beta $betalist
         $all delete 
-        #mol scaleminmax $molid 0 [::tcl::mathfunc::min $betalist] [::tcl::mathfunc::max $betalist]
         color scale midpoint 0.1
         color scale method BWR
-        
+        [namespace current]::updateProtRep $molid
       }
       
       proc autoUpdate {} {
@@ -2786,7 +2825,6 @@ setmode, getlen, setlen, addmode"
         $w.draw_arrows.protbuttons_label configure -text "Molecule ($molid):"
         mol rename $molid "$title coordinates"
         [namespace current]::calcMSF
-        [namespace current]::updateProtRep $molid
 
         if {$preserve} {
           foreach id [molinfo list] {
