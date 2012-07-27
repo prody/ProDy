@@ -25,17 +25,21 @@ import sys, os, os.path, time
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.intersphinx', 
-              'sphinx.ext.todo', 'sphinx.ext.coverage', 
-              'sphinx.ext.ifconfig', 'sphinx.ext.viewcode',
-              'sphinx.ext.inheritance_diagram', 'sphinx.ext.graphviz',
+extensions = ['sphinx.ext.todo', 
+              'sphinx.ext.autodoc', 
+              'sphinx.ext.doctest', 
+              'sphinx.ext.coverage', 
+              'sphinx.ext.graphviz',
+              'sphinx.ext.ifconfig', 
+              'sphinx.ext.viewcode',
+              'sphinx.ext.intersphinx', 
+              'sphinx.ext.inheritance_diagram', 
+              'matplotlib.sphinxext.mathmpl',
               'matplotlib.sphinxext.plot_directive',
               'matplotlib.sphinxext.only_directives',
-              'matplotlib.sphinxext.mathmpl',
               'sphinxcontrib.googleanalytics',
               'sphinxcontrib.googlechart',
               'sphinxcontrib.youtube',]#, 'sphinxcontrib.spelling']
-              
                #'sphinx.ext.pngmath',
 
 # Add any paths that contain templates here, relative to this directory.
@@ -219,7 +223,40 @@ htmlhelp_basename = 'ProDydoc'
 # Plot directive configuration
 # ----------------------------
 
-plot_formats = [('png', 80), ('hires.png', 200), ('pdf', 50)]
+plot_formats = [('png', 80), ('pdf', 80)]
+plot_pre_code = """import numpy as np
+from prody import *
+from matplotlib import pyplot as plt
+"""
+plot_working_directory = os.path.join(os.getcwd(), 'doctest')
+plot_template = """
+{{ source_code }}
+
+{{ only_html }}
+
+
+   {% for img in images %}
+   .. figure:: {{ build_dir }}/{{ img.basename }}.png
+      {%- for option in options %}
+      {{ option }}
+      {% endfor %}
+
+      {{ caption }}
+   {% endfor %}
+
+{{ only_latex }}
+
+   {% for img in images %}
+   .. image:: {{ build_dir }}/{{ img.basename }}.pdf
+   {% endfor %}
+
+"""
+plot_rcparams = {'font.size': 10,
+                 'xtick.labelsize': 'small',
+                 'ytick.labelsize': 'small',
+                 'figure.figsize': [5., 4.],}
+plot_apply_rcparams = True
+
 
 # -- Options for LaTeX output --------------------------------------------------
 

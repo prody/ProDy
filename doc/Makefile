@@ -59,12 +59,17 @@ both:
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
 
 html:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees .. ../$(DOCDIR); \
-	cd ..
+	$(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees . $(DOCDIR)
 	@echo
 	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
-	
+
+doctest:
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. .; \
+	cd ..
+	@echo "Testing of doctests in the sources finished, look at the " \
+	      "results in $(DOCTEST)."
+
 spelling:
 	$(SPHINXBUILD) -b spelling $(ALLSPHINXOPTS) $(BUILDDIR)/spelling
 
@@ -125,9 +130,7 @@ latex:
 	      "(use \`make latexpdf' here to do that automatically)."
 
 latexpdf:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex; \
-	cd ..
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
@@ -153,13 +156,6 @@ linkcheck:
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
-
-doctest:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. ..; \
-	cd ..
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(DOCTEST)."
 	      
 testdist:
 	mv ../prody ../prody_
