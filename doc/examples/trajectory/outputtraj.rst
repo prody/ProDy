@@ -34,13 +34,13 @@ The PDB file provided with this example contains an X-ray structure:
 >>> mdm2
 <AtomGroup: mdm2 (1449 atoms)>
 
-This function returned a :class:`~.AtomGroup` instance that stores all atomic 
+This function returned a :class:`.AtomGroup` instance that stores all atomic 
 data parsed from the PDB file.
 
 Open trajectories
 ===============================================================================
 
-:class:`~.Trajectory` is designed for handling multiple trajectory files:
+:class:`.Trajectory` is designed for handling multiple trajectory files:
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
@@ -51,7 +51,7 @@ Open trajectories
 
 Now we link the trajectory (*traj*) with the atom group (*mdm2*): 
 
->>> traj.setAtoms(mdm2) 
+>>> traj.linkAtomGroup(mdm2) 
 
 .. note::
    Note that when a frame (coordinate set) is parsed from the trajectory file,
@@ -61,12 +61,13 @@ Now we link the trajectory (*traj*) with the atom group (*mdm2*):
 Output selected atoms
 ===============================================================================
 
-You can write a trajectory in DCD format using :func:`~.writeDCD` function.
+You can write a trajectory in DCD format using :func:`.writeDCD` function.
 Let's select non-hydrogen protein atoms and write a merged trajectory for
 MDM2:
 
->>> traj.select('noh')
-<Selection: 'noh' from mdm2 (706 atoms)>
+>>> traj.setAtoms(mdm2.noh)
+>>> traj
+<Trajectory: mdm2 (2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
 >>> writeDCD('mdm2_merged_noh.dcd', traj)
 'mdm2_merged_noh.dcd'
 

@@ -35,13 +35,13 @@ be useful in a number of places, so let's start with parsing this file first:
 >>> structure
 <AtomGroup: mdm2 (1449 atoms)>
 
-This function returned a :class:`~.AtomGroup` instance that
-stores all atomic data parsed from the PDB file.
+This function returned a :class:`.AtomGroup` instance that stores all atomic 
+data parsed from the PDB file.
 
 Handling multiple files
 ===============================================================================
 
-:class:`~.Trajectory` is designed for handling multiple trajectory files:
+:class:`.Trajectory` is designed for handling multiple trajectory files:
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
@@ -55,7 +55,8 @@ Link trajectory to atoms
 
 Atoms can be linked to the trajectory as follows:
 
->>> traj.setAtoms( structure )
+>>> traj.linkAtomGroup(structure)
+>>> traj.setCoords(structure)
 
 When an atom group is linked to a trajectory, frame coordinates parsed from
 trajectory files will overwrite coordinates of the atom group. By making

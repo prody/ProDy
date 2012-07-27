@@ -8,10 +8,10 @@ Synopsis
 ===============================================================================
 
 This example shows how to perform essential dynamics analysis of molecular
-dynamics (MD) trajectories.  A :class:`~.EDA` instance that stores covariance 
+dynamics (MD) trajectories.  A :class:`.EDA` instance that stores covariance 
 matrix and principal modes that describes the essential dynamics of the system
-observed in the simulation will be built.  :class:`~.EDA` and principal modes 
-(:class:`~.Mode`) can be used as input to functions in :mod:`~.dynamics` module
+observed in the simulation will be built.  :class:`.EDA` and principal modes 
+(:class:`.Mode`) can be used as input to functions in :mod:`.dynamics` module
 for further analysis.
 
 
@@ -43,7 +43,7 @@ be useful in a number of places, so let's start with parsing this file first:
 >>> structure
 <AtomGroup: mdm2 (1449 atoms)>
 
-This function returned a :class:`~.AtomGroup` instance that
+This function returned a :class:`.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
 EDA calculations
@@ -54,9 +54,8 @@ two ways.
 
 **Small trajectory files**
 
-If you are analyzing a small trajectory, you can use an 
-:class:`~.Ensemble` instance obtained by parsing the 
-trajectory at once using :func:`~.parseDCD`:
+If you are analyzing a small trajectory, you can use an :class:`.Ensemble` 
+instance obtained by parsing the trajectory at once using :func:`.parseDCD`:
 
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble.setCoords(structure)
@@ -76,9 +75,10 @@ If you are analyzing a large trajectory, you can pass the trajectory instance
 to the :meth:`.PCA.buildCovariance` method as follows:
 
 >>> dcd = DCDFile('mdm2.dcd')
->>> dcd.setAtoms( structure )
->>> dcd.select('calpha')
-<Selection: 'calpha' from mdm2 (85 atoms)>
+>>> dcd.linkAtomGroup(structure)
+>>> dcd.setAtoms(structure.calpha)
+>>> dcd
+<DCDFile: mdm2 (next 0 of 500 frames; selected 85 of 1449 atoms)>
 >>> eda_trajectory = EDA('MDM2 Trajectory')
 >>> eda_trajectory.buildCovariance( dcd )
 >>> eda_trajectory.calcModes()
@@ -110,9 +110,11 @@ them. In this case we will use data from two independent simulations
 >>> trajectory
 <Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
 
->>> trajectory.setAtoms( structure )
->>> trajectory.select('calpha')
-<Selection: 'calpha' from mdm2 (85 atoms)>
+>>> trajectory.linkAtomGroup(structure)
+>>> trajectory.setCoords(structure)
+>>> trajectory.setAtoms(structure.calpha)
+>>> trajectory
+<Trajectory: mdm2 (2 files; next 0 of 1000 frames; selected 85 of 1449 atoms)>
 >>> eda = EDA('mdm2')
 >>> eda.buildCovariance( trajectory )
 >>> eda.calcModes()
@@ -121,13 +123,13 @@ them. In this case we will use data from two independent simulations
 
 **Save your work**
 
-You can save your work using ProDy function :func:`~.saveModel`. This will 
+You can save your work using ProDy function :func:`.saveModel`. This will 
 allow you to avoid repeating calculations when you return to your work later:
 
 >>> saveModel(eda)
 'mdm2.eda.npz'
 
-:func:`~.loadModel` function can be used to load this object without any loss.
+:func:`.loadModel` function can be used to load this object without any loss.
 
 Print data
 ===============================================================================
@@ -154,8 +156,9 @@ Now, let's project the trajectories onto top three essential modes:
    eda = loadModel('mdm2.eda.npz')
    trajectory = Trajectory('mdm2.dcd')
    trajectory.addFile('mdm2sim2.dcd')
-   trajectory.setAtoms( parsePDB('mdm2.pdb') )
-   trajectory.select('calpha')
+   structure = parsePDB('mdm2.pdb')
+   trajectory.setCoords(structure)
+   trajectory.setAtoms(structure.calpha)
 
 .. plot::
    :context:

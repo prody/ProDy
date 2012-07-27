@@ -35,14 +35,14 @@ be useful in a number of places, so let's start with parsing this file first:
 >>> structure
 <AtomGroup: mdm2 (1449 atoms)>
 
-This function returned a :class:`~.AtomGroup` instance that
+This function returned a :class:`.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
 
 Parse all frames
 ===============================================================================
 
-Using :func:`~.parseDCD` function all coordinate data in the DCD file can
-be parsed at once. This function returns an :class:`~.Ensemble` instance:
+Using :func:`.parseDCD` function all coordinate data in the DCD file can
+be parsed at once. This function returns an :class:`.Ensemble` instance:
 
 >>> ensemble = parseDCD('mdm2.dcd')
 >>> ensemble
@@ -94,7 +94,7 @@ In this case, superposition was based on Cα atom coordinates.
   1.55]
 
 
-The :class:`~.Ensemble` instance can also be used in :class:`~.PCA`
+The :class:`.Ensemble` instance can also be used in :class:`.PCA`
 calculations. See the examples in :ref:`pca` for more information.
 
 Parse frames one-by-one
@@ -105,8 +105,8 @@ Parse frames one-by-one
 <DCDFile: mdm2 (next 0 of 500 frames; 1449 atoms)>
 
 >>> structure = parsePDB('mdm2.pdb')
->>> dcd.setAtoms(structure)
 >>> dcd.setCoords(structure)
+>>> dcd.linkAtomGroup(structure)
 
 >>> dcd.nextIndex()
 0
@@ -148,7 +148,7 @@ We can perform these calculations for all frames in a for loop. Let's reset
 Handling multiple files
 ===============================================================================
 
-:class:`~.Trajectory` is designed for handling multiple trajectory files:
+:class:`.Trajectory` is designed for handling multiple trajectory files:
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
@@ -160,7 +160,8 @@ Handling multiple files
 Instances of this class are also suitable for previous calculations:
 
 >>> structure = parsePDB('mdm2.pdb')
->>> traj.setAtoms( structure )
+>>> traj.linkAtomGroup(structure)
+>>> traj.setCoords(structure)
 >>> rgyr = np.zeros(len(traj))
 >>> rmsd = np.zeros(len(traj))
 >>> for i, frame in enumerate(traj):

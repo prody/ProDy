@@ -192,6 +192,7 @@ Let's take a quick look at the aligned structures:
    :context:
    :include-source:
 
+   plt.figure(figsize=(5,4))
    showProtein(parsePDB('./1ccr_aligned.pdb'), parsePDB('./2frc_aligned.pdb'))   
 
 
