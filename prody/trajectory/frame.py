@@ -18,7 +18,7 @@
 
 """This module defines a class for handling trajectory frames.
 
-.. _atomsframes:
+.. _frame:
 
 Atoms and Frames
 ================
