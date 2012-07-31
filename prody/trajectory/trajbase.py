@@ -155,7 +155,7 @@ class TrajBase(object):
             
             if atoms.numAtoms() > n_atoms:
                 raise ValueError('atoms must be same size or smaller than '
-                                 'the ensemble')
+                                   'the trajectory')
             
             elif atoms.numAtoms() == n_atoms:
                 self._atoms = atoms
@@ -166,7 +166,7 @@ class TrajBase(object):
                     ag = atoms.getAtomGroup()
                 except AttributeError:
                     raise ValueError('atoms must indicate a subset or must '
-                                     'match the ensemble size')
+                                     'match the trajectory size')
                 else:
                     if ag.numAtoms() != n_atoms:
                         raise ValueError('atoms must point to an AtomGroup '
@@ -247,15 +247,13 @@ class TrajBase(object):
         else:
             if coords is None:
                 raise ValueError('coordinates of {0:s} are not set'
-                                 .format(str(atoms)))
+                                   .format(str(atoms)))
 
         try:
             checkCoords(coords, natoms=self._n_atoms)
         except TypeError:
             raise TypeError('coords must be a numpy array or an object '
                             'with `getCoords` method')
-
-        self._coords = coords
 
         self._coords = coords
 
