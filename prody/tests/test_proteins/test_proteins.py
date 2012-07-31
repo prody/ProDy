@@ -260,11 +260,9 @@ class TestWritePDB(unittest.TestCase):
         """Test valid and invalid model arguments and if specified model
         is correctly written."""
         
-        self.assertRaises(TypeError, writePDB, self.tmp, self.ag, model='s')
-        self.assertRaises(ValueError, writePDB, self.tmp, self.ag, model=-1)
-        self.assertRaises(ValueError, writePDB, self.tmp, self.ag, model=0)
+        self.assertRaises(IndexError, writePDB, self.tmp, self.ag, csets='s')
         for i in range(self.ag.numCoordsets()):
-            out = parsePDB(writePDB(self.tmp, self.ag, model=i+1))
+            out = parsePDB(writePDB(self.tmp, self.ag, csets=i))
             self.assertEqual(out.numCoordsets(), 1,
                 'writePDB failed to write correct number of models')
             assert_equal(out.getCoords(), self.ag.getCoordsets(i),
