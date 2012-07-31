@@ -125,7 +125,7 @@ Let's print results:
 See Also
 ===============================================================================
 
-See :ref:`trajectory`, :ref:`outputtraj`, and :ref:`atomsframes` for more usage
+See :ref:`trajectory`, :ref:`outputtraj`, and :ref:`frame` for more usage
 examples and :ref:`eda` for essential dynamics analysis example. 
 
 |questions|

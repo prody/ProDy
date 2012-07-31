@@ -101,6 +101,7 @@ We now combine the reference chains and set the reference coordinates
 of the ensemble.
 
 >>> reference_chain = reference_chains[0] + reference_chains[1]
+>>> ensemble.setAtoms(reference_chain)
 >>> ensemble.setCoords(reference_chain.getCoords())
 
 We also start a log file using :func:`~.startLogfile`. 
@@ -149,8 +150,7 @@ Let's check which structures, if any, are not mapped (added to the ensemble):
 
 We can write the aligned conformations into a PDB file as follows:
 
->>> reference_structure.addCoordset(ensemble.getCoordsets())
->>> writePDB(name+'.pdb', reference_structure)
+>>> writePDB(name+'.pdb', ensemble)
 'HIV-RT.pdb'
 
 This file can be used to visualize the aligned conformations in modeling 

@@ -180,7 +180,7 @@ Instances of this class are also suitable for previous calculations:
 See Also
 ===============================================================================
 
-See :ref:`trajectory2`, :ref:`outputtraj`, and :ref:`atomsframes` for more 
+See :ref:`trajectory2`, :ref:`outputtraj`, and :ref:`frame` for more 
 usage examples and :ref:`eda` for essential dynamics analysis example. 
 
 |questions|

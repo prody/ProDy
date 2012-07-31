@@ -82,7 +82,7 @@ Now let's plot square fluctuations along PCA and ANM modes in the same plot:
    :include-source:
    
    >>> showScaledSqFlucts(pca[0], anm[2]) # doctest: +SKIP
-   >>> plt.legend(prop={'size': 10})
+   >>> plt.legend()
 
 
 .. plot::
@@ -90,7 +90,7 @@ Now let's plot square fluctuations along PCA and ANM modes in the same plot:
    :include-source:
 
    >>> showScaledSqFlucts(pca[1], anm[0]) # doctest: +SKIP
-   >>> plt.legend(prop={'size': 10})
+   >>> plt.legend()
 
 
 In above example, ANM modes are scaled to have the same mean as PCA modes. 
@@ -101,7 +101,7 @@ Alternatively, we could plot normalized square fluctuations:
    :include-source:
    
    >>> showNormedSqFlucts(pca[0], anm[1]) # doctest: +SKIP
-   >>> plt.legend(prop={'size': 10})
+   >>> plt.legend()
 
 
 
@@ -152,7 +152,7 @@ purple  peptide/protein bound
    >>> showProjection(ensemble, pca[:2], color=color_list, 
    ...                label=label_list) # doctest: +SKIP
    >>> plt.axis([-0.8, 0.8, -0.8, 0.8]) # doctest: +SKIP
-   >>> plt.legend(prop={'size': 10})
+   >>> plt.legend()
 
    
 Now let's project conformations onto 3d principal space and label conformations 
@@ -185,7 +185,7 @@ scale the width of the projection along ANM mode:
    ...                     color=color_list, label=label_list) # doctest: +SKIP
    >>> plt.plot([-0.8, 0.8], [-0.8, 0.8], 'k') # doctest: +SKIP
    >>> plt.axis([-0.8, 0.8, -0.8, 0.8]) # doctest: +SKIP
-   plt.legend(prop={'size': 10}, loc='upper left') # doctest: +SKIP
+   >>> plt.legend(loc='upper left') # doctest: +SKIP
    
 
 .. plot::

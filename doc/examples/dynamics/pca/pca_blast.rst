@@ -125,6 +125,8 @@ Prepare ensemble
 >>> startLogfile('pca_blast') 
 >>> # Instantiate a PDB ensemble
 >>> ensemble = PDBEnsemble(name)
+>>> # Set ensemble atoms
+>>> ensemble.setAtoms(reference_chain)
 >>> # Set reference coordinates
 >>> ensemble.setCoords(reference_chain.getCoords())
    
@@ -163,8 +165,7 @@ as individual conformations.
 
 Write aligned conformations into a PDB file as follows:
 
->>> reference_structure.addCoordset(ensemble.getCoordsets())
->>> writePDB(name+'.pdb', reference_structure)
+>>> writePDB(name+'.pdb', ensemble)
 'CytC.pdb'
 
 This file can be used to visualize the aligned conformations in a modeling 
