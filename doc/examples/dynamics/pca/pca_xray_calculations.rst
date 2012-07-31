@@ -11,10 +11,10 @@ This is the first part of a lengthy ProDy example.  In this part, we perform
 the calculations using a p38 MAP kinase (MAPK) structural dataset.  This will 
 reproduce the calculations for p38 that were published in [AB09]_.
 
-We will obtain a :class:`~.PCA` instance that stores the covariance matrix and 
+We will obtain a :class:`.PCA` instance that stores the covariance matrix and 
 principal modes describing the dominant changes in the dataset. The 
-:class:`~.PCA` instance and principal modes (:class:`~.Mode`) can be used as 
-input for the functions in :mod:`~.dynamics` module.
+:class:`.PCA` instance and principal modes (:class:`.Mode`) can be used as 
+input for the functions in :mod:`.dynamics` module.
 
 
 Retrieve dataset
@@ -45,7 +45,7 @@ These changes are reflected to the above list.
   
 Also note that, it is possible to update this list to include all of the p38
 structures currently available in the PDB using the 
-:func:`~.blastPDB` function as follows: 
+:func:`.blastPDB` function as follows: 
  
 >>> p38_sequence ='''GLVPRGSHMSQERPTFYRQELNKTIWEVPERYQNLSPVGSGAYGSVCAAFDTKTGHRVAVKKLSRPFQS
 ... IIHAKRTYRELRLLKHMKHENVIGLLDVFTPARSLEEFNDVYLVTHLMGADLNNIVKCQKLTDDHVQFLIYQILRGLKYI
@@ -57,7 +57,7 @@ structures currently available in the PDB using the
 
 We use the same set of structures to reproduce the results.
 After we listed the PDB identifiers, we obtain them using 
-:func:`~.fetchPDB` function as follows:
+:func:`.fetchPDB` function as follows:
  
 >>> pdbfiles = fetchPDB(pdbids, folder='pdbfiles', compressed=False)
   
@@ -72,17 +72,17 @@ all of the resolved residues in this structure. We select only those residues
 which are resolved in at least 90% of the dataset. 
 
 >>> ref_structure = parsePDB('pdbfiles/1p38.pdb')
->>> ref_structure = ref_structure.select('resnum 5 to 31 36 to 114 122 to 169 185 to 351 and calpha').copy()
->>> ref_structure.setTitle('p38 reference')
+>>> ref_selection = ref_structure.select('resnum 5 to 31 36 to 114 122 to '
+...                                      '169 185 to 351 and calpha')
 
-Select chain A from the reference structure
+Retrieve protein chain A from the reference selection:
 
->>> ref_chain = ref_structure.getHierView().getChain('A')
+>>> ref_chain = ref_selection.getHierView().getChain('A')
 >>> ref_chain
-<Chain: A from p38 reference (321 residues, 321 atoms)>
+<Chain: A from 1p38 (321 residues, 321 atoms)>
 
-We use the :func:`~.parsePDB` function to parse a PDB file.
-This returns a :class:`~.AtomGroup` instance. We make a copy
+We use the :func:`.parsePDB` function to parse a PDB file.
+This returns a :class:`.AtomGroup` instance. We make a copy
 of α-carbon atoms of select residues for analysis.   
 
 |more| See :ref:`selections` for making selections.
@@ -95,8 +95,8 @@ have different sets of unresolved residues. Hence, it is not straightforward
 to analyzed them as it would be for NMR models (see :ref:`pca-nmr`). 
 
 ProDy has special functions and classes for facilitating efficient analysis
-of the PDB X-ray data. In this example we use :func:`~.mapOntoChain` 
-function which returns an :class:`~.AtomMap` instance.
+of the PDB X-ray data. In this example we use :func:`.mapOntoChain` 
+function which returns an :class:`.AtomMap` instance.
 
 |more| See :ref:`atommaps` for more details.   
 
@@ -104,13 +104,14 @@ Start a logfile to save screen output:
 
 >>> startLogfile('p38_pca') 
 
-Instantiate an :class:`~.PDBEnsemble` object:
+Instantiate an :class:`.PDBEnsemble` object:
   
 >>> ensemble = PDBEnsemble('p38 X-ray')
   
-Set the reference coordinates:
+Set atoms and reference coordinate set of the ensemble:
 
->>> ensemble.setCoords(ref_chain) 
+>>> ensemble.setAtoms(ref_chain)
+>>> ensemble.setCoords(ref_chain)
       
 For each PDB file, we find the matching chain and add it to the ensemble:
 
@@ -141,24 +142,21 @@ Close the logfile (file content shows how chains were paired/mapped):
 Save coordinates
 ===============================================================================
 
-We use :class:`~.PDBEnsemble` to store coordinates of the X-ray 
-structures. The :class:`~.PDBEnsemble` instances do not store any 
+We use :class:`.PDBEnsemble` to store coordinates of the X-ray 
+structures. The :class:`.PDBEnsemble` instances do not store any 
 other atomic data. If we want to write aligned coordinates into a file, we 
-need to pass the coordinates to an :class:`~.AtomGroup` instance.
-Then we use :func:`~.writePDB` function to save coordinates:
+need to pass the coordinates to an :class:`.AtomGroup` instance.
+Then we use :func:`.writePDB` function to save coordinates:
 
->>> xray_coords = ref_structure.copy()
->>> xray_coords.delCoordset(0) # Delete existing coordinate set
->>> xray_coords.addCoordset( ensemble.getCoordsets() )
->>> writePDB('p38_xray_coors.pdb', xray_coords)
-'p38_xray_coors.pdb'
+>>> writePDB('p38_xray_ensemble.pdb', ensemble)
+'p38_xray_ensemble.pdb'
 
 
 PCA calculations
 ===============================================================================
 
 Once the coordinate data is prepared, it is straightforward to perform the 
-:class:`~.PCA` calculations:
+:class:`.PCA` calculations:
 
 >>> pca = PCA('p38 xray')           # Instantiate a PCA instance
 >>> pca.buildCovariance(ensemble)   # Build covariance for the ensemble
@@ -187,7 +185,7 @@ method may be preferred over covariance method.
 ANM calculations
 ===============================================================================
 
-To perform :class:`~.ANM` calculations:
+To perform :class:`.ANM` calculations:
 
 >>> anm = ANM('1p38')             # Instantiate a ANM instance
 >>> anm.buildHessian(ref_chain)   # Build Hessian for the reference chain  
@@ -213,9 +211,9 @@ to share it with others.
 >>> writePDB('p38_ref_chain.pdb', ref_chain)
 'p38_ref_chain.pdb'
 
-We use the :func:`~.saveModel` and :func:`~.saveEnsemble` functions to save 
+We use the :func:`.saveModel` and :func:`.saveEnsemble` functions to save 
 calculated data. In :ref:`pca-xray-analysis`, we will use the 
-:func:`~.loadModel` and :func:`~.loadEnsemble` functions to load the data.
+:func:`.loadModel` and :func:`.loadEnsemble` functions to load the data.
 
 See Also
 ===============================================================================

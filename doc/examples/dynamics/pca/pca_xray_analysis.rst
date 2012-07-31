@@ -44,7 +44,7 @@ Collectivity of modes
 ===============================================================================
 
 Collectivity of a normal mode ([BR95]_) can be obtained using 
-:meth:`~.getCollectivity`:
+:meth:`.getCollectivity`:
 
 >>> for mode in pca[:3]:    # Print PCA mode collectivity
 ...     print '{0:s}  collectivity = {1:.2f}'.format( mode, calcCollectivity(mode) )
@@ -71,7 +71,7 @@ the intrinsic fluctuations of the p38 MAP kinase (Table 1 in [AB09]_).
 
 There are a number of functions to calculate or show overlaps between modes 
 (see list of them in :ref:`dynamics`). In an interactive session, most useful 
-is :func:`~.printOverlapTable`:
+is :func:`.printOverlapTable`:
 
 >>> printOverlapTable(pca[:3], anm[:3]) # Compare top 3 PCs to slowest 3 ANM modes
 Overlap Table
@@ -83,16 +83,16 @@ PCA p38 xray #3   +0.05  -0.57  +0.06
 <BLANKLINE>
 
 This formatted table can also be written into a file using 
-:func:`~.writeOverlapTable` function. 
+:func:`.writeOverlapTable` function. 
 
 Save numeric data
 ===============================================================================
 
-:class:`~.ANM` and :class:`~.PCA` instances store calculated numeric data. 
+:class:`.ANM` and :class:`.PCA` instances store calculated numeric data. 
 Their class documentation lists methods that return eigenvalue, eigenvector, 
 covariance matrix etc. data to the user. Such data can easily be written into
 text files for analysis using external software. The function is to use is 
-:func:`~.writeArray`:
+:func:`.writeArray`:
 
 >>> writeArray( 'p38_PCA_eigvecs.txt', pca.getEigvecs() ) # PCA eigenvectors
 'p38_PCA_eigvecs.txt'

@@ -38,7 +38,7 @@ Write NMD files
 We will save PCA and ANM data in NMD format. 
 NMWiz can read and visualize multiple NMD files at once. Interested
 user is referred to NMWiz documentation for more information. NMD files
-are saved as follows using :func:`~.writeNMD` functions:
+are saved as follows using :func:`.writeNMD` functions:
 
 >>> writeNMD('p38_pca.nmd', pca[:3], ref_chain)
 'p38_pca.nmd'
@@ -49,13 +49,13 @@ are saved as follows using :func:`~.writeNMD` functions:
 It is also possible to load VMD to visualize normal mode data 
 from within an interactive Python session. For this to work, you need
 VMD and NMWiz plugin installed. Check if VMD path is correct using 
-:func:`~.getVMDpath`:
+:func:`.getVMDpath`:
     
 >>> getVMDpath()
 '/usr/local/bin/vmd' 
 
 If this is not the correct path to your VMD executable you can change it 
-using :func:`~.setVMDpath`.
+using :func:`.setVMDpath`.
     
 ::
 
