@@ -33,9 +33,8 @@ effect you code.
   * :class:`.Trajectory` reference coordinates must be changed using 
     :meth:`.Trajectory.setCoords` method.
 
-For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`, and
-:ref:`outputtraj`.  
-
+For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`, 
+and :ref:`outputtraj`.  
 
 **New Features**:
 
@@ -52,6 +51,11 @@ For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`, and
     ``'and'`` operator, e.g. ``'sidechain carbon'`` is the same as 
     ``'sidechain and carbon'``.
     
+  * :func:`.writePDB` accepts :class:`.Ensemble`, :class:`.Conformation`,
+    and :class:`.Frame` instances as atoms argument.
+  
+  * :func:`.writePDB` function is around 25% faster.
+    
 **Changes**:
 
   * :func:`.showOverlapTable` displays first set of modes along x axis of the 
@@ -59,6 +63,9 @@ For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`, and
 
   * :meth:`.AtomGroup.setData` does not accept arrays with boolean data type, 
     use :meth:`.AtomGroup.setFlags` instead.
+  
+  * :func:`.writePDB` function argument *model* is changed to *csets* that
+    indicates the coordinate set index of *atoms* argument.
 
 **Deprecations**:
 
@@ -420,7 +427,7 @@ Release 1.0 (Mar 7, 2012)
 
   * The relation between :class:`.AtomGroup`, :class:`.Trajectory`, and
     :class:`.Frame` instances have changed. See :ref:`trajectory2` and
-    :ref:`outputtraj`, and :ref:`atomsframes` usage examples.
+    :ref:`outputtraj`, and :ref:`frame` usage examples.
   
   * :class:`.AtomGroup` cannot be deformed by direct addition with a vector 
     instance.  
