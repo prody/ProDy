@@ -234,8 +234,7 @@ parsePDBStream.__doc__ += _parsePDBdoc
 
 
 def parsePQR(filename, **kwargs):
-    """Return an :class:`~.AtomGroup` containing data parsed 
-    from PDB lines. 
+    """Return an :class:`.AtomGroup` containing data parsed from PDB lines. 
     
     :arg filename: a PQR filename
     :type filename: str"""
@@ -719,55 +718,78 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                         'atom group.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz, label='altloc ' + key)
 
+PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
+           '{4:4s}{5:1s}{6:4d}{7:1s}   ' 
+           '{8:8.3f}{9:8.3f}{10:8.3f}'
+           '{11:6.2f}{12:6.2f}      '
+           '{13:4s}{14:2s}\n')
+PDBLINE = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
+           '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+           '%4s%2s\n')
+
 _writePDBdoc = """
-    :arg atoms: atomic object
-    :type atoms: :class:`~.Atomic` 
+    :arg atoms: an object with atom and coordinate data
     
-    :arg model: model index or list of model indices
-    :type model: int, list
-        
-    If *model* is ``None``, all coordinate sets will be written. Model 
-    indices start from 1.
-    
-    *atoms* instance must at least contain coordinates and atom names data.
+    :arg csets: coordinate set indices, default is all coordinate sets
     
     """
 
-def writePDBStream(stream, atoms, model=None):
+def writePDBStream(stream, atoms, csets=None):
     """Write *atoms* in PDB format to a *stream*.
     
-    :arg stream: anything that implements the method write() 
-        (e.g. file, buffer, stdout)
+    :arg stream: anything that implements a :meth:`write` method (e.g. file, 
+        buffer, stdout)
     
     """
+
+    remark = str(atoms)
+    try:
+        coordsets = atoms._getCoordsets(csets)
+    except AttributeError:
+        try:
+            coordsets = atoms._getCoords()
+        except AttributeError:
+            raise TypeError('atoms must be an object with coordinate sets')
+        if coordsets is not None:
+            coordsets = [coordsets]
+    else:
+        if coordsets.ndim == 2:
+            coordsets = [coordsets]
+    if coordsets is None:
+        raise ValueError('atoms does not have any coordinate sets')
+        
+    try:
+        acsi = atoms.getACSIndex()
+    except AttributeError:
+        try:
+            atoms = atoms.getAtoms()
+        except AttributeError:
+            raise TypeError('atoms must be an Atomic instance or an object '
+                            'with `getAtoms` method')
+        else:
+            if atoms is None:
+                raise ValueError('atoms is not associated with an Atomic '
+                                 'instance')
+            try:
+                acsi = atoms.getACSIndex()
+            except AttributeError:
+                raise TypeError('atoms does not have a valid type')
     
-    if not isinstance(atoms, Atomic):
-        raise TypeError('atoms does not have a valid type')
-    if isinstance(atoms, Atom):
+    try:
+        atoms.getIndex()
+    except AttributeError:
+        pass
+    else:
         atoms = atoms.select('all')
 
-    if model is None:
-        model = np.arange(atoms.numCoordsets(), dtype=np.int)
-    elif isinstance(model, int):
-        model = np.array([model], np.int) -1
-    elif isinstance(model, list):
-        model = np.array(model, np.int) -1
-    else:
-        raise TypeError('model must be an integer or a list of integers')
-    if model.min() < 0 or model.max() >= atoms.numCoordsets():
-        raise ValueError('model index or indices is not valid')
-        
     n_atoms = atoms.numAtoms()
     
     atomnames = atoms.getNames()
     if atomnames is None:
         raise RuntimeError('atom names are not set')
     for i, an in enumerate(atomnames):
-        #lenan = len(an)
         if len(an) < 4:
             atomnames[i] = ' ' + an
-        #elif lenan > 4:
-        #    atomnames[i] = an[:4]
     
     altlocs = atoms._getAltlocs()
     if altlocs is None:
@@ -811,52 +833,40 @@ def writePDBStream(stream, atoms, model=None):
     elements = atoms._getElements()
     if elements is None:
         elements = np.zeros(n_atoms, '|S1')
+    else:
+        elements = np.char.rjust(elements, 2)
     
     segments = atoms._getSegnames()
     if segments is None:
         segments = np.zeros(n_atoms, '|S6')
     
-    if isinstance(atoms, AtomGroup):
-        stream.write('REMARK {0:s}\n'.format(atoms.getTitle()))
-    else:
-        stream.write('REMARK {0:s}\n'.format(str(atoms)))
-        
-    acsi = atoms.getACSIndex()
-    multi = False
-    if len(model) > 1:
-        multi = True
-    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
-              '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 
-              '{8:8.3f}{9:8.3f}{10:8.3f}' +
-              '{11:6.2f}{12:6.2f}      ' +
-              '{13:4s}{14:2s}\n').format
+    stream.write('REMARK {0:s}\n'.format(remark))
+    format = PDBLINE.format
+    multi = len(coordsets) > 1
     write = stream.write
-    for m in model:
+    for m, coords in enumerate(coordsets):
         if multi:
-            stream.write('MODEL{0:9d}\n'.format(m+1))
-        atoms.setACSIndex(m)
-        coords = atoms._getCoords()
+            write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            write(format(hetero[i], i+1, atomnames[i], altlocs[i], 
+            write(PDBLINE % (hetero[i], i+1, atomnames[i], altlocs[i], 
                          resnames[i], chainids[i], resnums[i], 
                          icodes[i], 
                          xyz[0], xyz[1], xyz[2], 
                          occupancies[i], bfactors[i],  
-                         segments[i], elements[i].rjust(2)))
+                         segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, '|S1')
-    atoms.setACSIndex(acsi)
 
 writePDBStream.__doc__ += _writePDBdoc
 
-def writePDB(filename, atoms, model=None):
+def writePDB(filename, atoms, csets=None):
     """Write *atoms* in PDB format to a file with name *filename* and return 
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will 
     be written."""
     
     out = openFile(filename, 'w')
-    writePDBStream(out, atoms, model)
+    writePDBStream(out, atoms, csets)
     out.close()
     return filename
 
