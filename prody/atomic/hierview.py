@@ -383,8 +383,9 @@ class HierView(object):
                 return self.__getitem__(key[0])
 
             if length == 2:
-                return (self.getChain(*key) or self.getResidue(*key) or
-                        self.getResidue(None, key[0], key[1]))
+                return (self.getChain(key[1], key[0]) or 
+                         self.getResidue(*key) or
+                         self.getResidue(None, key[0], key[1]))
         
             if length == 3:
                 return self.getResidue(*key) or self.getResidue(key[1],
