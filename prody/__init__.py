@@ -27,9 +27,9 @@ import os.path
 import platform
 import warnings
 
-if not (2,6) <= sys.version_info[:2] <= (2,7):
+if not (2, 6) <= sys.version_info[:2] <= (2, 7):
     raise Exception("prody is compatible with Python 2.6 and 2.7, you are "
-                    "using Python " + platform.python_version())
+                      "using Python " + platform.python_version())
 
 try:
     import numpy as np
@@ -59,7 +59,7 @@ today = date.today()
 if today.year == 2012:
     warnings.filterwarnings('default', category=DeprecationWarning)
 
-def deprecate(dep, alt, ver='1.2', sl=3):
+def deprecate(dep, alt, ver='1.3', sl=3):
     """Issue a deprecation warning for *dep* and recommend using *alt*."""
 
     warnings.warn('`{0:s}` is deprecated for removal in v{1:s}, use `{2:s}`.'
@@ -81,6 +81,7 @@ def turnonDepracationWarnings(action='always'):
 
     
 _PY3K = PY3K = sys.version_info[0] > 2
+PY2K = not PY3K
 
 PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
 if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
@@ -92,7 +93,7 @@ SETTINGS = PackageSettings('prody', logger=LOGGER)
 SETTINGS.load()
 
 
-_max_key_len = max([len(_key) for _key in CONFIGURATION.iterkeys()])
+_max_key_len = max([len(_key) for _key in list(CONFIGURATION)])
 _max_def_len = 68 - _max_key_len
 _table_lines = '=' * _max_key_len +  '  ' + '=' * _max_def_len
 
@@ -106,7 +107,7 @@ docstring = """
 _ = {}
 
 from textwrap import wrap
-_keys = CONFIGURATION.keys()
+_keys = list(CONFIGURATION)
 _keys.sort()
 for _key in _keys:
     _value = CONFIGURATION[_key]
@@ -138,7 +139,7 @@ def confProDy(*args, **kwargs):
         else:
             settings = [SETTINGS.get(option) for option in args]
 
-    for option, value in kwargs.iteritems():    
+    for option, value in kwargs.items():    
         if isinstance(option, str):
             if option in CONFIGURATION:
                 type_ = type(CONFIGURATION[option])
@@ -214,8 +215,12 @@ def checkUpdates():
       confProDy(check_updates=0) # do not auto check updates
       confProDy(check_updates=-1) # check at the start of every session"""
     
-    import xmlrpclib
-    pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
+    if PY3K:
+        import xmlrpc.client
+        pypi = xmlrpc.client.Server('http://pypi.python.org/pypi')
+    else:
+        import xmlrpclib
+        pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
         LOGGER.info('You are using the latest ProDy release (v{0:s}).'
@@ -257,40 +262,40 @@ __all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
            'startLogfile', 'closeLogfile', 
            'plog']
 
-import kdtree
-from kdtree import *
+from . import kdtree
+from .kdtree import *
 __all__.extend(kdtree.__all__)
 __all__.append('kdtree')
 
-import atomic 
-from atomic import *
+from . import atomic 
+from .atomic import *
 __all__.extend(atomic.__all__)
 __all__.append('atomic')
 
-from atomic import SELECT
+from .atomic import SELECT
 
-import proteins
-from proteins import *  
+from . import proteins
+from .proteins import *  
 __all__.extend(proteins.__all__)
 __all__.append('proteins')
 
-import measure
-from measure import *
+from . import measure
+from .measure import *
 __all__.extend(measure.__all__)
 __all__.append('measure')
 
-import dynamics
-from dynamics import *
+from . import dynamics
+from .dynamics import *
 __all__.extend(dynamics.__all__)
 __all__.append('dynamics')
 
-import ensemble
-from ensemble import *
+from . import ensemble
+from .ensemble import *
 __all__.extend(ensemble.__all__)
 __all__.append('ensemble')
 
-import trajectory
-from trajectory import *
+from . import trajectory
+from .trajectory import *
 __all__.extend(trajectory.__all__)
 __all__.append('trajectory')
 
