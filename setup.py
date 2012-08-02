@@ -1,10 +1,6 @@
-import glob
 import os
 import os.path
 import sys
-import shutil
-import cPickle
-from types import StringType, UnicodeType
 
 from distutils.core import setup
 from distutils.extension import Extension
@@ -42,7 +38,7 @@ PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
             'prody.measure', 'prody.proteins', 'prody.trajectory',
             'prody.routines', 'prody.utilities']
 PACKAGE_DATA = {}
-if sys.version_info[:2] > (2,6):
+if sys.version_info[:2] > (2, 6):
     PACKAGES.extend(['prody.tests',
                      'prody.tests.test_atomic',
                      'prody.tests.test_dynamics', 
