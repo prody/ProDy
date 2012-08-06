@@ -232,23 +232,25 @@ from types import NoneType
 
 import numpy as np
 
-from prody import LOGGER
+from prody import LOGGER, PY2K
 from prody.kdtree import KDTree
 from prody.utilities import checkCoords, rangeString
 
-from atomic import Atomic
-from fields import ATOMIC_FIELDS, READONLY
-from fields import wrapGetMethod, wrapSetMethod
-from flags import PLANTERS as FLAG_PLANTERS
-from flags import ALIASES as FLAG_ALIASES
-from flags import FIELDS as FLAG_FIELDS
-from atom import Atom
-from bond import Bond, evalBonds
-from selection import Selection
+from .atomic import Atomic
+from .fields import ATOMIC_FIELDS, READONLY
+from .fields import wrapGetMethod, wrapSetMethod
+from .flags import PLANTERS as FLAG_PLANTERS
+from .flags import ALIASES as FLAG_ALIASES
+from .flags import FIELDS as FLAG_FIELDS
+from .atom import Atom
+from .bond import Bond, evalBonds
+from .selection import Selection
 
-import flags
+from . import flags
 
 __all__ = ['AtomGroup']
+
+if PY2K: range = xrange
 
 SELECT = None
 
@@ -256,7 +258,7 @@ class AtomGroupMeta(type):
 
     def __init__(cls, name, bases, dict):
     
-        for fname, field in ATOMIC_FIELDS.iteritems():
+        for fname, field in ATOMIC_FIELDS.items():
 
             meth = field.meth_pl
             getMeth = 'get' + meth
@@ -504,7 +506,7 @@ class AtomGroup(Atomic):
             LOGGER.warn('No coordinate sets are copied to {0:s}'
                         .format(new.getTitle()))
         
-        for key in set(self._data.keys() + other._data.keys()):
+        for key in set(list(self._data) + list(other._data)):
             if key in ATOMIC_FIELDS and ATOMIC_FIELDS[key].readonly:
                 continue
             this = self._data.get(key)
@@ -535,7 +537,7 @@ class AtomGroup(Atomic):
         """Yield atom instances."""
         
         acsi = self._acsi
-        for index in xrange(self._n_atoms):
+        for index in range(self._n_atoms):
             yield Atom(self, index, acsi)
 
     iterAtoms = __iter__
@@ -979,7 +981,7 @@ class AtomGroup(Atomic):
     def getDataLabels(self):
         """Return list of data labels provided by the user."""
         
-        return [key for key, data in self._data.iteritems() 
+        return [key for key, data in self._data.items() 
                     if not key in ATOMIC_FIELDS]
         
     def getDataType(self, label):
@@ -1086,26 +1088,26 @@ class AtomGroup(Atomic):
     def getFlagLabels(self):
         """Return list of atom flag labels provided by the users."""
 
-        return [key for key in (self._flags or {}).iterkeys() 
+        return [key for key in (self._flags or {}).keys() 
                     if not key in FLAG_PLANTERS]
 
     def _resetFlags(self, field=None):
         """Reset flags and subsets associated with *field*."""
        
         flags = self._flags
-        if flags is not None:        
+        if flags is not None:
             if field:        
                 labels = FLAG_FIELDS[field]
             else:
-                labels = FLAG_PLANTERS.keys()
+                labels = list(FLAG_PLANTERS)
             subsets = self._subsets
             if len(labels) < len(flags):
                 for label in labels:
                     flags.pop(label, None)
                     subsets.pop(label, None)
             else:
-                for label in flags.iterkeys():
-                    if label in labels:
+                for label in flags:
+                    if label in set(labels):
                         flags.pop(flag, None)
                         subsets.pop(flag, None)
 
