@@ -57,15 +57,15 @@ following:
 Linux
 -------------------------------------------------------------------------------
 
-Download :file:`ProDy-0.{x}.{y}.tar.gz`. Extract tarball contents and run 
+Download :file:`ProDy-x.{y}.{z}.tar.gz`. Extract tarball contents and run 
 :file:`setup.py` as follows::
 
-    $ tar -xzf ProDy-0.x.y.tar.gz
-    $ cd ProDy-0.x.y
+    $ tar -xzf ProDy-x.y.z.tar.gz
+    $ cd ProDy-x.y.z
     $ python setup.py build
     $ python setup.py install
 
-You may need root access for the last step.  
+You may need root access installation, i.e. ``sudo python setup.py install``.  
 
 If you don't have root access, you can edit :envvar:`PYTHONPATH` system 
 variable to specify the path to this package:
