@@ -174,7 +174,7 @@ class Ensemble(object):
         return self._n_atoms if self._indices is None else len(self._indices) 
     
     def getAtoms(self):
-        """Return associated atom group."""
+        """Return associated/selected atoms."""
         
         return self._atoms
     
