@@ -45,7 +45,7 @@ Handling multiple files
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
-<Trajectory: mdm2 (1 files; next 0 of 500 frames; 1449 atoms)>
+<Trajectory: mdm2 (next 0 of 500 frames; 1449 atoms)>
 >>> traj.addFile('mdm2sim2.dcd')
 >>> traj 
 <Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
@@ -55,7 +55,7 @@ Link trajectory to atoms
 
 Atoms can be linked to the trajectory as follows:
 
->>> traj.linkAtomGroup(structure)
+>>> traj.link(structure)
 >>> traj.setCoords(structure)
 
 When an atom group is linked to a trajectory, frame coordinates parsed from

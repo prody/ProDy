@@ -24,11 +24,13 @@ effect you code.
     and their functions are overloaded to :meth:`.Trajectory.setAtoms` 
     and :meth:`.Ensemble.setAtoms` methods, respectively.
     
-  * :meth:`.Trajectory.getSelection` and :meth:`.Ensemble.getSelection` methods
-    are removed, use :meth:`.Trajectory.getAtoms` and :meth:`.Ensemble.getAtoms` instead.
+  * :meth:`.Trajectory.getSelection` and :meth:`.Ensemble.getSelection` 
+    methods are removed, use :meth:`.Trajectory.getAtoms` and 
+    :meth:`.Ensemble.getAtoms` instead.
   
-  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory` using
-    :meth:`.Trajectory.linkAtomGroup` method.
+  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory` 
+    using :meth:`.Trajectory.link` method.  See also related methods 
+    :meth:`.Trajectory.isLinked` and :meth:`.Trajectory.getLinked`. 
     
   * :class:`.Trajectory` reference coordinates must be changed using 
     :meth:`.Trajectory.setCoords` method.

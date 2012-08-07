@@ -44,14 +44,14 @@ Open trajectories
 
 >>> traj = Trajectory('mdm2.dcd')
 >>> traj
-<Trajectory: mdm2 (1 files; next 0 of 500 frames; 1449 atoms)>
+<Trajectory: mdm2 (next 0 of 500 frames; 1449 atoms)>
 >>> traj.addFile('mdm2sim2.dcd')
 >>> traj 
 <Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
 
 Now we link the trajectory (*traj*) with the atom group (*mdm2*): 
 
->>> traj.linkAtomGroup(mdm2) 
+>>> traj.link(mdm2) 
 
 .. note::
    Note that when a frame (coordinate set) is parsed from the trajectory file,
@@ -67,7 +67,7 @@ MDM2:
 
 >>> traj.setAtoms(mdm2.noh)
 >>> traj
-<Trajectory: mdm2 (2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
+<Trajectory: mdm2 (linked to AtomGroup mdm2; 2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
 >>> writeDCD('mdm2_merged_noh.dcd', traj)
 'mdm2_merged_noh.dcd'
 
@@ -85,7 +85,7 @@ Let's return to the first frame by resetting the trajectory:
 
 >>> traj.reset()
 >>> traj
-<Trajectory: mdm2 (2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
+<Trajectory: mdm2 (linked to AtomGroup mdm2; 2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
 
 It is possible to write multiple DCD files at the same time.  We open two DCD 
 files in write mode, one for all atoms, and another for backbone atoms:

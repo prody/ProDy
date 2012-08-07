@@ -39,9 +39,14 @@ We start by importing everything from ProDy:
 The PDB file provided with this example contains and X-ray structure which will 
 be useful in a number of places, so let's start with parsing this file first:
 
->>> structure = parsePDB('mdm2.pdb')
->>> structure
-<AtomGroup: mdm2 (1449 atoms)>
+.. plot::
+   :nofigs:
+   :context:
+   :include-source:
+
+   >>> structure = parsePDB('mdm2.pdb')
+   >>> structure
+   <AtomGroup: mdm2 (1449 atoms)>
 
 This function returned a :class:`.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
@@ -75,10 +80,10 @@ If you are analyzing a large trajectory, you can pass the trajectory instance
 to the :meth:`.PCA.buildCovariance` method as follows:
 
 >>> dcd = DCDFile('mdm2.dcd')
->>> dcd.linkAtomGroup(structure)
+>>> dcd.link(structure)
 >>> dcd.setAtoms(structure.calpha)
 >>> dcd
-<DCDFile: mdm2 (next 0 of 500 frames; selected 85 of 1449 atoms)>
+<DCDFile: mdm2 (linked to AtomGroup mdm2; next 0 of 500 frames; selected 85 of 1449 atoms)>
 >>> eda_trajectory = EDA('MDM2 Trajectory')
 >>> eda_trajectory.buildCovariance( dcd )
 >>> eda_trajectory.calcModes()
@@ -105,21 +110,25 @@ Multiple files
 It is also possible to analyze multiple trajectory files without concatenating
 them. In this case we will use data from two independent simulations 
 
->>> trajectory = Trajectory('mdm2.dcd')
->>> trajectory.addFile('mdm2sim2.dcd')
->>> trajectory
-<Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
+.. plot::
+   :nofigs:
+   :context:
+   :include-source:
 
->>> trajectory.linkAtomGroup(structure)
->>> trajectory.setCoords(structure)
->>> trajectory.setAtoms(structure.calpha)
->>> trajectory
-<Trajectory: mdm2 (2 files; next 0 of 1000 frames; selected 85 of 1449 atoms)>
->>> eda = EDA('mdm2')
->>> eda.buildCovariance( trajectory )
->>> eda.calcModes()
->>> eda
-<EDA: mdm2 (20 modes; 85 atoms)>
+   >>> trajectory = Trajectory('mdm2.dcd')
+   >>> trajectory.addFile('mdm2sim2.dcd')
+   >>> trajectory
+   <Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
+   >>> trajectory.link(structure)
+   >>> trajectory.setCoords(structure)
+   >>> trajectory.setAtoms(structure.calpha)
+   >>> trajectory
+   <Trajectory: mdm2 (linked to AtomGroup mdm2; 2 files; next 0 of 1000 frames; selected 85 of 1449 atoms)>
+   >>> eda = EDA('mdm2')
+   >>> eda.buildCovariance( trajectory )
+   >>> eda.calcModes()
+   >>> eda
+   <EDA: mdm2 (20 modes; 85 atoms)>
 
 **Save your work**
 
@@ -150,48 +159,25 @@ Now, let's project the trajectories onto top three essential modes:
 
 .. plot::
    :context:
-   :nofigs:
-
-   from prody import *
-   eda = loadModel('mdm2.eda.npz')
-   trajectory = Trajectory('mdm2.dcd')
-   trajectory.addFile('mdm2sim2.dcd')
-   structure = parsePDB('mdm2.pdb')
-   trajectory.setCoords(structure)
-   trajectory.setAtoms(structure.calpha)
-
-.. plot::
-   :context:
    :include-source:
   
-   mdm2ca_sim1 = trajectory[:500]
-   mdm2ca_sim1.superpose()
-   mdm2ca_sim2 = trajectory[500:]
-   mdm2ca_sim2.superpose()
-
-   # Let's import plotting library and make an empty figure
-   import matplotlib.pyplot as plt
-   plt.close('all')
-   plt.figure(figsize=(5,4))
-   
-   # We project independent trajectories in different color   
-   showProjection(mdm2ca_sim1, eda[:3], color='red', marker='.')
-   showProjection(mdm2ca_sim2, eda[:3], color='blue', marker='.')
-   
-   # Now let's mark the beginning of the trajectory with a circle
-   showProjection(mdm2ca_sim1[0], eda[:3], color='red', marker='o', ms=12)
-   showProjection(mdm2ca_sim2[0], eda[:3], color='blue', marker='o', ms=12)
-   
-   # Now let's mark the end of the trajectory with a square
-   showProjection(mdm2ca_sim1[-1], eda[:3], color='red', marker='s', ms=12)
-   showProjection(mdm2ca_sim2[-1], eda[:3], color='blue', marker='s', ms=12)
+   >>> mdm2ca_sim1 = trajectory[:500] # doctest: +SKIP
+   >>> mdm2ca_sim1.superpose() # doctest: +SKIP
+   >>> mdm2ca_sim2 = trajectory[500:] # doctest: +SKIP
+   >>> mdm2ca_sim2.superpose() # doctest: +SKIP
+   >>> # Let's import plotting library and make an empty figure
+   >>> import matplotlib.pyplot as plt # doctest: +SKIP
+   >>> # We project independent trajectories in different color   
+   >>> showProjection(mdm2ca_sim1, eda[:3], color='red', marker='.') # doctest: +SKIP
+   >>> showProjection(mdm2ca_sim2, eda[:3], color='blue', marker='.') # doctest: +SKIP
+   >>> # Now let's mark the beginning of the trajectory with a circle
+   >>> showProjection(mdm2ca_sim1[0], eda[:3], color='red', marker='o', ms=12) # doctest: +SKIP
+   >>> showProjection(mdm2ca_sim2[0], eda[:3], color='blue', marker='o', ms=12) # doctest: +SKIP
+   >>> # Now let's mark the end of the trajectory with a square
+   >>> showProjection(mdm2ca_sim1[-1], eda[:3], color='red', marker='s', ms=12) # doctest: +SKIP
+   >>> showProjection(mdm2ca_sim2[-1], eda[:3], color='blue', marker='s', ms=12) # doctest: +SKIP
 
 
-.. plot::
-   :context:
-   :nofigs:
-
-   plt.close('all')
 
 Write NMD file
 ===============================================================================
