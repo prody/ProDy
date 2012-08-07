@@ -54,16 +54,25 @@ class Trajectory(TrajBase):
         
         if self._closed:
             return '<Trajectory: {0:s} (closed)>'.format(self._title)
+        
+        link = ''
+        if self._ag is not None:
+            link = 'linked to ' + str(self._ag) + '; '
+        
+        files = ''
+        if self._n_files > 1:
+            files = '{0:d} files; '.format(self._n_files)
+        
+        next = 'next {0:d} of {1:d} frames; '.format(self._nfi, self._n_csets)
+        
         if self._indices is None:
-            return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
-                    'frames; {4:d} atoms)>').format(
-                    self._title, self._n_files, self._nfi, 
-                    self._n_csets, self._n_atoms)
+            atoms = '{0:d} atoms'.format(self._n_atoms)
         else:
-            return ('<Trajectory: {0:s} ({1:d} files; next {2:d} of {3:d} '
-                    'frames; selected {4:d} of {5:d} atoms)>').format(
-                    self._title, self._n_files, self._nfi, 
-                    self._n_csets, self.numSelected(), self._n_atoms)
+            atoms = 'selected {0:d} of {1:d} atoms'.format(
+                                            self.numSelected(), self._n_atoms)
+        
+        return '<Trajectory: {0:s} ({1:s}{2:s}{3:s}{4:s})>'.format(
+                                        self._title, link, files, next, atoms)
     
     def _nextFile(self):
         
@@ -89,13 +98,13 @@ class Trajectory(TrajBase):
         
     setAtoms.__doc__ = TrajBase.setAtoms.__doc__
     
-    def linkAtomGroup(self, ag):
+    def link(self, ag):
         
         for traj in self._trajectories:
-            traj.linkAtomGroup(ag)
-        TrajBase.linkAtomGroup(self, ag)
+            traj.link(ag)
+        TrajBase.link(self, ag)
     
-    linkAtomGroup.__doc__ = TrajBase.linkAtomGroup.__doc__
+    link.__doc__ = TrajBase.link.__doc__
 
     def addFile(self, filename):
         """Add a file to the trajectory instance. Currently only DCD files
@@ -109,8 +118,8 @@ class Trajectory(TrajBase):
         traj = openTrajFile(filename)
         n_atoms = self._n_atoms
         if n_atoms != 0 and n_atoms != traj.numAtoms():
-            raise IOError('{0:s} must have same number of atoms as previously '
-                          'loaded files'.format(traj.getTitle()))
+            raise IOError('{0:s} must have same number of atoms as '
+                            'previously loaded files'.format(traj.getTitle()))
          
         if self._n_files == 0:
             self._trajectory = traj                
@@ -155,7 +164,8 @@ class Trajectory(TrajBase):
         elif isinstance(indices, (list, np.ndarray)):
             indices = np.unique(indices)
         else:
-            raise TypeError('indices must be an integer or a list of integers')
+            raise TypeError('indices must be an integer or a list of '
+                              'integers')
 
         nfi = self._nfi
         self.reset()

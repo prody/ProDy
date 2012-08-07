@@ -82,23 +82,25 @@ class TrajFile(TrajBase):
         if self._closed:
             return ('<{0:s}: {1:s} (closed)>').format(
                         self.__class__.__name__, self._title)
+                        
+        link = ''
+        if self._ag is not None:
+            link = 'linked to ' + str(self._ag) + '; '
+            
         if self._mode == 'r':
-            if self._indices is None:            
-                return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames; '
-                        '{4:d} atoms)>').format(
-                        self.__class__.__name__, self._title, 
-                        self._nfi, self._n_csets, self._n_atoms)
-            else:
-                return ('<{0:s}: {1:s} (next {2:d} of {3:d} frames; '
-                        'selected {4:d} of {5:d} atoms)>').format(
-                        self.__class__.__name__, self._title, 
-                        self._nfi, self._n_csets, self.numSelected(),
-                        self._n_atoms)
+            next = 'next {0:d} of {1:d} frames; '.format(self._nfi, 
+                                                       self._n_csets)
         else:
-            return ('<{0:s}: {1:s} ({2:d} atoms, {3:d} frames written)>'
-                    ).format(
-                    self.__class__.__name__, self._title, 
-                    self._n_atoms, self._n_csets)
+            next = '{0:d} frames written; '.format(self._n_csets)
+            
+        if self._indices is None:
+            atoms = '{0:d} atoms'.format(self._n_atoms)
+        else:
+            atoms = 'selected {0:d} of {1:d} atoms'.format(
+                                        self.numSelected(), self._n_atoms)
+            
+        return '<{0:s}: {1:s} ({2:s}{3:s}{4:s})>'.format(
+                   self.__class__.__name__, self._title, link, next, atoms)                                                       
     
     def getFilename(self, absolute=False):
         """Return relative path to the current file. For absolute path,

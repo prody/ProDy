@@ -23,8 +23,8 @@
 Atoms and Frames
 ================
 
-:class:`Frame` instances store only coordinate and some frame related metadata.
-Linking atoms to a trajectory (using :meth:`~Trajectory.linkAtomGroup`) makes
+:class:`Frame` instances store only coordinate and some frame related data.
+Linking atoms to a trajectory (using :meth:`~Trajectory.link`) makes
 :class:`Frame` and :class:`.AtomGroup` instance share the same coordinate data.
 Let's see how this works:  
  
@@ -56,7 +56,7 @@ When an :class:`.AtomGroup` is linked to the trajectory as follows, things
 work differently:
 
 >>> pdb = parsePDB('mdm2.pdb')
->>> dcd.linkAtomGroup(pdb)
+>>> dcd.link(pdb)
 >>> dcd.reset()
 
 We get :class:`Frame` instances in the same way:
@@ -166,11 +166,10 @@ class Frame(object):
     def getCoords(self):
         """Return a copy of coordinates of (selected) atoms."""
         
-        ag = self._traj.getAtoms()
-        if ag is None:
-            coords = self._coords
+        if self._traj.isLinked():
+            coords = self._traj.getLinked()._getCoords()
         else:
-            coords = ag._getCoords()
+            coords = self._coords
         
         if coords is None:
             raise ValueError('coordinates are not set')
@@ -184,11 +183,10 @@ class Frame(object):
     def _getCoords(self):
         """Return coordinates of (selected) atoms."""
         
-        ag = self._traj.getAtoms()
-        if ag is None:
-            coords = self._coords
+        if self._traj.isLinked():
+            coords = self._traj.getLinked()._getCoords()
         else:
-            coords = ag._getCoords()
+            coords = self._coords
         
         if coords is None:
             raise ValueError('coordinates are not set')

@@ -121,25 +121,25 @@ class TrajBase(object):
     numCoordsets = numFrames
 
     def numSelected(self):
-        """Return number of selected atoms."""
+        """Return number of selected atoms.  A subset of atoms can be selected 
+        by passing a selection to :meth:`setAtoms`."""
 
         return self._n_atoms if self._indices is None else len(self._indices)
 
     def getAtoms(self):
-        """Return associated :class:`.AtomGroup` instance."""
+        """Return atoms instance."""
 
-        return self._ag
+        return self._atoms
 
     def setAtoms(self, atoms):
-        """Set *atoms* that will be considered in calculations and coordinate 
-        requests.  *atoms* may be an :class:`.AtomGroup` or :class:`.Selection`
-        instance that indicates all or a subset of atoms in the ensemble.  
-        When a subset of atoms is set, corresponding subset of coordinates will
-        be considered in, for example, alignments and RMSD calculations.
-        Setting atoms also allows some ProDy functions to access atomic data 
-        when needed. For example, :class:`.Trajectory` and :class:`.Frame`
-        instances become suitable arguments for :func:`.writePDB` after atoms 
-        are set. Passing **None** as *atoms* argument will deselect atoms."""
+        """Set *atoms* or specify a selection of atoms to be considered in 
+        calculations and coordinate requests.  When a selection is set, 
+        corresponding subset of coordinates will be considered in, for 
+        example, alignments and RMSD calculations.  Setting atoms also 
+        allows some functions to access atomic data when needed.  For 
+        example, :class:`.Trajectory` and :class:`.Frame` instances become 
+        suitable arguments for :func:`.writePDB`.  Passing **None** as *atoms* 
+        argument will deselect atoms."""
 
         if atoms is None:
             self._atoms = self._indices = None
@@ -178,11 +178,11 @@ class TrajBase(object):
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
 
-    def linkAtomGroup(self, ag):
+    def link(self, ag):
         """Link :class:`.AtomGroup` instance *ag* to the trajectory.  When a 
         new frame is parsed from the trajectory file, coordinates of *ag* and 
-        of all selections and atom subsets pointing to it, will be updated.  
-        To break a previously established link, pass ``ag=None``.
+        of all selections and atom subsets pointing to it, will be updated. 
+        To break an established link, pass **None** argument.
 
         .. warning::
 
@@ -210,11 +210,17 @@ class TrajBase(object):
             self._frame = Frame(None, None, None)
             self._atoms = self._atoms or ag
 
-    def getAtomGroup(self):
+    def getLinked(self):
         """Return linked :class:`.AtomGroup` instance, or **None** if a link
         is not established."""
         
         return self._ag
+    
+    def isLinked(self):
+        """Return **True** if trajectory is linked to an :class:`.AtomGroup`
+        instance."""
+        
+        return self._ag is not None
 
     def getCoords(self):
         """Return a copy of reference coordinates for (selected) atoms."""
