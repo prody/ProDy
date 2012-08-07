@@ -20,9 +20,9 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import float32
+from numpy import any, float32, tile
 
-__all__ = ['checkCoords', 'checkTypes']
+__all__ = ['checkCoords', 'checkWeights', 'checkTypes']
 
 COORDS_NDIM = set([2])
 CSETS_NDIMS = set([2, 3])
@@ -51,8 +51,7 @@ def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32),
         is encountered"""
 
     try:
-        ndim = coords.ndim
-        shape = coords.shape
+        ndim, shape = coords.ndim, coords.shape
     except AttributeError:
         raise TypeError('coords must be a numpy.ndarray instance')
 
@@ -79,6 +78,50 @@ def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32),
             raise ValueError(str(name) + '.dtype must be ' + msg)
   
     return True
+
+NDIM12 = set([1, 2])
+NDIM123 = set([1, 2, 3])
+
+def checkWeights(weights, natoms, ncsets=None, dtype=float):
+    """Return *weights* if it has correct shape ([ncsets, ]natoms, 1). 
+    after its shape and data type is corrected. otherwise raise an exception.  
+    All items of *weights* must be greater than zero."""
+    
+    try:
+        ndim, shape, wtype = weights.ndim, weights.shape, weights.dtype
+    except AttributeError:
+        raise TypeError('weights must be a numpy.ndarray instance')
+    
+    if csets:
+        if ndim not in NDIM123:
+            raise ValueError('weights.dim must be 1, 2, or 3')
+        if csets > 1:
+            if ndim == 3 and shape[0] != csets:
+                raise ValueError('weights.shape must be '
+                                   '(ncsets, natoms[, 1])')
+            weights = tile(weights.reshape((1, natoms, 1)), (ncsets, 1, 1))
+        elif ndim < 3: 
+            weights = weights.reshape((1, natoms, 1))
+    else:
+        if ndim not in NDIM12:
+            raise ValueError('weights.dim must be 1 or 2')
+        if shape[0] != natoms:
+            raise ValueError('weights.shape must be (natoms[, 1])')
+        if ndim == 1:
+            weights = weights.reshape((natoms, 1))
+
+    if dtype:
+        if wtype != dtype:
+            try:
+                weights = weights.astype(dtype)
+            except ValueError:
+                raise ValueError('weights.astype({0:s}) failed, {0:s} type '
+                                   'could not be assigned'.format(str(dtype)))
+    if any(weights < 0):
+        raise ValueError('all weights must be greater or equal to 0')
+
+    return weights
+
 
 def checkTypes(args, **types):
     """Return **True** if types of all *args* match those given in *types*.
