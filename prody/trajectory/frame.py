@@ -140,7 +140,7 @@ class Frame(object):
         return self._traj.numSelected()
     
     def getAtoms(self):
-        """Return associated atom group."""
+        """Return associated/selected atoms."""
         
         return self._traj.getAtoms()        
     
@@ -166,36 +166,31 @@ class Frame(object):
     def getCoords(self):
         """Return a copy of coordinates of (selected) atoms."""
         
-        if self._traj.isLinked():
-            coords = self._traj.getLinked()._getCoords()
-        else:
-            coords = self._coords
-        
-        if coords is None:
-            raise ValueError('coordinates are not set')
-            
         indices = self._traj._indices
         if indices is None:
-            return coords.copy()
+            return self._getxyz().copy()
         else:
-            return coords[indices]
+            return self._getxyz()[indices]
     
     def _getCoords(self):
         """Return coordinates of (selected) atoms."""
         
+        indices = self._traj._indices
+        if indices is None:
+            return self._getxyz()
+        else:
+            return self._getxyz()[indices]
+    
+    def _getxyz(self):
+        """Return coordinates array."""
+        
         if self._traj.isLinked():
             coords = self._traj.getLinked()._getCoords()
         else:
             coords = self._coords
-        
         if coords is None:
             raise ValueError('coordinates are not set')
-            
-        indices = self._traj._indices
-        if indices is None:
-            return coords
-        else:
-            return coords[indices]
+        return coords
     
     def getVelocities(self):
         """Return a copy of velocities of (selected) atoms."""
@@ -261,11 +256,7 @@ class Frame(object):
         
         traj = self._traj
         indices = traj._indices 
-        ag = traj._ag
-        if ag is None:
-            mob = mov = self._coords
-        else:
-            mob = mov = ag._getCoords()
+        mob = mov = self._getxyz()
         
         weights = traj._weights
         if indices is None:
