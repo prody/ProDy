@@ -176,14 +176,14 @@ def plog(*text):
 
 def startLogfile(filename, **kwargs):
     
-    LOGGER.startLogfile(filename, **kwargs)
+    LOGGER.start(filename, **kwargs)
     
 startLogfile.__doc__ = LOGGER.startLogfile.__doc__
     
 def closeLogfile(filename):
     """Close logfile with *filename*."""
 
-    LOGGER.closeLogfile(filename)
+    LOGGER.close(filename)
 
 def setVerbosity(level):
     """    
