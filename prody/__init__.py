@@ -194,17 +194,16 @@ def setVerbosity(level):
     >>> setVerbosity('debug')
     >>> plog('test')"""
 
-    LOGGER.setVerbosity(level)
+    LOGGER.verbosity = level
 
-setVerbosity.__doc__ = LOGGER.setVerbosity.__doc__.replace('\n    ', '\n') + \
+setVerbosity.__doc__ = LOGGER.verbosity.__doc__.replace('\n    ', '\n') + \
                        setVerbosity.__doc__ 
 
 def getVerbosity():
     """Return ProDy console verbosity level."""
     
-    return LOGGER.getVerbosity()
+    return LOGGER.verbosity
 
-getVerbosity.__doc__ = LOGGER.getVerbosity.__doc__
 
 def checkUpdates():
     """Check PyPI to see if there is a newer ProDy version available.  Setting
