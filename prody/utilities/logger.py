@@ -47,13 +47,22 @@ class PackageLogger(object):
     """A class for package wide logging functionality."""
     
     def __init__(self, name, **kwargs):
-        """Start logger for the package. Returns a logger instance."""
+        """Start logger for the package. Returns a logger instance.
+        
+        :arg prefix: prefix to console log messages, default is ``'@> '``
+        :arg console: log level for console (``sys.stderr``) messages,
+            default is ``'debug'``
+        :arg info: prefix to log messages at *info* level
+        :arg warning: prefix to log messages at *warning* level, default is 
+            ``'WARNING '``
+        :arg error: prefix to log messages at *error* level, default is 
+            ``'ERROR '``
+        """
     
         self._level = logging.DEBUG
-        logger = logging.getLogger(name)
+        self._logger = logger = logging.getLogger(name)
         logger.setLevel(self._level)
 
-        self._prefix = str(kwargs.get('prefix', '@> '))
         
         for handler in logger.handlers: 
             handler.close()
@@ -61,9 +70,8 @@ class PackageLogger(object):
         
         console = logging.StreamHandler()
         console.setLevel(LOGGING_LEVELS[kwargs.get('console', 'debug')])
-        console.setFormatter(logging.Formatter(self._prefix + '%(message)s'))
         logger.addHandler(console)
-        self._logger = logger
+        self.prefix = kwargs.get('prefix', '@> ')
         
         self._info = kwargs.get('info', '')
         self._warning = kwargs.get('warning', 'WARNING ')
@@ -78,15 +86,30 @@ class PackageLogger(object):
         self._timer = None
 
     def getVerbosity(self):
-        """Return verbosity *level* of the logger."""
+        """Deprecated for removal in v1.3, get :attr:`verbosity` directly."""
+
+        from prody import deprecate
+        deprecate('getVerbosity', 'verbosity')
         
         return LOGGING_LEVELS.get(self._logger.handlers[0].level)
     
     def setVerbosity(self, level):
-        """Change verbosity *level* of the logger for the current session.  
-        Default verbosity level **debug**.  Log messages are written to 
-        ``sys.stderr``.  This function accepts one of the following as 
-        *level* argument:
+        """Deprecated for removal in v1.3, set :attr:`verbosity` directly."""
+
+        from prody import deprecate
+        deprecate('setVerbosity', 'verbosity')
+        
+        lvl = LOGGING_LEVELS.get(str(level).lower(), None)
+        if lvl is None: 
+            self.warning('{0:s} is not a valid log level.'.format(level))
+        else:
+            self._logger.handlers[0].level = lvl
+            self._level = lvl 
+           
+    verbosity = property(getVerbosity, setVerbosity, doc=
+        """Verbosity *level* of the logger. Default verbosity level **debug**.  
+        Log messages are written to ``sys.stderr``.  This function accepts one 
+        of the following as *level* argument:
         
         ========  ===========================================
         Level     Description
@@ -95,19 +118,27 @@ class PackageLogger(object):
         info      Only brief information will be printed.
         warning   Only warning information will be printed.
         none      ProDy will not log any messages.
-        ========  ==========================================="""
-        
-        lvl = LOGGING_LEVELS.get(str(level).lower(), None)
-        if lvl is None: 
-            self.warning('{0:s} is not a valid log level.'.format(level))
-        else:
-            self._logger.handlers[0].level = lvl
-            self._level = lvl 
+        ========  ===========================================""")
             
     def getPrefix(self):
-        """Return string prefixed to console messages."""
+        """Deprecated for removal in v1.3, get :attr:`prefix` directly."""
+
+        from prody import deprecate
+        deprecate('getPrefix', 'prefix')
+        return self._prefix
+
+    def _getprefix(self):
         
         return self._prefix
+
+    def _setprefix(self, prefix):
+        
+        self._prefix = str(prefix)
+        prefix += '%(message)s'
+        self._logger.handlers[0].setFormatter(logging.Formatter(prefix))
+
+    prefix = property(_getprefix, _setprefix, doc='String prepended to console'
+                      ' log messages.')
 
     def info(self, msg):
         """Log *msg* with severity 'INFO'."""
