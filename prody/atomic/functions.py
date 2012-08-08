@@ -28,17 +28,18 @@ from numpy import load, savez, zeros
 from prody.utilities import openFile, rangeString
 from prody import LOGGER
 
-import flags
-import select
+from . import flags
+from . import select
 
-from atomic import Atomic
-from atomgroup import AtomGroup
-from bond import trimBonds, evalBonds
-from fields import ATOMIC_FIELDS
-from selection import Selection
+from .atomic import Atomic
+from .atomgroup import AtomGroup
+from .atommap import AtomMap
+from .bond import trimBonds, evalBonds
+from .fields import ATOMIC_FIELDS
+from .selection import Selection
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'getReservedWords',]
+           'isReserved', 'getReservedWords', 'sortAtoms']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -234,6 +235,31 @@ def getReservedWords():
     words = list(RESERVED)
     words.sort()
     return words
+
+def sortAtoms(atoms, label, reverse=False):
+    """Return an :class:`.AtomMap` pointing to *atoms* sorted in ascending 
+    data *label* order, or optionally in *reverse* order."""
+    
+    try:
+        data, acsi = atoms.getData(label), atoms.getACSIndex()
+    except AttributeError:
+        raise TypeError('atoms must be an Atomic instance')
+    else:
+        if data is None:
+            raise ValueError('{0:s} data is not set for {1:s}'
+                                .format(repr(label), atoms))
+    sort = data.argsort()
+    if reverse:
+        sort = sort[::-1]
+    try:
+        indices = atoms.getIndices()
+    except AttributeError:
+        ag = atoms
+    else:
+        ag = atoms.getAtomGroup()
+        sort = indices[sort]
+    return AtomMap(ag, sort, acsi)
+    
 
 _ = getReservedWords.__doc__ + '*' + '*, *'.join(getReservedWords()) + '*.'
 getReservedWords.__doc__ = '\n'.join(wrap(_, 79))
