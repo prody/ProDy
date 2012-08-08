@@ -36,7 +36,7 @@ class Trajectory(TrajBase):
     
     """A class for handling trajectories in multiple files."""
         
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
         """Trajectory can be instantiated with a *name* or a filename. When
         name is a valid path to a trajectory file it will be opened for 
         reading."""
@@ -48,7 +48,8 @@ class Trajectory(TrajBase):
         self._n_files = 0
         self._cfi = 0 # current file index
         if os.path.isfile(name):
-            self.addFile(name)
+            self.addFile(name, **kwargs)
+        self._kwargs = kwargs
 
     def __repr__(self):
         
@@ -106,7 +107,7 @@ class Trajectory(TrajBase):
     
     link.__doc__ = TrajBase.link.__doc__
 
-    def addFile(self, filename):
+    def addFile(self, filename, **kwargs):
         """Add a file to the trajectory instance. Currently only DCD files
         are supported."""
         
@@ -115,7 +116,7 @@ class Trajectory(TrajBase):
         if os.path.abspath(filename) in self._filenames:        
             raise IOError('{0:s} is already added to the trajectory'
                           .format(filename))
-        traj = openTrajFile(filename)
+        traj = openTrajFile(filename, **(kwargs or self._kwargs))
         n_atoms = self._n_atoms
         if n_atoms != 0 and n_atoms != traj.numAtoms():
             raise IOError('{0:s} must have same number of atoms as '
