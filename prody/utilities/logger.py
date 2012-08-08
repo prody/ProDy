@@ -90,6 +90,9 @@ class PackageLogger(object):
 
         from prody import deprecate
         deprecate('getVerbosity', 'verbosity')
+        return self._getverbosity()
+    
+    def _getverbosity(self):
         
         return LOGGING_LEVELS.get(self._logger.handlers[0].level)
     
@@ -98,7 +101,9 @@ class PackageLogger(object):
 
         from prody import deprecate
         deprecate('setVerbosity', 'verbosity')
+        self._setverbosity(level)
         
+    def _setverbosity(self, level):
         lvl = LOGGING_LEVELS.get(str(level).lower(), None)
         if lvl is None: 
             self.warning('{0:s} is not a valid log level.'.format(level))
@@ -106,7 +111,7 @@ class PackageLogger(object):
             self._logger.handlers[0].level = lvl
             self._level = lvl 
            
-    verbosity = property(getVerbosity, setVerbosity, doc=
+    verbosity = property(_getverbosity, _setverbosity, doc=
         """Verbosity *level* of the logger, default level is **debug**.  Log 
         messages are written to ``sys.stderr``.  Following logging levers are
         recognized:
