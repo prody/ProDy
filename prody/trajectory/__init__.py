@@ -61,18 +61,15 @@ SETTINGS = prody.SETTINGS
 
 __all__ = []
 
-def openTrajFile(filename):
+def openTrajFile(filename, *args, **kwargs):
     
-    ext = os.path.splitext(filename)[1]
-    if ext.lower() == '.dcd':
-        traj = DCDFile(filename)
-    else: 
+    ext = os.path.splitext(filename)[1][1:].lower()
+    try:
+        return TRAJFILE[ext](filename, *args, **kwargs)
+    except KeyError: 
         raise ValueError('Trajectory file type {0:s} is not recognized.'
                          .format(repr(ext)))
 
-    return traj 
-    
-    
 import trajbase
 from trajbase import *
 __all__.extend(trajbase.__all__)
@@ -93,3 +90,5 @@ import psffile
 from psffile import *
 __all__.extend(psffile.__all__)
    
+TRAJFILE = {'dcd': DCDFile}
+
