@@ -107,18 +107,18 @@ class PackageLogger(object):
             self._level = lvl 
            
     verbosity = property(getVerbosity, setVerbosity, doc=
-        """Verbosity *level* of the logger. Default verbosity level **debug**.  
-        Log messages are written to ``sys.stderr``.  This function accepts one 
-        of the following as *level* argument:
+        """Verbosity *level* of the logger, default level is **debug**.  Log 
+        messages are written to ``sys.stderr``.  Following logging levers are
+        recognized:
         
-        ========  ===========================================
+        ========  =============================================
         Level     Description
-        ========  ===========================================
-        debug     Everything will be printed on the console.
+        ========  =============================================
+        debug     Everything will be printed to the sys.stderr.
         info      Only brief information will be printed.
-        warning   Only warning information will be printed.
-        none      ProDy will not log any messages.
-        ========  ===========================================""")
+        warning   Only warning messages will be printed.
+        none      Nothing will be printed.
+        ========  =============================================""")
             
     def getPrefix(self):
         """Deprecated for removal in v1.3, get :attr:`prefix` directly."""
