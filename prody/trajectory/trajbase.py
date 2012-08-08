@@ -181,8 +181,11 @@ class TrajBase(object):
     def link(self, ag):
         """Link :class:`.AtomGroup` instance *ag* to the trajectory.  When a 
         new frame is parsed from the trajectory file, coordinates of *ag* and 
-        of all selections and atom subsets pointing to it, will be updated. 
-        To break an established link, pass **None** argument.
+        of all selections and atom subsets pointing to it, will be updated.
+        At link time, if *ag* does not have any coordinate sets and reference 
+        coordinates of the trajectory is set, reference coordinates of the
+        trajectory will be passed to *ag*. To break an established link, pass 
+        **None** argument.
 
         .. warning::
 
@@ -207,6 +210,8 @@ class TrajBase(object):
                 raise ValueError('atom group and trajectory must '
                                    'have same number of atoms')
             self._ag = ag
+            if ag._getCoords() is None and self._coords is not None:
+                self._ag._setCoords(self._coords)
             self._frame = Frame(None, None, None)
             self._atoms = self._atoms or ag
 
