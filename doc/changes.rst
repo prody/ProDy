@@ -68,6 +68,16 @@ and :ref:`outputtraj`.
   
   * :func:`.writePDB` function argument *model* is changed to *csets* that
     indicates the coordinate set index of *atoms* argument.
+    
+  * :meth:`.PackageLogger.timing` does not return time elapse, only logs this
+    information.
+    
+  * :meth:`.PackageLogger.startLogfile` is deprecated for removal in v1.3, use 
+    :meth:`.PackageLogger.start` instead.
+
+  * :meth:`.PackageLogger.closeLogfile` is deprecated for removal in v1.3, use 
+    :meth:`.PackageLogger.close` instead.
+
 
 **Deprecations**:
 
