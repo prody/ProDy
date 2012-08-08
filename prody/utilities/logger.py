@@ -53,9 +53,7 @@ class PackageLogger(object):
         logger = logging.getLogger(name)
         logger.setLevel(self._level)
 
-        prefix = kwargs.get('prefix', '@> ')
-        assert isinstance(prefix, str), 'prefix must be as string'
-        self._prefix = prefix
+        self._prefix = str(kwargs.get('prefix', '@> '))
         
         for handler in logger.handlers: 
             handler.close()
@@ -77,6 +75,7 @@ class PackageLogger(object):
         self._barlen = None
         self._prev = None
         self._line = None
+        self._timer = None
 
     def getVerbosity(self):
         """Return verbosity *level* of the logger."""
@@ -198,14 +197,14 @@ class PackageLogger(object):
             self._line = line
     
     def clear(self):
-        """Clear sys.stderr."""
+        """Clear current line in ``sys.stderr``."""
         
         if self._line and self._level < logging.WARNING:
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
             self._line = ''
 
     def write(self, line):
-        """Write *line* to sys.stderr."""
+        """Write *line* into ``sys.stderr``."""
         
         self._line = str(line)
         if self._level < logging.WARNING:
@@ -214,47 +213,61 @@ class PackageLogger(object):
             
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second. 
-        Message will start with ``"Waiting for XXs"``"""
+        Message will start with ``'Waiting for Xs '``"""
         
-        assert isinstance(seconds, int), 'seconds must be an integer'
-        assert isinstance(msg, str), 'msg must be a string'
+        msg = str(msg)
+        seconds = int(seconds)
         for second in range(seconds, 0, -1):
-            self.write('Waiting for {0:d}s{1:s}'.format(second, msg))
+            self.write('Waiting for {0:d}s {1:s}'.format(second, msg))
             time.sleep(1)
             self.clear()
             
     def startLogfile(self, filename, **kwargs):
-        """Start a file to save logs.
+        """Deprecated, use :meth:`start` instead."""
         
-        :keyword filename: name of the logfile
-        :keyword mode: mode in which logfile will be opened, default is "w" 
-        :keyword backupcount: number of existing *filename.log* files to 
+        from prody import deprecate
+        deprecate('startLogfile', 'start')
+        self.start(filename, **kwargs)
+        
+    def start(self, filename, **kwargs):
+        """Start a logfile.  If *filename* does not have an extension. 
+        :file:`.log` will be appended to it. 
+        
+        :arg filename: name of the logfile
+        :arg mode: mode in which logfile will be opened, default is "w" 
+        :arg backupcount: number of existing *filename.log* files to 
             backup, default is 1"""
 
-        assert isinstance(filename, str), 'filename must be a string'
-        logfilename = filename
-        if not logfilename.endswith('.log'):
-            logfilename += '.log'
+        filename = str(filename)
+        if os.path.splitext(filename)[1] == '':
+            filename += '.log'
         rollover = False 
         # if filemode='a' is provided, rollover is not performed
-        if os.path.isfile(logfilename) and kwargs.get('filemode', None) != 'a':
+        if os.path.isfile(filename) and kwargs.get('filemode', None) != 'a':
             rollover = True
-        logfile = logging.handlers.RotatingFileHandler(logfilename, 
+        logfile = logging.handlers.RotatingFileHandler(filename, 
                     mode=kwargs.get('mode', 'a'), maxBytes=0,
                     backupCount=kwargs.get('backupcount', 1))
         logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
         logfile.setFormatter(logging.Formatter('%(message)s'))
+        self.info("Logging into file: {0:s}".format(filename))
         self._logger.addHandler(logfile)
         if rollover:
             logfile.doRollover()
-        self.info("Logging into file: {0:s}".format(logfilename))
         self.info("Logging started at {0:s}".format(str(now())))
 
     def closeLogfile(self, filename):
-        """Close log file *filename*."""
+        """Deprecated, use :meth:`close` instead."""
+        
+        from prody import deprecate
+        deprecate('closeLogfile', 'close')
+        self.start(filename)
+        
+    def close(self, filename):
+        """Close logfile *filename*."""
         
         filename = str(filename)
-        if not filename.endswith('.log'):
+        if os.path.splitext(filename)[1] == '':
             filename += '.log'
         for index, handler in enumerate(self.getHandlers()):
             if isinstance(handler, logging.handlers.RotatingFileHandler):
@@ -262,6 +275,7 @@ class PackageLogger(object):
                     self.info("Logging stopped at {0:s}".format(str(now())))
                     handler.close()
                     self.delHandler(index)
+                    self.info("Closing logfile: {0:s}".format(filename))
                     return
         self.warning("Logfile '{0:s}' was not found.".format(filename))
 
@@ -270,12 +284,7 @@ class PackageLogger(object):
         
         self._timer = time.time()
         
-    def timing(self, msg=None):
-        """If *msg* is none, return time passes since timing started. If 
-        a message is given, e.g. ``"Completed in %.2fs."``, report the time 
-        it took to complete the process at *debug* log level."""
+    def timing(self, msg='Completed in %.2fs.'):
+        """Write *msg* with timing information at *debug* logging level."""
         
-        if msg is None:
-            return time.time() - self._timer
-        else:
-            self.debug(msg % (time.time() - self._timer))
+        self.debug(msg % (time.time() - max(self._timer, self._start)))
