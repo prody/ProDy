@@ -41,13 +41,18 @@ PACKAGE_DATA = {}
 if sys.version_info[:2] > (2, 6):
     PACKAGES.extend(['prody.tests',
                      'prody.tests.test_atomic',
-                     'prody.tests.test_dynamics', 
+                     'prody.tests.test_datafiles',
+                     'prody.tests.test_dynamics',
+                     'prody.tests.test_ensemble', 
                      'prody.tests.test_kdtree', 
                      'prody.tests.test_measure',
                      'prody.tests.test_proteins',
+                     'prody.tests.test_trajectory',
                      'prody.tests.test_utilities',])
-    PACKAGE_DATA['prody.tests'] = ['data/pdb*.pdb', 'data/*.dat', 
-                                   'data/*.coo', 'data/dcd*.dcd']
+    PACKAGE_DATA['prody.tests'] = ['test_datafiles/pdb*.pdb', 
+                                   'test_datafiles/*.dat', 
+                                   'test_datafiles/*.coo', 
+                                   'test_datafiles/dcd*.dcd']
 
 EXTENSIONS = []
 
