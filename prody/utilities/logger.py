@@ -85,6 +85,10 @@ class PackageLogger(object):
         self._line = None
         self._timer = None
 
+    # ====================
+    # Attributes
+    # ====================
+
     def getVerbosity(self):
         """Deprecated for removal in v1.3, get :attr:`verbosity` directly."""
 
@@ -145,6 +149,10 @@ class PackageLogger(object):
     prefix = property(_getprefix, _setprefix, doc='String prepended to console'
                       ' log messages.')
 
+    # ====================
+    # Logging methods
+    # ====================
+    
     def info(self, msg):
         """Log *msg* with severity 'INFO'."""
 
@@ -177,6 +185,25 @@ class PackageLogger(object):
         self.clear()
         self._logger.error(self._error + msg)
     
+    def write(self, line):
+        """Write *line* into ``sys.stderr``."""
+        
+        self._line = str(line)
+        if self._level < logging.WARNING:
+            sys.stderr.write(self._line)
+            sys.stderr.flush()
+    
+    def clear(self):
+        """Clear current line in ``sys.stderr``."""
+        
+        if self._line and self._level < logging.WARNING:
+            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
+            self._line = ''
+
+    # ====================
+    # Handlers & logfiles
+    # ====================
+    
     def addHandler(self, hdlr):
         """Add the specified handler to this logger."""
         
@@ -191,6 +218,67 @@ class PackageLogger(object):
         """Remove handler at given *index* from the logger instance."""
         
         self._logger.handlers.pop(index)
+
+    def startLogfile(self, filename, **kwargs):
+        """Deprecated, use :meth:`start` instead."""
+        
+        from prody import deprecate
+        deprecate('startLogfile', 'start')
+        self.start(filename, **kwargs)
+        
+    def start(self, filename, **kwargs):
+        """Start a logfile.  If *filename* does not have an extension. 
+        :file:`.log` will be appended to it. 
+        
+        :arg filename: name of the logfile
+        :arg mode: mode in which logfile will be opened, default is "w" 
+        :arg backupcount: number of existing *filename.log* files to 
+            backup, default is 1"""
+
+        filename = str(filename)
+        if os.path.splitext(filename)[1] == '':
+            filename += '.log'
+        rollover = False 
+        # if mode='a' is provided, rollover is not performed
+        if os.path.isfile(filename) and kwargs.get('mode', None) != 'a':
+            rollover = True
+        logfile = logging.handlers.RotatingFileHandler(filename, 
+                    mode=kwargs.get('mode', 'a'), maxBytes=0,
+                    backupCount=kwargs.get('backupcount', 1))
+        logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
+        logfile.setFormatter(logging.Formatter('%(message)s'))
+        self.info("Logging into file: {0:s}".format(filename))
+        self._logger.addHandler(logfile)
+        if rollover:
+            logfile.doRollover()
+        self.info("Logging started at {0:s}".format(str(now())))
+
+    def closeLogfile(self, filename):
+        """Deprecated, use :meth:`close` instead."""
+        
+        from prody import deprecate
+        deprecate('closeLogfile', 'close')
+        self.start(filename)
+        
+    def close(self, filename):
+        """Close logfile *filename*."""
+        
+        filename = str(filename)
+        if os.path.splitext(filename)[1] == '':
+            filename += '.log'
+        for index, handler in enumerate(self.getHandlers()):
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                if handler.stream.name in (filename,os.path.abspath(filename)):
+                    self.info("Logging stopped at {0:s}".format(str(now())))
+                    handler.close()
+                    self.delHandler(index)
+                    self.info("Closing logfile: {0:s}".format(filename))
+                    return
+        self.warning("Logfile '{0:s}' was not found.".format(filename))
+
+    # ====================
+    # Progress and timing
+    # ====================
 
     def progress(self, msg, steps, **kwargs):
         """Instantiate with message number of steps."""
@@ -231,21 +319,6 @@ class PackageLogger(object):
             sys.stderr.flush()
             self._prev = prev
             self._line = line
-    
-    def clear(self):
-        """Clear current line in ``sys.stderr``."""
-        
-        if self._line and self._level < logging.WARNING:
-            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            self._line = ''
-
-    def write(self, line):
-        """Write *line* into ``sys.stderr``."""
-        
-        self._line = str(line)
-        if self._level < logging.WARNING:
-            sys.stderr.write(self._line)
-            sys.stderr.flush()
             
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second. 
@@ -256,63 +329,6 @@ class PackageLogger(object):
             self.write('Waiting for {0:d}s {1:s}'.format(second, msg))
             time.sleep(1)
             self.clear()
-            
-    def startLogfile(self, filename, **kwargs):
-        """Deprecated, use :meth:`start` instead."""
-        
-        from prody import deprecate
-        deprecate('startLogfile', 'start')
-        self.start(filename, **kwargs)
-        
-    def start(self, filename, **kwargs):
-        """Start a logfile.  If *filename* does not have an extension. 
-        :file:`.log` will be appended to it. 
-        
-        :arg filename: name of the logfile
-        :arg mode: mode in which logfile will be opened, default is "w" 
-        :arg backupcount: number of existing *filename.log* files to 
-            backup, default is 1"""
-
-        filename = str(filename)
-        if os.path.splitext(filename)[1] == '':
-            filename += '.log'
-        rollover = False 
-        # if filemode='a' is provided, rollover is not performed
-        if os.path.isfile(filename) and kwargs.get('filemode', None) != 'a':
-            rollover = True
-        logfile = logging.handlers.RotatingFileHandler(filename, 
-                    mode=kwargs.get('mode', 'a'), maxBytes=0,
-                    backupCount=kwargs.get('backupcount', 1))
-        logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
-        logfile.setFormatter(logging.Formatter('%(message)s'))
-        self.info("Logging into file: {0:s}".format(filename))
-        self._logger.addHandler(logfile)
-        if rollover:
-            logfile.doRollover()
-        self.info("Logging started at {0:s}".format(str(now())))
-
-    def closeLogfile(self, filename):
-        """Deprecated, use :meth:`close` instead."""
-        
-        from prody import deprecate
-        deprecate('closeLogfile', 'close')
-        self.start(filename)
-        
-    def close(self, filename):
-        """Close logfile *filename*."""
-        
-        filename = str(filename)
-        if os.path.splitext(filename)[1] == '':
-            filename += '.log'
-        for index, handler in enumerate(self.getHandlers()):
-            if isinstance(handler, logging.handlers.RotatingFileHandler):
-                if handler.stream.name in (filename,os.path.abspath(filename)):
-                    self.info("Logging stopped at {0:s}".format(str(now())))
-                    handler.close()
-                    self.delHandler(index)
-                    self.info("Closing logfile: {0:s}".format(filename))
-                    return
-        self.warning("Logfile '{0:s}' was not found.".format(filename))
 
     def timeit(self):
         """Start timing a process.  Use :meth:`timing` to report time."""
