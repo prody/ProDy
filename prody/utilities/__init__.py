@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module provides utility functions for handling files, logging, type 
-checking, etc.  Contents of this module are not included in ProDy namespace, 
-so they need to be imported as ``from prody.utilities import *``.
+"""This module provides utility functions and classes for handling files, 
+logging, type checking, etc.  Contents of this module are not included in 
+ProDy namespace, as it is not safe to import them all due to name conflicts.  
+Required or classes should be imported explicitly, e.g. 
+``from prody.utilities import PackageLogger, openFile``.
 
 
 Package Utilities
@@ -33,6 +35,7 @@ Type/Value Checkers
 ===============================================================================
 
   * :func:`.checkCoords`
+  * :func:`.checkWeights`
   * :func:`.checkTypes`
 
 Path/file handling
@@ -49,6 +52,7 @@ Path/file handling
   * :func:`.which`
   * :func:`.pickle`
   * :func:`.unpickle`
+  * :func:`.glob`
 
 Miscellaneous
 ===============================================================================
@@ -69,20 +73,15 @@ __all__ = []
 
 import checkers
 from checkers import *
-__all__.extend(checkers.__all__)
 
 import logger
 from logger import *
-__all__.extend(logger.__all__)
 
 import settings
 from settings import *
-__all__.extend(settings.__all__)
 
 import pathtools
 from pathtools import *
-__all__.extend(pathtools.__all__)
 
 import misctools
 from misctools import *
-__all__.extend(misctools.__all__)

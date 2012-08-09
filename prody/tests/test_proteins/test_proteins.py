@@ -29,7 +29,7 @@ import numpy as np
 from numpy.testing import *
 
 from prody import *
-from prody.utilities import *
+from prody.utilities import which
 from prody.tests import TEMPDIR
 from prody.tests.test_datafiles import *
 
