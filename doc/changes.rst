@@ -43,6 +43,10 @@ and :ref:`outputtraj`.
   * :ref:`flags`, that are used in :ref:`selections`, is implemented.  See
     its documentation for handy usage examples.
     
+  * :func:`.sortAtoms` function is implemented.
+  
+  * :func:`.glob` utility function is implemented.
+    
 **Improvements**:
 
   * :class:`.HierView` instances are built more efficiently.  Two times 
@@ -77,6 +81,10 @@ and :ref:`outputtraj`.
 
   * :meth:`.PackageLogger.closeLogfile` is deprecated for removal in v1.3, use 
     :meth:`.PackageLogger.close` instead.
+    
+  * ``from prody.utilities import *`` will not work anymore due to potential
+    name conflicts with Python standard library functions.  Import required
+    functions explicitly.
 
 
 **Deprecations**:
