@@ -249,9 +249,10 @@ def test(**kwargs):
     if sys.version_info[:2] > (2,6):
         try:
             import prody.tests
-        except ImportError:
+        except ImportError as err:
             LOGGER.warning('Could not import ProDy unit tests, '
                            'please check your installation.')
+            raise type(err)(str(err))
         else:
             prody.tests.test(**kwargs)
     else:
