@@ -47,6 +47,7 @@ class Trajectory(TrajBase):
         self._filenames = set()
         self._n_files = 0
         self._cfi = 0 # current file index
+        assert 'mode' not in kwargs, 'mode is an invalid keyword argument'
         self._kwargs = kwargs
         if os.path.isfile(name):
             self.addFile(name)
@@ -116,6 +117,7 @@ class Trajectory(TrajBase):
         if os.path.abspath(filename) in self._filenames:        
             raise IOError('{0:s} is already added to the trajectory'
                           .format(filename))
+        assert 'mode' not in kwargs, 'mode is an invalid keyword argument'
         traj = openTrajFile(filename, **(kwargs or self._kwargs))
         n_atoms = self._n_atoms
         if n_atoms != 0 and n_atoms != traj.numAtoms():
