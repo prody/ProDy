@@ -22,7 +22,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os
 import gzip
-import cPickle
+from glob import glob as pyglob
+import pickle as pypickle
 import os.path
 import zipfile
 import platform
@@ -36,7 +37,7 @@ getsize = os.path.getsize
 __all__ = ['gunzip', 'openFile', 'openDB', 
            'isExecutable', 'isReadable', 'isWritable', 
            'makePath', 'relpath', 'which', 
-           'pickle', 'unpickle', 
+           'pickle', 'unpickle', 'glob',
            'PLATFORM', 'USERHOME']
         
 
@@ -160,19 +161,19 @@ def which(program):
 
 
 def pickle(obj, filename, **kwargs):
-    """Pickle *obj* using :mod:`cPickle` and dump in *filename*."""
+    """Pickle *obj* using :func:`pickle.dump` in *filename*."""
     
     out = openFile(filename, 'wb', **kwargs)
-    cPickle.dump(obj, out)
+    pypickle.dump(obj, out)
     out.close()
     return filename
 
 
 def unpickle(filename, **kwargs):
-    """Unpickle object in *filename* using :mod:`cPickle`."""
+    """Unpickle object in *filename* using :func:`pickle.load`."""
     
     inf = openFile(filename, 'rb', **kwargs)
-    obj = cPickle.load(inf)
+    obj = pypickle.load(inf)
     inf.close()
     return obj
 
@@ -181,3 +182,17 @@ def openDB(filename, *args):
     
     import anydbm
     return anydbm.open(filename, *args)
+
+
+def glob(*pathnames):
+    """Return concatenation of ordered lists of paths matching patterns in 
+    *pathnames*."""
+    
+    paths = []
+    for pathname in pathnames:
+        matches = pyglob(pathname)
+        matches.sort()
+        paths.extend(matches)
+    return paths
+        
+        
