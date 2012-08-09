@@ -29,9 +29,9 @@ from numpy import array
 from numpy.testing import assert_allclose
 
 from prody.trajectory import Trajectory 
-from prody.tests.test_datafiles import parseDatafile, getDatafilePath
+from prody.tests.test_datafiles import parseDatafile, pathDatafile
 
-DCD = Trajectory(getDatafilePath('dcd'))
+DCD = Trajectory(pathDatafile('dcd'))
 PDB = parseDatafile('multi_model_truncated', model=1)
 RMSD_ALL = array([0.0, 1.380, 1.745])
 RMSD_CARBON = array([0.0, 0.964, 1.148])

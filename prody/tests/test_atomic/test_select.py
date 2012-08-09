@@ -43,7 +43,7 @@ TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
 # If two selection strings are paired, they must select exactly same of atoms
 # Else, number must be the number atoms that the string is expected to select 
 
-pdb3mht = prody.parsePDB(getDatafilePath('pdb3mht.pdb'), secondary=True)
+pdb3mht = prody.parsePDB(pathDatafile('pdb3mht.pdb'), secondary=True)
 
 SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': len(pdb3mht),

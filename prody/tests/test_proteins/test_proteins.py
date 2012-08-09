@@ -130,7 +130,7 @@ class TestParsePDB(unittest.TestCase):
     def testModelArgument(self):
         """Test outcome of valid and invalid *model* arguments."""
         
-        path = getDatafilePath(self.pdb['file'])
+        path = pathDatafile(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, model='0')
         self.assertRaises(ValueError, parsePDB, path, model=-1)
         self.assertRaises(proteins.PDBParseError, parsePDB, path, 
@@ -146,7 +146,7 @@ class TestParsePDB(unittest.TestCase):
     def testTitleArgument(self):
         """Test outcome of *title* argument."""
         
-        path = getDatafilePath(self.pdb['file'])
+        path = pathDatafile(self.pdb['file'])
         title = 'small protein'    
         self.assertEqual(parsePDB(path, title=title).getTitle(), 
              title, 'parsePDB failed to set user given title')
@@ -158,7 +158,7 @@ class TestParsePDB(unittest.TestCase):
     def testChainArgument(self):
         """Test outcome of valid and invalid *chain* arguments."""
         
-        path = getDatafilePath(self.pdb['file'])
+        path = pathDatafile(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, chain=['A'])
         self.assertRaises(ValueError, parsePDB, path, chain='')
         self.assertIsNone(parsePDB(path, chain='$'))
@@ -170,7 +170,7 @@ class TestParsePDB(unittest.TestCase):
     def testSubsetArgument(self):
         """Test outcome of valid and invalid *subset* arguments."""
 
-        path = getDatafilePath(self.pdb['file'])
+        path = pathDatafile(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, subset=['A'])
         self.assertEqual(parsePDB(path, subset='ca').numAtoms(), 10,
                         'failed to parse correct number of "ca" atoms')
@@ -180,7 +180,7 @@ class TestParsePDB(unittest.TestCase):
     def testAgArgument(self):
         """Test outcome of valid and invalid *ag* arguments."""
 
-        path = getDatafilePath(self.pdb['file'])
+        path = pathDatafile(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
         ag = prody.AtomGroup('One atom')
         ag.setCoords(np.array([[0., 0., 0.]]))
@@ -193,7 +193,7 @@ class TestParsePDB(unittest.TestCase):
     def testAgArgMultiModel(self):
         """Test number of coordinate sets when using *ag* arguments."""
         
-        path = getDatafilePath(self.pdb['file'])
+        path = pathDatafile(self.pdb['file'])
         ag = parsePDB(path)
         coords = ag.getCoordsets()
         ncsets = ag.numCoordsets()
@@ -205,7 +205,7 @@ class TestParsePDB(unittest.TestCase):
     def testAgArgSingleModel(self):
         """Test number of coordinate sets when using *ag* arguments."""
         
-        path = getDatafilePath(self.ca['file'])
+        path = pathDatafile(self.ca['file'])
         ag = parsePDB(path)
         coords = ag.getCoordsets()
         ncsets = ag.numCoordsets()
@@ -280,7 +280,7 @@ class TestWritePDB(unittest.TestCase):
 class TestParsePDBHeaderOnly(unittest.TestCase):
     
     def setUp(self):
-        self.header = parsePDB(getDatafilePath('pdb2k39_truncated.pdb'), 
+        self.header = parsePDB(pathDatafile('pdb2k39_truncated.pdb'), 
                                header=True, model=0)
 
     def testHeaderType(self):
@@ -311,7 +311,7 @@ class TestParsePDBHeaderAndAllModels(unittest.TestCase):
 
     def setUp(self):
         self.atomgroup, self.header = \
-            parsePDB(getDatafilePath('pdb2k39_truncated.pdb'), header=True)
+            parsePDB(pathDatafile('pdb2k39_truncated.pdb'), header=True)
 
     def testAtomGroupType(self):
         self.assertIsInstance(self.header, dict,
@@ -336,7 +336,7 @@ class TestParsePDBAltloc(unittest.TestCase):
     
     def setUp(self):
         
-        self.pdbfile = getDatafilePath('pdb1ejg.pdb')
+        self.pdbfile = pathDatafile('pdb1ejg.pdb')
     
     def testAltlocNone(self):
         
@@ -389,7 +389,7 @@ class TestDSSPFunctions(unittest.TestCase):
 
         for pdb in self.pdbs:
             prot_ag = parseDatafile(pdb['file'], folder=TEMPDIR)
-            dssp = execDSSP(getDatafilePath(pdb['file']), outputdir=TEMPDIR, 
+            dssp = execDSSP(pathDatafile(pdb['file']), outputdir=TEMPDIR, 
                             stderr=False)
             parseDSSP(dssp, prot_ag, parseall=True)
     

@@ -27,7 +27,7 @@ from numpy import array, ones, arange
 from numpy.testing import assert_approx_equal, assert_equal
 from numpy.testing import assert_array_almost_equal
 
-from prody.tests.test_datafiles import parseDatafile, getDatafilePath
+from prody.tests.test_datafiles import parseDatafile, pathDatafile
 
 from prody.trajectory import DCDFile
 from prody.measure import calcDistance, buildDistMatrix
@@ -123,14 +123,14 @@ class TestMSF(unittest.TestCase):
 
     def testMSF(self):
         
-        dcd = DCDFile(getDatafilePath('dcd'))
+        dcd = DCDFile(pathDatafile('dcd'))
         ens = parseDatafile('dcd')
         ens.superpose()
         assert_array_almost_equal(calcMSF(dcd), calcMSF(ens), 4)
 
     def testMSFfloat(self):
         
-        dcd = DCDFile(getDatafilePath('dcd'), astype=float)
+        dcd = DCDFile(pathDatafile('dcd'), astype=float)
         ens = parseDatafile('dcd', astype=float)
         ens.superpose()
         assert_array_almost_equal(calcMSF(dcd), calcMSF(ens), 10)

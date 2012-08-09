@@ -24,7 +24,7 @@ import unittest
 from numpy import array, concatenate, unique
 from numpy.testing import assert_array_equal, assert_equal
 
-from prody.tests.test_datafiles import parseDatafile, getDatafilePath
+from prody.tests.test_datafiles import parseDatafile, pathDatafile
 
 from prody.measure import Contacts, findNeighbors, iterNeighbors
 from prody.measure import buildDistMatrix, calcDistance

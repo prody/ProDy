@@ -1,5 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
 # 
 # Copyright (C) 2010-2012 Ahmet Bakan
@@ -17,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains unit tests for testing presence of data files.
+"""This module defines unit test data files and functions to access them.
 Data files used in tests are truncated PDB files, e.g. most of atoms and/or
 models and/or header sections are removed for having a compact installation
 package that contains test modules and files as well."""
@@ -25,40 +23,32 @@ package that contains test modules and files as well."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import sys
-import os.path
-import unittest
 import inspect
 import tempfile
+from os.path import abspath, join, isfile, split, splitext
+from unittest import TestCase
 
-import numpy as np
-import prody
+from numpy import array
 
+from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray
 
-try:
-    import nose
-except ImportError:
-    NONOSE = True
-    NONOSE_MSG = 'nose could not be imported'
-else:
-    NONOSE = False
-    NONOSE_MSG = ''
-
+TESTDIR = abspath(split(split(inspect.getfile(inspect.currentframe()))[0])[0])
 TEMPDIR = tempfile.gettempdir()
+
 DATA_FILES = {
     'multi_model_truncated': {
         'pdb': '2k39',
         'file': 'pdb2k39_truncated.pdb',
         'atoms': 167,
         'models': 3,
-        'rmsd_all_aligned': np.array([0.000, 1.380, 1.745]),
-        'rmsd_bb_aligned': np.array([0.000, 0.367, 0.395]),
-        'rmsd_ca_aligned': np.array([0.000, 0.393, 0.411]),
-        'rmsd_noh_aligned': np.array([0.000, 0.985, 1.285]),
-        'rmsd_all': np.array([0.000, 1.539, 1.964]),
-        'rmsd_bb': np.array([0.000, 0.654, 0.678]),
-        'rmsd_ca': np.array([0.000, 0.680, 0.690]),
-        'rmsd_noh': np.array([0.000, 1.191, 1.543]),
+        'rmsd_all_aligned': array([0.000, 1.380, 1.745]),
+        'rmsd_bb_aligned': array([0.000, 0.367, 0.395]),
+        'rmsd_ca_aligned': array([0.000, 0.393, 0.411]),
+        'rmsd_noh_aligned': array([0.000, 0.985, 1.285]),
+        'rmsd_all': array([0.000, 1.539, 1.964]),
+        'rmsd_bb': array([0.000, 0.654, 0.678]),
+        'rmsd_ca': array([0.000, 0.680, 0.690]),
+        'rmsd_noh': array([0.000, 1.191, 1.543]),
     },
     'dssp': {
         'pdb': '1r19',
@@ -111,39 +101,39 @@ DATA_FILES = {
 
 
 PARSERS = {
-    '.dcd': prody.parseDCD,
-    '.pdb': prody.parsePDB,
-    '.coo': prody.parseSparseMatrix,
-    '.dat': prody.parseArray,
-    '.gz': lambda fn, **kwargs: PARSERS[os.path.splitext(fn)[1]](fn, **kwargs)      
+    '.dcd': parseDCD, '.pdb': parsePDB,
+    '.coo': parseSparseMatrix, '.dat': parseArray,
+    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)      
 }
-TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
-                                                   inspect.currentframe()))[0])
-__all__ = ['parseDatafile', 'getDatafilePath', 
-           'DATA_FILES', 'TEMPDIR', 'NONOSE', 'NONOSE_MSG']
 
 
-def getDatafilePath(filename):
+__all__ = ['parseDatafile', 'pathDatafile', 
+           'DATA_FILES', 'TEMPDIR', 'TESTDIR']
+
+
+def pathDatafile(filename):
 
     try:
         filename = DATA_FILES[filename]['file']
     except KeyError:
         pass
     assert isinstance(filename, str), 'filename must be a string'
-    fn = os.path.join(TESTS_PATH, 'data', filename)
-    assert os.path.isfile(fn), 'No such file: "{0:s}"'.format(fn)
+    fn = join(TESTDIR, 'test_datafiles', filename)
+    assert isfile(fn), 'No such file: "{0:s}"'.format(fn)
     return fn
 
+
 def parseDatafile(filename, **kwargs):
-    """*filename* must be present in :file:`prody/tests/data` folder."""
+    """*filename* must be present in :file:`prody/tests/test_datafiles`."""
     
     if filename in DATA_FILES:
         filename = DATA_FILES[filename]['file']
-    fn = getDatafilePath(filename)
-    return PARSERS[os.path.splitext(fn)[1]](fn, **kwargs)
+    fn = pathDatafile(filename)
+    return PARSERS[splitext(fn)[1]](fn, **kwargs)
+
 
 for name, value in DATA_FILES.iteritems():
-    value['path'] = getDatafilePath(value['file'])
+    value['path'] = pathDatafile(value['file'])
 
 
 class TestDatafilesMeta(type):
@@ -154,16 +144,15 @@ class TestDatafilesMeta(type):
             fn = value['file']
             def testFunction(self, filename=fn, **kwargs):
                 
-                self.assertTrue(os.path.isfile(getDatafilePath(filename)))
+                self.assertTrue(isfile(pathDatafile(filename)))
             
             testFunction.__name__ = 'testDatafile_{0:s}'.format(name)
             testFunction.__doc__ = 'Test presence of "{0:s}"'.format(fn)
             setattr(cls, testFunction.__name__, testFunction)
 
 
-class TestDatafiles(unittest.TestCase):
+class TestDatafiles(TestCase):
 
     """Test presence of data files."""
     
     __metaclass__ = TestDatafilesMeta
-    
