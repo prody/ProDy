@@ -117,7 +117,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     data = urllib.urlencode(query)
     
     while True:
-        LOGGER.sleep(int(sleep), ' to connect NCBI for search results.')
+        LOGGER.sleep(int(sleep), 'to reconnect NCBI for search results.')
         LOGGER.write('Connecting NCBI for search results...')
         request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
         handle = urllib2.urlopen(request)

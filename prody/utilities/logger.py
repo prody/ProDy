@@ -249,11 +249,10 @@ class PackageLogger(object):
             
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second. 
-        Message will start with ``'Waiting for Xs '``"""
+        Message will start with ``'Waiting for Xs '`` followed by *msg*."""
         
         msg = str(msg)
-        seconds = int(seconds)
-        for second in range(seconds, 0, -1):
+        for second in range(int(seconds), 0, -1):
             self.write('Waiting for {0:d}s {1:s}'.format(second, msg))
             time.sleep(1)
             self.clear()
