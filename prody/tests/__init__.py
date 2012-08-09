@@ -36,9 +36,17 @@ Testing will use :mod:`nose` if it is available, otherwise it will use
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import sys
-import prody
-LOGGER = prody.LOGGER
+from sys import stderr
+from glob import glob
+from os.path import abspath, split, join, relpath, splitext
+from os.path import sep as dirsep
+import inspect
+import tempfile
+
+from prody import LOGGER
+
+TESTDIR = abspath(split(inspect.getfile(inspect.currentframe()))[0])
+TEMPDIR = tempfile.gettempdir()
 
 try:
     import nose
@@ -48,23 +56,13 @@ except ImportError:
     LOGGER.warning('Failed to import nose, using unittest for testing.')
     LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
     import unittest
-    def test(verbosity=2, descriptions=True, stream=sys.stderr):
+    def test(verbosity=2, descriptions=True, stream=stderr):
         testrunner = unittest.TextTestRunner(stream, descriptions, 
                                              verbosity)
-        for module in ['test_datafiles',
-                       'test_atomic.test_atomic', 
-                       'test_atomic.test_select', 
-                       'test_dynamics.test_enms',
-                       'test_dynamics.test_editing', 
-                       'test_ensemble', 
-                       'test_kdtree.test_kdtree', 
-                       'test_measure.test_contacts',
-                       'test_measure.test_measure',
-                       'test_measure.test_transform',
-                       'test_proteins.test_pairwise2', 
-                       'test_proteins.test_proteins', 
-                       'test_utilites.test_checkers',
-                       'test_utilites.test_misctools',]:
+        for pyfile in glob(join(TESTDIR, '*', '*.py')):
+            pyfile = splitext(relpath(pyfile, TESTDIR))[0]
+            module = '.'.join(pyfile.split(dirsep))
+            print module
             testrunner.run(unittest.defaultTestLoader.
                            loadTestsFromName('prody.tests.' + module))
 else:
