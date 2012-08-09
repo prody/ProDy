@@ -70,15 +70,25 @@ def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     return sep.join([str(l[0]) if len(l) == 1 else 
                      str(l[0]) + rng + str(l[-1] + exc) for l in lint])
 
-def alnum(string, alt='_'):
-    """Replace non alpha numeric characters with *alt*."""
+def alnum(string, alt='_', trim=False, single=False):
+    """Replace non alpha numeric characters with *alt*.  If *trim* is **True**
+    remove preceding and trailing *arg* characters.  If *single* is **True**,
+    contain only a single joining *alt* character. """
     
     result = ''
+    multi = not bool(single)
+    prev = None
     for char in string:
         if char.isalnum():
             result += char
+            prev = char
         else:
-            result += alt
+            if multi or prev != alt:
+                result += alt
+            prev = alt
+    trim = int(bool(trim))
+    result = result[trim * (result[0] == alt):
+                    len(result) - trim * (result[-1] == alt)]
     return result
 
 
