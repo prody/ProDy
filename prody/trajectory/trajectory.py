@@ -47,9 +47,9 @@ class Trajectory(TrajBase):
         self._filenames = set()
         self._n_files = 0
         self._cfi = 0 # current file index
-        if os.path.isfile(name):
-            self.addFile(name, **kwargs)
         self._kwargs = kwargs
+        if os.path.isfile(name):
+            self.addFile(name)
 
     def __repr__(self):
         
