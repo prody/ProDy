@@ -20,7 +20,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import unittest
+from unittest import TestCase
 
 from numpy.random import random
 from numpy.testing import assert_equal
@@ -30,7 +30,7 @@ from prody.utilities import checkCoords, checkTypes
 COORDS = random((10, 3))*10
 COORDSET = random((2, 10, 3))*10
 
-class TestCheckCoords(unittest.TestCase):
+class TestCheckCoords(TestCase):
     
     def testInvalidCoords(self):
         
@@ -51,7 +51,7 @@ class TestCheckCoords(unittest.TestCase):
                           natoms=20)
 
 
-class testCheckTypes(unittest.TestCase):
+class testCheckTypes(TestCase):
     
     def testCorrectMonotypeOneArg(self):
         

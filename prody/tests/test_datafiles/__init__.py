@@ -23,17 +23,15 @@ package that contains test modules and files as well."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import inspect
-import tempfile
-from os.path import abspath, join, isfile, split, splitext
+
+from os.path import join, isfile, split, splitext
 from unittest import TestCase
 
 from numpy import array
 
 from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray
+from prody.tests import TEMPDIR, TESTDIR
 
-TESTDIR = abspath(split(split(inspect.getfile(inspect.currentframe()))[0])[0])
-TEMPDIR = tempfile.gettempdir()
 
 DATA_FILES = {
     'multi_model_truncated': {
@@ -107,8 +105,7 @@ PARSERS = {
 }
 
 
-__all__ = ['parseDatafile', 'pathDatafile', 
-           'DATA_FILES', 'TEMPDIR', 'TESTDIR']
+__all__ = ['parseDatafile', 'pathDatafile', 'DATA_FILES']
 
 
 def pathDatafile(filename):

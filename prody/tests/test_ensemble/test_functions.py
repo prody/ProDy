@@ -17,31 +17,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
+"""This module contains unit tests for :mod:`~prody.ensemble`."""
+
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
-from prody.utilities import rangeString
+from numpy.testing import assert_equal
+
+from prody import calcOccupancies, PDBEnsemble
+from . import PDBENSEMBLE, WEIGHTS, ENSEMBLE
 
 
-class TestRangeString(TestCase):
-    
-    def testContinuous(self):
-        
-        self.assertEqual(rangeString(range(10)), '0 to 9')
-        
-    def testNegative(self):
-        
-        self.assertEqual(rangeString(range(-5, 10), pos=False), '-5 to 9')
+class TestCalcOccupancies(TestCase):
 
-    def testGapped(self):
-        
-        self.assertEqual(rangeString(range(-5, 10) + range(15, 20) + 
-                                     range(25, 30), pos=False), 
-                                     '-5 to 9 15 to 19 25 to 29')
+    def testResults(self):
+        assert_equal(calcOccupancies(PDBENSEMBLE), WEIGHTS.sum(0).flatten(),
+                     'calcOccupancies failed')
 
-    def testRepeated(self):
+    def testInvalidType(self):
         
-        self.assertEqual(rangeString(range(10, 20) + range(15, 20) + 
-                                     range(30)), '0 to 29')
+        self.assertRaises(TypeError, calcOccupancies, ENSEMBLE)
+        
+    def testWeightsNone(self):
+        
+        self.assertRaises(ValueError, calcOccupancies, PDBEnsemble())
+

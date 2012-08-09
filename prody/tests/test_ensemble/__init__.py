@@ -17,3 +17,45 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
+
+from numpy import array, invert, ones, tile 
+
+from prody import Ensemble, PDBEnsemble, setVerbosity
+from prody.tests.test_datafiles import parseDatafile, DATA_FILES
+
+setVerbosity('none')
+
+ATOL = 1e-5
+RTOL = 0
+
+ATOMS = parseDatafile('multi_model_truncated', subset='ca')
+ALLATOMS = parseDatafile('multi_model_truncated')
+DCD = parseDatafile('dcd')
+COORDS = ATOMS.getCoords()
+COORDSETS = ATOMS.getCoordsets()
+ENSEMBLE = Ensemble(ATOMS)
+CONF = ENSEMBLE[0]
+DATA = DATA_FILES['multi_model_truncated']
+ENSEMBLE_RMSD = DATA['rmsd_ca']
+ENSEMBLE_SUPERPOSE = DATA['rmsd_ca_aligned']
+
+ENSEMBLEW = Ensemble(ATOMS)
+ENSEMBLEW.setWeights(ones(len(ATOMS), dtype=float))
+CONFW = ENSEMBLEW[0]
+        
+PDBENSEMBLE = PDBEnsemble('PDBEnsemble')
+PDBENSEMBLE.setCoords(COORDS)
+WEIGHTS = []
+for i, xyz in enumerate(ATOMS.iterCoordsets()):
+    weights = ones((len(ATOMS), 1), dtype=float)
+    if i > 0:
+        weights[i] = 0
+        weights[-i] = 0 
+        PDBENSEMBLE.addCoordset(xyz, weights=weights)
+    else:
+        PDBENSEMBLE.addCoordset(xyz)
+    WEIGHTS.append(weights)
+PDBCONF = PDBENSEMBLE[0]
+WEIGHTS = array(WEIGHTS)
+WEIGHTS_BOOL = tile(WEIGHTS.astype(bool), (1,1,3))  
+WEIGHTS_BOOL_INVERSE = invert(WEIGHTS_BOOL)
