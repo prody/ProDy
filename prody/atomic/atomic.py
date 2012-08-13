@@ -71,13 +71,21 @@ class Atomic(object):
                     try:
                         dummies = self.numDummies()
                     except AttributeError:
-                        return Selection(ag, self._getSubset(name), selstr, 
-                                         self.getACSIndex(), unique=True)
+                        indices = self._getSubset(name)
+                        if len(indices):
+                            return Selection(ag, indices, selstr, 
+                                              self._acsi, unique=True)
+                        else:
+                            return None
                     else:
-                        return AtomMap(ag, self._getSubset(name), 
-                        self.getACSIndex(), intarrays=True, dummies=dummies,
-                        title='Selection {0:s} from '.format(repr(name)) + 
-                        str(self))
+                        indices = self._getSubset(name)
+                        if len(indices):
+                            return AtomMap(ag, indices, self._acsi, 
+                                           intarrays=True, dummies=dummies,
+                                           title='Selection ' + repr(name) + 
+                                                 ' from ' + str(self))
+                        else:
+                            return None
                 else:
                     selstr = name
                     items = name.split('_')
