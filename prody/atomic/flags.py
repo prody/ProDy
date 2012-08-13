@@ -631,7 +631,6 @@ for resi in resnames:
 
 resnames = ('1FH 2FH DDH DHE HAS HDD HDE HDM HEA HEB HEC HEM HEO HES HEV NTE '
             'SRM VER').split()
-RESIFLAGS['heme'] = set(resnames)
 resnames.sort()
 
 __doc__ += """
@@ -640,7 +639,11 @@ Heme
 -------------------------------------------------------------------------------
 
 """ + wrap('**heme** flag indicates `' + '`_, `'.join(resnames) + 
-           '`_ from *PDB*.') + '\n\n'
+           '`_ from *PDB*, as well as HEMO and HEMR from CHARMM.') + '\n\n'
+
+resnames.extend(['HEMO', 'HEMR'])
+RESIFLAGS['heme'] = set(resnames)
+
 
 for resi in resnames:
     __doc__ += PDBLIGSUM.format(resi)
