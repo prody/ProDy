@@ -73,13 +73,13 @@ def prody_contacts(**kwargs):
         sel = contacts(radius, ligand)
         if sel:
             LOGGER.info('{0:d} atoms from {1:s} contact {2:s}.'
-                        .format(len(sel), pdb, target.getTitle()))
+                        .format(len(sel), pdb, str(target)))
             if extend:
                 sel = target.select('same ' + extend + ' as sel', sel=sel)
                 LOGGER.info('Selection is extended to {0:d} atoms of the same '
                             '{1:s}(s).'.format(len(sel), extend))
             pdbfn = outfn(ligand.getTitle())
-            LOGGER.info('Writing file: ' + pdbfn)
+            LOGGER.info('Writing contacts into ' + pdbfn)
             prody.writePDB(pdbfn, sel)
    
                 
