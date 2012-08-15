@@ -728,6 +728,7 @@ PDBLINE = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
            '%4s%2s\n')
 
 _writePDBdoc = """
+
     :arg atoms: an object with atom and coordinate data
     
     :arg csets: coordinate set indices, default is all coordinate sets
@@ -738,9 +739,7 @@ def writePDBStream(stream, atoms, csets=None):
     """Write *atoms* in PDB format to a *stream*.
     
     :arg stream: anything that implements a :meth:`write` method (e.g. file, 
-        buffer, stdout)
-    
-    """
+        buffer, stdout)"""
 
     remark = str(atoms)
     try:
