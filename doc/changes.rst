@@ -45,6 +45,12 @@ and :ref:`outputtraj`.
     
   * :func:`.sortAtoms` function is implemented.
   
+  * :func:`.pickCentralConf` function is implemented to pick the conformation
+    or the active coordinate set that is closest to the average of coordinate 
+    sets.
+    
+  * :func:`.writePSF`, a simple PSF file writer, is implemented.
+
   * :func:`.glob` utility function is implemented.
     
 **Improvements**:
@@ -61,6 +67,9 @@ and :ref:`outputtraj`.
     and :class:`.Frame` instances as atoms argument.
   
   * :func:`.writePDB` function is around 25% faster.
+
+  * :func:`.pickCentral` is extended to accept :class:`.Atomic` and 
+    :class:`.Ensemble` instances. Old function is now :func:`.pickCentralAtom`.
     
 **Changes**:
 
@@ -92,6 +101,10 @@ and :ref:`outputtraj`.
   * :meth:`.AtomGroup.getHeretos` method has been deprecated for removal in
     v1.3, use ``getFlags('hetatm')`` instead.
     
+**Bugfixes**:
+
+  * Fixed a bug in :ref:`prody-contacts` command that arose problems when
+    when selecting a subset of the target atoms.
 
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
