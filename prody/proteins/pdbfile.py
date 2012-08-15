@@ -805,9 +805,6 @@ def writePDBStream(stream, atoms, csets=None):
     resnums = atoms._getResnums()
     if resnums is None:
         resnums = np.ones(n_atoms, int)
-    else:
-        if resnums.dtype != int:
-            resnums = resnums.astype(int)
     
     occupancies = atoms._getOccupancies()
     if occupancies is None:
