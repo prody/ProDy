@@ -785,7 +785,7 @@ def writePDBStream(stream, atoms, csets=None):
     
     atomnames = atoms.getNames()
     if atomnames is None:
-        raise RuntimeError('atom names are not set')
+        raise ValueError('atom names are not set')
     for i, an in enumerate(atomnames):
         if len(an) < 4:
             atomnames[i] = ' ' + an
