@@ -36,7 +36,7 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            'calcMSF', 'calcRMSF',
            'calcDeformVector', 
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
-           'pickCentral']
+           'pickCentral', 'pickCentralAtom', 'pickCentralConf']
            
 RAD2DEG = 180 / pi
 
@@ -397,25 +397,51 @@ def getCenter(coords, weights=None):
         return (coords * weights).sum(-2) / weights.sum()
 
 
-def pickCentral(atoms, weights=None):
+def pickCentral(obj, weights=None):
+    """Return :class:`.Atom` or :class:`.Conformation` that is closest to the 
+    center of *obj*, which may be an :class:`.Atomic` or :class:`.Ensemble`
+    instance.  See also :func:`pickCentralAtom`, and :func:`pickCentralConf`
+    functions."""
+    
+    try:
+        obj.getACSIndex()
+    except AttributeError:
+        try:
+            obj.numConfs()
+        except AttributeError:
+            raise TypeError('obj must be an Atomic or Ensemble instance')
+        else:
+            return pickCentralConf(obj, weights)
+    else:
+        return pickCentralAtom(obj, weights)
+
+
+def pickCentralAtom(atoms, weights=None):
     """Return :class:`.Atom` that is closest to the center, which is calculated
     using :func:`calcCenter`."""
         
-    if not isinstance(atoms, Atomic):
+    try:
+        acsi, coords = atoms.getACSIndex(), atoms._getCoords()
+    except AttributeError:
         raise TypeError('atoms must be an Atomic instance')
-    if isinstance(atoms, Atom):
-        return atoms
-    if isinstance(atoms, AtomGroup):
-        ag = atoms
     else:
+        if coords is None:
+            raise ValueError('coordinates are not set')
+        
+    try:
         ag = atoms.getAtomGroup()
-    if len(atoms) == 1:
-        index = atoms._getIndices()[0]
+    except AttributeError:
+        ag = atoms
+        indices = None
     else:
-        index = getCentral(atoms._getCoords(), weights)
-        if not isinstance(atoms, AtomGroup):
-             index = atoms._getIndices()[index]
-    return Atom(ag, index, atoms.getACSIndex())
+        indices = atoms._getIndices()
+        if len(indices) == 1:
+            return Atom(ag, indices[0], acsi)
+    
+    index = getCentral(atoms._getCoords(), weights)
+    if indices is not None: 
+        index = indices[index]
+    return Atom(ag, index, acsi)
 
 
 def getCentral(coords, weights=None):
@@ -423,6 +449,39 @@ def getCentral(coords, weights=None):
     
     return ((coords - getCenter(coords, weights))**2).sum(1).argmin()
 
+
+def pickCentralConf(ens, weights=None):
+    """Return :class:`.Conformation` that is closest to the center of *ens*.
+    In addition to :class:`.Ensemble` instances, :class:`.Atomic` instances 
+    are accepted as *ens* argument. In this case a :class:`.Selection` with 
+    central coordinate set as active will be returned."""
+    
+    try:
+        csets = ens._getCoordsets()
+    except AttributeError:
+        raise TypeError('ens must be an object with multiple '
+                          'coordinate sets')
+    else:
+        if csets is None:
+            raise ValueError('coordinates are not set')
+    
+    shape = csets.shape
+    if shape[0] == 1:
+        index = 0
+    else:
+        csets = csets.reshape((shape[0], shape[1] * shape[2]))
+        mean = csets.mean(0)
+        index = ((csets - mean)**2).sum(1).argmin()
+        
+    try:
+        ens.getACSIndex()
+    except AttributeError:
+        return ens[index]
+    else:
+        atoms = ens.select('all')
+        atoms.setACSIndex(index)
+        return atoms
+    
 
 def calcGyradius(atoms, weights=None):
     """Calculate radius of gyration of *atoms*."""
@@ -437,7 +496,7 @@ def calcGyradius(atoms, weights=None):
         if not coords.ndim in (2, 3):
             raise ValueError('coords may be a 2 or 3 dimentional array')
         elif coords.shape[-1] != 3:
-            raise ValueError('coords must have shape ([n_coordsets,]n_atoms,3)')
+            raise ValueError('coords must have shape ([n_csets,]n_atoms,3)')
     if weights is not None:
         weights = weights.flatten()
         if len(weights) != coords.shape[-2]:
@@ -482,6 +541,7 @@ _MSF_DOCSTRING = """  *coordsets* may be an
     you may use *astype* argument, i.e. ``astype=float``, to auto recast
     coordinate data to double-precision (64-bit) floating-point format."""
 
+
 def calcMSF(coordsets):
     """Calculate mean square fluctuation(s) (MSF)."""
     
@@ -498,7 +558,7 @@ def calcMSF(coordsets):
             raise TypeError('coordsets must be a Numpy array or a ProDy '
                             'object with `getCoordsets` method')
         if ndim != 3 or shape[0] == 1: 
-            raise ValueError('coordsets must contain multiple coordinate sets') 
+            raise ValueError('coordsets must contain multiple sets') 
         msf = var(coordsets, 0).sum(1)
     else:
         nfi = coordsets.nextIndex()
@@ -687,7 +747,8 @@ def calcADPs(atom):
                         .format(type(atom)))
     anisou = atom.getAnisou()
     if anisou is None:
-        raise ValueError('atom does not have anisotropic temperature factors')
+        raise ValueError('atom does not have anisotropic temperature '
+                           'factors')
     element = zeros((3,3))
     element[0,0] = anisou[0]
     element[1,1] = anisou[1]
