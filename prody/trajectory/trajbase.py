@@ -81,6 +81,7 @@ class TrajBase(object):
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
             ens.addCoordset(self.getCoordsets(index))
+            ens.setAtoms(self._atoms)
             return ens
 
         else:
