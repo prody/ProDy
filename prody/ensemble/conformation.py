@@ -39,7 +39,7 @@ class Conformation(object):
         
     def __repr__(self):
         
-        if self.getSelection() is None:
+        if self._ensemble._indices is None:
             return ('<Conformation: {0:d} from {1:s} ({2:d} atoms)>').format(
                     self._index, self._ensemble.getTitle(), self.numAtoms())
         else:
