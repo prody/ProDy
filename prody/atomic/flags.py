@@ -57,7 +57,7 @@ Flag labels can also be used to make quick atom counts:
 
 """
 
-import re as RE
+from re import compile as recompile
 from time import time
 from textwrap import wrap as textwrap
 from collections import defaultdict
@@ -67,14 +67,17 @@ from numpy import array, ones, zeros
 from prody import SETTINGS
 from prody.utilities import tabulate, wrap
 
-__all__ = ['addNonstdAA', 'delNonstdAA', 'getNonstdAAs',
-           'addFlagResname', 'delFlagResname', 'getFlagResnames']
+__all__ = ['flagDefinition', 'addNonstdAA', 'delNonstdAA', 'getNonstdAAs',]
 
 ALIASES = {}
 PLANTERS = {}
 FIELDS = defaultdict(set)
 FIELDSDEFAULT = ['name', 'resname', 'resnum']
 TIMESTAMP = None
+
+def timestamp():
+    global TIMESTAMP
+    TIMESTAMP = time()
 
 PDBLIGSUM = ('.. _{0:s}: '
              'http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId={0:s}\n')
@@ -91,69 +94,9 @@ def addPlanter(func, *labels, **kwargs):
     for field in kwargs.get('fields', FIELDSDEFAULT):
         FIELDS[field].update(labels)
 
-CATEGORIES = {
-    'aromaticity': set(['aromatic', 'aliphatic']), 
-    'cyclic': set(['acyclic', 'cyclic']),
-    'charge': set(['acidic', 'basic', 'neutral']),
-    'depth': set(['buried', 'surface']),
-    'hydrophobicity': set(['hydrophobic', 'polar']),
-    'size': set(['small', 'medium', 'large']),
-}
-
-
 STANDARDAA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 
               'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 
               'TYR', 'VAL']
-
-__doc__ += """
-
-Protein
-===============================================================================
-
-**protein** and **aminoacid** flags indicate the twenty standard amino 
-acids and some non-standard amino acids described below.  A residue is 
-considered an amino acid if its name is one of the following abbreviations
-and it has an atom named ``'CA'``.
-  
-Amino acids
--------------------------------------------------------------------------------
-
-""" + wrap('**stdaa** flag indicates the standard amino acid residues: `' + 
-           '`_, `'.join(STANDARDAA) + '`_') + '\n\n'
-
-for resi in STANDARDAA:
-    __doc__ += PDBLIGSUM.format(resi)
-
-__doc__ += """
-
-Non-standard
--------------------------------------------------------------------------------
-
-**nonstdaa** flag indicates one of the following residues:
-
-==========  ===================================================================
-`ASX`_ (B)  asparagine or aspartic acid
-`GLX`_ (Z)  glutamine or glutamic acid
-`CSO`_ (C)  S-hydroxycysteine
-`HIP`_ (H)  ND1-phosphohistidine
- HSD   (H)  prototropic tautomer of histidine, H on ND1 (CHARMM force field)
- HSE   (H)  prototropic tautomer of histidine, H on NE2 (CHARMM force field)       
- HSP   (H)  protonated histidine 
-`SEC`_ (U)  selenocysteine
-`SEP`_ (S)  phosphoserine
-`TPO`_ (T)  phosphothreonine
-`PTR`_ (Y)  O-phosphotyrosine
- XLE   (J)  leucine or isoleucine 
- XAA   (X)  unspecified or unknown 
-==========  ===================================================================
-
-Some of these residues do not correspond to amino acids in the *PDB*, but 
-flagging them as amino acids when they have Cα atoms prevents conflicts.
-
-You can modify the list of non-standard amino acids using :func:`addNonstdAA`,
-:func:`delNonstdAA`, and :func:`getNonstdAAs` functions.
-
-"""
 
 NONSTANDARD = {
     'ASX': set(['acyclic', 'surface', 'polar', 'medium',]),
@@ -171,34 +114,13 @@ NONSTANDARD = {
     'XAA': set(),
 }
 
-for resi in NONSTANDARD:
-    __doc__ += PDBLIGSUM.format(resi)
+DEFAULTS = {
 
-__doc__ += """
-
-Subsets of atoms
--------------------------------------------------------------------------------
-
-Following flags indicate well defined subsets of protein atoms: 
-
-==================  ===========================================================
-**calpha**          Cα atoms of protein residues, same as 
-                    ``'name CA and protein'``
-**ca**              same as above
-**backbone**        non-hydrogen backbone atoms of protein residues, same as
-                    ``'name CA C O N and protein'``
-**bb**              same as above
-**backbonefull**    backbone atoms of protein residues, same as
-                    ``'name CA C O N H H1 H2 H3 OXT and protein'``
-**bbfull**          same as above 
-**sidechain**       side-chain atoms of protein residues, same as
-                    ``'not backbone'``
-**sc**              same as above
-==================  ===========================================================
-"""
-
-
-CATEGORIZED = {
+    'stdaa': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 
+              'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 
+              'TYR', 'VAL'],
+              
+    'nonstdaa': list(NONSTANDARD),
 
     # GLY is excluded from this list
     'aliphatic': set(['ALA', 'ILE', 'LEU', 'VAL', 'PRO', 'GLY']),
@@ -226,32 +148,159 @@ CATEGORIZED = {
     'medium': set(['ASN', 'ASP', 'CYS', 'PRO', 'THR', 'VAL']),
     'large': set(['ARG', 'GLN', 'GLU', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 
                   'PHE', 'TRP', 'TYR']),
+
+
+    'hydrogen': '[0-9]?H.*', 
+    'carbon': 'C.*', 
+    'nitrogen': 'N.*',
+    'oxygen': 'O.*', 
+    'sulfur': 'S.*',
+    
+    'nucleobase': ['GUN', 'ADE', 'CYT', 'THY', 'URA'],
+    'nucleotide': ['DA', 'DC', 'DG', 'DT', 'DU', 'A', 'C', 'G', 'T', 'U'],
+    'nucleoside': ['AMP', 'ADP', 'ATP', 'CDP', 'CTP', 'GMP', 'GDP', 'GTP', 
+                   'TMP', 'TTP', 'UMP', 'UDP', 'UTP'],
+                   
+    'at': ['ADE', 'A', 'THY', 'T'],
+    'cg': ['CYT', 'C', 'GUN', 'G'],
+    'purine': ['ADE', 'A', 'GUN', 'G'],
+    'pyrimidine': ['CYT', 'C', 'THY', 'T', 'URA', 'U'],
+    
+    'water': ['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2', 
+              'TIP4'],
+    
+    'ion': ['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA', 
+            'HG', 'IN', 'IOD', 'K', 'MG', 'MN3', 'NA', 'PB', 'PT', 'RB', 
+            'TB', 'TL', 'WO4', 'YB', 'ZN'],
+    'ion_other': ['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2'],
+    
+    
+    'lipid': ['GPE', 'LPP', 'OLA', 'SDS', 'STE'],
+    'lipid_other': ['DLPE', 'DMPC', 'LPPC', 'OLEO', 'PALM', 'PCGL', 'POPC', 
+                 'POPE', 'STEA'],
+              
+    'sugar': ['GLC', 'GLO', 'BGC'],
+    'sugar_other': ['AGLC'],
+    
+    'heme': ['1FH', '2FH', 'DDH', 'DHE', 'HAS', 'HDD', 'HDE', 'HDM', 'HEA',
+             'HEB', 'HEC', 'HEM', 'HEO', 'HES', 'HEV', 'NTE', 'SRM', 'VER'],
+    'heme_other': ['HEMO', 'HEMR']
+
 }
 
-_ = SETTINGS.get('nonstandard')
-if _ is not None:
-    NONSTANDARD = _
+DEFAULTS['backbone'] = DEFAULTS['bb'] = ['CA', 'C', 'O', 'N']
+DEFAULTS['backbonefull'] = DEFAULTS['bbfull'] =  ['CA', 'C', 'O', 'N', 'H', 
+                                                  'H1', 'H2', 'H3', 'OXT']
 
-for resi, props in NONSTANDARD.iteritems():
-    for prop in props: 
-        CATEGORIZED[prop].add(resi)
+CATEGORIES = {
+    'aromaticity': set(['aromatic', 'aliphatic']), 
+    'cyclic': set(['acyclic', 'cyclic']),
+    'charge': set(['acidic', 'basic', 'neutral']),
+    'depth': set(['buried', 'surface']),
+    'hydrophobicity': set(['hydrophobic', 'polar']),
+    'size': set(['small', 'medium', 'large']),
+}
 
-CATEGORIZED['charged'] = set(CATEGORIZED['acidic'])
-CATEGORIZED['charged'].update(CATEGORIZED['basic'])
+CATEGORIZED = {}
+for catgroup in CATEGORIES.values():
+    for category in catgroup:
+        CATEGORIZED[category] = list(DEFAULTS[category])
+CATEGORIZED['charged'] = list(CATEGORIZED['acidic'])
+CATEGORIZED['charged'].extend(CATEGORIZED['basic'])
 
+for resi, cats in NONSTANDARD.iteritems():
+    for cat in cats:
+        CATEGORIZED[cat].append(resi)
+
+    
 __doc__ += """
 
-Side-chain properties
--------------------------------------------------------------------------------
+Protein atoms
+===============================================================================
 
-Amino acids are categorized (or flagged) as follows based on the 
-physicochemical properties of their side-chains:
+.. glossary::
+    
+   protein
+   aminoacid
+      These flags indicate the twenty standard amino acids (:term:`stdaa`) 
+      and some non-standard amino acids (:term:`nonstdaa`) described below.  
+      Residue must also have an atom named ``'CA'`` in addition to having
+      a qualifying residue name.
 
-"""
 
-cats = CATEGORIZED.keys()
+   stdaa
+      {stdaa:s}
+
+
+   nonstdaa
+      This flag indicates one of the following residues:
+
+      ==========  ===================================================
+      `ASX`_ (B)  asparagine or aspartic acid
+      `GLX`_ (Z)  glutamine or glutamic acid
+      `CSO`_ (C)  S-hydroxycysteine
+      `HIP`_ (H)  ND1-phosphohistidine
+       HSD   (H)  prototropic tautomer of histidine, H on ND1 (CHARMM)
+       HSE   (H)  prototropic tautomer of histidine, H on NE2 (CHARMM)       
+       HSP   (H)  protonated histidine 
+      `SEC`_ (U)  selenocysteine
+      `SEP`_ (S)  phosphoserine
+      `TPO`_ (T)  phosphothreonine
+      `PTR`_ (Y)  O-phosphotyrosine
+       XLE   (J)  leucine or isoleucine 
+       XAA   (X)  unspecified or unknown 
+      ==========  ===================================================
+
+      You can modify the list of non-standard amino acids using 
+      :func:`addNonstdAA`, :func:`delNonstdAA`, and :func:`getNonstdAAs`.
+
+
+   ca
+   calpha
+      Cα atoms of :term:`protein` residues, same as selection 
+      ``'name CA and protein'``
+
+
+   bb
+   backbone        
+      non-hydrogen backbone atoms of :term:`protein` residues, same as
+      selection ``'name CA C O N and protein'``
+
+
+   bbfull
+   backbonefull
+      backbone atoms of :term:`protein` residues, same as selection  
+      ``'name CA C O N H H1 H2 H3 OXT and protein'``
+
+
+   sc
+   sidechain
+      side-chain atoms of :term:`protein` residues, same as selection 
+      ``'not backbone'``
+
+
+""".format(
+
+stdaa = wrap('This flag indicates the standard amino acid residues: `' + 
+             '`_, `'.join(DEFAULTS['stdaa']) + '`_', subsequent_indent=' '*6),
+)
+
+
+
+cats = list(CATEGORIZED)
 cats.sort()
 
+for cat in cats:
+    res = CATEGORIZED[cat]
+    res.sort() 
+    __doc__ += """
+   {cat:s}
+       {res:s}
+
+""".format(cat=cat, 
+res=wrap('residues ' + ', '.join(res), subsequent_indent=' '*6))
+
+'''
 col1 = []
 col2 = []
 for cat in cats:
@@ -259,25 +308,343 @@ for cat in cats:
     resnames = list(CATEGORIZED[cat])
     resnames.sort()
     col2.append(', '.join(resnames))
-__doc__ += tabulate(col1, col2, header=False)
+__doc__ += tabulate(col1, col2, header=False)'''
 
-'''
-maxlen = max(map(len, cats)) + 6
-wrapat = 79 - maxlen
-table = '=' * (maxlen - 2) + '  ' + '=' * wrapat + '\n'
-__doc__ += table
-for cat in cats:
-    __doc__ += ('**' + cat + '**').ljust(maxlen)
-    resnames = list(CATEGORIZED[cat])
-    resnames.sort()
-    for i, line in enumerate(textwrap(', '.join(resnames), wrapat)): 
-        __doc__ += ('\n' + ' ' * maxlen if i else '') + line
-    __doc__ += '\n'
-__doc__ += table
-'''
-AMINOACIDS = set()
-AMINOACIDS.update(STANDARDAA)
-AMINOACIDS.update(NONSTANDARD.keys())
+for resi in DEFAULTS['stdaa']:
+    __doc__ += PDBLIGSUM.format(resi)
+for resi in DEFAULTS['nonstdaa']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+
+__doc__ += """
+
+Nucleic atoms
+===============================================================================
+
+.. glossary::
+
+   nucleic
+      This flag indicates :term:`nucleobase`, :term:`nucleotide`, and some 
+      :term:`nucleoside` derivatives that are described below, so it is same
+      as ``'nucleobase or nucleotide or nucleoside'``.
+
+   nucleobase
+      This flag indicates `ADE`_ (adenine), `GUN`_ (guanine), `CYT`_ 
+      (cytosine), `THY`_ (thymine), and `URA`_ (uracil).
+
+   nucleotide
+      This flag indicates residues with the following names:
+
+      =======  ==================================
+      `DA`_    2'-deoxyadenosine-5'-monophosphate
+      `DC`_    2'-deoxycytidine-5'-monophosphate
+      `DG`_    2'-deoxyguanosine-5'-monophosphate
+      `DT`_    2'-deoxythymidine-5'-monophosphate
+      `DU`_    2'-deoxyuridine-5'-monophosphate
+      `A`_     adenosine-5'-monophosphate
+      `C`_     cytidine-5'-monophosphate
+      `G`_     guanosine-5'-monophosphate
+      `T`_     2'-deoxythymidine-5'-monophosphate
+      `U`_     uridine-5'-monophosphate
+      =======  ==================================
+
+   nucleoside
+      This flag indicates following nucleoside derivatives that are recognized 
+      by *PDB*:
+
+      =======  ================================
+      `AMP`_   adenosine monophosphate             
+      `ADP`_   adenosine-5'-diphosphate
+      `ATP`_   adenosine-5'-triphosphate
+      `CDP`_   cytidine-5'-diphosphate
+      `CTP`_   cytidine-5'-triphosphate
+      `GMP`_   guanosine
+      `GDP`_   guanosine-5'-diphosphate
+      `GTP`_   guanosine-5'-triphosphate
+      `TMP`_   thymidine-5'-phosphate
+      `TTP`_   thymidine-5'-triphosphate
+      `UMP`_   2'-deoxyuridine 5'-monophosphate
+      `UDP`_   uridine 5'-diphosphate
+      `UTP`_   uridine 5'-triphosphate
+      =======  ================================
+
+
+   at
+      same as selection ``'resname ADE A THY T'``
+
+   cg
+      same as selection ``'resname CYT C GUN G'``
+
+   purine
+      same as selection ``'resname ADE A GUN G'``
+
+   pyrimidine
+      same as selection ``'resname CYT C THY T URA U'``
+
+"""
+
+for resi in DEFAULTS['nucleobase']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+for resi in DEFAULTS['nucleotide']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+for resi in DEFAULTS['nucleoside']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+__doc__ += """
+
+Hetero atoms
+===============================================================================
+
+.. glossary::
+   
+   hetero
+      This flag indicates anything other than a :term:`protein` or a 
+      :term:`nucleic` residue, i.e. ``'not (protein or nucleic)'``.
+
+
+   hetatm
+      This flag is available when atomic data is parsed from a PDB or similar 
+      format file and indicates atoms that are marked ``'HETATM'`` in the file. 
+
+
+   water
+      This flag definition includes `HOH`_ and `DOD`_ recognized by *PDB* and 
+      also WAT, TIP3, H2O, OH2, TIP, TIP2, and TIP4 recognized by some molecular 
+      dynamics (MD) force fields.  
+    
+      .. _HOH: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HOH
+    
+      .. _DOD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=DOD
+    
+      Previously used water types HH0, OHH, and SOL conflict with other 
+      compounds in the *PDB*, so are removed from the definition of this flag.
+
+
+   ion
+      This flag definition includes the following ions most of which are 
+      recognized by the *PDB* and others by some MD force fields.
+
+      =======  ==================  =====  ========  ==========
+      \                            *PDB*  *Source*  *Conflict*
+      `AL`_    aluminum            Yes
+      `BA`_    barium              Yes
+      `CA`_    calcium             Yes
+      `CD`_    cadmium             Yes
+      `CL`_    chloride            Yes
+      `CO`_    cobalt (ii)         Yes
+      `CS`_    cesium              Yes
+      `CU`_    copper (ii)         Yes
+      `CU1`_   copper (i)          Yes
+      `CUA`_   dinuclear copper    Yes
+      `HG`_    mercury (ii)        Yes
+      `IN`_    indium (iii)        Yes
+      `IOD`_   iodide              Yes
+      `K`_     potassium           Yes
+      `MG`_    magnesium           Yes
+      `MN3`_   manganese (iii)     Yes
+      `NA`_    sodium              Yes
+      `PB`_    lead (ii)           Yes
+      `PT`_    platinum (ii)       Yes
+      `RB`_    rubidium            Yes
+      `TB`_    terbium (iii)       Yes
+      `TL`_    thallium (i)        Yes
+      `WO4`_   thungstate (vi)     Yes
+      `YB`_    ytterbium (iii)     Yes
+      `ZN`_    zinc                Yes
+      CAL      calcium             No     CHARMM    Yes
+      CES      cesium              No     CHARMM    Yes
+      CLA      chloride            No     CHARMM    Yes
+      POT      potassium           No     CHARMM    Yes
+      SOD      sodium              No     CHARMM    Yes
+      ZN2      zinc                No     CHARMM    No
+      =======  ==================  =====  ========  ==========
+
+      Ion identifiers that are obsoleted by *PDB* (MO3, MO4, MO5, MO6, NAW, 
+      OC7, and ZN1) are removed from this definition.
+
+
+   lipid
+      {lipid:s}
+
+
+   sugar
+      {lipid:s}
+
+
+   heme
+      {heme:s}
+
+
+""".format(
+ 
+lipid=wrap('This flag indicates `' + '`_, `'.join(DEFAULTS['lipid']) + 
+           '`_ from *PDB* and ' + ', '.join(DEFAULTS['lipid_other']) +
+           ' from *CHARMM* force field.', subsequent_indent=' '*6),
+           
+sugar = wrap('**sugar** flag indicates `' + '`_, `'.join(DEFAULTS['sugar']) + 
+             '`_ from *PDB* and AGLC from *CHARMM*.', subsequent_indent=' '*6),
+
+heme = wrap('This flag indicates `' + '`_, `'.join(DEFAULTS['heme']) + 
+            '`_ from *PDB*, as well as HEMO and HEMR from CHARMM.',
+            subsequent_indent=' '*6)
+)
+
+
+for resi in DEFAULTS['ion']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+for resi in DEFAULTS['lipid']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+for resi in DEFAULTS['sugar']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+for resi in DEFAULTS['heme']:
+    __doc__ += PDBLIGSUM.format(resi)
+
+
+__doc__ += """
+
+Elements
+===============================================================================
+
+Following elements found in proteins are recognized by applying regular 
+expressions to atom names:
+
+.. glossary::
+   
+   carbon
+      carbon atoms, same as ``'name "C.*" and not ion'``
+
+   nitrogen
+      nitrogen atoms, same as ``'name "N.*" and not ion'``
+
+   oxygen
+      oxygen atoms, same as ``'name "O.*" and not ion'``
+
+   sulfur
+      sulfur atoms, same as ``'name "S.*" and not ion'``
+
+   hydrogen
+       hydrogen atoms, same as ``'name "[1-9]?H.*" and not ion'``
+
+   noh
+      non hydrogen atoms, same as ``'not hydrogen``
+
+
+``'not ion'`` is appended to above definitions to avoid conflicts with ion
+atoms.
+
+Structure
+===============================================================================
+
+Following secondary structure flags are defined but before they can be used,
+secondary structure assignments must be made. 
+
+.. glossary::
+
+   extended
+      extended conformation, same as ``'secondary E'``
+
+   helix
+      α-helix conformation, same as ``'secondary H'``
+
+   helix310
+      3_10-helix conformation, same as ``'secondary G'``
+
+   helixpi
+      π-helix conformation, same as ``'secondary I'``
+
+   turn
+      hydrogen bonded turn conformation, same as ``'secondary T'``
+
+   bridge
+      isolated beta-bridge conformation, same as ``'secondary B'``
+
+   bend
+      bend conformation, same as ``'secondary S'``
+      
+   coil
+      not in one of above conformations, same as ``'secondary C'``
+
+"""
+
+# join split lists
+for key in ['ion', 'lipid', 'sugar', 'heme']:
+    DEFAULTS[key].extend(DEFAULTS.pop(key + '_other'))
+
+EDITABLE = set(['nucleobase', 'nucleoside', 'nucleotide',
+                'at', 'cg', 'purine', 'pyrimidine', 
+                'water', 'heme', 'lipid', 'ion', 'sugar',
+                'backbone', 'backbonefull', 'bb', 'bbfull',
+                'hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur'])
+
+DEFINITIONS = None
+AMINOACIDS = None
+BACKBONE = None
+
+def setDefinitions():
+    
+
+    global DEFINITIONS, AMINOACIDS, BACKBONE
+    DEFINITIONS = {}
+    defs = SETTINGS.get('flag_definitions', DEFAULTS)
+    
+    # nucleics
+    nucleic = set()
+    for key in ['nucleobase', 'nucleoside', 'nucleotide']:
+        aset = set(defs[key])
+        nucleic.update(aset)
+        DEFINITIONS[key] = aset
+    DEFINITIONS['nucleic'] = nucleic
+    
+    # heteros
+    for key in ['water', 'lipid', 'ion', 'sugar', 'heme', 
+                 'at', 'cg', 'purine', 'pyrimidine',]:
+        DEFINITIONS[key] = set(defs[key])
+        
+    DEFINITIONS['backbone'] = DEFINITIONS['bb'] = set(defs['bb'])
+    DEFINITIONS['backbonefull'] = DEFINITIONS['bbfull'] = set(defs['bbfull'])
+
+    # element regex
+    for key in ['hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur']:
+        DEFINITIONS[key] = recompile(defs[key])
+        
+
+    try:
+        nonstd = SETTINGS['nonstandard']
+        
+    except KeyError:
+        nonstd = NONSTANDARD
+        DEFINITIONS.update(CATEGORIZED)
+    else:
+
+        for key in CATEGORIES:
+            DEFINITIONS[key] = set(DEFAULTS[key])
+
+        DEFINITIONS['charged'] = set(DEFINITIONS['acidic'])
+        DEFINITIONS['charged'].update(DEFINITIONS['basic'])
+
+        for resi, props in nonstd.iteritems():
+            for prop in props: 
+                DEFINITIONS[prop].add(resi)
+
+    AMINOACIDS = set()
+    AMINOACIDS.update(DEFAULTS['stdaa'])
+    AMINOACIDS.update(nonstd.keys())
+    DEFINITIONS['protein'] = DEFINITIONS['aminoacid'] = AMINOACIDS
+    
+    BACKBONE = DEFINITIONS['bb']
+
+
+#==============================================================================
+# PLANTERS
+#==============================================================================
+
+# protein
+#==============================================================================
 
 def setCalpha(ag, label):
     
@@ -311,14 +678,14 @@ def setProtein(ag, label):
 
 addPlanter(setProtein, 'protein', 'aminoacid')
 
-BACKBONE = set(['CA', 'C', 'O', 'N'])
-BACKBONEFULL = set(['CA', 'C', 'O', 'N', 'H', 'H1', 'H2', 'H3', 'OXT'])
+# subsets
+#==============================================================================
 
 def setBackbone(ag, label):
     
     protein = ag._getSubset('protein')
     if len(protein):
-        bb = BACKBONEFULL if label.endswith('full') else BACKBONE
+        bb = DEFINITIONS[label] 
         names = ag._getNames()[protein]
         flags = zeros(ag.numAtoms(), bool)
         flags[protein] = [nm in bb for nm in names]
@@ -344,8 +711,6 @@ def setSidechain(ag, label):
 
 addPlanter(setSidechain, 'sc', 'sidechain')
 
-CATEGORIZED['stdaa'] = STANDARDAA
-CATEGORIZED['nonstdaa'] = NONSTANDARD
 
 def setCategories(ag, label):
     
@@ -365,143 +730,20 @@ def setCategories(ag, label):
 addPlanter(setCategories, *CATEGORIZED.keys(), aliases=False)
 
 
-"""Among these list of backbone atom names can be changed using 
-:func:`setBackboneAtomNames`  and regular expressions for element types
-can be changed using :func:`setAtomNameRegex`.
+# hetero, nucleic, water, etc.
+#==============================================================================
 
-Below functions can be used to learn and change the definitions of 
-some selection keywords:
-
-  * Learn keyword definitions:
+def setResiflag(ag, label):    
     
-    * :func:`getAtomNameRegex`
-    * :func:`getBackboneAtomNames`
-    * :func:`getKeywordResnames` 
-    
-  * Change keyword definitions:
-    
-    * :func:`setAtomNameRegex`
-    * :func:`setBackboneAtomNames`
-    * :func:`setKeywordResnames`
-"""
+    resnames = DEFINITIONS[label]
+    flags = array([rn in resnames for rn in ag._getResnames()], bool)
+    ag._setFlags(flags, *ALIASES[label])
+    return flags
 
-BACKBONE_ATOM_NAMES = set(('CA', 'N', 'C', 'O'))
-BACKBONE_FULL_ATOM_NAMES = set(('CA', 'N', 'C', 'O', 
-                                'H', 'H1', 'H2', 'H3', 'OXT'))
+addPlanter(setResiflag, 'nucleic', 'nucleobase', 'nucleoside', 'nucleotide',
+           'water', 'ion', 'lipid', 'sugar', 'heme', 'at', 'cg', 'purine', 
+           'pyrimidine', aliases=False)
 
-RESIFLAGS = {}
-
-__doc__ += """
-
-Nucleic
-===============================================================================
-
-**nucleic** flag indicates nucleobases, nucleotides, and some nucleoside
-derivatives described below.
-
-Nucleobases
--------------------------------------------------------------------------------
-
-**nucleobase** flag indicates following residues that are recognized by the
-*PDB*:
-
-=======  ======================================================================
-`ADE`_   adenine    
-`GUN`_   guanine    
-`CYT`_   cytosine   
-`THY`_   thymine    
-`URA`_   uracil     
-=======  ======================================================================
-
-"""
-
-NUCLEIC = set()
-RESIFLAGS['nucleobase'] = set(['GUN', 'ADE', 'CYT', 'THY', 'URA'])
-NUCLEIC.update(RESIFLAGS['nucleobase'])
-
-for resi in RESIFLAGS['nucleobase']:
-    __doc__ += PDBLIGSUM.format(resi)
-
-__doc__ += """
-Nucleotides
--------------------------------------------------------------------------------
-
-**nucleotide** flag indicates residues with the following names:
-
-=======  ======================================================================
-`DA`_    2'-deoxyadenosine-5'-monophosphate
-`DC`_    2'-deoxycytidine-5'-monophosphate
-`DG`_    2'-deoxyguanosine-5'-monophosphate
-`DT`_    2'-deoxythymidine-5'-monophosphate
-`DU`_    2'-deoxyuridine-5'-monophosphate
-`A`_     adenosine-5'-monophosphate
-`C`_     cytidine-5'-monophosphate
-`G`_     guanosine-5'-monophosphate
-`T`_     2'-deoxythymidine-5'-monophosphate (superceded by DT)
-`U`_     uridine-5'-monophosphate
-=======  ======================================================================
-
-"""
-
-RESIFLAGS['nucleotide'] = set(['DA', 'DC', 'DG', 'DT', 'DU', 
-                               'A', 'C', 'G', 'T', 'U'])
-NUCLEIC.update(RESIFLAGS['nucleotide'])
-
-for resi in RESIFLAGS['nucleotide']:
-    __doc__ += PDBLIGSUM.format(resi)
-
-__doc__ += """
-
-Nucleosides
--------------------------------------------------------------------------------
-
-**nucleoside** flag indicates following nucleoside derivatives that are
-recognized by *PDB*:
-
-=======  ======================================================================
-`AMP`_   adenosine monophosphate             
-`ADP`_   adenosine-5'-diphosphate
-`ATP`_   adenosine-5'-triphosphate
-`CDP`_   cytidine-5'-diphosphate
-`CTP`_   cytidine-5'-triphosphate
-`GMP`_   guanosine
-`GDP`_   guanosine-5'-diphosphate
-`GTP`_   guanosine-5'-triphosphate
-`TMP`_   thymidine-5'-phosphate
-`TTP`_   thymidine-5'-triphosphate
-`UMP`_   2'-deoxyuridine 5'-monophosphate
-`UDP`_   uridine 5'-diphosphate
-`UTP`_   uridine 5'-triphosphate
-=======  ======================================================================
-
-"""
-
-RESIFLAGS['nucleoside'] = set(('AMP ADP ATP CDP CTP GMP GDP GTP TMP TTP '
-                               'UMP UDP UTP').split()) 
-NUCLEIC.update(RESIFLAGS['nucleoside'])
-
-for resi in RESIFLAGS['nucleoside']:
-    __doc__ += PDBLIGSUM.format(resi)
-
-
-__doc__ += """
-
-Others
--------------------------------------------------------------------------------
-
-==============  ===============================================================
-**at**          same as ``'resname ADE A THY T'``
-**cg**          same as ``'resname CYT C GUN G'``
-**purine**      same as ``'resname ADE A GUN G'``
-**pyrimidine**  same as ``'resname CYT C THY T URA U'``
-==============  ===============================================================
-"""
-
-RESIFLAGS['at'] = set(('ADE A THY T').split()) 
-RESIFLAGS['cg'] = set(('CYT C GUN G').split())
-RESIFLAGS['purine'] = set(('ADE A GUN G').split())
-RESIFLAGS['pyrimidine'] = set(('CYT C THY T URA U').split())
-RESIFLAGS['nucleic'] = NUCLEIC
 
 def setHetero(ag, label):
     
@@ -513,188 +755,20 @@ def setHetero(ag, label):
 
 addPlanter(setHetero, 'hetero',)
 
-__doc__ += """
-Heteros
-===============================================================================
 
-**hetero** flag indicates anything other than a protein or a nucleic residue,
-i.e. ``'not (protein or nucleic)'``.
-
-In addition, **hetatm** flag will be if atomic data is parsed from a PDB or a 
-similar file.  This flag will indicate atoms that are marked ``'HETATM'`` in
-the data file. 
-
-Water
--------------------------------------------------------------------------------
-
-**water** flag definition includes `HOH`_ and `DOD`_ recognized by *PDB* and 
-also WAT, TIP3, H2O, OH2, TIP, TIP2, and TIP4 recognized by some molecular 
-dynamics (MD) force fields.  
-
-.. _HOH: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HOH
-.. _DOD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=DOD
-
-Previously used water types HH0, OHH, and SOL conflict with other compounds in
-the *PDB*, so are removed from the definition of this flag.
-              
-"""
-
-RESIFLAGS['water'] = set(['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 
-                          'TIP', 'TIP2', 'TIP4'])
-
-resnames = ('AL BA CA CD CL CO CS CU CU1 CUA HG IN IOD K MG MN3 NA PB PT RB '
-            'TB TL WO4 YB ZN CAL CES CLA POT SOD ZN2').split()
-RESIFLAGS['ion'] = set(resnames)
-resnames.sort()
-
-__doc__ += """
-Ions
--------------------------------------------------------------------------------
-
-**ion** flag definition includes the following ions most of which are 
-recognized by the *PDB* and others by some MD force fields.
-
-=======  ==================  =====  ========  ==========
-\                            *PDB*  *Source*  *Conflict*
-`AL`_    aluminum            Yes
-`BA`_    barium              Yes
-`CA`_    calcium             Yes
-`CD`_    cadmium             Yes
-`CL`_    chloride            Yes
-`CO`_    cobalt (ii)         Yes
-`CS`_    cesium              Yes
-`CU`_    copper (ii)         Yes
-`CU1`_   copper (i)          Yes
-`CUA`_   dinuclear copper    Yes
-`HG`_    mercury (ii)        Yes
-`IN`_    indium (iii)        Yes
-`IOD`_   iodide              Yes
-`K`_     potassium           Yes
-`MG`_    magnesium           Yes
-`MN3`_   manganese (iii)     Yes
-`NA`_    sodium              Yes
-`PB`_    lead (ii)           Yes
-`PT`_    platinum (ii)       Yes
-`RB`_    rubidium            Yes
-`TB`_    terbium (iii)       Yes
-`TL`_    thallium (i)        Yes
-`WO4`_   thungstate (vi)     Yes
-`YB`_    ytterbium (iii)     Yes
-`ZN`_    zinc                Yes
-CAL      calcium             No     CHARMM    Yes
-CES      cesium              No     CHARMM    Yes
-CLA      chloride            No     CHARMM    Yes
-POT      potassium           No     CHARMM    Yes
-SOD      sodium              No     CHARMM    Yes
-ZN2      zinc                No     CHARMM    No
-=======  ==================  =====  ========  ==========
-
-Ion identifiers that are obsoleted by *PDB* (MO3, MO4, MO5, MO6, NAW, OC7, and 
-ZN1) are removed from this definition.
-
-"""
-
-for resi in resnames:
-    __doc__ += PDBLIGSUM.format(resi)
-
-
-resnames = ('GPE LPP SDS STE OLA').split()
-RESIFLAGS['lipid'] = set(resnames)
-resnames.sort()
-
-__doc__ += """
-
-Lipid
--------------------------------------------------------------------------------
-
-""" + wrap('**lipid** flag indicates `' + '`_, `'.join(resnames) + 
-           '`_ from *PDB* and LPPC DLPE DMPC POPC POPE PALM '
-           'OLEO STEA PCGL from *CHARMM* force field.') + '\n\n'
-resnames.extend('LPPC DLPE DMPC POPC POPE PALM OLEO STEA PCGL'.split())
-for resi in resnames:
-    __doc__ += PDBLIGSUM.format(resi)
-
-resnames = 'GLC GLO BGC'.split()
-RESIFLAGS['sugar'] = set(resnames)
-resnames.sort()
-
-__doc__ += """
-
-Sugar
--------------------------------------------------------------------------------
-
-""" + wrap('**sugar** flag indicates `' + '`_, `'.join(resnames) + 
-           '`_ from *PDB* and AGLC from *CHARMM*.') + '\n\n'
-
-for resi in resnames:
-    __doc__ += PDBLIGSUM.format(resi)
-
-resnames = ('1FH 2FH DDH DHE HAS HDD HDE HDM HEA HEB HEC HEM HEO HES HEV NTE '
-            'SRM VER').split()
-resnames.sort()
-
-__doc__ += """
-
-Heme
--------------------------------------------------------------------------------
-
-""" + wrap('**heme** flag indicates `' + '`_, `'.join(resnames) + 
-           '`_ from *PDB*, as well as HEMO and HEMR from CHARMM.') + '\n\n'
-
-resnames.extend(['HEMO', 'HEMR'])
-RESIFLAGS['heme'] = set(resnames)
-
-
-for resi in resnames:
-    __doc__ += PDBLIGSUM.format(resi)
-
-
-def setResiflag(ag, label):    
-    
-    resnames = RESIFLAGS[label]
-    flags = array([rn in resnames for rn in ag._getResnames()], bool)
-    ag._setFlags(flags, *ALIASES[label])
-    return flags
-
-for label in RESIFLAGS.keys():
-    addPlanter(setResiflag, label)
-
-__doc__ += """
-
-Elements
-===============================================================================
-
-Following elements are recognized by applying regular expressions to atom 
-names:
-
-============  =================================================================
-**carbon**    carbon atoms, same as ``'name "C.*" and not ion'``
-**hydrogen**  hydrogen atoms, same as ``'name "[1-9]?H.*" and not ion'``
-**noh**       non hydrogen atoms, same as ``'not hydrogen``
-**nitrogen**  nitrogen atoms, same as ``'name "N.*" and not ion'``
-**oxygen**    oxygen atoms, same as ``'name "O.*" and not ion'``
-**sulfur**    sulfur atoms, same as ``'name "S.*" and not ion'``
-============  =================================================================
-
-"""
-
-NAME_REGEX = {
-    'carbon': RE.compile('C.*'),
-    'hydrogen': RE.compile('[0-9]?H.*'),
-    'nitrogen': RE.compile('N.*'),
-    'oxygen': RE.compile('O.*'),
-    'sulfur': RE.compile('S.*'),
-}
+# element
+#==============================================================================
 
 def setElement(ag, label):
     
-    match = NAME_REGEX[label].match 
+    match = DEFINITIONS[label].match 
     flags = array([match(nm) is not None for nm in ag._getNames()])
     flags[ag._getSubset('ion')] = False
     ag._setFlags(flags, *ALIASES[label])
     return flags
 
-addPlanter(setElement, *NAME_REGEX.keys(), aliases=False)
+addPlanter(setElement, 'hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur', 
+           aliases=False)
 
 def setNoh(ag, label):
     
@@ -705,26 +779,9 @@ def setNoh(ag, label):
 
 addPlanter(setNoh, 'noh')
 
-__doc__ += """
 
-Structure
-===============================================================================
-
-Following secondary structure flags are defined but before they can be used,
-secondary structure assignments must be made. 
-
-==============  ===============================================================
-**extended**    extended conformation, same as ``'secondary E'``
-**helix**       α-helix conformation, same as ``'secondary H'``
-**helix310**    3_10-helix conformation, same as ``'secondary G'``
-**helixpi**     π-helix conformation, same as ``'secondary I'``
-**turn**        hydrogen bonded turn conformation, same as ``'secondary T'``
-**bridge**      isolated beta-bridge conformation, same as ``'secondary B'``
-**bend**        bend conformation, same as ``'secondary S'``
-**coil**        not in one of above conformations, same as ``'secondary C'``
-==============  ===============================================================
-
-"""
+# secondary
+#==============================================================================
 
 SECONDARY = {'extended': 'E', 'helix': 'H', 'helix310': 'G', 'helixpi': 'I',
              'turn': 'T', 'bridge': 'B', 'bend': 'S', 'coil': 'C'}
@@ -739,35 +796,67 @@ def setSecondary(ag, label):
     return flags
 
 addPlanter(setSecondary, *SECONDARY.keys(), aliases=False, 
-           fields=['secondary'])             
-
-# definitions
-
-def setDefinitions():
-    global TIMESTAMP
-    TIMESTAMP = time()
-
-setDefinitions()
+           fields=['secondary']) 
 
 
-FLAGDOCS = ("``'" + "'``, ``'".join(RESIFLAGS.keys()) + 
-            "'`` are acceptable *flag* arguments.")
+#==============================================================================
+# User functions
+#==============================================================================
+
+def flagDefinition(*arg, **kwarg):
+    """Learn, change, or reset :ref:`flags` definitions.
+    
+    **Editable definitions**
 
     
-def addFlagResname(flag, resname):
-    """Add *resname* to *flag* definition."""
+    Call this function with no arguments:
     
-    pass
+    >>> flagDefinition()
+    
+    
+    **Learn a definition**
+    
+    
+    Pass an editable flag name:
+    
+    >>> flagDefinition('backbone')
+    >>> flagDefinition('backbone')
+    >>> flagDefinition('backbonefull')
 
-def delFlagResname(flag, resname):
-    """Remove *resname* from *flag* definition."""
+    **Change a definition**    
     
-    pass
 
-def getFlagResnames(flag):
-    """Return list of residue names associated with *flag*."""
+    Pass an editable flag name with its new definition:
     
-    pass
+    >>>
+    
+    Note that the type of the new definition must be the same as the type
+    of the old definition.
+    
+    **Reset definitions**
+    
+    Pass *reset* keyword as follows to restore default definitions of editable
+    flags.
+    
+    >>> flagDefinition(reset=True)
+       
+    """
+
+    if arg and kwarg:
+        raise ValueError('')
+    elif arg:
+        if len(arg) > 1:
+            raise ValueError('specify only one flag label')
+        arg = arg[0]
+        try:
+            return DEFINITIONS[arg]
+        except KeyError:
+            raise ValueError('{0:s} is not a flag label that can be '
+                               'modified by the user')
+    elif kwarg:
+        pass
+    else:
+        return list(DEFINITIONS)
 
 def addNonstdAA(resname, *props):
     """Add a non-standard amino acid. *resname* cannot be longer than four 
@@ -834,67 +923,76 @@ def setKeywordResnames(keyword, resnames):
     else:
         raise ValueError("{0:s} is not a valid keyword".format(repr(keyword)))
 
-def getAtomNameRegex(name):
-    """Return regular expression used for selecting common elements.
+
+def getElementRegex(name):
+    """Return regular expression used for flagging elements based on atom 
+    names.  See :ref:`element-flags` for the default list of flags.
     
-    >>> getAtomNameRegex('nitrogen')
+    >>> getElementRegex('nitrogen')
     'N.*'"""
     
-    assert isinstance(name, str), 'name must be a string instance'
     try:
-        return KEYWORD_NAME_REGEX[name].pattern   
+        return ELEMENT_REGEX[name]   
     except KeyError:
-        LOGGER.warn('{0:s} is not a valid element'.format(name))
+        LOGGER.warn('{0:s} is not a valid element flag name'.format(name))
 
-def setAtomNameRegex(name, regex):
-    """Set regular expression used for selecting common elements.  Note that 
-    changes in keyword definitions are not saved permanently.
+
+def setElementRegex(name, regex):
+    """Set regular expression used for flagging elements based on atom names.
+    See :ref:`element-flags` for the default list of flags.
     
-    >>> setAtomNameRegex('nitrogen', 'N.*')"""
+    >>> setElementRegex('nitrogen', 'N.*')"""
     
-    assert isinstance(name, str), 'name must be a string instance'
-    if not name in KEYWORD_NAME_REGEX:
-        raise ValueError("{0:s} is not a valid keyword".format(repr(name)))
-    if not isinstance(regex, str):
-        raise TypeError("regex must be a string instance")
+
+    if not name in ELEMENT_REGEX:
+        raise ValueError('{0:s} is not a valid element flag name'
+                           .format(repr(name)))
     try:
-        regex = RE.compile(regex)
-    except:
-        raise ValueError("{0:s} is not a valid regular expression"
-                         .format(repr(regex)))
+        ELEMENT_COMPILED[name] = recompile(regex)
+    except Exception as err:
+        raise ValueError("{0:s} is not a valid regular expression, {1:s}"
+                         .format(repr(regex), str(err)))
     else:
-        KEYWORD_NAME_REGEX[name] = regex
+        ELEMENT_REGEX[name] = regex
+        SETTINGS['element_name_regex'] = ELEMENT_REGEX 
+        timestamp()
 
-def getBackboneAtomNames(full=False):
-    """Return protein backbone atom names.  ``full=True`` argument returns 
-    atom names for *backbonefull* keyword.
+def getBackboneNames(full=False):
+    """Return protein backbone atom names.  When *full* is **True** argument
+    returns atom names for *backbonefull* keyword.  See :ref:`subset-flags` 
+    for details.
     
-    >>> getBackboneAtomNames()
+    >>> getBackboneNames()
     ['C', 'CA', 'N', 'O']"""
     
-    assert isinstance(full, bool), 'full must be a boolean instance'
     if full:
-        bban = list(BACKBONE_FULL_ATOM_NAMES)
+        bban = list(BACKBONEFULL)
     else:
-        bban = list(BACKBONE_ATOM_NAMES)
+        bban = list(BACKBONE)
     bban.sort()
     return bban 
 
-def setBackboneAtomNames(backbone_atom_names, full=False):
-    """Set protein backbone atom names.  Atom names for *backbonefull* keyword 
-    can be set by passing ``full=True`` argument.  Note that changes in keyword
-    definitions are not saved permanently."""
+def setBackboneNames(names, full=False):
+    """Set protein backbone atom names.  *names* must be a list of atom names.
+    Setting *full* argument **True** will change atom names for *backbonefull* 
+    flag.  See :ref:`subset-flags` for details.
     
-    if not isinstance(backbone_atom_names, (list, tuple, set)):
-        raise TypeError('backbone_atom_names must be a list, tuple, or set')
-    if not areAllStrings(backbone_atom_names):
-        raise TypeError('all items in backbone_atom_names must be string '
-                        'instances')
-    assert isinstance(full, bool), 'full must be a boolean instance'
-    if full:    
-        global BACKBONE_FULL_ATOM_NAMES
-        BACKBONE_FULL_ATOM_NAMES = set(backbone_atom_names)
+    >>> setBackboneNames('CA C O N H H1 H2 H3 OXT'.split(), full=True)"""
+    
+    try:
+        bb = set(names)
+    except TypeError:
+        raise TypeError('names must be a list of strings')
     else:
-        global BACKBONE_ATOM_NAMES
-        BACKBONE_ATOM_NAMES = set(backbone_atom_names)
-    _buildKeywordMap()
+        if len(bb) != len(names):
+            raise ValueError('names contains non-unique items')
+
+    if full:    
+        global BACKBONEFULL
+        BACKBONEFULL = SETTINGS['flags_backbonefull'] = bb
+    else:
+        global BACKBONE
+        BACKBONE = SETTINGS['flags_backbone'] = bb
+    timestamp()
+
+setDefinitions()
