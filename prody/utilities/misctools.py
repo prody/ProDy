@@ -129,11 +129,18 @@ def dictElement(element, prefix=None):
     return dict_
 
 
-def wrap(text, width=70, join='\n'):
+def wrap(text, width=70, join='\n', **kwargs):
     """Return wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
     """
     
-    return join.join(textwrap(text, width))
+    try:
+        indent = kwargs.pop('indent')
+    except KeyError:
+        pass
+    else:
+        kwargs['initial_indent'] = kwargs['subsequent_indent'] = indent
+    
+    return join.join(textwrap(text, width, **kwargs))
     
 def tabulate(*cols, **kwargs):
     """Return a table for columns of data. 
