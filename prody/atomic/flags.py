@@ -109,18 +109,18 @@ NONSTANDARD = {
     'SEC': set(['acyclic', 'neutral', 'buried', 'polar', 'medium']),
     'SEP': set(['acyclic', 'surface', 'acidic', 'large', 'polar']),
     'TPO': set(['acyclic', 'surface', 'acidic', 'large', 'polar']),
-    'PTR': set(['cyclic', 'surface', 'acidic', 'large', 'polar']),
+    'PTR': set(['cyclic', 'aromatic', 'surface', 'acidic', 'large', 'polar']),
     'XLE': set(['aliphatic', 'acyclic', 'buried', 'hydrophobic', 'large']),
     'XAA': set(),
 }
 
 DEFAULTS = {
 
-    'stdaa': ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 
-              'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 
-              'TYR', 'VAL'],
+    'stdaa': set(['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 
+                  'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 
+                  'THR', 'TRP', 'TYR', 'VAL']),
               
-    'nonstdaa': list(NONSTANDARD),
+    'nonstdaa': set(NONSTANDARD),
 
     # GLY is excluded from this list
     'aliphatic': set(['ALA', 'ILE', 'LEU', 'VAL', 'PRO', 'GLY']),
@@ -156,41 +156,42 @@ DEFAULTS = {
     'oxygen': 'O.*', 
     'sulfur': 'S.*',
     
-    'nucleobase': ['GUN', 'ADE', 'CYT', 'THY', 'URA'],
-    'nucleotide': ['DA', 'DC', 'DG', 'DT', 'DU', 'A', 'C', 'G', 'T', 'U'],
-    'nucleoside': ['AMP', 'ADP', 'ATP', 'CDP', 'CTP', 'GMP', 'GDP', 'GTP', 
-                   'TMP', 'TTP', 'UMP', 'UDP', 'UTP'],
+    'nucleobase': set(['GUN', 'ADE', 'CYT', 'THY', 'URA']),
+    'nucleotide': set(['DA', 'DC', 'DG', 'DT', 'DU', 'A', 'C', 'G', 'T', 'U']),
+    'nucleoside': set(['AMP', 'ADP', 'ATP', 'CDP', 'CTP', 'GMP', 'GDP', 'GTP', 
+                       'TMP', 'TTP', 'UMP', 'UDP', 'UTP']),
                    
-    'at': ['ADE', 'A', 'THY', 'T'],
-    'cg': ['CYT', 'C', 'GUN', 'G'],
-    'purine': ['ADE', 'A', 'GUN', 'G'],
-    'pyrimidine': ['CYT', 'C', 'THY', 'T', 'URA', 'U'],
+    'at': set(['ADE', 'A', 'THY', 'T']),
+    'cg': set(['CYT', 'C', 'GUN', 'G']),
+    'purine': set(['ADE', 'A', 'GUN', 'G']),
+    'pyrimidine': set(['CYT', 'C', 'THY', 'T', 'URA', 'U']),
     
-    'water': ['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2', 
-              'TIP4'],
+    'water': set(['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2', 
+                  'TIP4']),
     
-    'ion': ['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA', 
-            'HG', 'IN', 'IOD', 'K', 'MG', 'MN3', 'NA', 'PB', 'PT', 'RB', 
-            'TB', 'TL', 'WO4', 'YB', 'ZN'],
-    'ion_other': ['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2'],
+    'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA', 
+                'HG', 'IN', 'IOD', 'K', 'MG', 'MN3', 'NA', 'PB', 'PT', 'RB', 
+                'TB', 'TL', 'WO4', 'YB', 'ZN']),
+    'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2']),
     
     
-    'lipid': ['GPE', 'LPP', 'OLA', 'SDS', 'STE'],
-    'lipid_other': ['DLPE', 'DMPC', 'LPPC', 'OLEO', 'PALM', 'PCGL', 'POPC', 
-                 'POPE', 'STEA'],
+    'lipid': set(['GPE', 'LPP', 'OLA', 'SDS', 'STE']),
+    'lipid_other': set(['DLPE', 'DMPC', 'LPPC', 'OLEO', 'PALM', 'PCGL', 'POPC', 
+                        'POPE', 'STEA']),
               
-    'sugar': ['GLC', 'GLO', 'BGC'],
-    'sugar_other': ['AGLC'],
+    'sugar': set(['GLC', 'GLO', 'BGC']),
+    'sugar_other': set(['AGLC']),
     
-    'heme': ['1FH', '2FH', 'DDH', 'DHE', 'HAS', 'HDD', 'HDE', 'HDM', 'HEA',
-             'HEB', 'HEC', 'HEM', 'HEO', 'HES', 'HEV', 'NTE', 'SRM', 'VER'],
-    'heme_other': ['HEMO', 'HEMR']
+    'heme': set(['1FH', '2FH', 'DDH', 'DHE', 'HAS', 'HDD', 'HDE', 'HDM', 
+                 'HEA', 'HEB', 'HEC', 'HEM', 'HEO', 'HES', 'HEV', 'NTE', 
+                 'SRM', 'VER']),
+    'heme_other': set(['HEMO', 'HEMR'])
 
 }
 
-DEFAULTS['backbone'] = DEFAULTS['bb'] = ['CA', 'C', 'O', 'N']
-DEFAULTS['backbonefull'] = DEFAULTS['bbfull'] =  ['CA', 'C', 'O', 'N', 'H', 
-                                                  'H1', 'H2', 'H3', 'OXT']
+DEFAULTS['backbone'] = DEFAULTS['bb'] = set(['CA', 'C', 'O', 'N'])
+DEFAULTS['backbonefull'] = DEFAULTS['bbfull'] =  set(['CA', 'C', 'O', 'N', 'H', 
+                                                      'H1', 'H2', 'H3', 'OXT'])
 
 CATEGORIES = {
     'aromaticity': set(['aromatic', 'aliphatic']), 
@@ -211,7 +212,6 @@ CATEGORIZED['charged'].extend(CATEGORIZED['basic'])
 for resi, cats in NONSTANDARD.iteritems():
     for cat in cats:
         CATEGORIZED[cat].append(resi)
-
     
 __doc__ += """
 
@@ -219,7 +219,7 @@ Protein atoms
 ===============================================================================
 
 .. glossary::
-    
+
    protein
    aminoacid
       These flags indicate the twenty standard amino acids (:term:`stdaa`) 
@@ -299,16 +299,6 @@ for cat in cats:
 
 """.format(cat=cat, 
 res=wrap('residues ' + ', '.join(res), subsequent_indent=' '*6))
-
-'''
-col1 = []
-col2 = []
-for cat in cats:
-    col1.append('**' + cat + '**')
-    resnames = list(CATEGORIZED[cat])
-    resnames.sort()
-    col2.append(', '.join(resnames))
-__doc__ += tabulate(col1, col2, header=False)'''
 
 for resi in DEFAULTS['stdaa']:
     __doc__ += PDBLIGSUM.format(resi)
@@ -565,7 +555,7 @@ secondary structure assignments must be made.
 
    bend
       bend conformation, same as ``'secondary S'``
-      
+
    coil
       not in one of above conformations, same as ``'secondary C'``
 
@@ -573,7 +563,7 @@ secondary structure assignments must be made.
 
 # join split lists
 for key in ['ion', 'lipid', 'sugar', 'heme']:
-    DEFAULTS[key].extend(DEFAULTS.pop(key + '_other'))
+    DEFAULTS[key].update(DEFAULTS.pop(key + '_other'))
 
 EDITABLE = set(['nucleobase', 'nucleoside', 'nucleotide',
                 'at', 'cg', 'purine', 'pyrimidine', 
@@ -631,6 +621,8 @@ def setDefinitions():
             for prop in props: 
                 DEFINITIONS[prop].add(resi)
 
+    DEFINITIONS['stdaa'] = DEFAULTS['stdaa']
+    DEFINITIONS['nonstdaa'] = set(nonstd.keys())
     AMINOACIDS = set()
     AMINOACIDS.update(DEFAULTS['stdaa'])
     AMINOACIDS.update(nonstd.keys())
@@ -716,7 +708,7 @@ def setCategories(ag, label):
     
     calpha = ag._getSubset('ca')
     if len(calpha):
-        resnames = CATEGORIZED[label]
+        resnames = DEFINITIONS[label]
         residx = ag._getResindices()
         torf = zeros(ag.numResidues(), bool)
         torf[residx[calpha]] = [rn in resnames 
@@ -727,7 +719,8 @@ def setCategories(ag, label):
     ag._setFlags(flags, *ALIASES[label])
     return flags
     
-addPlanter(setCategories, *CATEGORIZED.keys(), aliases=False)
+addPlanter(setCategories, 'stdaa', 'nonstdaa', *CATEGORIZED.keys(), 
+           aliases=False)
 
 
 # hetero, nucleic, water, etc.
@@ -819,9 +812,10 @@ def flagDefinition(*arg, **kwarg):
     
     Pass an editable flag name:
     
-    >>> flagDefinition('backbone')
-    >>> flagDefinition('backbone')
-    >>> flagDefinition('backbonefull')
+    >>> flagDefinition('bb')
+    ['C', 'CA', 'N', 'O']
+    >>> flagDefinition('hydrogen')
+    '[0-9]?H.*'
 
     **Change a definition**    
     
@@ -849,10 +843,17 @@ def flagDefinition(*arg, **kwarg):
             raise ValueError('specify only one flag label')
         arg = arg[0]
         try:
-            return DEFINITIONS[arg]
+            definition = DEFINITIONS[arg]
         except KeyError:
             raise ValueError('{0:s} is not a flag label that can be '
                                'modified by the user')
+        else:
+            try:
+                return definition.pattern
+            except AttributeError:  
+                definition = list(definition)
+                definition.sort()
+                return definition
     elif kwarg:
         pass
     else:
