@@ -101,14 +101,8 @@ class Transformation(object):
         self._matrix = matrix
     
     def apply(self, atoms):
-        """Applies transformation to given atoms or coordinate set.  ProDy 
-        class instances from :mod:`~prody.atomic` are accepted.  Instance is 
-        returned after its active coordinate set is transformed.  If a 
-        :class:`~.AtomPointer` is passsed, the :class:`~.AtomGroup` that it 
-        points to is transformed. 
-        
-        If an :class:`~numpy.ndarray` instance is given, transformed array 
-        is returned."""
+        """Apply transformation to *atoms*, see :func:`applyTransformation`
+        for details."""
         
         return applyTransformation(self, atoms)
 
@@ -117,8 +111,8 @@ def calcTransformation(mobile, target, weights=None):
     """Returns a :class:`Transformation` instance which, when applied to the 
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and 
     *target*.  *mobile* and *target* may be NumPy coordinate arrays, or 
-    :class:`~.Atomic` instances, e.g. :class:`~.AtomGroup`, :class:`~.Chain`, 
-    or :class:`~.Selection`."""
+    :class:`.Atomic` instances, e.g. :class:`.AtomGroup`, :class:`.Chain`, 
+    or :class:`.Selection`."""
     
     name = ''
     if not isinstance(mobile, np.ndarray): 
@@ -184,11 +178,11 @@ def getTransformation(mob, tar, weights=None):
 
 def applyTransformation(transformation, atoms):
     """Return *atoms* after applying *transformation*.  If *atoms* 
-    is a :class:`~.Atomic` instance, it will be returned after 
+    is a :class:`.Atomic` instance, it will be returned after 
     *transformation* is applied to its active coordinate set.  If 
-    *atoms* is an :class:`~.AtomPointer` instance, *transformation* 
+    *atoms* is an :class:`.AtomPointer` instance, *transformation* 
     will be applied to the corresponding coordinate set in the 
-    associated :class:`~.AtomGroup`."""
+    associated :class:`.AtomGroup`."""
     
     coords = None
     ag = None
@@ -253,6 +247,7 @@ def moveAtoms(atoms, array):
     else:
         raise ValueError('array does not have right shape')
     atoms.setCoords(coords)
+    
     
 def moveAtoms(atoms, **kwargs):
     """Move *atoms* *to* a new location or *by* an offset.  This method will
@@ -486,48 +481,38 @@ def printRMSD(reference, target=None, weights=None, log=True, msg=None):
         write(msg + 'RMSD: {0:.2f}'.format(rmsd))
         
     
-def alignCoordsets(atoms, selstr='calpha', weights=None):
-    """Superpose coordinate sets onto the active coordinate set.
+def alignCoordsets(atoms, weights=None):
+    """Return *atoms* after superposing coordinate sets onto its active 
+    coordinate set.  Transformations will be calculated for *atoms* and 
+    applied to its :class:`.AtomGroup` if *atoms* is a subset.  Optionally, 
+    atomic *weights* can be passed for weighted superposition."""
     
-    Atoms matching *selstr* will be used for calculation of transformation 
-    matrix. Transformation matrix will be applied to all atoms in *atoms*,
-    or its :class:`~.AtomGroup` if *atoms* is an :class:`~.AtomPointer`.
-    
-    By default, alpha carbon atoms are used to calculate the transformations.
-    
-    Optionally, atomic *weights* can be passed for weighted superposition."""
-    
-    if not isinstance(atoms, Atomic):
+    try:
+        acsi, n_csets = atoms.getACSIndex(), atoms.numCoordsets()
+    except AttributeError:
         raise TypeError('atoms must have type Atomic, not {0:s}'
                         .format(type(atoms)))
-    if not isinstance(selstr, str):
-        raise TypeError('selstr must have type str, not {0:s}'
-                        .format(type(selstr)))
-    n_csets = atoms.numCoordsets()
-    if n_csets < 2:
-        LOGGER.warning('{0:s} contains only one coordinate set, '
-                       'superposition not performed.'.format(str(atoms)))
-        return None
+        if n_csets < 2:
+            LOGGER.warning('{0:s} contains fewer than two coordinate sets, '
+                           'alignment was not performed.'.format(str(atoms)))
+            return
     
-    acsi = atoms.getACSIndex()
-    if isinstance(atoms, AtomGroup):
-        ag = atoms
-    else: 
+    try:
         ag = atoms.getAtomGroup()
+    except AttributeError:
+        ag = atoms
     agacsi = ag.getACSIndex()
-    tar = atoms.select(selstr)
-    if tar is None:
-        raise ValueError("selstr '{0:s}' did not match any atoms"
-                         .format(selstr))
-    mob = AtomSubset(ag, tar.getIndices(), 0)
-    assert tar.getACSIndex() == acsi
+
+    tar = atoms._getCoords()
     for i in range(n_csets):
         if i == acsi:
             continue
-        mob.setACSIndex(i)
+        atoms.setACSIndex(i)
         ag.setACSIndex(i)
-        calcTransformation(mob, tar, weights).apply(ag)
+        calcTransformation(atoms, tar, weights).apply(ag)
+    atoms.setACSIndex(acsi)
     ag.setACSIndex(agacsi)
+    return atoms
 
 
 def wrapAtoms(frame, unitcell=None, center=np.array([0., 0., 0.])):
