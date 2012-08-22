@@ -20,9 +20,10 @@ Glossary
      :ref:`nmd-format`
      
    PDB 
-     A PDB file contains atomic data including, e.g. coordinates, and
-     other structural and meta data. The best guide to PDB format can
-     be found here: http://www.wwpdb.org/documentation/format32/v3.2.html 
+     PDB may refer to `Protein Data Bank <http://www.pdb.org>` or a file 
+     that contains atomic coordinate and structure data in PDB format. 
+     Description of PDB format can be found at:
+     http://www.wwpdb.org/documentation/format32/v3.2.html 
      
    PSF
      A PSF file, also called a protein structure file, contains atomic and
