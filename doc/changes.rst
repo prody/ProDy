@@ -94,7 +94,16 @@ and :ref:`outputtraj`.
   * ``from prody.utilities import *`` will not work anymore due to potential
     name conflicts with Python standard library functions.  Import required
     functions explicitly.
+    
+  * :func:`writePDB` appends :file:`.pdb` extension to filename when it is not
+    present
 
+  * :ref:`prody-select` command positional argument order is changed to allow
+    for handling multiple PDBs at a time. Old older will be supported until
+    v1.4, but a warning message will be issued.
+    
+  * *select* argument in :func:`.alignCoordsets` is removed, make selection 
+    outside of the function instead.
 
 **Deprecations**:
 

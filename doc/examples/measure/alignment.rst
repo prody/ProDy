@@ -44,17 +44,17 @@ Align coordinate sets
 We will superpose all models onto the first model in the file using
 based on Cα atom positions:
    
->>> alignCoordsets( pdb, selstr='calpha')
+>>> alignCoordsets(pdb.calpha)
+<Selection: 'calpha' from 1joy (134 atoms; active #0 of 21 coordsets)>
 
-``selstr='calpha'`` argument selects Cα atoms. To use all backbone
-atoms, ``selstr='backbone'`` can be passed as argument. See :ref:`selections`
-for more information on making selections.
+To use all backbone atoms, ``pdb.backbone`` can be passed as argument. See 
+:ref:`selections` for more information on making selections.
 
 Coordinate sets are superposed onto the first model (the active coordinate 
 set).
    
->>> rmsds = calcRMSD( pdb )
->>> print( rmsds.mean().round(2) )
+>>> rmsds = calcRMSD(pdb)
+>>> print(rmsds.mean().round(2))
 3.28
 
 Write aligned coordinates
