@@ -484,7 +484,7 @@ def printRMSD(reference, target=None, weights=None, log=True, msg=None):
 def alignCoordsets(atoms, weights=None):
     """Return *atoms* after superposing coordinate sets onto its active 
     coordinate set.  Transformations will be calculated for *atoms* and 
-    applied to its :class:`.AtomGroup` if *atoms* is a subset.  Optionally, 
+    applied to its :class:`.AtomGroup`, when applicable.  Optionally, 
     atomic *weights* can be passed for weighted superposition."""
     
     try:
