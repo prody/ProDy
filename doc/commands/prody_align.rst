@@ -9,8 +9,8 @@ Usage
 
 Running :command:`prody align -h` displays::
 
-  usage: prody align [-h] [--quiet] [--examples] [-p STR] [-x STR] [-s SELSTR]
-                     [-m INT] [-i INT] [-o INT]
+  usage: prody align [-h] [--quiet] [--examples] [-s SEL] [-m INT] [-i INT]
+                     [-o INT] [-p STR] [-x STR]
                      pdb [pdb ...]
   
   positional arguments:
@@ -20,14 +20,19 @@ Running :command:`prody align -h` displays::
     -h, --help            show this help message and exit
     --quiet               suppress info messages to stderr
     --examples            show usage examples and exit
-    -p STR, --prefix STR  output filename prefix (default: PDB filename)
-    -x STR, --suffix STR  output filename suffix (default: _aligned)
-    -s SELSTR, --select SELSTR
-                          selection string (default: "calpha")
+  
+  atom/model selection:
+    -s SEL, --select SEL  reference structure atom selection (default: "calpha")
     -m INT, --model INT   for NMR files, reference model index (default: 1)
+  
+  chain matching options:
     -i INT, --seqid INT   percent sequence identity (default: 90)
     -o INT, --overlap INT
                           percent sequence overlap (default: 90)
+  
+  output options:
+    -p STR, --prefix STR  output filename prefix (default: PDB filename)
+    -x STR, --suffix STR  output filename suffix (default: _aligned)
 
 Examples
 ===============================================================================
@@ -57,4 +62,9 @@ Running :command:`prody align --examples` displays::
   Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
   
       $ prody align --select "resnum 1 to 70" 1aar 2k39
+  
+  Align 1fi7 onto 1hrc using heme atoms:
+  
+      $ prody align --select "noh heme and chain A" 1hrc 1fi7
+  
   

@@ -71,6 +71,9 @@ and :ref:`outputtraj`.
   * :func:`.pickCentral` is extended to accept :class:`.Atomic` and 
     :class:`.Ensemble` instances. Old function is now :func:`.pickCentralAtom`.
     
+  * :ref:`prody_align` command and :func:`.prody_align` function can handle
+    non-protein atom selections (see examples for :ref:`prody_align`).  
+    
 **Changes**:
 
   * :func:`.showOverlapTable` displays first set of modes along x axis of the 
