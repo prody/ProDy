@@ -125,6 +125,8 @@ def parsePDB(pdb, **kwargs):
         title, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
             title, ext = os.path.splitext(title)
+        if len(title) == 7 and title.startswith('pdb'):
+            title = title[3:]
         kwargs['title'] = title
     pdb = openFile(pdb)
     result = parsePDBStream(pdb, **kwargs)
@@ -732,7 +734,6 @@ _writePDBdoc = """
     :arg atoms: an object with atom and coordinate data
     
     :arg csets: coordinate set indices, default is all coordinate sets
-    
     """
 
 def writePDBStream(stream, atoms, csets=None):
@@ -856,16 +857,18 @@ def writePDBStream(stream, atoms, csets=None):
 
 writePDBStream.__doc__ += _writePDBdoc
 
-def writePDB(filename, atoms, csets=None):
+def writePDB(filename, atoms, csets=None, autoext=True):
     """Write *atoms* in PDB format to a file with name *filename* and return 
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will 
     be written."""
     
+    if not ('.pdb' in filename or '.pdb.gz' in filename):  
+        filename += '.pdb'
     out = openFile(filename, 'w')
     writePDBStream(out, atoms, csets)
     out.close()
     return filename
 
-writePDB.__doc__ += _writePDBdoc
-            
-
+writePDB.__doc__ += _writePDBdoc + """
+    :arg autoext: when not present, append extension :file:`.pdb` to *filename*
+"""
