@@ -341,7 +341,7 @@ Protein atoms
    sidechain
    sc
       side-chain atoms of :term:`protein` residues, same as selection 
-      ``'not backbone'``
+      ``'protein and not backbonefull'``
 
 
 """.format(
@@ -588,8 +588,8 @@ expressions to atom names:
       non hydrogen atoms, same as ``'not hydrogen``
 
 
-``'not ion'`` is appended to above definitions to avoid conflicts with ion
-atoms.
+``'not ion'`` is appended to above definitions to avoid conflicts with 
+:term:`ion` atoms.
 
 Structure
 ===============================================================================
@@ -956,8 +956,8 @@ def flagDefinition(*arg, **kwarg):
         return alist
 
 flagDefinition.__doc__ = flagDefinition.__doc__.format(
-    editable=wrap(':term:`' + '`, :term:`'.join(EDITORS.keys()) + '`.', 
-                  subsequent_indent=' '*4))
+    editable=wrap(':term:`' + '`, :term:`'.join(flagDefinition(editable=True))
+                  + '`.', subsequent_indent=' '*4))
 
 def addNonstdAA(resname, *props):
     """Add a non-standard amino acid. *resname* cannot be longer than four 
