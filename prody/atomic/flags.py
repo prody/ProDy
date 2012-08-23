@@ -69,15 +69,16 @@ from prody.utilities import tabulate, wrap
 
 __all__ = ['flagDefinition', 'addNonstdAA', 'delNonstdAA', 'getNonstdAAs',]
 
+
+SETTINGS_KEY = 'flag_definitions'
+TIMESTAMP_KEY = 'flag_timestamp'
+
 ALIASES = {}
 PLANTERS = {}
+EDITORS = {}
 FIELDS = defaultdict(set)
 FIELDSDEFAULT = ['name', 'resname', 'resnum']
 TIMESTAMP = None
-
-def timestamp():
-    global TIMESTAMP
-    TIMESTAMP = time()
 
 PDBLIGSUM = ('.. _{0:s}: '
              'http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId={0:s}\n')
@@ -85,14 +86,78 @@ PDBLIGSUM = ('.. _{0:s}: '
 def addPlanter(func, *labels, **kwargs):
     
     aliases = kwargs.get('aliases', True)
+    editor = kwargs.get('editor', False)
     for label in labels:
         PLANTERS[label] = func
         if aliases:
             ALIASES[label] = labels
         else:
             ALIASES[label] = [label]
+        if editor:
+            EDITORS[label] = editor
     for field in kwargs.get('fields', FIELDSDEFAULT):
         FIELDS[field].update(labels)
+
+
+def changeDefinitions(**kwargs):
+    
+    defs = SETTINGS.get(SETTINGS_KEY, {})
+    defs.update(kwargs)
+    SETTINGS[SETTINGS_KEY] = defs
+    SETTINGS[TIMESTAMP_KEY] = time()
+    SETTINGS.save()
+
+    
+def resetDefinitions():
+    
+    SETTINGS.pop(SETTINGS_KEY, None)
+    SETTINGS[TIMESTAMP_KEY] = time()
+    SETTINGS.save()
+
+
+def changeResnames(flag, resnames):
+    """Change the list of residue names associated with a flag.  *flag* must 
+    be a string, and *resnames* may be a list, tuple, or set of strings.  The 
+    existing list of residue names will be overwritten with the given residue
+    names."""
+    
+    if flag not in EDITORS:
+        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+    
+    resnames = [str(rn) for rn in resnames]
+    changeDefinitions(**{flag: resnames})
+
+
+
+def changeNameRegex(flag, regex):
+    """Set regular expression used for flagging elements based on atom names.
+    See :ref:`element-flags` for the default list of flags."""
+    
+    if flag not in EDITORS:
+        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+
+    try:
+        recompile(regex)
+    except Exception as err:
+        raise ValueError('{0:s} is not a valid regular expression, {1:s}'
+                         .format(repr(regex), str(err)))
+    else:
+        changeDefinitions(**{flag: regex})
+
+def changeBackbone(flag, names):
+    """Set protein :term:`backbone` or :term:`backbonefull` atom names.  
+    *names* must be a list of atom names."""
+    
+    if flag not in EDITORS:
+        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+    
+    names = [str(nm) for nm in names]
+    
+    if flag.endswith('full'):    
+        changeDefinitions(bbfull=names, backbonefull=names)
+    else:
+        changeDefinitions(bb=names, backbone=names)
+    
 
 STANDARDAA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 
               'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 
@@ -222,10 +287,10 @@ Protein atoms
 
    protein
    aminoacid
-      These flags indicate the twenty standard amino acids (:term:`stdaa`) 
-      and some non-standard amino acids (:term:`nonstdaa`) described below.  
-      Residue must also have an atom named ``'CA'`` in addition to having
-      a qualifying residue name.
+      indicates the twenty standard amino acids (:term:`stdaa`) and some 
+      non-standard amino acids (:term:`nonstdaa`) described below.  Residue 
+      must also have an atom named ``'CA'`` in addition to having a qualifying
+      residue name.
 
 
    stdaa
@@ -233,7 +298,7 @@ Protein atoms
 
 
    nonstdaa
-      This flag indicates one of the following residues:
+      indicates one of the following residues:
 
       ==========  ===================================================
       `ASX`_ (B)  asparagine or aspartic acid
@@ -255,33 +320,33 @@ Protein atoms
       :func:`addNonstdAA`, :func:`delNonstdAA`, and :func:`getNonstdAAs`.
 
 
-   ca
    calpha
+   ca
       Cα atoms of :term:`protein` residues, same as selection 
       ``'name CA and protein'``
 
 
+   backbone
    bb
-   backbone        
       non-hydrogen backbone atoms of :term:`protein` residues, same as
       selection ``'name CA C O N and protein'``
 
 
-   bbfull
    backbonefull
+   bbfull
       backbone atoms of :term:`protein` residues, same as selection  
       ``'name CA C O N H H1 H2 H3 OXT and protein'``
 
 
-   sc
    sidechain
+   sc
       side-chain atoms of :term:`protein` residues, same as selection 
       ``'not backbone'``
 
 
 """.format(
 
-stdaa = wrap('This flag indicates the standard amino acid residues: `' + 
+stdaa = wrap('indicates the standard amino acid residues: `' + 
              '`_, `'.join(DEFAULTS['stdaa']) + '`_', subsequent_indent=' '*6),
 )
 
@@ -314,16 +379,16 @@ Nucleic atoms
 .. glossary::
 
    nucleic
-      This flag indicates :term:`nucleobase`, :term:`nucleotide`, and some 
+      indicates :term:`nucleobase`, :term:`nucleotide`, and some
       :term:`nucleoside` derivatives that are described below, so it is same
       as ``'nucleobase or nucleotide or nucleoside'``.
 
    nucleobase
-      This flag indicates `ADE`_ (adenine), `GUN`_ (guanine), `CYT`_ 
+      indicates `ADE`_ (adenine), `GUN`_ (guanine), `CYT`_ 
       (cytosine), `THY`_ (thymine), and `URA`_ (uracil).
 
    nucleotide
-      This flag indicates residues with the following names:
+      indicates residues with the following names:
 
       =======  ==================================
       `DA`_    2'-deoxyadenosine-5'-monophosphate
@@ -339,8 +404,7 @@ Nucleic atoms
       =======  ==================================
 
    nucleoside
-      This flag indicates following nucleoside derivatives that are recognized 
-      by *PDB*:
+      indicates following nucleoside derivatives that are recognized by *PDB*:
 
       =======  ================================
       `AMP`_   adenosine monophosphate             
@@ -390,19 +454,19 @@ Hetero atoms
 .. glossary::
    
    hetero
-      This flag indicates anything other than a :term:`protein` or a 
+      indicates anything other than a :term:`protein` or a 
       :term:`nucleic` residue, i.e. ``'not (protein or nucleic)'``.
 
 
    hetatm
-      This flag is available when atomic data is parsed from a PDB or similar 
+      is available when atomic data is parsed from a PDB or similar 
       format file and indicates atoms that are marked ``'HETATM'`` in the file. 
 
 
    water
-      This flag definition includes `HOH`_ and `DOD`_ recognized by *PDB* and 
-      also WAT, TIP3, H2O, OH2, TIP, TIP2, and TIP4 recognized by some molecular 
-      dynamics (MD) force fields.  
+      indices `HOH`_ and `DOD`_ recognized by *PDB* and also WAT, TIP3, H2O, 
+      OH2, TIP, TIP2, and TIP4 recognized by molecular dynamics (MD) force 
+      fields.  
     
       .. _HOH: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HOH
     
@@ -413,8 +477,8 @@ Hetero atoms
 
 
    ion
-      This flag definition includes the following ions most of which are 
-      recognized by the *PDB* and others by some MD force fields.
+      indicates the following ions most of which are recognized by the *PDB* 
+      and others by MD force fields.
 
       =======  ==================  =====  ========  ==========
       \                            *PDB*  *Source*  *Conflict*
@@ -460,7 +524,7 @@ Hetero atoms
 
 
    sugar
-      {lipid:s}
+      {sugar:s}
 
 
    heme
@@ -469,16 +533,16 @@ Hetero atoms
 
 """.format(
  
-lipid=wrap('This flag indicates `' + '`_, `'.join(DEFAULTS['lipid']) + 
+lipid=wrap('indicates `' + '`_, `'.join(DEFAULTS['lipid']) + 
            '`_ from *PDB* and ' + ', '.join(DEFAULTS['lipid_other']) +
            ' from *CHARMM* force field.', subsequent_indent=' '*6),
            
-sugar = wrap('**sugar** flag indicates `' + '`_, `'.join(DEFAULTS['sugar']) + 
-             '`_ from *PDB* and AGLC from *CHARMM*.', subsequent_indent=' '*6),
+sugar=wrap('indicates `' + '`_, `'.join(DEFAULTS['sugar']) + 
+           '`_ from *PDB* and AGLC from *CHARMM*.', subsequent_indent=' '*6),
 
-heme = wrap('This flag indicates `' + '`_, `'.join(DEFAULTS['heme']) + 
-            '`_ from *PDB*, as well as HEMO and HEMR from CHARMM.',
-            subsequent_indent=' '*6)
+heme=wrap('indicates `' + '`_, `'.join(DEFAULTS['heme']) + 
+          '`_ from *PDB*, as well as HEMO and HEMR from CHARMM.',
+          subsequent_indent=' '*6)
 )
 
 
@@ -518,7 +582,7 @@ expressions to atom names:
       sulfur atoms, same as ``'name "S.*" and not ion'``
 
    hydrogen
-       hydrogen atoms, same as ``'name "[1-9]?H.*" and not ion'``
+      hydrogen atoms, same as ``'name "[1-9]?H.*" and not ion'``
 
    noh
       non hydrogen atoms, same as ``'not hydrogen``
@@ -565,12 +629,6 @@ secondary structure assignments must be made.
 for key in ['ion', 'lipid', 'sugar', 'heme']:
     DEFAULTS[key].update(DEFAULTS.pop(key + '_other'))
 
-EDITABLE = set(['nucleobase', 'nucleoside', 'nucleotide',
-                'at', 'cg', 'purine', 'pyrimidine', 
-                'water', 'heme', 'lipid', 'ion', 'sugar',
-                'backbone', 'backbonefull', 'bb', 'bbfull',
-                'hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur'])
-
 DEFINITIONS = None
 AMINOACIDS = None
 BACKBONE = None
@@ -578,14 +636,14 @@ BACKBONE = None
 def setDefinitions():
     
 
-    global DEFINITIONS, AMINOACIDS, BACKBONE
+    global DEFINITIONS, AMINOACIDS, BACKBONE, TIMESTAMP
     DEFINITIONS = {}
-    defs = SETTINGS.get('flag_definitions', DEFAULTS)
+    user = SETTINGS.get('flag_definitions', {})
     
     # nucleics
     nucleic = set()
     for key in ['nucleobase', 'nucleoside', 'nucleotide']:
-        aset = set(defs[key])
+        aset = set(user.get(key, DEFAULTS[key]))
         nucleic.update(aset)
         DEFINITIONS[key] = aset
     DEFINITIONS['nucleic'] = nucleic
@@ -593,15 +651,16 @@ def setDefinitions():
     # heteros
     for key in ['water', 'lipid', 'ion', 'sugar', 'heme', 
                  'at', 'cg', 'purine', 'pyrimidine',]:
-        DEFINITIONS[key] = set(defs[key])
+        DEFINITIONS[key] = set(user.get(key, DEFAULTS[key]))
         
-    DEFINITIONS['backbone'] = DEFINITIONS['bb'] = set(defs['bb'])
-    DEFINITIONS['backbonefull'] = DEFINITIONS['bbfull'] = set(defs['bbfull'])
+    DEFINITIONS['backbone'] = DEFINITIONS['bb'] = set(user.get(key, 
+                                                           DEFAULTS['bb']))
+    DEFINITIONS['backbonefull'] = DEFINITIONS['bbfull'] = set(user.get(key, 
+                                                           DEFAULTS['bbfull']))
 
     # element regex
     for key in ['hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur']:
-        DEFINITIONS[key] = recompile(defs[key])
-        
+        DEFINITIONS[key] = recompile(user.get(key, DEFAULTS[key]))
 
     try:
         nonstd = SETTINGS['nonstandard']
@@ -629,6 +688,9 @@ def setDefinitions():
     DEFINITIONS['protein'] = DEFINITIONS['aminoacid'] = AMINOACIDS
     
     BACKBONE = DEFINITIONS['bb']
+
+    global TIMESTAMP
+    TIMESTAMP = SETTINGS.get('flag_timestamp', None)
 
 
 #==============================================================================
@@ -686,8 +748,8 @@ def setBackbone(ag, label):
     ag._setFlags(flags, *ALIASES[label])
     return flags
 
-addPlanter(setBackbone, 'bb', 'backbone')
-addPlanter(setBackbone, 'bbfull', 'backbonefull')
+addPlanter(setBackbone, 'bb', 'backbone', editor=changeBackbone)
+addPlanter(setBackbone, 'bbfull', 'backbonefull', editor=changeBackbone)
 
 def setSidechain(ag, label):
     
@@ -733,9 +795,10 @@ def setResiflag(ag, label):
     ag._setFlags(flags, *ALIASES[label])
     return flags
 
-addPlanter(setResiflag, 'nucleic', 'nucleobase', 'nucleoside', 'nucleotide',
+addPlanter(setResiflag, 'nucleobase', 'nucleoside', 'nucleotide',
            'water', 'ion', 'lipid', 'sugar', 'heme', 'at', 'cg', 'purine', 
-           'pyrimidine', aliases=False)
+           'pyrimidine', aliases=False, editor=changeResnames)
+addPlanter(setResiflag, 'nucleic') 
 
 
 def setHetero(ag, label):
@@ -761,7 +824,7 @@ def setElement(ag, label):
     return flags
 
 addPlanter(setElement, 'hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur', 
-           aliases=False)
+           aliases=False, editor=changeNameRegex)
 
 def setNoh(ag, label):
     
@@ -799,33 +862,38 @@ addPlanter(setSecondary, *SECONDARY.keys(), aliases=False,
 def flagDefinition(*arg, **kwarg):
     """Learn, change, or reset :ref:`flags` definitions.
     
-    **Editable definitions**
-
-    
-    Call this function with no arguments:
-    
-    >>> flagDefinition()
-    
-    
     **Learn a definition**
     
+    Calling this function with no arguments will return list of flag names
+    whose definitions you can learn:
     
-    Pass an editable flag name:
+    >>> flagDefinition() # doctest: +ELLIPSIS
+    ['acidic', 'acyclic', 'aliphatic', ..., 'sulfur', 'surface', 'water']
     
-    >>> flagDefinition('bb')
+    Passing a flag name will return its definition:
+    
+    >>> flagDefinition('backbone')
     ['C', 'CA', 'N', 'O']
     >>> flagDefinition('hydrogen')
     '[0-9]?H.*'
 
     **Change a definition**    
-    
+
+    Calling the function with ``editable=True`` argument will return flag
+    names those definitions that can be edited: 
+        
+    >>> flagDefinition(editable=True) # doctest: +ELLIPSIS
+    ['at', 'backbone', 'backbonefull', ..., 'sugar', 'sulfur', 'water']
 
     Pass an editable flag name with its new definition:
     
-    >>>
+    >>> flagDefinition(nitrogen='N.*')
+    >>> flagDefinition(backbone='CA C O N H H1 H2 H3 OXT'.split())
+    >>> flagDefinition(nucleobase=['ADE', 'CYT', 'GUN', 'THY', 'URA'])
     
     Note that the type of the new definition must be the same as the type
-    of the old definition.
+    of the old definition.  Flags with editable definitions are: 
+    {editable}
     
     **Reset definitions**
     
@@ -837,7 +905,9 @@ def flagDefinition(*arg, **kwarg):
     """
 
     if arg and kwarg:
-        raise ValueError('')
+        raise ValueError('only a single argument or a single keyword '
+                           'argument is accepted at a time')
+        
     elif arg:
         if len(arg) > 1:
             raise ValueError('specify only one flag label')
@@ -854,10 +924,40 @@ def flagDefinition(*arg, **kwarg):
                 definition = list(definition)
                 definition.sort()
                 return definition
+
     elif kwarg:
-        pass
+        if len(kwarg) > 1:
+            raise ValueError('specify only one keyword argument')
+        key, val = list(kwarg.items())[0]
+        if key == 'editable' and val: 
+            alist = list(EDITORS)
+            alist.sort()
+            return alist
+        if key == 'reset' and val: 
+            resetDefinitions()
+            setDefinitions()
+            return  
+        try:
+            editor = EDITORS[key]
+        except KeyError:
+            raise ValueError('{0:s} is not an editable flag or a valid '
+                               'keyword'.format(repr(key)))
+        else:
+            type_ = type(flagDefinition(key))
+            if type(val) != type_:
+                raise TypeError('expected {0:s} as type of new definition, '
+                                  'found {1:s}'.format(repr(type_.__name__), 
+                                  repr(type(val).__name__)))
+            editor(key, val)
+            setDefinitions()
     else:
-        return list(DEFINITIONS)
+        alist = list(DEFINITIONS)
+        alist.sort()
+        return alist
+
+flagDefinition.__doc__ = flagDefinition.__doc__.format(
+    editable=wrap(':term:`' + '`, :term:`'.join(EDITORS.keys()) + '`.', 
+                  subsequent_indent=' '*4))
 
 def addNonstdAA(resname, *props):
     """Add a non-standard amino acid. *resname* cannot be longer than four 
@@ -877,123 +977,5 @@ def getNonstdAAs(resname, *props):
     
     pass
 
-def getKeywordResnames(keyword):
-    """Return residue names associated with a keyword.
-    
-    >>> getKeywordResnames('acidic')
-    ['ASP', 'GLU', 'PTR', 'SEP', 'TPO']"""
-    
-    assert isinstance(keyword, str), 'keyword must be a string instance'
-    try:
-        resnames = KEYWORD_RESNAMES[keyword]
-        resnames.sort()
-        return resnames  
-    except KeyError:
-        if keyword in KEYWORD_RESNAMES_READONLY:
-            LOGGER.warn('{0:s} is defined as {1:s}'.format(repr(keyword), 
-                                    repr(KEYWORD_RESNAMES_READONLY[keyword])))
-        else:
-            LOGGER.warn("{0:s} is not a keyword".format(repr(keyword)))
-
-def setKeywordResnames(keyword, resnames):
-    """Change the list of residue names associated with a keyword.  *keyword* 
-    must be a string, and *resnames* may be a list, tuple, or set of strings. 
-    The existing list of residue names will be overwritten with the given 
-    residue names.  Note that changes in keyword definitions are not saved 
-    permanently.
-    
-    >>> setKeywordResnames('acidic', ['ASP', 'GLU', 'PTR', 'SEP', 'TPO'])"""
-    
-    if not isinstance(keyword, str):
-        raise TypeError('keyword must be a string')
-    if not isinstance(resnames, (list, tuple, set)):
-        raise TypeError('resnames must be a list, set, or tuple')
-    if not areAllStrings(resnames):
-        raise TypeError('all items in resnames must be string instances')
-    
-    if keyword in KEYWORD_RESNAMES_READONLY:
-        LOGGER.warn("{0:s} is defined as {1:s} and cannot be changed directly"
-            .format(repr(keyword), repr(KEYWORD_RESNAMES_READONLY[keyword])))
-        return
-    if keyword in KEYWORD_RESNAMES:
-        for rn in resnames:
-            if not isinstance(rn, str):
-                raise TypeError('all items in resnames must be strings')
-        KEYWORD_RESNAMES[keyword] = list(set(resnames))
-        _setReadonlyResidueNames()
-    else:
-        raise ValueError("{0:s} is not a valid keyword".format(repr(keyword)))
-
-
-def getElementRegex(name):
-    """Return regular expression used for flagging elements based on atom 
-    names.  See :ref:`element-flags` for the default list of flags.
-    
-    >>> getElementRegex('nitrogen')
-    'N.*'"""
-    
-    try:
-        return ELEMENT_REGEX[name]   
-    except KeyError:
-        LOGGER.warn('{0:s} is not a valid element flag name'.format(name))
-
-
-def setElementRegex(name, regex):
-    """Set regular expression used for flagging elements based on atom names.
-    See :ref:`element-flags` for the default list of flags.
-    
-    >>> setElementRegex('nitrogen', 'N.*')"""
-    
-
-    if not name in ELEMENT_REGEX:
-        raise ValueError('{0:s} is not a valid element flag name'
-                           .format(repr(name)))
-    try:
-        ELEMENT_COMPILED[name] = recompile(regex)
-    except Exception as err:
-        raise ValueError("{0:s} is not a valid regular expression, {1:s}"
-                         .format(repr(regex), str(err)))
-    else:
-        ELEMENT_REGEX[name] = regex
-        SETTINGS['element_name_regex'] = ELEMENT_REGEX 
-        timestamp()
-
-def getBackboneNames(full=False):
-    """Return protein backbone atom names.  When *full* is **True** argument
-    returns atom names for *backbonefull* keyword.  See :ref:`subset-flags` 
-    for details.
-    
-    >>> getBackboneNames()
-    ['C', 'CA', 'N', 'O']"""
-    
-    if full:
-        bban = list(BACKBONEFULL)
-    else:
-        bban = list(BACKBONE)
-    bban.sort()
-    return bban 
-
-def setBackboneNames(names, full=False):
-    """Set protein backbone atom names.  *names* must be a list of atom names.
-    Setting *full* argument **True** will change atom names for *backbonefull* 
-    flag.  See :ref:`subset-flags` for details.
-    
-    >>> setBackboneNames('CA C O N H H1 H2 H3 OXT'.split(), full=True)"""
-    
-    try:
-        bb = set(names)
-    except TypeError:
-        raise TypeError('names must be a list of strings')
-    else:
-        if len(bb) != len(names):
-            raise ValueError('names contains non-unique items')
-
-    if full:    
-        global BACKBONEFULL
-        BACKBONEFULL = SETTINGS['flags_backbonefull'] = bb
-    else:
-        global BACKBONE
-        BACKBONE = SETTINGS['flags_backbone'] = bb
-    timestamp()
 
 setDefinitions()
