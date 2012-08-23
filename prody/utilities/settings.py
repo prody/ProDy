@@ -68,7 +68,7 @@ class PackageSettings(object):
         """Remove specified *key* and return corresponding value.  If *key* is 
         not found, *default* is returned."""
         
-        return self._settings.get(key, default)
+        return self._settings.pop(key, default)
     
     def update(self, *args, **kwargs):
         """Update settings dictionary. """
