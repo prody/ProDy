@@ -24,8 +24,7 @@ from textwrap import wrap as textwrap
 
 from numpy import unique
 
-__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
-           'tabulate', 'wrap']
+__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',]
         
 class Everything(object):
     
@@ -129,52 +128,3 @@ def dictElement(element, prefix=None):
     return dict_
 
 
-def wrap(text, width=70, join='\n', **kwargs):
-    """Return wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
-    """
-    
-    try:
-        indent = kwargs.pop('indent')
-    except KeyError:
-        pass
-    else:
-        kwargs['initial_indent'] = kwargs['subsequent_indent'] = indent
-    
-    return join.join(textwrap(text, width, **kwargs))
-    
-def tabulate(*cols, **kwargs):
-    """Return a table for columns of data. 
-    
-    :kwarg header: make first row a header, default is **True**
-    :type header: bool
-    :kwarg width: 79
-    :type width: int
-    :kwargs space: number of white space characters between columns,
-         default is 2
-    :type space: int
-    
-    """
-    
-    space = kwargs.get('space', 2)
-    widths = [max(map(len, cols[0]))]
-    widths.append(kwargs.get('width', 79) - sum(widths) - len(widths) * space)
-    space *= ' '
-    bars = (space).join(['=' * width for width in widths])
-    lines = [bars]
-    
-    for irow, items in enumerate(zip(*cols)):
-        rows = []
-        map(rows.append, [textwrap(item, widths[icol]) if icol else 
-                          [item.ljust(widths[icol])] 
-                          for icol, item in enumerate(items)])
-        maxlen = max(map(len, rows))
-        if maxlen > 1:     
-            for i, row in enumerate(rows):
-                row.extend([' ' * widths[i]] * (maxlen - len(row)))
-        for line in zip(*rows):
-            lines.append(space.join(line))
-        if not irow and kwargs.get('header', True):
-            lines.append(bars)
-    if irow > 1:
-        lines.append(bars)
-    return '\n'.join(lines)

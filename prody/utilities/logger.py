@@ -180,10 +180,11 @@ class PackageLogger(object):
     warn = warning
 
     def error(self, msg):
-        """Log *msg* with severity 'ERROR'."""
+        """Log *msg* with severity 'ERROR' and terminate with status 2."""
         
         self.clear()
         self._logger.error(self._error + msg)
+        self.exit(2)
     
     def write(self, line):
         """Write *line* into ``sys.stderr``."""
@@ -199,6 +200,11 @@ class PackageLogger(object):
         if self._line and self._level < logging.WARNING:
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
             self._line = ''
+
+    def exit(self, status=0):
+        """Exit the interpreter."""
+        
+        sys.exit(status)
 
     # ====================
     # Handlers & logfiles

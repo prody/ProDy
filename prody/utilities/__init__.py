@@ -54,6 +54,15 @@ Path/file handling
   * :func:`.unpickle`
   * :func:`.glob`
 
+
+Documentation tools
+===============================================================================
+
+  * :func:`.joinTerms`
+  * :func:`.tabulate`
+  * :func:`.wrap`
+  
+
 Miscellaneous
 ===============================================================================
 
@@ -61,7 +70,6 @@ Miscellaneous
   * :func:`.alnum`
   * :func:`.importLA`
   * :func:`.dictElement`
-  * :func:`.wrap`
 
 """
 
@@ -71,17 +79,20 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 __all__ = []
 
-import checkers
-from checkers import *
+from . import checkers
+from .checkers import *
 
-import logger
-from logger import *
+from . import logger
+from .logger import *
 
-import settings
-from settings import *
+from . import settings
+from .settings import *
 
-import pathtools
-from pathtools import *
+from . import pathtools
+from .pathtools import *
 
-import misctools
-from misctools import *
+from . import misctools
+from .misctools import *
+
+from . import doctools
+from .doctools import *
