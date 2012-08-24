@@ -65,13 +65,15 @@ from collections import defaultdict
 from numpy import array, ones, zeros
 
 from prody import SETTINGS
-from prody.utilities import tabulate, wrap
+from prody.utilities import joinLinks, joinTerms, tabulate, wrap 
 
-__all__ = ['flagDefinition', 'addNonstdAA', 'delNonstdAA', 'getNonstdAAs',]
+__all__ = ['flagDefinition', 'getNonstdProperties', 'addNonstdAminoacid', 
+           'delNonstdAminoacid',]
 
 
 SETTINGS_KEY = 'flag_definitions'
 TIMESTAMP_KEY = 'flag_timestamp'
+NONSTANDARD_KEY = 'nonstandard'
 
 ALIASES = {}
 PLANTERS = {}
@@ -82,82 +84,6 @@ TIMESTAMP = None
 
 PDBLIGSUM = ('.. _{0:s}: '
              'http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId={0:s}\n')
-
-def addPlanter(func, *labels, **kwargs):
-    
-    aliases = kwargs.get('aliases', True)
-    editor = kwargs.get('editor', False)
-    for label in labels:
-        PLANTERS[label] = func
-        if aliases:
-            ALIASES[label] = labels
-        else:
-            ALIASES[label] = [label]
-        if editor:
-            EDITORS[label] = editor
-    for field in kwargs.get('fields', FIELDSDEFAULT):
-        FIELDS[field].update(labels)
-
-
-def changeDefinitions(**kwargs):
-    
-    defs = SETTINGS.get(SETTINGS_KEY, {})
-    defs.update(kwargs)
-    SETTINGS[SETTINGS_KEY] = defs
-    SETTINGS[TIMESTAMP_KEY] = time()
-    SETTINGS.save()
-
-    
-def resetDefinitions():
-    
-    SETTINGS.pop(SETTINGS_KEY, None)
-    SETTINGS[TIMESTAMP_KEY] = time()
-    SETTINGS.save()
-
-
-def changeResnames(flag, resnames):
-    """Change the list of residue names associated with a flag.  *flag* must 
-    be a string, and *resnames* may be a list, tuple, or set of strings.  The 
-    existing list of residue names will be overwritten with the given residue
-    names."""
-    
-    if flag not in EDITORS:
-        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
-    
-    resnames = [str(rn) for rn in resnames]
-    changeDefinitions(**{flag: resnames})
-
-
-
-def changeNameRegex(flag, regex):
-    """Set regular expression used for flagging elements based on atom names.
-    See :ref:`element-flags` for the default list of flags."""
-    
-    if flag not in EDITORS:
-        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
-
-    try:
-        recompile(regex)
-    except Exception as err:
-        raise ValueError('{0:s} is not a valid regular expression, {1:s}'
-                         .format(repr(regex), str(err)))
-    else:
-        changeDefinitions(**{flag: regex})
-
-def changeBackbone(flag, names):
-    """Set protein :term:`backbone` or :term:`backbonefull` atom names.  
-    *names* must be a list of atom names."""
-    
-    if flag not in EDITORS:
-        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
-    
-    names = [str(nm) for nm in names]
-    
-    if flag.endswith('full'):    
-        changeDefinitions(bbfull=names, backbonefull=names)
-    else:
-        changeDefinitions(bb=names, backbone=names)
-    
 
 STANDARDAA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 
               'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 
@@ -271,13 +197,116 @@ CATEGORIZED = {}
 for catgroup in CATEGORIES.values():
     for category in catgroup:
         CATEGORIZED[category] = list(DEFAULTS[category])
+INDEPENDENT = list(CATEGORIZED) 
 CATEGORIZED['charged'] = list(CATEGORIZED['acidic'])
 CATEGORIZED['charged'].extend(CATEGORIZED['basic'])
 
 for resi, cats in NONSTANDARD.iteritems():
     for cat in cats:
         CATEGORIZED[cat].append(resi)
+
+def addPlanter(func, *labels, **kwargs):
     
+    aliases = kwargs.get('aliases', True)
+    editor = kwargs.get('editor', False)
+    for label in labels:
+        PLANTERS[label] = func
+        if aliases:
+            ALIASES[label] = labels
+        else:
+            ALIASES[label] = [label]
+        if editor:
+            EDITORS[label] = editor
+    for field in kwargs.get('fields', FIELDSDEFAULT):
+        FIELDS[field].update(labels)
+
+
+def updateNonstandard(nonstd):
+    
+    SETTINGS[NONSTANDARD_KEY] = nonstd
+    SETTINGS[TIMESTAMP_KEY] = time()
+    SETTINGS.save()
+    updateDefinitions()
+
+
+def changeDefinitions(**kwargs):
+    
+    defs = SETTINGS.get(SETTINGS_KEY, {})
+    defs.update(kwargs)
+    SETTINGS[SETTINGS_KEY] = defs
+    SETTINGS[TIMESTAMP_KEY] = time()
+    SETTINGS.save()
+    updateDefinitions()
+    
+def resetDefinitions(flag):
+    
+    
+    if flag == 'all':
+        SETTINGS.pop(SETTINGS_KEY, None)
+        SETTINGS.pop(NONSTANDARD_KEY, None)
+        SETTINGS[TIMESTAMP_KEY] = time()
+        SETTINGS.save()
+        updateDefinitions()
+    elif flag == 'nonstdaa': 
+        SETTINGS.pop(NONSTANDARD_KEY, None)
+        SETTINGS[TIMESTAMP_KEY] = time()
+        SETTINGS.save()
+        updateDefinitions()
+    else:        
+        try:
+            SETTINGS.pop(SETTINGS_KEY, {}).pop(flag)
+        except KeyError:
+            pass
+        else:
+            SETTINGS[TIMESTAMP_KEY] = time()
+            SETTINGS.save()
+            updateDefinitions()
+
+
+def changeResnames(flag, resnames):
+    """Change the list of residue names associated with a flag.  *flag* must 
+    be a string, and *resnames* may be a list, tuple, or set of strings.  The 
+    existing list of residue names will be overwritten with the given residue
+    names."""
+    
+    if flag not in EDITORS:
+        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+    
+    resnames = [str(rn) for rn in resnames]
+    changeDefinitions(**{flag: resnames})
+
+
+
+def changeNameRegex(flag, regex):
+    """Set regular expression used for flagging elements based on atom names.
+    See :ref:`element-flags` for the default list of flags."""
+    
+    if flag not in EDITORS:
+        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+
+    try:
+        recompile(regex)
+    except Exception as err:
+        raise ValueError('{0:s} is not a valid regular expression, {1:s}'
+                         .format(repr(regex), str(err)))
+    else:
+        changeDefinitions(**{flag: regex})
+
+def changeBackbone(flag, names):
+    """Set protein :term:`backbone` or :term:`backbonefull` atom names.  
+    *names* must be a list of atom names."""
+    
+    if flag not in EDITORS:
+        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+    
+    names = [str(nm) for nm in names]
+    
+    if flag.endswith('full'):    
+        changeDefinitions(bbfull=names, backbonefull=names)
+    else:
+        changeDefinitions(bb=names, backbone=names)
+    
+
 __doc__ += """
 
 Protein atoms
@@ -346,8 +375,9 @@ Protein atoms
 
 """.format(
 
-stdaa = wrap('indicates the standard amino acid residues: `' + 
-             '`_, `'.join(DEFAULTS['stdaa']) + '`_', subsequent_indent=' '*6),
+stdaa = wrap('indicates the standard amino acid residues: ' + 
+             joinLinks(DEFAULTS['stdaa'], last=', and ', sort=True), 
+             subsequent_indent=' '*6),
 )
 
 
@@ -533,15 +563,19 @@ Hetero atoms
 
 """.format(
  
-lipid=wrap('indicates `' + '`_, `'.join(DEFAULTS['lipid']) + 
-           '`_ from *PDB* and ' + ', '.join(DEFAULTS['lipid_other']) +
+lipid=wrap('indicates ' + 
+           joinLinks(DEFAULTS['lipid'], last=', and ', sort=True) + 
+           ' from *PDB*, and also ' + ', '.join(DEFAULTS['lipid_other']) +
            ' from *CHARMM* force field.', subsequent_indent=' '*6),
            
-sugar=wrap('indicates `' + '`_, `'.join(DEFAULTS['sugar']) + 
-           '`_ from *PDB* and AGLC from *CHARMM*.', subsequent_indent=' '*6),
+sugar=wrap('indicates ' + 
+           joinLinks(DEFAULTS['sugar'], last=', and ', sort=True) + 
+           ' from *PDB*, and also AGLC from *CHARMM*.', 
+           subsequent_indent=' '*6),
 
-heme=wrap('indicates `' + '`_, `'.join(DEFAULTS['heme']) + 
-          '`_ from *PDB*, as well as HEMO and HEMR from CHARMM.',
+heme=wrap('indicates ' + 
+          joinLinks(DEFAULTS['heme'], last=', and ', sort=True) +
+          ' from *PDB*, and also HEMO and HEMR from CHARMM.',
           subsequent_indent=' '*6)
 )
 
@@ -633,8 +667,9 @@ DEFINITIONS = None
 AMINOACIDS = None
 BACKBONE = None
 
-def setDefinitions():
-    
+def updateDefinitions():
+    """Update definitions and set some global variables.  This function must be
+    called at the end of the module."""
 
     global DEFINITIONS, AMINOACIDS, BACKBONE, TIMESTAMP
     DEFINITIONS = {}
@@ -663,15 +698,16 @@ def setDefinitions():
         DEFINITIONS[key] = recompile(user.get(key, DEFAULTS[key]))
 
     try:
-        nonstd = SETTINGS['nonstandard']
+        nonstd = SETTINGS[NONSTANDARD_KEY]
         
     except KeyError:
         nonstd = NONSTANDARD
         DEFINITIONS.update(CATEGORIZED)
     else:
 
-        for key in CATEGORIES:
-            DEFINITIONS[key] = set(DEFAULTS[key])
+        for cat in CATEGORIES:
+            for key in CATEGORIES[cat]:
+                DEFINITIONS[key] = set(DEFAULTS[key])
 
         DEFINITIONS['charged'] = set(DEFINITIONS['acidic'])
         DEFINITIONS['charged'].update(DEFINITIONS['basic'])
@@ -681,10 +717,9 @@ def setDefinitions():
                 DEFINITIONS[prop].add(resi)
 
     DEFINITIONS['stdaa'] = DEFAULTS['stdaa']
-    DEFINITIONS['nonstdaa'] = set(nonstd.keys())
-    AMINOACIDS = set()
-    AMINOACIDS.update(DEFAULTS['stdaa'])
-    AMINOACIDS.update(nonstd.keys())
+    DEFINITIONS['nonstdaa'] = set(nonstd)
+    AMINOACIDS = set(DEFINITIONS['stdaa'])
+    AMINOACIDS.update(DEFINITIONS['nonstdaa'])
     DEFINITIONS['protein'] = DEFINITIONS['aminoacid'] = AMINOACIDS
     
     BACKBONE = DEFINITIONS['bb']
@@ -888,7 +923,7 @@ def flagDefinition(*arg, **kwarg):
     Pass an editable flag name with its new definition:
     
     >>> flagDefinition(nitrogen='N.*')
-    >>> flagDefinition(backbone='CA C O N H H1 H2 H3 OXT'.split())
+    >>> flagDefinition(backbone=['CA', 'C', 'O', 'N'])
     >>> flagDefinition(nucleobase=['ADE', 'CYT', 'GUN', 'THY', 'URA'])
     
     Note that the type of the new definition must be the same as the type
@@ -897,12 +932,14 @@ def flagDefinition(*arg, **kwarg):
     
     **Reset definitions**
     
-    Pass *reset* keyword as follows to restore default definitions of editable
-    flags.
+    Pass *reset* keyword as follows to restore all default definitions of 
+    editable flags and also non-standard amino acids.
     
-    >>> flagDefinition(reset=True)
-       
-    """
+    >>> flagDefinition(reset='all')
+    
+    Or, pass a specific editable flag label to restore its definition:
+        
+    >>> flagDefinition(reset='nitrogen')"""
 
     if arg and kwarg:
         raise ValueError('only a single argument or a single keyword '
@@ -915,8 +952,8 @@ def flagDefinition(*arg, **kwarg):
         try:
             definition = DEFINITIONS[arg]
         except KeyError:
-            raise ValueError('{0:s} is not a flag label that can be '
-                               'modified by the user')
+            raise ValueError('{0:s} is not a valid flag label'
+                               .format(repr(arg)))
         else:
             try:
                 return definition.pattern
@@ -934,8 +971,7 @@ def flagDefinition(*arg, **kwarg):
             alist.sort()
             return alist
         if key == 'reset' and val: 
-            resetDefinitions()
-            setDefinitions()
+            resetDefinitions(val)
             return  
         try:
             editor = EDITORS[key]
@@ -949,33 +985,95 @@ def flagDefinition(*arg, **kwarg):
                                   'found {1:s}'.format(repr(type_.__name__), 
                                   repr(type(val).__name__)))
             editor(key, val)
-            setDefinitions()
     else:
         alist = list(DEFINITIONS)
         alist.sort()
         return alist
 
 flagDefinition.__doc__ = flagDefinition.__doc__.format(
-    editable=wrap(':term:`' + '`, :term:`'.join(flagDefinition(editable=True))
-                  + '`.', subsequent_indent=' '*4))
-
-def addNonstdAA(resname, *props):
-    """Add a non-standard amino acid. *resname* cannot be longer than four 
-    characters."""
-    
-    pass
-    
-def delNonstdAA(resname, *props):
-    """Add a non-standard amino acid. *resname* cannot be longer than four 
-    characters."""
-    
-    pass
-
-def getNonstdAAs(resname, *props):
-    """Add a non-standard amino acid. *resname* cannot be longer than four 
-    characters."""
-    
-    pass
+    editable=wrap(joinTerms(flagDefinition(editable=True), last=', and '), 
+                  subsequent_indent=' '*4))
 
 
-setDefinitions()
+def addNonstdAminoacid(resname, *properties):
+    """Add non-standard amino acid *resname* with *properties* selected from:
+     
+      * {props}
+    
+    >>> addNonstdAminoacid('PTR', 'acidic', 'aromatic', 'cyclic', 'large', 
+    ... 'polar', 'surface')
+    
+    Default set of non-standard amino acids can be restored as follows:
+    
+    >>> flagDefinition(reset='nonstdaa')"""
+    
+    resname = str(resname)
+    if len(resname) > 4:
+        LOGGER.warn('Residue name {0:s} is unusually long.'
+                    .format(repr(resname)))
+    propset = set(properties)
+    for cat, val in CATEGORIES.items():
+        intersection = val.intersection(propset)
+        if intersection:
+            if len(intersection) > 1:
+                raise ValueError('amino acid properties {0:s} cannot be '
+                                   'present together'
+                      .format(', '.join([repr(prp) for prp in intersection])))
+            for prop in intersection:
+                propset.remove(prop)
+    if propset:
+        raise ValueError('amino acid property {0:s} is not valid'
+                           .format(repr(propset.pop())))
+        
+    nonstd = SETTINGS.get(NONSTANDARD_KEY, NONSTANDARD)
+    nonstd[resname] = set(properties)
+    updateNonstandard(nonstd)    
+  
+INDEPENDENT.sort()
+addNonstdAminoacid.__doc__ = addNonstdAminoacid.__doc__.format(
+    props='\n      * '.join([
+        '*{0:s}*: {1:s}'.format(cat, joinTerms(terms, last=', or ', sort=True))
+        for cat, terms in CATEGORIES.items()
+    ])
+)
+    
+    
+def delNonstdAminoacid(resname):
+    """Delete non-standard amino acid *resname*.
+    
+    >>> delNonstdAminoacid('PTR')
+    >>> flagDefinition('nonstdaa') # doctest: +ELLIPSIS
+    ['ASX', 'CSO', 'GLX', ..., 'TPO', 'XAA', 'XLE']
+    
+    Default set of non-standard amino acids can be restored as follows:
+    
+    >>> flagDefinition(reset='nonstdaa')"""
+    
+    
+    nonstd = SETTINGS.get(NONSTANDARD_KEY, NONSTANDARD)
+    try:
+        nonstd.pop(resname)
+    except KeyError:
+        raise ValueError('{0:s} is not a non-standard residue name'
+                           .format(repr(resname)))
+    else:
+        updateNonstandard(nonstd)
+
+
+def getNonstdProperties(resname):
+    """Return properties of non-standard amino acid *resname*.
+    
+    >>> getNonstdProperties('PTR')
+    ['acidic', 'aromatic', 'cyclic', 'large', 'polar', 'surface']"""
+    
+    try:
+        alist = list(SETTINGS.get(NONSTANDARD_KEY, NONSTANDARD)[resname])
+    except KeyError:
+        raise ValueError('{0:s} is not a non-standard residue name'
+                           .format(repr(resname)))
+    else:
+        alist.sort()
+        return alist
+        
+
+updateDefinitions()
