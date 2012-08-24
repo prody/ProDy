@@ -567,7 +567,8 @@ def calcMSF(coordsets):
         sqsum = zeros((natoms, 3))
 
         LOGGER.progress('Evaluating {0:d} frames from {1:s}:'
-                        .format(ncsets, str(coordsets)), ncsets)
+                        .format(ncsets, str(coordsets)), ncsets, 
+                        '_prody_calcMSF')
         ncsets = 0
         coordsets.reset()
         for frame in coordsets:
@@ -576,9 +577,9 @@ def calcMSF(coordsets):
             total += coords
             sqsum += coords ** 2
             ncsets += 1
-            LOGGER.update(ncsets)
+            LOGGER.update(ncsets, '_prody_calcMSF')
         msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)
-        LOGGER.clear()  
+        LOGGER.clear()
         coordsets.goto(nfi)        
     return msf
 

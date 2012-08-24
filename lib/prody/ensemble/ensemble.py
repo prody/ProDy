@@ -437,9 +437,10 @@ class Ensemble(object):
             raise ValueError('coordinates are not set, use `setCoords`')
         if self._confs is None or len(self._confs) == 0: 
             raise ValueError('conformations are not set, use `addCoordset`')
-        LOGGER.timeit()
+        LOGGER.timeit('_prody_ensemble')
         self._superpose(trans=True) # trans kwarg is used by PDBEnsemble
-        LOGGER.timing('Superposition completed in %.2f seconds.')
+        LOGGER.report('Superposition completed in %.2f seconds.',
+                      '_prody_ensemble')
         
     def _superpose(self, **kwargs):
         """Superpose conformations and update coordinates."""
@@ -479,7 +480,7 @@ class Ensemble(object):
             tar_org = (tar - tar_com)
             mob_org = np.zeros(tar_org.shape, dtype=mobs.dtype)
 
-        LOGGER.progress('Superposing ', len(mobs))
+        LOGGER.progress('Superposing ', len(mobs), '_prody_ensemble')
         for i, mob in enumerate(mobs):        
             if idx:            
                 mob = mob[indices]
@@ -502,7 +503,7 @@ class Ensemble(object):
             else:
                 add(dot(movs[i], rotation), 
                     (tar_com - dot(mob_com, rotation)), movs[i])
-            LOGGER.update(i)
+            LOGGER.update(i, '_prody_ensemble')
         LOGGER.clear()
             
     def iterpose(self, rmsd=0.0001):
@@ -525,7 +526,7 @@ class Ensemble(object):
             raise AttributeError('conformations are not set, use' 
                                     '`addCoordset`')
         LOGGER.info('Starting iterative superposition:')
-        LOGGER.timeit()
+        LOGGER.timeit('_prody_ensemble')
         rmsdif = 1
         step = 0
         weights = self._weights
@@ -543,7 +544,8 @@ class Ensemble(object):
             step += 1
             LOGGER.info(('Step #{0:d}: RMSD difference = '
                                '{1:.4e}').format(step, rmsdif))
-        LOGGER.timing('Iterative superposition completed in %.2fs.')
+        LOGGER.report('Iterative superposition completed in %.2fs.',
+                      '_prody_ensemble')
 
     def getMSFs(self):
         """Return mean square fluctuations (MSFs) for selected atoms.  

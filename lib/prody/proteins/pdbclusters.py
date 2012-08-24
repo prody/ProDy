@@ -120,7 +120,8 @@ def fetchPDBClusters():
     PDB_CLUSTERS_PATH = os.path.join(getPackagePath(), 'pdbclusters')
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)
-    LOGGER.progress('Downloading sequence clusters', len(PDB_CLUSTERS))
+    LOGGER.progress('Downloading sequence clusters', len(PDB_CLUSTERS),
+                    '_prody_fetchPDBClusters')
     count = 0
     for i, x in enumerate(PDB_CLUSTERS.keys()):
         filename = 'bc-{0:d}.out'.format(x)
@@ -137,9 +138,9 @@ def fetchPDBClusters():
             inp.close()
             out.close()
             count += 1
-        LOGGER.update(i)
+        LOGGER.update(i, '_prody_fetchPDBClusters')
     LOGGER.clear()
     if len(PDB_CLUSTERS) == count:
         LOGGER.info('All PDB clusters were downloaded successfully.')
     elif count == 0:
-        LOGGER.warning('PDB clusters could not be downloaded.')
+        LOGGER.warn('PDB clusters could not be downloaded.')

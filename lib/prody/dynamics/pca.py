@@ -89,7 +89,7 @@ class PCA(NMA):
         if not isinstance(coordsets, (Ensemble, Atomic, TrajBase, np.ndarray)):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
-        LOGGER.timeit()
+        LOGGER.timeit('_prody_pca')
         weights = None
         if isinstance(coordsets, np.ndarray): 
             if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
@@ -114,7 +114,7 @@ class PCA(NMA):
             LOGGER.info('Covariance will be calculated using {0:d} frames.'
                             .format(n_frames))
             coordsum = np.zeros(dof)
-            LOGGER.progress('Calculating covariance', n_frames)
+            LOGGER.progress('Building covariance', n_frames, '_prody_pca')
             align = not kwargs.get('aligned', False) 
             for frame in coordsets:
                 if align:
@@ -123,7 +123,7 @@ class PCA(NMA):
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
-                LOGGER.update(n_confs)
+                LOGGER.update(n_confs, '_prody_pca')
             LOGGER.clear()
             cov /= n_confs
             coordsum /= n_confs
@@ -149,12 +149,13 @@ class PCA(NMA):
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
                     mean = coordsets.mean(0)
-                    LOGGER.progress('Building covariance', n_confs)
+                    LOGGER.progress('Building covariance', n_confs, 
+                                    '_prody_pca')
                     for i, coords in enumerate(
                                             coordsets.reshape((n_confs, dof))):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        LOGGER.update(n_confs)
+                        LOGGER.update(n_confs, '_prody_pca')
                     LOGGER.clear()
                     cov /= n_confs 
                     self._cov = cov
@@ -172,7 +173,7 @@ class PCA(NMA):
         self._trace = self._cov.trace()
         self._dof = dof
         self._n_atoms = n_atoms
-        LOGGER.timing('Covariance matrix was calculated in %2fs.')
+        LOGGER.report('Covariance matrix calculated in %2fs.', '_prody_pca')
         
     def calcModes(self, n_modes=20, turbo=True):
         """Calculate principal (or essential) modes.  This method uses 

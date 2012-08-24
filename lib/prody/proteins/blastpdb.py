@@ -83,15 +83,15 @@ def blastPDB(sequence, filename=None, **kwargs):
     timeout = float(kwargs.pop('timeout', 20))
     
     if kwargs:
-        LOGGER.warning("Keyword argument(s) '{0:s}' are not used."
-                       .format("', '".join(kwargs.keys())))
+        LOGGER.warn('Keyword argument(s) {0:s} are not used.'
+                    .format(', '.join([repr(key) for key in kwargs])))
 
     import urllib, urllib2
     
     url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
     
     data = urllib.urlencode(query)
-    LOGGER.timeit()
+    LOGGER.timeit('_prody_blast')
     LOGGER.info('Blast searching NCBI PDB database for "{0:s}..."'
                 .format(sequence[:5]))
     request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
@@ -131,11 +131,11 @@ def blastPDB(sequence, filename=None, **kwargs):
         if status.upper() == 'READY':
             break
         sleep *= 2
-        if LOGGER.timing() > timeout:
-            LOGGER.warning('Blast search time out.')
+        if LOGGER.timing('_prody_blast') > timeout:
+            LOGGER.warn('Blast search time out.')
             return None
     LOGGER.clear()
-    LOGGER.timing('Blast search completed in %.1fs.')
+    LOGGER.report('Blast search completed in %.1fs.', '_prody_blast')
     if isinstance(filename, str):
         if not filename.lower().endswith('.xml'):
                 filename += '.xml'        

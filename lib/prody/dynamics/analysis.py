@@ -374,7 +374,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     
     n_atoms = model.numAtoms()
     response_matrix = np.zeros((n_atoms, n_atoms))
-    LOGGER.progress('Calculating perturbation response', n_atoms)
+    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
     i3 = -3
     i3p3 = 0
     for i in range(n_atoms):
@@ -385,11 +385,12 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
         for force in forces:
             response_matrix[i] += (np.dot(cov[:, i3:i3p3], force) ** 2
                                             ).reshape((n_atoms, 3)).sum(1)
-        LOGGER.update(i)
+        LOGGER.update(i, '_prody_prs')
 
     response_matrix /= repeats
     LOGGER.clear()
-    LOGGER.info('Perturbation response scanning completed in %.1fs.')
+    LOGGER.report('Perturbation response scanning completed in %.1fs.', 
+                  '_prody_prs')
     if atoms is not None:
         atoms.setData('prs_profile', response_matrix)
     return response_matrix

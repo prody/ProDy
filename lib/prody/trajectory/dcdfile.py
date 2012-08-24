@@ -569,7 +569,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         n_fixed = 0
         
     dcd = DCDFile(filename, mode='w')
-    LOGGER.progress('Writing DCD', len(irange))
+    LOGGER.progress('Writing DCD', len(irange), '_prody_writeDCD')
     prev = -1
     uc = None
     time_ = time()
@@ -597,7 +597,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
                       firsttimestep=first_ts, framefreq=framefreq)
         else:
             dcd.write(frame._getCoords(), uc)
-        LOGGER.update(i)
+        LOGGER.update(i, '_prody_writeDCD')
     if isAtomic:
         trajectory.setACSIndex(acsi)
     j += 1
@@ -611,8 +611,8 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     LOGGER.info('{0:d} coordinate sets written at output rate {1:d} frame/s.'
                 .format(n_csets, int(n_csets/time_)))
     if j != n_csets:
-        LOGGER.warning('Warning: {0:d} frames expected, {1:d} written.'
-                       .format(n_csets, j))
+        LOGGER.warn('Warning: {0:d} frames expected, {1:d} written.'
+                    .format(n_csets, j))
     if isTrajectory:
         trajectory.goto(nfi)
     return filename
