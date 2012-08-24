@@ -1250,18 +1250,25 @@ class AtomGroup(Atomic):
             frags = self._data.get('fragindex')
             acsi = self._acsi
             if self._fragments is None:
-                fragments = []
-                append = fragments.append
-                for i in range(frags.max() + 1):
-                    indices = (frags == i).nonzero()[0]
-                    append(indices)
-                    yield Selection(self, indices, 'fragment ' + str(i), 
-                                    acsi=acsi, unique=True)
-                self._fragments = fragments
-            else:    
-                for i, frag in enumerate(self._fragments):
-                    yield Selection(self, frag, 'fragment ' + str(i), 
-                                    acsi=acsi, unique=True)
+                self._fragment()
+            #    fragments = []
+            #    append = fragments.append
+            #    for i in range(frags.max() + 1):
+            #        indices = (frags == i).nonzero()[0]
+            #        append(indices)
+            #        yield Selection(self, indices, 'fragment ' + str(i), 
+            #                        acsi=acsi, unique=True)
+            #    self._fragments = fragments
+            #else:
+            for i, frag in enumerate(self._fragments):
+                try:
+                    frag.getAtomGroup()
+                except AttributeError:
+                    frag = Selection(self, frag, 'fragment ' + str(i), 
+                                     acsi=acsi, unique=True)
+                finally:
+                    self._fragments[i] = frag
+                yield frag
                 
     def _fragment(self):
         """Set unique fragment indices to connected atom subsets using bond 
