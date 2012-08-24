@@ -53,9 +53,9 @@ def fetchPDBLigand(cci, filename=None):
     field.  So, it may be better if you use :meth:`dict.get` instead of
     indexing the dictionary, e.g. to retrieve formula weight (or relative
     molar mass) of the chemical component use ``data.get('formula_weight')``
-    instead of ``data['formula_weight']`` to avoid exceptions when this
-    data field is not found in the XML file.  URL of the XML file is returned 
-    in the dictionary with key ``url``.
+    instead of ``data['formula_weight']`` to avoid exceptions when this data 
+    field is not found in the XML file.  URL and/or path of the XML file are 
+    returned in the dictionary with keys ``url`` and ``path``, respectively.
     
     Following example downloads data for ligand STI (a.k.a. Gleevec and
     Imatinib) and calculates RMSD between model (X-ray structure 1IEP) and 
@@ -76,6 +76,8 @@ def fetchPDBLigand(cci, filename=None):
         inp = openFile(cci)
         xml = inp.read()
         inp.close()
+        url = None
+        path = cci
     elif len(cci) > 4 or not cci.isalnum():
         raise ValueError('cci must be 3-letters long and alphanumeric or '
                          'a valid filename')
@@ -86,7 +88,7 @@ def fetchPDBLigand(cci, filename=None):
             folder = os.path.join(getPackagePath(), 'pdbligands')
             if not os.path.isdir(folder):
                 makePath(folder)
-            xmlgz = os.path.join(folder, cci + '.xml.gz')
+            xmlgz = path = os.path.join(folder, cci + '.xml.gz')
             if os.path.isfile(xmlgz):
                 LOGGER.info('Parsing XML file for {0:s} from local folder.'
                              .format(cci))
@@ -122,7 +124,7 @@ def fetchPDBLigand(cci, filename=None):
                        'resulting dictionary may not have all possible data')
     ns = root.tag[:root.tag.rfind('}')+1]
     len_ns = len(ns)
-    dict_ = {'url': url}
+    dict_ = {'url': url, 'path': path}
 
     for child in list(root.find(ns + 'chem_compCategory')[0]):
         tag = child.tag[len_ns:]
