@@ -52,7 +52,8 @@ if sys.version_info[:2] > (2, 6):
     PACKAGE_DATA['prody.tests'] = ['test_datafiles/pdb*.pdb', 
                                    'test_datafiles/*.dat', 
                                    'test_datafiles/*.coo', 
-                                   'test_datafiles/dcd*.dcd']
+                                   'test_datafiles/dcd*.dcd',
+                                   'test_datafiles/xml*.xml']
 
 EXTENSIONS = []
 
