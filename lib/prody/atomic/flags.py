@@ -309,8 +309,8 @@ def changeBackbone(flag, names):
 
 __doc__ += """
 
-Protein atoms
-===============================================================================
+Protein
+-------------------------------------------------------------------------------
 
 .. glossary::
 
@@ -346,7 +346,8 @@ Protein atoms
       ==========  ===================================================
 
       You can modify the list of non-standard amino acids using 
-      :func:`addNonstdAA`, :func:`delNonstdAA`, and :func:`getNonstdAAs`.
+      :func:`addNonstdAminoacid`, :func:`delNonstdAminoacid`, and 
+      :func:`getNonstdProperties`.
 
 
    calpha
@@ -403,8 +404,8 @@ for resi in DEFAULTS['nonstdaa']:
 
 __doc__ += """
 
-Nucleic atoms
-===============================================================================
+Nucleic
+-------------------------------------------------------------------------------
 
 .. glossary::
 
@@ -478,8 +479,8 @@ for resi in DEFAULTS['nucleoside']:
 
 __doc__ += """
 
-Hetero atoms
-===============================================================================
+Heteros
+-------------------------------------------------------------------------------
 
 .. glossary::
    
@@ -596,7 +597,7 @@ for resi in DEFAULTS['heme']:
 __doc__ += """
 
 Elements
-===============================================================================
+-------------------------------------------------------------------------------
 
 Following elements found in proteins are recognized by applying regular 
 expressions to atom names:
@@ -626,7 +627,7 @@ expressions to atom names:
 :term:`ion` atoms.
 
 Structure
-===============================================================================
+-------------------------------------------------------------------------------
 
 Following secondary structure flags are defined but before they can be used,
 secondary structure assignments must be made. 
@@ -656,6 +657,16 @@ secondary structure assignments must be made.
 
    coil
       not in one of above conformations, same as ``'secondary C'``
+
+Functions
+===============================================================================
+
+Following functions can be used to customize flag definitions:
+    
+    * :func:`.flagDefinition`
+    * :func:`.addNonstdAminoacid`
+    * :func:`.delNonstdAminoacid`
+    * :func:`.getNonstdProperties`
 
 """
 
