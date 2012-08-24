@@ -21,25 +21,28 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
+from glob import glob
+from os.path import abspath, isdir, join
 
 from prody import LOGGER, SETTINGS
 
 __all__ = ['getPDBLocalFolder', 'getPDBMirrorPath', 
-           'setPDBLocalFolder', 'setPDBMirrorPath',]
+           'setPDBLocalFolder', 'setPDBMirrorPath',
+           'iterPDBFilenames']
            
 
 def getPDBLocalFolder():
     """Return the path to a local PDB folder and folder structure specifier. 
-    If a local folder is not set, ``None`` will be returned."""
+    If a local folder is not set, **None** will be returned."""
 
     folder = SETTINGS.get('pdb_local_folder')
     if folder is not None:
-        if isinstance(folder, str) and os.path.isdir(folder):
+        if isinstance(folder, str) and isdir(folder):
             return folder, SETTINGS.get('pdb_local_divided', True)
         else:
             LOGGER.warning('PDB local folder {0:s} is not a accessible.'
                            .format(repr(folder)))
+
 
 def setPDBLocalFolder(folder, divided=False):
     """Set a local PDB folder.  Setting a local PDB folder will make 
@@ -49,12 +52,12 @@ def setPDBLocalFolder(folder, divided=False):
     PDB files in a single place and have access to them in different working 
     directories.
     
-    If *divided* is ``True``, the divided folder structure of wwPDB servers 
+    If *divided* is **True**, the divided folder structure of wwPDB servers 
     will be assumed when reading from and writing to the local folder.  For 
     example, a structure with identifier **1XYZ** will be present as 
     :file:`pdblocalfolder/yz/pdb1xyz.pdb.gz`. 
     
-    If *divided* is ``False``, a plain folder structure will be expected and 
+    If *divided* is **False**, a plain folder structure will be expected and 
     adopted when saving files.  For example, the same structure will be 
     present as :file:`pdblocalfolder/1xyz.pdb.gz`.
     
@@ -64,8 +67,8 @@ def setPDBLocalFolder(folder, divided=False):
     if not isinstance(folder, str):
         raise TypeError('folder must be a string')
     assert isinstance(divided, bool), 'divided must be a boolean'
-    if os.path.isdir(folder):
-        folder = os.path.abspath(folder)
+    if isdir(folder):
+        folder = abspath(folder)
         LOGGER.info('Local PDB folder is set: {0:s}'.format(repr(folder)))
         if divided:
             LOGGER.info('When using local PDB folder, wwPDB divided '
@@ -79,27 +82,50 @@ def setPDBLocalFolder(folder, divided=False):
     else:
         raise IOError('No such directory: {0:s}'.format(repr(folder)))
 
+
 def getPDBMirrorPath():
-    """Return the path to a local PDB mirror, or ``None`` if a mirror path is 
+    """Return the path to a local PDB mirror, or **None** if a mirror path is 
     not set."""
 
     path = SETTINGS.get('pdb_mirror_path')
     if isinstance(path, str):
-        if os.path.isdir(path):
+        if isdir(path):
             return path
         else:
             LOGGER.warning('PDB mirror path {0:s} is not a accessible.'
                            .format(repr(path)))
+
 
 def setPDBMirrorPath(path):
     """Set the path to a local PDB mirror."""
     
     if not isinstance(path, str):
         raise TypeError('path must be a string')
-    if os.path.isdir(path):
-        path = os.path.abspath(path)
+    if isdir(path):
+        path = abspath(path)
         LOGGER.info('Local PDB mirror path is set: {0:s}'.format(repr(path)))
         SETTINGS['pdb_mirror_path'] = path
         SETTINGS.save()
     else:
         raise IOError('No such directory: {0:s}'.format(repr(path)))
+
+
+def iterPDBFilenames(path=None, sort=False):
+    """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
+    or in *path* specified by the user."""
+
+    if path is None:
+        path = getPDBMirrorPath()
+        if path is None:
+            raise ValueError('path must be specified or PDB mirror path '
+                               'must be set')
+        path = join(path, 'data/structures/divided/pdb/', '*/*.ent.gz')
+        pdbs = glob(path)
+    else:
+        pdbs = []
+        for ext in ['.pdb', 'pdb.gz', '.ent', '.ent.gz']:
+            pdbs.extend(glob(join(path, '*' + ext)))
+    if sort:
+        pdbs.sort()
+    for fn in pdbs:
+        yield fn
