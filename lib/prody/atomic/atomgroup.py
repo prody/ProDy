@@ -35,8 +35,8 @@ Atom Group
 <AtomGroup: Water (0 atoms; no coordinates)>
 
 
-Set coordinates
-===============================================================================
+Coordinates
+-------------------------------------------------------------------------------
 
 The best way to start constructing an :class:`AtomGroup` is by setting the
 coordinates first. Number of atoms will be automatically set according to
@@ -51,8 +51,8 @@ the size of the coordinate data array:
 >>> wtr1
 <AtomGroup: Water (3 atoms)>
 
-Set attributes
-===============================================================================
+Attributes
+-------------------------------------------------------------------------------
 
 Attributes must be passed in a list or an array whose size is the same
 as the number of atoms.
@@ -66,7 +66,7 @@ Accessing data will return a copy of the data:
 >>> print( wtr1.getNames() )
 ['H' 'O' 'H']
 
-Individual atoms
+Atoms
 ===============================================================================
 
 Atoms are represented by instance of :class:`.Atom`.
@@ -130,7 +130,7 @@ Coordinate sets can also be iterated over for :class:`.Atom` and
 [ 1.  0.  0.]
 [ 0.  1.  0.]
 
-Copying atoms
+Copying
 ===============================================================================
 
 Now let's make another copy of this water:
@@ -184,7 +184,7 @@ Traceback (most recent call last):
     if len(resids) != self._n_atoms:
 TypeError: object of type 'int' has no len()
 
-Merge atoms
+Merging
 ===============================================================================
 
 Let's merge two water atom groups:
@@ -380,13 +380,13 @@ class AtomGroup(Atomic):
          - *int* (:func:`int`), e.g, ``10``, returns an :class:`.Atom`
          - *slice* (:func:`slice`), e.g, ``10:20:2``, returns a 
            :class:`.Selection`
-         - *segment name* (:func:`str`), e.g. ``"PROT"``, returns a 
+         - *segment name* (:func:`str`), e.g. ``'PROT'``, returns a 
            a :class:`.Segment` 
-         - *chain identifier* (:func:`str`), e.g. ``"A"``, returns a 
+         - *chain identifier* (:func:`str`), e.g. ``'A'``, returns a 
            a :class:`.Chain`
          - *[segment name,] chain identifier, residue number[, insertion code]* 
-           (:func:`tuple`), e.g. ``"A", 10`` or  ``"A", 10, "B"`` or
-           ``"PROT", "A", 10, "B"``, returns a :class:`.Residue`
+           (:func:`tuple`), e.g. ``'A', 10`` or  ``'A', 10, 'B'`` or
+           ``'PROT', 'A', 10, 'B'``, returns a :class:`.Residue`
     
     *Addition*
         
