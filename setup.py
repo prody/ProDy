@@ -1,6 +1,6 @@
 import os
-import os.path
 import sys
+from os.path import isfile, join
 
 from distutils.core import setup
 from distutils.extension import Extension
@@ -12,7 +12,7 @@ with open('README.rst') as inp:
     long_description = inp.read()
 
 __version__ = ''
-inp = open('prody/__init__.py')
+inp = open('lib/prody/__init__.py')
 for line in inp:
     if (line.startswith('__version__')):
         exec(line.strip())
@@ -58,12 +58,11 @@ EXTENSIONS = []
 
 if os.name != 'java' and sys.version_info[0] == 2:
     pairwise2 = ['cpairwise2.c', 'pairwise2.py']
-    if all([os.path.isfile(os.path.join('prody', 'proteins', fn)) 
+    if all([isfile(join('lib', 'prody', 'proteins', fn)) 
                            for fn in pairwise2]):  
         EXTENSIONS.append(
             Extension('prody.proteins.cpairwise2', 
-                      ['prody/proteins/cpairwise2.c'],
-                      include_dirs=["prody"]
+                      [join('lib', 'prody', 'proteins', 'cpairwise2.c')],
                       ))
     else:
         raise Exception('one or more pairwise2 module files are missing')
@@ -71,12 +70,12 @@ if os.name != 'java' and sys.version_info[0] == 2:
         import numpy
         kdtree_files = ['__init__.py', 'KDTree.c', 'KDTree.h',
                         'KDTreemodule.c', 'Neighbor.h', 'kdtree.py']
-        if all([os.path.isfile(os.path.join('prody', 'kdtree', fn)) 
+        if all([isfile(join('lib', 'prody', 'kdtree', fn)) 
                 for fn in kdtree_files]):
             EXTENSIONS.append(
                 Extension('prody.kdtree._CKDTree',
-                          ['prody/kdtree/KDTree.c',
-                           'prody/kdtree/KDTreemodule.c'],
+                          [join('lib', 'prody', 'kdtree', 'KDTree.c'),
+                           join('lib', 'prody', 'kdtree', 'KDTreemodule.c')],
                           include_dirs=[numpy.get_include()],
                           ))
         else:
@@ -96,6 +95,7 @@ setup(
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
     packages=PACKAGES,
+    package_dir={pkg: join('lib', *pkg.split('.')) for pkg in PACKAGES},
     package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
     license='GPLv3',
