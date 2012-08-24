@@ -159,6 +159,7 @@ from fields import ATOMIC_FIELDS
 
 from atom import *
 from bond import *
+from flags import *
 from chain import *
 from subset import *
 from atomic import *
@@ -185,8 +186,9 @@ import selection
 from atomgroup import SELECT
 from chain import AAMAP, getSequence
 
-__all__ += functions.__all__
-__all__ += select.__all__
+__all__.extend(functions.__all__)
+__all__.extend(select.__all__)
+__all__.extend(flags.__all__)
 
 from functions import isAtomic, isSubset
 
