@@ -101,8 +101,8 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     *pdb* may be a string or a list.  The function will return a filename or a 
     list of filenames depending on input (see :ref:`fetchpdb` for examples).  
 
-    If *compressed* is ``False``, all files will be decompressed.  If *copy* is 
-    ``True``, all files from local PDB mirror will copied to the user specified 
+    If *compressed* is **False**, all files will be decompressed.  If *copy* is 
+    **True**, all files from local PDB mirror will copied to the user specified 
     *folder*.  *format* keyword argument can be used to retrieve `PDBML 
     <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files:  
     ``format="cif"`` will fetch an mmCIF file (e.g. :file:`1XXX.cif.gz`), 
