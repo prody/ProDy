@@ -156,8 +156,10 @@ class Atomic(object):
                 new._bonds = bonds.copy()
                 new._bmap = bmap.copy()
                 new._data['numbonds'] = ag._data['numbonds'].copy()
-                if ag._data['fragindex'] is not None:
+                try:
                     new._data['fragindex'] = ag._data['fragindex'].copy()
+                except KeyError:
+                    pass
             elif dummies is not None:
                 if dummies:
                     indices = indices[self._getMapping()]
