@@ -320,46 +320,41 @@ for i, res in enumerate(pdb3mht.iterResidues()):
 
 SELECTION_TESTS['pdb3mht']['subsets'] = subsets
     
-try:
-    ligand = fetchPDBLigand('STI')
-except:
-    pass
-else:
-    ag = ligand['ideal']
-    SELECTION_TESTS['imatinib'] = {
-        'n_atoms': len(ag),
-        'ag': ag,
-        'all': ag.all,
-        'bondedto': [('bonded to index 0', ag[0].numBonds() + 1),
-                     ('exbonded to index 0', ag[0].numBonds()),
-                     ('bonded to index 67', ag[67].numBonds() + 1),
-                     ('exbonded to index 67', ag[67].numBonds()),
-                     ('bonded 2 to index 0', 8, 
-                      'bonded to bonded to index 0'),
-                     ('bonded 0 to index 0', None),
-                     ('bonded 3 to index 0', 10, 
-                      'bonded to bonded to bonded to index 0'),
-                     ('bonded 4 to index 0', 13, 
-                      'bonded to bonded to bonded to bonded to index 0'),
-                     ('bonded 4 to index 0', 13, 
-                      'bonded 2 to bonded 2 to index 0'),
-                     ('bonded 4 to index 0', 13, 
-                      'bonded to bonded 3 to index 0'),
-                     ('exbonded 1 to index 0', 3, 'exbonded to index 0'),
-                     ('exbonded 2 to index 0', 5, 
-                      'exbonded to exbonded to index 0'),
-                     ('exbonded 3 to index 0', 5, 
-                      'exbonded to exbonded to exbonded to index 0'),
-                     ('bonded 20 to index 0', 64),
-                     ('bonded 20 to index 10', 68),
-                     ('bonded to index 1000', 0),
-                     ('fragment 0', len(ag)),
-                     ('fragment 1', 0),
-                     ('fragment 0 1 2', len(ag)),
-                     ('fragindex 0 1 2', len(ag)),
-                     ('fragindex 0:2', len(ag)),
-                     ],
-    }
+ligand = fetchPDBLigand(pathDatafile('sti'))['ideal']
+SELECTION_TESTS['imatinib'] = {
+    'n_atoms': len(ligand),
+    'ag': ligand,
+    'all': ligand.all,
+    'bondedto': [('bonded to index 0', ligand[0].numBonds() + 1),
+                 ('exbonded to index 0', ligand[0].numBonds()),
+                 ('bonded to index 67', ligand[67].numBonds() + 1),
+                 ('exbonded to index 67', ligand[67].numBonds()),
+                 ('bonded 2 to index 0', 8, 
+                  'bonded to bonded to index 0'),
+                 ('bonded 0 to index 0', None),
+                 ('bonded 3 to index 0', 10, 
+                  'bonded to bonded to bonded to index 0'),
+                 ('bonded 4 to index 0', 13, 
+                  'bonded to bonded to bonded to bonded to index 0'),
+                 ('bonded 4 to index 0', 13, 
+                  'bonded 2 to bonded 2 to index 0'),
+                 ('bonded 4 to index 0', 13, 
+                  'bonded to bonded 3 to index 0'),
+                 ('exbonded 1 to index 0', 3, 'exbonded to index 0'),
+                 ('exbonded 2 to index 0', 5, 
+                  'exbonded to exbonded to index 0'),
+                 ('exbonded 3 to index 0', 5, 
+                  'exbonded to exbonded to exbonded to index 0'),
+                 ('bonded 20 to index 0', 64),
+                 ('bonded 20 to index 10', 68),
+                 ('bonded to index 1000', 0),
+                 ('fragment 0', len(ligand)),
+                 ('fragment 1', 0),
+                 ('fragment 0 1 2', len(ligand)),
+                 ('fragindex 0 1 2', len(ligand)),
+                 ('fragindex 0:2', len(ligand)),
+                 ],
+}
 
 
 pdb3mht = SELECTION_TESTS['pdb3mht']['ag']
