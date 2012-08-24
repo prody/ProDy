@@ -79,11 +79,10 @@ class PackageLogger(object):
         
         self._n = None
         self._last = None
-        self._start = None
         self._barlen = None
         self._prev = None
         self._line = None
-        self._timer = None
+        self._times = {}
 
     # ====================
     # Attributes
@@ -286,19 +285,19 @@ class PackageLogger(object):
     # Progress and timing
     # ====================
 
-    def progress(self, msg, steps, **kwargs):
-        """Instantiate with message number of steps."""
+    def progress(self, msg, steps, label=None, **kwargs):
+        """Instantiate a labeled process with message and number of steps."""
         
         assert isinstance(steps, int) and steps > 0, \
             'steps must be a positive integer'
         self._steps = steps
         self._last = 0
-        self._start = time.time()
+        self._times[label] = time.time()
         self._prev = (0, 0)
         self._msg = msg
         self._line = ''
     
-    def update(self, step):
+    def update(self, step, label=None):
         """Update progress status to current line in the console."""
         
         assert isinstance(step, int), 'step must be a positive integer'
@@ -306,10 +305,11 @@ class PackageLogger(object):
         i = step
         if self._level < logging.WARNING and n > 0 and i <= n and \
             i > self._last:
+            start = self._times[label]
             self._last = i
             percent = 100 * i / n
             if percent > 3:
-                seconds = int(math.ceil((time.time()-self._start) * (n-i)/i))
+                seconds = int(math.ceil((time.time()-start) * (n-i)/i))
                 prev = (percent, seconds)
             else:
                 prev = (percent, 0)
@@ -336,12 +336,19 @@ class PackageLogger(object):
             time.sleep(1)
             self.clear()
 
-    def timeit(self):
-        """Start timing a process.  Use :meth:`timing` to report time."""
+    def timeit(self, label=None):
+        """Start timing a process.  Use :meth:`timing` and :meth:`report` to 
+        learn and report timing, respectively."""
         
-        self._timer = time.time()
+        self._times[label] = time.time() 
         
-    def timing(self, msg='Completed in %.2fs.'):
-        """Write *msg* with timing information at *debug* logging level."""
+    def timing(self, label=None):
+        """Return timing for a labeled or default (**None**) process."""
         
-        self.debug(msg % (time.time() - max(self._timer, self._start)))
+        return time.time() - self._times.get(label, 0)
+        
+    def report(self, msg='Completed in %.2fs.', label=None):
+        """Write *msg* with timing information for a labeled or default process
+        at *debug* logging level."""
+        
+        self.debug(msg % (time.time() - self._times[label]))
