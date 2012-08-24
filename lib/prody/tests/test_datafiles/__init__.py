@@ -95,6 +95,9 @@ DATA_FILES = {
     'gnm1ubi_vectors': {
         'file': 'gnm1ubi_vectors.dat'
     },
+    'sti': {
+        'file': 'xmlSTI.xml'
+    }
 }
 
 
