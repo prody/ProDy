@@ -119,8 +119,8 @@ class Atomic(object):
                 pass
             else:
                 if dummies:
-                    dummy = self.getDummyFlags()
-                    mapped = self.getMappedFlags()
+                    dummy = self.getFlags('dummy')
+                    mapped = self.getFlags('mapped')
 
         try:
             self.getIndex()
@@ -144,10 +144,10 @@ class Atomic(object):
                 getattr(new, 'set' + meth)(getattr(this, 'get' + meth)())
                 
         for label in ag.getFlagLabels():
-            new.setFlags(label, this.getFlags(label))
+            new._setFlags(this.getFlags(label), label)
         if dummies:
-            new.setFlags('dummy', dummy)
-            new.setFlags('mapped', mapped)
+            new._setFlags(dummy, 'dummy')
+            new._setFlags(mapped, 'mapped')
             
         bonds = ag._bonds
         bmap = ag._bmap

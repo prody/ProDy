@@ -330,7 +330,7 @@ def countUnpairedBreaks(chone, chtwo, resnum=True):
     except AttributeError:
         raise TypeError('one and two must be Atomic instances')
     
-    mapped = chone.getMappedFlags() * chtwo.getMappedFlags()
+    mapped = chone.getFlags('mapped') * chtwo.getFlags('mapped')
     if mapped.sum() == 0:
         raise ValueError('chains do not have common mapped atoms')
     chone = chone[mapped]
