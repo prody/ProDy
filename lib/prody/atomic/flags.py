@@ -658,7 +658,7 @@ secondary structure assignments must be made.
    coil
       not in one of above conformations, same as ``'secondary C'``
 
-Otherwise
+Others
 -------------------------------------------------------------------------------
 
 .. glossary::
