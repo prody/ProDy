@@ -71,14 +71,14 @@ __all__ = ['flagDefinition', 'getNonstdProperties', 'addNonstdAminoacid',
            'delNonstdAminoacid',]
 
 
-SETTINGS_KEY = 'flag_definitions'
-TIMESTAMP_KEY = 'flag_timestamp'
-NONSTANDARD_KEY = 'nonstandard'
+TIMESTAMP_KEY = 'flags_timestamp'
+DEFINITIONS_KEY = 'flags_definitions'
+NONSTANDARD_KEY = 'flags_nonstandard'
 
 ALIASES = {}
 PLANTERS = {}
 EDITORS = {}
-FIELDS = defaultdict(set)
+FIELDS = defaultdict(set) # flags that fill be nulled when a field changes
 FIELDSDEFAULT = ['name', 'resname', 'resnum']
 TIMESTAMP = None
 
@@ -231,9 +231,9 @@ def updateNonstandard(nonstd):
 
 def changeDefinitions(**kwargs):
     
-    defs = SETTINGS.get(SETTINGS_KEY, {})
+    defs = SETTINGS.get(DEFINITIONS_KEY, {})
     defs.update(kwargs)
-    SETTINGS[SETTINGS_KEY] = defs
+    SETTINGS[DEFINITIONS_KEY] = defs
     SETTINGS[TIMESTAMP_KEY] = time()
     SETTINGS.save()
     updateDefinitions()
@@ -242,7 +242,7 @@ def resetDefinitions(flag):
     
     
     if flag == 'all':
-        SETTINGS.pop(SETTINGS_KEY, None)
+        SETTINGS.pop(DEFINITIONS_KEY, None)
         SETTINGS.pop(NONSTANDARD_KEY, None)
         SETTINGS[TIMESTAMP_KEY] = time()
         SETTINGS.save()
@@ -254,7 +254,7 @@ def resetDefinitions(flag):
         updateDefinitions()
     else:        
         try:
-            SETTINGS.pop(SETTINGS_KEY, {}).pop(flag)
+            SETTINGS.pop(DEFINITIONS_KEY, {}).pop(flag)
         except KeyError:
             pass
         else:
@@ -658,6 +658,17 @@ secondary structure assignments must be made.
    coil
       not in one of above conformations, same as ``'secondary C'``
 
+Otherwise
+-------------------------------------------------------------------------------
+
+.. glossary::
+    
+   dummy
+      indicates dummy atoms in an :class:`.AtomMap`
+   
+   mapped
+      indicates mapped atoms in an :class:`.AtomMap`
+
 Functions
 ===============================================================================
 
@@ -742,6 +753,11 @@ def updateDefinitions():
 #==============================================================================
 # PLANTERS
 #==============================================================================
+
+# flag planters are functions that take an AtomGroup instance
+# and set flags for a given label using the atomic data stored in the AtomGroup
+# a planter can also set the indices of subset atoms for calculated flag
+# planters return the flags after calculation is over
 
 # protein
 #==============================================================================
@@ -899,6 +915,21 @@ def setSecondary(ag, label):
 
 addPlanter(setSecondary, *SECONDARY.keys(), aliases=False, 
            fields=['secondary']) 
+
+
+# secondary
+#==============================================================================
+
+def setDummy(ag, label):
+    
+    if label == 'dummy':
+        flags = zeros(len(ag), bool)
+    else:
+        flags = ones(len(ag), bool)
+    ag._setFlags(flags, *ALIASES[label])
+    return flags
+
+addPlanter(setDummy, 'dummy', 'mapped', aliases=False, fields=[]) 
 
 
 #==============================================================================

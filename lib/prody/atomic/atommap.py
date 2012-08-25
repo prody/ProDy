@@ -373,11 +373,21 @@ class AtomMap(AtomPointer):
     def getFlags(self, label):
         """Return a copy of atom flag values."""
 
-        agflags = self._ag._getFlags(label)
-        if agflags is not None:
+        if label == 'dummy':
             flags = zeros(self._len, bool)
-            flags[self._mapping] = agflags[self._indices]
-            return flags
+            if self._dummies is not None:
+                flags[self._dummies] = True
+        elif label == 'mapped':
+            flags = ones(self._len, bool)
+            if self._dummies is not None:
+                flags[self._dummies] = False
+        else:
+            flags = None
+            agflags = self._ag._getFlags(label)
+            if agflags is not None:
+                flags = zeros(self._len, bool)
+                flags[self._mapping] = agflags[self._indices]
+        return flags
 
     _getFlags = getFlags
 
@@ -409,20 +419,20 @@ class AtomMap(AtomPointer):
         return arange(self._len) if mapping is None else mapping
 
     def getDummyFlags(self):
-        """Return an array with 1s for dummy atoms."""
+        """Deprecated for removal in v1.3, use :meth:`getFlags` instead 
+        (``getFlags('dummy')``)."""
         
-        flags = zeros(self._len, bool)
-        if self._dummies is not None:
-            flags[self._dummies] = True
-        return flags
+        from prody import deprecate
+        deprecate('getDummyFlags', "getFlags('dummy')")
+        return self.getFlags('dummy')
     
     def getMappedFlags(self):
-        """Return an array with 1s for mapped atoms."""
-        
-        flags = ones(self._len, bool)
-        if self._dummies is not None:
-            flags[self._dummies] = False
-        return flags
+        """Deprecated for removal in v1.3, use :meth:`getFlags` instead 
+        (``getFlags('mapped')``)."""
+
+        from prody import deprecate
+        deprecate('getMappedFlags', "getFlags('mapped')")        
+        return self.getFlags('mapped')
 
     def numMapped(self):
         """Return number of mapped atoms."""
