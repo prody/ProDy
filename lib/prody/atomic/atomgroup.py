@@ -254,6 +254,34 @@ if PY2K: range = xrange
 
 SELECT = None
 
+def checkLabel(label):
+    """Check suitability of *label* for labeling user data or flags."""
+    
+    label = str(label)
+    if not label:
+        raise ValueError('label cannot be empty string')
+        
+    label = str(label)
+
+    if not label:
+        raise ValueError('label cannot be empty string')
+
+    if not label[0].isalpha():
+        raise ValueError('label must start with a letter')
+
+    if not (''.join(label.split('_'))).isalnum():
+        raise ValueError('label may contain alphanumeric characters and '
+                         'underscore, {0:s} is not valid'.format(label))
+
+    if isReserved(label):
+        raise ValueError('{0:s} is a reserved word and cannot be used '
+                           'as a label'.format(repr(label)))
+
+    if label in READONLY:
+        raise AttributeError('{0:s} is read-only'.format(label))
+
+    return label
+
 class AtomGroupMeta(type):
 
     def __init__(cls, name, bases, dict):
@@ -403,7 +431,7 @@ class AtomGroup(Atomic):
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i', 
                  '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
                  '_acsi', '_n_csets', '_data', '_fragments',
-                 '_flags', '_flagts', '_subsets']
+                 '_flags', '_flagsts', '_subsets']
     
     def __init__(self, title='Unnamed'):
         
@@ -425,7 +453,7 @@ class AtomGroup(Atomic):
         self._data = dict()
 
         self._flags = None
-        self._flagts = None
+        self._flagsts = None
         self._subsets = None 
 
     def __repr__(self):
@@ -901,8 +929,7 @@ class AtomGroup(Atomic):
             
             * start with a letter
             * contain only alphanumeric characters and underscore
-            * not be a reserved word 
-              (see :func:`.getReservedWords`)
+            * not be a reserved word (see :func:`.getReservedWords`)
 
         *data* must be a :func:`list` or a :class:`~numpy.ndarray` and its 
         length must be equal to the number of atoms, and the type of data 
@@ -912,35 +939,21 @@ class AtomGroup(Atomic):
         or ``"label C1 C2"``.  Note that, if data with *label* is present, 
         it will be overwritten."""
         
-        if not isinstance(label, str):
-            raise TypeError('label must be a string')
-        if label == '':
-            raise ValueError('label cannot be empty string')
-        if not label[0].isalpha():
-            raise ValueError('label must start with a letter')
-        if label in READONLY:
-            raise AttributeError('{0:s} is read-only'.format(label))
-        if not (''.join((''.join(label.split('_'))).split())).isalnum():
-            raise ValueError('label may contain alphanumeric characters and '
-                             'underscore, {0:s} is not valid'.format(label))
-            
-        if isReserved(label):
-            raise ValueError('label cannot be a reserved word, {0:s} is not '
-                             'valid'.format(repr(label)))
-        if len(data) != self._n_atoms:
-            raise ValueError('length of data array must match number of atoms')
-        if isinstance(data, list):
+        label = checkLabel(label)
+
+        try:
+            ndim, dtype, shape = data.ndim, data.dtype, data.shape
+        except AttributeError:
             data = np.array(data)
-        elif not isinstance(data, np.ndarray):
-            raise TypeError('data must be a numpy.ndarray instance')
-        if (not data.dtype in (np.float, np.int, np.bool) and
-            data.dtype.type != np.string_):
-            raise TypeError('type of data array must be float, int, or '
-                            'string_, {0:s} is not valid'.format(
-                            str(data.dtype)))
-        if data.dtype == np.bool:
-            LOGGER.warn('`setData` will not accept arrays with boolean data '
-                        'type from v1.2 and on, use `setFlags` instead.')
+            ndim, dtype, shape = data.ndim, data.dtype, data.shape
+
+        if ndim == 1 and dtype == bool:
+            raise TypeError('1 dimensional boolean arrays are not accepted, '
+                              'use `setFlags` instead')
+
+        if len(data) != self._n_atoms:
+            raise ValueError('len(data) must match number of atoms')
+
         self._data[label] = data
     
     def delData(self, label):
@@ -978,11 +991,32 @@ class AtomGroup(Atomic):
         
         return label in self._data and not label in ATOMIC_FIELDS
   
-    def getDataLabels(self):
-        """Return list of data labels provided by the user."""
+    def getDataLabels(self, *args):
+        """Return list of data labels provided by the user.  ``'all'`` argument
+        returns all present labels in addition to those set by user."""
         
         return [key for key, data in self._data.items() 
                     if not key in ATOMIC_FIELDS]
+        
+        """Return list of atom flag labels provided by the user.  ``'user'``
+        argument, i.e. ``getFlagLabels('user')``,  returns only labels of 
+        flags set by the user or the file parser,  ``'all'`` argument returns
+        all possible :ref:`flags` labels in addition to those set by user."""
+
+        if args: arg = str(args[0])
+        else: arg = ''
+        
+        if arg.startswith('a'): # all
+            labels = set(self._data or [])
+            labels.update(FLAG_PLANTERS)
+            labels = list(labels)
+        elif arg.startswith('u'): # user
+            labels = [key for key in (self._flags or {}).keys() 
+                        if not key in FLAG_PLANTERS]
+        else:
+            labels = list(self._flags or [])
+        labels.sort()
+        return labels
         
     def getDataType(self, label):
         """Return type of the data (i.e. data.dtype) associated with *label*, 
@@ -999,24 +1033,23 @@ class AtomGroup(Atomic):
         return label in FLAG_PLANTERS or label in (self._flags or {})
     
     def getFlags(self, label):
-        """Return a copy of atom flag values."""
+        """Return a copy of atom flags for given *label*, or **None** when 
+        flags for *label* is not set."""
         
         flags = self._getFlags(label)
         if flags is not None:
             return flags.copy()
         
     def _getFlags(self, label):
-        """Return atom flag values."""
+        """Return atom flag values for given *label*, or **None** when 
+        flags for *label* is not set."""
         
-        if self._flagts:
-            if flags.TIMESTAMP != self._flagts:
-                self._resetFlags()
-                self._flagts = flags.TIMESTAMP
-        else:
-            if self._flags is None:
-                self._flags = {}
-                self._subsets = {}
-            self._flagts = flags.TIMESTAMP
+        if self._flags is None:
+            self._flags = {}
+            self._subsets = {}
+        elif flags.TIMESTAMP != self._flagsts:
+            self._resetFlags()
+        self._flagsts = flags.TIMESTAMP
 
         try:
             return self._flags[label]
@@ -1027,12 +1060,9 @@ class AtomGroup(Atomic):
                 pass
     
     def setFlags(self, label, flags):
-        """Set atom flags."""
+        """Set atom *flags* for *label*."""
         
-        if self._flags is None:
-            self._flags = {}
-            self._subsets = {}
-        
+        label = checkLabel(label)
         try:
             ndim, dtype = flags.ndim, flags.dtype
         except AttributeError:
@@ -1044,7 +1074,7 @@ class AtomGroup(Atomic):
             raise ValueError('flags.dtype must be bool')
         if len(flags) != self._n_atoms:
             raise ValueError('len(flags) must be equal to number of atoms')
-        self._flags[label] = flags
+        self._setFlags(flags, label)
     
     def _setFlags(self, flags, *labels):
         """Set atom flags."""
@@ -1064,15 +1094,12 @@ class AtomGroup(Atomic):
     def _getSubset(self, label):
         """Return indices of atoms."""
         
-        if self._flagts:
-            if flags.TIMESTAMP != self._flagts:
-                self._resetFlags()
-                self._flagts = flags.TIMESTAMP
-        else:
-            if self._flags is None:
-                self._flags = {}
-                self._subsets = {}
-            self._flagts = flags.TIMESTAMP
+        if self._flags is None:
+            self._flags = {}
+            self._subsets = {}
+        elif flags.TIMESTAMP != self._flagsts:
+            self._resetFlags()
+        self._flagsts = flags.TIMESTAMP
 
         try:
             return self._subsets[label]
@@ -1085,31 +1112,41 @@ class AtomGroup(Atomic):
                 self._setSubset(indices, *FLAG_ALIASES.get(label, [label]))
                 return indices.copy()
     
-    def getFlagLabels(self):
-        """Return list of atom flag labels provided by the users."""
+    def getFlagLabels(self, *args):
+        """Return list of atom flag labels provided by the user.  ``'user'``
+        argument, i.e. ``getFlagLabels('user')``,  returns only labels of 
+        flags set by the user or the file parser,  ``'all'`` argument returns
+        all possible :ref:`flags` labels in addition to those set by user."""
 
-        return [key for key in (self._flags or {}).keys() 
-                    if not key in FLAG_PLANTERS]
+        if args: arg = str(args[0])
+        else: arg = ''
+        
+        if arg.startswith('a'): # all
+            labels = set(self._flags or [])
+            labels.update(FLAG_PLANTERS)
+            labels = list(labels)
+        elif arg.startswith('u'): # user
+            labels = [key for key in (self._flags or {}).keys() 
+                        if not key in FLAG_PLANTERS]
+        else:
+            labels = list(self._flags or [])
+        labels.sort()
+        return labels
 
     def _resetFlags(self, field=None):
         """Reset flags and subsets associated with *field*."""
        
         flags = self._flags
-        if flags is not None:
-            if field:        
-                labels = FLAG_FIELDS[field]
-            else:
-                labels = list(FLAG_PLANTERS)
-            subsets = self._subsets
-            if len(labels) < len(flags):
-                for label in labels:
-                    flags.pop(label, None)
-                    subsets.pop(label, None)
-            else:
-                for label in flags:
-                    if label in set(labels):
-                        flags.pop(flag, None)
-                        subsets.pop(flag, None)
+        if flags is None:
+            return
+        if field:        
+            labels = FLAG_FIELDS[field]
+        else:
+            labels = list(FLAG_PLANTERS)
+        subsets = self._subsets
+        for label in labels:
+            flags.pop(label, None)
+            subsets.pop(label, None)
 
     def getBySerial(self, serial, stop=None, step=None):
         """Get an atom(s) by *serial* number (range).  *serial* must be zero or 
@@ -1315,7 +1352,7 @@ class AtomGroup(Atomic):
         self._data['fragindex'] = fragindices
         self._fragments = fragments
 
-    def getHeretos(self):
+    def getHeteros(self):
         """Deprecated for removal in v1.3, use ``getFlags('hetatm')`` instead.
         """
         
@@ -1323,7 +1360,7 @@ class AtomGroup(Atomic):
         deprecate('getHereros', "getFlags('hetatm')", '1.3')
         return self.getFlags('hetatm')
     
-    def setHeretos(self, data):
+    def getHeteros(self, data):
         """Deprecated for removal in v1.3, use ``setFlags('hetatm', data)``
         instead."""
         
