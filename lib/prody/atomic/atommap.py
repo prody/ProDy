@@ -371,7 +371,8 @@ class AtomMap(AtomPointer):
     _getData = getData
 
     def getFlags(self, label):
-        """Return a copy of atom flag values."""
+        """Return a copy of atom flags for given *label*, or **None** when 
+        flags for *label* is not set."""
 
         if label == 'dummy':
             flags = zeros(self._len, bool)
@@ -449,7 +450,7 @@ class AtomMap(AtomPointer):
         
         return 'index ' + rangeString(self._indices)
 
-    def getHeretos(self):
+    def getHeteros(self):
         """Deprecated for removal in v1.3, use ``getFlags('hetatm')`` instead.
         """
         
@@ -457,7 +458,7 @@ class AtomMap(AtomPointer):
         deprecate('getHereros', "getFlags('hetatm')", '1.3')
         return self.getFlags('hetatm')
     
-    def setHeretos(self, data):
+    def getHeteros(self, data):
         """Deprecated for removal in v1.3, use ``setFlags('hetatm', data)``
         instead."""
         
