@@ -203,8 +203,8 @@ class AtomSubset(AtomPointer):
                                  'AtomGroup first'.format(repr(label)))
 
     def getFlags(self, label):
-        """Return a copy of atom flag values."""
-        
+        """Return a copy of atom flags for given *label*, or **None** when 
+        flags for *label* is not set."""        
         return self._ag._getFlags(label)[self._indices]
     
     def setFlags(self, label):
@@ -212,7 +212,7 @@ class AtomSubset(AtomPointer):
         pass
 
             
-    def getHeretos(self):
+    def getHeteros(self):
         """Deprecated for removal in v1.3, use ``getFlags('hetatm')`` instead.
         """
         
@@ -220,7 +220,7 @@ class AtomSubset(AtomPointer):
         deprecate('getHereros', "getFlags('hetatm')", '1.3')
         return self.getFlags('hetatm')
     
-    def setHeretos(self, data):
+    def setHeteros(self, data):
         """Deprecated for removal in v1.3, use ``setFlags('hetatm', data)``
         instead."""
         
