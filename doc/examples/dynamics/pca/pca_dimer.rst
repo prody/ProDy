@@ -13,10 +13,10 @@ predefined set of structures will be used, but an up-to-date list can be
 obtained by blast searching PDB. See :ref:`pca-blast` and :ref:`blastpdb`
 examples.
 
-A :class:`~.PCA` instance that stores covariance matrix and principal modes
+A :class:`.PCA` instance that stores covariance matrix and principal modes
 that describes the dominant changes in the dataset will be obtained. 
-:class:`~.PCA` instance and principal modes (:class:`~.Mode`) can be used as 
-input to functions in :mod:`~.dynamics` module for further analysis.
+:class:`.PCA` instance and principal modes (:class:`.Mode`) can be used as 
+input to functions in :mod:`.dynamics` module for further analysis.
 
 
 Setup
@@ -93,7 +93,7 @@ Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
 Prepare ensemble
 ===============================================================================
  
-Instantiate an :class:`~.PDBEnsemble`
+Instantiate an :class:`.PDBEnsemble`
 
 >>> ensemble = PDBEnsemble(name)
 
@@ -104,7 +104,7 @@ of the ensemble.
 >>> ensemble.setAtoms(reference_chain)
 >>> ensemble.setCoords(reference_chain.getCoords())
 
-We also start a log file using :func:`~.startLogfile`. 
+We also start a log file using :func:`.startLogfile`. 
 Screen output will be save in this file, and can be
 used to check if structures are added to the ensemble as expected.
 
@@ -132,14 +132,14 @@ Now, we parse the PDB files one by one and add them to the ensemble:
 ...         unmapped.append(pdb_hit)
 ...         continue
 ...     atommap = atommaps[0] + atommaps[1]
-...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags()) 
+...     ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped')) 
 >>> ensemble
 <PDBEnsemble: HIV-RT (155 conformations; 971 atoms)>
 >>> ensemble.iterpose()
 >>> saveEnsemble(ensemble)
 'HIV-RT.ens.npz'
 
-We can now close the logfile using :func:`~.closeLogfile`:
+We can now close the logfile using :func:`.closeLogfile`:
 
 >>> closeLogfile(name)
 
@@ -160,7 +160,7 @@ This is a heterogeneous dataset, i.e. many structures had missing residues.
 We want to make sure that we include residues in PCA analysis if they
 are resolved in more than 94% of the time.
 
-We can find out this using :func:`~.calcOccupancies` function:
+We can find out this using :func:`.calcOccupancies` function:
 
 >>> print( calcOccupancies(ensemble, normed=True).min().round(3) )
 0.252
@@ -181,13 +181,13 @@ After trimmin, another round of iterative superposition may be useful:
 Perform PCA
 ===============================================================================
 
-Once the ensemble is ready, performing :class:`~.PCA` is 3 easy steps:
+Once the ensemble is ready, performing :class:`.PCA` is 3 easy steps:
 
 >>> pca = PCA(name)
 >>> pca.buildCovariance(ensemble)
 >>> pca.calcModes()
    
-The calculated data can be saved as a compressed file using :func:`~.saveModel`
+The calculated data can be saved as a compressed file using :func:`.saveModel`
 
 >>> saveModel(pca) 
 'HIV-RT.pca.npz'

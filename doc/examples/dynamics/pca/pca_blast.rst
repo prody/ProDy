@@ -10,10 +10,10 @@ Synopsis
 This example shows how to perform PCA of a structural dataset obtained by blast
 searching PDB. The protein of interest is cytochrome C (*cyt C*).  Dataset will
 contain structures sharing 44% or more sequence identity with human *cyt C*, 
-i.e. its homologs and/or orthologs.  A :class:`~.PCA` instance that stores 
+i.e. its homologs and/or orthologs.  A :class:`.PCA` instance that stores 
 covariance matrix and principal modes that describes the dominant changes in 
-the dataset will be obtained. :class:`~.PCA` instance and principal modes 
-(:class:`~.Mode`) can be used as input to functions in :mod:`~.dynamics` module
+the dataset will be obtained. :class:`.PCA` instance and principal modes 
+(:class:`.Mode`) can be used as input to functions in :mod:`.dynamics` module
 for further analysis.
 
 Input is amino acid sequence of the protein, a reference PDB identifier,
@@ -90,7 +90,7 @@ The results are displayed for following list of structures:
 ...  ('1s6v', 'B'), ('1yea', 'A'), ('1yeb', 'A'), ('1lfm', 'A'), ('2b10', 'B'),
 ...  ('1u74', 'B'), ('1j3s', 'A'), ('1chi', 'A'),]
 
-List of PDB structures can be updated using :func:`~.blastPDB` 
+List of PDB structures can be updated using :func:`.blastPDB` 
 as follows::
 
   blast_record = blastPDB(sequence)
@@ -148,7 +148,7 @@ Prepare ensemble
 ...         plog('Failed to map', pdb_id)
 ...         continue  
 ...     atommap = mappings[0][0]
-...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())
+...     ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
 >>> ensemble.iterpose()
 >>> saveEnsemble(ensemble)
 'CytC.ens.npz'
@@ -215,7 +215,7 @@ Once the ensemble is ready, performing PCA is 3 easy steps:
 >>> # Calculate modes
 >>> pca.calcModes()
    
-The calculated data can be saved as a compressed file using :func:`~.saveModel`
+The calculated data can be saved as a compressed file using :func:`.saveModel`
 function:
 
 >>> saveModel(pca)

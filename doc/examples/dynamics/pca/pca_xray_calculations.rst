@@ -124,7 +124,7 @@ For each PDB file, we find the matching chain and add it to the ensemble:
 ...     # Add the atommap (mapped coordinates) to the ensemble
 ...     # Note that some structures do not completely map (missing residues)
 ...     # so we pass weights (1 for mapped atoms, 0 for unmapped atoms)
-...     ensemble.addCoordset(atommap, weights=atommap.getMappedFlags())    
+...     ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))    
 
 >>> ensemble
 <PDBEnsemble: p38 X-ray (75 conformations; 321 atoms)>
