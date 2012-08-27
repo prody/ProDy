@@ -289,7 +289,7 @@ class Atom(AtomPointer):
                 break
             yield Atom(ag, other, acsi) 
 
-    def getHereto(self):
+    def getHetero(self):
         """Deprecated for removal in v1.3, use ``getFlag('hetatm')`` instead.
         """
         
@@ -297,7 +297,7 @@ class Atom(AtomPointer):
         deprecate('getHerero', "getFlag('hetatm')", '1.3')
         return self.getFlag('hetatm')
     
-    def setHereto(self, data):
+    def setHetero(self, data):
         """Deprecated for removal in v1.3, use ``setFlag('hetatm', data)``
         instead."""
         
