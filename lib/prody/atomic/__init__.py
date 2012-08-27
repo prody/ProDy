@@ -190,8 +190,6 @@ __all__.extend(functions.__all__)
 __all__.extend(select.__all__)
 __all__.extend(flags.__all__)
 
-from functions import isAtomic, isSubset
-
 from select import checkSelstr, isKeyword, isSelectionMacro
 
 atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()

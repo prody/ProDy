@@ -223,11 +223,13 @@ RESERVED.update(select.KEYWORDS_VALUE_PAIRED)
 RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
                  'bonds', 'bmap'])
 
+
 def isReserved(word):
     """Return **True** if *word* is reserved for internal data labeling or atom
     selections.  See :func:`getReservedWords` for a list of reserved words."""
     
     return word in RESERVED
+        
         
 def getReservedWords():
     """Return list of words that are reserved for atom selections and internal 
@@ -236,6 +238,10 @@ def getReservedWords():
     words = list(RESERVED)
     words.sort()
     return words
+
+_ = getReservedWords.__doc__ + '*' + '*, *'.join(getReservedWords()) + '*.'
+getReservedWords.__doc__ = '\n'.join(wrap(_, 79))
+
 
 def sortAtoms(atoms, label, reverse=False):
     """Return an :class:`.AtomMap` pointing to *atoms* sorted in ascending 
@@ -260,36 +266,3 @@ def sortAtoms(atoms, label, reverse=False):
         ag = atoms.getAtomGroup()
         sort = indices[sort]
     return AtomMap(ag, sort, acsi)
-    
-
-_ = getReservedWords.__doc__ + '*' + '*, *'.join(getReservedWords()) + '*.'
-getReservedWords.__doc__ = '\n'.join(wrap(_, 79))
-
-
-def isAtomic(name, atoms, atype=Atomic, error=TypeError):
-    """Perform an argument type check."""
-    
-    isatomic = isinstance(atoms, atype)
-    if issubclass(error, Exception) and not isatomic:
-        
-        if isinstance(atype, (tuple, list)):
-            what = ', '.join([repr(t.__name__) for t in atype[:-1]]
-                             ) + ', or ' + repr(atype[-1].__name__)
-        else:
-            what = repr(atype.__name__)
-
-        raise error('{0:s} must be a {1:s} instance, not {2:s}'
-                    .format(name, what, repr(type(atoms).__name__)))
-    return isatomic
-
-
-def isSubset(name, atoms, ag, error=ValueError):
-    """Perform an argument type and relation check."""    
-    
-    issubset = atoms in ag 
-    if issubclass(error, Exception) and not issubset:
-        raise error('{0:s} ({1:s}) must be a subset of {2:s}'
-                    .format(name, str(atoms), str(ag)))
-    return issubset
-        
-
