@@ -18,10 +18,11 @@
 
 import numpy as np
 
-from atom import Atom
-from fields import ATOMIC_FIELDS, READONLY
-from fields import wrapGetMethod, wrapSetMethod
-from pointer import AtomPointer
+from . import flags
+from .atom import Atom
+from .fields import ATOMIC_FIELDS, READONLY
+from .fields import wrapGetMethod, wrapSetMethod
+from .pointer import AtomPointer
 from prody import LOGGER
 
 __all__ = ['AtomSubset']
@@ -67,15 +68,15 @@ class AtomSubsetMeta(type):
                         
 class AtomSubset(AtomPointer):
     
-    """A class for manipulating subset of atoms in an :class:`~.AtomGroup`.
+    """A class for manipulating subset of atoms in an :class:`.AtomGroup`.
     Derived classes are:
         
-      * :class:`~.Selection`
-      * :class:`~.Segment`
-      * :class:`~.Chain`
-      * :class:`~.Residue`
+      * :class:`.Selection`
+      * :class:`.Segment`
+      * :class:`.Chain`
+      * :class:`.Residue`
     
-    This class stores a reference to an :class:`~.AtomGroup` instance, a set of 
+    This class stores a reference to an :class:`.AtomGroup` instance, a set of 
     atom indices, and active coordinate set index for the atom group.
     
     """
@@ -188,29 +189,38 @@ class AtomSubset(AtomPointer):
     def setData(self, label, data):
         """Update *data* associated with *label*.
         
-        :raise AttributeError: when data associated with *label* is not present
-        """
+        :raise AttributeError: when *label* is not in use"""
         
         if label in READONLY:
             raise AttributeError('{0:s} is read-only'.format(repr(label)))
         if label in ATOMIC_FIELDS:
-            raise AttributeError('{0:s} must be changed using `set{1:s}` '
-                'method'.format(repr(label), ATOMIC_FIELDS[label].meth_pl))
-        try:
-            self._ag._data[label][self._index] = data 
-        except KeyError:
-            raise AttributeError('data with label {0:s} must be set for '
-                                 'AtomGroup first'.format(repr(label)))
+            getattr(self, 'set' + ATOMIC_FIELDS[label].meth_pl)(data)
+        else:
+            try:
+                self._ag._data[label][self._index] = data 
+            except KeyError:
+                raise AttributeError('data with label {0:s} must be set for '
+                                     'AtomGroup first'.format(repr(label)))
 
     def getFlags(self, label):
         """Return a copy of atom flags for given *label*, or **None** when 
-        flags for *label* is not set."""        
+        flags for *label* is not set."""   
+             
         return self._ag._getFlags(label)[self._indices]
     
-    def setFlags(self, label):
+    def setFlags(self, label, value):
+        """Update flag associated with *label*.
         
-        pass
-
+         :raise AttributeError: when *label* is not in use"""
+        
+        if label in flags.PLANTERS:
+            raise AttributeError('flag {0:s} cannot be changed by user'
+                                    .format(repr(label)))
+        flags = self._ag._getFlags(label)
+        if flags is None:
+            raise AttributeError('flags with label {0:s} must be set for '
+                                    'AtomGroup first'.format(repr(label)))
+        flags[self._index] = value
             
     def getHeteros(self):
         """Deprecated for removal in v1.3, use ``getFlags('hetatm')`` instead.
