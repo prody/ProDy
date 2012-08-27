@@ -31,12 +31,12 @@ def prody_align(*pdbs, **kwargs):
     atoms are selected and selected atoms match in multiple structures,
     they will be used for alignment.
     
-    :arg pdbs: :term:`PDB` identifiers or filenames
-    :type pdbs: list
+    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
     
     **Atom/model selection:**
 
     :arg select: atom selection string, default is :term:`calpha`
+        see :ref:`atom-selections`
     :type select: str
     
     :arg model: for NMR files, reference model index, default is 1
@@ -55,7 +55,7 @@ def prody_align(*pdbs, **kwargs):
     :arg prefix: prefix for output file, default is PDB filename itself
     :type prefix: str
     
-    :arg suffix: output filename suffix, default is ``'_aligned'``
+    :arg suffix: output filename suffix, default is :file:`_aligned`
     :type suffix: str
     
     """
@@ -183,7 +183,7 @@ Align 1fi7 onto 1hrc using heme atoms:
     group = subparser.add_argument_group('atom/model selection')
     group.add_argument('-s', '--select', dest='select', type=str, 
         default='calpha', metavar='SEL',
-        help='reference structure atom selection  (default: "%(default)s")')
+        help='reference structure atom selection  (default: %(default)s)')
     group.add_argument('-m', '--model', dest='model', type=int, 
         default=1, metavar='INT',
         help=('for NMR files, reference model index (default: %(default)s)'))
@@ -207,6 +207,6 @@ Align 1fi7 onto 1hrc using heme atoms:
     subparser.add_argument('pdb', nargs='+',
         help='PDB identifier(s) or filename(s)')
             
-    subparser.set_defaults(func=lambda opt: prody_align(*opt.pdb, 
-                                                         **opt.__dict__))
+    subparser.set_defaults(func=lambda ns: prody_align(*ns.pdb, 
+                                                        **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
