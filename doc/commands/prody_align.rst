@@ -22,7 +22,7 @@ Running :command:`prody align -h` displays::
     --examples            show usage examples and exit
   
   atom/model selection:
-    -s SEL, --select SEL  reference structure atom selection (default: "calpha")
+    -s SEL, --select SEL  reference structure atom selection (default: calpha)
     -m INT, --model INT   for NMR files, reference model index (default: 1)
   
   chain matching options:
