@@ -73,7 +73,7 @@ class AtomMeta(type):
 
 class Atom(AtomPointer):
     
-    """A class for handling individual atoms in an :class:`~.AtomGroup`."""
+    """A class for handling individual atoms in an :class:`.AtomGroup`."""
     
     __metaclass__ = AtomMeta
     
@@ -224,13 +224,13 @@ class Atom(AtomPointer):
         if label in READONLY:
             raise AttributeError('{0:s} is read-only'.format(repr(label)))
         if label in ATOMIC_FIELDS:
-            raise AttributeError('{0:s} must be changed using `set{1:s}` '
-                'method'.format(repr(label), ATOMIC_FIELDS[label].meth))
-        try:
-            self._ag._data[label][self._index] = data 
-        except KeyError:
-            raise AttributeError('data with label {0:s} must be set for '
-                                 'AtomGroup first'.format(repr(label)))
+            getattr(self, 'set' + ATOMIC_FIELDS[label].meth)(data)
+        else:
+            try:
+                self._ag._data[label][self._index] = data 
+            except KeyError:
+                raise AttributeError('data with label {0:s} must be set for'
+                                       ' AtomGroup first'.format(repr(label)))
     
     def getFlag(self, label):
         """Return atom flag."""
@@ -238,15 +238,17 @@ class Atom(AtomPointer):
         return self._ag._getFlags(label)[self._index]
     
     def setFlag(self, label, value):
-        """Set flag associated with *label* **True** or **False**."""
+        """Update flag associated with *label*.
+        
+         :raise AttributeError: when *label* is not in use"""
         
         if label in flags.PLANTERS:
             raise AttributeError('flag {0:s} cannot be changed by user'
                                     .format(repr(label)))
         flags = self._ag._getFlags(label)
         if flags is None:
-            raise ValueError('flags associated with label {0:s} are not set '
-                               'for the AtomGroup'.format(repr(label)))
+            raise AttributeError('flags with label {0:s} must be set for '
+                                    'AtomGroup first'.format(repr(label)))
         flags[self._index] = value
     
     def getSelstr(self):
@@ -256,7 +258,7 @@ class Atom(AtomPointer):
 
     def numBonds(self):
         """Return number of bonds formed by this atom.  Bonds must be set first
-        using :meth:`~atomgroup.AtomGroup.setBonds`."""
+        using :meth:`.AtomGroup.setBonds`."""
         
         numbonds = self._ag._data.get('numbonds')
         if numbonds is not None:
