@@ -23,10 +23,11 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from fields import ATOMIC_FIELDS, READONLY
-from fields import wrapGetMethod, wrapSetMethod
-from pointer import AtomPointer
-from bond import Bond
+from . import flags
+from .fields import ATOMIC_FIELDS, READONLY
+from .fields import wrapGetMethod, wrapSetMethod
+from .pointer import AtomPointer
+from .bond import Bond
 
 __all__ = ['Atom']
 
@@ -237,8 +238,16 @@ class Atom(AtomPointer):
         return self._ag._getFlags(label)[self._index]
     
     def setFlag(self, label, value):
+        """Set flag associated with *label* **True** or **False**."""
         
-        pass
+        if label in flags.PLANTERS:
+            raise AttributeError('flag {0:s} cannot be changed by user'
+                                    .format(repr(label)))
+        flags = self._ag._getFlags(label)
+        if flags is None:
+            raise ValueError('flags associated with label {0:s} are not set '
+                               'for the AtomGroup'.format(repr(label)))
+        flags[self._index] = value
     
     def getSelstr(self):
         """Return selection string that will select this atom."""
