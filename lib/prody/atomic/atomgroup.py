@@ -959,8 +959,6 @@ class AtomGroup(Atomic):
         """Return data associated with *label* and remove from the instance.
         If data associated with *label* is not found, return **None**."""
         
-        if not isinstance(label, str):
-            raise TypeError('label must be a string')
         return self._data.pop(label, None)
     
     def getData(self, label):
@@ -1087,9 +1085,7 @@ class AtomGroup(Atomic):
         """Return flags associated with *label* and remove from the instance.
         If flags associated with *label* is not found, return **None**."""
         
-        if not isinstance(label, str):
-            raise TypeError('label must be a string')
-        return self._data.pop(label, None)
+        return self._flags.pop(label, None)
     
     def _setSubset(self, indices, *labels):
         """Set indices of a subset of atoms."""
