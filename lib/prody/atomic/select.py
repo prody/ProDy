@@ -730,12 +730,12 @@ class Select(object):
         self._parser.setParseAction(self._defaultAction)
         self._parser.leaveWhitespace()
         
-        self._map = fmap = {}
+        self._map = _map = {}
         for field in KEYWORDS_STRING:
-            fmap[field] = self._evalAlnum
+            _map[field] = self._evalAlnum
         for field in FIELDS_NUMERIC:
-            fmap[field] = self._evalFloat
-        fmap.update([('resnum', self._resnum), ('resid', self._resnum), 
+            _map[field] = self._evalFloat
+        _map.update([('resnum', self._resnum), ('resid', self._resnum), 
                      ('serial', self._serial), ('index', self._index),
                      ('sequence', self._sequence), ('x', self._evalFloat), 
                      ('y', self._evalFloat), ('z', self._evalFloat),
@@ -762,11 +762,15 @@ class Select(object):
         self._reset()
 
         for key in kwargs.iterkeys():
+            if not key.isalnum():
+                raise TypeError('{0:s} is not a valid keyword argument, '
+                                  'keywords must be all alpha numeric '
+                                  'characters'.format(repr(key)))
             if isReserved(key):
                 loc = selstr.find(key)
                 if loc > -1:
-                    raise SelectionError(selstr, loc, "{0:s} is a reserved "
-                                "word and cannot be used as a keyword argument"
+                    raise SelectionError(selstr, loc, '{0:s} is a reserved '
+                                'word and cannot be used as a keyword argument'
                                 .format(repr(key)))
 
         self._n_atoms = atoms.numAtoms()
@@ -879,9 +883,7 @@ class Select(object):
             else:
                 if self._replace:
                     for key, value in kwargs.iteritems():
-                        if (isinstance(value, AtomPointer) and
-                            not isinstance(value, AtomMap) and
-                            key in selstr):
+                        if value in self._ag and key in selstr:
                             selstr = selstr.replace(key, 
                                                 '(' + value.getSelstr() + ')')
                 if isinstance(atoms, AtomPointer):
@@ -1014,6 +1016,57 @@ class Select(object):
             raise torf
         return torf
     
+        
+    def __evaluate(self, sel, loc, tokens, only=None):
+        
+        first = tokens[0]
+        if len(tokens) == 1:
+            if first == 'none':
+                return zeros(self._n_atoms if only is None else len(only), 
+                              bool) 
+            elif self._atoms.isFlagLabel(first):
+                if evalonly is None:
+                    return self._atoms.getFlags(first) # get a copy of flags
+                else:
+                    return self._atoms._getFlags(first)[evalonly]
+            elif isNumericKeyword(first):
+                return self._evalNumeric(sel, loc, first)
+            elif self._ag.isDataLabel(first):
+                return self._evalUserdata(sel, loc, first, only=only)
+            elif isinstance(first, ndarray):
+                return first
+    
+            try: 
+                arg = self._kwargs[first]
+            except KeyError:
+                pass
+            else:
+                if arg in self._ag:
+                    
+                    try:
+                        dummies = arg.numDummies()
+                    except AttributeError:
+                        indices = arg._getIndices()
+                    else:
+                        if dummies:
+                            indices = arg.getIndices()[arg.getFlags('mapped')]
+                        else:
+                            indices = arg.getIndices()
+                            
+                    torf = zeros(self._ag.numAtoms(), bool)
+                    torf[indices] = True
+                    if self._indices is not None:
+                        torf = torf[self._indices]
+                    self._replace = True
+                    if DEBUG: print('_evaluate', first, torf)
+                    return torf
+                return first
+            try:
+                return float(first)
+            except ValueError:
+                pass
+        
+    
     def _evaluate(self, sel, loc, tkns, evalonly=None):
         """Evaluates statements in a selection string, e.g. ``'calpha'``,
         ``'index 5'``."""
@@ -1021,6 +1074,10 @@ class Select(object):
         if DEBUG: print('_evaluate', tkns)
         
         if isinstance(tkns, str):
+            # NOT ENCOUNTERED
+            #with open('/home/abakan/evaluate.txt', 'a') as out:
+            #    out.write('STRING ' + sel + '\n')
+            if DEBUG: print('_evaluate', 'STRING STRING STRING STRING', tkns)
             if tkns == 'none':
                 return zeros(self._n_atoms, bool)
             if self._atoms.isFlagLabel(tkns):
@@ -1031,13 +1088,18 @@ class Select(object):
             elif self._ag.isDataLabel(tkns):
                 return self._evalUserdata(sel, loc, tkns, evalonly=evalonly)
             else:
-                return SelectionError(sel, loc, "{0:s} is not understood"
+                return SelectionError(sel, loc, '{0:s} is not understood'
                                       .format(repr(tkns)))
         elif isinstance(tkns, (ndarray, float)):
+            # NOT ENCOUNTERED
+            #with open('/home/abakan/evaluate.txt', 'a') as out:
+            #    out.write('NDARRAY ' + sel + '\n')
             return tkns
     
         keyword = tkns[0]
         if len(tkns) == 1:
+            #with open('/home/abakan/evaluate.txt', 'a') as out:
+            #    out.write('LIST ' + sel + ' - ' + str(keyword) + '\n')
             if keyword == 'none':
                 return zeros(self._n_atoms, bool)
             if self._atoms.isFlagLabel(keyword):
@@ -1066,6 +1128,8 @@ class Select(object):
                 return keyword
                     
             else:
+                #with open('/home/abakan/evaluate.txt', 'a') as out:
+                #    out.write('FLOAT ' + sel + ' - ' + str(keyword) + '\n')
                 try:
                     return float(keyword)
                 except ValueError:
