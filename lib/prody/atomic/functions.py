@@ -213,18 +213,19 @@ def findFragments(atoms):
     return list(iterFragments(atoms))
 
 
-RESERVED = set(ATOMIC_FIELDS.keys() +
-               ['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
-                'bonded', 'exbonded', 'to', 'all', 'none'] +
-               flags.PLANTERS.keys() + select.FUNCTION_MAP.keys() + 
-               select.FIELDS_SYNONYMS.keys() + 
-               list(select.KEYWORDS_VALUE_PAIRED) +
-               ['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
-                'bonds', 'bmap'])
+RESERVED = set(ATOMIC_FIELDS)
+RESERVED.update(['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
+                 'bonded', 'exbonded', 'to', 'all', 'none']) 
+RESERVED.update(flags.PLANTERS)
+RESERVED.update(select.FUNCTION_MAP) 
+RESERVED.update(select.FIELDS_SYNONYMS) 
+RESERVED.update(select.KEYWORDS_VALUE_PAIRED)
+RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
+                 'bonds', 'bmap'])
 
 def isReserved(word):
-    """Return **True** if *word* is a reserved word (:func:`getReservedWords`).
-    """
+    """Return **True** if *word* is reserved for internal data labeling or atom
+    selections.  See :func:`getReservedWords` for a list of reserved words."""
     
     return word in RESERVED
         
