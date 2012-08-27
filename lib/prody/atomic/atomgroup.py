@@ -923,43 +923,41 @@ class AtomGroup(Atomic):
         return self.getHierView().iterResidues()
 
     def setData(self, label, data):
-        """Store atomic *data* under *label*.
-        
-        *label* must:
+        """Store atomic *data* under *label*, which must:
             
             * start with a letter
             * contain only alphanumeric characters and underscore
             * not be a reserved word (see :func:`.getReservedWords`)
 
         *data* must be a :func:`list` or a :class:`~numpy.ndarray` and its 
-        length must be equal to the number of atoms, and the type of data 
-        array must be one of :func:`float`, :func:`int`, or :func:`str`.  
-        If the dimension of the *data* array is 1, i.e. ``data.ndim==1``,
-        *label* can be used to make atom selections, e.g. ``"label 1 to 10"`` 
-        or ``"label C1 C2"``.  Note that, if data with *label* is present, 
-        it will be overwritten."""
+        length must be equal to the number of atoms.  If the dimension of the 
+        *data* array is 1, i.e. ``data.ndim==1``, *label* may be used to make 
+        atom selections, e.g. ``"label 1 to 10"`` or ``"label C1 C2"``.  Note 
+        that, if data with *label* is present, it will be overwritten."""
         
-        label = checkLabel(label)
+        if label in ATOMIC_FIELDS:
+            getattr(self, 'set' + ATOMIC_FIELDS[label].meth_pl)(data)
+        else:    
+            label = checkLabel(label)
 
-        try:
-            ndim, dtype, shape = data.ndim, data.dtype, data.shape
-        except AttributeError:
-            data = np.array(data)
-            ndim, dtype, shape = data.ndim, data.dtype, data.shape
+            try:
+                ndim, dtype, shape = data.ndim, data.dtype, data.shape
+            except AttributeError:
+                data = np.array(data)
+                ndim, dtype, shape = data.ndim, data.dtype, data.shape
 
-        if ndim == 1 and dtype == bool:
-            raise TypeError('1 dimensional boolean arrays are not accepted, '
-                              'use `setFlags` instead')
+            if ndim == 1 and dtype == bool:
+                raise TypeError('1 dimensional boolean arrays are not '
+                                  'accepted, use `setFlags` instead')
 
-        if len(data) != self._n_atoms:
-            raise ValueError('len(data) must match number of atoms')
+            if len(data) != self._n_atoms:
+                raise ValueError('len(data) must match number of atoms')
 
-        self._data[label] = data
+            self._data[label] = data
     
     def delData(self, label):
-        """Return data associated with *label* and remove it from the atom 
-        group.  If data associated with *label* is not found, **None** will 
-        be returned."""
+        """Return data associated with *label* and remove from the instance.
+        If data associated with *label* is not found, return **None**."""
         
         if not isinstance(label, str):
             raise TypeError('label must be a string')
@@ -1084,6 +1082,14 @@ class AtomGroup(Atomic):
             self._subsets = {}
         for label in labels:
             self._flags[label] = flags
+    
+    def delFlags(self, label):
+        """Return flags associated with *label* and remove from the instance.
+        If flags associated with *label* is not found, return **None**."""
+        
+        if not isinstance(label, str):
+            raise TypeError('label must be a string')
+        return self._data.pop(label, None)
     
     def _setSubset(self, indices, *labels):
         """Set indices of a subset of atoms."""
