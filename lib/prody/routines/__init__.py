@@ -30,7 +30,7 @@ import imp
 import sys
 import argparse
 
-from actions import *
+from .actions import *
 
 path_prody = imp.find_module('prody')[1]
 path_routines = imp.find_module('routines', [path_prody])[1]
@@ -38,7 +38,7 @@ path_routines = imp.find_module('routines', [path_prody])[1]
 PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
                   'catdcd', 'contacts', 'fetch', 'select', ] 
 
-__all__ = ['main']
+__all__ = ['prody_main']
 
 prody_parser = argparse.ArgumentParser(
     description="ProDy: A Python Package for Protein Dynamics Analysis",
@@ -57,12 +57,13 @@ prody_parser.add_argument('-v', '--version',
 prody_commands = prody_parser.add_subparsers(
     title='subcommands')
     
-    
+
 for cmd in PRODY_COMMANDS:    
     cmd = 'prody_' + cmd
     mod = imp.load_module('prody.routines.' + cmd, 
                           *imp.find_module(cmd, [path_routines]))
     mod.addCommand(prody_commands)  
+
 
 def prody_main():
     
