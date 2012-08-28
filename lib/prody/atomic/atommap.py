@@ -457,11 +457,3 @@ class AtomMap(AtomPointer):
         from prody import deprecate
         deprecate('getHereros', "getFlags('hetatm')", '1.3')
         return self.getFlags('hetatm')
-    
-    def getHeteros(self, data):
-        """Deprecated for removal in v1.3, use ``setFlags('hetatm', data)``
-        instead."""
-        
-        from prody import deprecate
-        deprecate('setHereros', "setFlags('hetatm', data)", '1.3')
-        return self.setFlags('hetatm', data)

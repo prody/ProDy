@@ -1003,8 +1003,8 @@ class AtomGroup(Atomic):
         return labels
         
     def getDataType(self, label):
-        """Return type of the data (i.e. data.dtype) associated with *label*, 
-        or **None** label is not used."""
+        """Return type of the data (i.e. ``data.dtype``) associated with 
+        *label*, or **None** label is not used."""
 
         try:
             return self._data[label].dtype
@@ -1348,7 +1348,7 @@ class AtomGroup(Atomic):
         deprecate('getHereros', "getFlags('hetatm')", '1.3')
         return self.getFlags('hetatm')
     
-    def getHeteros(self, data):
+    def setHeteros(self, data):
         """Deprecated for removal in v1.3, use ``setFlags('hetatm', data)``
         instead."""
         
