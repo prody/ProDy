@@ -833,7 +833,9 @@ class AtomGroup(Atomic):
             return self._coords.copy()
         if isinstance(indices, (int, slice)):
             return self._coords[indices].copy()
-        if isinstance(indices, (list, np.ndarray)):
+    
+        # following fancy indexing makes a copy, so .copy() is not needed
+        if isinstance(indices, (list, np.ndarray)): 
             return self._coords[indices]
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
@@ -843,12 +845,12 @@ class AtomGroup(Atomic):
         
         if self._coords is None:
             return None
-        if indices is None:
-            return self._coords
-        if isinstance(indices, (int, slice, list, np.ndarray)):
-            return self._coords[indices]
-        raise IndexError('indices must be an integer, a list/array of '
-                         'integers, a slice, or None')
+
+        try:
+            return self._coords if indices is None else self._coords[indices] 
+        except:
+            raise IndexError('indices must be an integer, a list/array of '
+                               'integers, a slice, or None')
 
     def numCoordsets(self):
         """Return number of coordinate sets."""
@@ -968,15 +970,19 @@ class AtomGroup(Atomic):
         """Return a copy of the data array associated with *label*, or **None** 
         if such data is not present."""
         
-        data = self._data.get(label, None)
-        if data is not None:
-            return data.copy()
+        try:
+            return self._data[label].copy()
+        except KeyError:
+            pass
 
     def _getData(self, label):
         """Return data array associated with *label*, or **None** if such data 
         is not present."""
         
-        return self._data.get(label, None)
+        try:
+            return self._data[label]
+        except KeyError:
+            pass
 
     def isData(self, label):
         """Deprecated, use :meth:`isDataLabel` instead."""
