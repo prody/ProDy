@@ -55,11 +55,11 @@ Let's fetch a PDB files that contains a solution (NMR) structure using
 Alternatively, you may use a browser to download these files.  
 :file:`2k39.pdb` file can be loaded into VMD at startup as follows::
 
-  $ vmd 2k38.pdb
+  $ vmd 2k39.pdb
   
 This file contains 116 solution structure models of the protein Ubiquitin, so 
 it will be suitable for comparison of theoretical predictions with experimental
-data. 
+observations. 
 
 :guilabel:`NMWiz - Main` window can be accessed via the 
 :menuselection:`Extensions --> Analysis` menu of :guilabel:`VMD Main` 
