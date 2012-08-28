@@ -29,11 +29,12 @@ import numpy as np
 from numpy.testing import *
 
 from prody import *
+from prody import LOGGER
 from prody.utilities import which
 from prody.tests import TEMPDIR
 from prody.tests.test_datafiles import *
 
-prody.setVerbosity('none')
+LOGGER.verbosity = 'none'
 
 class TestFetchPDB(unittest.TestCase):
     

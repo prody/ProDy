@@ -20,10 +20,10 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import array, invert, ones, tile 
 
-from prody import Ensemble, PDBEnsemble, setVerbosity
+from prody import Ensemble, PDBEnsemble, LOGGER
 from prody.tests.test_datafiles import parseDatafile, DATA_FILES
 
-setVerbosity('none')
+LOGGER.verbosity = 'none'
 
 ATOL = 1e-5
 RTOL = 0

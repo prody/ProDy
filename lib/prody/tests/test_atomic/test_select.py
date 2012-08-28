@@ -30,11 +30,12 @@ import sys
 import numpy as np
 
 from prody import *
+from prody import LOGGER
 from prody.tests.test_datafiles import *
 
 
 prody.atomic.select.DEBUG = False
-prody.setVerbosity('none')
+LOGGER.verbosity = 'none'
 
 TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
                                                    inspect.currentframe()))[0])

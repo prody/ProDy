@@ -27,12 +27,13 @@ from code import interact
 import unittest
 
 from prody import *
+from prody import LOGGER
 from prody.atomic import atommap 
 from prody.tests.test_datafiles import *
 
 
 prody.atomic.select.DEBUG = False
-prody.setVerbosity('none')
+LOGGER.verbosity = 'none'
 
 AG = parseDatafile('1ubi')
 

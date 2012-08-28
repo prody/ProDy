@@ -27,9 +27,10 @@ import numpy as np
 from numpy.testing import *
 
 from prody import *
+from prody import LOGGER
 from prody.tests.test_datafiles import *
 
-prody.setVerbosity('none')
+LOGGER.verbosity = 'none'
 
 ATOL = 1e-5
 RTOL = 0
