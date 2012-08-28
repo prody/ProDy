@@ -19,6 +19,7 @@
 
   * :func:`.prody_align`
   * :func:`.prody_contacts`
+  * :func:`.prody_select`
 
 """
 

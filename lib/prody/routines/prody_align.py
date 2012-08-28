@@ -35,8 +35,8 @@ def prody_align(*pdbs, **kwargs):
     
     **Atom/model selection:**
 
-    :arg select: atom selection string, default is :term:`calpha`
-        see :ref:`atom-selections`
+    :arg select: atom selection string, default is :term:`calpha`,
+        see :ref:`selections`
     :type select: str
     
     :arg model: for NMR files, reference model index, default is 1
