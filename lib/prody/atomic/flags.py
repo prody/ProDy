@@ -766,15 +766,14 @@ def setCalpha(ag, label):
     
     flags = ag._getNames() == 'CA'
     indices = flags.nonzero()[0]
-    aliases = ALIASES['calpha']
     if len(indices):
         torf = array([rn in AMINOACIDS for rn in ag._getResnames()[indices]])
         flags[indices] = torf
-        ag._setFlags(flags, *aliases)
-        ag._setSubset(indices[torf], *aliases)
+        ag._setFlags(label, flags)
+        ag._setSubset(label, indices[torf])
     else:
-        ag._setFlags(flags, *aliases)
-        ag._setSubset(array([]), *aliases)
+        ag._setFlags(label, flags)
+        ag._setSubset(label, array([]))
     return flags
 
 addPlanter(setCalpha, 'ca', 'calpha')
@@ -789,7 +788,7 @@ def setProtein(ag, label):
         flags = torf[resindices]
     else:
         flags = zeros(ag.numAtoms(), bool)
-    ag._setFlags(flags, *ALIASES['protein'])
+    ag._setFlags('protein', flags)
     return flags
 
 addPlanter(setProtein, 'protein', 'aminoacid')
@@ -807,7 +806,7 @@ def setBackbone(ag, label):
         flags[protein] = [nm in bb for nm in names]
     else:
         flags = zeros(ag.numAtoms(), bool)
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setBackbone, 'bb', 'backbone', editor=changeBackbone)
@@ -822,7 +821,7 @@ def setSidechain(ag, label):
         flags[ag._getSubset('bbfull')] = False
     else:
         flags = zeros(ag.numAtoms(), bool)
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setSidechain, 'sc', 'sidechain')
@@ -840,7 +839,7 @@ def setCategories(ag, label):
         flags = torf[residx]
     else:
         flags = zeros(ag.numAtoms(), bool)
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
     
 addPlanter(setCategories, 'stdaa', 'nonstdaa', *CATEGORIZED.keys(), 
@@ -854,7 +853,7 @@ def setResiflag(ag, label):
     
     resnames = DEFINITIONS[label]
     flags = array([rn in resnames for rn in ag._getResnames()], bool)
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setResiflag, 'nucleobase', 'nucleoside', 'nucleotide',
@@ -868,7 +867,7 @@ def setHetero(ag, label):
     flags = ones(ag.numAtoms(), bool)
     flags[ag._getSubset('protein')] = False
     flags[ag._getSubset('nucleic')] = False
-    ag._setFlags(flags, 'hetero')
+    ag._setFlags('hetero', flags)
     return flags
 
 addPlanter(setHetero, 'hetero',)
@@ -882,7 +881,7 @@ def setElement(ag, label):
     match = DEFINITIONS[label].match 
     flags = array([match(nm) is not None for nm in ag._getNames()])
     flags[ag._getSubset('ion')] = False
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setElement, 'hydrogen', 'carbon', 'nitrogen', 'oxygen', 'sulfur', 
@@ -892,7 +891,7 @@ def setNoh(ag, label):
     
     flags = ones(ag.numAtoms(), bool)
     flags[ag._getSubset('hydrogen')] = False
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setNoh, 'noh')
@@ -910,7 +909,7 @@ def setSecondary(ag, label):
     if secstrs is None:
         raise ValueError('no secondary structure assignments')
     flags = secstrs == SECONDARY[label]
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setSecondary, *SECONDARY.keys(), aliases=False, 
@@ -926,7 +925,7 @@ def setDummy(ag, label):
         flags = zeros(len(ag), bool)
     else:
         flags = ones(len(ag), bool)
-    ag._setFlags(flags, *ALIASES[label])
+    ag._setFlags(label, flags)
     return flags
 
 addPlanter(setDummy, 'dummy', 'mapped', aliases=False, fields=[]) 

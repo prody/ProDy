@@ -42,7 +42,7 @@ from prody.utilities import tabulate, wrap
 
 __all__ = ['Field']
 
-READONLY = set(['numbonds', 'resindex', 'chindex', 'segindex'])
+READONLY = set()
 
 class Field(object):
     
@@ -93,6 +93,9 @@ class Field(object):
         self.private = kwargs.get('private', False)
         #: **True** when there are flags associated with the data field 
         self.flags = kwargs.get('flags', False)
+        
+        if self.readonly:
+            READONLY.add(self.name)
     
     def getDocstr(self, meth, plural=True, selex=True):
         """Return documentation string for the field."""

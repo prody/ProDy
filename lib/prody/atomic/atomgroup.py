@@ -1058,15 +1058,15 @@ class AtomGroup(Atomic):
             raise ValueError('flags.dtype must be bool')
         if len(flags) != self._n_atoms:
             raise ValueError('len(flags) must be equal to number of atoms')
-        self._setFlags(flags, label)
+        self._setFlags(label, flags)
     
-    def _setFlags(self, flags, *labels):
+    def _setFlags(self, label, flags):
         """Set atom flags."""
 
         if self._flags is None:
             self._flags = {}
             self._subsets = {}
-        for label in labels:
+        for label in FLAG_ALIASES.get(label, [label]):
             self._flags[label] = flags
     
     def delFlags(self, label):
@@ -1075,10 +1075,10 @@ class AtomGroup(Atomic):
         
         return self._flags.pop(label, None)
     
-    def _setSubset(self, indices, *labels):
+    def _setSubset(self, label, indices):
         """Set indices of a subset of atoms."""
 
-        for label in labels:
+        for label in FLAG_ALIASES.get(label, [label]):
             self._subsets[label] = indices
             
     def _getSubset(self, label):
@@ -1099,7 +1099,7 @@ class AtomGroup(Atomic):
                 return self._subsets[label]
             except KeyError:
                 indices = flgs.nonzero()[0]
-                self._setSubset(indices, *FLAG_ALIASES.get(label, [label]))
+                self._setSubset(label, indices)
                 return indices.copy()
     
     def getFlagLabels(self, which=None):

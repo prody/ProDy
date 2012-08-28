@@ -26,8 +26,10 @@ from numpy import all, zeros
 
 from prody import LOGGER
 
-from bond import trimBonds
-from fields import ATOMIC_FIELDS, READONLY
+from . import flags
+from .bond import trimBonds
+from .fields import ATOMIC_FIELDS, READONLY
+
 
 __all__ = ['Atomic']
 
@@ -105,10 +107,12 @@ class Atomic(object):
         
         dummies = None
         indices = None
+        readonly = False
         try:
             ag = self.getAtomGroup()
         except AttributeError:
             ag = self
+            readonly = True
             new = AtomGroup(ag.getTitle())
         else:
             indices = self.getIndices()
@@ -132,22 +136,27 @@ class Atomic(object):
         if self.numCoordsets():
             new.setCoords(this.getCoordsets(), label=ag.getCSLabels())
         
-        for key, array in ag._data.iteritems():
-            if key in READONLY:
+        for label in ag.getDataLabels():
+            if label in READONLY:
                 continue
-            try:
-                field = ATOMIC_FIELDS[key]
-            except KeyError:
-                new._data[key] = this.getData(key)
-            else:
-                meth = field.meth_pl
-                getattr(new, 'set' + meth)(getattr(this, 'get' + meth)())
+            new.setData(label, this.getData(label))
                 
+        if readonly:
+            for label in READONLY:
+                data = this.getData(label)
+                if data is not None:
+                    new._data[label] = data
+        
+        skip_flags = set()
         for label in ag.getFlagLabels():
-            new._setFlags(this.getFlags(label), label)
+            if label in skip_flags:
+                continue
+            else:
+                new._setFlags(label, this.getFlags(label))
+                skip_flags.update(flags.ALIASES.get(label, [label]))
         if dummies:
-            new._setFlags(dummy, 'dummy')
-            new._setFlags(mapped, 'mapped')
+            new._setFlags('dummy', dummy)
+            new._setFlags('mapped', mapped)
             
         bonds = ag._bonds
         bmap = ag._bmap
@@ -156,10 +165,6 @@ class Atomic(object):
                 new._bonds = bonds.copy()
                 new._bmap = bmap.copy()
                 new._data['numbonds'] = ag._data['numbonds'].copy()
-                try:
-                    new._data['fragindex'] = ag._data['fragindex'].copy()
-                except KeyError:
-                    pass
             elif dummies is not None:
                 if dummies:
                     indices = indices[self._getMapping()]

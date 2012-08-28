@@ -237,6 +237,11 @@ class AtomPointer(Atomic):
         if self._ag._n_csets:
             return self._ag._cslabels[self.getACSIndex()]
     
+    def getCSLabels(self):
+        """Return coordinate set labels."""
+        
+        return self._ag.getCSLabels()
+    
     def isDataLabel(self, label):
         """Return **True** if data associated with *label* is present."""
         

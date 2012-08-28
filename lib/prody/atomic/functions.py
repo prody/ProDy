@@ -142,11 +142,17 @@ def loadAtoms(filename):
         ag._bmap = attr_dict['bmap']
         ag._data['numbonds'] = attr_dict['numbonds']
     
+    skip_flags = set()
+    
     for label, data in attr_dict.iteritems():
         if label in SKIPLOAD:
             continue
         if data.ndim == 1 and data.dtype == bool:
-            ag._setFlags(data, *flags.ALIASES.get(label, [label]))
+            if label in skip_flags:
+                continue
+            else:
+                ag._setFlags(label, data)
+                skip_flags.update(flags.ALIASES.get(label, [label]))
         else:
             ag.setData(label, data)
     
