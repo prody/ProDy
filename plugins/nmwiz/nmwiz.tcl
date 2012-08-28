@@ -3431,7 +3431,7 @@ setmode, getlen, setlen, addmode"
           -row 23 -column 2 -sticky w
         tk_optionMenu $wpgo.csmp_frame.list ${ns}::color_scale_midpoint 0.5 
         $wpgo.csmp_frame.list.menu delete 0
-        foreach mtrl "0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0" {
+        foreach mtrl "0.0 0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.75 0.9 0.95 1.0" {
           $wpgo.csmp_frame.list.menu add radiobutton -label $mtrl \
               -variable ${ns}::color_scale_midpoint \
               -command "color scale midpoint $mtrl;"
