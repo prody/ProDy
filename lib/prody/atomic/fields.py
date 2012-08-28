@@ -34,11 +34,9 @@ below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from textwrap import wrap as textwrap
+from prody.utilities import tabulate, wrapText
 
-from flags import FIELDS as FLAG_FIELDS
-
-from prody.utilities import tabulate, wrap
+from .flags import FIELDS as FLAG_FIELDS
 
 __all__ = ['Field']
 
@@ -136,9 +134,9 @@ class Field(object):
             if self.synonym is not None:
                 selex = selex + ('  Note that *{0:s}* is a synonym for '
                     '*{1:s}*.').format(self.synonym, self.name)
-            return wrap(docstr + selex)
+            return wrapText(docstr + selex)
         else:
-            return wrap(docstr)
+            return wrapText(docstr)
 
 HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 

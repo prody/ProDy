@@ -59,13 +59,12 @@ Flag labels can also be used to make quick atom counts:
 
 from re import compile as recompile
 from time import time
-from textwrap import wrap as textwrap
 from collections import defaultdict
 
 from numpy import array, ones, zeros
 
 from prody import SETTINGS
-from prody.utilities import joinLinks, joinTerms, tabulate, wrap 
+from prody.utilities import joinLinks, joinTerms, tabulate, wrapText
 
 __all__ = ['flagDefinition', 'getNonstdProperties', 'addNonstdAminoacid', 
            'delNonstdAminoacid',]
@@ -376,9 +375,9 @@ Protein
 
 """.format(
 
-stdaa = wrap('indicates the standard amino acid residues: ' + 
-             joinLinks(DEFAULTS['stdaa'], last=', and ', sort=True), 
-             subsequent_indent=' '*6),
+stdaa = wrapText('indicates the standard amino acid residues: ' + 
+                 joinLinks(DEFAULTS['stdaa'], last=', and ', sort=True), 
+                 subsequent_indent=' '*6),
 )
 
 
@@ -394,7 +393,7 @@ for cat in cats:
        {res:s}
 
 """.format(cat=cat, 
-res=wrap('residues ' + ', '.join(res), subsequent_indent=' '*6))
+res=wrapText('residues ' + ', '.join(res), subsequent_indent=' '*6))
 
 for resi in DEFAULTS['stdaa']:
     __doc__ += PDBLIGSUM.format(resi)
@@ -564,20 +563,20 @@ Heteros
 
 """.format(
  
-lipid=wrap('indicates ' + 
-           joinLinks(DEFAULTS['lipid'], last=', and ', sort=True) + 
-           ' from *PDB*, and also ' + ', '.join(DEFAULTS['lipid_other']) +
-           ' from *CHARMM* force field.', subsequent_indent=' '*6),
+lipid=wrapText('indicates ' + 
+               joinLinks(DEFAULTS['lipid'], last=', and ', sort=True) + 
+               ' from *PDB*, and also ' + ', '.join(DEFAULTS['lipid_other']) +
+               ' from *CHARMM* force field.', subsequent_indent=' '*6),
            
-sugar=wrap('indicates ' + 
-           joinLinks(DEFAULTS['sugar'], last=', and ', sort=True) + 
-           ' from *PDB*, and also AGLC from *CHARMM*.', 
-           subsequent_indent=' '*6),
+sugar=wrapText('indicates ' + 
+               joinLinks(DEFAULTS['sugar'], last=', and ', sort=True) + 
+               ' from *PDB*, and also AGLC from *CHARMM*.', 
+               subsequent_indent=' '*6),
 
-heme=wrap('indicates ' + 
-          joinLinks(DEFAULTS['heme'], last=', and ', sort=True) +
-          ' from *PDB*, and also HEMO and HEMR from CHARMM.',
-          subsequent_indent=' '*6)
+heme=wrapText('indicates ' + 
+              joinLinks(DEFAULTS['heme'], last=', and ', sort=True) +
+              ' from *PDB*, and also HEMO and HEMR from CHARMM.',
+              subsequent_indent=' '*6)
 )
 
 
@@ -1032,8 +1031,8 @@ def flagDefinition(*arg, **kwarg):
         return alist
 
 flagDefinition.__doc__ = flagDefinition.__doc__.format(
-    editable=wrap(joinTerms(flagDefinition(editable=True), last=', and '), 
-                  subsequent_indent=' '*4))
+    editable=wrapText(joinTerms(flagDefinition(editable=True), last=', and '), 
+                      subsequent_indent=' '*4))
 
 
 def addNonstdAminoacid(resname, *properties):
