@@ -694,7 +694,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 ids = ids[resnums[ids] == ari]
                 if len(ids) == 0:
                     LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, "
-                                "residue does not exist as altloc 'A'".format(
+                                "residue not present for altloc 'A'".format(
                                 repr(key), i+1))
                     continue
                 rn = resnames[ids[0]]
@@ -702,15 +702,15 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 indices[(ach, ari)] = (rn, ids, ans)
             if rn != arn:
                 LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, "
-                            "residue names do not match (expected {2:s}, "
+                            "residue name mismatch (expected {2:s}, "
                             "parsed {3:s})".format(repr(key), i+1, repr(rn), 
                                                    repr(arn)))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
-                LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, could"
-                            " not identify matching atom ({2:s} not found in "
-                            "the residue)".format(repr(key), i+1, repr(aan)))
+                LOGGER.warn("failed to parse altloc {0:s} at line {1:d}, atom"
+                            " {2:s} not found in the residue"
+                            .format(repr(key), i+1, repr(aan)))
                 continue
             try:
                 xyz[index[0], 0] = float(line[30:38])
