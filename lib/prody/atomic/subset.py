@@ -189,7 +189,7 @@ class AtomSubset(AtomPointer):
     def setData(self, label, data):
         """Update *data* associated with *label*.
         
-        :raise AttributeError: when *label* is not in use"""
+        :raise AttributeError: when *label* is not in use or read-only"""
         
         if label in READONLY:
             raise AttributeError('{0:s} is read-only'.format(repr(label)))
@@ -211,7 +211,7 @@ class AtomSubset(AtomPointer):
     def setFlags(self, label, value):
         """Update flag associated with *label*.
         
-         :raise AttributeError: when *label* is not in use"""
+         :raise AttributeError: when *label* is not in use or read-only"""
         
         if label in flags.PLANTERS:
             raise AttributeError('flag {0:s} cannot be changed by user'
