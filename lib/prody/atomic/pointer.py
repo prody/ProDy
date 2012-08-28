@@ -23,8 +23,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from atomic import Atomic
-from bond import Bond
+from .atomic import Atomic
+from .bond import Bond
 
 from prody import LOGGER
 
@@ -33,12 +33,12 @@ __all__ = ['AtomPointer']
 
 class AtomPointer(Atomic):
     
-    """A base for classes pointing to atoms in :class:`~.AtomGroup` instances.
+    """A base for classes pointing to atoms in :class:`.AtomGroup` instances.
     Derived classes are:
         
-      * :class:`~.Atom`
-      * :class:`~.AtomSubset`
-      * :class:`~.AtomMap`"""
+      * :class:`.Atom`
+      * :class:`.AtomSubset`
+      * :class:`.AtomMap`"""
     
     __slots__ = ['_ag', '_acsi']
     
@@ -242,13 +242,27 @@ class AtomPointer(Atomic):
         
         return self._ag.isDataLabel(label)
 
+    def getDataLabels(self, which=None):
+        """Return data labels.  For ``which='user'``, return only labels of 
+        user provided data."""
+
+        return self._ag.getDataLabels(which)
+
     def getDataType(self, label):
         """Return type of data, or ``None`` if data *label* is not present."""
         
         return self._ag.getDataType(label)
 
+    def getFlagLabels(self, which=None):
+        """Return flag labels.  For ``which='user'``,  return labels of user 
+        or parser (e.g. :term:`hetatm`) provided flags, for ``which='all'`` 
+        return all possible :ref:`flags` labels in addition to those present 
+        in the instance."""
+        
+        return self._ag.getFlagLabels(which)
+
     def isFlagLabel(self, label):
-        """Return **True** if a flag associated with *label* is present."""
+        """Return **True** if flags associated with *label* are present."""
         
         return self._ag.isFlagLabel(label)
     

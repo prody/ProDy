@@ -988,32 +988,17 @@ class AtomGroup(Atomic):
     def isDataLabel(self, label):
         """Return **True** if data associated with *label* is present."""
         
-        return label in self._data and not label in ATOMIC_FIELDS
+        return label in self._data
   
-    def getDataLabels(self, *args):
-        """Return list of data labels provided by the user.  ``'all'`` argument
-        returns all present labels in addition to those set by user."""
-        
-        return [key for key, data in self._data.items() 
-                    if not key in ATOMIC_FIELDS]
-        
-        """Return list of atom flag labels provided by the user.  ``'user'``
-        argument, i.e. ``getFlagLabels('user')``,  returns only labels of 
-        flags set by the user or the file parser,  ``'all'`` argument returns
-        all possible :ref:`flags` labels in addition to those set by user."""
+    def getDataLabels(self, which=None):
+        """Return data labels.  For ``which='user'``, return only labels of 
+        user provided data."""
 
-        if args: arg = str(args[0])
-        else: arg = ''
-        
-        if arg.startswith('a'): # all
-            labels = set(self._data or [])
-            labels.update(FLAG_PLANTERS)
-            labels = list(labels)
-        elif arg.startswith('u'): # user
-            labels = [key for key in (self._flags or {}).keys() 
-                        if not key in FLAG_PLANTERS]
+        if str(which).startswith('u'): # user
+            labels = [key for key in (self._data or {}).keys() 
+                        if not key in ATOMIC_FIELDS]
         else:
-            labels = list(self._flags or [])
+            labels = list(self._data or [])
         labels.sort()
         return labels
         
@@ -1027,7 +1012,7 @@ class AtomGroup(Atomic):
             return None
     
     def isFlagLabel(self, label):
-        """Return **True** if a flag associated with *label* is present."""
+        """Return **True** if flags associated with *label* are present."""
         
         return label in FLAG_PLANTERS or label in (self._flags or {})
     
@@ -1117,20 +1102,18 @@ class AtomGroup(Atomic):
                 self._setSubset(indices, *FLAG_ALIASES.get(label, [label]))
                 return indices.copy()
     
-    def getFlagLabels(self, *args):
-        """Return list of atom flag labels provided by the user.  ``'user'``
-        argument, i.e. ``getFlagLabels('user')``,  returns only labels of 
-        flags set by the user or the file parser,  ``'all'`` argument returns
-        all possible :ref:`flags` labels in addition to those set by user."""
+    def getFlagLabels(self, which=None):
+        """Return flag labels.  For ``which='user'``,  return labels of user 
+        or parser (e.g. :term:`hetatm`) provided flags, for ``which='all'`` 
+        return all possible :ref:`flags` labels in addition to those present 
+        in the instance."""
 
-        if args: arg = str(args[0])
-        else: arg = ''
-        
-        if arg.startswith('a'): # all
+        which = str(which)
+        if which.startswith('a'): # all possible
             labels = set(self._flags or [])
             labels.update(FLAG_PLANTERS)
             labels = list(labels)
-        elif arg.startswith('u'): # user
+        elif which.startswith('u'): # user
             labels = [key for key in (self._flags or {}).keys() 
                         if not key in FLAG_PLANTERS]
         else:
