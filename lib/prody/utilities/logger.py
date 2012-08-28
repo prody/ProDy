@@ -28,7 +28,7 @@ import logging
 import datetime
 import logging.handlers
 
-__all__ = ['PackageLogger']
+__all__ = ['PackageLogger', 'LOGGING_LEVELS']
 
 LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'info': logging.INFO,
@@ -36,9 +36,9 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'error': logging.ERROR,
                 'critical': logging.CRITICAL,
                 'none': logging.CRITICAL}
+LOGGING_INVERSE = {}
 for key, value in LOGGING_LEVELS.items():
-    LOGGING_LEVELS[value] = key
-LOGGING_LEVELS.setdefault(logging.INFO)
+    LOGGING_INVERSE[value] = key
 
 now = datetime.datetime.now
 
@@ -97,7 +97,7 @@ class PackageLogger(object):
     
     def _getverbosity(self):
         
-        return LOGGING_LEVELS.get(self._logger.handlers[0].level)
+        return LOGGING_INVERSE.get(self._logger.handlers[0].level)
     
     def setVerbosity(self, level):
         """Deprecated for removal in v1.3, set :attr:`verbosity` directly."""
@@ -109,7 +109,7 @@ class PackageLogger(object):
     def _setverbosity(self, level):
         lvl = LOGGING_LEVELS.get(str(level).lower(), None)
         if lvl is None: 
-            self.warning('{0:s} is not a valid log level.'.format(level))
+            self.warn('{0:s} is not a valid log level.'.format(level))
         else:
             self._logger.handlers[0].level = lvl
             self._level = lvl 
