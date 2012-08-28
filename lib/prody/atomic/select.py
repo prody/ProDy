@@ -992,8 +992,10 @@ class Select(object):
         elif isinstance(token, list):
             tkn = token[0]
             return (self._atoms.isFlagLabel(tkn) or
-                    isValuePairedKeyword(tkn) or tkn in self._kwargs or
-                    self._atoms.isDataLabel(tkn) or tkn == NOT)
+                    (isValuePairedKeyword(tkn) and len(token) > 1) or
+                    tkn in self._kwargs or
+                    (self._atoms.isDataLabel(tkn) and len(token) > 1) or 
+                    tkn == NOT)
         return False
         
     def _defaultAction(self, sel, loc, tkns):
