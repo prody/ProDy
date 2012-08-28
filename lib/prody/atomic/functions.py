@@ -138,7 +138,7 @@ def loadAtoms(filename):
         ag._acsi = 0
     if 'cslabels' in files:
         ag.setCSLabels(list(attr_dict['cslabels']))
-    LOGGER.timing('Atom group was loaded in %.2fs.')
+    LOGGER.report('Atom group was loaded in %.2fs.')
     return ag
 
 
