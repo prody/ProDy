@@ -40,18 +40,9 @@ else:
         raise ImportError('Numpy v1.4 or later is required for ProDy')
 
 from utilities import USERHOME, PackageLogger, PackageSettings
-from utilities import getPackagePath
+from utilities import getPackagePath, joinRepr, tabulate
 
 DEPRECATION_WARNINGS = False
-
-CONFIGURATION = {
-    'backup': False,
-    'backup_ext': '.BAK',
-    'ligand_xml_save': False,
-    'typo_warnings': True,
-    'check_updates': 0,
-    'auto_secondary': False,
-}
 
 from datetime import date
 today = date.today()
@@ -93,41 +84,19 @@ SETTINGS = PackageSettings('prody', logger=LOGGER)
 SETTINGS.load()
 
 
-_max_key_len = max([len(_key) for _key in list(CONFIGURATION)])
-_max_def_len = 68 - _max_key_len
-_table_lines = '=' * _max_key_len +  '  ' + '=' * _max_def_len
+# default, acceptable values, setter
+CONFIGURATION = {
+    'backup': (False, None, None),
+    'backup_ext': ('.BAK', None, None),
+    'ligand_xml_save': (False, None, None),
+    'typo_warnings': (True, None, None),
+    'check_updates': (0, None, None),
+    'auto_secondary': (False, None, None),
+    'verbosity': ('debug', list(utilities.LOGGING_LEVELS), 
+                  LOGGER._setverbosity)
+}
 
-docstring = """
 
-    {0:s}
-    {1:s}  {2:s}         
-    {0:s}""".format(_table_lines, 'Option'.ljust(_max_key_len), 
-                    'Default setting (type)')
-
-_ = {}
-
-from textwrap import wrap
-_keys = list(CONFIGURATION)
-_keys.sort()
-for _key in _keys:
-    _value = CONFIGURATION[_key]
-    if isinstance(_value, str):
-        _val = '"' + _value + '"'
-    else: 
-        _val = str(_value)
-    _lines = wrap(_val + ' (' + type(_value).__name__  + ')', _max_def_len)
-    docstring += """
-    {0:s}  {1:s}""".format(_key.ljust(_max_key_len), _lines[0])
-    for _line in _lines[1:]:
-        docstring += """
-        {0:s}  {1:52s}""".format(''.ljust(_max_key_len), _line)
-    if SETTINGS.get(_key) is None:
-        _[_key] = _value
-docstring += """
-    {0:s}""".format(_table_lines)
-
-if _:
-    SETTINGS.update(_)
 
 def confProDy(*args, **kwargs):
     """Configure ProDy."""
@@ -135,37 +104,55 @@ def confProDy(*args, **kwargs):
     settings = None
     if args:
         if len(args) == 1:
-            settings = SETTINGS.get(args[0])
+            return SETTINGS.get(args[0])
         else:
-            settings = [SETTINGS.get(option) for option in args]
+            return [SETTINGS.get(option) for option in args]
 
     for option, value in kwargs.items():    
-        if isinstance(option, str):
-            if option in CONFIGURATION:
-                type_ = type(CONFIGURATION[option])
-                if type(value) == type_:
-                    SETTINGS[option] = value
-                    SETTINGS.save()
-                    LOGGER.info('ProDy is configured: {0:s}={1:s}'
-                                .format(option, repr(value)))
-                else:
-                    raise TypeError('value must be a ' + type_.__name__)
-            else:
-                raise KeyError("'{0:s}' is not a valid option".format(option))
+        try:
+            default, acceptable, setter = CONFIGURATION[option]
+        except KeyError:
+            raise KeyError('{0:s} is not a valid option'.format(repr(option)))
         else:
-            raise TypeError('option must be a string')
-    return settings
+            try:
+                value = type(default)(value)
+            except ValueError:
+                raise TypeError('{0:s} must be a {1:s}'
+                                .format(option, type(default).__name__))
+            if acceptable is not None and value not in acceptable:
+                raise ValueError('{0:s} must be one of {1:s}'.format(option, 
+                    joinRepr(acceptable, sort=True, last=', or ')))
+                
+            SETTINGS[option] = value
+            SETTINGS.save()
+            LOGGER.info('ProDy is configured: {0:s}={1:s}'
+                        .format(option, repr(value)))
+            if setter is not None:
+                setter(value)
 
-confProDy.__doc__ += docstring
+_keys = list(CONFIGURATION)
+_keys.sort()
+_vals = []
+for _key in _keys:
+    default, acceptable, _ = CONFIGURATION[_key]
+    if acceptable is None:
+        _vals.append(repr(default))
+    else:
+        _vals.append(repr(default) + ' (' + 
+                     joinRepr(acceptable, sort=True, last=', or ')  + ')')
+    if _key not in SETTINGS:
+        SETTINGS[_key] = default
 
-confProDy.__doc__ += """
+confProDy.__doc__ += '\n\n' + tabulate(['Option'] + _keys, 
+    ['Default (acceptable values)'] + _vals) + """
 
-    Usage example::
-            
-      confProDy('backup')
-      confProDy('backup', 'backup_ext')
-      confProDy(backup=True, backup_ext='.bak')
-      confProDy(backup_ext='.BAK')"""
+Usage example::
+        
+    confProDy('backup')
+    confProDy('backup', 'backup_ext')
+    confProDy(backup=True, backup_ext='.bak')
+    confProDy(backup_ext='.BAK')"""
+
 
 def plog(*text):
     """Log *text* using ProDy logger at log level info.  Multiple arguments 
@@ -174,35 +161,33 @@ def plog(*text):
     
     LOGGER.info(' '.join([str(s) for s in text]))
 
+
 def startLogfile(filename, **kwargs):
     
     LOGGER.start(filename, **kwargs)
     
-startLogfile.__doc__ = LOGGER.startLogfile.__doc__
+startLogfile.__doc__ = LOGGER.start.__doc__
+    
     
 def closeLogfile(filename):
     """Close logfile with *filename*."""
 
     LOGGER.close(filename)
 
+
 def setVerbosity(level):
-    """    
+    """Deprecated for removal in v1.3, use :func:`.confProDy` instead."""
 
-    >>> from prody import *
-    >>> setVerbosity('none')
-    >>> plog('test')
-    >>> setVerbosity('debug')
-    >>> plog('test')"""
+    deprecate('setVerbosity', 'confProDy(verbosity=\'debug\')')
+    confProDy(verbosity=level)
 
-    LOGGER.verbosity = level
 
-setVerbosity.__doc__ = LOGGER.verbosity.__doc__.replace('\n    ', '\n') + \
-                       setVerbosity.__doc__ 
 
 def getVerbosity():
-    """Return ProDy console verbosity level."""
+    """Deprecated for removal in v1.3, use :func:`.confProDy` instead."""
     
-    return LOGGER.verbosity
+    deprecate('getVerbosity', 'confProDy(\'verbosity\')')
+    return confProDy('verbosity')
 
 
 def checkUpdates():
