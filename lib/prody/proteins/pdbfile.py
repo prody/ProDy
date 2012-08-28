@@ -196,7 +196,7 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            LOGGER.timing('{0:d} atoms and {1:d} coordinate set(s) were '
+            LOGGER.report('{0:d} atoms and {1:d} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(), 
                            ag.numCoordsets() - n_csets))
         else:
@@ -286,7 +286,7 @@ def parsePQR(filename, **kwargs):
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain, 
                         subset=subset, altloc_torf=False, format='pqr')
     if ag.numAtoms() > 0:
-        LOGGER.timing('{0:d} atoms and {1:d} coordinate sets were '
+        LOGGER.report('{0:d} atoms and {1:d} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(), 
                          ag.numCoordsets() - n_csets))
         return ag
@@ -434,7 +434,15 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
             
-            serials[acount] = line[6:11]
+            try:
+                serials[acount] = line[6:11]
+            except ValueError:
+                try:
+                    serials[acount] = long(line[6:11], 16)
+                except ValueError:
+                    LOGGER.warn('Failed to parse serial number in line {0:d}.'
+                                .format(i))
+                    serials[acount] = serials[acount-1]+1
             altlocs[acount] = alt 
             atomnames[acount] = atomname
             resnames[acount] = resname
@@ -725,9 +733,15 @@ PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
            '{8:8.3f}{9:8.3f}{10:8.3f}'
            '{11:6.2f}{12:6.2f}      '
            '{13:4s}{14:2s}\n')
-PDBLINE = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
-           '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-           '%4s%2s\n')
+
+PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
+                  '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+                  '%4s%2s\n')
+
+PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
+                  '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+                  '%4s%2s\n')
+
 
 _writePDBdoc = """
 
@@ -838,14 +852,18 @@ def writePDBStream(stream, atoms, csets=None):
         segments = np.zeros(n_atoms, '|S6')
     
     stream.write('REMARK {0:s}\n'.format(remark))
-    format = PDBLINE.format
+
     multi = len(coordsets) > 1
     write = stream.write
     for m, coords in enumerate(coordsets):
+        pdbline = PDBLINE_LT100K
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            write(PDBLINE % (hetero[i], i+1, atomnames[i], altlocs[i], 
+            if i == 99999:
+                pdbline = PDBLINE_GE100K
+            write(pdbline % (hetero[i], i+1, 
+                         atomnames[i], altlocs[i], 
                          resnames[i], chainids[i], resnums[i], 
                          icodes[i], 
                          xyz[0], xyz[1], xyz[2], 
@@ -862,7 +880,8 @@ def writePDB(filename, atoms, csets=None, autoext=True):
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will 
     be written."""
     
-    if not ('.pdb' in filename or '.pdb.gz' in filename):  
+    if not ('.pdb' in filename or '.pdb.gz' in filename or 
+             '.ent' in filename or '.ent.gz' in filename):  
         filename += '.pdb'
     out = openFile(filename, 'w')
     writePDBStream(out, atoms, csets)
