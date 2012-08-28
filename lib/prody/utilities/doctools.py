@@ -20,9 +20,9 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from textwrap import wrap as textwrap
+from textwrap import wrap
 
-__all__ = ['joinLinks', 'joinTerms', 'tabulate', 'wrap']
+__all__ = ['joinLinks', 'joinRepr', 'joinTerms', 'tabulate', 'wrapText']
 
 
 def joinLinks(links, sep=', ', last=None, sort=False):
@@ -37,6 +37,18 @@ def joinLinks(links, sep=', ', last=None, sort=False):
     return '`' + ('`_' + sep + '`').join(links) + '`_' + last
 
 
+def joinRepr(items, sep=', ', last=None, sort=False):
+
+    items = [repr(item) for item in items]
+    if sort:
+        items.sort()
+    if last is None:
+        last = ''
+    else:
+        last = last + items.pop()
+    return sep.join(items) + last
+
+
 def joinTerms(terms, sep=', ', last=None, sort=False):
     
     terms = list(terms)
@@ -49,7 +61,7 @@ def joinTerms(terms, sep=', ', last=None, sort=False):
     return ':term:`' + ('`' + sep + ':term:`').join(terms) + '`' + last
 
 
-def wrap(text, width=70, join='\n', **kwargs):
+def wrapText(text, width=70, join='\n', **kwargs):
     """Return wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
     """
     
@@ -60,7 +72,7 @@ def wrap(text, width=70, join='\n', **kwargs):
     else:
         kwargs['initial_indent'] = kwargs['subsequent_indent'] = indent
     
-    return join.join(textwrap(text, width, **kwargs))
+    return join.join(wrap(text, width, **kwargs))
     
 def tabulate(*cols, **kwargs):
     """Return a table for columns of data. 
@@ -75,16 +87,18 @@ def tabulate(*cols, **kwargs):
     
     """
     
+    indent = kwargs.get('indent', 0)
     space = kwargs.get('space', 2)
     widths = [max(map(len, cols[0]))]
-    widths.append(kwargs.get('width', 79) - sum(widths) - len(widths) * space)
+    widths.append(kwargs.get('width', 79) - sum(widths) - 
+                  len(widths) * space)
     space *= ' '
     bars = (space).join(['=' * width for width in widths])
     lines = [bars]
     
     for irow, items in enumerate(zip(*cols)):
         rows = []
-        map(rows.append, [textwrap(item, widths[icol]) if icol else 
+        map(rows.append, [wrap(item, widths[icol]) if icol else 
                           [item.ljust(widths[icol])] 
                           for icol, item in enumerate(items)])
         maxlen = max(map(len, rows))
