@@ -72,13 +72,16 @@ Download :file:`ProDy-x.{y}.{z}.tar.gz`. Extract tarball contents and run
 
 You may need root access installation, i.e. ``sudo python setup.py install``.  
 
-If you don't have root access, you can edit :envvar:`PYTHONPATH` system 
+If you don't have root access, you can edit :envvar:`PYTHONPATH` environment 
 variable to specify the path to this package:
   
 #. Move :file:`prody` directory from :file:`build/lib.linux-x86_{bb}-2.{z}` (or 
    similar) to a folder like :file:`/home/username/mypackages/`
 #. Add a line to your :file:`.bashrc` (or similar) script as follows
    ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
+
+You may also consult other alternate and custom installation schemes in
+`Installing Python Modules <http://docs.python.org/install/index.html>`_.
 
 Mac OS
 -------------------------------------------------------------------------------
@@ -90,8 +93,10 @@ Windows
 
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
-To be able use :ref:`commands`, append Python (e.g. :file:`C:\Python27`) and 
-scripts (e.g. :file:`C:\Python27\Scripts`) folders to :envvar:`PATH` variable.
+To be able use :ref:`commands` in command prompt (:program:`cmd.exe`), 
+append Python and scripts folders (e.g. :file:`C:\Python27` and 
+:file:`C:\Python27\Scripts`) to :envvar:`PATH` environment variable.
+
 
 Plugins
 ===============================================================================
