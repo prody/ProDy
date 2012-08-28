@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import numpy as np
+from numpy import all, array, concatenate, ones, unique
 
 from .atomic import Atomic
 from .bond import Bond
@@ -71,7 +71,7 @@ class AtomPointer(Atomic):
             return False
         else:
             return (self._ag == ag and len(other) == len(self) and 
-                    np.all(self._getIndices() == other._getIndices()))
+                     all(self._getIndices() == other._getIndices()))
     
     def __ne__(self, other):
         
@@ -79,7 +79,7 @@ class AtomPointer(Atomic):
     
     def __invert__(self):
         
-        ones = np.ones(self._ag.numAtoms(), bool)
+        ones = ones(self._ag.numAtoms(), bool)
         ones[self._indices] = False
         return Selection(self._ag, ones.nonzero()[0], 
                          'not ({0:s})'.format(self.getSelstr()), 
@@ -104,8 +104,8 @@ class AtomPointer(Atomic):
                         'be set to zero.')
             acsi = 0
             
-        indices = np.unique(np.concatenate((self._getIndices(), 
-                                            other._getIndices())))
+        indices = unique(concatenate((self._getIndices(), 
+                                      other._getIndices())))
         if indices[-1] == atommap.DUMMY:
             indices = indices[:-1]
         return Selection(self._ag, indices, '({0:s}) or ({1:s})'.format(
@@ -141,7 +141,7 @@ class AtomPointer(Atomic):
     
         indices = indices.intersection(other.getIndices())
         if indices:
-            indices = np.unique(indices)
+            indices = unique(indices)
             if indices[-1] == atommap.DUMMY:
                 indices = indices[:-1]
             return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
@@ -167,7 +167,7 @@ class AtomPointer(Atomic):
                            ' Result will have ACSI {0:d}.'.format(acsi))
         
         title = '({0:s}) + ({1:s})'.format(str(self), str(other))
-        indices = np.concatenate([self._getIndices(), other._getIndices()])
+        indices = concatenate([self._getIndices(), other._getIndices()])
         length = len(self)
         
         dummies = 0
@@ -254,7 +254,8 @@ class AtomPointer(Atomic):
         return self._ag.getDataLabels(which)
 
     def getDataType(self, label):
-        """Return type of data, or ``None`` if data *label* is not present."""
+        """Return type of the data (i.e. ``data.dtype``) associated with 
+        *label*, or **None** label is not used."""
         
         return self._ag.getDataType(label)
 
@@ -280,8 +281,8 @@ class AtomPointer(Atomic):
 
     def _getSubset(self, label):
         
-        subset = np.array(list(set(self._ag._getSubset(label)
-                          ).intersection(set(self._getIndices()))))
+        subset = array(list(set(self._ag._getSubset(label))
+                            .intersection(set(self._getIndices()))), int)
         subset.sort()
         return subset
 
