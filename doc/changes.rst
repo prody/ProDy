@@ -40,8 +40,8 @@ and :ref:`outputtraj`.
 
 **New Features**:
 
-  * :ref:`flags`, that are used in :ref:`selections`, is implemented.  See
-    its documentation for handy usage examples.
+  * :ref:`flags`, that are used in :ref:`selections`, is implemented.  See its
+    documentation for handy usage examples.
     
   * :func:`.sortAtoms` function is implemented.
   
@@ -52,6 +52,9 @@ and :ref:`outputtraj`.
   * :func:`.writePSF`, a simple PSF file writer, is implemented.
 
   * :func:`.glob` utility function is implemented.
+
+  * :func:`.iterPDBFilenames` function is implemented, which can be used to
+    iterate over all PDB files stored in a local mirror of Protein Data Bank.
     
 **Improvements**:
 
@@ -72,7 +75,9 @@ and :ref:`outputtraj`.
     :class:`.Ensemble` instances. Old function is now :func:`.pickCentralAtom`.
     
   * :ref:`prody-align` command and :func:`.prody_align` function can handle
-    non-protein atom selections (see examples for :ref:`prody-align`).  
+    non-protein atom selections (see examples for :ref:`prody-align`).
+    
+  * :func:`.parsePDB` and :func:`.writePDB` supports 100K and more atoms. 
     
 **Changes**:
 
@@ -85,7 +90,7 @@ and :ref:`outputtraj`.
   * :func:`.writePDB` function argument *model* is changed to *csets* that
     indicates the coordinate set index of *atoms* argument.
     
-  * :meth:`.PackageLogger.timing` does not return time elapse, only logs this
+  * :meth:`.PackageLogger.timing` does not return elapsed time, only logs this
     information.
     
   * :meth:`.PackageLogger.startLogfile` is deprecated for removal in v1.3, use 
@@ -98,7 +103,7 @@ and :ref:`outputtraj`.
     name conflicts with Python standard library functions.  Import required
     functions explicitly.
     
-  * :func:`writePDB` appends :file:`.pdb` extension to filename when it is not
+  * :func:`.writePDB` appends :file:`.pdb` extension to filename when it is not
     present
 
   * :ref:`prody-select` command positional argument order is changed to allow
@@ -112,6 +117,11 @@ and :ref:`outputtraj`.
 
   * :meth:`.AtomGroup.getHeretos` method has been deprecated for removal in
     v1.3, use ``getFlags('hetatm')`` instead.
+    
+  * :meth:`.AtomMap.getMappedFlags` and :meth:`.AtomMap.getDummyFlags` 
+    methods have been deprecated for removal in v1.3, use 
+    ``getFlags('mapped')`` and ``getFlags('dummy')`` instead.
+  
     
 **Bugfixes**:
 
@@ -128,6 +138,9 @@ and :ref:`outputtraj`.
     
   * :guilabel:`Mode Graphics Options` allows for copying arrows settings from 
     one mode to another. 
+  
+  * Color scale method and midpoint for protein coloring based on mobility and 
+    bfactors can be adjusted from :guilabel:`Protein Graphics Options` panel. 
 
 Release 1.1 (June 1, 2012)
 ===============================================================================
