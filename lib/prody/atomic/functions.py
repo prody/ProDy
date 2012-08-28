@@ -47,27 +47,33 @@ SAVE_SKIP_POINTER = set(['numbonds', 'fragindex', 'segindex', 'chindex',
                          'resindex'])
 
 def saveAtoms(atoms, filename=None, **kwargs):
-    """Save *atoms* in ProDy internal format.  All atomic classes are accepted 
-    as *atoms* argument.  This function saves user set atomic data as well.  
-    Note that title of the AtomGroup instance is used as the filename when 
-    *atoms* is not an AtomGroup.  To avoid overwriting an existing file with 
-    the same name, specify a *filename*."""
+    """Save *atoms* in ProDy internal format.  All :class:`.Atomic` classes are
+    accepted as *atoms* argument.  This function saves user set atomic data as 
+    well.  Note that title of the :class:`.AtomGroup` instance is used as the 
+    filename when *atoms* is not an :class:`.AtomGroup`.  To avoid overwriting
+    an existing file with the same name, specify a *filename*."""
     
-    if not isinstance(atoms, Atomic):
+    try:
+        atoms.getACSIndex()
+    except AttributeError:
         raise TypeError('atoms must be Atomic instance, not {0:s}'
                         .format(type(atoms)))
-    if isinstance(atoms, AtomGroup):
+
+    try:
+        ag = atoms.getAtomGroup()
+    except AttributeError:
         ag = atoms
         title = ag.getTitle()
         SKIP = SAVE_SKIP_ATOMGROUP
     else:
-        ag = atoms.getAtomGroup()
-        title = str(atoms)
         SKIP = SAVE_SKIP_POINTER
+        title = str(atoms)
     
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
-    filename += '.ag.npz'
+    if '.ag.npz' not in filename:
+        filename += '.ag.npz'
+        
     attr_dict = {'title': title}
     attr_dict['n_atoms'] = atoms.numAtoms()
     attr_dict['n_csets'] = atoms.numCoordsets()
@@ -78,7 +84,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     bonds = ag._bonds
     bmap = ag._bmap
     if bonds is not None and bmap is not None:
-        if isinstance(atoms, AtomGroup):
+        if atoms == ag:
             attr_dict['bonds'] = bonds
             attr_dict['bmap'] = bmap
             attr_dict['numbonds'] = ag._data['numbonds']
@@ -91,11 +97,15 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bmap'], attr_dict['numbonds'] = \
                 evalBonds(bonds, len(atoms))
     
-    for key, data in ag._data.iteritems():
-        if key in SKIP:
+    for label in atoms.getDataLabels():
+        if label in SKIP:
             continue
-        if data is not None:
-            attr_dict[key] = data 
+        attr_dict[label] = atoms._getData(label)
+    for label in atoms.getFlagLabels():
+        if label in SKIP:
+            continue
+        attr_dict[label] = atoms._getFlags(label)
+    
     ostream = openFile(filename, 'wb', **kwargs)
     savez(ostream, **attr_dict)
     ostream.close()
@@ -103,11 +113,13 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
 
 SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
-                'coordinates', 'cslabels', 'numbonds'])
+                'coordinates', 'cslabels', 'numbonds',
+                'segindex', 'chindex', 'resindex'])
+
 
 def loadAtoms(filename):
-    """Return :class:`.AtomGroup` instance from *filename*.  This function makes
-    use of :func:`numpy.load` function.  See also :func:`saveAtoms`."""
+    """Return :class:`.AtomGroup` instance loaded from *filename* using 
+    :func:`numpy.load` function.  See also :func:`saveAtoms`."""
     
     LOGGER.timeit()
     attr_dict = load(filename)
@@ -116,6 +128,7 @@ def loadAtoms(filename):
         raise ValueError("'{0:s}' is not a valid atomic data file"
                          .format(filename))
     title = str(attr_dict['title'])
+    
     if 'coordinates' in files:
         coords = attr_dict['coordinates']
         ag = AtomGroup(title)
@@ -123,21 +136,30 @@ def loadAtoms(filename):
         ag._coords = coords
     ag._n_atoms = int(attr_dict['n_atoms'])
     ag._setTimeStamp()
+    
     if 'bonds' in files and 'bmap' in files and 'numbonds' in files:
         ag._bonds = attr_dict['bonds']
         ag._bmap = attr_dict['bmap']
         ag._data['numbonds'] = attr_dict['numbonds']
-    for key, data in attr_dict.iteritems():
-        if key in SKIPLOAD:
+    
+    for label, data in attr_dict.iteritems():
+        if label in SKIPLOAD:
             continue
-        if key in ATOMIC_FIELDS:
-            ag._data[key] = data
+        if data.ndim == 1 and data.dtype == bool:
+            ag._setFlags(data, *flags.ALIASES.get(label, [label]))
         else:
-            ag.setData(key, data)
+            ag.setData(label, data)
+    
+    for label in ['segindex', 'chindex', 'resindex']:
+        if label in attr_dict:
+            ag._data[label] = attr_dict[label]
+    
     if ag.numCoordsets() > 0:
         ag._acsi = 0
+    
     if 'cslabels' in files:
         ag.setCSLabels(list(attr_dict['cslabels']))
+    
     LOGGER.report('Atom group was loaded in %.2fs.')
     return ag
 
