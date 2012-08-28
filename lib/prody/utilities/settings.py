@@ -58,6 +58,10 @@ class PackageSettings(object):
         
         self._settings[key] = value
         
+    def __contains__(self, item):
+        
+        return item in self._settings
+        
     def get(self, key, default=None):
         """Return value corresponding to specified *key*, or *default* if *key*
         is not found."""
