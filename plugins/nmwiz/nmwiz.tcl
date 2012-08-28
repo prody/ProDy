@@ -163,7 +163,7 @@ namespace eval ::NMWiz:: {
       $log.text insert end "\nOptions:\n\n"
       $log.text insert end "User can select the representation and coloring scheme. User can change the molecule representation settings manually, by setting 'Show structure as' to 'Custom'.\n\n"      
       $log.text insert end "Structure can be colored based on the `Mobility` of the residues in the active mode, based on 'Bfactors' that came in NMD file, or based on residue/atom 'Index'.\n\n"
-      $log.text insert end "In addition to the standard representations (e.g. Tube/Trace/Licorice), structure can be represented as an elastic network."
+      $log.text insert end "In addition to the standard representations (e.g. Tube/Trace/Licorice), structure can be represented as an elastic network. Color scale method and midpoint can be used to adjust mobility and Bfactors based coloring."
       $log.text insert end "User can set the cutoff distance, width of dynamic bonds, and node spheres. Note that changing the cutoff distance distance only affects representation, not the precalculated normal mode data.\n\n"
       $log.text insert end "*TIP*: When visualizing a large system, display molecule at lower resolutions and/or try displaying fewer atoms if all atoms are displayed."
     } elseif {$context == "prody"} {
@@ -1708,6 +1708,8 @@ orange3"
       variable spherescale 0.6
       variable cutoffdistance 8.0
       variable proteincolor "Mobility" 
+      variable color_scale_method [colorinfo scale method]
+      variable color_scale_midpoint [colorinfo scale midpoint]
       
       variable nframes 50
       
@@ -2312,21 +2314,21 @@ setmode, getlen, setlen, addmode"
         variable betalist
         variable selstr
         variable selrep
+        variable color_scale_method
+        variable color_scale_midpoint
         
         for {set i [molinfo $targetid get numreps]} {$i >= 0} {incr i -1} {
           mol delrep $i $targetid
         }
         
         set all [atomselect $targetid "all"]
+        set midpoint 0.5
         if {$proteincolor == "Bfactors" | $proteincolor == "Mobility"} {
           if {$proteincolor == "Bfactors"} {
             $all set beta $bfactors
           } elseif {$proteincolor == "Mobility"} {
             $all set beta $betalist
           }
-          set betas [$all get beta] 
-          set min [::tcl::mathfunc::min {*}$betas]
-          set midpoint [expr $min + ([::tcl::mathfunc::max {*}$betas] - $min) / 2 ]
         }
         $all delete
         
@@ -2369,20 +2371,15 @@ setmode, getlen, setlen, addmode"
               mol scaleminmax $targetid 0 $betamin $betamax 
               mol modcolor 1 $targetid Beta
               mol scaleminmax $targetid 1 $betamin $betamax
-              color scale midpoint $midpoint
             } 
           } elseif {$proteincolor == "Bfactors"} {
             mol modcolor 0 $targetid Beta
             mol scaleminmax $targetid 0 $bfactormin $bfactormax 
             mol modcolor 1 $targetid Beta
             mol scaleminmax $targetid 1 $bfactormin $bfactormax
-            color scale midpoint $midpoint
           } else {
             mol modcolor 0 $targetid $proteincolor
             mol modcolor 1 $targetid $proteincolor
-            #mol modcolor 0 $targetid ColorID $vmdcolorid
-            #mol modcolor 1 $targetid ColorID $vmdcolorid
-            color scale midpoint 0.5
           }
           if {$selrep} {
             mol modselect 0 $targetid $selstr
@@ -2441,16 +2438,12 @@ setmode, getlen, setlen, addmode"
             } else {          
                 mol modcolor 0 $targetid Beta
                 mol scaleminmax $targetid 0 $betamin $betamax
-                color scale midpoint  $midpoint 
             }
           } elseif {$proteincolor == "Bfactors"} {
             mol modcolor 0 $targetid Beta
             mol scaleminmax $targetid 0 $bfactormin $bfactormax
-            color scale midpoint  $midpoint
           } else {
             mol modcolor 0 $targetid $proteincolor
-            #mol modcolor 0 $targetid ColorID $vmdcolorid
-            color scale midpoint 0.5
           }
         }
       }
@@ -2466,6 +2459,8 @@ setmode, getlen, setlen, addmode"
         variable material
         variable selstr
         variable ndim
+        variable color_scale_method
+        variable color_scale_midpoint
 
         variable length
         set mode [lindex $modes [lsearch $indices $activemode]]
@@ -2500,8 +2495,6 @@ setmode, getlen, setlen, addmode"
         set all [atomselect $molid "all"] 
         $all set beta $betalist
         $all delete 
-        color scale midpoint 0.1
-        color scale method BWR
         [namespace current]::updateProtRep $molid
       }
       
@@ -3418,6 +3411,32 @@ setmode, getlen, setlen, addmode"
               -command "${ns}::updateProtRep \$${ns}::molid"  
         } 
         pack $wpgo.resolution_frame.list -side left -anchor w -fill x
+
+        grid [label $wpgo.csm_label -text "Color scale method:"] \
+          -row 22 -column 1 -sticky w
+        grid [frame $wpgo.csm_frame] \
+          -row 22 -column 2 -sticky w
+        tk_optionMenu $wpgo.csm_frame.list ${ns}::color_scale_method [colorinfo scale method]
+        $wpgo.csm_frame.list.menu delete 0
+        foreach mtrl "RWB BWR RGryB BGryR RGB BGR RWG GWR GWB BWG BlkW WBlk" {
+          $wpgo.csm_frame.list.menu add radiobutton -label $mtrl \
+              -variable ${ns}::color_scale_method \
+              -command "color scale method $mtrl;"
+        }
+        pack $wpgo.csm_frame.list -side left -anchor w -fill x
+        
+        grid [label $wpgo.csmp_label -text "Color scale midpoint:"] \
+          -row 23 -column 1 -sticky w
+        grid [frame $wpgo.csmp_frame] \
+          -row 23 -column 2 -sticky w
+        tk_optionMenu $wpgo.csmp_frame.list ${ns}::color_scale_midpoint 0.5 
+        $wpgo.csmp_frame.list.menu delete 0
+        foreach mtrl "0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0" {
+          $wpgo.csmp_frame.list.menu add radiobutton -label $mtrl \
+              -variable ${ns}::color_scale_midpoint \
+              -command "color scale midpoint $mtrl;"
+        }
+        pack $wpgo.csmp_frame.list -side left -anchor w -fill x
 
         set wao [labelframe $w.animation_options -text "Animation Options" -bd 2]
         
