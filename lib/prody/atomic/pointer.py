@@ -79,9 +79,9 @@ class AtomPointer(Atomic):
     
     def __invert__(self):
         
-        ones = ones(self._ag.numAtoms(), bool)
-        ones[self._indices] = False
-        return Selection(self._ag, ones.nonzero()[0], 
+        torf = ones(self._ag.numAtoms(), bool)
+        torf[self._indices] = False
+        return Selection(self._ag, torf.nonzero()[0], 
                          'not ({0:s})'.format(self.getSelstr()), 
                          self.getACSIndex(), unique=True)
 
