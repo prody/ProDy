@@ -65,7 +65,7 @@ html:
 
 doctest:
 	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. ..; \
+	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. .; \
 	cd ..
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(DOCTEST)."

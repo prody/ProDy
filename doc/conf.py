@@ -223,12 +223,16 @@ htmlhelp_basename = 'ProDydoc'
 # Plot directive configuration
 # ----------------------------
 
+plot_basedir = os.path.join(os.getcwd(), '_build', 'plot_directive')
+plot_working_directory = os.path.join(os.getcwd(), 'doctest')
+
 plot_formats = [('png', 80), ('pdf', 80)]
+
 plot_pre_code = """import numpy as np
 from prody import *
 from matplotlib import pyplot as plt
 """
-plot_working_directory = os.path.join(os.getcwd(), 'doctest')
+
 plot_template = """
 {{ source_code }}
 
