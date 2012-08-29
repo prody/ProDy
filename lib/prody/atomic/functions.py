@@ -78,6 +78,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     attr_dict['n_atoms'] = atoms.numAtoms()
     attr_dict['n_csets'] = atoms.numCoordsets()
     attr_dict['cslabels'] = atoms.getCSLabels()
+    attr_dict['flagsts'] = ag._flagsts
     coords = atoms._getCoordsets()
     if coords is not None:
         attr_dict['coordinates'] = coords
@@ -113,7 +114,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
 
 SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
-                'coordinates', 'cslabels', 'numbonds',
+                'coordinates', 'cslabels', 'numbonds', 'flagsts',
                 'segindex', 'chindex', 'resindex'])
 
 
@@ -121,12 +122,13 @@ def loadAtoms(filename):
     """Return :class:`.AtomGroup` instance loaded from *filename* using 
     :func:`numpy.load` function.  See also :func:`saveAtoms`."""
     
-    LOGGER.timeit()
+    LOGGER.timeit('_prody_loadatoms')
     attr_dict = load(filename)
     files = set(attr_dict.files)
+
     if not 'n_atoms' in files:
-        raise ValueError("'{0:s}' is not a valid atomic data file"
-                         .format(filename))
+        raise ValueError('{0:s} is not a valid atomic data file'
+                         .format(repr(filename)))
     title = str(attr_dict['title'])
     
     if 'coordinates' in files:
@@ -136,6 +138,8 @@ def loadAtoms(filename):
         ag._coords = coords
     ag._n_atoms = int(attr_dict['n_atoms'])
     ag._setTimeStamp()
+    if 'flagsts' in files:
+        ag._flagsts = int(attr_dict['flagsts'])
     
     if 'bonds' in files and 'bmap' in files and 'numbonds' in files:
         ag._bonds = attr_dict['bonds']
@@ -166,7 +170,7 @@ def loadAtoms(filename):
     if 'cslabels' in files:
         ag.setCSLabels(list(attr_dict['cslabels']))
     
-    LOGGER.report('Atom group was loaded in %.2fs.')
+    LOGGER.report('Atom group was loaded in %.2fs.', '_prody_loadatoms')
     return ag
 
 
