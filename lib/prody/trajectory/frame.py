@@ -184,10 +184,11 @@ class Frame(object):
     def _getxyz(self):
         """Return coordinates array."""
         
-        if self._traj.isLinked():
-            coords = self._traj.getLinked()._getCoords()
-        else:
+        ag = self._traj.link()
+        if ag is None:
             coords = self._coords
+        else:
+            coords = ag._getCoords()
         if coords is None:
             raise ValueError('coordinates are not set')
         return coords

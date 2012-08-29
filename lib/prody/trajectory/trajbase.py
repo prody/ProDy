@@ -179,14 +179,16 @@ class TrajBase(object):
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
 
-    def link(self, ag):
-        """Link :class:`.AtomGroup` instance *ag* to the trajectory.  When a 
-        new frame is parsed from the trajectory file, coordinates of *ag* and 
-        of all selections and atom subsets pointing to it, will be updated.
+    def link(self, *ag):
+        """Link, return, or unlink an :class:`.AtomGroup` instance.  When a 
+        link to *ag* is established, coordinates of new frames parsed from the 
+        trajectory file will be set as the coordinates of *ag* and this will 
+        update coordinates of all selections and atom subsets pointing to it.
         At link time, if *ag* does not have any coordinate sets and reference 
         coordinates of the trajectory is set, reference coordinates of the
         trajectory will be passed to *ag*. To break an established link, pass 
-        **None** argument.
+        **None** argument, or to return the linked atom group instance, call
+        with no arguments.
 
         .. warning::
 
@@ -194,9 +196,13 @@ class TrajBase(object):
            sets present in the linked :class:`.AtomGroup` will be overwritten.
         """
 
-        if ag is None:
-            self._ag = None
+        if not ag:
+            return self._ag
         else:
+            if len(ag) > 1:
+                raise TypeError('link() takes at most 1 argument ({0:d} given)'
+                                .format(len(ag)))
+            ag = ag[0]
             try:
                 ag.getACSIndex()
             except AttributeError:

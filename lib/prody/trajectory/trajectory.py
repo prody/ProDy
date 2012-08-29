@@ -100,11 +100,11 @@ class Trajectory(TrajBase):
         
     setAtoms.__doc__ = TrajBase.setAtoms.__doc__
     
-    def link(self, ag):
+    def link(self, *ag):
         
         for traj in self._trajectories:
-            traj.link(ag)
-        TrajBase.link(self, ag)
+            traj.link(*ag)
+        TrajBase.link(self, *ag)
     
     link.__doc__ = TrajBase.link.__doc__
 
