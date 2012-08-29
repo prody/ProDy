@@ -262,7 +262,3 @@ Perform EDA for backbone atoms:
 
     subparser.set_defaults(func=prody_pca)
     subparser.set_defaults(subparser=subparser)
-    
-    subparser = commands.add_parser('eda', parents=[subparser], 
-        help='perform essential dynamics analysis calculations', add_help=False)
-
