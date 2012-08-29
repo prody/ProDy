@@ -420,9 +420,9 @@ print what was parsed and how long it took to the screen::
   @> PDBParser: 2962 atoms and 1 coordinate sets were parsed in 0.08s.
 
 This behavior is useful in interactive sessions, but may be problematic for
-automated tasks as the messages are printed to stderr. The level of verbosity 
-can be adjusted using :func:`.setVerbosity` function, and 
-``setVerbosity(None)`` will stop all information messages.
+automated tasks as the messages are printed to stderr.  The level of verbosity 
+can be controlled using :func:`.confProDy` function, and calling it as 
+``confProDy(verbosity='none')`` will stop all information messages permanently.
 
 |questions|
 
