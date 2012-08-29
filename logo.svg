@@ -14,9 +14,9 @@
    height="480px"
    id="svg2847"
    version="1.1"
-   inkscape:version="0.47 r22583"
+   inkscape:version="0.48.3.1 r9886"
    sodipodi:docname="logo.svg"
-   inkscape:export-filename="/home/abakan/code/ProDy/logo.png"
+   inkscape:export-filename="/home/abakan/Code/ProDy/logo.png"
    inkscape:export-xdpi="83.449997"
    inkscape:export-ydpi="83.449997">
   <defs
@@ -57,16 +57,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.095627"
-     inkscape:cx="242.05818"
-     inkscape:cy="323.25021"
+     inkscape:zoom="1.5494506"
+     inkscape:cx="334.61981"
+     inkscape:cy="280.05373"
      inkscape:current-layer="layer1"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:window-width="1280"
-     inkscape:window-height="739"
+     inkscape:window-width="1920"
+     inkscape:window-height="1153"
      inkscape:window-x="0"
-     inkscape:window-y="21"
+     inkscape:window-y="0"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata2852">
@@ -117,6 +117,6 @@
        id="image3763"
        height="139.64854"
        width="112.11926"
-       xlink:href="file:///home/abakan/code/ProDy/ubiquitin.png" />
+       xlink:href="file:///home/abakan/Code/ProDy/ubiquitin.png" />
   </g>
 </svg>
