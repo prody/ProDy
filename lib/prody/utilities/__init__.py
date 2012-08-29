@@ -58,9 +58,11 @@ Path/file handling
 Documentation tools
 ===============================================================================
 
+  * :func:`.joinRepr`
+  * :func:`.joinRepr`
   * :func:`.joinTerms`
   * :func:`.tabulate`
-  * :func:`.wrap`
+  * :func:`.wrapText`
   
 
 Miscellaneous

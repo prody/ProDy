@@ -26,6 +26,7 @@ __all__ = ['joinLinks', 'joinRepr', 'joinTerms', 'tabulate', 'wrapText']
 
 
 def joinLinks(links, sep=', ', last=None, sort=False):
+    """Return a string joining *links* as reStructuredText."""
     
     links = list(links)
     if sort:
@@ -38,6 +39,7 @@ def joinLinks(links, sep=', ', last=None, sort=False):
 
 
 def joinRepr(items, sep=', ', last=None, sort=False):
+    """Return a string joining representations of *items*."""
 
     items = [repr(item) for item in items]
     if sort:
@@ -50,6 +52,7 @@ def joinRepr(items, sep=', ', last=None, sort=False):
 
 
 def joinTerms(terms, sep=', ', last=None, sort=False):
+    """Return a string joining *terms* as reStructuredText."""
     
     terms = list(terms)
     if sort:
