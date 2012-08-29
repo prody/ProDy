@@ -14,6 +14,10 @@ Release 1.2 (in development)
 Following changes in :class:`.Trajectory` and :class:`.Ensemble` methods may 
 effect you code.
 
+  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory` 
+    using :meth:`.Trajectory.link` method and linking status of an instance 
+    can be checked using :meth:`.Trajectory.isLinked` medhod. 
+    
   * :meth:`.Trajectory.setAtoms` method accepts :class:`.AtomGroup` and 
     :class:`.Selection` instances and should be used to select a subset
     of atoms.  This method will not link :class:`.AtomGroup` instance to the
@@ -28,10 +32,6 @@ effect you code.
     methods are removed, use :meth:`.Trajectory.getAtoms` and 
     :meth:`.Ensemble.getAtoms` instead.
   
-  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory` 
-    using :meth:`.Trajectory.link` method.  See also related methods 
-    :meth:`.Trajectory.isLinked` and :meth:`.Trajectory.getLinked`. 
-    
   * :class:`.Trajectory` reference coordinates must be changed using 
     :meth:`.Trajectory.setCoords` method.
 
