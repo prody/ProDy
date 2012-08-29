@@ -102,9 +102,12 @@ class Trajectory(TrajBase):
     
     def link(self, *ag):
         
-        for traj in self._trajectories:
-            traj.link(*ag)
-        TrajBase.link(self, *ag)
+        if ag:
+            TrajBase.link(self, *ag)
+            for traj in self._trajectories:
+                traj.link(*ag)
+        else:
+            return self._ag
     
     link.__doc__ = TrajBase.link.__doc__
 
