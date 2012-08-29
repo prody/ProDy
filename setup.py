@@ -54,6 +54,9 @@ if sys.version_info[:2] > (2, 6):
                                    'test_datafiles/*.coo', 
                                    'test_datafiles/dcd*.dcd',
                                    'test_datafiles/xml*.xml']
+PACKAGE_DIR = {}
+for pkg in PACKAGES:
+    PACKAGE_DIR[pkg] = join('lib', *pkg.split('.'))
 
 EXTENSIONS = []
 
@@ -86,6 +89,9 @@ if os.name != 'java' and sys.version_info[0] == 2:
         raise ImportError('numpy is not installed')
 
 SCRIPTS = ['scripts/prody']
+import platform
+if platform.system() == 'Windows':
+    SCRIPTS.append('scripts/prody.bat')
 
 setup(
     name='ProDy',
@@ -96,7 +102,7 @@ setup(
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
     packages=PACKAGES,
-    package_dir={pkg: join('lib', *pkg.split('.')) for pkg in PACKAGES},
+    package_dir=PACKAGE_DIR,
     package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
     license='GPLv3',
