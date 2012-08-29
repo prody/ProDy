@@ -180,46 +180,41 @@ class Atom(AtomPointer):
             return None
     
         if indices is None:
-            return self._ag._coords[:, self._index]
-    
-        if isinstance(indices, (int, slice)):
-            return self._ag._coords[indices, self._index]
-    
-        if isinstance(indices, (list, np.ndarray)):
-            return self._ag._coords[indices, self._index]
-    
-        raise IndexError('indices must be an integer, a list/array of '
-                         'integers, a slice, or None')
+            indices = slice(None)
+
+        return self._ag._coords[indices, self._index]
 
     def iterCoordsets(self):
         """Yield copies of coordinate sets."""
         
-        for i in range(self._ag._n_csets):
+        for i in range(self.numCoordsets()):
             yield self._ag._coords[i, self._index].copy()
-
 
     def _iterCoordsets(self):
         """Yield views of coordinate sets."""
         
-        for i in range(self._ag._n_csets):
+        for i in range(self.numCoordsets()):
             yield self._ag._coords[i, self._index]
     
     def getData(self, label):
         """Return a copy of data associated with *label*, if it is present."""
         
         try:
-            data = self._ag._data[label]
+            data = self._ag._getData(label)
         except KeyError:
             pass
         else:
-            return data[self._index]
+            if data.ndim > 1:
+                return data[self._index]
+            else:
+                return data[self._index].copy()
     
     _getData = getData
     
     def setData(self, label, data):
         """Update *data* associated with *label*.
         
-        :raise AttributeError: when *label* is not in use"""
+        :raise AttributeError: when *label* is not in use or read-only"""
         
         if label in READONLY:
             raise AttributeError('{0:s} is read-only'.format(repr(label)))
@@ -240,7 +235,7 @@ class Atom(AtomPointer):
     def setFlag(self, label, value):
         """Update flag associated with *label*.
         
-         :raise AttributeError: when *label* is not in use"""
+         :raise AttributeError: when *label* is not in use or read-only"""
         
         if label in flags.PLANTERS:
             raise AttributeError('flag {0:s} cannot be changed by user'
