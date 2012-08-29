@@ -155,9 +155,8 @@ def saveVector(vector, filename, **kwargs):
 
 
 def loadVector(filename):
-    """Return :class:`~.Vector` instance after loading it from file 
-    (*filename*). This function makes use of :func:`numpy.load` function.  
-    See also :func:`saveVector`."""
+    """Return :class:`.Vector` instance after loading it from *filename* using
+    :func:`numpy.load`.  See also :func:`saveVector`."""
     
     attr_dict = np.load(filename)
     try:

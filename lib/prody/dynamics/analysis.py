@@ -31,10 +31,10 @@ from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 
-from nma import NMA
-from modeset import ModeSet
-from mode import VectorBase, Mode, Vector
-from gnm import GNMBase
+from .nma import NMA
+from .modeset import ModeSet
+from .mode import VectorBase, Mode, Vector
+from .gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
@@ -48,7 +48,7 @@ def calcCollectivity(mode, masses=None):
     uniform masses.
     
     :arg mode: mode or vector
-    :type mode: :class:`~.Mode` or :class:`~.Vector`
+    :type mode: :class:`.Mode` or :class:`.Vector`
     
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
@@ -71,6 +71,7 @@ def calcCollectivity(mode, masses=None):
     coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
     return coll
     
+    
 def calcFractVariance(mode):
     """Return fraction of variance explained by the *mode*.  Fraction of 
     variance is the ratio of the variance along a mode to the trace of the 
@@ -92,20 +93,21 @@ def calcFractVariance(mode):
     
     return var / trace
 
+
 def calcProjection(ensemble, modes, rmsd=True):
     """Return projection of conformational deviations onto given modes.
     For K conformations and M modes, a (K,M) matrix is returned.
     
     :arg ensemble: an ensemble, trajectory or a conformation for which 
         deviation(s) will be projected, or a deformation vector
-    :type ensemble: :class:`~.Ensemble`, :class:`~.Conformation`, 
-        :class:`~.Vector`, :class:`~.Trajectory`
+    :type ensemble: :class:`.Ensemble`, :class:`.Conformation`, 
+        :class:`.Vector`, :class:`.Trajectory`
     :arg modes: up to three normal modes
-    :type modes: :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.NMA`
+    :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
     
     By default root-mean-square deviation (RMSD) along the normal mode is 
     calculated. To calculate the projection pass ``rmsd=True``.
-    :class:`~.Vector` instances are accepted as *ensemble* argument to allow
+    :class:`.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
     
     if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
@@ -145,16 +147,17 @@ def calcProjection(ensemble, modes, rmsd=True):
         projection =  (1 / (n_atoms ** 0.5)) * projection
     return projection
 
+
 def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
     """Return projection of conformational deviations onto modes from
     different models.
     
     :arg ensemble: ensemble for which deviations will be projected
-    :type ensemble: :class:`~.Ensemble`
+    :type ensemble: :class:`.Ensemble`
     :arg mode1: normal mode to project conformations onto 
-    :type mode1: :class:`~.Mode`, :class:`~.Vector`
+    :type mode1: :class:`.Mode`, :class:`.Vector`
     :arg mode2: normal mode to project conformations onto
-    :type mode2: :class:`~.Mode`, :class:`~.Vector`
+    :type mode2: :class:`.Mode`, :class:`.Vector`
     :arg scale: scale width of the projection onto mode ``x`` or ``y``,
         best scaling factor will be calculated and printed on the console,
         absolute value of scalar makes the with of two projection same,
@@ -204,11 +207,15 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
 
     return xcoords, ycoords
 
+
 def calcSqFlucts(modes):
-    """Return sum of square-fluctuations for given set of normal *modes*.
+    """Return sum of square-fluctuations for given set of normal *modes*. 
     Square fluctuations for a single mode is obtained by multiplying the 
     square of the mode array with the variance (:meth:`~.Mode.getVariance`) 
-    along the mode."""
+    along the mode.  For :class:`.PCA` and :class:`.EDA` models built using
+    coordinate data in Å, unit of square-fluctuations is |A2|, for 
+    :class:`.ANM` and :class:`.GNM`, on the other hand, it is arbitrary or 
+    relative units."""
     
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
@@ -230,6 +237,7 @@ def calcSqFlucts(modes):
             else:
                 sq_flucts += (mode._getArray() ** 2)  * mode.getVariance()
         return sq_flucts
+
 
 def calcCrossCorr(modes, n_cpu=1):
     """Return cross-correlations matrix.  For a 3-d model, cross-correlations 
@@ -307,9 +315,10 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
                               axes=([0, 1], [1, 0]))
     queue.put(covariance)
     
+    
 def calcTempFactors(modes, atoms):
     """Return temperature (β) factors calculated using *modes* from a 
-    :class:`~.ANM` or :class:`~.GNM` instance scaled according to the 
+    :class:`.ANM` or :class:`.GNM` instance scaled according to the 
     experimental β-factors from *atoms*."""
     
     model = modes.getModel()
@@ -319,6 +328,7 @@ def calcTempFactors(modes, atoms):
         raise ValueError('modes and atoms must have same number of nodes')
     sqf = calcSqFlucts(modes)
     return sqf / ((sqf**2).sum()**0.5) * (atoms.getBetas()**2).sum()**0.5
+
 
 def calcCovariance(modes):
     """Return covariance matrix calculated for given *modes*."""
@@ -334,6 +344,7 @@ def calcCovariance(modes):
     else:
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
+
 def calcPerturbResponse(model, atoms=None, repeats=100):
     """Return a matrix of profiles from scanning of the response of the 
     structure to random perturbations at specific atom (or node) positions. 
@@ -342,7 +353,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     responses obtained by perturbing the atom/node position at that row index, 
     i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to 
     perturbations in residue/node *i*.  PRS is performed using the covariance 
-    matrix from *model*, e.t. :class:`~.ANM` instance.  Each residue/node is 
+    matrix from *model*, e.t. :class:`.ANM` instance.  Each residue/node is 
     perturbed *repeats* times with a random unit force vector.  When *atoms* 
     instance is given, PRS profile for residues will be added as an attribute 
     which then can be retrieved as ``atoms.getData('prs_profile')``.  *model* 

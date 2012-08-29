@@ -28,6 +28,7 @@ from prody.atomic import Atomic
 
 __all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff',]
 
+
 class Gamma(object):
     
     """Base class for facilitating use of atom type, residue type, or residue
@@ -121,7 +122,7 @@ class GammaStructureBased(Gamma):
         
         :arg atoms: A set of atoms with chain identifiers, residue numbers,
             and secondary structure assignments are set.
-        :type atoms: :class:`~prody.atomic.Atomic`
+        :type atoms: :class:`.Atomic`
 
         :arg gamma: Force constant in arbitrary units. Default is 1.0.
         :type gamma: float

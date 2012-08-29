@@ -26,13 +26,14 @@ import numpy as np
 
 from prody.utilities import openFile
 
-from nma import NMA
-from modeset import ModeSet
-from mode import VectorBase, Mode, Vector
-from gnm import ZERO
+from .nma import NMA
+from .modeset import ModeSet
+from .mode import VectorBase, Mode, Vector
+from .gnm import ZERO
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 
            'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',]
+         
            
 def calcOverlap(rows, cols):
     """Return overlap (or correlation) between two sets of modes (*rows* and 
@@ -56,6 +57,7 @@ def calcOverlap(rows, cols):
     cols *= 1 / (cols ** 2).sum(0) ** 0.5
     return np.dot(rows.T, cols)
 
+
 def printOverlapTable(rows, cols):
     """Print table of overlaps (correlations) between two sets of modes.
     *rows* and *cols* are sets of normal modes, and correspond to rows
@@ -73,16 +75,18 @@ def printOverlapTable(rows, cols):
     
     print getOverlapTable(rows, cols)
 
+
 def writeOverlapTable(filename, rows, cols):
     """Write table of overlaps (correlations) between two sets of modes to a 
     file.  *rows* and *cols* are sets of normal modes, and correspond to rows
-    and columns of the overlap table.  See also :func:`~.printOverlapTable`."""
+    and columns of the overlap table.  See also :func:`.printOverlapTable`."""
     
     assert isinstance(filename, str), 'filename must be a string'
     out = openFile(filename, 'w')
     out.write(getOverlapTable(rows, cols))
     out.close()
     return filename
+
 
 def getOverlapTable(rows, cols):
     """Make a formatted string of overlaps between modes in *rows* and *cols*.
@@ -135,10 +139,11 @@ def getOverlapTable(rows, cols):
         table += line.rstrip() + '\n'
     return table
 
+
 def calcCumulOverlap(modes1, modes2, array=False):
     """Return cumulative overlap of modes in *modes2* with those in *modes1*.
-    Returns a number of *modes1* contains a single :class:`~.Mode` or a 
-    :class:`~.Vector` instance. If *modes1* contains multiple modes, returns an
+    Returns a number of *modes1* contains a single :class:`.Mode` or a 
+    :class:`.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes 
     in *modes1* with those in *modes2*.  If *array* is **True**, Return array 
     of cumulative overlaps. Returned array has the shape ``(len(modes1), 
@@ -153,6 +158,7 @@ def calcCumulOverlap(modes1, modes2, array=False):
     else:
         return np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
 
+
 def calcSubspaceOverlap(modes1, modes2):
     """Return subspace overlap between two sets of modes (*modes1* and 
     *modes2*).  Also known as the root mean square inner product (RMSIP) 
@@ -165,6 +171,7 @@ def calcSubspaceOverlap(modes1, modes2):
         length = len(modes1)
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
+    
     
 def calcCovOverlap(modelA, modelB):
     """Return overlap between covariances of *modelA* and *modelB*.  Overlap 

@@ -21,7 +21,9 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import numpy as np
+from numpy import array
+
+from .nma import NMA
 
 __all__ = ['ModeSet']
 
@@ -40,7 +42,7 @@ class ModeSet(object):
             raise TypeError('model must be an NMA, not {0:s}'
                             .format(type(model)))
         self._model = model
-        self._indices = np.array(indices, int)
+        self._indices = array(indices, int)
         
     def __len__(self):
         return len(self._indices)
@@ -58,9 +60,10 @@ class ModeSet(object):
                                                str(self._model))
     
     def is3d(self):
-        """Return True if mode instance is from a 3-dimensional model."""
         
         return self._model._is3d
+    
+    is3d.__doc__ = NMA.is3d.__doc__
     
     def numAtoms(self):
         """Return number of atoms."""
@@ -68,15 +71,17 @@ class ModeSet(object):
         return self._model._n_atoms
     
     def numModes(self):
-        """Return number of modes in the instance (not necessarily maximum 
-        number of possible modes)."""
         
         return len(self._indices)
+
+    numModes.__doc__ = NMA.numModes.__doc__
     
     def numDOF(self):
-        """Return number of degrees of freedom."""
         
         return self._model._dof
+
+    numDOF.__doc__ = NMA.numDOF.__doc__
+
         
     def getModes(self):
         """Return a list that contains the modes in the mode set."""
@@ -100,23 +105,27 @@ class ModeSet(object):
         return self._indices
         
     def getEigvals(self):
-        """Return eigenvalues."""
         
         return self._model._eigvals[self._indices]
 
+    getEigvals.__doc__ = NMA.getEigvals.__doc__
+
     def getVariances(self):
-        """Return variances (~inverse eigenvalues)."""
         
         return self._model._vars[self._indices]
 
+    getVariances.__doc__ = NMA.getVariances.__doc__
+
     def getArray(self):
-        """Return a copy of eigenvectors array."""
         
         return self._model._array[:, self._indices]
+
+    getArray.__doc__ = NMA.getArray.__doc__
 
     getEigvecs = getArray
 
     def _getArray(self):
-        """Return a copy of eigenvectors array."""
 
         return self._model._array[:, self._indices]
+
+    _getArray.__doc__ = NMA._getArray.__doc__

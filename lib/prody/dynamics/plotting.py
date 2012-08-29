@@ -47,13 +47,13 @@ import numpy as np
 from prody import LOGGER
 from prody.ensemble import Ensemble, Conformation
 
-from nma import NMA
-from gnm import GNMBase
-from mode import Mode, VectorBase, Vector
-from modeset import ModeSet
-from analysis import calcSqFlucts, calcProjection, calcCrossCorr
-from analysis import calcFractVariance, calcCrossProjection
-from compare import calcOverlap
+from .nma import NMA
+from .gnm import GNMBase
+from .mode import Mode, VectorBase, Vector
+from .modeset import ModeSet
+from .analysis import calcSqFlucts, calcProjection, calcCrossCorr
+from .analysis import calcFractVariance, calcCrossProjection
+from .compare import calcOverlap
 
 __all__ = ['showContactMap', 'showCrossCorr',  
            'showCumulOverlap', 'showFractVars',  
@@ -595,7 +595,8 @@ def showMode(mode, *args, **kwargs):
 
 
 def showSqFlucts(modes, *args, **kwargs):
-    """Show square fluctuations using :func:`~matplotlib.pyplot.plot`.
+    """Show square fluctuations using :func:`~matplotlib.pyplot.plot`.  See
+    also :func:`.calcSqFlucts`.  
     
     .. plot::
        :context:

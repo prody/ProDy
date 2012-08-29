@@ -355,7 +355,7 @@ class Mode(VectorBase):
         """Initialize mode object as part of an NMA model.
         
         :arg model: a normal mode analysis instance
-        :type model: :class:`~.ANM`, :class:`~.GNM`, or :class:`~.PCA` 
+        :type model: :class:`.NMA`, :class:`.GNM`, or :class:`.PCA` 
         :arg index: index of the mode 
         :type index: int"""
         
@@ -364,7 +364,7 @@ class Mode(VectorBase):
         
     def __len__(self):
         
-        return self._model._dof
+        return self._model.numDOF()
     
     def __repr__(self):
         
@@ -386,18 +386,18 @@ class Mode(VectorBase):
     def is3d(self):
         """Return **True** if mode instance is from a 3-dimensional model."""
         
-        return self._model._is3d
+        return self._model.is3d()
     
     def numAtoms(self):
         """Return number of atoms."""
         
-        return self._model._n_atoms
+        return self._model.numAtoms()
     
     def numDOF(self):
         """Return number of degrees of freedom (three times the number of 
         atoms)."""
         
-        return self._model._dof
+        return self._model.numDOF()
     
     def getTitle(self):
         """A descriptive title for the mode instance."""
@@ -428,13 +428,19 @@ class Mode(VectorBase):
         return self._model._array[:, self._index]
         
     def getEigval(self):
-        """Return normal mode eigenvalue."""
+        """Return normal mode eigenvalue.  For :class:`.PCA` and :class:`.EDA` 
+        models built using coordinate data in Å, unit of eigenvalues is |A2|.  
+        For :class:`.ANM` and :class:`.GNM`, on the other hand, eigenvalues 
+        are in arbitrary or relative units but they correlate with stiffness 
+        of the motion along associated eigenvector."""
         
         return self._model._eigvals[self._index]
     
     def getVariance(self):
-        """Variance along the mode.  If the model is not a PCA, inverse of the
-        eigenvalue is returned."""
+        """Return variance along the mode.  For :class:`.PCA` and :class:`.EDA` 
+        models built using coordinate data in Å, unit of variance is |A2|.  For
+        :class:`.ANM` and :class:`.GNM`, on the other hand, variance is the 
+        inverse of the eigenvalue, so it has arbitrary or relative units."""
         
         return self._model._vars[self._index]
 
@@ -449,16 +455,22 @@ class Vector(VectorBase):
     
     __slots__ = ['_title', '_array', '_is3d']
     
-    def __init__(self, array, title='Unknown', is_3d=True):
+    def __init__(self, array, title='Unknown', is3d=True):
         """Instantiate with a name, an array, and a 3d flag."""
         
-        if not isinstance(array, np.ndarray) or array.ndim != 1:
-            raise TypeError('array must be a 1-dimensional numpy.ndarray')
-        if not isinstance(is_3d, bool):
-            raise TypeError('is_3d must be a boolean')
+        try:
+            ndim, shape = array.ndim, array.shape
+        except AttributeError:
+            array = np.array(array)
+            ndim, shape = array.ndim, array.shape
+        if ndim != 1:
+            raise ValueError('array.ndim must be 1')
+        is3d = bool(is3d)
+        if is3d and shape[0] % 3 != 0:
+            raise ValueError('len(array) must be a multiple of 3')
         self._title = str(title)
         self._array = array
-        self._is3d = is_3d
+        self._is3d = is3d
         
     def __len__(self):
         return len(self._array)

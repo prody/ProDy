@@ -28,12 +28,12 @@ from prody.atomic import Selection, SELECT
 from prody.utilities import importLA
 from prody import LOGGER, _PY3K
 
-from nma import NMA
-from modeset import ModeSet
-from mode import VectorBase, Mode, Vector
-from gnm import GNM
-from anm import ANM
-from pca import PCA
+from .nma import NMA
+from .modeset import ModeSet
+from .mode import VectorBase, Mode, Vector
+from .gnm import GNM
+from .anm import ANM
+from .pca import PCA
 
 if not _PY3K:
     range = xrange
@@ -92,7 +92,7 @@ def extend(model, nodes, atoms):
 
 def extendModel(model, nodes, atoms):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
-    may be :class:`~.ANM`, :class:`~.GNM`, :class:`~.PCA`, or :class:`~.NMA` 
+    may be :class:`.ANM`, :class:`.GNM`, :class:`.PCA`, or :class:`.NMA` 
     instance.  This function will take part of the normal modes for each node 
     (i.e. Cα atoms) and extend it to all other atoms in the same residue.  For 
     each atom in *nodes* argument *atoms* argument must contain a corresponding
@@ -215,7 +215,7 @@ def sliceMode(mode, atoms, select):
     slightly different from :func:`.sliceVector`. Mode array (eigenvector) is 
     multiplied by square-root of the variance along the mode.  If mode is from
     an elastic network model, variance is defined as the inverse of the 
-    eigenvalue.  Note that returned :class:`~.Vector` instance is not 
+    eigenvalue.  Note that returned :class:`.Vector` instance is not 
     normalized.
     
     :arg mode: mode instance to be sliced
@@ -227,7 +227,7 @@ def sliceMode(mode, atoms, select):
     :arg select: an atom selection or a selection string 
     :type select: :class:`.Selection`, str 
     
-    :returns: (:class:`~.Vector`, :class:`~.Selection`)"""
+    :returns: (:class:`.Vector`, :class:`.Selection`)"""
     
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, not {0:s}'
@@ -341,7 +341,7 @@ def sliceModel(model, atoms, select):
     
     
 def reduceModel(model, atoms, select):
-    """Return reduced NMA model.  Reduces a :class:`~.NMA` model to a subset of 
+    """Return reduced NMA model.  Reduces a :class:`.NMA` model to a subset of 
     *atoms* matching *select*.  This function behaves differently depending on 
     the type of the *model* argument.  For :class:`.ANM` and :class:`.GNM` or 
     other :class:`.NMA` models, force constant matrix for system of interest 

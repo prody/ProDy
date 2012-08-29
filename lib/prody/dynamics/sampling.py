@@ -50,12 +50,12 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     coordinate set.  Otherwise, sampling is around the 0 coordinate set.
     
     :arg modes: Modes along which sampling will be performed.
-    :type modes: :class:`~.Mode`, :class:`~.ModeSet`, :class:`~.PCA`, 
-                 :class:`~.ANM` or :class:`~.NMA`   
+    :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.PCA`, 
+                 :class:`.ANM` or :class:`.NMA`   
     
     :arg atoms: Atoms whose active coordinate set will be used as the initial 
         conformation.
-    :type atoms: :class:`~.Atomic`  
+    :type atoms: :class:`.Atomic`  
     
     :arg n_confs: Number of conformations to generate. Default is 1000.
     :type n_steps: int 
@@ -102,10 +102,10 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     ensure that the generated ensemble will have user given average *rmsd* 
     value. 
      
-    Note that if modes are from a :class:`~.PCA`, variances are used instead of 
+    Note that if modes are from a :class:`.PCA`, variances are used instead of 
     inverse eigenvalues, i.e. :math:`\sigma_i \sim \lambda^{-1}_i`.
     
-    |more| See also :func:`~.showEllipsoid`.
+    |more| See also :func:`.showEllipsoid`.
     
     .. plot::
        :context:
@@ -185,11 +185,11 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     animate fluctuations in an external program. 
     
     :arg mode: Mode along which a trajectory will be generated.
-    :type mode: :class:`~.Mode`   
+    :type mode: :class:`.Mode`   
     
     :arg atoms: Atoms whose active coordinate set will be used as the initial 
         conformation.
-    :type atoms: :class:`~.Atomic` 
+    :type atoms: :class:`.Atomic` 
     
     :arg n_steps: Number of steps to take along each direction. 
         For example, for ``n_steps=10``, 20 conformations will be 
@@ -200,7 +200,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
         respect to the initial conformation. Default is 1.5 A.
     :type rmsd: float
 
-    :returns: :class:`~.Ensemble`
+    :returns: :class:`.Ensemble`
     
     For given normal mode :math:`u_i`, its eigenvalue
     :math:`\lambda_i`, number of steps :math:`n`, and maximum :math:`RMSD`  
@@ -272,9 +272,10 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
   
+  
 def deformAtoms(atoms, mode, rmsd=None):
     """Generate a new coordinate set for *atoms* along the *mode*.  *atoms* 
-    must be a :class:`~.AtomGroup` instance.  New coordinate set will be 
+    must be a :class:`.AtomGroup` instance.  New coordinate set will be 
     appended to *atoms*. If *rmsd* is provided, *mode* will be scaled to 
     generate a coordinate set with given RMSD distance to the active coordinate
     set.  Below example shows how to deform a structure along a normal mode
