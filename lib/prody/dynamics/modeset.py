@@ -49,7 +49,7 @@ class ModeSet(object):
         
     def __iter__(self):
         for i in self._indices:
-            yield self._model.getMode(i)
+            yield self._model[i]
     
     def __repr__(self):
         return '<ModeSet: {0:d} modes from {1:s}>'.format(len(self),
@@ -84,10 +84,11 @@ class ModeSet(object):
 
         
     def getModes(self):
-        """Return a list that contains the modes in the mode set."""
+        """Deprecated for removal in v1.3, use ``list(nma)`` instead."""
         
-        getMode = self._model.getMode
-        return [getMode(i) for i in self._indices]
+        from prody import deprecate
+        deprecate('getModes', 'list(nma)')
+        return list(self)
     
     def getTitle(self):
         """Return title of the mode set."""

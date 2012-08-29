@@ -43,6 +43,7 @@ class NMA(object):
         self._vars = None       # evs for PCA, inverse evs for ENM
         self._trace = None
         self._is3d = True       # is set to false for GNM
+        self._indices = None
 
     def __len__(self):
     
@@ -54,24 +55,24 @@ class NMA(object):
         if self._n_modes == 0:
             raise ValueError('{0:s} modes are not calculated, try '
                              'calcModes() method'.format(str(self)))
-        if isinstance(index, int):
-            return self.getMode(index)
-        elif isinstance(index, slice):
-            indices = np.arange(*index.indices(len(self)))
-            if len(indices) > 0:
-                return ModeSet(self, indices)
-        elif isinstance(index, (list, tuple)):
-            for i in index:
-                assert isinstance(i, int), 'all indices must be integers'
-            if len(index) == 1:
-                return self.getMode(index[0])
-            return ModeSet(self, index)
-        else:        
-            raise IndexError('indices may be an integer, slice, list, or tuple')
+        indices = self._indices
+        if indices is None:
+            self._indices = indices = np.arange(self._n_modes)
+        try:
+            indices = indices[index]
+        except IndexError as err:
+            raise IndexError(str(err))
+        try:
+            length = len(indices)
+        except TypeError:            
+            return Mode(self, indices)
+        else:
+            return ModeSet(self, indices)
         
     def __iter__(self):
+        
         for i in xrange(self._n_modes):
-            yield self.getMode(i)
+            yield self[i]
     
     def __repr__(self):
         
@@ -134,23 +135,18 @@ class NMA(object):
         self._title = str(title)
     
     def getMode(self, index):
-        """Return mode at given index."""
+        """Deprecated for removal in v1.3, use indexing instead."""
         
-        if self._n_modes == 0:
-            raise ValueError('{0:s} modes are not calculated, try '
-                             'calcModes() method'.format(str(self)))
-        if index >= self._n_modes or index < -self._n_modes:
-            raise IndexError('{0:s} contains {1:d} modes, try 0 <= index < '
-                             '{1:d}'.format(str(self), self._n_modes))
-        if index < 0:
-            index += self._n_modes
-        return Mode(self, index)
+        from prody import deprecate
+        deprecate('getMode', 'nma[index]')
+        return self[index]
 
     def getModes(self):
-        """Return all modes in a list."""
+        """Deprecated for removal in v1.3, use ``list(nma)`` instead."""
         
-        getMode = self.getMode
-        return [getMode(i) for i in range(len(self))]
+        from prody import deprecate
+        deprecate('getModes', 'list(nma)')
+        return list(self)
 
     def getEigvals(self):
         """Return eigenvalues.  For :class:`.PCA` and :class:`.EDA` models 

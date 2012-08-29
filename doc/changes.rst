@@ -11,8 +11,13 @@ Release 1.2 (in development)
 
 **Important Changes**:
 
-Following changes in :class:`.Trajectory` and :class:`.Ensemble` methods may 
-effect you code.
+Package folder :file:`prody` is moved into :file:`lib` folder to prevent
+exceptions related to importing compiled packages from the installation
+folder. 
+
+Some changes in :class:`.Trajectory` and :class:`.Ensemble` methods related
+to linking, setting, and selecting atoms were made to make the interface
+more intuitive.  These changes, which may break your code, are as follows:
 
   * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory` 
     using :meth:`.Trajectory.link` method and linking status of an instance 
@@ -115,12 +120,18 @@ and :ref:`outputtraj`.
 
 **Deprecations**:
 
-  * :meth:`.AtomGroup.getHeretos` method has been deprecated for removal in
+  * :meth:`.AtomGroup.getHeteros` method has been deprecated for removal in
     v1.3, use ``getFlags('hetatm')`` instead.
     
   * :meth:`.AtomMap.getMappedFlags` and :meth:`.AtomMap.getDummyFlags` 
     methods have been deprecated for removal in v1.3, use 
     ``getFlags('mapped')`` and ``getFlags('dummy')`` instead.
+    
+  * :func:`.getVerbosity` and :func:`.setVerbosity` are deprecated for removal
+    in v1.3, use :func:`.confProDy` instead which save changes permanently.
+    
+  * :meth:`.NMA.getModes` and :meth:`.ModeSet.getModes` methods are deprecated
+    for removal in v1.3, use :func:`list`, e.g. ``list(model)``, instead.
   
     
 **Bugfixes**:

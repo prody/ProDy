@@ -151,12 +151,12 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         show = Axes3D(cf)
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
-        onto = onto.getModes()
+        onto = list(onto)
         show.set_xlabel('Mode {0:d} coordinate'.format(int(onto[0])+1))
         show.set_ylabel('Mode {0:d} coordinate'.format(int(onto[1])+1))
         show.set_zlabel('Mode {0:d} coordinate'.format(int(onto[2])+1))
     else:
-        modes = modes.getModes()
+        modes = list(modes)
         show.set_xlabel('Mode {0:d} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
         show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
