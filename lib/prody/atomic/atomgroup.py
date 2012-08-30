@@ -456,7 +456,7 @@ class AtomGroup(Atomic):
         self._data = dict()
 
         self._flags = None
-        self._flagsts = None
+        self._flagsts = 0
         self._subsets = None 
 
     def __repr__(self):
