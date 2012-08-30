@@ -746,7 +746,7 @@ def updateDefinitions():
     BACKBONE = DEFINITIONS['bb']
 
     global TIMESTAMP
-    TIMESTAMP = SETTINGS.get('flag_timestamp', None)
+    TIMESTAMP = SETTINGS.get('flag_timestamp', 0)
 
 
 #==============================================================================

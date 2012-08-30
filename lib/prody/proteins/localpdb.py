@@ -38,8 +38,8 @@ def getPDBLocalFolder():
     If a local folder is not set, **None** will be returned."""
 
     folder = SETTINGS.get('pdb_local_folder')
-    if folder is not None:
-        if isinstance(folder, str) and isdir(folder):
+    if folder:
+        if isdir(folder):
             return folder, SETTINGS.get('pdb_local_divided', True)
         else:
             LOGGER.warning('PDB local folder {0:s} is not a accessible.'
@@ -90,7 +90,7 @@ def getPDBMirrorPath():
     not set."""
 
     path = SETTINGS.get('pdb_mirror_path')
-    if isinstance(path, str):
+    if path:
         if isdir(path):
             return path
         else:
