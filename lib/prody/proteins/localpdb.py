@@ -114,7 +114,7 @@ def iterPDBFilenames(path=None, sort=False, unique=True, ):
     """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
     or in *path* specified by the user.  When *path* is specified and *unique*
     is **True**, files potentially identical to a previously encountered file 
-    (e.g. :file:`1mkp.pdb` and :file:`1mkp.ent.gz`) will not be yielded."""
+    (e.g. :file:`1mkp.pdb` and :file:`pdb1mkp.ent.gz`) will not be yielded."""
 
     if path is None:
         path = getPDBMirrorPath()
@@ -138,11 +138,10 @@ def iterPDBFilenames(path=None, sort=False, unique=True, ):
         for fn in pdbs:
             if unique:
                 pdb = splitext(splitext(split(fn)[1])[0])[0]
-                if len(pdb) == 7:
+                if len(pdb) == 7 and pdb.startswith('pdb'):
                     pdb = pdb[3:]
-                if len(pdb) == 4 and pdb.isalnum():
-                    if pdb in yielded:
-                        continue
-                    else:
-                        yielded.add(pdb)
+                if pdb in yielded:
+                    continue
+                else:
+                    yielded.add(pdb)
             yield fn
