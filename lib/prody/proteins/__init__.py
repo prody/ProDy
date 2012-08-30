@@ -39,6 +39,12 @@ You can use following functions to manage local PDB file resources:
   * :func:`.setPDBMirrorPath` - set a local PDB mirror path
   * :func:`.getPDBLocalFolder` - get preset local PDB folder
   * :func:`.getPDBMirrorPath` - get preset local PDB mirror path
+  
+Following functions can be used to handle local PDB files:
+
+  * :func:`.findPDBFiles` - return a dictionary containing files in a path
+  * :func:`.iterPDBFilenames` - yield file names in a path or local PDB mirror
+  
 
 Blast search PDB 
 ================

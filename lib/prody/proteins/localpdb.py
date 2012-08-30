@@ -116,7 +116,9 @@ def iterPDBFilenames(path=None, sort=False, unique=True):
     """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
     or in *path* specified by the user.  When *path* is specified and *unique*
     is **True**, files potentially identical to a previously encountered file 
-    (e.g. :file:`1mkp.pdb` and :file:`pdb1mkp.ent.gz`) will not be yielded."""
+    (e.g. :file:`1mkp.pdb` and :file:`pdb1mkp.ent.gz`) will not be yielded.
+    Both :file:`.pdb` and :file:`.ent` extensions, and compressed files are 
+    considered."""
 
     if path is None:
         path = getPDBMirrorPath()
@@ -151,9 +153,11 @@ def iterPDBFilenames(path=None, sort=False, unique=True):
 
 
 def findPDBFiles(path, case=None):
-    """Return a dictionary that maps lower case PDB filenames to file paths.
-    *case* may be ``'u[pper]'``, ``'l[ower]'``, or **None** (for unchanged) 
-    dictionary keys."""
+    """Return a dictionary that maps PDB filenames to file paths.  If *case*
+    is specified (``'u[pper]'`` or ``'l[ower]'``), dictionary keys (filenames)
+    will be modified accordingly.  If a PDB filename has :file:`pdb` prefix,
+    it will be trimmed, for example ``'1mkp'`` will be mapped to file path 
+    :file:`./pdb1mkp.pdb.gz`).  See also :func:`.iterPDBFilenames`."""
     
     case = str(case).lower()
     upper = lower = False
