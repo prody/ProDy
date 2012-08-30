@@ -22,13 +22,15 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from glob import glob
-from os.path import abspath, isdir, join, split, splitext
+from os.path import sep as pathsep
+from os.path import abspath, isdir, isfile, join, split, splitext
 
 from prody import LOGGER, SETTINGS
+from prody.utilities import makePath, gunzip, relpath
 
 __all__ = ['getPDBLocalFolder', 'getPDBMirrorPath', 
            'setPDBLocalFolder', 'setPDBMirrorPath',
-           'iterPDBFilenames']
+           'iterPDBFilenames', 'findPDBFiles']
            
 
 def getPDBLocalFolder():
@@ -110,7 +112,7 @@ def setPDBMirrorPath(path):
         raise IOError('No such directory: {0:s}'.format(repr(path)))
 
 
-def iterPDBFilenames(path=None, sort=False, unique=True, ):
+def iterPDBFilenames(path=None, sort=False, unique=True):
     """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
     or in *path* specified by the user.  When *path* is specified and *unique*
     is **True**, files potentially identical to a previously encountered file 
@@ -131,7 +133,8 @@ def iterPDBFilenames(path=None, sort=False, unique=True, ):
         if unique:
             yielded = set()
         pdbs = []
-        for ext in ['.pdb', 'pdb.gz', '.ent', '.ent.gz']:
+        for ext in ['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
+                    '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ']:
             pdbs.extend(glob(join(path, '*' + ext)))
         if sort:
             pdbs.sort()
@@ -145,3 +148,30 @@ def iterPDBFilenames(path=None, sort=False, unique=True, ):
                 else:
                     yielded.add(pdb)
             yield fn
+
+
+def findPDBFiles(path, case=None):
+    """Return a dictionary that maps lower case PDB filenames to file paths.
+    *case* may be ``'u[pper]'``, ``'l[ower]'``, or **None** (for unchanged) 
+    dictionary keys."""
+    
+    case = str(case).lower()
+    upper = lower = False
+    if case.startswith('u'):
+        upper = True
+    elif case.startswith('l'):
+        lower = True
+    
+    pdbs = {}
+    for fn in iterPDBFilenames(path, sort=True):
+        pdb = splitext(splitext(split(fn)[1])[0])[0]
+        if len(pdb) == 7 and pdb.startswith('pdb'):
+            pdb = pdb[3:]
+        if upper:
+            pdbs[pdb.upper()] = fn
+        elif lower:
+            pdbs[pdb.lower()] = fn
+        else:
+            pdbs[pdb] = fn
+        
+    return pdbs
