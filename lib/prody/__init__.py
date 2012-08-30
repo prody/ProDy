@@ -186,12 +186,19 @@ _keys = list(CONFIGURATION)
 _keys.sort()
 _vals = []
 for _key in _keys:
-    default, acceptable, _ = CONFIGURATION[_key]
+    default, acceptable, setter = CONFIGURATION[_key]
+    try:
+        if not setter.func_name.startswith('_'): 
+            seealso = ' See also :func:`.' + setter.func_name + '`.'
+    except AttributeError:
+        seealso = ''
+        
     if acceptable is None:
-        _vals.append(repr(default))
+        _vals.append(repr(default) + seealso)
     else:
         _vals.append(repr(default) + ' (' + 
-                     joinRepr(acceptable, sort=True, last=', or ')  + ')')
+                     joinRepr(acceptable, sort=True, last=', or ')  + ')' +
+                     seealso)
     if _key not in SETTINGS:
         SETTINGS[_key] = default
 
