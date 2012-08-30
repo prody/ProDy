@@ -223,7 +223,7 @@ def addPlanter(func, *labels, **kwargs):
 def updateNonstandard(nonstd):
     
     SETTINGS[NONSTANDARD_KEY] = nonstd
-    SETTINGS[TIMESTAMP_KEY] = long(time())
+    SETTINGS[TIMESTAMP_KEY] = int(time())
     SETTINGS.save()
     updateDefinitions()
 
@@ -233,7 +233,7 @@ def changeDefinitions(**kwargs):
     defs = SETTINGS.get(DEFINITIONS_KEY, {})
     defs.update(kwargs)
     SETTINGS[DEFINITIONS_KEY] = defs
-    SETTINGS[TIMESTAMP_KEY] = long(time())
+    SETTINGS[TIMESTAMP_KEY] = int(time())
     SETTINGS.save()
     updateDefinitions()
     
@@ -243,12 +243,12 @@ def resetDefinitions(flag):
     if flag == 'all':
         SETTINGS.pop(DEFINITIONS_KEY, None)
         SETTINGS.pop(NONSTANDARD_KEY, None)
-        SETTINGS[TIMESTAMP_KEY] = long(time())
+        SETTINGS[TIMESTAMP_KEY] = int(time())
         SETTINGS.save()
         updateDefinitions()
     elif flag == 'nonstdaa': 
         SETTINGS.pop(NONSTANDARD_KEY, None)
-        SETTINGS[TIMESTAMP_KEY] = long(time())
+        SETTINGS[TIMESTAMP_KEY] = int(time())
         SETTINGS.save()
         updateDefinitions()
     else:        
@@ -257,7 +257,7 @@ def resetDefinitions(flag):
         except KeyError:
             pass
         else:
-            SETTINGS[TIMESTAMP_KEY] = long(time())
+            SETTINGS[TIMESTAMP_KEY] = int(time())
             SETTINGS.save()
             updateDefinitions()
 
