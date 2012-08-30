@@ -142,7 +142,7 @@ Calculate overlap between slowest ANM mode and the deformation vector
 We can do this for a set of ANM modes (slowest 6) as follows
 
 >>> import numpy as np
->>> print( (np.array( anm[:6].getModes() ) * defvecnormed).astype(np.float64).round(2) )
+>>> print((np.array(list(anm[:6])) * defvecnormed).astype(np.float64).round(2))
 [-0.42 -0.14  0.49  0.03 -0.17 -0.1 ]
 
 |questions|
