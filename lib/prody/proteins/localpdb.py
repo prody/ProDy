@@ -22,7 +22,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from glob import glob
-from os.path import abspath, isdir, join
+from os.path import abspath, isdir, join, split, splitext
 
 from prody import LOGGER, SETTINGS
 
@@ -110,22 +110,39 @@ def setPDBMirrorPath(path):
         raise IOError('No such directory: {0:s}'.format(repr(path)))
 
 
-def iterPDBFilenames(path=None, sort=False):
+def iterPDBFilenames(path=None, sort=False, unique=True, ):
     """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
-    or in *path* specified by the user."""
+    or in *path* specified by the user.  When *path* is specified and *unique*
+    is **True**, files potentially identical to a previously encountered file 
+    (e.g. :file:`1mkp.pdb` and :file:`1mkp.ent.gz`) will not be yielded."""
 
     if path is None:
         path = getPDBMirrorPath()
         if path is None:
             raise ValueError('path must be specified or PDB mirror path '
                                'must be set')
-        path = join(path, 'data/structures/divided/pdb/', '*/*.ent.gz')
-        pdbs = glob(path)
+        pdbs = glob(join(path, 'data/structures/divided/pdb/', '*/*.ent.gz'))
+        if sort:
+            pdbs.sort()
+        for fn in pdbs:
+            yield fn
     else:
+        unique=bool(unique)
+        if unique:
+            yielded = set()
         pdbs = []
         for ext in ['.pdb', 'pdb.gz', '.ent', '.ent.gz']:
             pdbs.extend(glob(join(path, '*' + ext)))
-    if sort:
-        pdbs.sort()
-    for fn in pdbs:
-        yield fn
+        if sort:
+            pdbs.sort()
+        for fn in pdbs:
+            if unique:
+                pdb = splitext(splitext(split(fn)[1])[0])[0]
+                if len(pdb) == 7:
+                    pdb = pdb[3:]
+                if len(pdb) == 4 and pdb.isalnum():
+                    if pdb in yielded:
+                        continue
+                    else:
+                        yielded.add(pdb)
+            yield fn
