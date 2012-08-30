@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
+from os.path import isdir, isfile, join, split, splitext
 
 import numpy as np
 
@@ -72,12 +72,13 @@ def fetchPDBLigand(cci, filename=None):
 
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
-    if os.path.isfile(cci):
+    if isfile(cci):
         inp = openFile(cci)
         xml = inp.read()
         inp.close()
         url = None
         path = cci
+        cci = splitext(splitext(split(cci)[1])[0])[0].upper()
     elif len(cci) > 4 or not cci.isalnum():
         raise ValueError('cci must be 3-letters long and alphanumeric or '
                          'a valid filename')
@@ -85,11 +86,11 @@ def fetchPDBLigand(cci, filename=None):
         xml = None
         cci = cci.upper()
         if SETTINGS.get('ligand_xml_save'):
-            folder = os.path.join(getPackagePath(), 'pdbligands')
-            if not os.path.isdir(folder):
+            folder = join(getPackagePath(), 'pdbligands')
+            if not isdir(folder):
                 makePath(folder)
-            xmlgz = path = os.path.join(folder, cci + '.xml.gz')
-            if os.path.isfile(xmlgz):
+            xmlgz = path = join(folder, cci + '.xml.gz')
+            if isfile(xmlgz):
                 LOGGER.info('Parsing XML file for {0:s} from local folder.'
                              .format(cci))
                 with openFile(xmlgz) as inp:
@@ -224,12 +225,12 @@ def fetchPDBLigand(cci, filename=None):
         except KeyError:
             if name_1 not in warned and name_1 not in name2index:
                 warned.add(name_1)
-                LOGGER.warn('{0:s} specified in bond category is not found '
-                            'among atoms.'.format(repr(name_1)))
+                LOGGER.warn('{0:s} specified {1:s} in bond category is not '
+                            'a valid atom name.'.format(repr(name_1), cci))
             if name_2 not in warned and name_2 not in name2index:
                 warned.add(name_2)
-                LOGGER.warn('{0:s} specified in bond category is not found '
-                            'among atoms.'.format(repr(name_2)))
+                LOGGER.warn('{0:s} specified {1:s} in bond category is not '
+                            'a valid atom name.'.format(repr(name_2), cci))
     if bonds:
         bonds = np.array(bonds, int)
         model.setBonds(bonds)
