@@ -230,9 +230,6 @@ def fetchPDBLigand(cci, filename=None):
                 warned.add(name_2)
                 LOGGER.warn('{0:s} specified in bond category is not found '
                             'among atoms.'.format(repr(name_2)))
-    if warned:
-        from code import interact
-        interact(local=locals())
     if bonds:
         bonds = np.array(bonds, int)
         model.setBonds(bonds)
