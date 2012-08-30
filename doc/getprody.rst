@@ -62,7 +62,12 @@ following:
 Linux
 -------------------------------------------------------------------------------
 
-Download :file:`ProDy-x.{y}.{z}.tar.gz`. Extract tarball contents and run 
+Remove all previously installed ProDy files.  You can find location of 
+installation files as follows::
+
+    $ python -c "import prody; print(prody.__path__)"
+
+Download :file:`ProDy-x.{y}.{z}.tar.gz`.  Extract tarball contents and run 
 :file:`setup.py` as follows::
 
     $ tar -xzf ProDy-x.y.z.tar.gz
@@ -91,6 +96,9 @@ For installing ProDy, please follow the Linux installation instructions.
 Windows
 -------------------------------------------------------------------------------
 
+Remove previously installed ProDy release from :program:`Uninstall a program` 
+in :guilabel:`Control Panel`.
+ 
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
 To be able use :ref:`commands` in command prompt (:program:`cmd.exe`), 
