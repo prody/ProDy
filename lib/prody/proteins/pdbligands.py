@@ -215,11 +215,26 @@ def fetchPDBLigand(cci, filename=None):
     dict_['ideal'] = ideal
 
     bonds = []
-    for bond in list(root.find(ns + 'chem_comp_bondCategory')):
+    warned = set()
+    for bond in list(root.find(ns + 'chem_comp_bondCategory') or bonds):
         name_1 = bond.get('atom_id_1')
         name_2 = bond.get('atom_id_2')
-        bonds.append((name2index[name_1], name2index[name_2]))
-    bonds = np.array(bonds, int)
-    model.setBonds(bonds)
-    ideal.setBonds(bonds)
+        try:
+            bonds.append((name2index[name_1], name2index[name_2]))
+        except KeyError:
+            if name_1 not in warned and name_1 not in name2index:
+                warned.add(name_1)
+                LOGGER.warn('{0:s} specified in bond category is not found '
+                            'among atoms.'.format(repr(name_1)))
+            if name_2 not in warned and name_2 not in name2index:
+                warned.add(name_2)
+                LOGGER.warn('{0:s} specified in bond category is not found '
+                            'among atoms.'.format(repr(name_2)))
+    if warned:
+        from code import interact
+        interact(local=locals())
+    if bonds:
+        bonds = np.array(bonds, int)
+        model.setBonds(bonds)
+        ideal.setBonds(bonds)
     return dict_      
