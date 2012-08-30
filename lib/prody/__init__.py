@@ -83,6 +83,49 @@ LOGGER = PackageLogger('.prody')
 SETTINGS = PackageSettings('prody', logger=LOGGER) 
 SETTINGS.load()
 
+__all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
+           'startLogfile', 'closeLogfile', 
+           'plog']
+
+from . import kdtree
+from .kdtree import *
+__all__.extend(kdtree.__all__)
+__all__.append('kdtree')
+
+from . import atomic 
+from .atomic import *
+__all__.extend(atomic.__all__)
+__all__.append('atomic')
+
+from .atomic import SELECT
+
+from . import proteins
+from .proteins import *  
+__all__.extend(proteins.__all__)
+__all__.append('proteins')
+
+from . import measure
+from .measure import *
+__all__.extend(measure.__all__)
+__all__.append('measure')
+
+from . import dynamics
+from .dynamics import *
+__all__.extend(dynamics.__all__)
+__all__.append('dynamics')
+
+from . import ensemble
+from .ensemble import *
+__all__.extend(ensemble.__all__)
+__all__.append('ensemble')
+
+from . import trajectory
+from .trajectory import *
+__all__.extend(trajectory.__all__)
+__all__.append('trajectory')
+
+import prody
+__all__.append('prody')
 
 # default, acceptable values, setter
 CONFIGURATION = {
@@ -93,9 +136,10 @@ CONFIGURATION = {
     'check_updates': (0, None, None),
     'auto_secondary': (False, None, None),
     'verbosity': ('debug', list(utilities.LOGGING_LEVELS), 
-                  LOGGER._setverbosity)
+                  LOGGER._setverbosity),
+    'pdb_mirror_path': ('', None, proteins.setPDBMirrorPath),
+    'local_pdb_folder': ('', None, proteins.setPDBMirrorPath),
 }
-
 
 
 def confProDy(*args, **kwargs):
@@ -103,16 +147,24 @@ def confProDy(*args, **kwargs):
 
     settings = None
     if args:
-        if len(args) == 1:
-            return SETTINGS.get(args[0])
+        values = []
+        for option in args:
+            try:
+                values.append(SETTINGS[option])
+            except KeyError:
+                raise KeyError('{0:s} is not a valid configuration option'
+                               .format(repr(option)))
+        if len(values) == 1:
+            return values[0]
         else:
-            return [SETTINGS.get(option) for option in args]
+            return values
 
     for option, value in kwargs.items():    
         try:
             default, acceptable, setter = CONFIGURATION[option]
         except KeyError:
-            raise KeyError('{0:s} is not a valid option'.format(repr(option)))
+            raise KeyError('{0:s} is not a valid configuration option'
+                           .format(repr(option)))
         else:
             try:
                 value = type(default)(value)
@@ -242,47 +294,3 @@ def test(**kwargs):
             prody.tests.test(**kwargs)
     else:
         LOGGER.warning('ProDy tests are available for Python 2.7') 
-
-__all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
-           'startLogfile', 'closeLogfile', 
-           'plog']
-
-from . import kdtree
-from .kdtree import *
-__all__.extend(kdtree.__all__)
-__all__.append('kdtree')
-
-from . import atomic 
-from .atomic import *
-__all__.extend(atomic.__all__)
-__all__.append('atomic')
-
-from .atomic import SELECT
-
-from . import proteins
-from .proteins import *  
-__all__.extend(proteins.__all__)
-__all__.append('proteins')
-
-from . import measure
-from .measure import *
-__all__.extend(measure.__all__)
-__all__.append('measure')
-
-from . import dynamics
-from .dynamics import *
-__all__.extend(dynamics.__all__)
-__all__.append('dynamics')
-
-from . import ensemble
-from .ensemble import *
-__all__.extend(ensemble.__all__)
-__all__.append('ensemble')
-
-from . import trajectory
-from .trajectory import *
-__all__.extend(trajectory.__all__)
-__all__.append('trajectory')
-
-import prody
-__all__.append('prody')
