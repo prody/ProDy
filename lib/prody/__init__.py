@@ -74,7 +74,7 @@ def turnonDepracationWarnings(action='always'):
 _PY3K = PY3K = sys.version_info[0] > 2
 PY2K = not PY3K
 
-PACKAGECONF =  os.path.join(USERHOME, '.' + __package__ + 'rc')
+PACKAGECONF =  os.path.join(USERHOME, '.prodyrc')
 if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
     os.rename(PACKAGECONF[:-2], PACKAGECONF)
 

@@ -137,21 +137,21 @@ def getPackagePath():
     update = False
     if path is None:
         pkg.LOGGER.warning('{0:s} package path is not yet set by the user.'
-                       .format(__package__))
+                       .format(pkg.SETTINGS._package))
         update = True
     elif not os.path.isdir(path):
         pkg.LOGGER.warning("{0:s} package path '{1:s}' does not exist."
-                       .format(__package__, path))
+                       .format(pkg.SETTINGS._package, path))
         update = True
     elif not os.access(path, os.W_OK):
         pkg.LOGGER.warning("User does not have write access to {0:s} package "
-                           "path '{1:s}'.".format(__package__, path))
+                           "path '{1:s}'.".format(pkg.SETTINGS._package, path))
         update = True
     if update:
-        default = os.path.join(USERHOME, '.' + __package__)
+        default = os.path.join(USERHOME, '.' + pkg.SETTINGS._package)
         path = raw_input('Please specify a folder for storing {0:s} data '
                          '(press enter for "{1:s}"):'
-                         .format(__package__, default)) or default
+                         .format(pkg.SETTINGS._package, default)) or default
         while not setPackagePath(path):
             path = raw_input('Please specify a valid folder name with write ' 
                              'access:')
