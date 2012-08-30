@@ -90,7 +90,8 @@ if os.name != 'java' and sys.version_info[0] == 2:
 
 SCRIPTS = ['scripts/prody']
 import platform
-if platform.system() == 'Windows':
+if (platform.system() == 'Windows' or 
+    len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
     SCRIPTS.append('scripts/prody.bat')
 
 setup(
