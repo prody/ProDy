@@ -94,8 +94,8 @@ Windows
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
 To be able use :ref:`commands` in command prompt (:program:`cmd.exe`), 
-append Python and scripts folders (e.g. :file:`C:\Python27` and 
-:file:`C:\Python27\Scripts`) to :envvar:`PATH` environment variable.
+append Python and scripts folders (e.g. :file:`C:\\Python27` and 
+:file:`C:\\Python27\\Scripts`) to :envvar:`PATH` environment variable.
 
 
 Plugins

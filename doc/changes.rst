@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 1.2 (in development)
+Release 1.2 (Aug 30, 2012)
 ===============================================================================
 
 **Important Changes**:
@@ -61,6 +61,10 @@ and :ref:`outputtraj`.
   * :func:`.iterPDBFilenames` function is implemented, which can be used to
     iterate over all PDB files stored in a local mirror of Protein Data Bank.
     
+  * :func:`.findPDBFiles` function is implemented, which can be used to access
+    PDB files in a path.
+
+
 **Improvements**:
 
   * :class:`.HierView` instances are built more efficiently.  Two times 

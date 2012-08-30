@@ -67,7 +67,7 @@ def getRevisionNumber():
     from subprocess import PIPE, Popen
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
-version = '1.2-dev'
+version = '1.2'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -329,7 +329,7 @@ intersphinx_mapping = {
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None)
 }
 
-rst_epilog = """
+rst_epilog = u"""
 
 .. |pdf| image:: /_static/pdf.png
 
@@ -360,6 +360,8 @@ rst_epilog = """
 .. |pypi| replace:: http://pypi.python.org/pypi/ProDy
 
 .. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
+
+.. |A2| replace:: Å\ :sup:`2`
 
 .. |questions| replace:: To receive new release announcements, join our 
    ProDy-News Google Group: http://groups.google.com/group/prody-news
