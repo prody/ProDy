@@ -1,8 +1,12 @@
 .. _nmwiz:
 
 *******************************************************************************
-Getting NMWiz
+NMWiz
 *******************************************************************************
+
+
+Getting NMWiz
+-------------------------------------------------------------------------------
 
 Normal Mode Wizard (NMWiz) is a VMD plugin designed for visual comparative 
 analysis of normal mode data.  NMWiz is available with `VMD`_ 1.9.1 or later.
