@@ -17,7 +17,7 @@ if you are using or::
   
   $ ipython -pylab
   
-if you are using an older version of `IPython <ipython.org>`_.
+if you are using an older version of `IPython <http://ipython.org>`_.
 
 On Windows, after you make the directory, you can make a shift-right click in 
 it in Windows Explorer and then select :menuselection:`Open command window here`

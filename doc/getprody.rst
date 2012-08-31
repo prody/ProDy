@@ -33,7 +33,7 @@ If you have `Easy Install`_ installed, type the following::
 If you don't have Easy Install, please download an installation file and 
 follow the instructions.
 
-.. _Easy Install: "http://peak.telecommunity.com/DevCenter/EasyInstall
+.. _Easy Install: http://peak.telecommunity.com/DevCenter/EasyInstall
 
 Download Files
 ===============================================================================

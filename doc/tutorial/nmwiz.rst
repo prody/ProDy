@@ -9,7 +9,7 @@ analysis of normal mode data, i.e. modes may come from principal component,
 essential dynamics, normal mode analysis or may be any vector describing a 
 molecular motion. 
 
-.. _VMD: www.ks.uiuc.edu/Research/vmd/
+.. _VMD: http://www.ks.uiuc.edu/Research/vmd/
 
 NMWiz can be used for:
 
@@ -86,10 +86,9 @@ We will use 78th NMR model for ANM calculations, because this model is the
 closest to the average of the ubiquitin NMR ensemble. Since VMD frame (model) 
 numbers start from 0, we will change the :guilabel:`Frame number` to read 77.
 
-.. figure:: nmwiz_2k39_PC2vsANM2.png
+.. figure:: /_static/nmwiz_2k39_PC2vsANM2.png
    :align: right
    :scale: 50 %
-   :target: ../_images/nmwiz_2k39_PC2vsANM2.png
    
    PC 2 (purple) vs. ANM mode 2 (lime green)
 
@@ -146,10 +145,9 @@ We will perform ANM calculations for all Cα atoms and keep the rest of the
 parameters unchanged.  Click :guilabel:`Submit Job` and results obtained from
 :ref:`prody-anm` command will load automatically.    
 
-.. figure:: nmwiz_p38_EDA1vsANM1.png
+.. figure:: /_static/nmwiz_p38_EDA1vsANM1.png
    :align: right
    :scale: 50 %
-   :target: ../_images/nmwiz_p38_EDA1vsANM1.png
    
    EDA 1 (orange) vs. ANM mode 2 (lime green)
 
@@ -199,10 +197,9 @@ representation of proteins which are suitable for publications.  In this
 part, we will use :guilabel:`Extend model to` option for extending the
 model to backbone atoms of the protein.
 
-.. figure:: nmwiz_1dlo_ANM1.png
+.. figure:: /_static/nmwiz_1dlo_ANM1.png
    :align: right
    :scale: 50 %
-   :target: ../_images/nmwiz_1dlo_ANM1.png
    
    ANM mode 1 for HIV Reverse Transcriptase
    
