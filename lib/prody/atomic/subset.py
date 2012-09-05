@@ -177,11 +177,8 @@ class AtomSubset(AtomPointer):
     def getData(self, label):
         """Return a copy of data associated with *label*, if it is present."""
         
-        try:
-            data = self._ag._data[label]
-        except KeyError:
-            pass
-        else:
+        data = self._ag._getData(label)
+        if data is not None:
             return data[self._indices]
     
     _getData = getData
