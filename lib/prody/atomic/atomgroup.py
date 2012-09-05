@@ -970,10 +970,9 @@ class AtomGroup(Atomic):
         """Return a copy of the data array associated with *label*, or **None** 
         if such data is not present."""
         
-        try:
-            return self._data[label].copy()
-        except KeyError:
-            pass
+        data = self._getData(label)
+        if data is not None:
+            return data.copy()
 
     def _getData(self, label):
         """Return data array associated with *label*, or **None** if such data 
@@ -982,7 +981,12 @@ class AtomGroup(Atomic):
         try:
             return self._data[label]
         except KeyError:
-            pass
+            try:
+                field = ATOMIC_FIELDS[label]
+            except KeyError:
+                return None
+            else:
+                return getattr(self, 'get' + field.meth_pl)()
 
     def isData(self, label):
         """Deprecated, use :meth:`isDataLabel` instead."""
@@ -994,7 +998,13 @@ class AtomGroup(Atomic):
     def isDataLabel(self, label):
         """Return **True** if data associated with *label* is present."""
         
-        return label in self._data
+        if label in self._data:
+            return True
+        else:
+            try:
+                return self._getData(label) is not None
+            except:
+                return False
   
     def getDataLabels(self, which=None):
         """Return data labels.  For ``which='user'``, return only labels of 
