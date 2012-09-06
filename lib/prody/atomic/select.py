@@ -1525,6 +1525,7 @@ class Select(object):
         
         tokens = tokens[0]
         if DEBUG: print('_comp', tokens)
+        flags, tokens = self._getFlags(sel, loc, tokens)
         
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(sel, loc, 
@@ -1548,14 +1549,32 @@ class Select(object):
                 result = binop(left, right)
             else:
                 logical_and(binop(left, right), result, result)
+        
+        for flag in flags:
+            logical_and(self._atoms._getFlags(flag), result, result)
         return result     
      
+    def _getFlags(self, sel, loc, tokens):
+        """Return flags and rest of tokens."""
+
+        isFlagLabel = self._atoms.isFlagLabel
+        flags = []
+        while True:
+            try:
+                if isFlagLabel(tokens[0]):
+                    flags.append(tokens.pop(0))
+                else:
+                    break
+            except TypeError:
+                break
+        return flags, tokens 
         
     def _binop(self, sel, loc, tokens):
         """Perform binary operation."""
         
         tokens = tokens[0]
         if DEBUG: print('_binop', tokens)
+        flags, tokens = self._getFlags(sel, loc, tokens)
         
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(sel, loc, 'invalid number of items')
@@ -1586,7 +1605,11 @@ class Select(object):
                 else:
                     left = binop(left, right)
 
-        return left
+        if flags:
+            flags.append(left)
+            return flags
+        else:
+            return left
 
     def _pow(self, sel, loc, tokens):
         """Perform power operation. Expected operands are numbers 
@@ -1594,6 +1617,7 @@ class Select(object):
         
         tokens = tokens[0]
         if DEBUG: print('_pow', tokens)
+        flags, tokens = self._getFlags(sel, loc, tokens)
 
         base, none = self._getNumeric(sel, loc, tokens.pop(0))
         if none is not None: raise none
@@ -1608,13 +1632,19 @@ class Select(object):
             power = number ** power
             if tokens.pop() not in ('^', '**'):
                 raise SelectionError(sel, loc, 'invalid power operator')
-        return base ** power
+        
+        if flags:
+            flags.append(base ** power)
+            return flags
+        else:
+            return base ** power
 
     def _sign(self, sel, loc, tokens):
         """Change the sign of a selection argument."""
         
         tokens = tokens[0]
         if DEBUG: print('_sign', tokens)
+        flags, tokens = self._getFlags(sel, loc, tokens)
         
         if len(tokens) != 2:
             raise SelectionError(sel, loc, 
@@ -1624,8 +1654,12 @@ class Select(object):
         if none is not None: raise none
         
         if tokens[0] == '-':
-            return -arg
-        return arg
+            arg =  -arg
+        if flags:
+            flags.append(arg)
+            return flags
+        else:
+            return arg
 
     def _func(self, sel, loc, tokens):
         """Evaluate functions used in selection strings."""
