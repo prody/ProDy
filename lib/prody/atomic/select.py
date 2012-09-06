@@ -341,10 +341,10 @@ DEBUG = 0
 def debug(sel, loc, *args):
     
     if DEBUG:
-        print(repr(sel))
-        print(' ' * (loc + 1) + '^')
         if args:
             print(args[0], args[1:])
+        print(repr(sel))
+        print(' ' * (loc + 1) + '^')
 
 __all__ = ['Select', 'SelectionError', 'TypoWarning',
            'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
@@ -1241,7 +1241,7 @@ class Select(object):
     def _and(self, sel, loc, tokens):
         """Evaluate statements containing ``'and'`` operator."""
         
-        if DEBUG: print('_and\n_and tokens '+str(tokens))
+        debug(sel, loc, '_and', str(tokens))
         evalonly = None
         previous = None
         selection = None
@@ -1555,7 +1555,7 @@ class Select(object):
         left, none = self._getNumeric(sel, loc, token)
         if none is not None: raise none
 
-        result = None
+        torf = None
         while tokens:
             try:
                 binop = BINOP_MAP[tokens.pop(0)]
@@ -1566,20 +1566,32 @@ class Select(object):
             if none is not None: raise none
 
             if DEBUG: print(binop, left, right)
-            if result is None:
-                result = binop(left, right)
+            if torf is None:
+                torf = binop(left, right)
             else:
-                logical_and(binop(left, right), result, result)
+                logical_and(binop(left, right), torf, torf)
+        
         if flags_end:
             flags.extend(flags_end)
         for flag in flags:
             try:
                 assert flag.dtype == bool, 'flag.dtype is not bool'
             except AttributeError:
-                logical_and(self._atoms._getFlags(flag), result, result)
+                logical_and(self._atoms._getFlags(flag), torf, torf)
             else:
-                logical_and(flag, result, result)
-        return result     
+                logical_and(flag, torf, torf)
+
+        try:
+            ndim, shape = torf.ndim, torf.shape
+        except AttributeError:
+            raise SelectionError(sel, loc, 
+                                'comparison must contain atomic data')
+        else:
+            if ndim != 1 or shape[0] != self._atoms.numAtoms():
+                raise SelectionError(sel, loc, 
+                                    'comparison must contain atomic data')
+            else:
+                return torf
      
     def _getFlags(self, sel, loc, tokens):
         """Return flags and rest of tokens."""
@@ -1768,7 +1780,7 @@ class Select(object):
         """Evaluate keywords associated with alphanumeric data, e.g. residue 
         names, atom names, etc."""
         
-        if DEBUG: print('_evalAlnum', keyword, values)
+        debug(sel, loc, '_evalAlnum', keyword, values)
         
         if keyword == 'sequence':
             return self._sequence(sel, loc, keyword, values, evalonly)
@@ -1785,7 +1797,7 @@ class Select(object):
                     break
         if evalonly is not None:
             data = data[evalonly]
-        if DEBUG: print('_evalAlnum set(data)', set(data))
+        #if DEBUG: print('_evalAlnum set(data)', set(data))
         n_atoms = len(data)
         vallen = FIELDS_ALNUM[keyword]
 
