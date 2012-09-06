@@ -690,7 +690,7 @@ class Select(object):
                                 pp.Optional(pp.Word(longlist + '"')) + 
                                 pp.Literal('`'))
         def specialCharsParseAction(token):
-            if len(token[0]) == 2:
+            if len(token[0]) == 2: # meaning `` was used
                 return '_'
             else:
                 return token[0][1]
@@ -700,7 +700,7 @@ class Select(object):
                               pp.Literal('"'))
         def regularExpParseAction(sel, loc, token): 
             token = token[0]
-            if len(token[0]) == 2:
+            if len(token) == 2:
                 return RE.compile('^()$')
             else:
                 try:
@@ -1013,10 +1013,12 @@ class Select(object):
         """
         if DEBUG: print('_defaulAction', tkns)
         
-        import code 
-        #code.interact(local=locals())
         if isinstance(tkns[0], ndarray):
             return tkns[0]
+        #if tkns[0] in FUNCTION_MAP:
+        #    interact(local=locals())
+        #    return zeros(self._atoms.numAtoms())
+        #    return FUNCTION_MAP[tkns[0]]
         #elif len(tkns) == 1 and self._atoms.isFlagLabel(tkns[0]):
         #    #code.interact(local=locals())
         #    print 'defaultAction flag'
