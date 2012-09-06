@@ -6,6 +6,19 @@
 Changes
 *******************************************************************************
 
+Release 1.2.1 (Sep 6, 2012)
+===============================================================================
+
+If you are upgrading from ProDy v1.1, see also the changes that came with v1.2 
+below.
+
+**Bugfix**:
+
+  * A problem in :mod:`select` module regarding Numpy numeric types 
+    is fixed.  Problem would emerge on platforms which do not offer 
+    some numeric types, e.f. ``np.float16``.  
+  
+
 Release 1.2 (Aug 30, 2012)
 ===============================================================================
 
