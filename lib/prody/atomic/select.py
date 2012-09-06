@@ -1581,6 +1581,8 @@ class Select(object):
             else:
                 logical_and(flag, torf, torf)
 
+        # check whether atomic data was contained in comparison
+        # i.e. len(atoms) == len(torf)
         try:
             ndim, shape = torf.ndim, torf.shape
         except AttributeError:
