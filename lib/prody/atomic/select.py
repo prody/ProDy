@@ -352,9 +352,20 @@ __all__ = ['Select', 'SelectionError', 'TypoWarning',
            
 SRE_Pattern = type(RE.compile('C.*'))
 
-DTYPES_NUMERIC = set([np.int, np.int8, np.int16, np.int32, np.int64, np.float, 
-                      np.float16, np.float32, np.float64])
-
+DTYPES_NUMERIC = set([np.int, np.int32, np.int64, 
+                      np.float, np.float32, np.float64])
+try:
+    DTYPES_NUMERIC.add(np.float16)
+except:
+    pass
+try:
+    DTYPES_NUMERIC.add(np.int16)
+except:
+    pass
+try:
+    DTYPES_NUMERIC.add(np.int8)
+except:
+    pass
 
 EXCMSG_NUMERIC = ('{0:s} must be a number or a label for numeric data that is '
                   'present or that can be calculated')
