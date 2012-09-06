@@ -79,7 +79,8 @@ def prody_gnm(opt):
                          gnm.getEigvals(), delimiter=delim, format=format)
     
     if outall or opt.beta:
-        fout = prody.openFile(prefix + '_beta.txt', 'w', folder=outdir)
+        from prody.utilities import openFile
+        fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChids(), select.getResnames(), 

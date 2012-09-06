@@ -9,14 +9,22 @@ Changes
 Release 1.2.1 (Sep 6, 2012)
 ===============================================================================
 
-If you are upgrading from ProDy v1.1, see also the changes that came with v1.2 
-below.
+If you are upgrading from ProDy v1.1, see also the below changes introduced in 
+v1.2.
 
 **Bugfix**:
 
   * A problem in :mod:`select` module regarding Numpy numeric types 
     is fixed.  Problem would emerge on platforms which do not offer 
-    some numeric types, e.f. ``np.float16``.  
+    some numeric types, e.f. ``np.float16``.
+    
+  * Fixed problems in :ref:`prody-anm`, :ref:`prody-gnm`, and 
+    :ref:`prody-fetch` related to writing output files.
+    
+**Changes**:    
+
+  * The way that :ref:`prody-fetch` command handles files containing PDB
+    identifiers has changed.  
   
 
 Release 1.2 (Aug 30, 2012)

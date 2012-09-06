@@ -15,7 +15,6 @@ subcommands:
     gnm                 perform Gaussian network model calculations
     pca                 perform principal component analysis calculations
     eda                 perform essential dynamics analysis calculations
-    eda                 perform essential dynamics analysis calculations
     align               align models or structures
     blast               blast search Protein Data Bank
     biomol              build biomolecules

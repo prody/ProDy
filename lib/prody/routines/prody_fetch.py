@@ -29,19 +29,14 @@ def prody_fetch(opt):
     
     import prody
     pdblist = opt.pdb
-    listfn = opt.listfn
-    if listfn:
-        if os.path.isfile(listfn):
-            inp = prody.openFile(listfn)
-            for line in inp:
-                line = line.strip()
-                for s in line.split(','):
-                    for pdb in s.split():
-                        if len(pdb) == 4: 
-                            pdblist.append(pdb)
-            inp.close()
-        else:    
-            opt.subparser.error("No such file: {0:s}".format(repr(listfn)))
+    if len(pdblist) == 1 and os.path.isfile(pdblist[0]):
+        from prody.utilities import openFile
+        with openFile(pdblist[0]) as inp:
+            for item in inp.read().strip().split():
+                for pdb in item.split(','):
+                    if len(pdb) == 4 and pdb.isalnum(): 
+                        pdblist.append(pdb)
+
     prody.fetchPDB(pdblist, opt.folder, compressed=opt.gzip, copy=True)
 
 def addCommand(commands):
@@ -62,15 +57,13 @@ $ prody fetch 1mkp 1p38"""
     )
 
     subparser.add_argument('-d', '--dir', dest='folder', type=str,
-                      default='.', metavar='PATH', 
-                      help=('target directory for saving PDB files'))
-    subparser.add_argument('-f', '--file', dest="listfn", type=str, 
-                      default='', metavar='FILE', 
-                      help='file that contains PDB identifiers')
+        default='.', metavar='PATH', 
+        help=('target directory for saving PDB file(s)'))
     subparser.add_argument('-z', '--gzip', dest='gzip', action='store_true', 
-                     default=False, help='write compressed PDB file')
+        default=False, help='write compressed PDB file(S)')
 
-    subparser.add_argument('pdb', nargs='+', help='PDB identifier(s)')
+    subparser.add_argument('pdb', nargs='+', 
+        help='PDB identifier(s) or a file that contains them')
 
     subparser.set_defaults(func=prody_fetch)
     subparser.set_defaults(subparser=subparser)

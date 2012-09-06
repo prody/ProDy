@@ -28,7 +28,7 @@ __all__ = ['Quiet', 'UsageExample', 'ProDyCitation', 'ProDyVersion']
 class Quiet(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import prody
-        prody.setVerbosity('warning')
+        prody.LOGGER.verbosity = 'warning'
 
 class UsageExample(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
