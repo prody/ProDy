@@ -102,7 +102,7 @@ SELECTION_TESTS = {'pdb3mht':
                      ('bridge', 0),
                      ('bend', 0),
                      ('coil', 1222),],
-     'woutand':     [('coil protein', 1222),
+     'without_and': [('coil protein', 1222),
                      ('sidechain sc protein', 1297),
                      ('bbfull bb', 1308),
                      ('(charged basic)', 450),
@@ -116,7 +116,8 @@ SELECTION_TESTS = {'pdb3mht':
                      ('noh hetero (water)', None),
                      ('(water) hetero', None),
                      # ('ca abs(beta) = beta + abs(0)', None), # handle this
-                     ('abs(beta) = beta + abs(0) ca', None),], 
+                     ('abs(beta) = beta + abs(0) ca', None),],
+     'not_intended':[('abs beta = beta', 3211)],
      'string':      [('name P', 24),
                      ('name P CA', 352),
                      ('name `A 1`', 0), 

@@ -338,6 +338,14 @@ from prody.kdtree import KDTree
 
 DEBUG = 0
 
+def debug(sel, loc, *args):
+    
+    if DEBUG:
+        print(repr(sel))
+        print(' ' * (loc + 1) + '^')
+        if args:
+            print(args[0], args[1:])
+
 __all__ = ['Select', 'SelectionError', 'TypoWarning',
            'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
            'isSelectionMacro']
@@ -785,8 +793,7 @@ class Select(object):
         self._selstr = selstr
         self._kwargs = kwargs
         
-        if DEBUG:
-            print('getBoolArray', selstr)
+        if DEBUG: print('getBoolArray', selstr)
             
         self._evalAtoms(atoms)
             
@@ -1011,7 +1018,7 @@ class Select(object):
         selection string, e.g. ``'index 5'``, or part of a selection string 
         in parentheses, e.g. for ``'index 5'`` in ``'within 5 of (index 5)'``.
         """
-        if DEBUG: print('_defaulAction', tkns)
+        debug(sel, loc, '_defaulAction', tkns)
         
         if isinstance(tkns[0], ndarray):
             return tkns[0]
@@ -1083,7 +1090,7 @@ class Select(object):
         """Evaluates statements in a selection string, e.g. ``'calpha'``,
         ``'index 5'``."""
         
-        if DEBUG: print('_evaluate', tkns)
+        debug(sel, loc, '_evaluate', tkns)
         
         if isinstance(tkns, str):
             # NOT ENCOUNTERED
@@ -1455,7 +1462,7 @@ class Select(object):
     def _getNumeric(self, sel, loc, arg, copy=False):
         """Return numeric data or a number."""
 
-        if DEBUG: print('_getNumeric', arg)
+        debug(sel, loc, '_getNumeric', arg)
 
         # arg may be an array, a string, or a regular expression 
         try:
@@ -1527,7 +1534,7 @@ class Select(object):
         """Perform comparison."""
         
         tokens = tokens[0]
-        if DEBUG: print('_comp', tokens)
+        debug(sel, loc, '_comp', tokens)
         flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
         
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
@@ -1591,7 +1598,7 @@ class Select(object):
         """Perform binary operation."""
         
         tokens = tokens[0]
-        if DEBUG: print('_binop', tokens)
+        debug(sel, loc, '_binop', tokens)
         flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
         
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
@@ -1635,7 +1642,7 @@ class Select(object):
         and numeric atom attributes."""
         
         tokens = tokens[0]
-        if DEBUG: print('_pow', tokens)
+        debug(sel, loc, '_pow', tokens)
         flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
 
         base, none = self._getNumeric(sel, loc, tokens.pop(0))
@@ -1663,7 +1670,7 @@ class Select(object):
         """Change the sign of a selection argument."""
         
         tokens = tokens[0]
-        if DEBUG: print('_sign', tokens)
+        debug(sel, loc, '_sign', tokens)
         flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
         
         if len(tokens) != 2:
@@ -1686,14 +1693,14 @@ class Select(object):
         """Evaluate functions used in selection strings."""
         
         tokens = list(tokens[0])
-        if DEBUG: print('_func', tokens)
+        debug(sel, loc, '_func', tokens)
         
         if len(tokens) != 2:
             raise SelectionError(sel, loc, '{0:s} accepts a single numeric '
                              'argument, e.g. {0:s}(x)'.format(repr(tokens[0])))
         arg, none = self._getNumeric(sel, loc, tokens[1])
         if none is not None: raise none
-
+        debug(sel, loc, tokens[0], arg)
         return FUNCTION_MAP[tokens[0]](arg)
 
     def _evalNumeric(self, sel, loc, token):
