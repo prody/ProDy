@@ -986,7 +986,7 @@ class AtomGroup(Atomic):
             except KeyError:
                 return None
             else:
-                return getattr(self, 'get' + field.meth_pl)()
+                return getattr(self, '_get' + field.meth_pl)()
 
     def isData(self, label):
         """Deprecated, use :meth:`isDataLabel` instead."""
