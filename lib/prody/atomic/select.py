@@ -309,27 +309,29 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import re as RE
+from code import interact
 from types import NoneType
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
-from numpy import invert, unique, concatenate, all
+from numpy import invert, unique, concatenate, all, any
+from numpy import logical_and 
 
 import pyparsing as pp
 pp.ParserElement.enablePackrat()
 
 from prody import LOGGER, SETTINGS
 
-from atomic import Atomic
-from fields import ATOMIC_FIELDS
-from flags import PLANTERS as FLAG_PLANTERS
+from .atomic import Atomic
+from .fields import ATOMIC_FIELDS
+from .flags import PLANTERS as FLAG_PLANTERS
 
-from atomgroup import AtomGroup 
-from chain import Chain, getSequence, AAMAP
-from pointer import AtomPointer
-from selection import Selection
-from segment import Segment
-from atommap import AtomMap
+from .atomgroup import AtomGroup 
+from .chain import Chain, getSequence, AAMAP
+from .pointer import AtomPointer
+from .selection import Selection
+from .segment import Segment
+from .atommap import AtomMap
 
 from prody.utilities import rangeString
 from prody.kdtree import KDTree
@@ -345,6 +347,9 @@ SRE_Pattern = type(RE.compile('C.*'))
 DTYPES_NUMERIC = set([np.int, np.int8, np.int16, np.int32, np.int64, np.float, 
                       np.float16, np.float32, np.float64])
 
+
+EXCMSG_NUMERIC = ('{0:s} must be a number or a label for numeric data that is '
+                  'present or that can be calculated')
 
 KEYWORDS_STRING = set(['name', 'type', 'resname', 'chain', 'element', 
                        'segment', 'altloc', 'secondary', 'icode',
@@ -399,19 +404,22 @@ FUNCTION_MAP = {
 }
     
 BINOP_MAP = {
-    '+'  : lambda a, b: a + b,
-    '-'  : lambda a, b: a - b,
-    '*'  : lambda a, b: a * b,
-    '/'  : lambda a, b: a / b,
-    '%'  : lambda a, b: a % b,
-    '>'  : lambda a, b: a > b,
-    '<'  : lambda a, b: a < b,
-    '>=' : lambda a, b: a >= b,
-    '<=' : lambda a, b: a <= b,
-    '='  : lambda a, b: a == b,
-    '==' : lambda a, b: a == b,
-    '!=' : lambda a, b: a != b,
+    '+'  : np.add,
+    '-'  : np.subtract,
+    '*'  : np.multiply,
+    '/'  : np.divide,
+    '%'  : np.remainder,
+    '>'  : np.greater,
+    '<'  : np.less,
+    '>=' : np.greater_equal,
+    '<=' : np.less_equal,
+    '='  : np.equal,
+    '==' : np.equal,
+    '!=' : np.not_equal,
 }
+
+COMPARISON = set(['>', '<', '>=', '=', '==', '!=', '<='])
+
     
 AND = '&&&'
 NOT = '!!!'
@@ -714,8 +722,8 @@ class Select(object):
              [(functions, 1, pp.opAssoc.RIGHT, self._func),
               (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
               (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
-              (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._mul),
-              (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._add),
+              (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._binop),
+              (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._binop),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
               (pp.Keyword(NOT) |
                pp.Regex('(ex)?bonded to') |
@@ -1188,7 +1196,7 @@ class Select(object):
             if len(arrays) == 1:
                 selection = arrays[0]
             else:
-                selection = np.any(arrays, 0, arrays[0])
+                selection = any(arrays, 0, arrays[0])
             if tokens:
                 evalonly = invert(selection).nonzero()[0]
         
@@ -1442,96 +1450,166 @@ class Select(object):
             if DEBUG: print('_bondedto repeat', i+1, 'selected', len(which))
         return torf
     
-    def _comp(self, sel, loc, tokens):
-        """Perform numeric comparisons. Expected operands are numbers 
-        and numeric atom attributes."""
-        
-        if DEBUG: print('_comp', tokens)
-        tokens = tokens[0]
-        if len(tokens) >= 3 and len(tokens) % 2 != 1:
-            raise SelectionError(sel, loc, 'each comparison must have exactly '
-                                 'two operands')
-        i = 1
-        left = self._evalNumeric(sel, loc, tokens[0])
-        if DEBUG: print('_comp left', left)
-        if isinstance(left, SelectionError):
-            raise left
-        result = None
-        while i < len(tokens): 
-            comp = tokens[i]
-            right = self._evalNumeric(sel, loc, tokens[i + 1])
-            if DEBUG: print('_comp right', right)
-            if isinstance(right, SelectionError):
-                raise right
-            if result is None:
-                result = BINOP_MAP[comp](left, right)
+    def _getNumeric(self, sel, loc, arg, copy=False):
+        """Return numeric data or a number."""
+
+        if DEBUG: print('_getNumeric', arg)
+
+        # arg may be an array, a string, or a regular expression 
+        try:
+            dtype, ndim = arg.dtype, arg.ndim
+        except AttributeError:
+            pass
+        else:
+            # i don't expect that a string array may shop up
+            if dtype == bool:
+                return None, SelectionError(sel, loc,
+                            'operands must be numbers or numeric data labels')
             else:
-                result *= BINOP_MAP[comp](left, right)
-            left = right
-            i += 2
-        return result
+                return arg, None
+        
+        # no regular expressions
+        try:
+            pattern = arg.pattern
+        except AttributeError:
+            pass
+        else:
+            return None, SelectionError(sel, sel.index(pattern, loc),
+                              'regular expressions cannot be numeric operands')
+        
+        if arg in XYZMAP:
+            coords = self._getCoordsNew() # how about atoms._getCoords() ?
+            if coords is None:
+                return None, SelectionError(sel, loc, 
+                                            'coordinates are not set')
+            else:
+                if copy:
+                    return coords[:, XYZMAP[arg]].copy(), None
+                else:
+                    return coords[:, XYZMAP[arg]], None
+
+        try:
+            if copy:
+                data = self._atoms.getData(arg)
+            else:
+                data = self._atoms._getData(arg)
+        except Exception as err:
+            return None, SelectionError(sel, loc, '{0:s} must be a '
+                    'number or a label for numeric data that is '
+                    'present or that can be calculated ({1:s})'
+                    .format(repr(arg), str(err)))
+
+        if data is not None:
+            return data, None
+
+        if arg == 'index':
+            try:
+                if copy:
+                    return self._atoms.getIndices(), None
+                else:
+                    return self._atoms._getIndices(), None
+            except AttributeError:
+                return arange(self._atoms.numAtoms()), None
+            
+        try:
+            return float(arg), None
+        except Exception as err:
+            return None, SelectionError(sel, loc, '{0:s} must be a '
+                    'number or a label for numeric data that is '
+                    'present or that can be calculated ({1:s})'
+                    .format(repr(arg), str(err)))
+
+            
+    def _comp(self, sel, loc, tokens):
+        """Perform comparison."""
+        
+        tokens = tokens[0]
+        if DEBUG: print('_comp', tokens)
+        
+        if len(tokens) >= 3 and len(tokens) % 2 != 1:
+            raise SelectionError(sel, loc, 
+                                 'invalid number of operators and operands')
+        token = tokens.pop(0)
+        left, none = self._getNumeric(sel, loc, token)
+        if none is not None: raise none
+
+        result = None
+        while tokens:
+            try:
+                binop = BINOP_MAP[tokens.pop(0)]
+            except KeyError:
+                raise SelectionError(sel, loc, 'invalid operator encountered')
+            
+            right, none = self._getNumeric(sel, loc, tokens.pop(0))
+            if none is not None: raise none
+
+            if DEBUG: print(binop, left, right)
+            if result is None:
+                result = binop(left, right)
+            else:
+                logical_and(binop(left, right), result, result)
+        return result     
+     
+        
+    def _binop(self, sel, loc, tokens):
+        """Perform binary operation."""
+        
+        tokens = tokens[0]
+        if DEBUG: print('_binop', tokens)
+        
+        if len(tokens) >= 3 and len(tokens) % 2 != 1:
+            raise SelectionError(sel, loc, 'invalid number of items')
+        left, none = self._getNumeric(sel, loc, tokens.pop(0), copy=True)
+        if none is not None: raise none
+
+        while tokens:
+            binop = tokens.pop(0)
+            if binop not in BINOP_MAP:
+                raise SelectionError(sel, loc, 'invalid operator encountered')
+            
+            right, none = self._getNumeric(sel, loc, tokens.pop(0))
+            if none is not None: raise none
+            
+            if DEBUG: print(binop, left, right)
+            if binop == '/' and any(right == 0.0):
+                raise SelectionError(sel, loc, 'zero division error')
+            binop = BINOP_MAP[binop]
+
+            try:
+                ndim = left.ndim
+            except:
+                left = binop(left, right)
+            else:
+                # ndim must not be zero for in place operation
+                if ndim:
+                    binop(left, right, left)
+                else:
+                    left = binop(left, right)
+
+        return left
 
     def _pow(self, sel, loc, tokens):
         """Perform power operation. Expected operands are numbers 
         and numeric atom attributes."""
         
-        if DEBUG: print('_pow', tokens)
         tokens = tokens[0]
-        base = self._evalNumeric(sel, loc, tokens.pop(0))
-        if isinstance(base, SelectionError):
-            raise base
-        power = self._evalNumeric(sel, loc, tokens.pop())
-        if isinstance(power, SelectionError):
-            raise power
-        tokens.pop()
+        if DEBUG: print('_pow', tokens)
+
+        base, none = self._getNumeric(sel, loc, tokens.pop(0))
+        if none is not None: raise none
+        power, none = self._getNumeric(sel, loc, tokens.pop())
+        if none is not None: raise none
+                
+        if tokens.pop() not in ('^', '**'):
+            raise SelectionError(sel, loc, 'invalid power operator')
         while tokens:
-            number = self._evalNumeric(sel, loc, tokens.pop()) 
-            if isinstance(number, SelectionError):
-                raise number
-            power = number * power
-            tokens.pop()
+            number, none = self._getNumeric(sel, loc,   tokens.pop())
+            if none is not None: raise none
+            power = number ** power
+            if tokens.pop() not in ('^', '**'):
+                raise SelectionError(sel, loc, 'invalid power operator')
         return base ** power
 
-    def _add(self, sel, loc, tokens):
-        """Perform addition operations. Expected operands are numbers 
-        and numeric atom attributes."""
-        
-        if DEBUG: print('_add', tokens)
-        tokens = tokens[0]
-        left = self._evalNumeric(sel, loc, tokens.pop(0))
-        if isinstance(left, SelectionError):
-            raise left
-        while tokens:
-            op = tokens.pop(0)
-            right = self._evalNumeric(sel, loc, tokens.pop(0))
-            if isinstance(right, SelectionError):
-                raise right
-            left = BINOP_MAP[op](left, right)
-        if DEBUG: print('_add total', left)
-        return left
- 
-    def _mul(self, sel, loc, tokens):
-        """Perform multiplication operations. Expected operands are numbers 
-        and numeric atom attributes."""
-        
-        if DEBUG: print('_mul', tokens)
-        tokens = tokens[0]
-        left = self._evalNumeric(sel, loc, tokens[0])
-        if isinstance(left, SelectionError):
-            raise left
-        i = 1
-        while i < len(tokens):
-            op = tokens[i]
-            i += 1
-            right = self._evalNumeric(sel, loc, tokens[i])
-            if isinstance(right, SelectionError):
-                raise right
-            i += 1
-            if op == '/' and right == 0.0: 
-                raise SelectionError(sel, loc, 'zero division error')
-            left = BINOP_MAP[op](left, right)
-        return left
-    
     def _sign(self, sel, loc, tokens):
         """Change the sign of a selection argument."""
         
@@ -1539,12 +1617,12 @@ class Select(object):
         if DEBUG: print('_sign', tokens)
         
         if len(tokens) != 2:
-            raise SelectionError(sel, loc, "sign operators (+/-) must be "
-                             "followed by single keyword, e.g. '-x', '-beta'")
-        arg = self._evalNumeric(sel, loc, tokens[1])
-        if arg is None:
-            raise SelectionError(sel, loc, "sign operators (+/-) must be "
-                         "followed by a numeric keyword, e.g. '-x', '-beta'")
+            raise SelectionError(sel, loc, 
+                                 'sign operators (+/-) must be followed '
+                                 'by single keyword, e.g. "-x", "-beta"')
+        arg, none = self._getNumeric(sel, loc, tokens[1])
+        if none is not None: raise none
+        
         if tokens[0] == '-':
             return -arg
         return arg
@@ -1552,23 +1630,16 @@ class Select(object):
     def _func(self, sel, loc, tokens):
         """Evaluate functions used in selection strings."""
         
-        if DEBUG: print('_func', tokens)
         tokens = list(tokens[0])
+        if DEBUG: print('_func', tokens)
         
         if len(tokens) != 2:
-            raise SelectionError(sel, loc, '{0:s} is unary function and '
-                                 'accepts a single numeric argument, e.g. '
-                                 '{0:s}(x)'.format(tokens[0]))
-        arg = tokens[1]
-        if not isinstance(arg, (ndarray, float)):
-            arg = self._evaluate(sel, loc, arg)
-         
-        if (isinstance(arg, float) or isinstance(arg, ndarray) and 
-            arg.dtype in (float, int)):
-            return FUNCTION_MAP[tokens[0]](arg)
-        else:
-            raise SelectionError(sel, loc, '{0:s} accepts only numeric '
-                                 'arguments, e.g. {0:s}(x)'.format(tokens[0]))
+            raise SelectionError(sel, loc, '{0:s} accepts a single numeric '
+                             'argument, e.g. {0:s}(x)'.format(repr(tokens[0])))
+        arg, none = self._getNumeric(sel, loc, tokens[1])
+        if none is not None: raise none
+
+        return FUNCTION_MAP[tokens[0]](arg)
 
     def _evalNumeric(self, sel, loc, token):
         """Evaluate a number operand or a numeric keyword."""
@@ -1924,7 +1995,7 @@ class Select(object):
     
     def _getCoords(self, sel, loc):
         """Return coordinates of selected atoms.  This method is reduces array 
-        copy operations when :class:`~.AtomPointer` subclasses are used for
+        copy operations when :class:`.AtomPointer` subclasses are used for
         making atom selections."""
         
         if self._coords is None:
@@ -1932,3 +2003,11 @@ class Select(object):
             if self._coords is None:
                 return SelectionError(sel, loc, 'coordinates are not set')
         return self._coords
+
+    def _getCoordsNew(self):
+        """Return coordinates of atoms."""
+        
+        if self._coords is None:
+            self._coords = self._atoms._getCoords()
+        return self._coords
+
