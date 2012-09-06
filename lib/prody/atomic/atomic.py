@@ -138,14 +138,16 @@ class Atomic(object):
         
         for label in ag.getDataLabels():
             if label in READONLY:
-                continue
-            new.setData(label, this.getData(label))
+                if readonly:
+                    new._data[label] = this.getData(label)   
+            else:
+                new.setData(label, this.getData(label))
                 
-        if readonly:
-            for label in READONLY:
-                data = this.getData(label)
-                if data is not None:
-                    new._data[label] = data
+        #if readonly:
+        #    for label in READONLY:
+        #        data = this.getData(label)
+        #        if data is not None:
+        #            new._data[label] = data
         
         skip_flags = set()
         for label in ag.getFlagLabels():
