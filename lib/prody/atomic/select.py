@@ -1487,20 +1487,23 @@ class Select(object):
                     return coords[:, XYZMAP[arg]].copy(), None
                 else:
                     return coords[:, XYZMAP[arg]], None
-
+        
         try:
             if copy:
                 data = self._atoms.getData(arg)
             else:
                 data = self._atoms._getData(arg)
         except Exception as err:
-            return None, SelectionError(sel, loc, '{0:s} must be a '
-                    'number or a label for numeric data that is '
-                    'present or that can be calculated ({1:s})'
-                    .format(repr(arg), str(err)))
+            return None, SelectionError(sel, loc, 'following exception '
+                        'occurred when evaluating {0:s}: {1:s}'
+                        .format(repr(arg), str(err)))
 
         if data is not None:
-            return data, None
+            if str(data.dtype).startswith('|S'):
+                return None, SelectionError(sel, loc, '{0:s} is not a numeric '
+                        'data label'.format(repr(arg)))
+            else:
+                return data, None
 
         if arg == 'index':
             try:
@@ -1514,11 +1517,9 @@ class Select(object):
         try:
             return float(arg), None
         except Exception as err:
-            return None, SelectionError(sel, loc, '{0:s} must be a '
-                    'number or a label for numeric data that is '
-                    'present or that can be calculated ({1:s})'
-                    .format(repr(arg), str(err)))
-
+            return None, SelectionError(sel, loc, '{0:s} is not a number or a '
+                    'numeric data label'
+                    .format(repr(arg), ))
             
     def _comp(self, sel, loc, tokens):
         """Perform comparison."""
