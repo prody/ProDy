@@ -1526,7 +1526,7 @@ class Select(object):
         
         tokens = tokens[0]
         if DEBUG: print('_comp', tokens)
-        flags, tokens = self._getFlags(sel, loc, tokens)
+        flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
         
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(sel, loc, 
@@ -1550,32 +1550,47 @@ class Select(object):
                 result = binop(left, right)
             else:
                 logical_and(binop(left, right), result, result)
-        
+        if flags_end:
+            flags.extend(flags_end)
         for flag in flags:
-            logical_and(self._atoms._getFlags(flag), result, result)
+            try:
+                assert flag.dtype == bool, 'flag.dtype is not bool'
+            except AttributeError:
+                logical_and(self._atoms._getFlags(flag), result, result)
+            else:
+                logical_and(flag, result, result)
         return result     
      
     def _getFlags(self, sel, loc, tokens):
         """Return flags and rest of tokens."""
 
         isFlagLabel = self._atoms.isFlagLabel
-        flags = []
+        flags_beg = []
         while True:
             try:
-                if isFlagLabel(tokens[0]):
-                    flags.append(tokens.pop(0))
+                if isFlagLabel(tokens[0]) or tokens[0].dtype == bool:
+                    flags_beg.append(tokens.pop(0))
                 else:
                     break
-            except TypeError:
+            except (TypeError, AttributeError):
                 break
-        return flags, tokens 
+        flags_end = []
+        while True:
+            try:
+                if isFlagLabel(tokens[-1]) or tokens[-1].dtype == bool:
+                    flags_end.append(tokens.pop())
+                else:
+                    break
+            except (TypeError, AttributeError):
+                break
+        return flags_beg, tokens, flags_end 
         
     def _binop(self, sel, loc, tokens):
         """Perform binary operation."""
         
         tokens = tokens[0]
         if DEBUG: print('_binop', tokens)
-        flags, tokens = self._getFlags(sel, loc, tokens)
+        flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
         
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(sel, loc, 'invalid number of items')
@@ -1606,8 +1621,9 @@ class Select(object):
                 else:
                     left = binop(left, right)
 
-        if flags:
+        if flags or flags_end:
             flags.append(left)
+            flags.extend(flags_end)
             return flags
         else:
             return left
@@ -1618,7 +1634,7 @@ class Select(object):
         
         tokens = tokens[0]
         if DEBUG: print('_pow', tokens)
-        flags, tokens = self._getFlags(sel, loc, tokens)
+        flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
 
         base, none = self._getNumeric(sel, loc, tokens.pop(0))
         if none is not None: raise none
@@ -1634,8 +1650,9 @@ class Select(object):
             if tokens.pop() not in ('^', '**'):
                 raise SelectionError(sel, loc, 'invalid power operator')
         
-        if flags:
+        if flags or flags_end:
             flags.append(base ** power)
+            flags.extend(flags_end)
             return flags
         else:
             return base ** power
@@ -1645,7 +1662,7 @@ class Select(object):
         
         tokens = tokens[0]
         if DEBUG: print('_sign', tokens)
-        flags, tokens = self._getFlags(sel, loc, tokens)
+        flags, tokens, flags_end = self._getFlags(sel, loc, tokens)
         
         if len(tokens) != 2:
             raise SelectionError(sel, loc, 
@@ -1656,8 +1673,9 @@ class Select(object):
         
         if tokens[0] == '-':
             arg =  -arg
-        if flags:
+        if flags or flags_end:
             flags.append(arg)
+            flags.extend(flags_end)
             return flags
         else:
             return arg
