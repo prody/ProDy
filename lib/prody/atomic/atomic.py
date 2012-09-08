@@ -22,7 +22,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import all, zeros
+from numpy import all, arange, zeros
 
 from prody import LOGGER
 
@@ -88,6 +88,27 @@ class Atomic(object):
                                                  ' from ' + str(self))
                         else:
                             return None
+                elif name == 'all':
+                    try:
+                        ag = self.getAtomGroup()
+                    except AttributeError:
+                        ag = self
+                        selstr = name
+                        return Selection(ag, arange(self.numAtoms()), 'all', 
+                                         self._acsi, unique=True)
+                    else:
+                        try:
+                            dummies = self.numDummies()
+                        except AttributeError:
+                            return Selection(ag, self.getIndices(), 
+                                             self.getSelstr(), 
+                                             self._acsi, unique=True)
+                        else:
+                            return AtomMap(ag, self.getIndices(), self._acsi, 
+                                           intarrays=True, dummies=dummies,
+                                           title=self.getTitle())
+                elif name == 'none': 
+                    return None
                 else:
                     selstr = name
                     items = name.split('_')
