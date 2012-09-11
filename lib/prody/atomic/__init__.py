@@ -183,18 +183,16 @@ import functions
 import atomgroup
 import selection
 
-from atomgroup import SELECT
 from chain import AAMAP, getSequence
 
 __all__.extend(functions.__all__)
 __all__.extend(select.__all__)
 __all__.extend(flags.__all__)
 
-from select import checkSelstr, isKeyword, isSelectionMacro
+from select import checkSelstr, isSelectionMacro
 
-atomic.SELECT = atomgroup.SELECT = selection.SELECT = SELECT = Select()
+atomic.SELECT = selection.SELECT = SELECT = Select()
 atomic.isSelectionMacro = isSelectionMacro
-atomic.isKeyword = isKeyword
 atomic.AtomMap = AtomMap
 atomic.AtomGroup = AtomGroup
 atomic.Selection = Selection

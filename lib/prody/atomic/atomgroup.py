@@ -252,8 +252,6 @@ __all__ = ['AtomGroup']
 
 if PY2K: range = xrange
 
-SELECT = None
-
 def checkLabel(label):
     """Check suitability of *label* for labeling user data or flags."""
     
@@ -620,7 +618,7 @@ class AtomGroup(Atomic):
     def _getSN2I(self):
         """Return a mapping of serial numbers to indices."""
         
-        if self._sn2i is None:
+        if self._sn2i is None and 'serial' in self._data:
             serials = self._data['serial']  
             if serials is None:
                 raise AttributeError('atom serial numbers are not set')
@@ -1166,6 +1164,8 @@ class AtomGroup(Atomic):
         if serial < 0:
             raise ValueError('serial must be greater than or equal to zero')
         sn2i = self._getSN2I()
+        if sn2i is None:
+            raise ValueError('serial numbers are not set')
         if stop is None:
             if serial < len(sn2i):
                 index = sn2i[serial]

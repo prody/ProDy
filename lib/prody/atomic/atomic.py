@@ -34,8 +34,8 @@ from .fields import ATOMIC_FIELDS, READONLY
 __all__ = ['Atomic']
 
 SELECT = None
-isKeyword = None
 isSelectionMacro = None
+NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
 class Atomic(object):
     
@@ -113,8 +113,8 @@ class Atomic(object):
                     selstr = name
                     items = name.split('_')
                     word = items[0]
-                    if (isKeyword(word) or word == 'not' or 
-                        isSelectionMacro(word) or self.isDataLabel(word)):
+                    if (self.isFlagLabel(word) or self.isDataLabel(word) or
+                        word in NOTALLNONE or isSelectionMacro(word)):
                         selstr = ' '.join(items)
                         return SELECT.select(self, selstr)
 
