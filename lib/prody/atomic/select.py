@@ -315,7 +315,7 @@ from types import NoneType
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
 from numpy import invert, unique, concatenate, all, any
-from numpy import logical_and, logical_or, floor, ceil
+from numpy import logical_and, logical_or, floor, ceil, where
 
 import pyparsing as pp
 
@@ -693,7 +693,7 @@ class Select(object):
         self._evalmap = {'resnum': self._resnum, 'resid': self._resnum, 
             'serial': self._serial, 'index': self._index,
             'x': self._generic, 'y': self._generic, 'z': self._generic,
-            'sequence': self._sequence}
+            'sequence': self._sequence, 'fragment': self._generic}
         
     def _reset(self):
 
@@ -771,9 +771,12 @@ class Select(object):
             else:
                 if self._replace:
                     for key, value in kwargs.iteritems():
-                        if value in self._ag and key in selstr:
-                            selstr = selstr.replace(key, 
-                                                '(' + value.getSelstr() + ')')
+                        if value in ag and key in selstr:
+                            if value == ag:
+                                ss = 'all'
+                            else:
+                                ss = value.getSelstr()
+                            selstr = selstr.replace(key, '(' + ss + ')')
                 if isinstance(atoms, AtomPointer):
                     selstr = '({0:s}) and ({1:s})'.format(selstr, 
                                                       atoms.getSelstr())
@@ -890,65 +893,26 @@ class Select(object):
             print('_select', torf)
         return torf
 
+    def _getZeros(self, subset=None):
         
-    def _default(self, sel, loc, tokens, subset=None):
+        if subset is None:
+            return zeros(self._atoms.numAtoms(), bool)
+        else:
+            return zeros(len(subset), bool)
+        
+    def _default(self, sel, loc, tokens):
         
         debug(sel, loc, '_default', tokens)
         if NUMB: return
-        
-        if subset != None:
-            # is neeeded
-            raise SelectionError(sel, loc, 'susbet is not None')
 
         if len(tokens) == 1:
-            token = tokens[0]
-            try:
-                dtype = token.dtype
-            except AttributeError:
-                pass
-            else:
-                return token
-            
-            if token == 'none':
-                return zeros(self._n_atoms if subset is None else len(subset), 
-                              bool)
-            elif token == 'all':
-                return ones(self._n_atoms if subset is None else len(subset), 
-                            bool)
-            elif self._atoms.isFlagLabel(token):
-                return self._getFlags(token, subset)
-            try: 
-                arg = self._kwargs[first]
-            except KeyError:
-                pass
-            else:
-                if arg in self._ag:
-                    
-                    try:
-                        dummies = arg.numDummies()
-                    except AttributeError:
-                        indices = arg._getIndices()
-                    else:
-                        if dummies:
-                            indices = arg.getIndices()[arg.getFlags('mapped')]
-                        else:
-                            indices = arg.getIndices()
-                            
-                    torf = zeros(self._ag.numAtoms(), bool)
-                    torf[indices] = True
-                    if self._indices is not None:
-                        torf = torf[self._indices]
-                    self._replace = True
-                    if DEBUG: print('_evaluate', first, torf)
-                    return torf
-                return first
-            try:
-                return float(first)
-            except ValueError:
-                pass
+            torf, err = self._eval(sel, loc, tokens)
+            if err: raise err
+            return torf
         else:
-            # is neeeded
-            raise SelectionError(sel, loc, '_default len(tokens) > 1')
+            torf, err = self._and2(sel, loc, tokens)
+            if err: raise err
+            return torf
     
     
     def _eval(self, sel, loc, tokens, subset=None):
@@ -960,52 +924,76 @@ class Select(object):
         #    return tokens
 
         if len(tokens) == 1:
+            
             token = tokens[0]
+            try:
+                dtype = token.dtype
+            except AttributeError:
+                pass
+            else:
+                return token, False
+            
             if token == 'none':
                 return zeros(self._n_atoms if subset is None else len(subset), 
                               bool), False
             elif token == 'all':
                 return ones(self._n_atoms if subset is None else len(subset), 
                             bool), False
+
             elif self._atoms.isFlagLabel(token):
                 return self._getFlags(token, subset), False
+
+            elif self._atoms.isDataLabel(token):
+                data, err = self._getData(sel, loc, token)
+                if subset is None:
+                    return data, False
+                else:
+                    return None, SelectionError(sel, loc, 'subset??')
+                    return data[subset], False
+
             try: 
-                arg = self._kwargs[first]
+                arg = self._kwargs[token]
             except KeyError:
-                pass
-            else:
-                if arg in self._ag:
+                try:
+                    return float(token), False
+                except ValueError:
                     
+                    data, err = self._getData(sel, loc, token)
+                    if data is not None:
+                        return data, False
+                    
+                    if token in ATOMIC_FIELDS:
+                        return None, SelectionError(sel, loc, '{0:s} data is '
+                            'not found'.format(repr(token)), [token])
+                    else:
+                        return None, SelectionError(sel, loc, '{0:s} could '
+                            'not be evaluated'.format(repr(token)), [token])
+            else:
+                ag = self._ag
+                if arg in ag:
                     try:
                         dummies = arg.numDummies()
                     except AttributeError:
-                        indices = arg._getIndices()
+                        try:
+                            indices = arg._getIndices()
+                        except AttributeError:
+                            indices = arange(ag.numAtoms())
                     else:
                         if dummies:
-                            indices = arg.getIndices()[arg.getFlags('mapped')]
+                            indices = arg._getIndices()[arg.getFlags('mapped')]
                         else:
-                            indices = arg.getIndices()
+                            indices = arg._getIndices()
                             
                     torf = zeros(self._ag.numAtoms(), bool)
                     torf[indices] = True
                     if self._indices is not None:
                         torf = torf[self._indices]
                     self._replace = True
-                    if DEBUG: print('_evaluate', first, torf)
                     return torf, False
-                return first, False
-            try:
-                return float(first), False
-            except ValueError:
-                pass
+                return token, False
         else:
-            return self._evalmap.get(tokens[0], self._generic)(sel, loc, 
-                                                               tokens, subset)
-            
-            #if self._atoms.isFlagLabel(tokens[0]):
-            #    torf = self._getFlags(tokens.pop(0), subset)
-            #    return logical_and(torf, self._eval(sel, loc, tokens, subset), 
-            #                       torf), False
+            return self._evalmap.get(tokens[0], self._generic)(
+                                            sel, loc, tokens, subset)
                 
     def _getFlags(self, label, subset):
         
@@ -1014,154 +1002,11 @@ class Select(object):
             return self._atoms.getFlags(label)
         else:
             return self._atoms._getFlags(label)[subset]
-        
-    
-    def _dontevaluate(self, sel, loc, tkns, evalonly=None):
-        """Evaluates statements in a selection string, e.g. ``'calpha'``,
-        ``'index 5'``."""
-        
-        debug(sel, loc, '_evaluate', tkns)
-        
-        if isinstance(tkns, str):
-            # NOT ENCOUNTERED
-            #with open('/home/abakan/evaluate.txt', 'a') as out:
-            #    out.write('STRING ' + sel + '\n')
-            if DEBUG: print('_evaluate', 'STRING STRING STRING STRING', tkns)
-            if tkns == 'none':
-                return zeros(self._n_atoms, bool)
-            if self._atoms.isFlagLabel(tkns):
-                if evalonly is None:
-                    return self._atoms.getFlags(tkns) # get a copy of flags
-                else:
-                    return self._atoms._getFlags(tkns)[evalonly]
-            elif self._ag.isDataLabel(tkns):
-                return self._evalUserdata(sel, loc, tkns, evalonly=evalonly)
-            else:
-                return SelectionError(sel, loc, '{0:s} is not understood'
-                                      .format(repr(tkns)))
-        elif isinstance(tkns, (ndarray, float)):
-            # NOT ENCOUNTERED
-            #with open('/home/abakan/evaluate.txt', 'a') as out:
-            #    out.write('NDARRAY ' + sel + '\n')
-            return tkns
-    
-        keyword = tkns[0]
-        if len(tkns) == 1:
-            #with open('/home/abakan/evaluate.txt', 'a') as out:
-            #    out.write('LIST ' + sel + ' - ' + str(keyword) + '\n')
-            if keyword == 'none':
-                return zeros(self._n_atoms, bool)
-            if self._atoms.isFlagLabel(keyword):
-                if evalonly is None:
-                    return self._atoms.getFlags(keyword) # get a copy of flags
-                else:
-                    return self._atoms._getFlags(keyword)[evalonly]
-            elif self._ag.isDataLabel(keyword):
-                return self._evalUserdata(sel, loc, keyword, evalonly=evalonly)
-            elif isinstance(keyword, ndarray):
-                return keyword
-            elif keyword in self._kwargs:
-                arg = self._kwargs[keyword]
-                if (isinstance(arg, AtomPointer) and
-                    arg.getAtomGroup() is self._ag and
-                    not isinstance(arg, AtomMap)):
-                    torf = zeros(self._ag.numAtoms(), bool)
-                    torf[arg._getIndices()] = True
-                    if self._indices is not None:
-                        torf = torf[self._indices]
-                    self._replace = True
-                    if DEBUG: print('_evaluate', keyword, torf)
-                    return torf
-                return keyword
-                    
-            else:
-                #with open('/home/abakan/evaluate.txt', 'a') as out:
-                #    out.write('FLOAT ' + sel + ' - ' + str(keyword) + '\n')
-                try:
-                    return float(keyword)
-                except ValueError:
-                    pass
-        elif self._atoms.isFlagLabel(keyword):
-            if evalonly is None:
-                return all((self._atoms._getFlags(keyword), 
-                            self._evaluate(sel, loc, tkns[1:])), 0)
-            else:
-                return all((self._atoms._getFlags(keyword)[evalonly], 
-                            self._evaluate(sel, loc, tkns[1:], evalonly)), 0)
-        #try: 
-        #    return self._map[keyword](sel, loc, keyword, tkns[1:], evalonly)
-        #except KeyError:
-        #    pass
-        
-        elif keyword in ('resnum', 'resid'):
-            return self._resnum(sel, loc, tkns[1:], evalonly=evalonly)
-        elif keyword == 'index':
-            return self._index(sel, loc, tkns[1:], evalonly=evalonly)
-        elif keyword == 'serial':
-            return self._serial(sel, loc, tkns[1:], evalonly=evalonly)
-        elif keyword == NOT:
-            return self._not(sel, loc, tkns, evalonly=evalonly)
-        elif self._ag.isDataLabel(keyword):
-            return self._evalUserdata(sel, loc, keyword, tkns[1:], 
-                                      evalonly=evalonly)
-        
-        return SelectionError(sel, loc, "{0:s} is not understood"
-                              .format(repr(' '.join(tkns))))
 
     def _or(self, sel, loc, tokens):
-        """Evaluate statements containing ``'or'`` operator."""
         
         debug(sel, loc, '_or', tokens)
-        if NUMB: return
-        previous = None
-        evalonly = None
-        selection = None
-        
-        tokens = splitList(tokens[0], OR)
-        n_tokens = len(tokens) - 1
-        
-        arrays = []
-        for i in xrange(n_tokens, -1, -1):
-            torf = tokens[i][0]
-            if isinstance(torf, ndarray):
-                tokens.pop(i)
-                arrays.append(torf)
-        if arrays:
-            if len(arrays) == 1:
-                selection = arrays[0]
-            else:
-                selection = any(arrays, 0, arrays[0])
-            if tokens:
-                evalonly = invert(selection).nonzero()[0]
-        
-        n_tokens = len(tokens) - 1
-        for i, tokens in enumerate(tokens):
-            if not self._isValid(tokens):
-                raise SelectionError(sel, loc, "{0:s} is not a valid usage"
-                         .format(repr(' '.join([str(tkn) for tkn in tokens]))))
-            torf = self._evaluate(sel, loc, tokens, evalonly=evalonly)
-            if isinstance(torf, SelectionError):
-                raise torf
-           
-            if evalonly is None:
-                selection = torf
-                evalonly = invert(selection).nonzero()[0]
-            else:
-                selection[evalonly[torf]] = True
-                if i < n_tokens:
-                    evalonly = evalonly[invert(torf, torf).nonzero()]
-        return selection
-
-    def _and(self, sel, loc, tokens):
-        
-        debug(sel, loc, '_and', tokens)
         tokens = tokens[0]
-        torf, err = self._and2(sel, loc, tokens)
-        if err: raise err
-        return torf        
-        
-    def _and2(self, sel, loc, tokens, subset=None):
-    
         if NUMB: return
         
         flags = []
@@ -1170,13 +1015,12 @@ class Select(object):
         atoms = self._atoms
         isFlagLabel = atoms.isFlagLabel
         isDataLabel = atoms.isDataLabel
-        generic = set(['index'])
         for token in tokens:
             # check whether token is an array to avoid array == str comparison
             try:
                 dtype = token.dtype
             except AttributeError:
-                if token == 'and':
+                if token == 'or':
                     continue
                 elif isFlagLabel(token):
                     flags.append(token)
@@ -1201,128 +1045,206 @@ class Select(object):
         if torfs:
             torf = torfs.pop(0)
             while torfs:
+                ss = where(torf == 0)[0]
+                if len(ss) == 0: return torf, False
+                torf[ss] = torfs.pop(0)[ss] 
+
+        if flags:
+            if torf is None:
+                torf = atoms.getFlags(flags.pop(0))
+            while flags:
+                ss = where(torf == 0)[0]
+                if len(ss) == 0: return torf, False
+                torf[ss] = atoms._getFlags(flags.pop(0))[ss]
+
+        if evals:
+            if torf is None:
+                torf, err = self._eval(sel, loc, evals.pop(0))
+                if err: raise err
+            while evals:
+                ss = where(torf == 0)[0]
+                if len(ss) == 0: return torf, False
+                arr, err = self._eval(sel, loc, evals.pop(0), subset=ss)
+                if err: raise err
+                torf[ss] = arr
+        
+        return torf
+
+    def _and(self, sel, loc, tokens):
+        
+        debug(sel, loc, '_and', tokens)
+        tokens = tokens[0]
+        torf, err = self._and2(sel, loc, tokens)
+        if err: raise err
+        return torf        
+        
+    def _and2(self, sel, loc, tokens, subset=None):
+    
+        debug(sel, loc, '_and2', tokens)
+        if NUMB: return
+        
+        flags = []
+        torfs = []
+        evals = []
+        atoms = self._atoms
+        isFlagLabel = atoms.isFlagLabel
+        isDataLabel = atoms.isDataLabel
+        for token in tokens:
+            # check whether token is an array to avoid array == str comparison
+            try:
+                dtype = token.dtype
+            except AttributeError:
+                if token == 'and':
+                    continue
+                elif isFlagLabel(token):
+                    flags.append(token)
+                elif (isDataLabel(token) or token in self._evalmap or
+                      token in ATOMIC_FIELDS):
+                    evals.append([])
+                    evals[-1].append(token)
+                else:
+                    try:
+                        evals[-1].append(token)
+                    except IndexError:
+                        raise SelectionError(sel, loc) 
+            else:
+                if dtype == bool:
+                    torfs.append(token)
+                else:
+                    try:
+                        evals[-1].append(token)
+                    except IndexError:
+                        raise SelectionError(sel, loc)
+        
+        torf = None
+        if torfs:
+            torf = torfs.pop(0)
+            while torfs:
                 ss = torf.nonzero()[0]
-                if not len(ss): return torf
-                torf[ss] = torfs.pop(0)[s]
+                if len(ss) == 0: return torf, False
+                torf[ss] = torfs.pop(0)[ss]
 
         if flags:
             if torf is None:
                 torf = atoms.getFlags(flags.pop(0))
             while flags:
                 ss = torf.nonzero()[0]
-                if not len(ss): return torf
+                if len(ss) == 0: return torf, False
                 torf[ss] = atoms._getFlags(flags.pop(0))[ss]
 
         if evals:
             if torf is None:
-                torf, err = self._eval(sel, loc, evals.pop(0), subset=subset)
+                tokens = evals.pop(0)
+                first = tokens[0]
+                torf, err = self._eval(sel, loc, tokens, subset=subset)
                 if err: return None, err
+                if torf.dtype != bool:
+                    return None, SelectionError(sel, loc, 'a problem occurred '
+                        'when evaluating this part', [first])
             while evals:
                 ss = torf.nonzero()[0]
-                if not len(ss): return torf
-                arr, err = self._eval(sel, loc, evals.pop(0), subset=ss)
+                if len(ss) == 0: return torf, False
+                tokens = evals.pop(0)
+                first = tokens[0]
+                arr, err = self._eval(sel, loc, tokens, subset=ss)
                 if err: return None, err
+                if torf.dtype != bool:
+                    return None, SelectionError(sel, loc, 'a problem occurred '
+                        'when evaluating this part', [first])
                 torf[ss] = arr
-                
+
         # ?? check torf.shape/ndim
         if subset is None:
             return torf, False
         else:
             return torf[subset], False
-            
-    
     
     def _unary(self, sel, loc, tokens):
 
         debug(sel, loc, '_unary', tokens)
         if NUMB: return
         tokens = tokens[0]
+        
+        err = False
+        if len(tokens) == 2:
+            which = tokens[1]
+            try:
+                dtype  = which.dtype
+            except AttributeError:
+                which, err = self._eval(sel, loc, tokens[1:])
+        else:                                
+            which, err = self._and2(sel, loc, tokens[1:])
+        if err: raise err 
+
         what = tokens[0]
+        tokens = [what, which]        
         if what == NOT:
             torf, err = self._not(sel, loc, tokens)
         elif what.startswith('same'):
             torf, err = self._sameas(sel, loc, tokens)
         elif what.endswith('to'):
-            torf, err = self._bondedto(sel, loc, tokens, what.startswith('ex'))
+            torf, err = self._bondedto(sel, loc, tokens)
         else:
-            torf, err = self._within(sel, loc, tokens, what.startswith('ex'))
+            torf, err = self._within(sel, loc, tokens)
         if err: raise err
         return torf
 
-    def _not(self, sel, loc, tokens, subset=None):
+    def _not(self, sel, loc, tokens):
         """Negate selection."""
         
         debug(sel, loc, '_not', tokens)
-        interact(local=locals())
-        
-        if len(tokens) == 1:
-            which = tokens[0]
-            try:
-                dtype  = which.dtype
-            except AttributeError:
-                which, err = self._eval(sel, loc, tokens)
-        else:                                
-            which, err = self._and2(sel, loc, tokens)
-        
-        which = int(tokens[0] == NOT)
-        if isinstance(tokens[which], ndarray):
-            torf = tokens[which]
-        else:
-            torf = self._evaluate(sel, loc, tokens[which:], evalonly=evalonly)
-            if isinstance(torf, (SelectionError, NoneType)):
-                return torf
-        invert(torf, torf)
-        return torf
+        label, torf = tokens
+        return invert(torf, torf), False
     
-    def _within(self, sel, loc, tokens, exclude):
+    def _within(self, sel, loc, tokens):
         """Perform distance based selection."""
 
         if DEBUG: print('_within', tokens)
-        within = tokens[0].split()[1]
-        try:
-            within = float(within)
-        except:
-            return SelectionError(sel, loc, '{0:s} must be a number'
-                                  .format(repr(within)))
-        if DEBUG: print('_within', within)
-        which = tokens[1]
-        if not isinstance(which, ndarray):
-            which = self._evaluate(sel, loc, tokens[1:])
-
-        if DEBUG: print('_within', which)
+        label, which = tokens
+        exclude = label.startswith('ex')
+        within = float(label.split()[1])
+        
         other = False
-        if isinstance(which, str) and which in self._kwargs:
-            coords = self._kwargs[which]
-            if DEBUG: print('_kwargs', which)
-            if isinstance(coords, ndarray):
-                if coords.ndim == 1 and len(coords) == 3:
-                    coords = np.array([coords])
-                elif not (coords.ndim == 2 and coords.shape[1] == 3):
-                    return SelectionError(sel, loc + sel.find(which), 
-                        "{0:s} is not a coordinate array".format(repr(which)))
-            else:
-                try:
-                    coords = coords.getCoords()
-                except:
-                    return SelectionError(sel, loc + sel.find(which), 
-                        "{0:s} does not have `getCoords` method"
-                        .format(repr(which)))
-                if not isinstance(coords, ndarray):
-                    return SelectionError(sel, loc +  + sel.find(which), 
-                        "coordinates of {0:s} are not set".format(repr(which)))
-            exclude=False
-            self._ss2idx = True
-            which = arange(len(coords))
-            other = True
-        elif isinstance(which, ndarray) and which.dtype == np.bool: 
-            which = which.nonzero()[0]
-            coords = self._getCoords(sel, loc)
-            if coords is None:
-                return None, SelectionError(sel, loc, 'coordinates are not '
-                                            'set')
-        else:
-            return SelectionError(sel, loc)
+        try:
+            dtype = which.dtype
+        except AttributeError:
 
+            if which in self._kwargs:
+                coords = self._kwargs[which]
+                try:
+                    ndim, shape = coords.ndim, coords.shape
+                except AttributeError:
+                    try:
+                        coords = coords._getCoords()
+                    except AttributeError:
+                        try: 
+                            coords = coords.getCoords()
+                        except AttributeError:
+                            return None, SelectionError(sel, loc, 
+                                '{0:s} must be a coordinate array or have '
+                                '`getCoords` method'.format(repr(which)),
+                                [label, which])
+                if ndim == 1 and shape[0] == 3:
+                    coords = array([coords])
+                elif not (ndim == 2 and shape[1] == 3):
+                    return None, SelectionError(sel, loc, 
+                        '{0:s} must be a coordinate array or have '
+                        '`getCoords` method'.format(repr(which)),
+                        [label, which])
+                exclude=False
+                self._ss2idx = True
+                which = arange(len(coords))
+                other = True
+        else:
+            if dtype == bool:
+                which = which.nonzero()[0]
+                coords = self._getCoords()
+                if coords is None:
+                    return None, SelectionError(sel, loc, 'coordinates are '
+                                                'not set')
+            else:                
+                return None, SelectionError(sel, loc, 'not understood')
+        
         if other or len(which) < 20:
             kdtree = self._atoms._getKDTree()
             get_indices = kdtree.getIndices
@@ -1337,11 +1259,13 @@ class Select(object):
                 torf = torf[self._indices]
             if exclude:
                 torf[which] = False
+
         else:
-            torf = ones(self._n_atoms, bool)
+            n_atoms = self._ag.numAtoms()
+            torf = ones(n_atoms, bool)
             torf[which] = False
             check = torf.nonzero()[0]
-            torf = zeros(self._n_atoms, bool)
+            torf = zeros(n_atoms, bool)
             
             cxyz = coords[check]
             kdtree = KDTree(coords[which])
@@ -1357,62 +1281,48 @@ class Select(object):
             torf[check[select]] = True
             if not exclude:
                 torf[which] = True
-        return torf
+
+        return torf, False
     
     def _sameas(self, sel, loc, tokens):
         """Evaluate ``'same entity as ...'`` expression."""
         
         debug(self, loc, '_sameas', tokens)
-        label = tokens.pop(0)
+        label, which = tokens
         what = label.split()[1]
-
         index = SAMEAS_MAP.get(what)
         if index is None:
             return None, SelectionError(sel, loc, 'entity in "same ... as" '
                 'must be one of "chain", "residue", "segment", or "fragment",'
                 ' not {0:s}'.format(repr(what)), [label])
-        err = False
-        if len(tokens) == 1:
-            which = tokens[0]
-            try:
-                dtype  = which.dtype
-            except AttributeError:
-                which, err = self._eval(sel, loc, tokens)
-        else:                                
-            which, err = self._and2(sel, loc, tokens)
-
-        if err: return None, err        
-        
-        indices = self._getData(sel, loc, index)
+       
+        indices, err = self._getData(sel, loc, index)
         iset = set(indices[which])
         torf = array([i in iset for i in indices], bool)
         return torf, None
      
-    def _bondedto(self, sel, loc, token, exclude):
+    def _bondedto(self, sel, loc, tokens):
         """Expand selection to immediately bonded atoms."""
         
-        if DEBUG: print('_bondedto', token)
-        
-        keyword = token[0].split()
-        if len(keyword) == 2:
+        debug(sel, loc, '_bondedto', tokens)
+        label, torf = tokens
+        items = label.split()
+        if len(items) == 2:
             repeat = 1
         else: 
-            repeat = int(keyword[1])
+            repeat = int(items[1])
             if repeat == 0:
-                return SelectionError(sel, loc + len('bonded '), 
-                                      'number must be a greater than zero')
-
-        torf = token[1]
-        if not isinstance(torf, ndarray):
-            torf = self._evaluate(sel, loc, token[1:])
-            if isinstance(torf, SelectionError):
-                return torf
-        which = torf.nonzero()[0]
-        if not len(which):
-            return torf
+                SelectionWarning(sel, loc, 'a number greater than zero will '
+                                 'select bonded atoms', [label, items[1]])
+                return zeros(self._atoms.numAtoms(), bool), False
+        
         bmap = self._ag._bmap
         if bmap is None:
-            return SelectionError(sel, loc, 'bonds are not set')
+            return None, SelectionError(sel, loc, 'bonds are not set',
+                                        [label])
+        which = torf.nonzero()[0]
+        if not len(which):
+            return torf, False
         
         indices = self._indices
         if indices is not None:
@@ -1427,14 +1337,14 @@ class Select(object):
                 torf[bonded] = True
             if indices is not None:
                 torf = torf[indices]
-            if exclude:
+            if label.startswith('ex'):
                 torf[which] = False
             else:
                 torf[which] = True
             if i + 1 < repeat: 
                 which = torf.nonzero()[0]
-            if DEBUG: print('_bondedto repeat', i+1, 'selected', len(which))
-        return torf
+
+        return torf, False
     
     def _getNumeric(self, sel, loc, arg, copy=False):
         """Return numeric data or a number."""
@@ -1464,7 +1374,7 @@ class Select(object):
                'operands and function arguments cannot be regular expressions')
         
         if arg in XYZ2INDEX:
-            coords = self._getCoordsNew() # how about atoms._getCoords() ?
+            coords = self._getCoords() # how about atoms._getCoords() ?
             if coords is None:
                 return None, SelectionError(sel, loc, 
                     'coordinates are not set')
@@ -1644,42 +1554,14 @@ class Select(object):
         debug(sel, loc, tokens[0], arg)
         return FUNCTIONS[tokens[0]](arg)
 
-    def _evalNumeric(self, sel, loc, token):
-        """Evaluate a number operand or a numeric keyword."""
-        
-        if DEBUG: print('_evalNumeric', token)
-        if isinstance(token, (ndarray, float)):
-            return token
-        elif token in ('resnum', 'resid'):
-            return self._resnum(sel, loc)
-        elif token == 'index':
-            return self._index(sel, loc)
-        elif token == 'serial':
-            return self._serial(sel, loc)
-        elif self._ag.isDataLabel(token):
-            data = self._getData(sel, loc, token)
-            if data.dtype in (float, int):
-                return data
-            else:
-                return SelectionError(sel, loc, "data type of {0:s} must be "
-                                      "int or float".format(repr(token)))
-                
-        else:
-            try:
-                token = float(token)
-            except ValueError:
-                pass
-            else:
-                return token
-        return SelectionError(sel, loc, "{0:s} does not have a numeric value"
-                              .format(repr(token)))
-
     def _generic(self, sel, loc, tokens, subset=None):
         
         debug(sel, loc, '_generic', tokens)
 
         label = tokens.pop(0)
-        data = self._getData(sel, loc, label)
+        data, err = self._getData(sel, loc, label)
+        if err: return None, err
+        
         if subset is not None:
             data = data[subset]
             subset = None
@@ -1726,7 +1608,9 @@ class Select(object):
             if isstr:
                 if token == '_':
                     values.append('')
-                    token = ' '
+                    values.append(' ')
+                else:
+                    values.append(token)
             else:
                 try:
                     value = type_(token)
@@ -1746,7 +1630,7 @@ class Select(object):
                             'values when converted to a float and to type of '
                             '{1:s}'.format(repr(token), repr(label)), 
                             [label, token])
-            values.append(value)
+                values.append(value)
 
         if values:
             if len(values) > 4:
@@ -1757,6 +1641,7 @@ class Select(object):
                     subset = (torf == False).nonzero()[0]
                     if len(subset) == 0: return torf, False
                     torf[subset] = data[subset] == val
+        
         if ranges:
             while ranges:
                 _, start, stop, comp = ranges.pop(0)
@@ -1773,14 +1658,18 @@ class Select(object):
                     torf[subset] = logical_and(torf[subset], 
                                        OPERATORS[comp](subdata, stop))
 
-        for re in regexp:
-            if torf is None:
-                torf = array([re.match(val) is not None for val in data], bool)
-            else:
-                subset = (torf == False).nonzero()[0]
-                if len(subset) == 0: return torf, False
-                torf[subset] = [re.match(val) is not None 
-                                for val in data[subset]]
+        if regexp:
+            for re in regexp:
+                if torf is None:
+                    torf = array([re.match(val) is not None 
+                                  for val in data], bool)
+                else:
+                    subset = (torf == False).nonzero()[0]
+                    if len(subset) == 0: return torf, False
+                    torf[subset] = [re.match(val) is not None 
+                                    for val in data[subset]]
+        if torf is None:
+            torf = self._getZeros(subset)
         return torf, False
 
     def _index(self, sel, loc, tokens, subset=None):
@@ -1946,21 +1835,21 @@ class Select(object):
         debug(sel, loc, '_resnum', tokens)
         label = tokens.pop(0)        
 
-        resnums = self._getData(sel, loc, 'resnum')
-        
+        resnums, err = self._getData(sel, loc, 'resnum')
+        if err: return None, err
         wicode = set([])
         values = ['resnum']
         for token in tokens:
 
             try:
-                token.pattern
+                pattern = token.pattern
             except AttributeError:
                 pass
             else:
-                ptrn = '"{0:s}"'.format(token.pattern)
-                SelectionWarning(sel, loc, '{0:s} is a regular '
-                    'expression and is not evaluated for {1:s}'
-                    .format(ptrn, repr(label)), [label, ptrn])
+                ptrn = '"{0:s}"'.format(pattern)
+                SelectionWarning(sel, loc, '{0:s} is a regular expression and '
+                                 'its use with {1:s} is not recommended'
+                                 .format(ptrn, repr(label)), [label, ptrn])
                 continue
 
             if token[0] == 'range':
@@ -1994,14 +1883,15 @@ class Select(object):
             torf, _ = self._generic(sel, loc, values, subset)
         
         if wicode:
-            
+            icode, err = self._getData(sel, loc, 'icode')
+            if err: return None, err
             if subset is None:
-                rnic = zip(resnums, self._getData(sel, loc, 'icode'))
+                rnic = zip(resnums, icode)
             else:
-                rnic = zip(resnums, self._getData(sel, loc, 'icode')[subset])
+                rnic = zip(resnums, icode[subset])
 
             if torf is None:
-                torf = [val in wicode for val in rnic]
+                torf = array([val in wicode for val in rnic], bool)
             else:
                 torf = logical_or(torf, array([val in wicode for val in rnic],
                                                bool), torf)
@@ -2033,17 +1923,12 @@ class Select(object):
             else:
                 regexp.append(token)
 
-        if subset is None:
-            n_atoms = atoms.numAtoms() 
-        else:
-            n_atoms = len(subset)
-
         if not regexp:
-            return zeros(n_atoms, bool), None
+            return self._getZeros(subset), None
              
         calpha = self._atoms.calpha
         if calpha is None:   
-            return zeros(n_atoms, bool), None
+            return self._getZeros(subset), None
         
         matches = ['same residue as']
         for chain in iter(HierView(calpha)):
@@ -2055,25 +1940,25 @@ class Select(object):
         if len(matches) > 1:
             return self._sameas(sel, loc, matches, subset)
         else:
-            return zeros(n_atoms, bool), None
+            return self._getZeros(subset), None
    
     def _getData(self, sel, loc, keyword):
         """Return atomic data."""
         
         data = self._data.get(keyword)
         if data is not None:
-            return data
+            return data, False
     
         try:
             idx = XYZ2INDEX[keyword]
         except KeyError:
             pass
         else:
-            data = self._getCoords(sel, loc)
+            data = self._getCoords()
             if data is not None:
                 data = data[:,idx]
                 self._data[keyword] = data
-            return data
+            return data, False
 
         if keyword == 'index':
             try:
@@ -2081,27 +1966,27 @@ class Select(object):
             except AttributeError:
                 data = arange(self._atoms.numAtoms())
             self._data['index'] = data
-            return data
+            return data, False
 
         field = ATOMIC_FIELDS.get(FIELDS_SYNONYMS.get(keyword, keyword))
         if field is None:
             data = self._atoms._getData(keyword)
             if data is None:
-                return SelectionError(sel, loc, "{0:s} is not a valid "
-                      "keyword or user data label".format(repr(keyword)))
+                return SelectionError(sel, loc, '{0:s} is not a valid data '
+                                                'label'.format(repr(keyword)))
             elif not isinstance(data, ndarray) and data.ndim == 1:
-                return SelectionError(sel, loc, "{0:s} must be a 1d "
-                                      "array".format(repr(keyword)))
+                return None, SelectionError(sel, loc, '{0:s} is not a 1d '
+                                      'array'.format(repr(keyword)))
         else:
             try:
                 data = getattr(self._atoms, '_get' + field.meth_pl)()
             except Exception as err: 
                 return SelectionError(sel, loc, str(err))
             if data is None:
-                return SelectionError(sel, loc, "{0:s} is not set by "
-                                      "user".format(repr(keyword)))
+                return None, SelectionError(sel, loc, '{0:s} is not set'
+                                                       .format(repr(keyword)))
         self._data[keyword] = data
-        return data
+        return data, False
 
     def _getCoords(self):
         """Return coordinates of atoms."""
