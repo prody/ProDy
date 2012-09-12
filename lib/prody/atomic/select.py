@@ -336,7 +336,8 @@ from prody.utilities import rangeString
 from prody.kdtree import KDTree
 
 DEBUG = 0
-NUMB = 0 # Select instance will not really evaluate string for the atoms 
+NUMB = 0 # Select instance will not really evaluate string for the atoms
+TIMER = 0
 
 def debug(sel, loc, *args):
     
@@ -597,7 +598,7 @@ REGULAREXP.setParseAction(regularExpParseAction)
 
 # number ranges
 
-FLOAT = pp.Regex(r'\d+(\.\d*)?([eE]\d+)?')
+FLOAT = pp.Regex(r'[+-]?\d+(\.\d*)?([eE]\d+)?')
 RANGEPY = pp.Group(FLOAT + pp.Literal(':') + FLOAT +
                    pp.Optional(pp.Group(pp.Literal(':') + FLOAT)))
 RANGETO = pp.Group(FLOAT + pp.Literal('to') + FLOAT)
@@ -693,7 +694,10 @@ class Select(object):
         self._evalmap = {'resnum': self._resnum, 'resid': self._resnum, 
             'serial': self._serial, 'index': self._index,
             'x': self._generic, 'y': self._generic, 'z': self._generic,
-            'sequence': self._sequence, 'fragment': self._generic}
+            'chid': self._generic, 'secstr': self._generic,
+            'fragment': self._generic, 'fragindex': self._generic,
+            'segment': self._generic, 'sequence': self._sequence, }
+ 
         
     def _reset(self):
 
@@ -907,12 +911,10 @@ class Select(object):
 
         if len(tokens) == 1:
             torf, err = self._eval(sel, loc, tokens)
-            if err: raise err
-            return torf
         else:
             torf, err = self._and2(sel, loc, tokens)
-            if err: raise err
-            return torf
+        if err: raise err
+        return torf
     
     
     def _eval(self, sel, loc, tokens, subset=None):
@@ -1059,13 +1061,43 @@ class Select(object):
 
         if evals:
             if torf is None:
-                torf, err = self._eval(sel, loc, evals.pop(0))
+                tokens = evals.pop(0)
+                first = str(tokens[0])
+                torf, err = self._eval(sel, loc, tokens)
                 if err: raise err
+                try:
+                    dtype = torf.dtype
+                except AttributeError:
+                    raise SelectionError(sel, loc, 'a problem '
+                        'occurred when evaluating token {0:s}'
+                        .format(repr(first)), [first])
+                    
+                else:
+                    if dtype != bool:
+                        raise SelectionError(sel, loc, 'a problem '
+                            'occurred when evaluating token {0:s}'
+                            .format(repr(first)), [first])
             while evals:
                 ss = where(torf == 0)[0]
                 if len(ss) == 0: return torf, False
-                arr, err = self._eval(sel, loc, evals.pop(0), subset=ss)
+                tokens = evals.pop(0)
+                first = str(tokens[0])
+                arr, err = self._eval(sel, loc, tokens, subset=ss)
                 if err: raise err
+                
+                try:
+                    dtype = arr.dtype
+                except AttributeError:
+                    raise SelectionError(sel, loc, 'a problem '
+                        'occurred when evaluating token {0:s}'
+                        .format(repr(first)), [first])
+                    
+                else:
+                    if dtype != bool:
+                        raise SelectionError(sel, loc, 'a problem '
+                            'occurred when evaluating token {0:s}'
+                            .format(repr(first)), [first])
+                
                 torf[ss] = arr
         
         return torf
@@ -1089,12 +1121,14 @@ class Select(object):
         atoms = self._atoms
         isFlagLabel = atoms.isFlagLabel
         isDataLabel = atoms.isDataLabel
+        prev_and = False
         for token in tokens:
             # check whether token is an array to avoid array == str comparison
             try:
                 dtype = token.dtype
             except AttributeError:
                 if token == 'and':
+                    prev_and = True
                     continue
                 elif isFlagLabel(token):
                     flags.append(token)
@@ -1103,19 +1137,30 @@ class Select(object):
                     evals.append([])
                     evals[-1].append(token)
                 else:
-                    try:
-                        evals[-1].append(token)
-                    except IndexError:
-                        raise SelectionError(sel, loc) 
+                    # to handle: 'resname ALA and +1'
+                    if prev_and:
+                        evals.append([token])
+                    else:
+                        try:
+                            evals[-1].append(token)
+                        except IndexError:
+                            return None, SelectionError(sel, loc, 'a problem ' 
+                                        'occurred when evaluation token {0:s}'
+                                        .format(repr(token)), [token])
             else:
                 if dtype == bool:
                     torfs.append(token)
                 else:
-                    try:
-                        evals[-1].append(token)
-                    except IndexError:
-                        raise SelectionError(sel, loc)
-        
+                    # to handle: 'resname ALA and +1'
+                    return None, SelectionError(sel, loc, 'a problem ' 
+                                'occurred when evaluation token {0:s}'
+                                .format(repr(token)), [token])
+                    #try:
+                    #    evals[-1].append(token)
+                    #except IndexError:
+                    #    raise SelectionError(sel, loc)
+            prev_and = False
+
         torf = None
         if torfs:
             torf = torfs.pop(0)
@@ -1135,22 +1180,42 @@ class Select(object):
         if evals:
             if torf is None:
                 tokens = evals.pop(0)
-                first = tokens[0]
+                first = str(tokens[0])
                 torf, err = self._eval(sel, loc, tokens, subset=subset)
                 if err: return None, err
-                if torf.dtype != bool:
-                    return None, SelectionError(sel, loc, 'a problem occurred '
-                        'when evaluating this part', [first])
+                try:
+                    dtype = torf.dtype
+                except AttributeError:
+                    return None, SelectionError(sel, loc, 'a problem '
+                        'occurred when evaluating token {0:s}'
+                        .format(repr(first)), [first])
+                    
+                else:
+                    if dtype != bool:
+                        return None, SelectionError(sel, loc, 'a problem '
+                            'occurred when evaluating token {0:s}'
+                            .format(repr(first)), [first])
             while evals:
                 ss = torf.nonzero()[0]
                 if len(ss) == 0: return torf, False
                 tokens = evals.pop(0)
-                first = tokens[0]
+                first = str(tokens[0])
                 arr, err = self._eval(sel, loc, tokens, subset=ss)
                 if err: return None, err
-                if torf.dtype != bool:
-                    return None, SelectionError(sel, loc, 'a problem occurred '
-                        'when evaluating this part', [first])
+                
+                try:
+                    dtype = arr.dtype
+                except AttributeError:
+                    return None, SelectionError(sel, loc, 'a problem '
+                        'occurred when evaluating token {0:s}'
+                        .format(repr(first)), [first])
+                    
+                else:
+                    if dtype != bool:
+                        return None, SelectionError(sel, loc, 'a problem '
+                            'occurred when evaluating token {0:s}'
+                            .format(repr(first)), [first])
+                        
                 torf[ss] = arr
 
         # ?? check torf.shape/ndim
@@ -1224,6 +1289,13 @@ class Select(object):
                                 '{0:s} must be a coordinate array or have '
                                 '`getCoords` method'.format(repr(which)),
                                 [label, which])
+                    if coords is None:
+                        return None, SelectionError(sel, loc, 
+                            'coordinates are not set for {0:s} ({1:s})'
+                            .format(repr(which), repr(self._kwargs[which])),
+                            [label, which])
+                    else:
+                        ndim, shape = coords.ndim, coords.shape
                 if ndim == 1 and shape[0] == 3:
                     coords = array([coords])
                 elif not (ndim == 2 and shape[1] == 3):
@@ -1299,7 +1371,8 @@ class Select(object):
         indices, err = self._getData(sel, loc, index)
         iset = set(indices[which])
         torf = array([i in iset for i in indices], bool)
-        return torf, None
+        
+        return torf, False
      
     def _bondedto(self, sel, loc, tokens):
         """Expand selection to immediately bonded atoms."""
@@ -1568,6 +1641,8 @@ class Select(object):
         dtype = data.dtype
         type_ = dtype.type
         isstr = dtype.str.startswith('|S')
+        if isstr: 
+            maxlen = int(dtype.str[2:])
         torf = None
         regexp = []
         values = []
@@ -1610,6 +1685,10 @@ class Select(object):
                     values.append('')
                     values.append(' ')
                 else:
+                    if len(token) > maxlen:
+                        SelectionWarning(sel, loc, '{0:s} is longer than the '
+                            'maximum characters for data field {1:s}'
+                            .format(repr(token), repr(label)), [label, token])
                     values.append(token)
             else:
                 try:
@@ -1631,7 +1710,7 @@ class Select(object):
                             '{1:s}'.format(repr(token), repr(label)), 
                             [label, token])
                 values.append(value)
-
+        
         if values:
             if len(values) > 4:
                 torf = array([val in values for val in data], bool)
@@ -1763,7 +1842,7 @@ class Select(object):
             except TypeError:
                 pass
             else:
-                return None, SelectionError(sel, loc, 'it is a number, serial')
+                return None, SelectionError(sel, loc, '??? it is a number, serial')
                 if remainder == 0:
                     try:
                         torf[token] = True
@@ -1776,11 +1855,11 @@ class Select(object):
                 continue
             
             try:
-                token.pattern
+                pattern = token.pattern
             except AttributeError:
                 pass
             else:
-                ptrn = '"{0:s}"'.format(token.pattern)
+                ptrn = '"{0:s}"'.format(pattern)
                 SelectionWarning(sel, loc, '{0:s} is a regular '
                     'expression and is not evaluated for {1:s}'
                     .format(ptrn, repr(label)), [label, ptrn])
@@ -1817,6 +1896,9 @@ class Select(object):
                         [label, token])
         
         indices = sn2i[torf]
+        indices = indices[where(indices != -1)[0]]
+        if len(indices) == 0:
+            return self._getZeros(subset), False
         torf = zeros(self._ag.numAtoms(), bool)
         torf[indices] = True
         try:
@@ -1876,7 +1958,7 @@ class Select(object):
                     SelectionWarning(sel, loc, '{0:s} must be followed by '
                         'integers and/or number ranges'.format(repr(label)), 
                         [label, token])
-                values.append(value)
+                values.append(token)
         torf = None
         
         if len(values) > 1:
@@ -1916,31 +1998,36 @@ class Select(object):
                     token = re_compile(token)
                 except Exception as err:
                     SelectionWarning(sel, loc, '{0:s} could not be compiled '
-                        'as a regular expression'.format(repr(token)),
-                        [label, token])
+                        'as a regular expression for sequence evaluation'
+                        .format(repr(token)), [label, token])
                 else:                
                     regexp.append(token)
             else:
                 regexp.append(token)
 
         if not regexp:
-            return self._getZeros(subset), None
+            return self._getZeros(subset), False
              
         calpha = self._atoms.calpha
         if calpha is None:   
-            return self._getZeros(subset), None
+            return self._getZeros(subset), False
         
-        matches = ['same residue as']
+        matches = []
         for chain in iter(HierView(calpha)):
             sequence = chain.getSequence()
-            resindices = chain.ca.getResindices()
+            indices = chain._getIndices()
             for re in regexp: 
-                for match in value.finditer(sequence):  
-                    matches.extend(resindices[match.start():match.end()])
-        if len(matches) > 1:
-            return self._sameas(sel, loc, matches, subset)
+                for match in re.finditer(sequence):  
+                    matches.extend(indices[match.start():match.end()])
+        
+        if matches:
+            torf = zeros(self._ag.numAtoms(), bool)
+            torf[matches] = True
+            if self._indices is not None:
+                torf = torf[self._indices]
+            return self._sameas(sel, loc, ('same residue as', torf))
         else:
-            return self._getZeros(subset), None
+            return self._getZeros(subset), False
    
     def _getData(self, sel, loc, keyword):
         """Return atomic data."""
@@ -1972,8 +2059,8 @@ class Select(object):
         if field is None:
             data = self._atoms._getData(keyword)
             if data is None:
-                return SelectionError(sel, loc, '{0:s} is not a valid data '
-                                                'label'.format(repr(keyword)))
+                return None, SelectionError(sel, loc, '{0:s} is not a valid '
+                                       'data label'.format(repr(keyword)))
             elif not isinstance(data, ndarray) and data.ndim == 1:
                 return None, SelectionError(sel, loc, '{0:s} is not a 1d '
                                       'array'.format(repr(keyword)))
@@ -1981,7 +2068,7 @@ class Select(object):
             try:
                 data = getattr(self._atoms, '_get' + field.meth_pl)()
             except Exception as err: 
-                return SelectionError(sel, loc, str(err))
+                return None, SelectionError(sel, loc, str(err))
             if data is None:
                 return None, SelectionError(sel, loc, '{0:s} is not set'
                                                        .format(repr(keyword)))
