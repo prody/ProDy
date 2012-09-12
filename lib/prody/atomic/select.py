@@ -556,7 +556,7 @@ FUNCNAMES = set(_)
 
 kwfunc = pp.Keyword(_[0])
 FUNCNAMES_OPLIST = kwfunc 
-FUNCNAMES_EXPR = kwfunc
+FUNCNAMES_EXPR = ~kwfunc
 for func in _[1:]:
     kwfunc = pp.Keyword(func)
     FUNCNAMES_OPLIST = FUNCNAMES_OPLIST | kwfunc 
@@ -586,10 +586,9 @@ def specialCharsParseAction(token):
 
 SPECIALCHARS.setParseAction(specialCharsParseAction)
 
-
-REGULAREXP = pp.Group(pp.Literal('"') + 
-                      pp.Word(LONGLIST + '`') + 
-                      pp.Literal('"'))
+RE_REGEXP = re_compile('"[\w\W]+"')
+PP_REGEXP = pp.Group(pp.Literal('"') + pp.Word(LONGLIST + '`') + 
+                     pp.Literal('"'))
 def regularExpParseAction(sel, loc, token):
     
     token = token[0]
@@ -601,37 +600,43 @@ def regularExpParseAction(sel, loc, token):
     else:
         return regexp
 
-REGULAREXP.setParseAction(regularExpParseAction)
+PP_REGEXP.setParseAction(regularExpParseAction)
 
+_ = '[-+]?\d+(\.\d*)?([eE]\d+)?'
+RE_NRANGE = _ + '\ *(to|:)\ *' + _
 
-FLOAT = pp.Regex(r'[-+]*\d+(\.\d*)?([eE]\d+)?')
-RANGE = pp.Group(FLOAT + pp.Literal('to') | pp.Literal(':') + FLOAT +
-                 pp.Optional(pp.Group(pp.Literal(':') + FLOAT)))
+PP_NRANGE = pp.Group(pp.Regex(RE_NRANGE) + 
+                     pp.Optional(pp.Regex('(\ *:\ *' + _ + ')')))
+RE_NRANGE = re_compile(RE_NRANGE)
 
 
 def rangeParseAction(sel, loc, tokens):
     
+    interact(local=locals())
     tokens = tokens[0]
-    debug(sel, loc, '_range', tokens)
-    arange = [None, None, None]
-    start = float(tokens[0])
-    stop = float(tokens[2])
+    debug(sel, loc, '_nrange', tokens)
+
+    token = tokens[0]
+    sep = ':' if ':' in token else 'to'
+    first, last = token.split(sep)
+    start = float(first)
+    stop = float(last)
 
     if start > stop:
         raise SelectionError(sel, loc, 'range start value ({0:s}) is greater '
-            'than and stop value ({1:s})'.format(tokens[0], tokens[2]))
+            'than and stop value ({1:s})'.format(repr(start), repr(stop)))
     elif start == stop:
-        return tokens[0]
+        return first
 
-    if tokens[1] == 'to':
+    if sep == 'to':
         comp = '<='
-    elif len(tokens) == 4:
-        comp = float(tokens[3][1])
-    else:
+    elif len(tokens) == 1:
         comp = '<'
+    else:
+        comp = float(tokens[1][1:])
     return 'range', start, stop, comp
 
-RANGE.setParseAction(rangeParseAction)
+PP_NRANGE.setParseAction(rangeParseAction)
 
 
    
@@ -886,34 +891,28 @@ class Select(object):
         opers = 2 if chars.intersection(OPERATORS) else 0   
         logic = 1 if 'or' in items else 0
         
-        special = regexp = ranges = 0
+        schars = nrange = 0
         if '`' in chars:
             try:
-                SPECIALCHARS.parseString(selstr)
+                SPECIALCHARS.parseString(selstr, parseAll=True)
             except ParseException:
-                specials = 0
+                schars = 0
             else:
-                specials = 8
-                
-        regexp = 16 if '"' in alpha else 0
-        if '"' in chars:
-            try:
-                REGULAREXP.parseString(selstr)
-            except ParseException:
-                regexp = 0
-            else:
-                regexp = 16
+                schars = 8
         
+        regexp = 16 if '"' in chars and RE_REGEXP.search(selstr) else 0
+
         if ':' in chars or ' to ' in alpha:
             try:
-                RANGE.parseString(selstr)
+                PP_NRANGE.parseString(selstr, parseAll=True)
             except ParseException:
-                ranges = 0
+                nrange = 0
             else: 
-                ranges = 32
+                nrange = 32
         
         self._parser = key = (logic + opers + funcs, 
-            logic + funcs + special + regexp + ranges) 
+                              logic + funcs + schars + regexp + nrange) 
+        
         if key == (0, 0):
             return self._noParser
 
@@ -923,11 +922,7 @@ class Select(object):
             pass
 
 
-        word = None
-        expr = None
-        if ranges: expr = RANGE if expr is None else expr | RANGE
-        if regexp: expr = REGULAREXP if expr is None else expr | REGULAREXP
-        if special: expr = SPECIALCHARS if expr is None else expr | SPECIALCHARS
+        word = ~AND + ~OR
 
         oplist = []
         if funcs:
@@ -943,16 +938,16 @@ class Select(object):
                 (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, 
                  self._comp)])
                  
-        if key[0] or key[1]:
-            word = ~AND + ~OR if word is None else word + ~AND + ~OR
-            oplist.extend([
-              (pp.Optional(AND), 2, pp.opAssoc.LEFT, self._and),
-              (OR, 2, pp.opAssoc.LEFT, self._or)])
+        oplist.extend([
+          (pp.Optional(AND), 2, pp.opAssoc.LEFT, self._and),
+          (OR, 2, pp.opAssoc.LEFT, self._or)])
 
         word += WORD
-        expr = word if expr is None else expr | word
 
-        interact(local=locals())
+        expr = word
+        if nrange: expr = PP_NRANGE | expr 
+        if regexp: expr = PP_REGEXP | expr 
+        if schars: expr = SPECIALCHARS | expr 
 
         parser = pp.operatorPrecedence(expr, oplist)
         parser.setParseAction(self._default)
