@@ -1193,6 +1193,7 @@ class Select(object):
                         else:
                             append((token, token2, tokens.pop(0)))
                     while tokens:
+                        if tokens[0] == 'and': break
                         append(tokens.pop(0))
                 else:
                     try:
