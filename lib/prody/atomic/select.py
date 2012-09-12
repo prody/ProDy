@@ -25,7 +25,7 @@ page in interactive sessions using ``help(select)``.
 Atom selections
 ===============================================================================
 
-ProDy offers a powerful atom selector for :class:`~.AtomGroup` and other 
+ProDy offers a powerful atom selector for :class:`.AtomGroup` and other 
 :mod:`~prody.atomic` classes.  The keywords, selection grammar, and features 
 of the selector are similar to those found in VMD (|vmd|).  Small differences 
 between the two should not affect most practical uses of atom selections. 
@@ -353,56 +353,11 @@ __all__ = ['Select', 'SelectionError', 'SelectionWarning',
            'defSelectionMacro', 'delSelectionMacro', 'getSelectionMacro',
            'isSelectionMacro']
            
-FIELDS_SYNONYMS = {'chid': 'chain',
- 'fragment': 'fragindex',
- 'resid': 'resnum',
- 'secstr': 'secondary',
- 'segname': 'segment'}
-
-
-XYZ2INDEX = {'x': 0, 'y': 1, 'z': 2}
-
-FUNCTIONS = {
-    'sqrt'  : np.sqrt,
-    'sq'    : lambda num: np.power(num, 2),
-    'abs'   : np.abs,
-    'floor' : np.floor,
-    'ceil'  : np.ceil,
-    'sin'   : np.sin,
-    'cos'   : np.cos,
-    'tan'   : np.tan,
-    'asin'  : np.arcsin,
-    'acos'  : np.arccos,
-    'atan'  : np.arctan,
-    'sinh'  : np.sinh,
-    'cosh'  : np.cosh,
-    'tahn'  : np.tanh,
-    'exp'   : np.exp,
-    'log'   : np.log,
-    'log10' : np.log10,
-}
-    
-OPERATORS = {
-    '+'  : np.add,
-    '-'  : np.subtract,
-    '*'  : np.multiply,
-    '/'  : np.divide,
-    '%'  : np.remainder,
-    '>'  : np.greater,
-    '<'  : np.less,
-    '>=' : np.greater_equal,
-    '<=' : np.less_equal,
-    '='  : np.equal,
-    '==' : np.equal,
-    '!=' : np.not_equal,
-}
-
-_TOSPACE = set(['secondary', 'chain', 'altloc', 'segment', 'icode'])
-    
 ATOMGROUP = None
 
 MACROS = SETTINGS.get('selection_macros', {})
 MACROS_REGEX = None
+MACRO_NAMES = set(MACROS)
 
 def isSelectionMacro(word):
     """Return **True** if *word* is a user defined selection macro."""
@@ -470,6 +425,7 @@ def getSelectionMacro(name=None):
         LOGGER.info("{0:s} is not a user defined macro name."
                     .format(repr(name)))
 
+
 def evalMacros(selstr):
     
     if MACROS:
@@ -483,6 +439,26 @@ def evalMacros(selstr):
         selstr = selstr[1:-1]
     return selstr   
 
+
+def checkSelstr(selstr, what, error=ValueError):
+    """Check *selstr* if it satisfies a selected condition.  For now, only
+    whether coordinate/distance based selection are checked.  If *error* is 
+    a subclass of :class:`Exception`, an exception will be raised, otherwise 
+    return **True** or **False** will be returned."""
+    
+    selstr = selstr.replace('(', ' ( ')
+    selstr = selstr.replace(')', ' ) ')
+    
+    if what in set(['dist']):
+        for item in selstr.split():
+            if item in XYZDIST:
+                if issubclass(error, Exception):
+                    raise error('invalid selection {0:s}, coordinate '
+                                'based selections are not accepted'
+                                .format(repr(selstr)))
+                else:
+                    return False
+                    
 
 class SelectionError(Exception):    
     
@@ -522,98 +498,116 @@ class SelectionWarning(Warning):
                    ' ' * loc + '^ ' + msg)
             LOGGER.warn(msg)
 
+FIELDS_SYNONYMS = {'chid': 'chain',
+ 'fragment': 'fragindex',
+ 'resid': 'resnum',
+ 'secstr': 'secondary',
+ 'segname': 'segment'}
+
+
+XYZ2INDEX = {'x': 0, 'y': 1, 'z': 2}
+
+FUNCTIONS = {
+    'sqrt'  : np.sqrt,
+    'sq'    : lambda num: np.power(num, 2),
+    'abs'   : np.abs,
+    'floor' : np.floor,
+    'ceil'  : np.ceil,
+    'sin'   : np.sin,
+    'cos'   : np.cos,
+    'tan'   : np.tan,
+    'asin'  : np.arcsin,
+    'acos'  : np.arccos,
+    'atan'  : np.arctan,
+    'sinh'  : np.sinh,
+    'cosh'  : np.cosh,
+    'tahn'  : np.tanh,
+    'exp'   : np.exp,
+    'log'   : np.log,
+    'log10' : np.log10,
+}
+
+OPERATORS = {
+    '+'  : np.add,
+    '-'  : np.subtract,
+    '*'  : np.multiply,
+    '/'  : np.divide,
+    '%'  : np.remainder,
+    '>'  : np.greater,
+    '<'  : np.less,
+    '>=' : np.greater_equal,
+    '<=' : np.less_equal,
+    '='  : np.equal,
+    '==' : np.equal,
+    '!=' : np.not_equal,
+}
 
 SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex', 
               'segment': 'segindex', 'fragment': 'fragindex'}
 
 
-def splitList(alist, sep):
-    """Return list of lists obtained by splitting *alist* at the position of 
-    *sep*."""
-    
-    result = [[]]
-    for item in alist:
-        if item == sep:
-            result.append([])
-        else:
-            result[-1].append(item)
-    return result
-
-
 XYZDIST = set(['x', 'y', 'z', 'within', 'exwithin'])
-
-def checkSelstr(selstr, what, error=ValueError):
-    """Check *selstr* if it satisfies a selected condition.  For now, only
-    whether coordinate/distance based selection are checked.  If *error* is 
-    a subclass of :class:`Exception`, an exception will be raised, otherwise 
-    return **True** or **False** will be returned."""
-    
-    selstr = selstr.replace('(', ' ( ')
-    selstr = selstr.replace(')', ' ) ')
-    
-    if what in set(['dist']):
-        for item in selstr.split():
-            if item in XYZDIST:
-                if issubclass(error, Exception):
-                    raise error('invalid selection {0:s}, coordinate '
-                                'based selections are not accepted'
-                                .format(repr(selstr)))
-                else:
-                    return False
-
 
 AND = pp.Keyword('and')
 OR = pp.Keyword('or')
-NOT = pp.Keyword('not')
+
+_ = list(FUNCTIONS)
+FUNCNAMES = set(_)
+
+kwfunc = pp.Keyword(_[0])
+FUNCNAMES_OPLIST = kwfunc 
+FUNCNAMES_EXPR = kwfunc
+for func in _[1:]:
+    kwfunc = pp.Keyword(func)
+    FUNCNAMES_OPLIST = FUNCNAMES_OPLIST | kwfunc 
+    FUNCNAMES_EXPR += ~kwfunc
 
 SHORTLIST = pp.alphanums + '''~@#$.:;_','''
-
+WORD = pp.Word(SHORTLIST)
 LONGLIST = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
-SPECIALCHARS = pp.Group(pp.Literal('`') + 
-                        pp.Optional(pp.Word(LONGLIST + '"')) + 
+
+
+SPECIALCHARS = pp.Group(pp.Literal('`') + pp.Word(LONGLIST + '"') + 
                         pp.Literal('`'))
 def specialCharsParseAction(token):
-    if len(token[0]) == 2: # meaning `` was used
-        return '_'
-    else:
-        token = token[0][1]
-        if ':' in token:
-            try:
-                token = RANGEPY.parseString(token)[0]
-            except ParseException:
-                pass
-        elif 'to' in token:
-            try:
-                token = RANGETO.parseString(token)[0]
-            except pParseException:
-                pass
-        return token
+
+    token = token[0][1]
+    if ':' in token:
+        try:
+            token = RANGEPY.parseString(token)[0]
+        except ParseException:
+            pass
+    elif 'to' in token:
+        try:
+            token = RANGETO.parseString(token)[0]
+        except pParseException:
+            pass
+    return token
+
 SPECIALCHARS.setParseAction(specialCharsParseAction)
 
+
 REGULAREXP = pp.Group(pp.Literal('"') + 
-                      pp.Optional(pp.Word(LONGLIST + '`')) + 
+                      pp.Word(LONGLIST + '`') + 
                       pp.Literal('"'))
 def regularExpParseAction(sel, loc, token):
     
     token = token[0]
-    if len(token) == 2:
-        return re_compile('^()$')
+    try:
+        regexp = re_compile(token[1])
+    except:
+        raise SelectionError(sel, loc, 'failed to compile regular '
+                        'expression {0:s}'.format(repr(token[1])))
     else:
-        try:
-            regexp = re_compile(token[1])
-        except:
-            raise SelectionError(sel, loc, 'failed to compile regular '
-                            'expression {0:s}'.format(repr(token[1])))
-        else:
-            return regexp
+        return regexp
+
 REGULAREXP.setParseAction(regularExpParseAction)
 
-# number ranges
 
 FLOAT = pp.Regex(r'[-+]*\d+(\.\d*)?([eE]\d+)?')
-RANGEPY = pp.Group(FLOAT + pp.Literal(':') + FLOAT +
-                   pp.Optional(pp.Group(pp.Literal(':') + FLOAT)))
-RANGETO = pp.Group(FLOAT + pp.Literal('to') + FLOAT)
+RANGE = pp.Group(FLOAT + pp.Literal('to') | pp.Literal(':') + FLOAT +
+                 pp.Optional(pp.Group(pp.Literal(':') + FLOAT)))
+
 
 def rangeParseAction(sel, loc, tokens):
     
@@ -636,42 +630,19 @@ def rangeParseAction(sel, loc, tokens):
     else:
         comp = '<'
     return 'range', start, stop, comp
-    
+
+RANGE.setParseAction(rangeParseAction)
+
+
+   
 UNARY = set(['not', 'bonded', 'exbonded', 'within', 'exwithin', 'same'])
-
-RANGEPY.setParseAction(rangeParseAction)
-RANGETO.setParseAction(rangeParseAction)
-
-WORDS = ~AND + ~OR
-
-BONDED = pp.Regex('(ex)?bonded to')
-BONDED2 = pp.Regex('(ex)?bonded [0-9]+ to')
-SAMEAS = pp.Regex('same [a-z]+ as')
-WITHIN = pp.Regex('(ex)?within [0-9]+\.?[0-9]* of')
-
-#WORDS += ~SAMEAS + ~WITHIN #+ ~BONDED + ~BONDED2 
-
-funcnames = list(FUNCTIONS)
-FUNCNAMES = pp.Keyword(funcnames[0])
-for func in funcnames[1:]:
-    kwfunc = pp.Keyword(func)
-    FUNCNAMES = FUNCNAMES | kwfunc 
-    WORDS += ~kwfunc
-WORDS += pp.Word(SHORTLIST)
-ONEORMORE = pp.OneOrMore(RANGEPY | RANGETO | REGULAREXP | SPECIALCHARS | WORDS)
-ONEORMORE = RANGEPY | RANGETO | REGULAREXP | SPECIALCHARS | WORDS
 
 
 class Select(object):
 
-    """Select subsets of atoms based on a selection string.  
-    
-    See :mod:`~.select` module documentation for detailed documentation.  
-    Definitions of single word keywords, such as *protein*, *backbone*, 
-    or *polar*, etc., may be altered using functions in :mod:`~.select` 
-    module. 
-    
-    This class makes use of |pyparsing| module."""
+    """Select subsets of atoms based on a selection string.  See :mod:`.select`
+    module documentation for selection grammar and examples.  This class makes
+    use of |pyparsing| module."""
 
     def __init__(self):
         
@@ -688,23 +659,8 @@ class Select(object):
         self._data = dict()
         self._replace = False
         
-        self._parser = pp.operatorPrecedence(
-             ONEORMORE,
-             [(FUNCNAMES, 1, pp.opAssoc.RIGHT, self._func),
-              (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
-              (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
-              (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._binop),
-              (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._binop),
-              (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              #(NOT | SAMEAS | WITHIN, 
-              # 1, pp.opAssoc.RIGHT, self._unary),
-              (pp.Optional(AND), 2, pp.opAssoc.LEFT, self._and),
-              (OR, 2, pp.opAssoc.LEFT, self._or),]
-            )
+        self._parsers = {}
 
-        self._parser.setParseAction(self._default)
-        self._parser.leaveWhitespace()
-        self._parser.enablePackrat()
         
         self._evalmap = {'resnum': self._resnum, 'resid': self._resnum, 
             'serial': self._serial, 'index': self._index,
@@ -743,17 +699,17 @@ class Select(object):
                                     'index ' + str(index), atoms.getACSIndex())
         
     def select(self, atoms, selstr, **kwargs):
-        """Return a subset of atoms matching *selstr* as a :class:`Selection`.
-        If selection string does not match any atoms, **None** is returned.
+        """Return a :class:`Selection` of atoms matching *selstr*, or **None**,  
+        if selection string does not match any atoms.
         
-        :arg atoms: atoms to be evaluated    
+        :arg atoms: atoms to be evaluated
         :type atoms: :class:`.Atomic`
         
         :arg selstr: selection string
         :type selstr: str
         
-        If type of *atoms* is :class:`.AtomMap`, an :class:`.AtomMap` instance
-        is returned.  Otherwise, :class:`.Selection` instances are returned.
+        Note that, if *atoms* is an :class:`.AtomMap` instance, an 
+        :class:`.AtomMap` is returned, instead of a a :class:`.Selection`.
 
         .. note:
               
@@ -812,21 +768,21 @@ class Select(object):
         should not be used for indexing the corresponding :class:`.AtomGroup`
         instance."""
         
-        selstr = selstr.strip() 
-        if (len(selstr.split()) == 1 and selstr.isalnum() and 
-            selstr not in MACROS):
+        ss = selstr.strip() 
+        if (len(ss.split()) == 1 and ss.isalnum() and ss not in MACROS):
             self._evalAtoms(atoms)
-            if selstr == 'none':
+            if ss == 'none':
                 return array([])
-            elif selstr == 'all':
+            elif ss == 'all':
                 return arange(atoms.numAtoms())
-            elif atoms.isFlagLabel(selstr):
-                return atoms._getFlags(selstr).nonzero()[0]
-            elif atoms.isDataLabel(selstr):
-                raise SelectionError(selstr, 0, 'must be followed by values')
+            elif atoms.isFlagLabel(ss):
+                return atoms._getFlags(ss).nonzero()[0]
+            elif atoms.isDataLabel(ss) or ss in self._evalmap:
+                raise SelectionError(selstr, 0, 'must be followed by values',
+                                     [ss])
             else:
-                raise SelectionError(selstr, 0, 'is not a valid selection or '
-                                     'user data label')
+                raise SelectionError(selstr, 0, 'is not a valid selection '
+                                     'string', [ss])
         else:
             torf = self.getBoolArray(atoms, selstr, **kwargs)        
             return torf.nonzero()[0]
@@ -834,7 +790,7 @@ class Select(object):
     def getBoolArray(self, atoms, selstr, **kwargs):
         """Return a boolean array with **True** values for *atoms* matching 
         *selstr*.  The length of the boolean :class:`numpy.ndarray` will be
-        equal to the number of atoms in *atoms* argument."""
+        equal to the length of *atoms* argument."""
         
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance, not {0:s}'
@@ -879,8 +835,10 @@ class Select(object):
             
 
         try:
-            tokens = self._parser.parseString(selstr, parseAll=True).asList()
+            parser = self._getParser(selstr)
+            tokens = parser(selstr, parseAll=True)
         except pp.ParseException as err:
+            self._parsers.pop(self._parser, None)
             pass
             which = selstr.rfind(' ', 0, err.column)
             if which > -1:
@@ -912,7 +870,103 @@ class Select(object):
             print('_select', torf)
         return torf
 
+    def _getParser(self, selstr):
+        """Return an efficient parser that can handle *selstr*."""
+        
+        alnum = selstr
+        alpha = selstr
+        for ch in selstr:
+            if not ch.isalnum(): alnum = alnum.replace(ch, ' ')
+            if not ch.isalpha(): alpha = alpha.replace(ch, ' ')
+        items = set(alnum.split())
+        chars = set(selstr)
+        
+                
+        funcs = 4 if items.intersection(FUNCNAMES) else 0
+        opers = 2 if chars.intersection(OPERATORS) else 0   
+        logic = 1 if 'or' in items else 0
+        
+        special = regexp = ranges = 0
+        if '`' in chars:
+            try:
+                SPECIALCHARS.parseString(selstr)
+            except ParseException:
+                specials = 0
+            else:
+                specials = 8
+                
+        regexp = 16 if '"' in alpha else 0
+        if '"' in chars:
+            try:
+                REGULAREXP.parseString(selstr)
+            except ParseException:
+                regexp = 0
+            else:
+                regexp = 16
+        
+        if ':' in chars or ' to ' in alpha:
+            try:
+                RANGE.parseString(selstr)
+            except ParseException:
+                ranges = 0
+            else: 
+                ranges = 32
+        
+        self._parser = key = (logic + opers + funcs, 
+            logic + funcs + special + regexp + ranges) 
+        if key == (0, 0):
+            return self._noParser
+
+        try:
+            return self._parsers[key].parseString
+        except KeyError:
+            pass
+
+
+        word = None
+        expr = None
+        if ranges: expr = RANGE if expr is None else expr | RANGE
+        if regexp: expr = REGULAREXP if expr is None else expr | REGULAREXP
+        if special: expr = SPECIALCHARS if expr is None else expr | SPECIALCHARS
+
+        oplist = []
+        if funcs:
+            oplist.append((FUNCNAMES_OPLIST, 1, pp.opAssoc.RIGHT, self._func))
+            word = FUNCNAMES_EXPR
+            
+        if funcs or opers:
+            oplist.extend([
+                (pp.oneOf('+ -'), 1, pp.opAssoc.RIGHT, self._sign),
+                (pp.oneOf('** ^'), 2, pp.opAssoc.LEFT, self._pow),
+                (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._binop),
+                (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._binop),
+                (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, 
+                 self._comp)])
+                 
+        if key[0] or key[1]:
+            word = ~AND + ~OR if word is None else word + ~AND + ~OR
+            oplist.extend([
+              (pp.Optional(AND), 2, pp.opAssoc.LEFT, self._and),
+              (OR, 2, pp.opAssoc.LEFT, self._or)])
+
+        word += WORD
+        expr = word if expr is None else expr | word
+
+        interact(local=locals())
+
+        parser = pp.operatorPrecedence(expr, oplist)
+        parser.setParseAction(self._default)
+        parser.leaveWhitespace()
+        parser.enablePackrat()
+        self._parsers[key] = parser
+        return parser.parseString
+       
+    def _noParser(self, selstr, parseAll=True):
+        
+        return [self._default(selstr, 0, selstr.split())]        
+
     def _getZeros(self, subset=None):
+        """Return a bool array with zero elements."""
         
         if subset is None:
             return zeros(self._atoms.numAtoms(), bool)
@@ -920,7 +974,7 @@ class Select(object):
             return zeros(len(subset), bool)
         
     def _default(self, sel, loc, tokens):
-        
+                
         debug(sel, loc, '_default', tokens)
         if NUMB: return
      
@@ -933,7 +987,6 @@ class Select(object):
     
     
     def _eval(self, sel, loc, tokens, subset=None):
-        """"""
         
         debug(sel, loc, '_eval', tokens)
         if NUMB: return
@@ -1305,7 +1358,7 @@ class Select(object):
 
         what = tokens[0]
         tokens = [what, which]
-        if what[0] == NOT:
+        if what[0] == 'not':
             return self._not(sel, loc, tokens)
         elif what[0] == 'same':
             return self._sameas(sel, loc, tokens)
