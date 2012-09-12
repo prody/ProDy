@@ -317,7 +317,8 @@ from numpy import array, ndarray, ones, zeros, arange
 from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
-import pyparsing as pp
+from . import pyparsing as pp
+from .pyparsing import ParseException
 
 from prody import LOGGER, SETTINGS
 
@@ -575,7 +576,18 @@ def specialCharsParseAction(token):
     if len(token[0]) == 2: # meaning `` was used
         return '_'
     else:
-        return token[0][1]
+        token = token[0][1]
+        if ':' in token:
+            try:
+                token = RANGEPY.parseString(token)[0]
+            except ParseException:
+                pass
+        elif 'to' in token:
+            try:
+                token = RANGETO.parseString(token)[0]
+            except pParseException:
+                pass
+        return token
 SPECIALCHARS.setParseAction(specialCharsParseAction)
 
 REGULAREXP = pp.Group(pp.Literal('"') + 
@@ -598,7 +610,7 @@ REGULAREXP.setParseAction(regularExpParseAction)
 
 # number ranges
 
-FLOAT = pp.Regex(r'[+-]?\d+(\.\d*)?([eE]\d+)?')
+FLOAT = pp.Regex(r'[-+]*\d+(\.\d*)?([eE]\d+)?')
 RANGEPY = pp.Group(FLOAT + pp.Literal(':') + FLOAT +
                    pp.Optional(pp.Group(pp.Literal(':') + FLOAT)))
 RANGETO = pp.Group(FLOAT + pp.Literal('to') + FLOAT)
@@ -625,17 +637,19 @@ def rangeParseAction(sel, loc, tokens):
         comp = '<'
     return 'range', start, stop, comp
     
+UNARY = set(['not', 'bonded', 'exbonded', 'within', 'exwithin', 'same'])
+
 RANGEPY.setParseAction(rangeParseAction)
 RANGETO.setParseAction(rangeParseAction)
 
-WORDS = ~AND + ~OR + ~NOT
+WORDS = ~AND + ~OR
 
 BONDED = pp.Regex('(ex)?bonded to')
 BONDED2 = pp.Regex('(ex)?bonded [0-9]+ to')
 SAMEAS = pp.Regex('same [a-z]+ as')
 WITHIN = pp.Regex('(ex)?within [0-9]+\.?[0-9]* of')
 
-WORDS += ~BONDED + ~BONDED2 + ~SAMEAS + ~WITHIN 
+#WORDS += ~SAMEAS + ~WITHIN #+ ~BONDED + ~BONDED2 
 
 funcnames = list(FUNCTIONS)
 FUNCNAMES = pp.Keyword(funcnames[0])
@@ -645,6 +659,7 @@ for func in funcnames[1:]:
     WORDS += ~kwfunc
 WORDS += pp.Word(SHORTLIST)
 ONEORMORE = pp.OneOrMore(RANGEPY | RANGETO | REGULAREXP | SPECIALCHARS | WORDS)
+ONEORMORE = RANGEPY | RANGETO | REGULAREXP | SPECIALCHARS | WORDS
 
 
 class Select(object):
@@ -681,8 +696,8 @@ class Select(object):
               (pp.oneOf('* / %'), 2, pp.opAssoc.LEFT, self._binop),
               (pp.oneOf('+ -'), 2, pp.opAssoc.LEFT, self._binop),
               (pp.oneOf('< > <= >= == = !='), 2, pp.opAssoc.LEFT, self._comp),
-              (NOT | BONDED | BONDED2 | SAMEAS | WITHIN, 
-               1, pp.opAssoc.RIGHT, self._unary),
+              #(NOT | SAMEAS | WITHIN, 
+              # 1, pp.opAssoc.RIGHT, self._unary),
               (pp.Optional(AND), 2, pp.opAssoc.LEFT, self._and),
               (OR, 2, pp.opAssoc.LEFT, self._or),]
             )
@@ -908,7 +923,7 @@ class Select(object):
         
         debug(sel, loc, '_default', tokens)
         if NUMB: return
-
+     
         if len(tokens) == 1:
             torf, err = self._eval(sel, loc, tokens)
         else:
@@ -1048,7 +1063,7 @@ class Select(object):
             torf = torfs.pop(0)
             while torfs:
                 ss = where(torf == 0)[0]
-                if len(ss) == 0: return torf, False
+                if len(ss) == 0: return torf
                 torf[ss] = torfs.pop(0)[ss] 
 
         if flags:
@@ -1056,7 +1071,7 @@ class Select(object):
                 torf = atoms.getFlags(flags.pop(0))
             while flags:
                 ss = where(torf == 0)[0]
-                if len(ss) == 0: return torf, False
+                if len(ss) == 0: return torf
                 torf[ss] = atoms._getFlags(flags.pop(0))[ss]
 
         if evals:
@@ -1079,7 +1094,7 @@ class Select(object):
                             .format(repr(first)), [first])
             while evals:
                 ss = where(torf == 0)[0]
-                if len(ss) == 0: return torf, False
+                if len(ss) == 0: return torf
                 tokens = evals.pop(0)
                 first = str(tokens[0])
                 arr, err = self._eval(sel, loc, tokens, subset=ss)
@@ -1115,55 +1130,89 @@ class Select(object):
         debug(sel, loc, '_and2', tokens)
         if NUMB: return
         
+        if tokens[0] == 'and' or tokens[-1] == 'and':
+            return None, SelectionError(sel, loc, '{0:s} operator must be '
+                'surrounded with arguments'.format(repr('and')), [tokens[0]])
+        
         flags = []
         torfs = []
         evals = []
+        unary = []
         atoms = self._atoms
         isFlagLabel = atoms.isFlagLabel
         isDataLabel = atoms.isDataLabel
-        prev_and = False
-        for token in tokens:
+        append = None
+        while tokens:
             # check whether token is an array to avoid array == str comparison
+            token = tokens.pop(0)
             try:
                 dtype = token.dtype
             except AttributeError:
                 if token == 'and':
-                    prev_and = True
-                    continue
+                    append = None
+                
                 elif isFlagLabel(token):
                     flags.append(token)
+                    append = None
+                
                 elif (isDataLabel(token) or token in self._evalmap or
                       token in ATOMIC_FIELDS):
                     evals.append([])
-                    evals[-1].append(token)
+                    append = evals[-1].append 
+                    append(token)
+                
+                elif token in UNARY:
+                    unary.append([])
+                    append = unary[-1].append
+                    
+                    if token == 'not':
+                        append((token,))
+                    
+                    elif token == 'same':
+                        if len(tokens) < 3 or tokens[1] != 'as':
+                            return None, SelectionError(sel, loc, 'incorrect ' 
+                                'use of same as statement, expected {1:s}'
+                                .format('same entity as ...'), [token])
+                        append((token, tokens.pop(0), tokens.pop(0)))
+                    
+                    elif token.endswith('within'):
+                        if len(tokens) < 3 or tokens[1] != 'of':
+                            return None, SelectionError(sel, loc, 'incorrect ' 
+                                'use of within statement, expected {1:s}'
+                                .format('within x.y of ...'), [token])
+                        append((token, tokens.pop(0), tokens.pop(0)))
+                    
+                    elif token.endswith('bonded'):
+                        token2 = tokens.pop(0)
+                        if len(tokens) < (1 + int(token2 == 'to')):
+                            return None, SelectionError(sel, loc, 'incorrect ' 
+                                'use of bonded statement, expected {1:s}'
+                                .format('bonded [n] to ...'), [token2])
+                        if token2 == 'to':
+                            append((token, 'to'))
+                        else:
+                            append((token, token2, tokens.pop(0)))
+                    while tokens:
+                        append(tokens.pop(0))
                 else:
-                    # to handle: 'resname ALA and +1'
-                    if prev_and:
-                        evals.append([token])
-                    else:
-                        try:
-                            evals[-1].append(token)
-                        except IndexError:
-                            return None, SelectionError(sel, loc, 'a problem ' 
-                                        'occurred when evaluation token {0:s}'
-                                        .format(repr(token)), [token])
+                    try:
+                        append(token)
+                    except TypeError:
+                        return None, SelectionError(sel, loc, 'a problem ' 
+                                    'occurred when evaluation token {0:s}'
+                                    .format(repr(token)), [token])
             else:
                 if dtype == bool:
                     torfs.append(token)
                 else:
-                    # to handle: 'resname ALA and +1'
                     return None, SelectionError(sel, loc, 'a problem ' 
                                 'occurred when evaluation token {0:s}'
                                 .format(repr(token)), [token])
-                    #try:
-                    #    evals[-1].append(token)
-                    #except IndexError:
-                    #    raise SelectionError(sel, loc)
-            prev_and = False
-
         torf = None
+        
         if torfs:
             torf = torfs.pop(0)
+
             while torfs:
                 ss = torf.nonzero()[0]
                 if len(ss) == 0: return torf, False
@@ -1172,10 +1221,23 @@ class Select(object):
         if flags:
             if torf is None:
                 torf = atoms.getFlags(flags.pop(0))
+
             while flags:
                 ss = torf.nonzero()[0]
                 if len(ss) == 0: return torf, False
                 torf[ss] = atoms._getFlags(flags.pop(0))[ss]
+
+        if unary:
+            if torf is None:
+                torf, err = self._unary(sel, loc, unary.pop(0))
+                if err: return None, err
+
+            while unary:                
+                ss = torf.nonzero()[0]
+                if len(ss) == 0: return torf, False
+                arr, err = self._unary(sel, loc, unary.pop(0))
+                if err: return None, err
+                torf[ss] = arr[ss]                
 
         if evals:
             if torf is None:
@@ -1228,8 +1290,7 @@ class Select(object):
 
         debug(sel, loc, '_unary', tokens)
         if NUMB: return
-        tokens = tokens[0]
-        
+
         err = False
         if len(tokens) == 2:
             which = tokens[1]
@@ -1242,17 +1303,15 @@ class Select(object):
         if err: raise err 
 
         what = tokens[0]
-        tokens = [what, which]        
-        if what == NOT:
-            torf, err = self._not(sel, loc, tokens)
-        elif what.startswith('same'):
-            torf, err = self._sameas(sel, loc, tokens)
-        elif what.endswith('to'):
-            torf, err = self._bondedto(sel, loc, tokens)
+        tokens = [what, which]
+        if what[0] == NOT:
+            return self._not(sel, loc, tokens)
+        elif what[0] == 'same':
+            return self._sameas(sel, loc, tokens)
+        elif what[-1] == 'to':
+            return self._bondedto(sel, loc, tokens)
         else:
-            torf, err = self._within(sel, loc, tokens)
-        if err: raise err
-        return torf
+            return self._within(sel, loc, tokens)
 
     def _not(self, sel, loc, tokens):
         """Negate selection."""
@@ -1266,9 +1325,15 @@ class Select(object):
 
         if DEBUG: print('_within', tokens)
         label, which = tokens
+        within = label[1]
+        label = ' '.join(label)
+        try:
+            within = float(within)
+        except Exception as err:
+            return None, SelectionError('could not convert {0:s} in {1:s} to '
+                'float ({2:s})'.format(within, repr(label), str(err)), 
+                [label, within])
         exclude = label.startswith('ex')
-        within = float(label.split()[1])
-        
         other = False
         try:
             dtype = which.dtype
@@ -1361,7 +1426,8 @@ class Select(object):
         
         debug(self, loc, '_sameas', tokens)
         label, which = tokens
-        what = label.split()[1]
+        what = label[1]
+        label = ' '.join(label)
         index = SAMEAS_MAP.get(what)
         if index is None:
             return None, SelectionError(sel, loc, 'entity in "same ... as" '
@@ -1379,14 +1445,25 @@ class Select(object):
         
         debug(sel, loc, '_bondedto', tokens)
         label, torf = tokens
-        items = label.split()
-        if len(items) == 2:
+        token = label[1]
+        label = ' '.join(label)
+        if token == 'to':
             repeat = 1
-        else: 
-            repeat = int(items[1])
-            if repeat == 0:
-                SelectionWarning(sel, loc, 'a number greater than zero will '
-                                 'select bonded atoms', [label, items[1]])
+        else:
+            try:
+                repeat = int(token)
+            except TypeError:
+                return None, SelectionError(sel, loc, '{0:s} in {0:s} could not '
+                    'be converted to an integer'.format(token, repr(label)), 
+                    [label])                
+            else:
+                if float(token) != repeat:
+                    SelectionWarning(sel, loc, 'number in {0:s} should be an '
+                        'integer'.format(repr(label)), [label])                
+
+            if repeat <= 0:
+                SelectionWarning(sel, loc, 'number in {0:s} should be a '
+                    'positive integer'.format(repr(label)), [label])
                 return zeros(self._atoms.numAtoms(), bool), False
         
         bmap = self._ag._bmap
@@ -1497,11 +1574,23 @@ class Select(object):
         debug(sel, loc, '_comp', tokens)
         if NUMB: return
         
+        """
+        _and2 = []
+        _comp = []
+        start = 0
+        for i, token in enumerate(tokens):
+            try:
+                isop = token in OPERATORS
+            except TypeError:
+                pass
+            else:
+                _comp.extend()
+        """            
+    
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(sel, loc, 
                                  'invalid number of operators and operands')
-        token = tokens.pop(0)
-        left, err = self._getNumeric(sel, loc, token)
+        left, err = self._getNumeric(sel, loc, tokens.pop(0))
         if err: raise err
         
         torf = None
@@ -2025,7 +2114,7 @@ class Select(object):
             torf[matches] = True
             if self._indices is not None:
                 torf = torf[self._indices]
-            return self._sameas(sel, loc, ('same residue as', torf))
+            return self._sameas(sel, loc, [('same', 'residue', 'as'), torf])
         else:
             return self._getZeros(subset), False
    
