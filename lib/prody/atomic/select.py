@@ -1573,19 +1573,6 @@ class Select(object):
         tokens = tokens[0]
         debug(sel, loc, '_comp', tokens)
         if NUMB: return
-        
-        """
-        _and2 = []
-        _comp = []
-        start = 0
-        for i, token in enumerate(tokens):
-            try:
-                isop = token in OPERATORS
-            except TypeError:
-                pass
-            else:
-                _comp.extend()
-        """            
     
         if len(tokens) >= 3 and len(tokens) % 2 != 1:
             raise SelectionError(sel, loc, 
