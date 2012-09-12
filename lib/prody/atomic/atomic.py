@@ -118,9 +118,9 @@ class Atomic(object):
                         selstr = ' '.join(items)
                         return SELECT.select(self, selstr)
 
-        raise AttributeError("'{0:s}' object has no attribute '{1:s}' "
-                             "and '{2:s}' is not a valid selection string"
-                             .format(self.__class__.__name__, name, selstr))
+        raise AttributeError('{0:s} object has no attribute `{1:s}` and {2:s} '
+                    'is not a valid selection string'
+                     .format(self.__class__.__name__, name, repr(selstr)))
 
     def copy(self):
         """Return a copy of atoms (and atomic data) in a new :class:`AtomGroup`
