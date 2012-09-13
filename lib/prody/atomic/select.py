@@ -563,12 +563,9 @@ for func in _[1:]:
     FUNCNAMES_OPLIST = FUNCNAMES_OPLIST | kwfunc 
     FUNCNAMES_EXPR += ~kwfunc
 
-#SHORTLIST = pp.alphanums + '''~@#$.:;_','''
-#LONGLIST = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
-
-
 RE_SCHARS = re_compile('`[\w\W]*`')
 PP_SCHARS = pp.Regex(RE_SCHARS)
+
 def specialCharsParseAction(sel, loc, token):
 
     token = token[0][1:-1]
@@ -618,8 +615,14 @@ def rangeParseAction(sel, loc, tokens):
     token = tokens[0]
     sep = ':' if ':' in token else 'to'
     first, last = token.split(sep)
-    start = float(first)
-    stop = float(last)
+    try:
+        start = int(first)
+    except ValueError: 
+        start = float(first)
+    try:
+        stop = int(last)
+    except ValueError: 
+        stop = float(last)
 
     if start > stop:
         raise SelectionError(sel, loc, 'range start value ({0:s}) is greater '
@@ -632,11 +635,13 @@ def rangeParseAction(sel, loc, tokens):
     elif len(tokens) == 1:
         comp = '<'
     else:
-        comp = float(tokens[1][1:])
+        try:
+            comp = int(tokens[1][1:])
+        except ValueError: 
+            comp = float(tokens[1][1:])
     return 'range', start, stop, comp
 
 PP_NRANGE.setParseAction(rangeParseAction)
-
 
    
 UNARY = set(['not', 'bonded', 'exbonded', 'within', 'exwithin', 'same'])
@@ -912,7 +917,8 @@ class Select(object):
         oplist = []
         if funcs:
             oplist.append((FUNCNAMES_OPLIST, 1, pp.opAssoc.RIGHT, self._func))
-            word = FUNCNAMES_EXPR
+            # following causes 20% slow down
+            #word += FUNCNAMES_EXPR
             
         if funcs or opers:
             oplist.extend([
@@ -930,10 +936,10 @@ class Select(object):
         word += WORD
 
         expr = word
-        if nrange: expr = PP_NRANGE | expr 
-        if regexp: expr = PP_REGEXP | expr 
         if schars: expr = PP_SCHARS | expr 
-
+        if regexp: expr = PP_REGEXP | expr 
+        if nrange: expr = PP_NRANGE | expr 
+        
         parser = pp.operatorPrecedence(expr, oplist)
         parser.setParseAction(self._default)
         parser.leaveWhitespace()
@@ -1767,6 +1773,7 @@ class Select(object):
         values = []
         ranges = []
         
+        valset = True
         for token in tokens:
 
             # check for regular expressions which are only compatible with 
@@ -1790,13 +1797,16 @@ class Select(object):
             if token[0] == 'range': 
                 if isstr:
                     SelectionWarning(sel, loc, 'number ranges '
-                        'are not evaluated with type of {0:s} ({1:s})'
-                        .format(repr(label), str(dtype)), [label, token[1]])
+                        'are not evaluated with data type of {0:s}'
+                        .format(repr(label)), [label, token[1]])
                 else:
                     if token[-1] in OPERATORS:
                         ranges.append(token)
-                    else:                
-                        values.extend(arange(*token[1:]))
+                    else:   
+                        nrange = arange(*token[1:])
+                        if nrange.dtype != dtype:
+                            valset = False
+                        values.extend(nrange)
                 continue
             
             if isstr:
@@ -1829,9 +1839,10 @@ class Select(object):
                             '{1:s}'.format(repr(token), repr(label)), 
                             [label, token])
                 values.append(value)
-        
+
         if values:
-            if len(values) > 4:
+            if valset and len(values) > 10:
+                valset = set(values)
                 torf = array([val in values for val in data], bool)
             else:
                 torf = data == values.pop(0)
@@ -1839,7 +1850,7 @@ class Select(object):
                     subset = (torf == False).nonzero()[0]
                     if len(subset) == 0: return torf, False
                     torf[subset] = data[subset] == val
-        
+
         if ranges:
             while ranges:
                 _, start, stop, comp = ranges.pop(0)
