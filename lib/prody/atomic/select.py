@@ -943,6 +943,7 @@ class Select(object):
        
     def _noParser(self, selstr, parseAll=True):
         
+        debug(selstr, 0, ['_noParser'])
         return [self._default(selstr, 0, selstr.split())]        
 
     def _getZeros(self, subset=None):
@@ -1019,15 +1020,14 @@ class Select(object):
                         return None, SelectionError(sel, loc, '{0:s} could '
                             'not be evaluated'.format(repr(token)), [token])
             else:
-                ag = self._ag
-                if arg in ag:
+                if arg in self._ag:
                     try:
                         dummies = arg.numDummies()
                     except AttributeError:
                         try:
                             indices = arg._getIndices()
                         except AttributeError:
-                            indices = arange(ag.numAtoms())
+                            indices = arange(self._ag.numAtoms())
                     else:
                         if dummies:
                             indices = arg._getIndices()[arg.getFlags('mapped')]
