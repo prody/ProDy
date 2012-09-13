@@ -558,13 +558,18 @@ class AtomGroup(Atomic):
         return new        
 
     def __contains__(self, item):
-        
-        try:
-            ag = item.getAtomGroup()
+
+        try:        
+            acsi = item.getACSIndex()
         except AttributeError:
-            return self == item
+            return False
         else:
-            return ag == self
+            try:
+                ag = item.getAtomGroup()
+            except AttributeError:
+                return item == self
+            else:
+                return ag == self
     
     def __iter__(self):
         """Yield atom instances."""
