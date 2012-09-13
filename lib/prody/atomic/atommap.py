@@ -359,11 +359,8 @@ class AtomMap(AtomPointer):
     def getData(self, label):
         """Return a copy of data associated with *label*, if it is present."""
         
-        try:
-            data = self._ag._data[label]
-        except KeyError:
-            pass
-        else:
+        data = self._ag._getData(label)
+        if data is not None:
             result = zeros((self._len,) + data.shape[1:], data.dtype)
             result[self._mapping] = data[self._indices]
             return result

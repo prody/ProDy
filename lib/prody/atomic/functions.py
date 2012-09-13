@@ -247,11 +247,11 @@ def findFragments(atoms):
 
 RESERVED = set(ATOMIC_FIELDS)
 RESERVED.update(['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
-                 'bonded', 'exbonded', 'to', 'all', 'none']) 
+                 'bonded', 'exbonded', 'to', 'all', 'none',
+                 'index', 'sequence', 'x', 'y', 'z']) 
 RESERVED.update(flags.PLANTERS)
-RESERVED.update(select.FUNCTION_MAP) 
+RESERVED.update(select.FUNCTIONS) 
 RESERVED.update(select.FIELDS_SYNONYMS) 
-RESERVED.update(select.KEYWORDS_VALUE_PAIRED)
 RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
                  'bonds', 'bmap'])
 
