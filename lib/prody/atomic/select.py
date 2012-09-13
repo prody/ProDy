@@ -548,8 +548,9 @@ SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex',
 
 XYZDIST = set(['x', 'y', 'z', 'within', 'exwithin'])
 
-AND = pp.Keyword('and')
 OR = pp.Keyword('or')
+AND = pp.Keyword('and')
+WORD = pp.Word(pp.alphanums + '''~@#$.:;_',''')
 
 _ = list(FUNCTIONS)
 FUNCNAMES = set(_)
@@ -562,57 +563,55 @@ for func in _[1:]:
     FUNCNAMES_OPLIST = FUNCNAMES_OPLIST | kwfunc 
     FUNCNAMES_EXPR += ~kwfunc
 
-SHORTLIST = pp.alphanums + '''~@#$.:;_','''
-WORD = pp.Word(SHORTLIST)
-LONGLIST = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
+#SHORTLIST = pp.alphanums + '''~@#$.:;_','''
+#LONGLIST = pp.alphanums + '''~!@#$%^&*()-_=+[{}]\|;:,<>./?()' '''
 
 
-SPECIALCHARS = pp.Group(pp.Literal('`') + pp.Word(LONGLIST + '"') + 
-                        pp.Literal('`'))
-def specialCharsParseAction(token):
+RE_SCHARS = re_compile('`[\w\W]*`')
+PP_SCHARS = pp.Regex(RE_SCHARS)
+def specialCharsParseAction(sel, loc, token):
 
-    token = token[0][1]
-    if ':' in token:
+    token = token[0][1:-1]
+    if not token:
+        raise SelectionError(sel, loc, '`` is invalid, no special characters')
+    if ':' in token or 'to' in token:
         try:
-            token = RANGEPY.parseString(token)[0]
+            token = PP_NRANGE.parseString(token)[0]
         except ParseException:
-            pass
-    elif 'to' in token:
-        try:
-            token = RANGETO.parseString(token)[0]
-        except pParseException:
             pass
     return token
 
-SPECIALCHARS.setParseAction(specialCharsParseAction)
+PP_SCHARS.setParseAction(specialCharsParseAction)
 
-RE_REGEXP = re_compile('"[\w\W]+"')
-PP_REGEXP = pp.Group(pp.Literal('"') + pp.Word(LONGLIST + '`') + 
-                     pp.Literal('"'))
+
+RE_REGEXP = re_compile('"[\w\W]*"')
+PP_REGEXP = pp.Regex(RE_REGEXP.pattern)
+
 def regularExpParseAction(sel, loc, token):
     
+    
     token = token[0]
+    if token == '""':
+        raise SelectionError(sel, loc, '"" is invalid, no regular expression')
     try:
-        regexp = re_compile(token[1])
+        regexp = re_compile(token[1:-1])
     except:
         raise SelectionError(sel, loc, 'failed to compile regular '
-                        'expression {0:s}'.format(repr(token[1])))
+                        'expression {0:s}'.format(repr(token)))
     else:
         return regexp
 
 PP_REGEXP.setParseAction(regularExpParseAction)
 
 _ = '[-+]?\d+(\.\d*)?([eE]\d+)?'
-RE_NRANGE = _ + '\ *(to|:)\ *' + _
+RE_NRANGE = re_compile(_ + '\ *(to|:)\ *' + _)
 
-PP_NRANGE = pp.Group(pp.Regex(RE_NRANGE) + 
+PP_NRANGE = pp.Group(pp.Regex(RE_NRANGE.pattern) + 
                      pp.Optional(pp.Regex('(\ *:\ *' + _ + ')')))
-RE_NRANGE = re_compile(RE_NRANGE)
 
 
 def rangeParseAction(sel, loc, tokens):
     
-    interact(local=locals())
     tokens = tokens[0]
     debug(sel, loc, '_nrange', tokens)
 
@@ -889,26 +888,12 @@ class Select(object):
                 
         funcs = 4 if items.intersection(FUNCNAMES) else 0
         opers = 2 if chars.intersection(OPERATORS) else 0   
-        logic = 1 if 'or' in items else 0
+        logic = 1 if 'or' in items or '(' in chars else 0
         
-        schars = nrange = 0
-        if '`' in chars:
-            try:
-                SPECIALCHARS.parseString(selstr, parseAll=True)
-            except ParseException:
-                schars = 0
-            else:
-                schars = 8
-        
+        schars = 8 if '`' in chars and RE_SCHARS.search(selstr) else 0
         regexp = 16 if '"' in chars and RE_REGEXP.search(selstr) else 0
-
-        if ':' in chars or ' to ' in alpha:
-            try:
-                PP_NRANGE.parseString(selstr, parseAll=True)
-            except ParseException:
-                nrange = 0
-            else: 
-                nrange = 32
+        nrange = 32 if ((':' in chars or ' to ' in alpha) and 
+                        RE_NRANGE.search(selstr)) else 0
         
         self._parser = key = (logic + opers + funcs, 
                               logic + funcs + schars + regexp + nrange) 
@@ -947,7 +932,7 @@ class Select(object):
         expr = word
         if nrange: expr = PP_NRANGE | expr 
         if regexp: expr = PP_REGEXP | expr 
-        if schars: expr = SPECIALCHARS | expr 
+        if schars: expr = PP_SCHARS | expr 
 
         parser = pp.operatorPrecedence(expr, oplist)
         parser.setParseAction(self._default)
@@ -1190,6 +1175,7 @@ class Select(object):
         isFlagLabel = atoms.isFlagLabel
         isDataLabel = atoms.isDataLabel
         append = None
+        wasand = False
         while tokens:
             # check whether token is an array to avoid array == str comparison
             token = tokens.pop(0)
@@ -1197,7 +1183,13 @@ class Select(object):
                 dtype = token.dtype
             except AttributeError:
                 if token == 'and':
+                    if wasand:
+                        return None, SelectionError(sel, loc, 'incorrect use '
+                            'of `and` operator, expected {0:s}'
+                            .format(repr('and ... and')), ['and', 'and'])
                     append = None
+                    wasand = True
+                    continue
                 
                 elif isFlagLabel(token):
                     flags.append(token)
@@ -1219,27 +1211,28 @@ class Select(object):
                     elif token == 'same':
                         if len(tokens) < 3 or tokens[1] != 'as':
                             return None, SelectionError(sel, loc, 'incorrect ' 
-                                'use of same as statement, expected {1:s}'
+                                'use of `same as` statement, expected {0:s}'
                                 .format('same entity as ...'), [token])
                         append((token, tokens.pop(0), tokens.pop(0)))
                     
                     elif token.endswith('within'):
                         if len(tokens) < 3 or tokens[1] != 'of':
                             return None, SelectionError(sel, loc, 'incorrect ' 
-                                'use of within statement, expected {1:s}'
-                                .format('within x.y of ...'), [token])
+                                'use of `within` statement, expected {0:s}'
+                                .format('[ex]within x.y of ...'), [token])
                         append((token, tokens.pop(0), tokens.pop(0)))
                     
                     elif token.endswith('bonded'):
                         token2 = tokens.pop(0)
                         if len(tokens) < (1 + int(token2 == 'to')):
                             return None, SelectionError(sel, loc, 'incorrect ' 
-                                'use of bonded statement, expected {1:s}'
-                                .format('bonded [n] to ...'), [token2])
+                                'use of `bonded` statement, expected {0:s}'
+                                .format('[ex]bonded [n] to ...'), [token2])
                         if token2 == 'to':
                             append((token, 'to'))
                         else:
                             append((token, token2, tokens.pop(0)))
+
                     while tokens:
                         if tokens[0] == 'and': break
                         append(tokens.pop(0))
@@ -1257,6 +1250,7 @@ class Select(object):
                     return None, SelectionError(sel, loc, 'a problem ' 
                                 'occurred when evaluation token {0:s}'
                                 .format(repr(token)), [token])
+            wasand = False
         torf = None
         
         if torfs:
@@ -1340,18 +1334,18 @@ class Select(object):
         debug(sel, loc, '_unary', tokens)
         if NUMB: return
 
-        err = False
-        if len(tokens) == 2:
-            which = tokens[1]
-            try:
-                dtype  = which.dtype
-            except AttributeError:
-                which, err = self._eval(sel, loc, tokens[1:])
+        what = tokens[0]
+        which = tokens[1:]
+        
+        if not which:
+            return None, SelectionError(sel, loc, '{0:s} must be followed by '
+                .format(repr(' '.join(what))), what)
+        if len(which) == 1:
+            which, err = self._eval(sel, loc, which)
         else:                                
-            which, err = self._and2(sel, loc, tokens[1:])
+            which, err = self._and2(sel, loc, which)
         if err: raise err 
 
-        what = tokens[0]
         tokens = [what, which]
         if what[0] == 'not':
             return self._not(sel, loc, tokens)
