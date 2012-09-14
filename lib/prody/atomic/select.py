@@ -21,27 +21,26 @@ this page in interactive sessions using ``help(select)``.
 
 .. _selections:
 
-
-Atom selections
+Atom Selections
 ===============================================================================
 
 ProDy offers a fast and powerful atom selection class, :class:`.Select`.  
-The keywords, selection grammar, and features of atom selections are similar 
-to those in VMD.  Small differences that can be found below should not 
-affect most practical uses of atom selections.  With added flexibility of 
-Python, ProDy selection engine can also be used to identify intermolecular 
-contacts.  You may see this other usage examples in :ref:`contacts` and 
+Selection features, grammar, and keywords are similar to those of VMD.  
+Small differences, that is described below, should not affect most practical 
+uses of atom selections.  With added flexibility of Python, ProDy selection 
+engine can also be used to identify intermolecular contacts.  You may see 
+this and other usage examples in :ref:`contacts` and 
 :ref:`selection-operations`.
 
-Let's import everything from ProDy and parse a protein-DNA-ligand complex 
-structure:
+First, we import everything from ProDy and parse a protein-DNA-ligand 
+complex structure:
 
 >>> from prody import * 
 >>> p = parsePDB('3mht')
 
-:func:`.parsePDB` will return an :class:`.AtomGroup` instance, ``p``, that 
-stores all atomic data in the file.  We can count different types of atoms 
-using :ref:`flags` and :meth:`~.AtomGroup.numAtoms` method as follows:
+:func:`.parsePDB` returns :class:`.AtomGroup` instances, ``p`` in this case, 
+that stores all atomic data in the file.  We can count different types of 
+atoms using :ref:`flags` and :meth:`~.AtomGroup.numAtoms` method as follows:
 
 >>> p.numAtoms('protein')
 2606
@@ -52,13 +51,13 @@ using :ref:`flags` and :meth:`~.AtomGroup.numAtoms` method as follows:
 >>> p.numAtoms('water')
 70
 
-Last two counts suggest that there are 26 ligand atoms, which are considered
-hetero atoms similar to water.
+Last two counts suggest that ligand has 26 atoms, which are also considered
+:term:`hetero` atoms.
 
 Atom flags 
-===============================================================================
+-------------------------------------------------------------------------------
 
-We can select subset of atoms by using :meth:`.AtomGroup.select` method and 
+We select subset of atoms by using :meth:`.AtomGroup.select` method and 
 inputing flags described in :ref:`flags` section:
    
 >>> p.select('protein')
@@ -66,21 +65,24 @@ inputing flags described in :ref:`flags` section:
 >>> p.select('water')
 <Selection: 'water' from 3mht (70 atoms)>
 
+This operation returns :class:`.Selection` instances, which can as input to
+functions that accepts an *atoms* argument. 
+
 
 Logical operators
-===============================================================================
+-------------------------------------------------------------------------------
 
-We can also combine flags using ``'and'`` and ``'or'`` operators:
+Flags can be combined using ``'and'`` and ``'or'`` operators:
 
 >>> p.select('protein and water')
 
-``'protein and water'`` did not result in selection of protein and water atoms.
-This is because, no atom is flagged as a protein and a water atom at the same 
-time.  
+``'protein and water'`` did not result in selection of :term:`protein` and 
+:term:`water` atoms.  This is because, no atom is flagged as a protein and a 
+water atom at the same time.  
 
 .. note::
    
-   **Interpretation of selection strings**
+   **Interpreting selection strings**
    
    You may think as if a selection string, such as ``'protein and water'``, is 
    evaluated on a per atom basis and an atom is selected if it satisfies the 
@@ -120,7 +122,7 @@ operator as follows:
 set(['ASP', 'GLU'])
 
 Quick selections
-===============================================================================
+-------------------------------------------------------------------------------
 
 For simple selections, such as shown above, following may be preferable over
 the :meth:`~.AtomGroup.select` method:
@@ -128,10 +130,12 @@ the :meth:`~.AtomGroup.select` method:
 >>> p.acidic_calpha
 <Selection: 'acidic calpha' from 3mht (39 atoms)>
 
-The result is the same as using ``p.select('acidic calpha')``.
+The result is the same as using ``p.select('acidic calpha')``.  Underscore,
+``_``, is considered as a whitespace.  The limitation of this approach is that
+special characters cannot be used. 
     
 Atom data fields 
-===============================================================================
+-------------------------------------------------------------------------------
 
 In addition to :ref:`flags`, :ref:`fields` can be used in atom selections
 when combined with some values.  For example, we can select Cα and Cβ atoms
@@ -144,112 +148,120 @@ Note that we omitted the default ``'and'`` operator.
 
 .. note::
    
-   **Empty string**
-
-
-
-.. note::
+   **Whitespace or empty string**
    
-   **Residue insertion codes**
+   Atoms with string data fields empty, such as those with no a chain 
+   identifiers, can be selected using an underscore. ``_`` is interpreted
+   as a whitespace and an empty string.
    
-   If there are multiple residues with the same number but 
-   distinguished with insertion codes, the insertion code can be appended
-   to the residue number. "_" stands for empty insertion code. For example:
+   Atoms with unspecified alternate location/chain/segment/icode/secondary 
+   structure identifiers can be selected using "_". This character is replaced 
+   with a whitespace
+   
+   
+>>> p.select('chain _') # chain identifiers of all atoms are specified in 3mht
+>>> p.select('altloc _') # altloc identifiers for all atoms are empty
+<Selection: 'altloc _' from 3mht (3211 atoms)>
+
+Numeric data fields can also be used to make selections:
+    
+>>> p.select('ca resnum 1 2 3 4')
+<Selection: 'ca resnum 1 2 3 4' from 3mht (4 atoms)>
+
+A special case for residues is having insertion codes.  Residue numbers and 
+insertion codes can be specified together as follows:
         
-     * ``'resnum 5'`` selects residue 5 (all insertion codes)
-     * ``'resnum 5A'`` selects residue 5 with insertion code A
-     * ``'resnum 5_'`` selects residue 5 with no insertion code
+  * ``'resnum 5'`` selects residue 5 (all insertion codes)
+  * ``'resnum 5A'`` selects residue 5 with insertion code A
+  * ``'resnum 5_'`` selects residue 5 with no insertion code
+
+
+We can specify a range of numbers using ``'to'`` or Python style slicing with
+``':'``:
+    
+>>> p.select('ca resnum 1to4')
+<Selection: 'ca resnum 1to4' from 3mht (4 atoms)>
+>>> p.select('ca resnum 1:4')
+<Selection: 'ca resnum 1:4' from 3mht (3 atoms)>
+>>> p.select('ca resnum 1:4:2')
+<Selection: 'ca resnum 1:4:2' from 3mht (2 atoms)>
 
 
 .. note::
    
-   **Negative numbers and ranges**
+   **Number ranges**
    
-   
+   Number ranges specify continuous intervals:    
+     
+     * ``'to'`` is all inclusive, e.g. ``'resnum 1 to 4'`` means 
+       ``'1 <= resnum <= 4'``
+     
+     * ``':'`` is left inclusive, e.g. ``'resnum 1:4'`` means 
+       ``'1 <= resnum < 4'``
+     
+   Consecutive use of ``':'``, however, specifies a series of numbers, e.g.
+   ``'resnum 1:4:2'`` means ``'resnum 1 3'``
+    
+   See the outcome of the following examples:
+    
 
-
-**[†]** Alternate locations are parsed as alternate coordinate sets. This
-keyword will work for alternate location specified by "A". This to work for
-alternate locations indicated by other letters, they must be parsed 
-specifically by passing the identifier to the :func:`.parsePDB`.
-
-**[‡]** Atoms with unspecified alternate location/chain/segment/icode/secondary 
-structure identifiers can be selected using "_". This character is replaced 
-with a whitespace.
-
-
-**Strings (with special characters)**
-
-Strings can be any combination of the following::
+Following characters can be specified when using :ref:`fields` for atom
+selections::
 
   abcdefghijklmnopqrstuvwxyz
   ABCDEFGHIJKLMNOPQRSTUVWXYZ
   0123456789
   ~@#$.:;_',
   
-For example ``"name C' N` O~ C$ C#"`` is a valid selection string. 
+For example, ``"name C' N` O~ C$ C#"`` is a valid selection string.  
 
-
-**Integers and floats**
-
-Numbers can be provided as integers or floats, and they will be converted to
-appropriate type. For example ``'resnum 10 11.0'`` will select residues
-with number 10 and 11, but ``'resnum 10.5'`` will not select anything.
-
-Negative numbers must be entered between grave accent symbols, 
-e.g. ``'resnum `-3`'``
-
-**Number ranges**
-
-Number ranges can be passed as follows:
+.. note::
+   
+   **Special characters and negative numbers**
+   
+   Special characters (``~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"``) must be escaped 
+   using grave accent characters (``````).  This also applies to negative 
+   numbers and number ranges, since `-` is considered a special character
+   unless it indicates subtraction.
     
-  * ``'resnum 5 10 to 15'`` selects residues 5, 10, 11, 12, 13, 14, and 15
-  * ``'resnum 5 10:15'`` selects residues 5, 10, 11, 12, 13, and 14 
-    (:, colon, works as it does in Python slicing operations)
-  * ``'resnum 1:10:2'`` selects residues 1, 3, 5, 7, and 9
-  * ``'x 1 to 10'`` selects atoms whose x coordinates are greater than or 
-    equal to 1 and less than or equal to 10  
-  * ``'x 1:10'`` selects atoms whose x coordinates are greater than or 
-    equal to 1 and less than or equal to 10
-    
-Number ranges involving negative numbers must be entered between grave accent 
-symbols, e.g. ``'resnum `-3 to 10`'``, ``'resnum `-3:10:2`'``
+>>> p.select('x `-25 to 25`')
+<Selection: 'x `-25 to 25`' from 3mht (1941 atoms)>
+>>> p.select('x `-22.542`')
+<Selection: 'x `-22.542`' from 3mht (1 atoms)>
 
-**More special characters (``)**
+Omitting the grave accent character will cause a :exc:`.SelectionError`.
 
-Strings can include the following characters (including whitespace) as well 
-when they are surrounded by grave accent character (``):
+
+Finally, you can specify regular expressions to select atoms based on 
+data fields with type string.  Following will select residues whose names
+start with capital letter A 
+
+>>> sel = p.select('resname "A.*"')
+>>> print(set(sel.getResnames()))
+set(['ASP', 'ASN', 'ALA', 'ARG'])
+
+
+.. note::
+
+   **Regular expressions ``"..."``**
+
+   Strings surrounded by double quotes (``"..."``) will be treated as regular 
+   expressions.  For more information on regular expressions see :mod:`re`. 
   
-  ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"
 
-For example ``'name `CA#` `C #`'`` will work.
 
-**Regular expressions ("")**
-
-Strings surrounded by double quotes ("") will be treated as regular 
-expressions. The following character set can be used between double 
-quotes:
-  
-  ~!@#$%^&*()-_=+[{}]\|;:,<>./?()'`
-
-For example ``'resname "A.."'`` will select residues whose names start with 
-letter A and are three-characters long.
-
-For more information on regular expressions see :mod:`re`. 
+ 
 
 Numerical comparisons
-===============================================================================
+-------------------------------------------------------------------------------
 
-Following keywords can be used in numerical comparisons, as operands of 
-arithmetic operations or as arguments to functions:  
+:ref:`fields` with numeric types can be used as operands in numerical 
+comparisons and operations and as arguments to functions: 
  
- * index, serial   
- * resnum, resid
- * x, y, z
- * beta, occupancy
- * charge, mass, radius (these must be set by the user before they can be used) 
-
-Numerical attributes of atoms can be used with the following comparison 
+>>> p.select('x < 0')
+<Selection: 'x < 0' from 3mht (3095 atoms)>
+>>> p.select('occupancy = 1')
+<Selection: 'occupancy = 1' from 3mht (3211 atoms)>
 
 ==========  =================================
 Comparison  Description
@@ -262,8 +274,6 @@ Comparison  Description
    =        equal
    !=       not equal
 ==========  =================================
-
-*Examples:* ``'x < 0'``, ``'occupancy != 1'``
 
 Numerical attributes of atoms can be used as operands to the following 
 operators:
@@ -282,7 +292,10 @@ x - y      x minus y
 =========  ==================================
    
 These operations must be used with a numerical comparison, e.g. 
-``'x ** 2 < 10'``, ``'x ** 2 ** 2 < 10'``, ``'occupancy != 1'``
+>>> p.select('x ** 2 < 10')
+<Selection: 'x ** 2 < 10' from 3mht (238 atoms)>
+>>> p.select('x ** 2 ** 2 < 10')
+<Selection: 'x ** 2 ** 2 < 10' from 3mht (134 atoms)>
    
 Numerical attributes of atoms can be used as arguments to the following 
 functions:
@@ -309,16 +322,11 @@ tan(x)    tangent of x
 tanh(x)   hyperbolic tangent of x
 ========  ===================================
 
-**Examples**
-  
-  * ``'sqrt(x**2 + y**2 + z**2) < 10'`` selects atoms within 10 Å of the 
-    origin
-  * ``'resnum <= 100'`` selects atoms with residue numbers less than or equal 
-    to 100  
-
+>>> p.select('sqrt(x**2 + y**2 + z**2) < 100') # atoms within 100 Å of origin
+<Selection: 'sqrt(x**2 + y**2 + z**2) < 100' from 3mht (1975 atoms)>
 
 Distance based selections
-===============================================================================
+-------------------------------------------------------------------------------
 
 Atoms within a user specified distance (Å) from a set of user specified atoms
 can be selected using ``within . of ..`` keyword, e.g. ``within 5 of water``
@@ -326,11 +334,14 @@ selects atoms that are within 5 Å of water molecules. This setting will
 results selecting water atoms as well.
 
 User can avoid selecting specified atoms using ``exwithin . of ..`` setting,
-e.g. ``exwithin 5 of water`` will not select water molecules and is equivalent
-to ``within 5 of water and not water``
+e.g. ``'exwithin 5 of water'`` will not select water molecules and is equivalent
+to ``'within 5 of water and not water'``
+
+>>> p.select('exwithin 5 of water') == p.select('not water within 5 of water') 
+True
 
 Sequence selections
-===============================================================================
+-------------------------------------------------------------------------------
 
 One-letter amino acid sequences can be used to make atom selections. 
 ``'sequence SAR'`` will select **SER-ALA-ARG** residues in a chain.  Note
@@ -340,7 +351,7 @@ select **SER-XXX-XXX-ARG** pattern, if  present.
     
 
 Expanding selections
-===============================================================================
+-------------------------------------------------------------------------------
 
 A selection can be expanded to include the atoms in the same *residue*, 
 *chain*, or *segment* using ``same .. as ..`` setting, e.g.
@@ -354,7 +365,7 @@ to Cα atoms.  For this setting to work, bonds must be set by the user using the
 by excluding the originating atoms using ``exbonded to ...`` setting.  
 
 Selection macros
-===============================================================================
+-------------------------------------------------------------------------------
 
 Any valid selection string can be used to define selection macros using the 
 :func:`defSelectionMacro` function.  Macros are saved in ProDy configuration 
@@ -364,6 +375,10 @@ manipulating selection macros:
   * :func:`defSelectionMacro`
   * :func:`delSelectionMacro`
   * :func:`getSelectionMacro`
+  * :func:`isSelectionMacro`
+  
+Classes and Functions
+===============================================================================
 """
 
 __author__ = 'Ahmet Bakan'
@@ -1306,13 +1321,14 @@ class Select(object):
                         try:
                             dtype = next.dtype
                         except AttributeError:
-                            if (next == 'and' or isFlagLabel(next) or 
-                                isDataLabel(next) or next in self._evalmap): 
+                            append(tokens.pop(0))
+                            if next == 'and' or isFlagLabel(next): 
+                                break
+                            if isDataLabel(next) or next in self._evalmap: 
                                 if anyargs:
                                     break
                                 else:
                                     anyargs = True
-                            append(tokens.pop(0))
                         else:
                             append(tokens.pop(0))
                             break
