@@ -25,7 +25,15 @@ import os.path
 from actions import *
 
 def prody_fetch(*pdb, **kwargs):
-    """Fetch PDB files from PDB FTP server."""
+    """Fetch PDB files from PDB FTP server.
+
+    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
+
+    :arg dir: target directory for saving PDB file(s), default is: '.'
+
+    :arg gzip: gzip fetched files or not, default is: 'False'
+
+    """
     
     import prody
     pdblist = pdb
