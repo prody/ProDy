@@ -26,12 +26,22 @@ from actions import *
 
 def prody_fetch(*pdb, **kwargs):
     """Fetch PDB files from PDB FTP server.
+<<<<<<< HEAD
     
     :arg pdbs: :term:`PDB` identifier(s) or filename(s)
     
     :arg dir: target directory for saving PDB file(s), default is: '.'
 
     :arg gzip: gzip fetched files or not, default is:False
+=======
+
+    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
+
+    :arg dir: target directory for saving PDB file(s), default is: '.'
+
+    :arg gzip: gzip fetched files or not, default is: 'False'
+
+>>>>>>> Added comments to prody_fetch
     """
     
     import prody
