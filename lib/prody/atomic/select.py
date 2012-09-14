@@ -21,6 +21,7 @@ this page in interactive sessions using ``help(select)``.
 
 .. _selections:
 
+
 Atom Selections
 ===============================================================================
 
@@ -51,22 +52,23 @@ atoms using :ref:`flags` and :meth:`~.AtomGroup.numAtoms` method as follows:
 >>> p.numAtoms('water')
 70
 
-Last two counts suggest that ligand has 26 atoms, which are also considered
-:term:`hetero` atoms.
+Last two counts suggest that ligand has 26 atoms, i.e. number of :term:`hetero`
+atoms less the number of :term:`water` atoms.
+
 
 Atom flags 
 -------------------------------------------------------------------------------
 
-We select subset of atoms by using :meth:`.AtomGroup.select` method and 
-inputing flags described in :ref:`flags` section:
+We select subset of atoms by using :meth:`.AtomGroup.select` method. 
+All :ref:`flags` can be input arguments to this methods as follows:
    
 >>> p.select('protein')
 <Selection: 'protein' from 3mht (2606 atoms)>
 >>> p.select('water')
 <Selection: 'water' from 3mht (70 atoms)>
 
-This operation returns :class:`.Selection` instances, which can as input to
-functions that accepts an *atoms* argument. 
+This operation returns :class:`.Selection` instances, which can be an input 
+to functions that accepts an *atoms* argument. 
 
 
 Logical operators
@@ -106,10 +108,8 @@ If you omit the ``'and'`` operator, you will get the same result:
 
 .. note::
    
-   **Default operator**
-   
-   The default operator between two flags, or other selection tokens that will
-   be discussed alter, is ``'and'``.  For example, ``'not water hetero'``
+   **Default operator** between two flags, or other selection tokens that will
+   be discussed later, is ``'and'``.  For example, ``'not water hetero'``
    is equivalent to ``'not water and hetero'``.
    
 We can select Cα atoms of acidic residues by omitting the default logical 
@@ -120,6 +120,7 @@ operator as follows:
 <Selection: 'acidic calpha' from 3mht (39 atoms)>
 >>> print(set(sel.getResnames()))
 set(['ASP', 'GLU'])
+
 
 Quick selections
 -------------------------------------------------------------------------------
@@ -134,6 +135,7 @@ The result is the same as using ``p.select('acidic calpha')``.  Underscore,
 ``_``, is considered as a whitespace.  The limitation of this approach is that
 special characters cannot be used. 
     
+
 Atom data fields 
 -------------------------------------------------------------------------------
 
@@ -148,16 +150,11 @@ Note that we omitted the default ``'and'`` operator.
 
 .. note::
    
-   **Whitespace or empty string**
-   
+   **Whitespace** or **empty string** can be specified using an ``'_'``. 
    Atoms with string data fields empty, such as those with no a chain 
-   identifiers, can be selected using an underscore. ``_`` is interpreted
-   as a whitespace and an empty string.
-   
-   Atoms with unspecified alternate location/chain/segment/icode/secondary 
-   structure identifiers can be selected using "_". This character is replaced 
-   with a whitespace
-   
+   identifiers or alternate location identifiers, can be selected using 
+   an underscore.
+      
    
 >>> p.select('chain _') # chain identifiers of all atoms are specified in 3mht
 >>> p.select('altloc _') # altloc identifiers for all atoms are empty
@@ -176,8 +173,10 @@ insertion codes can be specified together as follows:
   * ``'resnum 5_'`` selects residue 5 with no insertion code
 
 
-We can specify a range of numbers using ``'to'`` or Python style slicing with
-``':'``:
+Number ranges
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A range of numbers using ``'to'`` or Python style slicing with ``':'``:
     
 >>> p.select('ca resnum 1to4')
 <Selection: 'ca resnum 1to4' from 3mht (4 atoms)>
@@ -189,9 +188,7 @@ We can specify a range of numbers using ``'to'`` or Python style slicing with
 
 .. note::
    
-   **Number ranges**
-   
-   Number ranges specify continuous intervals:    
+   **Number ranges** specify continuous intervals:    
      
      * ``'to'`` is all inclusive, e.g. ``'resnum 1 to 4'`` means 
        ``'1 <= resnum <= 4'``
@@ -199,11 +196,12 @@ We can specify a range of numbers using ``'to'`` or Python style slicing with
      * ``':'`` is left inclusive, e.g. ``'resnum 1:4'`` means 
        ``'1 <= resnum < 4'``
      
-   Consecutive use of ``':'``, however, specifies a series of numbers, e.g.
-   ``'resnum 1:4:2'`` means ``'resnum 1 3'``
-    
-   See the outcome of the following examples:
-    
+   Consecutive use of ``':'``, however, specifies a discrete range of numbers, 
+   e.g. ``'resnum 1:4:2'`` means ``'resnum 1 3'``
+
+
+Special characters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Following characters can be specified when using :ref:`fields` for atom
 selections::
@@ -217,12 +215,16 @@ For example, ``"name C' N` O~ C$ C#"`` is a valid selection string.
 
 .. note::
    
-   **Special characters and negative numbers**
-   
-   Special characters (``~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"``) must be escaped 
-   using grave accent characters (``````).  This also applies to negative 
-   numbers and number ranges, since `-` is considered a special character
-   unless it indicates subtraction.
+   **Special characters** (``~!@#$%^&*()-_=+[{}]\|;:,<>./?()'"``) must be 
+   escaped using grave accent characters (``````).  
+
+
+Negative numbers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Negative numbers and number ranges must also be escaped using grave accent
+characters, since negative sign ``'-'`` is considered a special character 
+unless it indicates subtraction operation (see below).
     
 >>> p.select('x `-25 to 25`')
 <Selection: 'x `-25 to 25`' from 3mht (1941 atoms)>
@@ -231,6 +233,9 @@ For example, ``"name C' N` O~ C$ C#"`` is a valid selection string.
 
 Omitting the grave accent character will cause a :exc:`.SelectionError`.
 
+
+Regular expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Finally, you can specify regular expressions to select atoms based on 
 data fields with type string.  Following will select residues whose names
@@ -243,20 +248,15 @@ set(['ASP', 'ASN', 'ALA', 'ARG'])
 
 .. note::
 
-   **Regular expressions ``"..."``**
-
-   Strings surrounded by double quotes (``"..."``) will be treated as regular 
-   expressions.  For more information on regular expressions see :mod:`re`. 
+   **Regular expressions** can be specified using double quotes, ``"..."``.
+   For more information on regular expressions see :mod:`re`. 
   
-
-
- 
 
 Numerical comparisons
 -------------------------------------------------------------------------------
 
 :ref:`fields` with numeric types can be used as operands in numerical 
-comparisons and operations and as arguments to functions: 
+comparisons: 
  
 >>> p.select('x < 0')
 <Selection: 'x < 0' from 3mht (3095 atoms)>
@@ -275,8 +275,7 @@ Comparison  Description
    !=       not equal
 ==========  =================================
 
-Numerical attributes of atoms can be used as operands to the following 
-operators:
+Furthermore, numerical comparisons may involve the following operations:
 
 =========  ==================================
 Operation  Description
@@ -291,7 +290,8 @@ x + y      x plus y
 x - y      x minus y
 =========  ==================================
    
-These operations must be used with a numerical comparison, e.g. 
+These operations must be used with a numerical comparison, e.g.
+ 
 >>> p.select('x ** 2 < 10')
 <Selection: 'x ** 2 < 10' from 3mht (238 atoms)>
 >>> p.select('x ** 2 ** 2 < 10')
@@ -329,13 +329,13 @@ Distance based selections
 -------------------------------------------------------------------------------
 
 Atoms within a user specified distance (Å) from a set of user specified atoms
-can be selected using ``within . of ..`` keyword, e.g. ``within 5 of water``
+can be selected using ``'within . of .'`` keyword, e.g. ``'within 5 of water'``
 selects atoms that are within 5 Å of water molecules. This setting will
 results selecting water atoms as well.
 
 User can avoid selecting specified atoms using ``exwithin . of ..`` setting,
-e.g. ``'exwithin 5 of water'`` will not select water molecules and is equivalent
-to ``'within 5 of water and not water'``
+e.g. ``'exwithin 5 of water'`` will not select water molecules and is 
+equivalent to ``'within 5 of water and not water'``
 
 >>> p.select('exwithin 5 of water') == p.select('not water within 5 of water') 
 True
@@ -346,23 +346,35 @@ Sequence selections
 One-letter amino acid sequences can be used to make atom selections. 
 ``'sequence SAR'`` will select **SER-ALA-ARG** residues in a chain.  Note
 that the selection does not consider connectivity within a chain.  Regular 
-expressions can also be used to make selections: ``'sequence S..R'`` will
-select **SER-XXX-XXX-ARG** pattern, if  present. 
-    
+expressions can also be used to make selections: ``'sequence "MI.*KQ"'`` will
+select **MET-ILE-(XXX)n-ASP-LYS-GLN** pattern, if present.
+
+>>> sel = p.select('ca sequence "MI.*DKQ"')
+>>> sel
+<Selection: 'ca sequence "MI.*DKQ"' from 3mht (8 atoms)>
+>>> print(sel.getResnames()) 
+['MET' 'ILE' 'GLU' 'ILE' 'LYS' 'ASP' 'LYS' 'GLN']
 
 Expanding selections
 -------------------------------------------------------------------------------
 
 A selection can be expanded to include the atoms in the same *residue*, 
 *chain*, or *segment* using ``same .. as ..`` setting, e.g.
-``same residue as exwithin 4 of water`` will select residues that have
+``'same residue as exwithin 4 of water'`` will select residues that have
 at least an atom within 4 Å of any water molecule.
 
+>>> p.select('same residue as exwithin 4 of water')
+<Selection: 'same residue as...thin 4 of water' from 3mht (1554 atoms)>
+
 Additionally, a selection may be expanded to the immediately bonded atoms using
-``bonded to ...`` setting, e.f. ``bonded to calpha`` will select atoms bonded 
-to Cα atoms.  For this setting to work, bonds must be set by the user using the
-:meth:`.AtomGroup.setBonds` method.  It is also possible to select bonded atoms
-by excluding the originating atoms using ``exbonded to ...`` setting.  
+``bonded [n] to ...`` setting, e.f. ``bonded 1 to calpha`` will select atoms 
+bonded to Cα atoms.  For this setting to work, bonds must be set by the user 
+using the :meth:`.AtomGroup.setBonds` method.  It is also possible to select 
+bonded atoms by excluding the originating atoms using ``exbonded [n] to ...`` 
+setting.  Number ``'[n]'`` indicates number of bonds to consider from the
+originating selection and defaults to 1.
+
+
 
 Selection macros
 -------------------------------------------------------------------------------
@@ -376,6 +388,20 @@ manipulating selection macros:
   * :func:`delSelectionMacro`
   * :func:`getSelectionMacro`
   * :func:`isSelectionMacro`
+  
+>>> defSelectionMacro('alanine', 'resname ALA')
+>>> p.select('alanine') == p.select('resname ALA')
+True
+
+You can also use the macro as follows: 
+
+>>> p.alanine
+<Selection: 'alanine' from 3mht (80 atoms)>
+
+Macros are stored in ProDy configuration file permanently.  You can delete
+them if you wish as follows:
+
+>>> delSelectionMacro('alanine')
   
 Classes and Functions
 ===============================================================================
@@ -433,7 +459,7 @@ ATOMGROUP = None
 
 MACROS = SETTINGS.get('selection_macros', {})
 MACROS_REGEX = None
-MACRO_NAMES = set(MACROS)
+
 
 def isSelectionMacro(word):
     """Return **True** if *word* is a user defined selection macro."""
@@ -460,7 +486,7 @@ def defSelectionMacro(name, selstr):
         raise ValueError('macro names must be all lower case letters, {0:s} '
                          'is not a valid macro name'.format(repr(name)))
     
-    LOGGER.info('Testing validity of selection string:')
+    LOGGER.info('Testing validity of selection string.')
     try:
         ATOMGROUP.select(selstr)
     except SelectionError:
@@ -484,6 +510,7 @@ def delSelectionMacro(name):
     except:
         LOGGER.warn("Macro {0:s} is not found.".format(repr(name)))
     else:
+        MACROS_REGEX.pop(name, None)
         LOGGER.info("Macro {0:s} is deleted.".format(repr(name)))
         SETTINGS['selection_macros'] = MACROS
         SETTINGS.save()
@@ -502,18 +529,22 @@ def getSelectionMacro(name=None):
                     .format(repr(name)))
 
 
-def evalMacros(selstr):
+def replaceMacros(selstr):
     
+    global MACROS_REGEX
+    if MACROS_REGEX is None: MACROS_REGEX = {}
+    selstr = ' ' + selstr + ' '
     if MACROS:
-        global MACROS_REGEX
-        if MACROS_REGEX is None: MACROS_REGEX = {}
-        selstr = ' ' + selstr + ' '
-        for key, macro in MACROS.items():
-            
-            selstr = (' (' + macro + ') ').join(MACROS_REGEX.setdefault(key, 
-                        re_compile('[( )]' + key + '[( )]')).split(selstr))
-        selstr = selstr[1:-1]
-    return selstr   
+        for name, macro in MACROS.items():  
+            re = MACROS_REGEX.setdefault(name, 
+                re_compile('[( )]' + name + '[( )]'))
+        
+        for match in re.finditer(selstr):
+            start, end = match.start(), match.end()
+            match = selstr[start:end]
+            selstr = (selstr[:start] + match[0] + '(' + macro+ ')' + 
+                      match[-1] + selstr[end:])
+    return selstr[1:-1]
 
 
 def checkSelstr(selstr, what, error=ValueError):
@@ -918,7 +949,7 @@ class Select(object):
                 raise SelectionError(selstr, 0, 'is not a valid selection or '
                                      'user data label')
             
-
+        selstr = replaceMacros(selstr)
         try:
             parser = self._getParser(selstr)
             tokens = parser(selstr, parseAll=True)
@@ -2246,7 +2277,11 @@ class Select(object):
             torf[matches] = True
             if self._indices is not None:
                 torf = torf[self._indices]
-            return self._sameas(sel, loc, [('same', 'residue', 'as'), torf])
+            torf = self._sameas(sel, loc, [('same', 'residue', 'as'), torf])[0]
+            if subset is None:
+                return torf, False  
+            else:
+                return torf[subset], False
         else:
             return self._getZeros(subset), False
    
