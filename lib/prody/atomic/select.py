@@ -297,8 +297,7 @@ These operations must be used with a numerical comparison, e.g.
 >>> p.select('x ** 2 ** 2 < 10')
 <Selection: 'x ** 2 ** 2 < 10' from 3mht (134 atoms)>
    
-Numerical attributes of atoms can be used as arguments to the following 
-functions:
+Finally, following functions can be used in numerical comparisons:
    
 ========  ===================================
 Function  Description
@@ -322,8 +321,9 @@ tan(x)    tangent of x
 tanh(x)   hyperbolic tangent of x
 ========  ===================================
 
->>> p.select('sqrt(x**2 + y**2 + z**2) < 100') # atoms within 100 Å of origin
-<Selection: 'sqrt(x**2 + y**2 + z**2) < 100' from 3mht (1975 atoms)>
+>>> p.select('sqrt(sq(x) + sq(y) + sq(z)) < 100') # atoms within 100 Å of origin
+<Selection: 'sqrt(sq(x) + sq(y) + sq(z)) < 100' from 3mht (1975 atoms)>
+
 
 Distance based selections
 -------------------------------------------------------------------------------
@@ -340,6 +340,7 @@ equivalent to ``'within 5 of water and not water'``
 >>> p.select('exwithin 5 of water') == p.select('not water within 5 of water') 
 True
 
+
 Sequence selections
 -------------------------------------------------------------------------------
 
@@ -354,6 +355,7 @@ select **MET-ILE-(XXX)n-ASP-LYS-GLN** pattern, if present.
 <Selection: 'ca sequence "MI.*DKQ"' from 3mht (8 atoms)>
 >>> print(sel.getResnames()) 
 ['MET' 'ILE' 'GLU' 'ILE' 'LYS' 'ASP' 'LYS' 'GLN']
+
 
 Expanding selections
 -------------------------------------------------------------------------------
@@ -379,10 +381,8 @@ originating selection and defaults to 1.
 Selection macros
 -------------------------------------------------------------------------------
 
-Any valid selection string can be used to define selection macros using the 
-:func:`defSelectionMacro` function.  Macros are saved in ProDy configuration 
-and loaded in later sessions automatically.  Below functions are for 
-manipulating selection macros:
+ProDy allows you to define a macro for any valid selection string.  Below 
+functions are for manipulating selection macros:
     
   * :func:`defSelectionMacro`
   * :func:`delSelectionMacro`
@@ -393,7 +393,7 @@ manipulating selection macros:
 >>> p.select('alanine') == p.select('resname ALA')
 True
 
-You can also use the macro as follows: 
+You can also use this macro as follows: 
 
 >>> p.alanine
 <Selection: 'alanine' from 3mht (80 atoms)>
