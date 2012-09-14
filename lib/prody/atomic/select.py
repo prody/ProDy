@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" This module defines a class for selecting subsets of atoms.  Read this
-page in interactive sessions using ``help(select)``.
+"""This module defines a class for selecting subsets of atoms.  You can read 
+this page in interactive sessions using ``help(select)``.
 
 .. _selections:
 
@@ -25,72 +25,148 @@ page in interactive sessions using ``help(select)``.
 Atom selections
 ===============================================================================
 
-ProDy offers a powerful atom selector for :class:`.AtomGroup` and other 
-:mod:`~prody.atomic` classes.  The keywords, selection grammar, and features 
-of the selector are similar to those found in VMD (|vmd|).  Small differences 
-between the two should not affect most practical uses of atom selections. 
-ProDy selection engine also enables the identification of intermolecular 
-contacts.  This section describes the keywords and selection syntax.
+ProDy offers a fast and powerful atom selection class, :class:`.Select`.  
+The keywords, selection grammar, and features of atom selections are similar 
+to those in VMD.  Small differences that can be found below should not 
+affect most practical uses of atom selections.  With added flexibility of 
+Python, ProDy selection engine can also be used to identify intermolecular 
+contacts.  You may see this other usage examples in :ref:`contacts` and 
+:ref:`selection-operations`.
 
-|more| See :ref:`contacts` and :ref:`selection-operations` for more usage
-examples.
+Let's import everything from ProDy and parse a protein-DNA-ligand complex 
+structure:
 
+>>> from prody import * 
+>>> p = parsePDB('3mht')
+
+:func:`.parsePDB` will return an :class:`.AtomGroup` instance, ``p``, that 
+stores all atomic data in the file.  We can count different types of atoms 
+using :ref:`flags` and :meth:`~.AtomGroup.numAtoms` method as follows:
+
+>>> p.numAtoms('protein')
+2606
+>>> p.numAtoms('nucleic')
+509
+>>> p.numAtoms('hetero')
+96
+>>> p.numAtoms('water')
+70
+
+Last two counts suggest that there are 26 ligand atoms, which are considered
+hetero atoms similar to water.
 
 Atom flags 
 ===============================================================================
 
-All :ref:`flags` can be used as keywords in atom selections:
+We can select subset of atoms by using :meth:`.AtomGroup.select` method and 
+inputing flags described in :ref:`flags` section:
    
->>> from prody import * 
->>> p = parsePDB('1ubi')
 >>> p.select('protein')
-<Selection: 'protein' from 1ubi (602 atoms)>
+<Selection: 'protein' from 3mht (2606 atoms)>
 >>> p.select('water')
-<Selection: 'water' from 1ubi (81 atoms)>
+<Selection: 'water' from 3mht (70 atoms)>
+
+
+Logical operators
+===============================================================================
+
+We can also combine flags using ``'and'`` and ``'or'`` operators:
+
+>>> p.select('protein and water')
+
+``'protein and water'`` did not result in selection of protein and water atoms.
+This is because, no atom is flagged as a protein and a water atom at the same 
+time.  
+
+.. note::
+   
+   **Interpretation of selection strings**
+   
+   You may think as if a selection string, such as ``'protein and water'``, is 
+   evaluated on a per atom basis and an atom is selected if it satisfies the 
+   given criterion.  To select both water and protein atoms, ``'or'`` logical
+   operator should be used instead.  A protein or a water atom would satisfy
+   ``'protein or water'`` criterion.
+   
+>>> p.select('protein or water')
+<Selection: 'protein or water' from 3mht (2676 atoms)>
+
+We can also use ``'not'`` operator to negate an atom flag.  For example,
+the following selection will only select ligand atoms:
+    
+>>> p.select('not water and hetero')
+<Selection: 'not water and hetero' from 3mht (26 atoms)>
+
+If you omit the ``'and'`` operator, you will get the same result: 
+    
+>>> p.select('not water hetero')
+<Selection: 'not water hetero' from 3mht (26 atoms)>
+
+.. note::
+   
+   **Default operator**
+   
+   The default operator between two flags, or other selection tokens that will
+   be discussed alter, is ``'and'``.  For example, ``'not water hetero'``
+   is equivalent to ``'not water and hetero'``.
+   
+We can select Cα atoms of acidic residues by omitting the default logical 
+operator as follows:
+    
+>>> sel = p.select('acidic calpha')
+>>> sel
+<Selection: 'acidic calpha' from 3mht (39 atoms)>
+>>> print(set(sel.getResnames()))
+set(['ASP', 'GLU'])
+
+Quick selections
+===============================================================================
+
+For simple selections, such as shown above, following may be preferable over
+the :meth:`~.AtomGroup.select` method:
+    
+>>> p.acidic_calpha
+<Selection: 'acidic calpha' from 3mht (39 atoms)>
+
+The result is the same as using ``p.select('acidic calpha')``.
     
 Atom data fields 
 ===============================================================================
 
-Below is the list of atomic attributes that can be used in atom selections:
+In addition to :ref:`flags`, :ref:`fields` can be used in atom selections
+when combined with some values.  For example, we can select Cα and Cβ atoms
+of alanine residues as follows:
+    
+>>> p.select('resname ALA name CA CB')
+<Selection: 'resname ALA name CA CB' from 3mht (32 atoms)>
 
-===============  ==============  ============================================
-Keyword          Arguments         Description
-===============  ==============  ============================================
-name             string          atom name
-element          string          element symbol
-type [*]         string          atom type
-altloc [†‡]      string          one-character alternate location identifier
-resname          string          residue name
-chain [‡]        string          one-character chain identifier
-chid [‡]         string          same as *chain*
-icode [‡]        string          single letter insertion code
-segment [‡]      string          segment name
-segname [‡]      string          same as *segment*
-secondary [\*‡]  string          one-character secondary structure identifier
-secstr [\*‡]     string          same as *secondary*
-sequence         string          one-letter amino acid sequence
-index            integer, range  internal atom number (starts from 0) 
-serial           integer, range  atom serial number (parsed from file)
-resnum [§]       integer, range  residue number
-resid [§]        integer, range  same as *resnum*
-resindex [¶]     integer, range  unique index number for distinct residues  
-chindex [¶]      integer, range  unique index number for distinct chains
-segindex [¶]     integer, range  unique index number for distinct segments
-fragindex [\\\\]   integer, range  unique index number for distinct fragments
-x                float, range    x coordinate
-y                float, range    y coordinate
-z                float, range    z coordinate
-beta             float, range    β (temperature) factor
-occupancy        float, range    atomic occupancy value
-charge [*]       float, range    atomic charge
-mass [*]         float, range    atomic mass
-radius [*]       float, range    atomic radius
-===============  ==============  ============================================
+Note that we omitted the default ``'and'`` operator.
 
-**[*]** These atomic attributes are not set by the PDB parser when a PDB file 
-is parsed. Using them before they are set will raise a selection error. 
-Secondary structure assignments can be made using :func:`.assignSecstr` 
-function.
+.. note::
+   
+   **Empty string**
+
+
+
+.. note::
+   
+   **Residue insertion codes**
+   
+   If there are multiple residues with the same number but 
+   distinguished with insertion codes, the insertion code can be appended
+   to the residue number. "_" stands for empty insertion code. For example:
+        
+     * ``'resnum 5'`` selects residue 5 (all insertion codes)
+     * ``'resnum 5A'`` selects residue 5 with insertion code A
+     * ``'resnum 5_'`` selects residue 5 with no insertion code
+
+
+.. note::
+   
+   **Negative numbers and ranges**
+   
+   
+
 
 **[†]** Alternate locations are parsed as alternate coordinate sets. This
 keyword will work for alternate location specified by "A". This to work for
@@ -101,22 +177,6 @@ specifically by passing the identifier to the :func:`.parsePDB`.
 structure identifiers can be selected using "_". This character is replaced 
 with a whitespace.
 
-**[§]** If there are multiple residues with the same number but 
-distinguished with insertion codes, the insertion code can be appended
-to the residue number. "_" stands for empty insertion code. For example:
-    
-  * ``'resnum 5'`` selects residue 5 (all insertion codes)
-  * ``'resnum 5A'`` selects residue 5 with insertion code A
-  * ``'resnum 5_'`` selects residue 5 with no insertion code
-
-**[¶]** Distinct residues, chains, and segments can be selected using 
-*resindex*, *chindex*, and *segindex* keywords, respectively.  Unique
-numbers to these entitites are assigned by :class:`.HierView` class
-upon building of a hierarchical view for an :class:`.AtomGroup`.
-Note that hierarchical views are build automatically when needed.
-
-**[\\\\]** Distinct fragments are connected subsets of atoms.  Fragments are 
-determined automatically when needed and bond information is available.
 
 **Strings (with special characters)**
 
@@ -303,7 +363,8 @@ manipulating selection macros:
     
   * :func:`defSelectionMacro`
   * :func:`delSelectionMacro`
-  * :func:`getSelectionMacro`"""
+  * :func:`getSelectionMacro`
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -1239,9 +1300,22 @@ class Select(object):
                         else:
                             append((token, token2, tokens.pop(0)))
 
+                    anyargs = False
                     while tokens:
-                        if tokens[0] == 'and': break
-                        append(tokens.pop(0))
+                        next = tokens[0]
+                        try:
+                            dtype = next.dtype
+                        except AttributeError:
+                            if (next == 'and' or isFlagLabel(next) or 
+                                isDataLabel(next) or next in self._evalmap): 
+                                if anyargs:
+                                    break
+                                else:
+                                    anyargs = True
+                            append(tokens.pop(0))
+                        else:
+                            append(tokens.pop(0))
+                            break
                 else:
                     try:
                         append(token)
@@ -1804,8 +1878,8 @@ class Select(object):
                         ranges.append(token)
                     else:   
                         nrange = arange(*token[1:])
-                        if nrange.dtype != dtype:
-                            valset = False
+                        # if dtypes are not the same, don't use set method 
+                        if nrange.dtype != dtype: valset = False
                         values.extend(nrange)
                 continue
             
@@ -1841,6 +1915,7 @@ class Select(object):
                 values.append(value)
 
         if values:
+            # use first option only if values and data array has the same dtype
             if valset and len(values) > 10:
                 valset = set(values)
                 torf = array([val in values for val in data], bool)
