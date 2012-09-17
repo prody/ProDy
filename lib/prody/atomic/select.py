@@ -275,6 +275,16 @@ Comparison  Description
    !=       not equal
 ==========  =================================
 
+It is also possible to chain comparison statements as follows:
+    
+>>> p.select('-10 <= x < 0')
+<Selection: '-10 <= x < 0' from 3mht (557 atoms)>
+
+This would be the same as the following selection:
+
+>>> p.select('-10 <= x and x < 0') == p.select('-10 <= x < 0') 
+True
+
 Furthermore, numerical comparisons may involve the following operations:
 
 =========  ==================================
@@ -377,7 +387,6 @@ setting.  Number ``'[n]'`` indicates number of bonds to consider from the
 originating selection and defaults to 1.
 
 
-
 Selection macros
 -------------------------------------------------------------------------------
 
@@ -402,7 +411,38 @@ Macros are stored in ProDy configuration file permanently.  You can delete
 them if you wish as follows:
 
 >>> delSelectionMacro('alanine')
+
   
+Keyword arguments
+-------------------------------------------------------------------------------
+
+:meth:`~.Select.select` method also accepts keyword arguments that can simplify
+some selections.  Consider the following case where you want to select some
+protein atoms that are close to its center:
+    
+>>> protein = p.protein
+>>> calcCenter(protein).round(2)
+array([-21.17,  35.86,  79.97])
+>>> sel1 = protein.select('sqrt(sq(x--21.17) + sq(y-35.86) + sq(z-79.97)) < 5')
+>>> sel1 
+<Selection: '(sqrt(sq(x--21....) and (protein)' from 3mht (20 atoms)>
+
+Instead, you could pass a keyword argument and use the keyword in the 
+selection string:
+    
+>>> sel2 = protein.select('within 5 of center', center=calcCenter(protein))
+>>> sel2
+<Selection: 'index 1452 to 1...33 2935 to 2944' from 3mht (20 atoms)>
+>>> sel1 == sel2
+True
+
+Note that selection string for *sel2* lists indices of atoms.  This 
+substitution is performed automatically to ensure reproducibility of the
+selection without the keyword *center*.
+
+Keywords cannot be reserved words (see :func:`.getReservedWords`) and must be 
+all alphanumeric characters.
+
 Classes and Functions
 ===============================================================================
 """
@@ -510,7 +550,7 @@ def delSelectionMacro(name):
     except:
         LOGGER.warn("Macro {0:s} is not found.".format(repr(name)))
     else:
-        MACROS_REGEX.pop(name, None)
+        if MACROS_REGEX is not None: MACROS_REGEX.pop(name, None)
         LOGGER.info("Macro {0:s} is deleted.".format(repr(name)))
         SETTINGS['selection_macros'] = MACROS
         SETTINGS.save()
@@ -550,7 +590,7 @@ def replaceMacros(selstr):
 def checkSelstr(selstr, what, error=ValueError):
     """Check *selstr* if it satisfies a selected condition.  For now, only
     whether coordinate/distance based selection are checked.  If *error* is 
-    a subclass of :class:`Exception`, an exception will be raised, otherwise 
+    a subclass of :exc:`Exception`, an exception will be raised, otherwise 
     return **True** or **False** will be returned."""
     
     selstr = selstr.replace('(', ' ( ')
@@ -756,9 +796,9 @@ UNARY = set(['not', 'bonded', 'exbonded', 'within', 'exwithin', 'same'])
 
 class Select(object):
 
-    """Select subsets of atoms based on a selection string.  See :mod:`.select`
-    module documentation for selection grammar and examples.  This class makes
-    use of |pyparsing| module."""
+    """Select subsets of atoms based on a selection string.  
+    See :mod:`~.atomic.select` module documentation for selection grammar
+    and examples.  This class makes use of |pyparsing| module."""
 
     def __init__(self):
         
@@ -815,8 +855,8 @@ class Select(object):
                                     'index ' + str(index), atoms.getACSIndex())
         
     def select(self, atoms, selstr, **kwargs):
-        """Return a :class:`Selection` of atoms matching *selstr*, or **None**,  
-        if selection string does not match any atoms.
+        """Return a :class:`.Selection` of atoms matching *selstr*, or 
+        **None**, if selection string does not match any atoms.
         
         :arg atoms: atoms to be evaluated
         :type atoms: :class:`.Atomic`
@@ -828,10 +868,6 @@ class Select(object):
         :class:`.AtomMap` is returned, instead of a a :class:`.Selection`.
 
         .. note:
-              
-            * :meth:`select` accepts arbitrary keyword arguments which enables 
-              identification of intermolecular contacts. See :ref:`contacts` 
-              for details.
         
             * A special case for making atom selections is passing an
               :class:`.AtomMap` instance as *atoms* argument.  Dummy 
@@ -1764,7 +1800,7 @@ class Select(object):
                 torf = binop(left, right)
             else:
                 logical_and(binop(left, right), torf, torf)
-        
+            left = right
         # check whether atomic data was contained in comparison
         # i.e. len(atoms) == len(torf)
         try:

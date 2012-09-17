@@ -191,6 +191,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('beta > 10', 2874),
         ('beta < 10', 336),
         ('occupancy > 0.999999', 3211),
+        ('-10 <= x < 0', 557, '-10 <= x and x < 0'),
         ('11 > 10', None),
         ('radius > 10', None),
         ('chain = A', None),
