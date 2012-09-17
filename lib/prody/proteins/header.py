@@ -51,7 +51,7 @@ class Chemical(object):
     resname      str    residue name (or chemical component identifier) (HET)
     name         str    chemical name (HETNAM)
     chain        str    chain identifier (HET)
-    number       int    residue (or sequence) number (HET)
+    resnum       int    residue (or sequence) number (HET)
     icode        str    insertion code (HET)
     natoms       int    number of atoms present in the structure (HET)
     description  str    description of the chemical component (HET)
@@ -131,7 +131,7 @@ class Polymer(object):
     mutation    bool    indicates presence of a mutation (COMPND)
     comments    str     additional comments
     sequence    str     polymer chain sequence (SEQRES)
-    database    list    sequence database records (DBREF[1|2] and SEQADV), 
+    dbrefs      list    sequence database records (DBREF[1|2] and SEQADV), 
                         see :class:`DBRef`  
     modified    list    | modified residues (SEQMOD)
                         | when modified residues are present, each will be 
@@ -734,7 +734,7 @@ def _getChemicals(lines):
         chem.chain = line[12].strip()
         chem.resnum = int(line[13:17])
         chem.icode = line[17].strip()
-        chem.natoms = int(line[20:25])
+        chem.natoms = int(line[20:25] or '0')
         chem.description = line[30:70].strip()
         chemicals[chem.resname].append(chem)
     for i, line in lines['HETNAM']:
