@@ -24,15 +24,16 @@ import os
 import gzip
 from glob import glob as pyglob
 import pickle as pypickle
-import os.path
 import zipfile
 import platform
+import os.path
+from os.path import isfile, isdir, join, split, splitext
+from os.path import getsize, isabs, exists
 
 import prody as pkg
 
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
-getsize = os.path.getsize
 
 __all__ = ['gunzip', 'openFile', 'openDB', 
            'isExecutable', 'isReadable', 'isWritable', 
@@ -62,15 +63,15 @@ def openFile(filename, *args, **kwargs):
         raise TypeError('filename must be a string')
     folder = kwargs.pop('folder', None)
     if folder:
-        filename = os.path.join(folder, filename)
-    ext = os.path.splitext(filename)[1]
+        filename = join(folder, filename)
+    ext = splitext(filename)[1]
     backup = kwargs.pop('backup', pkg.SETTINGS.get('backup', False))
     backup_ext = kwargs.pop('backup_ext', 
                             pkg.SETTINGS.get('backup_ext', '.BAK'))
     if args and args[0][0] in ('a', 'w'):
-        if os.path.isfile(filename) and backup:
+        if isfile(filename) and backup:
             bak = filename + backup_ext
-            if os.path.isfile(bak):
+            if isfile(bak):
                 os.remove(bak)
             os.rename(filename, bak)
     return OPEN.get(ext, open)(filename, *args, **kwargs)
@@ -83,7 +84,7 @@ def gunzip(filename, outname=None):
 
     if not isinstance(filename, str):
         raise TypeError('filename must be a string')
-    if not os.path.isfile(filename):
+    if not isfile(filename):
         raise ValueError('{0:s} does not exist'.format(filename))
     if outname is None: 
         outname = filename
@@ -99,21 +100,21 @@ def gunzip(filename, outname=None):
 def isExecutable(path):
     """Return true if *path* is an executable."""
     
-    return isinstance(path, str) and os.path.exists(path) and \
+    return isinstance(path, str) and exists(path) and \
         os.access(path, os.X_OK)
 
 
 def isReadable(path):
     """Return true if *path* is readable by the user."""
     
-    return isinstance(path, str) and os.path.exists(path) and \
+    return isinstance(path, str) and exists(path) and \
         os.access(path, os.R_OK)
 
 
 def isWritable(path):
     """Return true if *path* is writable by the user."""
     
-    return isinstance(path, str) and os.path.exists(path) and \
+    return isinstance(path, str) and exists(path) and \
         os.access(path, os.W_OK)
 
 
@@ -129,20 +130,20 @@ def relpath(path):
 def makePath(path):
     """Make all directories that does not exist in a given path."""
     
-    if os.path.isabs(path):
+    if isabs(path):
         path = relpath(path)
-    if not os.path.isdir(path):
+    if not isdir(path):
         dirs = path.split(os.sep)
         for i in range(len(dirs)):
             dirname = os.sep.join(dirs[:i+1])
             try:
-                if not os.path.isdir(dirname): 
+                if not isdir(dirname): 
                     os.mkdir(dirname)
             except OSError:
                 raise OSError('{0:s} could not be created, please '
                             'specify another path'.format(path))
                 return os.getcwd()
-    return os.path.join(os.getcwd(), path)
+    return join(os.getcwd(), path)
 
 
 def which(program):
@@ -179,9 +180,15 @@ def unpickle(filename, **kwargs):
 
 def openDB(filename, *args):
     """Open a database with given *filename*."""
-    
-    import anydbm
-    return anydbm.open(filename, *args)
+
+    if filename.endswith('sql'):    
+        if 'n' in args and isfile(filename):
+            os.remove(filename)
+        import sqlite3
+        return sqlite3.connect(filename)
+    else:
+        import anydbm
+        return anydbm.open(filename, *args)
 
 
 def glob(*pathnames):
