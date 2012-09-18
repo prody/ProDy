@@ -734,7 +734,7 @@ def _getChemicals(lines):
         chem.chain = line[12].strip()
         chem.resnum = int(line[13:17])
         chem.icode = line[17].strip()
-        chem.natoms = int(line[20:25] or '0')
+        chem.natoms = int(line[20:25].strip() or '0')
         chem.description = line[30:70].strip()
         chemicals[chem.resname].append(chem)
     for i, line in lines['HETNAM']:
