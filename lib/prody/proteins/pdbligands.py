@@ -91,8 +91,6 @@ def fetchPDBLigand(cci, filename=None):
                 makePath(folder)
             xmlgz = path = join(folder, cci + '.xml.gz')
             if isfile(xmlgz):
-                LOGGER.info('Parsing XML file for {0:s} from local folder.'
-                             .format(cci))
                 with openFile(xmlgz) as inp:
                     xml = inp.read()
         url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}'
@@ -121,8 +119,8 @@ def fetchPDBLigand(cci, filename=None):
     root = ET.XML(xml)
     if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
         != 'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v40.xsd':
-        LOGGER.warning('XML does not seem to be in PDBx/PDBML v 4.0 format, '
-                       'resulting dictionary may not have all possible data')
+        LOGGER.warn('XML is not in PDBx/PDBML v 4.0 format, resulting '
+                    'dictionary may not contain all data fields')
     ns = root.tag[:root.tag.rfind('}')+1]
     len_ns = len(ns)
     dict_ = {'url': url, 'path': path}
