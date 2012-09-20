@@ -35,6 +35,13 @@ def prody_fetch(*pdb, **kwargs):
 
     """
     
+    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
+    
+    :arg dir: target directory for saving PDB file(s), default is: '.'
+
+    :arg gzip: gzip fetched files or not, default is:False
+    """
+    
     import prody
     
 
