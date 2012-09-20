@@ -36,6 +36,8 @@ def prody_fetch(*pdb, **kwargs):
     """
     
     import prody
+    
+
     pdblist = pdb
     if len(pdblist) == 1 and os.path.isfile(pdblist[0]):
         from prody.utilities import openFile

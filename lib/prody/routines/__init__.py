@@ -20,6 +20,8 @@
   * :func:`.prody_align`
   * :func:`.prody_contacts`
   * :func:`.prody_select`
+  * :func:`.prody_anm`
+  * :func:`.prody_fetch`
 
 """
 
