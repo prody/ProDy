@@ -21,7 +21,9 @@
   * :func:`.prody_contacts`
   * :func:`.prody_gnm`
   * :func:`.prody_pca`
+  * :func:`.prody_fetch`
   * :func:`.prody_select`
+  * :func:`.prody_anm`
 
 """
 

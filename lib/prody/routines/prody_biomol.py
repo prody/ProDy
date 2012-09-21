@@ -23,13 +23,21 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from actions import *
 
-def prody_biomol(opt):
-    """Generate biomolecule coordinates based on command line arguments."""
+def prody_biomol(pdbname,**kwargs):
+    """Generate biomolecule coordinates based on command line arguments.
+    :arg pdb:  :term:`PDB` identifier or filename
+    
+    :arg prefix: prefix for output files, default is :file:`_biomol`
+    :type prefix: str
+    
+    :arg biomol: index of the biomolecule, by default all are generated
+    :type biomol: int
+    """
         
     import prody
     LOGGER = prody.LOGGER
-    prefix, biomol = opt.prefix, opt.biomol
-    pdb, header = prody.parsePDB(opt.pdb, header=True)
+    prefix, biomol = kwargs.get('prefix',None), kwargs.get('biomol')
+    pdb, header = prody.parsePDB(pdbname, header=True)
     if not prefix:
         prefix = pdb.getTitle()
         
@@ -75,6 +83,6 @@ $ prody biomol 2bfu"""
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 
-    subparser.set_defaults(func=prody_biomol)
+    subparser.set_defaults(func=lambda ns: prody_biomol(ns.pdb, **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
 

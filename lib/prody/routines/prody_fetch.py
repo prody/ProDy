@@ -24,11 +24,28 @@ import os.path
 
 from actions import *
 
-def prody_fetch(opt):
-    """Fetch PDB files from PDB FTP server."""
+def prody_fetch(*pdb, **kwargs):
+    """Fetch PDB files from PDB FTP server.
+
+    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
+
+    :arg dir: target directory for saving PDB file(s), default is: '.'
+
+    :arg gzip: gzip fetched files or not, default is: 'False'
+
+    """
+    
+    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
+    
+    :arg dir: target directory for saving PDB file(s), default is: '.'
+
+    :arg gzip: gzip fetched files or not, default is:False
+    """
     
     import prody
-    pdblist = opt.pdb
+    
+
+    pdblist = pdb
     if len(pdblist) == 1 and os.path.isfile(pdblist[0]):
         from prody.utilities import openFile
         with openFile(pdblist[0]) as inp:
@@ -37,7 +54,9 @@ def prody_fetch(opt):
                     if len(pdb) == 4 and pdb.isalnum(): 
                         pdblist.append(pdb)
 
-    prody.fetchPDB(pdblist, opt.folder, compressed=opt.gzip, copy=True)
+    prody.fetchPDB(list(pdblist), kwargs.get('folder', '.'),
+                   compressed=kwargs.get('gzip', False),
+                   copy=True)
 
 def addCommand(commands):
     
@@ -65,5 +84,5 @@ $ prody fetch 1mkp 1p38"""
     subparser.add_argument('pdb', nargs='+', 
         help='PDB identifier(s) or a file that contains them')
 
-    subparser.set_defaults(func=prody_fetch)
+    subparser.set_defaults(func=lambda ns: prody_fetch(*ns.pdb, **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
