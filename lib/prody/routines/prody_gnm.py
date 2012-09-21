@@ -154,7 +154,6 @@ def prody_gnm(pdb, **kwargs):
     sf = kwargs['figsf']
     bf = kwargs['figbeta']
     cm = kwargs['figcmap']
-    sf = kwargs['figsf']
     modes = kwargs['figmode']
     
     if figall or cc or sf or bf or cm or modes: 
@@ -275,7 +274,7 @@ save all of the graphical output files:
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=float, 
         default=DEFAULTS['cutoff'], metavar='FLOAT', 
-        help=HELPTEXT['cutoff'] + ' (default: "%(default)s")')
+        help=HELPTEXT['cutoff'] + ' (default: %(default)s)')
     
     group.add_argument('-g', '--gamma', dest='gamma', type=float, 
         default=DEFAULTS['gamma'], metavar='FLOAT', 

@@ -73,7 +73,7 @@ def addNMAParameters(parser):
 
     parser.add_argument('-s', '--select', dest='select', type=str, 
         default=DEFAULTS['select'], metavar='SEL', 
-        help=HELPTEXT['select'] + ' (default: "%(default)s")')
+        help=HELPTEXT['select'] + ' (default: %(default)s)')
 
     return parser
 
@@ -88,7 +88,7 @@ def addNMAOutput(parser):
     
     parser.add_argument('-o', '--output-dir', dest='outdir', type=str, 
         default=DEFAULTS['outdir'], metavar='PATH', 
-        help=HELPTEXT['outdir'] + ' (default: "%(default)s")')
+        help=HELPTEXT['outdir'] + ' (default: %(default)s)')
     
     parser.add_argument('-e', '--eigenvs', dest='outeig', action='store_true', 
         default=DEFAULTS['outeig'], help=HELPTEXT['outeig'])
@@ -121,11 +121,11 @@ def addNMAOutputOptions(parser, prefix):
     
     parser.add_argument('-p', '--file-prefix', dest='prefix', type=str, 
         default=prefix, metavar='STR', 
-        help=HELPTEXT['prefix'] + ' (default: "pdb%(default)s")')
+        help=HELPTEXT['prefix'] + ' (default: pdb%(default)s)')
         
     parser.add_argument('-f', '--number-format', dest='numformat', type=str, 
         default=DEFAULTS['numformat'], metavar='STR',
-        help=HELPTEXT['numformat'] + ' (default: "%(default)s")')
+        help=HELPTEXT['numformat'] + ' (default: %(default)s)')
         
     parser.add_argument('-d', '--delimiter', dest='numdelim', type=str, 
         default=DEFAULTS['numdelim'], metavar='STR',

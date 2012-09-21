@@ -69,6 +69,7 @@ $ prody fetch 1mkp 1p38"""
     subparser.add_argument('-d', '--dir', dest='folder', type=str,
         default='.', metavar='PATH', 
         help=('target directory for saving PDB file(s)'))
+        
     subparser.add_argument('-z', '--gzip', dest='gzip', action='store_true', 
         default=False, help='write compressed PDB file(S)')
 

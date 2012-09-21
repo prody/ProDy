@@ -20,7 +20,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from actions import *
+from .actions import *
 
 def prody_select(selstr, *pdbs, **kwargs):
     """Write selected atoms from a PDB file in PDB format.
@@ -91,10 +91,13 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
 
 
     group = subparser.add_argument_group('output options')
+    
     group.add_argument('-o', '--output', dest='output', metavar='STR', 
         type=str, help='output PDB filename (default: pdb_selected.pdb)')
+        
     group.add_argument('-p', '--prefix', dest='prefix', metavar='STR', 
         type=str, help=('output filename prefix (default: PDB filename)'))
+        
     group.add_argument('-x', '--suffix', dest='suffix', metavar='STR', 
         type=str, default='_selected',
         help=('output filename suffix (default: %(default)s)'))

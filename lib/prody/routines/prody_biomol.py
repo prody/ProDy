@@ -21,14 +21,14 @@ section of the PDB file."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from actions import *
+from .actions import *
 
 def prody_biomol(pdbname,**kwargs):
-    """Generate biomolecule coordinates based on command line arguments.
+    """Generate biomolecule coordinates.
+
     :arg pdb:  :term:`PDB` identifier or filename
     
     :arg prefix: prefix for output files, default is :file:`_biomol`
-    :type prefix: str
     
     :arg biomol: index of the biomolecule, by default all are generated
     :type biomol: int
