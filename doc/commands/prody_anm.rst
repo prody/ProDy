@@ -9,7 +9,7 @@ Usage
 
 Running :command:`prody anm -h` displays::
 
-  usage: prody anm [-h] [--quiet] [--examples] [-n INT] [-s SELSTR] [-c FLOAT]
+  usage: prody anm [-h] [--quiet] [--examples] [-n INT] [-s SEL] [-c FLOAT]
                    [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-q] [-v] [-z]
                    [-t STR] [-b] [-l] [-k] [-p STR] [-f STR] [-d STR] [-x STR]
                    [-A] [-R] [-Q] [-B] [-K] [-F STR] [-D INT] [-W FLOAT]
@@ -26,10 +26,9 @@ Running :command:`prody anm -h` displays::
   
   parameters:
     -n INT, --number-of-modes INT
-                          number of non-zero eigenvalues/vectors to calculate
+                          number of non-zero eigenvectors (modes) to calculate
                           (default: 10)
-    -s SELSTR, --select SELSTR
-                          atom selection (default: "protein and name CA or
+    -s SEL, --select SEL  atom selection (default: "protein and name CA or
                           nucleic and name P C4' C2")
     -c FLOAT, --cutoff FLOAT
                           cutoff distance (A) (default: 15.0)
@@ -41,14 +40,14 @@ Running :command:`prody anm -h` displays::
     -a, --all-output      write all outputs
     -o PATH, --output-dir PATH
                           output directory (default: ".")
-    -e, --eigenvs         write eigenvectors/values
+    -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
     -q, --square-fluctuations
                           write square-fluctuations
     -v, --covariance      write covariance matrix
     -z, --npz             write compressed ProDy data file
-    -t STR, --extend STR  output NMD files for the model extended to "backbone"
+    -t STR, --extend STR  write NMD file for the model extended to "backbone"
                           ("bb") or "all" atoms of the residue, model must have
                           one node per residue
     -b, --beta-factors    write B-factors
@@ -57,30 +56,28 @@ Running :command:`prody anm -h` displays::
   
   output options:
     -p STR, --file-prefix STR
-                          prefix for output files (default: pdb_anm)
+                          output file prefix (default: "pdb_anm")
     -f STR, --number-format STR
-                          delimiter (default: "%12g")
+                          number output format (default: "%12g")
     -d STR, --delimiter STR
-                          delimiter (default: " ")
+                          number delimiter (default: " ")
     -x STR, --extension STR
-                          file extension (default: .txt)
+                          numeric file extension (default:".txt")
   
   figures:
     -A, --all-figures     save all figures
     -R, --cross-correlations-figure
-                          save cross-correlations
+                          save cross-correlations figure
     -Q, --square-fluctuations-figure
-                          save square-fluctuations
+                          save square-fluctuations figure
     -B, --beta-factors-figure
                           save beta-factors
     -K, --contact-map     save contact map (Kirchhoff matrix)
   
   figure options:
     -F STR, --figure-format STR
-                          figure format, one of eps, pdf, png, ps, raw, rgba,
-                          svg, svgz (default: pdf)
-    -D INT, --resolution INT
-                          figure resolution (dpi) (default: 300)
+                          pdf (default: pdf)
+    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
     -W FLOAT, --width FLOAT
                           figure width (inch) (default: 8.0)
     -H FLOAT, --height FLOAT

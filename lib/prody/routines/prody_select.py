@@ -26,19 +26,14 @@ def prody_select(selstr, *pdbs, **kwargs):
     """Write selected atoms from a PDB file in PDB format.
     
     :arg selstr: atom selection string, see :ref:`selections`
+    
     :arg pdbs: :term:`PDB` identifier(s) or filename(s)
     
-    **Output options:**
-    
     :arg output: output filename, default is :file:`pdb_selected.pdb`
-    :type output: str
 
-    :arg prefix: prefix for output file, default is PDB filename itself
-    :type prefix: str
+    :arg prefix: prefix for output file, default is PDB filename
     
-    :arg suffix: output filename suffix, default is :file:`_selected`
-    :type suffix: str
-    """
+    :arg suffix: output filename suffix, default is :file:`_selected`"""
 
     from os.path import isfile
     from prody import LOGGER, parsePDB, writePDB

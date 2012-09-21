@@ -31,30 +31,24 @@ def prody_contacts(**kwargs):
     outputted in PDB file format.
     
     :arg target: target PDB identifier or filename
-    :type target: str
     
-    :arg target: ligand PDB identifier(s) or filename(s)
-    :type target: list
+    :arg ligand: ligand PDB identifier(s) or filename(s)
 
-    :arg select: atom selection string for target structure (first PDB file)
-    :type select: str
+    :arg select: atom selection string for target structure
     
-    :arg radius: contact radius, default is 4.0 Å
-    :type radius: float
+    :arg radius: contact radius (Å), default is ``4.0`` 
     
-    :arg extend: output same residue, chain, or segment as contacting atoms
-    :type extend: str
+    :arg extend: output same ``'residue'``, ``'chain'``, or ``'segment'`` along 
+        with contacting atoms
     
-    :arg prefix: prefix for output file, default is PDB filename itself
-    :type prefix: str
+    :arg prefix: prefix for output file, default is *target* filename
     
-    :arg suffix: output filename suffix, default is ``'_suffix'``
-    :type suffix: str"""
+    :arg suffix: output filename suffix, default is *ligand* filename"""
             
     import prody
     LOGGER = prody.LOGGER
 
-    target = prody.parsePDB(kwargs.get('target'))
+    target = prody.parsePDB(kwargs['target'])
     title = kwargs.get('prefix') or target.getTitle()
     selstr = kwargs.get('select')
     if selstr:

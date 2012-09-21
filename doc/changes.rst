@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 1.3 (Sep 6, 2012)
+Release 1.3 (in development)
 ===============================================================================
 
 **Improvements**:
@@ -20,6 +20,9 @@ Release 1.3 (Sep 6, 2012)
     warning messages when they are detected via :exc:`.SelectionWarning`.
     These messages can be turned of using :func:`.confProDy`
 
+  * Functions used in :ref:`commands` have been refactored to allow for using 
+    them directly.  See :mod:`.routines` for their documentation.
+     
 
 Release 1.2.1 (Sep 6, 2012)
 ===============================================================================

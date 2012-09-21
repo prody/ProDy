@@ -32,33 +32,19 @@ def prody_align(*pdbs, **kwargs):
     they will be used for alignment.
     
     :arg pdbs: :term:`PDB` identifier(s) or filename(s)
-    
-    **Atom/model selection:**
 
     :arg select: atom selection string, default is :term:`calpha`,
         see :ref:`selections`
-    :type select: str
-    
-    :arg model: for NMR files, reference model index, default is 1
-    :type model: int
-    
-    **Chain matching options:**
-    
-    :arg seqid: percent sequence identity, default is 90
-    :type seqid: int
-    
-    :arg overlap: percent sequence overlap, default is 90
-    :type overlap: int
 
-    **Output options:**
-    
-    :arg prefix: prefix for output file, default is PDB filename itself
-    :type prefix: str
-    
-    :arg suffix: output filename suffix, default is :file:`_aligned`
-    :type suffix: str
-    
-    """
+    :arg model: for NMR files, reference model index, default is ``1``
+
+    :arg seqid: percent sequence identity, default is ``90``
+
+    :arg overlap: percent sequence overlap, default is ``90``
+
+    :arg prefix: prefix for output file, default is PDB filename
+
+    :arg suffix: output filename suffix, default is :file:`_aligned`"""
 
     from numpy import all            
     from prody import LOGGER, writePDB, parsePDB
