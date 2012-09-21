@@ -24,6 +24,8 @@ import os.path
 
 from .actions import *
 
+__all__ = ['prody_fetch']
+
 def prody_fetch(*pdb, **kwargs):
     """Fetch PDB files from PDB FTP server.
 

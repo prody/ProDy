@@ -22,6 +22,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from .actions import *
 
+__all__ = ['prody_select']
+
 def prody_select(selstr, *pdbs, **kwargs):
     """Write selected atoms from a PDB file in PDB format.
     

@@ -23,6 +23,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from .actions import *
 
+__all__ = ['prody_biomol']
+
 def prody_biomol(pdbname,**kwargs):
     """Generate biomolecule coordinates.
 
@@ -30,9 +32,7 @@ def prody_biomol(pdbname,**kwargs):
     
     :arg prefix: prefix for output files, default is :file:`_biomol`
     
-    :arg biomol: index of the biomolecule, by default all are generated
-    :type biomol: int
-    """
+    :arg biomol: index of the biomolecule, by default all are generated"""
         
     import prody
     LOGGER = prody.LOGGER
