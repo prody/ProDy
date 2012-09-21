@@ -102,8 +102,7 @@ def addCommand(commands):
   
 Concatenate two DCD files and output backbone atoms: 
     
-  $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb"""
-    )
+  $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb""")
 
     subparser.add_argument('-s', '--select', default='all', type=str, 
         dest='select', metavar='SELSTR', 

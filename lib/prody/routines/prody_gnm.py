@@ -267,8 +267,8 @@ Fetch PDB 1aar, run GNM calculations with cutoff distance 7 angstrom for \
 chain A carbon alpha atoms with residue numbers less than 70, and \
 save all of the graphical output files:
 
-  $ prody gnm 1aar -c 7 -s "calpha and chain A and resnum < 70" -A"""
-    )
+  $ prody gnm 1aar -c 7 -s "calpha and chain A and resnum < 70" -A""",
+    test_examples=[0, 1])
 
     group = addNMAParameters(subparser)
 

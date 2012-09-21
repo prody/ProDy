@@ -31,7 +31,7 @@ DEFAULTS = {}
 HELPTEXT = {} 
 for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
-    ('cutoff', 'cutoff distance (A)', 10.),
+    ('cutoff', 'cutoff distance (A)', 15.),
     ('gamma', 'spring constant', 1.),
     
     ('outbeta', 'write beta-factors calculated from GNM modes', False),
@@ -50,7 +50,7 @@ HELPTEXT.update(nmaoptions.HELPTEXT)
 
 DEFAULTS['prefix'] = '_anm'
 
-def prody_anm(pdbname, **kwargs):
+def prody_anm(pdb, **kwargs):
     """Perform ANM calculations for *pdb*.
     
     """
@@ -94,7 +94,7 @@ def prody_anm(pdbname, **kwargs):
     LOGGER.info('Writing numerical output.')
     if kwargs.get('npz'):
         prody.saveModel(anm)
-    prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), anm, select)
+    prody.writeNMD(join(outdir, prefix + '.nmd'), anm, select)
     
     extend = kwargs.get('extend')
     if extend:
@@ -102,7 +102,7 @@ def prody_anm(pdbname, **kwargs):
             extended = prody.extendModel(anm, select, pdb)        
         else:
             extended = prody.extendModel(anm, select, select | pdb.bb)
-        prody.writeNMD(os.path.join(outdir, prefix + '_extended_' + 
+        prody.writeNMD(join(outdir, prefix + '_extended_' + 
                        extend + '.nmd'), *extended)
         
     outall = kwargs['outall']
@@ -112,9 +112,9 @@ def prody_anm(pdbname, **kwargs):
     
 
     if outall or kwargs['outeig']:
-        prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+        prody.writeArray(join(outdir, prefix + '_evectors'+ext), 
                          anm.getArray(), delimiter=delim, format=format)
-        prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+        prody.writeArray(join(outdir, prefix + '_evalues'+ext), 
                          anm.getEigvals(), delimiter=delim, format=format)
                          
     if outall or kwargs['outbeta']:
@@ -130,25 +130,25 @@ def prody_anm(pdbname, **kwargs):
         fout.close()
         
     if outall or kwargs['outcov']:
-        prody.writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+        prody.writeArray(join(outdir, prefix + '_covariance'+ext), 
                          anm.getCovariance(), delimiter=delim, format=format)
                          
     if outall or kwargs['outcc']:
-        prody.writeArray(os.path.join(outdir, prefix + '_cross-correlations' 
+        prody.writeArray(join(outdir, prefix + '_cross-correlations' 
                                                      + ext), 
                          prody.calcCrossCorr(anm), delimiter=delim, 
                          format=format)
                          
     if outall or kwargs['hessian']:
-        prody.writeArray(os.path.join(outdir, prefix + '_hessian'+ext), 
+        prody.writeArray(join(outdir, prefix + '_hessian'+ext), 
                          anm.getHessian(), delimiter=delim, format=format)
                          
     if outall or kwargs['kirchhoff']:
-        prody.writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
+        prody.writeArray(join(outdir, prefix + '_kirchhoff'+ext), 
                          anm.getKirchhoff(), delimiter=delim, format=format)
                          
     if outall or kwargs['outsf']:
-        prody.writeArray(os.path.join(outdir, prefix + '_sqflucts'+ext), 
+        prody.writeArray(join(outdir, prefix + '_sqflucts'+ext), 
                          prody.calcSqFlucts(anm), delimiter=delim, 
                          format=format)
           
@@ -176,21 +176,21 @@ def prody_anm(pdbname, **kwargs):
             if figall or cc:
                 plt.figure(figsize=(width, height))
                 prody.showCrossCorr(anm)
-                plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
+                plt.savefig(join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
                 
             if figall or cm:
                 plt.figure(figsize=(width, height))
                 prody.showContactMap(anm)
-                plt.savefig(os.path.join(outdir, prefix + '_cm.'+format), 
+                plt.savefig(join(outdir, prefix + '_cm.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
                 
             if figall or sf:
                 plt.figure(figsize=(width, height))
                 prody.showSqFlucts(anm)
-                plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
+                plt.savefig(join(outdir, prefix + '_sf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
                 
@@ -205,7 +205,7 @@ def prody_anm(pdbname, **kwargs):
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
                 plt.title(pdb.getTitle() + ' B-factors')
-                plt.savefig(os.path.join(outdir, prefix + '_bf.'+format), 
+                plt.savefig(join(outdir, prefix + '_bf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
           
@@ -242,7 +242,8 @@ Fetch PDB 1aar, run ANM calculations using default parameters for chain A \
 carbon alpha atoms with residue numbers less than 70, and save all of the \
 graphical output files:
 
-  $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A"""
+  $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A""",
+  test_examples=[0,1]
     )
     
     group = addNMAParameters(subparser)

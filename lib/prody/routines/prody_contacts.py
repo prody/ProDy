@@ -97,7 +97,8 @@ contacting residues of the target protein:
     $ prody select -o B11 "resname B11" 1zz2
     $ prody select -o BOG "resname BOG" 1zz2
     $ prody contacts -r 4.0 -t residue -s protein 1zz2 B11.pdb BOG.pdb
-    """
+    """,
+    test_examples=[(0,1,2)]
     )
         
     subparser.add_argument('-s', '--select', dest='select', type=str, 

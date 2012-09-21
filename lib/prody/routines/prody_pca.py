@@ -284,8 +284,8 @@ Perform EDA of MDM2 trajectory:
   
 Perform EDA for backbone atoms:
 
-  $ prody eda mdm2.dcd --pdb mdm2.pdb --select backbone"""
-    )
+  $ prody eda mdm2.dcd --pdb mdm2.pdb --select backbone""",
+    test_examples=[0, 1])
 
     group = addNMAParameters(subparser)
 

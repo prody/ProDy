@@ -58,15 +58,15 @@ def prody_blast(opt):
         opt.subparser.error("{0:s} is not a valid sequence or a file"
                             .format(repr(seq)))
         
-    folder, identity, coverage = opt.folder, opt.identity, opt.coverage
+    folder, identity, overlap = opt.folder, opt.identity, opt.overlap
     if not 0 < identity < 100: 
         opt.subparser.error('identity must be between 0 and 100')
-    if not 0 < coverage < 100:
+    if not 0 < overlap < 100:
         opt.subparser.error('overlap must be between 0 and 100')
     
     blast_results = prody.blastPDB(seq)
     hits = blast_results.getHits(percent_identity=identity, 
-                                 percent_coverage=coverage)
+                                 percent_overlap=overlap)
     
     #sort hits by decreasing percent identity
     hits2 = []
@@ -113,12 +113,13 @@ onto the 2avi structure:
     
   $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTIN\
 KRTQPTFGFTVNWKFSESTTVFT
-  $ prody align 2avi.pdb *pdb """)
+  $ prody align 2avi.pdb *pdb """,
+    test_examples=[1])
 
     subparser.add_argument('-i', '--identity', dest='identity', type=float, 
         default=90.0, metavar='FLOAT', 
         help='percent sequence identity (default: %(default)s)')
-    subparser.add_argument('-o', '--overlap', dest='coverage', type=float, 
+    subparser.add_argument('-o', '--overlap', dest='overlap', type=float, 
         default=90.0, metavar='FLOAT', 
         help='percent sequence overlap (default: %(default)s)')
     subparser.add_argument('-d', '--dir', dest='folder', type=str,

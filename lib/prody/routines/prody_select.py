@@ -89,7 +89,8 @@ def addCommand(commands):
 
 Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
         
-  $ prody select backbone 1p38 1r39""")
+  $ prody select backbone 1p38 1r39""",
+    test_examples=[0])
 
 
     group = subparser.add_argument_group('output options')

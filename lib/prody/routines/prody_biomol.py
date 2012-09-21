@@ -71,7 +71,8 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Generate biomolecule coordinates:
         
-$ prody biomol 2bfu"""
+  $ prody biomol 2bfu""",
+    test_examples=[0]
     )
 
     subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 

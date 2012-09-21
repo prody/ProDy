@@ -161,9 +161,8 @@ Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
 
 Align 1fi7 onto 1hrc using heme atoms:
 
-    $ prody align --select "noh heme and chain A" 1hrc 1fi7 
-
-    """
+    $ prody align --select "noh heme and chain A" 1hrc 1fi7""",
+    test_examples=[0, 1, 2, 3, 4,]
     )
         
     group = subparser.add_argument_group('atom/model selection')

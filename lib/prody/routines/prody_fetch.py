@@ -65,7 +65,8 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Download PDB file(s) by specifying identifiers:
         
-$ prody fetch 1mkp 1p38"""
+  $ prody fetch 1mkp 1p38""",
+    test_examples=[0]  
     )
 
     subparser.add_argument('-d', '--dir', dest='folder', type=str,
