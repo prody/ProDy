@@ -17,13 +17,22 @@
 
 """This module defines ProDy routines that are used as command line programs:
 
-  * :func:`.prody_align`
-  * :func:`.prody_contacts`
+Dynamics routines
+===============================================================================
+
+  * :func:`.prody_anm`
   * :func:`.prody_gnm`
   * :func:`.prody_pca`
+
+Other routines
+===============================================================================
+
+  * :func:`.prody_align`
+  * :func:`.prody_biomol`
+  * :func:`.prody_catdcd`
+  * :func:`.prody_contacts`
   * :func:`.prody_fetch`
   * :func:`.prody_select`
-  * :func:`.prody_anm`
 
 """
 

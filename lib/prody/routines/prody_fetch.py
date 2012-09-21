@@ -22,25 +22,16 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
-from actions import *
+from .actions import *
 
 def prody_fetch(*pdb, **kwargs):
     """Fetch PDB files from PDB FTP server.
 
     :arg pdbs: :term:`PDB` identifier(s) or filename(s)
 
-    :arg dir: target directory for saving PDB file(s), default is: '.'
+    :arg dir: target directory for saving PDB file(s), default is ``'.'``
 
-    :arg gzip: gzip fetched files or not, default is: 'False'
-
-    """
-    
-    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
-    
-    :arg dir: target directory for saving PDB file(s), default is: '.'
-
-    :arg gzip: gzip fetched files or not, default is:False
-    """
+    :arg gzip: gzip fetched files or not, default is ``False``"""
     
     import prody
     
