@@ -25,7 +25,7 @@ from .actions import *
 from .nmaoptions import *
 from . import nmaoptions
 
-__all__ = ['prody_gnm']
+__all__ = ['prody_anm']
 
 DEFAULTS = {}
 HELPTEXT = {} 
