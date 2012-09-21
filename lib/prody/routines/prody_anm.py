@@ -290,7 +290,7 @@ graphical output files:
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 
-    subparser.set_defaults(func=lambda ns: prody_gnm(ns.__dict__.pop('pdb'), 
+    subparser.set_defaults(func=lambda ns: prody_anm(ns.__dict__.pop('pdb'), 
                                                      **ns.__dict__))
                                                      
     subparser.set_defaults(subparser=subparser)

@@ -82,8 +82,8 @@ def prody_main():
     if len(sys.argv) == 1:    
         prody_parser.print_help()
     else:
-        args = prody_parser.parse_args()
-        args.func(args)
+        namespace = prody_parser.parse_args()
+        namespace.func(namespace)
 
     
 if __name__ == '__main__':
