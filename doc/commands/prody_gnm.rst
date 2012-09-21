@@ -34,7 +34,7 @@ Running :command:`prody gnm -h` displays::
                           cutoff distance (A) (default: "10.0")
     -g FLOAT, --gamma FLOAT
                           spring constant (default: 1.0)
-    -m INT, --model INT   model that will be used in the calculations
+    -m INT, --model INT   index of model that will be used in the calculations
   
   output:
     -a, --all-output      write all outputs
@@ -50,7 +50,7 @@ Running :command:`prody gnm -h` displays::
     -t STR, --extend STR  write NMD file for the model extended to "backbone"
                           ("bb") or "all" atoms of the residue, model must have
                           one node per residue
-    -b, --beta-factors    write B-factors
+    -b, --beta-factors    write beta-factors calculated from GNM modes
     -k, --kirchhoff       write Kirchhoff matrix
   
   output options:
@@ -70,8 +70,8 @@ Running :command:`prody gnm -h` displays::
     -Q, --square-fluctuations-figure
                           save square-fluctuations figure
     -B, --beta-factors-figure
-                          save beta-factors
-    -K, --contact-map     save contact map (Kirchhoff matrix)
+                          save beta-factors figure
+    -K, --contact-map     save contact map (Kirchhoff matrix) figure
     -M STR, --mode-shape-figure STR
                           save mode shape figures for specified modes, e.g. "1-3
                           5" for modes 1, 2, 3 and 5

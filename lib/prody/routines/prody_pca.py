@@ -38,7 +38,6 @@ for key, txt, val in [
                 '"1,2 1,3" for projections onto PCs 1,2 and 1, 3; '
                 '"1 1,2,3" for projections onto PCs 1 and 1, 2, 3', ''),]:
     
-    
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
 
@@ -129,7 +128,7 @@ def prody_pca(coords, **kwargs):
         LOGGER.info('{0:d} atoms are selected for calculations.'
                     .format(len(select)))
         if select is None:
-            raise ValueError('Selection {0:s} do not match any atoms.'
+            raise ValueError('selection {0:s} do not match any atoms'
                                 .format(repr(selstr)))
         LOGGER.info('{0:d} atoms will be used for PCA calculations.'
                     .format(len(select)))
@@ -242,11 +241,14 @@ def prody_pca(coords, **kwargs):
                             dpi=dpi, format=format)
                         plt.close('all')
                         
-                        
-for key, txt in HELPTEXT.items():
+
+_ = list(HELPTEXT)
+_.sort()
+for key in _:
     
     prody_pca.__doc__ += """
-    :arg {0}: {1}, default is ``{2!r}``""".format(key, txt, DEFAULTS[key])
+    :arg {0}: {1}, default is ``{2!r}``""".format(key, HELPTEXT[key], 
+                                                  DEFAULTS[key])
 
 
 def addCommand(commands):

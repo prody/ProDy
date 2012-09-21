@@ -21,26 +21,60 @@ graphical formats."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
 
-from actions import *
-from nmaoptions import *
+from .actions import *
+from .nmaoptions import *
+from . import nmaoptions
 
-def prody_gnm(opt):
-    """Perform GNM calculations based on command line arguments."""
+__all__ = ['prody_gnm']
+
+DEFAULTS = {}
+HELPTEXT = {} 
+for key, txt, val in [
+    ('model', 'index of model that will be used in the calculations', 1),
+    ('cutoff', 'cutoff distance (A)', 10.),
+    ('gamma', 'spring constant', 1.),
     
-    outdir = opt.outdir
-    if not os.path.isdir(outdir):
-        opt.subparser.error('{0:s} is not a valid path'.format(repr(outdir)))
+    ('outbeta', 'write beta-factors calculated from GNM modes', False),
+    ('kirchhoff', 'write Kirchhoff matrix', False),
+    ('figcmap', 'save contact map (Kirchhoff matrix) figure', False),
+    ('figbeta', 'save beta-factors figure', False),
+    ('figmode', 'save mode shape figures for specified modes, '
+                 'e.g. "1-3 5" for modes 1, 2, 3 and 5', '')]:
+    
+    DEFAULTS[key] = val
+    HELPTEXT[key] = txt
+
+DEFAULTS.update(nmaoptions.DEFAULTS)
+HELPTEXT.update(nmaoptions.HELPTEXT)
+
+DEFAULTS['prefix'] = '_gnm'
+
+def prody_gnm(pdb, **kwargs):
+    """Perform GNM calculations for *pdb*.
+    
+    """
+    
+    for key in DEFAULTS:
+        if not key in kwargs:
+            kwargs[key] = DEFAULTS[key]
+    
+    from os.path import isdir, splitext, join
+    outdir = kwargs['outdir']
+    if not isdir(outdir):
+        raise IOError('{0:s} is not a valid path'.format(repr(outdir)))
         
     import numpy as np
     import prody
     LOGGER = prody.LOGGER
 
-    pdb, prefix = opt.pdb, opt.prefix
-
-    cutoff, gamma = opt.cutoff, opt.gamma, 
-    nmodes, selstr, model = opt.nmodes, opt.select, opt.model
+    selstr = kwargs['select']
+    prefix = kwargs['prefix']
+    cutoff = kwargs['cutoff']
+    gamma = kwargs['gamma'] 
+    nmodes = kwargs['nmodes']
+    selstr = kwargs['select']
+    model = kwargs['model']
     
     pdb = prody.parsePDB(pdb, model=model)
     if prefix == '_gnm':
@@ -48,37 +82,43 @@ def prody_gnm(opt):
 
     select = pdb.select(selstr)
     if select is None:
-        opt.subparser.error('Selection {0:s} do not match any atoms.'
-                            .format(repr(selstr)))
+        raise ValueError('selection {0:s} do not match any atoms'
+                          .format(repr(selstr)))
     LOGGER.info('{0:d} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
     gnm = prody.GNM(pdb.getTitle())
     gnm.buildKirchhoff(select, cutoff, gamma)
     gnm.calcModes(nmodes)
-    LOGGER.info('Writing numerical output.')
-    if opt.npz:
-        prody.saveModel(gnm)
-    prody.writeNMD(os.path.join(outdir, prefix + '.nmd'), gnm, select)
     
-    if opt.extend:
-        if opt.extend == 'all':
+    LOGGER.info('Writing numerical output.')
+    
+    if kwargs['outnpz']:
+        prody.saveModel(gnm, join(outdir, prefix))
+    
+    prody.writeNMD(join(outdir, prefix + '.nmd'), gnm, select)
+    
+    extend = kwargs['extend']
+    if extend:
+        if extend == 'all':
             extended = prody.extendModel(gnm, select, pdb)        
         else:
             extended = prody.extendModel(gnm, select, select | pdb.bb)
-        prody.writeNMD(os.path.join(outdir, prefix + '_extended_' + 
-                       opt.extend + '.nmd'), *extended)
+        prody.writeNMD(join(outdir, prefix + '_extended_' + 
+                       extend + '.nmd'), *extended)
     
-    outall = opt.all
-    delim, ext, format = opt.delim, opt.ext, opt.numformat
+    outall = kwargs['outall']
+    delim = kwargs['numdelim']
+    ext = kwargs['numext']
+    format = kwargs['numformat']
     
-    if outall or opt.eigen:
-        prody.writeArray(os.path.join(outdir, prefix + '_evectors'+ext), 
+    if outall or kwargs['outeig']:
+        prody.writeArray(join(outdir, prefix + '_evectors'+ext), 
                          gnm.getArray(), delimiter=delim, format=format)
-        prody.writeArray(os.path.join(outdir, prefix + '_evalues'+ext), 
+        prody.writeArray(join(outdir, prefix + '_evalues'+ext), 
                          gnm.getEigvals(), delimiter=delim, format=format)
     
-    if outall or opt.beta:
+    if outall or kwargs['outbeta']:
         from prody.utilities import openFile
         fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
@@ -89,24 +129,34 @@ def prody_gnm(opt):
             fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4d} {0[3]:5.2f} {0[4]:5.2f}\n'
                        .format(data))
         fout.close()
-    if outall or opt.covar:
-        prody.writeArray(os.path.join(outdir, prefix + '_covariance'+ext), 
+        
+    if outall or kwargs['outcov']:
+        prody.writeArray(join(outdir, prefix + '_covariance'+ext), 
                          gnm.getCovariance(), delimiter=delim, format=format)
-    if outall or opt.ccorr:
-        prody.writeArray(os.path.join(outdir, prefix + '_cross-correlations' 
+    
+    if outall or kwargs['outcc']:
+        prody.writeArray(join(outdir, prefix + '_cross-correlations' 
                                                      + ext), 
                          prody.calcCrossCorr(gnm), delimiter=delim, 
                          format=format)
-    if outall or opt.kirchhoff:
-        prody.writeArray(os.path.join(outdir, prefix + '_kirchhoff'+ext), 
+    
+    if outall or kwargs['kirchhoff']:
+        prody.writeArray(join(outdir, prefix + '_kirchhoff'+ext), 
                          gnm.getKirchhoff(), delimiter=delim, format=format)
-    if outall or opt.sqflucts:
-        prody.writeArray(os.path.join(outdir, prefix + '_sqfluct'+ext), 
+    
+    if outall or kwargs['outsf']:
+        prody.writeArray(join(outdir, prefix + '_sqfluct'+ext), 
                          prody.calcSqFlucts(gnm), delimiter=delim, 
                          format=format)
           
-    figall, cc, sf, bf, cm, modes = \
-        opt.figures, opt.cc, opt.sf, opt.bf, opt.cm, opt.modes
+    figall = kwargs['figall']
+    cc = kwargs['figcc']
+    sf = kwargs['figsf']
+    bf = kwargs['figbeta']
+    cm = kwargs['figcmap']
+    sf = kwargs['figsf']
+    modes = kwargs['figmode']
+    
     if figall or cc or sf or bf or cm or modes: 
         try:
             import matplotlib.pyplot as plt
@@ -115,27 +165,33 @@ def prody_gnm(opt):
                            'Figures are not saved.')
         else:
             LOGGER.info('Saving graphical output.')
-            format, width, height, dpi = \
-                opt.figformat, opt.width, opt.height, opt.dpi
+            format = kwargs['figformat']
+            width = kwargs['figwidth']
+            height = kwargs['figheight']
+            dpi = kwargs['figdpi']
             format = format.lower()
+            
             if figall or cc:
                 plt.figure(figsize=(width, height))
                 prody.showCrossCorr(gnm)
-                plt.savefig(os.path.join(outdir, prefix + '_cc.'+format), 
+                plt.savefig(join(outdir, prefix + '_cc.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
+            
             if figall or cm:
                 plt.figure(figsize=(width, height))
                 prody.showContactMap(gnm)
-                plt.savefig(os.path.join(outdir, prefix + '_cm.'+format), 
+                plt.savefig(join(outdir, prefix + '_cm.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
+            
             if figall or sf:
                 plt.figure(figsize=(width, height))
                 prody.showSqFlucts(gnm)
-                plt.savefig(os.path.join(outdir, prefix + '_sf.'+format), 
+                plt.savefig(join(outdir, prefix + '_sf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
+            
             if figall or bf:
                 plt.figure(figsize=(width, height))
                 bexp = select.getBetas()
@@ -147,9 +203,10 @@ def prody_gnm(opt):
                 plt.xlabel('Node index')
                 plt.ylabel('Experimental B-factors')
                 plt.title(pdb.getTitle() + ' B-factors')
-                plt.savefig(os.path.join(outdir, prefix + '_bf.'+format), 
+                plt.savefig(join(outdir, prefix + '_bf.'+format), 
                     dpi=dpi, format=format)
                 plt.close('all')
+            
             if modes: 
                 indices = []
                 items = modes.split()
@@ -172,10 +229,20 @@ def prody_gnm(opt):
                         plt.figure(figsize=(width, height))
                         prody.showMode(mode)
                         plt.grid()
-                        plt.savefig(os.path.join(outdir, prefix + '_mode_' + 
+                        plt.savefig(join(outdir, prefix + '_mode_' + 
                             str(mode.getIndex()+1) + '.' + format), 
                             dpi=dpi, format=format)
                         plt.close('all')
+           
+
+_ = list(HELPTEXT)
+_.sort()      
+for key in _:
+    
+    prody_gnm.__doc__ += """
+    :arg {0}: {1}, default is ``{2!r}``""".format(key, HELPTEXT[key], 
+                                                  DEFAULTS[key])
+                                                  
                         
 def addCommand(commands):
 
@@ -207,38 +274,45 @@ save all of the graphical output files:
     group = addNMAParameters(subparser)
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=float, 
-                       default=10.0, metavar='FLOAT', 
-                       help='cutoff distance (A) (default: "%(default)s")')
+        default=DEFAULTS['cutoff'], metavar='FLOAT', 
+        help=HELPTEXT['cutoff'] + ' (default: "%(default)s")')
+    
     group.add_argument('-g', '--gamma', dest='gamma', type=float, 
-                       default=1.0, metavar='FLOAT', 
-                       help='spring constant (default: %(default)s)')
+        default=DEFAULTS['gamma'], metavar='FLOAT', 
+        help=HELPTEXT['gamma'] + ' (default: %(default)s)')
+    
     group.add_argument('-m', '--model', dest='model', type=int, 
-                       default=1, metavar='INT', 
-                       help=('model that will be used in the calculations')) 
+        metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model']) 
                         
     group = addNMAOutput(subparser)
-    group.add_argument('-b', '--beta-factors', dest='beta', action='store_true', 
-                       default=False, help='write B-factors')
-    group.add_argument('-k', '--kirchhoff', dest='kirchhoff', action='store_true', 
-                       default=False, help='write Kirchhoff matrix')
+    
+    group.add_argument('-b', '--beta-factors', dest='outbeta', 
+        action='store_true', default=DEFAULTS['outbeta'], 
+        help=HELPTEXT['outbeta'])
+    
+    group.add_argument('-k', '--kirchhoff', dest='kirchhoff', 
+        action='store_true', 
+        default=DEFAULTS['kirchhoff'], help=HELPTEXT['kirchhoff'])
 
     group = addNMAOutputOptions(subparser, '_gnm')
 
     group = addNMAFigures(subparser)
-    group.add_argument('-B', '--beta-factors-figure', dest='bf', 
-                       action='store_true', default=False, 
-                       help='save beta-factors')
-    group.add_argument('-K', '--contact-map', dest='cm', action='store_true', 
-                       default=False, 
-                       help='save contact map (Kirchhoff matrix)')        
-    group.add_argument('-M', '--mode-shape-figure', dest='modes', type=str, 
-                       default='', metavar='STR',
-                       help=('save mode shape figures for specified modes, '
-                             'e.g. "1-3 5" for modes 1, 2, 3 and 5'))
+    
+    group.add_argument('-B', '--beta-factors-figure', dest='figbeta', 
+        action='store_true', 
+        default=DEFAULTS['figbeta'], help=HELPTEXT['figbeta'])
+        
+    group.add_argument('-K', '--contact-map', dest='figcmap', 
+        action='store_true', 
+        default=DEFAULTS['figcmap'], help=HELPTEXT['figcmap'])
+        
+    group.add_argument('-M', '--mode-shape-figure', dest='figmode', type=str, 
+        default=DEFAULTS['figmode'], help=HELPTEXT['figmode'], metavar='STR')
 
     group = addNMAFigureOptions(subparser)
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
         
-    subparser.set_defaults(func=prody_gnm)
+    subparser.set_defaults(func=lambda ns: prody_gnm(ns.__dict__.pop('pdb'), 
+                                                     **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
