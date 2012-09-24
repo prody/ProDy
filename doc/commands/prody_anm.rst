@@ -34,12 +34,12 @@ Running :command:`prody anm -h` displays::
                           cutoff distance (A) (default: 15.0)
     -g FLOAT, --gamma FLOAT
                           spring constant (default: 1.0)
-    -m INT, --model INT   model that will be used in the calculations
+    -m INT, --model INT   index of model that will be used in the calculations
   
   output:
     -a, --all-output      write all outputs
     -o PATH, --output-dir PATH
-                          output directory (default: ".")
+                          output directory (default: .)
     -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
@@ -50,19 +50,19 @@ Running :command:`prody anm -h` displays::
     -t STR, --extend STR  write NMD file for the model extended to "backbone"
                           ("bb") or "all" atoms of the residue, model must have
                           one node per residue
-    -b, --beta-factors    write B-factors
+    -b, --beta-factors    write beta-factors calculated from GNM modes
     -l, --hessian         write Hessian matrix
     -k, --kirchhoff       write Kirchhoff matrix
   
   output options:
     -p STR, --file-prefix STR
-                          output file prefix (default: "pdb_anm")
+                          output file prefix (default: pdb_anm)
     -f STR, --number-format STR
-                          number output format (default: "%12g")
+                          number output format (default: %12g)
     -d STR, --delimiter STR
                           number delimiter (default: " ")
     -x STR, --extension STR
-                          numeric file extension (default:".txt")
+                          numeric file extension (default: .txt)
   
   figures:
     -A, --all-figures     save all figures
@@ -71,8 +71,8 @@ Running :command:`prody anm -h` displays::
     -Q, --square-fluctuations-figure
                           save square-fluctuations figure
     -B, --beta-factors-figure
-                          save beta-factors
-    -K, --contact-map     save contact map (Kirchhoff matrix)
+                          save beta-factors figure
+    -K, --contact-map     save contact map (Kirchhoff matrix) figure
   
   figure options:
     -F STR, --figure-format STR

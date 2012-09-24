@@ -28,4 +28,4 @@ Running :command:`prody biomol --examples` displays::
 
   Generate biomolecule coordinates:
   
-  $ prody biomol 2bfu
+    $ prody biomol 2bfu

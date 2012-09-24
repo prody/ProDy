@@ -73,7 +73,7 @@ def addNMAParameters(parser):
 
     parser.add_argument('-s', '--select', dest='select', type=str, 
         default=DEFAULTS['select'], metavar='SEL', 
-        help=HELPTEXT['select'] + ' (default: %(default)s)')
+        help=HELPTEXT['select'] + ' (default: "%(default)s")')
 
     return parser
 
@@ -133,7 +133,7 @@ def addNMAOutputOptions(parser, prefix):
         
     parser.add_argument('-x', '--extension', dest='numext', type=str, 
         default=DEFAULTS['numext'], metavar='STR',
-        help=HELPTEXT['numext'] + ' (default:"%(default)s")')
+        help=HELPTEXT['numext'] + ' (default: %(default)s)')
        
     return parser
 

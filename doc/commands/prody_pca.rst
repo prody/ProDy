@@ -36,7 +36,7 @@ Running :command:`prody pca -h` displays::
   output:
     -a, --all-output      write all outputs
     -o PATH, --output-dir PATH
-                          output directory (default: ".")
+                          output directory (default: .)
     -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
@@ -51,13 +51,13 @@ Running :command:`prody pca -h` displays::
   
   output options:
     -p STR, --file-prefix STR
-                          output file prefix (default: "pdb_pca")
+                          output file prefix (default: pdb_pca)
     -f STR, --number-format STR
-                          number output format (default: "%12g")
+                          number output format (default: %12g)
     -d STR, --delimiter STR
                           number delimiter (default: " ")
     -x STR, --extension STR
-                          numeric file extension (default:".txt")
+                          numeric file extension (default: .txt)
   
   figures:
     -A, --all-figures     save all figures

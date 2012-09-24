@@ -28,4 +28,4 @@ Running :command:`prody fetch --examples` displays::
 
   Download PDB file(s) by specifying identifiers:
   
-  $ prody fetch 1mkp 1p38
+    $ prody fetch 1mkp 1p38

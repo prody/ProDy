@@ -66,5 +66,3 @@ Running :command:`prody align --examples` displays::
   Align 1fi7 onto 1hrc using heme atoms:
   
       $ prody align --select "noh heme and chain A" 1hrc 1fi7
-  
-  

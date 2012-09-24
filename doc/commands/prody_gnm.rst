@@ -31,7 +31,7 @@ Running :command:`prody gnm -h` displays::
     -s SEL, --select SEL  atom selection (default: "protein and name CA or
                           nucleic and name P C4' C2")
     -c FLOAT, --cutoff FLOAT
-                          cutoff distance (A) (default: "10.0")
+                          cutoff distance (A) (default: 10.0)
     -g FLOAT, --gamma FLOAT
                           spring constant (default: 1.0)
     -m INT, --model INT   index of model that will be used in the calculations
@@ -39,7 +39,7 @@ Running :command:`prody gnm -h` displays::
   output:
     -a, --all-output      write all outputs
     -o PATH, --output-dir PATH
-                          output directory (default: ".")
+                          output directory (default: .)
     -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
@@ -55,13 +55,13 @@ Running :command:`prody gnm -h` displays::
   
   output options:
     -p STR, --file-prefix STR
-                          output file prefix (default: "pdb_gnm")
+                          output file prefix (default: pdb_gnm)
     -f STR, --number-format STR
-                          number output format (default: "%12g")
+                          number output format (default: %12g)
     -d STR, --delimiter STR
                           number delimiter (default: " ")
     -x STR, --extension STR
-                          numeric file extension (default:".txt")
+                          numeric file extension (default: .txt)
   
   figures:
     -A, --all-figures     save all figures
