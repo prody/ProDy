@@ -236,9 +236,9 @@ def changeDefinitions(**kwargs):
     SETTINGS[TIMESTAMP_KEY] = int(time())
     SETTINGS.save()
     updateDefinitions()
+
     
 def resetDefinitions(flag):
-    
     
     if flag == 'all':
         SETTINGS.pop(DEFINITIONS_KEY, None)
@@ -746,7 +746,7 @@ def updateDefinitions():
     BACKBONE = DEFINITIONS['bb']
 
     global TIMESTAMP
-    TIMESTAMP = SETTINGS.get('flag_timestamp', 0)
+    TIMESTAMP = SETTINGS.get(TIMESTAMP_KEY, 0)
 
 
 #==============================================================================

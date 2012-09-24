@@ -177,10 +177,11 @@ class Atomic(object):
             else:
                 new._setFlags(label, this.getFlags(label))
                 skip_flags.update(flags.ALIASES.get(label, [label]))
+        
         if dummies:
             new._setFlags('dummy', dummy)
             new._setFlags('mapped', mapped)
-            
+        
         bonds = ag._bonds
         bmap = ag._bmap
         if bonds is not None and bmap is not None:
@@ -188,7 +189,7 @@ class Atomic(object):
                 new._bonds = bonds.copy()
                 new._bmap = bmap.copy()
                 new._data['numbonds'] = ag._data['numbonds'].copy()
-            elif dummies is not None:
+            elif dummies:
                 if dummies:
                     indices = indices[self._getMapping()]
                 if len(set(indices)) == len(indices): 
