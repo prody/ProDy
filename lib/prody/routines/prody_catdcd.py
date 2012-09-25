@@ -24,22 +24,41 @@ import os.path
 
 from actions import *
 
-def prody_catdcd(opt):
-    """Concatenate DCD files."""
+def prody_catdcd(*dcds, **kwargs):
+    """Concatenate DCD files.
+    
+    :arg dcd: DCD filename(s) (all must have same number of atoms)
+     
+    :arg select: atom selection, default is term"all")
+  -o FILENAME, --output FILENAME
+                        output filename (default: "trajectory.dcd")
+  -n, --num             print the number of frames in each file and exit
+  --psf PSF             PSF filename (must have same number of atoms as DCDs)
+  --pdb PDB             PDB filename (must have same number of atoms as DCDs)
+  --first INT           the first frame to be written to the output file
+                        (default: 0, first frame)
+  --last INT            the last frame to be written to the output file
+                        (default: -1, last frame)
+  --stride INT          number of frames to skip when writing (default: 1,
+                        skip none)
+  --align SELSTR        atom selection for aligning frames, one of PSF or PDB
+                        files must be provided
+    
+    """
     
     import prody
     LOGGER = prody.LOGGER
-    if opt.num:
+    if kwargs.get('num'):
         num = [] 
-        for dcd in opt.dcd:
+        for dcd in dcds:
             dcd = prody.DCDFile(dcd)
             num.append(dcd.numFrames())
         for n in num:
             print(n)
         print(sum(num))
         return
-    align = opt.align
-    ag = opt.psf or opt.pdb
+    align = kwargs.get('align')
+    ag = kwargs.get('psf') or kwargs.get('pdb')
     if ag:
         if os.path.splitext(ag)[1].lower() == '.psf':
             ag = prody.parsePSF(ag)
@@ -49,26 +68,27 @@ def prody_catdcd(opt):
         raise ValueError('one of PSF or PDB files must be provided for '
                          'align option to work')
     
-    dcd = opt.dcd
+    dcd = dcds
     traj = prody.Trajectory(dcd.pop(0))
     while dcd:
         traj.addFile(dcd.pop(0))
     if ag:
         traj.setAtoms(ag)
-        select = traj.select(opt.select)
+        select = traj.select(kwargs.get('select','all'))
         LOGGER.info('{0:d} atoms are selected for writing output.'
                     .format(len(select)))
         if align:
             _ = traj.select(align)
             LOGGER.info('{0:d} atoms are selected for aligning frames.'
                         .format(len(_)))
-
-    out = prody.DCDFile(opt.output, 'w')
+    output = kwargs.get('output','trajectory.dcd')
+    out = prody.DCDFile(output, 'w')
     count = 0
     goto = False
-    if opt.stride != 1:
+    if kwargs.get('stride',1) != 1:
         goto = True
-    slc = slice(opt.first, opt.last, opt.stride).indices(len(traj)+1)
+    slc = slice(kwargs.get('first',0), kwargs.get('last',-1),
+                kwargs.get('stride',1)).indices(len(traj)+1)
     for i in range(*slc):
         if goto:
             traj.goto(i)
@@ -82,7 +102,7 @@ def prody_catdcd(opt):
     traj.close()
     out.close()
     LOGGER.info("{0:d} frames are written into '{1:s}'."
-                .format(count, opt.output))
+                .format(count, output))
 
 def addCommand(commands):
     
@@ -140,4 +160,4 @@ Concatenate two DCD files and output backbone atoms:
         help='DCD filename(s) (all must have same number of atoms)')
 
     subparser.set_defaults(subparser=subparser)
-    subparser.set_defaults(func=prody_catdcd)
+    subparser.set_defaults(func=lambda ns: prody_catdcd(*ns.dcd, **ns.__dict__))

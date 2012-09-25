@@ -24,8 +24,25 @@ import os.path
 
 from actions import *
 
+__all__ = ['prody_blast']
+
 def readFirstSequenceFasta(filename):
-    """Return first sequence from a file."""
+    """Return first sequence from a file.
+    
+    :arg seq: sequence or file in fasta format
+    
+    :arg identity: percent sequence identity for blast search, default is 90.0
+    :type identity: float
+    
+    :arg overlap: percent sequence overlap between sequences, default is 90.0
+    :type overlap: float
+    
+    :arg dir: download uncompressed PDB files to given path
+    :type dir: str
+    
+    :arg gzip: write compressed PDB file
+    
+    """
     
     fasta = open(filename)
     seq = []
@@ -43,30 +60,30 @@ def readFirstSequenceFasta(filename):
     fasta.close()
     return title, ''.join(seq)
 
-def prody_blast(opt):
+def prody_blast(sequence,**kwargs):
     """Blast search PDB based on command line arguments."""
     
     import prody
     LOGGER = prody.LOGGER
-    seq = opt.seq
     title = None
-    if os.path.isfile(seq):
-        title, seq = readFirstSequenceFasta(seq)
+    if os.path.isfile(sequence):
+        title, sequence = readFirstSequenceFasta(sequence)
         LOGGER.info("First sequence ({0:s}) is parsed from {1:s}."
-                    .format(title, repr(seq)))
-    if not seq.isalpha() or not seq.isupper():
-        opt.subparser.error("{0:s} is not a valid sequence or a file"
-                            .format(repr(seq)))
+                    .format(title, repr(sequence)))
+    if not sequence.isalpha() or not sequence.isupper():
+        raise ValueError("{0:s} is not a valid sequence or a file"
+                        .format(repr(sequence)))
         
-    folder, identity, overlap = opt.folder, opt.identity, opt.overlap
+    folder = kwargs.get('folder')
+    identity, coverage = kwargs.get('identity',90), kwargs.get('coverage',90)
     if not 0 < identity < 100: 
-        opt.subparser.error('identity must be between 0 and 100')
-    if not 0 < overlap < 100:
-        opt.subparser.error('overlap must be between 0 and 100')
+        raise ValueError('identity must be between 0 and 100')
+    if not 0 < coverage < 100:
+        raise ValueError('overlap must be between 0 and 100')
     
-    blast_results = prody.blastPDB(seq)
+    blast_results = prody.blastPDB(sequence)
     hits = blast_results.getHits(percent_identity=identity, 
-                                 percent_overlap=overlap)
+                                 percent_overlap=coverage)
     
     #sort hits by decreasing percent identity
     hits2 = []
@@ -82,11 +99,11 @@ def prody_blast(opt):
               ' ' + title)
     
     # download hits if --folder is given
-    if opt.folder:
-        LOGGER.info('Downloading hits to ' + opt.folder)
+    if folder:
+        LOGGER.info('Downloading hits to ' + folder)
         pdblist = [ pdb for identity, pdb in hits2 ]
-        pdblist2 = prody.fetchPDB(pdblist, opt.folder, 
-                                  compressed=opt.gzip, copy=True)
+        pdblist2 = prody.fetchPDB(pdblist, folder, 
+                                  compressed=kwargs.get('gzip'), copy=True)
 def addCommand(commands):
     
     subparser = commands.add_parser('blast', 
@@ -113,8 +130,7 @@ onto the 2avi structure:
     
   $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTIN\
 KRTQPTFGFTVNWKFSESTTVFT
-  $ prody align 2avi.pdb *pdb """,
-    test_examples=[1])
+  $ prody align 2avi.pdb *pdb """)
 
     subparser.add_argument('-i', '--identity', dest='identity', type=float, 
         default=90.0, metavar='FLOAT', 
@@ -132,5 +148,5 @@ KRTQPTFGFTVNWKFSESTTVFT
     subparser.add_argument('seq', type=str,  
         help=('sequence or file in fasta format'))
 
-    subparser.set_defaults(func=prody_blast)
+    subparser.set_defaults(func=lambda ns: prody_blast(ns.seq, **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
