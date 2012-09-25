@@ -80,6 +80,9 @@ def prody_catdcd(*dcd, **kwargs):
             traj.setCoords(ag.getCoords())
         if select:
             select = ag.select(select)
+            if select is None:
+                raise ValueError('{0:s} did not match any atoms'
+                                 .format(repr(kwargs.get('select'))))
         else:
             select = ag
         LOGGER.info('{0:d} atoms are selected for writing output.'
