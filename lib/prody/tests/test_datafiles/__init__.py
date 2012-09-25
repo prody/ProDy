@@ -97,6 +97,9 @@ DATA_FILES = {
     },
     'sti': {
         'file': 'xmlSTI.xml'
+    },
+    '3mht': {
+        'file': 'pdb3mht.pdb'
     }
 }
 
