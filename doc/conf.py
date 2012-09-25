@@ -368,6 +368,6 @@ rst_epilog = u"""
     
 .. |suggestions| replace:: Suggestions, feature requests, or
    problems? Submit them to the GitHub issue tracker: 
-   https://github.com/abakan/ProDy/issues
+   https://github.com/prody/ProDy/issues
 
 """.format(getRevisionNumber())

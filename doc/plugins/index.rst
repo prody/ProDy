@@ -30,7 +30,7 @@ architectures and operating systems that VMD runs on, but may require
 root (or administrator) access.
 
 #. Retrieve plugin files from 
-   https://github.com/abakan/ProDy/tree/master/plugins/nmwiz
+   https://github.com/prody/ProDy/tree/master/plugins/nmwiz
   
   * :file:`nmwiz.tcl`
   * :file:`pkgIndex.tcl`

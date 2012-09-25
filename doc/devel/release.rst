@@ -81,7 +81,7 @@ How to Make a Release
 
      $ git tag vX.Y
   
-#. Push the changes with tags to `github <https://github.com/abakan/prody>`_::
+#. Push the changes with tags to `github <https://github.com/prody/ProDy>`_::
 
      $ git push --tags origin master
 
