@@ -21,6 +21,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from os import remove
+import shlex
 from os.path import isfile, join, split, splitext
 from unittest import TestCase
 
@@ -64,7 +65,7 @@ class TestPCACommand(TestCase):
         command = self.command + dcd
         prefix = splitext(split(dcd)[1])[0]
 
-        namespace = prody_parser.parse_args(command.split())
+        namespace = prody_parser.parse_args(shlex.split(command))
         namespace.func(namespace)
 
         for suffix in self.suffixes:
@@ -78,7 +79,7 @@ class TestPCACommand(TestCase):
         command = self.command + dcd
         prefix = splitext(split(dcd)[1])[0]
 
-        namespace = prody_parser.parse_args(command.split())
+        namespace = prody_parser.parse_args(shlex.split(command))
         namespace.func(namespace)
 
         for suffix in self.suffixes:
