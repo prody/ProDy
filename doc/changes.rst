@@ -23,6 +23,11 @@ Release 1.3 (in development)
   * Functions used in :ref:`commands` have been refactored to allow for using 
     them directly.  See :mod:`.routines` for their documentation.
      
+**Bugfix**:
+
+  * A problem in :ref:`prody-catdcd` command that was introduced when 
+    refactoring :mod:`trajectory` classes is fixed.
+
 
 Release 1.2.1 (Sep 6, 2012)
 ===============================================================================
