@@ -20,69 +20,101 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
-
 from actions import *
 
-def prody_catdcd(opt):
-    """Concatenate DCD files."""
+def prody_catdcd(*dcd, **kwargs):
+    """Concatenate *dcd* files.
+    
+    :arg select: atom selection 
+    
+    :arg align: atom selection for aligning frames 
+    
+    :arg pdb: PDB file used in atom selections and as reference for alignment
+        
+    :arg psf: PSF file used in atom selections
+    
+    :arg output: output filename
+    
+    :arg first: index of the first output frame
+    
+    :arg last: index of the last output frame
+    
+    :arg stride: number of steps between output frames"""
     
     import prody
     LOGGER = prody.LOGGER
-    if opt.num:
-        num = [] 
-        for dcd in opt.dcd:
-            dcd = prody.DCDFile(dcd)
-            num.append(dcd.numFrames())
-        for n in num:
-            print(n)
-        print(sum(num))
+    if kwargs.get('numframes', False):
+        for fn in dcd:
+            print(prody.DCDFile(fn).numFrames())
         return
-    align = opt.align
-    ag = opt.psf or opt.pdb
-    if ag:
-        if os.path.splitext(ag)[1].lower() == '.psf':
-            ag = prody.parsePSF(ag)
-        else:
-            ag = prody.parsePDB(ag)
-    elif align:
-        raise ValueError('one of PSF or PDB files must be provided for '
-                         'align option to work')
+
+    from os.path import splitext
     
-    dcd = opt.dcd
+    ag = None
+    psf = kwargs.get('psf', None)
+    if psf:
+        ag = prody.parsePSF(psf)
+    
+    pdb = kwargs.get('pdb', None)
+    if pdb:
+        if ag:
+            ag = prody.parsePDB(pdb, ag=ag)
+        else:
+            ag = prody.parsePDB(pdb)
+
+    align = kwargs.get('align', None)
+    select = kwargs.get('select', None)
+    if select == 'all':
+        select = None
+    if ag is None and (align or select):
+        raise ValueError('one of PSF or PDB files must be provided for '
+                         'align and select options to work')
+    dcd = list(dcd)
     traj = prody.Trajectory(dcd.pop(0))
     while dcd:
         traj.addFile(dcd.pop(0))
+    
     if ag:
-        traj.setAtoms(ag)
-        select = traj.select(opt.select)
+        traj.link(ag)
+        if ag.numCoordsets():
+            traj.setCoords(ag.getCoords())
+        if select:
+            select = ag.select(select)
+            if select is None:
+                raise ValueError('{0:s} did not match any atoms'
+                                 .format(repr(kwargs.get('select'))))
+        else:
+            select = ag
         LOGGER.info('{0:d} atoms are selected for writing output.'
                     .format(len(select)))
         if align:
-            _ = traj.select(align)
+            align = ag.select(align)
+            traj.setAtoms(align)
             LOGGER.info('{0:d} atoms are selected for aligning frames.'
-                        .format(len(_)))
-
-    out = prody.DCDFile(opt.output, 'w')
+                        .format(len(align)))
+    
+    output = kwargs.get('output', 'trajectory.dcd')
+    out = prody.DCDFile(output, 'w')
     count = 0
-    goto = False
-    if opt.stride != 1:
-        goto = True
-    slc = slice(opt.first, opt.last, opt.stride).indices(len(traj)+1)
+    stride = kwargs.get('stride', 1)
+    goto = stride != 1
+    slc = slice(kwargs.get('first', 0), kwargs.get('last', -1), 
+                stride).indices(len(traj)+1)
     for i in range(*slc):
         if goto:
             traj.goto(i)
         frame = traj.next()
         if align:
             frame.superpose()
+        if select:
             out.write(select._getCoords(), frame.getUnitcell())
         else:
             out.write(frame._getCoords(), frame.getUnitcell())
         count += 1
     traj.close()
     out.close()
-    LOGGER.info("{0:d} frames are written into '{1:s}'."
-                .format(count, opt.output))
+    LOGGER.info("{0:d} frames are written into {1:s}."
+                .format(count, output))
 
 def addCommand(commands):
     
@@ -105,39 +137,37 @@ Concatenate two DCD files and output backbone atoms:
   $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb""")
 
     subparser.add_argument('-s', '--select', default='all', type=str, 
-        dest='select', metavar='SELSTR', 
-        help='atom selection (default: "%(default)s")')
+        dest='select', metavar='SEL', 
+        help='atom selection (default: %(default)s)')
 
-    subparser.add_argument('-o', '--output', type=str, metavar='FILENAME', 
+    subparser.add_argument('-o', '--output', type=str, metavar='FILE', 
         default='trajectory.dcd',
-        help='output filename (default: "%(default)s")')
+        help='output filename (default: %(default)s)')
 
     subparser.add_argument('-n', '--num', default=False, action='store_true',
-        dest='num',
+        dest='numframes', 
         help='print the number of frames in each file and exit')
 
-    group = subparser.add_mutually_exclusive_group()
-    group.add_argument('--psf', 
+    subparser.add_argument('--psf', 
         help='PSF filename (must have same number of atoms as DCDs)')
-    group.add_argument('--pdb', 
+    subparser.add_argument('--pdb', 
         help='PDB filename (must have same number of atoms as DCDs)')
 
     subparser.add_argument('--first', metavar='INT', type=int, default=0,
-        help="the first frame to be written to the output file "
-             "(default: %(default)s, first frame)")
+        help='index of the first output frame, default: %(default)s')
     subparser.add_argument('--last', metavar='INT', type=int, default=-1,
-        help="the last frame to be written to the output file "
-             "(default: %(default)s, last frame)")
+        help='index of the last output frame, default: %(default)s')
     subparser.add_argument('--stride', metavar='INT', type=int, default=1,
-        help="number of frames to skip when writing "
-             "(default: %(default)s, skip none)")
+        help='number of steps between output frames, default: %(default)s')
 
-    subparser.add_argument('--align', metavar='SELSTR', type=str,
-        help="atom selection for aligning frames, one of PSF or PDB files "
-             "must be provided")
+    subparser.add_argument('--align', metavar='SEL', type=str,
+        help='atom selection for aligning frames, a PSF or PDB file must be '
+             'provided, if a PDB is provided frames will be superposed onto '
+             'PDB coordinates')
 
     subparser.add_argument('dcd', nargs='+',
         help='DCD filename(s) (all must have same number of atoms)')
 
     subparser.set_defaults(subparser=subparser)
-    subparser.set_defaults(func=prody_catdcd)
+    subparser.set_defaults(func=lambda ns: prody_catdcd(
+                                    *ns.__dict__.pop('dcd'), **ns.__dict__))
