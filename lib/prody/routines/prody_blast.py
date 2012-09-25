@@ -65,6 +65,8 @@ def prody_blast(opt):
         opt.subparser.error('overlap must be between 0 and 100')
     
     blast_results = prody.blastPDB(seq)
+    if blast_results is None:
+        raise IOError('blast search timed out, please try again')
     hits = blast_results.getHits(percent_identity=identity, 
                                  percent_overlap=overlap)
     
