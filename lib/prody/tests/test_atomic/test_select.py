@@ -28,7 +28,7 @@ import unittest
 import inspect
 import sys
 import numpy as np
-from numpy.testing import assert_equal
+from numpy.testing import *
 
 from prody import *
 from prody import LOGGER
@@ -471,6 +471,7 @@ class TestSelectMeta(type):
                                             repr(test[0]), case)
                     setattr(cls, testFunction.__name__, testFunction)
 
+                    @dec.slow
                     def testFunction(self, pdb=case, test=test, type_=type_, 
                                      **kwargs):
                 
