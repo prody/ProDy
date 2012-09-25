@@ -63,15 +63,17 @@ def prody_catdcd(*dcd, **kwargs):
             ag = prody.parsePDB(pdb)
 
     align = kwargs.get('align', None)
-    if ag is None and align:
+    select = kwargs.get('select', None)
+    if select == 'all':
+        select = None
+    if ag is None and (align or select):
         raise ValueError('one of PSF or PDB files must be provided for '
-                         'align option to work')
+                         'align and select options to work')
     dcd = list(dcd)
     traj = prody.Trajectory(dcd.pop(0))
     while dcd:
         traj.addFile(dcd.pop(0))
     
-    select = kwargs.get('select')
     if ag:
         traj.link(ag)
         if ag.numCoordsets():
@@ -87,6 +89,7 @@ def prody_catdcd(*dcd, **kwargs):
             traj.setAtoms(align)
             LOGGER.info('{0:d} atoms are selected for aligning frames.'
                         .format(len(align)))
+    
     output = kwargs.get('output', 'trajectory.dcd')
     out = prody.DCDFile(output, 'w')
     count = 0
@@ -100,6 +103,7 @@ def prody_catdcd(*dcd, **kwargs):
         frame = traj.next()
         if align:
             frame.superpose()
+        if select:
             out.write(select._getCoords(), frame.getUnitcell())
         else:
             out.write(frame._getCoords(), frame.getUnitcell())
