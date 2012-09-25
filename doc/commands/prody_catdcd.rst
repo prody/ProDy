@@ -9,9 +9,9 @@ Usage
 
 Running :command:`prody catdcd -h` displays::
 
-  usage: prody catdcd [-h] [--quiet] [--examples] [-s SELSTR] [-o FILENAME] [-n]
-                      [--psf PSF | --pdb PDB] [--first INT] [--last INT]
-                      [--stride INT] [--align SELSTR]
+  usage: prody catdcd [-h] [--quiet] [--examples] [-s SEL] [-o FILE] [-n]
+                      [--psf PSF] [--pdb PDB] [--first INT] [--last INT]
+                      [--stride INT] [--align SEL]
                       dcd [dcd ...]
   
   positional arguments:
@@ -21,21 +21,18 @@ Running :command:`prody catdcd -h` displays::
     -h, --help            show this help message and exit
     --quiet               suppress info messages to stderr
     --examples            show usage examples and exit
-    -s SELSTR, --select SELSTR
-                          atom selection (default: "all")
-    -o FILENAME, --output FILENAME
-                          output filename (default: "trajectory.dcd")
+    -s SEL, --select SEL  atom selection (default: all)
+    -o FILE, --output FILE
+                          output filename (default: trajectory.dcd)
     -n, --num             print the number of frames in each file and exit
     --psf PSF             PSF filename (must have same number of atoms as DCDs)
     --pdb PDB             PDB filename (must have same number of atoms as DCDs)
-    --first INT           the first frame to be written to the output file
-                          (default: 0, first frame)
-    --last INT            the last frame to be written to the output file
-                          (default: -1, last frame)
-    --stride INT          number of frames to skip when writing (default: 1,
-                          skip none)
-    --align SELSTR        atom selection for aligning frames, one of PSF or PDB
-                          files must be provided
+    --first INT           index of the first output frame, default: 0
+    --last INT            index of the last output frame, default: -1
+    --stride INT          number of steps between output frames, default: 1
+    --align SEL           atom selection for aligning frames, a PSF or PDB file
+                          must be provided, if a PDB is provided frames will be
+                          superposed onto PDB coordinates
 
 Examples
 ===============================================================================

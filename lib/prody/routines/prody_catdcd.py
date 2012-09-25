@@ -22,6 +22,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from actions import *
 
+__all__ = ['prody_catdcd']
+
 def prody_catdcd(*dcd, **kwargs):
     """Concatenate *dcd* files.
     
