@@ -76,8 +76,7 @@ def prody_blast(sequence,**kwargs):
     :type sleep: int        
     
     :arg timeout: determines when to give up waiting for the results. default is 30
-    :type timeout: int
-    """
+    :type timeout: int"""  
     
     import prody
     LOGGER = prody.LOGGER
