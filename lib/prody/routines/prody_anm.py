@@ -92,8 +92,8 @@ def prody_anm(pdb, **kwargs):
     anm.buildHessian(select, cutoff, gamma)
     anm.calcModes(nmodes)
     LOGGER.info('Writing numerical output.')
-    if kwargs.get('npz'):
-        prody.saveModel(anm)
+    if kwargs.get('outnpz'):
+        prody.saveModel(anm, join(outdir, prefix))
     prody.writeNMD(join(outdir, prefix + '.nmd'), anm, select)
     
     extend = kwargs.get('extend')
