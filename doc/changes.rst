@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 1.3 (in development)
+Release 1.3 (Oct 1, 2012)
 ===============================================================================
 
 **Improvements**:
@@ -14,7 +14,7 @@ Release 1.3 (in development)
   * :mod:`~.atomic.select` module and its documentation are completely 
     rewritten.  :class:`.Select` class uses simplest possible parser 
     to evaluate selection strings and achieves more than 25% speed-up 
-    on average.
+    on average.  
     
   * :ref:`selections` become more forgiving of small typos, but will issue
     warning messages when they are detected via :exc:`.SelectionWarning`.
@@ -26,7 +26,7 @@ Release 1.3 (in development)
 **Bugfix**:
 
   * A problem in :ref:`prody-catdcd` command that was introduced when 
-    refactoring :mod:`trajectory` classes is fixed.
+    refactoring :mod:`.trajectory` classes is fixed.
 
 
 Release 1.2.1 (Sep 6, 2012)

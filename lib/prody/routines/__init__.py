@@ -29,6 +29,7 @@ Other routines
 
   * :func:`.prody_align`
   * :func:`.prody_biomol`
+  * :func:`.prody_blast`
   * :func:`.prody_catdcd`
   * :func:`.prody_contacts`
   * :func:`.prody_fetch`
