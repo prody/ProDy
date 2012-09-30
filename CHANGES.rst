@@ -6,6 +6,29 @@
 Changes
 *******************************************************************************
 
+Release 1.3 (Sep 30, 2012)
+===============================================================================
+
+**Improvements**:
+
+  * :mod:`~.atomic.select` module and its documentation are completely 
+    rewritten.  :class:`.Select` class uses simplest possible parser 
+    to evaluate selection strings and achieves more than 25% speed-up 
+    on average.  
+    
+  * :ref:`selections` become more forgiving of small typos, but will issue
+    warning messages when they are detected via :exc:`.SelectionWarning`.
+    These messages can be turned of using :func:`.confProDy`
+
+  * Functions used in :ref:`commands` have been refactored to allow for using 
+    them directly.  See :mod:`.routines` for their documentation.
+     
+**Bugfix**:
+
+  * A problem in :ref:`prody-catdcd` command that was introduced when 
+    refactoring :mod:`.trajectory` classes is fixed.
+
+
 Release 1.2.1 (Sep 6, 2012)
 ===============================================================================
 
@@ -1059,7 +1082,8 @@ Release 0.8.2 (Oct 14, 2011)
 
 **Developmental**:
 
-  * Unit tests for :mod:`.proteins` and :mod:`.select` modules are developed. 
+  * Unit tests for :mod:`.proteins` and :mod:`~.prody.select` modules are 
+    developed. 
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================
@@ -1218,11 +1242,11 @@ Release 0.8 (Aug 24, 2011)
 
 **Bug Fixes**:
   
-  * A bug in :mod:`.select` module causing exceptions when regular 
+  * A bug in :mod:`~atomic.select` module causing exceptions when regular 
     expressions are used is fixed.
   
-  * Another bug in :mod:`.select` module raising exception when "(not ..," is
-    passed is fixed.
+  * Another bug in :mod:`~atomic.select` module raising exception when 
+    "(not ..," is passed is fixed.
 
   * Various bugfixes in :mod:`~prody.ensemble` module.
   
