@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from os import remove
 import shlex
 from os.path import isfile, join, split, splitext
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from numpy.testing import *
 
@@ -33,6 +33,7 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.routines import prody_parser 
 
+from . import NOPRODYCMD
 
 class TestPCACommand(TestCase): 
     
@@ -46,11 +47,12 @@ class TestPCACommand(TestCase):
         self.dcd = DCDFile(self.dcdpath)
         self.ag = parsePDB(self.pdbpath, model=1)
         
-        self.command = 'catdcd -o ' + self.output
+        self.command = 'catdcd --quiet -o ' + self.output
         
         self.tearDown()
 
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
     def testSimpleConcat(self):
 
         command = self.command + ' {0:s} {0:s} {0:s}'.format(self.dcdpath)
@@ -65,6 +67,7 @@ class TestPCACommand(TestCase):
         assert_equal(coords, concat[6:])
 
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
     def testSelectConcat(self):
             
         command = self.command + ' -s ca --pdb {1:s} {0:s} {0:s}'.format(
@@ -90,6 +93,7 @@ class TestPCACommand(TestCase):
         assert_equal(coords, concat[3:])
         
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
     def testAlignConcat(self):
             
         command = self.command + ' --align ca --pdb {1:s} {0:s} {0:s}'.format(
@@ -117,6 +121,7 @@ class TestPCACommand(TestCase):
         assert_equal(coords, concat[3:])
             
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command is not found')
     def testSelectException(self):
         
         command = self.command + ' -s ca {0:s} {0:s}'.format(
@@ -125,6 +130,7 @@ class TestPCACommand(TestCase):
         self.assertRaises(ValueError, namespace.func, namespace)
          
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command is not found')
     def testAlignException(self):
         
         command = self.command + ' --align ca {0:s} {0:s}'.format(
@@ -133,6 +139,7 @@ class TestPCACommand(TestCase):
         self.assertRaises(ValueError, namespace.func, namespace)
            
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command is not found')
     def testIOException(self):
         
         command = self.command + ' {0:s} {0:s}'.format('deneme.dcd')
@@ -140,6 +147,7 @@ class TestPCACommand(TestCase):
         self.assertRaises(IOError, namespace.func, namespace)
             
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command is not found')
     def testSelectException2(self):
         
         command = self.command + ' -s None {0:s} {0:s}'.format(self.dcdpath)

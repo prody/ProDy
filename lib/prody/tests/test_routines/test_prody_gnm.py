@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from os import remove
 import shlex
 from os.path import isfile, join, split, splitext
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from numpy.testing import *
 
@@ -31,12 +31,13 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.routines import prody_parser 
 
-TEMPDIR = '.'
+from . import NOPRODYCMD
+
 class TestPCACommand(TestCase): 
     
     def setUp(self):
 
-        self.command = ('gnm -e -r -o {outdir} -v -z -t all '
+        self.command = ('gnm --quiet -e -r -o {outdir} -v -z -t all '
                         '-f %8g -d , -x .dat '
                         '-R -Q '
                         '-F png -D 120 -W 5 -H 4 ').format(outdir=TEMPDIR)
@@ -55,6 +56,7 @@ class TestPCACommand(TestCase):
         self.tearDown()
 
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
     def testGNMCommand(self):
             
         pdb = pathDatafile('multi_model_truncated')

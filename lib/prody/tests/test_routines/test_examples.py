@@ -20,8 +20,10 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 
 import os
+import glob
 import shlex
-from unittest import TestCase
+import os.path
+from unittest import TestCase, skipIf
 from subprocess import Popen, PIPE, call 
 
 from numpy.testing import *
@@ -29,7 +31,9 @@ from numpy.testing import *
 from prody.routines import prody_commands
 from prody.tests.test_datafiles import TEMPDIR
 
+from . import NOPRODYCMD
 
+TESTDIR = os.path.join(TEMPDIR, 'prody_tests')
 
 class TestCommandsMeta(type):
     
@@ -58,6 +62,7 @@ class TestCommandsMeta(type):
                 count += 1
                  
                 @dec.slow  
+                @skipIf(NOPRODYCMD, 'prody command not found')
                 def testFunction(self, examples=egs):
                     
                     for eg in examples:
@@ -84,10 +89,15 @@ class TestCommandExamples(TestCase):
     def setUp(self):
         
         self.cwd = os.getcwd()
-        os.chdir(TEMPDIR)
+        if not os.path.isdir(TESTDIR):        
+            os.mkdir(TESTDIR)
+        os.chdir(TESTDIR)
         
     def tearDown(self):
         
+        if os.path.isdir(TESTDIR):        
+            for fn in glob.glob(os.path.join(TESTDIR, '*')):
+                os.remove(fn)
         os.chdir(self.cwd)
 
 

@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from os import remove
 import shlex
 from os.path import isfile, join, split, splitext
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from numpy.testing import *
 
@@ -31,12 +31,13 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.routines import prody_parser 
 
+from . import NOPRODYCMD
 
 class TestPCACommand(TestCase): 
     
     def setUp(self):
 
-        self.command = ('pca --pdb {pdb} '
+        self.command = ('pca --quiet --pdb {pdb} '
                         '-e -r -o {outdir} -v -z -t all -j '
                         '-f %8g -d , -x .dat '
                         '-R -Q -J 1,2 '
@@ -59,6 +60,7 @@ class TestPCACommand(TestCase):
         self.tearDown()
 
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
     def testPCACommandDCD(self):
         
         dcd = pathDatafile('dcd')
@@ -73,6 +75,7 @@ class TestPCACommand(TestCase):
             self.assertTrue(isfile(fn), msg=fn+' not found')
 
     @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
     def testPCACommandPDB(self):
             
         dcd = pathDatafile('multi_model_truncated')
