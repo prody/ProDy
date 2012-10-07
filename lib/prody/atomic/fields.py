@@ -237,22 +237,7 @@ ATOMIC_FIELDS = {
 }
 
 
-keys = ATOMIC_FIELDS.keys()
-keys.sort()
-docs = ['Description'] + [ATOMIC_FIELDS[key].doc + (' *(read only)*' 
-                          if ATOMIC_FIELDS[key].readonly else '') 
-                          for key in keys]
-__doc__ += tabulate(['Field'] + ['*' + key + '*' for key in keys], 
-                    docs, header=True)
-
-
 __doc__ += """
-
-
-Note that for fields noted as *read only*, a ``set`` methods are not available.
-
-Selection examples
-===============================================================================
 
 Many of these data fields can be used to make atom selections. For example,
 the following will select atoms whose residue names are ALA:
@@ -262,18 +247,33 @@ the following will select atoms whose residue names are ALA:
 >>> ubi.select('resname ALA')
 <Selection: 'resname ALA' from 1ubi (10 atoms)>
 
-Following table lists some selection examples: 
+Following table lists definitions of fields and selection examples.  Note that
+fields noted as *read only* do not have a ``set`` method.
 
+.. glossary::
 """
 
-keys = [key for key in keys if ATOMIC_FIELDS[key].selstr]
-sels = ['Examples'] + ["``'" + "'``, ``'".join(ATOMIC_FIELDS[key].selstr) +  
-                       "'``" + ( ' Note that *{0:s}* is a synonym for *{1:s}*.'
-                       .format(ATOMIC_FIELDS[key].synonym, key) 
-                       if ATOMIC_FIELDS[key].synonym else '') for key in keys]
+keys = ATOMIC_FIELDS.keys()
+keys.sort()
 
-__doc__ += tabulate(['Field'] + ['*' + key + '*' for key in keys], 
-                    sels, header=True)
+
+for key in keys:
+
+    field = ATOMIC_FIELDS[key]
+    
+    __doc__ += '\n\n   ' + key + '\n'
+
+    if field.synonym:
+        __doc__ += '   ' + field.synonym + '\n' 
+
+    __doc__ += wrapText(field.doc + (' *(read only)*' if field.readonly 
+                                     else ''), indent=6)
+
+    if field.selstr:
+        sel = "\n      ``'" + "'``,\n      ``'".join(field.selstr) +  "'``"
+        __doc__ += '\n\n      *E.g.:* ' + sel
+
+
 
 
 
