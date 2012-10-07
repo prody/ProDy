@@ -35,7 +35,7 @@ import prody as pkg
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
-__all__ = ['gunzip', 'openFile', 'openDB', 
+__all__ = ['gunzip', 'openFile', 'openDB', 'openSQLite', 'openURL',
            'isExecutable', 'isReadable', 'isWritable', 
            'makePath', 'relpath', 'which', 
            'pickle', 'unpickle', 'glob',
@@ -178,17 +178,40 @@ def unpickle(filename, **kwargs):
     inf.close()
     return obj
 
+
 def openDB(filename, *args):
     """Open a database with given *filename*."""
 
-    if filename.endswith('sql'):    
-        if 'n' in args and isfile(filename):
-            os.remove(filename)
-        import sqlite3
-        return sqlite3.connect(filename)
+    import anydbm
+    return anydbm.open(filename, *args)
+
+
+def openSQLite(filename, *args):
+    """Return a connection to SQLite database *filename*.  If ``'n'`` argument
+    is passed, remove any existing databases with the same name and return 
+    connection to a new empty database."""
+    
+    if 'n' in args and isfile(filename):
+        os.remove(filename)
+    import sqlite3
+    return sqlite3.connect(filename)
+    
+    
+def openURL(url, timeout=5):
+    """Open *url* for reading. Raise an :exc:`IOError` if *url* cannot be 
+    reached.  Small *timeout* values are suitable if *url* is an ip address."""
+    
+    from urllib2 import urlopen, URLError
+    
+    url = str(url)
+    try:
+        urlopen(url, timeout=int(timeout))
+    except URLError: 
+        raise IOError('{0:s} could not be opened for reading, invalid URL or '
+                      'no internet connection'.format(repr(url)))
     else:
-        import anydbm
-        return anydbm.open(filename, *args)
+        return True
+    return False
 
 
 def glob(*pathnames):

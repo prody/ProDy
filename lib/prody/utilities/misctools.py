@@ -24,11 +24,11 @@ from textwrap import wrap as textwrap
 
 from numpy import unique
 
-__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',]
+__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement']
         
 class Everything(object):
     
-    """Everything is here."""
+    """A place for everything."""
     
     def __contains__(self, what):
         
@@ -126,5 +126,3 @@ def dictElement(element, prefix=None):
         else:
             dict_[tag] = child
     return dict_
-
-
