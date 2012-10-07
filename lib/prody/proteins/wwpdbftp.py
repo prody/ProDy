@@ -112,10 +112,10 @@ def fetchPDB(pdb, folder='.', compressed=True, copy=False, **kwargs):
     
     The order of file search operations are as follows:  First, files are 
     sought in *folder*.  Second, local PDB mirror will be sought, if one is 
-    set by the user (see :func:`setPDBMirrorPath`).  Then, local PDB folder
-    will be sought, if one is  set by the user (see :func:`setPDBLocalFolder`).
+    set by the user (see :func:`.setPDBMirrorPath`).  Then, local PDB folder
+    will be sought, if one is  set by the user (see :func:`.setPDBLocalFolder`).
     Finally, if files are not found locally, they will be downloaded one of 
-    wwPDB FTP servers (use :func:`setWWPDBFTPServer` to specify one close to 
+    wwPDB FTP servers (use :func:`.setWWPDBFTPServer` to specify one close to 
     you)."""
     
     if isinstance(pdb, str):
