@@ -73,7 +73,7 @@ def wrapText(text, width=70, join='\n', **kwargs):
     except KeyError:
         pass
     else:
-        kwargs['initial_indent'] = kwargs['subsequent_indent'] = indent
+        kwargs['initial_indent'] = kwargs['subsequent_indent'] = ' ' * indent
     
     return join.join(wrap(text, width, **kwargs))
     
