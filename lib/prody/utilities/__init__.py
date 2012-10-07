@@ -44,6 +44,8 @@ Path/file handling
   * :func:`.gunzip`
   * :func:`.openFile`
   * :func:`.openDB`
+  * :func:`.openSQLite`
+  * :func:`.openURL`
   * :func:`.isExecutable`
   * :func:`.isReadable`
   * :func:`.isWritable`
