@@ -112,7 +112,7 @@ def setPDBMirrorPath(path):
         raise IOError('No such directory: {0:s}'.format(repr(path)))
 
 
-def iterPDBFilenames(path=None, sort=False, unique=True):
+def iterPDBFilenames(path=None, sort=False, unique=True, mirror=False):
     """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
     or in *path* specified by the user.  When *path* is specified and *unique*
     is **True**, files potentially identical to a previously encountered file 
@@ -120,8 +120,9 @@ def iterPDBFilenames(path=None, sort=False, unique=True):
     Both :file:`.pdb` and :file:`.ent` extensions, and compressed files are 
     considered."""
 
-    if path is None:
-        path = getPDBMirrorPath()
+    if path is None or mirror is True:
+        if path is None:
+            path = getPDBMirrorPath()
         if path is None:
             raise ValueError('path must be specified or PDB mirror path '
                                'must be set')
