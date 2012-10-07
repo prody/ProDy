@@ -137,7 +137,7 @@ def addCommand(commands):
         help='show usage examples and exit')
 
     subparser.set_defaults(usage_example=
-    """Align models in PDB structure or multiple PDB structures and save \
+    """Align models in a PDB structure or multiple PDB structures and save \
 aligned coordinate sets.  When multiple structures are aligned, ProDy will \
 match chains based on sequence alignment and use best match for aligning the \
 structures.
