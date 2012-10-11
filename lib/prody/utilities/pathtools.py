@@ -205,13 +205,10 @@ def openURL(url, timeout=5):
     
     url = str(url)
     try:
-        urlopen(url, timeout=int(timeout))
+        return urlopen(url, timeout=int(timeout))
     except URLError: 
         raise IOError('{0:s} could not be opened for reading, invalid URL or '
                       'no internet connection'.format(repr(url)))
-    else:
-        return True
-    return False
 
 
 def glob(*pathnames):
