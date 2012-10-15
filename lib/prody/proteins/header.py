@@ -331,11 +331,14 @@ def getHeaderDict(stream, *keys):
     or a stream."""
     
     lines = defaultdict(list)
+    loc = 0
     for loc, line in enumerate(stream):
         startswith = line[0:6]
         if startswith in _START_COORDINATE_SECTION:
             break
         lines[startswith].append((loc, line))
+    if not loc:
+        raise ValueError('empty PDB file or stream')
     for i, line in lines['REMARK']:
         lines[line[:10]].append((i, line))
     

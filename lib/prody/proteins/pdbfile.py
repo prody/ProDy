@@ -192,6 +192,8 @@ def parsePDBStream(stream, **kwargs):
     if model != 0:
         LOGGER.timeit()
         lines = stream.readlines()
+        if not len(lines):
+            raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
