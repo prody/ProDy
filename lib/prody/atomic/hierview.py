@@ -592,7 +592,7 @@ class HierView(object):
                         _chains.append(idx)
                     else:
                         chain = _chains[cid]
-                        chindices[idx] = chain._indices[0]
+                        chindices[idx] = cid
                         _chains[cid] = concatenate((chain, idx))
                     pc = c
                     ps = s
@@ -608,7 +608,7 @@ class HierView(object):
                     _chains.append(idx)
                 else:
                     chain = _chains[cid]
-                    chindices[idx] = chain._indices[0]
+                    chindices[idx] = cid
                     _chains[cid] = concatenate((chain, idx))
 
         ag._data['chindex'] = chindices
@@ -661,7 +661,7 @@ class HierView(object):
                     _append(idx)
                 else:
                     residue = _residues[rid]
-                    resindices[idx] = residue[0]
+                    resindices[idx] = rid
                     _residues[rid] = concatenate((residue, idx))
                 ps = s
                 pc = c
@@ -678,7 +678,7 @@ class HierView(object):
             _set(s_c_r_i, resindex)
         else:
             residue = _residues[rid]
-            resindices[idx] = residue[0]
+            resindices[idx] = rid
             _residues[rid] = concatenate((residue, idx))
         
         ag._data['resindex'] = resindices
