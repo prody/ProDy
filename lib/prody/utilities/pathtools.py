@@ -29,13 +29,14 @@ import platform
 import os.path
 from os.path import isfile, isdir, join, split, splitext
 from os.path import getsize, isabs, exists
+from shutil import copy
 
 import prody as pkg
 
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
-__all__ = ['gunzip', 'openFile', 'openDB', 'openSQLite', 'openURL',
+__all__ = ['gunzip', 'openFile', 'openDB', 'openSQLite', 'openURL', 'copyFile',
            'isExecutable', 'isReadable', 'isWritable', 
            'makePath', 'relpath', 'which', 
            'pickle', 'unpickle', 'glob',
@@ -86,8 +87,16 @@ def gunzip(filename, outname=None):
         raise TypeError('filename must be a string')
     if not isfile(filename):
         raise ValueError('{0:s} does not exist'.format(filename))
-    if outname is None: 
-        outname = filename
+    if outname is None:
+        if filename.endswith('.gz'):
+            outname = filename[:-3]
+        elif filename.endswith('.tgz'):
+            outname = filename[:-4] + '.tar'
+        elif filename.endswith('.gzip'):
+            outname = filename[:-5]
+        else:
+            outname = filename
+            
     inp = gzip.open(filename, 'rb')
     data = inp.read()
     inp.close()
@@ -223,3 +232,8 @@ def glob(*pathnames):
     return paths
         
         
+def copyFile(src, dst):
+    """Return *dst*, a copy of *src*."""
+    
+    copy(src, dst)
+    return dst
