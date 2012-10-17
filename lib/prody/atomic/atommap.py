@@ -416,22 +416,6 @@ class AtomMap(AtomPointer):
         mapping = self._mapping
         return arange(self._len) if mapping is None else mapping
 
-    def getDummyFlags(self):
-        """Deprecated for removal in v1.3, use :meth:`getFlags` instead 
-        (``getFlags('dummy')``)."""
-        
-        from prody import deprecate
-        deprecate('getDummyFlags', "getFlags('dummy')")
-        return self.getFlags('dummy')
-    
-    def getMappedFlags(self):
-        """Deprecated for removal in v1.3, use :meth:`getFlags` instead 
-        (``getFlags('mapped')``)."""
-
-        from prody import deprecate
-        deprecate('getMappedFlags', "getFlags('mapped')")        
-        return self.getFlags('mapped')
-
     def numMapped(self):
         """Return number of mapped atoms."""
         
@@ -446,11 +430,3 @@ class AtomMap(AtomPointer):
         """Return selection string that selects mapped atoms."""
         
         return 'index ' + rangeString(self._indices)
-
-    def getHeteros(self):
-        """Deprecated for removal in v1.3, use ``getFlags('hetatm')`` instead.
-        """
-        
-        from prody import deprecate
-        deprecate('getHereros', "getFlags('hetatm')", '1.3')
-        return self.getFlags('hetatm')

@@ -81,14 +81,6 @@ class ModeSet(object):
         return self._model._dof
 
     numDOF.__doc__ = NMA.numDOF.__doc__
-
-        
-    def getModes(self):
-        """Deprecated for removal in v1.3, use ``list(nma)`` instead."""
-        
-        from prody import deprecate
-        deprecate('getModes', 'list(nma)')
-        return list(self)
     
     def getTitle(self):
         """Return title of the mode set."""

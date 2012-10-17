@@ -123,7 +123,7 @@ class Atomic(object):
                      .format(self.__class__.__name__, name, repr(selstr)))
 
     def copy(self):
-        """Return a copy of atoms (and atomic data) in a new :class:`AtomGroup`
+        """Return a copy of atoms (and atomic data) in an :class:`.AtomGroup`
         instance."""
         
         dummies = None

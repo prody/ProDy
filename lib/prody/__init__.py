@@ -89,9 +89,7 @@ LOGGER = PackageLogger('.prody')
 SETTINGS = PackageSettings('prody', logger=LOGGER) 
 SETTINGS.load()
 
-__all__ = ['checkUpdates', 'confProDy', 'getVerbosity', 'setVerbosity',
-           'startLogfile', 'closeLogfile', 
-           'plog']
+__all__ = ['checkUpdates', 'confProDy', 'startLogfile', 'closeLogfile', 'plog']
 
 from . import kdtree
 from .kdtree import *
@@ -144,8 +142,8 @@ CONFIGURATION = {
     'selection_warning': (True, None, None),
     'verbosity': ('debug', list(utilities.LOGGING_LEVELS), 
                   LOGGER._setverbosity),
-    'pdb_mirror_path': ('', None, proteins.setPDBMirrorPath),
-    'local_pdb_folder': ('', None, proteins.setPDBMirrorPath),
+    'pdb_mirror_path': ('', None, proteins.pathPDBMirror),
+    'local_pdb_folder': ('', None, proteins.pathPDBFolder),
 }
 
 
@@ -241,21 +239,6 @@ def closeLogfile(filename):
     LOGGER.close(filename)
 
 
-def setVerbosity(level):
-    """Deprecated for removal in v1.3, use :func:`.confProDy` instead."""
-
-    deprecate('setVerbosity', 'confProDy(verbosity=\'debug\')')
-    confProDy(verbosity=level)
-
-
-
-def getVerbosity():
-    """Deprecated for removal in v1.3, use :func:`.confProDy` instead."""
-    
-    deprecate('getVerbosity', 'confProDy(\'verbosity\')')
-    return confProDy('verbosity')
-
-
 def checkUpdates():
     """Check PyPI to see if there is a newer ProDy version available.  Setting
     ProDy configuration parameter *check_updates* to a positive integer will 
@@ -283,6 +266,7 @@ def checkUpdates():
         SETTINGS['last_check'] = time.time()
         SETTINGS.save()
 
+
 if SETTINGS['check_updates']: 
     
     if SETTINGS.get('last_check') is None:
@@ -292,6 +276,7 @@ if SETTINGS['check_updates']:
         SETTINGS['check_updates']):
         LOGGER.info('Checking PyPI for ProDy updates:')
         checkUpdates()
+
 
 def test(**kwargs):
     """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests` 

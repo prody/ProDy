@@ -10,8 +10,6 @@ This module defines functions for aiding interactive ProDy experience.
 
   * :func:`confProDy`
   * :func:`checkUpdates`
-  * :func:`getVerbosity`
-  * :func:`setVerbosity`
   * :func:`startLogfile`
   * :func:`closeLogfile`
   * :func:`plog`
@@ -20,10 +18,6 @@ This module defines functions for aiding interactive ProDy experience.
 .. autofunction:: confProDy
 
 .. autofunction:: checkUpdates
-
-.. autofunction:: getVerbosity
-
-.. autofunction:: setVerbosity
 
 .. autofunction:: startLogfile
 

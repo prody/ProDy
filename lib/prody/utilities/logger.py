@@ -87,24 +87,10 @@ class PackageLogger(object):
     # ====================
     # Attributes
     # ====================
-
-    def getVerbosity(self):
-        """Deprecated for removal in v1.3, get :attr:`verbosity` directly."""
-
-        from prody import deprecate
-        deprecate('getVerbosity', 'verbosity')
-        return self._getverbosity()
     
     def _getverbosity(self):
         
         return LOGGING_INVERSE.get(self._logger.handlers[0].level)
-    
-    def setVerbosity(self, level):
-        """Deprecated for removal in v1.3, set :attr:`verbosity` directly."""
-
-        from prody import deprecate
-        deprecate('setVerbosity', 'verbosity')
-        self._setverbosity(level)
         
     def _setverbosity(self, level):
         lvl = LOGGING_LEVELS.get(str(level).lower(), None)
@@ -127,13 +113,6 @@ class PackageLogger(object):
         warning   Only warning messages will be printed.
         none      Nothing will be printed.
         ========  =============================================""")
-            
-    def getPrefix(self):
-        """Deprecated for removal in v1.3, get :attr:`prefix` directly."""
-
-        from prody import deprecate
-        deprecate('getPrefix', 'prefix')
-        return self._prefix
 
     def _getprefix(self):
         
@@ -223,13 +202,6 @@ class PackageLogger(object):
         """Remove handler at given *index* from the logger instance."""
         
         self._logger.handlers.pop(index)
-
-    def startLogfile(self, filename, **kwargs):
-        """Deprecated, use :meth:`start` instead."""
-        
-        from prody import deprecate
-        deprecate('startLogfile', 'start')
-        self.start(filename, **kwargs)
         
     def start(self, filename, **kwargs):
         """Start a logfile.  If *filename* does not have an extension. 
@@ -257,13 +229,6 @@ class PackageLogger(object):
         if rollover:
             logfile.doRollover()
         self.info("Logging started at {0:s}".format(str(now())))
-
-    def closeLogfile(self, filename):
-        """Deprecated, use :meth:`close` instead."""
-        
-        from prody import deprecate
-        deprecate('closeLogfile', 'close')
-        self.start(filename)
         
     def close(self, filename):
         """Close logfile *filename*."""

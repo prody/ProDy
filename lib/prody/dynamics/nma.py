@@ -133,20 +133,6 @@ class NMA(object):
         """Set title of the model."""
         
         self._title = str(title)
-    
-    def getMode(self, index):
-        """Deprecated for removal in v1.3, use indexing instead."""
-        
-        from prody import deprecate
-        deprecate('getMode', 'nma[index]')
-        return self[index]
-
-    def getModes(self):
-        """Deprecated for removal in v1.3, use ``list(nma)`` instead."""
-        
-        from prody import deprecate
-        deprecate('getModes', 'list(nma)')
-        return list(self)
 
     def getEigvals(self):
         """Return eigenvalues.  For :class:`.PCA` and :class:`.EDA` models 
