@@ -135,6 +135,11 @@ Following function can be used to identify fragments in a group
     
   * :func:`.findFragments`
   * :func:`.iterFragments`
+
+Following function can be used to get an :class:`.AtomMap` that sorts atoms
+based on a given property:
+    
+  * :func:`.sortAtoms`
   
 Following function can be used check whether a word is reserved because
 it is used internally by :mod:`.prody.atomic` classes:
