@@ -20,6 +20,17 @@ Release 1.3.1 (in development)
   * Improved :func:`.gunzip` function to handle :file:`.gz` extensions and
     string buffers.
 
+**Changes**:
+
+  * :func:`.getWWPDBFTPServer` and :func:`.setWWPDBFTPServer` are deprecated
+    for removal in v1.4, use :func:`.wwPDBServer` instead.
+
+  * :func:`.getPDBLocalFolder` and :func:`.setPDBLocalFolder` are deprecated
+    for removal in v1.4, use :func:`.pathPDBFolder` instead.
+
+  * :func:`.getPDBMirrorPath` and :func:`.setPDBMirrorPath` are deprecated
+    for removal in v1.4, use :func:`.pathPDBMirror` instead.
+
 **Bugfix**:
 
   * Fixed a bug in :class:`.HierView` that would cause wrong assignment of 

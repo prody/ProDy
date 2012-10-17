@@ -72,11 +72,11 @@ You can tell ProDy where to get PDB files from or where to store downloaded
 files:
 
   * one of the `wwPDB <http://www.wwpdb.org/>`_ FTP servers in US, Europe or
-    Japan can be picked for downloads using :func:`.setWWPDBFTPServer`
+    Japan can be picked for downloads using :func:`.wwPDBServer`
   * a local PDB mirror can be be set for faster access to files using
-    :func:`.setPDBMirrorPath` 
+    :func:`.pathPDBMirror` 
   * a local folder can be set for storing downloaded files for later access
-    using :func:`.setPDBLocalFolder` 
+    using :func:`.pathPDBFolder` 
 
 Note that when these functions are used, ProDy will save your settings as 
 :file:`.prodyrc` in your home folder.
