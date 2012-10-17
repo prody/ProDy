@@ -46,6 +46,7 @@ Path/file handling
   * :func:`.openDB`
   * :func:`.openSQLite`
   * :func:`.openURL`
+  * :func:`.copyFile`
   * :func:`.isExecutable`
   * :func:`.isReadable`
   * :func:`.isWritable`
