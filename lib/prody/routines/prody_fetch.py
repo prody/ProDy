@@ -47,7 +47,7 @@ def prody_fetch(*pdb, **kwargs):
                     if len(pdb) == 4 and pdb.isalnum(): 
                         pdblist.append(pdb)
 
-    prody.fetchPDB(list(pdblist), kwargs.get('folder', '.'),
+    prody.fetchPDB(*pdblist, folder=kwargs.get('folder', '.'),
                    compressed=kwargs.get('gzip', False),
                    copy=True)
 
