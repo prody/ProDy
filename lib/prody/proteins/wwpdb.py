@@ -34,13 +34,6 @@ __all__ = ['wwPDBServer', 'getWWPDBFTPServer', 'setWWPDBFTPServer',
            'fetchPDBviaFTP', 'fetchPDBviaHTTP']
 
            
-_PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
-                       '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ'])
-_XML_EXTENSIONS = set(['.xml', '.XML', '.xml.gz', '.XML.GZ'])
-_CIF_EXTENSIONS = set(['.cif', '.CIF', '.cif.gz', '.CIF.GZ'])
-
-_PDB_FORMATS = set(['pdb', 'cif', 'xml'])
-
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/pdb/')
 _WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/pdb/')
 _WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/pdb/')
@@ -170,8 +163,6 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
     format = str(kwargs.pop('format', 'pdb')).lower()
-    if not format in _PDB_FORMATS:
-        raise ValueError(repr(format) + ' is not valid format')
     noatom = bool(kwargs.pop('noatom', False)) 
     
     if format == 'pdb':
@@ -195,8 +186,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         ftp_prefix = ''
         extension = '.cif'
     else:
-        raise ValueError('{0:s} is not a recognized format'
-                         .format(repr(format)))
+        raise ValueError(repr(format) + ' is not valid format')
 
     local_folder = pathPDBFolder()
 
