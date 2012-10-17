@@ -107,10 +107,12 @@ Editing models
 Following functions can be used to reduce, slice, or extrapolate models:
 
   * :func:`.sliceMode` - take a slice of the normal mode      
+  * :func:`.extendMode` - extend a coarse-grained mode to all-atoms  
   * :func:`.sliceModel` - take a slice of a model
-  * :func:`.sliceVector` - take a slice of a vector
+  * :func:`.extendModel` - extend a coarse-grained model to all-atoms
   * :func:`.reduceModel` - reduce a model to a subset of atoms
-  * :func:`.extrapolateModel` - extrapolate a coarse-grained model to all-atoms  
+  * :func:`.sliceVector` - take a slice of a vector
+  * :func:`.extendVector` - extend a coarse-grained vector to all-atoms
 
 Parse/write data
 ================
