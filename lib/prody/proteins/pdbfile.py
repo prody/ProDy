@@ -33,8 +33,8 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, Everything
 from prody import LOGGER, SETTINGS
 
-from wwpdbftp import fetchPDB
-from header import getHeaderDict, buildBiomolecules, assignSecstr
+from .header import getHeaderDict, buildBiomolecules, assignSecstr
+from .localpdb import fetchPDB
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',
            'writePDBStream', 'writePDB',]

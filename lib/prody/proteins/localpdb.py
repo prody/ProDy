@@ -21,38 +21,27 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from glob import glob
+from glob import glob, iglob
 from os.path import sep as pathsep
 from os.path import abspath, isdir, isfile, join, split, splitext
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import makePath, gunzip, relpath
+from prody.utilities import makePath, gunzip, relpath, copyFile, isWritable
 
-__all__ = ['getPDBLocalFolder', 'getPDBMirrorPath', 
-           'setPDBLocalFolder', 'setPDBMirrorPath',
+from . import wwpdb
+from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP
+
+
+__all__ = ['pathPDBFolder', 'getPDBLocalFolder', 'getPDBMirrorPath', 
+           'pathPDBMirror', 'setPDBLocalFolder', 'setPDBMirrorPath',
+           'fetchPDB', 'fetchPDBfromMirror',
            'iterPDBFilenames', 'findPDBFiles']
-           
-
-def getPDBLocalFolder():
-    """Return the path to a local PDB folder and folder structure specifier. 
-    If a local folder is not set, **None** will be returned."""
-
-    folder = SETTINGS.get('pdb_local_folder')
-    if folder:
-        if isdir(folder):
-            return folder, SETTINGS.get('pdb_local_divided', True)
-        else:
-            LOGGER.warning('PDB local folder {0:s} is not a accessible.'
-                           .format(repr(folder)))
-
-
-def setPDBLocalFolder(folder, divided=False):
-    """Set a local PDB folder.  Setting a local PDB folder will make 
-    :func:`fetchPDB` function to seek that folder for presence of requested
-    PDB files.  Also, files downloaded from `wwPDB <http://www.wwpdb.org/>`_ 
-    FTP servers will be saved in this folder.  This may help users to store 
-    PDB files in a single place and have access to them in different working 
-    directories.
+          
+def pathPDBFolder(folder=None, divided=False):
+    """Return or specify local PDB folder for storing PDB files downloaded from 
+    `wwPDB <http://www.wwpdb.org/>`_ servers.  Files stored in this folder can
+    be accessed via :func:`.fetchPDB` from any working directory.  To release
+    the current folder, pass an invalid path, e.g. ``folder=''``. 
     
     If *divided* is **True**, the divided folder structure of wwPDB servers 
     will be assumed when reading from and writing to the local folder.  For 
@@ -66,81 +55,334 @@ def setPDBLocalFolder(folder, divided=False):
     Finally, in either case, lower case letters will be used and compressed
     files will be stored."""
     
-    if not isinstance(folder, str):
-        raise TypeError('folder must be a string')
-    assert isinstance(divided, bool), 'divided must be a boolean'
-    if isdir(folder):
-        folder = abspath(folder)
-        LOGGER.info('Local PDB folder is set: {0:s}'.format(repr(folder)))
-        if divided:
-            LOGGER.info('When using local PDB folder, wwPDB divided '
-                        'folder structure will be assumed.')
-        else:
-            LOGGER.info('When using local PDB folder, a plain folder structure '
-                        'will be assumed.')
-        SETTINGS['pdb_local_folder'] = folder
-        SETTINGS['pdb_local_divided'] = divided
-        SETTINGS.save()
+    if folder is None:
+        folder = SETTINGS.get('pdb_local_folder')
+        if folder:
+            if isdir(folder):
+                return folder, SETTINGS.get('pdb_local_divided', True)
+            else:
+                LOGGER.warn('PDB local folder {0:s} is not a accessible.'
+                            .format(repr(folder)))
     else:
-        raise IOError('No such directory: {0:s}'.format(repr(folder)))
+        if isdir(folder):
+            folder = abspath(folder)
+            LOGGER.info('Local PDB folder is set: {0:s}'.format(repr(folder)))
+            if divided:
+                LOGGER.info('wwPDB divided folder structure will be assumed.')
+            else:
+                LOGGER.info('A plain folder structure will be assumed.')
+            SETTINGS['pdb_local_folder'] = folder
+            SETTINGS['pdb_local_divided'] = bool(divided)
+            SETTINGS.save()
+        else:
+            current = SETTINGS.pop('pdb_local_folder')
+            if current:
+                LOGGER.info('PDB folder {0:s} is released.'
+                            .format(repr(current)))
+                SETTINGS.pop('pdb_local_divided')
+                SETTINGS.save()
+            else:
+                LOGGER.warn('{0:s} is not a valid path.'.format(repr(folder)))
+
+wwpdb.pathPDBFolder = pathPDBFolder
+
+def getPDBLocalFolder():
+    """Deprecated for removal in v1.4, use :func:`pathPDBFolder` instead."""
+
+    from prody import deprecate
+    deprecate('getPDBLocalFolder', 'pathPDBFolder')
+    return pathPDBFolder()
+
+
+def setPDBLocalFolder(folder, divided=False):
+    """Deprecated for removal in v1.4, use :func:`pathPDBFolder` instead."""
+
+    from prody import deprecate
+    deprecate('setPDBLocalFolder', 'pathPDBFolder')
+    return pathPDBFolder(folder, divided)
+
+
+def pathPDBMirror(path=None):
+    """Return or specify PDB mirror path to be used by :func:`.fetchPDB`.  
+    To release the current mirror, pass an invalid path, e.g. ``path=''``.""" 
+
+    if path is None:
+        path = SETTINGS.get('pdb_mirror_path')
+        if path:
+            if isdir(path):
+                return path
+            else:
+                LOGGER.warning('PDB mirror path {0:s} is not a accessible.'
+                               .format(repr(path)))
+    else:
+        if isdir(path):
+            path = abspath(path)
+            LOGGER.info('Local PDB mirror path is set: {0:s}'
+                        .format(repr(path)))
+            SETTINGS['pdb_mirror_path'] = path
+            SETTINGS.save()
+        else:
+            current = SETTINGS.pop('pdb_mirror_path')
+            if current:
+                LOGGER.info('PDB mirror {0:s} is released.'
+                            .format(repr(current)))
+                SETTINGS.save()
+            else:
+                LOGGER.warn('{0:s} is not a valid path.'.format(repr(path)))
 
 
 def getPDBMirrorPath():
-    """Return the path to a local PDB mirror, or **None** if a mirror path is 
-    not set."""
+    """Deprecated for removal in v1.4, use :func:`pathPDBMirror` instead."""
 
-    path = SETTINGS.get('pdb_mirror_path')
-    if path:
-        if isdir(path):
-            return path
-        else:
-            LOGGER.warning('PDB mirror path {0:s} is not a accessible.'
-                           .format(repr(path)))
+    from prody import deprecate
+    deprecate('getPDBMirrorPath', 'pathPDBMirror')
+    return pathPDBMirror()
 
 
 def setPDBMirrorPath(path):
-    """Set the path to a local PDB mirror."""
+    """Deprecated for removal in v1.4, use :func:`pathPDBMirror` instead."""
+
+    from prody import deprecate
+    deprecate('getPDBMirrorPath', 'pathPDBMirror')
+    return pathPDBMirror(folder)
+
+
+def fetchPDBfromMirror(*pdb, **kwargs):
+    """Return path(s) to PDB (default), PDBML, or mmCIF file(s) for specified 
+    *pdb* identifier(s).  If a *folder* is specified, files will be copied
+    into this folder.  If *compressed* is **False**, files will decompressed. 
+    *format* argument can be used to get `PDBML <http://pdbml.pdb.org/>`_ and 
+    `mmCIF <http://mmcif.pdb.org/>`_ files: ``format='cif'`` will fetch an 
+    mmCIF file, and ``format='xml'`` will fetch a PDBML file.  If PDBML header
+    file is desired, ``noatom=True`` argument will do the job."""
     
-    if not isinstance(path, str):
-        raise TypeError('path must be a string')
-    if isdir(path):
-        path = abspath(path)
-        LOGGER.info('Local PDB mirror path is set: {0:s}'.format(repr(path)))
-        SETTINGS['pdb_mirror_path'] = path
-        SETTINGS.save()
+    mirror = pathPDBMirror()
+    if mirror is None:
+        raise IOError('no mirror path is set')
+
+    if kwargs.get('check', True):
+        identifiers = checkIdentifiers(*pdb)
     else:
-        raise IOError('No such directory: {0:s}'.format(repr(path)))
+        identifiers = list(pdb)
+
+    format = str(kwargs.pop('format', 'pdb')).lower()    
+    if format == 'pdb':
+        ftp_divided = 'data/structures/divided/pdb'
+        ftp_pdbext = '.ent.gz'
+        ftp_prefix = 'pdb'
+        extension = '.pdb'
+    elif format == 'xml':
+        if noatom:
+            ftp_divided = 'data/structures/divided/XML-noatom'
+            ftp_pdbext = '-noatom.xml.gz'
+            extension = '-noatom.xml'
+        else:
+            ftp_divided = 'data/structures/divided/XML'
+            ftp_pdbext = '.xml.gz'
+            extension = '.xml'
+        ftp_prefix = ''
+    elif format == 'cif':
+        ftp_divided = 'data/structures/divided/mmCIF'
+        ftp_pdbext = '.cif.gz'
+        ftp_prefix = ''
+        extension = '.cif'
+    else:
+        raise ValueError('{0:s} is not a recognized format'
+                         .format(repr(format)))
+    
+    folder = kwargs.get('folder')
+    compressed = kwargs.get('compressed', True)
+    filenames = []
+    append = filenames.append
+    success = 0
+    failure = 0
+    for pdb in identifiers:
+        if pdb is None:
+            append(None)
+            continue
+        fn = join(mirror, ftp_divided, pdb[1:3], 
+                  ftp_prefix + pdb + ftp_pdbext)
+        if isfile(fn):
+            if folder or not compressed:
+                if compressed:
+                    append(copyFile(fn, join(folder or '.', 
+                                             pdb + extension + '.gz')))
+                else:
+                    append(gunzip(fn, join(folder or '.', pdb + extension)))
+            else:
+                append(fn)
+            success += 1
+        else:
+            append(None)
+            failure += 1
+    
+    if len(identifiers) == 1:
+        return filenames[0]    
+    else:
+        if kwargs.get('report', True):
+            LOGGER.debug('PDB from mirror completed ({0:d} downloaded, '
+                         '{1:d} failed).'.format(success, failure))
+        return filenames
 
 
-def iterPDBFilenames(path=None, sort=False, unique=True, mirror=False):
-    """Yield PDB filenames in local PDB mirror (see :func:`.getPDBMirrorPath`)
-    or in *path* specified by the user.  When *path* is specified and *unique*
-    is **True**, files potentially identical to a previously encountered file 
-    (e.g. :file:`1mkp.pdb` and :file:`pdb1mkp.ent.gz`) will not be yielded.
-    Both :file:`.pdb` and :file:`.ent` extensions, and compressed files are 
-    considered."""
+def fetchPDB(*pdb, **kwargs):
+    """Return path(s) to PDB file(s) for specified *pdb* identifier(s).  Files
+    will be sought in user specified *folder* or current working director, and
+    then in local PDB folder and mirror, if they are available.  If *copy*
+    is set **True**, files will be copied into *folder*.  If *compressed* is 
+    **False**, all files will be decompressed.  See :func:`pathPDBFolder` and 
+    :func:`pathPDBMirror` for managing local resources, :func:`.fetchPDBviaFTP`
+    and :func:`.fetchPDBviaFTP` for downloading files from PDB servers."""
+    
+    if len(pdb) == 1 and isinstance(pdb[0], list):
+        pdb = pdb[0]
 
-    if path is None or mirror is True:
+    if 'format' in kwargs and kwargs.get('format') != 'pdb':
+        return fetchPDBviaFTP(*pdb, **kwargs)
+        
+    identifiers = checkIdentifiers(*pdb)
+    
+    folder = kwargs.get('folder', '.')
+    compressed = kwargs.get('compressed')
+    filedict = findPDBFiles(folder, compressed=compressed)
+    
+    filenames = [] 
+    not_found = []
+    exists = 0
+    for i, pdb in enumerate(identifiers):
+        if pdb in filedict:
+            filenames.append(filedict[pdb])
+            exists += 1
+        else:
+            filenames.append(None)
+            not_found.append((i, pdb))
+    
+    if not not_found:
+        return filenames[0] if len(identifiers) == 1 else filenames
+
+    if not isWritable(folder):
+        raise IOError('permission to write in {0:s} is denied, please '
+                      'specify another folder'.format(folder))
+
+    if compressed is not None and not compressed:
+        filedict = findPDBFiles(folder, compressed=True)
+        not_found, decompress = [], not_found
+        for i, pdb in decompress:
+            if pdb in filedict:
+                fn = filedict[pdb]
+                filenames[i] = gunzip(fn, splitext(fn)[0])
+            else:                
+                not_found.append((i, pdb))
+    
+    if not not_found:
+        return filenames[0] if len(identifiers) == 1 else filenames
+
+    local_folder = pathPDBFolder()
+    if local_folder:
+        local_folder, is_divided = local_folder
+        temp, not_found = not_found, []
+        for i, pdb in temp:
+            if is_divided:
+                fn = join(local_folder, pdb[1:3], 'pdb' + pdb + '.pdb.gz')
+            else:
+                fn = join(local_folder, pdb + '.pdb.gz')
+                
+            if isfile(fn):
+                if copy or not compressed:
+                    if compressed:
+                        filenames[i] = copyFile(fn, join(folder, 
+                                                         pdb + 'pdb.gz'))
+                    else:
+                        filenames[i] = gunzip(fn, join(folder, pdb + '.pdb'))
+                else:
+                    filenames[i] = fn
+            else:
+                not_found.append((i, pdb))
+
+    if not not_found:
+        return filenames[0] if len(identifiers) == 1 else filenames
+
+    if kwargs.get('copy', False) or not compressed:
+        kwargs['folder'] = folder
+
+    downloads = [pdb for i, pdb in not_found]
+    fns = None
+    try:
+        fns = fetchPDBfromMirror(*downloads, **kwargs)
+    except IOError:
+        pass
+    else:
+        if len(downloads) == 1: fns = [fns]
+        temp, not_found = not_found, []
+        for i, fn in enumerate(fns):
+            if fn is None:
+                not_found.append(temp[i])
+            else:
+                i, _ = temp[i]
+                filenames[i] = fn
+        
+    if not not_found:
+        return filenames[0] if len(identifiers) == 1 else filenames
+    
+    if fns:
+        downloads = [pdb for i, pdb in not_found]
+    fns = None
+    try:
+        fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
+    except Exception as err:
+        LOGGER.warn('Downloading PDB files via FTP failed ({0:s}), '
+                    'trying HTTP.'.format(str(err)))
+        try:
+            fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
+        except Exception as err:
+            LOGGER.warn('Downloading PDB files via HTTP also failed '
+                        '({0:s}).'.format(str(err)))
+    if len(downloads) == 1: fns = [fns]
+    if fns:
+        for i, fn in zip([i for i, pdb in not_found], fns):
+            filenames[i] = fn
+    
+    return filenames[0] if len(identifiers) == 1 else filenames
+                    
+
+def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
+    """Yield PDB filenames in *path* specified by the user or in local PDB 
+    mirror (see :func:`.pathPDBMirror`).  When *unique* is **True**, files 
+    one of potentially identical files will be yielded (e.g. :file:`1mkp.pdb` 
+    and :file:`pdb1mkp.ent.gz1`).  :file:`.pdb` and :file:`.ent` extensions, 
+    and compressed files are considered."""
+
+    from re import compile, IGNORECASE
+
+    if path is None or kwargs.get('mirror') is True:
         if path is None:
             path = getPDBMirrorPath()
         if path is None:
             raise ValueError('path must be specified or PDB mirror path '
-                               'must be set')
-        pdbs = glob(join(path, 'data/structures/divided/pdb/', '*/*.ent.gz'))
+                             'must be set')
         if sort:
-            pdbs.sort()
+            pdbs = glob(join(path, 'data/structures/divided/pdb/', 
+                        '*/*.ent.gz'))
+            pdbs.sort(reverse=kwargs.get('reverse'))
+        else:
+            pdbs = iglob(join(path, 'data/structures/divided/pdb/', 
+                        '*/*.ent.gz'))
         for fn in pdbs:
             yield fn
-    else:
+    else:   
         unique=bool(unique)
         if unique:
             yielded = set()
-        pdbs = []
-        for ext in ['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
-                    '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ']:
-            pdbs.extend(glob(join(path, '*' + ext)))
+        compressed = kwargs.get('compressed')
+        if compressed is None:
+            pdbext = compile('\.(pdb|ent)(\.gz)?$', IGNORECASE)
+        elif compressed:
+            pdbext = compile('\.(pdb|ent)\.gz$', IGNORECASE)
+        else:
+            pdbext = compile('\.(pdb|ent)$', IGNORECASE)
+        pdbs = [pdb for pdb in iglob(join(path, '*')) if pdbext.search(pdb)]
         if sort:
-            pdbs.sort()
+            pdbs.sort(reverse=kwargs.get('reverse'))
         for fn in pdbs:
             if unique:
                 pdb = splitext(splitext(split(fn)[1])[0])[0]
@@ -153,12 +395,13 @@ def iterPDBFilenames(path=None, sort=False, unique=True, mirror=False):
             yield fn
 
 
-def findPDBFiles(path, case=None):
+def findPDBFiles(path, case=None, **kwargs):
     """Return a dictionary that maps PDB filenames to file paths.  If *case*
     is specified (``'u[pper]'`` or ``'l[ower]'``), dictionary keys (filenames)
     will be modified accordingly.  If a PDB filename has :file:`pdb` prefix,
     it will be trimmed, for example ``'1mkp'`` will be mapped to file path 
-    :file:`./pdb1mkp.pdb.gz`).  See also :func:`.iterPDBFilenames`."""
+    :file:`./pdb1mkp.pdb.gz`).  If a file is present with multiple extensions,
+    only one of them will be returned. See also :func:`.iterPDBFilenames`."""
     
     case = str(case).lower()
     upper = lower = False
@@ -168,7 +411,7 @@ def findPDBFiles(path, case=None):
         lower = True
     
     pdbs = {}
-    for fn in iterPDBFilenames(path, sort=True):
+    for fn in iterPDBFilenames(path, sort=True, reverse=True, **kwargs):
         pdb = splitext(splitext(split(fn)[1])[0])[0]
         if len(pdb) == 7 and pdb.startswith('pdb'):
             pdb = pdb[3:]
@@ -180,3 +423,4 @@ def findPDBFiles(path, case=None):
             pdbs[pdb] = fn
         
     return pdbs
+

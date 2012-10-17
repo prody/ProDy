@@ -29,17 +29,13 @@ from os.path import isdir, isfile, join, split, splitext
 from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 
-#from . import localpdb
-#from .localpdb import getPDBLocalFolder, getPDBMirrorPath
-from prody import getPDBLocalFolder, getPDBMirrorPath
 
-__all__ = ['wwPDBServer', 'getWWPDBFTPServer', 'setWWPDBFTPServer', 
-           'fetchPDB',]
+__all__ = ['wwPDBServer', 'getWWPDBFTPServer', 'setWWPDBFTPServer',
+           'fetchPDBviaFTP', 'fetchPDBviaHTTP']
 
            
 _PDB_EXTENSIONS = set(['.pdb', '.PDB', '.gz', '.GZ', '.ent', '.ENT', 
                        '.pdb.gz', '.PDB.GZ', '.ent.gz', '.ENT.GZ'])
-#localpdb._PDB_EXTENSIONS = _PDB_EXTENSIONS
 _XML_EXTENSIONS = set(['.xml', '.XML', '.xml.gz', '.XML.GZ'])
 _CIF_EXTENSIONS = set(['.cif', '.CIF', '.cif.gz', '.CIF.GZ'])
 
@@ -118,6 +114,7 @@ def wwPDBServer(*key):
         raise TypeError('one key argument is expected, {0:d} given'
                         .format(len(key)))
 
+
 def setWWPDBFTPServer(key):
     """Deprecated for removal in v1.4, use :func:`wwPDBServer` instead."""
     
@@ -128,31 +125,6 @@ def getWWPDBFTPServer():
     """Deprecated for removal in v1.4, use :func:`wwPDBServer` instead."""
     
     return wwPDBServer()
-
-def evalFormat(format):
-
-    if format == 'pdb':
-        divided = 'data/structures/divided/pdb'
-        pdbext = '.ent.gz'
-        extensions = ['.ent', '.pdb'] # '.pdb' should be the last item
-        prefix = 'pdb'
-    elif format == 'xml':
-        if noatom:
-            divided = 'data/structures/divided/XML-noatom'
-            pdbext = '-noatom.xml.gz'
-            extensions = ['-noatom.xml']
-        else:
-            divided = 'data/structures/divided/XML'
-            pdbext = '.xml.gz'
-            extensions = ['.xml']
-        prefix = ''
-    else:
-        divided = 'data/structures/divided/mmCIF'
-        pdbext = '.cif.gz'
-        extensions = ['.cif'] # '.pdb' should be the last item
-        prefix = ''
-
-    return divide, pdbext, extensions, prefix
 
 
 def checkIdentifiers(*pdb):
@@ -165,32 +137,35 @@ def checkIdentifiers(*pdb):
         try:        
             pid = pid.strip().lower()
         except AttributeError:
-            raise TypeError('pdb identifiers must be strings')
-        
-        if not (len(pid) == 4 and pid.isalnum()):
             LOGGER.warn('{0:s} is not a valid identifier.'.format(repr(pid)))
             identifiers.append(None)
-        else:
-            identifiers.append(pid)
+        else:        
+            if not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0:s} is not a valid identifier.'
+                            .format(repr(pid)))
+                identifiers.append(None)
+            else:
+                identifiers.append(pid)
     return identifiers
 
 
 def fetchPDBviaFTP(*pdb, **kwargs):
     """Retrieve PDB (default), PDBML, or mmCIF file(s) for specified *pdb* 
-    identifier(s). The function will return a filename or a list of filenames 
-    depending on input.  
-
-    Downloaded files will be stored in local PDB folder, if one is set using 
-    :meth:`.pathPDBFolder`, and copied into *folder*, if specified by the user.
-    If no destination folder is specified, files will be saved in the current
-    working directory.  If *compressed* is **False**, decompressed files will 
-    be copied into *folder*.  *format* keyword argument can be used to retrieve
+    identifier(s) and return path(s).  Downloaded files will be stored in 
+    local PDB folder, if one is set using :meth:`.pathPDBFolder`, and copied
+    into *folder*, if specified by the user.  If no destination folder is 
+    specified, files will be saved in the current working directory.  If 
+    *compressed* is **False**, decompressed files will be copied into 
+    *folder*.  *format* keyword argument can be used to retrieve
     `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ 
-    files: ``format='cif'`` will fetch an mmCIF file, and ``format='xml'`` will
-    fetch a PDBML file.  If PDBML header file is desired, ``noatom=True`` 
+    files: ``format='cif'`` will fetch an mmCIF file, and ``format='xml'`` 
+    will fetch a PDBML file.  If PDBML header file is desired, ``noatom=True`` 
     argument will do the job."""
 
-    identifiers = checkIdentifiers(*pdb)
+    if kwargs.get('check', True):
+        identifiers = checkIdentifiers(*pdb)
+    else:
+        identifiers = list(pdb)
 
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
@@ -223,34 +198,34 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         raise ValueError('{0:s} is not a recognized format'
                          .format(repr(format)))
 
-    local_folder, is_divided = getPDBLocalFolder()
+    local_folder = pathPDBFolder()
 
     if format == 'pdb' and local_folder:
+        local_folder, is_divided = local_folder
         if is_divided:
-            getPath = lambda pdbid: join(makePath(join(local_folder, 
-                                    pdbid[1:3])), 'pdb' + pdbid + '.pdb.gz')
+            getPath = lambda pdb: join(makePath(join(local_folder, pdb[1:3])), 
+                                       'pdb' + pdb + '.pdb.gz')
         else:
-            getPath = lambda pdbid: join(local_folder, pdbid + '.pdb.gz')
+            getPath = lambda pdb: join(local_folder, pdb + '.pdb.gz')
         if output_folder is None:
-            second = lambda pdbid: getPath(pdbid)
+            second = lambda filename, pdb: filename
         else:      
             if compressed:
-                second = lambda pdbid: (copyFile(getPath(pdbid),
-                            join(output_folder, pdbid + extension + '.gz')))
+                second = lambda filename, pdb: (copyFile(filename,
+                            join(output_folder, pdb + extension + '.gz')))
             else:
-                second = lambda pdbid: gunzip(getPath(pdbid),
-                                        join(output_folder, pdbid + extension))
+                second = lambda filename, pdb: gunzip(filename,
+                            join(output_folder, pdb + extension))
             
     else:
         if output_folder is None:
             output_folder = getcwd()
         if compressed:
-            getPath = lambda pdbid: join(output_folder, pdbid
-                                         + extension + '.gz')
-            second = lambda filename, outname: None
+            getPath = lambda pdb: join(output_folder, pdb + extension + '.gz')
+            second = lambda filename, pdb: filename
         else:
-            getPath = lambda pdbid: join(output_folder, pdbid + extension)
-            second = lambda pdbid: gunzip(getPath(pdbid), getPath(pdbid))
+            getPath = lambda pdb: join(output_folder, pdb + extension)
+            second = lambda filename, pdb: gunzip(getPath(pdb), getPath(pdb))
         
     
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
@@ -267,46 +242,44 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         failure = 0
         filenames = []
         ftp.login('')
-        for pdbid in identifiers:
-            if pdbid is None:
+        for pdb in identifiers:
+            if pdb is None:
                 filenames.append(None)
             
             data = []
-            ftp_fn = ftp_prefix + pdbid + ftp_pdbext
+            ftp_fn = ftp_prefix + pdb + ftp_pdbext
             try:
                 ftp.cwd(ftp_path)
                 ftp.cwd(ftp_divided)
-                ftp.cwd(pdbid[1:3])
+                ftp.cwd(pdb[1:3])
                 ftp.retrbinary('RETR ' + ftp_fn, data.append)
             except Exception as error:
                 if ftp_fn in ftp.nlst():
-                    LOGGER.warn('{0:s} download failed ({1:s}).  It is '
+                    LOGGER.warn('{0:s} download failed ({1:s}). It is '
                                 'possible that you do not have rights to '
                                 'download .gz files in the current network.'
-                                .format(pdbid, str(error)))
+                                .format(pdb, str(error)))
                 else:
-                    LOGGER.warn('{0:s} download failed.  {1:s} does not '
-                                'exist on {2:s}.'.format(ftp_fn, pdbid, 
-                                ftp_host))
+                    LOGGER.warn('{0:s} download failed. {1:s} does not exist '
+                                'on {2:s}.'.format(ftp_fn, pdb, ftp_host))
                 failure += 1
                 filenames.append(None)
             else:
                 if len(data):
-                    filename = getPath(pdbid)
+                    filename = getPath(pdb)
         
                     with open(filename, 'w+b') as pdbfile:
                         write = pdbfile.write
                         [write(block) for block in data]
 
-                    filename = second(pdbid)
-                    filename = relpath(filename)
+                    filename = relpath(second(filename, pdb))
                     LOGGER.debug('{0:s} downloaded ({1:s})'
-                                 .format(pdbid, filename))
+                                 .format(pdb, filename))
                     success += 1
                     filenames.append(filename)
                 else:
                     LOGGER.warn('{0:s} download failed, reason unknown.'
-                                .format(pdbid))
+                                .format(pdb))
                     failure += 1
                     filenames.append(None)
 
@@ -316,52 +289,55 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         return filenames[0]    
     else:
         if kwargs.get('report', True):
-            LOGGER.info('PDB download via FTP completed ({0:d} downloaded, '
-                        '{1:d} failed).'.format(success, failure))
+            LOGGER.debug('PDB download via FTP completed ({0:d} downloaded, '
+                         '{1:d} failed).'.format(success, failure))
         return filenames
 
+
 def fetchPDBviaHTTP(*pdb, **kwargs):
-    """Retrieve PDB file(s) for specified *pdb* identifier(s). The function 
-    will return a filename or a list of filenames depending on input.  
+    """Retrieve PDB file(s) for specified *pdb* identifier(s) and return 
+    path(s).  Downloaded files will be stored in local PDB folder, if one 
+    is set using :meth:`.pathPDBFolder`, and copied into *folder*, if 
+    specified by the user.  If no destination folder is specified, files 
+    will be saved in the current working directory.  If *compressed* is 
+    **False**, decompressed files will be copied into *folder*."""
 
-    Downloaded files will be stored in local PDB folder, if one is set using 
-    :meth:`.pathPDBFolder`, and copied into *folder*, if specified by the user.
-    If no destination folder is specified, files will be saved in the current 
-    working directory.  If *compressed* is **False**, decompressed files will 
-    be copied into *folder*."""
-
-    identifiers = checkIdentifiers(*pdb)
+    if kwargs.get('check', True):
+        identifiers = checkIdentifiers(*pdb)
+    else:
+        identifiers = list(pdb)
 
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
 
-    local_folder, is_divided = getPDBLocalFolder()
-
+    extension = '.pdb'
+    local_folder = pathPDBFolder()
     if local_folder:
+        local_folder, is_divided = local_folder
         if is_divided:
-            getPath = lambda pdbid: join(makePath(join(local_folder, 
-                                    pdbid[1:3])), 'pdb' + pdbid + '.pdb.gz')
+            getPath = lambda pdb: join(makePath(join(local_folder, pdb[1:3])), 
+                                       'pdb' + pdb + '.pdb.gz')
         else:
-            getPath = lambda pdbid: join(local_folder, pdbid + '.pdb.gz')
+            getPath = lambda pdb: join(local_folder, pdb + '.pdb.gz')
         if output_folder is None:
-            second = lambda pdbid: getPath(pdbid)
+            second = lambda filename, pdb: filename
         else:      
             if compressed:
-                second = lambda pdbid: (copyFile(getPath(pdbid),
-                            join(output_folder, pdbid + '.pdb.gz')))
+                second = lambda filename, pdb: (copyFile(filename,
+                            join(output_folder, pdb + extension + '.gz')))
             else:
-                second = lambda pdbid: gunzip(getPath(pdbid),
-                                        join(output_folder, pdbid + '.pdb'))
+                second = lambda filename, pdb: gunzip(filename,
+                            join(output_folder, pdb + extension))
             
     else:
         if output_folder is None:
             output_folder = getcwd()
         if compressed:
-            getPath = lambda pdbid: join(output_folder, pdbid + '.pdb.gz')
-            second = lambda filename, outname: None
+            getPath = lambda pdb: join(output_folder, pdb + extension + '.gz')
+            second = lambda filename, pdb: filename
         else:
-            getPath = lambda pdbid: join(output_folder, pdbid + '.pdb')
-            second = lambda pdbid: gunzip(getPath(pdbid), getPath(pdbid))
+            getPath = lambda pdb: join(output_folder, pdb + extension)
+            second = lambda filename, pdb: gunzip(getPath(pdb), getPath(pdb))
         
     
     getURL = WWPDB_HTTP_URL[wwPDBServer() or 'us']
@@ -369,34 +345,32 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     success = 0
     failure = 0
     filenames = []
-    for pdbid in identifiers:
-        if pdbid is None:
+    for pdb in identifiers:
+        if pdb is None:
             filenames.append(None)
-        handle = openURL(getURL(pdbid))
         try:
-            handle = openURL(getURL(pdbid))
-        except Exception as error:
-            LOGGER.warn('{0:s} download failed.'.format(pdbid))
+            handle = openURL(getURL(pdb))
+        except Exception as err:
+            LOGGER.warn('{0:s} download failed ({0:s}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
         else:
             data = handle.read() 
             if len(data):
-                filename = getPath(pdbid)
+                filename = getPath(pdb)
     
                 with open(filename, 'w+b') as pdbfile:
                     write = pdbfile.write
                     [write(block) for block in data]
 
-                filename = second(pdbid)
-                filename = relpath(filename)
+                filename = relpath(second(filename, pdb))
                 LOGGER.debug('{0:s} downloaded ({1:s})'
-                             .format(pdbid, filename))
+                             .format(pdb, filename))
                 success += 1
                 filenames.append(filename)
             else:
                 LOGGER.warn('{0:s} download failed, reason unknown.'
-                            .format(pdbid))
+                            .format(pdb))
                 failure += 1
                 filenames.append(None)
 
@@ -404,11 +378,25 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         return filenames[0]    
     else:
         if kwargs.get('report', True):
-            LOGGER.info('PDB download via HTTP completed ({0:d} downloaded, '
-                        '{1:d} failed).'.format(success, failure))
+            LOGGER.debug('PDB download via HTTP completed ({0:d} downloaded, '
+                         '{1:d} failed).'.format(success, failure))
         return filenames
 
 if __name__ == '__main__':
     
-    fetchPDBviaFTP('1mkp', '1zz2', compressed=True, folder='.')
-    fetchPDBviaHTTP('1mkp', '1zz2', compressed=True, folder='.')
+    pdbids = ['1mkp', '1zz2', 'nano']
+    
+    for gzip in [False, True]:
+        fetchPDBviaFTP(*pdbids, compressed=gzip, folder='.')
+        fetchPDBviaFTP(*pdbids, compressed=gzip, folder='.', format='cif')
+        fetchPDBviaFTP(*pdbids, compressed=gzip, folder='.', format='xml')
+        fetchPDBviaFTP(*pdbids, compressed=gzip, folder='.', format='xml', 
+                       noatom=1)
+        fetchPDBviaHTTP(*pdbids, compressed=gzip, folder='.')
+    from glob import glob
+    from os import remove
+    for pdb in pdbids:
+        fns = glob(pdb + '.*')
+        print pdb, '>', ', '.join(fns)
+        for fn in fns:
+            remove(fn)

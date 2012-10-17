@@ -32,7 +32,7 @@ from prody.atomic import AtomGroup
 from prody.utilities import gunzip, which, PLATFORM
 
 from .pdbfile import parsePDB
-from .wwpdbftp import fetchPDB
+from .localpdb import fetchPDB
 
 __all__ = ['execSTRIDE', 'parseSTRIDE', 'performSTRIDE']
 

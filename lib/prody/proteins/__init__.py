@@ -20,25 +20,18 @@
 structural data files, execute structural analysis programs, and to access 
 and search structural databases, e.g. `ProteinDataBank <http://wwpdb.org>`_.
 
-Retrieve PDB files
-==================
+PDB resources 
+=============
 
-Following functions provide access to wwPDB FTP servers:
+  * :func:`.fetchPDB` - retrieve PDB files 
+  * :func:`.fetchPDBviaFTP` - download PDB/PDBML/mmCIF files
+  * :func:`.fetchPDBviaHTTP` - download PDB files
 
-  * :func:`.fetchPDB` - retrieve PDB/PDBML/mmCIF files from wwPDB
-  * :func:`.setWWPDBFTPServer` - set a wwPDB FTP server for downloads 
-  * :func:`.getWWPDBFTPServer` - get preset wwPDB FTP server
+You can use following functions to manage PDB file resources:
 
-
-Local PDB folder/mirror 
-=======================
-
-You can use following functions to manage local PDB file resources:
-
-  * :func:`.setPDBLocalFolder` - set a local folder for storing PDB files
-  * :func:`.setPDBMirrorPath` - set a local PDB mirror path
-  * :func:`.getPDBLocalFolder` - get preset local PDB folder
-  * :func:`.getPDBMirrorPath` - get preset local PDB mirror path
+  * :func:`.pathPDBFolder` - local folder for storing PDB files
+  * :func:`.pathPDBMirror` - local PDB mirror path
+  * :func:`.wwPDBServer` - set wwPDB FTP/HTTP server for downloads 
   
 Following functions can be used to handle local PDB files:
 
@@ -161,24 +154,19 @@ and/or parse results:
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import prody
-LOGGER = prody.LOGGER
-SETTINGS = prody.SETTINGS
-
-
 __all__ = []
 
 import compare
 from compare import *
 __all__.extend(compare.__all__)
 
-import wwpdbftp
-from wwpdbftp import *
-__all__.extend(wwpdbftp.__all__)
-
 import localpdb
 from localpdb import *
 __all__.extend(localpdb.__all__)
+
+import wwpdb
+from wwpdb import *
+__all__.extend(wwpdb.__all__)
 
 import pdbclusters
 from pdbclusters import *
