@@ -6,6 +6,27 @@
 Changes
 *******************************************************************************
 
+Release 1.3.1 (in development)
+===============================================================================
+
+**New Features**:
+
+  * Added :func:`fetchPDBviaHTTP` and :func:`fetchPDBviaFTP` functions. 
+
+  * Added :func:`.copyFile` function to :mod:`.utilities`.
+
+**Improvements**:
+
+  * Improved :func:`.gunzip` function to handle :file:`.gz` extensions and
+    string buffers.
+
+**Bugfix**:
+
+  * Fixed a bug in :class:`.HierView` that would cause wrong assignment of 
+    residue/chain indices to atoms when residue or chain atoms are separated 
+    by atoms of other entities.  This would also caused problems when making 
+    keyword selections, such as :term:`protein`.
+
 Release 1.3 (Sep 30, 2012)
 ===============================================================================
 
