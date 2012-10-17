@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
+from os.path import isfile, abspath, split, splitext
 
 import numpy as np
 
@@ -51,7 +51,10 @@ class TrajFile(TrajBase):
         if not mode in ('r', 'w', 'a', 'r+'): 
             ValueError("mode string must begin with one of 'r', 'w', 'r+', or "
                        "'a'")
-        if mode == 'r' and not os.path.isfile(filename):
+        name = splitext(split(filename)[1])[0]
+        TrajBase.__init__(self, name)
+        self._file = None
+        if mode == 'r' and not isfile(filename):
             raise IOError("[Errno 2] No such file or directory: '{0:s}'"
                           .format(filename))
         self._filename = filename
@@ -62,8 +65,6 @@ class TrajFile(TrajBase):
         else:
             self._file = open(filename, mode+'b')
         self._mode = mode
-        name = os.path.splitext(os.path.split(filename)[1])[0]
-        TrajBase.__init__(self, name)
         self._bytes_per_frame = None
         self._first_byte = None
         self._dtype = np.float32
@@ -75,7 +76,8 @@ class TrajFile(TrajBase):
         
     def __del__(self):
         
-        self._file.close()
+        if self._file is not None:
+            self._file.close()
     
     def __repr__(self):
 
@@ -107,7 +109,7 @@ class TrajFile(TrajBase):
         pass ``absolute=True`` argument."""
         
         if absolute:
-            return os.path.abspath(self._filename)    
+            return abspath(self._filename)    
         return relpath(self._filename)
     
     def getFrame(self, index):
