@@ -67,7 +67,7 @@ def getRevisionNumber():
     from subprocess import PIPE, Popen
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
-version = '1.3'
+version = '1.3.1-dev'
 # The full version, including alpha/beta/rc tags.
 release =  version
 

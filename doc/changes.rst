@@ -11,7 +11,7 @@ Release 1.3.1 (in development)
 
 **New Features**:
 
-  * Added :func:`fetchPDBviaHTTP` and :func:`fetchPDBviaFTP` functions. 
+  * Added :func:`.fetchPDBviaHTTP` and :func:`.fetchPDBviaFTP` functions. 
 
   * Added :func:`.copyFile` function to :mod:`.utilities`.
 
