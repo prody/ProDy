@@ -79,52 +79,72 @@ def openFile(filename, *args, **kwargs):
     
     
 def gunzip(filename, outname=None):
-    """Decompress *filename* and save as *outname*.  When ``outname=None``, 
-    *filename* is used as the output name.  Returns output filename upon 
-    successful completion."""
+    """Return output name that contains decompressed contents of *filename*. 
+    When no *outname* is given, *filename* is used as the output name as it 
+    is or after :file:`.gz` extension is removed.  *filename* may also be a 
+    string buffer, in which case decompressed string buffer or *outname* that
+    contains buffer will be returned."""
 
-    if not isinstance(filename, str):
-        raise TypeError('filename must be a string')
-    if not isfile(filename):
-        raise ValueError('{0:s} does not exist'.format(filename))
-    if outname is None:
-        if filename.endswith('.gz'):
-            outname = filename[:-3]
-        elif filename.endswith('.tgz'):
-            outname = filename[:-4] + '.tar'
-        elif filename.endswith('.gzip'):
-            outname = filename[:-5]
+    if len(filename) < 1000:
+        try:
+            afile = isfile(filename)
+        except TypeError:
+            afile = False
+    else:
+        afile = False
+        
+    if afile:
+        if outname is None:
+            if filename.endswith('.gz'):
+                outname = filename[:-3]
+            elif filename.endswith('.tgz'):
+                outname = filename[:-4] + '.tar'
+            elif filename.endswith('.gzip'):
+                outname = filename[:-5]
+            else:
+                outname = filename
+                
+        inp = gzip.open(filename, 'rb')
+        data = inp.read()
+        inp.close()
+        out = open(outname, 'w')
+        out.write(data)
+        out.close()
+        return outname
+    else:
+        from StringIO import StringIO
+        buff = gzip.GzipFile(fileobj=StringIO(filename))
+        if outname is None:
+            try:
+                return buff.read()
+            except IOError:
+                raise ValueError('filename is not a valid path or a compressed'
+                                 ' string buffer')
         else:
-            outname = filename
-            
-    inp = gzip.open(filename, 'rb')
-    data = inp.read()
-    inp.close()
-    out = open(outname, 'w')
-    out.write(data)
-    out.close()
-    return outname
-
+            with open(outname, 'w') as out: 
+                out.write(buff.read())
+            return outname
+        
 
 def isExecutable(path):
     """Return true if *path* is an executable."""
     
-    return isinstance(path, str) and exists(path) and \
-        os.access(path, os.X_OK)
+    return (isinstance(path, str) and exists(path) and
+        os.access(path, os.X_OK))
 
 
 def isReadable(path):
     """Return true if *path* is readable by the user."""
     
-    return isinstance(path, str) and exists(path) and \
-        os.access(path, os.R_OK)
+    return (isinstance(path, str) and exists(path) and
+        os.access(path, os.R_OK))
 
 
 def isWritable(path):
     """Return true if *path* is writable by the user."""
     
-    return isinstance(path, str) and exists(path) and \
-        os.access(path, os.W_OK)
+    return (isinstance(path, str) and exists(path) and
+        os.access(path, os.W_OK))
 
 
 def relpath(path):
