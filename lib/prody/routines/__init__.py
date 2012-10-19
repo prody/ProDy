@@ -52,6 +52,9 @@ path_routines = imp.find_module('routines', [path_prody])[1]
 PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
                   'catdcd', 'contacts', 'fetch', 'select', ] 
 
+if sys.version_info[:2] > (2,6):
+    PRODY_COMMANDS.append('text')
+
 __all__ = ['prody_main']
 
 prody_parser = argparse.ArgumentParser(
