@@ -53,7 +53,7 @@ PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol',
                   'catdcd', 'contacts', 'fetch', 'select', ] 
 
 if sys.version_info[:2] > (2,6):
-    PRODY_COMMANDS.append('text')
+    PRODY_COMMANDS.append('test')
 
 __all__ = ['prody_main']
 
