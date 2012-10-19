@@ -39,7 +39,7 @@ from .fields import ATOMIC_FIELDS
 from .selection import Selection
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'getReservedWords', 'sortAtoms']
+           'isReserved', 'listReservedWords', 'getReservedWords', 'sortAtoms']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -258,12 +258,22 @@ RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
 
 def isReserved(word):
     """Return **True** if *word* is reserved for internal data labeling or atom
-    selections.  See :func:`getReservedWords` for a list of reserved words."""
+    selections.  See :func:`listReservedWords` for a list of reserved words."""
     
     return word in RESERVED
         
         
 def getReservedWords():
+    """Deprecated for removal in v1.4, use :func:`listReservedWords` instead.
+    """
+    
+    from prody import deprecate
+    deprecate('getReservedWords', 'listReservedWords')
+    
+    return listReservedWords()
+        
+        
+def listReservedWords():
     """Return list of words that are reserved for atom selections and internal 
     variables. These words are: """
 
@@ -271,8 +281,8 @@ def getReservedWords():
     words.sort()
     return words
 
-_ = getReservedWords.__doc__ + '*' + '*, *'.join(getReservedWords()) + '*.'
-getReservedWords.__doc__ = '\n'.join(wrap(_, 79))
+_ = listReservedWords.__doc__ + '*' + '*, *'.join(listReservedWords()) + '*.'
+listReservedWords.__doc__ = '\n'.join(wrap(_, 79))
 
 
 def sortAtoms(atoms, label, reverse=False):

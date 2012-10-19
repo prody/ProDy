@@ -144,7 +144,7 @@ functions based on their action and/or return value:
     necessarily return anything and especially those that take timely actions,
     should start with ``calc``, e.g. :meth:`.PCA.calcModes`
   * :meth:`getSomething`: methods, and sometimes functions, that return a copy
-    of data should start with ``get``, such as :func:`.getReservedWords`
+    of data should start with ``get``, such as :func:`.listReservedWords`
   * :meth:`setSomething`: methods, and sometimes functions, that alter internal
     data should start with ``set``
 

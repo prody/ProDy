@@ -939,7 +939,7 @@ class AtomGroup(Atomic):
             
             * start with a letter
             * contain only alphanumeric characters and underscore
-            * not be a reserved word (see :func:`.getReservedWords`)
+            * not be a reserved word (see :func:`.listReservedWords`)
 
         *data* must be a :func:`list` or a :class:`~numpy.ndarray` and its 
         length must be equal to the number of atoms.  If the dimension of the 

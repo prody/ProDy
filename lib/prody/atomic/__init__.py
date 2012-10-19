@@ -145,7 +145,7 @@ Following function can be used check whether a word is reserved because
 it is used internally by :mod:`.prody.atomic` classes:
 
   * :func:`.isReserved`
-  * :func:`.getReservedWords`"""
+  * :func:`.listReservedWords`"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

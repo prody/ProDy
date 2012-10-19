@@ -440,7 +440,7 @@ Note that selection string for *sel2* lists indices of atoms.  This
 substitution is performed automatically to ensure reproducibility of the
 selection without the keyword *center*.
 
-Keywords cannot be reserved words (see :func:`.getReservedWords`) and must be 
+Keywords cannot be reserved words (see :func:`.listReservedWords`) and must be 
 all alphanumeric characters.
 
 Classes and Functions
