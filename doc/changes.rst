@@ -30,6 +30,9 @@ Release 1.3.1 (in development)
 
   * :func:`.getPDBMirrorPath` and :func:`.setPDBMirrorPath` are deprecated
     for removal in v1.4, use :func:`.pathPDBMirror` instead.
+    
+  * :func:`.getPDBCluster` is deprecated for removal in v1.4, use 
+    :func:`.listPDBCluster` instead.
 
 **Bugfix**:
 
