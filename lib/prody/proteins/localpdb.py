@@ -250,7 +250,9 @@ def fetchPDB(*pdb, **kwargs):
     not_found = []
     exists = 0
     for i, pdb in enumerate(identifiers):
-        if pdb in filedict:
+        if pdb is None:
+            filenames.append(None)
+        elif pdb in filedict:
             filenames.append(filedict[pdb])
             exists += 1
         else:
@@ -278,6 +280,7 @@ def fetchPDB(*pdb, **kwargs):
         return filenames[0] if len(identifiers) == 1 else filenames
 
     local_folder = pathPDBFolder()
+    copy = kwargs.get('copy')
     if local_folder:
         local_folder, is_divided = local_folder
         temp, not_found = not_found, []
