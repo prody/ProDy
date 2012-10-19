@@ -66,8 +66,8 @@ from numpy import array, ones, zeros
 from prody import SETTINGS
 from prody.utilities import joinLinks, joinTerms, tabulate, wrapText
 
-__all__ = ['flagDefinition', 'getNonstdProperties', 'addNonstdAminoacid', 
-           'delNonstdAminoacid',]
+__all__ = ['flagDefinition', 'listNonstdAAProps', 'getNonstdProperties', 
+           'addNonstdAminoacid', 'delNonstdAminoacid',]
 
 
 TIMESTAMP_KEY = 'flags_timestamp'
@@ -346,7 +346,7 @@ Protein
 
       You can modify the list of non-standard amino acids using 
       :func:`addNonstdAminoacid`, :func:`delNonstdAminoacid`, and 
-      :func:`getNonstdProperties`.
+      :func:`listNonstdAAProps`.
 
 
    calpha
@@ -676,7 +676,7 @@ Following functions can be used to customize flag definitions:
     * :func:`.flagDefinition`
     * :func:`.addNonstdAminoacid`
     * :func:`.delNonstdAminoacid`
-    * :func:`.getNonstdProperties`
+    * :func:`.listNonstdAAProps`
 
 """
 
@@ -1101,9 +1101,19 @@ def delNonstdAminoacid(resname):
 
 
 def getNonstdProperties(resname):
+    """Deprecated for removal in v1.4, use :func:`listNonstdAAProps` instead.
+    """
+    
+    from prody import deprecate
+    deprecate('getNonstdProperties', 'listNonstdAAProps')
+    
+    return listNonstdAAProps(resname) 
+
+
+def listNonstdAAProps(resname):
     """Return properties of non-standard amino acid *resname*.
     
-    >>> getNonstdProperties('PTR')
+    >>> listNonstdAAProps('PTR')
     ['acidic', 'aromatic', 'cyclic', 'large', 'polar', 'surface']"""
     
     try:

@@ -37,6 +37,9 @@ Release 1.3.1 (in development)
   * :func:`.getReservedWords` is deprecated for removal in v1.4, use 
     :func:`.listReservedWords` instead.
 
+  * :func:`.getNonstdProperties` is deprecated for removal in v1.4, use 
+    :func:`.listNonstdAAProps` instead.
+
 **Bugfix**:
 
   * Fixed a bug in :class:`.HierView` that would cause wrong assignment of 
