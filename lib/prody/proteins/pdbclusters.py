@@ -23,6 +23,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
+from numpy import array, abs
+
 from prody import LOGGER, SETTINGS, getPackagePath
 from prody.utilities import openFile
 
@@ -32,9 +34,9 @@ __all__ = ['fetchPDBClusters', 'loadPDBClusters', 'listPDBCluster',
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
                 90: None, 95: None, 100: None}
 PDB_CLUSTERS_UPDATE_WARNING = True
-PDB_CLUSTERS_SQIDS = list(PDB_CLUSTERS)
+PDB_CLUSTERS_SQIDS = array(list(PDB_CLUSTERS))
 PDB_CLUSTERS_SQIDS.sort()
-PDB_CLUSTERS_SQIDS = ', '.join([str(key) for key in PDB_CLUSTERS_SQIDS])
+PDB_CLUSTERS_SQID_STR = ', '.join([str(key) for key in PDB_CLUSTERS_SQIDS])
 
 def loadPDBClusters(sqid=None):
     """Load previously fetched PDB sequence clusters from disk to memory."""
@@ -48,7 +50,7 @@ def loadPDBClusters(sqid=None):
         if sqid not in PDB_CLUSTERS:
             raise ValueError('PDB cluster data is not available for sequence '
                              'identity {0:d}%, try one of {1:s}'
-                             .format(sqid, PDB_CLUSTERS_SQIDS))
+                             .format(sqid, PDB_CLUSTERS_SQID_STR))
         LOGGER.info('Loading PDB sequence clusters for sequence identity '
                     '{0:d}.'.format(sqid))
         sqid_list = [sqid]
@@ -95,12 +97,14 @@ def listPDBCluster(pdb, ch, sqid=95):
         'pdb must be 4 char long string'
     assert isinstance(ch, str) and len(ch) == 1, \
         'ch must be a one char long string'
-    assert isinstance(sqid, int), 'sqid must be an integer'
+    try:
+        sqid = int(sqid)
+    except TypeError:
+        raise TypeError('sqid must be an integer')
+    if not (30 <= sqid <= 100):
+        raise ValueError('sqid must be between 30 and 100')
+    sqid = PDB_CLUSTERS_SQIDS[abs(PDB_CLUSTERS_SQIDS-sqid).argmin()]
     PDB_CLUSTERS_PATH = os.path.join(getPackagePath(), 'pdbclusters')
-    if sqid not in PDB_CLUSTERS:
-        raise ValueError('PDB cluster data is not available for sequence '
-                         'identity {0:d}%, try one of {1:s}'
-                         .format(sqid, PDB_CLUSTERS_SQIDS))
     clusters = PDB_CLUSTERS[sqid]
     if clusters is None: 
         loadPDBClusters(sqid)
@@ -126,7 +130,7 @@ def fetchPDBClusters(sqid=None):
     
     if sqid is not None:
         if sqid not in PDB_CLUSTERS:
-            raise ValueError('sqid must be one of ' + PDB_CLUSTERS_SQIDS)
+            raise ValueError('sqid must be one of ' + PDB_CLUSTERS_SQID_STR)
         keys = [sqid]
     else:
         keys = list(PDB_CLUSTERS)
