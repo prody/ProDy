@@ -201,3 +201,7 @@ from pdbfile import *
 __all__.extend(pdbfile.__all__)
 
 from pdbfile import PDBParseError
+
+from . import pfam
+from .pfam import *
+__all__.extend(pfam.__all__)

@@ -23,19 +23,22 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from unittest import TestCase
 
 from prody.tests.test_datafiles import *
-from prody.pfam import iterSequences
-from numpy.testing import assert_equal
+
+from prody import iterSequences
 
 class TestIterSequences(TestCase):
     
     def testIterator(self):
-        assert_equal(list(iterSequences(pathDatafile('test_file.slx'))),
-                    list(iterSequences(pathDatafile('test_file.sth'))))
+        self.assertListEqual(
+            list(iterSequences(pathDatafile('test_file.slx'))),
+            list(iterSequences(pathDatafile('test_file.sth'))))
         
-        assert_equal(list(iterSequences(pathDatafile('test_file.fasta'))),
-                    list(iterSequences(pathDatafile('test_file.sth'))))
+        self.assertListEqual(
+            list(iterSequences(pathDatafile('test_file.fasta'))),
+            list(iterSequences(pathDatafile('test_file.sth'))))
         
-        assert_equal(list(iterSequences(pathDatafile('test_file.slx'))),
-                    list(iterSequences(pathDatafile('test_file.fasta'))))
+        self.assertListEqual(
+            list(iterSequences(pathDatafile('test_file.slx'))),
+            list(iterSequences(pathDatafile('test_file.fasta'))))
 
 
