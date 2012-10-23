@@ -367,7 +367,7 @@ rst_epilog = u"""
    ProDy-News Google Group: http://groups.google.com/group/prody-news
     
 .. |suggestions| replace:: Suggestions, feature requests, or
-   problems? Submit them to the GitHub issue tracker: 
-   https://github.com/prody/ProDy/issues
+   problems? Submit them to the Bitbucket issue tracker: 
+   https://bitbucket.org/abakan/prody/issues
 
 """.format(getRevisionNumber())

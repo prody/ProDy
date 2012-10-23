@@ -63,7 +63,7 @@ CHANGES
 SOURCE
 ------
 
-* http://github.com/prody/ProDy
+* https://bitbucket.org/abakan/prody/
 
 EMAILING LIST
 -------------
@@ -73,5 +73,5 @@ EMAILING LIST
 REPORT ISSUES
 -------------
 
-* https://github.com/prody/ProDy/issues
+* https://bitbucket.org/abakan/prody/issues
   
