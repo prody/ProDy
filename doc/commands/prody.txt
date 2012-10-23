@@ -1,5 +1,6 @@
 usage: prody [-h] [-c] [-v]
-             {biomol,eda,contacts,anm,align,catdcd,blast,pca,fetch,select,gnm}
+             
+             {biomol,eda,contacts,anm,align,catdcd,blast,test,pca,fetch,select,gnm}
              ...
 
 ProDy: A Python Package for Protein Dynamics Analysis
@@ -10,7 +11,7 @@ optional arguments:
   -v, --version         print ProDy version and exit
 
 subcommands:
-  {biomol,eda,contacts,anm,align,catdcd,blast,pca,fetch,select,gnm}
+  {biomol,eda,contacts,anm,align,catdcd,blast,test,pca,fetch,select,gnm}
     anm                 perform anisotropic network model calculations
     gnm                 perform Gaussian network model calculations
     pca                 perform principal component analysis calculations
@@ -22,5 +23,6 @@ subcommands:
     contacts            identify contacts between a target and ligand(s)
     fetch               fetch a PDB file
     select              select atoms and write a PDB file
+    test                run ProDy unit tests
 
 See 'prody <command> -h' for more information on a specific command.
