@@ -9,15 +9,14 @@ Testing ProDy
 Running Unittests
 ===============================================================================
 
-The easiest way to rung ProDy unit tests is using :ref:`prody-test` command::
+The easiest way to run ProDy unittests is using :ref:`prody-test` command::
 
   $ prody test
   $ prody test atomic.select -l full
   
 See :ref:`prody-test` documentation for details.
 
-Alternatively, you can run use :func:`prody.test` function in a Python 
-session::
+Alternatively, you can use :func:`prody.test` function in a Python session::
 
   prody.test()
   prody.test('atomic.select', label='full')
