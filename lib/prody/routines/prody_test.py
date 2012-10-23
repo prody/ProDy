@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""Extract a selection of atoms from a PDB file."""
+"""Run ProDy unit tests from command line."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -24,35 +24,58 @@ from .actions import *
 
 __all__ = ['prody_test']
 
-def prody_test(label='fast'):
-    """Write selected atoms from a PDB file in PDB format."""
+def prody_test(*mods, **kwargs):
+    """Run ProDy unittests."""
 
     import prody
-    prody.test(label=label)
+    prody.test(*mods,
+               label=kwargs.get('label', 'fast'), 
+               verbose=kwargs.get('verbose', 1))
 
 
 def addCommand(commands):
 
     subparser = commands.add_parser('test', 
-    help='run ProDy unittests')
+    help='run ProDy unit tests')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
         action=Quiet, nargs=0)
+        
+    subparser.add_argument('--examples', action=UsageExample, nargs=0,
+        help='show usage examples and exit')
 
     subparser.set_defaults(usage_example=
-    """This command selects specified atoms and writes them in a PDB file.
-
-Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
+    """ProDy unittests can be run as follows:
+    
+    $ prody test
+      
+To run all tests, use -l/--label argument as follows:
         
-  $ prody select backbone 1p38 1r39""",
-    test_examples=[0])
+    $ prody test -l full 
+
+To increase verbosity, use -v/--verbose argument as follows:
+        
+    $ prody test -l fast -v 2
+    
+To run tests for a specific module, pass module name:
+    
+    $ prody test proteins
+    $ prody test atomic.select""", test_examples=[])
 
 
     group = subparser.add_argument_group('output options')
     
-    group.add_argument('-l', '--label', dest='label', metavar='STR', 
-        type=str, help='output PDB filename (default: pdb_selected.pdb)',
+    group.add_argument('-l', '--label', dest='label', metavar='STR', type=str,
+        help='label used when nose is available, fast (default) or full',
         default='fast')
+
+    group.add_argument('-v', '--verbose', dest='verbose', metavar='INT', 
+        type=int, help='verbosity level, default is 1',
+        default=1)
         
-    subparser.set_defaults(func=lambda ns: prody_test(label=ns.label))
+
+    group.add_argument('mod', nargs='*',
+        help='ProDy module names')
+        
+    subparser.set_defaults(func=lambda ns: prody_test(*ns.mod, **ns.__dict__))
     subparser.set_defaults(subparser=subparser)

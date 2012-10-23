@@ -278,7 +278,7 @@ if SETTINGS['check_updates']:
         checkUpdates()
 
 
-def test(**kwargs):
+def test(*mods, **kwargs):
     """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests` 
     documentation for more details."""
     
@@ -290,6 +290,6 @@ def test(**kwargs):
                            'please check your installation.')
             raise type(err)(str(err))
         else:
-            prody.tests.test(**kwargs)
+            prody.tests.runTests(*mods, **kwargs)
     else:
         LOGGER.warning('ProDy tests are available for Python 2.7') 

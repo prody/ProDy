@@ -21,22 +21,14 @@
 
   from prody import *
   prody.test()
-  
-or::
-
-  import prody.tests
-  prody.tests.test()
-
 
 Testing will use :mod:`nose` if it is available, otherwise it will use 
-:mod:`unittest`.
-
-"""
+:mod:`unittest`."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from sys import stderr
+
 from glob import glob
 from os.path import abspath, split, join, relpath, splitext
 from os.path import sep as dirsep
@@ -48,26 +40,58 @@ from prody import LOGGER
 TESTDIR = abspath(split(inspect.getfile(inspect.currentframe()))[0])
 TEMPDIR = tempfile.gettempdir()
 
-try:
-    import nose
+MODULES = dict()
+PREFIX = 'prody.tests.'
+
+for pyfile in glob(join(TESTDIR, '*', '*.py')):
+    pyfile = splitext(relpath(pyfile, TESTDIR))[0]
     
-except ImportError:
+    items = pyfile.split(dirsep)
+    if items[-1] == '__init__': 
+        items = items[:-1]
 
-    LOGGER.warning('Failed to import nose, using unittest for testing.')
-    LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
-    import unittest
-    def test(verbosity=2, descriptions=True, stream=stderr):
-        testrunner = unittest.TextTestRunner(stream, descriptions, 
-                                             verbosity)
-        for pyfile in glob(join(TESTDIR, '*', '*.py')):
-            pyfile = splitext(relpath(pyfile, TESTDIR))[0]
-            module = '.'.join(pyfile.split(dirsep))
-            print module
+    if items[-1].startswith('test_'):
+        MODULES['.'.join([i[5:] for i in items])] = PREFIX + '.'.join(items)
+    
+
+def runTests(*mods, **kwargs):
+
+    if mods:
+        try:
+            modules = [MODULES[module] for module in mods]
+        except KeyError:
+            raise ValueError(arg + ' is not a valid test module name')
+    else: 
+        modules = MODULES.values()
+
+    try:
+        import nose
+        
+    except ImportError:
+
+        LOGGER.warning('Failed to import nose, using unittest for testing.')
+        LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
+        import unittest
+        from sys import stderr
+        
+        verbosity = kwargs.get('verbose', 2)
+        descriptions = kwargs.get('descriptions', True)
+        stream = kwargs.get('stream', stderr)
+        
+        testrunner = unittest.TextTestRunner(stream, descriptions, verbosity)
+            
+        for module in modules:
             testrunner.run(unittest.defaultTestLoader.
-                           loadTestsFromName('prody.tests.' + module))
-else:
-    from numpy.testing import Tester
-    test = Tester().test
+                           loadTestsFromName(module))
+    else:
+        from numpy.testing import Tester
+        verbose = kwargs.get('verbose', 1)
+        label = kwargs.get('label', 'fast')
 
+        if mods:
+            for module in modules:
+                Tester(module).test(label=label, verbose=verbose)
+        else:
+            Tester('prody.tests').test(label=label, verbose=verbose)
 if __name__ == '__main__':
-    test()
+    runTests()
