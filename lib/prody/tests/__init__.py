@@ -57,10 +57,12 @@ for pyfile in glob(join(TESTDIR, '*', '*.py')):
 def runTests(*mods, **kwargs):
 
     if mods:
-        try:
-            modules = [MODULES[module] for module in mods]
-        except KeyError:
-            raise ValueError(arg + ' is not a valid test module name')
+        modules = []
+        for mod in mods:
+            try:
+                modules.append(MODULES[mod])
+            except KeyError:
+                raise ValueError(mod + ' is not a valid test module name')
     else: 
         modules = MODULES.values()
 
