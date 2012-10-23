@@ -30,15 +30,15 @@ class TestIterSequences(TestCase):
     
     def testIterator(self):
         self.assertListEqual(
-            list(iterSequences(pathDatafile('test_file.slx'))),
+            list(iterSequences(pathDatafile('msa_Cys_knot.slx'))),
+            list(iterSequences(pathDatafile('msa_Cys_knot.sth'))))
+        
+        self.assertListEqual(
+            list(iterSequences(pathDatafile('msa_Cys_knot.fasta'))),
             list(iterSequences(pathDatafile('test_file.sth'))))
         
         self.assertListEqual(
-            list(iterSequences(pathDatafile('test_file.fasta'))),
-            list(iterSequences(pathDatafile('test_file.sth'))))
-        
-        self.assertListEqual(
-            list(iterSequences(pathDatafile('test_file.slx'))),
-            list(iterSequences(pathDatafile('test_file.fasta'))))
+            list(iterSequences(pathDatafile('msa_Cys_knot.slx'))),
+            list(iterSequences(pathDatafile('msa_Cys_knot.fasta'))))
 
 

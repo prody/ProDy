@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines a function for fetching a Multiple Sequence Alignment
-    (MSA) from PFAM"""
+(MSA) from Pfam"""
 
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
@@ -28,52 +28,47 @@ DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics'])
 FORMAT_OPTIONS = ({'format': set(['selex', 'stockholm', 'fasta']),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
-                  'gaps': set(['mixed', 'dots', 'dashes'])})
+                  'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
 import re
-import os.path
+from os.path import join, isfile
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile
 
 
-def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, **kwargs):
-    """Returns a file path name  where the PFAM MSA has been downloaded to.
+def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, 
+                 **kwargs):
+    """Return a path to the downloaded Pfam MSA file.
         
-    :arg acc: PFAM ID or Accession Code
+    :arg acc: Pfam ID or Accession Code
     :type acc: str
     
-    :arg alignment: type of alignment that are available for download at PFAM, 
-                    default is 'full' 
-    :type alignment: str
+    :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
+        ``'ncbi'``, or ``'metagenomics'`` 
     
-    :arg folder: folder to download the MSA file to, default is '.'
-    :type folder: str
+    :arg folder: output folder, default is ``'.'``
     
-    :arg compressed: gzip the downloaded MSA file or not, default is 'False'
+    :arg compressed: gzip the downloaded MSA file, default is **False**
     
-   *Alignment Parameters*
+    *Alignment Options*
     
-    :arg format: PFAM supported MSA file formats, default is 'stockholm'
-                 Other supported formats are 'selex' and 'fasta'.
-    :type format: str
+    :arg format: a Pfam supported MSA file format, one of ``'stockholm'`` 
+        (default), ``'selex'``, or ``'fasta'``
     
-    :arg order: PFAM supported ordering of sequences, default is 'tree'
-    :type order: str
+    :arg order: ordering of sequences, ``'tree'`` (default) or 
+        ``'alphabetical'`` 
     
-    :arg inserts: PFAM supported case for inserts, default is 'lower'
-    :type inserts: str
+    :arg inserts: letter case for inserts, ``'lower'`` (default) or ``'upper'``
     
-    :arg gaps: PFAM supported gap fomats, default is 'mixed'
-    :type gaps: str
+    :arg gaps: gap character, one of ``'mixed'`` (default), ``'dots'``, 
+        ``'dashes'`` or **None** for unaligned
     
-    *URL timeout*
-    
-    :arg timeout: timeout for url, default is 5
-    :type timeout: int
     
     *Out parameter*
     
-    :arg outname: out file name, default is input 'acc'
-    :type outname: str"""   
+    :arg timeout: timeout for blocking connection attempt in seconds, default 
+        is 5
+
+    :arg outname: out filename, default is input ``'acc_alignment.format'``"""   
    
     getAccUrl = 'http://pfam.sanger.ac.uk/family/acc?id=' + acc
     handle = openURL(getAccUrl)
@@ -82,15 +77,15 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, **kwargs):
     url_flag = False
     
     if not re.search('(?<=PF)[0-9]{5}$', acc):
-        raise ValueError('No such family: check PFAM ID or Accession Code')
+        raise ValueError('No such family: check Pfam ID or Accession Code')
         
     
     if alignment not in DOWNLOAD_FORMATS:
         raise ValueError('alignment must be one of full, seed, ncbi or'
                          ' metagenomics')
-    if(alignment == 'ncbi' or alignment == 'metagenomics'):
+    if alignment == 'ncbi' or alignment == 'metagenomics':
         url = ('http://pfam.sanger.ac.uk/family/' + acc + '/alignment/' +
-                alignment + '/gzipped')
+               alignment + '/gzipped')
         url_flag = True
         extension = '.sth'
     else:
@@ -101,36 +96,42 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, **kwargs):
             extension = '.sth'
         else:
             align_format = kwargs.get('format', 'stockholm').lower()
+            
             if align_format not in FORMAT_OPTIONS['format']:
-                raise ValueError('Alignment format must be of type selex'
+                raise ValueError('alignment format must be of type selex'
                                  ' stockholm or fasta. MSF not supported')
+            
             if align_format == 'selex':
                 align_format, extension = 'pfam', '.slx'
             elif align_format == 'fasta':
                 extension = '.fasta'
             else:
                 extension = '.sth'
-            gaps = kwargs.get('gaps', 'mixed').lower()
+            
+            gaps = str(kwargs.get('gaps', 'mixed')).lower()
             if gaps not in FORMAT_OPTIONS['gaps']:
-                raise ValueError('Gaps must be of type mixed, dots or dashes')
+                raise ValueError('gaps must be of type mixed, dots, dashes, '
+                                 'or None')
+            
             inserts = kwargs.get('inserts', 'lower').lower()
             if(inserts not in FORMAT_OPTIONS['inserts']):
                 raise ValueError('inserts must be of type lower or upper')
+            
             order = kwargs.get('order', 'tree').lower()
             if order not in FORMAT_OPTIONS['order']:
-                raise ValueError('Order must be of type tree or alphabetical')
+                raise ValueError('order must be of type tree or alphabetical')
+            
             url = ('http://pfam.sanger.ac.uk/family/' + acc + '/alignment/'
                    + alignment + '/format?format=' + align_format + 
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
         
     
-    response =  openURL(url, timeout = int(kwargs.get('timeout', 5))) 
+    response =  openURL(url, timeout=int(kwargs.get('timeout', 5))) 
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
-    filepath = os.path.join(makePath(folder), (outname + '_' + alignment 
-                            + extension))
+    filepath = join(makePath(folder), outname + '_' + alignment + extension)
     if compressed:
         filepath = filepath + '.gz'
         if url_flag:
@@ -146,12 +147,13 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, **kwargs):
             with open(filepath, 'wb') as f_out:
                 f_out.write(response.read())
                 
-    LOGGER.info('Pfam MSA for {0} is written as {1}'.format(orig_acc, filepath))
+    LOGGER.info('Pfam MSA for {0} is written as {1}.'
+                .format(orig_acc, filepath))
     
     return filepath
 
 def parseTitle(title):
-    """Parses PFAM title associated with each sequence"""
+    """Parses Pfam title associated with each sequence"""
     
     split_title = re.split('/*-*', title)
     if split_title:
@@ -161,18 +163,17 @@ def parseTitle(title):
                 start = int(start)
             else:
                 Logger.warn('starting residue number could not be parsed from'
-                            ' {0}, returning none'.format(id))
+                            ' {0}'.format(id))
                 start = None
             if end.isdigit():
                 end = int(end)
             else:
                 Logger.warn('ending residue number could not be parsed from'
-                            ' {0}, returning none'.format(id))
+                            ' {0}'.format(id))
                 end = None
         else:
-            LOGGER.warn('Missing start or end or both for'
-                        ' {0}. Appending id.'.format(id))
-            id, start, end =  split_title[0], None, None 
+            LOGGER.warn('missing start and/or end indicies {0}'.format(id))
+            id, start, end =  split_title[0], None, None
     else:
         raise ValueError('Cannot parse MSA ID. Check MSA file!')
     return (id, start, end)
@@ -180,19 +181,18 @@ def parseTitle(title):
 
 
 def iterSequences(msa):
-    """Returns a list of tuples containing sequence id, sequence,
-    start index, end index, from an MSA file or object
+    """Yield tuples containing sequence id, sequence, start index, end index, 
+    from an MSA file or object.
     
-    :arg msa: MSA filepath or Biopython MSA object
-    :type msa: str or object"""
+    :arg msa: MSA filepath or Biopython MSA object"""
 
-    if os.path.isfile(str(msa)):
+    if isfile(str(msa)):
         msa_file = openFile(msa)
         firstline = msa_file.readline()
         if firstline[0] == '>':
-            LOGGER.info('Parsing fasta format')
+            LOGGER.info('Parsing fasta file')
             id, start, end = parseTitle(firstline[1:].strip())
-            temp =[]
+            temp = []
             for line in msa_file:
                 if line[0] == '>':
                     yield (id, ''.join(temp), start, end)
@@ -201,36 +201,33 @@ def iterSequences(msa):
                 else:
                     temp.append(line.strip())
             yield (id, ''.join(temp), start, end)
-        elif firstline[0] == '#':
-            if firstline.split()[1] == 'STOCKHOLM':
-                LOGGER.info('Parsing stockholm format')
-            else:
-                LOGGER.info('Parsing selex format')
+    
+        elif firstline[0] == '#' and 'STOCKHOLM' in firstline:
+            LOGGER.info('Parsing stockholm file')
             for line in msa_file:
-                if(line[0] != '#' and line[:2] != '//'):
-                    if(len(line.split()) == 2):
-                        id, start, end = parseTitle(line.split()[0].strip())
-                        yield (id, line.split()[1].strip(), start, end)
-                    else:
-                        raise ValueError('Possible incorrect file format.'
-                                         ' Cannot parse file.')              
+                if line[0] != '#' and line[:2] != '//':
+                    items = line.split()
+                    if len(items) == 2:
+                        id, start, end = parseTitle(items[0])
+                        yield (id, items[1], start, end)
+
         else:
+            items = firstline.split()
+            if len(items) != 2:
+                raise ValueError('file format could not be recognized')
             LOGGER.info('Parsing selex format')
-            if(len(firstline.split()) == 2):
-                id, start, end = parseTitle(firstline.split()[0].strip())
-                yield (id, firstline.split()[1].strip(), start, end)
-                for line in msa_file:
-                    if(line[0] != '#'):
-                        if(len(line.split()) == 2):
-                            id, start, end = parseTitle(line.split()[0].strip())
-                            yield (id, line.split()[1].strip(), start, end)
-                        else:
-                            raise ValueError('Some lines in file are not the '
-                                             'right format. Cannot parse file')
-            else:
-                raise ValueError('Possible incorrect file format.'
-                                ' Cannot parse file.')
+            
+            id, start, end = parseTitle(items[0])
+            yield (id, items[1], start, end)
+            for line in msa_file:
+                if line[0] == '#':
+                    continue
+                items = line.split() 
+                if len(items) == 2:
+                    id, start, end = parseTitle(items[0])
+                    yield (id, items[1], start, end)
         msa_file.close()
+
     else:
         try:
             msa = iter(msa)
@@ -251,26 +248,24 @@ def iterSequences(msa):
                 yield (id, seq, start, end)
 
     
-        
-        
 if __name__ == '__main__':
 
-    #filepath = fetchPfamMSA('PF00497',alignment='seed',compressed=False,format='stockholm',gaps='dashes')
+    #filepath = fetchPfamMSA('PF00497',alignment='seed',compressed=False,
+    #                         format='stockholm',gaps='dashes')
     #print filepath
     #results = list(iterSequences(filepath))
     
-    filepath1 = fetchPfamMSA('PF00007',alignment='seed',compressed=True,timeout=5)
-    filepath2 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, format='selex')
-    filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False, format='fasta', outname='mymsa')
+    filepath1 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, 
+                             timeout=5)
+    filepath2 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, 
+                             format='selex')
+    filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False, 
+                             format='fasta', outname='mymsa')
     results_sth = list(iterSequences(filepath1))
     results_slx = list(iterSequences(filepath2))
     results_fasta = list(iterSequences(filepath3))
     from Bio import AlignIO
     alignment = AlignIO.read(filepath3,'fasta')
     results_obj = list(iterSequences(alignment))
+    import numpy
     numpy.testing.assert_equal(results_fasta,results_obj)
-    
-
-    
-        
-
