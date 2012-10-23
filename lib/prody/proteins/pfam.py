@@ -22,7 +22,7 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
-__all__ = ['fetchPfamMSA', 'iterSequences']
+__all__ = ['fetchPfamMSA', 'MSAFile']
 
 DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics'])
 FORMAT_OPTIONS = ({'format': set(['selex', 'stockholm', 'fasta']),
@@ -127,7 +127,7 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
         
     
-    response =  openURL(url, timeout=int(kwargs.get('timeout', 5))) 
+    response =  openURL(url, timeout=int(kwargs.get('timeout', 5)))
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
@@ -180,73 +180,145 @@ def parseTitle(title):
     
 
 
-def iterSequences(msa):
-    """Yield tuples containing sequence id, sequence, start index, end index, 
-    from an MSA file or object.
+class MSAFile(object):
     
-    :arg msa: MSA filepath or Biopython MSA object"""
-
-    if isfile(str(msa)):
-        msa_file = openFile(msa)
-        firstline = msa_file.readline()
-        if firstline[0] == '>':
-            LOGGER.info('Parsing fasta file')
-            id, start, end = parseTitle(firstline[1:].strip())
-            temp = []
-            for line in msa_file:
+    """Yield tuples containing sequence id, sequence, start index, end index, 
+    from an MSA file or object."""
+    
+    def __init__(self, msa, aligned=True):
+        """*msa* may be an MSA file in fasta, Stockholm, or Selex format or a
+        Biopython MSA object.  If *aligned* is **True**, length of sequences
+        will be expected to be the same, and unaligned sequences will cause
+        an :exc:`IOError` exception."""
+        
+        self._msa = None
+        self._bio = None
+        self._aligned = bool(aligned)
+        self._lenseq = None
+        self._numseq = None
+        if isfile(str(msa)):    
+            self._msa = msa
+            with openFile(msa) as msa: 
+                line = msa.readline()
                 if line[0] == '>':
-                    yield (id, ''.join(temp), start, end)
+                    LOGGER.info('Parsing MSA in fasta format')
+                    self._iter = self._iterFasta
+                elif line[0] == '#' and 'STOCKHOLM' in line:
+                    LOGGER.info('Parsing MSA in Stockholm format')
+                    self._iter = self._iterStockholm
+                else:
+                    LOGGER.info('Parsing MSA in Selex format')
+                    self._iter = self._iterStockholm
+        else:    
+            try:
+                bio = iter(msa)
+            except TypeError:
+                raise TypeError('msa must be a filename or Bio object')
+            else:
+                record = bio.next()
+                try:
+                    title, seq = record.id, str(record.seq)
+                except AttributeError:
+                    raise TypeError('msa must be a filename or Bio object')
+                else:
+                    self._bio = iter(msa)
+                    self._iter = self._iterBio
+
+       
+    def __del__(self):
+        
+        if self._msa:
+            self._msa.close()
+            
+    def __iter__(self):
+        
+        return self._iter()
+            
+    def _iterBio(self):
+        """Yield sequences from a Biopython MSA object."""            
+        
+        numseq = 0
+        for record in self._bio:
+            title, seq = record.id, str(record.seq)
+            id, start, end = parseTitle(title)
+            numseq += 1
+            yield (id, seq, start, end)
+        self._numseq = numseq
+
+    def _iterFasta(self):
+        """Yield sequences from an MSA file in fasta format."""
+
+        aligned = self._aligned
+        lenseq = self._lenseq
+        temp = []
+        numseq = 0
+        with openFile(self._msa) as msa: 
+            title = msa.readline()[1:]
+            id, start, end = parseTitle(title.strip())
+            for line in msa:
+                if line[0] == '>':
+                    seq = ''.join(temp)
+                    if aligned:
+                        if lenseq:
+                            if lenseq != len(seq):
+                                raise IOError('sequence for {0:s} does not '
+                                              'have expected length {1:d}'
+                                              .format(title, self._lenseq))
+                            else: 
+                                self._lenseq = lenseq = len(seq)
+                    numseq += 1
+                    yield (id, seq, start, end)
                     temp = []
-                    id, start, end = parseTitle(line[1:].strip())
+                    title = line[1:].strip()
+                    id, start, end = parseTitle(title)
                 else:
                     temp.append(line.strip())
+            numseq += 1
             yield (id, ''.join(temp), start, end)
+        self._numseq = numseq
     
-        elif firstline[0] == '#' and 'STOCKHOLM' in firstline:
-            LOGGER.info('Parsing stockholm file')
-            for line in msa_file:
-                if line[0] != '#' and line[:2] != '//':
-                    items = line.split()
-                    if len(items) == 2:
-                        id, start, end = parseTitle(items[0])
-                        yield (id, items[1], start, end)
+    def _iterStockholm(self):
+        """Yield sequences from an MSA file in Stockholm format."""
 
-        else:
-            items = firstline.split()
-            if len(items) != 2:
-                raise ValueError('file format could not be recognized')
-            LOGGER.info('Parsing selex format')
-            
-            id, start, end = parseTitle(items[0])
-            yield (id, items[1], start, end)
-            for line in msa_file:
-                if line[0] == '#':
+        aligned = self._aligned
+        lenseq = self._lenseq
+        numseq = 0
+
+        with openFile(self._msa) as msa:
+            for line in msa:
+                if line[0] == '#' or line[0] == '/':
                     continue
-                items = line.split() 
-                if len(items) == 2:
-                    id, start, end = parseTitle(items[0])
-                    yield (id, items[1], start, end)
-        msa_file.close()
+                items = line.split()
+                title = ' '.join(items[:-1])
+                seq = items[-1]
+                if aligned:
+                    if lenseq:
+                        if lenseq != len(seq):
+                            raise IOError('sequence for {0:s} does not have '
+                                          'expected length {1:d}'
+                                          .format(title, self._lenseq))
+                        else: 
+                            self._lenseq = lenseq = len(seq)
 
-    else:
-        try:
-            msa = iter(msa)
-        except TypeError:
-            raise TypeError('msa must be a filename or Bio object')
-        else:
-            record = msa.next()
-            try:
-                title, seq = record.id, str(record.seq)
-            except AttributeError:
-                raise TypeError('msa must be a filename or Bio object')
-            
-            id, start, end = parseTitle(title)
-            yield (id, seq, start, end)
-            for record in msa:
-                title, seq = record.id, str(record.seq)
-                id, start, end = parseTitle(title)     
+                id, start, end = parseTitle(title)
+                numseq += 1
                 yield (id, seq, start, end)
-
+        self._numseq = numseq
+        
+    def numSequences(self):
+        """Return number of sequences."""
+        
+        if self._numseq is None:
+            for i in self:
+                pass
+        return self._numseq
+        
+    def numResidues(self):
+        """Return number of residues."""
+        
+        if self._lenseq is None:
+            iter(self).next()
+        return self._lenseq
     
 if __name__ == '__main__':
 
@@ -261,11 +333,11 @@ if __name__ == '__main__':
                              format='selex')
     filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False, 
                              format='fasta', outname='mymsa')
-    results_sth = list(iterSequences(filepath1))
-    results_slx = list(iterSequences(filepath2))
-    results_fasta = list(iterSequences(filepath3))
+    results_sth = list(MSAFile(filepath1))
+    results_slx = list(MSAFile(filepath2))
+    results_fasta = list(MSAFile(filepath3))
     from Bio import AlignIO
     alignment = AlignIO.read(filepath3,'fasta')
-    results_obj = list(iterSequences(alignment))
+    results_obj = list(MSAFile(alignment))
     import numpy
     numpy.testing.assert_equal(results_fasta,results_obj)

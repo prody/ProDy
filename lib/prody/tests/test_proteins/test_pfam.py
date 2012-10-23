@@ -24,21 +24,21 @@ from unittest import TestCase
 
 from prody.tests.test_datafiles import *
 
-from prody import iterSequences
+from prody import MSAFile
 
 class TestIterSequences(TestCase):
     
     def testIterator(self):
         self.assertListEqual(
-            list(iterSequences(pathDatafile('msa_Cys_knot.slx'))),
-            list(iterSequences(pathDatafile('msa_Cys_knot.sth'))))
+            list(MSAFile(pathDatafile('msa_Cys_knot.slx'))),
+            list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
         
         self.assertListEqual(
-            list(iterSequences(pathDatafile('msa_Cys_knot.fasta'))),
-            list(iterSequences(pathDatafile('msa_Cys_knot.sth'))))
+            list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))),
+            list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
         
         self.assertListEqual(
-            list(iterSequences(pathDatafile('msa_Cys_knot.slx'))),
-            list(iterSequences(pathDatafile('msa_Cys_knot.fasta'))))
+            list(MSAFile(pathDatafile('msa_Cys_knot.slx'))),
+            list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))))
 
 
