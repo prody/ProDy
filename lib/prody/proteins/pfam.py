@@ -63,7 +63,7 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
         ``'dashes'`` or **None** for unaligned
     
     
-    *Out parameter*
+    *Other Options*
     
     :arg timeout: timeout for blocking connection attempt in seconds, default 
         is 5

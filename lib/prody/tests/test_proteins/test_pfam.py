@@ -35,7 +35,7 @@ class TestIterSequences(TestCase):
         
         self.assertListEqual(
             list(iterSequences(pathDatafile('msa_Cys_knot.fasta'))),
-            list(iterSequences(pathDatafile('test_file.sth'))))
+            list(iterSequences(pathDatafile('msa_Cys_knot.sth'))))
         
         self.assertListEqual(
             list(iterSequences(pathDatafile('msa_Cys_knot.slx'))),
