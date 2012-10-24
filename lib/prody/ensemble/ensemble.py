@@ -22,6 +22,8 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
+from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
+from numpy import zeros, ones, arange
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
@@ -85,7 +87,7 @@ class Ensemble(object):
             return None
         
         # use sth like follows
-        # which = np.arange(self._n_csets)[index].nonzero()[0]
+        # which = arange(self._n_csets)[index].nonzero()[0]
         # if len(which) == 1:
         #       return getConf...
         # else: 
@@ -103,7 +105,7 @@ class Ensemble(object):
                 ens.setWeights(self.getWeights())
             return ens
             
-        elif isinstance(index, (list, np.ndarray)):
+        elif isinstance(index, (list, ndarray)):
             ens = Ensemble('Conformations of {0:s}'.format(self._title))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self.getCoordsets(index))
@@ -204,7 +206,19 @@ class Ensemble(object):
                 raise ValueError('atoms must be same size or smaller than '
                                  'the ensemble')
             
-            elif atoms.numAtoms() == n_atoms:
+            try:
+                dummies = atoms.numDummies()
+            except AttributeError:
+                pass
+            else:
+                if dummies:
+                    raise ValueError('atoms must not have any dummies')
+                else:
+                    indices = atoms._getIndices()
+                    if indices != unique(indices):
+                        raise ValueError('atoms must be ordered by indices')
+            
+            if atoms.numAtoms() == n_atoms:
                 self._atoms = atoms
                 self._indices = None
             
@@ -333,7 +347,7 @@ class Ensemble(object):
         if self._confs is None: 
             self._confs = coords
         else:
-            self._confs = np.concatenate((self._confs, coords), axis=0)
+            self._confs = concatenate((self._confs, coords), axis=0)
         self._n_csets += n_confs
 
     def getCoordsets(self, indices=None):
@@ -349,7 +363,7 @@ class Ensemble(object):
                 return self._confs.copy()
             if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices].copy()
-            if isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, ndarray)):        
                 return self._confs[indices]
         else:
             selids = self._indices
@@ -357,7 +371,7 @@ class Ensemble(object):
                 return self._confs[:,selids]
             if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices, selids]
-            if isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, ndarray)):        
                 return self._confs[indices, selids]
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
@@ -371,7 +385,7 @@ class Ensemble(object):
                 return self._confs
             if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices]
-            if isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, ndarray)):        
                 return self._confs[indices]
         else:
             selids = self._indices
@@ -379,7 +393,7 @@ class Ensemble(object):
                 return self._confs[:,selids]
             if isinstance(indices, (int, long, slice)): 
                 return self._confs[indices, selids]
-            if isinstance(indices, (list, np.ndarray)):        
+            if isinstance(indices, (list, ndarray)):        
                 return self._confs[indices, selids]
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
@@ -392,7 +406,7 @@ class Ensemble(object):
         else:
             index = list(index)
         length = self._n_csets
-        which = np.ones(length, np.bool)
+        which = ones(length, bool)
         which[index] = False
         if which.sum() == 0:
             self._confs = None
@@ -462,23 +476,18 @@ class Ensemble(object):
         linalg = importLA()
         svd = linalg.svd
         det = linalg.det
-        dot = np.dot
-        add = np.add
-        subtract = np.subtract
-        array = np.array
-        sign = np.sign
         
         if weights is None:
             tar_com = tar.mean(0)
             tar_org = (tar - tar_com)
-            mob_org = np.zeros(tar_org.shape, dtype=mobs.dtype)
+            mob_org = zeros(tar_org.shape, dtype=mobs.dtype)
             tar_org = tar_org.T
         else:
             weights_sum = weights.sum()
             weights_dot = dot(weights.T, weights)
             tar_com = (tar * weights).sum(axis=0) / weights_sum
             tar_org = (tar - tar_com)
-            mob_org = np.zeros(tar_org.shape, dtype=mobs.dtype)
+            mob_org = zeros(tar_org.shape, dtype=mobs.dtype)
 
         LOGGER.progress('Superposing ', len(mobs), '_prody_ensemble')
         for i, mob in enumerate(mobs):        
@@ -490,7 +499,7 @@ class Ensemble(object):
             else:
                 mob_com = (mob * weights).sum(axis=0) / weights_sum
                 subtract(mob, mob_com, mob_org)
-                matrix = np.dot((tar_org * weights).T, 
+                matrix = dot((tar_org * weights).T, 
                                 (mob_org * weights)) / weights_dot
                 
             U, s, Vh = svd(matrix)
@@ -557,12 +566,12 @@ class Ensemble(object):
         indices = self._indices
         if indices is None:
             mean = self._confs.mean(0)
-            ssqf = np.zeros(mean.shape)
+            ssqf = zeros(mean.shape)
             for conf in self._confs:
                 ssqf += (conf - mean) ** 2
         else:
             mean = self._confs[:, indices].mean(0)
-            ssqf = np.zeros(mean.shape)
+            ssqf = zeros(mean.shape)
             for conf in self._confs[:, indices]:
                 ssqf += (conf - mean) ** 2
         return ssqf.sum(1) / self._n_csets
@@ -579,10 +588,10 @@ class Ensemble(object):
         Conformations can be aligned using one of :meth:`superpose` or 
         :meth:`iterpose` methods prior to calculating deviations."""
         
-        if not isinstance(self._confs, np.ndarray):
+        if not isinstance(self._confs, ndarray):
             LOGGER.warning('Conformations are not set.')
             return None
-        if not isinstance(self._coords, np.ndarray):
+        if not isinstance(self._coords, ndarray):
             LOGGER.warning('Coordinates are not set.')
             return None
         

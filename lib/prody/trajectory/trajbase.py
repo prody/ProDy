@@ -157,8 +157,20 @@ class TrajBase(object):
             if atoms.numAtoms() > n_atoms:
                 raise ValueError('atoms must be same size or smaller than '
                                    'the trajectory')
+
+            try:
+                dummies = atoms.numDummies()
+            except AttributeError:
+                pass
+            else:
+                if dummies:
+                    raise ValueError('atoms must not have any dummies')
+                else:
+                    indices = atoms._getIndices()
+                    if indices != unique(indices):
+                        raise ValueError('atoms must be ordered by indices')
             
-            elif atoms.numAtoms() == n_atoms:
+            if atoms.numAtoms() == n_atoms:
                 self._atoms = atoms
                 self._indices = None
             
