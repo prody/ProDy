@@ -53,7 +53,8 @@ if sys.version_info[:2] > (2, 6):
                                    'test_datafiles/*.dat', 
                                    'test_datafiles/*.coo', 
                                    'test_datafiles/dcd*.dcd',
-                                   'test_datafiles/xml*.xml']
+                                   'test_datafiles/xml*.xml',
+                                   'test_datafiles/msa*',]
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join('lib', *pkg.split('.'))

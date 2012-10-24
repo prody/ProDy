@@ -10,5 +10,6 @@ include lib/prody/tests/test_datafiles/*.dcd
 include lib/prody/tests/test_datafiles/*.dat
 include lib/prody/tests/test_datafiles/*.pdb
 include lib/prody/tests/test_datafiles/*.xml
+include lib/prody/tests/test_datafiles/msa*
 include scripts/prody
 include scripts/prody.bat
