@@ -206,7 +206,19 @@ class Ensemble(object):
                 raise ValueError('atoms must be same size or smaller than '
                                  'the ensemble')
             
-            elif atoms.numAtoms() == n_atoms:
+            try:
+                dummies = atoms.numDummies()
+            except AttributeError:
+                pass
+            else:
+                if dummies:
+                    raise ValueError('atoms must not have any dummies')
+                else:
+                    indices = atoms._getIndices()
+                    if indices != unique(indices):
+                        raise ValueError('atoms must be ordered by indices')
+            
+            if atoms.numAtoms() == n_atoms:
                 self._atoms = atoms
                 self._indices = None
             
