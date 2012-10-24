@@ -81,7 +81,8 @@ How to Make a Release
 
      $ git tag vX.Y
   
-#. Push the changes with tags to `https://bitbucket.org/abakan/prody>`_::
+#. Push the changes with tags to 
+   `Bitbucket <https://bitbucket.org/abakan/prody>`_::
 
      $ git push --tags origin master
 

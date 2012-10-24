@@ -105,6 +105,15 @@ To be able use :ref:`commands` in command prompt (:program:`cmd.exe`),
 append Python and scripts folders (e.g. :file:`C:\\Python27` and 
 :file:`C:\\Python27\\Scripts`) to :envvar:`PATH` environment variable.
 
+Testing
+-------------------------------------------------------------------------------
+
+You can test your ProDy installation using the following command::
+
+    $ prody test
+
+Note that :program:`prody` script/command must be reachable from your working
+directory.  For more information on testing, see :ref:`testing`.
 
 Plugins
 ===============================================================================
