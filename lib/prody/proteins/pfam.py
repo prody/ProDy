@@ -22,7 +22,7 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
-__all__ = ['fetchPfamMSA', 'MSAFile']
+__all__ = ['fetchPfamMSA', 'MSAFile', 'MSA']
 
 DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics'])
 FORMAT_OPTIONS = ({'format': set(['selex', 'stockholm', 'fasta']),
@@ -31,6 +31,9 @@ FORMAT_OPTIONS = ({'format': set(['selex', 'stockholm', 'fasta']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
 import re
 from os.path import join, isfile
+
+from numpy import zeros
+
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile
 
@@ -264,8 +267,8 @@ class MSAFile(object):
                                 raise IOError('sequence for {0:s} does not '
                                               'have expected length {1:d}'
                                               .format(title, self._lenseq))
-                            else: 
-                                self._lenseq = lenseq = len(seq)
+                        else: 
+                            self._lenseq = lenseq = len(seq)
                     numseq += 1
                     yield (id, seq, start, end)
                     temp = []
@@ -297,8 +300,8 @@ class MSAFile(object):
                             raise IOError('sequence for {0:s} does not have '
                                           'expected length {1:d}'
                                           .format(title, self._lenseq))
-                        else: 
-                            self._lenseq = lenseq = len(seq)
+                    else: 
+                        self._lenseq = lenseq = len(seq)
 
                 id, start, end = parseTitle(title)
                 numseq += 1
@@ -314,11 +317,108 @@ class MSAFile(object):
         return self._numseq
         
     def numResidues(self):
-        """Return number of residues."""
+        """Return number of residues (or columns in the MSA)."""
         
         if self._lenseq is None:
             iter(self).next()
         return self._lenseq
+    
+    
+class MSA(object):
+    
+    """Store and manipulate multiple sequence alignments.
+    
+    >>> msa = parseMSA('piwi', alignment='seed')
+    >>> msa[0]
+    >>> msa[0,0]
+    >>> msa[:10,]
+    >>> msa[:10,20:40]
+    >>> m['GTHB2_ONCKE']"""
+    
+    def __init__(self, msa):
+        """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
+        supported format."""
+        
+        
+        try:
+            numseq, lenseq = msa.numSequences(), msa.numResidues()
+        except AttributeError:
+            try:
+                msa = MSAFile(msa)
+            except Exception as err:
+                raise TypeError('msa was not recognized ({0:s})'
+                                .format(str(err)))
+            else:
+                numseq, lenseq = msa.numSequences(), msa.numResidues()
+        
+        self._msa = msaarray = zeros((numseq, lenseq), dtype='|S1')
+        self._titles = []
+        titles = self._titles.append
+        self._resnums = []
+        resnums = self._resnums.append
+        self._tmap = tmap = {}
+        
+        for i, (title, seq, start, end) in enumerate(msa):
+            resnums((start, end))
+            titles(title)
+            tmap[title] = i
+            msaarray[i] = list(seq)
+        
+    def __getitem__(self, index):
+        
+        try:
+            row, col = index
+        except (ValueError, TypeError):
+            try:
+                index = self._tmap.get(index, index)
+            except TypeError:
+                pass
+        else:
+            try:
+                index = self._tmap.get(row, row), col
+            except TypeError:
+                pass
+            
+        result = self._msa[index]
+        
+        try:
+            shape, ndim = result.shape, result.ndim
+        except AttributeError:
+            return result
+        else:
+            if ndim < 2:
+                return result.tostring()
+            else:
+                return result # return an MSA object here 
+                
+    def numSequences(self):
+        """Return number of sequences."""
+        
+        return self._msa.shape[0]
+
+    def numResidues(self):
+        """Return number of residues (or columns in the MSA)."""
+        
+        return self._msa.shape[1]
+    
+    def getTitle(self, index):
+        pass
+        
+    def getResnums(self, index):
+        pass
+
+    def getArray(self):
+        """Return a copy of the MSA character array."""
+        
+        return self._msa.copy
+    
+    
+def parseMSA(msa, **kwargs):
+    """Should return an :class:`MSA`. A Pfam MSA sould be fetched if needed."""
+    
+    pass
+    
+
     
 if __name__ == '__main__':
 
