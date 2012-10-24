@@ -26,5 +26,5 @@ Relative paths
 :func:`os.path.relpath` function raises exceptions when the working 
 directory and the path of interest are on separate drives, e.g. trying 
 to write a :file:`C:\\temp` while running tests on :file:`D:\\ProDy`.
-Instead of this :func:`os.path.relpath`, ProDy function :func:`prody.relpath`
+Instead of this :func:`os.path.relpath`, ProDy function :func:`.relpath`
 should be used to avoid problems. 

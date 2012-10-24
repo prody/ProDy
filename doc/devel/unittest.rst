@@ -1,4 +1,4 @@
-.. _unittest:
+.. _testing:
 
 .. currentmodule:: prody
 
@@ -32,13 +32,12 @@ Unit test development should follow these guidelines:
   #. For comparing Numpy arrays, use assertions available in 
      :mod:`numpy.testing` module.
 
+  #. All test files should be stored in :file:`tests` folder in the ProDy 
+     package directory, i.e. :file:`prody/tests/`
+
   #. All tests for functions and classes in a ProDy module should be in a 
      single test file named after the module, 
      e.g. :file:`test_atomic/test_select.py`.
 
-  #. All test files should be stored in :file:`tests` folder in the ProDy 
-     package directory, i.e. :file:`prody/tests/`
-
-  #. If a test is parsing a file from :file:`tests/test_datafiles` folder, it 
-     should be able to find those files when it is run from any folder.
+  #. Data files for testing should be located in :file:`tests/test_datafiles`.
 
