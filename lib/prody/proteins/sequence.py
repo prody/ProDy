@@ -54,17 +54,16 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
     
     *Alignment Options*
     
-    :arg format: a Pfam supported MSA file format, one of ``'stockholm'`` 
-        (default), ``'selex'``, or ``'fasta'``
+    :arg format: a Pfam supported MSA file format, one of ``'selex'``,  
+        (default), ``'stockholm'`` or ``'fasta'``
     
     :arg order: ordering of sequences, ``'tree'`` (default) or 
         ``'alphabetical'`` 
     
-    :arg inserts: letter case for inserts, ``'lower'`` (default) or ``'upper'``
+    :arg inserts: letter case for inserts, ``'upper'`` (default) or ``'lower'``
     
-    :arg gaps: gap character, one of ``'mixed'`` (default), ``'dots'``, 
-        ``'dashes'`` or **None** for unaligned
-    
+    :arg gaps: gap character, one of ``'dashes'`` (default), ``'dots'``, 
+        ``'mixed'`` or **None** for unaligned
     
     *Other Options*
     
@@ -98,7 +97,7 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
             url_flag = True
             extension = '.sth'
         else:
-            align_format = kwargs.get('format', 'stockholm').lower()
+            align_format = kwargs.get('format', 'selex').lower()
             
             if align_format not in FORMAT_OPTIONS['format']:
                 raise ValueError('alignment format must be of type selex'
@@ -111,12 +110,12 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
             else:
                 extension = '.sth'
             
-            gaps = str(kwargs.get('gaps', 'mixed')).lower()
+            gaps = str(kwargs.get('gaps', 'dashes')).lower()
             if gaps not in FORMAT_OPTIONS['gaps']:
                 raise ValueError('gaps must be of type mixed, dots, dashes, '
                                  'or None')
             
-            inserts = kwargs.get('inserts', 'lower').lower()
+            inserts = kwargs.get('inserts', 'upper').lower()
             if(inserts not in FORMAT_OPTIONS['inserts']):
                 raise ValueError('inserts must be of type lower or upper')
             
@@ -416,7 +415,12 @@ class MSA(object):
 def parseMSA(msa, **kwargs):
     """Should return an :class:`MSA`. A Pfam MSA sould be fetched if needed."""
     
-    pass
+    msa = str(msa)
+    if isfile(msa):
+        if 'filter' in kwargs or splitext(msa)[1] == '.gz':
+            return MSA(msa)
+        else:
+            pass
     
 
     
