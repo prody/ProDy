@@ -86,6 +86,10 @@ if os.name != 'java' and sys.version_info[0] == 2:
         else:
             raise Exception('one or more kdtree module files are missing')
         PACKAGES.append('prody.kdtree')
+        EXTENSIONS.append(
+            Extension('prody.proteins.msatools', 
+                      [join('lib', 'prody', 'proteins', 'msatools.c')],
+                      include_dirs=[numpy.get_include()],))
     elif isInstalled('numpy'):
         raise ImportError('numpy is not installed')
 
