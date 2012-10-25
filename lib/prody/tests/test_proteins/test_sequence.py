@@ -22,23 +22,31 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
+from numpy.testing import assert_equal
+
 from prody.tests.test_datafiles import *
 
-from prody import MSAFile
+from prody import MSAFile, parseMSA
 
-class TestIterSequences(TestCase):
+class TestMSAFile(TestCase):
     
     def testIterator(self):
-        self.assertListEqual(
-            list(MSAFile(pathDatafile('msa_Cys_knot.slx'))),
-            list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
-        
         self.assertListEqual(
             list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))),
             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
         
         self.assertListEqual(
-            list(MSAFile(pathDatafile('msa_Cys_knot.slx'))),
-            list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))))
+            list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))),
+            list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
 
 
+class TestParseMSA(TestCase):
+    
+    def testIterator(self):
+        
+        #fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+        selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
+        stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
+        
+        #asser_equal(fasta._getArray(), selex._getArray())
+        assert_equal(selex._getArray(), stockholm._getArray())
