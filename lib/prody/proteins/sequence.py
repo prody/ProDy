@@ -22,20 +22,29 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
-__all__ = ['fetchPfamMSA', 'MSAFile', 'MSA']
+__all__ = ['fetchPfamMSA', 'MSAFile', 'MSA', 'parseMSA']
+
+FASTA = 'fasta'
+SELEX = 'selex'
+STOCKHOLM = 'stockholm'
 
 DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics'])
-FORMAT_OPTIONS = ({'format': set(['selex', 'stockholm', 'fasta']),
+FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
-import re
-from os.path import join, isfile
+WSJOIN = ' '.join
+ESJOIN = ''.join
 
-from numpy import zeros
+import re
+from os.path import join, isfile, getsize, splitext, split
+
+from numpy import zeros, dtype
 
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile
+
+from .msatools import parseSelex
 
 
 def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, 
@@ -103,9 +112,9 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
                 raise ValueError('alignment format must be of type selex'
                                  ' stockholm or fasta. MSF not supported')
             
-            if align_format == 'selex':
+            if align_format == SELEX:
                 align_format, extension = 'pfam', '.slx'
-            elif align_format == 'fasta':
+            elif align_format == FASTA:
                 extension = '.fasta'
             else:
                 extension = '.sth'
@@ -154,50 +163,50 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
     
     return filepath
 
-def parseTitle(title):
-    """Parses Pfam title associated with each sequence"""
+
+def parseLabel(label):
+    """Return label, starting residue number, and ending residue number parsed
+    from sequence label."""
     
-    split_title = re.split('/*-*', title)
-    if split_title:
-        if (len(split_title) == 3):
-            id, start, end = split_title[0], split_title[1], split_title[2]
-            if start.isdigit(): 
-                start = int(start)
-            else:
-                Logger.warn('starting residue number could not be parsed from'
-                            ' {0}'.format(id))
-                start = None
-            if end.isdigit():
-                end = int(end)
-            else:
-                Logger.warn('ending residue number could not be parsed from'
-                            ' {0}'.format(id))
-                end = None
-        else:
-            LOGGER.warn('missing start and/or end indicies {0}'.format(id))
-            id, start, end =  split_title[0], None, None
+    items = re.split('/*-*', label)
+    if len(items) == 3:
+        id, start, end = items
+        start = int(start) if start.isdigit() else None
+        end = int(end) if end.isdigit() else None
     else:
-        raise ValueError('Cannot parse MSA ID. Check MSA file!')
+        id, start, end =  label[0], None, None
     return (id, start, end)
-    
 
 
 class MSAFile(object):
     
     """Yield tuples containing sequence id, sequence, start index, end index, 
-    from an MSA file or object."""
+    from an MSA file or object.
     
-    def __init__(self, msa, aligned=True):
+    >>> msafile = fetchPfamMSA('piwi', alignment='seed')
+    >>> msa = MSAFile(msafile, filter=lambda tpl: 'ARATH' in tpl[0])
+    >>> for label, seq, rns, rne in msa: 
+    ...     print label
+    ... AGO6_ARATH
+    ... AGO4_ARATH
+    ... AGO10_ARATH"""
+    
+    def __init__(self, msa, aligned=True, filter=None, slice=None):
         """*msa* may be an MSA file in fasta, Stockholm, or Selex format or a
-        Biopython MSA object.  If *aligned* is **True**, length of sequences
-        will be expected to be the same, and unaligned sequences will cause
-        an :exc:`IOError` exception."""
+        Biopython MSA object.  If *aligned* is **True**, unaligned sequences 
+        will cause an :exc:`IOError` exception.  *filter* is used for filtering
+        sequences and must return a boolean for a single tuple argument that 
+        contains ``(label, seq, start, end)``."""
         
         self._msa = None
         self._bio = None
         self._aligned = bool(aligned)
         self._lenseq = None
         self._numseq = None
+        self._format = None
+        self.setFilter(filter)
+        self.setSlice(slice)
+            
         if isfile(str(msa)):    
             self._msa = msa
             with openFile(msa) as msa: 
@@ -205,12 +214,15 @@ class MSAFile(object):
                 if line[0] == '>':
                     LOGGER.info('Parsing MSA in fasta format')
                     self._iter = self._iterFasta
+                    self._format = 'fasta'
                 elif line[0] == '#' and 'STOCKHOLM' in line:
                     LOGGER.info('Parsing MSA in Stockholm format')
                     self._iter = self._iterStockholm
+                    self._format = STOCKHOLM
                 else:
                     LOGGER.info('Parsing MSA in Selex format')
                     self._iter = self._iterStockholm
+                    self._format = SELEX
         else:    
             try:
                 bio = iter(msa)
@@ -219,13 +231,13 @@ class MSAFile(object):
             else:
                 record = bio.next()
                 try:
-                    title, seq = record.id, str(record.seq)
+                    label, seq = record.id, str(record.seq)
                 except AttributeError:
                     raise TypeError('msa must be a filename or Bio object')
                 else:
                     self._bio = iter(msa)
                     self._iter = self._iterBio
-
+                    self._format = 'Biopython'
        
     def __del__(self):
         
@@ -234,15 +246,38 @@ class MSAFile(object):
             
     def __iter__(self):
         
-        return self._iter()
+        filter = self._filter
+        if filter is None:
+            for tpl in self._iter():
+                yield tpl
+        else:
+            for tpl in self._iter():
+                if filter(tpl):
+                    yield tpl
+            
+    def _getFormat(self):
+        """Return format of the MSA file."""
+        
+        return self._format
+    
+    format = property(_getFormat, None, doc="Format of the MSA file.")
             
     def _iterBio(self):
         """Yield sequences from a Biopython MSA object."""            
         
+        aligned = self._aligned
+        slice = self._slice
         numseq = 0
         for record in self._bio:
-            title, seq = record.id, str(record.seq)
-            id, start, end = parseTitle(title)
+            label, seq = record.id, str(record.seq)
+            if aligned and lenseq != len(seq):
+                raise IOError('sequence for {0:s} does not have '
+                              'expected length {1:d}'
+                              .format(tpl[0], lenseq))
+            if slice:
+                seq = seq[slice] 
+            id, start, end = parseLabel(label)
+            
             numseq += 1
             yield (id, seq, start, end)
         self._numseq = numseq
@@ -252,27 +287,30 @@ class MSAFile(object):
 
         aligned = self._aligned
         lenseq = self._lenseq
+        slice = self._slice
+        if slice is None:
+            slice is False
         temp = []
         numseq = 0
         with openFile(self._msa) as msa: 
-            title = msa.readline()[1:]
-            id, start, end = parseTitle(title.strip())
+            label = msa.readline()[1:]
+            id, start, end = parseLabel(label.strip())
             for line in msa:
                 if line[0] == '>':
-                    seq = ''.join(temp)
-                    if aligned:
-                        if lenseq:
-                            if lenseq != len(seq):
-                                raise IOError('sequence for {0:s} does not '
-                                              'have expected length {1:d}'
-                                              .format(title, self._lenseq))
-                        else: 
-                            self._lenseq = lenseq = len(seq)
+                    seq = ESJOIN(temp)
+                    if not lenseq:
+                        self._lenseq = lenseq = len(seq)
+                    if aligned and lenseq != len(seq):
+                        raise IOError('sequence for {0:s} does not have '
+                                      'expected length {1:d}'
+                                      .format(tpl[0], lenseq))
+                    if slice:
+                        seq = seq[slice] 
                     numseq += 1
                     yield (id, seq, start, end)
                     temp = []
-                    title = line[1:].strip()
-                    id, start, end = parseTitle(title)
+                    label = line[1:].strip()
+                    id, start, end = parseLabel(label)
                 else:
                     temp.append(line.strip())
             numseq += 1
@@ -282,8 +320,12 @@ class MSAFile(object):
     def _iterStockholm(self):
         """Yield sequences from an MSA file in Stockholm format."""
 
+
         aligned = self._aligned
         lenseq = self._lenseq
+        slice = self._slice
+        if slice is None:
+            slice is False
         numseq = 0
 
         with openFile(self._msa) as msa:
@@ -291,18 +333,17 @@ class MSAFile(object):
                 if line[0] == '#' or line[0] == '/':
                     continue
                 items = line.split()
-                title = ' '.join(items[:-1])
+                label = WSJOIN(items[:-1])
                 seq = items[-1]
-                if aligned:
-                    if lenseq:
-                        if lenseq != len(seq):
-                            raise IOError('sequence for {0:s} does not have '
-                                          'expected length {1:d}'
-                                          .format(title, self._lenseq))
-                    else: 
-                        self._lenseq = lenseq = len(seq)
-
-                id, start, end = parseTitle(title)
+                if not lenseq:
+                    self._lenseq = lenseq = len(seq)
+                if aligned and lenseq != len(seq):
+                    raise IOError('sequence for {0:s} does not have '
+                                  'expected length {1:d}'
+                                  .format(tpl[0], lenseq))
+                if slice:
+                    seq = seq[slice] 
+                id, start, end = parseLabel(label)
                 numseq += 1
                 yield (id, seq, start, end)
         self._numseq = numseq
@@ -322,6 +363,61 @@ class MSAFile(object):
             iter(self).next()
         return self._lenseq
     
+    def getFilter(self):
+        """Return function used for filtering sequences."""
+        
+        return self._filter
+    
+    def setFilter(self, filter):
+        """Set function used for filtering sequences."""
+        
+        if filter is None:
+            self._filter = None
+            return
+        
+        if not iscallable(filter):
+            raise TypeError('filter must be callable')
+        
+        try: 
+            result = filter(('TEST_TITLE', 'SEQUENCE-WITH-GAPS', 1, 15))
+        except Exception as err:
+            raise TypeError('filter function must be not raise exceptions, '
+                            'e.g. ' + str(err))
+        else:
+            try:
+                result = result or not result
+            except Exception as err: 
+                raise ValueError('filter function must return a boolean, '
+                                 'e.g. ' + str(err))
+        self._filter = filter
+    
+    def getSlice(self):
+        """Return object used to slice sequences."""
+        
+        return self._filter
+    
+    def setSlice(self, slice):
+        """Set object used to slice sequences."""
+
+        if slice is None:
+            self._slice = None
+            return
+        
+        seq = 'SEQUENCE'
+        try: 
+            result = seq[slice] 
+        except Exception:
+            raise TypeError('slice cannot be used for slicing sequences')
+            arr = array(list(seq))
+            try:
+                result = arr[slice]
+            except Exception:
+                raise TypeError('slice cannot be used for slicing sequences')
+            else:
+                pass
+                
+        else:
+            self._slice = slice
     
 class MSA(object):
     
@@ -334,35 +430,59 @@ class MSA(object):
     >>> msa[:10,20:40]
     >>> m['GTHB2_ONCKE']"""
     
-    def __init__(self, msa):
+    def __init__(self, msa, **kwargs):
         """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
         supported format."""
         
-        
+
         try:
-            numseq, lenseq = msa.numSequences(), msa.numResidues()
+            ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
         except AttributeError:
             try:
-                msa = MSAFile(msa)
-            except Exception as err:
-                raise TypeError('msa was not recognized ({0:s})'
-                                .format(str(err)))
-            else:
                 numseq, lenseq = msa.numSequences(), msa.numResidues()
+            except AttributeError:
+                try:
+                    msa = MSAFile(msa)
+                except Exception as err:
+                    raise TypeError('msa was not recognized ({0:s})'
+                                    .format(str(err)))
+                else:
+                    numseq, lenseq = msa.numSequences(), msa.numResidues()
+            
+            self._msa = msaarray = zeros((numseq, lenseq), dtype='|S1')
+            self._labels = []
+            labels = self._labels.append
+            self._resnums = []
+            resnums = self._resnums.append
+            self._tmap = tmap = {}
+            
+            for i, (label, seq, start, end) in enumerate(msa):
+                resnums((start, end))
+                labels(label)
+                tmap[label] = i
+                msaarray[i] = list(seq)
+        else:
+            if ndim != 2:
+                raise ValueError('msa.dim must be 2')
+            if dtype_ != dtype('|S1'):
+                raise ValueError('msa must be a character array')
+            numseq = shape[0]
+            self._labels = kwargs.get('labels', [None] * numseq)
+            if len(self._labels) != numseq:
+                raise ValueError('len(labels) must be equal to number of '
+                                 'sequences')
+            self._resnums = kwargs.get('resnums', [None] * numseq)
+            if len(self._resnums) != numseq:
+                raise ValueError('len(resnums) must be equal to number of '
+                                 'sequences')
+            self._msa = msa
+        self._title = kwargs.get('title', 'Unknown')
         
-        self._msa = msaarray = zeros((numseq, lenseq), dtype='|S1')
-        self._titles = []
-        titles = self._titles.append
-        self._resnums = []
-        resnums = self._resnums.append
-        self._tmap = tmap = {}
+    def __repr__(self):
         
-        for i, (title, seq, start, end) in enumerate(msa):
-            resnums((start, end))
-            titles(title)
-            tmap[title] = i
-            msaarray[i] = list(seq)
-        
+        return '<MSA: {0:s} ({1:d} sequences, {2:d} residues)>'.format(
+                self._title, self.numSequences(), self.numResidues())
+    
     def __getitem__(self, index):
         
         try:
@@ -400,29 +520,84 @@ class MSA(object):
         
         return self._msa.shape[1]
     
-    def getTitle(self, index):
-        pass
+    def getTitle(self):
+        """Return title of the instance."""
         
+        return self._title
+    
+    def setTitle(self, title):
+        """Set title of the instance."""
+        
+        self._title = str(title)
+        
+    def getLabel(self, index):
+        """Return label of the sequence at given *index*."""
+        
+        label = self._labels[index]
+        if label and self._resnums[index] is None:
+            label, start, end = parseLabel(label)
+            self._resnums[index] = start, end
+            self._labels[index] = label
+        return label        
+                
     def getResnums(self, index):
-        pass
+        """Return starting and ending residue numbers for the sequence at given 
+        *index*."""
 
+        resnums = self._resnums[index]
+        if resnums is None:
+            label = self._labels[index]
+            if label:
+                label, start, end = parseLabel(label)
+                self._resnums[index] = resnums = start, end
+                self._labels[index] = label
+            else:
+                self._resnums[index] = resnums = None, None
+        return resnums
+    
     def getArray(self):
         """Return a copy of the MSA character array."""
         
-        return self._msa.copy
+        return self._msa.copy()
     
+    def _getArray(self):
+        """Return MSA character array."""
+        
+        return self._msa
+
     
 def parseMSA(msa, **kwargs):
     """Should return an :class:`MSA`. A Pfam MSA sould be fetched if needed."""
     
     msa = str(msa)
     if isfile(msa):
-        if 'filter' in kwargs or splitext(msa)[1] == '.gz':
-            return MSA(msa)
+        ext = splitext(msa)[1] 
+        if ext == '.gz' or 'filter' in kwargs or 'slice' in kwargs:
+            return MSA(msa, **kwargs)
         else:
-            pass
-    
+            filename = msa
+    else:    
+        try:
+            filename = fetchPfamMSA(msa, **kwargs)
+        except IOError:
+            raise ValueError('msa must be an MSA filename or a Pfam accession')
+        else:
+            if compressed in kwargs:
+                return MSA(filename, **kwargs)
 
+    msafile = MSAFile(msa)
+    title = splitext(split(msa)[1])[0]
+    format = msafile.format
+    lenseq = msafile.numResidues()
+    numseq = getsize(msa) / (lenseq + 10)
+    
+    if format == FASTA:
+        pass
+    elif format == SELEX or format == STOCKHOLM:
+        msaarr = zeros((numseq, lenseq), '|S1') 
+        labels = parseSelex(msa, msaarr)
+    return MSA(msa=msaarr[:len(labels)], labels=labels, title=title)
+    
     
 if __name__ == '__main__':
 
