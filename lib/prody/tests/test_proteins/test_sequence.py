@@ -30,19 +30,20 @@ from prody import MSAFile, parseMSA
 
 class TestMSAFile(TestCase):
     
-    def testIterator(self):
-        self.assertListEqual(
-            list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))),
-            list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
+    def testMSAFile(self):
         
-        self.assertListEqual(
-            list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))),
-            list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
+        fasta = list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))) 
+        
+        self.assertListEqual(fasta, 
+                             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
+        
+        self.assertListEqual(fasta,
+                             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
 
 
 class TestParseMSA(TestCase):
     
-    def testIterator(self):
+    def testArray(self):
         
         #fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
         selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
@@ -50,3 +51,12 @@ class TestParseMSA(TestCase):
         
         #asser_equal(fasta._getArray(), selex._getArray())
         assert_equal(selex._getArray(), stockholm._getArray())
+
+    def testIterator(self):
+        
+        #fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+        selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
+        stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
+        
+        #asser_equal(fasta._getArray(), selex._getArray())
+        self.assertListEqual(list(selex), list(stockholm))
