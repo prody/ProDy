@@ -163,19 +163,21 @@ def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False,
     
     return filepath
 
+SPLITLABEL = re.compile('/*-*').split 
 
-def parseLabel(label):
+def splitLabel(label):
     """Return label, starting residue number, and ending residue number parsed
     from sequence label."""
     
-    items = re.split('/*-*', label)
-    if len(items) == 3:
-        id, start, end = items
-        start = int(start) if start.isdigit() else None
-        end = int(end) if end.isdigit() else None
-    else:
-        id, start, end =  label[0], None, None
-    return (id, start, end)
+    try:
+        idcode, start, end = SPLITLABEL(label)
+    except Exception:
+        return label, None, None
+    else:   
+        try:
+            return idcode, int(start), int(end)
+        except Exception:
+            return label, None, None
 
 
 class MSAFile(object):
@@ -248,13 +250,16 @@ class MSAFile(object):
         
         filter = self._filter
         if filter is None:
-            for tpl in self._iter():
-                yield tpl
+            for label, seq in self._iter():
+                label, start, end = splitLabel(label)
+                yield label, seq, start, end
         else:
-            for tpl in self._iter():
-                if filter(tpl):
-                    yield tpl
-            
+            for label, seq in self._iter():
+                label, start, end = splitLabel(label)
+                result = label, seq, start, end
+                if filter(result):
+                    yield result    
+                             
     def _getFormat(self):
         """Return format of the MSA file."""
         
@@ -276,10 +281,8 @@ class MSAFile(object):
                               .format(tpl[0], lenseq))
             if slice:
                 seq = seq[slice] 
-            id, start, end = parseLabel(label)
-            
             numseq += 1
-            yield (id, seq, start, end)
+            yield label, seq
         self._numseq = numseq
 
     def _iterFasta(self):
@@ -294,7 +297,6 @@ class MSAFile(object):
         numseq = 0
         with openFile(self._msa) as msa: 
             label = msa.readline()[1:]
-            id, start, end = parseLabel(label.strip())
             for line in msa:
                 if line[0] == '>':
                     seq = ESJOIN(temp)
@@ -307,14 +309,13 @@ class MSAFile(object):
                     if slice:
                         seq = seq[slice] 
                     numseq += 1
-                    yield (id, seq, start, end)
+                    yield label, seq
                     temp = []
                     label = line[1:].strip()
-                    id, start, end = parseLabel(label)
                 else:
                     temp.append(line.strip())
             numseq += 1
-            yield (id, ''.join(temp), start, end)
+            yield label, ESJOIN(temp)
         self._numseq = numseq
     
     def _iterStockholm(self):
@@ -343,16 +344,15 @@ class MSAFile(object):
                                   .format(tpl[0], lenseq))
                 if slice:
                     seq = seq[slice] 
-                id, start, end = parseLabel(label)
                 numseq += 1
-                yield (id, seq, start, end)
+                yield label, seq
         self._numseq = numseq
         
     def numSequences(self):
         """Return number of sequences."""
         
         if self._numseq is None:
-            for i in self:
+            for i in self._iter():
                 pass
         return self._numseq
         
@@ -360,7 +360,7 @@ class MSAFile(object):
         """Return number of residues (or columns in the MSA)."""
         
         if self._lenseq is None:
-            iter(self).next()
+            self._iter().next()
         return self._lenseq
     
     def getFilter(self):
@@ -428,13 +428,12 @@ class MSA(object):
     >>> msa[0,0]
     >>> msa[:10,]
     >>> msa[:10,20:40]
-    >>> m['GTHB2_ONCKE']"""
+    >>> msa['GTHB2_ONCKE']"""
     
     def __init__(self, msa, **kwargs):
         """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
         supported format."""
         
-
         try:
             ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
         except AttributeError:
@@ -452,14 +451,11 @@ class MSA(object):
             self._msa = msaarray = zeros((numseq, lenseq), dtype='|S1')
             self._labels = []
             labels = self._labels.append
-            self._resnums = []
-            resnums = self._resnums.append
-            self._tmap = tmap = {}
+            self._mapping = mapping = {}
             
             for i, (label, seq, start, end) in enumerate(msa):
-                resnums((start, end))
-                labels(label)
-                tmap[label] = i
+                labels((label, start, end))
+                mapping[label] = i
                 msaarray[i] = list(seq)
         else:
             if ndim != 2:
@@ -467,16 +463,29 @@ class MSA(object):
             if dtype_ != dtype('|S1'):
                 raise ValueError('msa must be a character array')
             numseq = shape[0]
-            self._labels = kwargs.get('labels', [None] * numseq)
-            if len(self._labels) != numseq:
+            self._labels = labels = kwargs.get('labels')
+            if labels and len(self._labels) != numseq:
                 raise ValueError('len(labels) must be equal to number of '
                                  'sequences')
-            self._resnums = kwargs.get('resnums', [None] * numseq)
-            if len(self._resnums) != numseq:
-                raise ValueError('len(resnums) must be equal to number of '
-                                 'sequences')
+            
+            self._mapping = mapping = kwargs.get('mapping')
+            if mapping is None and labels is not None:
+                # map labels to sequence index
+                self._mapping = mapping = {
+                    splitLabel(label)[0]: i for i, label in enumerate(labels)
+                }
+                
+            if labels is None:
+                self._labels = [None] * numseq
+                
+            
             self._msa = msa
         self._title = kwargs.get('title', 'Unknown')
+        
+        
+    def __str__(self):
+        
+        return 'MSA ' + self._title
         
     def __repr__(self):
         
@@ -489,12 +498,12 @@ class MSA(object):
             row, col = index
         except (ValueError, TypeError):
             try:
-                index = self._tmap.get(index, index)
+                index = self._mapping.get(index, index)
             except TypeError:
                 pass
         else:
             try:
-                index = self._tmap.get(row, row), col
+                index = self._mapping.get(row, row), col
             except TypeError:
                 pass
             
@@ -508,7 +517,14 @@ class MSA(object):
             if ndim < 2:
                 return result.tostring()
             else:
+                msa = MSA(result)
                 return result # return an MSA object here 
+               
+    def __iter__(self):
+        
+        for i, label in enumerate(self._labels):
+            label, start, end = splitLabel(label)
+            yield label, self._msa[i].tostring(), start, end
                 
     def numSequences(self):
         """Return number of sequences."""
@@ -530,30 +546,22 @@ class MSA(object):
         
         self._title = str(title)
         
-    def getLabel(self, index):
-        """Return label of the sequence at given *index*."""
+    def getLabel(self, index, full=False):
+        """Return label of the sequence at given *index*.  Residue numbers will
+        be removed from the sequence label, unless *full* is **True**."""
         
-        label = self._labels[index]
-        if label and self._resnums[index] is None:
-            label, start, end = parseLabel(label)
-            self._resnums[index] = start, end
-            self._labels[index] = label
-        return label        
+        index = self._mapping.get(index, index)
+        if full:
+            return self._labels[index]
+        else:
+            return splitLabel(label)[0]
                 
     def getResnums(self, index):
-        """Return starting and ending residue numbers for the sequence at given 
-        *index*."""
+        """Return starting and ending residue numbers (:term:`resnum`) for the
+        sequence at given *index*."""
 
-        resnums = self._resnums[index]
-        if resnums is None:
-            label = self._labels[index]
-            if label:
-                label, start, end = parseLabel(label)
-                self._resnums[index] = resnums = start, end
-                self._labels[index] = label
-            else:
-                self._resnums[index] = resnums = None, None
-        return resnums
+        index = self._mapping.get(index, index)
+        return splitLabel(self._labels[index])[1:]
     
     def getArray(self):
         """Return a copy of the MSA character array."""
@@ -567,7 +575,12 @@ class MSA(object):
 
     
 def parseMSA(msa, **kwargs):
-    """Should return an :class:`MSA`. A Pfam MSA sould be fetched if needed."""
+    """Return an :class:`MSA` instance that stores multiple sequence alignment
+    and sequence labels parsed from Stockholm, Selex, or Fasta format *msa* 
+    file.  If *msa* is a Pfam id code or accession, MSA file will be downloaded
+    using :func:`fetchPfamMSA` with default parameters.  Note that *msa* may be
+    a compressed file. Uncompressed MSA files are parsed using C code at a 
+    fraction of the time it would take to parse compressed files in Python."""
     
     msa = str(msa)
     if isfile(msa):
@@ -595,8 +608,9 @@ def parseMSA(msa, **kwargs):
         pass
     elif format == SELEX or format == STOCKHOLM:
         msaarr = zeros((numseq, lenseq), '|S1') 
-        labels = parseSelex(msa, msaarr)
-    return MSA(msa=msaarr[:len(labels)], labels=labels, title=title)
+        labels, mapping = parseSelex(msa, msaarr)
+    return MSA(msa=msaarr[:len(labels)], labels=labels, title=title, 
+               mapping=mapping)
     
     
 if __name__ == '__main__':
