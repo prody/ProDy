@@ -13,7 +13,7 @@ ProDy source code is managed using Git_ distributed revision controlling
 system.  You need to install :program:`git`, and if you prefer a GUI for it,
 on your computer to be able to contribute to development of ProDy. 
 
-On Debian/Ubuntu LInux, for example, you can run the following to install 
+On Debian/Ubuntu Linux, for example, you can run the following to install 
 :program:`git` and :program:`gitk`::
 
   $ sudo apt-get install git gitk
@@ -28,8 +28,7 @@ code.
 You will only need to use a few basic :program:`git` commands.  These commands
 are provided below, but usually without an adequate description.  You can refer
 to `Git book`_ and `Git docs`_ for detailed explanations of and examples on 
-these commands.  You can also try the online `Git demo`_, which may help you to
-get a speedy start.
+these commands.
 
 
 Fork and Clone ProDy
@@ -151,7 +150,6 @@ commands again to update the binary module files::
 .. _Git: http://git-scm.com/downloads
 .. _Git book: http://git-scm.com/book
 .. _Git docs: http://git-scm.com/docs
-.. _Git demo: http://try.github.com
 .. _SourceTree: http://www.sourcetreeapp.com
 .. _Bitbucket: https://bitbucket.org/
 .. _ProDy: https://bitbucket.org/abakan/prody
