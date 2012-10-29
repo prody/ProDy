@@ -101,6 +101,7 @@ if (platform.system() == 'Windows' or
     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
     SCRIPTS.append('scripts/prody.bat')
 
+
 if len(sys.argv) > 1 and sys.argv[1] == 'copy':
     from glob import glob
     ext = '.pyd' if platform == 'Windows' else '.so'
