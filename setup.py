@@ -1,6 +1,8 @@
 import os
 import sys
+from os import sep as dirsep
 from os.path import isfile, join
+from shutil import copy
 
 from distutils.core import setup
 from distutils.extension import Extension
@@ -94,36 +96,49 @@ if (platform.system() == 'Windows' or
     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
     SCRIPTS.append('scripts/prody.bat')
 
-setup(
-    name='ProDy',
-    version=__version__,
-    author='Ahmet Bakan',
-    author_email='ahb12 at pitt dot edu',
-    description='A Python Package for Protein Dynamics Analysis',
-    long_description=long_description,
-    url='http://www.csb.pitt.edu/ProDy',
-    packages=PACKAGES,
-    package_dir=PACKAGE_DIR,
-    package_data=PACKAGE_DATA,
-    ext_modules=EXTENSIONS,
-    license='GPLv3',
-    keywords=('protein, dynamics, elastic network model, '
-              'Gaussian network model, anisotropic network model, '
-              'essential dynamics analysis, principal component analysis, '
-              'Protein Data Bank, PDB, GNM, ANM, PCA'),
-    classifiers=[
-                 'Development Status :: 4 - Beta',
-                 'Intended Audience :: Science/Research',
-                 'License :: OSI Approved :: GNU General Public License (GPL)',
-                 'Operating System :: MacOS',
-                 'Operating System :: Microsoft :: Windows',
-                 'Operating System :: POSIX',
-                 'Programming Language :: Python',
-                 'Programming Language :: Python :: 2',
-                 'Topic :: Scientific/Engineering :: Bio-Informatics',
-                 'Topic :: Scientific/Engineering :: Chemistry',
-                ],
-    scripts=SCRIPTS,
-    requires=['NumPy', ],
-    provides=['ProDy({0:s})'.format(__version__)]
-    )
+
+if len(sys.argv) > 1 and sys.argv[1] == 'copy':
+    from glob import glob
+    ext = '.pyd' if platform == 'Windows' else '.so'
+    base = join('build', 
+                'lib*' + '.'.join([str(i) for i in sys.version_info[:2]]))
+    for src in glob(join(base, 'prody', '*', '*' + ext)):
+        dst = join(*src.split(dirsep)[2:])
+        dst = join('lib', dst)
+        sys.stderr.write('cp ' + src + ' ' + dst + '\n')
+        copy(src, dst)
+        
+else:
+    setup(
+        name='ProDy',
+        version=__version__,
+        author='Ahmet Bakan',
+        author_email='ahb12 at pitt dot edu',
+        description='A Python Package for Protein Dynamics Analysis',
+        long_description=long_description,
+        url='http://www.csb.pitt.edu/ProDy',
+        packages=PACKAGES,
+        package_dir=PACKAGE_DIR,
+        package_data=PACKAGE_DATA,
+        ext_modules=EXTENSIONS,
+        license='GPLv3',
+        keywords=('protein, dynamics, elastic network model, '
+                  'Gaussian network model, anisotropic network model, '
+                  'essential dynamics analysis, principal component analysis, '
+                  'Protein Data Bank, PDB, GNM, ANM, PCA'),
+        classifiers=[
+                     'Development Status :: 4 - Beta',
+                     'Intended Audience :: Science/Research',
+                     'License :: OSI Approved :: GNU General Public License (GPL)',
+                     'Operating System :: MacOS',
+                     'Operating System :: Microsoft :: Windows',
+                     'Operating System :: POSIX',
+                     'Programming Language :: Python',
+                     'Programming Language :: Python :: 2',
+                     'Topic :: Scientific/Engineering :: Bio-Informatics',
+                     'Topic :: Scientific/Engineering :: Chemistry',
+                    ],
+        scripts=SCRIPTS,
+        requires=['NumPy', ],
+        provides=['ProDy({0:s})'.format(__version__)]
+        )
