@@ -22,7 +22,8 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
-__all__ = ['fetchPfamMSA', 'MSAFile', 'MSA', 'parseMSA']
+__all__ = ['fetchPfamMSA', 'MSAFile', 'MSA', 'parseMSA',
+           'calcInfoEntropy']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -43,8 +44,6 @@ from numpy import zeros, dtype
 
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile
-
-from .msatools import parseSelex, parseFasta
 
 
 def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, 
@@ -605,14 +604,39 @@ def parseMSA(msa, **kwargs):
     numseq = getsize(msa) / (lenseq + 10)
     
     if format == FASTA:
+        from .msatools import parseFasta
         msaarr = zeros((numseq, lenseq), '|S1')
         labels, mapping = parseFasta(msa, msaarr)
     elif format == SELEX or format == STOCKHOLM:
+        from .msatools import parseSelex
         msaarr = zeros((numseq, lenseq), '|S1') 
         labels, mapping = parseSelex(msa, msaarr)
 
     return MSA(msa=msaarr[:len(labels)], labels=labels, title=title, 
                mapping=mapping)
+    
+
+def calcInfoEntropy(msa):
+    """Return information entropy array calculated for *msa*, which may be 
+    an :class:`MSA` instances or a 2D Numpy character array."""
+    
+    try:
+        msa = msa._getArray()
+    except AttributeError:
+        pass
+    
+    try:
+        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
+    except AttributeError:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+        
+    if dtype_ != dtype('|S1') or ndim != 2:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+        
+    entropy = zeros(shape[1], float)
+    from .msatools import calcInfoEntropy
+    print calcInfoEntropy(msa, entropy)
+    return entropy
     
     
 if __name__ == '__main__':
