@@ -4,6 +4,7 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import imp
 from subprocess import Popen, PIPE
+from os.path import join
 
 path = [imp.find_module('prody')[1]]
 routines = imp.load_module('prody.routines', 
@@ -18,7 +19,7 @@ for cmd in routines.PRODY_COMMANDS:
     
     #pkg = getattr('routines', 'prody_' + cmd)
     
-    with open('prody_' + cmd + '.rst', 'w') as rst:
+    with open(join('prody_commands', cmd + '.rst'), 'w') as rst:
         rst.write(""".. _prody-{cmd:s}:
 
 *******************************************************************************

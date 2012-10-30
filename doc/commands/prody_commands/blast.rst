@@ -10,11 +10,11 @@ Usage
 Running :command:`prody blast -h` displays::
 
   usage: prody blast [-h] [--quiet] [--examples] [-i FLOAT] [-o FLOAT] [-d PATH]
-                     [-z]
-                     seq
+                     [-z] [-f STR] [-e FLOAT] [-l INT] [-s INT] [-t INT]
+                     sequence
   
   positional arguments:
-    seq                   sequence or file in fasta format
+    sequence              sequence or file in fasta format
   
   optional arguments:
     -h, --help            show this help message and exit
@@ -24,8 +24,22 @@ Running :command:`prody blast -h` displays::
                           percent sequence identity (default: 90.0)
     -o FLOAT, --overlap FLOAT
                           percent sequence overlap (default: 90.0)
-    -d PATH, --dir PATH   download uncompressed PDB files to given path
+    -d PATH, --output-dir PATH
+                          download uncompressed PDB files to given directory
     -z, --gzip            write compressed PDB file
+  
+  Blast Parameters:
+    -f STR, --filename STR
+                          a filename to save the results in XML format
+    -e FLOAT, --expect FLOAT
+                          blast search parameter
+    -l INT, --hit-list-size INT
+                          blast search parameter
+    -s INT, --sleep-time INT
+                          how long to wait to reconnect for results (sleep time
+                          is doubled when results are not ready)
+    -t INT, --timeout INT
+                          when to give up waiting for results
 
 Examples
 ===============================================================================
