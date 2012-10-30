@@ -143,8 +143,9 @@ following command from the ProDy project folder::
 You may use any name other than `prodymaster`, but `origin`, which points to 
 the ProDy fork in your account.  
 
-After setting up this remote, calling the following command will update your
-local copy of ProDy with changes in the master repository::
+After setting up this remote, calling :program:`git pull` command will 
+fetch latest changes from ProDy_ master repository and merge them to your
+local copy::
 
   $ git pull prodymaster master
 
@@ -152,7 +153,7 @@ Note that when there are changes in C modules, you need to run the following
 commands again to update the binary module files::
 
   $ python setup.py build
-  $ python setup.py copy  
+  $ python setup.py copy
 
 
 .. _Git: http://git-scm.com/downloads
