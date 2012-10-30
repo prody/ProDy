@@ -1,6 +1,7 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
+int calc_info_entropy(char *seq, double *ent, long numseq, long lenseq);
 
 static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
@@ -271,15 +272,81 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 }
 
 
+static PyObject *calcInfoEntropy(PyObject *self, PyObject *args) {
+
+	PyObject *arrobj, *result;
+	PyArrayObject *msa, *entropy;
+	
+	if (!PyArg_ParseTuple(args, "OO", &arrobj, &result))
+		return NULL;
+    
+    msa = (PyArrayObject *) 
+        PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
+    if (msa == NULL)
+        return NULL;
+    
+    entropy = (PyArrayObject *) 
+        PyArray_ContiguousFromObject(result, PyArray_DOUBLE, 1, 1);
+    if (entropy == NULL)
+        return NULL;
+
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    long lenent = entropy->dimensions[0];
+    
+    if (lenent != lenseq) {
+        Py_XDECREF(arrobj);
+        Py_XDECREF(result);
+        PyErr_SetString(PyExc_IOError, 
+                        "msa and enropy array shapes do not match");
+        return NULL;
+    }
+    
+    char *seq = (char *)PyArray_DATA(msa);
+    double *ent = (double *)PyArray_DATA(entropy);
+
+    /* start here */
+   
+    if (calc_info_entropy(seq, ent, numseq, lenseq) != 0) {
+        Py_XDECREF(arrobj);
+        Py_XDECREF(result);
+        PyErr_SetString(PyExc_IOError, 
+                "failed to calculate information entropy");
+        return NULL;
+
+    }
+    
+    /* end here */
+    
+    Py_XDECREF(arrobj);
+    Py_XDECREF(result);
+    return Py_BuildValue("");
+
+}
+
+int calc_info_entropy(char *seq, double *ent, long numseq, long lenseq) {
+    
+    /* seq has length numseq * lenseq
+       ent has length lenseq
+    */
+    
+
+    return 0;
+}
+
+
 static PyMethodDef msatools_methods[] = {
 
-	{"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS | METH_KEYWORDS, 
+	{"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
 	 "Return list of labels and a dictionary mapping labels to sequences \n"
 	 "after parsing the sequences into empty numpy character array."},
 
-	{"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS | METH_KEYWORDS, 
+	{"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
 	 "Return list of labels and a dictionary mapping labels to sequences \n"
 	 "after parsing the sequences into empty numpy character array."},
+
+	{"calcInfoEntropy",  (PyCFunction)calcInfoEntropy, METH_VARARGS, 
+	 "Calculate information entrpoy for given character array into given \n"
+     "double array."},
 
 	{NULL, NULL, 0, NULL}
 	
@@ -289,7 +356,7 @@ static PyMethodDef msatools_methods[] = {
 PyMODINIT_FUNC initmsatools(void) {
 
 	Py_InitModule3("msatools", msatools_methods,
-	    "Multiple sequence alignment tools.");
+	    "Multiple sequence alignment IO and analysis tools.");
 	    
     import_array();
 }
