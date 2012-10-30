@@ -26,7 +26,9 @@ from numpy.testing import assert_equal
 
 from prody.tests.test_datafiles import *
 
-from prody import MSAFile, parseMSA
+from prody import MSAFile, parseMSA, LOGGER
+
+LOGGER.verbosity = None
 
 class TestMSAFile(TestCase):
     
@@ -41,22 +43,33 @@ class TestMSAFile(TestCase):
                              list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
 
 
+
 class TestParseMSA(TestCase):
     
     def testArray(self):
         
-        #fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+        fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
         selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
         stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
         
-        #asser_equal(fasta._getArray(), selex._getArray())
+        assert_equal(fasta._getArray(), selex._getArray())
         assert_equal(selex._getArray(), stockholm._getArray())
 
     def testIterator(self):
         
-        #fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+        fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
         selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
         stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
         
-        #asser_equal(fasta._getArray(), selex._getArray())
-        self.assertListEqual(list(selex), list(stockholm))
+        self.assertListEqual(list(fasta), list(selex))
+        self.assertListEqual(list(fasta), list(stockholm))
+
+    def testMapping(self):
+        
+        fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+        selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
+        stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
+        
+        self.assertDictEqual(fasta._mapping, selex._mapping)
+        self.assertDictEqual(fasta._mapping, stockholm._mapping)
+

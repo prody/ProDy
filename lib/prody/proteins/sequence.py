@@ -44,7 +44,7 @@ from numpy import zeros, dtype
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile
 
-from .msatools import parseSelex
+from .msatools import parseSelex, parseFasta
 
 
 def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, 
@@ -605,10 +605,12 @@ def parseMSA(msa, **kwargs):
     numseq = getsize(msa) / (lenseq + 10)
     
     if format == FASTA:
-        pass
+        msaarr = zeros((numseq, lenseq), '|S1')
+        labels, mapping = parseFasta(msa, msaarr)
     elif format == SELEX or format == STOCKHOLM:
         msaarr = zeros((numseq, lenseq), '|S1') 
         labels, mapping = parseSelex(msa, msaarr)
+
     return MSA(msa=msaarr[:len(labels)], labels=labels, title=title, 
                mapping=mapping)
     
