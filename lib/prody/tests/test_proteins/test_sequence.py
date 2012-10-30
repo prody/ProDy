@@ -22,11 +22,12 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
-from numpy.testing import assert_equal
+from numpy import array, log
+from numpy.testing import assert_equal, assert_array_almost_equal
 
 from prody.tests.test_datafiles import *
 
-from prody import MSAFile, parseMSA, LOGGER
+from prody import MSAFile, parseMSA, LOGGER, calcInfoEntropy
 
 LOGGER.verbosity = None
 
@@ -41,7 +42,6 @@ class TestMSAFile(TestCase):
         
         self.assertListEqual(fasta,
                              list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
-
 
 
 class TestParseMSA(TestCase):
@@ -73,3 +73,18 @@ class TestParseMSA(TestCase):
         self.assertDictEqual(fasta._mapping, selex._mapping)
         self.assertDictEqual(fasta._mapping, stockholm._mapping)
 
+
+class TestCalcInfoEntropy(TestCase):
+    
+    def testCalculation(self):
+        
+        msa = array([list('AAAA'), 
+                     list('AAAB'),
+                     list('AABC'),
+                     list('ABBD'),
+                     list('ABCE'),
+                     list('ABCF')])
+
+        expect = -log(1. / array([1, 2, 3, 6])) 
+        result = calcInfoEntropy(msa)
+        assert_array_almost_equal(expect, result)
