@@ -19,7 +19,7 @@ for cmd in routines.PRODY_COMMANDS:
     
     #pkg = getattr('routines', 'prody_' + cmd)
     
-    with open(join('prody_commands', cmd + '.rst'), 'w') as rst:
+    with open('prody_' + cmd + '.rst', 'w') as rst:
         rst.write(""".. _prody-{cmd:s}:
 
 *******************************************************************************

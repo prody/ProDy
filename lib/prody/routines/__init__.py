@@ -15,9 +15,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains routines that are used as command line programs."""
+"""This module contains routines that are used as command line programs.
+
+
+Dynamics routines
+===============================================================================
+
+  * :func:`.prody_anm`
+  * :func:`.prody_gnm`
+  * :func:`.prody_pca`
+
+Other routines
+===============================================================================
+
+  * :func:`.prody_align`
+  * :func:`.prody_biomol`
+  * :func:`.prody_blast`
+  * :func:`.prody_catdcd`
+  * :func:`.prody_contacts`
+  * :func:`.prody_fetch`
+  * :func:`.prody_select`
+  
+  """
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from prody_commands import prody_main, prody_parser, PRODY_COMMANDS
+from prody_routines import prody_main, prody_parser, PRODY_COMMANDS
