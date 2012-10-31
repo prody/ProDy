@@ -20,7 +20,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from actions import *
+from ..actions import *
 
 __all__ = ['prody_catdcd']
 

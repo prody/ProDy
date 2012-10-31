@@ -4,6 +4,7 @@ __copyright__ = 'Copyright (C) 2010-2011 Ahmet Bakan'
 
 import imp
 from subprocess import Popen, PIPE
+from os.path import join
 
 path = [imp.find_module('prody')[1]]
 routines = imp.load_module('prody.routines', 

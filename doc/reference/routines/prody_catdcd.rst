@@ -1,7 +1,7 @@
-***************************
-prody.routines.prody_catdcd
-***************************
+******************************************
+prody.routines.prody_routines.prody_catdcd
+******************************************
 
-.. automodule:: prody.routines.prody_catdcd
+.. automodule:: prody.routines.prody_routines.prody_catdcd
    :members:
    :undoc-members:

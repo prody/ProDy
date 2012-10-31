@@ -39,7 +39,7 @@ Examples
 
 Running :command:`prody align --examples` displays::
 
-  Align models in PDB structure or multiple PDB structures and save
+  Align models in a PDB structure or multiple PDB structures and save
   aligned coordinate sets.  When multiple structures are aligned, ProDy
   will match chains based on sequence alignment and use best match for
   aligning the structures.
