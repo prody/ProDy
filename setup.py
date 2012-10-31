@@ -38,7 +38,8 @@ You can find NumPy at: http://numpy.scipy.org""")
 
 PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
             'prody.measure', 'prody.proteins', 'prody.trajectory',
-            'prody.routines', 'prody.utilities']
+            'prody.routines', 'prody.utilities', 
+            'prody.routines.prody_routines']
 PACKAGE_DATA = {}
 if sys.version_info[:2] > (2, 6):
     PACKAGES.extend(['prody.tests',
