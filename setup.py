@@ -38,7 +38,8 @@ You can find NumPy at: http://numpy.scipy.org""")
 
 PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
             'prody.measure', 'prody.proteins', 'prody.trajectory',
-            'prody.routines', 'prody.utilities']
+            'prody.routines', 'prody.utilities', 
+            'prody.routines.prody_routines']
 PACKAGE_DATA = {}
 if sys.version_info[:2] > (2, 6):
     PACKAGES.extend(['prody.tests',
@@ -55,7 +56,8 @@ if sys.version_info[:2] > (2, 6):
                                    'test_datafiles/*.dat', 
                                    'test_datafiles/*.coo', 
                                    'test_datafiles/dcd*.dcd',
-                                   'test_datafiles/xml*.xml']
+                                   'test_datafiles/xml*.xml',
+                                   'test_datafiles/msa*',]
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join('lib', *pkg.split('.'))
@@ -87,6 +89,10 @@ if os.name != 'java' and sys.version_info[0] == 2:
         else:
             raise Exception('one or more kdtree module files are missing')
         PACKAGES.append('prody.kdtree')
+        EXTENSIONS.append(
+            Extension('prody.proteins.msatools', 
+                      [join('lib', 'prody', 'proteins', 'msatools.c')],
+                      include_dirs=[numpy.get_include()],))
     elif isInstalled('numpy'):
         raise ImportError('numpy is not installed')
 
