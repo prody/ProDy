@@ -3,18 +3,18 @@
 
 # Create a temporary folder
 TMPDIR=`mktemp -d`
+rm -rf build
 
 # Build and install into temporary folder
 python setup.py build
 python setup.py install --install-lib=$TMPDIR --install-scripts=$TMPDIR/scripts
 
 # Run tests
-PYTHONPATHBACKUP=$PYTHONPATH
+PYPATH=$PYTHONPATH
 export PYTHONPATH=$TMPDIR
 echo $PYTHONPATH
 python scripts/prody test
 
 # Restore PYTHONPATH and remove temporary files
-export PYTHONPATH=$PYTHONPATHBACKUP
-#rm -rf $TMPDIR
-
+export PYTHONPATH=$PYPATH
+rm -rf $TMPDIR
