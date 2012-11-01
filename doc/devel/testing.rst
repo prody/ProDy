@@ -26,9 +26,9 @@ Pre-commit Testing
 ===============================================================================
 
 You can automatize testing of ProDy package using a git pre-commit hook.  
-For example, the following script calls :file:`devel_build_test.sh` file 
-that comes in the project directory ensures that the package imports and 
-passes fast subset of tests:: 
+For example, the following script calls :file:`devel_test.sh` file that comes 
+in the project directory ensures that the package imports and passes fast 
+subset of tests:: 
 
   #!/bin/sh
 
@@ -36,7 +36,7 @@ passes fast subset of tests::
 
   if [ "$SRC" ]
   then
-      TEST="$(/home/abakan/Code/ProDy/devel_build_test.sh 3>&1 1>&2 2>&3)"
+      TEST="$(/home/abakan/Code/ProDy/devel_test.sh 3>&1 1>&2 2>&3)"
       echo "$TEST" >&2
       FAIL="$(echo $TEST | grep FAILED)"
       if [ "$FAIL" ]
