@@ -635,7 +635,7 @@ def calcInfoEntropy(msa):
         
     entropy = zeros(shape[1], float)
     from .msatools import calcInfoEntropy
-    print calcInfoEntropy(msa, entropy)
+    calcInfoEntropy(msa, entropy)
     return entropy
     
     
