@@ -14,6 +14,8 @@ Release 1.3.1 (in development)
   * Added :func:`.fetchPDBviaHTTP` and :func:`.fetchPDBviaFTP` functions. 
 
   * Added :func:`.copyFile` function to :mod:`.utilities`.
+  
+  * Added :ref:`prody-test` command for convenient testing of ProDy package.
 
 **Improvements**:
 
@@ -46,6 +48,9 @@ Release 1.3.1 (in development)
     residue/chain indices to atoms when residue or chain atoms are separated 
     by atoms of other entities.  This would also caused problems when making 
     keyword selections, such as :term:`protein`.
+    
+  * Added dummy atom check in :meth:`.Ensemble.setAtoms` and 
+    :meth:`.Trajectory.setAtoms` methods to avoid indexing problems.
 
 Release 1.3 (Sep 30, 2012)
 ===============================================================================
