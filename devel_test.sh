@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # rebuild extensions in place and run fast tests
 rm -f lib/prody/*/*.so
 rm -f lib/prody/*/*.pyd
