@@ -91,6 +91,9 @@ EXTENSIONS = [
     Extension('prody.kdtree._CKDTree',
               [join('lib', 'prody', 'kdtree', 'KDTree.c'),
                join('lib', 'prody', 'kdtree', 'KDTreemodule.c')],
+              include_dirs=[numpy.get_include()]),
+    Extension('prody.proteins.msatools',
+              [join('lib', 'prody', 'proteins', 'msatools.c'),],
               include_dirs=[numpy.get_include()])
 ]
 
