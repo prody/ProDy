@@ -113,6 +113,11 @@ from .measure import *
 __all__.extend(measure.__all__)
 __all__.append('measure')
 
+from . import database
+from .database import *
+__all__.extend(database.__all__)
+__all__.append('database')
+
 from . import dynamics
 from .dynamics import *
 __all__.extend(dynamics.__all__)
