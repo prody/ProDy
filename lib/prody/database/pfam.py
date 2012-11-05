@@ -23,11 +23,15 @@ __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
 import re
 from os.path import join, isfile, getsize, splitext, split
+import xml.etree.cElementTree as ET
+from collections import defaultdict
 
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile
+from prody.proteins import MSAFile
 
-__all__ = ['fetchPfamMSA']
+
+__all__ = ['searchPfam', 'fetchPfamMSA']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -38,6 +42,162 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
+
+
+
+SPLITACCESSION = re.compile('\.*').split 
+
+def searchPfam(seq, timeout=15, delay=5, **kwargs):
+    
+    """Returns a dictionary which contains Pfam accession ID as keys
+    and evalue, alignment start and end properties as values.
+        
+    :arg seq: UniProt ID, protein sequence, or a protein sequence file
+    :type seq: str
+    
+    :arg timeout: timeout for blocking connection attempt in seconds, default 
+                  is 15
+    :type timeout: int
+    
+    :arg delay: a delay required for sequence search on Pfam, default 
+                  is 5, may use larger for longer sequences
+    :type delay: int
+    
+    *Sequence Search Options*
+    
+    :arg ga: Gathering threshold value, either 1 (default) or 0
+    :type ga: int
+    
+    :arg evalue: user specified evalue, must be smaller than < 10.0
+    :type evalue: float 
+    
+    :arg searchBs: Search pfamB families when **True**
+    :type searchBs: bool
+    
+    :arg skipAs: Do not search pfamA families when **True**
+    :type skipAs: bool"""
+    
+    prefix = '{http://pfam.sanger.ac.uk/}'
+    if isfile(str(seq)):
+        try:
+            seq_list = list(MSAFile(str(seq)))
+        except:
+            LOGGER.warn('MSAFile could not parse given file')
+            seq_list = []        
+        if not seq_list:
+            try:
+                with openFile(seq) as seq: 
+                    seq = seq.read()
+                    seq = ''.join(seq.split())
+            except:
+                raise ValueError('Could not open/read input file')
+        else:
+            if len(seq_list) > 1:
+                LOGGER.warn('More than one sequence. Using first sequence')
+            seq = seq_list[0][1]
+    else:
+        try:
+            seq = ''.join(str(seq).split())   
+        except:
+            raise TypeError('sequence must be a string or file')
+    if len(seq) > 10:
+        if not seq.isalpha():
+            raise ValueError(repr(seq) + ' is not a valid sequence')
+        urlextension = ''
+        if kwargs:
+            ga = int(kwargs.get('ga', 1))
+            if not (ga == 1 or ga == 0):
+                raise ValueError('Must be either 0 or 1')
+            evalue = kwargs.get('evalue', None)
+            if evalue:
+                if not float(evalue) <= 10.0:
+                    raise ValueError('Must be a valid float < 10.0')
+                LOGGER.info('Using evalue, ignoring ga value given, if any')
+                urlextension = urlextension + '&evalue=' + str(evalue)
+            else:
+                urlextension = urlextension + '&ga=' + str(ga)            
+            searchBs = int(bool(kwargs.get('searchBs', False)))          
+            skipAs = int(bool(kwargs.get('skipAs', False)))
+            if skipAs == 1:
+                LOGGER.info('SkipAs is True. Setting searchBs to True.')
+                searchBs = 1
+            urlextension = urlextension + '&searchBs=' + str(searchBs)
+            urlextension = urlextension + '&skipAs=' + str(skipAs)
+        url1 = ('http://pfam.sanger.ac.uk/search/sequence?seq=' + str(seq)
+               + urlextension + '&output=xml')
+        url = ''
+        try: 
+            root = ET.XML(openURL(url1, timeout=int(timeout)).read())   
+            for item in list(root.iter()):
+                if item.tag[len(prefix):] == 'result_url':
+                    url = item.text
+            import time
+            time.sleep(int(delay))    
+        except:
+            raise ValueError('Could not find result url for input sequence')  
+        if not url:
+            raise ValueError('Could not find result url for input sequence')        
+    else:   
+        url  = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+    
+    try:
+        root =  ET.XML(openURL(url).read())
+    except:
+        raise ValueError('Could not parse url output. Check input arguments'
+                         ' or set larger delay for bigger sequence searches')
+    else:
+        xml_result = list(root.iter())
+        matches = defaultdict(list)
+        for i in range(len(xml_result)):
+            if xml_result[i].tag[len(prefix):] == 'matches':
+                result = xml_result[i]
+                if len(result) == 0:
+                    raise ValueError('No Pfam matches found')
+                children = list(result.getchildren())
+                if children[0].tag[len(prefix):] == 'protein':
+                    LOGGER.info('Parsing sequence matches')
+                    subchild = list(children[0].getchildren())
+                    if (subchild[0].tag[len(prefix):] == 'database' 
+                        and len(subchild) == 1):
+                        result = subchild[0]
+                    else:
+                        raise ValueError('Found matches but cannot parse XML')
+                elif children[0].tag[len(prefix):] == 'match':
+                    LOGGER.info('Parsing id matches')
+                else:
+                    raise ValueError('Found matches but cannot parse XML')
+                if len(result) > 1:
+                    LOGGER.info('More than one match found for given input.')
+                for child in result:
+                    if child.tag[len(prefix):] == 'match':
+                        acc = [item for item in child.items()
+                                     if (item[0] == 'accession')]
+                        if not acc:
+                            raise ValueError('XML error. No accession found.')
+                        accession = acc[0][1]
+                        accession = SPLITACCESSION(accession)[0]
+                        if not re.search('(?<=PF)[0-9]{5}$', accession):
+                            raise ValueError('{0} does not match pfam accession'
+                                             ' format!'.format(accession))
+                        if len(child) > 1:
+                            LOGGER.info('More than one location match found for'
+                                        ' Pfam family {0}'.format(accession))
+                        for subchild in child:
+                            if(matches.has_key(accession)):
+                                LOGGER.info('Appending multiple matches for same'
+                                            ' pfam accession: {0:s}'
+                                            .format(accession))
+                            locations = sorted(subchild.items(),
+                                               key=lambda x: x[0], reverse=True)    
+                            matches[accession].append([item for
+                                                        item in locations  if 
+                                                        (item[0] == 'ali_start' 
+                                                        or item[0] == 'ali_end' 
+                                                        or item[0] == 'evalue')])
+    if not matches:
+        LOGGER.info('Found no matches for given sequence. '
+                    'Returning empty dictionary')
+    return matches
 
 def fetchPfamMSA(acc, alignment='full', folder='.', compressed=False, 
                  **kwargs):
@@ -164,17 +324,32 @@ if __name__ == '__main__':
     #print filepath
     #results = list(iterSequences(filepath))
     
-    filepath1 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, 
-                             timeout=5)
-    filepath2 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, 
-                             format='selex')
-    filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False, 
-                             format='fasta', outname='mymsa')
-    results_sth = list(MSAFile(filepath1))
-    results_slx = list(MSAFile(filepath2))
-    results_fasta = list(MSAFile(filepath3))
-    from Bio import AlignIO
-    alignment = AlignIO.read(filepath3,'fasta')
-    results_obj = list(MSAFile(alignment))
-    import numpy
-    numpy.testing.assert_equal(results_fasta,results_obj)
+    #filepath1 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, 
+    #                         timeout=5)
+    #filepath2 = fetchPfamMSA('PF00007',alignment='seed',compressed=True, 
+    #                         format='selex')
+    #filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False, 
+    #                         format='fasta', outname='mymsa')
+    #results_sth = list(MSAFile(filepath1))
+    #results_slx = list(MSAFile(filepath2))
+    #results_fasta = list(MSAFile(filepath3))
+    #from Bio import AlignIO
+    #alignment = AlignIO.read(filepath3,'fasta')
+    #results_obj = list(MSAFile(alignment))
+    #import numpy
+    #numpy.testing.assert_equal(results_fasta,results_obj)
+
+    matches1 = searchPfam('P12821')
+    #matches2 = searchPfam('test.seq')
+    matches3 = searchPfam('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCSLHSIGKIGGAQNRSYSKLLC\
+GLLAERLRISPDRVYINYYDMNAANVGWNNSTFA', evalue=2, skipAs=True)
+    matches3 = searchPfam('NSIQIGGLFPRGADQEYSAFRVGMVQFSTSEFRLTPHIDNLEVANSFAVTNAFCSQFSRGVYAIFGFYDKKSVNTITSFC\
+GTLHVSFITPSFPTDGTHPFVIQMRPDLKGALLSLIEYYQWDKFAYLYDSDRGLSTLQAVLDSAAEKKWQVTAINVGNINNDKKDETYRSLFQDLELKKERRVILDCERDKVNDIVDQVITIGKHVKGYHYIIANLGFTDGDLLKIQFGGAEVSGFQIVD\
+YDDSLVSKFIERWSTLEEKEYPGAHTATIKYTSALTYDAVQVMTEAFRNLRKQRIEISRRGNAGDCLANPAVPWGQGVEI\
+ERALKQVQVEGLSGNIKFDQNGKRINYTINIMELKTNGPRKIGYWSEVDKMVLTEDDTSGLEQKTVVVTTILESPYVMMK\
+ANHAALAGNERYEGYCVDLAAEIAKHCGFKYKLTIVGDGKYGARDADTKIWNGMVGELVYGKADIAIAPLTITLVREEVI\
+DFSKPFMSLGISIMIKKPQKSKPGVFSFLDPLAYEIWMCIVFAYIGVSVVLFLVSRFSPYEWHTEEFEDGRETQSSESTN\
+EFGIFNSLWFSLGAFMQQGADISPRSLSGRIVGGVWWFFTLIIISSYTANLAAFLTVERMVSPIESAEDLSKQTEIAYGT\
+LDSGSTKEFFRRSKIAVFDKMWTYMRSAEPSVFVRTTAEGVARVRKSKGKYAYLLESTMNEYIEQRKPCDTMKVGGNLDS\
+KGYGIATPKGSSLGTPVNLAVLKLSEQGLLDKLKNKWWYDKGECGAKDSGSKEKTSALSLSNVAGVFYILVGGLGLAMLV\
+ALIEFCYKSRAEAKRMKGLVPRG', delay=10, evalue=2, searchBs=True)  
