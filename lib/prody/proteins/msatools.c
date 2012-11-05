@@ -407,6 +407,51 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
 }
 
 
+static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
+                                PyObject *kwargs) {
+
+	PyObject *arrobj, *result;
+	PyArrayObject *msa, *mutinfo;
+	
+    static char *kwlist[] = {"msa", "mutinfo", NULL};
+		
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO", kwlist,
+	                                 &arrobj, &result))
+		return NULL;
+    
+    msa = (PyArrayObject *) 
+        PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
+    if (msa == NULL)
+        return NULL;
+    
+    mutinfo = (PyArrayObject *) 
+        PyArray_ContiguousFromObject(result, PyArray_DOUBLE, 1, 1);
+    if (mutinfo == NULL)
+        return NULL;
+
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+   
+    if (mutinfo->dimensions[0] != lenseq || mutinfo->dimensions[1] != lenseq) {
+        Py_XDECREF(arrobj);
+        Py_XDECREF(result);
+        PyErr_SetString(PyExc_IOError, 
+                        "msa and mutinfo array shapes do not match");
+        return NULL;
+    }
+
+    char *seq = (char *)PyArray_DATA(msa); /*size: numseq x lenseq */
+    double *mut = (double *)PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
+
+    /* start here */
+
+    /* end here */
+    Py_XDECREF(arrobj);
+    Py_XDECREF(result);
+    return Py_BuildValue("");
+
+}
+
+
 static PyMethodDef msatools_methods[] = {
 
 	{"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
@@ -422,6 +467,11 @@ static PyMethodDef msatools_methods[] = {
 	 "Calculate information entropy for given character array into given \n"
      "double array."},
 
+	{"calcMutualInfo",  (PyCFunction)calcMutualInfo, 
+     METH_VARARGS | METH_KEYWORDS, 
+	 "Calculate mutual information for given character array into given \n"
+     "2D double array."},
+     
 	{NULL, NULL, 0, NULL}
 	
 };

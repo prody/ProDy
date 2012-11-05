@@ -22,7 +22,8 @@ analyzing multiple sequence alignments."""
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
-__all__ = ['MSAFile', 'MSA', 'parseMSA', 'calcShannonEntropy']
+__all__ = ['MSAFile', 'MSA', 'parseMSA', 
+           'calcShannonEntropy', 'calcMutualInfo']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -536,4 +537,24 @@ def calcShannonEntropy(msa, dividend=False):
     return entropy
     
     
-
+def calcMutualInfo(msa):
+    """Return mutual info matrix calculated for *msa*, which may be an 
+    :class:`MSA` instance or a 2D Numpy character array."""
+    
+    try:
+        msa = msa._getArray()
+    except AttributeError:
+        pass
+    
+    try:
+        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
+    except AttributeError:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+        
+    if dtype_ != dtype('|S1') or ndim != 2:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+        
+    mutinfo = zeros((shape[1], shape[1]), float)
+    from .msatools import calcMutualInfo
+    calcShannonEntropy(msa, mutinfo)
+    return mutinfo
