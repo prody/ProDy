@@ -13,6 +13,7 @@ module.  Some documentation pages include usage examples.
 
    prody
    atomic/index
+   database/index
    dynamics/index
    ensemble/index
    kdtree/index

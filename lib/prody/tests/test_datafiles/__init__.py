@@ -60,6 +60,12 @@ DATA_FILES = {
         'atoms': 1,
         'models': 1
     },
+    '1ejg': {
+        'pdb': '1ejg',
+        'file': 'pdb1ejg.pdb',
+        'atoms': 637,
+        'models': 1
+    },
     '1ubi': {
         'pdb': '1ubi',
         'file': 'pdb1ubi.pdb',
@@ -100,6 +106,15 @@ DATA_FILES = {
     },
     '3mht': {
         'file': 'pdb3mht.pdb'
+    },
+    'Fasta': {
+        'file': 'msa_Cys_knot.fasta'
+    },
+    'Selex': {
+        'file': 'msa_Cys_knot.slx'
+    },
+    'Stockholm': {
+        'file': 'msa_Cys_knot.sth'
     }
 }
 
