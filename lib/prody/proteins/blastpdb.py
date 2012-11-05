@@ -28,15 +28,6 @@ from prody.utilities import dictElement
 
 __all__ = ['PDBBlastRecord', 'blastPDB']
            
-PROTSEQ_ALPHABET = set('ARNDCQEGHILKMFPSTWYVBJOUXZ' + 
-                       'ARNDCQEGHILKMFPSTWYVBJOUXZ'.lower())
-
-def checkSequence(seq):
-    """Check validity of a protein sequence.  If a valid sequence, return
-    after standardizing it (make all upper case, remove spaces, etc.), 
-    otherwise return **False**."""
-    
-    return isinstance(seq, str) and PROTSEQ_ALPHABET.issuperset(set(seq))
 
 def blastPDB(sequence, filename=None, **kwargs):
     """Return a :class:`PDBBlastRecord` instance that contains results from
@@ -44,7 +35,8 @@ def blastPDB(sequence, filename=None, **kwargs):
         
     :arg sequence: single-letter code amino acid sequence of the protein
         without any gap characters, all white spaces will be removed
-    :type sequence: str 
+    :type sequence: str
+    
     :arg filename: a *filename* to save the results in XML format 
     :type filename: str
     
@@ -59,12 +51,15 @@ def blastPDB(sequence, filename=None, **kwargs):
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
-    elif isinstance(sequence, str):
-        sequence = ''.join(sequence.split())
-        if not checkSequence(sequence):
-            raise ValueError(repr(sequence) + ' is not a valid sequence')
     else:
-        raise TypeError('sequence must be a string')
+        try:
+            sequence = ''.join(sequence.split()) 
+            _ = sequence.isalpha()
+        except AttributeError:
+            raise TypeError('sequence must be a string')
+        else:
+            if not _:
+                raise ValueError('not a valid protein sequence')
 
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),] 
@@ -161,9 +156,15 @@ class PDBBlastRecord(object):
         :arg sequence: query sequence
         :type sequence: str"""
 
-        if sequence:        
-            if not checkSequence(sequence):
-                raise ValueError('not a valid protein sequence')
+        if sequence:
+            try:
+                sequence = ''.join(sequence.split()) 
+                _ = sequence.isalpha()
+            except AttributeError:
+                raise TypeError('sequence must be a string')
+            else:
+                if not _:
+                    raise ValueError('not a valid protein sequence')
         self._sequence = sequence
         
         import xml.etree.cElementTree as ET
