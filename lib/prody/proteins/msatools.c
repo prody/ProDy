@@ -1,7 +1,27 @@
+/* ProDy: A Python Package for Protein Dynamics Analysis
+ *
+ * Copyright (C) 2010-2012 Ahmet Bakan
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *  
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ * Author: Ahmet Bakan
+ * Copyright (C) 2010-2012 Ahmet Bakan
+ */
+
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
-int calc_info_entropy(char *seq, double *ent, long numseq, long lenseq);
 
 static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
@@ -27,7 +47,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     long size = lenseq + 100, iline = 0;
     char line[size];
 
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "rb");
     while (fgets(line, size, file) != NULL) {
         if (line[0] == '>')
             continue;
@@ -170,7 +190,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     long size = lenseq + 100, iline = 0;
     char line[size];
 
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "rb");
     while (fgets(line, size, file) != NULL) {
         iline++;
         if (line[0] == '#' || line[0] == '/' || line[0] == '%')
@@ -272,12 +292,17 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 }
 
 
-static PyObject *calcInfoEntropy(PyObject *self, PyObject *args) {
+static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
+                                    PyObject *kwargs) {
 
 	PyObject *arrobj, *result;
 	PyArrayObject *msa, *entropy;
+	int dividend = 0;
 	
-	if (!PyArg_ParseTuple(args, "OO", &arrobj, &result))
+    static char *kwlist[] = {"msa", "entropy", "dividend", NULL};
+		
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
+	                                 &arrobj, &result, &dividend))
 		return NULL;
     
     msa = (PyArrayObject *) 
@@ -291,46 +316,94 @@ static PyObject *calcInfoEntropy(PyObject *self, PyObject *args) {
         return NULL;
 
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
-    long lenent = entropy->dimensions[0];
-    
-    if (lenent != lenseq) {
+   
+    if (entropy->dimensions[0] != lenseq) {
         Py_XDECREF(arrobj);
         Py_XDECREF(result);
         PyErr_SetString(PyExc_IOError, 
-                        "msa and enropy array shapes do not match");
+                        "msa and entropy array shapes do not match");
         return NULL;
     }
-    
+
     char *seq = (char *)PyArray_DATA(msa);
     double *ent = (double *)PyArray_DATA(entropy);
 
     /* start here */
-   
-    if (calc_info_entropy(seq, ent, numseq, lenseq) != 0) {
-        Py_XDECREF(arrobj);
-        Py_XDECREF(result);
-        PyErr_SetString(PyExc_IOError, 
-                "failed to calculate information entropy");
-        return NULL;
+    long size = numseq * lenseq; 
+    double count[128]; /* number of ASCII characters*/
+    double shannon = 0, probability = 0, numgap = 0, denom = numseq;
+    long i = 0, j = 0;
+    
+    double ambiguous = 0;
+    int twenty[20] = {65, 67, 68, 69, 70, 71, 72, 73, 75, 76, 
+                      77, 78, 80, 81, 82, 83, 84, 86, 87, 89};
+    for (i = 0; i < lenseq; i++) {
 
+        /* zero counters */
+        for (j = 65; j < 91; j++)
+            count[j] = 0;
+        for (j = 97; j < 123; j++)
+            count[j] = 0;
+        
+        /* count characters in a column*/
+        for (j = i; j < size; j += lenseq)
+            count[(int) seq[j]]++;
+        for (j = 65; j < 91; j++)
+            count[j] += count[j + 32];
+        
+        /* handle ambiguous amino acids */
+        if (count[66]) {
+            ambiguous = count[66] / 2.; /* B */
+            count[66] = 0;
+            count[68] += ambiguous; /* D */
+            count[78] += ambiguous; /* N */
+        }
+        if (count[90]) {
+            ambiguous = count[90] / 2.; /* Z */
+            count[90] = 0;
+            count[69] += ambiguous; /* E */
+            count[81] += ambiguous; /* Q */
+        }
+        if (count[74]) {
+            ambiguous = count[74] / 2.; /* J */
+            count[74] = 0;
+            count[73] += ambiguous; /* I */
+            count[76] += ambiguous; /* L */
+        }
+        if (count[88]) {
+            ambiguous = count[88] / 20.; /* X */
+            count[88] = 0;
+            for (j = 0; j < 20; j++)
+                count[twenty[j]] += ambiguous;
+        }
+        
+        /* non-gap counts */
+        numgap = numseq;
+        for (j = 65; j < 91; j++)
+            numgap -= count[j];
+        
+        shannon = 0;
+        denom = numseq;
+        if (dividend)
+            denom = numseq - numgap;
+        else if (numgap > 0) {
+            probability = numgap / numseq;
+            shannon += probability * log(probability);
+        }
+
+        for (j = 65; j < 91; j++) {
+            if (count[j] > 0) {
+                probability = count[j] / denom;
+                shannon += probability * log(probability);
+            }
+        }
+        ent[i] = -shannon;
     }
-    
     /* end here */
-    
     Py_XDECREF(arrobj);
     Py_XDECREF(result);
     return Py_BuildValue("");
 
-}
-
-int calc_info_entropy(char *seq, double *ent, long numseq, long lenseq) {
-    
-    /* seq has length numseq * lenseq
-       ent has length lenseq
-    */
-    
-
-    return 0;
 }
 
 
@@ -344,8 +417,9 @@ static PyMethodDef msatools_methods[] = {
 	 "Return list of labels and a dictionary mapping labels to sequences \n"
 	 "after parsing the sequences into empty numpy character array."},
 
-	{"calcInfoEntropy",  (PyCFunction)calcInfoEntropy, METH_VARARGS, 
-	 "Calculate information entrpoy for given character array into given \n"
+	{"calcShannonEntropy",  (PyCFunction)calcShannonEntropy, 
+     METH_VARARGS | METH_KEYWORDS, 
+	 "Calculate information entropy for given character array into given \n"
      "double array."},
 
 	{NULL, NULL, 0, NULL}
