@@ -23,7 +23,7 @@ __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
 __all__ = ['fetchPfamMSA', 'MSAFile', 'MSA', 'parseMSA',
-           'calcInfoEntropy']
+           'calcShannonEntropy']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -616,9 +616,25 @@ def parseMSA(msa, **kwargs):
                mapping=mapping)
     
 
-def calcInfoEntropy(msa):
-    """Return information entropy array calculated for *msa*, which may be 
-    an :class:`MSA` instances or a 2D Numpy character array."""
+def calcShannonEntropy(msa, dividend=False):
+    """Return Shannon entropy array calculated for *msa*, which may be 
+    an :class:`MSA` instance or a 2D Numpy character array.  The function
+    is case insensitive and handles ambiguous amino acid characters as 
+    follows:
+    
+      * **B** (Asx) count is shared by *D* (Asp) and *N* (Asn)
+      * **Z** (Glx) count is shared by *E* (Glu) and *Q* (Gln)
+      * **J** (Xle) count is shared by *I* (Ile) and *L* (Leu)
+      * **X** (Xaa) count is shared by each of standard amino acids
+      
+    Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
+    as distinct amino acids.
+    
+    Gaps, which may be any non-alphabet characters, are handled in two ways:  
+      
+      * as a distinct character with its own probability, by default 
+      * non-existent, the probability of observing amino acids in a given
+        column is adjusted, when *dividend* is **True**."""
     
     try:
         msa = msa._getArray()
@@ -634,8 +650,8 @@ def calcInfoEntropy(msa):
         raise TypeError('msa must be an MSA instance or a 2D character array')
         
     entropy = zeros(shape[1], float)
-    from .msatools import calcInfoEntropy
-    calcInfoEntropy(msa, entropy)
+    from .msatools import calcShannonEntropy
+    calcShannonEntropy(msa, entropy, dividend=bool(dividend))
     return entropy
     
     
