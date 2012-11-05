@@ -67,7 +67,7 @@ def getRevisionNumber():
     from subprocess import PIPE, Popen
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
-version = '1.3.1-dev'
+version = '1.3.1'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -158,19 +158,20 @@ generic_sidebars = ['docversion.html', 'howtocite.html', 'localtoc.html',
                     'relations.html', 'searchbox.html']
 html_sidebars = {
     'index': ['slideshow.html', 'docversion.html', 'howtocite.html', 
-              'getprody.html', 'getintouch.html', 'searchbox.html',], 
+              'getprody.html', 'credits.html', 'getintouch.html', 
+              'searchbox.html',], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
     'tutorial': ['docversion.html', 'howtocite.html', 'localtoc.html', 
-                 'codesnippets.html', 'searchbox.html'],
+                 'codesnippets.html', 'credits.html', 'searchbox.html'],
     'bibliography': generic_sidebars,
     'changes': generic_sidebars,
     'contents': generic_sidebars,
     'credits': generic_sidebars,
     'features': generic_sidebars,
     'getprody': ['howtocite.html', 'localtoc.html', 'relations.html', 
-                 'searchbox.html'],
+                 'credits.html', 'searchbox.html'],
     'license': generic_sidebars,
     'publications': generic_sidebars,
     'examples/index': generic_sidebars,
