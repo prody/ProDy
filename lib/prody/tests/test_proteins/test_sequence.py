@@ -22,12 +22,12 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
-from numpy import array, log
-from numpy.testing import assert_equal, assert_array_almost_equal
+from numpy import array, log, zeros
+from numpy.testing import assert_equal, assert_array_almost_equal, dec
 
 from prody.tests.test_datafiles import *
 
-from prody import MSAFile, parseMSA, LOGGER, calcInfoEntropy
+from prody import MSAFile, parseMSA, LOGGER, calcShannonEntropy
 
 LOGGER.verbosity = None
 
@@ -74,9 +74,67 @@ class TestParseMSA(TestCase):
         self.assertDictEqual(fasta._mapping, stockholm._mapping)
 
 
-class TestCalcInfoEntropy(TestCase):
+class TestCalcShannonEntropy(TestCase):
+
+
+    def testSixSequences(self):
+        
+        msa = array([list('AAAAaaaaAAAAaaaa'), 
+                     list('AAACaaacAAACaaac'),
+                     list('AACDaacdAACDaacd'),
+                     list('ACCEacceacceACCE'),
+                     list('ACDFacdfacdfACDF'),
+                     list('ACDGacdgacdgACDG')])
+
+        expect = -log(1. / array([1, 2, 3, 6] * 4)) 
+        result = calcShannonEntropy(msa)
+        assert_array_almost_equal(expect, result)
+
+    def testTwenty(self):
+        
+        msa = array([[char] for char in 'ACDEFGHIKLMNPQRSTVWY'])
+
+        expect = -log(1. / 20)
+        result = calcShannonEntropy(msa)
+        assert_array_almost_equal(expect, result)
+
     
-    def testCalculation(self):
+    def testSmallProbability(self):
+        
+        msa = zeros((1000000,1), '|S1')
+        msa[0] = 'A'
+        msa[1:] = 'C'
+        expect = array([1., 999999.]) / 1000000
+        expect = - (expect * log(expect)).sum() 
+        result = calcShannonEntropy(msa)
+        assert_array_almost_equal(expect, result)
+
+
+    def testAmbiguous(self):
+        
+        msa = array([list('bjzxBJZX'),
+                     list('bjzxBJZX'),])
+
+        expect = -log(1. / array([2, 2, 2, 20] * 2)) 
+        result = calcShannonEntropy(msa)
+        assert_array_almost_equal(expect, result)
+
+    def testGapDividend(self):
+        
+        msa = array([list('AAAA'), 
+                     list('AAAC'),
+                     list('AACD'),
+                     list('ACCE'),
+                     list('ACDF'),
+                     list('ACDG'),
+                     list('----')])
+
+        expect = -log(1. / array([1, 2, 3, 6])) 
+        result = calcShannonEntropy(msa, dividend=True)
+        assert_array_almost_equal(expect, result)
+        
+"""
+    def testSixSequences3(self):
         
         msa = array([list('AAAA'), 
                      list('AAAB'),
@@ -88,3 +146,4 @@ class TestCalcInfoEntropy(TestCase):
         expect = -log(1. / array([1, 2, 3, 6])) 
         result = calcInfoEntropy(msa)
         assert_array_almost_equal(expect, result)
+"""
