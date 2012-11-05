@@ -38,7 +38,6 @@ from os.path import isfile, splitext, split, getsize
 from numpy import zeros, dtype, array
 
 from prody import LOGGER
-from prody.database import fetchPfamMSA
 from prody.utilities import openFile
 
 SPLITLABEL = re.compile('/*-*').split 
@@ -471,6 +470,7 @@ def parseMSA(msa, **kwargs):
         else:
             filename = msa
     else:    
+        from prody.database import fetchPfamMSA
         try:
             filename = fetchPfamMSA(msa, **kwargs)
         except IOError:
