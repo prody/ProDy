@@ -63,12 +63,10 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),] 
-    expect = kwargs.pop('expect', 10e-10)
-    assert isinstance(expect, (float, int)), 'expect must be a float'
+    expect = float(kwargs.pop('expect', 10e-10))
     assert expect > 0, 'expect must be a positive number'
     query.append(('EXPECT', expect))
-    hitlist_size = kwargs.pop('hitlist_size', 250)
-    assert isinstance(hitlist_size, int), 'hitlist_size must be an integer'
+    hitlist_size = int(kwargs.pop('hitlist_size', 250))
     assert hitlist_size > 0, 'expect must be a positive integer'
     query.append(('HITLIST_SIZE', hitlist_size))
     query.append(('QUERY', sequence))
@@ -131,13 +129,17 @@ def blastPDB(sequence, filename=None, **kwargs):
             return None
     LOGGER.clear()
     LOGGER.report('Blast search completed in %.1fs.', '_prody_blast')
-    if isinstance(filename, str):
-        if not filename.lower().endswith('.xml'):
-                filename += '.xml'        
+    try:
+        ext_xml = filename.lower().endswith('.xml')
+    except AttributeError: 
+        pass
+    else:
+        if not ext_xml: 
+            filename += '.xml'        
         out = open(filename, 'w')
         out.write(results)
         out.close()
-        LOGGER.info('Results are saved as {0:s}.'.format(filename))
+        LOGGER.info('Results are saved as {0:s}.'.format(repr(filename)))
     return PDBBlastRecord(results, sequence)
 
 
@@ -153,6 +155,7 @@ class PDBBlastRecord(object):
         :arg xml: blast search results in XML format or an XML file that 
             contains the results
         :type xml: str
+        
         :arg sequence: query sequence
         :type sequence: str"""
 
