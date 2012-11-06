@@ -443,6 +443,43 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     double *mut = (double *)PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
 
     /* start here */
+    long i = 0, j = 0;
+    
+    double **count;
+    count = (double **) malloc((size_t) numseq * sizeof(double*));
+    if (!count) {
+    free((void *) count);
+        PyErr_SetString(PyExc_MemoryError, "out of memory");
+        return 0;
+    }
+
+
+    for (i = 0; i < numseq; i++)  {
+        count[i] = (double *) malloc((size_t) 27 * sizeof(double));  
+        if (!count[i]) {
+            for (j = 0; j <= i; j++) {
+                free((void *) count[j]);
+            }
+            free((void *) count);
+            PyErr_SetString(PyExc_MemoryError, "out of memory");
+            return NULL;
+        }
+        for (j = 0; j <= 27; j++)
+            count[i][0] = 0;
+    } 
+    double joint[90][90];
+
+
+    for (i = 0; i < lenseq; i++) {
+        for (j = i + 1; j < lenseq; j++) {
+            
+        }
+    }
+
+    for (i = 0; i < numseq; i++){  
+        free((void *) count[i]);
+    }  
+    free((void *) count);
 
     /* end here */
     Py_XDECREF(arrobj);
