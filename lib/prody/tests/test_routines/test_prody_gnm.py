@@ -33,7 +33,7 @@ from prody.routines import prody_parser
 
 from . import NOPRODYCMD
 
-class TestPCACommand(TestCase): 
+class TestGNMCommand(TestCase): 
     
     def setUp(self):
 

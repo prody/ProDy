@@ -1,27 +1,12 @@
 import os 
 import sys
 import platform
-from shutil import copy
 from os import sep as dirsep
 from os.path import isfile, join
 
 from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.install import install
-
-# copy compiled C modules and exit
-if len(sys.argv) > 1 and sys.argv[1] == 'copy':
-    
-    from glob import glob
-    ext = '.pyd' if platform == 'Windows' else '.so'
-    base = join('build', 
-                'lib*' + '.'.join([str(i) for i in sys.version_info[:2]]))
-    for src in glob(join(base, 'prody', '*', '*' + ext)):
-        dst = join(*src.split(dirsep)[2:])
-        dst = join('lib', dst)
-        sys.stderr.write('cp ' + src + ' ' + dst + '\n')
-        copy(src, dst)
-    sys.exit()
 
 PY3K = sys.version_info[0] > 2
 if PY3K:
