@@ -6,17 +6,19 @@
 How to Make a Release
 *******************************************************************************
 
-#. Make sure ProDy imports and passes unit tests (Python 2.7)::
+#. Make sure ProDy imports and passes all unit tests (Python 2.7)::
      
-     $ python
-     >>> import prody
-     >>> prody.test()
+     $ prody test -l full
+     
+   See :ref:`testing` for alternative testing methods. 
+
 
 #. Clean the contents of the :file:`Documentation` folder::
 
      $ cd doc
      $ make clean
-  
+
+
 #. Make sure ProDy passes doctests::
 
      $ make doctest
@@ -32,20 +34,24 @@ How to Make a Release
    
    * :file:`doc/changes.rst`.
 
+
 #. Make sure the following files are  file is up-to-date.
     
    * :file:`README.txt`
    * :file:`MANIFEST.in`
    * :file:`setup.py`
 
+
 #. Copy the documentation files packed with source release::
 
      $ make copytxt
+
 
 #. Generate the source distributions::
 
      $ cd ..
      $ python setup.py sdist --formats=gztar,zip
+  
   
 #. Generate Windows installers using Python 2.6 and 2.7
    (see :ref:`wininst`)::
@@ -53,36 +59,43 @@ How to Make a Release
      $ C:\python26\python setup.py bdist_wininst
      $ C:\python27\python setup.py bdist_wininst
 
+
 #. Test the installers.
+
 
 #. Register new release to PyPI::
 
      $ python setup.py register
 
+
 #. Upload the new release files to the 
    `PyPI <http://pypi.python.org/pypi/ProDy/>`_.
+
 
 #. Update new release file links::
    
      $ cd doc
      $ make stats
 
+
 #. Generate HTML and PDF documentation::
 
      $ make html
      $ make latexpdf
+
 
 #. Commit the final changes::
 
      $ cd ..
      $ git commit -a
   
+  
 #. Tag the repository with the current version number::
 
      $ git tag vX.Y
+  
   
 #. Push the changes with tags to 
    `Bitbucket <https://bitbucket.org/abakan/prody>`_::
 
      $ git push --tags origin master
-
