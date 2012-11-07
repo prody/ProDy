@@ -32,12 +32,12 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
        the sequences are aligned, i.e. have same number of lines at equal
        lengths. */
 
-	char *filename;
-	PyArrayObject *msa;
-	
-	if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
-		return NULL;
-	
+    char *filename;
+    PyArrayObject *msa;
+    
+    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
+        return NULL;
+    
     long i = 0, lenseq = msa->dimensions[1];
     long lenline = 0, lenlast = 0, numlines = 0; 
     long size = lenseq + 100, iline = 0;
@@ -63,8 +63,8 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     long index = 0, ccount = 0;
     char *data = (char *)PyArray_DATA(msa);
     char clabel[size], ckey[size];
-	PyObject *labels, *dict, *plabel, *pkey, *pcount;
-	labels = PyList_New(0);
+    PyObject *labels, *dict, *plabel, *pkey, *pcount;
+    labels = PyList_New(0);
     dict = PyDict_New();
 
     while (fgets(line, size, file) != NULL) {
@@ -156,7 +156,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     PyObject *result = Py_BuildValue("(OO)", labels, dict);
     Py_DECREF(labels);
     Py_DECREF(dict);
-	return result;
+    return result;
 }
 
 
@@ -166,11 +166,11 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
        Numpy array passed as Python object.  This function assumes that
        the sequences are aligned, i.e. start and end at the same column. */
 
-	char *filename;
-	PyArrayObject *msa;
-	
-	if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
-		return NULL;
+    char *filename;
+    PyArrayObject *msa;
+    
+    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
+        return NULL;
 
     long i = 0, beg = 0, end = 0, lenseq = msa->dimensions[1]; 
     long size = lenseq + 100, iline = 0;
@@ -199,8 +199,8 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     long index = 0, ccount = 0;
     char *data = (char *)PyArray_DATA(msa);
     char clabel[beg], ckey[beg];
-	PyObject *labels, *dict, *plabel, *pkey, *pcount;
-	labels = PyList_New(0);
+    PyObject *labels, *dict, *plabel, *pkey, *pcount;
+    labels = PyList_New(0);
     dict = PyDict_New();
 
     int space = beg - 1; /* index of space character before sequence */
@@ -275,21 +275,21 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     PyObject *result = Py_BuildValue("(OO)", labels, dict);
     Py_DECREF(labels);
     Py_DECREF(dict);
-	return result;
+    return result;
 }
 
 
 static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
-	PyArrayObject *msa, *entropy;
-	int dividend = 0;
-	
+    PyArrayObject *msa, *entropy;
+    int dividend = 0;
+    
     static char *kwlist[] = {"msa", "entropy", "dividend", NULL};
-		
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
-	                                 &msa, &entropy, &dividend))
-		return NULL;
+        
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
+                                     &msa, &entropy, &dividend))
+        return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
@@ -464,14 +464,14 @@ static double calcMI(double *joint[], double *probs[], long i, long j) {
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
-	PyArrayObject *msa, *mutinfo;
-	int debug = 0;
-	
+    PyArrayObject *msa, *mutinfo;
+    int debug = 0;
+    
     static char *kwlist[] = {"msa", "mutinfo", "debug", NULL};
-		
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
-	                                 &msa, &mutinfo, &debug))
-		return NULL;
+        
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
+                                     &msa, &mutinfo, &debug))
+        return NULL;
 
     /* check dimensions */
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -667,33 +667,33 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
 
 static PyMethodDef msatools_methods[] = {
 
-	{"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
-	 "Return list of labels and a dictionary mapping labels to sequences \n"
-	 "after parsing the sequences into empty numpy character array."},
+    {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
+     "Return list of labels and a dictionary mapping labels to sequences \n"
+     "after parsing the sequences into empty numpy character array."},
 
-	{"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
-	 "Return list of labels and a dictionary mapping labels to sequences \n"
-	 "after parsing the sequences into empty numpy character array."},
+    {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
+     "Return list of labels and a dictionary mapping labels to sequences \n"
+     "after parsing the sequences into empty numpy character array."},
 
-	{"calcShannonEntropy",  (PyCFunction)calcShannonEntropy, 
+    {"calcShannonEntropy",  (PyCFunction)calcShannonEntropy, 
      METH_VARARGS | METH_KEYWORDS, 
-	 "Calculate information entropy for given character array into given \n"
+     "Calculate information entropy for given character array into given \n"
      "double array."},
 
-	{"calcMutualInfo",  (PyCFunction)calcMutualInfo, 
+    {"calcMutualInfo",  (PyCFunction)calcMutualInfo, 
      METH_VARARGS | METH_KEYWORDS, 
-	 "Calculate mutual information for given character array into given \n"
+     "Calculate mutual information for given character array into given \n"
      "2D double array."},
      
-	{NULL, NULL, 0, NULL}
-	
+    {NULL, NULL, 0, NULL}
+    
 };
 
 
 PyMODINIT_FUNC initmsatools(void) {
 
-	Py_InitModule3("msatools", msatools_methods,
-	    "Multiple sequence alignment IO and analysis tools.");
-	    
+    Py_InitModule3("msatools", msatools_methods,
+        "Multiple sequence alignment IO and analysis tools.");
+        
     import_array();
 }
