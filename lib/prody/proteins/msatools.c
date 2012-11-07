@@ -547,6 +547,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 }
             }
             
+            /*
             if (debug) {
                 printf("\nJoint probability\n");
                 double sum = 0;
@@ -558,7 +559,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     printf("\n");
                 }
                 printf("sum %.2f\n", sum);
-            }
+            }*/
             
             if (!i) {
                 for (k = 0; k < lenseq; k++) {
@@ -575,7 +576,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                         prow[5] = prow[17] = prow[26] / 2.;
                         prow[26] = 0;
                     }
-                    if (prow[24] > 0) {
+                    if (prow[24] > 0) { /* X -> 20 AA */
                         jp = prow[24] / 20.; 
                         for (l = 0; l < 20; l++)
                             prow[twenty[l]] += jp;
@@ -637,7 +638,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     joint[24][l] = 0;
                 }
             }
-            
+            /*
             if (debug) {
                 printf("\nJoint probability\n");
                 double sum = 0;
@@ -649,7 +650,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     printf("\n");
                 }
                 printf("sum %.2f\n", sum);
-            }
+            }*/
             
             mi = 0;
             for (k = 0; k < 27; k++) {
@@ -657,10 +658,11 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 for (l = 0; l < 27; l++) {
                     jp = jrow[l];
                     if (jp > 0) {
+                        /*
                         if (debug)
                             printf("%c (%.3f) %c (%.3f) - (%.3f)\n",
                                     (char) k + 64, probs[i][k],  
-                                    (char) l + 64, probs[j][l], jp);
+                                    (char) l + 64, probs[j][l], jp);*/
                                 
                         mi += jp * log(jp / probs[i][k] / probs[j][l]);
                     }
@@ -671,6 +673,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             /*printf("%li %li %f\n", i, j, mi);*/
         }
     }
+    /*
     if (debug) {
         printf("Probability table\n");
         for (i=0; i<lenseq; i++) { 
@@ -679,7 +682,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             }
             printf("\n");
         }
-    }
+    }*/
     
     /* free memory */
     for (i = 0; i < lenseq; i++){  
