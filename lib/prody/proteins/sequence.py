@@ -537,7 +537,7 @@ def calcShannonEntropy(msa, dividend=False):
     return entropy
     
     
-def calcMutualInfo(msa):
+def calcMutualInfo(msa, **kwargs):
     """Return mutual info matrix calculated for *msa*, which may be an 
     :class:`MSA` instance or a 2D Numpy character array."""
     
@@ -556,5 +556,5 @@ def calcMutualInfo(msa):
         
     mutinfo = zeros((shape[1], shape[1]), float)
     from .msatools import calcMutualInfo
-    calcShannonEntropy(msa, mutinfo)
+    calcMutualInfo(msa, mutinfo, debug=kwargs.get('debug', False))
     return mutinfo
