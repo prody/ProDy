@@ -441,21 +441,21 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     double *mut = (double *) PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
 
     /* allocate memory */
-    int *iseq = malloc((size_t) numseq * sizeof(double));
+    int *iseq = malloc(numseq * sizeof(double));
     if (!iseq) {
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
     
     double **probs;
-    probs = (double **) malloc((size_t) lenseq * sizeof(double*));
+    probs = malloc(lenseq * sizeof(double*));
     if (!probs) {
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
 
     double **joint;
-    joint = (double **) malloc((size_t) 27 * sizeof(double*));
+    joint = malloc(27 * sizeof(double*));
     if (!joint) {
         free(probs);
         PyErr_SetString(PyExc_MemoryError, "out of memory");
@@ -464,7 +464,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     
     long i, j;
     for (i = 0; i < lenseq; i++)  {
-        probs[i] = (double *) malloc((size_t) 27 * sizeof(double));  
+        probs[i] = malloc(27 * sizeof(double));  
         if (!probs[i]) {
             for (j = 0; j <= i; j++)
                 free(probs[j]);
@@ -478,7 +478,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     }
 
     for (i = 0; i < 27; i++)  {
-        joint[i] = (double *) malloc((size_t) 27 * sizeof(double));  
+        joint[i] = malloc(27 * sizeof(double));  
         if (!joint[i]) {
             for (j = 0; j <= i; j++)
                 free(joint[j]);
