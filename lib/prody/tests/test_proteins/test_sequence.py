@@ -27,7 +27,7 @@ from numpy.testing import assert_equal, assert_array_almost_equal, dec
 
 from prody.tests.test_datafiles import *
 
-from prody import MSAFile, parseMSA, LOGGER, calcShannonEntropy
+from prody import MSAFile, parseMSA, LOGGER, calcShannonEntropy, calcMutualInfo
 
 LOGGER.verbosity = None
 
@@ -147,3 +147,51 @@ class TestCalcShannonEntropy(TestCase):
         result = calcInfoEntropy(msa)
         assert_array_almost_equal(expect, result)
 """
+
+
+class TestCalcMutualInfo(TestCase):
+  
+    def testSixSequences(self):
+        
+        msa = array([list('ACCA'), 
+                     list('ACDA'),
+                     list('ACEC'),
+                     list('ACGC')])
+
+        expect = array([[0., 0., 0., 0.],
+                        [0., 0., 0., 0.],
+                        [0., 0., 0., log(2.)],
+                        [0., 0., log(2.), 0.],]) 
+        result = calcMutualInfo(msa)
+        assert_array_almost_equal(expect, result)
+
+    def testTwenty(self):
+        
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)])
+
+        expect = log(20.)
+        expect = array([[0., expect],
+                        [expect, 0.]])
+        result = calcMutualInfo(msa)
+        assert_array_almost_equal(expect, result)
+
+    def testAmbiguous(self):
+        
+        msa = array([list('OX'),
+                     list('UX')])
+
+        expect = array([[0., 0.],
+                        [0., 0.]]) 
+        result = calcMutualInfo(msa)
+        assert_array_almost_equal(expect, result)
+        
+    def testAmbiguous2(self):
+        
+        msa = array([list('AB'),
+                     list('BZ')])
+
+        expect = array([[0., log(2.)],
+                        [log(2.), 0.]]) 
+        result = calcMutualInfo(msa)
+        assert_array_almost_equal(expect, result)
