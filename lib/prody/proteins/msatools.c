@@ -33,17 +33,11 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
        lengths. */
 
 	char *filename;
-	PyObject *arrobj;
 	PyArrayObject *msa;
 	
-	if (!PyArg_ParseTuple(args, "sO", &filename, &arrobj))
+	if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
 		return NULL;
 	
-    msa = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
-    if (msa == NULL)
-        return NULL;
-
     long i = 0, lenseq = msa->dimensions[1];
     long lenline = 0, lenlast = 0, numlines = 0; 
     long size = lenseq + 100, iline = 0;
@@ -63,9 +57,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         break;
     }
     
-    
     fseek(file, 0, SEEK_SET);
-
 
     int slash = 0, dash = 0, j = 0;
     long index = 0, ccount = 0;
@@ -109,7 +101,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
                 PyDict_SetItem(dict, pkey, pcount)) {
                 PyErr_SetString(PyExc_IOError, 
                                 "failed to parse msa, at line");
-                Py_DECREF(arrobj);
                 Py_XDECREF(pcount);
                 Py_XDECREF(plabel);
                 Py_XDECREF(pkey);
@@ -128,7 +119,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
                 PyDict_SetItem(dict, plabel, pcount)) {
                 PyErr_SetString(PyExc_IOError, 
                                 "failed to parse msa, at line");
-                Py_DECREF(arrobj);
                 Py_XDECREF(pcount);
                 Py_XDECREF(plabel);
                 return NULL;
@@ -144,7 +134,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
             if (fgets(line, size, file) == NULL) {
                 PyErr_SetString(PyExc_IOError, 
                                 "failed to parse msa, at line");
-                Py_DECREF(arrobj);
                 return NULL;
             }
             for (j = 0; j < lenline; j++)
@@ -155,7 +144,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
             if (fgets(line, size, file) == NULL) {
                 PyErr_SetString(PyExc_IOError, 
                                 "failed to parse msa, at line");
-                Py_DECREF(arrobj);
                 return NULL;
             }
             for (j = 0; j < lenlast; j++)
@@ -165,7 +153,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     }
 
     fclose(file);
-    Py_XDECREF(arrobj);
     PyObject *result = Py_BuildValue("(OO)", labels, dict);
     Py_DECREF(labels);
     Py_DECREF(dict);
@@ -180,16 +167,10 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
        the sequences are aligned, i.e. start and end at the same column. */
 
 	char *filename;
-	PyObject *arrobj;
 	PyArrayObject *msa;
 	
-	if (!PyArg_ParseTuple(args, "sO", &filename, &arrobj))
+	if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
 		return NULL;
-
-    msa = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
-    if (msa == NULL)
-        return NULL;
 
     long i = 0, beg = 0, end = 0, lenseq = msa->dimensions[1]; 
     long size = lenseq + 100, iline = 0;
@@ -258,7 +239,6 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
                 PyDict_SetItem(dict, pkey, pcount)) {
                 PyErr_SetString(PyExc_IOError, 
                                 "failed to parse msa, at line");
-                Py_DECREF(arrobj);
                 Py_XDECREF(pcount);
                 Py_XDECREF(plabel);
                 Py_XDECREF(pkey);
@@ -277,7 +257,6 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
                 PyDict_SetItem(dict, plabel, pcount)) {
                 PyErr_SetString(PyExc_IOError, 
                                 "failed to parse msa, at line");
-                Py_DECREF(arrobj);
                 Py_XDECREF(pcount);
                 Py_XDECREF(plabel);
                 return NULL;
@@ -292,7 +271,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
         ccount++;
     }
     fclose(file);
-    Py_XDECREF(arrobj);
+
     PyObject *result = Py_BuildValue("(OO)", labels, dict);
     Py_DECREF(labels);
     Py_DECREF(dict);
@@ -303,38 +282,25 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
-	PyObject *arrobj, *result;
 	PyArrayObject *msa, *entropy;
 	int dividend = 0;
 	
     static char *kwlist[] = {"msa", "entropy", "dividend", NULL};
 		
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
-	                                 &arrobj, &result, &dividend))
+	                                 &msa, &entropy, &dividend))
 		return NULL;
     
-    msa = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
-    if (msa == NULL)
-        return NULL;
-    
-    entropy = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(result, PyArray_DOUBLE, 1, 1);
-    if (entropy == NULL)
-        return NULL;
-
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
     if (entropy->dimensions[0] != lenseq) {
-        Py_XDECREF(arrobj);
-        Py_XDECREF(result);
         PyErr_SetString(PyExc_IOError, 
                         "msa and entropy array shapes do not match");
         return NULL;
     }
 
-    char *seq = (char *)PyArray_DATA(msa);
-    double *ent = (double *)PyArray_DATA(entropy);
+    char *seq = (char *) PyArray_DATA(msa);
+    double *ent = (double *) PyArray_DATA(entropy);
 
     /* start here */
     long size = numseq * lenseq; 
@@ -407,11 +373,8 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
         }
         ent[i] = -shannon;
     }
-    /* end here */
-    Py_XDECREF(arrobj);
-    Py_XDECREF(result);
-    Py_RETURN_NONE;
 
+    Py_RETURN_NONE;
 }
 
 static void fixJoint(double *joint[]) {
