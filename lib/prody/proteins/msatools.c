@@ -416,35 +416,19 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
-	PyObject *arrobj, *result;
 	PyArrayObject *msa, *mutinfo;
 	int debug = 0;
 	
     static char *kwlist[] = {"msa", "mutinfo", "debug", NULL};
 		
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
-	                                 &arrobj, &result, &debug))
+	                                 &msa, &mutinfo, &debug))
 		return NULL;
-    
-    /* get array objects */
-    
-    msa = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
-    if (msa == NULL)
-        return NULL;
-    
-    mutinfo = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(result, PyArray_DOUBLE, 2, 2);
-    if (mutinfo == NULL)
-        return NULL;
-    
-    /* get and check dimensions */
+    /* check dimensions */
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
     if (mutinfo->dimensions[0] != lenseq || mutinfo->dimensions[1] != lenseq) {
-        Py_DECREF(arrobj);
-        Py_DECREF(result);
         PyErr_SetString(PyExc_IOError, 
                         "msa and mutinfo array shapes do not match");
         return NULL;
@@ -711,10 +695,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     free((void *) joint);
     free((void *) iseq);
     /* end here */
-    Py_DECREF(arrobj);
-    Py_DECREF(result);
     Py_RETURN_NONE;
-
 }
 
 
