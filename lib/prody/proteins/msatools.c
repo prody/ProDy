@@ -164,7 +164,10 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     fclose(file);
     Py_XDECREF(arrobj);
-	return Py_BuildValue("(OO)", labels, dict);
+    PyObject *result = Py_BuildValue("(OO)", labels, dict);
+    Py_DECREF(labels);
+    Py_DECREF(dict);
+	return result;
 }
 
 
@@ -248,7 +251,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
             pkey = PyString_FromString(ckey);
             plabel = PyString_FromString(clabel);
             pcount = PyInt_FromLong(ccount);
-            if (plabel == NULL || pcount == NULL ||
+            if (!plabel || !pcount || 
                 PyList_Append(labels, plabel) < 0 ||
                 PyDict_SetItem(dict, pkey, pcount)) {
                 PyErr_SetString(PyExc_IOError, 
@@ -267,7 +270,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
             clabel[i] = '\0';
             plabel = PyString_FromString(clabel);
             pcount = PyInt_FromLong(ccount);
-            if (plabel == NULL || pcount == NULL ||
+            if (!plabel || !pcount ||
                 PyList_Append(labels, plabel) < 0 ||
                 PyDict_SetItem(dict, plabel, pcount)) {
                 PyErr_SetString(PyExc_IOError, 
@@ -288,7 +291,10 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     }
     fclose(file);
     Py_XDECREF(arrobj);
-	return Py_BuildValue("(OO)", labels, dict);
+    PyObject *result = Py_BuildValue("(OO)", labels, dict);
+    Py_DECREF(labels);
+    Py_DECREF(dict);
+	return result;
 }
 
 
@@ -402,7 +408,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     /* end here */
     Py_XDECREF(arrobj);
     Py_XDECREF(result);
-    return Py_BuildValue("");
+    Py_RETURN_NONE;
 
 }
 
@@ -412,12 +418,15 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
 
 	PyObject *arrobj, *result;
 	PyArrayObject *msa, *mutinfo;
+	int debug = 0;
 	
-    static char *kwlist[] = {"msa", "mutinfo", NULL};
+    static char *kwlist[] = {"msa", "mutinfo", "debug", NULL};
 		
-	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO", kwlist,
-	                                 &arrobj, &result))
+	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
+	                                 &arrobj, &result, &debug))
 		return NULL;
+    
+    /* get array objects */
     
     msa = (PyArrayObject *) 
         PyArray_ContiguousFromObject(arrobj, PyArray_CHAR, 2, 2);
@@ -425,66 +434,286 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
         return NULL;
     
     mutinfo = (PyArrayObject *) 
-        PyArray_ContiguousFromObject(result, PyArray_DOUBLE, 1, 1);
+        PyArray_ContiguousFromObject(result, PyArray_DOUBLE, 2, 2);
     if (mutinfo == NULL)
         return NULL;
-
+    
+    /* get and check dimensions */
+    
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
     if (mutinfo->dimensions[0] != lenseq || mutinfo->dimensions[1] != lenseq) {
-        Py_XDECREF(arrobj);
-        Py_XDECREF(result);
+        Py_DECREF(arrobj);
+        Py_DECREF(result);
         PyErr_SetString(PyExc_IOError, 
                         "msa and mutinfo array shapes do not match");
         return NULL;
     }
-
+    
+    /* get pointers to data */
+    
     char *seq = (char *)PyArray_DATA(msa); /*size: numseq x lenseq */
     double *mut = (double *)PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
 
     /* start here */
-    long i = 0, j = 0;
+    long i = 0, j = 0, k = 0, l = 0, diff = 0, offset = 0;
     
-    double **count;
-    count = (double **) malloc((size_t) numseq * sizeof(double*));
-    if (!count) {
-    free((void *) count);
+    int *iseq = malloc((size_t) numseq * sizeof(double));
+    if (!iseq) {
         PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return 0;
+        return NULL;
     }
-
-
-    for (i = 0; i < numseq; i++)  {
-        count[i] = (double *) malloc((size_t) 27 * sizeof(double));  
-        if (!count[i]) {
+    
+    double **probs;
+    double **joint;
+    
+    probs = (double **) malloc((size_t) lenseq * sizeof(double*));
+    if (!probs) {
+        PyErr_SetString(PyExc_MemoryError, "out of memory");
+        return NULL;
+    }
+    joint = (double **) malloc((size_t) 27 * sizeof(double*));
+    if (!joint) {
+        free((void *) probs);
+        PyErr_SetString(PyExc_MemoryError, "out of memory");
+        return NULL;
+    }
+    
+    for (i = 0; i < lenseq; i++)  {
+        probs[i] = (double *) malloc((size_t) 27 * sizeof(double));  
+        if (!probs[i]) {
             for (j = 0; j <= i; j++) {
-                free((void *) count[j]);
+                free((void *) probs[j]);
             }
-            free((void *) count);
+            free((void *) probs);
             PyErr_SetString(PyExc_MemoryError, "out of memory");
             return NULL;
         }
-        for (j = 0; j <= 27; j++)
-            count[i][0] = 0;
-    } 
-    double joint[90][90];
-
-
-    for (i = 0; i < lenseq; i++) {
-        for (j = i + 1; j < lenseq; j++) {
-            
-        }
+        for (j = 0; j < 27; j++)
+            probs[i][j] = 0;
     }
 
-    for (i = 0; i < numseq; i++){  
-        free((void *) count[i]);
-    }  
-    free((void *) count);
+    for (i = 0; i < 27; i++)  {
+        joint[i] = (double *) malloc((size_t) 27 * sizeof(double));  
+        if (!joint[i]) {
+            for (j = 0; j <= i; j++) {
+                free((void *) joint[j]);
+            }
+            for (j = 0; j <= lenseq; j++) {
+                free((void *) probs[j]);
+            }
+            free((void *) probs);
+            free((void *) joint);
+            PyErr_SetString(PyExc_MemoryError, "out of memory");
+            return NULL;
+        }
+    }
+    
+    double *jrow;    
+    
+    double p_incr = 1. / numseq;
+    double p_half = p_incr / 2.;
+    double p_twth = p_incr / 20.;
+    int twenty[] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 
+                    14, 16, 17, 18, 19, 20, 22, 23, 25};
 
+    double mi = 0, jp = 0;
+    int a, b;
+    /*printf("\n");*/
+    for (i = 0; i < lenseq; i++) {
+        for (j = i + 1; j < lenseq; j++) {
+
+            for (k = 0; k < 27; k++)
+                for (l = 0; l < 27; l++)
+                    joint[k][l] = 0;
+        
+            diff = j - i - 1;
+            for (k = 0; k < numseq; k++) {
+                offset = k * lenseq;
+                if (diff) {
+                    a = iseq[k];
+                } else {
+                    a = (int) seq[offset + i];
+                    if (a > 90)
+                        a -= 96;
+                    else
+                        a -= 64;
+                    if (a < 1 || a > 26)
+                        a = 0; /* gap character */
+                    iseq[k] = a;
+                }
+                
+                b = (int) seq[offset + j];
+                if (b > 90)
+                    b -= 96;
+                else
+                    b -= 64;
+                if (b < 1 || b > 26)
+                    b = 0; /* gap character */
+                joint[a][b] += p_incr;
+                /*
+                printf("%li %li %c %c %f \n", 
+                       i, j, (char) a + 64, (char) b + 64, joint[a][b]);
+                */
+                
+                if (!i) {
+                    if (b == 2) { /* B */
+                        probs[j][4] += p_half; /* D */
+                        probs[j][14] += p_half; /* N */
+                    } else if (b == 26) { /* Z */
+                        probs[j][5] += p_half; /* E */
+                        probs[j][17] += p_half; /* Q */
+                    } else if (b == 10) { /* J */
+                        probs[j][9] += p_half; /* I */
+                        probs[j][12] += p_half; /* L */
+                    } else if (b == 24) { /* X */
+                        for (l = 0; l < 20; l++)
+                            probs[j][twenty[l]] += p_twth;
+                    } else {
+                        probs[j][b] += p_incr;
+                    }        
+                    
+                    if (!diff) {
+                        if (a == 2) { /* B */
+                            probs[i][4] += p_half; /* D */
+                            probs[i][14] += p_half; /* N */
+                        } else if (a == 26) { /* Z */
+                            probs[i][5] += p_half; /* E */
+                            probs[i][17] += p_half; /* Q */
+                        } else if (a == 10) { /* J */
+                            probs[i][9] += p_half; /* I */
+                            probs[i][12] += p_half; /* L */
+                        } else if (a == 24) { /* X */
+                            for (l = 0; l < 20; l++)
+                                probs[i][twenty[l]] += p_twth;
+                        } else {
+                            probs[i][a] += p_incr;
+                        }        
+                    }
+                }
+            }
+            
+            if (debug) {
+                printf("\nJoint probability\n");
+                double sum = 0;
+                for (k = 0; k < 27; k++) {
+                    for (l = 0; l < 27; l++) {
+                        printf("%.2f ", joint[k][l]*10);
+                        sum += joint[k][l];
+                    }
+                    printf("\n");
+                }
+                printf("sum %.2f\n", sum);
+            }
+            
+            for (k = 0; k < 27; k++) {
+                jrow = joint[k]; 
+                /* B */
+                jp = jrow[2];  
+                if (jp > 0) {
+                    jrow[4] = jrow[14] = jp / 2;
+                    jrow[2] = 0;
+                }
+                jp = joint[2][k]; 
+                if (jp > 0) {
+                    joint[4][k] = joint[14][k] = jp / 2;
+                    joint[2][k] = 0;
+                }
+                /* Z */
+                jp = jrow[26]; 
+                if (jp > 0) {
+                    jrow[5] = jrow[17] = jp / 2;
+                    jrow[26] = 0;
+                }
+                jp = joint[26][k]; 
+                if (jp > 0) {
+                    joint[5][k] = joint[17][k] = jp / 2;
+                    joint[26][k] = 0;
+                }
+                /* J */
+                jp = jrow[10]; 
+                if (jp > 0) {
+                    jrow[9] = jrow[12] = jp / 2;
+                    jrow[10] = 0;
+                }
+                jp = joint[10][k]; 
+                if (jp > 0) {
+                    joint[9][k] = joint[12][k] = jp / 2;
+                    joint[10][k] = 0;
+                }
+                /* X */
+                jp = jrow[24]; 
+                if (jp > 0) {
+                    jp = jp / 20.;
+                    for (l = 0; l < 20; l++)
+                        jrow[twenty[l]] = jp;    
+                    jrow[24] = 0;
+                }
+                jp = joint[24][k]; 
+                if (jp > 0) {
+                    jp = jp / 20.;
+                    for (l = 0; l < 20; l++)
+                        joint[twenty[l]][k] = jp;    
+                    joint[24][l] = 0;
+                }
+            }
+            
+            if (debug) {
+                printf("\nJoint probability\n");
+                double sum = 0;
+                for (k = 0; k < 27; k++) {
+                    for (l = 0; l < 27; l++) {
+                        printf("%.2f ", joint[k][l]*10);
+                        sum += joint[k][l];
+                    }
+                    printf("\n");
+                }
+                printf("sum %.2f\n", sum);
+            }
+            
+            mi = 0;
+            for (k = 0; k < 27; k++) {
+                jrow = joint[k];
+                for (l = 0; l < 27; l++) {
+                    jp = jrow[l];
+                    if (jp > 0) {
+                        if (debug)
+                            printf("%c (%.3f) %c (%.3f) - (%.3f)\n",
+                                    (char) k + 64, probs[i][k],  
+                                    (char) l + 64, probs[j][l], jp);
+                                
+                        mi += jp * log(jp / probs[i][k] / probs[j][l]);
+                    }
+                }
+            }        
+            mut[i * lenseq + j] = mi;
+            mut[i + lenseq * j] = mi;
+            /*printf("%li %li %f\n", i, j, mi);*/
+        }
+    }
+    if (debug) {
+        printf("Probability table\n");
+        for (i=0; i<lenseq; i++) { 
+            for (j=0; j<27; j++) {
+                printf("%.2f ", probs[i][j]);  
+            }
+            printf("\n");
+        }
+    }
+    for (i = 0; i < lenseq; i++){  
+        free((void *) probs[i]);
+    }  
+    free((void *) probs);
+    
+    for (i = 0; i < 27; i++){  
+        free((void *) joint[i]);
+    }  
+    free((void *) joint);
+    free((void *) iseq);
     /* end here */
-    Py_XDECREF(arrobj);
-    Py_XDECREF(result);
-    return Py_BuildValue("");
+    Py_DECREF(arrobj);
+    Py_DECREF(result);
+    Py_RETURN_NONE;
 
 }
 
