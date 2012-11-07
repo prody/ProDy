@@ -22,6 +22,8 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 
+const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 
+                        14, 16, 17, 18, 19, 20, 22, 23, 25};
 
 static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
@@ -412,6 +414,89 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
 
 }
 
+static void fixJoint(double *joint[]) {
+    
+    int k, l;
+    double *jrow, jp; 
+    for (k = 0; k < 27; k++) {
+        jrow = joint[k]; 
+        /* B */
+        jp = jrow[2];  
+        if (jp > 0) {
+            jrow[4] = jrow[14] = jp / 2;
+            jrow[2] = 0;
+        }
+        jp = joint[2][k]; 
+        if (jp > 0) {
+            joint[4][k] = joint[14][k] = jp / 2;
+            joint[2][k] = 0;
+        }
+        /* Z */
+        jp = jrow[26]; 
+        if (jp > 0) {
+            jrow[5] = jrow[17] = jp / 2;
+            jrow[26] = 0;
+        }
+        jp = joint[26][k]; 
+        if (jp > 0) {
+            joint[5][k] = joint[17][k] = jp / 2;
+            joint[26][k] = 0;
+        }
+        /* J */
+        jp = jrow[10]; 
+        if (jp > 0) {
+            jrow[9] = jrow[12] = jp / 2;
+            jrow[10] = 0;
+        }
+        jp = joint[10][k]; 
+        if (jp > 0) {
+            joint[9][k] = joint[12][k] = jp / 2;
+            joint[10][k] = 0;
+        }
+        /* X */
+        jp = jrow[24]; 
+        if (jp > 0) {
+            jp = jp / 20.;
+            for (l = 0; l < 20; l++)
+                jrow[twenty[l]] = jp;    
+            jrow[24] = 0;
+        }
+        jp = joint[24][k]; 
+        if (jp > 0) {
+            jp = jp / 20.;
+            for (l = 0; l < 20; l++)
+                joint[twenty[l]][k] = jp;    
+            joint[24][l] = 0;
+        }
+    }
+    
+}
+
+static void zeroJoint(double *joint[]) {
+
+    int k, l;
+    double *jrow;        
+    for (k = 0; k < 27; k++) {
+        jrow = joint[k];
+        for (l = 0; l < 27; l++)
+            jrow[l] = 0;
+    }
+}
+
+static double calcMI(double *joint[], double *probs[], long i, long j) {
+
+    int k, l;
+    double *jrow, jp, mi = 0;
+    for (k = 0; k < 27; k++) {
+        jrow = joint[k];
+        for (l = 0; l < 27; l++) {
+            jp = jrow[l];
+            if (jp > 0)
+                mi += jp * log(jp / probs[i][k] / probs[j][l]);
+        }
+    }
+    return mi;
+}
 
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
@@ -446,7 +531,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
-    
+        
     double **probs;
     probs = malloc(lenseq * sizeof(double*));
     if (!probs) {
@@ -457,12 +542,14 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     double **joint;
     joint = malloc(27 * sizeof(double*));
     if (!joint) {
+        free(iseq);
         free(probs);
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
     
     long i, j;
+   
     for (i = 0; i < lenseq; i++)  {
         probs[i] = malloc(27 * sizeof(double));  
         if (!probs[i]) {
@@ -491,25 +578,80 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             return NULL;
         }
     }
-    
-    long k, l, diff, offset;
-    double *jrow, *prow;    
-    double p_incr = 1. / numseq;
-    int twenty[] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 
-                    14, 16, 17, 18, 19, 20, 22, 23, 25};
 
-    double mi = 0, jp = 0;
     int a, b;
+    long k, l, diff, offset;
+    double *prow, p_incr = 1. / numseq, prb = 0;
+    i = 0;
+    
+    /* calculate first row of MI matrix, while calculating probabilities */
+    
+    for (j = 1; j < lenseq; j++) {
 
-    for (i = 0; i < lenseq; i++) {
-        for (j = i + 1; j < lenseq; j++) {
+        zeroJoint(joint);
+        diff = j - 1;
 
-            /* zero joint probabilities */
-            for (k = 0; k < 27; k++) {
-                jrow = joint[k];
-                for (l = 0; l < 27; l++)
-                    jrow[l] = 0;
+        for (k = 0; k < numseq; k++) {
+            offset = k * lenseq;
+            if (diff) {
+                a = iseq[k];
+            } else {
+                a = (int) seq[offset + i];
+                if (a > 90)
+                    a -= 96;
+                else
+                    a -= 64;
+                if (a < 1 || a > 26)
+                    a = 0; /* gap character */
+                iseq[k] = a;
             }
+            
+            b = (int) seq[offset + j];
+            if (b > 90)
+                b -= 96;
+            else
+                b -= 64;
+            if (b < 1 || b > 26)
+                b = 0; /* gap character */
+            joint[a][b] += p_incr;
+            
+            probs[j][b] += p_incr;
+            if (!diff)
+                probs[i][a] += p_incr;
+        }
+        
+       
+        for (k = 0; k < lenseq; k++) {
+            prow = probs[k]; 
+            if (prow[2] > 0) { /* B -> D, N  */
+                prow[4] = prow[14] = prow[2] / 2.;
+                prow[2] = 0;
+            }
+            if (prow[10] > 0) { /* J -> I, L  */
+                prow[9] = prow[12] = prow[10] / 2.;
+                prow[10] = 0;
+            }
+            if (prow[26] > 0) { /* Z -> E, Q  */
+                prow[5] = prow[17] = prow[26] / 2.;
+                prow[26] = 0;
+            }
+            if (prow[24] > 0) { /* X -> 20 AA */
+                prb = prow[24] / 20.; 
+                for (l = 0; l < 20; l++)
+                    prow[twenty[l]] += prb;
+                prow[24] = 0;
+            }
+        }
+        
+        fixJoint(joint);
+        mut[i * lenseq + j] = mut[i + lenseq * j] = calcMI(joint, probs, i, j);
+    }
+
+    /* calculate rest of MI matrix */
+    
+    for (i = 1; i < lenseq; i++) {
+        for (j = i + 1; j < lenseq; j++) {
+            zeroJoint(joint);
             
             diff = j - i - 1;
             for (k = 0; k < numseq; k++) {
@@ -535,154 +677,14 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 if (b < 1 || b > 26)
                     b = 0; /* gap character */
                 joint[a][b] += p_incr;
-                /*
-                printf("%li %li %c %c %f \n", 
-                       i, j, (char) a + 64, (char) b + 64, joint[a][b]);
-                */
-                
-                if (!i) {
-                    probs[j][b] += p_incr;
-                    if (!diff)
-                        probs[i][a] += p_incr;
-                }
             }
             
-            /*
-            if (debug) {
-                printf("\nJoint probability\n");
-                double sum = 0;
-                for (k = 0; k < 27; k++) {
-                    for (l = 0; l < 27; l++) {
-                        printf("%.2f ", joint[k][l]*10);
-                        sum += joint[k][l];
-                    }
-                    printf("\n");
-                }
-                printf("sum %.2f\n", sum);
-            }*/
-            
-            if (!i) {
-                for (k = 0; k < lenseq; k++) {
-                    prow = probs[k]; 
-                    if (prow[2] > 0) { /* B -> D, N  */
-                        prow[4] = prow[14] = prow[2] / 2.;
-                        prow[2] = 0;
-                    }
-                    if (prow[10] > 0) { /* J -> I, L  */
-                        prow[9] = prow[12] = prow[10] / 2.;
-                        prow[10] = 0;
-                    }
-                    if (prow[26] > 0) { /* Z -> E, Q  */
-                        prow[5] = prow[17] = prow[26] / 2.;
-                        prow[26] = 0;
-                    }
-                    if (prow[24] > 0) { /* X -> 20 AA */
-                        jp = prow[24] / 20.; 
-                        for (l = 0; l < 20; l++)
-                            prow[twenty[l]] += jp;
-                        prow[24] = 0;
-                    }
-                }
-            }
-            
-            
-            
-            for (k = 0; k < 27; k++) {
-                jrow = joint[k]; 
-                /* B */
-                jp = jrow[2];  
-                if (jp > 0) {
-                    jrow[4] = jrow[14] = jp / 2;
-                    jrow[2] = 0;
-                }
-                jp = joint[2][k]; 
-                if (jp > 0) {
-                    joint[4][k] = joint[14][k] = jp / 2;
-                    joint[2][k] = 0;
-                }
-                /* Z */
-                jp = jrow[26]; 
-                if (jp > 0) {
-                    jrow[5] = jrow[17] = jp / 2;
-                    jrow[26] = 0;
-                }
-                jp = joint[26][k]; 
-                if (jp > 0) {
-                    joint[5][k] = joint[17][k] = jp / 2;
-                    joint[26][k] = 0;
-                }
-                /* J */
-                jp = jrow[10]; 
-                if (jp > 0) {
-                    jrow[9] = jrow[12] = jp / 2;
-                    jrow[10] = 0;
-                }
-                jp = joint[10][k]; 
-                if (jp > 0) {
-                    joint[9][k] = joint[12][k] = jp / 2;
-                    joint[10][k] = 0;
-                }
-                /* X */
-                jp = jrow[24]; 
-                if (jp > 0) {
-                    jp = jp / 20.;
-                    for (l = 0; l < 20; l++)
-                        jrow[twenty[l]] = jp;    
-                    jrow[24] = 0;
-                }
-                jp = joint[24][k]; 
-                if (jp > 0) {
-                    jp = jp / 20.;
-                    for (l = 0; l < 20; l++)
-                        joint[twenty[l]][k] = jp;    
-                    joint[24][l] = 0;
-                }
-            }
-            /*
-            if (debug) {
-                printf("\nJoint probability\n");
-                double sum = 0;
-                for (k = 0; k < 27; k++) {
-                    for (l = 0; l < 27; l++) {
-                        printf("%.2f ", joint[k][l]*10);
-                        sum += joint[k][l];
-                    }
-                    printf("\n");
-                }
-                printf("sum %.2f\n", sum);
-            }*/
-            
-            mi = 0;
-            for (k = 0; k < 27; k++) {
-                jrow = joint[k];
-                for (l = 0; l < 27; l++) {
-                    jp = jrow[l];
-                    if (jp > 0) {
-                        /*
-                        if (debug)
-                            printf("%c (%.3f) %c (%.3f) - (%.3f)\n",
-                                    (char) k + 64, probs[i][k],  
-                                    (char) l + 64, probs[j][l], jp);*/
-                                
-                        mi += jp * log(jp / probs[i][k] / probs[j][l]);
-                    }
-                }
-            }        
-            mut[i * lenseq + j] = mi;
-            mut[i + lenseq * j] = mi;
-            /*printf("%li %li %f\n", i, j, mi);*/
+            fixJoint(joint);
+            mut[i * lenseq + j] = mut[i + lenseq * j] = 
+                calcMI(joint, probs, i, j);
         }
     }
-    /*
-    if (debug) {
-        printf("Probability table\n");
-        for (i=0; i<lenseq; i++) { 
-            for (j=0; j<27; j++) {
-                printf("%.2f ", probs[i][j]);  
-            }
-            printf("\n");
-        }
-    }*/
+    
     
     /* free memory */
     for (i = 0; i < lenseq; i++){  
@@ -697,6 +699,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     
     Py_RETURN_NONE;
 }
+
 
 
 static PyMethodDef msatools_methods[] = {
