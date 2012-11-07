@@ -465,12 +465,12 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
     PyArrayObject *msa, *mutinfo;
-    int debug = 0;
+    int ambiguous = 1, debug = 0;
     
-    static char *kwlist[] = {"msa", "mutinfo", "debug", NULL};
+    static char *kwlist[] = {"msa", "mutinfo", "ambiguous", "debug", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
-                                     &msa, &mutinfo, &debug))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
+                                     &msa, &mutinfo, &ambiguous, &debug))
         return NULL;
 
     /* check dimensions */
@@ -548,7 +548,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     i = 0;
     
     /* calculate first row of MI matrix, while calculating probabilities */
-    
+    /*time_t t = clock();*/
     for (j = 1; j < lenseq; j++) {
 
         zeroJoint(joint);
@@ -583,35 +583,35 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 probs[i][a] += p_incr;
         }
         
-       
-        for (k = 0; k < lenseq; k++) {
-            prow = probs[k]; 
-            if (prow[2] > 0) { /* B -> D, N  */
-                prow[4] = prow[14] = prow[2] / 2.;
-                prow[2] = 0;
+        if (ambiguous) {
+            for (k = 0; k < lenseq; k++) {
+                prow = probs[k]; 
+                if (prow[2] > 0) { /* B -> D, N  */
+                    prow[4] = prow[14] = prow[2] / 2.;
+                    prow[2] = 0;
+                }
+                if (prow[10] > 0) { /* J -> I, L  */
+                    prow[9] = prow[12] = prow[10] / 2.;
+                    prow[10] = 0;
+                }
+                if (prow[26] > 0) { /* Z -> E, Q  */
+                    prow[5] = prow[17] = prow[26] / 2.;
+                    prow[26] = 0;
+                }
+                if (prow[24] > 0) { /* X -> 20 AA */
+                    prb = prow[24] / 20.; 
+                    for (l = 0; l < 20; l++)
+                        prow[twenty[l]] += prb;
+                    prow[24] = 0;
+                }
             }
-            if (prow[10] > 0) { /* J -> I, L  */
-                prow[9] = prow[12] = prow[10] / 2.;
-                prow[10] = 0;
-            }
-            if (prow[26] > 0) { /* Z -> E, Q  */
-                prow[5] = prow[17] = prow[26] / 2.;
-                prow[26] = 0;
-            }
-            if (prow[24] > 0) { /* X -> 20 AA */
-                prb = prow[24] / 20.; 
-                for (l = 0; l < 20; l++)
-                    prow[twenty[l]] += prb;
-                prow[24] = 0;
-            }
-        }
-        
-        fixJoint(joint);
+            fixJoint(joint);
+        }        
         mut[i * lenseq + j] = mut[i + lenseq * j] = calcMI(joint, probs, i, j);
     }
-
+    /*printf("%f\n", (double) (clock()-t)/CLOCKS_PER_SEC);*/
     /* calculate rest of MI matrix */
-    
+    /*t = clock();*/
     for (i = 1; i < lenseq; i++) {
         for (j = i + 1; j < lenseq; j++) {
             zeroJoint(joint);
@@ -641,13 +641,13 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     b = 0; /* gap character */
                 joint[a][b] += p_incr;
             }
-            
-            fixJoint(joint);
+            if (ambiguous)
+                fixJoint(joint);
             mut[i * lenseq + j] = mut[i + lenseq * j] = 
                 calcMI(joint, probs, i, j);
         }
     }
-    
+    /*printf("%f\n", (double) (clock()-t)/CLOCKS_PER_SEC);*/
     
     /* free memory */
     for (i = 0; i < lenseq; i++){  
