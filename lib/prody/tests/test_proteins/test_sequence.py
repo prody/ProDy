@@ -289,3 +289,16 @@ class TestCalcMutualInfo(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = calcMutualInfo(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testInf(self):
+        
+        msa = zeros((500, 10), '|S1')
+        msa.fill('.')
+        msa[95,8] = 's'
+        msa[95,9] = 'i'
+        expect = zeros((10,10))
+        expect[8,9] = expect[9,8] = 0.002 * log(500.) + 0.998 * log(1. / 0.998)
+        result = calcMutualInfo(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')

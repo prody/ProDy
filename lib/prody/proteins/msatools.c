@@ -373,7 +373,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     Py_RETURN_NONE;
 }
 
-static void sortJoint(double *joint[]) {
+static void sortJoint(double **joint) {
     
     int k, l, t;
     double *jrow, jp, *krow;
@@ -572,7 +572,7 @@ static void sortJoint(double *joint[]) {
     
 }
 
-static void zeroJoint(double *joint[]) {
+static void zeroJoint(double **joint) {
 
     int k, l;
     double *jrow;        
@@ -583,29 +583,32 @@ static void zeroJoint(double *joint[]) {
     }
 }
 
-static double calcMI(double *joint[], double *iprb, double *jprb, int debug) {
+static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
 
     int k, l;
-    double *jrow, jp, mi = 0;
+    double *jrow, *iprb = probs[i], *jprb = probs[j], jp, mi = 0, inside;
     for (k = 0; k < NUMCHARS; k++) {
         jrow = joint[k];
         for (l = 0; l < NUMCHARS; l++) {
             jp = jrow[l];
-            if (jp > 0)
-                mi += jp * log(jp / iprb[k] / jprb[l]);
-            if (debug && jp > 0)
-                printf("%c%c %.4f / %.4f / %.4f\n", (char)k+64, (char)l+64, 
-                        jp, iprb[k], jprb[l]);           
+            if (jp > 0) {
+                inside = jp / iprb[k] / jprb[l];
+                if (inside != 1)
+                    mi += jp * log(inside);
+            }
+            if (dbg && jp > 0)
+                printf("(%li,%li) %c%c %.4f / %.4f / %.4f\n", 
+                        i, j, (char)k+64, (char)l+64, jp, iprb[k], jprb[l]);           
 
         }
     }
     return mi;
 }
 
-static void printJoint(double *joint[]) {
+static void printJoint(double **joint, long k, long l) {
     int i, j;
     double csum[NUMCHARS], rsum, sum = 0, *row;
-    printf("\nJoint probability matrix\n");    
+    printf("\nJoint probability matrix (%li,%li)\n", k, l);    
     printf("  ");
     for (i = 0; i < NUMCHARS; i++) {
         printf("%c_%-2i ", i + 64, i);
@@ -630,7 +633,7 @@ static void printJoint(double *joint[]) {
     printf("%.2f\n", sum);
 }
 
-static void printProbs(double *probs[], long lenseq) {
+static void printProbs(double **probs, long lenseq) {
     int i, j;
     double sum;
     double *row;
@@ -685,6 +688,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
         return NULL;
     }
     
+    /* hold transpose of the sorted character array */
     unsigned char **trans = malloc(lenseq * sizeof(unsigned char *));
     if (!trans) {
         turbo = 0;
@@ -696,7 +700,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
         for (i = 1; i < lenseq; i++) {
             trans[i] = malloc(numseq * sizeof(unsigned char));
             if (!trans[i]) {
-                for (j = 1; j <= i; j++)
+                for (j = 1; j < i; j++)
                     free(trans[j]);
                 free(trans);
                 turbo = 0;
@@ -733,9 +737,10 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     for (i = 0; i < lenseq; i++) {
         probs[i] = malloc(NUMCHARS * sizeof(double));
         if (!probs[i]) {
-            for (j = 0; j <= i; j++)
+            for (j = 0; j < i; j++)
                 free(probs[j]);
             free(probs);
+            free(joint);
             if (turbo)
                 for (j = 1; j < lenseq; j++)
                     free(trans[j]);
@@ -751,12 +756,12 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     for (i = 0; i < NUMCHARS; i++)  {
         joint[i] = malloc(NUMCHARS * sizeof(double));  
         if (!joint[i]) {
-            for (j = 0; j <= i; j++)
+            for (j = 0; j < i; j++)
                 free(joint[j]);
-            for (j = 0; j <= lenseq; j++)
+            free(joint);
+            for (j = 0; j < lenseq; j++)
                 free(probs[j]);
             free(probs);
-            free(joint);
             if (turbo)
                 for (j = 1; j < lenseq; j++)
                     free(trans[j]);
@@ -767,15 +772,11 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
         }
     }
 
-    int a, b;
+    unsigned char a, b;
     long k, l, diff, offset;
-    double *prow, *jrow, p_incr = 1. / numseq, prb = 0;
-    
-    if (debug)
-        printProbs(probs, lenseq);
+    double *prow = probs[0], *jrow, p_incr = 1. / numseq, prb = 0;
     
     i = 0;
-    prow = probs[0];
     /* calculate first row of MI matrix, while calculating probabilities */
     for (j = 1; j < lenseq; j++) {
         jrow = probs[j];
@@ -839,22 +840,18 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 }
             }
             if (debug)
-                printJoint(joint);
+                printJoint(joint, i, j);
             sortJoint(joint);
             if (debug)
-                printJoint(joint);
+                printJoint(joint, i, j);
         }
-        if (debug)
-            printProbs(probs, lenseq);
         mut[i * lenseq + j] = mut[i + lenseq * j] = 
-            calcMI(joint, probs[0], jrow, debug);
+            calcMI(joint, probs, i, j, debug);
     }
-    
-    if (turbo)
-        free(iseq);
-        
     if (debug)
         printProbs(probs, lenseq);
+    if (turbo)
+        free(iseq);
 
     
     /* calculate rest of MI matrix */
@@ -865,7 +862,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             zeroJoint(joint);
 
             if (turbo) {
-                iseq = trans[j];
+                jseq = trans[j];
                 for (k = 0; k < numseq; k++)
                     joint[iseq[k]][jseq[k]] += p_incr;
             } else {         
@@ -898,7 +895,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             if (ambiquity)
                 sortJoint(joint);
             mut[i * lenseq + j] = mut[i + lenseq * j] = 
-                calcMI(joint, probs[i], probs[j], debug);
+                calcMI(joint, probs, i, j, debug);
         }
     }
 
