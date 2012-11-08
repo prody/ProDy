@@ -498,7 +498,7 @@ def parseMSA(msa, **kwargs):
                mapping=mapping)
     
 
-def calcShannonEntropy(msa, dividend=False):
+def calcShannonEntropy(msa, ambiquity=True, dividend=False):
     """Return Shannon entropy array calculated for *msa*, which may be 
     an :class:`MSA` instance or a 2D Numpy character array.  The function
     is case insensitive and handles ambiguous amino acid characters as 
@@ -510,7 +510,8 @@ def calcShannonEntropy(msa, dividend=False):
       * **X** (Xaa) count is shared by each of standard amino acids
       
     Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
-    as distinct amino acids.
+    as distinct amino acids.  Set *ambiquity* **False** to handle all alphabet
+    characters as distinct amino acids.
     
     Gaps, which may be any non-alphabet characters, are handled in two ways:  
       
@@ -533,11 +534,12 @@ def calcShannonEntropy(msa, dividend=False):
         
     entropy = zeros(shape[1], float)
     from .msatools import calcShannonEntropy
-    calcShannonEntropy(msa, entropy, dividend=bool(dividend))
+    calcShannonEntropy(msa, entropy, ambiquity=bool(ambiquity),
+                       dividend=bool(dividend))
     return entropy
     
     
-def calcMutualInfo(msa, **kwargs):
+def calcMutualInfo(msa, ambiquity=True, turbo=True, **kwargs):
     """Return mutual info matrix calculated for *msa*, which may be an 
     :class:`MSA` instance or a 2D Numpy character array."""
     
@@ -556,5 +558,6 @@ def calcMutualInfo(msa, **kwargs):
         
     mutinfo = zeros((shape[1], shape[1]), float)
     from .msatools import calcMutualInfo
-    calcMutualInfo(msa, mutinfo, debug=kwargs.get('debug', False))
+    calcMutualInfo(msa, mutinfo, ambiquity=ambiquity, turbo=turbo,
+                   debug=kwargs.get('debug', False))
     return mutinfo

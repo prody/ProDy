@@ -278,12 +278,12 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
     PyArrayObject *msa, *entropy;
-    int dividend = 0;
+    int ambiquity = 1, dividend = 0;
     
-    static char *kwlist[] = {"msa", "entropy", "dividend", NULL};
+    static char *kwlist[] = {"msa", "entropy", "ambiquity", "dividend", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
-                                     &msa, &entropy, &dividend))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
+                                     &msa, &entropy, &ambiquity, &dividend))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -321,31 +321,32 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
             count[j] += count[j + 32];
         
         /* handle ambiguous amino acids */
-        if (count[66]) {
-            ambiguous = count[66] / 2.; /* B */
-            count[66] = 0;
-            count[68] += ambiguous; /* D */
-            count[78] += ambiguous; /* N */
+        if (ambiquity) {
+            if (count[66]) {
+                ambiguous = count[66] / 2.; /* B */
+                count[66] = 0;
+                count[68] += ambiguous; /* D */
+                count[78] += ambiguous; /* N */
+            }
+            if (count[90]) {
+                ambiguous = count[90] / 2.; /* Z */
+                count[90] = 0;
+                count[69] += ambiguous; /* E */
+                count[81] += ambiguous; /* Q */
+            }
+            if (count[74]) {
+                ambiguous = count[74] / 2.; /* J */
+                count[74] = 0;
+                count[73] += ambiguous; /* I */
+                count[76] += ambiguous; /* L */
+            }
+            if (count[88]) {
+                ambiguous = count[88] / 20.; /* X */
+                count[88] = 0;
+                for (j = 0; j < 20; j++)
+                    count[twenty[j]] += ambiguous;
+            }
         }
-        if (count[90]) {
-            ambiguous = count[90] / 2.; /* Z */
-            count[90] = 0;
-            count[69] += ambiguous; /* E */
-            count[81] += ambiguous; /* Q */
-        }
-        if (count[74]) {
-            ambiguous = count[74] / 2.; /* J */
-            count[74] = 0;
-            count[73] += ambiguous; /* I */
-            count[76] += ambiguous; /* L */
-        }
-        if (count[88]) {
-            ambiguous = count[88] / 20.; /* X */
-            count[88] = 0;
-            for (j = 0; j < 20; j++)
-                count[twenty[j]] += ambiguous;
-        }
-        
         /* non-gap counts */
         numgap = numseq;
         for (j = 65; j < 91; j++)
