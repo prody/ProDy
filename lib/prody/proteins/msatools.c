@@ -22,8 +22,11 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
+#define NUMCHARS 27
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
+const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 
+                             15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
 
 
 static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
@@ -369,14 +372,152 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     Py_RETURN_NONE;
 }
 
-static void fixJoint(double *joint[]) {
+static void sortJoint(double *joint[]) {
     
-    int k, l;
-    double *jrow, jp; 
-    for (k = 0; k < 27; k++) {
+    int k, l, t;
+    double *jrow, jp, *krow;
+    
+    /* X */
+    jrow = joint[24]; 
+    jp = jrow[24]; /* XX */
+    if (jp > 0) {
+        jp = jp / 20;
+        for (k = 0; k < 20; k++) {
+            t = twenty[k];
+            joint[t][t] = jp;
+        }    
+        jrow[24] = 0;
+    }
+    /* XB */ 
+    jp = jrow[2]; 
+    if (jp > 0) {
+        jp = jp / 40;
+        for (k = 0; k < 20; k++) {
+            krow = joint[twenty[k]];
+            krow[4] = krow[14] = jp;
+        }    
+        jrow[2] = 0;
+    }
+    /* XJ */ 
+    jp = jrow[10]; 
+    if (jp > 0) {
+        jp = jp / 40;
+        for (k = 0; k < 20; k++) {
+            krow = joint[twenty[k]];
+            krow[9] = krow[12] = jp;
+        }    
+        jrow[10] = 0;
+    }
+    /* XZ */ 
+    jp = jrow[26]; 
+    if (jp > 0) {
+        jp = jp / 40;
+        for (k = 0; k < 20; k++) {
+            krow = joint[twenty[k]];
+            krow[5] = krow[17] = jp;
+        }    
+        jrow[26] = 0;
+    }
+
+    
+    /* B */
+    jrow = joint[2]; 
+    jp = jrow[2]; /* BB */
+    if (jp > 0) {
+        joint[4][4] = joint[14][14] = jp / 2;
+        jrow[2] = 0;
+    }    
+    /* BX */ 
+    jp = jrow[24]; 
+    if (jp > 0) {
+        jp = jp / 40;
+        for (k = 0; k < 20; k++) {
+            t = twenty[k];
+            joint[4][t] = joint[14][t] = jp;
+        }    
+        jrow[24] = 0;
+    }
+    /* BJ */  
+    jp = jrow[10]; 
+    if (jp > 0) {
+        joint[4][9] = joint[14][9] = joint[4][12] = joint[14][12] = jp / 4;
+        jrow[10] = 0;
+    }    
+    /* BZ */
+    jp = jrow[26]; 
+    if (jp > 0) {
+        joint[4][5] = joint[14][5] = joint[4][17] = joint[14][17] = jp / 4;
+        jrow[26] = 0;
+    }  
+    
+    /* Z */
+    jrow = joint[26]; 
+    jp = jrow[26]; /* ZZ */
+    if (jp > 0) {
+        joint[5][5] = joint[17][17] = jp / 2;
+        jrow[26] = 0;
+    }
+    /* ZX */ 
+    jp = jrow[24]; 
+    if (jp > 0) {
+        jp = jp / 40;
+        for (k = 0; k < 20; k++) {
+            t = twenty[k];
+            joint[5][t] = joint[17][t] = jp;
+        }    
+        jrow[24] = 0;
+    }
+    /* ZJ */  
+    jp = jrow[10]; 
+    if (jp > 0) {
+        joint[5][9] = joint[17][9] = joint[5][12] = joint[17][12] = jp / 4;
+        jrow[10] = 0;
+    }    
+    /* ZB */
+    jp = jrow[2]; 
+    if (jp > 0) {
+        joint[5][4] = joint[17][4] = joint[5][14] = joint[17][14] = jp / 4;
+        jrow[2] = 0;
+    }  
+    
+    /* J */
+    jrow = joint[10];
+    jp = jrow[10]; /* JJ */
+    if (jp > 0) {
+        joint[9][9] = joint[12][12] = jp / 2;
+        joint[10][10] = 0;
+    }
+    /* JX */ 
+    jp = jrow[24]; 
+    if (jp > 0) {
+        jp = jp / 40;
+        for (k = 0; k < 20; k++) {
+            t = twenty[k];
+            joint[9][t] = joint[12][t] = jp;
+        }    
+        jrow[24] = 0;
+    }
+    /* JB */
+    jp = jrow[2]; 
+    if (jp > 0) {
+        joint[9][4] = joint[12][4] = joint[9][14] = joint[12][14] = jp / 4;
+        jrow[2] = 0;
+    }
+    /* BZ */
+    jp = jrow[26]; 
+    if (jp > 0) {
+        joint[9][5] = joint[12][5] = joint[9][17] = joint[12][17] = jp / 4;
+        jrow[26] = 0;
+    }  
+    
+            
+    /*for (k = 0; k < NUMCHARS; k++) {*/
+    for (t = 0; t < 23; t++) {
+        k = unambiguous[t];
         jrow = joint[k]; 
+        
         /* B */
-        jp = jrow[2];  
+        jp = jrow[2];   
         if (jp > 0) {
             jrow[4] = jrow[14] = jp / 2;
             jrow[2] = 0;
@@ -386,19 +527,9 @@ static void fixJoint(double *joint[]) {
             joint[4][k] = joint[14][k] = jp / 2;
             joint[2][k] = 0;
         }
-        /* Z */
-        jp = jrow[26]; 
-        if (jp > 0) {
-            jrow[5] = jrow[17] = jp / 2;
-            jrow[26] = 0;
-        }
-        jp = joint[26][k]; 
-        if (jp > 0) {
-            joint[5][k] = joint[17][k] = jp / 2;
-            joint[26][k] = 0;
-        }
+        
         /* J */
-        jp = jrow[10]; 
+        jp = jrow[10];  
         if (jp > 0) {
             jrow[9] = jrow[12] = jp / 2;
             jrow[10] = 0;
@@ -408,8 +539,21 @@ static void fixJoint(double *joint[]) {
             joint[9][k] = joint[12][k] = jp / 2;
             joint[10][k] = 0;
         }
+        
+        /* Z */
+        jp = jrow[26];  
+        if (jp > 0) {
+            jrow[5] = jrow[17] = jp / 2;
+            jrow[26] = 0;
+        }
+        jp = joint[26][k]; 
+        if (jp > 0) {
+            joint[5][k] = joint[17][k] = jp / 2;
+            joint[26][k] = 0;
+        }
+        
         /* X */
-        jp = jrow[24]; 
+        jp = jrow[24];  
         if (jp > 0) {
             jp = jp / 20.;
             for (l = 0; l < 20; l++)
@@ -421,7 +565,7 @@ static void fixJoint(double *joint[]) {
             jp = jp / 20.;
             for (l = 0; l < 20; l++)
                 joint[twenty[l]][k] = jp;    
-            joint[24][l] = 0;
+            joint[24][k] = 0;
         }
     }
     
@@ -431,38 +575,90 @@ static void zeroJoint(double *joint[]) {
 
     int k, l;
     double *jrow;        
-    for (k = 0; k < 27; k++) {
+    for (k = 0; k < NUMCHARS; k++) {
         jrow = joint[k];
-        for (l = 0; l < 27; l++)
+        for (l = 0; l < NUMCHARS; l++)
             jrow[l] = 0;
     }
 }
 
-static double calcMI(double *joint[], double *probs[], long i, long j) {
+static double calcMI(double *joint[], double *iprb, double *jprb, int debug) {
 
     int k, l;
     double *jrow, jp, mi = 0;
-    for (k = 0; k < 27; k++) {
+    for (k = 0; k < NUMCHARS; k++) {
         jrow = joint[k];
-        for (l = 0; l < 27; l++) {
+        for (l = 0; l < NUMCHARS; l++) {
             jp = jrow[l];
             if (jp > 0)
-                mi += jp * log(jp / probs[i][k] / probs[j][l]);
+                mi += jp * log(jp / iprb[k] / jprb[l]);
+            if (debug && jp > 0)
+                printf("%c%c %.4f / %.4f / %.4f\n", (char)k+64, (char)l+64, 
+                        jp, iprb[k], jprb[l]);           
+
         }
     }
     return mi;
+}
+
+static void printJoint(double *joint[]) {
+    int i, j;
+    double csum[NUMCHARS], rsum, sum = 0, *row;
+    printf("\nJoint probability matrix\n");    
+    printf("  ");
+    for (i = 0; i < NUMCHARS; i++) {
+        printf("%c_%-2i ", i + 64, i);
+        csum[i] = 0;
+    }
+    printf("\n");
+    for (i = 0; i < NUMCHARS; i++) {
+        rsum = 0;
+        printf("%c ", i + 64);
+        row = joint[i];
+        for (j = 0; j < NUMCHARS; j++) {
+            printf("%.2f ", row[j]*10);
+            rsum += row[j];
+            csum[j] += row[j];
+            sum += row[j];          
+        }
+        printf("%.2f\n", rsum * 10);
+    }
+    printf("+ ");
+    for (i = 0; i < NUMCHARS; i++)
+        printf("%.2f ", csum[i] * 10);
+    printf("%.2f\n", sum);
+}
+
+static void printProbs(double *probs[], long lenseq) {
+    int i, j;
+    double sum;
+    double *row;
+    printf("\nProbability matrix\n");    
+    for (i = 0; i < NUMCHARS; i++)
+        printf("%c_%-2i ", i + 64, i);
+    printf("SUM\n");
+    for (i = 0; i < lenseq; i++) {
+        sum = 0;
+        row = probs[i];
+        for (j = 0; j < NUMCHARS; j++) {
+            printf("%.2f ", row[j] * 10);
+            sum += row[j];
+        }
+        printf("%.2f\n", sum);
+    }
 }
 
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
     PyArrayObject *msa, *mutinfo;
-    int ambiguous = 1, debug = 0;
+    int ambiquity = 1, turbo = 1, debug = 0;
     
-    static char *kwlist[] = {"msa", "mutinfo", "ambiguous", "debug", NULL};
+    static char *kwlist[] = {"msa", "mutinfo", "ambiquity", "turbo", 
+                             "debug", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
-                                     &msa, &mutinfo, &ambiguous, &debug))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|iii", kwlist, &msa, 
+                                     &mutinfo, &ambiquity, &turbo, &debug))
         return NULL;
 
     /* check dimensions */
@@ -480,47 +676,79 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     char *seq = (char *) PyArray_DATA(msa); /*size: numseq x lenseq */
     double *mut = (double *) PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
 
+    long i, j;
     /* allocate memory */
-    int *iseq = malloc(numseq * sizeof(double));
+    unsigned char *iseq = malloc(numseq * sizeof(unsigned char));
     if (!iseq) {
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
-        
-    double **probs;
-    probs = malloc(lenseq * sizeof(double*));
+    
+    unsigned char **trans = malloc(lenseq * sizeof(unsigned char *));
+    if (!trans) {
+        turbo = 0;
+    }
+    
+    if (turbo) {
+        /* allocate rows that will store columns of MSA */
+        trans[0] = iseq;
+        for (i = 1; i < lenseq; i++) {
+            trans[i] = malloc(numseq * sizeof(unsigned char));
+            if (!trans[i]) {
+                for (j = 1; j <= i; j++)
+                    free(trans[j]);
+                free(trans);
+                turbo = 0;
+            }
+        }
+    }
+    unsigned char *jseq = iseq; /* so that we don't get uninitialized warning*/
+    
+    /* lenseq*27, a row for each column in the MSA */
+    double **probs = malloc(lenseq * sizeof(double *));
     if (!probs) {
+        if (turbo)
+            for (j = 1; j < lenseq; j++)
+                free(trans[j]);
+        free(trans);
+        free(iseq);
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
 
-    double **joint;
-    joint = malloc(27 * sizeof(double*));
+    /* 27x27, alphabet characters and a gap*/
+    double **joint = malloc(NUMCHARS * sizeof(double *));
     if (!joint) {
+        if (turbo)
+            for (j = 1; j < lenseq; j++)
+                free(trans[j]);
+        free(trans);
         free(iseq);
         free(probs);
         PyErr_SetString(PyExc_MemoryError, "out of memory");
         return NULL;
     }
     
-    long i, j;
-   
-    for (i = 0; i < lenseq; i++)  {
-        probs[i] = malloc(27 * sizeof(double));  
+    for (i = 0; i < lenseq; i++) {
+        probs[i] = malloc(NUMCHARS * sizeof(double));
         if (!probs[i]) {
             for (j = 0; j <= i; j++)
                 free(probs[j]);
             free(probs);
+            if (turbo)
+                for (j = 1; j < lenseq; j++)
+                    free(trans[j]);
+            free(trans);
             free(iseq);
             PyErr_SetString(PyExc_MemoryError, "out of memory");
             return NULL;
         }
-        for (j = 0; j < 27; j++)
+        for (j = 0; j < NUMCHARS; j++)
             probs[i][j] = 0;
     }
 
-    for (i = 0; i < 27; i++)  {
-        joint[i] = malloc(27 * sizeof(double));  
+    for (i = 0; i < NUMCHARS; i++)  {
+        joint[i] = malloc(NUMCHARS * sizeof(double));  
         if (!joint[i]) {
             for (j = 0; j <= i; j++)
                 free(joint[j]);
@@ -528,6 +756,10 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 free(probs[j]);
             free(probs);
             free(joint);
+            if (turbo)
+                for (j = 1; j < lenseq; j++)
+                    free(trans[j]);
+            free(trans);
             free(iseq);
             PyErr_SetString(PyExc_MemoryError, "out of memory");
             return NULL;
@@ -536,22 +768,26 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
 
     int a, b;
     long k, l, diff, offset;
-    double *prow, p_incr = 1. / numseq, prb = 0;
-    i = 0;
+    double *prow, *jrow, p_incr = 1. / numseq, prb = 0;
     
+    if (debug)
+        printProbs(probs, lenseq);
+    
+    i = 0;
+    prow = probs[0];
     /* calculate first row of MI matrix, while calculating probabilities */
-    /*time_t t = clock();*/
     for (j = 1; j < lenseq; j++) {
-
+        jrow = probs[j];
         zeroJoint(joint);
         diff = j - 1;
-
+        if (turbo)
+            jseq = trans[j]; 
         for (k = 0; k < numseq; k++) {
             offset = k * lenseq;
             if (diff) {
                 a = iseq[k];
             } else {
-                a = (int) seq[offset + i];
+                a = (unsigned char) seq[offset + i];
                 if (a > 90)
                     a -= 96;
                 else
@@ -561,33 +797,37 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 iseq[k] = a;
             }
             
-            b = (int) seq[offset + j];
+            b = (unsigned char) seq[offset + j];
             if (b > 90)
                 b -= 96;
             else
                 b -= 64;
             if (b < 1 || b > 26)
                 b = 0; /* gap character */
+            if (turbo)
+                jseq[k] = b;
             joint[a][b] += p_incr;
-            
-            probs[j][b] += p_incr;
             if (!diff)
-                probs[i][a] += p_incr;
+                prow[a] += p_incr;
+            jrow[b] += p_incr;
         }
         
-        if (ambiguous) {
+        if (ambiquity) {
             for (k = 0; k < lenseq; k++) {
-                prow = probs[k]; 
-                if (prow[2] > 0) { /* B -> D, N  */
-                    prow[4] = prow[14] = prow[2] / 2.;
+                prow = probs[k];
+                prb = prow[2];
+                if (prb > 0) { /* B -> D, N  */
+                    prow[4] = prow[14] = prb / 2.;
                     prow[2] = 0;
                 }
-                if (prow[10] > 0) { /* J -> I, L  */
-                    prow[9] = prow[12] = prow[10] / 2.;
+                prb = prow[10];
+                if (prb > 0) { /* J -> I, L  */
+                    prow[9] = prow[12] = prb / 2.;
                     prow[10] = 0;
                 }
-                if (prow[26] > 0) { /* Z -> E, Q  */
-                    prow[5] = prow[17] = prow[26] / 2.;
+                prb = prow[26]; 
+                if (prb > 0) { /* Z -> E, Q  */
+                    prow[5] = prow[17] = prb / 2.;
                     prow[26] = 0;
                 }
                 if (prow[24] > 0) { /* X -> 20 AA */
@@ -597,61 +837,84 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     prow[24] = 0;
                 }
             }
-            fixJoint(joint);
-        }        
-        mut[i * lenseq + j] = mut[i + lenseq * j] = calcMI(joint, probs, i, j);
+            if (debug)
+                printJoint(joint);
+            sortJoint(joint);
+            if (debug)
+                printJoint(joint);
+        }
+        if (debug)
+            printProbs(probs, lenseq);
+        mut[i * lenseq + j] = mut[i + lenseq * j] = 
+            calcMI(joint, probs[0], jrow, debug);
     }
-    /*printf("%f\n", (double) (clock()-t)/CLOCKS_PER_SEC);*/
+    
+    if (turbo)
+        free(iseq);
+        
+    if (debug)
+        printProbs(probs, lenseq);
+
+    
     /* calculate rest of MI matrix */
-    /*t = clock();*/
     for (i = 1; i < lenseq; i++) {
+        if (turbo)
+            iseq = trans[i];
         for (j = i + 1; j < lenseq; j++) {
             zeroJoint(joint);
-            
-            diff = j - i - 1;
-            for (k = 0; k < numseq; k++) {
-                offset = k * lenseq;
-                if (diff) {
-                    a = iseq[k];
-                } else {
-                    a = (int) seq[offset + i];
-                    if (a > 90)
-                        a -= 96;
+
+            if (turbo) {
+                iseq = trans[j];
+                for (k = 0; k < numseq; k++)
+                    joint[iseq[k]][jseq[k]] += p_incr;
+            } else {         
+                diff = j - i - 1;
+                for (k = 0; k < numseq; k++) {
+                    offset = k * lenseq;
+                    if (diff) {
+                        a = iseq[k];
+                    } else {
+                        a = (unsigned char) seq[offset + i];
+                        if (a > 90)
+                            a -= 96;
+                        else
+                            a -= 64;
+                        if (a < 1 || a > 26)
+                            a = 0; /* gap character */
+                        iseq[k] = a;
+                    }
+                    
+                    b = (unsigned char) seq[offset + j];
+                    if (b > 90)
+                        b -= 96;
                     else
-                        a -= 64;
-                    if (a < 1 || a > 26)
-                        a = 0; /* gap character */
-                    iseq[k] = a;
+                        b -= 64;
+                    if (b < 1 || b > 26)
+                        b = 0; /* gap character */
+                    joint[a][b] += p_incr;
                 }
-                
-                b = (int) seq[offset + j];
-                if (b > 90)
-                    b -= 96;
-                else
-                    b -= 64;
-                if (b < 1 || b > 26)
-                    b = 0; /* gap character */
-                joint[a][b] += p_incr;
             }
-            if (ambiguous)
-                fixJoint(joint);
+            if (ambiquity)
+                sortJoint(joint);
             mut[i * lenseq + j] = mut[i + lenseq * j] = 
-                calcMI(joint, probs, i, j);
+                calcMI(joint, probs[i], probs[j], debug);
         }
     }
-    /*printf("%f\n", (double) (clock()-t)/CLOCKS_PER_SEC);*/
-    
+
     /* free memory */
     for (i = 0; i < lenseq; i++){  
         free(probs[i]);
     }  
     free(probs);
-    for (i = 0; i < 27; i++){  
+    for (i = 0; i < NUMCHARS; i++){  
         free(joint[i]);
     }  
     free(joint);
-    free(iseq);
-    
+    if (turbo)
+        for (j = 1; j < lenseq; j++)
+            free(trans[j]);
+    free(trans);
+
     Py_RETURN_NONE;
 }
 
