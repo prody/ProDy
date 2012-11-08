@@ -151,6 +151,7 @@ class TestCalcShannonEntropy(TestCase):
 
 class TestCalcMutualInfo(TestCase):
   
+    @dec.slow
     def testSixSequences(self):
         
         msa = array([list('ACCA'), 
@@ -163,9 +164,24 @@ class TestCalcMutualInfo(TestCase):
                         [0., 0., 0., log(2.)],
                         [0., 0., log(2.), 0.],]) 
         result = calcMutualInfo(msa)
-        assert_array_almost_equal(expect, result)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
     def testTwenty(self):
+        
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, s] for s in seq])
+
+        expect = log(20.)
+        expect = array([[0., expect],
+                        [expect, 0.]])
+        result = calcMutualInfo(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testTwentyReversed(self):
         
         seq = 'ACDEFGHIKLMNPQRSTVWY'
         msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)])
@@ -174,19 +190,35 @@ class TestCalcMutualInfo(TestCase):
         expect = array([[0., expect],
                         [expect, 0.]])
         result = calcMutualInfo(msa)
-        assert_array_almost_equal(expect, result)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-    def testAmbiguous(self):
+    def testAmbiguity(self):
         
         msa = array([list('OX'),
-                     list('UX')])
+                     list('XO')])
 
-        expect = array([[0., 0.],
-                        [0., 0.]]) 
-        result = calcMutualInfo(msa)
-        assert_array_almost_equal(expect, result)
+        expect = array([[0., log(2.)],
+                        [log(2.), 0.]]) 
+        result = calcMutualInfo(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testNoAmbiguity(self):
         
-    def testAmbiguous2(self):
+        msa = array([list('OX'),
+                     list('XO')])
+
+        expect = array([[0., log(2.)],
+                        [log(2.), 0.]]) 
+        result = calcMutualInfo(msa, ambiquity=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, ambiquity=False, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+        
+    def testAmbiguity2(self):
         
         msa = array([list('AB'),
                      list('BZ')])
@@ -194,4 +226,66 @@ class TestCalcMutualInfo(TestCase):
         expect = array([[0., log(2.)],
                         [log(2.), 0.]]) 
         result = calcMutualInfo(msa)
-        assert_array_almost_equal(expect, result)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+        
+
+    def testAmbiguity3(self):
+        
+        msa = array([list('XX')])
+
+        expect = array([[0., log(20.)],
+                        [log(20.), 0.]]) 
+        result = calcMutualInfo(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testAmbiguity4(self):
+        
+        msa = array([list('Bb'),
+                     list('jJ'),
+                     list('Zz'),])
+
+        expect = array([[0., log(6.)],
+                        [log(6.), 0.]]) 
+        result = calcMutualInfo(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testAmbiguity5(self):
+
+        expect = array([[0., 0.],
+                        [0., 0.]]) 
+
+        for seq in ['bx', 'Xb', 'jX', 'Xj', 'xz', 'ZX',
+                    'bj', 'jb', 'bz', 'zb', 'jz', 'zj']:
+            msa = array([list(seq)])
+            result = calcMutualInfo(msa, debug=False)
+            assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
+
+
+    def testAmbiguity6(self):
+
+        expect = array([[0., log(2.)],
+                        [log(2.), 0.]]) 
+
+        for seq in ['bb', 'jj', 'zz']:
+            msa = array([list(seq)])
+            result = calcMutualInfo(msa, debug=False)
+            assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
+
+    def testAmbiguity7(self):
+        
+        msa = array([list('bx'),
+                     list('xb')])
+        expect = (72 * 0.0125 * log(0.0125/0.0250/0.275) + 
+                  4 *0.0125 * log(0.0125/0.275/0.275))
+        expect = array([[0., expect],
+                        [expect, 0.]]) 
+        result = calcMutualInfo(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = calcMutualInfo(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
