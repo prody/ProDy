@@ -27,8 +27,16 @@ const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
 const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
-
-
+static char *intcat(char *msg, int line) {
+   
+    /* Concatenate integer to a string. */
+   
+    char lnum[10];
+    snprintf(lnum, 10, "%i", line);
+    strcat(msg, lnum);
+    return msg;
+}
+    
 
 static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
                       char clabel[], char ckey[], long ccount, int size) {
@@ -100,6 +108,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     long i = 0, lenseq = msa->dimensions[1];
     long lenline = 0, lenlast = 0, numlines = 0; 
     long size = lenseq + LENLABEL, iline = 0;
+    char errmsg[LENLABEL] = "failed to parse fasta file at line ";
 
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
     if (!labels || !mapping)
@@ -142,8 +151,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         /* parse label */
         if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
             free(line);
-            PyErr_SetString(PyExc_IOError, 
-                            "failed to parse msa, at line");
+            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         }
 
@@ -151,8 +159,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         for (i = 0; i < numlines; i++) {
             if (fgets(line, size, file) == NULL) {
                 free(line);
-                PyErr_SetString(PyExc_IOError, 
-                                "failed to parse msa, at line");
+                PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
                 return NULL;
             }
             for (j = 0; j < lenline; j++)
@@ -162,8 +169,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         if (lenlast) {
             if (fgets(line, size, file) == NULL) {
                 free(line);
-                PyErr_SetString(PyExc_IOError, 
-                                "failed to parse msa, at line");
+                PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
                 return NULL;
             }
             for (j = 0; j < lenlast; j++)
@@ -198,6 +204,8 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
     long i = 0, beg = 0, end = 0, lenseq = msa->dimensions[1]; 
     long size = lenseq + LENLABEL, iline = 0;
+    char errmsg[LENLABEL] = "failed to parse selex/stockholm file at line ";
+
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
     if (!labels || !mapping)
         return PyErr_NoMemory();
@@ -236,16 +244,14 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
             
         if (line[space] != ' ') {
             free(line);
-            PyErr_SetString(PyExc_IOError, 
-                            "failed to parse msa, at line");
+            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         } 
 
         /* parse label */
         if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
             free(line);
-            PyErr_SetString(PyExc_IOError, 
-                            "failed to parse msa, at line");
+            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         }
         
