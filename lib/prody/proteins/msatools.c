@@ -29,6 +29,7 @@ const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
 
 
+
 static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
                       char clabel[], char ckey[], long ccount, int size) {
     
@@ -99,11 +100,14 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     long i = 0, lenseq = msa->dimensions[1];
     long lenline = 0, lenlast = 0, numlines = 0; 
     long size = lenseq + LENLABEL, iline = 0;
+
+    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
+    if (!labels || !mapping)
+        return PyErr_NoMemory();
+
     char *line = malloc(size * sizeof(char));
-    if (!line) {
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
-    }
+    if (!line) 
+        return PyErr_NoMemory();
 
     FILE *file = fopen(filename, "rb");
     while (fgets(line, size, file) != NULL) {
@@ -125,13 +129,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     long index = 0, ccount = 0;
     char *data = (char *) PyArray_DATA(msa);
     char clabel[LENLABEL], ckey[LENLABEL];
-    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
-    if (!labels || !mapping) {
-        free(line);
-        PyErr_SetString(PyExc_MemoryError, 
-                        "failed to create a list or dictionary object");
-        return NULL;
-    }
 
     while (fgets(line, size, file) != NULL) {
         iline++;
@@ -201,11 +198,12 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
     long i = 0, beg = 0, end = 0, lenseq = msa->dimensions[1]; 
     long size = lenseq + LENLABEL, iline = 0;
+    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
+    if (!labels || !mapping)
+        return PyErr_NoMemory();
     char *line = malloc(size * sizeof(char));
-    if (!line) {
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
-    }
+    if (!line)
+        return PyErr_NoMemory();
 
     /* figure out where the sequence starts and ends in a line*/
     FILE *file = fopen(filename, "rb");
@@ -229,13 +227,6 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     long index = 0, ccount = 0;
     char *data = (char *) PyArray_DATA(msa);
     char clabel[LENLABEL], ckey[LENLABEL];
-    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
-    if (!labels || !mapping) {
-        free(line);
-        PyErr_SetString(PyExc_MemoryError, 
-                        "failed to create a list or dictionary object");
-        return NULL;
-    }
 
     int space = beg - 1; /* index of space character before sequence */
     while (fgets(line, size, file) != NULL) {
@@ -736,10 +727,8 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     long i, j;
     /* allocate memory */
     unsigned char *iseq = malloc(numseq * sizeof(unsigned char));
-    if (!iseq) {
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
-    }
+    if (!iseq)
+        return PyErr_NoMemory();
     
     /* hold transpose of the sorted character array */
     unsigned char **trans = malloc(lenseq * sizeof(unsigned char *));
@@ -770,8 +759,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 free(trans[j]);
         free(trans);
         free(iseq);
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+        return PyErr_NoMemory();
     }
 
     /* 27x27, alphabet characters and a gap*/
@@ -783,8 +771,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
         free(trans);
         free(iseq);
         free(probs);
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+        return PyErr_NoMemory();
     }
     
     for (i = 0; i < lenseq; i++) {
@@ -799,8 +786,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     free(trans[j]);
             free(trans);
             free(iseq);
-            PyErr_SetString(PyExc_MemoryError, "out of memory");
-            return NULL;
+            return PyErr_NoMemory();
         }
         for (j = 0; j < NUMCHARS; j++)
             probs[i][j] = 0;
@@ -820,8 +806,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     free(trans[j]);
             free(trans);
             free(iseq);
-            PyErr_SetString(PyExc_MemoryError, "out of memory");
-            return NULL;
+            return PyErr_NoMemory();
         }
     }
 
