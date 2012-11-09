@@ -498,26 +498,26 @@ def parseMSA(msa, **kwargs):
                mapping=mapping)
     
 
-def calcShannonEntropy(msa, ambiquity=True, dividend=False):
+def calcShannonEntropy(msa, ambiquity=True, omitgaps=False):
     """Return Shannon entropy array calculated for *msa*, which may be 
-    an :class:`MSA` instance or a 2D Numpy character array.  The function
-    is case insensitive and handles ambiguous amino acid characters as 
-    follows:
+    an :class:`MSA` instance or a 2D Numpy character array.  Implementation 
+    is case insensitive and handles ambiguous amino acids as follows:
     
-      * **B** (Asx) count is shared by *D* (Asp) and *N* (Asn)
-      * **Z** (Glx) count is shared by *E* (Glu) and *Q* (Gln)
-      * **J** (Xle) count is shared by *I* (Ile) and *L* (Leu)
-      * **X** (Xaa) count is shared by each of standard amino acids
+      * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
+      * **Z** (Glx) count is allocated to *E* (Glu) and *Q* (Gln)
+      * **J** (Xle) count is allocated to *I* (Ile) and *L* (Leu)
+      * **X** (Xaa) count is allocated to the twenty standard amino acids
       
     Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
-    as distinct amino acids.  Set *ambiquity* **False** to handle all alphabet
-    characters as distinct amino acids.
+    as distinct amino acids.  When *ambiquity* is set **False**, all alphabet
+    characters as considered as distinct types.
     
-    Gaps, which may be any non-alphabet characters, are handled in two ways:  
+    All non-alphabet characters are considered as gaps, and they are handled 
+    in two ways:  
       
       * as a distinct character with its own probability, by default 
       * non-existent, the probability of observing amino acids in a given
-        column is adjusted, when *dividend* is **True**."""
+        column is adjusted, when *omitgaps* is **True**."""
     
     try:
         msa = msa._getArray()
@@ -535,13 +535,29 @@ def calcShannonEntropy(msa, ambiquity=True, dividend=False):
     entropy = zeros(shape[1], float)
     from .msatools import calcShannonEntropy
     calcShannonEntropy(msa, entropy, ambiquity=bool(ambiquity),
-                       dividend=bool(dividend))
+                       omitgaps=bool(omitgaps))
     return entropy
     
     
 def calcMutualInfo(msa, ambiquity=True, turbo=True, **kwargs):
     """Return mutual info matrix calculated for *msa*, which may be an 
-    :class:`MSA` instance or a 2D Numpy character array."""
+    :class:`MSA` instance or a 2D Numpy character array.  Implementation 
+    is case insensitive and handles ambiguous amino acids as follows:
+    
+      * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
+      * **Z** (Glx) count is allocated to *E* (Glu) and *Q* (Gln)
+      * **J** (Xle) count is allocated to *I* (Ile) and *L* (Leu)
+      * **X** (Xaa) count is allocated to the twenty standard amino acids
+      
+    Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
+    as distinct amino acids.  When *ambiquity* is set **False**, all alphabet
+    characters as considered as distinct types.  All non-alphabet characters 
+    are considered as gaps.
+    
+    By default, the will try to run in the *turbo* mode, which uses memory
+    as large as the MSA array itself but runs four to five times faster.  If
+    memory allocation fails, the implementation will switch to slower and
+    memory efficient mode."""
     
     try:
         msa = msa._getArray()
@@ -558,6 +574,14 @@ def calcMutualInfo(msa, ambiquity=True, turbo=True, **kwargs):
         
     mutinfo = zeros((shape[1], shape[1]), float)
     from .msatools import calcMutualInfo
-    calcMutualInfo(msa, mutinfo, ambiquity=ambiquity, turbo=turbo,
-                   debug=kwargs.get('debug', False))
+    turbo = bool(turbo)
+    LOGGER.timeit('_mutinfo')
+    turbo = calcMutualInfo(msa, mutinfo, ambiquity=bool(ambiquity), 
+                           turbo=turbo, debug=kwargs.get('debug', False))
+    if turbo:
+        LOGGER.report('Mutual information matrix was calculated in turbo mode '
+                      'in %.2fs.', '_mutinfo')
+    else:
+        LOGGER.report('Mutual information matrix was calculated '
+                      'in %.2fs.', '_mutinfo')   
     return mutinfo

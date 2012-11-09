@@ -278,12 +278,12 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
     PyArrayObject *msa, *entropy;
-    int ambiquity = 1, dividend = 0;
+    int ambiquity = 1, omitgaps = 0;
     
-    static char *kwlist[] = {"msa", "entropy", "ambiquity", "dividend", NULL};
+    static char *kwlist[] = {"msa", "entropy", "ambiquity", "omitgaps", NULL};
         
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
-                                     &msa, &entropy, &ambiquity, &dividend))
+                                     &msa, &entropy, &ambiquity, &omitgaps))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -354,7 +354,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
         
         shannon = 0;
         denom = numseq;
-        if (dividend)
+        if (omitgaps)
             denom = numseq - numgap;
         else if (numgap > 0) {
             probability = numgap / numseq;
@@ -385,7 +385,7 @@ static void sortJoint(double **joint) {
         jp = jp / 20;
         for (k = 0; k < 20; k++) {
             t = twenty[k];
-            joint[t][t] = jp;
+            joint[t][t] += jp;
         }    
         jrow[24] = 0;
     }
@@ -395,7 +395,8 @@ static void sortJoint(double **joint) {
         jp = jp / 40;
         for (k = 0; k < 20; k++) {
             krow = joint[twenty[k]];
-            krow[4] = krow[14] = jp;
+            krow[4] += jp; 
+            krow[14] += jp;
         }    
         jrow[2] = 0;
     }
@@ -405,7 +406,8 @@ static void sortJoint(double **joint) {
         jp = jp / 40;
         for (k = 0; k < 20; k++) {
             krow = joint[twenty[k]];
-            krow[9] = krow[12] = jp;
+            krow[9] += jp; 
+            krow[12] += jp;
         }    
         jrow[10] = 0;
     }
@@ -415,7 +417,8 @@ static void sortJoint(double **joint) {
         jp = jp / 40;
         for (k = 0; k < 20; k++) {
             krow = joint[twenty[k]];
-            krow[5] = krow[17] = jp;
+            krow[5] += jp; 
+            krow[17] += jp;
         }    
         jrow[26] = 0;
     }
@@ -425,7 +428,8 @@ static void sortJoint(double **joint) {
     jrow = joint[2]; 
     jp = jrow[2]; /* BB */
     if (jp > 0) {
-        joint[4][4] = joint[14][14] = jp / 2;
+        joint[4][4] += jp / 2; 
+        joint[14][14] += jp / 2;
         jrow[2] = 0;
     }    
     /* BX */ 
@@ -434,20 +438,29 @@ static void sortJoint(double **joint) {
         jp = jp / 40;
         for (k = 0; k < 20; k++) {
             t = twenty[k];
-            joint[4][t] = joint[14][t] = jp;
+            joint[4][t] += jp; 
+            joint[14][t] += jp;
         }    
         jrow[24] = 0;
     }
     /* BJ */  
     jp = jrow[10]; 
     if (jp > 0) {
-        joint[4][9] = joint[14][9] = joint[4][12] = joint[14][12] = jp / 4;
+        jp = jp / 4;
+        joint[4][9] += jp;
+        joint[14][9] += jp;
+        joint[4][12] += jp; 
+        joint[14][12] += jp;
         jrow[10] = 0;
     }    
     /* BZ */
     jp = jrow[26]; 
     if (jp > 0) {
-        joint[4][5] = joint[14][5] = joint[4][17] = joint[14][17] = jp / 4;
+        jp = jp / 4;
+        joint[4][5] += jp;
+        joint[14][5] += jp; 
+        joint[4][17] += jp; 
+        joint[14][17] += jp;
         jrow[26] = 0;
     }  
     
@@ -455,7 +468,9 @@ static void sortJoint(double **joint) {
     jrow = joint[26]; 
     jp = jrow[26]; /* ZZ */
     if (jp > 0) {
-        joint[5][5] = joint[17][17] = jp / 2;
+        jp = jp / 2;
+        joint[5][5] += jp;
+        joint[17][17] += jp;
         jrow[26] = 0;
     }
     /* ZX */ 
@@ -464,20 +479,29 @@ static void sortJoint(double **joint) {
         jp = jp / 40;
         for (k = 0; k < 20; k++) {
             t = twenty[k];
-            joint[5][t] = joint[17][t] = jp;
+            joint[5][t] += jp; 
+            joint[17][t] += jp;
         }    
         jrow[24] = 0;
     }
     /* ZJ */  
     jp = jrow[10]; 
     if (jp > 0) {
-        joint[5][9] = joint[17][9] = joint[5][12] = joint[17][12] = jp / 4;
+        jp = jp / 4;
+        joint[5][9] += jp; 
+        joint[17][9] += jp;
+        joint[5][12] += jp;
+        joint[17][12] += jp;
         jrow[10] = 0;
     }    
     /* ZB */
     jp = jrow[2]; 
     if (jp > 0) {
-        joint[5][4] = joint[17][4] = joint[5][14] = joint[17][14] = jp / 4;
+        jp = jp / 4;
+        joint[5][4] += jp; 
+        joint[17][4] += jp;
+        joint[5][14] += jp;
+        joint[17][14] += jp;
         jrow[2] = 0;
     }  
     
@@ -485,7 +509,9 @@ static void sortJoint(double **joint) {
     jrow = joint[10];
     jp = jrow[10]; /* JJ */
     if (jp > 0) {
-        joint[9][9] = joint[12][12] = jp / 2;
+        jp = jp / 2;
+        joint[9][9] += jp; 
+        joint[12][12] += jp;
         joint[10][10] = 0;
     }
     /* JX */ 
@@ -494,20 +520,29 @@ static void sortJoint(double **joint) {
         jp = jp / 40;
         for (k = 0; k < 20; k++) {
             t = twenty[k];
-            joint[9][t] = joint[12][t] = jp;
+            joint[9][t] += jp; 
+            joint[12][t] += jp;
         }    
         jrow[24] = 0;
     }
     /* JB */
     jp = jrow[2]; 
     if (jp > 0) {
-        joint[9][4] = joint[12][4] = joint[9][14] = joint[12][14] = jp / 4;
+        jp = jp / 4;
+        joint[9][4] += jp; 
+        joint[12][4] += jp;
+        joint[9][14] += jp;
+        joint[12][14] += jp;
         jrow[2] = 0;
     }
     /* BZ */
     jp = jrow[26]; 
     if (jp > 0) {
-        joint[9][5] = joint[12][5] = joint[9][17] = joint[12][17] = jp / 4;
+        jp = jp / 4;
+        joint[9][5] += jp; 
+        joint[12][5] += jp;
+        joint[9][17] += jp;
+        joint[12][17] += jp;
         jrow[26] = 0;
     }  
     
@@ -520,36 +555,48 @@ static void sortJoint(double **joint) {
         /* B */
         jp = jrow[2];   
         if (jp > 0) {
-            jrow[4] = jrow[14] = jp / 2;
+            jp = jp / 2; 
+            jrow[4] += jp; 
+            jrow[14] += jp;
             jrow[2] = 0;
         }
         jp = joint[2][k]; 
         if (jp > 0) {
-            joint[4][k] = joint[14][k] = jp / 2;
+            jp  = jp / 2;
+            joint[4][k] += jp; 
+            joint[14][k] += jp;
             joint[2][k] = 0;
         }
         
         /* J */
         jp = jrow[10];  
         if (jp > 0) {
-            jrow[9] = jrow[12] = jp / 2;
+            jp  = jp / 2;
+            jrow[9] += jp; 
+            jrow[12] += jp;
             jrow[10] = 0;
         }
         jp = joint[10][k]; 
         if (jp > 0) {
-            joint[9][k] = joint[12][k] = jp / 2;
+            jp = jp / 2;
+            joint[9][k] += jp; 
+            joint[12][k] += jp;
             joint[10][k] = 0;
         }
         
         /* Z */
         jp = jrow[26];  
         if (jp > 0) {
-            jrow[5] = jrow[17] = jp / 2;
+            jp = jp / 2;
+            jrow[5] += jp;
+            jrow[17] += jp;
             jrow[26] = 0;
         }
         jp = joint[26][k]; 
         if (jp > 0) {
-            joint[5][k] = joint[17][k] = jp / 2;
+            jp = jp / 2;
+            joint[5][k] += jp; 
+            joint[17][k] += jp;
             joint[26][k] = 0;
         }
         
@@ -558,14 +605,14 @@ static void sortJoint(double **joint) {
         if (jp > 0) {
             jp = jp / 20.;
             for (l = 0; l < 20; l++)
-                jrow[twenty[l]] = jp;    
+                jrow[twenty[l]] += jp;    
             jrow[24] = 0;
         }
         jp = joint[24][k]; 
         if (jp > 0) {
             jp = jp / 20.;
             for (l = 0; l < 20; l++)
-                joint[twenty[l]][k] = jp;    
+                joint[twenty[l]][k] += jp;    
             joint[24][k] = 0;
         }
     }
@@ -587,21 +634,27 @@ static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
 
     int k, l;
     double *jrow, *iprb = probs[i], *jprb = probs[j], jp, mi = 0, inside;
+    /*double isum = 0, jsum = 0, sum = 0;*/
     for (k = 0; k < NUMCHARS; k++) {
         jrow = joint[k];
+        /*isum += iprb[k];
+        jsum += jprb[k];*/
         for (l = 0; l < NUMCHARS; l++) {
             jp = jrow[l];
+            /*sum += jp;*/
             if (jp > 0) {
                 inside = jp / iprb[k] / jprb[l];
                 if (inside != 1)
                     mi += jp * log(inside);
             }
-            if (dbg && jp > 0)
+            /*if (dbg && jp > 0)
                 printf("(%li,%li) %c%c %.4f / %.4f / %.4f\n", 
-                        i, j, (char)k+64, (char)l+64, jp, iprb[k], jprb[l]);           
-
+                        i, j, (char)k+64, (char)l+64, jp, iprb[k], jprb[l]);*/
         }
     }
+    /*if (dbg)
+        if (sum != 1.00000 || isum != 1.00000 || jsum != 1.00000)
+            printf("(%li,%li) %f/%f/%f\n", i, j, sum, isum, jsum);*/
     return mi;
 }
 
@@ -845,8 +898,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             if (debug)
                 printJoint(joint, i, j);
         }
-        mut[i * lenseq + j] = mut[i + lenseq * j] = 
-            calcMI(joint, probs, i, j, debug);
+        mut[j] = mut[lenseq * j] = calcMI(joint, probs, i, j, debug);
     }
     if (debug)
         printProbs(probs, lenseq);
@@ -855,9 +907,12 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
 
     
     /* calculate rest of MI matrix */
+    long ioffset;
     for (i = 1; i < lenseq; i++) {
+        ioffset = i * lenseq;
         if (turbo)
             iseq = trans[i];
+            
         for (j = i + 1; j < lenseq; j++) {
             zeroJoint(joint);
 
@@ -865,6 +920,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                 jseq = trans[j];
                 for (k = 0; k < numseq; k++)
                     joint[iseq[k]][jseq[k]] += p_incr;
+                    
             } else {         
                 diff = j - i - 1;
                 for (k = 0; k < numseq; k++) {
@@ -894,7 +950,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             }
             if (ambiquity)
                 sortJoint(joint);
-            mut[i * lenseq + j] = mut[i + lenseq * j] = 
+            mut[ioffset + j] = mut[i + lenseq * j] = 
                 calcMI(joint, probs, i, j, debug);
         }
     }
@@ -913,7 +969,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             free(trans[j]);
     free(trans);
 
-    Py_RETURN_NONE;
+    return PyBool_FromLong(turbo);    
 }
 
 
@@ -936,7 +992,7 @@ static PyMethodDef msatools_methods[] = {
     {"calcMutualInfo",  (PyCFunction)calcMutualInfo, 
      METH_VARARGS | METH_KEYWORDS, 
      "Calculate mutual information for given character array into given \n"
-     "2D double array."},
+     "2D double array, and return True if turbo mode was used."},
      
     {NULL, NULL, 0, NULL}
     
