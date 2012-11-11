@@ -36,9 +36,21 @@ Other routines
   * :func:`.prody_fetch`
   * :func:`.prody_select`
   
+  
+  Evol routines
+===============================================================================
+
+  * :func:`.evol_fetch`
+  * :func:`.evol_search`
+  * :func:`.evol_refine`
+  * :func:`.evol_entropy`
+  * :func:`.evol_mutinfo`
+  * :func:`.evol_dynamics`
+  
   """
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from prody_routines import prody_main, prody_parser, PRODY_COMMANDS
+from evol_routines import evol_main, evol_parser, EVOL_COMMANDS
