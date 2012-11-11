@@ -278,12 +278,12 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
     PyArrayObject *msa, *entropy;
-    int ambiquity = 1, omitgaps = 0;
+    int ambiguity = 1, omitgaps = 0;
     
-    static char *kwlist[] = {"msa", "entropy", "ambiquity", "omitgaps", NULL};
+    static char *kwlist[] = {"msa", "entropy", "ambiguity", "omitgaps", NULL};
         
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
-                                     &msa, &entropy, &ambiquity, &omitgaps))
+                                     &msa, &entropy, &ambiguity, &omitgaps))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -321,7 +321,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
             count[j] += count[j + 32];
         
         /* handle ambiguous amino acids */
-        if (ambiquity) {
+        if (ambiguity) {
             if (count[66]) {
                 ambiguous = count[66] / 2.; /* B */
                 count[66] = 0;
@@ -738,13 +738,13 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
     PyArrayObject *msa, *mutinfo;
-    int ambiquity = 1, turbo = 1, debug = 0;
+    int ambiguity = 1, turbo = 1, debug = 0;
     
-    static char *kwlist[] = {"msa", "mutinfo", "ambiquity", "turbo", 
+    static char *kwlist[] = {"msa", "mutinfo", "ambiguity", "turbo", 
                              "debug", NULL};
         
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|iii", kwlist, &msa, 
-                                     &mutinfo, &ambiquity, &turbo, &debug))
+                                     &mutinfo, &ambiguity, &turbo, &debug))
         return NULL;
 
     /* check dimensions */
@@ -890,7 +890,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             jrow[b] += p_incr;
         }
         
-        if (ambiquity) {
+        if (ambiguity) {
             for (k = 0; k < lenseq; k++) {
                 prow = probs[k];
                 prb = prow[2];
@@ -971,7 +971,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     joint[a][b] += p_incr;
                 }
             }
-            if (ambiquity)
+            if (ambiguity)
                 sortJoint(joint);
             mut[ioffset + j] = mut[i + lenseq * j] = 
                 calcMI(joint, probs, i, j, debug);

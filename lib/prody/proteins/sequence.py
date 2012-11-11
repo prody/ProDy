@@ -498,7 +498,7 @@ def parseMSA(msa, **kwargs):
                mapping=mapping)
     
 
-def calcShannonEntropy(msa, ambiquity=True, omitgaps=False):
+def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     """Return Shannon entropy array calculated for *msa*, which may be 
     an :class:`MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
@@ -509,7 +509,7 @@ def calcShannonEntropy(msa, ambiquity=True, omitgaps=False):
       * **X** (Xaa) count is allocated to the twenty standard amino acids
       
     Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
-    as distinct amino acids.  When *ambiquity* is set **False**, all alphabet
+    as distinct amino acids.  When *ambiguity* is set **False**, all alphabet
     characters as considered as distinct types.
     
     All non-alphabet characters are considered as gaps, and they are handled 
@@ -534,13 +534,13 @@ def calcShannonEntropy(msa, ambiquity=True, omitgaps=False):
         
     entropy = zeros(shape[1], float)
     from .msatools import calcShannonEntropy
-    calcShannonEntropy(msa, entropy, ambiquity=bool(ambiquity),
+    calcShannonEntropy(msa, entropy, ambiguity=bool(ambiguity),
                        omitgaps=bool(omitgaps))
     return entropy
     
     
-def calcMutualInfo(msa, ambiquity=True, turbo=True, **kwargs):
-    """Return mutual info matrix calculated for *msa*, which may be an 
+def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
+    """Return mutual information matrix calculated for *msa*, which may be an 
     :class:`MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
     
@@ -548,9 +548,14 @@ def calcMutualInfo(msa, ambiquity=True, turbo=True, **kwargs):
       * **Z** (Glx) count is allocated to *E* (Glu) and *Q* (Gln)
       * **J** (Xle) count is allocated to *I* (Ile) and *L* (Leu)
       * **X** (Xaa) count is allocated to the twenty standard amino acids
+      * Joint probability of observing a pair of ambiguous amino acids is 
+        allocated to all potential combinations, e.g. probability of **XX**
+        is allocated to 400 combinations of standard amino acids, similarly
+        probability of **XB** is allocated to 40 combinations of *D* and *N*
+        with the standard amino acids.      
       
     Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
-    as distinct amino acids.  When *ambiquity* is set **False**, all alphabet
+    as distinct amino acids.  When *ambiguity* is set **False**, all alphabet
     characters as considered as distinct types.  All non-alphabet characters 
     are considered as gaps.
     
@@ -576,7 +581,7 @@ def calcMutualInfo(msa, ambiquity=True, turbo=True, **kwargs):
     from .msatools import calcMutualInfo
     turbo = bool(turbo)
     LOGGER.timeit('_mutinfo')
-    turbo = calcMutualInfo(msa, mutinfo, ambiquity=bool(ambiquity), 
+    turbo = calcMutualInfo(msa, mutinfo, ambiguity=bool(ambiguity), 
                            turbo=turbo, debug=kwargs.get('debug', False))
     if turbo:
         LOGGER.report('Mutual information matrix was calculated in turbo mode '
