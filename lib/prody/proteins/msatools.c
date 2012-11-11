@@ -27,6 +27,8 @@ const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
 const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
+
+
 static char *intcat(char *msg, int line) {
    
     /* Concatenate integer to a string. */
@@ -91,6 +93,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
      }
     return 1;
 }
+
 
 static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
@@ -370,20 +373,26 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     Py_RETURN_NONE;
 }
 
+
 static void sortJoint(double **joint) {
+    
+    /* Sort probability of ambiguous amino acids. */
     
     int k, l, t;
     double *jrow, jp, *krow;
     
     /* X */
-    jrow = joint[24]; 
-    jp = jrow[24]; /* XX */
+    jrow = joint[24];
+    /* XX */ 
+    jp = jrow[24];
     if (jp > 0) {
-        jp = jp / 20;
+        jp = jp / 400;
         for (k = 0; k < 20; k++) {
             t = twenty[k];
-            joint[t][t] += jp;
-        }    
+            krow = joint[t];
+            for (l = 0; l < 20; l++)
+                joint[t][twenty[l]] += jp;
+        }
         jrow[24] = 0;
     }
     /* XB */ 
@@ -420,13 +429,16 @@ static void sortJoint(double **joint) {
         jrow[26] = 0;
     }
 
-    
     /* B */
-    jrow = joint[2]; 
-    jp = jrow[2]; /* BB */
+    jrow = joint[2];
+    /* BB */ 
+    jp = jrow[2];
     if (jp > 0) {
-        joint[4][4] += jp / 2; 
-        joint[14][14] += jp / 2;
+        jp = jp / 4;
+        joint[4][4] += jp; 
+        joint[4][14] += jp;
+        joint[14][4] += jp; 
+        joint[14][14] += jp;
         jrow[2] = 0;
     }    
     /* BX */ 
@@ -445,8 +457,8 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[4][9] += jp;
-        joint[14][9] += jp;
         joint[4][12] += jp; 
+        joint[14][9] += jp;
         joint[14][12] += jp;
         jrow[10] = 0;
     }    
@@ -455,18 +467,21 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[4][5] += jp;
-        joint[14][5] += jp; 
         joint[4][17] += jp; 
+        joint[14][5] += jp; 
         joint[14][17] += jp;
         jrow[26] = 0;
     }  
     
     /* Z */
-    jrow = joint[26]; 
-    jp = jrow[26]; /* ZZ */
+    jrow = joint[26];
+    /* ZZ */ 
+    jp = jrow[26];
     if (jp > 0) {
-        jp = jp / 2;
+        jp = jp / 4;
         joint[5][5] += jp;
+        joint[5][17] += jp;
+        joint[17][5] += jp;
         joint[17][17] += jp;
         jrow[26] = 0;
     }
@@ -486,8 +501,8 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[5][9] += jp; 
-        joint[17][9] += jp;
         joint[5][12] += jp;
+        joint[17][9] += jp;
         joint[17][12] += jp;
         jrow[10] = 0;
     }    
@@ -496,18 +511,21 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[5][4] += jp; 
-        joint[17][4] += jp;
         joint[5][14] += jp;
+        joint[17][4] += jp;
         joint[17][14] += jp;
         jrow[2] = 0;
     }  
     
     /* J */
     jrow = joint[10];
-    jp = jrow[10]; /* JJ */
+    /* JJ */
+    jp = jrow[10]; 
     if (jp > 0) {
-        jp = jp / 2;
-        joint[9][9] += jp; 
+        jp = jp / 4;
+        joint[9][9] += jp;
+        joint[9][12] += jp; 
+        joint[12][9] += jp;
         joint[12][12] += jp;
         joint[10][10] = 0;
     }
@@ -527,8 +545,8 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[9][4] += jp; 
-        joint[12][4] += jp;
         joint[9][14] += jp;
+        joint[12][4] += jp;
         joint[12][14] += jp;
         jrow[2] = 0;
     }
@@ -537,13 +555,12 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[9][5] += jp; 
-        joint[12][5] += jp;
         joint[9][17] += jp;
+        joint[12][5] += jp;
         joint[12][17] += jp;
         jrow[26] = 0;
     }  
     
-            
     /*for (k = 0; k < NUMCHARS; k++) {*/
     for (t = 0; t < 23; t++) {
         k = unambiguous[t];
@@ -616,8 +633,11 @@ static void sortJoint(double **joint) {
     
 }
 
+
 static void zeroJoint(double **joint) {
 
+    /* Fill NUMCHARSxNUMCHARS joint array with zeros. */
+    
     int k, l;
     double *jrow;        
     for (k = 0; k < NUMCHARS; k++) {
@@ -627,8 +647,11 @@ static void zeroJoint(double **joint) {
     }
 }
 
+
 static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
 
+    /* Calculate mutual information for a pair of columns in MSA. */
+    
     int k, l;
     double *jrow, *iprb = probs[i], *jprb = probs[j], jp, mi = 0, inside;
     /*double isum = 0, jsum = 0, sum = 0;*/
@@ -655,7 +678,11 @@ static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
     return mi;
 }
 
+
 static void printJoint(double **joint, long k, long l) {
+
+    /* Print joint probability matrix for debugging purposes. */
+
     int i, j;
     double csum[NUMCHARS], rsum, sum = 0, *row;
     printf("\nJoint probability matrix (%li,%li)\n", k, l);    
@@ -683,7 +710,11 @@ static void printJoint(double **joint, long k, long l) {
     printf("%.2f\n", sum);
 }
 
+
 static void printProbs(double **probs, long lenseq) {
+
+    /* Print probability matrix for debugging purposes. */
+    
     int i, j;
     double sum;
     double *row;
@@ -701,6 +732,7 @@ static void printProbs(double **probs, long lenseq) {
         printf("%.2f\n", sum);
     }
 }
+
 
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
@@ -964,7 +996,6 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
 }
 
 
-
 static PyMethodDef msatools_methods[] = {
 
     {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
@@ -986,7 +1017,6 @@ static PyMethodDef msatools_methods[] = {
      "2D double array, and return True if turbo mode was used."},
      
     {NULL, NULL, 0, NULL}
-    
 };
 
 
