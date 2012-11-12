@@ -35,7 +35,7 @@ ESJOIN = ''.join
 import re
 from os.path import isfile, splitext, split, getsize
 
-from numpy import all, zeros, dtype, array
+from numpy import all, zeros, dtype, array, char
 
 from prody import LOGGER
 from prody.utilities import openFile
@@ -305,6 +305,8 @@ class MSA(object):
     
     >>> from prody import *
     >>> msa = parseMSA('piwi', alignment='seed')
+    >>> msa
+    <MSA: piwi (20 sequences, 404 residues)>
 
     *Querying*
     
@@ -314,7 +316,7 @@ class MSA(object):
     >>> 'YQ53_CAEEL' in msa
     True
     
-    *Indexing/slicing*
+    *Indexing and slicing*
     
     Retrieve a sequence at a given index:
     
@@ -336,15 +338,28 @@ class MSA(object):
     >>> msa[:2] == msa[['YQ53_CAEEL', 'Q21691_CAEEL']]
     True
     
-    Retrieve a character in the MSA:
+    Retrieve a character or a slice of a sequence:
 
     >>> msa[0,0]
     'D'
+    >>> msa[0,0:10]
+    'DILVGIAR.E'
     
     Slice MSA rows and columns:
     
     >>> msa[:10,20:40]
-    <MSA: piwi' (10 sequences, 20 residues)>"""
+    <MSA: piwi' (10 sequences, 20 residues)>
+    
+    *Refinement*
+    
+    Columns in an MSA that are gaps for a given sequence can be eliminated
+    from the data as follows:
+        
+    >>> msa[:, 'YQ53_CAEEL'] # doctest: +ELLIPSIS
+    <MSA: piwi' (20 sequences, 328 residues)>
+    
+    This operation removed 76 columns, which is the number of gaps in sequence
+    with label ``'YQ53_CAEEL'``."""
     
     def __init__(self, msa, **kwargs):
         """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
@@ -434,7 +449,7 @@ class MSA(object):
 
         try: # ('PROT_HUMAN', )
             rows = self._mapping.get(rows, rows)
-        except TypeError, KeyError:
+        except (TypeError, KeyError):
             mapping = self._mapping
             try:
                 rows = [mapping[key] for key in rows]
@@ -444,6 +459,13 @@ class MSA(object):
         if cols is None:
             msa = self._msa[rows]
         else:
+            try:
+                cols = self._mapping[cols]
+            except (KeyError, TypeError):
+                pass
+            else:
+                cols = char.isalpha(self._msa[cols])
+                
             try:
                 msa = self._msa[rows, cols]
             except Exception:
@@ -457,8 +479,11 @@ class MSA(object):
             if ndim == 0:
                 return msa
             elif ndim == 1:
-                label, start, end = splitLabel(self._labels[rows])
-                return label, msa.tostring(), start, end
+                if cols is None:
+                    label, start, end = splitLabel(self._labels[rows])
+                    return label, msa.tostring(), start, end
+                else:
+                    return msa.tostring()
             else:
                 try:
                     labels = self._labels[rows]
