@@ -486,17 +486,17 @@ def parseMSA(msa, **kwargs):
     format = msafile.format
     lenseq = msafile.numResidues()
     numseq = getsize(filename) / (lenseq + 10)
-    msaarr = zeros((numseq, lenseq), '|S1')
+    del msafile
+    
     if format == FASTA:
         from .msatools import parseFasta
-        labels, mapping = parseFasta(filename, msaarr)
+        msaarr, labels, mapping = parseFasta(filename, lenseq, numseq)
     elif format == SELEX or format == STOCKHOLM:
         from .msatools import parseSelex
-        labels, mapping = parseSelex(filename, msaarr)
-
-    return MSA(msa=msaarr[:len(labels)], labels=labels, title=title, 
-               mapping=mapping)
-    
+        msaarr, labels, mapping = parseSelex(filename, lenseq, numseq)
+    else:
+        raise IOError('MSA file format is not recognized')
+    return MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     """Return Shannon entropy array calculated for *msa*, which may be 

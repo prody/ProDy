@@ -103,13 +103,12 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
        lengths. */
 
     char *filename;
-    PyArrayObject *msa;
+    long lenseq, numseq; /* seq length and expected max num of sequences */
     
-    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
+    if (!PyArg_ParseTuple(args, "sii", &filename, &lenseq, &numseq))
         return NULL;
     
-    long i = 0, lenseq = msa->dimensions[1];
-    long lenline = 0, lenlast = 0, numlines = 0; 
+    long i = 0, lenline = 0, lenlast = 0, numlines = 0; 
     long size = lenseq + LENLABEL, iline = 0;
     char errmsg[LENLABEL] = "failed to parse fasta file at line ";
 
@@ -120,6 +119,11 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     char *line = malloc(size * sizeof(char));
     if (!line) 
         return PyErr_NoMemory();
+    char *data = malloc(lenseq * numseq * sizeof(char));
+    if (!data) {
+        free(line);
+        return PyErr_NoMemory();
+    }
 
     FILE *file = fopen(filename, "rb");
     while (fgets(line, size, file) != NULL) {
@@ -139,7 +143,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     int j = 0;
     long index = 0, ccount = 0;
-    char *data = (char *) PyArray_DATA(msa);
     char clabel[LENLABEL], ckey[LENLABEL];
 
     while (fgets(line, size, file) != NULL) {
@@ -154,6 +157,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         /* parse label */
         if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
             free(line);
+            free(data);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         }
@@ -162,6 +166,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         for (i = 0; i < numlines; i++) {
             if (fgets(line, size, file) == NULL) {
                 free(line);
+                free(data);
                 PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
                 return NULL;
             }
@@ -172,6 +177,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         if (lenlast) {
             if (fgets(line, size, file) == NULL) {
                 free(line);
+                free(data);
                 PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
                 return NULL;
             }
@@ -184,8 +190,11 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     fclose(file);
     free(line);
-
-    PyObject *result = Py_BuildValue("(OO)", labels, mapping);
+    data = realloc(data, lenseq * ccount * sizeof(char));
+    npy_intp dims[2] = {ccount, lenseq};
+    PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
+    PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
+    Py_XDECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
 
@@ -200,12 +209,12 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
        the sequences are aligned, i.e. start and end at the same column. */
 
     char *filename;
-    PyArrayObject *msa;
+    long lenseq, numseq; /* seq length and expected max num of sequences */
     
-    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
+    if (!PyArg_ParseTuple(args, "sii", &filename, &lenseq, &numseq))
         return NULL;
 
-    long i = 0, beg = 0, end = 0, lenseq = msa->dimensions[1]; 
+    long i = 0, beg = 0, end = 0; 
     long size = lenseq + LENLABEL, iline = 0;
     char errmsg[LENLABEL] = "failed to parse selex/stockholm file at line ";
 
@@ -215,6 +224,11 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     char *line = malloc(size * sizeof(char));
     if (!line)
         return PyErr_NoMemory();
+    char *data = malloc(lenseq * numseq * sizeof(char));
+    if (!data) {
+        free(line);
+        return PyErr_NoMemory();
+    }
 
     /* figure out where the sequence starts and ends in a line*/
     FILE *file = fopen(filename, "rb");
@@ -236,7 +250,6 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     fseek(file, - strlen(line), SEEK_CUR);
 
     long index = 0, ccount = 0;
-    char *data = (char *) PyArray_DATA(msa);
     char clabel[LENLABEL], ckey[LENLABEL];
 
     int space = beg - 1; /* index of space character before sequence */
@@ -247,6 +260,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
             
         if (line[space] != ' ') {
             free(line);
+            free(data);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         } 
@@ -254,6 +268,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
         /* parse label */
         if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
             free(line);
+            free(data);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         }
@@ -266,7 +281,11 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     fclose(file);
     free(line);
     
-    PyObject *result = Py_BuildValue("(OO)", labels, mapping);
+    data = realloc(data, lenseq * ccount * sizeof(char));
+    npy_intp dims[2] = {ccount, lenseq};
+    PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
+    PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
+    Py_XDECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
     
