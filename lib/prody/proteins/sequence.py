@@ -254,7 +254,6 @@ class MSAFile(object):
     def _iterStockholm(self):
         """Yield sequences from an MSA file in Stockholm format."""
 
-
         aligned = self._aligned
         lenseq = self._lenseq
         numseq = 0
@@ -275,21 +274,6 @@ class MSAFile(object):
                 numseq += 1
                 yield label, seq
         self._numseq = numseq
-        
-    def numSequences(self):
-        """Return number of sequences."""
-        
-        if self._numseq is None:
-            for i in self._iter():
-                pass
-        return self._numseq
-        
-    def numResidues(self):
-        """Return number of residues (or columns in the MSA)."""
-        
-        if self._lenseq is None:
-            self._iter().next()
-        return self._lenseq
     
     def getTitle(self):
         """Return title of the instance."""
@@ -673,7 +657,7 @@ def parseMSA(msa, **kwargs):
     msafile = MSAFile(filename)
     title = splitext(split(msa)[1])[0]
     format = msafile.format
-    lenseq = msafile.numResidues()
+    lenseq = len(next(iter(msafile))[1])
     numseq = getsize(filename) / (lenseq + 10)
     del msafile
     
