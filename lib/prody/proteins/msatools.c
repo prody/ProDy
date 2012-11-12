@@ -194,7 +194,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     npy_intp dims[2] = {ccount, lenseq};
     PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
     PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
-    Py_XDECREF(msa);
+    Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
 
@@ -285,7 +285,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     npy_intp dims[2] = {ccount, lenseq};
     PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
     PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
-    Py_XDECREF(msa);
+    Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
     
@@ -296,25 +296,22 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
-    PyArrayObject *msa, *entropy;
+    PyArrayObject *msa;
     int ambiguity = 1, omitgaps = 0;
     
-    static char *kwlist[] = {"msa", "entropy", "ambiguity", "omitgaps", NULL};
+    static char *kwlist[] = {"msa", "ambiguity", "omitgaps", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
-                                     &msa, &entropy, &ambiguity, &omitgaps))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|ii", kwlist,
+                                     &msa, &ambiguity, &omitgaps))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
-    if (entropy->dimensions[0] != lenseq) {
-        PyErr_SetString(PyExc_IOError, 
-                        "msa and entropy array shapes do not match");
-        return NULL;
-    }
-
+    double *ent = malloc(lenseq * sizeof(double));
+    if (!ent)
+        return PyErr_NoMemory();
+        
     char *seq = (char *) PyArray_DATA(msa);
-    double *ent = (double *) PyArray_DATA(entropy);
 
     /* start here */
     long size = numseq * lenseq; 
@@ -388,8 +385,11 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
         }
         ent[i] = -shannon;
     }
-
-    Py_RETURN_NONE;
+    npy_intp dims[1] = {lenseq, };
+    PyObject *entropy = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, ent);
+    PyObject *result = Py_BuildValue("O", entropy);
+    Py_DECREF(entropy);
+    return result;
 }
 
 

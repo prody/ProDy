@@ -645,11 +645,9 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     if dtype_ != dtype('|S1') or ndim != 2:
         raise TypeError('msa must be an MSA instance or a 2D character array')
         
-    entropy = zeros(shape[1], float)
     from .msatools import calcShannonEntropy
-    calcShannonEntropy(msa, entropy, ambiguity=bool(ambiguity),
-                       omitgaps=bool(omitgaps))
-    return entropy
+    return calcShannonEntropy(msa, ambiguity=bool(ambiguity), 
+                              omitgaps=bool(omitgaps))
     
     
 def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
