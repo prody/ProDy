@@ -594,7 +594,7 @@ def parseMSA(msa, **kwargs):
         else:
             if 'compressed' in kwargs:
                 return MSA(filename, **kwargs)
-
+    LOGGER.timeit('_parsemsa')
     msafile = MSAFile(filename)
     title = splitext(split(msa)[1])[0]
     format = msafile.format
@@ -610,7 +610,10 @@ def parseMSA(msa, **kwargs):
         msaarr, labels, mapping = parseSelex(filename, lenseq, numseq)
     else:
         raise IOError('MSA file format is not recognized')
-    return MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
+    msa = MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
+    LOGGER.report('MSA of {1:d} residue long {0:d} sequence(s) was parsed in '
+                  '%.2fs.'.format(*msaarr.shape), '_parsemsa') 
+    return msa 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     """Return Shannon entropy array calculated for *msa*, which may be 
