@@ -36,7 +36,7 @@ ESJOIN = ''.join
 import re
 from os.path import isfile, splitext, split, getsize
 
-from numpy import all, zeros, dtype, array, char
+from numpy import all, zeros, dtype, array, char, fromstring
 
 from prody import LOGGER
 from prody.utilities import openFile
@@ -60,23 +60,60 @@ def splitLabel(label):
 
 class MSAFile(object):
     
-    """Yield tuples containing sequence id, sequence, start index, end index, 
-    from an MSA file or object.
+    """Yield tuples containing sequence id, sequence, residue start and end 
+    indices from an MSA file or object.
     
-    >> msafile = fetchPfamMSA('piwi', alignment='seed')
-    >> msa = MSAFile(msafile, filter=lambda tpl: 'ARATH' in tpl[0])
-    >> for label, seq, rns, rne in msa: 
-    ...     print label
-    ... AGO6_ARATH
-    ... AGO4_ARATH
-    ... AGO10_ARATH"""
+    >>> from prody import * 
+    >>> msafile = fetchPfamMSA('piwi', alignment='seed')
+    >>> msa = MSAFile(msafile)
+    >>> for seq in msa: # doctest: +ELLIPSIS 
+    ...     print seq
+    ('YQ53_CAEEL', 'DILVGIAR.EKKP...NLAKRGRNNYK', 650, 977)
+    ('Q21691_CAEEL', 'TIVFGIIA.EKRP...NLAKRGHNNYK', 673, 1001)
+    ('AGO6_ARATH', 'FILCILPERKTSD...LAAAQVAQFTK', 541, 851)
+    (...)
+    ('O02095_CAEEL', 'QLLFFVVK..SRY...RYSQRGAMVLA', 574, 878)
+    ('Q19645_CAEEL', 'PFVLFISD..DVP...ELAKRGTGLYK', 674, 996)
+    ('O62275_CAEEL', 'TFVFIITD.DSIT...EYAKRGRNLWN', 594, 924)
+
     
-    def __init__(self, msa, aligned=True, filter=None, slice=None):
-        """*msa* may be an MSA file in fasta, Stockholm, or Selex format or a
-        Biopython MSA object.  If *aligned* is **True**, unaligned sequences 
-        will cause an :exc:`IOError` exception.  *filter* is used for filtering
-        sequences and must return a boolean for a single tuple argument that 
-        contains ``(label, seq, start, end)``."""
+    *Filtering sequences*
+    
+    Any function that takes label and sequence arguments and returns a boolean
+    value can be used for filtering the sequences.  A sequence will be yielded 
+    if the function returns **True**.  In the following example, sequences from
+    organism *ARATH* are filtered:
+    
+    >>> msa = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
+    >>> for seq in msa: # doctest: +ELLIPSIS 
+    ...     print seq
+    ('AGO6_ARATH', 'FIL...FTK', 541, 851)
+    ('AGO4_ARATH', 'FIL...FMK', 577, 885)
+    ('AGO10_ARATH', 'LLL...YLE', 625, 946)
+
+    *Slicing sequences*
+    
+    A list of integers can be used to slice sequences as follows.
+    
+    >>> msa = MSAFile(msafile, slice=list(range(10)) + list(range(394,404)))
+    >>> for seq in msa: # doctest: +ELLIPSIS 
+    ...     print seq
+    ('YQ53_CAEEL', 'DILVGIAR.ELAKRGRNNYK', 650, 977)
+    ('Q21691_CAEEL', 'TIVFGIIA.ELAKRGHNNYK', 673, 1001)
+    ('AGO6_ARATH', 'FILCILPERKAAAQVAQFTK', 541, 851)
+    (...)
+    ('O02095_CAEEL', 'QLLFFVVK..YSQRGAMVLA', 574, 878)
+    ('Q19645_CAEEL', 'PFVLFISD..LAKRGTGLYK', 674, 996)
+    ('O62275_CAEEL', 'TFVFIITD.DYAKRGRNLWN', 594, 924)"""
+    
+    def __init__(self, msa, title=None, format=None, aligned=True, **kwargs):
+        """*msa* may be an MSA filename or a stream in fasta, Stockholm, or 
+        Selex *format* or a Biopython MSA object.  File *format* is determined
+        automatically.  If *aligned* is **True**, unaligned sequences will 
+        cause an :exc:`IOError` exception.  *filter* is used for filtering
+        sequences and must return a boolean for a label and sequence arguments.
+        *slice* is used to slice sequences, and is applied after a sequence
+        is filtered."""
         
         self._msa = None
         self._bio = None
@@ -84,10 +121,16 @@ class MSAFile(object):
         self._lenseq = None
         self._numseq = None
         self._format = None
-        self.setFilter(filter)
-        self.setSlice(slice)
+        self._split = kwargs.get('split', True)
+        self.setFilter(kwargs.get('filter', None))
+        self.setSlice(kwargs.get('slice', None))
             
-        if isfile(str(msa)):    
+        if isfile(str(msa)):
+            if title is None:
+                fn, ext = splitext(split(msa)[1])
+                if ext.lower() == '.gz':
+                    fn, ext = splitext(split(msa)[1])[0]
+            self._title = title or fn
             self._msa = msa
             with openFile(msa) as msa: 
                 line = msa.readline()
@@ -127,17 +170,32 @@ class MSAFile(object):
     def __iter__(self):
         
         filter = self._filter
+        slicer = self._slicer
+        split = self._split
         if filter is None:
             for label, seq in self._iter():
-                label, start, end = splitLabel(label)
-                yield label, seq, start, end
+                if split:
+                    label, start, end = splitLabel(label)
+                    yield label, slicer(seq), start, end
+                else:
+                    yield label, slicer(seq)
         else:
             for label, seq in self._iter():
-                label, start, end = splitLabel(label)
-                result = label, seq, start, end
-                if filter(result):
-                    yield result    
+                if filter(label, seq):
+                    if split:
+                        label, start, end = splitLabel(label)
+                        yield label, slicer(seq), start, end    
+                    else:
+                        yield label, slicer(seq)
                              
+    def __str__(self):
+        
+        return 'MSAFile ' + self._title 
+    
+    def __repr__(self):
+        
+        return '<MSAFile: {0:s} ({1:s})>'.format(self._title, self._format) 
+    
     def _getFormat(self):
         """Return format of the MSA file."""
         
@@ -150,8 +208,8 @@ class MSAFile(object):
         
         aligned = self._aligned
         lenseq = self._lenseq
-        slice = self._slice
         numseq = 0
+        
         for record in self._bio:
             label, seq = record.id, str(record.seq)
             if not lenseq:
@@ -160,8 +218,6 @@ class MSAFile(object):
                 raise IOError('sequence for {0:s} does not have '
                               'expected length {1:d}'
                               .format(label, lenseq))
-            if slice:
-                seq = seq[slice] 
             numseq += 1
             yield label, seq
         self._numseq = numseq
@@ -171,11 +227,9 @@ class MSAFile(object):
 
         aligned = self._aligned
         lenseq = self._lenseq
-        slice = self._slice
-        if slice is None:
-            slice is False
         temp = []
         numseq = 0
+        
         with openFile(self._msa) as msa: 
             label = msa.readline()[1:]
             for line in msa:
@@ -187,8 +241,6 @@ class MSAFile(object):
                         raise IOError('sequence for {0:s} does not have '
                                       'expected length {1:d}'
                                       .format(label, lenseq))
-                    if slice:
-                        seq = seq[slice] 
                     numseq += 1
                     yield label, seq
                     temp = []
@@ -205,9 +257,6 @@ class MSAFile(object):
 
         aligned = self._aligned
         lenseq = self._lenseq
-        slice = self._slice
-        if slice is None:
-            slice is False
         numseq = 0
 
         with openFile(self._msa) as msa:
@@ -223,8 +272,6 @@ class MSAFile(object):
                     raise IOError('sequence for {0:s} does not have '
                                   'expected length {1:d}'
                                   .format(label, lenseq))
-                if slice:
-                    seq = seq[slice] 
                 numseq += 1
                 yield label, seq
         self._numseq = numseq
@@ -244,6 +291,16 @@ class MSAFile(object):
             self._iter().next()
         return self._lenseq
     
+    def getTitle(self):
+        """Return title of the instance."""
+        
+        return self._title
+    
+    def setTitle(self, title):
+        """Set title of the instance."""
+        
+        self._title = str(title)
+    
     def getFilter(self):
         """Return function used for filtering sequences."""
         
@@ -260,7 +317,7 @@ class MSAFile(object):
             raise TypeError('filter must be callable')
         
         try: 
-            result = filter(('TEST_TITLE', 'SEQUENCE-WITH-GAPS', 1, 15))
+            result = filter('TEST_TITLE', 'SEQUENCE-WITH-GAPS')
         except Exception as err:
             raise TypeError('filter function must be not raise exceptions, '
                             'e.g. ' + str(err))
@@ -275,39 +332,42 @@ class MSAFile(object):
     def getSlice(self):
         """Return object used to slice sequences."""
         
-        return self._filter
+        return self._slice
     
     def setSlice(self, slice):
         """Set object used to slice sequences."""
 
         if slice is None:
-            self._slice = None
-            return
-        
-        seq = 'SEQUENCE'
-        try: 
-            result = seq[slice] 
-        except Exception:
-            raise TypeError('slice cannot be used for slicing sequences')
-            arr = array(list(seq))
-            try:
-                result = arr[slice]
-            except Exception:
-                raise TypeError('slice cannot be used for slicing sequences')
-            else:
-                pass
-                
+            self._slice = None 
+            self._slicer = lambda seq: seq
         else:
-            self._slice = slice
-    
+            seq = 'SEQUENCE' * 1000
+            try: 
+                result = seq[slice]
+            except Exception:
+                arr = fromstring(seq, '|S1')
+                try:
+                    result = arr[slice]
+                except Exception:
+                    raise TypeError('invalid slice: ' + repr(slice))
+                else:
+                    self._slice = slice
+                    self._slicer = lambda seq, slc=slice: fromstring(seq,
+                                                        '|S1')[slc].tostring()
+            else:
+                self._slice = slice
+                self._slicer = lambda seq, slc=slice: seq[slc]
+
+
 class MSA(object):
     
     """Store and manipulate multiple sequence alignments.
     
     >>> from prody import *
-    >>> msa = parseMSA('piwi', alignment='seed')
+    >>> msafile = fetchPfamMSA('piwi', alignment='seed')
+    >>> msa = parseMSA(msafile)
     >>> msa
-    <MSA: piwi (20 sequences, 404 residues)>
+    <MSA: piwi_seed (20 sequences, 404 residues)>
 
     *Querying*
     
@@ -332,7 +392,7 @@ class MSA(object):
     Slice an MSA instance:
     
     >>> msa[:2]
-    <MSA: piwi' (2 sequences, 404 residues)>
+    <MSA: piwi_seed' (2 sequences, 404 residues)>
     
     Slice using a list of UniProt IDs:
     
@@ -349,7 +409,7 @@ class MSA(object):
     Slice MSA rows and columns:
     
     >>> msa[:10,20:40]
-    <MSA: piwi' (10 sequences, 20 residues)>
+    <MSA: piwi_seed' (10 sequences, 20 residues)>
     
     *Refinement*
     
@@ -357,10 +417,24 @@ class MSA(object):
     from the data as follows:
         
     >>> msa[:, 'YQ53_CAEEL'] # doctest: +ELLIPSIS
-    <MSA: piwi' (20 sequences, 328 residues)>
+    <MSA: piwi_seed' (20 sequences, 328 residues)>
     
     This operation removed 76 columns, which is the number of gaps in sequence
-    with label ``'YQ53_CAEEL'``."""
+    with label ``'YQ53_CAEEL'``.
+    
+    *Selective parsing*
+    
+    Filtering and slicing available to :class:`MSAFile` class can be used to 
+    parse an MSA selectively, which may be useful in low memory situations:
+        
+    >>> msa = MSA(msafile, filter=lambda lbl, seq: 'ARATH' in lbl, 
+    ...           slice=list(range(10)) + list(range(394,404)))
+    >>> msa
+    <MSA: piwi_seed (3 sequences, 20 residues)>
+
+    Compare this to result from parsing the complete file:
+    >>> MSA(msafile)
+    <MSA: piwi_seed (20 sequences, 404 residues)>"""
     
     def __init__(self, msa, **kwargs):
         """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
@@ -370,25 +444,27 @@ class MSA(object):
             ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
         except AttributeError:
             try:
-                numseq, lenseq = msa.numSequences(), msa.numResidues()
+                numseq, lenseq = msa.numSequences, msa.numResidues
             except AttributeError:
+                kwargs['split'] = False
                 try:
-                    msa = MSAFile(msa)
+                    msa = MSAFile(msa, **kwargs)
                 except Exception as err:
                     raise TypeError('msa was not recognized ({0:s})'
                                     .format(str(err)))
-                else:
-                    numseq, lenseq = msa.numSequences(), msa.numResidues()
             
-            self._msa = msaarray = zeros((numseq, lenseq), dtype='|S1')
+            self._msa = []
+            sappend = self._msa.append
             self._labels = []
-            labels = self._labels.append
+            lappend = self._labels.append
             self._mapping = mapping = {}
             
-            for i, (label, seq, start, end) in enumerate(msa):
-                labels((label, start, end))
-                mapping[label] = i
-                msaarray[i] = list(seq)
+            for i, (label, seq) in enumerate(msa):
+                lappend(label)
+                sappend(fromstring(seq, '|S1'))
+                mapping[splitLabel(label)[0]] = i
+            self._msa = array(self._msa, '|S1')
+            self._title = kwargs.get('title', msa.getTitle())
         else:
             if ndim != 2:
                 raise ValueError('msa.dim must be 2')
@@ -410,9 +486,8 @@ class MSA(object):
             if labels is None:
                 self._labels = [None] * numseq
                 
-            
             self._msa = msa
-        self._title = kwargs.get('title', 'Unknown')
+            self._title = kwargs.get('title', 'Unknown')
         
         
     def __str__(self):
