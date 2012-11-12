@@ -35,7 +35,7 @@ ESJOIN = ''.join
 import re
 from os.path import isfile, splitext, split, getsize
 
-from numpy import zeros, dtype, array
+from numpy import all, zeros, dtype, array
 
 from prody import LOGGER
 from prody.utilities import openFile
@@ -62,9 +62,9 @@ class MSAFile(object):
     """Yield tuples containing sequence id, sequence, start index, end index, 
     from an MSA file or object.
     
-    >>> msafile = fetchPfamMSA('piwi', alignment='seed')
-    >>> msa = MSAFile(msafile, filter=lambda tpl: 'ARATH' in tpl[0])
-    >>> for label, seq, rns, rne in msa: 
+    >> msafile = fetchPfamMSA('piwi', alignment='seed')
+    >> msa = MSAFile(msafile, filter=lambda tpl: 'ARATH' in tpl[0])
+    >> for label, seq, rns, rne in msa: 
     ...     print label
     ... AGO6_ARATH
     ... AGO4_ARATH
@@ -303,12 +303,48 @@ class MSA(object):
     
     """Store and manipulate multiple sequence alignments.
     
+    >>> from prody import *
     >>> msa = parseMSA('piwi', alignment='seed')
-    >>> msa[0]
+
+    *Querying*
+    
+    You can query whether a sequence in contained in the instance using
+    the UniProt identifier of the sequence as follows:
+        
+    >>> 'YQ53_CAEEL' in msa
+    True
+    
+    *Indexing/slicing*
+    
+    Retrieve a sequence at a given index:
+    
+    >>> msa[0] # doctest: +ELLIPSIS
+    ('YQ53_CAEEL', 'DIL...YK', 650, 977)
+    
+    Retrieve a sequence by UniProt ID:
+    
+    >>> msa['YQ53_CAEEL'] # doctest: +ELLIPSIS
+    ('YQ53_CAEEL', 'DIL...YK', 650, 977)
+    
+    Slice an MSA instance:
+    
+    >>> msa[:2]
+    <MSA: piwi' (2 sequences, 404 residues)>
+    
+    Slice using a list of UniProt IDs:
+    
+    >>> msa[:2] == msa[['YQ53_CAEEL', 'Q21691_CAEEL']]
+    True
+    
+    Retrieve a character in the MSA:
+
     >>> msa[0,0]
-    >>> msa[:10,]
+    'D'
+    
+    Slice MSA rows and columns:
+    
     >>> msa[:10,20:40]
-    >>> msa['GTHB2_ONCKE']"""
+    <MSA: piwi' (10 sequences, 20 residues)>"""
     
     def __init__(self, msa, **kwargs):
         """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
@@ -375,37 +411,89 @@ class MSA(object):
     def __getitem__(self, index):
         
         try:
-            row, col = index
-        except (ValueError, TypeError):
-            try:
-                index = self._mapping.get(index, index)
-            except TypeError:
-                pass
+            length = len(index)
+        except TypeError: # type(index) -> int, slice
+            rows, cols = index, None
         else:
             try:
-                index = self._mapping.get(row, row), col
-            except TypeError:
+                _ = index.strip
+            except AttributeError: # type(index) -> tuple, list
+                try:
+                    _ = index.sort
+                except AttributeError: # type(index) -> tuple
+                    if length == 1:
+                        rows, cols = index[0], None
+                    elif length == 2:
+                        rows, cols = index
+                    else:
+                        raise IndexError('invalid index: ' + repr(index))
+                else: # type(index) -> list
+                    rows, cols = index, None
+            else: # type(index) -> str
+                rows, cols = index, None 
+
+        try: # ('PROT_HUMAN', )
+            rows = self._mapping.get(rows, rows)
+        except TypeError, KeyError:
+            mapping = self._mapping
+            try:
+                rows = [mapping[key] for key in rows]
+            except (KeyError, TypeError):
                 pass
+
+        if cols is None:
+            msa = self._msa[rows]
+        else:
+            try:
+                msa = self._msa[rows, cols]
+            except Exception:
+                raise IndexError('invalid index: ' + str(index))
             
-        result = self._msa[index]
-        
         try:
-            shape, ndim = result.shape, result.ndim
+            shape, ndim = msa.shape, msa.ndim
         except AttributeError:
-            return result
+            return msa
         else:
-            if ndim < 2:
-                return result.tostring()
+            if ndim == 0:
+                return msa
+            elif ndim == 1:
+                label, start, end = splitLabel(self._labels[rows])
+                return label, msa.tostring(), start, end
             else:
-                msa = MSA(result)
-                return result # return an MSA object here 
+                try:
+                    labels = self._labels[rows]
+                except TypeError:
+                    temp = self._labels
+                    labels = [temp[i] for i in rows]
+                return MSA(msa, title=self._title + '\'', labels=labels) 
                
     def __iter__(self):
         
         for i, label in enumerate(self._labels):
             label, start, end = splitLabel(label)
             yield label, self._msa[i].tostring(), start, end
-                
+    
+    def __contains__(self, key):
+        
+        try:
+            return key in self._mapping
+        except Exception:
+            pass
+        return False
+    
+    def __eq__(self, other):
+
+        try:
+            other = other._getArray()
+        except AttributeError:
+            return False
+        
+        try:
+            return all(other == self._msa)
+        except Exception:
+            pass
+        return False
+    
     def numSequences(self):
         """Return number of sequences."""
         
