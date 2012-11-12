@@ -688,16 +688,11 @@ def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
     if dtype_ != dtype('|S1') or ndim != 2:
         raise TypeError('msa must be an MSA instance or a 2D character array')
         
-    mutinfo = zeros((shape[1], shape[1]), float)
     from .msatools import calcMutualInfo
     turbo = bool(turbo)
     LOGGER.timeit('_mutinfo')
-    turbo = calcMutualInfo(msa, mutinfo, ambiguity=bool(ambiguity), 
+    mutinfo = calcMutualInfo(msa, ambiguity=bool(ambiguity), 
                            turbo=turbo, debug=kwargs.get('debug', False))
-    if turbo:
-        LOGGER.report('Mutual information matrix was calculated in turbo mode '
-                      'in %.2fs.', '_mutinfo')
-    else:
-        LOGGER.report('Mutual information matrix was calculated '
-                      'in %.2fs.', '_mutinfo')   
+    LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
+                  '_mutinfo')   
     return mutinfo

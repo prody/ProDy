@@ -756,36 +756,35 @@ static void printProbs(double **probs, long lenseq) {
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
-    PyArrayObject *msa, *mutinfo;
+    PyArrayObject *msa;
     int ambiguity = 1, turbo = 1, debug = 0;
     
-    static char *kwlist[] = {"msa", "mutinfo", "ambiguity", "turbo", 
-                             "debug", NULL};
+    static char *kwlist[] = {"msa", "ambiguity", "turbo", "debug", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|iii", kwlist, &msa, 
-                                     &mutinfo, &ambiguity, &turbo, &debug))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iii", kwlist, &msa, 
+                                     &ambiguity, &turbo, &debug))
         return NULL;
 
     /* check dimensions */
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
-    if (mutinfo->dimensions[0] != lenseq || 
-        mutinfo->dimensions[1] != lenseq) {
-        PyErr_SetString(PyExc_IOError, 
-                        "msa and mutinfo array shapes do not match");
-        return NULL;
-    }
     
     /* get pointers to data */
-    
     char *seq = (char *) PyArray_DATA(msa); /*size: numseq x lenseq */
-    double *mut = (double *) PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
+    
 
     long i, j;
     /* allocate memory */
-    unsigned char *iseq = malloc(numseq * sizeof(unsigned char));
-    if (!iseq)
+    double *mut = malloc(lenseq * lenseq * sizeof(double));
+    if (!mut)
         return PyErr_NoMemory();
+
+    unsigned char *iseq = malloc(numseq * sizeof(unsigned char));
+    if (!iseq) {
+        free(mut);
+        return PyErr_NoMemory();
+    }
+        
     
     /* hold transpose of the sorted character array */
     unsigned char **trans = malloc(lenseq * sizeof(unsigned char *));
@@ -811,6 +810,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     /* lenseq*27, a row for each column in the MSA */
     double **probs = malloc(lenseq * sizeof(double *));
     if (!probs) {
+        free(mut);
         if (turbo)
             for (j = 1; j < lenseq; j++)
                 free(trans[j]);
@@ -822,6 +822,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     /* 27x27, alphabet characters and a gap*/
     double **joint = malloc(NUMCHARS * sizeof(double *));
     if (!joint) {
+        free(mut);
         if (turbo)
             for (j = 1; j < lenseq; j++)
                 free(trans[j]);
@@ -834,6 +835,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     for (i = 0; i < lenseq; i++) {
         probs[i] = malloc(NUMCHARS * sizeof(double));
         if (!probs[i]) {
+            free(mut);
             for (j = 0; j < i; j++)
                 free(probs[j]);
             free(probs);
@@ -852,6 +854,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     for (i = 0; i < NUMCHARS; i++)  {
         joint[i] = malloc(NUMCHARS * sizeof(double));  
         if (!joint[i]) {
+            free(mut);
             for (j = 0; j < i; j++)
                 free(joint[j]);
             free(joint);
@@ -1011,7 +1014,11 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             free(trans[j]);
     free(trans);
 
-    return PyBool_FromLong(turbo);    
+    npy_intp dims[2] = {lenseq, lenseq};
+    PyObject *mutinfo = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, mut);
+    PyObject *result = Py_BuildValue("O", mutinfo);
+    Py_DECREF(mutinfo);
+    return result;
 }
 
 
