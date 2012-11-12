@@ -22,14 +22,19 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
-from numpy import array, log, zeros
-from numpy.testing import assert_equal, assert_array_almost_equal, dec
+from numpy import array, log, zeros, char
+from numpy.testing import assert_array_equal, assert_array_almost_equal, dec
 
 from prody.tests.test_datafiles import *
 
 from prody import MSAFile, parseMSA, LOGGER, calcShannonEntropy, calcMutualInfo
+from prody import calcMSAOccupancy
 
 LOGGER.verbosity = None
+
+FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+SELEX = parseMSA(pathDatafile('msa_Cys_knot.slx'))
+STOCK = parseMSA(pathDatafile('msa_Cys_knot.sth'))
 
 class TestMSAFile(TestCase):
     
@@ -48,30 +53,18 @@ class TestParseMSA(TestCase):
     
     def testArray(self):
         
-        fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
-        selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
-        stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
-        
-        assert_equal(fasta._getArray(), selex._getArray())
-        assert_equal(selex._getArray(), stockholm._getArray())
+        assert_array_equal(FASTA._getArray(), SELEX._getArray())
+        assert_array_equal(SELEX._getArray(), STOCK._getArray())
 
     def testIterator(self):
         
-        fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
-        selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
-        stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
-        
-        self.assertListEqual(list(fasta), list(selex))
-        self.assertListEqual(list(fasta), list(stockholm))
+        self.assertListEqual(list(FASTA), list(SELEX))
+        self.assertListEqual(list(FASTA), list(STOCK))
 
     def testMapping(self):
         
-        fasta = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
-        selex = parseMSA(pathDatafile('msa_Cys_knot.slx'))
-        stockholm = parseMSA(pathDatafile('msa_Cys_knot.sth'))
-        
-        self.assertDictEqual(fasta._mapping, selex._mapping)
-        self.assertDictEqual(fasta._mapping, stockholm._mapping)
+        self.assertDictEqual(FASTA._mapping, SELEX._mapping)
+        self.assertDictEqual(FASTA._mapping, STOCK._mapping)
 
 
 class TestCalcShannonEntropy(TestCase):
@@ -227,10 +220,11 @@ class TestCalcMutualInfo(TestCase):
         
         msa = array([list('AB'),
                      list('BZ')])
-
-        expect = array([[0., log(2.)],
-                        [log(2.), 0.]]) 
-        result = calcMutualInfo(msa)
+        expect = (2 * .25 * log(.25 / .5 / .25) + 
+                  4 * .125 * log(.125 / .25 / .25))
+        expect = array([[0., expect],
+                        [expect, 0.]]) 
+        result = calcMutualInfo(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = calcMutualInfo(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
@@ -240,8 +234,7 @@ class TestCalcMutualInfo(TestCase):
         
         msa = array([list('XX')])
 
-        expect = array([[0., log(20.)],
-                        [log(20.), 0.]]) 
+        expect = zeros((2, 2)) 
         result = calcMutualInfo(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = calcMutualInfo(msa, turbo=False)
@@ -254,8 +247,9 @@ class TestCalcMutualInfo(TestCase):
                      list('jJ'),
                      list('Zz'),])
 
-        expect = array([[0., log(6.)],
-                        [log(6.), 0.]]) 
+        expect = log((1./12) / (1./6) / (1./6))
+        expect = array([[0., expect],
+                        [expect, 0.]]) 
         result = calcMutualInfo(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = calcMutualInfo(msa, turbo=False)
@@ -276,8 +270,7 @@ class TestCalcMutualInfo(TestCase):
 
     def testAmbiguity6(self):
 
-        expect = array([[0., log(2.)],
-                        [log(2.), 0.]]) 
+        expect = zeros((2, 2)) 
 
         for seq in ['bb', 'jj', 'zz']:
             msa = array([list(seq)])
@@ -309,3 +302,17 @@ class TestCalcMutualInfo(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = calcMutualInfo(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+class TestCalcMSAOccupancy(TestCase):
+    
+    def testResidueOccupancy(self):
+        
+        assert_array_equal(calcMSAOccupancy(FASTA, 'residue'),
+                           char.isalpha(FASTA._msa).sum(0))
+    
+    def testSequenceOccupancy(self):
+        
+        assert_array_equal(calcMSAOccupancy(FASTA, 'sequence'),
+                           char.isalpha(FASTA._msa).sum(1))
+        

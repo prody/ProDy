@@ -29,6 +29,17 @@ const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
 
 
+static char *intcat(char *msg, int line) {
+   
+    /* Concatenate integer to a string. */
+   
+    char lnum[10];
+    snprintf(lnum, 10, "%i", line);
+    strcat(msg, lnum);
+    return msg;
+}
+    
+
 static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
                       char clabel[], char ckey[], long ccount, int size) {
     
@@ -83,6 +94,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
     return 1;
 }
 
+
 static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     /* Parse sequences from *filename* into the memory pointed by the
@@ -91,18 +103,26 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
        lengths. */
 
     char *filename;
-    PyArrayObject *msa;
+    long lenseq, numseq; /* seq length and expected max num of sequences */
     
-    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
+    if (!PyArg_ParseTuple(args, "sii", &filename, &lenseq, &numseq))
         return NULL;
     
-    long i = 0, lenseq = msa->dimensions[1];
-    long lenline = 0, lenlast = 0, numlines = 0; 
+    long i = 0, lenline = 0, lenlast = 0, numlines = 0; 
     long size = lenseq + LENLABEL, iline = 0;
+    char errmsg[LENLABEL] = "failed to parse fasta file at line ";
+
+    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
+    if (!labels || !mapping)
+        return PyErr_NoMemory();
+
     char *line = malloc(size * sizeof(char));
-    if (!line) {
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+    if (!line) 
+        return PyErr_NoMemory();
+    char *data = malloc(lenseq * numseq * sizeof(char));
+    if (!data) {
+        free(line);
+        return PyErr_NoMemory();
     }
 
     FILE *file = fopen(filename, "rb");
@@ -123,15 +143,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     int j = 0;
     long index = 0, ccount = 0;
-    char *data = (char *) PyArray_DATA(msa);
     char clabel[LENLABEL], ckey[LENLABEL];
-    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
-    if (!labels || !mapping) {
-        free(line);
-        PyErr_SetString(PyExc_MemoryError, 
-                        "failed to create a list or dictionary object");
-        return NULL;
-    }
 
     while (fgets(line, size, file) != NULL) {
         iline++;
@@ -145,8 +157,8 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         /* parse label */
         if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
             free(line);
-            PyErr_SetString(PyExc_IOError, 
-                            "failed to parse msa, at line");
+            free(data);
+            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         }
 
@@ -154,8 +166,8 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         for (i = 0; i < numlines; i++) {
             if (fgets(line, size, file) == NULL) {
                 free(line);
-                PyErr_SetString(PyExc_IOError, 
-                                "failed to parse msa, at line");
+                free(data);
+                PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
                 return NULL;
             }
             for (j = 0; j < lenline; j++)
@@ -165,8 +177,8 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         if (lenlast) {
             if (fgets(line, size, file) == NULL) {
                 free(line);
-                PyErr_SetString(PyExc_IOError, 
-                                "failed to parse msa, at line");
+                free(data);
+                PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
                 return NULL;
             }
             for (j = 0; j < lenlast; j++)
@@ -178,8 +190,11 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     fclose(file);
     free(line);
-
-    PyObject *result = Py_BuildValue("(OO)", labels, mapping);
+    data = realloc(data, lenseq * ccount * sizeof(char));
+    npy_intp dims[2] = {ccount, lenseq};
+    PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
+    PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
+    Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
 
@@ -194,17 +209,25 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
        the sequences are aligned, i.e. start and end at the same column. */
 
     char *filename;
-    PyArrayObject *msa;
+    long lenseq, numseq; /* seq length and expected max num of sequences */
     
-    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
+    if (!PyArg_ParseTuple(args, "sii", &filename, &lenseq, &numseq))
         return NULL;
 
-    long i = 0, beg = 0, end = 0, lenseq = msa->dimensions[1]; 
+    long i = 0, beg = 0, end = 0; 
     long size = lenseq + LENLABEL, iline = 0;
+    char errmsg[LENLABEL] = "failed to parse selex/stockholm file at line ";
+
+    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
+    if (!labels || !mapping)
+        return PyErr_NoMemory();
     char *line = malloc(size * sizeof(char));
-    if (!line) {
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+    if (!line)
+        return PyErr_NoMemory();
+    char *data = malloc(lenseq * numseq * sizeof(char));
+    if (!data) {
+        free(line);
+        return PyErr_NoMemory();
     }
 
     /* figure out where the sequence starts and ends in a line*/
@@ -227,15 +250,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     fseek(file, - strlen(line), SEEK_CUR);
 
     long index = 0, ccount = 0;
-    char *data = (char *) PyArray_DATA(msa);
     char clabel[LENLABEL], ckey[LENLABEL];
-    PyObject *labels = PyList_New(0), *mapping = PyDict_New();
-    if (!labels || !mapping) {
-        free(line);
-        PyErr_SetString(PyExc_MemoryError, 
-                        "failed to create a list or dictionary object");
-        return NULL;
-    }
 
     int space = beg - 1; /* index of space character before sequence */
     while (fgets(line, size, file) != NULL) {
@@ -245,16 +260,16 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
             
         if (line[space] != ' ') {
             free(line);
-            PyErr_SetString(PyExc_IOError, 
-                            "failed to parse msa, at line");
+            free(data);
+            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         } 
 
         /* parse label */
         if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
             free(line);
-            PyErr_SetString(PyExc_IOError, 
-                            "failed to parse msa, at line");
+            free(data);
+            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         }
         
@@ -266,7 +281,11 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     fclose(file);
     free(line);
     
-    PyObject *result = Py_BuildValue("(OO)", labels, mapping);
+    data = realloc(data, lenseq * ccount * sizeof(char));
+    npy_intp dims[2] = {ccount, lenseq};
+    PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
+    PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
+    Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
     
@@ -277,25 +296,22 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
-    PyArrayObject *msa, *entropy;
-    int ambiquity = 1, omitgaps = 0;
+    PyArrayObject *msa;
+    int ambiguity = 1, omitgaps = 0;
     
-    static char *kwlist[] = {"msa", "entropy", "ambiquity", "omitgaps", NULL};
+    static char *kwlist[] = {"msa", "ambiguity", "omitgaps", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
-                                     &msa, &entropy, &ambiquity, &omitgaps))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|ii", kwlist,
+                                     &msa, &ambiguity, &omitgaps))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
-    if (entropy->dimensions[0] != lenseq) {
-        PyErr_SetString(PyExc_IOError, 
-                        "msa and entropy array shapes do not match");
-        return NULL;
-    }
-
+    double *ent = malloc(lenseq * sizeof(double));
+    if (!ent)
+        return PyErr_NoMemory();
+        
     char *seq = (char *) PyArray_DATA(msa);
-    double *ent = (double *) PyArray_DATA(entropy);
 
     /* start here */
     long size = numseq * lenseq; 
@@ -306,6 +322,8 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     double ambiguous = 0;
     int twenty[20] = {65, 67, 68, 69, 70, 71, 72, 73, 75, 76, 
                       77, 78, 80, 81, 82, 83, 84, 86, 87, 89};
+    for (i = 0; i < lenseq; i++)
+        ent[j] = 0;
     for (i = 0; i < lenseq; i++) {
 
         /* zero counters */
@@ -321,7 +339,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
             count[j] += count[j + 32];
         
         /* handle ambiguous amino acids */
-        if (ambiquity) {
+        if (ambiguity) {
             if (count[66]) {
                 ambiguous = count[66] / 2.; /* B */
                 count[66] = 0;
@@ -369,24 +387,33 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
         }
         ent[i] = -shannon;
     }
-
-    Py_RETURN_NONE;
+    npy_intp dims[1] = {lenseq};
+    PyObject *entropy = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, ent);
+    PyObject *result = Py_BuildValue("O", entropy);
+    Py_DECREF(entropy);
+    return result;
 }
 
+
 static void sortJoint(double **joint) {
+    
+    /* Sort probability of ambiguous amino acids. */
     
     int k, l, t;
     double *jrow, jp, *krow;
     
     /* X */
-    jrow = joint[24]; 
-    jp = jrow[24]; /* XX */
+    jrow = joint[24];
+    /* XX */ 
+    jp = jrow[24];
     if (jp > 0) {
-        jp = jp / 20;
+        jp = jp / 400;
         for (k = 0; k < 20; k++) {
             t = twenty[k];
-            joint[t][t] += jp;
-        }    
+            krow = joint[t];
+            for (l = 0; l < 20; l++)
+                joint[t][twenty[l]] += jp;
+        }
         jrow[24] = 0;
     }
     /* XB */ 
@@ -423,13 +450,16 @@ static void sortJoint(double **joint) {
         jrow[26] = 0;
     }
 
-    
     /* B */
-    jrow = joint[2]; 
-    jp = jrow[2]; /* BB */
+    jrow = joint[2];
+    /* BB */ 
+    jp = jrow[2];
     if (jp > 0) {
-        joint[4][4] += jp / 2; 
-        joint[14][14] += jp / 2;
+        jp = jp / 4;
+        joint[4][4] += jp; 
+        joint[4][14] += jp;
+        joint[14][4] += jp; 
+        joint[14][14] += jp;
         jrow[2] = 0;
     }    
     /* BX */ 
@@ -448,8 +478,8 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[4][9] += jp;
-        joint[14][9] += jp;
         joint[4][12] += jp; 
+        joint[14][9] += jp;
         joint[14][12] += jp;
         jrow[10] = 0;
     }    
@@ -458,18 +488,21 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[4][5] += jp;
-        joint[14][5] += jp; 
         joint[4][17] += jp; 
+        joint[14][5] += jp; 
         joint[14][17] += jp;
         jrow[26] = 0;
     }  
     
     /* Z */
-    jrow = joint[26]; 
-    jp = jrow[26]; /* ZZ */
+    jrow = joint[26];
+    /* ZZ */ 
+    jp = jrow[26];
     if (jp > 0) {
-        jp = jp / 2;
+        jp = jp / 4;
         joint[5][5] += jp;
+        joint[5][17] += jp;
+        joint[17][5] += jp;
         joint[17][17] += jp;
         jrow[26] = 0;
     }
@@ -489,8 +522,8 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[5][9] += jp; 
-        joint[17][9] += jp;
         joint[5][12] += jp;
+        joint[17][9] += jp;
         joint[17][12] += jp;
         jrow[10] = 0;
     }    
@@ -499,18 +532,21 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[5][4] += jp; 
-        joint[17][4] += jp;
         joint[5][14] += jp;
+        joint[17][4] += jp;
         joint[17][14] += jp;
         jrow[2] = 0;
     }  
     
     /* J */
     jrow = joint[10];
-    jp = jrow[10]; /* JJ */
+    /* JJ */
+    jp = jrow[10]; 
     if (jp > 0) {
-        jp = jp / 2;
-        joint[9][9] += jp; 
+        jp = jp / 4;
+        joint[9][9] += jp;
+        joint[9][12] += jp; 
+        joint[12][9] += jp;
         joint[12][12] += jp;
         joint[10][10] = 0;
     }
@@ -530,8 +566,8 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[9][4] += jp; 
-        joint[12][4] += jp;
         joint[9][14] += jp;
+        joint[12][4] += jp;
         joint[12][14] += jp;
         jrow[2] = 0;
     }
@@ -540,13 +576,12 @@ static void sortJoint(double **joint) {
     if (jp > 0) {
         jp = jp / 4;
         joint[9][5] += jp; 
-        joint[12][5] += jp;
         joint[9][17] += jp;
+        joint[12][5] += jp;
         joint[12][17] += jp;
         jrow[26] = 0;
     }  
     
-            
     /*for (k = 0; k < NUMCHARS; k++) {*/
     for (t = 0; t < 23; t++) {
         k = unambiguous[t];
@@ -619,8 +654,11 @@ static void sortJoint(double **joint) {
     
 }
 
+
 static void zeroJoint(double **joint) {
 
+    /* Fill NUMCHARSxNUMCHARS joint array with zeros. */
+    
     int k, l;
     double *jrow;        
     for (k = 0; k < NUMCHARS; k++) {
@@ -630,8 +668,11 @@ static void zeroJoint(double **joint) {
     }
 }
 
+
 static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
 
+    /* Calculate mutual information for a pair of columns in MSA. */
+    
     int k, l;
     double *jrow, *iprb = probs[i], *jprb = probs[j], jp, mi = 0, inside;
     /*double isum = 0, jsum = 0, sum = 0;*/
@@ -658,7 +699,11 @@ static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
     return mi;
 }
 
+
 static void printJoint(double **joint, long k, long l) {
+
+    /* Print joint probability matrix for debugging purposes. */
+
     int i, j;
     double csum[NUMCHARS], rsum, sum = 0, *row;
     printf("\nJoint probability matrix (%li,%li)\n", k, l);    
@@ -686,7 +731,11 @@ static void printJoint(double **joint, long k, long l) {
     printf("%.2f\n", sum);
 }
 
+
 static void printProbs(double **probs, long lenseq) {
+
+    /* Print probability matrix for debugging purposes. */
+    
     int i, j;
     double sum;
     double *row;
@@ -705,41 +754,39 @@ static void printProbs(double **probs, long lenseq) {
     }
 }
 
+
 static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                                 PyObject *kwargs) {
 
-    PyArrayObject *msa, *mutinfo;
-    int ambiquity = 1, turbo = 1, debug = 0;
+    PyArrayObject *msa;
+    int ambiguity = 1, turbo = 1, debug = 0;
     
-    static char *kwlist[] = {"msa", "mutinfo", "ambiquity", "turbo", 
-                             "debug", NULL};
+    static char *kwlist[] = {"msa", "ambiguity", "turbo", "debug", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|iii", kwlist, &msa, 
-                                     &mutinfo, &ambiquity, &turbo, &debug))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iii", kwlist, &msa, 
+                                     &ambiguity, &turbo, &debug))
         return NULL;
 
     /* check dimensions */
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
    
-    if (mutinfo->dimensions[0] != lenseq || 
-        mutinfo->dimensions[1] != lenseq) {
-        PyErr_SetString(PyExc_IOError, 
-                        "msa and mutinfo array shapes do not match");
-        return NULL;
-    }
     
     /* get pointers to data */
-    
     char *seq = (char *) PyArray_DATA(msa); /*size: numseq x lenseq */
-    double *mut = (double *) PyArray_DATA(mutinfo); /*size: lenseq x lenseq */
+    
 
     long i, j;
     /* allocate memory */
+    double *mut = malloc(lenseq * lenseq * sizeof(double));
+    if (!mut)
+        return PyErr_NoMemory();
+
     unsigned char *iseq = malloc(numseq * sizeof(unsigned char));
     if (!iseq) {
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+        free(mut);
+        return PyErr_NoMemory();
     }
+        
     
     /* hold transpose of the sorted character array */
     unsigned char **trans = malloc(lenseq * sizeof(unsigned char *));
@@ -765,31 +812,32 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     /* lenseq*27, a row for each column in the MSA */
     double **probs = malloc(lenseq * sizeof(double *));
     if (!probs) {
+        free(mut);
         if (turbo)
             for (j = 1; j < lenseq; j++)
                 free(trans[j]);
         free(trans);
         free(iseq);
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+        return PyErr_NoMemory();
     }
 
     /* 27x27, alphabet characters and a gap*/
     double **joint = malloc(NUMCHARS * sizeof(double *));
     if (!joint) {
+        free(mut);
         if (turbo)
             for (j = 1; j < lenseq; j++)
                 free(trans[j]);
         free(trans);
         free(iseq);
         free(probs);
-        PyErr_SetString(PyExc_MemoryError, "out of memory");
-        return NULL;
+        return PyErr_NoMemory();
     }
     
     for (i = 0; i < lenseq; i++) {
         probs[i] = malloc(NUMCHARS * sizeof(double));
         if (!probs[i]) {
+            free(mut);
             for (j = 0; j < i; j++)
                 free(probs[j]);
             free(probs);
@@ -799,8 +847,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     free(trans[j]);
             free(trans);
             free(iseq);
-            PyErr_SetString(PyExc_MemoryError, "out of memory");
-            return NULL;
+            return PyErr_NoMemory();
         }
         for (j = 0; j < NUMCHARS; j++)
             probs[i][j] = 0;
@@ -809,6 +856,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     for (i = 0; i < NUMCHARS; i++)  {
         joint[i] = malloc(NUMCHARS * sizeof(double));  
         if (!joint[i]) {
+            free(mut);
             for (j = 0; j < i; j++)
                 free(joint[j]);
             free(joint);
@@ -820,14 +868,19 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     free(trans[j]);
             free(trans);
             free(iseq);
-            PyErr_SetString(PyExc_MemoryError, "out of memory");
-            return NULL;
+            return PyErr_NoMemory();
         }
     }
 
     unsigned char a, b;
     long k, l, diff, offset;
     double *prow = probs[0], *jrow, p_incr = 1. / numseq, prb = 0;
+    
+    for (i = 0; i < lenseq; i++) {
+        jrow = mut + i * lenseq;
+        for (j = 0; j < lenseq; j++)
+            jrow[j] = 0;
+    }
     
     i = 0;
     /* calculate first row of MI matrix, while calculating probabilities */
@@ -867,7 +920,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             jrow[b] += p_incr;
         }
         
-        if (ambiquity) {
+        if (ambiguity) {
             for (k = 0; k < lenseq; k++) {
                 prow = probs[k];
                 prb = prow[2];
@@ -948,7 +1001,7 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
                     joint[a][b] += p_incr;
                 }
             }
-            if (ambiquity)
+            if (ambiguity)
                 sortJoint(joint);
             mut[ioffset + j] = mut[i + lenseq * j] = 
                 calcMI(joint, probs, i, j, debug);
@@ -969,9 +1022,52 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
             free(trans[j]);
     free(trans);
 
-    return PyBool_FromLong(turbo);    
+    npy_intp dims[2] = {lenseq, lenseq};
+    PyObject *mutinfo = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, mut);
+    PyObject *result = Py_BuildValue("O", mutinfo);
+    Py_DECREF(mutinfo);
+    return result;
 }
 
+static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args) {
+
+    PyArrayObject *msa;
+    int dim;
+    if (!PyArg_ParseTuple(args, "Oi", &msa, &dim))
+        return NULL;
+    
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+   
+    long *occ = malloc(msa->dimensions[dim] * sizeof(long));
+    if (!occ)
+        return PyErr_NoMemory();
+        
+    char *seq = (char *) PyArray_DATA(msa), *row, ch;
+        
+    long i, j, *k;  
+    if (dim)
+        k = &j;
+    else
+        k = &i;
+    
+    for (i = 0; i < msa->dimensions[dim]; i++)
+        occ[i] = 0;
+
+    for (i = 0; i < numseq; i++) {
+        row = seq + i * lenseq;
+        for (j = 0; j < lenseq; j++) {
+            ch = row[j];
+            if ((64 < ch && ch < 91) || (96 < ch && ch < 123))
+                occ[*k]++;
+        }
+    }
+    
+    npy_intp dims[1] = {msa->dimensions[dim]};
+    PyObject *occupancy = PyArray_SimpleNewFromData(1, dims, NPY_LONG, occ);
+    PyObject *result = Py_BuildValue("O", occupancy);
+    Py_DECREF(occupancy);
+    return result;
+}
 
 
 static PyMethodDef msatools_methods[] = {
@@ -994,8 +1090,10 @@ static PyMethodDef msatools_methods[] = {
      "Calculate mutual information for given character array into given \n"
      "2D double array, and return True if turbo mode was used."},
      
+    {"calcMSAOccupancy",  (PyCFunction)calcMSAOccupancy, METH_VARARGS, 
+     "Return occupancy array calculated for MSA rows or columns."},
+
     {NULL, NULL, 0, NULL}
-    
 };
 
 

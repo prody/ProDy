@@ -21,6 +21,7 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
+import re
 from os.path import join, isfile, getsize, splitext, split
 
 from prody import LOGGER
