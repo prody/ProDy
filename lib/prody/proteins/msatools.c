@@ -322,6 +322,8 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     double ambiguous = 0;
     int twenty[20] = {65, 67, 68, 69, 70, 71, 72, 73, 75, 76, 
                       77, 78, 80, 81, 82, 83, 84, 86, 87, 89};
+    for (i = 0; i < lenseq; i++)
+        ent[j] = 0;
     for (i = 0; i < lenseq; i++) {
 
         /* zero counters */
@@ -385,7 +387,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
         }
         ent[i] = -shannon;
     }
-    npy_intp dims[1] = {lenseq, };
+    npy_intp dims[1] = {lenseq};
     PyObject *entropy = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, ent);
     PyObject *result = Py_BuildValue("O", entropy);
     Py_DECREF(entropy);
@@ -874,6 +876,12 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     long k, l, diff, offset;
     double *prow = probs[0], *jrow, p_incr = 1. / numseq, prb = 0;
     
+    for (i = 0; i < lenseq; i++) {
+        jrow = mut + i * lenseq;
+        for (j = 0; j < lenseq; j++)
+            jrow[j] = 0;
+    }
+    
     i = 0;
     /* calculate first row of MI matrix, while calculating probabilities */
     for (j = 1; j < lenseq; j++) {
@@ -1021,6 +1029,46 @@ static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
     return result;
 }
 
+static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args) {
+
+    PyArrayObject *msa;
+    int dim;
+    if (!PyArg_ParseTuple(args, "Oi", &msa, &dim))
+        return NULL;
+    
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+   
+    long *occ = malloc(msa->dimensions[dim] * sizeof(long));
+    if (!occ)
+        return PyErr_NoMemory();
+        
+    char *seq = (char *) PyArray_DATA(msa), *row, ch;
+        
+    long i, j, *k;  
+    if (dim)
+        k = &j;
+    else
+        k = &i;
+    
+    for (i = 0; i < msa->dimensions[dim]; i++)
+        occ[i] = 0;
+
+    for (i = 0; i < numseq; i++) {
+        row = seq + i * lenseq;
+        for (j = 0; j < lenseq; j++) {
+            ch = row[j];
+            if ((64 < ch && ch < 91) || (96 < ch && ch < 123))
+                occ[*k]++;
+        }
+    }
+    
+    npy_intp dims[1] = {msa->dimensions[dim]};
+    PyObject *occupancy = PyArray_SimpleNewFromData(1, dims, NPY_LONG, occ);
+    PyObject *result = Py_BuildValue("O", occupancy);
+    Py_DECREF(occupancy);
+    return result;
+}
+
 
 static PyMethodDef msatools_methods[] = {
 
@@ -1042,6 +1090,9 @@ static PyMethodDef msatools_methods[] = {
      "Calculate mutual information for given character array into given \n"
      "2D double array, and return True if turbo mode was used."},
      
+    {"calcMSAOccupancy",  (PyCFunction)calcMSAOccupancy, METH_VARARGS, 
+     "Return occupancy array calculated for MSA rows or columns."},
+
     {NULL, NULL, 0, NULL}
 };
 

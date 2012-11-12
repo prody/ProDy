@@ -23,7 +23,8 @@ __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
 __all__ = ['MSAFile', 'MSA', 'parseMSA', 
-           'calcShannonEntropy', 'calcMutualInfo']
+           'calcShannonEntropy', 'calcMutualInfo',
+           'calcMSAOccupancy']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -696,3 +697,31 @@ def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
     LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
                   '_mutinfo')   
     return mutinfo
+
+
+def calcMSAOccupancy(msa, occ='res'):
+    """Return occupancy array calculated for residues (default) or sequences
+    (``occ='seq'``) of *msa*, which may be an :class:`MSA` instance or a 2D 
+    Numpy character array.  Implementation is case insensitive."""
+    
+    from .msatools import calcMSAOccupancy
+    
+    try:
+        msa = msa._getArray()
+    except AttributeError:
+        pass
+    
+    try:
+        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
+    except AttributeError:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+        
+    if dtype_ != dtype('|S1') or ndim != 2:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+
+    try:
+        occ = occ.startswith('res')
+    except AttributeError:
+        raise TypeError('occ must be a string')
+    return calcMSAOccupancy(msa, occ)
+    
