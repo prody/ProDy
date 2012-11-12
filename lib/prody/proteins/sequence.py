@@ -464,6 +464,8 @@ def parseMSA(msa, **kwargs):
     
     msa = str(msa)
     if isfile(msa):
+        # if MSA is a compressed file or filter/slice is passed, use 
+        #   Python parsers
         ext = splitext(msa)[1] 
         if ext == '.gz' or 'filter' in kwargs or 'slice' in kwargs:
             return MSA(msa, **kwargs)
@@ -479,20 +481,18 @@ def parseMSA(msa, **kwargs):
             if 'compressed' in kwargs:
                 return MSA(filename, **kwargs)
 
-    msafile = MSAFile(msa)
+    msafile = MSAFile(filename)
     title = splitext(split(msa)[1])[0]
     format = msafile.format
     lenseq = msafile.numResidues()
-    numseq = getsize(msa) / (lenseq + 10)
-    
+    numseq = getsize(filename) / (lenseq + 10)
+    msaarr = zeros((numseq, lenseq), '|S1')
     if format == FASTA:
         from .msatools import parseFasta
-        msaarr = zeros((numseq, lenseq), '|S1')
-        labels, mapping = parseFasta(msa, msaarr)
+        labels, mapping = parseFasta(filename, msaarr)
     elif format == SELEX or format == STOCKHOLM:
         from .msatools import parseSelex
-        msaarr = zeros((numseq, lenseq), '|S1') 
-        labels, mapping = parseSelex(msa, msaarr)
+        labels, mapping = parseSelex(filename, msaarr)
 
     return MSA(msa=msaarr[:len(labels)], labels=labels, title=title, 
                mapping=mapping)
