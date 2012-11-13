@@ -17,55 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-__author__ = 'Ahmet Bakan, Anindita Dutta'
+__author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
 from numpy import array, log, zeros, char
-from numpy.testing import assert_array_equal, assert_array_almost_equal, dec
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from prody.tests.test_datafiles import *
 
-from prody import MSAFile, parseMSA, LOGGER, calcShannonEntropy, calcMutualInfo
+from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
 from prody import calcMSAOccupancy
 
 LOGGER.verbosity = None
 
 FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
-SELEX = parseMSA(pathDatafile('msa_Cys_knot.slx'))
-STOCK = parseMSA(pathDatafile('msa_Cys_knot.sth'))
-
-class TestMSAFile(TestCase):
-    
-    def testMSAFile(self):
-        
-        fasta = list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))) 
-        
-        self.assertListEqual(fasta, 
-                             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
-        
-        self.assertListEqual(fasta,
-                             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
-
-
-class TestParseMSA(TestCase):
-    
-    def testArray(self):
-        
-        assert_array_equal(FASTA._getArray(), SELEX._getArray())
-        assert_array_equal(SELEX._getArray(), STOCK._getArray())
-
-    def testIterator(self):
-        
-        self.assertListEqual(list(FASTA), list(SELEX))
-        self.assertListEqual(list(FASTA), list(STOCK))
-
-    def testMapping(self):
-        
-        self.assertDictEqual(FASTA._mapping, SELEX._mapping)
-        self.assertDictEqual(FASTA._mapping, STOCK._mapping)
-
 
 class TestCalcShannonEntropy(TestCase):
 
@@ -156,9 +123,9 @@ class TestCalcMutualInfo(TestCase):
                         [0., 0., 0., 0.],
                         [0., 0., 0., log(2.)],
                         [0., 0., log(2.), 0.],]) 
-        result = calcMutualInfo(msa)
+        result = buildMutinfoMatrix(msa)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 
@@ -170,9 +137,9 @@ class TestCalcMutualInfo(TestCase):
         expect = log(20.)
         expect = array([[0., expect],
                         [expect, 0.]])
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
     
 
@@ -184,9 +151,9 @@ class TestCalcMutualInfo(TestCase):
         expect = log(20.)
         expect = array([[0., expect],
                         [expect, 0.]])
-        result = calcMutualInfo(msa)
+        result = buildMutinfoMatrix(msa)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 
@@ -197,9 +164,9 @@ class TestCalcMutualInfo(TestCase):
 
         expect = array([[0., log(2.)],
                         [log(2.), 0.]]) 
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 
@@ -210,9 +177,9 @@ class TestCalcMutualInfo(TestCase):
 
         expect = array([[0., log(2.)],
                         [log(2.), 0.]]) 
-        result = calcMutualInfo(msa, ambiquity=False)
+        result = buildMutinfoMatrix(msa, ambiquity=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, ambiquity=False, turbo=False)
+        result = buildMutinfoMatrix(msa, ambiquity=False, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 
@@ -224,9 +191,9 @@ class TestCalcMutualInfo(TestCase):
                   4 * .125 * log(.125 / .25 / .25))
         expect = array([[0., expect],
                         [expect, 0.]]) 
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
         
 
@@ -235,9 +202,9 @@ class TestCalcMutualInfo(TestCase):
         msa = array([list('XX')])
 
         expect = zeros((2, 2)) 
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 
@@ -250,9 +217,9 @@ class TestCalcMutualInfo(TestCase):
         expect = log((1./12) / (1./6) / (1./6))
         expect = array([[0., expect],
                         [expect, 0.]]) 
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 
@@ -264,7 +231,7 @@ class TestCalcMutualInfo(TestCase):
         for seq in ['bx', 'Xb', 'jX', 'Xj', 'xz', 'ZX',
                     'bj', 'jb', 'bz', 'zb', 'jz', 'zj']:
             msa = array([list(seq)])
-            result = calcMutualInfo(msa, debug=False)
+            result = buildMutinfoMatrix(msa, debug=False)
             assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
 
 
@@ -274,7 +241,7 @@ class TestCalcMutualInfo(TestCase):
 
         for seq in ['bb', 'jj', 'zz']:
             msa = array([list(seq)])
-            result = calcMutualInfo(msa, debug=False)
+            result = buildMutinfoMatrix(msa, debug=False)
             assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
 
     def testAmbiguity7(self):
@@ -285,9 +252,9 @@ class TestCalcMutualInfo(TestCase):
                   4 * 0.0250 * log(0.0250/0.275/0.275))
         expect = array([[0., expect],
                         [expect, 0.]]) 
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
     def testInf(self):
@@ -298,9 +265,9 @@ class TestCalcMutualInfo(TestCase):
         msa[95,9] = 'i'
         expect = zeros((10,10))
         expect[8,9] = expect[9,8] = 0.002 * log(500.) + 0.998 * log(1. / 0.998)
-        result = calcMutualInfo(msa, debug=False)
+        result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = calcMutualInfo(msa, turbo=False)
+        result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
 

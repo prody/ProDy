@@ -1,7 +1,7 @@
 ***********************
-prody.proteins.sequence
+prody.sequence.plotting
 ***********************
 
-.. automodule:: prody.proteins.sequence
+.. automodule:: prody.sequence.plotting
    :members:
    :undoc-members:

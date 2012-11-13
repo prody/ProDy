@@ -118,6 +118,11 @@ from .database import *
 __all__.extend(database.__all__)
 __all__.append('database')
 
+from . import sequence
+from .sequence import *
+__all__.extend(sequence.__all__)
+__all__.append('sequence')
+
 from . import dynamics
 from .dynamics import *
 __all__.extend(dynamics.__all__)

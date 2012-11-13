@@ -201,7 +201,3 @@ from pdbfile import *
 __all__.extend(pdbfile.__all__)
 
 from pdbfile import PDBParseError
-
-from . import sequence
-from .sequence import *
-__all__.extend(sequence.__all__)

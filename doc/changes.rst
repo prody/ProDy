@@ -6,6 +6,22 @@
 Changes
 *******************************************************************************
 
+Release 1.4 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
+    for searching and retrieving Pfam data.
+  
+  * :class:`.MSAFile`, :class:`.MSA` classes and :func:`.parseMSA` function are
+    implemented for handling and manipulating multiple sequence alignments.
+
+  * :func:`.calcShannonEntropy`, :func:`.calcMutualInfo`, and 
+    :func:`.calcMSAOccupancy` functions are implemented implemented for 
+    MSA analysis.
+
+
 Release 1.3.1 (Nov 6, 2012)
 ===============================================================================
 

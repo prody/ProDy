@@ -20,6 +20,7 @@ module.  Some documentation pages include usage examples.
    measure/index
    proteins/index
    routines/index
+   sequence/index
    trajectory/index
    utilities/index
    tests
