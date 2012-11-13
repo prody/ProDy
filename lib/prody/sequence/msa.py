@@ -92,7 +92,7 @@ class MSA(object):
     
     *Selective parsing*
     
-    Filtering and slicing available to :class:`MSAFile` class can be used to 
+    Filtering and slicing available to :class:`.MSAFile` class can be used to 
     parse an MSA selectively, which may be useful in low memory situations:
         
     >>> msa = MSA(msafile, filter=lambda lbl, seq: 'ARATH' in lbl, 
@@ -105,7 +105,7 @@ class MSA(object):
     <MSA: piwi_seed (20 sequences, 404 residues)>"""
     
     def __init__(self, msa, **kwargs):
-        """*msa* may be an :class:`MSAFile` instance or an MSA file in a 
+        """*msa* may be an :class:`.MSAFile` instance or an MSA file in a 
         supported format."""
         
         try:

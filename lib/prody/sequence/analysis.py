@@ -30,7 +30,7 @@ __all__ = ['calcShannonEntropy', 'calcMutualInfo', 'calcMSAOccupancy']
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     """Return Shannon entropy array calculated for *msa*, which may be 
-    an :class:`MSA` instance or a 2D Numpy character array.  Implementation 
+    an :class:`.MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
     
       * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
@@ -69,7 +69,7 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     
 def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
     """Return mutual information matrix calculated for *msa*, which may be an 
-    :class:`MSA` instance or a 2D Numpy character array.  Implementation 
+    :class:`.MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
     
       * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
@@ -117,7 +117,7 @@ def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
 
 def calcMSAOccupancy(msa, occ='res'):
     """Return occupancy array calculated for residues (default) or sequences
-    (``occ='seq'``) of *msa*, which may be an :class:`MSA` instance or a 2D 
+    (``occ='seq'``) of *msa*, which may be an :class:`.MSA` instance or a 2D 
     Numpy character array.  Implementation is case insensitive."""
     
     from .msatools import calcMSAOccupancy

@@ -516,7 +516,7 @@ class MSAFile(object):
 
 
 def parseMSA(msa, **kwargs):
-    """Return an :class:`MSA` instance that stores multiple sequence alignment
+    """Return an :class:`.MSA` instance that stores multiple sequence alignment
     and sequence labels parsed from Stockholm, SELEX, or FASTA format *msa* 
     file.  If *msa* is a Pfam id code or accession, MSA file will be downloaded
     using :func:`.fetchPfamMSA` with default parameters.  Note that *msa* may be

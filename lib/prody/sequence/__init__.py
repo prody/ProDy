@@ -18,15 +18,21 @@
 
 """This module contains features for analyzing protein sequences. 
 
-Multiple Sequence Alignments
-============================
+MSA IO
+======
 
-
-  * :func:`.parseMSA` - search families of a protein
-  * :func:`.MSAFile` - read/write MSA files in FASTA/SELEX/Stockholm formats
+  * :func:`.parseMSA` - parse MSA files
+  * :class:`.MSAFile` - read/write MSA files in FASTA/SELEX/Stockholm formats
+  * :class:`.MSA` - manipulate MSA in memory
   
-    
-.. _Pfam: http://pfam.sanger.ac.uk/"""
+Analysis
+========
+
+  * :func:`.calcShannonEntropy`
+  * :func:`.calcMSAOccupancy`
+  * :func:`.buildMutinfoMatrix`
+
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
