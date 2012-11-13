@@ -34,7 +34,7 @@ path_prody = imp.find_module('prody')[1]
 path_routines = imp.find_module('routines', [path_prody])[1]
 path_commands = imp.find_module('evol_routines', [path_routines])[1]
 
-EVOL_COMMANDS = [] 
+EVOL_COMMANDS = ['search'] 
 
 #if sys.version_info[:2] > (2,6):
 #    EVOL_COMMANDS.append('test')
