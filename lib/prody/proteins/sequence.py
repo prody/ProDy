@@ -26,14 +26,16 @@ __all__ = ['MSAFile', 'MSA', 'parseMSA',
            'calcShannonEntropy', 'calcMutualInfo',
            'calcMSAOccupancy']
 
-FASTA = 'fasta'
-SELEX = 'selex'
-STOCKHOLM = 'stockholm'
+FASTA = 'FASTA'
+SELEX = 'SELEX'
+STOCKHOLM = 'Stockholm'
 
 WSJOIN = ' '.join
 ESJOIN = ''.join
 
 NUMLINES = 1000
+LEN_FASTA_LINE = 60
+LEN_SELEX_LABEL = 31
 
 import re
 from os.path import isfile, splitext, split, getsize
@@ -133,6 +135,7 @@ class MSAFile(object):
         self._format = None
         self._closed = False
         self._readline = self._readlines = None
+        self._aligned = bool(aligned)
 
         if mode == 'r':
             filename = str(msa)
@@ -147,7 +150,7 @@ class MSAFile(object):
                 self._readlines = self._stream.readlines
             else:
                 try:
-                    self._readline = msa.readline
+                    self._readline = readline = msa.readline
                 except AttributeError:
                     pass
                 else:
@@ -156,8 +159,9 @@ class MSAFile(object):
                         self._readlines = msa.readlines
                     except AttributeError:
                         pass
+                    self._title = 'input stream'
                     
-            if self._readline is not None: 
+            if readline is not None: 
                 self._firstline = line = readline()
                 if line[0] == '>':
                     LOGGER.info('Opened MSA file in FASTA format')
@@ -194,16 +198,58 @@ class MSAFile(object):
             self._split = bool(kwargs.get('split', True))
             self.setFilter(kwargs.get('filter', None))
             self.setSlice(kwargs.get('slice', None))
-            self._aligned = bool(aligned)
             self._iter = self._iterator()
-        else:    
-            pass
+        else:
+            if format is not None:
+                try:
+                    format = format.lower()
+                except AttributeError:
+                    raise ValueError('format must be a string')
+
+                if format.startswith('f'):
+                    self._format = format = FASTA
+                elif format.startswith('st'):
+                    self._format = format = STOCKHOLM
+                else:
+                    self._format = format = SELEX
+            try:
+                self._write = write = msa.write
+            except AttributeError:
+                try:
+                    ext = splitext(msa)[1]
+                except Exception:
+                    raise TypeError('msa must be a file name or a stream')
+                else:
+                    if not ext:
+                        msa += '.' + format.lower()
+                
+                self._filename = msa
+                self._stream = stream = openFile(msa, mode)
+                self._write = write = stream.write
+            else:
+                try:
+                    closed = msa.closed
+                except AttributeError:
+                    pass
+                else:
+                    if closed:
+                        raise ValueError('msa stream must not be closed')
+                self._title = 'output stream'        
+            
+            if mode == 'w' and format == STOCKHOLM:
+                write('# STOCKHOLM 1.0\n')
+            if format.startswith('S'):
+                self._selex_line = '{0:' + str(LEN_SELEX_LABEL) + 's} {1:s}\n'
+        self._mode = mode
        
     def __del__(self):
         
         self.close()
             
     def __iter__(self):
+        
+        if self._mode != 'r':
+            raise IOError('File not open for reading')
         
         filter = self._filter
         slicer = self._slicer
@@ -234,7 +280,8 @@ class MSAFile(object):
             return '<MSAFile: {0:s} ({1:s}; closed)>'.format(self._title, 
                 self._format) 
         else:
-            return '<MSAFile: {0:s} ({1:s})>'.format(self._title, self._format) 
+            return '<MSAFile: {0:s} ({1:s}; mode {2:s})>'.format(
+                    self._title, self._format, repr(self._mode)) 
     
     def __enter__(self):
 
@@ -262,6 +309,8 @@ class MSAFile(object):
         """Close the file.  This method will not affect a stream."""
         
         if self._filename:
+            if self._mode != 'r' and self._format == STOCKHOLM:
+                self._write('//\n')                
             try:
                 self._stream.close()
             except Exception:
@@ -281,7 +330,6 @@ class MSAFile(object):
         return self._format
     
     format = property(_getFormat, None, doc="Format of the MSA file.")
-            
     
     def reset(self):
         """Return to the beginning of the file."""
@@ -335,7 +383,6 @@ class MSAFile(object):
                     temp.append(line.strip())
             lines = readlines(NUMLINES)
         yield label, ESJOIN(temp)
-            
     
     def _iterStockholm(self):
         """Yield sequences from an MSA file in Stockholm/SELEX format."""
@@ -411,7 +458,8 @@ class MSAFile(object):
         return self._slice
     
     def setSlice(self, slice):
-        """Set object used to slice sequences."""
+        """Set object used to *slice* sequences, which may be a :func:`slice`
+        or a :func:`list` of numbers."""
 
         if slice is None:
             self._slice = None 
@@ -434,6 +482,39 @@ class MSAFile(object):
                 self._slice = slice
                 self._slicer = lambda seq, slc=slice: seq[slc]
 
+    def write(self, label, sequence):
+        """Write *label* and *sequence* into the MSA file."""
+        
+        if self._closed:
+            raise ValueError('I/O operation on closed file')
+        write = self._write
+        
+        try:
+            _, _ = label.upper, sequence.upper
+        except AttributeError:
+            raise TypeError('label and sequence must be sequences')
+        
+        if self._lenseq is None:
+            lenseq = self._lenseq = len(sequence)
+        else:
+            lenseq = self._lenseq
+            if self._aligned and lenseq != self._lenseq:
+                raise ValueError('writing an aligned MSA file, '
+                                 'len(sequence) must be ' + str(lenseq))
+        if self._format == FASTA:
+            write('>')
+            write(label)
+            write('\n')
+            beg = 0 
+            end = LEN_FASTA_LINE
+            lenseq = len(sequence)
+            while beg < lenseq:
+                write(sequence[beg:end])
+                write('\n')
+                beg += LEN_FASTA_LINE
+                end += LEN_FASTA_LINE
+        else:
+            write(self._selex_line.format(label, sequence))
 
 class MSA(object):
     
@@ -721,7 +802,7 @@ class MSA(object):
     
 def parseMSA(msa, **kwargs):
     """Return an :class:`MSA` instance that stores multiple sequence alignment
-    and sequence labels parsed from Stockholm, Selex, or Fasta format *msa* 
+    and sequence labels parsed from Stockholm, SELEX, or FASTA format *msa* 
     file.  If *msa* is a Pfam id code or accession, MSA file will be downloaded
     using :func:`.fetchPfamMSA` with default parameters.  Note that *msa* may be
     a compressed file. Uncompressed MSA files are parsed using C code at a 

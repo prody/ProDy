@@ -22,6 +22,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
+from StringIO import StringIO
+
 from numpy import array, log, zeros, char
 from numpy.testing import assert_array_equal, assert_array_almost_equal, dec
 
@@ -35,19 +37,49 @@ LOGGER.verbosity = None
 FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
 SELEX = parseMSA(pathDatafile('msa_Cys_knot.slx'))
 STOCK = parseMSA(pathDatafile('msa_Cys_knot.sth'))
+FASTA_LIST = list(MSAFile(pathDatafile('msa_Cys_knot.fasta')))
+SELEX_LIST = list(MSAFile(pathDatafile('msa_Cys_knot.sth')))
+STOCK_LIST = list(MSAFile(pathDatafile('msa_Cys_knot.sth')))
 
 class TestMSAFile(TestCase):
     
     def testMSAFile(self):
         
-        fasta = list(MSAFile(pathDatafile('msa_Cys_knot.fasta'))) 
-        
-        self.assertListEqual(fasta, 
-                             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
-        
-        self.assertListEqual(fasta,
-                             list(MSAFile(pathDatafile('msa_Cys_knot.sth'))))
+        self.assertListEqual(FASTA_LIST, SELEX_LIST)
+        self.assertListEqual(FASTA_LIST, STOCK_LIST)
 
+    def testWriteFasta(self):
+        
+        fasta = StringIO()
+        with MSAFile(fasta, 'w', format='fasta') as out:
+            for label, seq in MSAFile(pathDatafile('msa_Cys_knot.fasta'), 
+                                      split=False):
+                out.write(label, seq)
+        fasta.seek(0)
+        fasta_list = list(MSAFile(fasta))
+        self.assertListEqual(FASTA_LIST, fasta_list)        
+   
+    def testWriteSelex(self):
+        
+        selex = StringIO()
+        with MSAFile(selex, 'w', format='selex') as out:
+            for label, seq in MSAFile(pathDatafile('msa_Cys_knot.slx'), 
+                                      split=False):
+                out.write(label, seq)
+        selex.seek(0)
+        selex_list = list(MSAFile(selex))
+        self.assertListEqual(SELEX_LIST, selex_list) 
+        
+    def testWriteStockholm(self):
+        
+        stock = StringIO()
+        with MSAFile(stock, 'w', format='stock') as out:
+            for label, seq in MSAFile(pathDatafile('msa_Cys_knot.sth'), 
+                                      split=False):
+                out.write(label, seq)
+        stock.seek(0)
+        stock_list = list(MSAFile(stock))
+        self.assertListEqual(STOCK_LIST, stock_list)      
 
 class TestParseMSA(TestCase):
     
