@@ -25,7 +25,7 @@ from numpy import all, zeros, dtype, array, char, fromstring
 
 from prody import LOGGER
 
-__all__ = ['calcShannonEntropy', 'calcMutualInfo', 'calcMSAOccupancy']
+__all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
@@ -67,7 +67,7 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
                               omitgaps=bool(omitgaps))
     
     
-def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
+def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     """Return mutual information matrix calculated for *msa*, which may be an 
     :class:`.MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
@@ -105,11 +105,10 @@ def calcMutualInfo(msa, ambiguity=True, turbo=True, **kwargs):
     if dtype_ != dtype('|S1') or ndim != 2:
         raise TypeError('msa must be an MSA instance or a 2D character array')
         
-    from .msatools import calcMutualInfo
-    turbo = bool(turbo)
+    from .msatools import buildMutinfoMatrix
     LOGGER.timeit('_mutinfo')
-    mutinfo = calcMutualInfo(msa, ambiguity=bool(ambiguity), 
-                           turbo=turbo, debug=kwargs.get('debug', False))
+    mutinfo = buildMutinfoMatrix(msa, ambiguity=bool(ambiguity), 
+                        turbo=bool(turbo), debug=kwargs.get('debug', False))
     LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
                   '_mutinfo')   
     return mutinfo

@@ -490,8 +490,8 @@ static void printProbs(double **probs, long lenseq) {
 }
 
 
-static PyObject *calcMutualInfo(PyObject *self, PyObject *args,
-                                PyObject *kwargs) {
+static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
+                                    PyObject *kwargs) {
 
     PyArrayObject *msa;
     int ambiguity = 1, turbo = 1, debug = 0;
@@ -812,7 +812,7 @@ static PyMethodDef msatools_methods[] = {
      "Calculate information entropy for given character array into given \n"
      "double array."},
 
-    {"calcMutualInfo",  (PyCFunction)calcMutualInfo, 
+    {"buildMutinfoMatrix",  (PyCFunction)buildMutinfoMatrix, 
      METH_VARARGS | METH_KEYWORDS, 
      "Calculate mutual information for given character array into given \n"
      "2D double array, and return True if turbo mode was used."},
