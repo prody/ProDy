@@ -21,6 +21,20 @@ Alternatively, you can use :func:`prody.test` function in a Python session::
   prody.test()
   prody.test('atomic.select', label='full')
 
+Running Doctests
+===============================================================================
+
+In addition to unittests, doctests in documentation (:file:`.rst`) as well as
+source (:file:`.py`) files should be run, especially before making a new 
+release.  All doctests can be run as follows::
+
+  $ cd doc
+  $ make doctest
+  
+Doctests in an :file:`.rst` or a :file:`.py` file can be run as follows::
+
+  $ python -m doctest filename.rst
+
 
 Pre-commit Testing 
 ===============================================================================
