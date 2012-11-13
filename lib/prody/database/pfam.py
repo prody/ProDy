@@ -109,10 +109,10 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         search_b = int(bool(search_b))          
         skip_a = int(bool(skip_a))
         if skip_a == 1:
-            search_b = 1
+            search_b = 1            
             
-            urlextension = urlextension + '&searchBs=' + str(search_b)
-            urlextension = urlextension + '&skipAs=' + str(skip_a)
+        urlextension = urlextension + '&searchBs=' + str(search_b)
+        urlextension = urlextension + '&skipAs=' + str(skip_a)
 
         
         url = ('http://pfam.sanger.ac.uk/search/sequence?seq=' + str(seq) +
