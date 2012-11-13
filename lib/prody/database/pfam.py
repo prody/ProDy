@@ -26,7 +26,6 @@ from os.path import join, isfile, getsize, splitext, split
 
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
-from prody.proteins import MSAFile
 
 
 __all__ = ['searchPfam', 'fetchPfamMSA']
@@ -71,6 +70,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     prefix = '{http://pfam.sanger.ac.uk/}'
     query = str(query)
     if isfile(query):
+        from prody.sequence import MSAFile
         try:
             seq = next(MSAFile(query))
         except:

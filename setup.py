@@ -44,8 +44,9 @@ with open('README.rst') as inp:
 
 PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
             'prody.kdtree', 'prody.measure', 'prody.proteins', 
-            'prody.routines', 'prody.utilities', 'prody.trajectory',
-            'prody.routines.prody_routines']
+            'prody.routines', 'prody.sequence', 'prody.utilities', 
+            'prody.trajectory', 'prody.routines.prody_routines',
+            'prody.routines.evol_routines']
 PACKAGE_DATA = {}
 
 if sys.version_info[:2] > (2, 6):
@@ -58,6 +59,7 @@ if sys.version_info[:2] > (2, 6):
                      'prody.tests.test_measure',
                      'prody.tests.test_proteins',
                      'prody.tests.test_routines',
+                     'prody.tests.test_sequence',
                      'prody.tests.test_trajectory',
                      'prody.tests.test_utilities',])
     PACKAGE_DATA['prody.tests'] = ['test_datafiles/pdb*.pdb', 
@@ -77,8 +79,11 @@ EXTENSIONS = [
               [join('lib', 'prody', 'kdtree', 'KDTree.c'),
                join('lib', 'prody', 'kdtree', 'KDTreemodule.c')],
               include_dirs=[numpy.get_include()]),
-    Extension('prody.proteins.msatools',
-              [join('lib', 'prody', 'proteins', 'msatools.c'),],
+    Extension('prody.sequence.msatools',
+              [join('lib', 'prody', 'sequence', 'msatools.c'),],
+              include_dirs=[numpy.get_include()])
+    Extension('prody.sequence.msaio',
+              [join('lib', 'prody', 'sequence', 'msaio.c'),],
               include_dirs=[numpy.get_include()])
 ]
 
