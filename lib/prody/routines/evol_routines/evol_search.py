@@ -34,13 +34,12 @@ for key, txt, val in [
     ('evalue', 'E-value cutoff: must be < 10.0', None),
     ('timeout', 'timeout for blocking connection attempt in seconds', 30),
     ('outname', 'name for output file', None),
-    ('folder', 'path where the output should be saved', '.'),
     ('delimiter', 'delimiter for output file', '\t')]:
     
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
 
-def evol_search(pfam_query, **kwargs):
+def evol_search(query, **kwargs):
     """Search Pfam with **query**.
     
     """
@@ -51,18 +50,17 @@ def evol_search(pfam_query, **kwargs):
     search_b = kwargs.pop('search_b', DEFAULTS['search_b'])
     skip_a = kwargs.pop('skip_a', DEFAULTS['skip_a'])
     
-    pfam_results =  prody.searchPfam(pfam_query, search_b=search_b,
+    pfam_results =  prody.searchPfam(query, search_b=search_b,
                                      skip_a=skip_a, **kwargs)
     
     outname = kwargs.get('outname', None)
     delimiter = kwargs.get('delimiter', DEFAULTS['delimiter'])
-    folder = kwargs.get('folder', DEFAULTS['folder'])
     if outname:
-        filepath = join(prody.utilities.makePath(folder), outname)
+        filepath = join(prody.utilities.makePath('.'), outname)
         out = open(filepath, 'wb')
     else:
         out = sys.stdout
-    title = ('accession' + delimiter + 'identifier' + delimiter + 'type' +
+    title = ('accession' + delimiter + 'id' + delimiter + 'type' +
              delimiter + 'smallest-evalue' + '\n')
     out.write(title)
     for key in pfam_results:
@@ -82,7 +80,8 @@ def evol_search(pfam_query, **kwargs):
                             evalue = float(temp)        
         output =  output + str(evalue) + '\n'               
         out.write(output)
-        
+    if outname:
+        prody.LOGGER.info('Search results written in {0:s}'.format(filepath))    
     out.close()
         
         
@@ -106,12 +105,13 @@ the results obtained in a file or the output will be directed to standard output
 
 Search Pfam with UniProt ID:
     
-    $ prody search P08581
+    $ evol search P08581 --outname testfile.txt
     
 Search Pfam with a sequence with search options:
 
-    $ prody search PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCSLHSIGKIGGAQNRSYSKLLC\
-GLLAERLRISPDRVYINYYDMNAANVGWNNSTFA' --evalue=2 --searchBs""")
+    $ evol search PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCS\
+    LHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA --evalue 2 --searchBs
+    """)
 
     group = subparser.add_argument_group('search options for sequence input')
     
@@ -132,9 +132,6 @@ GLLAERLRISPDRVYINYYDMNAANVGWNNSTFA' --evalue=2 --searchBs""")
     
     group = subparser.add_argument_group('output options')
     
-    group.add_argument('-o', '--outdir', dest='folder', type=str, 
-        default=DEFAULTS['folder'], metavar='PATH', 
-        help=HELPTEXT['folder'] + ' (default: %(default)s)')
     group.add_argument('-p', '--outname', dest='outname', type=str, 
         default=DEFAULTS['outname'], metavar='STR', 
         help=HELPTEXT['outname'] + ' (default: %(default)s)')
