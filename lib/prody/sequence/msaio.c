@@ -197,6 +197,51 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 }
 
 
+static PyObject *writeFasta(PyObject *self, PyObject *args) {
+
+    /* Parse sequences from *filename* into the memory pointed by the
+       Numpy array passed as Python object.  This function assumes that
+       the sequences are aligned, i.e. have same number of lines at equal
+       lengths. */
+
+    char *filename;
+    PyObject *labels;
+    PyArrayObject *msa;
+    
+    if (!PyArg_ParseTuple(args, "sOOi", &filename, &labels, &msa))
+        return NULL;
+    
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    
+    if (numseq != PyList_Size(labels)) {
+        PyErr_SetString(PyExc_ValueError,
+            "size of labels and msa array does not match");
+        return NULL;
+    }
+    
+    FILE *file = fopen(filename, "wb");
+    
+    printf("%li", lenseq);
+    int nlines = lenseq / 60;
+    int remainder = lenseq - 60 * nlines;
+    long i, j;
+    for (i = 0; i <= numseq; i++) {
+        
+        for (j = 0; j <= nlines; j++) {
+        
+        }
+        
+        if (remainder) {
+            
+        }
+        
+    }
+    
+    fclose(file);
+    
+    return Py_BuildValue("s", filename);
+}
+
 static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
     /* Parse sequences from *filename* into the the memory pointed by the
@@ -290,11 +335,14 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
 static PyMethodDef msaio_methods[] = {
 
-    {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
+    {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
 
-    {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
+    {"writeFasta",  (PyCFunction)writeFasta, METH_VARARGS, 
+     "Return filename after writing MSA in FASTA format."},
+
+    {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
 
