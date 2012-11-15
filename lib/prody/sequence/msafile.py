@@ -28,6 +28,12 @@ FASTA = 'FASTA'
 SELEX = 'SELEX'
 STOCKHOLM = 'Stockholm'
 
+EXTENSIONS = {
+    FASTA: '.fasta',
+    SELEX: '.slx',
+    STOCKHOLM: '.sth'
+}
+
 WSJOIN = ' '.join
 ESJOIN = ''.join
 
@@ -214,16 +220,17 @@ class MSAFile(object):
                 self._write = write = msa.write
             except AttributeError:
                 try:
-                    ext = splitext(msa)[1]
+                    self._title, ext = splitext(msa)
                 except Exception:
                     raise TypeError('msa must be a file name or a stream')
                 else:
                     if not ext:
-                        msa += '.' + format.lower()
+                        msa += '.' + EXTENSIONS[self._format]
                 
                 self._filename = msa
                 self._stream = stream = openFile(msa, mode)
                 self._write = write = stream.write
+                
             else:
                 try:
                     closed = msa.closed
@@ -307,14 +314,14 @@ class MSAFile(object):
         """Close the file.  This method will not affect a stream."""
         
         if self._filename:
-            if self._mode != 'r' and self._format == STOCKHOLM:
-                self._write('//\n')                
-            try:
-                self._stream.close()
-            except Exception:
-                pass
-            else:
-                self._closed = True
+            if not self._stream.closed:
+                if (self._mode != 'r' and self._format == STOCKHOLM):
+                    self._write('//\n')
+                try:
+                    self._stream.close()
+                except Exception:
+                    pass
+            self._closed = True
     
     def _isClosed(self):
         
