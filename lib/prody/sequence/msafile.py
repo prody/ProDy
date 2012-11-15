@@ -428,6 +428,11 @@ class MSAFile(object):
         """Set title of the instance."""
         
         self._title = str(title)
+        
+    def getFilename(self):
+        """Return filename, or **None** if instance is handling a stream."""
+        
+        return self._filename
     
     def getFilter(self):
         """Return function used for filtering sequences."""
