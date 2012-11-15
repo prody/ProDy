@@ -205,7 +205,7 @@ static PyObject *writeFasta(PyObject *self, PyObject *args) {
        lengths. */
     /* something about backup: set integer flag to true */ 
     
-	char *filename;
+    char *filename;
     PyObject *labels;
     PyArrayObject *msa;
     
@@ -225,31 +225,31 @@ static PyObject *writeFasta(PyObject *self, PyObject *args) {
     int nlines = lenseq / 60;
     int remainder = lenseq - 60 * nlines;
     int i, j, k;
-	int count = 0;
-	char *seq = msa->data;
-	int lenmsa = strlen(seq);
+    int count = 0;
+    char *seq = msa->data;
+    int lenmsa = strlen(seq);
 
     for (i = 0; i < numseq; i++) {
-		fprintf(file, ">%s\n", PyString_AsString(PyList_GetItem
-												 (labels, (Py_ssize_t)i)));
-		for (j = 0; j < nlines; j++) {
-			for (k=0; k < 60; k++){
-				if(count < lenmsa){
-					fprintf(file, "%c", seq[count]);
-					count++;
-				}
-			}
-			fprintf(file, "\n");
-		}
-        if (remainder) {
-			for (k=0; k < remainder; k++){
-				if(count < lenmsa){
-					fprintf(file, "%c", seq[count]);
-					count++;
-				}
-			}
+        fprintf(file, ">%s\n", PyString_AsString(PyList_GetItem
+                                                 (labels, (Py_ssize_t)i)));
+        for (j = 0; j < nlines; j++) {
+            for (k=0; k < 60; k++){
+                if (count < lenmsa) {
+                    fprintf(file, "%c", seq[count]);
+                    count++;
+                }
+            }
+            fprintf(file, "\n");
         }
-		fprintf(file, "\n");
+        if (remainder) {
+            for (k=0; k < remainder; k++) {
+                if (count < lenmsa) {
+                    fprintf(file, "%c", seq[count]);
+                    count++;
+                }
+            }
+        }
+        fprintf(file, "\n");
         
     }
     fclose(file);
