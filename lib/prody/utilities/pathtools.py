@@ -31,12 +31,11 @@ from os.path import isfile, isdir, join, split, splitext
 from os.path import getsize, isabs, exists
 from shutil import copy
 
-import prody as pkg
-
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
-__all__ = ['gunzip', 'openFile', 'openDB', 'openSQLite', 'openURL', 'copyFile',
+__all__ = ['gunzip', 'backupFile', 'openFile', 
+           'openDB', 'openSQLite', 'openURL', 'copyFile',
            'isExecutable', 'isReadable', 'isWritable', 
            'makePath', 'relpath', 'which', 
            'pickle', 'unpickle', 'glob',
@@ -50,31 +49,55 @@ OPEN = {
     '.ZIP': zipfile.ZipFile,
 }
 
+
+def backupFile(filename, backup_ext='.BAK'):
+    """Rename *filename* with *backup_ext* appended to its name for backup 
+    purposes.  Default backup extension :file:`.BAK` is used when one is not
+    set using :func:`.confProDy`.  If *filename* does not exist, no action
+    will be taken.  If file is successfully renamed, new filename with backup
+    extension will be returned."""
+
+    try:
+        exists = isfile(filename)
+    except Exception as err:
+        raise TypeError('filename must be a string ({0:s})'.format(str(err)))
+        
+    if exists:
+        from prody import SETTINGS
+        if backup_ext == '.BAK':
+            backup_ext = SETTINGS.get('backup_ext', '.BAK')
+        bak = filename + backup_ext
+        os.rename(filename, bak)
+        return bak
+
 def openFile(filename, *args, **kwargs):
     """Open *filename* for reading, writing, or appending.  First argument in
     *args* is treated as the mode.
     
-    :arg backup: backup existing file when opening for appending or writing,
-        default is obtained from package settings
+    :arg backup: backup existing file using :func:`.backupFile` when opening 
+        in append or write modes, default is obtained from package settings
     :type backup: bool
+    
     :arg backup_ext: extension for backup file, default is :file:`.BAK`
     :type backup_ext: str"""
 
-    if not isinstance(filename, str):
-        raise TypeError('filename must be a string')
+    from prody import SETTINGS
+    try:
+        exists = isfile(filename)
+    except Exception as err:
+        raise TypeError('filename must be a string ({0:s})'.format(str(err)))
+    
     folder = kwargs.pop('folder', None)
     if folder:
         filename = join(folder, filename)
+    
     ext = splitext(filename)[1]
-    backup = kwargs.pop('backup', pkg.SETTINGS.get('backup', False))
-    backup_ext = kwargs.pop('backup_ext', 
-                            pkg.SETTINGS.get('backup_ext', '.BAK'))
+    backup = kwargs.pop('backup', SETTINGS.get('backup', False))
+    
     if args and args[0][0] in ('a', 'w'):
-        if isfile(filename) and backup:
-            bak = filename + backup_ext
-            if isfile(bak):
-                os.remove(bak)
-            os.rename(filename, bak)
+        if exists and backup:
+            backupFile(filename, **kwargs)
+            
     return OPEN.get(ext, open)(filename, *args, **kwargs)
     
     
