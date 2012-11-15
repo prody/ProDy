@@ -44,35 +44,38 @@ __all__ = ['gunzip', 'backupFile', 'openFile',
 
 OPEN = {
     '.gz': gzip.open,
-    '.GZ': gzip.open,
     '.zip': zipfile.ZipFile,
-    '.ZIP': zipfile.ZipFile,
 }
 
 
-def backupFile(filename, backup_ext='.BAK'):
+def backupFile(filename, backup=None, backup_ext='.BAK', **kwargs):
     """Rename *filename* with *backup_ext* appended to its name for backup 
-    purposes.  Default backup extension :file:`.BAK` is used when one is not
-    set using :func:`.confProDy`.  If *filename* does not exist, no action
-    will be taken.  If file is successfully renamed, new filename with backup
-    extension will be returned."""
+    purposes, if *backup* is **True** or if automatic backups is turned on
+    using :func:`.confProDy`.  Default extension :file:`.BAK` is used when 
+    one is not set using :func:`.confProDy`.  If *filename* does not exist, 
+    no action will be taken and *filename* will be returned.  If file is 
+    successfully renamed, new filename will be returned."""
 
     try:
         exists = isfile(filename)
     except Exception as err:
         raise TypeError('filename must be a string ({0:s})'.format(str(err)))
         
-    if exists:
-        from prody import SETTINGS
+    from prody import SETTINGS
+    if exists and (backup or SETTINGS.get('backup', False)):
         if backup_ext == '.BAK':
             backup_ext = SETTINGS.get('backup_ext', '.BAK')
         bak = filename + backup_ext
         os.rename(filename, bak)
         return bak
+    else:
+        return filename
+
 
 def openFile(filename, *args, **kwargs):
     """Open *filename* for reading, writing, or appending.  First argument in
-    *args* is treated as the mode.
+    *args* is treated as the mode.  Opening :file:`.gz` and :file:`.zip` files
+    for reading and writing is handled automatically.
     
     :arg backup: backup existing file using :func:`.backupFile` when opening 
         in append or write modes, default is obtained from package settings
@@ -91,14 +94,11 @@ def openFile(filename, *args, **kwargs):
     if folder:
         filename = join(folder, filename)
     
-    ext = splitext(filename)[1]
-    backup = kwargs.pop('backup', SETTINGS.get('backup', False))
-    
     if args and args[0][0] in ('a', 'w'):
-        if exists and backup:
-            backupFile(filename, **kwargs)
+        backupFile(filename, **kwargs)
             
-    return OPEN.get(ext, open)(filename, *args, **kwargs)
+    ext = splitext(filename)[1]
+    return OPEN.get(ext.lower(), open)(filename, *args, **kwargs)
     
     
 def gunzip(filename, outname=None):
