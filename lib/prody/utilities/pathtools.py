@@ -95,7 +95,8 @@ def openFile(filename, *args, **kwargs):
         filename = join(folder, filename)
     
     if args and args[0][0] in ('a', 'w'):
-        backupFile(filename, **kwargs)
+        backupFile(filename, backup=kwargs.pop('backup', None),
+                   backup_ext=kwargs.pop('backup_ext', None))
             
     ext = splitext(filename)[1]
     return OPEN.get(ext.lower(), open)(filename, *args, **kwargs)
