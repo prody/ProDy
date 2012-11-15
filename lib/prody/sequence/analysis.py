@@ -114,10 +114,13 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     return mutinfo
 
 
-def calcMSAOccupancy(msa, occ='res'):
-    """Return occupancy array calculated for residues (default) or sequences
-    (``occ='seq'``) of *msa*, which may be an :class:`.MSA` instance or a 2D 
-    Numpy character array.  Implementation is case insensitive."""
+def calcMSAOccupancy(msa, occ='res', count=False):
+    """Return occupancy array calculated for residue positions (default, 
+    ``'res'`` or ``'col'`` for *occ*) or sequences (``'seq'`` or ``'row'`` 
+    for *occ*) of *msa*, which may be an :class:`.MSA` instance or a 2D 
+    Numpy character array.  By default, occupancy [0-1] will be calculated.  
+    If *count* is **True**, count of non-gap characters will be returned. 
+    Implementation is case insensitive."""
     
     from .msatools import calcMSAOccupancy
     
@@ -135,7 +138,7 @@ def calcMSAOccupancy(msa, occ='res'):
         raise TypeError('msa must be an MSA instance or a 2D character array')
 
     try:
-        occ = occ.startswith('res')
+        occ = occ.startswith('res') or occ.startswith('col')
     except AttributeError:
         raise TypeError('occ must be a string')
-    return calcMSAOccupancy(msa, occ)
+    return calcMSAOccupancy(msa, occ, count=bool(count))
