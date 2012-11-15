@@ -25,6 +25,8 @@ from numpy import all, zeros, dtype, array, char, fromstring
 
 from .msafile import splitLabel, MSAFile 
 
+from prody import LOGGER
+
 __all__ = ['MSA', 'refineMSA']
 
 class MSA(object):
@@ -309,23 +311,135 @@ class MSA(object):
         """Return MSA character array."""
         
         return self._msa
+    
+    def getIndex(self, label):
+        """Return index of the sequence entry with *label*."""
+        
+        try:
+            index = self._mapping.get(label)
+        except TypeError:
+            raise TypeError('label must be a string')
+        else:
+            return index
 
 
-def refineMSA(msa, prot=None, rowocc=None, colocc=None):
+def refineMSA(msa, label=None, rowocc=None, colocc=None):
     """Refine *msa* by removing sequences (rows) and residues (columns) that 
     contain gaps.
     
     :arg msa: multiple sequence alignment
     :type msa: :class:`.MSA`
     
-    :arg key: UniProt entry name or PDB structure and chain 
-        identifier, e.g. ``'1p38'`` or ``'1p38A'`` with chain identifier
-    :type key: str
+    :arg label: sequence label used for indexing
+    :type label: str
     
-    :arg rowocc: row occupancy ranging from 0 to 1, sequences miss 
-    :type rowocc:
+    :arg rowocc: row occupancy, sequences with less occupancy will be 
+        removed 
+    :type rowocc: float
     
-    """
+    :arg colocc: column occupancy, residue positions with less occupancy
+        will be removed 
+    :type colocc: float
     
+    For Pfam MSA data, *label* is UniProt entry name for the protein.  You may
+    also use PDB structure and chain identifiers, e.g. ``'1p38'`` or 
+    ``'1p38A'``, for *label* argument and UniProt entry names will be parsed 
+    using :func:`.parsePDBHeader` function (see also :class:`.Polymer` and 
+    :class:`DBRef`)."""
+
+    # if msa is a char array, it will be refined but label won't work
+    try:    
+        ndim, dtype_ = msa.ndim, msa.dtype
+    except AttributeError:
+        try:
+            arr = msa._getArray()
+        except AttributeError:
+            raise TypeError('msa must be a character array or an MSA instance') 
+        ndim, dtype_ = arr.ndim, arr.dtype
+    else:
+        arr, msa = msa, None
     
-    
+    if dtype('|S1') != dtype_:
+        raise ValueError('msa must be a character array or an MSA instance')
+    if ndim != 2:
+        raise ValueError('msa must be a 2D array or an MSA instance')
+            
+    try:
+        upper, lower = label.upper(), label.lower()
+    except AttributeError:
+        raise TypeError('label must be a string')
+
+    title = []
+
+    if label is not None:
+        if msa is None:
+            raise TypeError('msa must be an MSA instance indexed with labels')
+        
+        index = msa.getIndex(label)
+        if index is None: index = msa.getIndex(upper)            
+        if index is None: index = msa.getIndex(lower)
+        
+        if index is None and (len(label) == 4 or len(label) == 5):
+            try:
+                polymers = parsePDBHeader(label[:4], 'polymers')
+            except Exception as err:
+                LOGGER.warn('failed to parse header for {0:s} ({1:s})'
+                            .format(label[:4], str(err)))
+            chid = label[4:]
+            for poly in polymers:
+                if chid and poly.chid != chid:
+                    continue
+                for dbref in poly.dbrefs:
+                    if index is None: 
+                        index = msa.getIndex(dbref.idcode)
+                        if index is not None:
+                            LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s} is '
+                                        'found in {3:s}'.format(
+                                            dbref.database, dbref.idcode,
+                                            label[:4], poly.chid, str(msa)))
+                    if index is None: 
+                        index = msa.getIndex(dbref.accession)
+                        if index is not None:
+                            LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s} is '
+                                        'found in {3:s}'.format(
+                                            dbref.database, dbref.accession,
+                                            label[:4], poly.chid, str(msa)))
+                    
+            
+        if index is None:        
+            raise ValueError('label is not in msa, or msa is not indexed')
+        title.append('label=' + label)    
+        arr = arr[:, char.isalpha(arr[index])] 
+
+    rows = None
+    from .analysis import calcMSAOccupancy
+    if rowocc is not None:
+        rowocc = float(rowocc)
+        assert 0. <= rowocc <= 1., 'rowocc must be between 0 and 1'
+        rows = calcMSAOccupancy(arr, 'row') >= rowocc
+        arr = arr[rows]
+        title.append('rowocc>' + str(rowocc))
+
+    if colocc is not None:
+        colocc = float(colocc)
+        assert 0. <= colocc <= 1., 'colocc must be between 0 and 1'
+        arr = arr[:,calcMSAOccupancy(arr, 'col') >= rowocc]
+        title.append('colocc>' + str(colocc))
+        
+    if not title:
+        raise ValueError('label, rowocc, colocc all cannot be None')
+        
+    if msa is None:
+        return arr
+    else:
+        from code import interact; interact(local=locals())
+        if rows is None:
+            from copy import copy
+            labels = copy(msa._labels)
+            mapping = copy(msa._mapping)
+        else:
+            labels = msa._labels
+            labels = [labels[i] for i in rows.nonzero()[0]]
+            mapping = None
+        return MSA(arr, title=msa.getTitle() + ' refined ({0:s})'
+                   .format(', '.join(title)), labels=labels, mapping=mapping)
