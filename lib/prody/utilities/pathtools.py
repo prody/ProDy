@@ -157,13 +157,13 @@ def relpath(path):
 
 
 def makePath(path):
-    """Make all directories that does not exist in a given path."""
+    """Make all directories that does not exist in a given *path*."""
     
-    if isabs(path):
-        path = relpath(path)
     if not isdir(path):
         dirs = path.split(os.sep)
-        for i in range(len(dirs)):
+        for i, dirname in enumerate(dirs):
+            if not dirname:
+                continue
             dirname = os.sep.join(dirs[:i+1])
             try:
                 if not isdir(dirname): 
@@ -171,8 +171,7 @@ def makePath(path):
             except OSError:
                 raise OSError('{0:s} could not be created, please '
                             'specify another path'.format(path))
-                return os.getcwd()
-    return join(os.getcwd(), path)
+    return path
 
 
 def which(program):
