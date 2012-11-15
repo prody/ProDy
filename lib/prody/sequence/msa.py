@@ -25,7 +25,7 @@ from numpy import all, zeros, dtype, array, char, fromstring
 
 from .msafile import splitLabel, MSAFile 
 
-__all__ = ['MSA']
+__all__ = ['MSA', 'refineMSA']
 
 class MSA(object):
     
@@ -309,3 +309,23 @@ class MSA(object):
         """Return MSA character array."""
         
         return self._msa
+
+
+def refineMSA(msa, prot=None, rowocc=None, colocc=None):
+    """Refine *msa* by removing sequences (rows) and residues (columns) that 
+    contain gaps.
+    
+    :arg msa: multiple sequence alignment
+    :type msa: :class:`.MSA`
+    
+    :arg key: UniProt entry name or PDB structure and chain 
+        identifier, e.g. ``'1p38'`` or ``'1p38A'`` with chain identifier
+    :type key: str
+    
+    :arg rowocc: row occupancy ranging from 0 to 1, sequences miss 
+    :type rowocc:
+    
+    """
+    
+    
+    

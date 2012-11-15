@@ -764,21 +764,27 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     return result;
 }
 
-static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args) {
+static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args, 
+                                  PyObject *kwargs) {
 
     PyArrayObject *msa;
     int dim;
-    if (!PyArg_ParseTuple(args, "Oi", &msa, &dim))
+    int count = 0;
+
+    static char *kwlist[] = {"msa", "dim", "count", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi|i", kwlist, 
+                                     &msa, &dim, &count))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
-   
-    long *occ = malloc(msa->dimensions[dim] * sizeof(long));
-    if (!occ)
+    long *cnt = malloc(msa->dimensions[dim] * sizeof(long));
+
+    if (!cnt)
         return PyErr_NoMemory();
         
     char *seq = (char *) PyArray_DATA(msa), *row, ch;
-        
+    
     long i, j, *k;  
     if (dim)
         k = &j;
@@ -786,22 +792,32 @@ static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args) {
         k = &i;
     
     for (i = 0; i < msa->dimensions[dim]; i++)
-        occ[i] = 0;
+        cnt[i] = 0;
 
     for (i = 0; i < numseq; i++) {
         row = seq + i * lenseq;
         for (j = 0; j < lenseq; j++) {
             ch = row[j];
             if ((64 < ch && ch < 91) || (96 < ch && ch < 123))
-                occ[*k]++;
+                cnt[*k]++;
         }
     }
     
     npy_intp dims[1] = {msa->dimensions[dim]};
-    PyObject *occupancy = PyArray_SimpleNewFromData(1, dims, NPY_LONG, occ);
-    PyObject *result = Py_BuildValue("O", occupancy);
-    Py_DECREF(occupancy);
-    return result;
+    if (count) {
+        return PyArray_SimpleNewFromData(1, dims, NPY_LONG, cnt);       
+    } else {
+        double divisor;
+        if (dim)
+            divisor = 1. * numseq;
+        else 
+            divisor = 1. * lenseq;
+        double *occ = malloc(msa->dimensions[dim] * sizeof(double));
+        for (i = 0; i < msa->dimensions[dim]; i++)
+            occ[i] = cnt[i] / divisor;
+        free(cnt);
+        return PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, occ);
+    }
 }
 
 
@@ -817,8 +833,9 @@ static PyMethodDef msatools_methods[] = {
      "Calculate mutual information for given character array into given \n"
      "2D double array, and return True if turbo mode was used."},
      
-    {"calcMSAOccupancy",  (PyCFunction)calcMSAOccupancy, METH_VARARGS, 
-     "Return occupancy array calculated for MSA rows or columns."},
+    {"calcMSAOccupancy",  (PyCFunction)calcMSAOccupancy, 
+     METH_VARARGS | METH_KEYWORDS,
+     "Return occupancy (or count) array calculated for MSA rows or columns."},
 
     {NULL, NULL, 0, NULL}
 };

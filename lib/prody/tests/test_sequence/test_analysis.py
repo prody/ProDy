@@ -33,6 +33,7 @@ from prody import calcMSAOccupancy
 LOGGER.verbosity = None
 
 FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
+FASTA_ALPHA = char.isalpha(FASTA._msa) 
 
 class TestCalcShannonEntropy(TestCase):
 
@@ -273,13 +274,23 @@ class TestCalcMutualInfo(TestCase):
 
 class TestCalcMSAOccupancy(TestCase):
     
+    def testResidueCount(self):
+        
+        assert_array_equal(calcMSAOccupancy(FASTA, 'residue', count=1),
+                           FASTA_ALPHA.sum(0))
+    
+    def testSequenceCount(self):
+        
+        assert_array_equal(calcMSAOccupancy(FASTA, 'sequence', count=1),
+                           FASTA_ALPHA.sum(1))
+        
     def testResidueOccupancy(self):
         
         assert_array_equal(calcMSAOccupancy(FASTA, 'residue'),
-                           char.isalpha(FASTA._msa).sum(0))
+                           FASTA_ALPHA.sum(0) / (FASTA.numSequences() * 1.0))
     
     def testSequenceOccupancy(self):
         
         assert_array_equal(calcMSAOccupancy(FASTA, 'sequence'),
-                           char.isalpha(FASTA._msa).sum(1))
+                           FASTA_ALPHA.sum(1) / (FASTA.numResidues() * 1.0))
         
