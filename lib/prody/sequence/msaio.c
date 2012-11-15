@@ -203,12 +203,13 @@ static PyObject *writeFasta(PyObject *self, PyObject *args) {
        Numpy array passed as Python object.  This function assumes that
        the sequences are aligned, i.e. have same number of lines at equal
        lengths. */
-
-    char *filename;
+    /* something about backup: set integer flag to true */ 
+    
+	char *filename;
     PyObject *labels;
     PyArrayObject *msa;
     
-    if (!PyArg_ParseTuple(args, "sOOi", &filename, &labels, &msa))
+    if (!PyArg_ParseTuple(args, "sOO", &filename, &labels, &msa))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -221,24 +222,37 @@ static PyObject *writeFasta(PyObject *self, PyObject *args) {
     
     FILE *file = fopen(filename, "wb");
     
-    printf("%li", lenseq);
     int nlines = lenseq / 60;
     int remainder = lenseq - 60 * nlines;
-    long i, j;
-    for (i = 0; i <= numseq; i++) {
-        
-        for (j = 0; j <= nlines; j++) {
-        
-        }
-        
+    int i, j, k;
+	int count = 0;
+	char *seq = msa->data;
+	int lenmsa = strlen(seq);
+
+    for (i = 0; i < numseq; i++) {
+		fprintf(file, ">%s\n", PyString_AsString(PyList_GetItem
+												 (labels, (Py_ssize_t)i)));
+		for (j = 0; j < nlines; j++) {
+			for (k=0; k < 60; k++){
+				if(count < lenmsa){
+					fprintf(file, "%c", seq[count]);
+					count++;
+				}
+			}
+			fprintf(file, "\n");
+		}
         if (remainder) {
-            
+			for (k=0; k < remainder; k++){
+				if(count < lenmsa){
+					fprintf(file, "%c", seq[count]);
+					count++;
+				}
+			}
         }
+		fprintf(file, "\n");
         
     }
-    
     fclose(file);
-    
     return Py_BuildValue("s", filename);
 }
 
