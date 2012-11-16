@@ -1,33 +1,39 @@
 .. _commands:
 
 *******************************************************************************
-ProDy Commands
+ProDy Applications
 *******************************************************************************
 
-Usage
+Application Setup
 ===============================================================================
 
-ProDy command line programs, or scripts, come with both the source and the 
-binary distributions.  On Linux, when installing ProDy from source, the scripts 
-are placed into a default folder that is included in the environment variable 
-:envvar:`PATH`, e.g. :file:`/usr/local/bin/`.  On Windows, installer places the
-scripts into the :file:`Scripts` folder under the path to the corresponding 
-Python distribution, e.g. :file:`C:\\Python27\\Scripts` if you used Python 2.7. 
-You may need to add this path to the environment variable :envvar:`PATH` 
-yourself. 
+ProDy comes with several handy applications.  On Linux, when installing ProDy 
+from source, application scripts are placed into a default folder that is 
+included in :envvar:`PATH` environment variable, e.g. :file:`/usr/local/bin/`.  
+On Windows, installer places the scripts into the :file:`Scripts` folder under
+Python distribution folder, e.g. :file:`C:\\Python27\\Scripts`.  You may need 
+to add this path to :envvar:`PATH` environment variable yourself. 
 
-A list of ProDy commands can be obtained by running :command:`prody`::
+A list of applications can be obtained by running :command:`prody` and 
+:command:`evol` commands::
   
-  $ prody 
+  $ prody
   
 This will display available commands and short descriptions:
 
 .. literalinclude:: prody.txt
 
+::
+
+  $ evol
+  
+.. literalinclude:: evol.txt
+
+
 To get more information on a specific command, type in command name, e.g.
 :command:`prody anm`.
 
-Example
+Usage Example
 ===============================================================================
 
 Running the following command will perform ANM calculations for the p38 MAP 
@@ -47,7 +53,7 @@ the output files are prefixed with :file:`p38_anm`::
 
 The output file :file:`p38_anm.nmd` can be visualized using NMWiz (|nmwiz|). 
 
-Commands
+Structure and Dynamics Analysis
 ===============================================================================
 
 .. toctree::
@@ -55,3 +61,12 @@ Commands
    :glob:
 
    prody_*
+
+Sequence Evolution Analysis
+===============================================================================
+
+.. toctree::
+   :maxdepth: 1
+   :glob:
+
+   evol_*

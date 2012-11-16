@@ -35,7 +35,7 @@ Running :command:`prody test --examples` displays::
   
   To run all tests, use -l/--label argument as follows:
   
-      $ prody test -l full
+      $ prody test -l full 
   
   To increase verbosity, use -v/--verbose argument as follows:
   

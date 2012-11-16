@@ -52,12 +52,10 @@ Running :command:`prody blast --examples` displays::
   
   Blast search PDB for the sequence argument:
   
-    $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGR
-  TLSDYNIQKESTLHLVLRLRGG
+    $ prody blast MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG
   
   Blast search PDB for avidin structures, download files, and align all
   files onto the 2avi structure:
   
-    $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPL
-  HGTQNTINKRTQPTFGFTVNWKFSESTTVFT
-    $ prody align 2avi.pdb *pdb
+    $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTINKRTQPTFGFTVNWKFSESTTVFT
+    $ prody align 2avi.pdb *pdb 
