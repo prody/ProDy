@@ -157,7 +157,8 @@ html_index = 'index.html'
 generic_sidebars = ['docversion.html', 'howtocite.html', 'localtoc.html', 
                     'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['slideshow.html', 'docversion.html', 'howtocite.html', 
+    'index': [],#['docversion.html', 'getprody.html', 'credits.html', ],
+    'index2': ['slideshow.html', 'docversion.html', 'howtocite.html', 
               'getprody.html', 'credits.html', 'getintouch.html', 
               'searchbox.html',], 
     'genindex': ['searchbox.html'],  

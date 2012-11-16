@@ -1,126 +1,392 @@
 {% extends "layout.html" %}
+{% set script_files = ["_static/jquery.js",
+  "_static/jquery.easing.1.2.js", 
+  "_static/swfobject.js", "_static/jquery.jatt.min.js",
+  "_static/jquery.anythingslider.js", 
+  "_static/jquery.anythingslider.video.js",
+  "_static/prody_common.js"] %}
+{% set css_files = css_files + ["_static/anythingslider-theme.css"] %}
+  
 {% set title = 'Overview' %}
+
+{% block rootrellink %}
+
+        <li>
+            <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" alt="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
+            <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" alt="Default text size" style="cursor: pointer; vertical-align: -8px;">
+            <img src="{{ pathto("_static/text-inc.png", 1) }}" onclick="changeFontSize(+1)" alt="Increase text size" style="cursor: pointer; vertical-align: -8px;">
+        </li>
+                
+        <li><a href="{{ pathto('contents') }}">Contents</a></li>
+        
+{% endblock %}
+
+{% block header %}
+<script type="text/javascript">checkFontSize()</script>
+<div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
+<a href="#&panel1-1" onclick="$('#slider1').anythingSlider(1);">
+<img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" id="logo" />
+</a>
+</div>
+<script type="text/javascript">
+if (document.URL.search("\/plugins\/") > -1) {
+  element = document.getElementById("logo");
+  logo.src = "{{ pathto("_static/nmwiz.png", 1) }}";
+}
+</script>
+<script>
+  // Set up Sliders
+  // **************
+  $(function(){
+
+	  $('#slider1').anythingSlider({
+		  theme           : 'minimalist-round',
+		  easing          : 'easeInOutBack',
+		  navigationFormatter : function(index, panel){
+				  return ['ProDy Project', 'Sequence Evolution', 'Protein Structure',
+				          'Protein Dynamics', 'Normal Mode Wizard', 'Applications', 
+				          'Publications', 'Acknowledgments'][index - 1];
+		  },
+		  onSlideComplete : function(slider){
+			  // alert('Welcome to Slide #' + slider.currentPage);
+		  }
+	  });
+
+	  // tooltips for first demo
+	  $.jatt({direction: 's'});
+
+  });
+</script>
+	  
+<style type="text/css">
+  .tooltip { cursor: pointer; }
+  #tooltip {
+   min-width: 100px;
+   color: #ffffff;
+   background: #CA7900;
+   border: 1px solid #777;
+   padding: 8px;
+   display: none;
+   opacity: 0.9;
+   filter: alpha(opacity=90);
+   text-align: left;
+   border-radius: .5em;
+   -moz-border-radius: .5em;
+   -webkit-border-radius: .5em;
+   z-index: 1000;
+  }
+  #tooltip .body {
+   display: block;
+   text-align: center;
+  }
+  .documentwrapper .body {
+    padding: 10px;
+  }
+</style>
+	  
+{% endblock %}
 {% block body %}
-  <h1>Welcome</h1>
 
-  <div class="quotebar">
-    <h3>Quick ANM Example</h3>
-    <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">prody</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pdb</span> <span class="o">=</span> <span class="n">parsePDB</span><span class="p">(</span><span class="s">'1p38'</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ca</span> <span class="o">=</span> <span class="n">pdb</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s">'calpha'</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span> <span class="o">=</span> <span class="n">ANM</span><span class="p">(</span><span class="s">'p38_MAPK'</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">buildHessian</span><span class="p">(</span><span class="n">ca</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">anm</span><span class="o">.</span><span class="n">calcModes</span><span class="p">(</span><span class="n">6</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">writeNMD</span><span class="p">(</span><span class="s">'p38_anm.nmd'</span><span class="p">,</span> <span class="n">anm</span>,</span> <span class="n">ca</span><span class="p">)</span></pre></div>
-    </div>    
-    <span class="linkdescr">Reads a p38 PDB structure, selects Cα atoms, performs ANM calculations, and outputs slow modes in NMD format for visualization using NMWiz.</span>
-  </div>
 
-  <p>
-    <i>ProDy</i> is a free and open-source Python package for analysis and modeling of protein 
-    structural dynamics.  It allows for efficient analysis of large datasets and 
-    is suitable for development or prototyping of structure-based analysis and modeling software. 
-  </p> 
-  <p>
-    <i>ProDy</i> is designed and developed by 
-    <a href="http://www.ccbb.pitt.edu/People/abakan/" target="_blank">Ahmet Bakan</a> 
-    in <a href="http://www.ccbb.pitt.edu/Faculty/bahar/" target="_blank">Bahar lab</a> 
-    at the <a href="http://www.pitt.edu" target="_blank">University of Pittsburgh</a>.
-  </p>
-  <p>See <a href="{{ pathto("getprody") }}">Getting ProDy</a> for downloads and 
-    installation instructions. 
-    To learn how to use <i>ProDy</i> start from the 
-     <a href="{{ pathto("tutorial/index") }}">Tutorial</a>, 
-     or from one of the following examples:
-  </p>
-  <ul>
-    <li> <b>Examination and analysis of structural variability 
-            observed in experiments:</b>
-      <ul>
-        <li> Fast and <a href="{{ pathto("examples/proteins/parsepdb") }}">flexible parsing</a> of PDB and <a href="{{ pathto("examples/trajectory/trajectory") }}">DCD</a> files </li>
-        <li> Powerful and customizable <a href="{{ pathto("reference/atomic/select") }}">atom selections</a> and <a href="{{ pathto("examples/measure/contacts") }}">contact identification</a> </li>
-        <li> <a href="{{ pathto("examples/proteins/compare") }}">Matching, superposing, and comparing</a> multiple structures/chains </li>
-        <li> <a href="{{ pathto("examples/dynamics/pca/index") }}">PCA</a> of <a href="{{ pathto("examples/dynamics/pca/pca_xray_calculations") }}">X-ray structures</a>, 
-        <a href="{{ pathto("examples/dynamics/pca/pca_nmr") }}">NMR models</a> and mixed structural datasets <a href="{{ pathto("examples/dynamics/pca/pca_blast") }}">from Blast search</a> </li>
-      </ul>
-    </li>
-    <li> <b>Prediction and analysis of protein dynamics using theory and simulation:</b>
-      <ul> 
-        <li> Normal Mode Analysis using the <a href="{{ pathto("examples/dynamics/enm/anm") }}">Anisotropic network model</a> (ANM) </li>
-        <li> <a href="{{ pathto("examples/dynamics/enm/gnm") }}">Gaussian network model</a> (GNM) analysis </li>
-        <li> <a href="{{ pathto("examples/dynamics/enm/gamma") }}">Distance</a> and <a href="{{ pathto("reference/dynamics/gamma") }}">property</a> dependent force constant functions </li>
-        <li> <a href="{{ pathto("examples/dynamics/pca/eda") }}">Essential dynamics analysis</a> (EDA) of MD snapshots </li>
-        <li> <a href="{{ pathto("examples/dynamics/pca/pca_xray_plotting") }}">Comparative analysis</a> and <a href="{{ pathto("plugins/index") }}">visualization</a> of dynamics </li>
-      </ul>
-    </li>
-  </ul>
+		<!-- AnythingSlider #1 -->
+			<ul id="slider1">
 
-  <div class="admonition note"> 
-    <p class="first admonition-title">Featured Publication</p> 
-    <p class="last">
-      <ul>
-        <li>
-        <div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf" target="_blank"><img alt="pdf" src="_images/pdf.png" /></a> 
-        <a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575" target="_blank">ProDy: Protein Dynamics Inferred from Theory and Experiments</a></div> 
-        <div class="line">Bakan A, Meireles LM, Bahar I. <strong>2011</strong> <em>Bioinformatics</em> 27(11):1575-1577.</div> 
-        </li>
-        <li>
-        <div class="line"><a class="reference external" href="http://www.pnas.org/content/106/34/14349.full.pdf" target="_blank"><img alt="pdf" src="_images/pdf.png" /></a> 
-        <a class="reference external" href="http://www.pnas.org/content/106/34/14349.long" target="_blank">The intrinsic dynamics of enzymes plays a dominant role in 
-          determining the structural changes induced upon inhibitor binding</a></div> 
-        <div class="line">Bakan A, Bahar I. <strong>2009</strong> <em>Proc Natl Acad Sci U S A</em> 106(34):14349-14354.</div> 
-        </li>
-        <li>
-          <i>See more in <a href="{{ pathto("publications") }}">Publications</a></i>.
-        </li>
-      </ul> 
-    </p> 
-  </div> 
+				<li>
+				  <div style="text-align: left; float: left; width: 450px">
+				    <h1>ProDy Project</h1>
+				    <p>
+	            <i>ProDy</i> is a free and open-source Python package for protein
+	            <a href="#&panel1-2" onclick="$('#slider1').anythingSlider(2);">sequence</a>, 
+	            <a href="#&panel1-3" onclick="$('#slider1').anythingSlider(3);">structure</a>, and 
+	            <a href="#&panel1-4" onclick="$('#slider1').anythingSlider(4);">dynamics</a> analysis.  
+	            It is designed as a flexible and responsive API suitable for interactive usage, and
+	            comes with several command line 
+	            <a href="#&panel1-6" onclick="$('#slider1').anythingSlider(6);">applications</a>.
+            </p>
+				    <p>
+            </p>
+
+            <h3>How to Use <i>ProDy</i></h3>
+            <p>To learn how to use <i>ProDy</i> you may start from the 
+               <a href="tutorial/index.html">Tutorial</a> or one of 
+               the detailed usage <a href="examples/index.html">Examples</a>.
+               You can also browse the new front page and discover brand new 
+               <a href="#&panel1-2" onclick="$('#slider1').anythingSlider(2);">sequence evolution</a> 
+               analysis features!
+            </p>
+
+            <h3>Develop with <i>ProDy</i></h3>
+            <p>
+              You can use <i>ProDy</i> for developing or prototyping new 
+              applications.  Flexible and fully documented <i>ProDy</i> API 
+              is being continuously improved and tested with over 1,800 
+              documentation and unit tests.  
+              See the <a href="reference/index.html">API Reference</a> and
+              <a href="changes.html">what's new</a>.
+            </p>
+
+            <h3>References</h3>
+            <p>
+              <a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+              <a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575">ProDy: Protein Dynamics Inferred from Theory and Experiments</a>
+              Bakan A, Meireles LM, Bahar I <strong>2011</strong> <em>Bioinformatics</em> 27(11):1575-1577
+            </p>
+          </div>
+				  <div style="float: right; max-width: 240px" class="quotebar">
+				    <h3>Getting ProDy</h3>
+            <p>See <a href="getprody.html">Getting ProDy</a> for installing 
+            instructions, or install it with: 
+            <pre>$ easy_install -U ProDy</pre>
+
+            <h3>E-mail Group</h3>
+            <p>To stay up to date, join the 
+            <a href="http://groups.google.com/group/prody-news" target="_blank">ProDy-news</a>
+            Google group (one e-mail per release):
+            <form action="http://groups.google.com/group/prody-news/boxsubscribe"
+                  style="padding-left: 5px">
+              <input type="text" name="email" value="your@email.com" size="12" onblur="if(this.value == '') { this.value='your@email.com'}" onfocus="if (this.value == 'your@email.com') {this.value=''}"/>
+              <input type="submit" name="Subscribe" value="Subscribe" />
+            </form>
+            </p>
+
+            <h3>Issue Tracker</h3>
+            <p>For suggestions, problems, and feature requests open an issue at the
+            <a href="https://bitbucket.org/abakan/prody/issues" target="_blank">Bitbucket tracker</a>.</p>				    
+				    
+           </p>
+          </div>
+				</li>
+
+
+				<li>
+				  <div style="text-align: left;">
+				    <h1>Sequence Evolution</h1>
+				    <p id="contentText">
+	            <i>ProDy</i> is a free and open-source Python package for analysis and 
+	            modeling of protein structural dynamics.  It allows for efficient analysis 
+	            of large datasets and is suitable for development or prototyping of 
+	            structure-based analysis and modeling software.
+            </p>
+          </div>
+				</li>
+
+				<li>
+				  <div style="text-align: left;">
+				    <h1>Protein Structure</h1>
+				    <p id="contentText">
+	            <i>ProDy</i> is a free and open-source Python package for analysis and 
+	            modeling of protein structural dynamics.  It allows for efficient analysis 
+	            of large datasets and is suitable for development or prototyping of 
+	            structure-based analysis and modeling software.
+            </p>
+          </div>
+				</li>
+
+				<li>
+				  <div style="text-align: left;">
+				    <h1>Protein Dynamics</h1>
+				    <p id="contentText">
+	            <i>ProDy</i> is a free and open-source Python package for analysis and 
+	            modeling of protein structural dynamics.  It allows for efficient analysis 
+	            of large datasets and is suitable for development or prototyping of 
+	            structure-based analysis and modeling software.
+            </p>
+          </div>
+				</li>
+
+				<li>
+				  <div style="text-align: left;">
+				    <h1>Normal Mode Wizard</h1>
+				    <p id="contentText">
+	            <i>ProDy</i> is a free and open-source Python package for analysis and 
+	            modeling of protein structural dynamics.  It allows for efficient analysis 
+	            of large datasets and is suitable for development or prototyping of 
+	            structure-based analysis and modeling software.
+            </p>
+          </div>
+				</li>
+
+				<li>
+				  <div style="text-align: left;">
+				    <h1>Applications</h1>
+				    <p id="contentText">
+	            <i>ProDy</i> is a free and open-source Python package for analysis and 
+	            modeling of protein structural dynamics.  It allows for efficient analysis 
+	            of large datasets and is suitable for development or prototyping of 
+	            structure-based analysis and modeling software.
+            </p>
+          </div>
+				</li>
+
+				<li>
+  <div class="section" id="publications" style="overflow-y: scroll; overflow-x: hidden; height:100%; width:100%">
+<span id="id1"></span><h1 style="text-align: center">Publications<a class="headerlink" href="#publications" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="using-prody">
+<h2>Using ProDy<a class="headerlink" href="#using-prody" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://www.pnas.org/content/106/34/14349.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://www.pnas.org/content/106/34/14349.long">The intrinsic dynamics of enzymes plays a dominant role in determining the
+structural changes induced upon inhibitor binding</a>
+Bakan A, Bahar I <strong>2009</strong> <em>Proc Natl Acad Sci U S A</em> 106(34):14349-14354</div>
+</div>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/#Multiscale">Computational Generation of Inhibitor-Bound Conformers of P38 MAP
+Kinase and Comparison with Experiments</a> Bakan A, Bahar I <strong>2011</strong> <em>Pacific Symposium on Biocomputing</em> 16:181-192</div>
+</div>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575">ProDy: Protein Dynamics Inferred from Theory and Experiments</a>
+Bakan A, Meireles LM, Bahar I <strong>2011</strong> <em>Bioinformatics</em> 27(11):1575-1577</div>
+</div>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/pro.711/pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/pro.711/abstract">Pre-existing soft modes of motion uniquely defined by native contact
+topology facilitate ligand binding to proteins</a> Meireles L, Gur M, Bakan A, Bahar I <strong>2011</strong> <em>Protein Science</em> 10(20):1645-1658</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="servers">
+<h2>Servers<a class="headerlink" href="#servers" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/25/5/606.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/25/5/606.full">Principal component analysis of native ensembles of biomolecular structures
+(PCA_NEST): insights into functional dynamics</a></div>
+<div class="line">Yang LW, Eyal E, Bahar I, Kitao A</div>
+<div class="line"><strong>2009</strong> <em>Bioinformatics</em> 25:606-614</div>
+</div>
+<blockquote>
+<div></div></blockquote>
+<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignm.ccbb.pitt.edu/oPCA_Online.htm">PCA_NEST</a></p>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/22/21/2619.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/22/21/2619.long">Anisotropic network model: systematic evaluation and a new web interface</a></div>
+<div class="line">Eyal E, Yang LW, Bahar I</div>
+<div class="line"><strong>2006</strong> <em>Bioinformatics</em> 22:2619-27.</div>
+</div>
+<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi">ANM Server</a></p>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://nar.oxfordjournals.org/content/34/suppl_2/W24.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://nar.oxfordjournals.org/content/34/suppl_2/W24.long">oGNM: online computation of structural dynamics using the Gaussian Network Model</a></div>
+<div class="line">Yang LW, Rader AJ, Liu X, Jursa CJ, Chen SC, Karimi HA, Bahar I</div>
+<div class="line"><strong>2006</strong> <em>Nucleic Acids Res</em> 34:W24-31</div>
+</div>
+<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignm.ccbb.pitt.edu/GNM_Online_Calculation.htm">oGNM Server</a></p>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/21/13/2978.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/21/13/2978.full">iGNM: A Database of Protein Functional Motions Based on Gaussian Network Model</a></div>
+<div class="line">Yang LW, Liu X, Jursa CJ, Holliman M, Rader AJ, Karimi HA, Bahar I</div>
+<div class="line"><strong>2005</strong> <em>Bioinformatics</em> 21:2978-2987</div>
+</div>
+<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignm.ccbb.pitt.edu/">iGNM database</a></p>
+</li>
+</ul>
+</div>
+<div class="section" id="theory">
+<h2>Theory<a class="headerlink" href="#theory" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="reviews">
+<h3>Reviews<a class="headerlink" href="#reviews" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://pubs.acs.org/doi/pdf/10.1021/cr900095e"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://pubs.acs.org/doi/full/10.1021/cr900095e">Normal Mode Analysis of Biomolecular Structures: Functional Mechanisms of
+Membrane Proteins</a></div>
+<div class="line">Bahar I, Lezon TR, Bakan A, Shrivastava IH</div>
+<div class="line"><strong>2010</strong> <em>Chem Rev</em> 110(3):1463–1497 doi:10.1021/cr900095e</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="anisotropic-network-model">
+<h3>Anisotropic Network Model<a class="headerlink" href="#anisotropic-network-model" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/publications/143.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/9218955">Anisotropy of fluctuation dynamics of proteins with an elastic network model</a></div>
+<div class="line">Atilgan, AR, Durrell, SR, Jernigan, RL, Demirel, MC, Keskin, O. &amp; Bahar, I</div>
+<div class="line"><strong>2001</strong> <em>Biophys J</em> 80:505-515</div>
+</div>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/publications/140.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/1097-0134(20000815)40:3%3C512::AID-PROT180%3E3.0.CO;2-M/full">Dynamics of proteins predicted by molecular dynamics simulations and analytical approaches: Application to a-amylase inhibitor</a></div>
+<div class="line">Doruker P, Atilgan AR, Bahar I</div>
+<div class="line"><strong>2000</strong> <em>Proteins</em> 40:512-524</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="gaussian-network-model">
+<h3>Gaussian Network Model<a class="headerlink" href="#gaussian-network-model" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/publications/99.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://www.sciencedirect.com/science?_ob=ArticleURL&amp;_udi=B94RW-4TXDS80-1H&amp;_user=9649437&amp;_coverDate=01%2F31%2F2001&amp;_rdoc=1&amp;_fmt=high&amp;_orig=search&amp;_origin=search&amp;_sort=d&amp;_docanchor=&amp;view=c&amp;_acct=C000006998&amp;_version=1&amp;_urlVersion=0&amp;_userid=9649437&amp;md5=4d1df6a2a6b6d7b0d20e7e38eee7ee95&amp;searchtype=a">Direct evaluation of thermal fluctuations in protein using a single parameter harmonic potential</a></div>
+<div class="line">Bahar I, Atilgan AR, Erman B</div>
+<div class="line"><strong>1997</strong> <em>Folding &amp; Design</em> 2:173-181</div>
+</div>
+</li>
+<li><div class="first line-block">
+<div class="line"><a class="reference external" href="http://prl.aps.org/pdf/PRL/v79/i16/p3090_1"><img alt="pdf" src="_images/pdf.png" /></a>
+<a class="reference external" href="http://prl.aps.org/abstract/PRL/v79/i16/p3090_1">Gaussian dynamics of folded proteins</a></div>
+<div class="line">Haliloglu T, Bahar I, Erman B</div>
+<div class="line"><strong>1997</strong> <em>Phys Rev Lett</em> 79:3090-3093</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          
+				</li>
+
+				<li>
+
+  <div class="section" id="acknowledgments">
+<span id="credits"></span><h1 style="text-align: center">Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="contributors">
+<h2>People<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://www.linkedin.com/in/lidio">Lidio Meireles</a> provided insightful
+comments on the design of ProDy classes and modules, and contributed to the
+development of early versions of <a class="reference internal" href="commands/index.html#commands"><em>ProDy Commands</em></a> for automated tasks.</p>
+</div>
+<div class="section" id="funding">
+<h2>Funding<a class="headerlink" href="#funding" title="Permalink to this headline">¶</a></h2>
+<p>Support from NIH grants 1R01GM099738-01 (current) and 1R01GM086238-01 for
+development and maintenance of ProDy is acknowledged by <a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/">Ivet Bahar</a>.</p>
+</div>
+<div class="section" id="software">
+<h2>Community<a class="headerlink" href="#software" title="Permalink to this headline">¶</a></h2>
+<p>ProDy makes use of the following great software developed by the open source community:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://pyparsing.wikispaces.com/">Pyparsing</a>
+for the sophisticated atom selection grammar.</li>
+<li><a class="reference external" href="http://biopython.org/">Biopython</a> 
+KDTree package and pairwise2 module.</li>
+<li><a class="reference external" href="http://numpy.scipy.org/">Numpy</a> for speed and flexibility 
+in almost all major functionality.</li>
+<li>Finally, ProDy can benefit from <a class="reference external" href="http://www.scipy.org/SciPy">Scipy</a> and
+<a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a> packages.  </li>
+</ul>
+</div>
+</div>
+
+				</li>
+
+
+			</ul>  <!-- END AnythingSlider #1 -->
   
-  <h2>Documentation</h2>
-
-  <table class="contentstable" align="center" style="margin-left: 30px"><tr>
-    <td width="50%">
-      <p class="biglink"><a class="biglink" href="{{ pathto("tutorial/index") }}">Tutorial</a><br/>
-         <span class="linkdescr">overview of basic tasks</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("reference/index") }}">Reference</a><br/>
-         <span class="linkdescr">classes and functions</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("plugins/index") }}">NMWiz</a><br/>
-         <span class="linkdescr">NMWiz VMD plugin</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("publications") }}">Publications</a><br/>
-         <span class="linkdescr">list of relevant publications</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("credits") }}">Acknowledgments</a><br/>
-         <span class="linkdescr">funding and contributors</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("changes") }}">Changes</a><br/>
-         <span class="linkdescr">history of changes</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("search") }}">Search page</a><br/>
-         <span class="linkdescr">search the documentation</span></p>
-    </td><td width="50%" valign="top">
-      <p class="biglink"><a class="biglink" href="{{ pathto("examples/index") }}">Examples</a><br/>
-         <span class="linkdescr">usage examples</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("contents") }}">Contents</a><br/>
-         <span class="linkdescr">for a complete overview</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("commands/index") }}">Commands</a><br/>
-         <span class="linkdescr">commands for automated tasks</span></p>
-      <p class="biglink"><a class="biglink" href="{{ pathto("reports/index") }}">Reports</a><br/>
-         <span class="linkdescr">development/performance notes</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("bibliography") }}">Bibliography</a><br/>
-         <span class="linkdescr">list of cited articles</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("license") }}">License</a><br/>
-         <span class="linkdescr">ProDy and third party licenses</span></p> 
-      <p class="biglink"><a class="biglink" href="{{ pathto("genindex") }}">General Index</a><br/>
-         <span class="linkdescr">all functions, classes, terms</span></p>
-    </td></tr>
-  </table>
-{% if not version.endswith('dev') %}
-  <p>
-    You can also download <a href="ProDy.pdf" target="_blank">PDF version</a> of the ProDy 
-    documentation generated from the LaTeX Sphinx procedures.
-  </p>
-{% endif %}
-  <h2>Get ProDy</h2>
-  <p><b>Downloads and Installation</b> instructions can be found at  
-    <a href="{{ pathto("getprody") }}">Getting ProDy</a>.
-  </p>
-  
+{% endblock %}
+{% block relbar2 %}
 {% endblock %}

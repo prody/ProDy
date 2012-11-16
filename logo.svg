@@ -8,68 +8,14 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="640px"
-   height="480px"
-   id="svg2847"
-   version="1.1"
-   inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="logo.svg"
-   inkscape:export-filename="/home/abakan/Code/ProDy/logo.png"
-   inkscape:export-xdpi="83.449997"
-   inkscape:export-ydpi="83.449997">
+   version="1.2"
+   width="644.65546"
+   height="141.21584"
+   id="svg2">
   <defs
-     id="defs2849">
-    <inkscape:perspective
-       sodipodi:type="inkscape:persp3d"
-       inkscape:vp_x="0 : 240 : 1"
-       inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_z="640 : 240 : 1"
-       inkscape:persp3d-origin="320 : 160 : 1"
-       id="perspective2855" />
-    <inkscape:perspective
-       id="perspective2895"
-       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
-       inkscape:vp_z="1 : 0.5 : 1"
-       inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_x="0 : 0.5 : 1"
-       sodipodi:type="inkscape:persp3d" />
-    <inkscape:perspective
-       id="perspective2903"
-       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
-       inkscape:vp_z="1 : 0.5 : 1"
-       inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_x="0 : 0.5 : 1"
-       sodipodi:type="inkscape:persp3d" />
-    <inkscape:perspective
-       id="perspective3761"
-       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
-       inkscape:vp_z="1 : 0.5 : 1"
-       inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_x="0 : 0.5 : 1"
-       sodipodi:type="inkscape:persp3d" />
-  </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="1.5494506"
-     inkscape:cx="334.61981"
-     inkscape:cy="280.05373"
-     inkscape:current-layer="layer1"
-     inkscape:document-units="px"
-     showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1153"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1" />
+     id="defs4" />
   <metadata
-     id="metadata2852">
+     id="metadata7">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
@@ -81,42 +27,41 @@
     </rdf:RDF>
   </metadata>
   <g
-     id="layer1"
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer">
-    <text
-       xml:space="preserve"
-       style="font-size:96px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#002255;fill-opacity:1;stroke:none;font-family:Purisa;-inkscape-font-specification:Purisa Bold"
-       x="112.48069"
-       y="88.99189"
-       id="text2909"
-       sodipodi:linespacing="125%"
-       inkscape:export-xdpi="159.04803"
-       inkscape:export-ydpi="159.04803"><tspan
-         sodipodi:role="line"
-         id="tspan2911"
-         x="112.48069"
-         y="88.99189"
-         style="font-size:96px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#002255;font-family:Purisa;-inkscape-font-specification:Purisa Bold">ProDy</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#803300;fill-opacity:1;stroke:none;font-family:Purisa;-inkscape-font-specification:Purisa Bold"
-       x="126.22041"
-       y="135.55566"
-       id="text3659"
-       sodipodi:linespacing="100%"><tspan
-         sodipodi:role="line"
-         x="126.22041"
-         y="135.55566"
-         id="tspan3663"><tspan
-   style="font-weight:bold;-inkscape-font-specification:AlArabiya Bold;font-style:normal;font-size:28"
-   id="tspan2820">Pro</tspan>tein Dynamics Analysis in Python</tspan></text>
-    <image
-       y="0.31582549"
-       x="0.30078804"
-       id="image3763"
-       height="139.64854"
-       width="112.11926"
-       xlink:href="file:///home/abakan/Code/ProDy/ubiquitin.png" />
+     transform="translate(-52.597061,-217.19371)"
+     id="layer1">
+    <g
+       transform="translate(-134.58194,230.00987)"
+       id="layer1-1">
+      <text
+         x="299.35892"
+         y="75.859909"
+         id="text2909"
+         xml:space="preserve"
+         style="font-size:96px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#002255;fill-opacity:1;stroke:none;font-family:Purisa;-inkscape-font-specification:Purisa Bold"><tspan
+           x="299.35892"
+           y="75.859909"
+           id="tspan2911"
+           style="font-size:96px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#002255;font-family:Purisa;-inkscape-font-specification:Purisa Bold">ProDy</tspan></text>
+      <text
+         x="295.92606"
+         y="122.42368"
+         id="text3659"
+         xml:space="preserve"
+         style="font-size:24px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#803300;fill-opacity:1;stroke:none;font-family:Purisa;-inkscape-font-specification:Purisa Bold"><tspan
+           x="295.92606"
+           y="122.42368"
+           id="tspan3663"
+           style="font-size:24px;word-spacing:-6px"><tspan
+   dx="0"
+   id="tspan2820"
+   style="font-size:24px;font-style:normal;font-weight:bold;word-spacing:-6px;-inkscape-font-specification:AlArabiya Bold">Pro</tspan>tein Dynamics &amp; Sequence Analysis</tspan></text>
+      <image
+         xlink:href="file:///home/abakan/Code/ProDy/ubiquitin.png"
+         x="187.179"
+         y="-12.816157"
+         width="112.11926"
+         height="139.64854"
+         id="image3763" />
+    </g>
   </g>
 </svg>

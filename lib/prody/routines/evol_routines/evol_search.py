@@ -15,135 +15,127 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" Search Pfam with UniProt ID or protein sequence as input for corresponding
-    accession code"""
+"""Pfam search application."""
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from collections import defaultdict
+
 from ..actions import *
+from ..apptools import *
 
 __all__ = ['evol_search']
 
-DEFAULTS = {}
-HELPTEXT = {} 
-for key, txt, val in [
-    ('search_b', 'search Pfam-B families', False),
-    ('skip_a', 'do not search Pfam-A families', False),
-    ('ga', 'use gathering threshold', True),   
-    ('evalue', 'E-value cutoff: must be < 10.0', None),
-    ('timeout', 'timeout for blocking connection attempt in seconds', 30),
-    ('outname', 'name for output file', None),
-    ('delimiter', 'delimiter for output file', '\t')]:
-    
-    DEFAULTS[key] = val
-    HELPTEXT[key] = txt
+APP = DevelApp('search', 'search Pfam with given query')
 
-def evol_search(query, **kwargs):
-    """Search Pfam with **query**.
-    
-    """
-    import prody
-    import sys
-    from os.path import join
-    
-    search_b = kwargs.pop('search_b', DEFAULTS['search_b'])
-    skip_a = kwargs.pop('skip_a', DEFAULTS['skip_a'])
-    
-    pfam_results =  prody.searchPfam(query, search_b=search_b,
-                                     skip_a=skip_a, **kwargs)
-    
-    outname = kwargs.get('outname', None)
-    delimiter = kwargs.get('delimiter', DEFAULTS['delimiter'])
-    if outname:
-        filepath = join(prody.utilities.makePath('.'), outname)
-        out = open(filepath, 'wb')
-    else:
-        out = sys.stdout
-    title = ('accession' + delimiter + 'id' + delimiter + 'type' +
-             delimiter + 'smallest-evalue' + '\n')
-    out.write(title)
-    for key in pfam_results:
-        val = pfam_results[key]
-        output = (val.get('accession', None) + delimiter + val.get('id', None) + delimiter +
-                  val.get('type', None) + delimiter)
-        locations = val.get('locations', None)
-        evalue = ''
-        if locations:
-            for i, location in enumerate(locations):
-                temp = location.get('evalue', None)
-                if temp:
-                    if i==0:
-                        evalue = float(temp)
-                    else:
-                        if float(temp) < evalue:
-                            evalue = float(temp)        
-        output =  output + str(evalue) + '\n'               
-        out.write(output)
-    if outname:
-        prody.LOGGER.info('Search results written in {0:s}'.format(filepath))    
-    out.close()
-        
-        
-def addCommand(commands):
+APP.addGroup('sequence', 'sequence search options')
+APP.addGroup('output', 'output options')
 
-    subparser = commands.add_parser('search', 
-        help='search Pfam with given query')
+APP.addArgument('query', 
+    help='protein UniProt ID or sequence, or a sequence file, where '
+         'sequence have no gaps and more than 11 characters')
+APP.addArgument('-b', '--searchBs',
+    dest='search_b',
+    help='search Pfam-B families',
+    default=False,
+    action='store_true',
+    group='sequence')
 
-    subparser.add_argument('--quiet', help="suppress info messages to stderr",
-        action=Quiet, nargs=0)
+APP.addArgument('-s', '--skipAs',
+    dest='skip_a',
+    help='do not search Pfam-A families',
+    default=False,
+    action='store_true',
+    group='sequence')
+APP.addArgument('-g', '--ga',
+    dest='ga',
+    help='use gathering threshold',
+    default=False,
+    action='store_true',
+    group='sequence')
+APP.addArgument('-e', '--evalue',
+    dest='evalue',
+    help='e-value cutoff, must be less than 10.0',
+    default=None,
+    type=float,
+    metavar='FLOAT',
+    group='sequence')
+APP.addArgument('-t', '--timeout',
+    dest='timeout',
+    help='timeout in seconds for blocking connection attempt',
+    default=30,
+    type=int,
+    metavar='INT',
+    group='sequence')
+APP.addArgument('-o', '--outname',
+    dest='outname',
+    help='name for output file, default is standard output',
+    type=str,
+    metavar='STR',
+    group='output')
+APP.addArgument('-d', '--delimiter', 
+    dest='delimiter', 
+    type=str, 
+    default='\t', 
+    metavar='STR', 
+    help='delimiter for output data columns',
+    group='output')
 
-    subparser.add_argument('--examples', action=UsageExample, nargs=0,
-        help='show usage examples and exit')
+APP.setExample(
+"""This application searches Pfam database with a UniProt ID or protein \
+sequence or filename containing the sequence.  Some specific search options \
+are included for sequence search.  Minimum length of query sequence should \
+be 12 and should not contain gaps.  If outname is specified it will output \
+the results obtained in a file or the output will be directed to standard \
+output.
 
-    subparser.set_defaults(usage_example=
-    """This program searches Pfam database with a UniProt ID or protein \
-sequence or filename containing the sequence. Some specific search options \
-are included for sequence search. Minimum length of query sequence should \
-be 12 and should not contain gaps. If outname is specified it will output \
-the results obtained in a file or the output will be directed to standard output.
-
-Search Pfam with UniProt ID:
+Search Pfam with UniProt ID and write output into a file:
     
-    $ evol search P08581 --outname testfile.txt
+    $ evol search P08581 --outname families.txt
     
 Search Pfam with a sequence with search options:
 
     $ evol search PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCS\
-    LHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA --evalue 2 --searchBs
-    """)
+LHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA --evalue 2 \
+--searchBs
+    """, [0, 1])
 
-    group = subparser.add_argument_group('search options for sequence input')
+def evol_search(query, **kwargs):
     
-    group.add_argument('-b', '--searchBs', dest='search_b', 
-        action='store_true', 
-        default=DEFAULTS['search_b'], help=HELPTEXT['search_b'])
-    group.add_argument('-s', '--skipAs', dest='skip_a', 
-        action='store_true', 
-        default=DEFAULTS['skip_a'], help=HELPTEXT['skip_a'])
-    group.add_argument('-g', '--ga', dest='ga', action='store_true', 
-        default=DEFAULTS['ga'], help=HELPTEXT['ga'])
-    group.add_argument('-e', '--evalue', dest='evalue', type=float, 
-        default=DEFAULTS['evalue'], metavar='FLOAT', 
-        help=HELPTEXT['evalue'] + ' (default: %(default)s)')
-    group.add_argument('-t', '--timeout', dest='timeout', type=int, 
-        default=DEFAULTS['timeout'], metavar='INT', 
-        help=HELPTEXT['timeout'] + ' (default: %(default)s)')
+    import prody
+    from os.path import join, split
     
-    group = subparser.add_argument_group('output options')
+    pfam_results =  prody.searchPfam(query, **kwargs)
     
-    group.add_argument('-p', '--outname', dest='outname', type=str, 
-        default=DEFAULTS['outname'], metavar='STR', 
-        help=HELPTEXT['outname'] + ' (default: %(default)s)')
-    group.add_argument('-d', '--delimiter', dest='delimiter', type=str, 
-        default=DEFAULTS['delimiter'], metavar='STR', 
-        help=HELPTEXT['delimiter'] + ' (default: %(default)s)')
+    outname = kwargs.get('outname', None)
+    delimiter = kwargs.get('delimiter', DEFAULTS['delimiter'])
+    if outname:
+        folder, outname = split(outname)
+        filepath = join(prody.utilities.makePath(folder), outname)
+        out = open(filepath, 'wb')
+    else:
+        from sys import stdout as out
+    title = delimiter.join(['acc', 'id', 'type', 'e-value']) + '\n'
+    out.write(title)
+    for key in pfam_results:
+        val = pfam_results[key]
+        evalue = ''
+        for i, location in enumerate(val.get('locations', [])):
+            temp = location.get('evalue', None)
+            if temp:
+                if i==0:
+                    evalue = float(temp)
+                else:
+                    if float(temp) < evalue:
+                        evalue = float(temp)        
+        output = delimiter.join([val.get('accession', '    '),
+                                 val.get('id', '    '),
+                                 val.get('type', '    '),
+                                 str(evalue)]) + '\n'               
+        out.write(output)
+    if outname:
+        prody.LOGGER.info('Search results written in {0:s}.'.format(filepath))    
+        out.close()
         
-    subparser.add_argument('query', help=('UniProt ID or protein sequence or'
-                                          ' filename containing sequence '
-                                          'with no gaps and >11 characters'))
-            
-    subparser.set_defaults(func=lambda ns: evol_search(ns.__dict__.pop('query'), 
-                                                        **ns.__dict__))
-    subparser.set_defaults(subparser=subparser)
-
+APP.setFunction(evol_search)

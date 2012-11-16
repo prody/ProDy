@@ -18,14 +18,14 @@
 """This module contains routines that are used as command line programs.
 
 
-Dynamics routines
+Dynamics analysis routines
 ===============================================================================
 
   * :func:`.prody_anm`
   * :func:`.prody_gnm`
   * :func:`.prody_pca`
 
-Other routines
+Structure analysis routines
 ===============================================================================
 
   * :func:`.prody_align`
@@ -36,8 +36,7 @@ Other routines
   * :func:`.prody_fetch`
   * :func:`.prody_select`
   
-  
-  Evol routines
+Sequence analysis routines
 ===============================================================================
 
   * :func:`.evol_fetch`
@@ -46,8 +45,8 @@ Other routines
   * :func:`.evol_entropy`
   * :func:`.evol_mutinfo`
   * :func:`.evol_dynamics`
-  
-  """
+
+"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

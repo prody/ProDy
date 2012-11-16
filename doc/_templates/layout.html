@@ -1,5 +1,5 @@
 {% extends "!layout.html" %}
-
+{% set script_files = script_files + ["_static/prody_common.js"] %}
 {% block extrahead %}
 {{ super() }}
 {%- if not embedded %}
@@ -10,65 +10,20 @@
 </style>
 {%- endif %}
 <meta http-equiv="expires" content="-1">
-<script type="text/javascript">
-fsUnit = 'px';
-defaultFS = '12';
-function changeFontSize(incr) {
-  if (document.body.style.fontSize == "") {
-    document.body.style.fontSize = defaultFS + fsUnit;
-  }
-  if (incr == 0) {
-    document.body.style.fontSize = defaultFS + fsUnit;
-  } else {
-    document.body.style.fontSize = (parseFloat(document.body.style.fontSize) + incr ) + fsUnit;
-  }
-  var exdate = new Date();
-  exdate.setDate(exdate.getDate() + 365);
-  document.cookie= "ProDyDocFontSize" + "=" + escape(parseFloat(document.body.style.fontSize)) + ";expires=" + exdate.toUTCString();
-}
-
-function setFontSize(fs) {
-  document.body.style.fontSize = fs + fsu; 
-  var exdate = new Date();
-  exdate.setDate(exdate.getDate() + 365);
-  document.cookie= "ProDyDocFontSize" + "=" + escape(fs) + ";expires=" + exdate.toUTCString();
-}
-
-function getFontSize() {
-  if (document.cookie.length > 0) {
-    c_name = "ProDyDocFontSize"
-    var c_start = document.cookie.indexOf(c_name + "=");
-    if (c_start != -1) {
-      c_start = c_start + c_name.length + 1;
-      var c_end = document.cookie.indexOf(";", c_start);
-      if (c_end == -1) c_end = document.cookie.length;
-        return unescape(document.cookie.substring(c_start, c_end));
-    }
-  }
-  return "";
-}
-
-function checkFontSize() {
-  var fs = getFontSize('SphinxFontSize');
-  if (fs != null && fs != "") {
-    document.body.style.fontSize = fs + fsUnit;
-  }
-}
-
-</script>
-
+<!--
 <script type="text/javascript" src="https://apis.google.com/js/plusone.js"></script>
+-->
 {% endblock %}
 
 {% block rootrellink %}
     {% if version.endswith('dev') %}
         <li><a><img src="{{ pathto("_static/dev.png", 1) }}" alt="You are reading development version docs" style=""></a></li>
     {% endif %}
-        <li><a href="#">
-            <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" alt="Decrease text size">
-            <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" alt="Default text size">
-            <img src="{{ pathto("_static/text-inc.png", 1) }}" onclick="changeFontSize(+1)" alt="Increase text size"> 
-            </a>
+        <li>
+            <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" title="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
+            <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" title="Default text size" style="cursor: pointer; vertical-align: -8px;">
+            <img src="{{ pathto("_static/text-inc.png", 1) }}" onclick="changeFontSize(+1)" title="Increase text size" style="cursor: pointer; vertical-align: -8px;">
+            <img src="{{ pathto("_static/body-expand.png", 1) }}" onclick="$('.body')" title="Expand text area" style="cursor: pointer; vertical-align: -8px;">
         </li>
         <li><a href="{{ pathto('index') }}">Home</a>|&nbsp;</li>
         <li><a href="{{ pathto('contents') }}">Contents</a> &raquo;</li>

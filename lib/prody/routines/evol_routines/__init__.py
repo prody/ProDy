@@ -63,7 +63,7 @@ for cmd in EVOL_COMMANDS:
     cmd = 'evol_' + cmd
     mod = imp.load_module('prody.routines.evol_routines.' + cmd, 
                           *imp.find_module(cmd, [path_commands]))
-    mod.addCommand(evol_commands)  
+    mod.APP.addApplication(evol_commands)
 
 
 def evol_main():

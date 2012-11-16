@@ -28,9 +28,10 @@ MSA IO
 Analysis
 ========
 
-  * :func:`.calcShannonEntropy`
-  * :func:`.calcMSAOccupancy`
-  * :func:`.buildMutinfoMatrix`
+  * :func:`.refineMSA` - refine MSA by removing gapped columns and/or sequences
+  * :func:`.calcShannonEntropy` - calculate Shannon entropy
+  * :func:`.calcMSAOccupancy` - calculate row (sequence) or column occupancy
+  * :func:`.buildMutinfoMatrix` - build mutual information matrix
 
 """
 

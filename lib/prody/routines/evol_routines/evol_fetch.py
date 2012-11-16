@@ -15,59 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" Download MSA for given Pfam ID or accession code and print
-    the path to the downloaded file"""
+"""Pfam MSA download application."""
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..actions import *
+from ..apptools import *
 
 __all__ = ['evol_fetch']
 
-DEFAULTS = {}
-HELPTEXT = {} 
-for key, txt, val in [
-    ('alignment', 'alignment type: one of full, seed, ncbi or metagenomics',
-     'full'),
-    ('format', 'Pfam supported MSA file format: selex, fasta or stockholm',
-     'selex'),
-    ('order', 'ordering of sequences: tree or alphabetical', 'tree'),   
-    ('inserts', 'letter case for inserts: upper or lower', 'upper'),
-    ('gaps', 'gap character: dashed, dots or mixed', 'dashes'),
-    ('folder', 'output directory', '.'),
-    ('compressed', 'gzip downloaded MSA file', False),
-    ('outname', 'out filename', None)]:
-    
-    DEFAULTS[key] = val
-    HELPTEXT[key] = txt
+APP = DevelApp('fetch', help='fetch MSA files from Pfam')
 
-def evol_fetch(acc, **kwargs):
-    """Download Pfam MSA for **acc**.
-    
-    """
-    import prody
-    
-    alignment = kwargs.pop('alignment', DEFAULTS['alignment'])
-    compressed = kwargs.pop('compressed', DEFAULTS['compressed'])
-    
-    prody.fetchPfamMSA(acc, alignment=alignment,
-                        compressed=compressed, **kwargs)
 
-                
-def addCommand(commands):
-
-    subparser = commands.add_parser('fetch', 
-        help='fetch MSA from Pfam')
-
-    subparser.add_argument('--quiet', help="suppress info messages to stderr",
-        action=Quiet, nargs=0)
-
-    subparser.add_argument('--examples', action=UsageExample, nargs=0,
-        help='show usage examples and exit')
-
-    subparser.set_defaults(usage_example=
-    """Given a Pfam ID or accession code, this program fetches the MSA of \
+APP.setExample(
+"""Given a Pfam ID or accession code, this program fetches the MSA of \
 that family. Supported alignment options are full, seed, ncbi or metagenomics \
 and alignment formats are selex, stockholm or fasta. The output MSA is \
 downloaded and saved in the specified or default '.' directory.
@@ -79,41 +41,78 @@ Fetch PFAM ID Cys_knot:
 Fetch PFAM accession with specific parameters:
 
     $ evol fetch PF00007 --compressed --format fasta --outname mymsa""",
-    )
+    [0, 1])
 
-    group = subparser.add_argument_group('download options')
-    
-    group.add_argument('-a', '--alignment', dest='alignment', type=str, 
-        default=DEFAULTS['alignment'], metavar='STR', 
-        help=HELPTEXT['alignment'] + ' (default: %(default)s)')
-    group.add_argument('-f', '--format', dest='format', type=str, 
-        default=DEFAULTS['format'], metavar='STR', 
-        help=HELPTEXT['format'] + ' (default: %(default)s)')
-    group.add_argument('-o', '--order', dest='order', type=str, 
-        default=DEFAULTS['order'], metavar='STR', 
-        help=HELPTEXT['order'] + ' (default: %(default)s)')
-    group.add_argument('-i', '--inserts', dest='inserts', type=str, 
-        default=DEFAULTS['inserts'], metavar='STR', 
-        help=HELPTEXT['inserts'] + ' (default: %(default)s)')
-    group.add_argument('-g', '--gaps', dest='gaps', type=str, 
-        default=DEFAULTS['gaps'], metavar='STR', 
-        help=HELPTEXT['gaps'] + ' (default: %(default)s)')
-    
-    group = subparser.add_argument_group('output options')
-    
-    group.add_argument('-d', '--outdir', dest='folder', type=str, 
-        default=DEFAULTS['folder'], metavar='PATH', 
-        help=HELPTEXT['folder'] + ' (default: %(default)s)')
-    group.add_argument('-p', '--outname', dest='outname', type=str, 
-        default=DEFAULTS['outname'], metavar='STR', 
-        help=HELPTEXT['outname'] + ' (default: %(default)s)')
-    group.add_argument('-z', '--compressed', dest='compressed', 
-        action='store_true', 
-        default=DEFAULTS['compressed'], help=HELPTEXT['compressed'])
-    
-    subparser.add_argument('acc', help='Pfam ID or accession code')
-            
-    subparser.set_defaults(func=lambda ns: evol_fetch(ns.__dict__.pop('acc'), 
-                                                        **ns.__dict__))
-    subparser.set_defaults(subparser=subparser)
 
+APP.addArgument('acc', help='Pfam ID or accession code')
+
+APP.addGroup('download', 'download options')
+APP.addArgument('-a', '--alignment', 
+    dest='alignment', 
+    type=str, 
+    default='full', 
+    metavar='STR', 
+    help='alignment type, one of full, seed, ncbi or metagenomics',
+    group='download')
+APP.addArgument('-f', '--format', 
+    dest='format', 
+    type=str, 
+    default='selex', 
+    metavar='STR', 
+    help='Pfam supported MSA format, one of selex, fasta or stockholm',
+    group='download')
+APP.addArgument('-o', '--order', 
+    dest='order', 
+    type=str, 
+    default='tree', 
+    metavar='STR', 
+    help='ordering of sequences, tree or alphabetical',
+    group='download')
+APP.addArgument('-i', '--inserts', 
+    dest='inserts', 
+    type=str, 
+    default='upper', 
+    metavar='STR', 
+    help='letter case for inserts, upper or lower',
+    group='download')
+APP.addArgument('-g', '--gaps', 
+    dest='gaps', 
+    type=str, 
+    default='dashes', 
+    metavar='STR', 
+    help='gap character, one of dashes, dots or mixed',
+    group='download')
+
+APP.addGroup('output', 'output options')
+APP.addArgument('-d', '--outdir', 
+    dest='folder', 
+    type=str, 
+    default='.', 
+    metavar='PATH', 
+    help='output directory',
+    group='output')
+APP.addArgument('-p', '--outname', 
+    dest='outname', 
+    type=str, 
+    default=None, 
+    metavar='STR', 
+    help='out filename',
+    group='output')
+APP.addArgument('-z', '--compressed', 
+    dest='compressed', 
+    action='store_true', 
+    help='gzip downloaded MSA file',
+    group='output')
+    
+def evol_fetch(acc, **kwargs):
+   
+    import prody
+    
+    alignment = kwargs.pop('alignment', DEFAULTS['alignment'])
+    compressed = kwargs.pop('compressed', DEFAULTS['compressed'])
+    
+    prody.fetchPfamMSA(acc, alignment=alignment,
+                        compressed=compressed, **kwargs)
+
+        
+APP.setFunction(evol_fetch)
