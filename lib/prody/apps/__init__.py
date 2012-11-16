@@ -17,14 +17,14 @@
 
 """This module contains ProDy applications.
 
-Dynamics analysis applications
+Dynamics analysis
 ===============================================================================
 
   * :func:`.prody_anm`
   * :func:`.prody_gnm`
   * :func:`.prody_pca`
 
-Structure analysis applications
+Structure analysis
 ===============================================================================
 
   * :func:`.prody_align`
@@ -35,7 +35,7 @@ Structure analysis applications
   * :func:`.prody_fetch`
   * :func:`.prody_select`
   
-Sequence analysis applications
+Sequence analysis
 ===============================================================================
 
   * :func:`.evol_fetch`

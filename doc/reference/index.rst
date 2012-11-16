@@ -12,6 +12,7 @@ module.  Some documentation pages include usage examples.
    :glob:
 
    prody
+   apps/index
    atomic/index
    database/index
    dynamics/index
@@ -19,7 +20,6 @@ module.  Some documentation pages include usage examples.
    kdtree/index
    measure/index
    proteins/index
-   routines/index
    sequence/index
    trajectory/index
    utilities/index

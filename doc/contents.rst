@@ -17,7 +17,7 @@ ProDy Documentation Contents
    examples/index
    reference/index
    plugins/index
-   commands/index
+   apps/index
    howtocite
    publications
    reports/index
