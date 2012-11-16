@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines some routines used as command line programs."""
+"""This module defines structure and dynamics analysis applications."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -28,17 +28,17 @@ try:
 except ImportError:
     from .. import argparse
 
-from ..actions import *
+from ..apptools import *
 
 path_prody = imp.find_module('prody')[1]
-path_routines = imp.find_module('routines', [path_prody])[1]
-path_commands = imp.find_module('prody_routines', [path_routines])[1]
+path_apps = imp.find_module('apps', [path_prody])[1]
+path_apps = imp.find_module('prody_apps', [path_apps])[1]
 
-PRODY_COMMANDS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
+PRODY_APPS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol', 
                   'catdcd', 'contacts', 'fetch', 'select', ] 
 
 if sys.version_info[:2] > (2,6):
-    PRODY_COMMANDS.append('test')
+    PRODY_APPS.append('test')
 
 __all__ = ['prody_main']
 
@@ -60,10 +60,10 @@ prody_commands = prody_parser.add_subparsers(
     title='subcommands')
     
 
-for cmd in PRODY_COMMANDS:
+for cmd in PRODY_APPS:
     cmd = 'prody_' + cmd
-    mod = imp.load_module('prody.routines.prody_routines.' + cmd, 
-                          *imp.find_module(cmd, [path_commands]))
+    mod = imp.load_module('prody.apps.prody_apps.' + cmd, 
+                          *imp.find_module(cmd, [path_apps]))
     mod.addCommand(prody_commands)  
 
 

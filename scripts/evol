@@ -21,10 +21,9 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import imp
 
-path = [imp.find_module('prody')[1]]
-evol_routines = imp.load_module('prody.routines', 
-                           *imp.find_module('routines', path))    
-
+path = imp.find_module('prody')[1]
+apps = imp.find_module('apps', [path])
+apps = imp.load_module('prody.apps', *apps)
 
 if __name__ == '__main__':
-    evol_routines.evol_main()
+    apps.evol_main()

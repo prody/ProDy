@@ -31,13 +31,10 @@ except ImportError:
 from ..apptools import *
 
 path_prody = imp.find_module('prody')[1]
-path_routines = imp.find_module('routines', [path_prody])[1]
-path_commands = imp.find_module('evol_routines', [path_routines])[1]
+path_apps = imp.find_module('apps', [path_prody])[1]
+path_apps = imp.find_module('evol_apps', [path_apps])[1]
 
-EVOL_COMMANDS = ['search', 'fetch'] 
-
-#if sys.version_info[:2] > (2,6):
-#    EVOL_COMMANDS.append('test')
+EVOL_APPS = ['search', 'fetch'] 
 
 __all__ = ['evol_main']
 
@@ -59,10 +56,10 @@ evol_commands = evol_parser.add_subparsers(
     title='subcommands')
     
 
-for cmd in EVOL_COMMANDS:
+for cmd in EVOL_APPS:
     cmd = 'evol_' + cmd
-    mod = imp.load_module('prody.routines.evol_routines.' + cmd, 
-                          *imp.find_module(cmd, [path_commands]))
+    mod = imp.load_module('prody.apps.evol_apps.' + cmd, 
+                          *imp.find_module(cmd, [path_apps]))
     mod.APP.addApplication(evol_commands)
 
 

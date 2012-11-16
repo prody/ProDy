@@ -22,7 +22,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
-from ..actions import *
+from ..apptools import *
 
 __all__ = ['prody_blast']
 

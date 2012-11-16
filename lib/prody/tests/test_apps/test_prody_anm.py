@@ -29,35 +29,35 @@ from numpy.testing import *
 
 from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
-from prody.routines import prody_parser 
+from prody.apps import prody_parser 
 
 from . import NOPRODYCMD
 
-class TestGNMCommand(TestCase): 
+class TestANMCommand(TestCase): 
     
     def setUp(self):
 
-        self.command = ('gnm --quiet -e -r -o {outdir} -v -z -t all '
+        self.command = ('anm --quiet -e -r -o {outdir} -v -z -t all '
                         '-f %8g -d , -x .dat '
                         '-R -Q '
                         '-F png -D 120 -W 5 -H 4 ').format(outdir=TEMPDIR)
         self.suffixes = [
-            '_gnm_cc.png',
-            '_gnm.gnm.npz',
-            '_gnm_covariance.dat',
-            '_gnm_cross-correlations.dat',
-            '_gnm_evalues.dat',
-            '_gnm_evectors.dat',
-            '_gnm_sf.png',
-            '_gnm_extended_all.nmd',
-            '_gnm.nmd',                     
+            '_anm_cc.png',
+            '_anm.anm.npz',
+            '_anm_covariance.dat',
+            '_anm_cross-correlations.dat',
+            '_anm_evalues.dat',
+            '_anm_evectors.dat',
+            '_anm_sf.png',
+            '_anm_extended_all.nmd',
+            '_anm.nmd',                     
         ]
         
         self.tearDown()
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
-    def testGNMCommand(self):
+    def testANMCommand(self):
             
         pdb = pathDatafile('multi_model_truncated')
         command = self.command + pdb

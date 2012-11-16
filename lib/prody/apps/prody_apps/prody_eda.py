@@ -25,7 +25,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
-from ..actions import *
+from ..apptools import *
 from .nmaoptions import *
                        
 def addCommand(commands):

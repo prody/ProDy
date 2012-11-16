@@ -60,7 +60,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     :arg ga: use gathering threshold when **True**
     :type ga: bool
     
-    :arg evalue: user specified E-value cutoff, must be smaller than < 10.0
+    :arg evalue: user specified e-value cutoff, must be smaller than 10.0
     :type evalue: float 
 
     :arg timeout: timeout for blocking connection attempt in seconds, default 

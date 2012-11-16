@@ -29,7 +29,7 @@ from numpy.testing import *
 
 from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
-from prody.routines import prody_parser 
+from prody.apps import prody_parser 
 
 from . import NOPRODYCMD
 
