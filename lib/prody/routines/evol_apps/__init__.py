@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines some routines used as command line programs."""
+"""This module defines some sequence evolution applications."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -28,7 +28,7 @@ try:
 except ImportError:
     from .. import argparse
 
-from ..actions import *
+from ..apptools import *
 
 path_prody = imp.find_module('prody')[1]
 path_routines = imp.find_module('routines', [path_prody])[1]

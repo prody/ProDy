@@ -20,10 +20,7 @@
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from collections import defaultdict
-
-from ..actions import *
-from ..apptools import *
+from ..apptools import DevelApp
 
 __all__ = ['evol_search']
 

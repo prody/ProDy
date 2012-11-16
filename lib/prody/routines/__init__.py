@@ -52,4 +52,4 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from prody_routines import prody_main, prody_parser, PRODY_COMMANDS
-from evol_routines import evol_main, evol_parser, EVOL_COMMANDS
+from evol_apps import evol_main, evol_parser, EVOL_COMMANDS
