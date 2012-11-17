@@ -28,7 +28,7 @@ from prody import LOGGER
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy']
 
 
-def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
+def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
     """Return Shannon entropy array calculated for *msa*, which may be 
     an :class:`.MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
@@ -45,9 +45,10 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=False):
     All non-alphabet characters are considered as gaps, and they are handled 
     in two ways:  
       
-      * as a distinct character with its own probability, by default 
       * non-existent, the probability of observing amino acids in a given
-        column is adjusted, when *omitgaps* is **True**."""
+        column is adjusted, by default
+      * as a distinct character with its own probability, when *omitgaps* is 
+        **False**"""  
     
     try:
         msa = msa._getArray()
