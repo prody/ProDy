@@ -97,12 +97,12 @@ class PackageSettings(object):
                 if isinstance(settings, dict):
                     self._settings.update(settings)
 
-    def save(self):
+    def save(self, backup=False):
         """Save settings by pickling the settings dictionary."""
         
         if isWritable(USERHOME):
             try:
-                pickle(self._settings, self._rcfile, backup=False)
+                pickle(self._settings, self._rcfile, backup=backup)
             except Exception as err:
                 if self._logger:
                     self._logger.warning("{0:s} cannot write configuration "

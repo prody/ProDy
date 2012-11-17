@@ -65,6 +65,7 @@ def backupFile(filename, backup=None, backup_ext='.BAK', **kwargs):
     if exists and (backup or SETTINGS.get('backup', False)):
         if backup_ext == '.BAK':
             backup_ext = SETTINGS.get('backup_ext', '.BAK')
+        print str(filename), str(backup_ext)
         bak = filename + backup_ext
         os.rename(filename, bak)
         return bak
@@ -94,8 +95,9 @@ def openFile(filename, *args, **kwargs):
     if folder:
         filename = join(folder, filename)
     
-    if args and args[0][0] in ('a', 'w'):
-        backupFile(filename, backup=kwargs.pop('backup', None),
+    backup = kwargs.pop('backup', None)
+    if backup is not None and backup and args and args[0][0] in ('a', 'w'):
+        backupFile(filename, backup=backup,
                    backup_ext=kwargs.pop('backup_ext', None))
             
     ext = splitext(filename)[1]

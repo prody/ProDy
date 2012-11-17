@@ -74,8 +74,10 @@ def wrapText(text, width=70, join='\n', **kwargs):
         pass
     else:
         kwargs['initial_indent'] = kwargs['subsequent_indent'] = ' ' * indent
-    
-    return join.join(wrap(text, width, **kwargs))
+    if join:
+        return join.join(wrap(text, width, **kwargs))
+    else:
+        return wrap(text, width, **kwargs)
     
 def tabulate(*cols, **kwargs):
     """Return a table for columns of data. 
