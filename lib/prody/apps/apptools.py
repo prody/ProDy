@@ -24,13 +24,44 @@ from copy import copy
 import argparse
 import textwrap
 
+from prody.utilities import wrapText
+
 __all__ = ['Quiet', 'UsageExample', 'ProDyCitation', 'ProDyVersion', 
            'DevelApp']
+           
+FIGARGS = {
+    ('-F', '--figure-format'): { 
+        'dest': 'figformat', 
+        'type': str, 
+        'default': 'pdf', 
+        'metavar': 'STR',
+        'help': 'figure file format', 
+        'choices': set('eps pdf png ps raw rgba svg svgz'.split())},
+    ('-D', '--dpi'): { 
+        'dest': 'figdpi', 
+        'type': int, 
+        'default': 300, 
+        'metavar': 'INT', 
+        'help': 'figure resolution (dpi)'},
+    ('-W', '--width'): { 
+        'dest': 'figwidth', 
+        'type': float, 
+        'default': 8, 
+        'metavar': 'FLOAT', 
+        'help': 'figure width (inch)'},        
+    ('-H', '--height'): {
+        'dest': 'figheight', 
+        'type': float, 
+        'default': 6, 
+        'metavar': 'FLOAT', 
+        'help': 'figure height (inch)'},
+}
 
 class Quiet(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import prody
         prody.LOGGER.verbosity = 'warning'
+
 
 class UsageExample(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -42,6 +73,7 @@ class UsageExample(argparse.Action):
                 print('\n'.join(tw.wrap(line)))
         parser.exit()
 
+
 class ProDyCitation(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         print("Bakan A, Meireles LM, Bahar I "
@@ -49,11 +81,13 @@ class ProDyCitation(argparse.Action):
               "Bioinformatics 2011 27(11):1575-1577.")
         parser.exit()
 
+
 class ProDyVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         import prody
         print("ProDy " + prody.__version__)
         parser.exit()
+
 
 class DevelApp(object):
     
@@ -68,6 +102,7 @@ class DevelApp(object):
         self._example = None
         self._egtests = None
         self._function = None
+        self._figures = None
     
     def _getKwargs(self, arg):
         """Return keyword arguments."""
@@ -75,8 +110,43 @@ class DevelApp(object):
         kwargs = copy(self._args[arg])
         default = kwargs.get('default')
         if default is not None and 'action' not in kwargs:
-            kwargs['help'] += ' (default: {0:s})'.format(repr(default))
+            choices = ''
+            if 'choices' in kwargs: 
+                choices = ', one of ' + ', '.join([str(ch) 
+                                           for ch in kwargs['choices']])
+            kwargs['help'] += (choices + ' (default: {0:s})'.format(
+                                        str(default).strip() or repr(default)))
         return kwargs
+
+    def _docArg(self, doc, arg):
+        """Add documentation string for *arg* to *doc*."""
+        
+        kwargs = self._args[arg]
+        dest = kwargs.get('dest', arg[0])
+        desc = ':arg {0:s}: {1:s}'.format(dest, kwargs['help'])
+        choices = kwargs.get('choices')
+        if choices:
+            desc += ', one of ' + ', '.join(['``' + repr(ch) + '``' 
+                                             for ch in choices])
+        default = kwargs.get('default')
+        if default:
+            desc += ', default is ``{0:s}``'.format(repr(default))
+        doc.extend(wrapText(desc, join=False, subsequent_indent='    '))
+        try:
+            type = kwargs['type']
+        except KeyError: 
+            try:
+                action = kwargs['action']
+            except KeyError:
+                type = None
+            else:
+                if action.startswith('store') and action.endswith('e'):
+                    type = bool
+                else:
+                    type = None
+        if type is not None:
+            doc.append(':type {0:s}: {1:s}'.format(dest, type.__name__))
+        doc.append('')
     
     def addGroup(self, name, description):
 
@@ -96,8 +166,17 @@ class DevelApp(object):
             group = 'positional'
         else:
             group = kwargs.pop('group', 'ungrouped')
+            if 'choices' in kwargs and 'default' not in kwargs:
+                raise ValueError('argument has multiple choices, '
+                                 'but no default value')
         self._group_args[group].append(args)
         self._args[args] = kwargs 
+
+    def addFigure(self, format='pdf', res=300, width=8, height=6):
+        """Add figure options."""
+        
+        pass
+
 
     def setExample(self, example, tests=None):
         """Set usage *example* string and list of examples for *tests*."""
@@ -140,12 +219,35 @@ class DevelApp(object):
         sub.set_defaults(func=callback)
         sub.set_defaults(subparser=sub)
     
-    def addDocstring(self, app):
-        """Add documentation string to *app* function."""
+    def addDocstring(self, function, help=True):
+        """Add documentation string to *function* function.  If *help* is 
+        **True** help text will also be added."""
     
-        pass
+        doc = []
+        if help:
+            help = self._help
+            for arg in self._group_args['positional']:
+                arg = arg[0]
+                help = help.replace(arg, '*' + arg + '*')
+            doc.append(help[0].upper() + help[1:] + '.')
+            doc.append('')
     
-    def setFunction(self, function):
-        """Set *function*."""
+        for arg in self._group_args['positional']:
+            self._docArg(doc, arg)
+        for arg in self._group_args['ungrouped']:
+            self._docArg(doc, arg)
+        for name in self._groups:
+            doc.append('*' + self._group_desc[name].title() + '*')
+            doc.append('')
+            for arg in self._group_args[name]:
+                self._docArg(doc, arg)
+
+        function.__doc__ = '\n'.join(doc)
+    
+    def setFunction(self, function, docstring=True):
+        """Set *function*, and add *docstring* based on argument settings.
+        Function should be set after all arguments are added."""
         
         self._function = function
+        if docstring:
+            self.addDocstring(function)

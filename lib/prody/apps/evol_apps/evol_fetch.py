@@ -28,7 +28,7 @@ APP = DevelApp('fetch', help='fetch MSA files from Pfam')
 
 
 APP.setExample(
-"""Given a Pfam ID or accession code, this program fetches the MSA of \
+"""Given a Pfam ID or accession, this program fetches the MSA of \
 that family. Supported alignment options are full, seed, ncbi or metagenomics \
 and alignment formats are selex, stockholm or fasta. The output MSA is \
 downloaded and saved in the specified or default '.' directory.
@@ -43,7 +43,9 @@ Fetch PFAM accession with specific parameters:
     [0, 1])
 
 
-APP.addArgument('acc', help='Pfam ID or accession code')
+APP.addArgument('acc', 
+    help='Pfam accession or ID',
+    type=str)
 
 APP.addGroup('download', 'download options')
 APP.addArgument('-a', '--alignment', 
@@ -51,35 +53,40 @@ APP.addArgument('-a', '--alignment',
     type=str, 
     default='full', 
     metavar='STR', 
-    help='alignment type, one of full, seed, ncbi or metagenomics',
+    help='alignment type',
+    choices='full seed ncbi metagenomics'.split(),
     group='download')
 APP.addArgument('-f', '--format', 
     dest='format', 
     type=str, 
     default='selex', 
     metavar='STR', 
-    help='Pfam supported MSA format, one of selex, fasta or stockholm',
+    help='Pfam supported MSA format',
+    choices='selex fasta stockholm'.split(),
     group='download')
 APP.addArgument('-o', '--order', 
     dest='order', 
     type=str, 
     default='tree', 
     metavar='STR', 
-    help='ordering of sequences, tree or alphabetical',
+    help='ordering of sequences',
+    choices='tree alphabetical'.split(),
     group='download')
 APP.addArgument('-i', '--inserts', 
     dest='inserts', 
     type=str, 
     default='upper', 
     metavar='STR', 
-    help='letter case for inserts, upper or lower',
+    help='letter case for inserts',
+    choices='upper lower'.split(),
     group='download')
 APP.addArgument('-g', '--gaps', 
     dest='gaps', 
     type=str, 
     default='dashes', 
     metavar='STR', 
-    help='gap character, one of dashes, dots or mixed',
+    help='gap character',
+    choices='dashes dots mixed'.split(),
     group='download')
 
 APP.addGroup('output', 'output options')
@@ -95,7 +102,7 @@ APP.addArgument('-p', '--outname',
     type=str, 
     default=None, 
     metavar='STR', 
-    help='out filename',
+    help='output filename, default is accession and alignment type',
     group='output')
 APP.addArgument('-z', '--compressed', 
     dest='compressed', 

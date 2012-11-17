@@ -39,7 +39,7 @@ EVOL_APPS = ['search', 'fetch']
 __all__ = ['evol_main']
 
 evol_parser = argparse.ArgumentParser(
-    description="Evol: A Python Package for Sequence Evolution",
+    description="Evol: Analysis of Sequence Evolution and Dynamics",
     epilog="See 'evol <command> -h' for more information on a specific "
            "command."
     )
