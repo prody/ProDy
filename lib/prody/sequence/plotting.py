@@ -21,4 +21,41 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-__all__ = []
+from numpy import arange
+
+from .analysis import *
+
+__all__ = ['showShannonEntropy']
+
+
+def showShannonEntropy(entropy, indices=None, *args, **kwargs):
+    """Show a bar plot of Shannon *entropy* array.  :class:`MSA` instances 
+    or Numpy character arrays storing sequence alignment are also accepted 
+    as *entropy* argument, in which case :func:`.calcShannonEntropy` will 
+    be used for calculations.  *indices* may be residue numbers, if **None**
+    is given numbers starting from 1 will be used.
+    
+    Entropy is plotted using :func:`~matplotlib.pyplot.bar` function."""
+    
+    try:
+        ndim = entropy.ndim
+    except AttributeError:
+        entropy = calcShannonEntropy(entropy)
+        ndim = entropy.ndim
+
+    if ndim != 1:
+        raise ValueError('entropy must be a 1D array')
+
+    if indices is not None:    
+        try:
+            len(indices) == len(entropy)
+        except:
+            args = indices, + args
+            indices = None
+
+    if indices is None:
+        indices = arange(1, len(entropy) + 1)
+
+    import matplotlib.pyplot as plt
+    show = plt.bar(indices, entropy, *args, **kwargs)
+    return show
