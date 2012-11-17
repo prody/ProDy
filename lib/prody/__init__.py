@@ -135,6 +135,7 @@ __all__.append('prody')
 CONFIGURATION = {
     'backup': (False, None, None),
     'backup_ext': ('.BAK', None, None),
+    'auto_show': (True, None, None),
     'ligand_xml_save': (False, None, None),
     'typo_warnings': (True, None, None),
     'check_updates': (0, None, None),

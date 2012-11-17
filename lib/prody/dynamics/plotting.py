@@ -44,7 +44,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from prody import LOGGER
+from prody import LOGGER, SETTINGS
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -160,6 +160,8 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         show.set_xlabel('Mode {0:d} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
         show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -189,6 +191,8 @@ def showFractVars(modes, *args, **kwargs):
     plt.axis(axis)
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -217,6 +221,8 @@ def showCumulFractVars(modes, *args, **kwargs):
     plt.axis(axis)
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -377,6 +383,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
         show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
 
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -493,6 +501,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
             plt.text(x, y, t, **kwargs)
     plt.xlabel('{0:s} coordinate'.format(mode_x))
     plt.ylabel('{0:s} coordinate'.format(mode_y))
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -533,6 +543,8 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     plt.yticks(y_range-0.5, y_range)
     plt.ylabel(str(modes_y))
     plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -564,6 +576,8 @@ def showCrossCorr(modes, *args, **kwargs):
     plt.title('Cross-correlations for {0:s}'.format(str(modes))) 
     plt.xlabel('Indices')
     plt.ylabel('Indices')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -591,6 +605,8 @@ def showMode(mode, *args, **kwargs):
         show = plt.plot(mode._getArray(), *args, **kwargs)
     plt.title(str(mode))
     plt.xlabel('Indices')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -613,6 +629,8 @@ def showSqFlucts(modes, *args, **kwargs):
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     plt.title(str(modes))
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -648,6 +666,8 @@ def showScaledSqFlucts(modes, *args, **kwargs):
         show.append(plt.plot(sqf * scalar, *args, 
                            label='{0:s} (x{1:.2f})'.format(str(modes), scalar), 
                            **kwargs))
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -679,6 +699,8 @@ def showNormedSqFlucts(modes, *args, **kwargs):
         sqf = calcSqFlucts(modes)
         show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
                     label='{0:s}'.format(str(modes)), **kwargs))
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -705,6 +727,8 @@ def showContactMap(enm, *args, **kwargs):
     plt.title('{0:s} contact map'.format(enm.getTitle())) 
     plt.xlabel('Residue index')
     plt.ylabel('Residue index')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -739,6 +763,8 @@ def showOverlap(mode, modes, *args, **kwargs):
     plt.title('Overlap with {0:s}'.format(str(mode)))
     plt.xlabel('{0:s} mode index'.format(modes))
     plt.ylabel('Overlap')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 
 
@@ -774,6 +800,8 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     plt.xlabel('{0:s} mode index'.format(modes))
     plt.ylabel('Cumulative overlap')
     plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
     
     
