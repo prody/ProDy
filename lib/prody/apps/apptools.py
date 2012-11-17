@@ -102,7 +102,7 @@ class DevelApp(object):
         self._example = None
         self._egtests = None
         self._function = None
-        self._figures = None
+        self._figures = []
     
     def _getKwargs(self, arg):
         """Return keyword arguments."""
@@ -114,8 +114,7 @@ class DevelApp(object):
             if 'choices' in kwargs: 
                 choices = ', one of ' + ', '.join([str(ch) 
                                            for ch in kwargs['choices']])
-            kwargs['help'] += (choices + ' (default: {0:s})'.format(
-                                        str(default).strip() or repr(default)))
+            kwargs['help'] += (choices + ' (default: %(default)s)'.format())
         return kwargs
 
     def _docArg(self, doc, arg):
@@ -172,10 +171,22 @@ class DevelApp(object):
         self._group_args[group].append(args)
         self._args[args] = kwargs 
 
-    def addFigure(self, format='pdf', res=300, width=8, height=6):
-        """Add figure options."""
+    def addFigure(self, *args, **kwargs):
+        """Add figure argument.  Figure options will be displayed at the end.
+        When multiple figures are added, ``-A, --all-figures`` option will
+        be added automatically."""
         
-        pass
+        if args in self._args:
+            raise ValueError('argument {0:s} is already defined'
+                             .format(str(args)))
+        if args[0][0] != '-':
+            raise ValueError('figure argument cannot be a positional argument')
+        
+        if not self._figures:
+            self._args.update(FIGARGS)
+
+        self._figures.append(args)
+        self._args[args] = kwargs
 
 
     def setExample(self, example, tests=None):
@@ -209,11 +220,30 @@ class DevelApp(object):
             for arg in self._group_args[name]:
                 group.add_argument(*arg, **self._getKwargs(arg))
         
-        positional = [(arg, self._args[arg].get('nargs', None)) 
+        if self._figures:
+            if len(self._figures) > 1:
+                group = sub.add_argument_group('figures')
+                group.add_argument('-A', '--all-figures', dest='figall', 
+                    action='store_true', default=False)
+            else:
+                group = sub.add_argument_group('figure options')
+
+            for arg in self._figures:
+                group.add_argument(*arg, **self._getKwargs(arg))
+
+            if len(self._figures) > 1:
+                group = sub.add_argument_group('figure options')
+
+                
+            for arg in FIGARGS.keys():            
+                group.add_argument(*arg, **self._getKwargs(arg))
+        
+        
+        positional = [(arg[0], self._args[arg].get('nargs', None)) 
                       for arg in self._group_args['positional']]
         
         def callback(ns, func=self._function, pos=positional):
-            args = [ns.__dict__.pop(arg) for arg in pos]
+            args = [ns.__dict__.pop(arg[0]) for arg in pos]
             func(*args, **ns.__dict__)
             
         sub.set_defaults(func=callback)
