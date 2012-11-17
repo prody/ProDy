@@ -37,7 +37,7 @@ class TestANMCommand(TestCase):
     
     def setUp(self):
 
-        self.command = ('anm --quiet -e -r -o {outdir} -v -z -t all '
+        self.command = ('anm -e -r -o {outdir} -v -z -t all '
                         '-f %8g -d , -x .dat '
                         '-R -Q '
                         '-F png -D 120 -W 5 -H 4 ').format(outdir=TEMPDIR)

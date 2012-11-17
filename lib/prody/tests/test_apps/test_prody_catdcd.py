@@ -47,7 +47,7 @@ class TestCatdcdCommand(TestCase):
         self.dcd = DCDFile(self.dcdpath)
         self.ag = parsePDB(self.pdbpath, model=1)
         
-        self.command = 'catdcd --quiet -o ' + self.output
+        self.command = 'catdcd -o ' + self.output
         
         self.tearDown()
 

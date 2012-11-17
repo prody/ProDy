@@ -37,7 +37,7 @@ class TestPCACommand(TestCase):
     
     def setUp(self):
 
-        self.command = ('pca --quiet --pdb {pdb} '
+        self.command = ('pca --pdb {pdb} '
                         '-e -r -o {outdir} -v -z -t all -j '
                         '-f %8g -d , -x .dat '
                         '-R -Q -J 1,2 '
