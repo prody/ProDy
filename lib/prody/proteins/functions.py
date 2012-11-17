@@ -27,6 +27,7 @@ import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
 from prody.utilities import openFile
+from prody import SETTINGS
 
 __all__ = ['showProtein', 'writePQR', ]
 
@@ -228,5 +229,7 @@ def showProtein(*atoms, **kwargs):
     show.set_zlim3d(center[2]-half, center[2]+half)
     if kwargs.get('legend', False):
         show.legend(prop={'size': 10})
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
 

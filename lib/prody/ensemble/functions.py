@@ -26,7 +26,7 @@ import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB
 from prody.utilities import openFile
-from prody import LOGGER
+from prody import LOGGER, SETTINGS
 
 from ensemble import *
 from pdbensemble import *
@@ -34,6 +34,7 @@ from conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble', 
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble']
+
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
     """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename* 
@@ -66,6 +67,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     ostream.close()
     return filename
 
+
 def loadEnsemble(filename):
     """Return ensemble instance loaded from *filename*.  This function makes 
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
@@ -96,6 +98,7 @@ def loadEnsemble(filename):
         if weights != np.array(None): 
             ensemble.addCoordset(weights)
     return ensemble
+
 
 def trimPDBEnsemble(pdb_ensemble, **kwargs):
     """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
@@ -144,6 +147,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         trimmed.addCoordset( confs[:, torf], weights[:, torf] )
     return trimmed
 
+
 def calcOccupancies(pdb_ensemble, normed=False):
     """Return occupancy calculated from weights of a :class:`~.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are 
@@ -180,6 +184,7 @@ def calcOccupancies(pdb_ensemble, normed=False):
     else:
         return occupancies
     
+    
 def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
     plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
@@ -198,7 +203,10 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     plt.axis(axis)
     plt.xlabel('Atom index')
     plt.ylabel('Sum of weights')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
     return show
+
 
 def checkWeights(weights, n_atoms, n_csets=None):
     """Return weights if checks pass, otherwise raise an exception."""
@@ -232,6 +240,7 @@ def checkWeights(weights, n_atoms, n_csets=None):
     if n_csets is not None and weights.ndim == 2:
         weights = np.tile(weights.reshape((1, n_atoms, 1)), (n_csets, 1, 1))
     return weights
+
 
 def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     """Align PDB files using transformations from *ensemble*, which may be 
