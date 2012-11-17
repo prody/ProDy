@@ -33,6 +33,12 @@ Analysis
   * :func:`.calcMSAOccupancy` - calculate row (sequence) or column occupancy
   * :func:`.buildMutinfoMatrix` - build mutual information matrix
 
+Plotting
+========
+
+  * :func:`.showShannonEntropy` - plot Shannon entropy
+  * :func:`.showMSAOccupancy` - plot row (sequence) or column occupancy
+  * :func:`.showMutinfoMatrix` - show mutual information matrix
 """
 
 __author__ = 'Ahmet Bakan'
