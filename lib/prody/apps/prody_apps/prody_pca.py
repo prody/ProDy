@@ -196,6 +196,7 @@ def prody_pca(coords, **kwargs):
             LOGGER.warning('Matplotlib could not be imported. '
                            'Figures are not saved.')
         else:
+            prody.SETTINGS['auto_show'] = False
             LOGGER.info('Saving graphical output.')
             format = kwargs['figformat']
             width = kwargs['figwidth']
