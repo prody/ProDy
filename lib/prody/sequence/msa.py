@@ -364,14 +364,15 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
     if ndim != 2:
         raise ValueError('msa must be a 2D array or an MSA instance')
             
-    try:
-        upper, lower = label.upper(), label.lower()
-    except AttributeError:
-        raise TypeError('label must be a string')
 
     title = []
 
     if label is not None:
+        try:
+            upper, lower = label.upper(), label.lower()
+        except AttributeError:
+            raise TypeError('label must be a string')
+
         if msa is None:
             raise TypeError('msa must be an MSA instance indexed with labels')
         
@@ -423,16 +424,15 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
     if colocc is not None:
         colocc = float(colocc)
         assert 0. <= colocc <= 1., 'colocc must be between 0 and 1'
-        arr = arr[:,calcMSAOccupancy(arr, 'col') >= rowocc]
+        arr = arr[:, calcMSAOccupancy(arr, 'col') >= colocc]
         title.append('colocc>' + str(colocc))
         
     if not title:
         raise ValueError('label, rowocc, colocc all cannot be None')
-        
+    
     if msa is None:
         return arr
     else:
-        from code import interact; interact(local=locals())
         if rows is None:
             from copy import copy
             labels = copy(msa._labels)
