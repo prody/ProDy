@@ -47,9 +47,6 @@ if (document.URL.search("\/plugins\/") > -1) {
 				          'Protein Dynamics', 'Normal Mode Wizard', 'Applications', 
 				          'Publications', 'Acknowledgments'][index - 1];
 		  },
-		  onSlideComplete : function(slider){
-			  // alert('Welcome to Slide #' + slider.currentPage);
-		  }
 	  });
 
 	  // tooltips for first demo
@@ -183,7 +180,7 @@ if (document.URL.search("\/plugins\/") > -1) {
 				</li>
 
 				<li>
-				  <div style="text-align: left;">
+				  <div style="float: left; width: 370px; text-align: left;">
 				    <h1>Protein Dynamics</h1>
 				    <p id="contentText">
 	            <i>ProDy</i> is a free and open-source Python package for analysis and 
@@ -192,17 +189,40 @@ if (document.URL.search("\/plugins\/") > -1) {
 	            structure-based analysis and modeling software.
             </p>
           </div>
+				  <div style="float: right; width: 330px">
+            <object width="320" height="270"><param name="movie" value="http://www.youtube.com/v/1OUzdzm68YY&amp;hl=en_US&amp;fs=1"></param>
+            <param name="allowFullScreen" value="true"></param>
+            <param name="allowscriptaccess" value="always"></param>
+            <embed src="http://www.youtube.com/v/1OUzdzm68YY&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed>
+            </object>
+          </div>
 				</li>
 
 				<li>
-				  <div style="text-align: left;">
+				  <div style="float: left; width: 370px; text-align: left;">
 				    <h1>Normal Mode Wizard</h1>
-				    <p id="contentText">
-	            <i>ProDy</i> is a free and open-source Python package for analysis and 
-	            modeling of protein structural dynamics.  It allows for efficient analysis 
-	            of large datasets and is suitable for development or prototyping of 
-	            structure-based analysis and modeling software.
-            </p>
+              <p>Normal Mode Wizard (<a class="reference external" href="http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/">NMWiz</a>) is a 
+              <a class="reference external" href="http://www.ks.uiuc.edu/Research/vmd/">VMD</a> 
+              plugin designed for visual comparative
+              analysis of normal mode data, i.e. modes may come from principal component,
+              essential dynamics, normal mode analysis or may be any vector describing a
+              molecular motion.</p>
+              <p>NMWiz allows you to:</p>
+              <ul class="simple">
+                <li>perform ANM, GNM, and PCA/EDA calculations </li>
+                <li>draw customizable normal modes arrows</li>
+                <li>make animations (sample conformations)</li>
+                <li>make interactive square-fluctuations plots</li>
+                <li>compare two structures and draw deformation arrows</li>
+              </ul>
+            <p>See <a class="reference internal" href="../tutorial/nmwiz.html#nmwiz-tutorial"><em>NMWiz Tutorial</em></a> or 
+              <a class="reference external" href="http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/">NMWiz documentation</a> for usage details.  
+              You can input normal mode data to NMWiz in <a class="reference internal" href="../reference/appendices/nmd_format.html#nmd-format"><em>NMD Format</em>
+              or any other format recognized by VMD</a>.
+              </p>
+          </div>
+				  <div style="float: right; width: 330px">
+            <iframe class="first last" src="http://www.youtube.com/embed/1OUzdzm68YY" style="border: 0; height: 270px; width: 320px"></iframe>
           </div>
 				</li>
 

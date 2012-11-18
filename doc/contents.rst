@@ -22,6 +22,8 @@ ProDy Documentation Contents
    publications
    reports/index
    devel/index
+   people
+   funding
    credits
    bibliography
    changes

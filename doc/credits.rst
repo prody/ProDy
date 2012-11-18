@@ -1,42 +1,10 @@
 .. _credits:
 
 *******************************************************************************
-Acknowledgments
+Credits
 *******************************************************************************
 
-Contributors
-===============================================================================
-
-`Lidio Meireles <http://www.linkedin.com/in/lidio>`_ provided insightful 
-comments on the design of ProDy classes and modules, and contributed to the 
-development of early versions of :ref:`commands` for automated tasks.
-
-`Ying Liu <http://www.linkedin.com/pub/ying-liu/15/48b/5a9>`_ provided the 
-code for Perturbation Response Scanning method.   
-
-`Kian Ho <https://github.com/kianho>`_ contributed with bug fixes and unit 
-tests initiating the unit test development for ProDy.
-
-
-Funding
-===============================================================================
-
-Support from NIH grants 1R01GM099738-01 (current) and 1R01GM086238-01 for 
-development and maintenance of ProDy is acknowledged by `Ivet Bahar 
-<http://www.ccbb.pitt.edu/Faculty/bahar/>`_.
-
-The project described was supported by Grant Number UL1 RR024153 from the 
-`National Center for Research Resources <http://www.ncrr.nih.gov/>`_ (NCRR), 
-a component of the National Institutes of Health (NIH) and NIH Roadmap for 
-Medical Research, and its contents are solely the responsibility of the authors 
-and do not necessarily represent the official view of NCRR or NIH.  Information 
-on Re-engineering the Clinical Research Enterprise can be obtained from `here 
-<http://nihroadmap.nih.gov/clinicalresearch/overview-translational.asp>`_.
-
-Software
-===============================================================================
-
-Last but not least, ProDy makes use of the following great software:
+ProDy makes use of the following great software:
 
 * `Pyparsing <http://pyparsing.wikispaces.com/>`_, which is 
   distributed with ProDy, is used to define the sophisticated atom selection 
