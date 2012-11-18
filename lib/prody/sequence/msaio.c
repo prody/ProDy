@@ -347,6 +347,75 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 }
 
 
+static PyObject *writeSelex(PyObject *self, PyObject *args) {
+    
+    /* Parse sequences from *filename* into the memory pointed by the
+     Numpy array passed as Python object.  This function assumes that
+     the sequences are aligned, i.e. have same number of lines at equal
+     lengths. */
+    /* something about backup: set integer flag to true */ 
+    
+    char *filename;
+    PyObject *labels;
+    PyArrayObject *msa;
+    int sthflag; 
+    int SELEX_LABEL_SIZE = 31;
+    
+    if (!PyArg_ParseTuple(args, "sOOi", &filename, &labels, &msa, &sthflag))
+        return NULL;
+    
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    
+    if (numseq != PyList_Size(labels)) {
+        PyErr_SetString(PyExc_ValueError,
+                        "size of labels and msa array does not match");
+        return NULL;
+    }
+    
+    FILE *file = fopen(filename, "wb");
+    
+    int i, j, k;
+    int count = 0;
+    char *seq = msa->data;
+    int lenmsa = strlen(seq);
+    if (sthflag){
+        fprintf(file, "# STOCKHOLM 1.0\n");
+    }
+    for (i = 0; i < numseq; i++) {
+        char *label = PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
+        int labelbuffer = SELEX_LABEL_SIZE - strlen(label);
+        char *buffer = (char*) malloc((labelbuffer +1)* sizeof(char));
+        if (labelbuffer > 0){
+            int j;
+            for(j=0; j < labelbuffer; j++){
+                buffer[j] = ' ';
+            }
+            buffer[j] = '\0';
+        }
+        char *label_seq = (char*) malloc((strlen(label) + strlen(buffer) +
+                                          lenseq + 1) * sizeof(char));
+        char *sequence = (char*) malloc((lenseq +1) * sizeof(char));
+        for (j = 0; j < lenseq; j++) {
+            if (count < lenmsa) {
+                sequence[j] = seq[count];
+                count++;
+                }
+        }
+        sequence[j] = '\0';
+        strcpy(label_seq, label);
+        strcat(label_seq, buffer);
+        strcat(label_seq, sequence);
+        fprintf(file, "%s\n", label_seq);
+        
+    }
+    if (sthflag){
+        fprintf(file, "//\n");
+    }
+    fclose(file);
+    return Py_BuildValue("s", filename);
+}
+
+
 static PyMethodDef msaio_methods[] = {
 
     {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
@@ -359,6 +428,10 @@ static PyMethodDef msaio_methods[] = {
     {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
+
+    {"writeSelex",  (PyCFunction)writeSelex, METH_VARARGS, 
+    "Return list of labels and a dictionary mapping labels to sequences \n"
+    "after parsing the sequences into empty numpy character array."},
 
     {NULL, NULL, 0, NULL}
 };
