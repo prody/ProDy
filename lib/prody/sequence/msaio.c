@@ -199,11 +199,9 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
 static PyObject *writeFasta(PyObject *self, PyObject *args) {
 
-    /* Parse sequences from *filename* into the memory pointed by the
-       Numpy array passed as Python object.  This function assumes that
-       the sequences are aligned, i.e. have same number of lines at equal
-       lengths. */
-    /* something about backup: set integer flag to true */ 
+    /* Write MSA where inputs are: labels in the form of Python lists 
+    and sequences in the form of Python numpy array and write them in
+    FASTA format in the specified filename.*/
     
     char *filename;
     PyObject *labels;
@@ -230,8 +228,19 @@ static PyObject *writeFasta(PyObject *self, PyObject *args) {
     int lenmsa = strlen(seq);
 
     for (i = 0; i < numseq; i++) {
-        fprintf(file, ">%s\n", PyString_AsString(PyList_GetItem
-                                                 (labels, (Py_ssize_t)i)));
+        char *label =  PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
+        int flag = 0;
+        if(i == 0){
+            if(label[strlen(label) - 1] == '\n'){
+                flag = 1;
+            }
+        }
+        if(flag){
+            fprintf(file, ">%s", label);
+        }
+        else{
+            fprintf(file, ">%s\n", label);
+        }
         for (j = 0; j < nlines; j++) {
             for (k=0; k < 60; k++){
                 if (count < lenmsa) {
@@ -347,6 +356,74 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 }
 
 
+static PyObject *writeSelex(PyObject *self, PyObject *args) {
+    
+    /* Write MSA where inputs are: labels in the form of Python lists 
+    and sequences in the form of Python numpy array and write them in
+    SELEX or Stockholm format in the specified filename.*/
+    
+    char *filename;
+    PyObject *labels;
+    PyArrayObject *msa;
+    int sthflag; 
+    int SELEX_LABEL_SIZE = 31;
+    
+    if (!PyArg_ParseTuple(args, "sOOi", &filename, &labels, &msa, &sthflag))
+        return NULL;
+    
+    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    
+    if (numseq != PyList_Size(labels)) {
+        PyErr_SetString(PyExc_ValueError,
+                        "size of labels and msa array does not match");
+        return NULL;
+    }
+    
+    FILE *file = fopen(filename, "wb");
+    
+    int i, j, k;
+    int count = 0;
+    char *seq = msa->data;
+    int lenmsa = strlen(seq);
+    if (sthflag){
+        fprintf(file, "# STOCKHOLM 1.0\n");
+    }
+    
+    char *outline = (char *) malloc((SELEX_LABEL_SIZE + lenseq + 2) *
+                                    sizeof(char));
+    
+    outline[SELEX_LABEL_SIZE + lenseq] = '\n'; 
+    outline[SELEX_LABEL_SIZE + lenseq + 1] = '\0';
+    
+    for (i = 0; i < numseq; i++) {
+        char *label = PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
+        int labelbuffer = SELEX_LABEL_SIZE - strlen(label);
+        
+        strcpy(outline, label);
+
+        if (labelbuffer > 0){
+            for(j = strlen(label); j < SELEX_LABEL_SIZE; j++){
+                outline[j] = ' ';
+            }
+        }
+        outline[j] = '\0';
+        for (j = SELEX_LABEL_SIZE; j < (lenseq + SELEX_LABEL_SIZE) ; j++){
+            if (count < lenmsa) {
+                outline[j] = seq[count];
+                count++;
+                }
+        }
+        fprintf(file, "%s", outline);
+    }
+    if (sthflag){
+        fprintf(file, "//\n");
+    }
+    free(outline);
+    fclose(file);
+    return Py_BuildValue("s", filename);
+}
+
+
 static PyMethodDef msaio_methods[] = {
 
     {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
@@ -359,6 +436,9 @@ static PyMethodDef msaio_methods[] = {
     {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
+
+    {"writeSelex",  (PyCFunction)writeSelex, METH_VARARGS, 
+    "Return filename after writing MSA in SELEX or Stockholm format."},
 
     {NULL, NULL, 0, NULL}
 };

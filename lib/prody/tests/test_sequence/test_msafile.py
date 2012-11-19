@@ -23,13 +23,14 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from unittest import TestCase
 
 from StringIO import StringIO
+import os
 
 from numpy import array, log, zeros, char
 from numpy.testing import assert_array_equal, dec
 
 from prody.tests.test_datafiles import *
-
-from prody import MSAFile, parseMSA, LOGGER
+from prody.tests import TEMPDIR
+from prody import MSA, MSAFile, parseMSA, LOGGER, writeMSA
 
 LOGGER.verbosity = None
 
@@ -96,3 +97,17 @@ class TestParseMSA(TestCase):
         
         self.assertDictEqual(FASTA._mapping, SELEX._mapping)
         self.assertDictEqual(FASTA._mapping, STOCK._mapping)
+        
+class TestWriteMSA(TestCase):
+    
+    def testWriteMSA(self):
+        filename = writeMSA((TEMPDIR + '/test.slx'), FASTA)
+        SELEX_WRITE = parseMSA(pathDatafile(filename))
+        self.assertListEqual(list(SELEX), list(SELEX_WRITE))
+        if os.path.isfile(filename):
+            os.remove(filename)
+        filename = writeMSA((TEMPDIR + '/test.fasta.gz'), SELEX)
+        FASTA_WRITE = list(MSAFile(pathDatafile(filename)))
+        self.assertListEqual(list(FASTA), list(FASTA_WRITE))
+        if os.path.isfile(filename):
+            os.remove(filename)
