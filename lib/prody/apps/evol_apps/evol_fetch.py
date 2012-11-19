@@ -113,12 +113,7 @@ APP.addArgument('-z', '--compressed',
 def evol_fetch(acc, **kwargs):
    
     import prody
-    
-    alignment = kwargs.pop('alignment', DEFAULTS['alignment'])
-    compressed = kwargs.pop('compressed', DEFAULTS['compressed'])
-    
-    prody.fetchPfamMSA(acc, alignment=alignment,
-                        compressed=compressed, **kwargs)
+    prody.fetchPfamMSA(acc, **kwargs)
 
         
 APP.setFunction(evol_fetch)
