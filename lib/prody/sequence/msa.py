@@ -388,7 +388,7 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
                 LOGGER.warn('failed to parse header for {0:s} ({1:s})'
                             .format(label[:4], str(err)))
             else:
-                chid = label[4:]
+                chid = label[4:].upper()
                 for poly in polymers:
                     if chid and poly.chid != chid:
                         continue
@@ -417,14 +417,20 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
     rows = None
     from .analysis import calcMSAOccupancy
     if rowocc is not None:
-        rowocc = float(rowocc)
+        try:
+            rowocc = float(rowocc)
+        except Exception as err:
+            raise TypeError('rowocc must be a float ({0:s})'.format(str(err)))
         assert 0. <= rowocc <= 1., 'rowocc must be between 0 and 1'
         rows = calcMSAOccupancy(arr, 'row') >= rowocc
         arr = arr[rows]
         title.append('rowocc>' + str(rowocc))
 
     if colocc is not None:
-        colocc = float(colocc)
+        try:
+            colocc = float(colocc)
+        except Exception as err:
+            raise TypeError('colocc must be a float ({0:s})'.format(str(err)))
         assert 0. <= colocc <= 1., 'colocc must be between 0 and 1'
         arr = arr[:, calcMSAOccupancy(arr, 'col') >= colocc]
         title.append('colocc>' + str(colocc))
