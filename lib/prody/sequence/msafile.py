@@ -686,10 +686,10 @@ def writeMSA(filename, msa, **kwargs):
         from prody.utilities import backupFile
         backupFile(filename)
         if format == FASTA:
-            from msaio import writeFasta
+            from .msaio import writeFasta
             writeFasta(filename, msa._labels, seqarr)
         else:
-            from msaio import writeSelex
+            from .msaio import writeSelex
             writeSelex(filename, msa._labels, seqarr, format != SELEX)
     return filename
     
