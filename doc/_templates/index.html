@@ -5,7 +5,8 @@
   "_static/jquery.anythingslider.js", 
   "_static/jquery.anythingslider.video.js",
   "_static/prody_common.js"] %}
-{% set css_files = css_files + ["_static/anythingslider-theme.css"] %}
+{% set css_files = ["_static/sphinxdoc.css",
+  "_static/anythingslider-theme.css", "_static/pygments_style.css"] %}
   
 {% set title = 'Overview' %}
 
@@ -53,6 +54,21 @@ if (document.URL.search("\/plugins\/") > -1) {
 	  $.jatt({direction: 's'});
 
   });
+
+  var slideTitles = new Array();
+  var slideIndices = [0, 0, 0, 0, 0, 0, 0];
+  function showSlide(panel, which) {
+    
+    if (which == 0) { /* pick randomly*/
+      which = Math.floor(Math.random() * (slideTitles[panel].length));
+    } else {
+      which = (slideIndices[panel] + which) % slideTitles[panel].length;
+    }
+    slideIndices[panel] = which;
+    document.getElementById("panel" + panel + "-title").innerHTML = slideTitles[panel][which];
+    document.getElementById("panel" + panel + "-slide").innerHTML = 
+      document.getElementById("panel" + panel + "-" + which).innerHTML;
+  }
 </script>
 	  
 <style type="text/css">
@@ -107,9 +123,9 @@ if (document.URL.search("\/plugins\/") > -1) {
             <p>To learn how to use <i>ProDy</i> you may start from the 
                <a href="tutorial/index.html">Tutorial</a> or one of 
                the detailed usage <a href="examples/index.html">Examples</a>.
-               You can also browse the new front page and discover brand new 
+               Or, you can browse the refreshed front page to discover brand new  
                <a href="#&panel1-2" onclick="$('#slider1').anythingSlider(2);">sequence evolution</a> 
-               analysis features!
+               analysis features.
             </p>
 
             <h3>Develop with <i>ProDy</i></h3>
@@ -118,8 +134,9 @@ if (document.URL.search("\/plugins\/") > -1) {
               applications.  Flexible and fully documented <i>ProDy</i> API 
               is being continuously improved and tested with over 1,800 
               documentation and unit tests.  
-              See the <a href="reference/index.html">API Reference</a> and
-              <a href="changes.html">what's new</a>.
+              See the <a href="reference/index.html">API Reference</a> for 
+              details or the <a href="changes.html">changes</a> page to see
+              what's new.
             </p>
 
             <h3>References</h3>
@@ -156,21 +173,86 @@ if (document.URL.search("\/plugins\/") > -1) {
 
 
 				<li>
-				  <div style="text-align: left;">
+				  <div style="float: left; width: 370px; text-align: left;">
 				    <h1>Sequence Evolution</h1>
-				    <p id="contentText">
-	            <i>ProDy</i> is a free and open-source Python package for analysis and 
-	            modeling of protein structural dynamics.  It allows for efficient analysis 
-	            of large datasets and is suitable for development or prototyping of 
-	            structure-based analysis and modeling software.
+				    <p>
+	            <i>ProDy</i> is not just for structure and dynamics analysis. 
+	            It comes with powerful and efficient API features and numerous
+	            applications for analysis of sequence evolution and its 
+	            comparison to protein functional dynamics.
+            </p>
+            <h3>API Features</h3>
+				    <p>
+              <ul>
+                <li>Pfam interface for searching and data retrieval </li>
+                <li>extremely fast MSA input and output</li>
+                <li>efficient and flexible data structures</li>
+                <li>fast analysis functions for Shannon entropy and mutual 
+                  information calculations</li>
+              </ul>
+            </p>
+            <h3>Applications</h3>
+				    <p>
+				      Sequence evolution applications allows you to analyze
+				      large MSA files, save or plot numerical results without 
+				      writing any code.  You can read the output files and 
+				      resume analysis in your favorite software.
             </p>
           </div>
+				  <div style="float: right; width: 330px">
+				    <div>
+				      <span id="panel0-title" style="font-size: 95%; font-weight: bold;"></span>
+				      <img src="_static/slide-next.png" onclick="showSlide(0, +1)" style="cursor: pointer; float: right; position; absolute; top: 0px; vertical-align: top;" title="Next slide">
+				      <img src="_static/slide-prev.png" onclick="showSlide(0, -1)" style="cursor: pointer; float: right; position; absolute; top: 0px; vertical-align: top;" title="Previous slide">
+				    </div>
+				    <div id="panel0-slide">
+            </div>
+          </div>
+
+          <div style="visibility: hidden" id="panel0-0">
+            <p><img src="_static/sevol.png"/></p>
+            <p style="font-size: 90%; font-style: italic;">This figure shows comparison of residue mobility (curves) and conservation (bars).
+            </p>
+          </div>
+
+          <div style="visibility: hidden" id="panel0-1">
+<div class="hlcode">
+<div class="syntax"><pre><span class="o">&gt;&gt;&gt;</span> <span class="n">searchPfam</span><span class="p">(</span><span class="s">&#39;Q16828&#39;</span><span class="p">)</span>
+<span class="p">{</span><span class="s">&#39;PF00581&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;accession&#39;</span><span class="p">:</span> <span class="s">&#39;PF00581&#39;</span><span class="p">,</span>
+  <span class="s">&#39;id&#39;</span><span class="p">:</span> <span class="s">&#39;Rhodanese&#39;</span><span class="p">,</span>
+  <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="s">&#39;Pfam-A&#39;</span><span class="p">},</span>
+ <span class="s">&#39;PF00782&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s">&#39;accession&#39;</span><span class="p">:</span> <span class="s">&#39;PF00782&#39;</span><span class="p">,</span>
+  <span class="s">&#39;id&#39;</span><span class="p">:</span> <span class="s">&#39;DSPc&#39;</span><span class="p">,</span>
+  <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="s">&#39;Pfam-A&#39;</span><span class="p">}}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">fetchPfamMSA</span><span class="p">(</span><span class="s">&#39;PF00581&#39;</span><span class="p">)</span>
+<span class="s">&#39;./PF00581_full.sth&#39;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">msa</span> <span class="o">=</span> <span class="n">parseMSA</span><span class="p">(</span><span class="s">&#39;PF00581_full.sth&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">msa</span>
+<span class="o">&lt;</span><span class="n">MSA</span><span class="p">:</span> <span class="n">PF00581_full</span> <span class="p">(</span><span class="mi">19885</span> <span class="n">sequences</span><span class="p">,</span> <span class="mi">754</span> <span class="n">residues</span><span class="p">)</span><span class="o">&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">refined</span> <span class="o">=</span> <span class="n">refineMSA</span><span class="p">(</span><span class="n">msa</span><span class="p">,</span> <span class="s">&#39;1mkp&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">refined</span>
+<span class="o">&lt;</span><span class="n">MSA</span><span class="p">:</span> <span class="n">PF00581_full</span> <span class="n">refined</span> <span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="mi">1</span><span class="n">mkp</span><span class="p">)</span> <span class="p">(</span><span class="mi">19885</span> <span class="n">sequences</span><span class="p">,</span> <span class="mi">124</span> <span class="n">residues</span><span class="p">)</span><span class="o">&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">entropy</span> <span class="o">=</span> <span class="n">calcShannonEntropy</span><span class="p">(</span><span class="n">refined</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">writeArray</span><span class="p">(</span><span class="s">&#39;PF00581_entropy.txt&#39;</span><span class="p">,</span> <span class="n">entropy</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">showShannonEntropy</span><span class="p">(</span><span class="n">refined</span><span class="p">)</span>
+</pre></div>
+<p style="font-size: 90%; font-style: italic;">This code sample shows how to search and fetch Pfam data and then read and refine the MSA file. 
+Finally, information theoric Shannon entropy is calculated and displayed.
+</p>
+          </div>          
+          <script type="text/javascript">
+            slideTitles[0] = new Array()
+            slideTitles[0][0] = "Compare Mobility and Conservation";
+            slideTitles[0][1] = "Retrieve and Analyze Pfam MSA";
+            showSlide(0, 0);
+          </script>
+          
 				</li>
 
 				<li>
-				  <div style="text-align: left;">
+				  <div style="float: left; width: 370px; text-align: left;">
 				    <h1>Protein Structure</h1>
-				    <p id="contentText">
+				    <p>
 	            <i>ProDy</i> is a free and open-source Python package for analysis and 
 	            modeling of protein structural dynamics.  It allows for efficient analysis 
 	            of large datasets and is suitable for development or prototyping of 
@@ -182,7 +264,7 @@ if (document.URL.search("\/plugins\/") > -1) {
 				<li>
 				  <div style="float: left; width: 370px; text-align: left;">
 				    <h1>Protein Dynamics</h1>
-				    <p id="contentText">
+				    <p>
 	            <i>ProDy</i> is a free and open-source Python package for analysis and 
 	            modeling of protein structural dynamics.  It allows for efficient analysis 
 	            of large datasets and is suitable for development or prototyping of 
@@ -229,7 +311,7 @@ if (document.URL.search("\/plugins\/") > -1) {
 				<li>
 				  <div style="text-align: left;">
 				    <h1>Applications</h1>
-				    <p id="contentText">
+				    <p>
 	            <i>ProDy</i> is a free and open-source Python package for analysis and 
 	            modeling of protein structural dynamics.  It allows for efficient analysis 
 	            of large datasets and is suitable for development or prototyping of 
@@ -239,174 +321,80 @@ if (document.URL.search("\/plugins\/") > -1) {
 				</li>
 
 				<li>
-  <div class="section" id="publications" style="overflow-y: scroll; overflow-x: hidden; height:100%; width:100%">
-<span id="id1"></span><h1 style="text-align: center">Publications<a class="headerlink" href="#publications" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="using-prody">
-<h2>Using ProDy<a class="headerlink" href="#using-prody" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic">
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://www.pnas.org/content/106/34/14349.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://www.pnas.org/content/106/34/14349.long">The intrinsic dynamics of enzymes plays a dominant role in determining the
-structural changes induced upon inhibitor binding</a>
-Bakan A, Bahar I <strong>2009</strong> <em>Proc Natl Acad Sci U S A</em> 106(34):14349-14354</div>
-</div>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/#Multiscale">Computational Generation of Inhibitor-Bound Conformers of P38 MAP
-Kinase and Comparison with Experiments</a> Bakan A, Bahar I <strong>2011</strong> <em>Pacific Symposium on Biocomputing</em> 16:181-192</div>
-</div>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575">ProDy: Protein Dynamics Inferred from Theory and Experiments</a>
-Bakan A, Meireles LM, Bahar I <strong>2011</strong> <em>Bioinformatics</em> 27(11):1575-1577</div>
-</div>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/pro.711/pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/pro.711/abstract">Pre-existing soft modes of motion uniquely defined by native contact
-topology facilitate ligand binding to proteins</a> Meireles L, Gur M, Bakan A, Bahar I <strong>2011</strong> <em>Protein Science</em> 10(20):1645-1658</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="section" id="servers">
-<h2>Servers<a class="headerlink" href="#servers" title="Permalink to this headline">¶</a></h2>
-<ul>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/25/5/606.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/25/5/606.full">Principal component analysis of native ensembles of biomolecular structures
-(PCA_NEST): insights into functional dynamics</a></div>
-<div class="line">Yang LW, Eyal E, Bahar I, Kitao A</div>
-<div class="line"><strong>2009</strong> <em>Bioinformatics</em> 25:606-614</div>
-</div>
-<blockquote>
-<div></div></blockquote>
-<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignm.ccbb.pitt.edu/oPCA_Online.htm">PCA_NEST</a></p>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/22/21/2619.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/22/21/2619.long">Anisotropic network model: systematic evaluation and a new web interface</a></div>
-<div class="line">Eyal E, Yang LW, Bahar I</div>
-<div class="line"><strong>2006</strong> <em>Bioinformatics</em> 22:2619-27.</div>
-</div>
-<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi">ANM Server</a></p>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://nar.oxfordjournals.org/content/34/suppl_2/W24.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://nar.oxfordjournals.org/content/34/suppl_2/W24.long">oGNM: online computation of structural dynamics using the Gaussian Network Model</a></div>
-<div class="line">Yang LW, Rader AJ, Liu X, Jursa CJ, Chen SC, Karimi HA, Bahar I</div>
-<div class="line"><strong>2006</strong> <em>Nucleic Acids Res</em> 34:W24-31</div>
-</div>
-<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignm.ccbb.pitt.edu/GNM_Online_Calculation.htm">oGNM Server</a></p>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/21/13/2978.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/21/13/2978.full">iGNM: A Database of Protein Functional Motions Based on Gaussian Network Model</a></div>
-<div class="line">Yang LW, Liu X, Jursa CJ, Holliman M, Rader AJ, Karimi HA, Bahar I</div>
-<div class="line"><strong>2005</strong> <em>Bioinformatics</em> 21:2978-2987</div>
-</div>
-<p><img alt="more" src="_images/more.png" /> Go to <a class="reference external" href="http://ignm.ccbb.pitt.edu/">iGNM database</a></p>
-</li>
-</ul>
-</div>
-<div class="section" id="theory">
-<h2>Theory<a class="headerlink" href="#theory" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="reviews">
-<h3>Reviews<a class="headerlink" href="#reviews" title="Permalink to this headline">¶</a></h3>
-<ul>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://pubs.acs.org/doi/pdf/10.1021/cr900095e"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://pubs.acs.org/doi/full/10.1021/cr900095e">Normal Mode Analysis of Biomolecular Structures: Functional Mechanisms of
-Membrane Proteins</a></div>
-<div class="line">Bahar I, Lezon TR, Bakan A, Shrivastava IH</div>
-<div class="line"><strong>2010</strong> <em>Chem Rev</em> 110(3):1463–1497 doi:10.1021/cr900095e</div>
-</div>
-</li>
-</ul>
-</div>
-<div class="section" id="anisotropic-network-model">
-<h3>Anisotropic Network Model<a class="headerlink" href="#anisotropic-network-model" title="Permalink to this headline">¶</a></h3>
-<ul>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/publications/143.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/9218955">Anisotropy of fluctuation dynamics of proteins with an elastic network model</a></div>
-<div class="line">Atilgan, AR, Durrell, SR, Jernigan, RL, Demirel, MC, Keskin, O. &amp; Bahar, I</div>
-<div class="line"><strong>2001</strong> <em>Biophys J</em> 80:505-515</div>
-</div>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/publications/140.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/1097-0134(20000815)40:3%3C512::AID-PROT180%3E3.0.CO;2-M/full">Dynamics of proteins predicted by molecular dynamics simulations and analytical approaches: Application to a-amylase inhibitor</a></div>
-<div class="line">Doruker P, Atilgan AR, Bahar I</div>
-<div class="line"><strong>2000</strong> <em>Proteins</em> 40:512-524</div>
-</div>
-</li>
-</ul>
-</div>
-<div class="section" id="gaussian-network-model">
-<h3>Gaussian Network Model<a class="headerlink" href="#gaussian-network-model" title="Permalink to this headline">¶</a></h3>
-<ul>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/publications/99.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://www.sciencedirect.com/science?_ob=ArticleURL&amp;_udi=B94RW-4TXDS80-1H&amp;_user=9649437&amp;_coverDate=01%2F31%2F2001&amp;_rdoc=1&amp;_fmt=high&amp;_orig=search&amp;_origin=search&amp;_sort=d&amp;_docanchor=&amp;view=c&amp;_acct=C000006998&amp;_version=1&amp;_urlVersion=0&amp;_userid=9649437&amp;md5=4d1df6a2a6b6d7b0d20e7e38eee7ee95&amp;searchtype=a">Direct evaluation of thermal fluctuations in protein using a single parameter harmonic potential</a></div>
-<div class="line">Bahar I, Atilgan AR, Erman B</div>
-<div class="line"><strong>1997</strong> <em>Folding &amp; Design</em> 2:173-181</div>
-</div>
-</li>
-<li><div class="first line-block">
-<div class="line"><a class="reference external" href="http://prl.aps.org/pdf/PRL/v79/i16/p3090_1"><img alt="pdf" src="_images/pdf.png" /></a>
-<a class="reference external" href="http://prl.aps.org/abstract/PRL/v79/i16/p3090_1">Gaussian dynamics of folded proteins</a></div>
-<div class="line">Haliloglu T, Bahar I, Erman B</div>
-<div class="line"><strong>1997</strong> <em>Phys Rev Lett</em> 79:3090-3093</div>
-</div>
-</li>
-</ul>
-</div>
-</div>
-</div>
+				  <div style="text-align: left;">
+            <h1 style="text-align: center">Publications</h1>
 
+            <h2>Using ProDy<a class="headerlink" href="#using-prody" title="Permalink to this headline">¶</a></h2>
+            <ol class="arabic">
+            <li><div class="first line-block">
+            <div class="line"><a class="reference external" href="http://www.pnas.org/content/106/34/14349.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+            <a class="reference external" href="http://www.pnas.org/content/106/34/14349.long">The intrinsic dynamics of enzymes plays a dominant role in determining the
+            structural changes induced upon inhibitor binding</a>
+            Bakan A, Bahar I <strong>2009</strong> <em>Proc Natl Acad Sci U S A</em> 106(34):14349-14354</div>
+            </div>
+            </li>
+            <li><div class="first line-block">
+            <div class="line"><a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/bakan.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+            <a class="reference external" href="http://psb.stanford.edu/psb-online/proceedings/psb11/#Multiscale">Computational Generation of Inhibitor-Bound Conformers of P38 MAP
+            Kinase and Comparison with Experiments</a> Bakan A, Bahar I <strong>2011</strong> <em>Pacific Symposium on Biocomputing</em> 16:181-192</div>
+            </div>
+            </li>
+            <li><div class="first line-block">
+            <div class="line"><a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575.full.pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+            <a class="reference external" href="http://bioinformatics.oxfordjournals.org/content/27/11/1575">ProDy: Protein Dynamics Inferred from Theory and Experiments</a>
+            Bakan A, Meireles LM, Bahar I <strong>2011</strong> <em>Bioinformatics</em> 27(11):1575-1577</div>
+            </div>
+            </li>
+            <li><div class="first line-block">
+            <div class="line"><a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/pro.711/pdf"><img alt="pdf" src="_images/pdf.png" /></a>
+            <a class="reference external" href="http://onlinelibrary.wiley.com/doi/10.1002/pro.711/abstract">Pre-existing soft modes of motion uniquely defined by native contact
+            topology facilitate ligand binding to proteins</a> Meireles L, Gur M, Bakan A, Bahar I <strong>2011</strong> <em>Protein Science</em> 10(20):1645-1658</div>
+            </div>
+            </li>
+            </ol>
 
           
 				</li>
 
 				<li>
+          <h1 style="text-align: center">Acknowledgments</h1>
+          <h2>People</h2>
+          <p>
+            <i>ProDy</i> is designed and developed by 
+            <a href="http://www.ccbb.pitt.edu/People/abakan/" target="_blank">Ahmet Bakan</a> 
+            in <a href="http://www.ccbb.pitt.edu/Faculty/bahar/" target="_blank">Bahar lab</a> 
+            at the <a href="http://www.pitt.edu" target="_blank">University of Pittsburgh</a>.
+          </p>
+          <p>	             
+            New <a href="#&panel1-2" onclick="$('#slider1').anythingSlider(2);">Sequence Evolution</a> 
+            analysis features and applications are co-developed with 
+            <a href="http://www.ccbb.pitt.edu/Faculty/bahar/lab.html" target="_blank">Anindita Dutta</a>.
+          </p>
+      
+          <p>See the full list of contributors to the <i>ProDy</i> project in 
+            <a class="reference internal" href="funding.html">People</a> page.</p>
+          </p>
 
-  <div class="section" id="acknowledgments">
-<span id="credits"></span><h1 style="text-align: center">Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="contributors">
-<h2>People<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference external" href="http://www.linkedin.com/in/lidio">Lidio Meireles</a> provided insightful
-comments on the design of ProDy classes and modules, and contributed to the
-development of early versions of <a class="reference internal" href="commands/index.html#commands"><em>ProDy Commands</em></a> for automated tasks.</p>
-</div>
-<div class="section" id="funding">
-<h2>Funding<a class="headerlink" href="#funding" title="Permalink to this headline">¶</a></h2>
-<p>Support from NIH grants 1R01GM099738-01 (current) and 1R01GM086238-01 for
-development and maintenance of ProDy is acknowledged by <a class="reference external" href="http://www.ccbb.pitt.edu/Faculty/bahar/">Ivet Bahar</a>.</p>
-</div>
-<div class="section" id="software">
-<h2>Community<a class="headerlink" href="#software" title="Permalink to this headline">¶</a></h2>
-<p>ProDy makes use of the following great software developed by the open source community:</p>
-<ul class="simple">
-<li><a class="reference external" href="http://pyparsing.wikispaces.com/">Pyparsing</a>
-for the sophisticated atom selection grammar.</li>
-<li><a class="reference external" href="http://biopython.org/">Biopython</a> 
-KDTree package and pairwise2 module.</li>
-<li><a class="reference external" href="http://numpy.scipy.org/">Numpy</a> for speed and flexibility 
-in almost all major functionality.</li>
-<li>Finally, ProDy can benefit from <a class="reference external" href="http://www.scipy.org/SciPy">Scipy</a> and
-<a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a> packages.  </li>
-</ul>
-</div>
-</div>
+          <h2>Funding</h2>
+            <p>Support from NIH grants 1R01GM099738-01 for development and maintenance of ProDy is gratefully acknowledged.  
+              See more grant information in <a class="reference internal" href="funding.html">Funding</a> page.</p>
+          <h2>Community</h2>
+            <p>ProDy makes use of the following great software developed by the open source community:</p>
+            <ul>
+              <li><a class="reference external" href="http://pyparsing.wikispaces.com/">Pyparsing</a>
+                for the sophisticated atom selection grammar.</li>
+              <li><a class="reference external" href="http://biopython.org/">Biopython</a> 
+                KDTree package and pairwise2 module.</li>
+              <li><a class="reference external" href="http://numpy.scipy.org/">Numpy</a> for speed and flexibility 
+                in almost all major functionality.</li>
+              <li>Finally, ProDy can benefit from <a class="reference external" href="http://www.scipy.org/SciPy">Scipy</a> and
+                <a class="reference external" href="http://matplotlib.sourceforge.net/">Matplotlib</a> packages.  
+              </li>
+            </ul>
 
 				</li>
-
-
 			</ul>  <!-- END AnythingSlider #1 -->
-  
+			  
 {% endblock %}
 {% block relbar2 %}
 {% endblock %}
