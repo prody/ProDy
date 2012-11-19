@@ -35,7 +35,7 @@ using default options:
 
 
 APP.addArgument('msa', 
-    help='filename for a refined MSA')
+    help='refined MSA file')
 
 APP.addGroup('calc', 'calculation options')
 APP.addArgument('-n', '--no-ambiguity',
