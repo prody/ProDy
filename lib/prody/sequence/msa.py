@@ -269,6 +269,17 @@ class MSA(object):
             pass
         return False
         
+    def _getSplit(self):
+        
+        return self._split
+    
+    def _setSplit(self, split):
+        
+        self._split = bool(split)
+        
+    split = property(_getSplit, _setSplit, 
+                     doc='Return split label when iterating or indexing.')
+
     def isAligned(self):
         """Return **True** if MSA is aligned."""
         
