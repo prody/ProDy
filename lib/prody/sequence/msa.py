@@ -149,6 +149,7 @@ class MSA(object):
             
         self._msa = msa
         self._title = str(title) or 'Unknown'
+        self._split = bool(kwargs.get('split', True))
 
         
     def __str__(self):
@@ -238,9 +239,14 @@ class MSA(object):
                
     def __iter__(self):
         
-        for i, label in enumerate(self._labels):
-            label, start, end = splitLabel(label)
-            yield label, self._msa[i].tostring(), start, end
+        if self._split:
+            for i, label in enumerate(self._labels):
+                label, start, end = splitLabel(label)
+                yield label, self._msa[i].tostring(), start, end
+        else:
+            for i, label in enumerate(self._labels):
+                yield label, self._msa[i].tostring()
+            
     
     def __contains__(self, key):
         
@@ -262,7 +268,7 @@ class MSA(object):
         except Exception:
             pass
         return False
-    
+        
     def isAligned(self):
         """Return **True** if MSA is aligned."""
         
