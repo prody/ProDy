@@ -742,7 +742,4 @@ def writeMSA(filename, msa, **kwargs):
                 newfilename = writeSelex(newfilename, labels, sequences, 1)
     
     return newfilename
->>>>>>> remotes/andutta85/pfam/master
-
-
     
