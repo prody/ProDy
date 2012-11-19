@@ -527,53 +527,75 @@ class MSAFile(object):
             write(self._selex_line.format(label, sequence))
 
 
-def parseMSA(msa, **kwargs):
+def parseMSA(filename, **kwargs):
     """Return an :class:`.MSA` instance that stores multiple sequence alignment
-    and sequence labels parsed from Stockholm, SELEX, or FASTA format *msa* 
-    file.  If *msa* is a Pfam id code or accession, MSA file will be downloaded
-    using :func:`.fetchPfamMSA` with default parameters.  Note that *msa* may be
-    a compressed file. Uncompressed MSA files are parsed using C code at a 
-    fraction of the time it would take to parse compressed files in Python."""
+    and sequence labels parsed from Stockholm, SELEX, or FASTA format 
+    *filename* file, which may be a compressed file. Uncompressed MSA files 
+    are parsed using C code at a fraction of the time it would take to parse 
+    compressed files in Python."""
     
     from .msa import MSA
-    msa = str(msa)
-    if isfile(msa):
-        # if MSA is a compressed file or filter/slice is passed, use 
-        #   Python parsers
-        ext = splitext(msa)[1] 
-        if ext == '.gz' or 'filter' in kwargs or 'slice' in kwargs:
-            return MSA(msa, **kwargs)
-        else:
-            filename = msa
-    else:    
-        from prody.database import fetchPfamMSA
-        try:
-            filename = fetchPfamMSA(msa, **kwargs)
-        except IOError:
-            raise ValueError('msa must be an MSA filename or a Pfam accession')
-        else:
-            if 'compressed' in kwargs:
-                return MSA(filename, **kwargs)
+    try:
+        filename = str(filename)
+    except:
+        raise TypeError('filename must be a string')
+
+    if not isfile(filename):
+        raise TypeError('filename must be a string')
+    # if MSA is a compressed file or filter/slice is passed, use 
+    #   Python parsers
+
     LOGGER.timeit('_parsemsa')
-    msafile = MSAFile(filename)
-    title = splitext(split(msa)[1])[0]
-    format = msafile.format
-    lenseq = len(next(iter(msafile))[1])
-    numseq = getsize(filename) / (lenseq + 10)
-    del msafile
     
-    if format == FASTA:
-        from .msaio import parseFasta
-        msaarr, labels, mapping = parseFasta(filename, lenseq, numseq)
-    elif format == SELEX or format == STOCKHOLM:
-        from .msaio import parseSelex
-        msaarr, labels, mapping = parseSelex(filename, lenseq, numseq)
+    title, ext = splitext(filename)
+    aligned = kwargs.get('aligned', True)
+    if (ext.lower() == '.gz' or 'filter' in kwargs or 'slice' in kwargs or
+        not aligned):
+        if ext.lower() == '.gz':
+            title = spliext(title)
+        msa = MSAFile(filename, split=False, **kwargs)
+        seqlist = []
+        sappend = seqlist.append
+        labels = []
+        lappend = labels.append
+        mapping = {}
+        maxlen = 0
+        for i, (label, seq) in enumerate(msa):
+            lappend(label)
+            if aligned:
+                sappend(fromstring(seq, '|S1'))
+            else:
+                if len(seq) > maxlen:
+                    maxlen = len(seq)
+                sappend(seq)
+            mapping[splitLabel(label)[0]] = i
+        if aligned:
+            msaarr = array(seqlist, '|S1')
+        else:
+            msaarr = array(seqlist, '|S' + str(maxlen))
     else:
-        raise IOError('MSA file format is not recognized')
+        msafile = MSAFile(filename)
+        format = msafile.format
+        lenseq = len(next(iter(msafile))[1])
+        numseq = getsize(filename) / (lenseq + 10)
+        del msafile
+        
+        if format == FASTA:
+            from .msaio import parseFasta
+            msaarr, labels, mapping = parseFasta(filename, lenseq, numseq)
+        elif format == SELEX or format == STOCKHOLM:
+            from .msaio import parseSelex
+            msaarr, labels, mapping = parseSelex(filename, lenseq, numseq)
+        else:
+            raise IOError('MSA file format is not recognized')
     msa = MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
-    LOGGER.report('MSA of {1:d} residue long {0:d} sequence(s) was parsed in '
-                  '%.2fs.'.format(*msaarr.shape), '_parsemsa') 
-    return msa 
+    if aligned:
+        LOGGER.report('{0:d} sequence(s) with {1:d} residues were parsed in '
+                      '%.2fs.'.format(*msaarr.shape), '_parsemsa') 
+    else:
+        LOGGER.report('{0:d} sequence(s) were parsed in %.2fs.'
+                      .format(*msaarr.shape), '_parsemsa') 
+    return msa
 
 
     

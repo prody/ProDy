@@ -106,59 +106,50 @@ class MSA(object):
     >>> MSA(msafile)
     <MSA: piwi_seed (20 sequences, 404 residues)>"""
     
-    def __init__(self, msa, **kwargs):
-        """*msa* may be an :class:`.MSAFile` instance or an MSA file in a 
-        supported format."""
+    def __init__(self, msa, title='Unknown', labels=None, **kwargs):
+        """*msa* must be a 2D Numpy character array. *labels* is a list of
+        sequence labels (or titles).  *mapping* should map label or part of 
+        label to sequence index in *msa* array. If *mapping* is not given,
+        one will be build from *labels*."""
         
         try:
             ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
         except AttributeError:
-            try:
-                numseq, lenseq = msa.numSequences, msa.numResidues
-            except AttributeError:
-                kwargs['split'] = False
-                try:
-                    msa = MSAFile(msa, **kwargs)
-                except Exception as err:
-                    raise TypeError('msa was not recognized ({0:s})'
-                                    .format(str(err)))
-            
-            self._msa = []
-            sappend = self._msa.append
-            self._labels = []
-            lappend = self._labels.append
-            self._mapping = mapping = {}
-            
-            for i, (label, seq) in enumerate(msa):
-                lappend(label)
-                sappend(fromstring(seq, '|S1'))
-                mapping[splitLabel(label)[0]] = i
-            self._msa = array(self._msa, '|S1')
-            self._title = kwargs.get('title', msa.getTitle())
-        else:
+            raise TypeError('msa is not a Numpy array')
+
+        self._aligned = aligned = kwargs.get('aligned', True)
+        if aligned:
             if ndim != 2:
                 raise ValueError('msa.dim must be 2')
             if dtype_ != dtype('|S1'):
                 raise ValueError('msa must be a character array')
-            numseq = shape[0]
-            self._labels = labels = kwargs.get('labels')
-            if labels and len(self._labels) != numseq:
-                raise ValueError('len(labels) must be equal to number of '
-                                 'sequences')
-            
-            self._mapping = mapping = kwargs.get('mapping')
-            if mapping is None and labels is not None:
+        numseq = shape[0]
+
+        if labels and len(labels) != numseq:
+            raise ValueError('len(labels) must be equal to number of '
+                             'sequences')
+        self._labels = labels
+        mapping = kwargs.get('mapping')
+        if mapping is None:
+            if labels is not None:
                 # map labels to sequence index
                 self._mapping = mapping = {
                     splitLabel(label)[0]: i for i, label in enumerate(labels)
                 }
-                
-            if labels is None:
-                self._labels = [None] * numseq
-                
-            self._msa = msa
-            self._title = kwargs.get('title', 'Unknown')
-        
+        elif mapping:
+            try:
+                mapping['isdict']
+            except KeyError:
+                pass
+            except Exception:
+                raise TypeError('mapping must be a dictionary')
+        self._mapping = mapping                
+        if labels is None:
+            self._labels = [None] * numseq
+            
+        self._msa = msa
+        self._title = str(title) or 'Unknown'
+
         
     def __str__(self):
         
@@ -166,8 +157,12 @@ class MSA(object):
         
     def __repr__(self):
         
-        return '<MSA: {0:s} ({1:d} sequences, {2:d} residues)>'.format(
-                self._title, self.numSequences(), self.numResidues())
+        if self._aligned:
+            return '<MSA: {0:s} ({1:d} sequences, {2:d} residues)>'.format(
+                    self._title, self.numSequences(), self.numResidues())
+        else:
+            return '<MSA: {0:s} ({1:d} sequences, not aligned)>'.format(
+                    self._title, self.numSequences())
     
     def __getitem__(self, index):
         
@@ -205,6 +200,9 @@ class MSA(object):
         if cols is None:
             msa = self._msa[rows]
         else:
+            if not self._aligned:
+                raise ValueError('msa is not aligned, '
+                                 'column indexing is not possible')
             try:
                 cols = self._mapping[cols]
             except (KeyError, TypeError):
@@ -265,15 +263,22 @@ class MSA(object):
             pass
         return False
     
+    def isAligned(self):
+        """Return **True** if MSA is aligned."""
+        
+        return self._aligned
+        
     def numSequences(self):
         """Return number of sequences."""
         
         return self._msa.shape[0]
 
     def numResidues(self):
-        """Return number of residues (or columns in the MSA)."""
+        """Return number of residues (or columns in the MSA), if MSA is 
+        aligned."""
         
-        return self._msa.shape[1]
+        if self._aligned:
+            return self._msa.shape[1]
     
     def getTitle(self):
         """Return title of the instance."""
