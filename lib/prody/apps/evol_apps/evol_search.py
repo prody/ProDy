@@ -30,8 +30,8 @@ APP.addGroup('sequence', 'sequence search options')
 APP.addGroup('output', 'output options')
 
 APP.addArgument('query', 
-    help='protein UniProt ID or sequence, or a sequence file, where '
-         'sequence have no gaps and more than 11 characters')
+    help='protein UniProt ID or sequence, a PDB identifier, or a sequence '
+         'file, where sequence have no gaps and 12 or more characters')
 APP.addArgument('-b', '--searchBs',
     dest='search_b',
     help='search Pfam-B families',
@@ -87,6 +87,10 @@ be 12 and should not contain gaps.  If outname is specified it will output \
 the results obtained in a file or the output will be directed to standard \
 output.
 
+Search Pfam with PDB and chain identifier and output results to screen:
+    
+    $ evol search 1mkpA
+
 Search Pfam with UniProt ID and write output into a file:
     
     $ evol search P08581 --outname families.txt
@@ -106,7 +110,7 @@ def evol_search(query, **kwargs):
     pfam_results =  prody.searchPfam(query, **kwargs)
     
     outname = kwargs.get('outname', None)
-    delimiter = kwargs.get('delimiter', DEFAULTS['delimiter'])
+    delimiter = kwargs.get('delimiter', '\t')
     if outname:
         folder, outname = split(outname)
         filepath = join(prody.utilities.makePath(folder), outname)

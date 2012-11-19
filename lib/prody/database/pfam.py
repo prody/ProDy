@@ -46,9 +46,9 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     """Return Pfam search results in a dictionary.  Matching Pfam accession 
     as keys will map to evalue, alignment start and end residue positions.
         
-    :arg query: UniProt ID, protein sequence, or a sequence file, sequence
-        queries must not contain without gaps and must be at least 12 
-        characters long 
+    :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence 
+        file, sequence queries must not contain without gaps and must be at 
+        least 12 characters long 
     :type query: str
     
     :arg search_b: search Pfam-B families when **True**
@@ -65,7 +65,11 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
 
     :arg timeout: timeout for blocking connection attempt in seconds, default 
         is 30
-    :type timeout: int"""
+    :type timeout: int
+        
+    *query* can also be a PDB identifier, e.g. ``'1mkp'`` or ``'1mkpA'`` with
+    chain identifier.  UniProt ID of the specified chain, or the first
+    protein chain will be used for searching the Pfam database."""
     
     prefix = '{http://pfam.sanger.ac.uk/}'
     query = str(query)
@@ -82,7 +86,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             raise ValueError('could not parse a sequence without gaps from ' +
                              query)
     else:
-        seq = ''.join(query.split())   
+        seq = ''.join(query.split())
     
 
     import xml.etree.cElementTree as ET
@@ -133,10 +137,41 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             raise ValueError('failed to parse results XML, check URL: ' + url)
         
     else:
-        url  = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+        if len(seq) <= 5:
+            idcode = None
+            from prody import parsePDBHeader
+            try:
+                polymers = parsePDBHeader(seq[:4], 'polymers')
+            except Exception as err:
+                LOGGER.warn('failed to parse header for {0:s} ({1:s})'
+                            .format(seq[:4], str(err)))
+            else:
+                chid = seq[4:].upper()
+                for poly in polymers:
+                    if chid and poly.chid != chid:
+                        continue
+                    for dbref in poly.dbrefs:
+                        if dbref.database != 'UniProt':
+                            continue
+                        idcode = dbref.idcode
+                        LOGGER.info('UniProt ID code {0:s} for {1:s} chain '
+                                    '{2:s} will be used.'
+                                    .format(idcode, seq[:4], poly.chid))
+                        break
+                    if idcode is not None:
+                        break
+            if idcode is None:
+                LOGGER.warn('A UniProt ID code for PDB {0:s} could not be '
+                            'parsed.'.format(repr(seq)))
+                url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+            else:
+                url = ('http://pfam.sanger.ac.uk/protein/' + 
+                       idcode + '?output=xml')
+            
+        else:
+            url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
     
     LOGGER.debug('Retrieving Pfam search results: ' + url)        
-    
     xml = None
     while LOGGER.timing('_pfam') < timeout:
         try:
