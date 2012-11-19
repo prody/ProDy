@@ -27,11 +27,21 @@ __all__ = ['MSAFile', 'parseMSA', 'writeMSA']
 FASTA = 'FASTA'
 SELEX = 'SELEX'
 STOCKHOLM = 'Stockholm'
-
+MSAFORMATS = {
+    FASTA.lower(): FASTA,
+    SELEX.lower(): SELEX,
+    STOCKHOLM.lower(): STOCKHOLM,
+}
 EXTENSIONS = {
     FASTA: '.fasta',
     SELEX: '.slx',
-    STOCKHOLM: '.sth'
+    STOCKHOLM: '.sth',
+    FASTA.lower(): '.fasta',
+    SELEX.lower(): '.slx',
+    STOCKHOLM.lower(): '.sth',
+    '.sth': STOCKHOLM,
+    '.slx': SELEX,
+    '.fasta': FASTA
 }
 
 WSJOIN = ' '.join
@@ -354,6 +364,11 @@ class MSAFile(object):
         self._readline()
         self._iterator = self._iter()
     
+    def isAligned(self):
+        """Return **True** if MSA is aligned."""
+        
+        return self._aligned
+    
     def _iterBio(self):
         """Yield sequences from a Biopython MSA object."""            
         
@@ -445,6 +460,11 @@ class MSAFile(object):
         """Return filename, or **None** if instance is handling a stream."""
         
         return self._filename
+    
+    def getFormat(self):
+        """Return file format."""
+        
+        return self._format
     
     def getFilter(self):
         """Return function used for filtering sequences."""
@@ -612,134 +632,64 @@ def parseMSA(filename, **kwargs):
 
 
 def writeMSA(filename, msa, **kwargs):
-    """Returns a filepath of the written MSA file.*msa* can be either an
-    .MSAFile instance or .MSA instance. If msa is a .MSAFile instance or
-    filename has extension ``'.gz'`` than file will be written by python.
-    If msa is .MSA instance and/or non-compressed files than C will be used
-    to write MSA. Format can be user specified or format is taken to be that
-    in .MSAFile instance else if msa is .MSA instance than **SELEX** is written
-    as default. Supported formats are **Stockholm**, **SELEX** or **FASTA**"""
+    """Return *filename* containing *msa*, a :class:`.MSA` or :class:`.MSAFile`
+    instance, in the specified *format*, which can be *SELEX*, *Stockholm*, or 
+    *FASTA*.  If *compressed* is **True** or *filename* ends with :file:`.gz`, 
+    a compressed file will be written.  :class:`.MSA` instances will be written
+    using C function into uncompressed files."""
     
-    msafileFlag = False
-
-    compressed = kwargs.get('compressed', False)
+    fntemp, ext = splitext(filename)
+    ext = ext.lower() 
+    compressed = kwargs.get('compressed', ext == '.gz')
+    if compressed and ext != '.gz':
+        filename += '.gz'
     format = kwargs.get('format', None)
     if format:
-        if format not in EXTENSIONS:
-            LOGGER.warn('Specified format not supported. Format should be '
-                        'Stockholm or SELEX or FASTA. Reverting format=None')
-            kwargs.pop('format')
-            format = None
-
+        try:
+            format = MSAFORMATS[format.lower()]
+        except KeyError:
+            raise ValueError('format {0:s} is not recognized'
+                             .format(repr(format)))
+    else:
+        if ext == '.gz':
+            ext = splitext(fntemp)[1].lower()
+        
+        try:
+            format = EXTENSIONS[ext]
+        except KeyError:
+            raise ValueError('format is not specified, and file extension '
+                             '{0:s} is not recognized'.format(repr(ext)))
+        
+    fast = False
     try:
-        filename = str(filename)
-    except:
-        raise TypeError('Unexpected format for filename')
-    
-    title, ext = splitext(filename)
-    if ext == '.gz':
-        compressed = True
-        title, ext = splitext(title)
-
-    if ext in ['.sth', '.fasta', '.slx']:
-        if not format:
-            if ext.startswith('.st'):
-                format = STOCKHOLM
-            elif ext.startswith('.f'):
-                format = FASTA
-            else:
-                format = SELEX
+        seqarr, _, _ = msa._getArray(), msa.numResidues(), msa.numSequences()
+    except AttributeError:
+        try:
+            _ = msa.getFormat(), msa.getFilename(), msa.getFilter()
+        except AttributeError:
+            raise ValueError('msa must be an MSA or MSAFile instance, not '
+                             .format(type(msa).__name__))
         else:
-            if EXTENSIONS[format] != ext:
-                LOGGER.warn('Specified file extension {0:s} does not match '
-                            'extension obtained for format={1:s}. Using user '
-                            'specified format and revising extension to {2:s}'
-                            .format(ext, format, EXTENSIONS[format]))
-            else:
-                LOGGER.info('Using user specified format {0:s}.'
-                            ' Using extension {1:s}'
-                            .format(format, EXTENSIONS[format]))
-            ext = EXTENSIONS[format]
+            seqiter = msa
             
     else:
-        if not ext:    
-            LOGGER.info('No extension in filename, may use specified format'
-                        '(if any) or that in msa object (if any) or default '
-                        'SELEX')
-            if not format:
-                try:
-                    format = msa.format
-                    ext = EXTENSIONS[format]
-                    LOGGER.info('msa object has format {0:s}. Setting extension'
-                                ' to {1:s}'.format(format, ext))
-                    msafileFlag = True
-                except:
-                    format = kwargs.get('format', SELEX)
-                    ext = EXTENSIONS[format]
-                    LOGGER.info('Could not find format from given msa object.'
-                                ' Setting extension to default {0:s}'.
-                                format(ext))
-            else:
-                format = kwargs.get('format', SELEX)
-                ext = EXTENSIONS[format]
-                LOGGER.info('Using user specified format {0:s}.'
-                            ' Setting extension to {1:s}'.format(format, ext))
-        else:
-            format = kwargs.get('format', SELEX)
-            LOGGER.info('Unrecognizable extension, file will be written '
-                        'with {0:s} extention, but format will be {1:s}'
-                        .format(ext, format))
-            
-    newfilename = title + ext
-    if compressed:
-        msafileFlag = True
-        newfilename = newfilename + '.gz'
-        try:
-            sequences = list(msa.__iter__())
-        except:
-            try:
-                msa = MSAFile(msa)
-            except Exception as err:
-                raise TypeError('msa was not recognized ({0:s})'
-                                .format(str(err)))
-            else:
-                sequences = list(msa.__iter__())
-    else:
-        try:
-            labels, sequences = msa._labels, msa._msa
-        except:
-            try:
-                sequences = list(msa.__iter__())
-                msafileFlag = True
-            except:
-                try:
-                    msa = MSAFile(msa)
-                except Exception as err:
-                    raise TypeError('msa was not recognized ({0:s})'
-                                    .format(str(err)))
-                else:
-                    sequences = list(msa.__iter__())
-                    msafileFlag = True
-                
-    if msafileFlag or compressed:
-        msaWrite = MSAFile(newfilename, 'w', format=format)
-        for sequence in sequences:
-            label, seq, start, end = sequence
-            label = label + '/' + str(start) + '-' + str(end)
-            msaWrite.write(label, seq)
-        msaWrite.close()    
+        seqiter = msa
+        fast = True
+        
+    if not fast or compressed:
+        split, seqiter._split = seqiter._split, False
+        with MSAFile(filename, 'w', format=format) as out:
+            write = out.write
+            [write(label, seq) for label, seq in seqiter]
+        seqiter._split = split
     else:
         from prody.utilities import backupFile
-        backupFile(newfilename, True)
+        backupFile(filename)
         if format == FASTA:
             from msaio import writeFasta
-            newfilename = writeFasta(newfilename, labels, sequences)
-        elif format == SELEX or format == STOCKHOLM:
+            writeFasta(filename, msa._labels, seqarr)
+        else:
             from msaio import writeSelex
-            if format == SELEX:
-                newfilename = writeSelex(newfilename, labels, sequences, 0)
-            else:
-                newfilename = writeSelex(newfilename, labels, sequences, 1)
-    
-    return newfilename
+            writeSelex(filename, msa._labels, seqarr, format != SELEX)
+    return filename
     
