@@ -102,7 +102,7 @@ def evol_entropy(msa, **kwargs):
             height = kwargs.get('figheight', 6)
             figargs = kwargs.get('figargs', ())
             figure = plt.figure(figsize=(width, height))
-            show = showShannonEntropy(entropy, *figargs)
+            show = showShannonEntropy(entropy, msa=msa, *figargs)
             format = kwargs.get('figformat', 'pdf')
             figure.savefig(prefix + '.' + format, format=format,
                         dpi=kwargs.get('figdpi', 300))         
