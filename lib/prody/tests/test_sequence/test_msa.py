@@ -48,21 +48,21 @@ class TestRefinement(TestCase):
         
     def testRowocc(self):
 
-        refined = refineMSA(FASTA, rowocc=0.9)._getArray()
+        refined = refineMSA(FASTA, row_occ=0.9)._getArray()
         expected = FASTA._getArray()[FASTA_ALPHA.sum(1) / 112. >= 0.9,:]
         
         assert_array_equal(refined, expected)
         
     def testColocc(self):
 
-        refined = refineMSA(FASTA, colocc=0.9)._getArray()
+        refined = refineMSA(FASTA, col_occ=0.9)._getArray()
         expected = FASTA._getArray()[:, FASTA_ALPHA.sum(0) / 24. >= 0.9]
         
         assert_array_equal(refined, expected)
         
     def testRowCol(self):
 
-        refined = refineMSA(FASTA, colocc=0.9, rowocc=0.9)._getArray()
+        refined = refineMSA(FASTA, col_occ=0.9, row_occ=0.9)._getArray()
         rows = FASTA_ALPHA.sum(1) / 112. >= 0.9
         expected = FASTA._getArray()[rows,:][:, 
                         1.0 * FASTA_ALPHA[rows,:].sum(0) / rows.sum() >= 0.9]

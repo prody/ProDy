@@ -323,7 +323,7 @@ class MSA(object):
             return index
 
 
-def refineMSA(msa, label=None, rowocc=None, colocc=None):
+def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that 
     contain gaps.
     
@@ -333,13 +333,13 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
     :arg label: sequence label used for indexing
     :type label: str
     
-    :arg rowocc: row occupancy, sequences with less occupancy will be 
+    :arg row_occ: row occupancy, sequences with less occupancy will be 
         removed 
-    :type rowocc: float
+    :type row_occ: float
     
-    :arg colocc: column occupancy, residue positions with less occupancy
+    :arg col_occ: column occupancy, residue positions with less occupancy
         will be removed 
-    :type colocc: float
+    :type col_occ: float
     
     For Pfam MSA data, *label* is UniProt entry name for the protein.  You may
     also use PDB structure and chain identifiers, e.g. ``'1p38'`` or 
@@ -416,27 +416,27 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
 
     rows = None
     from .analysis import calcMSAOccupancy
-    if rowocc is not None:
+    if row_occ is not None:
         try:
-            rowocc = float(rowocc)
+            row_occ = float(row_occ)
         except Exception as err:
-            raise TypeError('rowocc must be a float ({0:s})'.format(str(err)))
-        assert 0. <= rowocc <= 1., 'rowocc must be between 0 and 1'
-        rows = calcMSAOccupancy(arr, 'row') >= rowocc
+            raise TypeError('row_occ must be a float ({0:s})'.format(str(err)))
+        assert 0. <= row_occ <= 1., 'row_occ must be between 0 and 1'
+        rows = calcMSAOccupancy(arr, 'row') >= row_occ
         arr = arr[rows]
-        title.append('rowocc>' + str(rowocc))
+        title.append('row_occ>' + str(row_occ))
 
-    if colocc is not None:
+    if col_occ is not None:
         try:
-            colocc = float(colocc)
+            col_occ = float(col_occ)
         except Exception as err:
-            raise TypeError('colocc must be a float ({0:s})'.format(str(err)))
-        assert 0. <= colocc <= 1., 'colocc must be between 0 and 1'
-        arr = arr[:, calcMSAOccupancy(arr, 'col') >= colocc]
-        title.append('colocc>' + str(colocc))
+            raise TypeError('col_occ must be a float ({0:s})'.format(str(err)))
+        assert 0. <= col_occ <= 1., 'col_occ must be between 0 and 1'
+        arr = arr[:, calcMSAOccupancy(arr, 'col') >= col_occ]
+        title.append('col_occ>' + str(col_occ))
         
     if not title:
-        raise ValueError('label, rowocc, colocc all cannot be None')
+        raise ValueError('label, row_occ, col_occ all cannot be None')
     
     if msa is None:
         return arr
