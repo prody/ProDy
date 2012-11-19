@@ -703,6 +703,7 @@ def writeMSA(filename, msa, **kwargs):
         msaWrite = MSAFile(newfilename, 'w', format=format)
         for sequence in sequences:
             label, seq, start, end = sequence
+            label = label + '/' + str(start) + '-' + str(end)
             msaWrite.write(label, seq)
         msaWrite.close()    
     else:
