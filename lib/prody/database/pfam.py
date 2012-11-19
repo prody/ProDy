@@ -274,7 +274,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     url_flag = False
     
     if not re.search('(?<=PF)[0-9]{5}$', acc):
-        raise ValueError('No such family: check Pfam ID or Accession Code')
+        raise ValueError('{0:s} is not a valid Pfam ID or Accession Code')
         
     
     if alignment not in DOWNLOAD_FORMATS:
