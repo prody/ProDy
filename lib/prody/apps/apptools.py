@@ -204,6 +204,8 @@ class DevelApp(object):
         
         sub.add_argument('--quiet', help="suppress info messages to stderr",
             action=Quiet, nargs=0)
+        sub.add_argument('--debug', help="print error traceback to screen",
+            action='store_true', dest='debug')
 
         if self._example:
             sub.add_argument('--examples', action=UsageExample, nargs=0,
@@ -244,7 +246,27 @@ class DevelApp(object):
         
         def callback(ns, func=self._function, pos=positional):
             args = [ns.__dict__.pop(arg[0]) for arg in pos]
-            func(*args, **ns.__dict__)
+            
+            try:
+                func(*args, **ns.__dict__)
+            except Exception as err:
+                if ns.debug:
+                    raise err
+                else:
+                    import sys, traceback, tempfile
+                    #command = ' '.join([repr(arg) if ' ' in arg else arg 
+                    #                    for arg in sys.argv ])
+                    
+                    #with tempfile.NamedTemporaryFile(delete=False) as out: 
+                    #    out.write('$ ' + command + '\n')
+                    #    traceback.print_exc(file=out)
+                    #    filename = out.name
+                    traceback.print_exc(file=sys.stderr)
+                    sys.stderr.write('An exception occurred when executing '
+                     'your command.  If this is not a user error, please '
+                     'report it to ProDy developers at: '
+                     'https://bitbucket.org/abakan/prody/issues\n')
+                    sys.stderr.write('Error: ' + str(err) + '\n')
             
         sub.set_defaults(func=callback)
         sub.set_defaults(subparser=sub)
