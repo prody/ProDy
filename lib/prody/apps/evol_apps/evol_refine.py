@@ -94,9 +94,7 @@ def evol_refine(msa, **kwargs):
         if ext.lower() == '.gz': 
             outname, _ = splitext(msa)
         outname += '_refined' + ext 
-    msa = parseMSA(msa)
-    refined = refineMSA(msa, **kwargs)
-    writeMSA(outname, msa, **kwargs)     
+    writeMSA(outname, refineMSA(parseMSA(msa), **kwargs), **kwargs)     
     
 
 APP.setFunction(evol_refine)
