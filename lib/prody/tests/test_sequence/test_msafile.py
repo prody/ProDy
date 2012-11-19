@@ -100,12 +100,14 @@ class TestParseMSA(TestCase):
         
 class TestWriteMSA(TestCase):
     
-    def testWriteMSA(self):
+    def testFASTA(self):
         filename = writeMSA((TEMPDIR + '/test.slx'), FASTA)
         SELEX_WRITE = parseMSA(pathDatafile(filename))
         self.assertListEqual(list(SELEX), list(SELEX_WRITE))
         if os.path.isfile(filename):
             os.remove(filename)
+            
+    def testSELEX(self):
         filename = writeMSA((TEMPDIR + '/test.fasta.gz'), SELEX)
         FASTA_WRITE = list(MSAFile(pathDatafile(filename)))
         self.assertListEqual(list(FASTA), list(FASTA_WRITE))
