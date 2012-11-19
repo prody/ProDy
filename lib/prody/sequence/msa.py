@@ -381,28 +381,30 @@ def refineMSA(msa, label=None, rowocc=None, colocc=None):
         if index is None: index = msa.getIndex(lower)
         
         if index is None and (len(label) == 4 or len(label) == 5):
+            from prody import parsePDBHeader
             try:
                 polymers = parsePDBHeader(label[:4], 'polymers')
             except Exception as err:
                 LOGGER.warn('failed to parse header for {0:s} ({1:s})'
                             .format(label[:4], str(err)))
-            chid = label[4:]
-            for poly in polymers:
-                if chid and poly.chid != chid:
-                    continue
-                for dbref in poly.dbrefs:
-                    if index is None: 
-                        index = msa.getIndex(dbref.idcode)
-                        if index is not None:
-                            LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s} is '
-                                        'found in {3:s}'.format(
+            else:
+                chid = label[4:]
+                for poly in polymers:
+                    if chid and poly.chid != chid:
+                        continue
+                    for dbref in poly.dbrefs:
+                        if index is None: 
+                            index = msa.getIndex(dbref.idcode)
+                            if index is not None:
+                                LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s}'
+                                            'is found in {3:s}'.format(
                                             dbref.database, dbref.idcode,
                                             label[:4], poly.chid, str(msa)))
-                    if index is None: 
-                        index = msa.getIndex(dbref.accession)
-                        if index is not None:
-                            LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s} is '
-                                        'found in {3:s}'.format(
+                        if index is None: 
+                            index = msa.getIndex(dbref.accession)
+                            if index is not None:
+                                LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s}'
+                                            ' is found in {3:s}'.format(
                                             dbref.database, dbref.accession,
                                             label[:4], poly.chid, str(msa)))
                     
