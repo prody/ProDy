@@ -65,7 +65,6 @@ def backupFile(filename, backup=None, backup_ext='.BAK', **kwargs):
     if exists and (backup or SETTINGS.get('backup', False)):
         if backup_ext == '.BAK':
             backup_ext = SETTINGS.get('backup_ext', '.BAK')
-        print str(filename), str(backup_ext)
         bak = filename + backup_ext
         os.rename(filename, bak)
         return bak
