@@ -66,6 +66,10 @@ Bibliography
    molecular dynamics simulations and analytical approaches: Application to 
    a-amylase inhibitor. *Proteins* **2000** 40:512-524.
 
+.. [SDD08] Dunn SD, Wahl LM, Gloor GB. Mutual information without the influence
+   of phylogeny or entropy dramatically improves residue contact prediction.
+   *Bioinformatics* **2008** 24(3):333-340.
+
 .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded proteins. 
    *Phys. Rev. Lett.* **1997** 79:3090-3093.
 
