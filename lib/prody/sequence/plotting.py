@@ -23,13 +23,39 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import arange
 
-from .analysis import *
+from analysis import *
 
 __all__ = ['showShannonEntropy', 'showMutualInfo']
 
 
+def pickSequence(msa):
+    """Pick a sequence without gaps and deletions and return its residue 
+    numbers and labels to be used as indices and X-axis label, or a pair
+    of **None** at failure."""
+    
+    try:
+        counts = calcMSAOccupancy(msa, 'row', count=True)
+    except TypeError:
+        return None, None
+    else:
+        length = msa.numResidues()
+        split, msa.split = msa.split, True
+        rows = (counts == length).nonzero()[0]
+        for row in rows:
+            try:
+                label, seq, start, end = msa[row]
+            except:
+                break
+            if end - start + 1 == length:
+                msa.split = split
+                return (arange(start, end + 1),
+                        'Residue number ({0:s})'.format(label)) 
+        msa.split = split
+        return None, None
+
+
 def showShannonEntropy(entropy, indices=None, **kwargs):
-    """Show a bar plot of Shannon *entropy* array.  :class:`MSA` instances 
+    """Show a bar plot of Shannon *entropy* array.  :class:`.MSA` instances 
     or Numpy character arrays storing sequence alignments are also accepted 
     as *entropy* argument, in which case :func:`.calcShannonEntropy` will 
     be used for calculations.  *indices* may be residue numbers, if **None**
@@ -52,58 +78,51 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     xlabel = kwargs.pop('xlabel', None)
     if indices is None:
         length = len(entropy)    
-        if msa is not None and False:
-            try:
-                occ = calcMSAOccupancy(msa, 'row')
-            except TypeError:
-                pass
-            else:
-                split, msa.split = msa.split, True
-                rows = (occ == 1.0).nonzero()[0]
-                for row in rows: 
-                    #try:
-                    label, seq, start, end = msa[row]
-                    #except:
-                    #    break
-                    #else:
-                    if end - start - 1 == length:
-                        indices = arange(start, end + 1)
-                        xlabel = 'Residue number ({0:s})'.format(label)
-                        break
-                msa.split = split
-            
-        if indices is None:  
+        if msa is not None:
+            indices, xlabel = pickSequence(msa)
+        if indices is None:
             indices = arange(1, length + 1)
         xlabel = xlabel or 'MSA column index'
-
+    
     ylabel = kwargs.pop('ylabel', 'Shannon entropy')  
+    title = kwargs.pop('title', None)
+    format = kwargs.pop('format', True)
     import matplotlib.pyplot as plt
     show = plt.bar(indices, entropy, **kwargs)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)  
+    if format:
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        if title is None:
+            if msa is None:  
+                title = 'Conservation'
+            else:
+                title = 'Conservation: ' + str(msa)
+        plt.title(title)
     return show
 
 
 def showMutualInfo(mutinfo, *args, **kwargs):
-    """Show a heatmap of mutual information array.  :class:`MSA` instances 
+    """Show a heatmap of mutual information array.  :class:`.MSA` instances 
     or Numpy character arrays storing sequence alignment are also accepted 
     as *mutinfo* argument, in which case :func:`.buildMutinfoMatrix` will 
     be used for calculations.  Note that x, y axes contain indices of the
     matrix starting from 1.
     
-    Mutual Information is plotted using :func:`~matplotlib.pyplot.imshow`
+    Mutual information is plotted using :func:`~matplotlib.pyplot.imshow`
     function."""
     
+    msa = None
     try:
-        ndim = mutinfo.ndim
+        ndim, shape = mutinfo.ndim, mutinfo.shape
     except AttributeError:
+        msa = mutinfo
         mutinfo = buildMutinfoMatrix(mutinfo)
-        ndim = mutinfo.ndim
+        ndim, shape = mutinfo.ndim, mutinfo.shape
 
+    msa = kwargs.pop('msa', msa)
     if ndim != 2:
         raise ValueError('mutinfo must be a 2D matrix')
-    
-    x, y = mutinfo.shape
+    x, y = shape
     if x != y:
         raise ValueError('mutinfo matrix must be a square matrix')
     
@@ -112,10 +131,40 @@ def showMutualInfo(mutinfo, *args, **kwargs):
     if not kwargs.has_key('origin'):
         kwargs['origin'] = 'lower'
     
-    extent = [0.5, x+0.5, 0.5, y+0.5]
+    if msa is not None:
+        indices, xlabel = pickSequence(msa)
+        if indices is not None:
+            start = indices[0] + 0.5
+            end = start + x
+            extent = [start, end, start, end]
+    else:
+        extent = [0.5, x + 0.5, 0.5, y + 0.5]
+    
+    xlabel = kwargs.pop('xlabel', xlabel or 'MSA column index')
+    title = kwargs.pop('title', None)
+    format = kwargs.pop('format', True)
     
     import matplotlib.pyplot as plt
-    show = plt.imshow(mutinfo, extent = extent, *args, **kwargs), plt.colorbar()
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
+    show = plt.imshow(mutinfo, extent=extent, *args, **kwargs), plt.colorbar()
+    
+            
+    if format:
+        plt.xlabel(xlabel)
+        plt.ylabel(xlabel)
+        if title is None:
+            if msa is None:  
+                title = 'Coevolution'
+            else:
+                title = 'Coevolution: ' + str(msa)
+        plt.title(title)
     return show
+
+
+if __name__ == '__main__':
+    from prody import *
+    msa = parseMSA('piwi_seed.sth')
+    print(repr(msa))
+    msa = refineMSA(msa, label=msa[0][0])
+    print(repr(msa))
+    print(calcMSAOccupancy(msa, 'row', count=True))
+    print(pickSequence(msa))
