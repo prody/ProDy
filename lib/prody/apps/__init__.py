@@ -42,7 +42,7 @@ Sequence analysis
   * :func:`.evol_search`
   * :func:`.evol_refine`
   * :func:`.evol_entropy`
-  * :func:`.evol_mutinfo`
+  * :func:`.evol_coevol`
   * :func:`.evol_dynamics`
 """
 
