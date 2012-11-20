@@ -28,34 +28,57 @@ from .analysis import *
 __all__ = ['showShannonEntropy']
 
 
-def showShannonEntropy(entropy, indices=None, *args, **kwargs):
+def showShannonEntropy(entropy, indices=None, **kwargs):
     """Show a bar plot of Shannon *entropy* array.  :class:`MSA` instances 
-    or Numpy character arrays storing sequence alignment are also accepted 
+    or Numpy character arrays storing sequence alignments are also accepted 
     as *entropy* argument, in which case :func:`.calcShannonEntropy` will 
     be used for calculations.  *indices* may be residue numbers, if **None**
     is given numbers starting from 1 will be used.
     
     Entropy is plotted using :func:`~matplotlib.pyplot.bar` function."""
     
+    msa = None
     try:
         ndim = entropy.ndim
     except AttributeError:
-        entropy = calcShannonEntropy(entropy)
+        msa = entropy
+        entropy = calcShannonEntropy(msa)
         ndim = entropy.ndim
-
+    
     if ndim != 1:
         raise ValueError('entropy must be a 1D array')
 
-    if indices is not None:    
-        try:
-            len(indices) == len(entropy)
-        except:
-            args = indices, + args
-            indices = None
-
+    msa = kwargs.pop('msa', msa)
+    xlabel = kwargs.pop('xlabel', None)
     if indices is None:
-        indices = arange(1, len(entropy) + 1)
+        length = len(entropy)    
+        if msa is not None and False:
+            try:
+                occ = calcMSAOccupancy(msa, 'row')
+            except TypeError:
+                pass
+            else:
+                split, msa.split = msa.split, True
+                rows = (occ == 1.0).nonzero()[0]
+                for row in rows: 
+                    #try:
+                    label, seq, start, end = msa[row]
+                    #except:
+                    #    break
+                    #else:
+                    if end - start - 1 == length:
+                        indices = arange(start, end + 1)
+                        xlabel = 'Residue number ({0:s})'.format(label)
+                        break
+                msa.split = split
+            
+        if indices is None:  
+            indices = arange(1, length + 1)
+        xlabel = xlabel or 'MSA column index'
 
+    ylabel = kwargs.pop('ylabel', 'Shannon entropy')  
     import matplotlib.pyplot as plt
-    show = plt.bar(indices, entropy, *args, **kwargs)
+    show = plt.bar(indices, entropy, **kwargs)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)  
     return show
