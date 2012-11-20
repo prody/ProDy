@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import all, zeros, dtype, array, char, fromstring
 
-from .msafile import splitLabel, MSAFile 
+from .msafile import splitSeqLabel, MSAFile 
 
 from prody import LOGGER
 
@@ -134,7 +134,7 @@ class MSA(object):
             if labels is not None:
                 # map labels to sequence index
                 self._mapping = mapping = {
-                    splitLabel(label)[0]: i for i, label in enumerate(labels)
+                splitSeqLabel(label)[0]: i for i, label in enumerate(labels)
                 }
         elif mapping:
             try:
@@ -225,7 +225,7 @@ class MSA(object):
                 return msa
             elif ndim == 1:
                 if cols is None:
-                    label, start, end = splitLabel(self._labels[rows])
+                    label, start, end = splitSeqLabel(self._labels[rows])
                     return label, msa.tostring(), start, end
                 else:
                     return msa.tostring()
@@ -241,7 +241,7 @@ class MSA(object):
         
         if self._split:
             for i, label in enumerate(self._labels):
-                label, start, end = splitLabel(label)
+                label, start, end = splitSeqLabel(label)
                 yield label, self._msa[i].tostring(), start, end
         else:
             for i, label in enumerate(self._labels):
@@ -315,14 +315,14 @@ class MSA(object):
         if full:
             return self._labels[index]
         else:
-            return splitLabel(self._labels[index])[0]
+            return splitSeqLabel(self._labels[index])[0]
                 
     def getResnums(self, index):
         """Return starting and ending residue numbers (:term:`resnum`) for the
         sequence at given *index*."""
 
         index = self._mapping.get(index, index)
-        return splitLabel(self._labels[index])[1:]
+        return splitSeqLabel(self._labels[index])[1:]
     
     def getArray(self):
         """Return a copy of the MSA character array."""
@@ -396,7 +396,8 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
             raise TypeError('label must be a string')
 
         if msa is None:
-            raise TypeError('msa must be an MSA instance indexed with labels')
+            raise TypeError('msa must be an MSA instance, '
+                            'label cannot be used')
         
         index = msa.getIndex(label)
         if index is None: index = msa.getIndex(upper)            
@@ -433,9 +434,9 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
             
         if index is None:        
             raise ValueError('label is not in msa, or msa is not indexed')
-        title.append('label=' + label)    
-        arr = arr[:, char.isalpha(arr[index])] 
-
+        title.append('label=' + label)
+        cols = char.isalpha(arr[index])
+        arr = arr[:, cols] 
     rows = None
     from .analysis import calcMSAOccupancy
     if row_occ is not None:
@@ -459,6 +460,10 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         
     if not title:
         raise ValueError('label, row_occ, col_occ all cannot be None')
+    
+    # depending on slicing of rows, arr may not have it's own memory
+    if arr.base is not None:
+        arr = arr.copy()
     
     if msa is None:
         return arr

@@ -22,7 +22,7 @@ analyzing multiple sequence alignments."""
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
-__all__ = ['MSAFile', 'parseMSA', 'writeMSA']
+__all__ = ['MSAFile', 'splitSeqLabel', 'parseMSA', 'writeMSA']
 
 FASTA = 'FASTA'
 SELEX = 'SELEX'
@@ -63,7 +63,8 @@ if PY2K: range = xrange
 
 SPLITLABEL = re.compile('/*-*').split 
 
-def splitLabel(label):
+
+def splitSeqLabel(label):
     """Return label, starting residue number, and ending residue number parsed
     from sequence label."""
     
@@ -137,8 +138,9 @@ class MSAFile(object):
         extensions, specifying *format* is not needed.  If *aligned* is 
         **True**, unaligned sequences in the file or stream will cause an 
         :exc:`IOError` exception.  *filter*, a function that returns a 
-        boolean, can be used for filtering sequences.  *slice* can be used 
-        to slice sequences, and is applied after filtering."""
+        boolean, can be used for filtering sequences, see :meth:`setFilter`
+        for details.  *slice* can be used to slice sequences, and is applied 
+        after filtering, see :meth:`setSlice` for details."""
         
         if mode not in 'rwa':
             raise ValueError("mode string must be one of 'r', 'w', or 'a', "
@@ -210,7 +212,8 @@ class MSAFile(object):
 
         
             self._split = bool(kwargs.get('split', True))
-            self.setFilter(kwargs.get('filter', None))
+            self.setFilter(kwargs.get('filter', None),
+                           kwargs.get('filter_full', False))
             self.setSlice(kwargs.get('slice', None))
             self._iter = self._iterator()
         else:
@@ -284,19 +287,29 @@ class MSAFile(object):
         if filter is None:
             for label, seq in self._iter:
                 if split:
-                    label, start, end = splitLabel(label)
+                    label, start, end = splitSeqLabel(label)
                     yield label, slicer(seq), start, end
                 else:
                     yield label, slicer(seq)
         else:
-            for label, seq in self._iter:
-                if filter(label, seq):
-                    if split:
-                        label, start, end = splitLabel(label)
-                        yield label, slicer(seq), start, end    
-                    else:
-                        yield label, slicer(seq)
-                             
+            if self._filter_full:
+                for label, seq in self._iter:
+                    if filter(label, seq):
+                        if split:
+                            label, start, end = splitSeqLabel(label)
+                            yield label, slicer(seq), start, end    
+                        else:
+                            yield label, slicer(seq)
+            else:                             
+                for label, seq in self._iter:
+                    lbl, start, end = splitSeqLabel(label)
+                    if filter(lbl, seq):
+                        if split:
+                            yield lbl, slicer(seq), start, end    
+                        else:
+                            yield label, slicer(seq)
+                
+        
     def __str__(self):
         
         return 'MSAFile ' + self._title 
@@ -471,8 +484,12 @@ class MSAFile(object):
         
         return self._filter
     
-    def setFilter(self, filter):
-        """Set function used for filtering sequences."""
+    def setFilter(self, filter, filter_full=False):
+        """Set function used for filtering sequences.  *filter* will be applied
+        to split sequence label, by default.  If *filter_full* is **True**,
+        filter will be applied to the full label.  """
+        
+        self._filter_full = bool(filter_full)
         
         if filter is None:
             self._filter = None
@@ -484,7 +501,7 @@ class MSAFile(object):
         try: 
             result = filter('TEST_TITLE', 'SEQUENCE-WITH-GAPS')
         except Exception as err:
-            raise TypeError('filter function must be not raise exceptions, '
+            raise TypeError('filter function must not raise exceptions, '
                             'e.g. ' + str(err))
         else:
             try:
@@ -600,7 +617,7 @@ def parseMSA(filename, **kwargs):
                 if len(seq) > maxlen:
                     maxlen = len(seq)
                 sappend(seq)
-            mapping[splitLabel(label)[0]] = i
+            mapping[splitSeqLabel(label)[0]] = i
         if aligned:
             msaarr = array(seqlist, '|S1')
         else:
