@@ -24,6 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from numpy import arange
 
 from analysis import *
+from prody import LOGGER
 
 __all__ = ['showShannonEntropy', 'showMutualInfo']
 
@@ -101,12 +102,13 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     return show
 
 
-def showMutualInfo(mutinfo, *args, **kwargs):
+def showMutualInfo(mutinfo, clim=None, *args, **kwargs):
     """Show a heatmap of mutual information array.  :class:`.MSA` instances 
     or Numpy character arrays storing sequence alignment are also accepted 
     as *mutinfo* argument, in which case :func:`.buildMutinfoMatrix` will 
     be used for calculations.  Note that x, y axes contain indices of the
-    matrix starting from 1.
+    matrix starting from 1. clim can be used to set upper and lower limits
+    of the data to achieve better signals.
     
     Mutual information is plotted using :func:`~matplotlib.pyplot.imshow`
     function."""
@@ -137,7 +139,10 @@ def showMutualInfo(mutinfo, *args, **kwargs):
             start = indices[0] + 0.5
             end = start + x
             extent = [start, end, start, end]
+        else:
+            extent = [0.5, x + 0.5, 0.5, y + 0.5]
     else:
+        xlabel = None
         extent = [0.5, x + 0.5, 0.5, y + 0.5]
     
     xlabel = kwargs.pop('xlabel', xlabel or 'MSA column index')
@@ -147,6 +152,21 @@ def showMutualInfo(mutinfo, *args, **kwargs):
     import matplotlib.pyplot as plt
     show = plt.imshow(mutinfo, extent=extent, *args, **kwargs), plt.colorbar()
     
+    if clim is not None:
+        try:
+            cmin, cmax = clim
+        except:
+            try:
+                cmin, cmax = clim[0], clim[1]
+            except:
+                LOGGER.warn('clim should be a tuple or list containing min and '
+                        'max values. Could not set limits')
+        else:
+            if cmin < cmax:
+                show[0].set_clim(cmin, cmax)
+            else:
+                LOGGER.warn('first element of clim should be smaller than the'
+                            ' second. Could not set limits')
             
     if format:
         plt.xlabel(xlabel)

@@ -25,7 +25,8 @@ from numpy import all, zeros, dtype, array, char, fromstring
 
 from prody import LOGGER
 
-__all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy']
+__all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
+           'applyAverProdCorr']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
@@ -68,7 +69,7 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
                               omitgaps=bool(omitgaps))
     
     
-def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
+def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, apply=False, **kwargs):
     """Return mutual information matrix calculated for *msa*, which may be an 
     :class:`.MSA` instance or a 2D Numpy character array.  Implementation 
     is case insensitive and handles ambiguous amino acids as follows:
@@ -91,7 +92,12 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     By default, the will try to run in the *turbo* mode, which uses memory
     as large as the MSA array itself but runs four to five times faster.  If
     memory allocation fails, the implementation will switch to slower and
-    memory efficient mode."""
+    memory efficient mode.
+    
+    if *apply* is **True**, than it applies the average product correction**
+    and returns the corrected mutual information matrix.
+    
+    ** *Dunn et al., Bioinformatics: 24(3):333-340* """
     
     try:
         msa = msa._getArray()
@@ -111,7 +117,11 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     mutinfo = buildMutinfoMatrix(msa, ambiguity=bool(ambiguity), 
                         turbo=bool(turbo), debug=kwargs.get('debug', False))
     LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
-                  '_mutinfo')   
+                  '_mutinfo')
+    if bool(apply):
+        APC = applyAverProdCorr(mutinfo)
+        mutinfo = mutinfo - APC
+        
     return mutinfo
 
 
@@ -143,3 +153,37 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     except AttributeError:
         raise TypeError('occ must be a string')
     return calcMSAOccupancy(msa, occ, count=bool(count))
+
+
+def applyAverProdCorr(mutinfo):
+    """Returns a 2D numpy array of the same dimension as mutinfo which contains
+    the *average product correction* term for each element of the matrix"""
+    
+    import numpy as np
+    try:
+        dtype_, ndim, shape = mutinfo.dtype, mutinfo.ndim, mutinfo.shape
+    except AttributeError:
+        raise TypeError('mutinfo must be an a 2D float array')
+    
+    if dtype_ != dtype('float64') or ndim != 2 or shape[0] != shape[1]:
+        raise TypeError('mutinfo must be an a 2D square float array')
+    
+    avg_mipos = mutinfo.sum(1) / (shape[0] - 1)
+    avg_mi = avg_mipos.mean()
+    
+    APC = np.zeros(shape)
+    
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            APC[i,j] = (avg_mipos[i] * avg_mipos[j]) / avg_mi
+    
+    return APC
+            
+            
+    
+    
+    
+    
+    
+    
+    

@@ -52,6 +52,13 @@ APP.addArgument('-g', '--gaps',
     action='store_false',
     group='calc')
 
+APP.addArgument('-a', '--apc',
+    dest='apc',
+    help='apply average product correction',
+    default=False,
+    action='store_true',
+    group='calc')
+
 APP.addGroup('output', 'output options')
 APP.addArgument('-p', '--prefix',
     dest='prefix',
@@ -64,6 +71,20 @@ APP.addArgument('-p', '--prefix',
 APP.addArgument('-f', '--number-format', 
     dest='numformat', type=str, default='%12g', 
     metavar='STR', help='number output format', group='output')
+
+APP.addArgument('-l', '--cmin',
+    dest='cmin',
+    help='apply lower limits for figure plot',
+    type=float,
+    metavar='FLOAT',
+    group='output')
+
+APP.addArgument('-u', '--cmax',
+    dest='cmax',
+    help='apply upper limits for figure plot',
+    type=float,
+    metavar='FLOAT',
+    group='output')
         
 APP.addFigure('-S', '--save-plot', 
     dest='figcoevol', 
@@ -85,11 +106,10 @@ def evol_coevol(msa, **kwargs):
             prefix, _ = splitext(prefix)
         prefix += '_coevol'
     msa = parseMSA(msa)
-    mutinfo = buildMutinfoMatrix(msa, **kwargs)
+    mutinfo = buildMutinfoMatrix(msa, apply=kwargs.get('apc', False), **kwargs)
     
     writeArray(prefix + '.txt', 
                mutinfo, format=kwargs.get('numformat', '%12g'))
-    
     if kwargs.get('figcoevol'):
         try:
             import matplotlib.pyplot as plt
@@ -97,12 +117,14 @@ def evol_coevol(msa, **kwargs):
             LOGGER.warn('Matplotlib could not be imported, '
                         'figures are not saved.')
         else:
+            cmin = kwargs.get('cmin', mutinfo.min())
+            cmax = kwargs.get('cmax', mutinfo.max())
             prody.SETTINGS['auto_show'] = False
             width = kwargs.get('figwidth', 8)
             height = kwargs.get('figheight', 6)
             figargs = kwargs.get('figargs', ())
             figure = plt.figure(figsize=(width, height))
-            show = showMutualInfo(mutinfo, msa=msa, *figargs)
+            show = showMutualInfo(mutinfo, msa=msa, clim=(cmin, cmax), *figargs)
             format = kwargs.get('figformat', 'pdf')
             figure.savefig(prefix + '.' + format, format=format,
                         dpi=kwargs.get('figdpi', 300))         
