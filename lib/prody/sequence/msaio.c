@@ -197,17 +197,21 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 }
 
 
-static PyObject *writeFasta(PyObject *self, PyObject *args) {
+static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     /* Write MSA where inputs are: labels in the form of Python lists 
     and sequences in the form of Python numpy array and write them in
     FASTA format in the specified filename.*/
     
     char *filename;
+    int line_length = 60;
     PyObject *labels;
     PyArrayObject *msa;
     
-    if (!PyArg_ParseTuple(args, "sOO", &filename, &labels, &msa))
+    static char *kwlist[] = {"filename", "labels", "msa", "line_length", NULL};
+    
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO|i", kwlist, 
+                                     &filename, &labels, &msa, &line_length))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -220,44 +224,30 @@ static PyObject *writeFasta(PyObject *self, PyObject *args) {
     
     FILE *file = fopen(filename, "wb");
     
-    int nlines = lenseq / 60;
-    int remainder = lenseq - 60 * nlines;
+    int nlines = lenseq / line_length;
+    int remainder = lenseq - line_length * nlines;
     int i, j, k;
     int count = 0;
     char *seq = msa->data;
     int lenmsa = strlen(seq);
 
     for (i = 0; i < numseq; i++) {
-        char *label =  PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
-        int flag = 0;
-        if(i == 0){
-            if(label[strlen(label) - 1] == '\n'){
-                flag = 1;
-            }
-        }
-        if(flag){
-            fprintf(file, ">%s", label);
-        }
-        else{
-            fprintf(file, ">%s\n", label);
-        }
+        char *label =  PyString_AsString(PyList_GetItem(labels, 
+                                                        (Py_ssize_t) i));
+
+        fprintf(file, ">%s", label);
+
         for (j = 0; j < nlines; j++) {
-            for (k=0; k < 60; k++){
-                if (count < lenmsa) {
-                    fprintf(file, "%c", seq[count]);
-                    count++;
-                }
-            }
+            for (k = 0; k < 60; k++)
+                if (count < lenmsa)
+                    fprintf(file, "%c", seq[count++]);
             fprintf(file, "\n");
         }
-        if (remainder) {
-            for (k=0; k < remainder; k++) {
-                if (count < lenmsa) {
-                    fprintf(file, "%c", seq[count]);
-                    count++;
-                }
-            }
-        }
+        if (remainder)
+            for (k = 0; k < remainder; k++)
+                if (count < lenmsa)
+                    fprintf(file, "%c", seq[count++]);
+
         fprintf(file, "\n");
         
     }
@@ -356,19 +346,23 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 }
 
 
-static PyObject *writeSelex(PyObject *self, PyObject *args) {
+static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
     
     /* Write MSA where inputs are: labels in the form of Python lists 
     and sequences in the form of Python numpy array and write them in
-    SELEX or Stockholm format in the specified filename.*/
+    SELEX (default) or Stockholm format in the specified filename.*/
     
     char *filename;
     PyObject *labels;
     PyArrayObject *msa;
-    int sthflag; 
-    int SELEX_LABEL_SIZE = 31;
+    int stockholm; 
+    int label_length = 31;
     
-    if (!PyArg_ParseTuple(args, "sOOi", &filename, &labels, &msa, &sthflag))
+    static char *kwlist[] = {"filename", "labels", "msa", "stockholm", 
+                             "label_length", NULL};
+    
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO|ii", kwlist, &filename,
+                                     &labels, &msa, &stockholm, &label_length))
         return NULL;
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
@@ -381,43 +375,37 @@ static PyObject *writeSelex(PyObject *self, PyObject *args) {
     
     FILE *file = fopen(filename, "wb");
     
-    int i, j, k;
-    int count = 0;
+    int i, j;
+    int pos = 0;
     char *seq = msa->data;
-    int lenmsa = strlen(seq);
-    if (sthflag){
+    if (stockholm)
         fprintf(file, "# STOCKHOLM 1.0\n");
-    }
     
-    char *outline = (char *) malloc((SELEX_LABEL_SIZE + lenseq + 2) *
+    char *outline = (char *) malloc((label_length + lenseq + 2) * 
                                     sizeof(char));
     
-    outline[SELEX_LABEL_SIZE + lenseq] = '\n'; 
-    outline[SELEX_LABEL_SIZE + lenseq + 1] = '\0';
+    outline[label_length + lenseq] = '\n'; 
+    outline[label_length + lenseq + 1] = '\0';
     
     for (i = 0; i < numseq; i++) {
         char *label = PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
-        int labelbuffer = SELEX_LABEL_SIZE - strlen(label);
+        int labelbuffer = label_length - strlen(label);
         
         strcpy(outline, label);
 
-        if (labelbuffer > 0){
-            for(j = strlen(label); j < SELEX_LABEL_SIZE; j++){
+        if (labelbuffer > 0)
+            for(j = strlen(label); j < label_length; j++)
                 outline[j] = ' ';
-            }
-        }
-        outline[j] = '\0';
-        for (j = SELEX_LABEL_SIZE; j < (lenseq + SELEX_LABEL_SIZE) ; j++){
-            if (count < lenmsa) {
-                outline[j] = seq[count];
-                count++;
-                }
-        }
+        
+        for (j = label_length; j < (lenseq + label_length); j++)
+            outline[j] = seq[pos++];
+
         fprintf(file, "%s", outline);
     }
-    if (sthflag){
+    
+    if (stockholm)
         fprintf(file, "//\n");
-    }
+
     free(outline);
     fclose(file);
     return Py_BuildValue("s", filename);
@@ -430,14 +418,14 @@ static PyMethodDef msaio_methods[] = {
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
 
-    {"writeFasta",  (PyCFunction)writeFasta, METH_VARARGS, 
+    {"writeFasta",  (PyCFunction)writeFasta, METH_VARARGS | METH_KEYWORDS, 
      "Return filename after writing MSA in FASTA format."},
 
     {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
 
-    {"writeSelex",  (PyCFunction)writeSelex, METH_VARARGS, 
+    {"writeSelex",  (PyCFunction)writeSelex, METH_VARARGS | METH_KEYWORDS, 
     "Return filename after writing MSA in SELEX or Stockholm format."},
 
     {NULL, NULL, 0, NULL}

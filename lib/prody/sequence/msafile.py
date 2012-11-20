@@ -92,7 +92,7 @@ class MSAFile(object):
 
     >>> msa = MSAFile(msafile)
     >>> for seq in msa: # doctest: +ELLIPSIS 
-    ...     print seq
+    ...     print(seq)
     ('YQ53_CAEEL', 'DILVGIAR.EKKP...NLAKRGRNNYK', 650, 977)
     ('Q21691_CAEEL', 'TIVFGIIA.EKRP...NLAKRGHNNYK', 673, 1001)
     ('AGO6_ARATH', 'FILCILPERKTSD...LAAAQVAQFTK', 541, 851)
@@ -110,7 +110,7 @@ class MSAFile(object):
     
     >>> msa = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
     >>> for seq in msa: # doctest: +ELLIPSIS 
-    ...     print seq
+    ...     print(seq)
     ('AGO6_ARATH', 'FIL...FTK', 541, 851)
     ('AGO4_ARATH', 'FIL...FMK', 577, 885)
     ('AGO10_ARATH', 'LLL...YLE', 625, 946)
@@ -121,7 +121,7 @@ class MSAFile(object):
     
     >>> msa = MSAFile(msafile, slice=list(range(10)) + list(range(394,404)))
     >>> for seq in msa: # doctest: +ELLIPSIS 
-    ...     print seq
+    ...     print(seq)
     ('YQ53_CAEEL', 'DILVGIAR.ELAKRGRNNYK', 650, 977)
     ('Q21691_CAEEL', 'TIVFGIIA.ELAKRGHNNYK', 673, 1001)
     ('AGO6_ARATH', 'FILCILPERKAAAQVAQFTK', 541, 851)
@@ -687,9 +687,11 @@ def writeMSA(filename, msa, **kwargs):
         backupFile(filename)
         if format == FASTA:
             from .msaio import writeFasta
-            writeFasta(filename, msa._labels, seqarr)
+            writeFasta(filename, msa._labels, seqarr, 
+                       kwargs.get('line_length', LEN_FASTA_LINE))
         else:
             from .msaio import writeSelex
-            writeSelex(filename, msa._labels, seqarr, format != SELEX)
+            writeSelex(filename, msa._labels, seqarr, 
+                   stockholm=format != SELEX,
+                   label_length=kwargs.get('label_length', LEN_SELEX_LABEL))
     return filename
-    
