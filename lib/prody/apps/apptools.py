@@ -103,18 +103,22 @@ class DevelApp(object):
         self._egtests = None
         self._function = None
         self._figures = []
+        self._figargs = []
     
     def _getKwargs(self, arg):
         """Return keyword arguments."""
         
         kwargs = copy(self._args[arg])
         default = kwargs.get('default')
+        help = '' 
+        if 'choices' in kwargs: 
+            help = ', one of ' + ', '.join([str(ch) 
+                                       for ch in kwargs['choices']])
+
+
         if default is not None and 'action' not in kwargs:
-            choices = ''
-            if 'choices' in kwargs: 
-                choices = ', one of ' + ', '.join([str(ch) 
-                                           for ch in kwargs['choices']])
-            kwargs['help'] += (choices + ' (default: %(default)s)'.format())
+            help += ' (default: %(default)s)'.format()
+        kwargs['help'] += help
         return kwargs
 
     def _docArg(self, doc, arg):
@@ -166,9 +170,9 @@ class DevelApp(object):
             group = 'positional'
         else:
             group = kwargs.pop('group', 'ungrouped')
-            if 'choices' in kwargs and 'default' not in kwargs:
-                raise ValueError('argument has multiple choices, '
-                                 'but no default value')
+            #if 'choices' in kwargs and 'default' not in kwargs:
+            #    raise ValueError('argument has multiple choices, '
+            #                     'but no default value')
         self._group_args[group].append(args)
         self._args[args] = kwargs 
 
@@ -189,6 +193,16 @@ class DevelApp(object):
         self._figures.append(args)
         self._args[args] = kwargs
 
+    def addFigarg(self, *args, **kwargs):
+        
+        if args in self._args:
+            raise ValueError('argument {0:s} is already defined'
+                             .format(str(args)))
+        if args[0][0] != '-':
+            raise ValueError('figure argument cannot be a positional argument')
+
+        self._figargs.append(args)
+        self._args[args] = kwargs
 
     def setExample(self, example, tests=None):
         """Set usage *example* string and list of examples for *tests*."""
@@ -241,6 +255,9 @@ class DevelApp(object):
             if len(self._figures) > 1:
                 group = sub.add_argument_group('figure options')
 
+
+            for arg in self._figargs:            
+                group.add_argument(*arg, **self._getKwargs(arg))
                 
             for arg in FIGARGS.keys():            
                 group.add_argument(*arg, **self._getKwargs(arg))
