@@ -31,7 +31,7 @@ APP.setExample(
 refined multiple sequence alignment.  Following example will save entropy \
 data and plot using default options:
 
-    $ evol conserv piwi_refined.slx -E""", [])
+    $ evol conserv piwi_refined.slx -S""", [])
 
 
 APP.addArgument('msa', 
@@ -65,7 +65,7 @@ APP.addArgument('-f', '--number-format',
     dest='numformat', type=str, default='%12g', 
     metavar='STR', help='number output format', group='output')
         
-APP.addFigure('-C', '--conservation-plot', 
+APP.addFigure('-S', '--save-plot', 
     dest='figent', 
     action='store_true', 
     help='save conservation plot')

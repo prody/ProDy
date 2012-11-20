@@ -17,7 +17,7 @@
 
 """MSA residue coevolution calculation application."""
 
-__author__ = 'Ahmet Bakan'
+__author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import DevelApp
@@ -31,7 +31,7 @@ APP.setExample(
 refined multiple sequence alignment.  Following example will save coevolution \
 data and plot using default options:
 
-    $ evol coevol piwi_refined.slx -C""", [])
+    $ evol coevol piwi_refined.slx -S""", [])
 
 
 APP.addArgument('msa', 
@@ -65,7 +65,7 @@ APP.addArgument('-f', '--number-format',
     dest='numformat', type=str, default='%12g', 
     metavar='STR', help='number output format', group='output')
         
-APP.addFigure('-C', '--coevolution-plot', 
+APP.addFigure('-S', '--save-plot', 
     dest='figcoevol', 
     action='store_true', 
     help='save coevolution plot')
@@ -102,7 +102,7 @@ def evol_coevol(msa, **kwargs):
             height = kwargs.get('figheight', 6)
             figargs = kwargs.get('figargs', ())
             figure = plt.figure(figsize=(width, height))
-            show = showMutualInfo(mutinfo, *figargs)
+            show = showMutualInfo(mutinfo, msa=msa, *figargs)
             format = kwargs.get('figformat', 'pdf')
             figure.savefig(prefix + '.' + format, format=format,
                         dpi=kwargs.get('figdpi', 300))         
