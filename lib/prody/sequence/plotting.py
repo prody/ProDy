@@ -25,7 +25,7 @@ from numpy import arange
 
 from .analysis import *
 
-__all__ = ['showShannonEntropy']
+__all__ = ['showShannonEntropy', 'showMutualInfo']
 
 
 def showShannonEntropy(entropy, indices=None, **kwargs):
@@ -81,4 +81,41 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     show = plt.bar(indices, entropy, **kwargs)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)  
+    return show
+
+
+def showMutualInfo(mutinfo, *args, **kwargs):
+    """Show a heatmap of mutual information array.  :class:`MSA` instances 
+    or Numpy character arrays storing sequence alignment are also accepted 
+    as *mutinfo* argument, in which case :func:`.buildMutinfoMatrix` will 
+    be used for calculations.  Note that x, y axes contain indices of the
+    matrix starting from 1.
+    
+    Mutual Information is plotted using :func:`~matplotlib.pyplot.imshow`
+    function."""
+    
+    try:
+        ndim = mutinfo.ndim
+    except AttributeError:
+        mutinfo = buildMutinfoMatrix(mutinfo)
+        ndim = mutinfo.ndim
+
+    if ndim != 2:
+        raise ValueError('mutinfo must be a 2D matrix')
+    
+    x, y = mutinfo.shape
+    if x != y:
+        raise ValueError('mutinfo matrix must be a square matrix')
+    
+    if not kwargs.has_key('interpolation'):
+        kwargs['interpolation'] = 'nearest'
+    if not kwargs.has_key('origin'):
+        kwargs['origin'] = 'lower'
+    
+    extent = [0.5, x+0.5, 0.5, y+0.5]
+    
+    import matplotlib.pyplot as plt
+    show = plt.imshow(mutinfo, extent = extent, *args, **kwargs), plt.colorbar()
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
     return show
