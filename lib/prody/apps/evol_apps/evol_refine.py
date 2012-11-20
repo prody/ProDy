@@ -24,7 +24,7 @@ from ..apptools import DevelApp
 
 __all__ = ['evol_refine']
 
-APP = DevelApp('refine', 'refine an MSA by removing gaps')
+APP = DevelApp('refine', 'refine an MSA by removing gapped rows/colums')
 
 APP.setExample(
 """This application refines MSA by removing gapped columns (residue positions)\
@@ -85,7 +85,7 @@ APP.addArgument('-z', '--compressed',
 def evol_refine(msa, **kwargs):
     
     import prody
-    from prody import parseMSA, refineMSA, writeMSA
+    from prody import parseMSA, refineMSA, writeMSA, LOGGER
     from os.path import splitext
 
     outname = kwargs.get('outname')
@@ -94,7 +94,9 @@ def evol_refine(msa, **kwargs):
         if ext.lower() == '.gz': 
             outname, _ = splitext(msa)
         outname += '_refined' + ext 
-    writeMSA(outname, refineMSA(parseMSA(msa), **kwargs), **kwargs)     
+    
+    writeMSA(outname, refineMSA(parseMSA(msa), **kwargs), **kwargs)
+    LOGGER.info('Refined MSA is written in file: ' + outname)     
     
 
 APP.setFunction(evol_refine)
