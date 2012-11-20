@@ -147,12 +147,13 @@ class DevelApp(object):
             doc.append(':type {0:s}: {1:s}'.format(dest, type.__name__))
         doc.append('')
     
-    def addGroup(self, name, description):
+    def addGroup(self, name, description, mutexc=False, required=False):
+        """If *mutexc* is **True** add a mutually exclusive group. """
 
         if name in self._group_args:
             raise ValueError('group {0:s} is already defined'.format(name))
                  
-        self._groups.append(name)
+        self._groups.append((name, mutexc, required))
         self._group_desc[name] = description
         self._group_args[name] = []
 
@@ -204,8 +205,8 @@ class DevelApp(object):
         
         sub.add_argument('--quiet', help="suppress info messages to stderr",
             action=Quiet, nargs=0)
-        sub.add_argument('--debug', help="print error traceback to screen",
-            action='store_true', dest='debug')
+        #sub.add_argument('--debug', help="print error traceback to screen",
+        #    action='store_true', dest='debug')
 
         if self._example:
             sub.add_argument('--examples', action=UsageExample, nargs=0,
@@ -217,8 +218,12 @@ class DevelApp(object):
             sub.add_argument(*arg, **self._args[arg])
         for arg in self._group_args['ungrouped']:
             sub.add_argument(*arg, **self._getKwargs(arg))
-        for name in self._groups:
-            group = sub.add_argument_group(self._group_desc[name])
+        for name, mutexc, required in self._groups:
+            if mutexc:
+                group = sub.add_argument_group(self._group_desc[name])
+                group = group.add_mutually_exclusive_group(required=required)
+            else:
+                group = sub.add_argument_group(self._group_desc[name])
             for arg in self._group_args[name]:
                 group.add_argument(*arg, **self._getKwargs(arg))
         
@@ -245,28 +250,22 @@ class DevelApp(object):
                       for arg in self._group_args['positional']]
         
         def callback(ns, func=self._function, pos=positional):
-            args = [ns.__dict__.pop(arg[0]) for arg in pos]
-            
+            args = []
+            for arg, nargs in pos:
+                if nargs is None:
+                    args.append(ns.__dict__.pop(arg))
+                else:
+                    args.extend(ns.__dict__.pop(arg))
             try:
                 func(*args, **ns.__dict__)
             except Exception as err:
-                if ns.debug:
-                    raise err
-                else:
-                    import sys, traceback, tempfile
-                    #command = ' '.join([repr(arg) if ' ' in arg else arg 
-                    #                    for arg in sys.argv ])
-                    
-                    #with tempfile.NamedTemporaryFile(delete=False) as out: 
-                    #    out.write('$ ' + command + '\n')
-                    #    traceback.print_exc(file=out)
-                    #    filename = out.name
-                    traceback.print_exc(file=sys.stderr)
-                    sys.stderr.write('An exception occurred when executing '
-                     'your command.  If this is not a user error, please '
-                     'report it to ProDy developers at: '
-                     'https://bitbucket.org/abakan/prody/issues\n')
-                    sys.stderr.write('Error: ' + str(err) + '\n')
+                import sys, traceback, tempfile
+                traceback.print_exc(file=sys.stderr)
+                sys.stderr.write('An exception occurred when executing '
+                 'your command.  If this is not a user error, please '
+                 'report it to ProDy developers at: '
+                 'https://bitbucket.org/abakan/prody/issues\n')
+                sys.stderr.write('Error: ' + str(err) + '\n')
             
         sub.set_defaults(func=callback)
         sub.set_defaults(subparser=sub)
@@ -288,7 +287,7 @@ class DevelApp(object):
             self._docArg(doc, arg)
         for arg in self._group_args['ungrouped']:
             self._docArg(doc, arg)
-        for name in self._groups:
+        for name, _, _ in self._groups:
             doc.append('*' + self._group_desc[name].title() + '*')
             doc.append('')
             for arg in self._group_args[name]:
