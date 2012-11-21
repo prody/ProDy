@@ -23,7 +23,6 @@
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
 
-
 static char *intcat(char *msg, int line) {
    
     /* Concatenate integer to a string. */
@@ -36,12 +35,12 @@ static char *intcat(char *msg, int line) {
     
 
 static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
-                      char clabel[], char ckey[], long ccount, int size) {
+                      long ccount, int size) {
     
     /* Parse protein database identifier from sequence label, and map the 
        sequence. */
     
-    int i, slash = 0, dash = 0;
+    int i, slash = 0, dash = 0, pipes[4] = {0, 0, 0, 0};
     
     for (i = 0; i < size; i++)
         if (line[i] == '\n' || line[i] == ' ') 
@@ -50,16 +49,15 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
             slash = i;
         else if (line[i] == '-' && slash > 0 && dash == 0)
             dash = i;
+        else if (line[i] == '|') {
+            pipes[0]++;
+            pipes[pipes[0]] = i;
+        }
     
     PyObject *plabel, *pcount;
     if (slash > 0 && dash > slash) {
-        strncpy(ckey, line, slash);
-        strncpy(clabel, line, i);
-        clabel[i] = '\0';
-        ckey[slash] = '\0';
-        
-        PyObject *pkey = PyString_FromString(ckey);
-        plabel = PyString_FromString(clabel);
+        PyObject *pkey = PyString_FromStringAndSize(line, slash);
+        plabel = PyString_FromStringAndSize(line, i);
         pcount = PyInt_FromLong(ccount);
         if (!plabel || !pcount || PyList_Append(labels, plabel) < 0 ||
             PyDict_SetItem(mapping, pkey, pcount)) {
@@ -69,13 +67,8 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
             return 0;
         }
         Py_DECREF(pkey);
-        Py_DECREF(plabel);
-        Py_DECREF(pcount); 
     } else {
-        strncpy(clabel, line, i);
-        clabel[i] = '\0';
-
-        plabel = PyString_FromString(clabel);
+        plabel = PyString_FromStringAndSize(line, i);
         pcount = PyInt_FromLong(ccount);
         if (!plabel || !pcount || PyList_Append(labels, plabel) < 0 ||
             PyDict_SetItem(mapping, plabel, pcount)) {
@@ -83,9 +76,9 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
             Py_XDECREF(plabel);
             return 0;
         }
-        Py_DECREF(plabel);
-        Py_DECREF(pcount);
      }
+    Py_DECREF(plabel);
+    Py_DECREF(pcount);
     return 1;
 }
 
@@ -138,7 +131,6 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     int j = 0;
     long index = 0, ccount = 0;
-    char clabel[LENLABEL], ckey[LENLABEL];
 
     while (fgets(line, size, file) != NULL) {
         iline++;
@@ -147,10 +139,9 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         for (i = 1; i < size; i++)
             if (line[i] != ' ')
                 break;
-        strcpy(line, line + i);
 
         /* parse label */
-        if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
+        if (!parseLabel(labels, mapping, line + i, ccount, size)) {
             free(line);
             free(data);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
@@ -303,7 +294,6 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     fseek(file, - strlen(line), SEEK_CUR);
 
     long index = 0, ccount = 0;
-    char clabel[LENLABEL], ckey[LENLABEL];
 
     int space = beg - 1; /* index of space character before sequence */
     while (fgets(line, size, file) != NULL) {
@@ -319,7 +309,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
         } 
 
         /* parse label */
-        if (!parseLabel(labels, mapping, line, clabel, ckey, ccount, size)) {
+        if (!parseLabel(labels, mapping, line, ccount, size)) {
             free(line);
             free(data);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
