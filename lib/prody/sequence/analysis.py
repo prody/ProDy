@@ -26,7 +26,7 @@ from numpy import all, zeros, dtype, array, char, fromstring
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
-           'applyAvgProdCorr', 'applyMINormalization']
+           'applyMICorrection', 'applyMINormalization']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
@@ -210,29 +210,41 @@ def applyMINormalization(mutinfo, entropy, norm='sument'):
         raise ValueError('norm={0:s} is not a valid normalization type'
                          .format(norm))
 
-def applyAvgProdCorr(mutinfo):
+
+def applyMICorrection(mutinfo, correction='prod'):
     """Return a copy of *mutinfo* array after average product correction 
-    is applied.  See [DSD08]_ for details."""
+    (default) or average sum correction is applied.  See [DSD08]_ for details.
+    """
     
-    import numpy as np
     try:
-        dtype_, ndim, shape = mutinfo.dtype, mutinfo.ndim, mutinfo.shape
+        ndim, shape = mutinfo.ndim, mutinfo.shape
     except AttributeError:
-        raise TypeError('mutinfo must be an a 2D float array')
+        raise TypeError('mutinfo must be a 2D square array')
     
-    if dtype_ == float or ndim != 2 or shape[0] != shape[1]:
-        raise TypeError('mutinfo must be an a 2D square float array')
+    if ndim != 2 or shape[0] != shape[1]:
+        raise ValueError('mutinfo must be a 2D square array')
+    
+    try:
+        sw = norm.startswith
+    except AttributeError:
+        raise TypeError('correction must be a string')
     
     avg_mipos = mutinfo.sum(1) / (shape[0] - 1)
     avg_mi = avg_mipos.mean()
     
-    apc = np.zeros(shape)
+    micorrect = zeros(shape)
+    if sw('prod'):
+        for i, i_avg in enumerate(avg_mipos):
+            for j, j_avg in enumerate(avg_mipos):
+                micorrect[i, j] -= (i_avg * j_avg) / avg_mi
+    elif sw('sum'):
+        for i, i_avg in enumerate(avg_mipos):
+            for j, j_avg in enumerate(avg_mipos):
+                micorrect[i, j] -= i_avg + j_avg - avg_mi
+    else:
+        raise ValueError('correction must be prod or sum, not ' + correction)
     
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            apc[i, j] = mutinfo[i, j] - (avg_mipos[i] * avg_mipos[j]) / avg_mi
-    
-    return apc
+    return micorrect
             
             
     
