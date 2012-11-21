@@ -26,7 +26,7 @@ from numpy import all, zeros, dtype, array, char, fromstring
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
-           'applyAvgProdCorr']
+           'applyMICorrection']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
@@ -153,9 +153,10 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     return calcMSAOccupancy(msa, occ, count=bool(count))
 
 
-def applyAvgProdCorr(mutinfo):
-    """Return a copy of *mutinfo* array after average product correction 
-    is applied.  See [SDD08]_ for details."""
+def applyMICorrection(mutinfo, correction='prod'):
+    """Return a copy of *mutinfo* array after correction. Correction can be 
+    average product (default) or average sum correction is applied.
+    See [SDD08]_ for details."""
     
     import numpy as np
     try:
@@ -163,19 +164,26 @@ def applyAvgProdCorr(mutinfo):
     except AttributeError:
         raise TypeError('mutinfo must be an a 2D float array')
     
-    if dtype_ == float or ndim != 2 or shape[0] != shape[1]:
+    if ndim != 2 or shape[0] != shape[1]:
         raise TypeError('mutinfo must be an a 2D square float array')
     
     avg_mipos = mutinfo.sum(1) / (shape[0] - 1)
     avg_mi = avg_mipos.mean()
     
-    apc = np.zeros(shape)
+    micorrect = np.zeros(shape)
+    if correction.startswith('prod'):
+        for i, i_avg in enumerate(avg_mipos):
+            for j, j_avg in enumerate(avg_mipos):
+                micorrect[i, j] = mutinfo[i, j] - (i_avg * j_avg) / avg_mi
+    elif correction.startswith('sum'):
+        for i, i_avg in enumerate(avg_mipos):
+            for j, j_avg in enumerate(avg_mipos):
+                micorrect[i, j] = mutinfo[i, j] - (i_avg + j_avg - avg_mi)
+    else:
+        raise ValueError('Cannot recognize correction; correction should be '
+                         'prod or sum')
     
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            apc[i, j] = mutinfo[i, j] - (avg_mipos[i] * avg_mipos[j]) / avg_mi
-    
-    return apc
+    return micorrect
             
             
     

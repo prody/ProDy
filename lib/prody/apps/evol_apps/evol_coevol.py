@@ -55,7 +55,7 @@ APP.addArgument('-g', '--gaps',
 APP.addArgument('-c', '--correction',
     dest='correction',
     help='correction to apply to mutual information matrix',
-    choices=['apc'],
+    choices=['apc', 'asc'],
     metavar='STR',
     type=str,
     group='calc')
@@ -95,7 +95,7 @@ def evol_coevol(msa, **kwargs):
     
     import prody
     from prody import parseMSA, buildMutinfoMatrix, showMutualInfo
-    from prody import applyAvgProdCorr
+    from prody import applyMICorrection
     from prody import writeArray
     from os.path import splitext
 
@@ -108,7 +108,9 @@ def evol_coevol(msa, **kwargs):
     msa = parseMSA(msa)
     mutinfo = buildMutinfoMatrix(msa, **kwargs)
     if kwargs.get('correction') == 'apc':
-        mutinfo = applyAvgProdCorr(mutinfo)
+        mutinfo = applyMICorrection(mutinfo, correction='prod')
+    if kwargs.get('correction') == 'asc':
+        mutinfo = applyMICorrection(mutinfo, correction='sum')
     writeArray(prefix + '.txt', 
                mutinfo, format=kwargs.get('numformat', '%12g'))
     if kwargs.get('figcoevol'):
