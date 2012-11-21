@@ -26,7 +26,7 @@ from numpy import all, zeros, dtype, array, char, fromstring
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
-           'applyAvgProdCorr']
+           'applyAvgProdCorr', 'applyMINormalization']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
@@ -88,6 +88,8 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     as distinct amino acids.  When *ambiguity* is set **False**, all alphabet
     characters as considered as distinct types.  All non-alphabet characters 
     are considered as gaps.
+    
+
     
     By default, the will try to run in the *turbo* mode, which uses memory
     as large as the MSA array itself but runs four to five times faster.  If
@@ -153,9 +155,64 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     return calcMSAOccupancy(msa, occ, count=bool(count))
 
 
+def applyMINormalization(mutinfo, entropy, norm='sument'):
+    """Apply one of the normalizations discussed in [MLC05]_ to *mutinfo* 
+    matrix.  *norm* can be one of the following: 
+        
+      * ``'sument'``: :math:`H(X) + H(Y)`, sum of entropy of columns
+      * ``'minent'``: :math:`min\{H(X), H(Y)\}`, minimum entropy
+      * ``'maxent'``: :math:`max\{H(X), H(Y)\}`, maximum entropy
+      * ``'mincon'``: :math:`min\{H(X|Y), H(Y|X)\}`, minimum conditional 
+         entropy
+      * ``'maxcon'``: :math:`max\{H(X|Y), H(Y|X)\}`, maximum conditional 
+         entropy
+         
+    where :math:`H(X)` is the entropy of a column, and 
+    :math:`H(X|Y) = H(X) - MI(X, Y)`.  Normalization with joint entropy, i.e.
+    :math:`H(X, Y)`, can be done using :func:`.buildMutinfoMatrix` *norm* 
+    argument."""
+    
+    try:
+        ndim, shape = mutinfo.ndim, mutinfo.shape
+    except AttributeError:
+        raise TypeError('mutinfo must be a 2D square array')
+
+    if ndim != 2 or shape[0] != shape[1]:
+        raise ValueError('mutinfo must be a 2D square array')    
+
+    try:
+        ndim, shapent = entropy.ndim, entropy.shape
+    except AttributeError:
+        raise TypeError('entropy must be a numpy array')
+    
+    if ndim != 1:
+        raise ValueError('entropy must be a 1D array')    
+    
+    if shapent[0] != shape[0]:
+        raise ValueError('shape of mutinfo and entropy does not match')    
+        
+    try:
+        sw = norm.startswith
+    except AttributeError:
+        raise TypeError('norm must be a string')
+        
+    if norm.startswith('sument'):
+        pass
+    elif norm.startswith('minent'):
+        pass
+    elif norm.startswith('maxent'):
+        pass
+    elif norm.startswith('maxcon'):
+        pass
+    elif norm.startswith('maxcon'):
+        pass
+    else:    
+        raise ValueError('norm={0:s} is not a valid normalization type'
+                         .format(norm))
+
 def applyAvgProdCorr(mutinfo):
     """Return a copy of *mutinfo* array after average product correction 
-    is applied.  See [SDD08]_ for details."""
+    is applied.  See [DSD08]_ for details."""
     
     import numpy as np
     try:
