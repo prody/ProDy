@@ -271,6 +271,28 @@ class TestCalcMutualInfo(TestCase):
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
+    def testNorm(self):
+        
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)])
+
+        expect = 1. 
+        expect = array([[0., expect],
+                        [expect, 0.]])
+        result = buildMutinfoMatrix(msa, norm=True)
+        assert_array_almost_equal(expect, result, err_msg='norm failed')
+
+    def testNorm2(self):
+        
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, 'O' if i % 2 else 'U'] for i, s in enumerate(seq)])
+        
+        expect = log(1./20. / (1./20. * 1./2.)) / (-log(1./20.)) 
+        expect = array([[0., expect],
+                        [expect, 0.]])
+        result = buildMutinfoMatrix(msa, norm=True)
+        assert_array_almost_equal(expect, result, err_msg='norm failed')
+
 
 class TestCalcMSAOccupancy(TestCase):
     

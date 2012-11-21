@@ -97,7 +97,7 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     Mutual information matrix can be normalized or corrected using
     :func:`applyMINormalization` and :func:`applyMICorrection` methods,
     respectively.  Normalization by joint entropy can performed using this
-    function with *norm_joint* option set **True**."""
+    function with *norm* option set **True**."""
     
     try:
         msa = msa._getArray()
@@ -116,7 +116,7 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     LOGGER.timeit('_mutinfo')
     mutinfo = buildMutinfoMatrix(msa, ambiguity=bool(ambiguity), 
                                  turbo=bool(turbo), 
-                                 #norm=bool(kwargs.get('norm_joint', False)), 
+                                 norm=bool(kwargs.get('norm', False)), 
                                  debug=bool(kwargs.get('debug', False)))
     LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
                   '_mutinfo')

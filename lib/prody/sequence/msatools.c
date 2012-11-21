@@ -434,6 +434,22 @@ static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
     return mi;
 }
 
+static double jointEntropy(double **joint){
+    
+    double ent = 0.0, prob;
+    double *row;
+    int i, j;
+    for (i = 0; i < NUMCHARS; i++) {
+        row = joint[i];
+        for (j = 0; j < NUMCHARS; j++) {
+            prob = row[j];
+            if (prob)
+                ent -= prob * log(prob); 
+        }   
+    }
+    return ent;   
+}
+
 
 static void printJoint(double **joint, long k, long l) {
 
@@ -494,12 +510,13 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
                                     PyObject *kwargs) {
 
     PyArrayObject *msa;
-    int ambiguity = 1, turbo = 1, debug = 0;
+    int ambiguity = 1, turbo = 1, debug = 0, norm = 0;
     
-    static char *kwlist[] = {"msa", "ambiguity", "turbo", "debug", NULL};
+    static char *kwlist[] = {"msa", "ambiguity", "turbo", "norm", 
+                             "debug", NULL};
         
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iii", kwlist, &msa, 
-                                     &ambiguity, &turbo, &debug))
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iiii", kwlist, &msa, 
+                                     &ambiguity, &turbo, &norm, &debug))
         return NULL;
 
     /* check dimensions */
@@ -686,7 +703,11 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             if (debug)
                 printJoint(joint, i, j);
         }
-        mut[j] = mut[lenseq * j] = calcMI(joint, probs, i, j, debug);
+        if (norm)
+            mut[j] = mut[lenseq * j] = calcMI(joint, probs, i, j, debug) / 
+                                      jointEntropy(joint);
+        else
+            mut[j] = mut[lenseq * j] = calcMI(joint, probs, i, j, debug);
     }
     if (debug)
         printProbs(probs, lenseq);
@@ -738,6 +759,10 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             }
             if (ambiguity)
                 sortJoint(joint);
+        if (norm)
+            mut[ioffset + j] = mut[i + lenseq * j] = 
+                calcMI(joint, probs, i, j, debug) / jointEntropy(joint);
+        else
             mut[ioffset + j] = mut[i + lenseq * j] = 
                 calcMI(joint, probs, i, j, debug);
         }
