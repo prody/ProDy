@@ -89,12 +89,15 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     characters as considered as distinct types.  All non-alphabet characters 
     are considered as gaps.
     
-
-    
     By default, the will try to run in the *turbo* mode, which uses memory
     as large as the MSA array itself but runs four to five times faster.  If
     memory allocation fails, the implementation will switch to slower and
-    memory efficient mode."""
+    memory efficient mode.
+    
+    Mutual information matrix can be normalized or corrected using
+    :func:`applyMINormalization` and :func:`applyMICorrection` methods,
+    respectively.  Normalization by joint entropy can performed using this
+    function with *norm_joint* option set **True**."""
     
     try:
         msa = msa._getArray()
@@ -112,15 +115,11 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     from .msatools import buildMutinfoMatrix
     LOGGER.timeit('_mutinfo')
     mutinfo = buildMutinfoMatrix(msa, ambiguity=bool(ambiguity), 
-                        turbo=bool(turbo), debug=kwargs.get('debug', False))
+                                 turbo=bool(turbo), 
+                                 #norm=bool(kwargs.get('norm_joint', False)), 
+                                 debug=bool(kwargs.get('debug', False)))
     LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
                   '_mutinfo')
-    
-    # holding this until we implement other corrections and decide how to 
-    # handle them all together
-    #if bool(apply):
-    #    apc = applyAverProdCorr(mutinfo)
-    #    mutinfo = mutinfo - apc
         
     return mutinfo
 
@@ -196,16 +195,37 @@ def applyMINormalization(mutinfo, entropy, norm='sument'):
     except AttributeError:
         raise TypeError('norm must be a string')
         
-    if norm.startswith('sument'):
-        pass
-    elif norm.startswith('minent'):
-        pass
-    elif norm.startswith('maxent'):
-        pass
-    elif norm.startswith('maxcon'):
-        pass
-    elif norm.startswith('maxcon'):
-        pass
+    mi = zeros(shape)
+    if sw('sument'):
+        for i, i_val in enumerate(entropy):
+            for j, j_val in enumerate(entropy):
+                mi[i, j] /= (i_val + j_val)
+    
+    elif sw('minent'):
+        for i, i_val in enumerate(entropy):
+            for j, j_val in enumerate(entropy):
+                mi[i, j] /= min(i_val, j_val)
+    
+    elif sw('maxent'):
+        for i, i_val in enumerate(entropy):
+            for j, j_val in enumerate(entropy):
+                mi[i, j] /= max(i_val, j_val)
+    
+    elif sw('mincon'):
+        for i, i_val in enumerate(entropy):
+            for j, j_val in enumerate(entropy):
+                val = mi[i, j]
+                mi[i, j] /= min(i_val - val, j_val - val)
+    
+    elif sw('maxcon'):
+        for i, i_val in enumerate(entropy):
+            for j, j_val in enumerate(entropy):
+                val = mi[i, j]
+                mi[i, j] /= max(i_val - val, j_val - val)
+    
+    elif sw('joint'):
+        raise ValueError('for joint entropy normalization, use '
+                         'buildMutinfoMatrix function')
     else:    
         raise ValueError('norm={0:s} is not a valid normalization type'
                          .format(norm))
@@ -232,15 +252,15 @@ def applyMICorrection(mutinfo, correction='prod'):
     avg_mipos = mutinfo.sum(1) / (shape[0] - 1)
     avg_mi = avg_mipos.mean()
     
-    micorrect = zeros(shape)
+    mi = zeros(shape)
     if sw('prod'):
         for i, i_avg in enumerate(avg_mipos):
             for j, j_avg in enumerate(avg_mipos):
-                micorrect[i, j] -= (i_avg * j_avg) / avg_mi
+                mi[i, j] -= (i_avg * j_avg) / avg_mi
     elif sw('sum'):
         for i, i_avg in enumerate(avg_mipos):
             for j, j_avg in enumerate(avg_mipos):
-                micorrect[i, j] -= i_avg + j_avg - avg_mi
+                mi[i, j] -= i_avg + j_avg - avg_mi
     else:
         raise ValueError('correction must be prod or sum, not ' + correction)
     
