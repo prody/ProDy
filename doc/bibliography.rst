@@ -51,6 +51,10 @@ Bibliography
 .. [DF95] Frishman D, Argos P. Knowledge-Based Protein Secondary Structure 
    Assignment. *Proteins* **1995** 23:566-579.  
 
+.. [DSD08] Dunn SD, Wahl LM, Gloor GB. Mutual information without the influence
+   of phylogeny or entropy dramatically improves residue contact prediction.
+   *Bioinformatics* **2008** 24(3):333-340.
+
 .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal 
    fluctuations in protein using a single parameter harmonic potential.
    *Folding & Design* **1997** 2:173-181.
@@ -58,6 +62,10 @@ Bibliography
 .. [KH00] Konrad H, Andrei-Jose P, Serge D, Marie-Claire BF, Gerald RK.
    Harmonicity in slow protein dynamics. *Chem Phys* **2000** 261:25-37.
 
+.. [MLC05] Martin LC, Gloor GB, Dunn SD, Wahl LM. Using information theory to
+   search for co-evolving residues in proteins. *Bioinformatics* **2005** 
+   21(22):4116-4124.
+   
 .. [LT10] Lezon TR, Bahar I. Using entropy maximization to understand the 
    determinants of structural dynamics beyond native contact topology.
    *PLoS Comput Biol* **2010** 6(6):e1000816.
@@ -65,10 +73,6 @@ Bibliography
 .. [PD00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted by 
    molecular dynamics simulations and analytical approaches: Application to 
    a-amylase inhibitor. *Proteins* **2000** 40:512-524.
-
-.. [SDD08] Dunn SD, Wahl LM, Gloor GB. Mutual information without the influence
-   of phylogeny or entropy dramatically improves residue contact prediction.
-   *Bioinformatics* **2008** 24(3):333-340.
 
 .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded proteins. 
    *Phys. Rev. Lett.* **1997** 79:3090-3093.
