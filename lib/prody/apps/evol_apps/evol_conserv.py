@@ -71,7 +71,7 @@ APP.addFigure('-S', '--save-plot',
     help='save conservation plot')
 
 
-def evol_entropy(msa, **kwargs):
+def evol_conserv(msa, **kwargs):
     
     import prody
     from prody import parseMSA, calcShannonEntropy, showShannonEntropy
@@ -108,4 +108,4 @@ def evol_entropy(msa, **kwargs):
                         dpi=kwargs.get('figdpi', 300))         
     
 
-APP.setFunction(evol_entropy)
+APP.setFunction(evol_conserv)

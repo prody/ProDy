@@ -26,7 +26,7 @@ from numpy import arange
 from analysis import *
 from prody import LOGGER
 
-__all__ = ['showShannonEntropy', 'showMutualInfo']
+__all__ = ['showShannonEntropy', 'showMutinfoMatrix']
 
 
 def pickSequence(msa):
@@ -95,14 +95,14 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
         plt.ylabel(ylabel)
         if title is None:
             if msa is None:  
-                title = 'Conservation'
+                title = 'Entropy'
             else:
-                title = 'Conservation: ' + str(msa)
+                title = 'Entropy: ' + str(msa)
         plt.title(title)
     return show
 
 
-def showMutualInfo(mutinfo, clim=None, *args, **kwargs):
+def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
     """Show a heatmap of mutual information array.  :class:`.MSA` instances 
     or Numpy character arrays storing sequence alignment are also accepted 
     as *mutinfo* argument, in which case :func:`.buildMutinfoMatrix` will 
@@ -173,9 +173,9 @@ def showMutualInfo(mutinfo, clim=None, *args, **kwargs):
         plt.ylabel(xlabel)
         if title is None:
             if msa is None:  
-                title = 'Coevolution'
+                title = 'Mutual Information'
             else:
-                title = 'Coevolution: ' + str(msa)
+                title = 'Mutual Information: ' + str(msa)
         plt.title(title)
     return show
 

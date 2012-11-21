@@ -197,31 +197,19 @@ def applyMINormalization(mutinfo, entropy, norm='sument'):
         
     mi = zeros(shape)
     if sw('sument'):
-        for i, i_val in enumerate(entropy):
-            for j, j_val in enumerate(entropy):
-                mi[i, j] /= (i_val + j_val)
+        norm = lambda i_val, j_val, val: i_val + j_val
     
     elif sw('minent'):
-        for i, i_val in enumerate(entropy):
-            for j, j_val in enumerate(entropy):
-                mi[i, j] /= min(i_val, j_val)
+        norm = lambda i_val, j_val, val: min(i_val, j_val)
     
     elif sw('maxent'):
-        for i, i_val in enumerate(entropy):
-            for j, j_val in enumerate(entropy):
-                mi[i, j] /= max(i_val, j_val)
+        norm = lambda i_val, j_val, val: max(i_val, j_val)
     
     elif sw('mincon'):
-        for i, i_val in enumerate(entropy):
-            for j, j_val in enumerate(entropy):
-                val = mi[i, j]
-                mi[i, j] /= min(i_val - val, j_val - val)
+        norm = lambda i_val, j_val, val: min(i_val - val, j_val - val)
     
     elif sw('maxcon'):
-        for i, i_val in enumerate(entropy):
-            for j, j_val in enumerate(entropy):
-                val = mi[i, j]
-                mi[i, j] /= max(i_val - val, j_val - val)
+        norm = lambda i_val, j_val, val: max(i_val - val, j_val - val)
     
     elif sw('joint'):
         raise ValueError('for joint entropy normalization, use '
@@ -230,8 +218,18 @@ def applyMINormalization(mutinfo, entropy, norm='sument'):
         raise ValueError('norm={0:s} is not a valid normalization type'
                          .format(norm))
 
+    for i, i_val in enumerate(entropy):
+        for j, j_val in enumerate(entropy):
+            val = mi[i, j]
+            div = norm(i_val, j_val, val)
+            if div == 0:
+                mi[i, j] = 0
+            else: 
+                mi[i, j] /= div 
 
-def applyMICorrection(mutinfo, correction='prod'):
+    return mi
+
+def applyMICorrection(mutinfo, corr='prod'):
     """Return a copy of *mutinfo* array after average product correction 
     (default) or average sum correction is applied.  See [DSD08]_ for details.
     """
@@ -245,7 +243,7 @@ def applyMICorrection(mutinfo, correction='prod'):
         raise ValueError('mutinfo must be a 2D square array')
     
     try:
-        sw = norm.startswith
+        sw = corr.startswith
     except AttributeError:
         raise TypeError('correction must be a string')
     
@@ -253,18 +251,18 @@ def applyMICorrection(mutinfo, correction='prod'):
     avg_mi = avg_mipos.mean()
     
     mi = zeros(shape)
-    if sw('prod'):
+    if sw('prod') or sw('apc'):
         for i, i_avg in enumerate(avg_mipos):
             for j, j_avg in enumerate(avg_mipos):
                 mi[i, j] -= (i_avg * j_avg) / avg_mi
-    elif sw('sum'):
+    elif sw('sum') or sw('asc'):
         for i, i_avg in enumerate(avg_mipos):
             for j, j_avg in enumerate(avg_mipos):
                 mi[i, j] -= i_avg + j_avg - avg_mi
     else:
-        raise ValueError('correction must be prod or sum, not ' + correction)
+        raise ValueError('correction must be prod or sum, not ' + corr)
     
-    return micorrect
+    return mi
             
             
     

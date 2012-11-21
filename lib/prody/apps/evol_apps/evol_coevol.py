@@ -31,7 +31,13 @@ APP.setExample(
 refined multiple sequence alignment.  Following example will save coevolution \
 data and plot using default options:
 
-    $ evol coevol piwi_refined.slx -S""", [])
+    $ evol coevol piwi_refined.slx -S
+    
+Following example will save coevolution data and plot for all correction and \
+normalizations:
+
+    $ evol coevol piwi_refined.slx -S -c apc -c asc -m sument -m minent \
+-m maxent -m mincon -m maxcon -m joint""", [])
 
 
 APP.addArgument('msa', 
@@ -54,10 +60,20 @@ APP.addArgument('-g', '--gaps',
 
 APP.addArgument('-c', '--correction',
     dest='correction',
-    help='correction to apply to mutual information matrix',
+    help='also save corrected mutual information matrix data and plot',
     choices=['apc', 'asc'],
     metavar='STR',
     type=str,
+    action='append',
+    group='calc')
+
+APP.addArgument('-m', '--normalization',
+    dest='normalization',
+    help='also save normalized mutual information matrix data and plot',
+    choices='sument minent maxent mincon maxcon joint'.split(),
+    metavar='STR',
+    type=str,
+    action='append',
     group='calc')
 
 APP.addGroup('output', 'output options')
@@ -94,9 +110,9 @@ APP.addFigure('-S', '--save-plot',
 def evol_coevol(msa, **kwargs):
     
     import prody
-    from prody import parseMSA, buildMutinfoMatrix, showMutualInfo
-    from prody import applyMICorrection
-    from prody import writeArray
+    from prody import parseMSA, buildMutinfoMatrix, showMutinfoMatrix
+    from prody import applyMICorrection, calcShannonEntropy
+    from prody import writeArray, LOGGER, applyMINormalization
     from os.path import splitext
 
     prefix = kwargs.get('prefix')
@@ -104,33 +120,68 @@ def evol_coevol(msa, **kwargs):
         prefix, _ = splitext(msa)
         if _.lower() == '.gz':
             prefix, _ = splitext(prefix)
-        prefix += '_coevol'
+        prefix += '_mutinfo'
+    
     msa = parseMSA(msa)
     mutinfo = buildMutinfoMatrix(msa, **kwargs)
-    if kwargs.get('correction') == 'apc':
-        mutinfo = applyMICorrection(mutinfo, correction='prod')
-    if kwargs.get('correction') == 'asc':
-        mutinfo = applyMICorrection(mutinfo, correction='sum')
     writeArray(prefix + '.txt', 
                mutinfo, format=kwargs.get('numformat', '%12g'))
-    if kwargs.get('figcoevol'):
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError:
-            LOGGER.warn('Matplotlib could not be imported, '
-                        'figures are not saved.')
+
+    todo = [(None, None)]
+    norm = kwargs.get('normalization', [])
+    corr = kwargs.get('correction', [])
+    if 'joint' in norm:
+        todo.append(('norm', 'joint'))
+    for which in norm:
+        if which == 'join': continue
+        todo.append(('norm', which))
+    for which in corr:
+        todo.append(('corr', which))
+    entropy = None
+    
+    for what, which in todo:
+        if what is None:
+            matrix = mutinfo
+            suffix = ''
+        elif which == 'joint':
+            LOGGER.info('Applying {0:s} normalization.'.format(repr(which)))
+            matrix = buildMutinfoMatrix(msa, norm=True, **kwargs)
+            suffix = '_norm_joint'
+        elif what == 'norm':
+            LOGGER.info('Applying {0:s} normalization.'.format(repr(which)))
+            if entropy is None:
+                entropy = calcShannonEntropy(msa, **kwargs)
+                from code import interact; interact(local=locals())
+            matrix = applyMINormalization(mutinfo, entropy, norm=which)
+            suffix = '_norm_' + which
         else:
-            cmin = kwargs.get('cmin', mutinfo.min())
-            cmax = kwargs.get('cmax', mutinfo.max())
-            prody.SETTINGS['auto_show'] = False
-            width = kwargs.get('figwidth', 8)
-            height = kwargs.get('figheight', 6)
-            figargs = kwargs.get('figargs', ())
-            figure = plt.figure(figsize=(width, height))
-            show = showMutualInfo(mutinfo, msa=msa, clim=(cmin, cmax), *figargs)
-            format = kwargs.get('figformat', 'pdf')
-            figure.savefig(prefix + '.' + format, format=format,
-                        dpi=kwargs.get('figdpi', 300))         
+            LOGGER.info('Applying {0:s} correction.'.format(repr(which)))
+            matrix = applyMICorrection(mutinfo, which)
+            suffix = '_corr_' + which
+        
+        writeArray(prefix + suffix + '.txt', 
+                   matrix, format=kwargs.get('numformat', '%12g'))
+    
+        if kwargs.get('figcoevol'):
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError:
+                LOGGER.warn('Matplotlib could not be imported, '
+                            'figures are not saved.')
+            else:
+                #cmin = kwargs.get('cmin', matrix.min())
+                #cmax = kwargs.get('cmax', matrix.max())
+                prody.SETTINGS['auto_show'] = False
+                width = kwargs.get('figwidth', 8)
+                height = kwargs.get('figheight', 6)
+                figargs = kwargs.get('figargs', ())
+                figure = plt.figure(figsize=(width, height))
+                show = showMutinfoMatrix(matrix, *figargs, msa=msa) 
+                                      #clim=(cmin, cmax))
+                        
+                format = kwargs.get('figformat', 'pdf')
+                figure.savefig(prefix + suffix + '.' + format, format=format,
+                            dpi=kwargs.get('figdpi', 300))         
     
 
 APP.setFunction(evol_coevol)
