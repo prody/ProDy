@@ -280,8 +280,7 @@ class GammaVariableCutoff(Gamma):
     effective cutoff, the :meth:`GammaVariableCutoff.gamma` method returns 
     ``0``.  This annuls the interaction between those atom pairs."""
     
-    def __init__(self, identifiers, gamma=1., default_radius=7.5, debug=False, 
-                 **kwargs):
+    def __init__(self, identifiers, gamma=1., default_radius=7.5, **kwargs):
         """Set the radii of atoms.
         
         :arg identifiers: List of atom names or types, or residue names.
@@ -294,9 +293,6 @@ class GammaVariableCutoff(Gamma):
             as a keyword argument. Default is 7.5
         :value default_radius: float
         
-        :arg debug: Print debugging information. Default is ``False``.
-        :type debug: bool
-        
         Keywords in keyword arguments must match those in *atom_identifiers*.
         Values of keyword arguments must be :class:`float`."""
         
@@ -307,7 +303,7 @@ class GammaVariableCutoff(Gamma):
             radii[i] = kwargs.get(identifier, default_radius)
         self._radii = radii
         self._gamma = float(gamma)
-        self._debug = bool(debug)
+        self._debug = bool(kwargs.get('debug', False))
     
     def getRadii(self):
         """Return a copy of radii array."""
@@ -330,8 +326,8 @@ class GammaVariableCutoff(Gamma):
         else:
             gamma = 0
         if self._debug:
-            print self._identifiers[i]+'_'+str(i), '--', \
-                  self._identifiers[j]+'_'+str(j), \
-                  'effective cutoff:', cutoff, 'distance:', dist2**0.5, \
-                  'gamma:', gamma    
+            print(self._identifiers[i]+'_'+str(i), '--',
+                  self._identifiers[j]+'_'+str(j),
+                  'effective cutoff:', cutoff, 'distance:', dist2**0.5,
+                  'gamma:', gamma) # PY3K: OK
         return gamma

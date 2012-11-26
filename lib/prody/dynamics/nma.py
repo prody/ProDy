@@ -25,6 +25,11 @@ import numpy as np
 
 from .mode import Mode
 
+from prody import PY2K
+
+if PY2K:
+    range = xrange
+
 __all__ = ['NMA']
 
 class NMA(object):
@@ -71,7 +76,7 @@ class NMA(object):
         
     def __iter__(self):
         
-        for i in xrange(self._n_modes):
+        for i in range(self._n_modes):
             yield self[i]
     
     def __repr__(self):

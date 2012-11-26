@@ -355,11 +355,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
         text = show.text                
 
     indict = defaultdict(list)
-    for i, opts in enumerate(zip(markers, colors, labels)):
+    for i, opts in enumerate(zip(markers, colors, labels)): # PY3K: OK
         indict[opts].append(i)
 
     args = list(args)
-    for opts, indices in indict.iteritems():
+    for opts, indices in indict.items(): # PY3K: OK
         marker, color, label = opts
         kwargs['marker'] = marker
         kwargs['color'] = color
@@ -483,10 +483,10 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
         
     indict = defaultdict(list)
-    for i, opts in enumerate(zip(markers, colors, labels)):
+    for i, opts in enumerate(zip(markers, colors, labels)): # PY3K: OK
         indict[opts].append(i)
     
-    for opts, indices in indict.iteritems():
+    for opts, indices in indict.items(): # PY3K: OK
         marker, color, label = opts
         kwargs['marker'] = marker
         kwargs['color'] = color
@@ -569,9 +569,9 @@ def showCrossCorr(modes, *args, **kwargs):
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:, 
                        arange[0]+1:] = calcCrossCorr(modes)
-    if not kwargs.has_key('interpolation'):
+    if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
-    if not kwargs.has_key('origin'):
+    if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
     show = plt.imshow(cross_correlations, *args, **kwargs), plt.colorbar()
     plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])

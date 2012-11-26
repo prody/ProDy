@@ -25,7 +25,7 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS
+from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup
 from prody.utilities import openFile, isExecutable, which, PLATFORM
 
@@ -179,21 +179,24 @@ def getVMDpath():
         vmdbin = None
         vmddir = None
         if PLATFORM == 'Windows': 
-            import _winreg
+            if PY3K:
+                import winreg
+            else:
+                import _winreg as winreg # PY3K: OK
             for vmdversion in ('1.8.7', '1.9', '1.9.1'): 
                 try:
-                    key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
+                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
                             'Software\\University of Illinois\\VMD\\' + 
                             vmdversion)
-                    vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
+                    vmddir = winreg.QueryValueEx(key, 'VMDDIR')[0]
                     vmdbin = join(vmddir, 'vmd.exe') 
                 except:    
                     pass
                 try:
-                    key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, 
+                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 
                 'Software\\WOW6432node\\University of Illinois\\VMD\\' + 
                 vmdversion)
-                    vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
+                    vmddir = winreg.QueryValueEx(key, 'VMDDIR')[0]
                     vmdbin = join(vmddir, 'vmd.exe') 
                 except:    
                     pass
@@ -282,7 +285,7 @@ def parseNMD(filename, type=None):
 
     from prody.atomic import ATOMIC_FIELDS
 
-    for label, data in atomic.items():
+    for label, data in atomic.items(): # PY3K: OK
         if data is None:
             continue
         line, data = data

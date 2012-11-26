@@ -73,7 +73,7 @@ def printOverlapTable(rows, cols):
     PCA p38 xray #2   -0.78  -0.20  +0.22
     PCA p38 xray #3   +0.05  -0.57  +0.06"""
     
-    print getOverlapTable(rows, cols)
+    print(getOverlapTable(rows, cols))
 
 
 def writeOverlapTable(filename, rows, cols):

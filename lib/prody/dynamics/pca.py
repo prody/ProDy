@@ -26,13 +26,16 @@ import time
 
 import numpy as np
 
-from prody import LOGGER
+from prody import LOGGER, PY2K
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble, PDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
 
 from .nma import NMA
+
+if PY2K:
+    range = xrange
 
 __all__ = ['PCA', 'EDA']
 
@@ -211,7 +214,7 @@ class PCA(NMA):
                 LOGGER.info('Scipy is not found, all modes are calculated.')
             values, vectors = linalg.eigh(self._cov)
         # Order by descending SV
-        revert = range(len(values)-1, -1, -1)
+        revert = list(range(len(values)-1, -1, -1))
         values = values[revert]
         vectors = vectors[:, revert]
         which = values > 1e-8
