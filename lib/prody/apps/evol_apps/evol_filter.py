@@ -24,7 +24,7 @@ from ..apptools import DevelApp
 
 __all__ = ['evol_filter']
 
-APP = DevelApp('filter', 'filter an MSA based on labels')
+APP = DevelApp('filter', 'filter an MSA using sequence labels')
 
 APP.setExample(
 """This application filters sequences in an MSA based on label data. \

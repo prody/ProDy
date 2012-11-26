@@ -24,7 +24,8 @@ from ..apptools import DevelApp
 
 __all__ = ['evol_coevol']
 
-APP = DevelApp('coevol', 'calculate coevolution using mutual information')
+APP = DevelApp('coevol', 
+               help='analyze co-evolving residues using mutual information')
 
 APP.setExample(
 """This application calculates mutual information between MSA postions for a \
