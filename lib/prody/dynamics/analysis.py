@@ -79,13 +79,13 @@ def calcFractVariance(mode):
     
     if isinstance(mode, Mode):
         var = mode.getVariance()
-        trace = mode.getModel()._trace
+        trace = mode.getModel()._getTrace() 
     elif isinstance(mode, (ModeSet, NMA)):
         var = mode.getVariances()
         if isinstance(mode, ModeSet):
-            trace = mode.getModel()._trace
+            trace = mode.getModel()._getTrace()
         else:
-            trace = mode._trace
+            trace = mode._getTrace()
     else:
         raise TypeError('mode must be a Mode instance')
     if trace is None:

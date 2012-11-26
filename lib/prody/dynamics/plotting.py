@@ -181,7 +181,8 @@ def showFractVars(modes, *args, **kwargs):
         raise TypeError('modes must be NMA, or ModeSet, not {0:s}'
                         .format(type(modes)))
     
-    fracts = [(int(mode), calcFractVariance(mode)) for mode in modes]
+    fracts = calcFractVariance(modes)
+    fracts = [(int(mode), fract) for mode, fract in zip(modes, fracts)]
     fracts = np.array(fracts)
     show = plt.bar(fracts[:,0]+0.5, fracts[:,1], *args, **kwargs)
     axis = list(plt.axis())
@@ -212,7 +213,8 @@ def showCumulFractVars(modes, *args, **kwargs):
         indices = modes.getIndices() + 0.5
     else:
         indices = np.arange(len(modes)) + 0.5
-    fracts = np.array([calcFractVariance(mode) for mode in modes]).cumsum()
+    
+    fracts = calcFractVariance(modes).cumsum()
     show = plt.plot(indices, fracts, *args, **kwargs)
     axis = list(plt.axis())
     axis[0] = 0.5
