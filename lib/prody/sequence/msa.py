@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import all, zeros, dtype, array, char, fromstring
+from numpy import all, zeros, dtype, array, char, fromstring, arange
 
 from .msafile import splitSeqLabel, MSAFile 
 
@@ -356,11 +356,11 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
     :type label: str
     
     :arg row_occ: row occupancy, sequences with less occupancy will be 
-        removed 
+        removed after *label* refinement is applied
     :type row_occ: float
     
     :arg col_occ: column occupancy, residue positions with less occupancy
-        will be removed 
+        will be removed after other refinements are applied
     :type col_occ: float
     
     For Pfam MSA data, *label* is UniProt entry name for the protein.  You may
@@ -388,7 +388,7 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
             
 
     title = []
-
+    cols = None
     if label is not None:
         try:
             upper, lower = label.upper(), label.lower()
@@ -435,8 +435,9 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         if index is None:        
             raise ValueError('label is not in msa, or msa is not indexed')
         title.append('label=' + label)
-        cols = char.isalpha(arr[index])
-        arr = arr[:, cols] 
+        cols = char.isalpha(arr[index]).nonzero()[0]
+        arr = arr.take(cols, 1)
+        
     rows = None
     from .analysis import calcMSAOccupancy
     if row_occ is not None:
@@ -445,9 +446,10 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         except Exception as err:
             raise TypeError('row_occ must be a float ({0:s})'.format(str(err)))
         assert 0. <= row_occ <= 1., 'row_occ must be between 0 and 1'
-        rows = calcMSAOccupancy(arr, 'row') >= row_occ
+        
+        rows = (calcMSAOccupancy(arr, 'row') >= row_occ).nonzero()[0]
         arr = arr[rows]
-        title.append('row_occ>' + str(row_occ))
+        title.append('row_occ>=' + str(row_occ))
 
     if col_occ is not None:
         try:
@@ -455,8 +457,10 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         except Exception as err:
             raise TypeError('col_occ must be a float ({0:s})'.format(str(err)))
         assert 0. <= col_occ <= 1., 'col_occ must be between 0 and 1'
-        arr = arr[:, calcMSAOccupancy(arr, 'col') >= col_occ]
-        title.append('col_occ>' + str(col_occ))
+        
+        cols = (calcMSAOccupancy(arr, 'col') >= col_occ).nonzero()[0]
+        arr = arr.take(cols, 1)
+        title.append('col_occ>=' + str(col_occ))
         
     if not title:
         raise ValueError('label, row_occ, col_occ all cannot be None')
@@ -474,7 +478,7 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
             mapping = copy(msa._mapping)
         else:
             labels = msa._labels
-            labels = [labels[i] for i in rows.nonzero()[0]]
+            labels = [labels[i] for i in rows]
             mapping = None
         return MSA(arr, title=msa.getTitle() + ' refined ({0:s})'
                    .format(', '.join(title)), labels=labels, mapping=mapping)

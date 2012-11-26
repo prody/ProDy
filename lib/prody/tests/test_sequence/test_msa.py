@@ -27,7 +27,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from prody.tests.test_datafiles import *
 
-from prody import LOGGER, refineMSA, parseMSA
+from prody import LOGGER, refineMSA, parseMSA, calcMSAOccupancy
 
 LOGGER.verbosity = None
 
@@ -39,9 +39,10 @@ class TestRefinement(TestCase):
 
     def testLabel(self):
         label = 'FSHB_BOVIN'
-        
+        index = FASTA.getIndex(label)
         refined = refineMSA(FASTA, label=label)._getArray()
-        expected = FASTA._getArray()[:, FASTA_ALPHA[FASTA.getIndex(label)]]
+        
+        expected = FASTA._getArray().take(FASTA_ALPHA[index].nonzero()[0], 1)
         
         assert_array_equal(refined, expected)
         
@@ -54,17 +55,42 @@ class TestRefinement(TestCase):
         assert_array_equal(refined, expected)
         
     def testColocc(self):
-
+        
         refined = refineMSA(FASTA, col_occ=0.9)._getArray()
         expected = FASTA._getArray()[:, FASTA_ALPHA.sum(0) / 24. >= 0.9]
         
         assert_array_equal(refined, expected)
         
     def testRowCol(self):
-
-        refined = refineMSA(FASTA, col_occ=0.9, row_occ=0.9)._getArray()
-        rows = FASTA_ALPHA.sum(1) / 112. >= 0.9
-        expected = FASTA._getArray()[rows,:][:, 
-                        1.0 * FASTA_ALPHA[rows,:].sum(0) / rows.sum() >= 0.9]
         
+        row_occ = 0.9 
+        col_occ = 1.0 
+        refined = refineMSA(FASTA, row_occ=row_occ,
+                            col_occ=col_occ)._getArray()
+        rows = FASTA_ALPHA.sum(1) / 112. >= row_occ
+        expected = FASTA._getArray()[rows]
+        cols = char.isalpha(expected).sum(0, 
+                    dtype=float) / expected.shape[0] >= col_occ 
+        
+        expected = expected.take(cols.nonzero()[0], 1)
         assert_array_equal(refined, expected)
+
+
+    def testAll(self):
+
+        row_occ = 0.9 
+        col_occ = 0.9 
+        label = 'FSHB_BOVIN'
+        refined = refineMSA(FASTA, label=label, 
+                            row_occ=row_occ, col_occ=col_occ)
+
+        index = FASTA.getIndex(label)
+        which = FASTA_ALPHA[index].nonzero()[0]
+        expected = FASTA._getArray().take(which, 1)
+        
+        expected = expected[calcMSAOccupancy(expected, 'row') >= row_occ]
+        
+        which = (calcMSAOccupancy(expected) >= col_occ).nonzero()[0]
+        expected = expected.take(which, 1)
+
+        assert_array_equal(refined._getArray(), expected)
