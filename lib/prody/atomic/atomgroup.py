@@ -1018,8 +1018,8 @@ class AtomGroup(Atomic):
         user provided data."""
 
         if str(which).startswith('u'): # user
-            labels = [key for key in (self._data or {}).keys() 
-                        if not key in ATOMIC_FIELDS]
+            labels = [key for key in (self._data or {}) 
+                      if not key in ATOMIC_FIELDS]
         else:
             labels = list(self._data or [])
         labels.sort()
@@ -1137,8 +1137,8 @@ class AtomGroup(Atomic):
             labels.update(FLAG_PLANTERS)
             labels = list(labels)
         elif which.startswith('u'): # user
-            labels = [key for key in (self._flags or {}).keys() 
-                        if not key in FLAG_PLANTERS]
+            labels = [key for key in (self._flags or {}) 
+                      if not key in FLAG_PLANTERS]
         else:
             labels = list(self._flags or [])
         labels.sort()

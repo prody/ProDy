@@ -160,41 +160,41 @@ __all__ = ['Atomic', 'AtomGroup',
            'Selection', 'AtomMap',
            'Bond', 'select', 'atomgroup', 'hierview', 'fields', 'flags']
 
-from fields import ATOMIC_FIELDS
+from .fields import ATOMIC_FIELDS
 
-from atom import *
-from bond import *
-from flags import *
-from chain import *
-from subset import *
-from atomic import *
-from select import *
-from atommap import *
-from residue import *
-from pointer import *
-from segment import *
-from hierview import *
-from functions import *
-from atomgroup import *
-from selection import *
+from .atom import *
+from .bond import *
+from .flags import *
+from .chain import *
+from .subset import *
+from .atomic import *
+from .select import *
+from .atommap import *
+from .residue import *
+from .pointer import *
+from .segment import *
+from .hierview import *
+from .functions import *
+from .atomgroup import *
+from .selection import *
 
-import flags
-import atomic
-import select
-import atommap
-import pointer
-import hierview
-import functions
-import atomgroup
-import selection
+from . import flags
+from . import atomic
+from . import select
+from . import atommap
+from . import pointer
+from . import hierview
+from . import functions
+from . import atomgroup
+from . import selection
 
-from chain import AAMAP, getSequence
+from .chain import AAMAP, getSequence
 
 __all__.extend(functions.__all__)
 __all__.extend(select.__all__)
 __all__.extend(flags.__all__)
 
-from select import checkSelstr, isSelectionMacro
+from .select import checkSelstr, isSelectionMacro
 
 atomic.SELECT = selection.SELECT = SELECT = Select()
 atomic.isSelectionMacro = isSelectionMacro

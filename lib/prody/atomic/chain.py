@@ -35,7 +35,7 @@ AAMAP = {
     'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J',
 }
 _ = {}
-for aaa, a in AAMAP.iteritems():
+for aaa, a in AAMAP.items():
     _[a] = aaa
 AAMAP.update(_)
 AAMAP.update({'PTR': 'Y', 'TPO': 'T', 'SEP': 'S', 'CSO': 'C',
@@ -125,7 +125,7 @@ class Chain(AtomSubset):
         elif isinstance(key, slice):
             resnums = set(arange(*key.indices(self._getResnums().max()+1)))
             _list = self._list
-            return [_list[i] for (rn, ic), i in self._dict.iteritems() 
+            return [_list[i] for (rn, ic), i in self._dict.items() 
                     if rn in resnums]
                     
         else:
