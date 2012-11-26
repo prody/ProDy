@@ -98,6 +98,30 @@ class NMA(object):
         
         self._is3d = True
     
+    def _getTrace(self):
+        """Return trace, and emit a warning message if trace is calculated
+        using eigenvalues of a subset of variances (eigenvalues or inverse
+        eigenvalues)."""
+        
+        trace = self._trace
+        if trace is None:
+            if self._vars is None:
+                raise ValueError('variances are not set or calculated')
+            trace = self._vars.sum()
+            diff = self._dof - self._n_modes
+            if self._is3d and diff > 6:
+                diff = True
+            elif diff > 1:
+                diff = True
+            else:
+                diff = False
+            if diff:
+                from prody import LOGGER
+                LOGGER.warn('Total variance for {0:s} is calculated using '
+                            '{1:d} available modes out of {2:d} possible.'
+                            .format(str(self), self._n_modes, self._dof))
+        return trace            
+    
     def getModel(self):
         """Return self."""
         
@@ -183,78 +207,68 @@ class NMA(object):
         
         pass
     
-    def addEigenpair(self, eigenvector, eigenvalue=None):
-        """Add *eigenvector* and *eigenvalue* pair to the :class:`NMA` 
-        instance.  If *eigenvalue* is not given, it will be set to 1. 
-        Variances are set as the inverse eigenvalues."""
-        
-        vector = eigenvector
-        value = eigenvalue
-        if not isinstance(vector, np.ndarray):
-            raise TypeError('eigenvector must be a Numpy ndarray, not {0:s}'
-                            .format(type(vector)))
-        if vector.ndim > 2:
-            raise ValueError('eigenvector must be 1- or 2-dimensional array, '
-                            'not {0:d}-d'.format(type(vector.ndim)))
-        elif vector.ndim == 2 and vector.shape[0] >= vector.shape[1]:
-            raise ValueError('eigenvectors must correspond to columns')
-        else:
-            vector = vector.reshape((vector.shape[0], 1))
-        
-        if value is None:
-            if vector.ndim == 1:
-                value = np.ones(1)
-            else:
-                value = np.ones(vector.shape[2])
-        elif isinstance(value, (int, float)):
-            value = np.array([value])
-        elif isinstance(value, np.ndarray):
-            if value.ndim > 1:
-                raise ValueError('eigenvalue must be a 1-d array')
-            elif value.shape[0] != vector.shape[0]:
-                raise ValueError('number of eigenvectors and eigenvalues '
-                                 'must match')
+    def addEigenpair(self, vector, value=None):
+        """Add eigen *vector* and eigen *value* pair(s) to the instance.  
+        If eigen *value* is omitted, it will be set to 1.  Inverse 
+        eigenvalues are set as variances."""
         
         if self._array is None:
-            self._array = vector
-            self._eigvals = value
-            self._dof = vector.shape[0]
-            if self._is3d:
-                self._n_atoms = self._dof / 3
-            else:
-                self._n_atoms = self._dof
-            self._n_modes = vector.shape[1]
+            self.setEigens()
+        
+        try:
+            ndim, shape = vector.ndim, vector.shape
+        except AttributeError:
+            raise TypeError('vector must be a numpy array')
+
+        if ndim > 2:
+            raise ValueError('vector must be 1- or 2-dimensional')
+        elif ndim == 2 and shape[0] < shape[1]:
+            raise ValueError('eigenvectors must correspond to vector columns')
         else:
-            if vector.shape[0] != self._array.shape[0]: 
-                raise ValueError('shape of vector do not match shape of ' 
-                                 'existing vectors')
-            self._array = np.concatenate((self._array, vector), 1)
-            self._eigvals = np.concatenate((self._eigvals, value))
-            self._n_modes += vector.shape[1]            
+            vector = vector.reshape((shape[0], 1))
+        
+        if eigval is None:
+            if ndim == 1:
+                eigval = np.ones(1)
+            else:
+                eigval = np.ones(shape[2])
+        else:
+            try:
+                ndim2, shape2 = eigval.ndim, eigval.shape
+            except AttributeError:
+                try:
+                    eigval = np.array([value], float)
+                except Exception:
+                    raise TypeError('value must be a number or array')
+            else:
+                if value.ndim > 1:
+                    raise ValueError('value must be a 1-dimensional array')
+                elif value.shape[0] != value.shape[0]:
+                    raise ValueError('number of eigenvectors and eigenvalues '
+                                     'must match')
+        
+        if vector.shape[0] != self._array.shape[0]: 
+            raise ValueError('shape of vector do not match shape of ' 
+                             'existing eigenvectors')
+        self._array = np.concatenate((self._array, vector), 1)
+        self._eigvals = np.concatenate((self._eigvals, value))
+        self._n_modes += shape[1]            
         self._vars = 1 / self._eigvals
     
     def setEigens(self, vectors, values=None):
-        """Set eigenvectors and eigenvalues.
+        """Set eigen *vectors* and eigen *values*.  If eigen *values* are 
+        omitted, they will be set to 1.  Inverse eigenvalues are set as 
+        variances."""
         
-        :arg vectors: eigenvectors
-        :type vectors: numpy.ndarray
-        
-        :arg values: Eigenvalues. When ``None`` is passed (default value), 
-            all eigenvalues will be set to ``1``.
-        :type values: numpy.ndarray
-        
-        For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
-        and values must have shape ``(M,)``.
-        
-        Variances are set as the inverse eigenvalues."""
-        
-        if not isinstance(vectors, np.ndarray):
-            raise TypeError('vectors must be a numpy.ndarray, not {0:s}'
-                            .format(type(vectors)))
-        elif vectors.ndim != 2:
+        try:
+            ndim, shape = vectors.ndim, vectors.shape
+        except AttributeError:
+            raise TypeError('vectors must be a numpy array')
+            
+        if ndim != 2:
             raise ValueError('vectors must be a 2-dimensional array')
         else:
-            dof = vectors.shape[0]
+            dof = shape[0]
             if self._is3d:
                 n_atoms = dof / 3
             else: 

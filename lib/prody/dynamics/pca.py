@@ -279,30 +279,21 @@ class PCA(NMA):
                          .format(self._n_modes, time.time()-start))
         
     def addEigenpair(self, eigenvector, eigenvalue=None):
-        """Add *eigenvector* and *eigenvalue* pair to the class instance.  If 
-        *eigenvalue* is not given, it will be set to 1.  Eigenvalue is also set
-        as the variance of the mode."""
+        """Add eigen *vector* and eigen *value* pair(s) to the instance.  
+        If eigen *value* is omitted, it will be set to 1.  Eigenvalues 
+        are set as variances."""
+
 
         NMA.addEigenpair(self, eigenvector, eigenvalue)
-        self._vars = self._eigvals.copy()
+        self._vars = self._eigvals
 
 
     def setEigens(self, vectors, values=None):
-        """Set eigenvectors and eigenvalues.
-        
-        :arg vectors: eigenvectors
-        :type vectors: :class:`numpy.ndarray`
-        
-        :arg values: eigenvalues, when not provided, all eigenvalues will be 
-            set to 1
-        :type values: :class:`numpy.ndarray`
-        
-        For M modes and N atoms, *vectors* must have shape ``(3*N, M)``
-        and values must have shape ``(M,)``.  Eigenvalues are also set as the 
-        variances."""
+        """Set eigen *vectors* and eigen *values*.  If eigen *values* are 
+        omitted, they will be set to 1.  Eigenvalues are set as variances."""
         
         NMA.setEigens(self, vectors, values)
-        self._vars = self._eigvals.copy()
+        self._vars = self._eigvals
 
 class EDA(PCA):
     

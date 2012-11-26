@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
+from os.path import abspath, join, isfile, isdir, split, splitext
 
 import numpy as np
 
@@ -186,7 +186,7 @@ def getVMDpath():
                             'Software\\University of Illinois\\VMD\\' + 
                             vmdversion)
                     vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
-                    vmdbin = os.path.join(vmddir, 'vmd.exe') 
+                    vmdbin = join(vmddir, 'vmd.exe') 
                 except:    
                     pass
                 try:
@@ -194,7 +194,7 @@ def getVMDpath():
                 'Software\\WOW6432node\\University of Illinois\\VMD\\' + 
                 vmdversion)
                     vmddir = _winreg.QueryValueEx(key, 'VMDDIR')[0]
-                    vmdbin = os.path.join(vmddir, 'vmd.exe') 
+                    vmdbin = join(vmddir, 'vmd.exe') 
                 except:    
                     pass
         else:
@@ -208,11 +208,6 @@ def getVMDpath():
                         vmddir = line.split('=')[1].replace('"', '')
                         break
                 vmdfile.close()
-        if False and \
-           isinstance(vmdbin, (StringType, UnicodeType)) and \
-           isinstance(vmddir, (StringType, UnicodeType)) and \
-           os.path.isfile(vmdbin) and os.path.isdir(vmddir): 
-            pass#return vmdbin, vmddir
         if isExecutable(vmdbin):
             setVMDpath(vmdbin)
             return vmdbin
@@ -229,72 +224,140 @@ def setVMDpath(path):
         raise OSError('{0:s} is not executable.'.format(str(path)))
 
 
-def parseNMD(filename, type=NMA):
-    """Returns normal mode and atomic data parsed from an NMD file.
-    Normal mode data is returned in an :class:`~.NMA` instance. Atomic
-    data is returned in an :class:`~.AtomGroup` instance."""
+NMD_LABEL_MAP = {
+    'atomnames': 'name', 
+    'resnames': 'resname',
+    'resnums': 'resnum', 
+    'resids': 'resnum',
+    'chainids': 'chain', 
+    'bfactors': 'beta'
+}
+
+def parseNMD(filename, type=None):
+    """Return :class:`.NMA` and :class:`.AtomGroup` instances storing data 
+    parsed from *filename* in :file:`.nmd` format.  Type of :class:`.NMA`
+    instance, e.g. :class:`.PCA`, :class:`.ANM`, or :class:`.GNM` will
+    be determined based on mode data."""
 
     assert not isinstance(type, NMA), 'type must be NMA, ANM, GNM, or PCA'
-    atomic = dict()
-    modes = []
-    nmd = open(filename)
-    for line in nmd:
-        split = line.find(' ')
-        if line[:split] == 'mode':
-            modes.append(line[split:].strip())
-        elif line[:split] in ('coordinates', 'atomnames', 'resnames', 
-                              'resnums', 'resids', 'chainids', 'bfactors',
-                              'name'):
-            atomic[line[:split]] = line[split:].strip()
-    nmd.close()
     
-    name = atomic.pop('name', os.path.splitext(os.path.split(filename)[1])[0])
-    coords = atomic.pop('coordinates', None)
+    atomic = {}
+    atomic.update([(label, None) for label in NMD_LABEL_MAP]) 
+    atomic['coordinates'] = None
+    atomic['name'] = None
+    modes = []
+    
+    with open(filename) as nmd: 
+        for i, line in enumerate(nmd):
+            try:
+                label, data = line.split(None, 1)
+            except ValueError:
+                pass
+            
+            if label == 'mode':
+                modes.append((i + 1, data))
+            elif label in atomic:
+                if atomic[label] is None:
+                    atomic[label] = (i + 1, data)
+                else:
+                    LOGGER.warn('Data label {0:s} is found more than once in '
+                                '{1:s}.'.format(repr(label), repr(filename)))
+    
+    name = atomic.pop('name', '')[1].strip() or splitext(split(filename)[1])[0]
+    ag = AtomGroup(name)
     dof = None
+    n_atoms = None
+    
+    line, coords = atomic.pop('coordinates', None)
     if coords is not None:
-        coords = np.fromstring( coords, dtype=float, sep=' ')
+        coords = np.fromstring(coords, dtype=float, sep=' ')
         dof = coords.shape[0]
-        ag = None
-        n_atoms = dof / 3
-        coords = coords.reshape((n_atoms, 3))
-        ag = AtomGroup(name)
-        ag.setCoords(coords)
-        data = atomic.pop('atomnames', None)
-        if data is not None:
-            ag.setNames(data.split())
-        data = atomic.pop('resnames', None)
-        if data is not None:
-            ag.setResnames(data.split())
-        data = atomic.pop('chainids', None)
-        if data is not None:
-            ag.setChids(data.split())
-        data = atomic.pop('resnums', None)
-        if data is not None:
-            ag.setResnums(np.fromstring(data, int, sep=' '))
-        data = atomic.pop('resids', None)
-        if data is not None:
-            ag.setResnums(np.fromstring(data, int, sep=' '))
-        data = atomic.pop('bfactors', None)
-        if data is not None:
-            ag.setBetas(np.fromstring(data, float, sep=' '))
-    nma = type(name)
-    for mode in modes:
-        
-        items = mode.split()
-        diff = len(items) - dof
-        mode = np.array(items[diff:]).astype(float)
-        if len(mode) != dof:
-            pass
-        if diff == 1 and not items[0].isdigit():
-            value = float(items[0])
+        if dof % 3 != 0:
+            LOGGER.warn('Coordinate data in {0:s} at line {1:d} is corrupt '
+                        'and will be omitted.'.format(repr(filename), line))
         else:
-            if not items[0].isdigit():
-                value = float(items[0])
-            elif not items[1].isdigit():
-                value = float(items[1])
-            else:
-                value = 1.0
-        nma.addEigenpair(mode, value)
+            n_atoms = dof / 3
+            coords = coords.reshape((n_atoms, 3))
+            ag.setCoords(coords)
+
+    from prody.atomic import ATOMIC_FIELDS
+
+    for label, data in atomic.items():
+        if data is None:
+            continue
+        line, data = data
+        data = data.split()
+        if n_atoms is None:
+            n_atoms = len(data)
+            dof = n_atoms * 3
+        elif len(data) != n_atoms:
+            LOGGER.warn('Data with label {0:s} in {1:s} at line {2:d} is '
+                        'corrupt, expected {2:d} values, parsed {3:d}.'.format(
+                        repr(label), repr(filename), line, n_atoms, len(data)))
+            continue
+        label = NMD_LABEL_MAP[label]
+        data = np.array(data, dtype=ATOMIC_FIELDS[label].dtype)
+        ag.setData(label, data)
+    
+    if not modes:
+        return None, ag
+    
+    length = len(modes[0][1].split())
+    is3d =  length > n_atoms + 2
+    if dof is None: 
+        dof = length - (length % 3)
+    elif not is3d: # GNM
+        dof = n_atoms
+    
+    array = np.zeros((dof, len(modes)))
+    less = 0
+    eigvals = []
+    count = 0
+    for i, (line, mode) in enumerate(modes):
+        mode = np.fromstring(mode, dtype=float, sep=' ')
+        diff = len(mode) - dof
+        if diff < 0 or diff > 2:
+            LOGGER.warn('Mode data in {0:s} at line {1:d} is corrupt.'
+                        .format(repr(filename), line))
+            continue
+        array[:, i - less] = mode[diff:] 
+        count += 1
+        eigvals.append(mode[:diff])
+    
+    if count == 0:
+        return None, ag
+    
+    try:
+        eigvals = np.array(eigvals, dtype=float)
+    except TypeError:
+        LOGGER.warn('Failed to parse eigenvalues from {0:s}.'
+                    .format(repr(filename)))
+
+    if eigvals.shape[1] > 2:
+        LOGGER.warn('Failed to parse eigenvalues from {0:s}.'
+                    .format(repr(filename)))
+        eigvals = None
+    elif eigvals.shape[1] == 1:
+        if np.all(eigvals % 1 == 0):
+            LOGGER.warn('Failed to parse eigenvalues from {0:s}.'
+                        .format(repr(filename)))
+            eigvals = None
+        else:        
+            eigvals = eigvals.flatten() ** 2
+    else:
+        eigvals = eigvals[:, 1] ** 2
+        
+    if is3d:
+        if eigvals is not None and np.all(eigvals[:-1] >= eigvals[1:]):
+            nma = PCA(name)
+        else:
+            nma = ANM(name)
+    else:
+        nma = GNM(name)
+    if count != array.shape[1]:
+        array = array[:,:count].copy()
+        
+    nma.setEigens(array, eigvals)
     return nma, ag
     
 
@@ -317,14 +380,14 @@ def writeNMD(filename, modes, atoms):
     out = openFile(filename, 'w')
     
     #out.write('#!{0:s} -e\n'.format(VMDPATH))
-    out.write('nmwiz_load {0:s}\n'.format(os.path.abspath(filename)))
+    out.write('nmwiz_load {0:s}\n'.format(abspath(filename)))
     name = modes.getTitle()
     name = name.replace(' ', '_').replace('.', '_')
     if not name.replace('_', '').isalnum() or len(name) > 30:
         name = str(atoms)
         name = name.replace(' ', '_').replace('.', '_')
     if not name.replace('_', '').isalnum() or len(name) > 30:
-        name = os.path.splitext(os.path.split(filename)[1])[0]
+        name = splitext(split(filename)[1])[0]
     out.write('name {0:s}\n'.format(name))
     try:
         coords = atoms.getCoords()
@@ -401,7 +464,7 @@ def viewNMDinVMD(filename):
     
     vmd = SETTINGS.get('vmd')
     if vmd:
-        os.system('{0:s} -e {1:s}'.format(vmd, os.path.abspath(filename)))
+        os.system('{0:s} -e {1:s}'.format(vmd, abspath(filename)))
         
 def writeModes(filename, modes, format='%.18e', delimiter=' '):
     """Write *modes* (eigenvectors) into a plain text file with name 
@@ -475,7 +538,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
         values = values.flatten()
         if ev_usevalues is not None:
             values = values[ev_usevalues]
-    nma = NMA(os.path.splitext(os.path.split(normalmodes)[1])[0])
+    nma = NMA(splitext(split(normalmodes)[1])[0])
     nma.setEigens(modes, values)
     return nma
     
