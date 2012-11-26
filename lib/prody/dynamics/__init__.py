@@ -215,65 +215,61 @@ illustrate class methods and functions in the module.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import prody
-LOGGER = prody.LOGGER
-SETTINGS = prody.SETTINGS
-
 __all__ = []
 
-import analysis
-from analysis import *
+from . import analysis
+from .analysis import *
 __all__.extend(analysis.__all__)
 
-import compare
-from compare import *
+from . import compare
+from .compare import *
 __all__.extend(compare.__all__)
 
-import editing
-from editing import *
+from . import editing
+from .editing import *
 __all__.extend(editing.__all__)
 
-import functions
-from functions import *
+from . import functions
+from .functions import *
 __all__.extend(functions.__all__)
 
-import plotting
-from plotting import *
+from . import plotting
+from .plotting import *
 __all__.extend(plotting.__all__)
 
-import sampling
-from sampling import *
+from . import sampling
+from .sampling import *
 __all__.extend(sampling.__all__)
 
-import nma
-from nma import *
+from . import nma
+from .nma import *
 __all__.extend(nma.__all__)
 
-import mode
-from mode import *
+from . import mode
+from .mode import *
 __all__.extend(mode.__all__)
 
 mode.calcCollectivity = calcCollectivity
 
-import modeset
-from modeset import *
+from . import modeset
+from .modeset import *
 __all__.extend(modeset.__all__)
 
 nma.ModeSet = ModeSet
 
-import gamma
-from gamma import *
+from . import gamma
+from .gamma import *
 __all__.extend(gamma.__all__)
 
-import anm
-from anm import *
+from . import anm
+from .anm import *
 __all__.extend(anm.__all__)
 
-import gnm
-from gnm import *
+from . import gnm
+from .gnm import *
 __all__.extend(gnm.__all__)
 
-import pca
-from pca import *
+from . import pca
+from .pca import *
 __all__.extend(pca.__all__)
 

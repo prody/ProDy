@@ -24,6 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from .mode import Mode
+from .modeset import ModeSet
 
 from prody import PY2K
 
