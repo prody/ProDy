@@ -275,12 +275,12 @@ def fetchPDBviaFTP(*pdb, **kwargs):
 
         ftp.quit()
 
+    if kwargs.get('report', True):
+        LOGGER.debug('PDB download via FTP completed ({0:d} downloaded, '
+                     '{1:d} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]    
     else:
-        if kwargs.get('report', True):
-            LOGGER.debug('PDB download via FTP completed ({0:d} downloaded, '
-                         '{1:d} failed).'.format(success, failure))
         return filenames
 
 
@@ -364,12 +364,12 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                 failure += 1
                 filenames.append(None)
 
+    if kwargs.get('report', True):
+        LOGGER.debug('PDB download via HTTP completed ({0:d} downloaded, '
+                     '{1:d} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]    
     else:
-        if kwargs.get('report', True):
-            LOGGER.debug('PDB download via HTTP completed ({0:d} downloaded, '
-                         '{1:d} failed).'.format(success, failure))
         return filenames
 
 if __name__ == '__main__':
