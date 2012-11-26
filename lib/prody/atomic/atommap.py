@@ -96,10 +96,10 @@ from numpy import arange, array, ndarray, ones, zeros
 
 from prody.utilities import rangeString
 
-from atom import Atom
-from fields import ATOMIC_FIELDS
-from fields import wrapGetMethod, wrapSetMethod
-from pointer import AtomPointer
+from .atom import Atom
+from .fields import ATOMIC_FIELDS
+from .fields import wrapGetMethod, wrapSetMethod
+from .pointer import AtomPointer
 
 __all__ = ['AtomMap']
 
@@ -176,17 +176,23 @@ class AtomMap(AtomPointer):
         self._dummies = self._mapping = None
         mapping = kwargs.get('mapping', None)
         dummies = kwargs.get('dummies', False)
+
+        try:
+            len(dummies)
+        except TypeError:
+            dummy_array = False
+        else:
+            dummy_array = True
+
         if mapping is None:
             if not kwargs.get('intarrays'):
                 indices = array(indices, int)
-            try:
-                len(dummies)
-            except TypeError:
-                pass
-            else:
+            self._len = len(indices)
+
+            if dummy_array:
                 raise TypeError('mapping and dummies must be provided '
                                 'together')
-            self._len = len(indices)
+
             if dummies:
                 dummies = (indices == DUMMY).nonzero()[0]
                 if len(dummies):
@@ -209,11 +215,12 @@ class AtomMap(AtomPointer):
             if not kwargs.get('intarrays'):
                 indices = array(indices, int)
                 mapping = array(mapping, int)
-                dummies = array(dummies, int)
+                if dummy_array:
+                    dummies = array(dummies, int)
             if any(mapping[1:] - mapping[:-1] < 0):
                 raise ValueError('mapping must be an ordered array')
             self._len = len(indices)
-            if len(dummies):
+            if dummy_array:
                 self._indices = indices
                 self._mapping = mapping
                 self._dummies = dummies
@@ -321,23 +328,21 @@ class AtomMap(AtomPointer):
         if coords is not None:
             n_csets = self._ag.numCoordsets()
             if indices is None:
-                indices = arange(n_csets)
-            elif isinstance(indices, (int, long)):
-                indices = array([indices])
-            elif isinstance(indices, slice):
-                indices = arange(indices.indices(n_csets))
-            
-            try:
-                if self._mapping is None:
-                    return coords[indices][:, self._indices]
+                coords = coords[:, self._indices]
+            else:
+                try:
+                    len(indices)
+                except TypeError:
+                    coords = coords[indices, self._indices]
                 else:
-                    csets = zeros((len(indices), self._len, 3))
-                    csets[:, self._mapping] = coords[indices][:, self._indices]  
-                    return csets
-            
-            except IndexError:
-                raise IndexError('indices may be an integer or a list/array '
-                                 'of integers')
+                    coords = coords[indices][:, self._indices] 
+                    
+            if self._mapping is None:
+                return coords 
+            else:
+                csets = zeros(coords.shape[:-2] + (self._len, 3))
+                csets[:, self._mapping] = coords  
+                return csets
 
     _getCoordsets = getCoordsets
     
