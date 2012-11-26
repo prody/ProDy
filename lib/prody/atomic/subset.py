@@ -31,7 +31,7 @@ class AtomSubsetMeta(type):
 
     def __init__(cls, name, bases, dict):
 
-        for fname, field in ATOMIC_FIELDS.iteritems():
+        for fname, field in ATOMIC_FIELDS.items():
             
             if field.private:
                 continue

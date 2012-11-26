@@ -200,7 +200,7 @@ INDEPENDENT = list(CATEGORIZED)
 CATEGORIZED['charged'] = list(CATEGORIZED['acidic'])
 CATEGORIZED['charged'].extend(CATEGORIZED['basic'])
 
-for resi, cats in NONSTANDARD.iteritems():
+for resi, cats in NONSTANDARD.items():
     for cat in cats:
         CATEGORIZED[cat].append(resi)
 
@@ -733,7 +733,7 @@ def updateDefinitions():
         DEFINITIONS['charged'] = set(DEFINITIONS['acidic'])
         DEFINITIONS['charged'].update(DEFINITIONS['basic'])
 
-        for resi, props in nonstd.iteritems():
+        for resi, props in nonstd.items():
             for prop in props: 
                 DEFINITIONS[prop].add(resi)
 
@@ -841,7 +841,7 @@ def setCategories(ag, label):
     ag._setFlags(label, flags)
     return flags
     
-addPlanter(setCategories, 'stdaa', 'nonstdaa', *CATEGORIZED.keys(), 
+addPlanter(setCategories, 'stdaa', 'nonstdaa', *list(CATEGORIZED.keys()), 
            aliases=False)
 
 
@@ -911,7 +911,7 @@ def setSecondary(ag, label):
     ag._setFlags(label, flags)
     return flags
 
-addPlanter(setSecondary, *SECONDARY.keys(), aliases=False, 
+addPlanter(setSecondary, *list(SECONDARY.keys()), aliases=False, 
            fields=['secondary']) 
 
 

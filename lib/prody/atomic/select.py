@@ -462,7 +462,7 @@ from numpy import logical_and, logical_or, floor, ceil, where
 from . import pyparsing as pp
 from .pyparsing import ParseException
 
-from prody import LOGGER, SETTINGS
+from prody import LOGGER, SETTINGS, PY2K
 
 from .atomic import Atomic
 from .fields import ATOMIC_FIELDS
@@ -478,6 +478,9 @@ from .atommap import AtomMap
 from prody.utilities import rangeString
 from prody.kdtree import KDTree
 
+if PY2K:
+    range = xrange
+
 DEBUG = 0
 NUMB = 0 # Select instance will not really evaluate string for the atoms
 TIMER = 0
@@ -485,7 +488,7 @@ TIMER = 0
 def debug(sel, loc, *args):
     
     if DEBUG:
-        print ''
+        print('')
         if args:
             print(args[0], args[1:])
         print(repr(sel))
@@ -575,7 +578,7 @@ def replaceMacros(selstr):
     if MACROS_REGEX is None: MACROS_REGEX = {}
     selstr = ' ' + selstr + ' '
     if MACROS:
-        for name, macro in MACROS.items():  
+        for name, macro in MACROS.items(): # PY3K: OK  
             re = MACROS_REGEX.setdefault(name, 
                 re_compile('[( )]' + name + '[( )]'))
         
@@ -897,7 +900,7 @@ class Select(object):
                 selstr = 'index {0:s}'.format(rangeString(indices))
             else:
                 if self._replace:
-                    for key, value in kwargs.iteritems():
+                    for key, value in kwargs.items(): # PY3K: OK
                         if value in ag and key in selstr:
                             if value == ag:
                                 ss = 'all'
@@ -950,7 +953,7 @@ class Select(object):
 
         self._reset()
 
-        for key in kwargs.iterkeys():
+        for key in kwargs.keys():
             if not key.isalnum():
                 raise TypeError('{0:s} is not a valid keyword argument, '
                                   'keywords must be all alpha numeric '
@@ -1684,7 +1687,7 @@ class Select(object):
         if indices is not None:
             bmap = bmap[indices]
         n_atoms = self._ag.numAtoms()
-        for i in xrange(repeat):
+        for i in range(repeat):
             torf = zeros(n_atoms, bool)
             bonded = unique(bmap[which])
             if bonded[0] == -1:
@@ -2256,9 +2259,9 @@ class Select(object):
             icode, err = self._getData(sel, loc, 'icode')
             if err: return None, err
             if subset is None:
-                rnic = zip(resnums, icode)
+                rnic = zip(resnums, icode) # PY3K: OK
             else:
-                rnic = zip(resnums, icode[subset])
+                rnic = zip(resnums, icode[subset]) # PY3K: OK
 
             if torf is None:
                 torf = array([val in wicode for val in rnic], bool)

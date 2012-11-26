@@ -253,7 +253,7 @@ fields noted as *read only* do not have a ``set`` method.
 .. glossary::
 """
 
-keys = ATOMIC_FIELDS.keys()
+keys = list(ATOMIC_FIELDS.keys())
 keys.sort()
 
 
@@ -277,7 +277,7 @@ for key in keys:
 
 
 
-for key in FLAG_FIELDS.iterkeys():
+for key in FLAG_FIELDS.keys():
     ATOMIC_FIELDS[key].flags = True
 
 def wrapGetMethod(fn):

@@ -307,11 +307,11 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import unique, zeros, arange, concatenate
 
-from atomgroup import AtomGroup
-from selection import Selection
-from chain import Chain
-from residue import Residue
-from segment import Segment
+from .atomgroup import AtomGroup
+from .selection import Selection
+from .chain import Chain
+from .residue import Residue
+from .segment import Segment
 
 from prody import LOGGER, SETTINGS
 

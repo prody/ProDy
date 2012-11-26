@@ -148,7 +148,7 @@ def loadAtoms(filename):
     
     skip_flags = set()
     
-    for label, data in attr_dict.iteritems():
+    for label, data in attr_dict.items():
         if label in SKIPLOAD:
             continue
         if data.ndim == 1 and data.dtype == bool:
