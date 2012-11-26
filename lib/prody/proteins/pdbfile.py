@@ -113,7 +113,7 @@ def parsePDB(pdb, **kwargs):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
-            filename = fetchPDB(pdb)
+            filename = fetchPDB(pdb, report=True)
             if filename is None:
                 raise IOError('PDB file for {0:s} could not be downloaded.'
                               .format(pdb))

@@ -217,11 +217,18 @@ def fetchPDBfromMirror(*pdb, **kwargs):
             failure += 1
     
     if len(identifiers) == 1:
-        return filenames[0]    
+        fn = filenames[0]
+        if kwargs.get('report', True):
+            if success:
+                items = fn.split(pathsep) 
+                LOGGER.debug('PDB file is found in the local mirror ({0:s}).'
+                             .format(pathsep.join(items[:3] + ['...'] + 
+                                                  items[-1:])))
+        return fn
     else:
         if kwargs.get('report', True):
-            LOGGER.debug('PDB from mirror completed ({0:d} downloaded, '
-                         '{1:d} failed).'.format(success, failure))
+            LOGGER.debug('PDB files found in the local mirror ({0:d} found, '
+                         '{1:d} missed).'.format(success, failure))
         return filenames
 
 
@@ -280,7 +287,7 @@ def fetchPDB(*pdb, **kwargs):
         return filenames[0] if len(identifiers) == 1 else filenames
 
     local_folder = pathPDBFolder()
-    copy = kwargs.get('copy')
+    copy = kwargs.setdefault('copy', False)
     if local_folder:
         local_folder, is_divided = local_folder
         temp, not_found = not_found, []
@@ -303,13 +310,23 @@ def fetchPDB(*pdb, **kwargs):
                 not_found.append((i, pdb))
 
     if not not_found:
-        return filenames[0] if len(identifiers) == 1 else filenames
+        if len(identifiers) == 1:
+            fn = filenames[0]
+            if kwargs.get('report', True):
+                items = fn.split(pathsep) 
+                LOGGER.debug('PDB file is found in the local folder ({0:s}).'
+                             .format(pathsep.join(items[:3] + ['...'] + 
+                                                  items[-1:])))
+            return fn
+        else:
+            return filenames
 
-    if kwargs.get('copy', False) or not compressed:
+    if kwargs['copy'] or (compressed is not None and not compressed):
         kwargs['folder'] = folder
 
     downloads = [pdb for i, pdb in not_found]
     fns = None
+
     try:
         fns = fetchPDBfromMirror(*downloads, **kwargs)
     except IOError:
@@ -323,7 +340,7 @@ def fetchPDB(*pdb, **kwargs):
             else:
                 i, _ = temp[i]
                 filenames[i] = fn
-        
+    
     if not not_found:
         return filenames[0] if len(identifiers) == 1 else filenames
     
