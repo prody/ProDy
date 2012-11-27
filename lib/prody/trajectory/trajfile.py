@@ -117,7 +117,7 @@ class TrajFile(TrajBase):
         
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(index, (int, long)):
+        if not isinstance(index, int):
             raise IndexError('index must be an integer')
         if not 0 <= index < self._n_csets:
             raise IndexError('index must be greater or equal to 0 and less '
@@ -129,7 +129,7 @@ class TrajFile(TrajBase):
             self.reset()
             if index > 0:
                 self.skip(index)
-        return self.next()
+        return next(self)
     
     getFrame.__doc__ = TrajBase.getFrame.__doc__
                 
@@ -139,7 +139,7 @@ class TrajFile(TrajBase):
             raise ValueError('I/O operation on closed file')
         if indices is None:
             indices = np.arange(self._n_csets)
-        elif isinstance(indices, (int, long)):
+        elif isinstance(indices, int):
             indices = np.array([indices])
         elif isinstance(indices, slice):
             indices = np.arange(*indices.indices(self._n_csets))
@@ -179,7 +179,7 @@ class TrajFile(TrajBase):
      
         if self._closed: 
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, (int, long)):
+        if not isinstance(n, int):
             raise ValueError('n must be an integer')
         if n > 0:
             left = self._n_csets - self._nfi
@@ -194,7 +194,7 @@ class TrajFile(TrajBase):
         
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, (int, long)):
+        if not isinstance(n, int):
             raise ValueError('n must be an integer')
         n_csets = self._n_csets
         if n == 0:

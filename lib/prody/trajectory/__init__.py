@@ -22,24 +22,24 @@
 Parse/write DCD files
 ===============================================================================
 
-  * :class:`~.DCDFile`
-  * :func:`~.parseDCD`
-  * :func:`~.writeDCD`
+  * :class:`.DCDFile`
+  * :func:`.parseDCD`
+  * :func:`.writeDCD`
 
 Parse structure files
 ===============================================================================
 
-  * :func:`~.parsePSF`  
+  * :func:`.parsePSF`  
 
 Handle multiple files
 ===============================================================================
   
-  * :class:`~.Trajectory`
+  * :class:`.Trajectory`
 
 Handle frame data
 ===============================================================================
   
-  * :class:`~.Frame`
+  * :class:`.Frame`
 
 Examples
 ===============================================================================
@@ -53,41 +53,37 @@ Following examples show how to use trajectory classes and functions:
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import os.path
-
-import prody
-LOGGER = prody.LOGGER
-SETTINGS = prody.SETTINGS
+from os.path import splitext
 
 __all__ = []
 
 def openTrajFile(filename, *args, **kwargs):
     
-    ext = os.path.splitext(filename)[1][1:].lower()
+    ext = splitext(filename)[1][1:].lower()
     try:
         return TRAJFILE[ext](filename, *args, **kwargs)
     except KeyError: 
-        raise ValueError('Trajectory file type {0:s} is not recognized.'
+        raise ValueError('trajectory file type {0:s} is not recognized'
                          .format(repr(ext)))
 
-import trajbase
-from trajbase import *
+from . import trajbase
+from .trajbase import *
 __all__.extend(trajbase.__all__)
 
-import trajectory
-from trajectory import *
+from . import trajectory
+from .trajectory import *
 __all__.extend(trajectory.__all__)
 
-import dcdfile
-from dcdfile import *
+from . import dcdfile
+from .dcdfile import *
 __all__.extend(dcdfile.__all__)
 
-import frame
-from frame import *
+from . import frame
+from .frame import *
 __all__.extend(frame.__all__)
    
-import psffile
-from psffile import *
+from . import psffile
+from .psffile import *
 __all__.extend(psffile.__all__)
    
 TRAJFILE = {'dcd': DCDFile}

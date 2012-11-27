@@ -57,7 +57,7 @@ class TrajBase(object):
         if self._closed:
             raise ValueError('I/O operation on closed file')
         while self._nfi < self._n_csets:
-            yield self.next()
+            yield next(self)
 
     def __str__(self):
 
@@ -345,12 +345,14 @@ class TrajBase(object):
 
         pass
 
-    def next(self):
+    def __next__(self):
         """Return next coordinate set in a :class:`.Frame` instance.  Note that
         when atoms are set for the trajectory, this method will return the same
         frame instance after updating its coordinates."""
 
         pass
+    
+    next = __next__
 
     def goto(self, n):
         """Go to the frame at index *n*. ``n=0`` will rewind the trajectory

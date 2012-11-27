@@ -25,8 +25,8 @@ import os.path
 
 import numpy as np
 
-from trajbase import TrajBase
-from frame import Frame
+from .trajbase import TrajBase
+from .frame import Frame
 
 from prody.trajectory import openTrajFile
 
@@ -154,7 +154,7 @@ class Trajectory(TrajBase):
         if self._closed: 
             raise ValueError('I/O operation on closed file')
         self.goto(index)
-        return self.next()
+        return next(self)
 
     def getCoordsets(self, indices=None):
         
@@ -162,7 +162,7 @@ class Trajectory(TrajBase):
             raise ValueError('I/O operation on closed file')
         if indices is None:
             indices = np.arange(self._n_csets)
-        elif isinstance(indices, (int, long)):
+        elif isinstance(indices, int):
             indices = np.array([indices])
         elif isinstance(indices, slice):
             indices = np.arange(*indices.indices(self._n_csets))
@@ -171,7 +171,7 @@ class Trajectory(TrajBase):
             indices = np.unique(indices)
         else:
             raise TypeError('indices must be an integer or a list of '
-                              'integers')
+                            'integers')
 
         nfi = self._nfi
         self.reset()
@@ -190,7 +190,7 @@ class Trajectory(TrajBase):
         
     getCoordsets.__doc__ = TrajBase.getCoordsets.__doc__
     
-    def next(self):
+    def __next__(self):
         
         if self._closed: 
             raise ValueError('I/O operation on closed file')
@@ -212,7 +212,8 @@ class Trajectory(TrajBase):
             self._nfi += 1
             return frame
 
-    next.__doc__ = TrajBase.next.__doc__
+    __next__.__doc__ = TrajBase.__next__.__doc__
+    next = __next__
     
     def nextCoordset(self):
         
@@ -238,7 +239,7 @@ class Trajectory(TrajBase):
         
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, (int, long)):
+        if not isinstance(n, int):
             raise ValueError('n must be an integer')
         n_csets = self._n_csets
         if n == 0:
@@ -266,7 +267,7 @@ class Trajectory(TrajBase):
         
         if self._closed: 
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, (int, long)):
+        if not isinstance(n, int):
             raise ValueError('n must be an integer')
         left = self._n_csets - self._nfi
         if n > left:

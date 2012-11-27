@@ -33,12 +33,15 @@ from numpy import float32
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
 from prody.utilities import checkCoords
-from prody import LOGGER
+from prody import LOGGER, PY2K
 
-from frame import Frame
-from trajbase import TrajBase
-from trajfile import TrajFile
-from trajectory import Trajectory
+from .frame import Frame
+from .trajbase import TrajBase
+from .trajfile import TrajFile
+from .trajectory import Trajectory
+
+if PY2K:
+    range = xrange
 
 __all__ = ['DCDFile', 'parseDCD', 'writeDCD']
 
@@ -91,7 +94,7 @@ class DCDFile(TrajFile):
         # Check magic number in file header and determine byte order
         bits = dcd.read(calcsize('ii'))
         temp = unpack(endian+'ii', bits)
-        if DEBUG: print len(temp), temp
+        if DEBUG: print((len(temp), temp))
         if temp[0] + temp[1] == 84:
             LOGGER.info('Detected CHARMM -i8 64-bit DCD file of native '
                         'endianness.')
@@ -136,7 +139,7 @@ class DCDFile(TrajFile):
         # Checking if this is nonzero tells us this is a CHARMm file
         # and to look for other CHARMm flags.
         temp = unpack(endian + 'i'*20 , bits)
-        if DEBUG: print len(temp), temp
+        if DEBUG: print((len(temp), temp))
         if temp[-1] != 0:
             charmm = True
 
@@ -171,20 +174,20 @@ class DCDFile(TrajFile):
         
         # Read in the size of the next block
         temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        if DEBUG: print len(temp), temp
+        if DEBUG: print((len(temp), temp))
         if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
         # Read NTITLE, the number of 80 character title strings there are
         temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        if DEBUG: print len(temp), temp
+        if DEBUG: print((len(temp), temp))
         self._dcdtitle = dcd.read(80)
-        if DEBUG: print self._dcdtitle
+        if DEBUG: print((self._dcdtitle))
         self._remarks = dcd.read(80)
-        if DEBUG: print self._remarks
+        if DEBUG: print((self._remarks))
         # Get the ending size for this block
         temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        if DEBUG: print len(temp), temp
+        if DEBUG: print((len(temp), temp))
         if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
@@ -242,7 +245,7 @@ class DCDFile(TrajFile):
         
         return self._remarks
         
-    def next(self):
+    def __next__(self):
         
         if self._closed: 
             raise ValueError('I/O operation on closed file')
@@ -257,7 +260,8 @@ class DCDFile(TrajFile):
                 Frame.__init__(frame, self, nfi, None, unitcell)
             return frame
     
-    next.__doc__ = TrajBase.next.__doc__  
+    __next__.__doc__ = TrajBase.__next__.__doc__
+    next = __next__  
         
     def nextCoordset(self):
         """Return next coordinate set."""
@@ -522,8 +526,8 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         raise TypeError('{0:s} is not a valid type for trajectory'
                         .format(type(trajectory)))
     
-    irange = range(*slice(start, stop, 
-                          step).indices(trajectory.numCoordsets()))
+    irange = list(range(*slice(start, stop,step)
+                    .indices(trajectory.numCoordsets())))
     n_csets = len(irange)
     if n_csets == 0:
         raise ValueError('trajectory does not have any coordinate sets, or '
@@ -579,7 +583,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
             trajectory.skip(diff-1)
         prev = i
         if isTrajectory:
-            frame = trajectory.next()
+            frame = next(trajectory)
             if frame is None:
                 break
             if unitcell:
