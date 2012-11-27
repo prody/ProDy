@@ -195,7 +195,8 @@ def applyMINormalization(mutinfo, entropy, norm='sument'):
     except AttributeError:
         raise TypeError('norm must be a string')
         
-    mi = zeros(shape)
+    #mi = zeros(shape)
+    mi = mutinfo
     if sw('sument'):
         norm = lambda i_val, j_val, val: i_val + j_val
     
@@ -250,7 +251,8 @@ def applyMICorrection(mutinfo, corr='prod'):
     avg_mipos = mutinfo.sum(1) / (shape[0] - 1)
     avg_mi = avg_mipos.mean()
     
-    mi = zeros(shape)
+    #mi = zeros(shape)
+    mi = mutinfo
     if sw('prod') or sw('apc'):
         for i, i_avg in enumerate(avg_mipos):
             for j, j_avg in enumerate(avg_mipos):
