@@ -27,8 +27,10 @@ from numpy import sign, tile, concatenate, pi, cross, subtract, round, var
 
 from prody.atomic import Atomic, Residue, Atom, AtomGroup
 from prody.utilities import importLA, checkCoords
-from prody import LOGGER
-import prody
+from prody import LOGGER, PY2K
+
+if PY2K:
+    range = xrange
 
 __all__ = ['buildDistMatrix', 'calcDistance', 
            'calcCenter', 'calcGyradius', 'calcAngle', 
@@ -101,8 +103,8 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
                                 for i, xyz in enumerate(atoms1)])
             if format == 'rcd':        
                 n_atoms = len(atoms1)
-                rc = array([(i, j) for i in xrange(n_atoms) 
-                                   for j in xrange(i + 1, n_atoms)])
+                rc = array([(i, j) for i in range(n_atoms) 
+                                   for j in range(i + 1, n_atoms)])
                 row, col = rc.T
                 dist = (row, col, dist) 
                             
@@ -601,7 +603,8 @@ def calcDeformVector(from_atoms, to_atoms):
     if len(name) > 30: 
         name = 'Deformation'
     arr = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
-    return prody.dynamics.Vector(arr, name)
+    from prody.dynamics import Vector
+    return Vector(arr, name)
             
             
 def calcADPAxes(atoms, **kwargs):

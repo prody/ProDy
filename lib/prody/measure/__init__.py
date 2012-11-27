@@ -69,25 +69,21 @@ Following class and functions are for handling coordinate transformations:
   * :func:`.moveAtoms` - move atoms by given offset
 """
 
-import prody
-LOGGER = prody.LOGGER
-SETTINGS = prody.SETTINGS
-
 __all__ = []
 
-import measure
-from measure import *
+from . import measure
+from .measure import *
 __all__.extend(measure.__all__)
 
-from measure import getDihedral, getPhiAtoms
-from measure import getAngle, getCenter, getCentral
+from .measure import getDihedral, getPhiAtoms
+from .measure import getAngle, getCenter, getCentral
 
-import contacts
-from contacts import *
+from . import contacts
+from .contacts import *
 __all__.extend(contacts.__all__)
 
-import transform
-from transform import *
+from . import transform
+from .transform import *
 __all__.extend(transform.__all__)
 
-from transform import getRMSD, getTransformation
+from .transform import getRMSD, getTransformation
