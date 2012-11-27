@@ -154,7 +154,6 @@ def evol_coevol(msa, **kwargs):
             LOGGER.info('Applying {0:s} normalization.'.format(repr(which)))
             if entropy is None:
                 entropy = calcShannonEntropy(msa, **kwargs)
-                from code import interact; interact(local=locals())
             matrix = applyMINormalization(mutinfo, entropy, norm=which)
             suffix = '_norm_' + which
         else:

@@ -584,13 +584,16 @@ def parseMSA(filename, **kwargs):
     compressed files in Python."""
     
     from .msa import MSA
-    try:
-        filename = str(filename)
-    except:
-        raise TypeError('filename must be a string')
 
-    if not isfile(filename):
+    try:
+        fileok = isfile(filename)
+    except TypeError:
         raise TypeError('filename must be a string')
+    else:
+        if not fileok:
+            raise IOError('[Errno 2] No such file or directory: ' + 
+                          repr(filename))
+    
     # if MSA is a compressed file or filter/slice is passed, use 
     #   Python parsers
 
