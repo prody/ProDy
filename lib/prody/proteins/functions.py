@@ -169,13 +169,13 @@ def showProtein(*atoms, **kwargs):
     cnames = dict(colors.cnames)
     wcolor = kwargs.get('water', 'red').lower()
     avoid = np.array(colors.hex2color(cnames.pop(wcolor, cnames.pop('red'))))
-    for cn, val in cnames.items():
+    for cn, val in cnames.items(): # PY3K: OK
         clr = np.array(colors.hex2color(val))
         if clr.sum() > 2.4:
             cnames.pop(cn)
         elif np.abs(avoid - clr).sum() <= 0.6:
             cnames.pop(cn)
-    cnames = cnames.keys()
+    cnames = list(cnames)
     import random
     random.shuffle(cnames)
     min_ = list()

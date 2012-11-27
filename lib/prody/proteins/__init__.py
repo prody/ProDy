@@ -156,48 +156,48 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 __all__ = []
 
-import compare
-from compare import *
+from . import compare
+from .compare import *
 __all__.extend(compare.__all__)
 
-import localpdb
-from localpdb import *
+from . import localpdb
+from .localpdb import *
 __all__.extend(localpdb.__all__)
 
-import wwpdb
-from wwpdb import *
+from . import wwpdb
+from .wwpdb import *
 __all__.extend(wwpdb.__all__)
 
-import pdbclusters
-from pdbclusters import *
+from . import pdbclusters
+from .pdbclusters import *
 __all__.extend(pdbclusters.__all__)
 
-import blastpdb
-from blastpdb import *
+from . import blastpdb
+from .blastpdb import *
 __all__.extend(blastpdb.__all__)
 
-import pdbligands
-from pdbligands import *
+from . import pdbligands
+from .pdbligands import *
 __all__.extend(pdbligands.__all__)
 
-import functions
-from functions import *
+from . import functions
+from .functions import *
 __all__.extend(functions.__all__)
 
-import header
-from header import *
+from . import header
+from .header import *
 __all__.extend(header.__all__)
 
-import dssp
-from dssp import *
+from . import dssp
+from .dssp import *
 __all__.extend(dssp.__all__)
 
-import stride
-from stride import *
+from . import stride
+from .stride import *
 __all__.extend(stride.__all__)
 
-import pdbfile
-from pdbfile import *
+from . import pdbfile
+from .pdbfile import *
 __all__.extend(pdbfile.__all__)
 
-from pdbfile import PDBParseError
+from .pdbfile import PDBParseError

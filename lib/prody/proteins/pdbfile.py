@@ -440,7 +440,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 serials[acount] = line[6:11]
             except ValueError:
                 try:
-                    serials[acount] = long(line[6:11], 16)
+                    serials[acount] = int(line[6:11], 16)
                 except ValueError:
                     LOGGER.warn('Failed to parse serial number in line {0:d}.'
                                 .format(i))
@@ -675,7 +675,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     return atomgroup
 
 def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
-    altloc_keys = altloc.keys()
+    altloc_keys = list(altloc)
     altloc_keys.sort()
     indices = {}
     for key in altloc_keys:

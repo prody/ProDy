@@ -387,6 +387,6 @@ if __name__ == '__main__':
     from os import remove
     for pdb in pdbids:
         fns = glob(pdb + '.*')
-        print pdb, '>', ', '.join(fns)
+        print((pdb, '>', ', '.join(fns)))
         for fn in fns:
             remove(fn)

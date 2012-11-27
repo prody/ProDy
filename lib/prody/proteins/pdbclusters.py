@@ -43,7 +43,7 @@ def loadPDBClusters(sqid=None):
 
     PDB_CLUSTERS_PATH = os.path.join(getPackagePath(), 'pdbclusters')
     if sqid is None:
-        sqid_list = PDB_CLUSTERS.keys()
+        sqid_list = list(PDB_CLUSTERS)
         LOGGER.info('Loading all PDB sequence clusters.')
     else:
         assert isinstance(sqid, int), 'sqid must be an integer' 

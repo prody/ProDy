@@ -23,6 +23,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
+from numpy import arange
 PW2 = None
 
 from prody.atomic import AtomMap as AM
@@ -30,7 +31,10 @@ from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, calcRMSD, printRMSD, calcDistance
-from prody import LOGGER, SELECT
+from prody import LOGGER, SELECT, PY2K
+
+if PY2K:
+    range = xrange
 
 __all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
            'getMatchScore', 'setMatchScore',
@@ -62,7 +66,7 @@ def importBioPairwise2():
     global PW2
     if PW2 is None:    
         try:
-            import pairwise2
+            from . import pairwise2
         except ImportError:
             try:
                 from Bio import pairwise2
@@ -240,7 +244,7 @@ class SimpleChain(object):
         assert sequence.isalpha(), 'sequence must be all alpha'
 
         if resnums is None:
-            resnums = range(1, len(sequence)+1)
+            resnums = arange(1, len(sequence)+1)
         resid = 0
         gaps = self._gaps
         for i, aa in enumerate(sequence):
@@ -425,7 +429,7 @@ def matchAlign(mobile, target, **kwargs):
         csincr = kwargs.get('csincr', 0)
         indent = (lambda acsi, cslabel=cslabel, csincr=csincr:
                   '  {0:s} {1:d}: '.format(cslabel, acsi + csincr))
-        csets = range(mobile.numCoordsets())
+        csets = range(mobile.numCoordsets()) # PY3K: OK
     else:
         indent = lambda acsi: ''
         csets = [mobile.getACSIndex()]
@@ -606,7 +610,7 @@ def matchChains(atoms1, atoms2, **kwargs):
         indices1 = []
         indices2 = []
         
-        for i in xrange(len(match1)):
+        for i in range(len(match1)):
             ares = match1[i]
             bres = match2[i]
 
@@ -641,7 +645,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                 aids = ares.getIndices()
                 #bids = bres.getIndices()
                 
-                for j in xrange(len(aans)):
+                for j in range(len(aans)):
                     try:
                         bid = bres._indices[ bans.index( aans[j] ) ]
                         indices1.append(aids[j])
@@ -712,7 +716,7 @@ def getAlignedMatch(ach, bch):
     aiter = ach.__iter__()
     biter = bch.__iter__()
     match = 0.0
-    for i in xrange(len(this)):
+    for i in range(len(this)):
         a = this[i]
         b = that[i]
         if a != GAP:
@@ -874,7 +878,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         indices_mapping = []
         indices_dummies = []
         counter = 0
-        for i in xrange(len(residues_target)):
+        for i in range(len(residues_target)):
             res_tar = residues_target[i]
             res_chn = residues_chain[i]
             
@@ -954,7 +958,7 @@ def getAlignedMapping(target, chain):
     biter = chain.__iter__()
     n_match = 0
     n_mapped = 0
-    for i in xrange(len(this)):
+    for i in range(len(this)):
         a = this[i]
         b = that[i]
         if a not in (GAP, NONE_A):
@@ -979,4 +983,3 @@ if __name__ == '__main__':
     p = parsePDB('1p38')
     r = parsePDB('1r39')
     chtwo, chone = mapOntoChain(r, p['A'])[0][:2]
-    print countUnpairedBreaks(chone, chtwo)

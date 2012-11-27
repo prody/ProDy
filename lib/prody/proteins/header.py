@@ -345,7 +345,6 @@ def getHeaderDict(stream, *keys):
     pdbid = _PDB_HEADER_MAP['identifier'](lines)
     lines['pdbid'] = pdbid
     if keys:
-        keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
                 value = _PDB_HEADER_MAP[key](lines)
@@ -362,8 +361,7 @@ def getHeaderDict(stream, *keys):
             return tuple(keys), loc
     else:
         header = {}
-        keys = _PDB_HEADER_MAP.iterkeys()
-        for key, func in _PDB_HEADER_MAP.iteritems():
+        for key, func in _PDB_HEADER_MAP.items(): # PY3K: OK
             value = func(lines)
             if value is not None:
                 header[key] = value        
@@ -564,7 +562,7 @@ def _getPolymers(lines):
         LOGGER.warn('DBREF1 and DBREF1 records are not complete')
         dbref12 = []
     else:
-        dbref12 = zip(dbref1, dbref2)
+        dbref12 = zip(dbref1, dbref2) # PY3K: OK
 
     for dbref1, dbref2 in dbref12:
         i, line = dbref1
@@ -616,7 +614,7 @@ def _getPolymers(lines):
         polymers[ch] = poly
         poly.dbrefs.append(dbref)
 
-    for poly in polymers.itervalues():
+    for poly in polymers.values(): # PY3K: OK
         resnum = []
         for dbref in poly.dbrefs:
             dbabbr = dbref.dbabbr
@@ -748,7 +746,7 @@ def _getPolymers(lines):
                 poly.engineered = dict_.get('ENGINEERED', '') == 'YES'
                 poly.mutation = dict_.get('MUTATION', '') == 'YES'
         
-    return polymers.values()    
+    return list(polymers.values())    
 
 def _getChemicals(lines):
     """Return list of chemical components (heterogens)."""
@@ -775,22 +773,22 @@ def _getChemicals(lines):
         chem = line[12:15].strip()
         chem_formulas[chem] += line[18:70].rstrip()
 
-    for chem, name in chem_names.iteritems():
+    for chem, name in chem_names.items(): # PY3K: OK
         name = cleanString(name)
         for chem in chemicals[chem]:
             chem.name = name
-    for chem, formula in chem_formulas.iteritems():
+    for chem, formula in chem_formulas.items(): # PY3K: OK
         formula = cleanString(formula)
         for chem in chemicals[chem]:
             chem.formula = formula
-    for chem, synonyms in chem_synonyms.iteritems():
+    for chem, synonyms in chem_synonyms.items(): # PY3K: OK
         synonyms = cleanString(synonyms)
         synonyms = synonyms.split(';')
         for chem in chemicals[chem]:
             chem.synonyms = synonyms
     
     alist = []
-    for chem in chemicals.itervalues():
+    for chem in chemicals.values(): # PY3K: OK
         for chem in chem:
             alist.append(chem)
     return alist 
@@ -926,13 +924,13 @@ def assignSecstr(header, atoms, coil=False):
     hierview = atoms.getHierView()
     count = 0
     getResidue = hierview.getResidue
-    for key, value in helix.iteritems():
+    for key, value in helix.items(): # PY3K: OK
         res = getResidue(*key)
         if res is None:
             continue
         res.setSecstrs(mapHelix[value[0]])
         count += 1
-    for key, res in sheet.iteritems():
+    for key, res in sheet.items(): # PY3K: OK
         res = getResidue(*key)
         if res is None:
             continue
@@ -976,7 +974,7 @@ def buildBiomolecules(header, atoms, biomol=None):
         atoms = atoms.copy()
     biomols = []
     if biomol is None: 
-        keys = biomt.keys()
+        keys = list(biomt)
     else:
         biomol = str(biomol)
         if biomol in biomt:
