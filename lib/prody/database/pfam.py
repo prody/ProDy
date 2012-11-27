@@ -26,6 +26,7 @@ from os.path import join, isfile, getsize, splitext, split
 
 from prody import LOGGER
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
+from prody.utilities import relpath
 
 
 __all__ = ['searchPfam', 'fetchPfamMSA']
@@ -349,7 +350,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     LOGGER.info('Pfam MSA for {0} is written as {1}.'
                 .format(orig_acc, filepath))
     
-    return filepath
+    return relpath(filepath)
 
 
 if __name__ == '__main__':
