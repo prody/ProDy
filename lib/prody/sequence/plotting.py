@@ -26,7 +26,7 @@ from numpy import arange
 from analysis import *
 from prody import LOGGER
 
-__all__ = ['showShannonEntropy', 'showMutinfoMatrix']
+__all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix']
 
 
 def pickSequence(msa):
@@ -55,12 +55,74 @@ def pickSequence(msa):
         return None, None
 
 
+def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
+    """Show a bar plot of occupancy calculated for :class:`.MSA` instance *msa*
+    using :func:`.calcMSAOccupancy`.  *occ* may be ``'res'`` or``'col'``, or a
+    a pre-calculated occupancy array.  If x-axis *indices* are not specified,
+    they will be inferred from *msa*.
+    
+    Occupancy is plotted using :func:`~matplotlib.pyplot.bar` function."""
+    
+    try:
+        numseq, lenseq = msa.numSequences(), msa.numResidues()
+    except AttributeError:
+        raise TypeError('msa must be an MSA instance')
+    
+    try:
+        length = len(occ)
+    except TypeError:
+        raise TypeError("occ must be 'res', 'col', or an occupancy array")
+    
+    xlabel = None
+    try:
+        sw = occ.startswith
+    except TypeError:
+        try:
+            ndim = occ.ndim
+        except AttributeError:
+            raise TypeError("occ must be 'res', 'col', or an occupancy array")
+        else:
+            if ndim != 1:
+                raise ValueError('occ must be a 1-dimensional array')
+        if length == numseq and indices is None:
+            indices = arange(1, length + 1)  
+            xlabel = 'MSA sequence index'       
+    else:
+        occ = calcMSAOccupancy(msa, occ, count)
+        length = len(occ)
+        if indices is None and (sw('row') or sw('seq')):
+            indices = arange(1, length + 1)
+            xlabel = 'MSA sequence index'
+    
+
+    xlabel = kwargs.pop('xlabel', xlabel)
+    if indices is None:
+        indices, xlabel = pickSequence(msa)
+        if indices is None:
+            indices = arange(1, length + 1)
+        xlabel = xlabel or 'MSA column index'
+    
+    ylabel = kwargs.pop('ylabel', 'Count' if count else 'Occupancy')  
+    title = kwargs.pop('title', None)
+    format = kwargs.pop('format', True)
+    import matplotlib.pyplot as plt
+    show = plt.bar(indices, occ, **kwargs)
+    if format:
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        if title is None:
+            title = 'Occupancy: ' + str(msa)
+        plt.title(title)
+    return show
+
+
 def showShannonEntropy(entropy, indices=None, **kwargs):
     """Show a bar plot of Shannon *entropy* array.  :class:`.MSA` instances 
     or Numpy character arrays storing sequence alignments are also accepted 
     as *entropy* argument, in which case :func:`.calcShannonEntropy` will 
-    be used for calculations.  *indices* may be residue numbers, if **None**
-    is given numbers starting from 1 will be used.
+    be used for calculations.  *indices* may be residue numbers, when not 
+    specified they will be inferred from *msa* or indices starting from 1 
+    will be used.
     
     Entropy is plotted using :func:`~matplotlib.pyplot.bar` function."""
     
@@ -178,6 +240,9 @@ def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
                 title = 'Mutual Information: ' + str(msa)
         plt.title(title)
     return show
+
+
+
 
 
 if __name__ == '__main__':
