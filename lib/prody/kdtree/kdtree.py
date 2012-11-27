@@ -29,7 +29,7 @@ from numpy import array, ndarray, concatenate, mod
 from prody import LOGGER
 
 try:
-    from _CKDTree import KDTree as CKDTree
+    from ._CKDTree import KDTree as CKDTree
 except ImportError as err: 
     if isdir('prody') and isfile(join('prody', 'kdtree', 'KDTreemodule.c')):
         raise ImportError(str(err) + '\nIt looks like you have just installed '
@@ -175,7 +175,10 @@ class KDTree(object):
             self._pbckeys = []   
             self._n_atoms = coords.shape[0]      
         self._none = kwargs.pop('none', lambda: None)
-        assert callable(self._none), 'none argument must be callable'
+        try:
+            self._none()
+        except TypeError:
+            raise TypeError('none argument must be callable')
         self._oncall = kwargs.pop('oncall', 'both')
         assert self._oncall in ('both', 'dist'), 'oncall must be both or dist'
         
@@ -229,7 +232,7 @@ class KDTree(object):
                         [_dict_set(i, min(r, _dict_get(i, 1e6)))
                          for i, r in zip(get_indices(), get_radii())]
                 self._pbcdict = _dict
-                self._pdbkeys = _dict.keys() 
+                self._pdbkeys = list(_dict) 
                 
         else:
             if self._unitcell is None:
@@ -258,7 +261,7 @@ class KDTree(object):
                         elif j < i:
                             _set((j, i), min(nb.radius, _get((j, i), 1e6)))
                 self._pbcdict = _dict
-                self._pdbkeys = _dict.keys() 
+                self._pdbkeys = list(_dict) 
                     
     
     def getIndices(self):
