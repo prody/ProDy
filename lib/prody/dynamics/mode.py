@@ -125,7 +125,7 @@ ANM 1p38_anm #3   +0.01  -0.08  -0.99
 become :class:`Vector` instances:
 
 >>> anm1[0] * 10
-<Vector: 10*(Mode 1 from ANM 1p38_anm)>
+<Vector: (Mode 1 from ANM 1p38_anm)*10>
 
 Linear combination
 ===============================================================================
@@ -133,8 +133,8 @@ Linear combination
 It is also possible to linearly combine normal modes:
 
 >>> anm1[0] * 3 + anm1[1] + anm1[2] * 2
-<Vector: 3*(Mode 1 from ANM 1p38_anm) + Mode 2 from ANM 1p38_anm + 2*(Mode 3 \
-from ANM 1p38_anm)>
+<Vector: (((Mode 1 from ANM 1p38_anm)*3) + (Mode 2 from ANM 1p38_anm)) + \
+((Mode 3 from ANM 1p38_anm)*2)>
 
 Or, we could use eigenvalues for linear combination:
 
@@ -143,8 +143,8 @@ Or, we could use eigenvalues for linear combination:
 It is the name of the :class:`Vector` instance that keeps track of operations.
 
 >>> print( lincomb.getTitle() )  
-0.148971269751*(Mode 1 from ANM 1p38_anm) + 0.24904210757*(Mode 2 from ANM \
-1p38_anm)
+((Mode 1 from ANM 1p38_anm)*0.148971269751) + ((Mode 2 from ANM 1p38_anm)*\
+0.24904210757)
 
 Approximate a deformation vector
 ===============================================================================
@@ -166,8 +166,9 @@ We can use these numbers to combine ANM modes:
 >>> approximate_defvec = np.sum( (np.array(list(anm1[:3])) * defvec) * \
 np.array(list(anm1[:3])) ) 
 >>> print( approximate_defvec )
--5.60860594784*(Mode 1 from ANM 1p38_anm) + 2.15393365959*(Mode 2 from ANM \
-1p38_anm) + -3.13701609199*(Mode 3 from ANM 1p38_anm)
+((-5.60860594784*(Mode 1 from ANM 1p38_anm)) + \
+(2.15393365959*(Mode 2 from ANM 1p38_anm))) + \
+(-3.13701609199*(Mode 3 from ANM 1p38_anm))
 
 Let's deform 1r39 chain along this approximate deformation vector and see
 how RMSD changes:
@@ -244,7 +245,7 @@ class VectorBase(object):
                 raise TypeError('{0} is not a scalar or a mode ({1:s})'
                                 .format(other, str(err)))
             else:
-                return Vector(result, '{0}*({1:s})'.format(other, str(self)), 
+                return Vector(result, '({1:s})*{0}'.format(other, str(self)), 
                               self.is3d())
         else:
             try:
@@ -266,7 +267,7 @@ class VectorBase(object):
                 raise TypeError('{0} is not a scalar or a mode ({1:s})'
                                 .format(other, str(err)))
             else:
-                return Vector(result, '({1:s}){0}'.format(other, str(self)), 
+                return Vector(result, '{0}*({1:s})'.format(other, str(self)), 
                               self.is3d())
         else:
             try:
@@ -285,7 +286,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return Vector(self._getArray() + other._getArray(), 
-                          '{0:s} + {1:s}'.format(str(self), str(other)), 
+                          '({0:s}) + ({1:s})'.format(str(self), str(other)), 
                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -296,7 +297,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return Vector(self._getArray() + other._getArray(), 
-                          '{0:s} + {1:s}'.format(str(other), str(self)), 
+                          '({0:s}) + ({1:s})'.format(str(other), str(self)), 
                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -311,7 +312,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return Vector(self._getArray() - other._getArray(), 
-                          '{0:s} - {1:s}'.format(str(self), str(other)), 
+                          '({0:s}) - ({1:s})'.format(str(self), str(other)), 
                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -322,7 +323,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return  Vector(other._getArray() - self._getArray(), 
-                           '{0:s} - {1:s}'.format(str(other), str(self)), 
+                           '({0:s}) - ({1:s})'.format(str(other), str(self)), 
                            self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
