@@ -345,6 +345,7 @@ def getHeaderDict(stream, *keys):
     pdbid = _PDB_HEADER_MAP['identifier'](lines)
     lines['pdbid'] = pdbid
     if keys:
+        keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
                 value = _PDB_HEADER_MAP[key](lines)
