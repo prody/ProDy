@@ -84,7 +84,9 @@ class MSAFile(object):
     """Handle MSA files in FASTA, SELEX and Stockholm formats. 
     
     >>> from prody import * 
-    >>> msafile = fetchPfamMSA('piwi', alignment='seed')
+    >>> fetchPfamMSA('piwi', alignment='seed') # doctest: +SKIP
+    'piwi_seed.slx'
+    >>> msafile = 'piwi_seed.slx'
 
     *Reading a file*
 
