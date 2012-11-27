@@ -36,8 +36,8 @@ class Gamma(object):
     
     Derived classes:
         
-    * :class:`GammaStructureBased`
-    * :class:`GammaVariableCutoff`"""
+    * :class:`.GammaStructureBased`
+    * :class:`.GammaVariableCutoff`"""
     
     
     def __init__(self):
@@ -228,6 +228,7 @@ class GammaVariableCutoff(Gamma):
     want to set the radius to 7.5 Å, and for nucleic acid phosphate atoms to 
     10 Å. We use the HhaI-DNA complex structure :file:`1mht`.
 
+    >>> from prody import *
     >>> hhai = parsePDB('1mht')
     >>> ca_p = hhai.select('(protein and name CA) or (nucleic and name P)')
     >>> print( ca_p.getNames() ) # doctest: +ELLIPSIS
@@ -254,7 +255,7 @@ class GammaVariableCutoff(Gamma):
     ``debug=True`` argument for demonstration purposes. This argument 
     allows printing debugging information on the screen.
     
-    We build :class:`ANM` Hessian matrix as follows:  
+    We build :class:`.ANM` Hessian matrix as follows:  
         
     >>> anm = ANM('HhaI-DNA')
     >>> anm.buildHessian(ca_p, gamma=varcutoff, cutoff=20) # doctest: +ELLIPSIS
@@ -271,13 +272,13 @@ class GammaVariableCutoff(Gamma):
     CA_346 -- CA_348 effective cutoff: 15.0 distance: 6.73513808322 gamma: 1.0
     CA_347 -- CA_348 effective cutoff: 15.0 distance: 3.80721748788 gamma: 1.0
         
-    Note that we passed ``cutoff=20.0`` to the :meth:`ANM.buildHessian` 
+    Note that we passed ``cutoff=20.0`` to the :meth:`.ANM.buildHessian` 
     method.  This is equal to the largest possible cutoff distance (between 
     two phosphate atoms) for this system, and ensures that all of the 
     potential interactions are evaluated. 
     
     For pairs of atoms for which the actual distance is larger than the 
-    effective cutoff, the :meth:`GammaVariableCutoff.gamma` method returns 
+    effective cutoff, the :meth:`.GammaVariableCutoff.gamma` method returns 
     ``0``.  This annuls the interaction between those atom pairs."""
     
     def __init__(self, identifiers, gamma=1., default_radius=7.5, **kwargs):
@@ -326,8 +327,8 @@ class GammaVariableCutoff(Gamma):
         else:
             gamma = 0
         if self._debug:
-            print(self._identifiers[i]+'_'+str(i), '--',
-                  self._identifiers[j]+'_'+str(j),
-                  'effective cutoff:', cutoff, 'distance:', dist2**0.5,
-                  'gamma:', gamma) # PY3K: OK
+            print(' '.join([self._identifiers[i] + '_' + str(i), '--',
+                  self._identifiers[j] + '_' +str(j),
+                  'effective cutoff:', str(cutoff), 'distance:', 
+                  str(dist2**0.5), 'gamma:', str(gamma)])) # PY3K: OK
         return gamma
