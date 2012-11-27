@@ -88,6 +88,13 @@ APP.addArgument('-g', '--gaps',
     help='gap character',
     choices='dashes dots mixed'.split(),
     group='download')
+APP.addArgument('-t', '--timeout', 
+    dest='timeout', 
+    type=int, 
+    default=5, 
+    metavar='INT', 
+    help='timeout for blocking connection attempts',
+    group='download')
 
 APP.addGroup('output', 'output options')
 APP.addArgument('-d', '--outdir', 

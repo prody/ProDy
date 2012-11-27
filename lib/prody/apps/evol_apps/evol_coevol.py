@@ -131,13 +131,15 @@ def evol_coevol(msa, **kwargs):
     todo = [(None, None)]
     norm = kwargs.get('normalization', [])
     corr = kwargs.get('correction', [])
-    if 'joint' in norm:
-        todo.append(('norm', 'joint'))
-    for which in norm:
-        if which == 'join': continue
-        todo.append(('norm', which))
-    for which in corr:
-        todo.append(('corr', which))
+    if norm is not None:
+        if 'joint' in norm:
+            todo.append(('norm', 'joint'))
+        for which in norm:
+            if which == 'join': continue
+            todo.append(('norm', which))
+    if corr is not None:
+        for which in corr:
+            todo.append(('corr', which))
     entropy = None
     
     for what, which in todo:

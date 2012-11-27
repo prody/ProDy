@@ -46,7 +46,7 @@ APP.addArgument('-l', '--label',
     group='refine')
 
 APP.addArgument('-c', '--col-occ',
-    dest='colocc',
+    dest='col_occ',
     help='column (residue position) occupancy',
     default=None,
     type=float,
@@ -54,7 +54,7 @@ APP.addArgument('-c', '--col-occ',
     group='refine')
 
 APP.addArgument('-r', '--row-occ',
-    dest='rowocc',
+    dest='row_occ',
     help='row (sequence) occupancy',
     default=None,
     type=float,
