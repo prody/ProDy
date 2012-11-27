@@ -28,9 +28,9 @@ from prody.proteins import fetchPDB, parsePDB, writePDB
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
-from ensemble import *
-from pdbensemble import *
-from conformation import *
+from .ensemble import *
+from .pdbensemble import *
+from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble', 
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble']
@@ -313,7 +313,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
             writePDB(outfn, ag)
         output.append(outfn)
         
-    for pdb, ag in pdbdict.iteritems():
+    for pdb, ag in pdbdict.items(): # PY3K: OK
         writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
     if len(output) == 1:
         return output[0]

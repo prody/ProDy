@@ -24,8 +24,8 @@ Conformational ensembles
 The following two classes are implemented for handling arbitrary but uniform
 conformational ensembles, e.g. NMR models, MD snapshots: 
 
-  * :class:`~.Ensemble`
-  * :class:`~.Conformation`
+  * :class:`.Ensemble`
+  * :class:`.Conformation`
 
 See usage examples in :ref:`pca-nmr` and :ref:`eda`.
 
@@ -36,24 +36,24 @@ PDB ensembles, such as multiple structures of the same protein, are in general
 heterogeneous.  This just means that different residues in different structures
 are missing.  The following classes extend above to support this heterogeneity:
 
-  * :class:`~.PDBEnsemble`
-  * :class:`~.PDBConformation`
+  * :class:`.PDBEnsemble`
+  * :class:`.PDBConformation`
 
 Following functions are for editing PDB ensembles, e.g. finding and removing
 residues that are missing in too many structures:
 
-  * :func:`~.alignPDBEnsemble`
-  * :func:`~.calcOccupancies`
-  * :func:`~.showOccupancies`
-  * :func:`~.trimPDBEnsemble`
+  * :func:`.alignPDBEnsemble`
+  * :func:`.calcOccupancies`
+  * :func:`.showOccupancies`
+  * :func:`.trimPDBEnsemble`
   
 See usage examples in :ref:`pca-xray`, :ref:`pca-dimer`, :ref:`pca-blast`.
 
 Save/load ensembles
 -------------------
 
-    * :func:`~.saveEnsemble`
-    * :func:`~.loadEnsemble`
+    * :func:`.saveEnsemble`
+    * :func:`.loadEnsemble`
 
 Examples
 --------
@@ -71,23 +71,23 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 __all__ = []
 
-import functions
-from functions import *
+from . import functions
+from .functions import *
 __all__.extend(functions.__all__)
 
-import ensemble
-from ensemble import *
+from . import ensemble
+from .ensemble import *
 __all__.extend(ensemble.__all__)
 
-import pdbensemble
-from pdbensemble import *
+from . import pdbensemble
+from .pdbensemble import *
 __all__.extend(pdbensemble.__all__)
 
-import conformation
-from conformation import *
+from . import conformation
+from .conformation import *
 __all__.extend(conformation.__all__)
 
-from functions import checkWeights
+from .functions import checkWeights
 ensemble.checkWeights = checkWeights
 pdbensemble.checkWeights = checkWeights
 

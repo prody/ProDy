@@ -27,8 +27,8 @@ from prody.measure import getRMSD, getTransformation
 from prody.utilities import importLA, checkCoords
 from prody import LOGGER
 
-from ensemble import Ensemble
-from conformation import PDBConformation
+from .ensemble import Ensemble
+from .conformation import PDBConformation
 
 __all__ = ['PDBEnsemble']
 
@@ -247,16 +247,15 @@ class PDBEnsemble(Ensemble):
     
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
-           ensemble reference coordinate set.
-        """
+           ensemble reference coordinate set."""
         
         if self._confs is None:
             return None
     
         if indices is None:
             indices = slice(None)
-        elif isinstance(indices, (int, long)): 
-            indices = np.array([indices])
+        else:
+            indices = np.array([indices]).flatten()
         coords = self._coords
         if self._indices is None:
             confs = self._confs[indices].copy()

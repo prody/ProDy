@@ -30,7 +30,7 @@ from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD
 from prody.utilities import importLA, checkCoords
 
-from conformation import *
+from .conformation import *
 
 __all__ = ['Ensemble']
 
@@ -361,18 +361,29 @@ class Ensemble(object):
         if self._indices is None:
             if indices is None:
                 return self._confs.copy()
-            if isinstance(indices, (int, long, slice)): 
-                return self._confs[indices].copy()
-            if isinstance(indices, (list, ndarray)):        
-                return self._confs[indices]
+            else:
+                try:
+                    coords = self._confs[indices]
+                except IndexError:        
+                    pass
+                if coords.base is None:
+                    return coords
+                else:
+                    return coords.copy()
         else:
             selids = self._indices
             if indices is None:
-                return self._confs[:,selids]
-            if isinstance(indices, (int, long, slice)): 
-                return self._confs[indices, selids]
-            if isinstance(indices, (list, ndarray)):        
-                return self._confs[indices, selids]
+                return self._confs.take(selids, 1)
+            else:
+                try:
+                    coords = self._confs[indices, selids]
+                except IndexError:        
+                    pass
+                if coords.base is None:
+                    return coords
+                else:
+                    return coords.copy()
+                
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
@@ -383,18 +394,18 @@ class Ensemble(object):
         if self._indices is None:
             if indices is None:
                 return self._confs
-            if isinstance(indices, (int, long, slice)): 
-                return self._confs[indices]
-            if isinstance(indices, (list, ndarray)):        
-                return self._confs[indices]
+                try:
+                    return self._confs[indices]
+                except IndexError:        
+                    pass
         else:
             selids = self._indices
             if indices is None:
                 return self._confs[:,selids]
-            if isinstance(indices, (int, long, slice)): 
-                return self._confs[indices, selids]
-            if isinstance(indices, (list, ndarray)):        
-                return self._confs[indices, selids]
+                try:
+                    return self._confs[indices, selids]
+                except IndexError:        
+                    pass
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
     
