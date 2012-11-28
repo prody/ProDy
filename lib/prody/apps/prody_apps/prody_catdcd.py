@@ -46,8 +46,9 @@ def prody_catdcd(*dcd, **kwargs):
     import prody
     LOGGER = prody.LOGGER
     if kwargs.get('numframes', False):
+        from sys import stdout
         for fn in dcd:
-            print(prody.DCDFile(fn).numFrames())
+            stdout.write(prody.DCDFile(fn).numFrames())
         return
 
     from os.path import splitext
@@ -105,7 +106,7 @@ def prody_catdcd(*dcd, **kwargs):
     for i in range(*slc):
         if goto:
             traj.goto(i)
-        frame = traj.next()
+        frame = next(traj)
         if align:
             frame.superpose()
         if select:

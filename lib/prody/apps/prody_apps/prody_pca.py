@@ -28,6 +28,11 @@ from ..apptools import *
 from .nmaoptions import *
 from . import nmaoptions
 
+try:
+    range = xrange
+except NameError:
+    pass
+
 DEFAULTS = {}
 HELPTEXT = {} 
 for key, txt, val in [
@@ -223,8 +228,8 @@ def prody_pca(coords, **kwargs):
                         if '-' in item:
                             item = item.split('-')
                             if len(item) == 2:
-                                indices.append(range(int(item[0])-1, 
-                                               int(item[1])))
+                                indices.append(list(range(int(item[0])-1, 
+                                                          int(item[1]))))
                         elif ',' in item:
                             indices.append([int(i)-1 for i in item.split(',')])
                         else:

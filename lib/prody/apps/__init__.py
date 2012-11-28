@@ -49,5 +49,5 @@ Sequence analysis
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from evol_apps import evol_main, evol_parser, EVOL_APPS
-from prody_apps import prody_main, prody_parser, PRODY_APPS
+from .evol_apps import evol_main, evol_parser, EVOL_APPS
+from .prody_apps import prody_main, prody_parser, PRODY_APPS

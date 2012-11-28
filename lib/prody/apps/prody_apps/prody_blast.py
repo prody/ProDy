@@ -123,17 +123,19 @@ def prody_blast(sequence, **kwargs):
     stdout = kwargs.get('stdout', False)
     
     if not stdout:
-        finalHits =[]
+        finalHits = []
+    else:
+        from sys import stdout
         
     for identity, pdb in hits2:
         chain = hits[pdb]['chain_id']
         percent_identity = hits[pdb]['percent_identity']
         title = hits[pdb]['title']
         if stdout:
-            print(pdb + ' ' + chain + ' ' + ('%5.1f%%' % (percent_identity)) + 
-                  ' ' + title)
+            stdout.write(pdb + ' ' + chain + ' ' + 
+                         ('%5.1f%%' % (percent_identity)) + ' ' + title)
         else:
-            finalHits.append( (pdb, chain, ('%5.1f%%' % (percent_identity)),
+            finalHits.append((pdb, chain, ('%5.1f%%' % (percent_identity)),
                                title))
             
     
