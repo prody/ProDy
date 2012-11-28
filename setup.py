@@ -8,9 +8,8 @@ from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.install import install
 
-PY3K = sys.version_info[0] > 2
-if PY3K:
-    sys.stderr.write('Python 3.0 and later is not supported\n')
+if sys.version_info[:2] < (2, 6):
+    sys.stderr.write('Python 2.5 and older is not supported\n')
     sys.exit()
     
 if os.name == 'java': 
