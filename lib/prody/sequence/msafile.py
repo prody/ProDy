@@ -85,8 +85,8 @@ class MSAFile(object):
     
     >>> from prody import * 
     >>> fetchPfamMSA('piwi', alignment='seed') # doctest: +SKIP
-    'piwi_seed.slx'
-    >>> msafile = 'piwi_seed.slx'
+    'piwi_seed.sth'
+    >>> msafile = 'piwi_seed.sth'
 
     *Reading a file*
 
@@ -152,7 +152,7 @@ class MSAFile(object):
         self._lenseq = None
         self._format = None
         self._closed = False
-        self._readline = self._readlines = None
+        self._readline = self._readlines = readline = None
         self._aligned = bool(aligned)
 
         if mode == 'r':

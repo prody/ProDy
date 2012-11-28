@@ -34,7 +34,9 @@ class MSA(object):
     """Store and manipulate multiple sequence alignments.
     
     >>> from prody import *
-    >>> msafile = fetchPfamMSA('piwi', alignment='seed')
+    >>> fetchPfamMSA('piwi', alignment='seed') # DOCTEST: +SKIP
+    'piwi_seed.sth'
+    >>> msafile = 'piwi_seed.sth'
     >>> msa = parseMSA(msafile)
     >>> msa
     <MSA: piwi_seed (20 sequences, 404 residues)>
@@ -97,13 +99,13 @@ class MSA(object):
     Filtering and slicing available to :class:`.MSAFile` class can be used to 
     parse an MSA selectively, which may be useful in low memory situations:
         
-    >>> msa = MSA(msafile, filter=lambda lbl, seq: 'ARATH' in lbl, 
-    ...           slice=list(range(10)) + list(range(394,404)))
+    >>> msa = parseMSA(msafile, filter=lambda lbl, seq: 'ARATH' in lbl, 
+    ...                slice=list(range(10)) + list(range(394,404)))
     >>> msa
     <MSA: piwi_seed (3 sequences, 20 residues)>
 
     Compare this to result from parsing the complete file:
-    >>> MSA(msafile)
+    >>> parseMSA(msafile)
     <MSA: piwi_seed (20 sequences, 404 residues)>"""
     
     def __init__(self, msa, title='Unknown', labels=None, **kwargs):
