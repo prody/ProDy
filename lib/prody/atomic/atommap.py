@@ -424,3 +424,5 @@ for fname, field in ATOMIC_FIELDS.iteritems():
                        .format(repr(dtype(field.dtype).type()))) 
     setattr(AtomMap, getMeth, getData)
     setattr(AtomMap, '_' + getMeth, getData)
+
+del getData

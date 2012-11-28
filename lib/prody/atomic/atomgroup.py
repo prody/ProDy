@@ -1359,3 +1359,7 @@ for fname, field in ATOMIC_FIELDS.items():
     setData.__name__ = setMeth 
     setData.__doc__ = field.getDocstr('set')
     setattr(AtomGroup, setMeth, setData)
+
+del getData
+del _getData
+del setData
