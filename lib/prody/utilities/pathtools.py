@@ -29,7 +29,7 @@ import zipfile
 import platform
 import os.path
 from os.path import isfile, isdir, join, split, splitext
-from os.path import getsize, isabs, exists
+from os.path import getsize, isabs, exists, abspath
 from shutil import copy
 
 PLATFORM = platform.system()
@@ -190,8 +190,16 @@ def sympath(path, beg=2, end=1, ellipsis='...'):
     in the middle with *ellipsis*.  *beg* and *end* specified how many folder
     (or file) names to include from the beginning and end of the path."""
     
-    items = path.split(pathsep)
-    return pathsep.join(items[:beg] + [ellipsis] + items[-end:])
+    abs_items = abspath(path).split(pathsep)
+    rel_items = relpath(path).split(pathsep)
+    if len(abs_items) <= len(rel_items):
+        items = abs_items
+    else:
+        items = rel_items
+    if len(items) <= beg + end:
+        return pathsep.join(items)
+    else:
+        return pathsep.join(items[:beg+1] + [ellipsis] + items[-end:])
 
 
 def makePath(path):
