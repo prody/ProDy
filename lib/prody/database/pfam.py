@@ -346,11 +346,12 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         else:
             with open(filepath, 'wb') as f_out:
                 f_out.write(response.read())
-                
+    
+    filepath = relpath(filepath)     
     LOGGER.info('Pfam MSA for {0} is written as {1}.'
                 .format(orig_acc, filepath))
     
-    return relpath(filepath)
+    return filepath
 
 
 if __name__ == '__main__':
