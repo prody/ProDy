@@ -22,6 +22,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os
 import gzip
+from os import sep as pathsep
 from glob import glob as pyglob
 import pickle as pypickle
 import zipfile
@@ -37,7 +38,7 @@ USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 __all__ = ['gunzip', 'backupFile', 'openFile', 
            'openDB', 'openSQLite', 'openURL', 'copyFile',
            'isExecutable', 'isReadable', 'isWritable', 
-           'makePath', 'relpath', 'which', 
+           'makePath', 'relpath', 'sympath', 'which', 
            'pickle', 'unpickle', 'glob',
            'PLATFORM', 'USERHOME']
         
@@ -184,15 +185,24 @@ def relpath(path):
         return os.path.relpath(path)
 
 
+def sympath(path, beg=2, end=1, ellipsis='...'):
+    """Return a symbolic path for a long *path*, by replacing folder names
+    in the middle with *ellipsis*.  *beg* and *end* specified how many folder
+    (or file) names to include from the beginning and end of the path."""
+    
+    items = path.split(pathsep)
+    return pathsep.join(items[:beg] + [ellipsis] + items[-end:])
+
+
 def makePath(path):
     """Make all directories that does not exist in a given *path*."""
     
     if not isdir(path):
-        dirs = path.split(os.sep)
+        dirs = path.split(pathsep)
         for i, dirname in enumerate(dirs):
             if not dirname:
                 continue
-            dirname = os.sep.join(dirs[:i+1])
+            dirname = pathsep.join(dirs[:i+1])
             try:
                 if not isdir(dirname): 
                     os.mkdir(dirname)
