@@ -423,9 +423,9 @@ class TestSelect(unittest.TestCase):
     
     pass
 
-for case, items in SELECTION_TESTS.iteritems():
+for case, items in SELECTION_TESTS.items():
 
-    for key, tests in items.iteritems():
+    for key, tests in items.items():
         
         if not key.startswith('test_'):
             continue
@@ -539,7 +539,7 @@ for name, macro in MACROS:
     def func(self, name=name, macro=macro):
     
         prody.defSelectionMacro(name, macro)
-        for key, case in SELECTION_TESTS.iteritems():
+        for key, case in SELECTION_TESTS.items():
             atoms = case['ag']
             assert_equal(
                 SELECT.getBoolArray(atoms, macro), 

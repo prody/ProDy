@@ -150,7 +150,7 @@ def parseDatafile(filename, **kwargs):
     return PARSERS[splitext(fn)[1]](fn, **kwargs)
 
 
-for name, value in DATA_FILES.iteritems():
+for name, value in DATA_FILES.items():
     value['path'] = pathDatafile(value['file'])
 
 
