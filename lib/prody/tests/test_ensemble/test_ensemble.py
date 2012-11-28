@@ -26,12 +26,12 @@ import os.path
 from unittest import TestCase
 
 import numpy as np
+from numpy import arange
 from numpy.testing import assert_equal, assert_allclose
 
 from . import ATOMS, COORDS, ENSEMBLE, ENSEMBLEW 
 from . import ENSEMBLE_RMSD, ENSEMBLE_SUPERPOSE 
 from . import ATOL, RTOL
-
 
 class TestEnsemble(TestCase):
     
@@ -151,7 +151,7 @@ class TestEnsemble(TestCase):
     def testDelCoordsetAll(self):
         
         ensemble = ENSEMBLE[:]
-        ensemble.delCoordset(range(len(ENSEMBLE)))
+        ensemble.delCoordset(arange(len(ENSEMBLE)))
         self.assertIsNone(ensemble.getCoordsets(),
                         'failed to delete all coordinate sets for Ensemble')
         assert_equal(ensemble.getCoords(), COORDS,
@@ -162,9 +162,9 @@ class TestEnsemble(TestCase):
         """Test concatenation of ensembles without weights."""
         
         ensemble = ENSEMBLE + ENSEMBLE
-        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'concatenation failed')
-        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3,6)), ATOMS.getCoordsets(),
                      'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
@@ -173,9 +173,9 @@ class TestEnsemble(TestCase):
         """Test concatenation of ensembles with weights."""
         
         ensemble = ENSEMBLEW + ENSEMBLEW
-        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(), 
+        assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(), 
                      'concatenation failed')
-        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3,6)), ATOMS.getCoordsets(),
                      'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
@@ -186,9 +186,9 @@ class TestEnsemble(TestCase):
         """Test concatenation of ensembles without and with weights."""
         
         ensemble = ENSEMBLE + ENSEMBLEW
-        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'concatenation failed')
-        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3,6)), ATOMS.getCoordsets(),
                     'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
@@ -198,9 +198,9 @@ class TestEnsemble(TestCase):
         """Test concatenation of ensembles with and without weights."""
         
         ensemble = ENSEMBLEW + ENSEMBLE 
-        assert_equal(ensemble.getCoordsets(range(3)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'failed at concatenation for Ensemble')
-        assert_equal(ensemble.getCoordsets(range(3,6)), ATOMS.getCoordsets(),
+        assert_equal(ensemble.getCoordsets(arange(3,6)), ATOMS.getCoordsets(),
                      'failed at concatenation for Ensemble')
         assert_equal(ensemble.getCoords(), COORDS,
                      'failed at concatenation for Ensemble')

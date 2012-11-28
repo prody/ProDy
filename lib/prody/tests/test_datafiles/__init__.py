@@ -158,7 +158,7 @@ class TestDatafilesMeta(type):
     
     def __init__(cls, name, bases, dict):
         
-        for name, value in DATA_FILES.iteritems():
+        for name, value in DATA_FILES.items():
             fn = value['file']
             def testFunction(self, filename=fn, **kwargs):
                 

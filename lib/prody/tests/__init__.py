@@ -64,7 +64,7 @@ def runTests(*mods, **kwargs):
             except KeyError:
                 raise ValueError(mod + ' is not a valid test module name')
     else: 
-        modules = MODULES.values()
+        modules = MODULES.values() # PY3K: OK
 
     try:
         import nose

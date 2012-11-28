@@ -24,6 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
+from numpy import arange
 from numpy.testing import assert_equal
 
 from . import ATOMS, PDBENSEMBLE, COORDS, WEIGHTS_BOOL, ENSEMBLE, WEIGHTS
@@ -113,7 +114,7 @@ class TestPDBEnsemble(TestCase):
         """Test consequences of deleting all coordinate sets."""
         
         ensemble = PDBENSEMBLE[:]
-        ensemble.delCoordset(range(len(PDBENSEMBLE)))
+        ensemble.delCoordset(arange(len(PDBENSEMBLE)))
         self.assertIsNone(ensemble.getCoordsets(),
                         'failed to delete all coordinate sets')
         self.assertIsNone(ensemble.getWeights(), 'failed to delete weights '
@@ -126,17 +127,17 @@ class TestPDBEnsemble(TestCase):
         """Test concatenation of PDB ensembles."""
         
         ensemble = PDBENSEMBLE + PDBENSEMBLE
-        assert_equal(ensemble.getCoordsets(range(3)),
+        assert_equal(ensemble.getCoordsets(arange(3)),
                      PDBENSEMBLE.getCoordsets(), 
                      'concatenation failed')
-        assert_equal(ensemble.getCoordsets(range(3,6)),
+        assert_equal(ensemble.getCoordsets(arange(3,6)),
                      PDBENSEMBLE.getCoordsets(), 
                      'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
-        assert_equal(ensemble.getWeights()[range(3)],
+        assert_equal(ensemble.getWeights()[arange(3)],
                      PDBENSEMBLE.getWeights(),
                      'concatenation failed')
-        assert_equal(ensemble.getWeights()[range(3,6)], 
+        assert_equal(ensemble.getWeights()[arange(3,6)], 
                      PDBENSEMBLE.getWeights(),
                      'concatenation failed')

@@ -21,9 +21,11 @@ __author__ = 'Ahmet Bakan, Anindita Dutta'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
-
-from StringIO import StringIO
 import os
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from numpy import array, log, zeros, char
 from numpy.testing import assert_array_equal, dec

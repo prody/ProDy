@@ -403,19 +403,19 @@ class TestDSSPFunctions(unittest.TestCase):
                     dssp_resnum = res.getData("dssp_resnum")[0]
                     dssp_dict[dssp_resnum] = res
 
-            for res in dssp_dict.itervalues():
+            for res in dssp_dict.values():
                 bp1 = res.getData("dssp_bp1")[0]
                 bp2 = res.getData("dssp_bp2")[0]
 
                 if bp1 != 0:
                     msg_ = "BP1 (dssp_resnum: %d) of %s is missing" % \
                         (bp1, str(res))
-                    self.assertTrue(dssp_dict.has_key(bp1), msg=msg_)
+                    self.assertIn(bp1, dssp_dict, msg=msg_)
 
                 if bp2 != 0:
                     msg_ = "BP2 (dssp_resnum: %d) of %s is missing" % \
                         (bp2, str(res))
-                    self.assertTrue(dssp_dict.has_key(bp2), msg=msg_)
+                    self.assertIn(bp2, dssp_dict, msg=msg_)
 
 
 if __name__ == '__main__':

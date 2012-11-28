@@ -24,6 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import unittest
 import numpy as np
+from numpy import arange
 from numpy.testing import *
 
 from prody import *
@@ -45,7 +46,7 @@ ANM_EVECTORS = parseDatafile('anm1ubi_vectors')[:,1:]
 
 GNM_KIRCHHOFF = parseDatafile('gnm1ubi_kirchhoff', symmetric=True, skiprows=1)
 GNM_EVALUES = parseDatafile('gnm1ubi_evalues')[:,1].flatten()
-GNM_EVECTORS = parseDatafile('gnm1ubi_vectors', usecols=range(3,23))
+GNM_EVECTORS = parseDatafile('gnm1ubi_vectors', usecols=arange(3,23))
 
  
 anm = ANM() 
