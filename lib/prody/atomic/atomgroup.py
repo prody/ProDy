@@ -280,90 +280,6 @@ def checkLabel(label):
 
     return label
 
-class AtomGroupMeta(type):
-
-    def __init__(cls, name, bases, dict):
-    
-        for fname, field in ATOMIC_FIELDS.items():
-
-            meth = field.meth_pl
-            getMeth = 'get' + meth
-            setMeth = 'set' + meth
-            if field.call:
-                # Define public method for retrieving a copy of data array
-                if not field.private:
-                    def getData(self, var=fname, call=field.call):
-                        try:
-                            return self._data[var].copy()
-                        except KeyError:
-                            [getattr(self, meth)() for meth in call]
-                            return self._data[var].copy()
-                # Define private method for retrieving actual data array
-                def _getData(self, var=fname, call=field.call):
-                    try:
-                        return self._data[var]
-                    except KeyError:
-                        [getattr(self, meth)() for meth in call]
-                        return self._data[var].copy()
-            else:
-                if not field.private:
-                    def getData(self, var=fname):
-                        try:
-                            return self._data[var].copy()
-                        except KeyError: 
-                            pass
-                def _getData(self, var=fname):
-                    return self._data.get(var)
-
-            if not field.private:
-                getData = wrapGetMethod(getData)
-                getData.__name__ = getMeth
-                getData.__doc__ = field.getDocstr('get')
-                setattr(cls, getMeth, getData)
-            
-            _getData = wrapGetMethod(_getData)
-            _getData.__name__ = '_' + getMeth
-            _getData.__doc__ = field.getDocstr('_get')
-            setattr(cls, '_' + getMeth, _getData)
-            
-            if field.readonly or field.private:
-                continue
-            
-            # Define public method for setting values in data array
-            def setData(self, array, var=fname, dtype=field.dtype, 
-                        ndim=field.ndim, none=field.none, flags=field.flags):
-                if array is None:
-                    self._data.pop(var, None)
-                else:
-                    if self._n_atoms == 0:
-                        self._n_atoms = len(array)
-                    elif len(array) != self._n_atoms:
-                        raise ValueError('length of array must match number '
-                                           'of atoms')
-                        
-                    if isinstance(array, list):
-                        array = np.array(array, dtype)
-                    elif not isinstance(array, np.ndarray):
-                        raise TypeError('array must be an ndarray or a list')
-                    elif array.ndim != ndim:
-                            raise ValueError('array must be {0:d} '
-                                               'dimensional'.format(ndim))
-                    elif array.dtype != dtype:
-                        try:
-                            array = array.astype(dtype)
-                        except ValueError:
-                            raise ValueError('array cannot be assigned type '
-                                             '{0:s}'.format(dtype))
-                    self._data[var] = array
-                    if none: self._none(none)
-                    if flags and self._flags:
-                        self._resetFlags(var)
-                    
-            setData = wrapSetMethod(setData)
-            setData.__name__ = setMeth 
-            setData.__doc__ = field.getDocstr('set')
-            setattr(cls, setMeth, setData)
-
 
 class AtomGroup(Atomic):
     
@@ -426,8 +342,6 @@ class AtomGroup(Atomic):
     If *A* and *B* has same number of coordinate sets, *C* will have a copy
     of all coordinate sets, otherwise *C* will have a single coordinate set,
     which is a copy of of active coordinate sets of *A* and *B*."""
-    
-    __metaclass__ = AtomGroupMeta
     
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i', 
                  '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
@@ -1364,3 +1278,84 @@ class AtomGroup(Atomic):
                 c += 1
         self._data['fragindex'] = fragindices
         self._fragments = fragments
+
+    
+for fname, field in ATOMIC_FIELDS.items():
+
+    meth = field.meth_pl
+    getMeth = 'get' + meth
+    setMeth = 'set' + meth
+    if field.call:
+        # Define public method for retrieving a copy of data array
+        if not field.private:
+            def getData(self, var=fname, call=field.call):
+                try:
+                    return self._data[var].copy()
+                except KeyError:
+                    [getattr(self, meth)() for meth in call]
+                    return self._data[var].copy()
+        # Define private method for retrieving actual data array
+        def _getData(self, var=fname, call=field.call):
+            try:
+                return self._data[var]
+            except KeyError:
+                [getattr(self, meth)() for meth in call]
+                return self._data[var].copy()
+    else:
+        if not field.private:
+            def getData(self, var=fname):
+                try:
+                    return self._data[var].copy()
+                except KeyError: 
+                    pass
+        def _getData(self, var=fname):
+            return self._data.get(var)
+
+    if not field.private:
+        getData = wrapGetMethod(getData)
+        getData.__name__ = getMeth
+        getData.__doc__ = field.getDocstr('get')
+        setattr(AtomGroup, getMeth, getData)
+    
+    _getData = wrapGetMethod(_getData)
+    _getData.__name__ = '_' + getMeth
+    _getData.__doc__ = field.getDocstr('_get')
+    setattr(AtomGroup, '_' + getMeth, _getData)
+    
+    if field.readonly or field.private:
+        continue
+    
+    # Define public method for setting values in data array
+    def setData(self, array, var=fname, dtype=field.dtype, 
+                ndim=field.ndim, none=field.none, flags=field.flags):
+        if array is None:
+            self._data.pop(var, None)
+        else:
+            if self._n_atoms == 0:
+                self._n_atoms = len(array)
+            elif len(array) != self._n_atoms:
+                raise ValueError('length of array must match number '
+                                   'of atoms')
+                
+            if isinstance(array, list):
+                array = np.array(array, dtype)
+            elif not isinstance(array, np.ndarray):
+                raise TypeError('array must be an ndarray or a list')
+            elif array.ndim != ndim:
+                    raise ValueError('array must be {0:d} '
+                                       'dimensional'.format(ndim))
+            elif array.dtype != dtype:
+                try:
+                    array = array.astype(dtype)
+                except ValueError:
+                    raise ValueError('array cannot be assigned type '
+                                     '{0:s}'.format(dtype))
+            self._data[var] = array
+            if none: self._none(none)
+            if flags and self._flags:
+                self._resetFlags(var)
+            
+    setData = wrapSetMethod(setData)
+    setData.__name__ = setMeth 
+    setData.__doc__ = field.getDocstr('set')
+    setattr(AtomGroup, setMeth, setData)

@@ -92,7 +92,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from sys import maxint as DUMMY
 
-from numpy import arange, array, ndarray, ones, zeros 
+from numpy import arange, array, ndarray, ones, zeros, dtype
 
 from prody.utilities import rangeString
 
@@ -103,48 +103,10 @@ from .pointer import AtomPointer
 
 __all__ = ['AtomMap']
 
-class AtomMapMeta(type):
-    
-    def __init__(cls, name, bases, dict):
-        
-        for fname, field in ATOMIC_FIELDS.iteritems():
-            
-            if field.private:
-                continue
-            
-            meth = field.meth_pl
-            getMeth = 'get' + meth
-    
-            def getData(self, meth=field.meth_pl, dtype=field.dtype):
-                data = getattr(self._ag, '_get' + meth)()
-                if data is not None:
-                    if self._mapping is None:
-                        return data[self._indices]
-                    else:
-                        result = zeros((self._len,) + data.shape[1:], dtype)
-                        result[self._mapping] = data[self._indices]
-                        return result
-    
-            getData = wrapGetMethod(getData)
-            getData.__name__ = getMeth
-            if field.dtype in (int, float):
-                zero = 0
-            elif field.dtype == bool:
-                zero = True
-            else:
-                zero = ''
-            getData.__doc__ = (field.getDocstr('get', selex=False) +
-                               ' Entries for dummy atoms will be ``{0:s}``.'
-                               .format(repr(zero))) 
-            setattr(cls, getMeth, getData)
-            setattr(cls, '_' + getMeth, getData)
-
 
 class AtomMap(AtomPointer):
     
     """A class for mapping atomic data."""
-    
-    __metaclass__ = AtomMapMeta
     
     __slots__ = ['_ag', '_indices', '_acsi', '_mapping', '_dummies', '_title',
                  '_len', '_idarray']
@@ -435,3 +397,30 @@ class AtomMap(AtomPointer):
         """Return selection string that selects mapped atoms."""
         
         return 'index ' + rangeString(self._indices)
+
+
+for fname, field in ATOMIC_FIELDS.iteritems():
+    
+    if field.private:
+        continue
+    
+    meth = field.meth_pl
+    getMeth = 'get' + meth
+
+    def getData(self, meth=field.meth_pl, dtype=field.dtype):
+        data = getattr(self._ag, '_get' + meth)()
+        if data is not None:
+            if self._mapping is None:
+                return data[self._indices]
+            else:
+                result = zeros((self._len,) + data.shape[1:], dtype)
+                result[self._mapping] = data[self._indices]
+                return result
+
+    getData = wrapGetMethod(getData)
+    getData.__name__ = getMeth
+    getData.__doc__ = (field.getDocstr('get', selex=False) +
+                       ' Entries for dummy atoms will be ``{0:s}``.'
+                       .format(repr(dtype(field.dtype).type()))) 
+    setattr(AtomMap, getMeth, getData)
+    setattr(AtomMap, '_' + getMeth, getData)

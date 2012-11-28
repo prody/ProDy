@@ -27,45 +27,7 @@ from prody import LOGGER
 
 __all__ = ['AtomSubset']
 
-class AtomSubsetMeta(type):
-
-    def __init__(cls, name, bases, dict):
-
-        for fname, field in ATOMIC_FIELDS.items():
-            
-            if field.private:
-                continue
-
-            meth = field.meth_pl
-            getMeth = 'get' + meth
-            setMeth = 'set' + meth
-            # Define public method for retrieving a copy of data array
-            def getData(self, meth=field.meth_pl, call=field.call):
-                data = getattr(self._ag, '_get' + meth)()
-                if data is not None:
-                    return data[self._indices]
-            getData = wrapGetMethod(getData)
-            getData.__name__ = getMeth
-            getData.__doc__ = field.getDocstr('get')
-            setattr(cls, getMeth, getData)
-            setattr(cls, '_' + getMeth, getData)
-            
-            if field.readonly:
-                continue
-            
-            # Define public method for setting values in data array
-            def setData(self, value, var=fname, none=field.none):
-                array = self._ag._data[var]
-                if array is None:
-                    raise AttributeError(var + ' data is not set')
-                array[self._indices] = value
-                if none: self._ag._none(none)
-            setData = wrapSetMethod(setData)
-            setData.__name__ = setMeth 
-            setData.__doc__ = field.getDocstr('set')  
-            setattr(cls, setMeth, setData)
-
-                        
+                       
 class AtomSubset(AtomPointer):
     
     """A class for manipulating subset of atoms in an :class:`.AtomGroup`.
@@ -77,11 +39,7 @@ class AtomSubset(AtomPointer):
       * :class:`.Residue`
     
     This class stores a reference to an :class:`.AtomGroup` instance, a set of 
-    atom indices, and active coordinate set index for the atom group.
-    
-    """
-    
-    __metaclass__ = AtomSubsetMeta    
+    atom indices, and active coordinate set index for the atom group."""
     
     __slots__ = ['_ag', '_indices', '_acsi', '_selstr']
     
@@ -218,3 +176,38 @@ class AtomSubset(AtomPointer):
             raise AttributeError('flags with label {0:s} must be set for '
                                     'AtomGroup first'.format(repr(label)))
         flags[self._index] = value
+
+
+for fname, field in ATOMIC_FIELDS.items():
+    
+    if field.private:
+        continue
+
+    meth = field.meth_pl
+    getMeth = 'get' + meth
+    setMeth = 'set' + meth
+    # Define public method for retrieving a copy of data array
+    def getData(self, meth=field.meth_pl, call=field.call):
+        data = getattr(self._ag, '_get' + meth)()
+        if data is not None:
+            return data[self._indices]
+    getData = wrapGetMethod(getData)
+    getData.__name__ = getMeth
+    getData.__doc__ = field.getDocstr('get')
+    setattr(AtomSubset, getMeth, getData)
+    setattr(AtomSubset, '_' + getMeth, getData)
+    
+    if field.readonly:
+        continue
+    
+    # Define public method for setting values in data array
+    def setData(self, value, var=fname, none=field.none):
+        array = self._ag._data[var]
+        if array is None:
+            raise AttributeError(var + ' data is not set')
+        array[self._indices] = value
+        if none: self._ag._none(none)
+    setData = wrapSetMethod(setData)
+    setData.__name__ = setMeth 
+    setData.__doc__ = field.getDocstr('set')  
+    setattr(AtomSubset, setMeth, setData)

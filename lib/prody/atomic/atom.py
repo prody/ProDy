@@ -31,51 +31,10 @@ from .bond import Bond
 
 __all__ = ['Atom']
 
-class AtomMeta(type):
-
-    def __init__(cls, name, bases, dict):
-        
-        for fname, field in ATOMIC_FIELDS.items():
-            
-            if field.private:
-                continue
-            
-            meth = field.meth
-            getMeth = 'get' + meth
-            setMeth = 'set' + meth
-            # Define public method for retrieving a copy of data array
-            def getData(self, meth=field.meth_pl, call=field.call):
-                data = getattr(self._ag, '_get' + meth)()
-                if data is not None:
-                    return data[self._index] 
-            getData = wrapGetMethod(getData)
-            getData.__name__ = getMeth
-            getData.__doc__ = field.getDocstr('get', False)
-            setattr(cls, getMeth, getData)
-            setattr(cls, '_' + getMeth, getData)
-            
-            if field.readonly:
-                continue
-            
-            # Define public method for setting values in data array
-            def setData(self, value, var=fname, none=field.none):
-                array = self._ag._data[var]
-                if array is None:
-                    raise AttributeError('attribute of the AtomGroup is '
-                                         'not set')
-                array[self._index] = value
-                if none: self._ag._none(none)
-            setData = wrapSetMethod(setData)
-            setData.__name__ = setMeth 
-            setData.__doc__ = field.getDocstr('set', False)
-            setattr(cls, setMeth, setData)
-                            
 
 class Atom(AtomPointer):
     
     """A class for handling individual atoms in an :class:`.AtomGroup`."""
-    
-    __metaclass__ = AtomMeta
     
     __slots__ = ['_ag', '_acsi', '_index']
     
@@ -294,3 +253,39 @@ class Atom(AtomPointer):
             if other == -1:
                 break
             yield Atom(ag, other, acsi)
+
+
+for fname, field in ATOMIC_FIELDS.items():
+    
+    if field.private:
+        continue
+    
+    meth = field.meth
+    getMeth = 'get' + meth
+    setMeth = 'set' + meth
+    # Define public method for retrieving a copy of data array
+    def getData(self, meth=field.meth_pl, call=field.call):
+        data = getattr(self._ag, '_get' + meth)()
+        if data is not None:
+            return data[self._index] 
+    getData = wrapGetMethod(getData)
+    getData.__name__ = getMeth
+    getData.__doc__ = field.getDocstr('get', False)
+    setattr(Atom, getMeth, getData)
+    setattr(Atom, '_' + getMeth, getData)
+    
+    if field.readonly:
+        continue
+    
+    # Define public method for setting values in data array
+    def setData(self, value, var=fname, none=field.none):
+        array = self._ag._data[var]
+        if array is None:
+            raise AttributeError('attribute of the AtomGroup is '
+                                 'not set')
+        array[self._index] = value
+        if none: self._ag._none(none)
+    setData = wrapSetMethod(setData)
+    setData.__name__ = setMeth 
+    setData.__doc__ = field.getDocstr('set', False)
+    setattr(Atom, setMeth, setData)
