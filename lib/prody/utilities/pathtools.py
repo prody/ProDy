@@ -137,7 +137,10 @@ def gunzip(filename, outname=None):
         out.close()
         return outname
     else:
-        from StringIO import StringIO
+        try:
+            from StringIO import StringIO
+        except ImportError:
+            from io import StringIO
         buff = gzip.GzipFile(fileobj=StringIO(filename))
         if outname is None:
             try:
@@ -235,7 +238,10 @@ def unpickle(filename, **kwargs):
 def openDB(filename, *args):
     """Open a database with given *filename*."""
 
-    import anydbm
+    try:
+        import anydbm as dbm
+    except ImportError:
+        import dbm
     return anydbm.open(filename, *args)
 
 
@@ -254,7 +260,11 @@ def openURL(url, timeout=5):
     """Open *url* for reading. Raise an :exc:`IOError` if *url* cannot be 
     reached.  Small *timeout* values are suitable if *url* is an ip address."""
     
-    from urllib2 import urlopen, URLError
+    try:
+        from urllib2 import urlopen, URLError
+    except ImportError:
+        from urllib.request import urlopen
+        from urllib.error import URLError
     
     url = str(url)
     try:

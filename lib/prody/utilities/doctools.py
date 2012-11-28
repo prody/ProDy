@@ -94,19 +94,19 @@ def tabulate(*cols, **kwargs):
     
     indent = kwargs.get('indent', 0)
     space = kwargs.get('space', 2)
-    widths = [max(map(len, cols[0]))]
+    widths = [max(map(len, cols[0]))] # PY3K: OK
     widths.append(kwargs.get('width', 79) - sum(widths) - 
                   len(widths) * space)
     space *= ' '
     bars = (space).join(['=' * width for width in widths])
     lines = [bars]
     
-    for irow, items in enumerate(zip(*cols)):
+    for irow, items in enumerate(zip(*cols)): # PY3K: OK
         rows = []
-        map(rows.append, [wrap(item, widths[icol]) if icol else 
-                          [item.ljust(widths[icol])] 
-                          for icol, item in enumerate(items)])
-        maxlen = max(map(len, rows))
+        rows.extend([wrap(item, widths[icol]) if icol else 
+                      [item.ljust(widths[icol])] 
+                         for icol, item in enumerate(items)])
+        maxlen = max(map(len, rows)) # PY3K: OK
         if maxlen > 1:     
             for i, row in enumerate(rows):
                 row.extend([' ' * widths[i]] * (maxlen - len(row)))

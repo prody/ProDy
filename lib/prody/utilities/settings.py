@@ -21,10 +21,15 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os
-import cPickle
+import pickle
 
-from pathtools import pickle, unpickle, isWritable, USERHOME
+from .pathtools import pickle, unpickle, isWritable, USERHOME
 import prody as pkg
+
+try:
+    input = raw_input
+except NameError:
+    pass
 
 __all__ = ['PackageSettings', 'getPackagePath', 'setPackagePath',]
 
@@ -149,10 +154,10 @@ def getPackagePath():
         update = True
     if update:
         default = os.path.join(USERHOME, '.' + pkg.SETTINGS._package)
-        path = raw_input('Please specify a folder for storing {0:s} data '
-                         '(press enter for "{1:s}"):'
-                         .format(pkg.SETTINGS._package, default)) or default
+        path = input('Please specify a folder for storing {0:s} data '
+                     '(press enter for "{1:s}"):'
+                     .format(pkg.SETTINGS._package, default)) or default
         while not setPackagePath(path):
-            path = raw_input('Please specify a valid folder name with write ' 
-                             'access:')
+            path = input('Please specify a valid folder name with write ' 
+                         'access:')
     return path

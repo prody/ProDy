@@ -37,7 +37,7 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'critical': logging.CRITICAL,
                 'none': logging.CRITICAL}
 LOGGING_INVERSE = {}
-for key, value in LOGGING_LEVELS.items():
+for key, value in LOGGING_LEVELS.items(): # PY3K: OK
     LOGGING_INVERSE[value] = key
 
 now = datetime.datetime.now
