@@ -38,56 +38,10 @@ from . import NOPRODYCMD
 
 TESTDIR = os.path.join(TEMPDIR, 'prody_tests')
 
-class TestCommandsMeta(type):
-    
-    def __init__(cls, name, bases, dict): 
-        
-        count = 0
-        for cmd in prody_commands.choices:
-            
-            parser = prody_commands.choices[cmd]
-            
-            test_examples = parser._defaults.get('test_examples', [])
-            
-            usage = parser._defaults['usage_example']
-            
-            examples = []
-            for line in usage.split('\n'):       
-                line = line.strip()
-                if line.startswith('$'):
-                    examples.append(line[1:].strip())
-                    
-            for i in test_examples:
-                try:
-                    egs = [examples[i]]
-                except TypeError:
-                    egs = [examples[x] for x in i]
-                count += 1
-                 
-                @dec.slow  
-                @skipIf(NOPRODYCMD, 'prody command not found')
-                def testFunction(self, examples=egs):
-                    
-                    for eg in examples:
-                        pipe = Popen(shlex.split(eg + ' --quiet'),
-                                     stdout=PIPE, stderr=PIPE)
-                        stdout = pipe.stdout.read()
-                        pipe.stdout.close() 
-                        stderr = pipe.stderr.read()
-                        pipe.stderr.close()
-                        self.assertTrue(stderr == '', msg=stderr)
-                    
-                testFunction.__name__ = 'testCommandExample{0:d}'.format(
-                                                                        count)
-                testFunction.__doc__ = 'Test example: $ {0:s}'.format(
-                                            ' $ '.join(egs))
-                setattr(cls, testFunction.__name__, testFunction)
+
             
 
 class TestCommandExamples(TestCase):    
-    
-    __metaclass__ = TestCommandsMeta
-
 
     def setUp(self):
         
@@ -104,3 +58,45 @@ class TestCommandExamples(TestCase):
         os.chdir(self.cwd)
 
 
+count = 0
+for cmd in prody_commands.choices:
+    
+    parser = prody_commands.choices[cmd]
+    
+    test_examples = parser._defaults.get('test_examples', [])
+    
+    usage = parser._defaults['usage_example']
+    
+    examples = []
+    for line in usage.split('\n'):       
+        line = line.strip()
+        if line.startswith('$'):
+            examples.append(line[1:].strip())
+            
+    for i in test_examples:
+        try:
+            egs = [examples[i]]
+        except TypeError:
+            egs = [examples[x] for x in i]
+        count += 1
+         
+        @dec.slow  
+        @skipIf(NOPRODYCMD, 'prody command not found')
+        def func(self, examples=egs):
+            
+            for eg in examples:
+                pipe = Popen(shlex.split(eg + ' --quiet'),
+                             stdout=PIPE, stderr=PIPE)
+                stdout = pipe.stdout.read()
+                pipe.stdout.close() 
+                stderr = pipe.stderr.read()
+                pipe.stderr.close()
+                self.assertTrue(stderr == '', msg=stderr)
+            
+        func.__name__ = 'testCommandExample{0:d}'.format(
+                                                                count)
+        func.__doc__ = 'Test example: $ {0:s}'.format(
+                                    ' $ '.join(egs))
+        setattr(TestCommandExamples, func.__name__, func)
+
+del func

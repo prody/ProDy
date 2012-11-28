@@ -154,23 +154,19 @@ for name, value in DATA_FILES.iteritems():
     value['path'] = pathDatafile(value['file'])
 
 
-class TestDatafilesMeta(type):
-    
-    def __init__(cls, name, bases, dict):
-        
-        for name, value in DATA_FILES.items():
-            fn = value['file']
-            def testFunction(self, filename=fn, **kwargs):
-                
-                self.assertTrue(isfile(pathDatafile(filename)))
-            
-            testFunction.__name__ = 'testDatafile_{0:s}'.format(name)
-            testFunction.__doc__ = 'Test presence of "{0:s}"'.format(fn)
-            setattr(cls, testFunction.__name__, testFunction)
-
-
 class TestDatafiles(TestCase):
 
     """Test presence of data files."""
     
-    __metaclass__ = TestDatafilesMeta
+    pass
+
+for name, value in DATA_FILES.items():
+    fn = value['file']
+    def func(self, filename=fn, **kwargs):
+        
+        self.assertTrue(isfile(pathDatafile(filename)))
+    
+    func.__name__ = 'testDatafile_{0:s}'.format(name)
+    func.__doc__ = 'Test presence of "{0:s}"'.format(fn)
+    setattr(TestDatafiles, func.__name__, func)
+del func

@@ -416,144 +416,113 @@ SELECT = prody.Select()
 
 EMPTYDICT = {}
 
-class TestSelectMeta(type):
-    
-    def __init__(cls, name, bases, dict):
-        
-        for case, items in SELECTION_TESTS.iteritems():
-        
-            for key, tests in items.iteritems():
-                
-                if not key.startswith('test_'):
-                    continue
-                type_ = key[5:]
-                    
-                count = 0        
-                for test in tests:
-                    def testFunction(self, pdb=case, test=test, type_=type_, 
-                                     **kwargs):
-                
-                        atoms = SELECTION_TESTS[pdb]['ag']
-                    
-                        selstr = test[0]
-                        natoms = test[1]
-                        selstr2 = None
-                        kwargs = EMPTYDICT
-                        if len(test) == 3:
-                            selstr2 = test[2]
-                        if len(test) == 4:
-                            kwargs = test[3]
-                            
-                        if natoms is None:
-                            self.assertRaises(prody.select.SelectionError,
-                                SELECT.getIndices, atoms, selstr, **kwargs)
-                        elif selstr2 is None:
-                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
-                            self.assertEqual(len(sel), natoms,
-                                'selection {0:s} for {1:s} failed, expected '
-                                '{2:d}, selected {3:d}'.format(repr(selstr), 
-                                str(atoms), natoms, len(sel)))
-                        else:
-                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
-                            sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
-                            self.assertTrue(len(sel) == len(sel2) == natoms and
-                                    np.all(sel == sel2),
-                                'selection strings {0:s} and {1:s} for '
-                                '{2:s} failed to select same number of atoms, '
-                                'expected ({3:d})'.format(repr(selstr), 
-                                repr(selstr2), str(atoms), natoms))
-                                
-                    count += 1
-                    testFunction.__name__ = 'test{0:s}Selection{1:d}'.format(
-                                                        type_.title(), count)
-                    testFunction.__doc__ = ('Test {0:s} selections {1:s} for '
-                                            '{2:s}').format(type_, 
-                                            repr(test[0]), case)
-                    setattr(cls, testFunction.__name__, testFunction)
-
-                    @dec.slow
-                    def testFunction(self, pdb=case, test=test, type_=type_, 
-                                     **kwargs):
-                
-                        atoms = SELECTION_TESTS[pdb]['all']
-                    
-                        selstr = test[0]
-                        natoms = test[1]
-                        selstr2 = None
-                        kwargs = EMPTYDICT
-                        if len(test) == 3:
-                            selstr2 = test[2]
-                        if len(test) == 4:
-                            kwargs = test[3]
-                            
-                        if natoms is None:
-                            self.assertRaises(prody.select.SelectionError,
-                                SELECT.getIndices, atoms, selstr, **kwargs)
-                        elif selstr2 is None:
-                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
-                            self.assertEqual(len(sel), natoms,
-                                'selection {0:s} for {1:s} failed, expected '
-                                '{2:d}, selected {3:d}'.format(repr(selstr), 
-                                str(atoms), natoms, len(sel)))
-                        else:
-                            sel = SELECT.getIndices(atoms, selstr, **kwargs)
-                            sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
-                            self.assertTrue(len(sel) == len(sel2) == natoms and
-                                    np.all(sel == sel2),
-                                'selection strings {0:s} and {1:s} for '
-                                '{2:s} failed to select same number of atoms, '
-                                'expected ({3:d})'.format(repr(selstr), 
-                                repr(selstr2), str(atoms), natoms))
-                                
-                    count += 1
-                    testFunction.__name__ = 'test{0:s}Selection{1:d}'.format(
-                                                        type_.title(), count)
-                    testFunction.__doc__ = 'Test {0:s} selections "{1:s}"'\
-                                            .format(type_, test[0])
-                    setattr(cls, testFunction.__name__, testFunction)
-
 
 class TestSelect(unittest.TestCase):
     
     """Test :class:`.Select`."""
     
-    __metaclass__ = TestSelectMeta
+    pass
 
+for case, items in SELECTION_TESTS.iteritems():
+
+    for key, tests in items.iteritems():
+        
+        if not key.startswith('test_'):
+            continue
+        type_ = key[5:]
+            
+        count = 0        
+        for test in tests:
+            def func(self, pdb=case, test=test, type_=type_, **kwargs):
+        
+                atoms = SELECTION_TESTS[pdb]['ag']
+            
+                selstr = test[0]
+                natoms = test[1]
+                selstr2 = None
+                kwargs = EMPTYDICT
+                if len(test) == 3:
+                    selstr2 = test[2]
+                if len(test) == 4:
+                    kwargs = test[3]
+                    
+                if natoms is None:
+                    self.assertRaises(prody.select.SelectionError,
+                        SELECT.getIndices, atoms, selstr, **kwargs)
+                elif selstr2 is None:
+                    sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                    self.assertEqual(len(sel), natoms,
+                        'selection {0:s} for {1:s} failed, expected '
+                        '{2:d}, selected {3:d}'.format(repr(selstr), 
+                        str(atoms), natoms, len(sel)))
+                else:
+                    sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                    sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
+                    self.assertTrue(len(sel) == len(sel2) == natoms and
+                            np.all(sel == sel2),
+                        'selection strings {0:s} and {1:s} for '
+                        '{2:s} failed to select same number of atoms, '
+                        'expected ({3:d})'.format(repr(selstr), 
+                        repr(selstr2), str(atoms), natoms))
+                        
+            count += 1
+            func.__name__ = 'test{0:s}Selection{1:d}'.format(
+                                                type_.title(), count)
+            func.__doc__ = ('Test {0:s} selections {1:s} for '
+                                    '{2:s}').format(type_, 
+                                    repr(test[0]), case)
+            setattr(TestSelect, func.__name__, func)
+
+            @dec.slow
+            def func(self, pdb=case, test=test, type_=type_, **kwargs):
+        
+                atoms = SELECTION_TESTS[pdb]['all']
+            
+                selstr = test[0]
+                natoms = test[1]
+                selstr2 = None
+                kwargs = EMPTYDICT
+                if len(test) == 3:
+                    selstr2 = test[2]
+                if len(test) == 4:
+                    kwargs = test[3]
+                    
+                if natoms is None:
+                    self.assertRaises(prody.select.SelectionError,
+                        SELECT.getIndices, atoms, selstr, **kwargs)
+                elif selstr2 is None:
+                    sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                    self.assertEqual(len(sel), natoms,
+                        'selection {0:s} for {1:s} failed, expected '
+                        '{2:d}, selected {3:d}'.format(repr(selstr), 
+                        str(atoms), natoms, len(sel)))
+                else:
+                    sel = SELECT.getIndices(atoms, selstr, **kwargs)
+                    sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
+                    self.assertTrue(len(sel) == len(sel2) == natoms and
+                            np.all(sel == sel2),
+                        'selection strings {0:s} and {1:s} for '
+                        '{2:s} failed to select same number of atoms, '
+                        'expected ({3:d})'.format(repr(selstr), 
+                        repr(selstr2), str(atoms), natoms))
+                        
+            count += 1
+            func.__name__ = 'test{0:s}Selection{1:d}'.format(type_.title(), 
+                                                             count)
+            func.__doc__ = 'Test {0:s} selections "{1:s}"'.format(type_, 
+                                                                  test[0])
+            setattr(TestSelect, func.__name__, func)
+del func
 
 MACROS = [('cacb', 'name CA CB'), 
           ('donors', '(protein) and (name N NE NH2 ND2 NE2 ND1 OG OH NH1 '
                                          'SG OG1 NE2 NZ NE1 ND1 NE2)')]
 
-class TestMacrosMeta(type):
-
-    def __init__(cls, name, bases, dict):
-
-        count = 0        
-        for name, macro in MACROS:
-
-
-            def testFunction(self, name=name, macro=macro):
-            
-                prody.defSelectionMacro(name, macro)
-                for key, case in SELECTION_TESTS.iteritems():
-                    atoms = case['ag']
-                    assert_equal(
-                        SELECT.getBoolArray(atoms, macro), 
-                        SELECT.getBoolArray(atoms, name),
-                        'failed to select correct selection using macro')        
-                prody.delSelectionMacro(name)
-            count += 1
-
-            testFunction.__name__ = 'testMacro{0:d}'.format(count)
-            testFunction.__doc__ = 'Test macro *{0:s}*: {1:s}'.format(name, 
-                                     repr(macro))
-            setattr(cls, testFunction.__name__, testFunction)
 
 class TestMacros(unittest.TestCase):
     
     """Test selection macros."""
     
-    __metaclass__ = TestMacrosMeta
     
     def testMacroFunctions(self):
 
@@ -563,3 +532,23 @@ class TestMacros(unittest.TestCase):
                              'failed to get correct macro definition')        
             prody.delSelectionMacro(name)            
 
+count = 0        
+for name, macro in MACROS:
+
+
+    def func(self, name=name, macro=macro):
+    
+        prody.defSelectionMacro(name, macro)
+        for key, case in SELECTION_TESTS.iteritems():
+            atoms = case['ag']
+            assert_equal(
+                SELECT.getBoolArray(atoms, macro), 
+                SELECT.getBoolArray(atoms, name),
+                'failed to select correct selection using macro')        
+        prody.delSelectionMacro(name)
+    count += 1
+
+    func.__name__ = 'testMacro{0:d}'.format(count)
+    func.__doc__ = 'Test macro *{0:s}*: {1:s}'.format(name, repr(macro))
+    setattr(TestMacros, func.__name__, func)
+del func
