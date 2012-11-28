@@ -35,6 +35,6 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 __all__ = []
 
-import pfam
-from pfam import *
+from . import pfam
+from .pfam import *
 __all__.extend(pfam.__all__)
