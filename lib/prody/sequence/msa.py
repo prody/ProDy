@@ -232,6 +232,8 @@ class MSA(object):
                 else:
                     return msa.tostring()
             else:
+                if msa.base is not None:
+                    msa = msa.copy()
                 try:
                     labels = self._labels[rows]
                 except TypeError:
