@@ -46,18 +46,18 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 __all__ = []
 
-import msa
-from msa import *
+from . import msa
+from .msa import *
 __all__.extend(msa.__all__)
 
-import msafile
-from msafile import *
+from . import msafile
+from .msafile import *
 __all__.extend(msafile.__all__)
 
-import analysis
-from analysis import *
+from . import analysis
+from .analysis import *
 __all__.extend(analysis.__all__)
 
-import plotting
-from plotting import *
+from . import plotting
+from .plotting import *
 __all__.extend(plotting.__all__)

@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import arange
 
-from analysis import *
+from .analysis import *
 from prody import LOGGER
 
 __all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix']
