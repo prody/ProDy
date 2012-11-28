@@ -450,17 +450,21 @@ Classes and Functions
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+import sys
 from re import compile as re_compile
-from code import interact
-from types import NoneType
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
 from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
-from . import pyparsing as pp
-from .pyparsing import ParseException
+if sys.version_info[0] == 2:
+    from . import pyparsing_py2 as pp
+    from .pyparsing_py2 import ParseException
+else:
+    from . import pyparsing_py3 as pp
+    from .pyparsing_py3 import ParseException
+    
 
 from prody import LOGGER, SETTINGS, PY2K
 

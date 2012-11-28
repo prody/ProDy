@@ -228,7 +228,6 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from time import time
-from types import NoneType
 
 import numpy as np
 
@@ -646,7 +645,7 @@ class AtomGroup(Atomic):
                 self._coords = coords
                 self._n_csets = n_csets = shape[0]
 
-                if isinstance(label, (NoneType, str)):
+                if label is None or isinstance(label, str):
                     self._cslabels = [label] * n_csets
                 
                 elif isinstance(label, (list, tuple)):
@@ -708,7 +707,7 @@ class AtomGroup(Atomic):
         self._timestamps[:len(timestamps)] = timestamps
         self._timestamps[len(timestamps):] = time()
         self._kdtrees.extend([None] * diff)
-        if isinstance(label, (str, NoneType)):
+        if label is None or isinstance(label, str):
             self._cslabels.extend([label] * diff)
         elif isinstance(label, (list, tuple)):
             if len(label) == diff:
@@ -1123,7 +1122,7 @@ class AtomGroup(Atomic):
         """Set active coordinate set label."""
 
         if self._n_csets:
-            if isinstance(label, (str, NoneType)):
+            if label is None or isinstance(label, str):
                 self._cslabels[self._acsi] = label 
             else:
                 raise TypeError('label must be a string')
@@ -1139,7 +1138,8 @@ class AtomGroup(Atomic):
         
         if isinstance(labels, list):
             if len(labels) == self._n_csets:
-                if all(isinstance(lbl, (str, NoneType)) for lbl in labels):
+                if all((lbl is None or isinstance(lbl, str)) 
+                       for lbl in labels):
                     self._cslabels = list(labels)
                 else:
                     raise ValueError('all items of labels must be strings')

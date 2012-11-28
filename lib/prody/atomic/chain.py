@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import arange, unique
 
-from subset import AtomSubset
+from .subset import AtomSubset
 
 __all__ = ['Chain']
 

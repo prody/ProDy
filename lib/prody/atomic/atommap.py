@@ -90,7 +90,10 @@ i.e. ``""``.
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from sys import maxint as DUMMY
+try:
+    from sys import maxint as DUMMY
+except ImportError:
+    from sys import maxsize as DUMMY
 
 from numpy import arange, array, ndarray, ones, zeros, dtype
 
@@ -399,7 +402,7 @@ class AtomMap(AtomPointer):
         return 'index ' + rangeString(self._indices)
 
 
-for fname, field in ATOMIC_FIELDS.iteritems():
+for fname, field in ATOMIC_FIELDS.items():
     
     if field.private:
         continue
