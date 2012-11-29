@@ -891,7 +891,7 @@ class ParserElement(object):
                 ParserElement._exprArgCache[ lookup ] = (value[0],value[1].copy())
                 return value
             except ParseBaseException as pe:
-                exc.__traceback__ = None
+                #exc.__traceback__ = None
                 ParserElement._exprArgCache[ lookup ] = pe
                 raise
 
