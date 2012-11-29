@@ -458,9 +458,9 @@ static struct PyModuleDef msaiomodule = {
         "msaio",
         "Multiple sequence alignment IO tools.",
         -1,
-        msaio_methods,
+        msaio_methods
 };
-PyMODINIT_FUNC PyInit_msatools(void) {
+PyMODINIT_FUNC PyInit_msaio(void) {
     import_array();
     return PyModule_Create(&msaiomodule);
 }
