@@ -112,8 +112,8 @@ def evol_coevol(msa, **kwargs):
     
     import prody
     from prody import parseMSA, buildMutinfoMatrix, showMutinfoMatrix
-    from prody import applyMICorrection, calcShannonEntropy
-    from prody import writeArray, LOGGER, applyMINormalization
+    from prody import applyMutinfoCorr, calcShannonEntropy
+    from prody import writeArray, LOGGER, applyMutinfoNorm
     from os.path import splitext
 
     prefix = kwargs.get('prefix')
@@ -154,11 +154,11 @@ def evol_coevol(msa, **kwargs):
             LOGGER.info('Applying {0:s} normalization.'.format(repr(which)))
             if entropy is None:
                 entropy = calcShannonEntropy(msa, **kwargs)
-            matrix = applyMINormalization(mutinfo, entropy, norm=which)
+            matrix = applyMutinfoNorm(mutinfo, entropy, norm=which)
             suffix = '_norm_' + which
         else:
             LOGGER.info('Applying {0:s} correction.'.format(repr(which)))
-            matrix = applyMICorrection(mutinfo, which)
+            matrix = applyMutinfoCorr(mutinfo, which)
             suffix = '_corr_' + which
         
         writeArray(prefix + suffix + '.txt', 
