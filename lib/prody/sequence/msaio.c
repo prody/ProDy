@@ -23,6 +23,17 @@
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
 
+struct module_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
 static char *intcat(char *msg, int line) {
    
     /* Concatenate integer to a string. */
@@ -56,9 +67,15 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
     
     PyObject *plabel, *pcount;
     if (slash > 0 && dash > slash) {
+        #if PY_MAJOR_VERSION >= 3
+        PyObject *pkey = PyUnicode_FromStringAndSize(line, slash);
+        plabel = PyUnicode_FromStringAndSize(line, i);
+        pcount = PyLong_FromLong(ccount);
+        #else
         PyObject *pkey = PyString_FromStringAndSize(line, slash);
         plabel = PyString_FromStringAndSize(line, i);
         pcount = PyInt_FromLong(ccount);
+        #endif
         if (!plabel || !pcount || PyList_Append(labels, plabel) < 0 ||
             PyDict_SetItem(mapping, pkey, pcount)) {
             Py_XDECREF(pcount);
@@ -68,8 +85,13 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
         }
         Py_DECREF(pkey);
     } else {
+        #if PY_MAJOR_VERSION >= 3
+        plabel = PyUnicode_FromStringAndSize(line, i);
+        pcount = PyLong_FromLong(ccount);
+        #else
         plabel = PyString_FromStringAndSize(line, i);
         pcount = PyInt_FromLong(ccount);
+        #endif
         if (!plabel || !pcount || PyList_Append(labels, plabel) < 0 ||
             PyDict_SetItem(mapping, plabel, pcount)) {
             Py_XDECREF(pcount);
@@ -205,6 +227,9 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
                                      &filename, &labels, &msa, &line_length))
         return NULL;
     
+    /* make sure to have a contiguous and well-behaved array */
+    msa = PyArray_GETCONTIGUOUS(msa); 
+
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
     
     if (numseq != PyList_Size(labels)) {
@@ -221,12 +246,21 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
     int count = 0;
     char *seq = msa->data;
     int lenmsa = strlen(seq);
-
+    #if PY_MAJOR_VERSION >= 3
+    PyObject *plabel;
+    #endif
     for (i = 0; i < numseq; i++) {
+        #if PY_MAJOR_VERSION >= 3
+        plabel = PyUnicode_AsEncodedString(
+                PyList_GetItem(labels, (Py_ssize_t) i), "utf-8", 
+                               "label encoding");
+        char *label =  PyBytes_AsString(plabel);
+        Py_DECREF(plabel);
+        #else
         char *label =  PyString_AsString(PyList_GetItem(labels, 
                                                         (Py_ssize_t) i));
-
-        fprintf(file, ">%s", label);
+        #endif
+        fprintf(file, ">%s\n", label);
 
         for (j = 0; j < nlines; j++) {
             for (k = 0; k < 60; k++)
@@ -354,6 +388,9 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO|ii", kwlist, &filename,
                                      &labels, &msa, &stockholm, &label_length))
         return NULL;
+        
+    /* make sure to have a contiguous and well-behaved array */
+    msa = PyArray_GETCONTIGUOUS(msa); 
     
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
     
@@ -378,7 +415,11 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
     outline[label_length + lenseq + 1] = '\0';
     
     for (i = 0; i < numseq; i++) {
+        #if PY_MAJOR_VERSION >= 3
+        char *label = PyBytes_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
+        #else
         char *label = PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
+        #endif
         int labelbuffer = label_length - strlen(label);
         
         strcpy(outline, label);
@@ -422,10 +463,72 @@ static PyMethodDef msaio_methods[] = {
 };
 
 
-PyMODINIT_FUNC initmsaio(void) {
+/*PyMODINIT_FUNC initmsaio(void) {
 
-    Py_InitModule3("msaio", msaio_methods,
-        "Multiple sequence alignment IO tools.");
+    (void) Py_InitModule3("msaio", msaio_methods,
+                          "Multiple sequence alignment IO tools.");
         
     import_array();
+}*/
+
+
+#if PY_MAJOR_VERSION >= 3
+
+static int msaio_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
 }
+
+static int msaio_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "msaio",
+        NULL,
+        sizeof(struct module_state),
+        msaio_methods,
+        NULL,
+        msaio_traverse,
+        msaio_clear,
+        NULL
+};
+
+#define INITERROR return NULL
+
+PyObject *
+PyInit_msaio(void)
+
+#else
+#define INITERROR return
+
+void
+initmsaio(void)
+#endif
+{
+#if PY_MAJOR_VERSION >= 3
+    PyObject *module = PyModule_Create(&moduledef);
+#else
+    PyObject *module = Py_InitModule3("msaio", msaio_methods,
+                          "Multiple sequence alignment IO tools.");
+#endif
+
+    import_array();
+    
+    if (module == NULL)
+        INITERROR;
+    struct module_state *st = GETSTATE(module);
+
+    st->error = PyErr_NewException("myextension.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
+#if PY_MAJOR_VERSION >= 3
+    return module;
+#endif
+}
+
