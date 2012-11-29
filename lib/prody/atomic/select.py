@@ -1758,7 +1758,7 @@ class Select(object):
                         .format(repr(arg), str(err)))
 
         if data is not None:
-            if str(data.dtype).startswith('|S'):
+            if data.dtype.char in 'US':
                 return None, SelectionError(sel, loc, '{0:s} is not a numeric '
                         'data label'.format(repr(arg)))
             else:
@@ -1929,7 +1929,7 @@ class Select(object):
             subset = None
         dtype = data.dtype
         type_ = dtype.type
-        isstr = dtype.str.startswith('|S')
+        isstr = dtype.char == 'S' or dtype.char == 'U'
         if isstr: 
             maxlen = int(dtype.str[2:])
         torf = None
