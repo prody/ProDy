@@ -23,17 +23,6 @@
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
 
-struct module_state {
-    PyObject *error;
-};
-
-#if PY_MAJOR_VERSION >= 3
-#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
-#else
-#define GETSTATE(m) (&_state)
-static struct module_state _state;
-#endif
-
 static char *intcat(char *msg, int line) {
    
     /* Concatenate integer to a string. */
@@ -463,72 +452,26 @@ static PyMethodDef msaio_methods[] = {
 };
 
 
-/*PyMODINIT_FUNC initmsaio(void) {
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef msaiomodule = {
+        PyModuleDef_HEAD_INIT,
+        "msaio",
+        "Multiple sequence alignment IO tools.",
+        -1,
+        msaio_methods,
+};
+PyMODINIT_FUNC PyInit_msatools(void) {
+    import_array();
+    return PyModule_Create(&msaiomodule);
+}
+#else
+PyMODINIT_FUNC initmsaio(void) {
 
     (void) Py_InitModule3("msaio", msaio_methods,
                           "Multiple sequence alignment IO tools.");
         
     import_array();
-}*/
-
-
-#if PY_MAJOR_VERSION >= 3
-
-static int msaio_traverse(PyObject *m, visitproc visit, void *arg) {
-    Py_VISIT(GETSTATE(m)->error);
-    return 0;
 }
-
-static int msaio_clear(PyObject *m) {
-    Py_CLEAR(GETSTATE(m)->error);
-    return 0;
-}
-
-static struct PyModuleDef moduledef = {
-        PyModuleDef_HEAD_INIT,
-        "msaio",
-        NULL,
-        sizeof(struct module_state),
-        msaio_methods,
-        NULL,
-        msaio_traverse,
-        msaio_clear,
-        NULL
-};
-
-#define INITERROR return NULL
-
-PyObject *
-PyInit_msaio(void)
-
-#else
-#define INITERROR return
-
-void
-initmsaio(void)
-#endif
-{
-#if PY_MAJOR_VERSION >= 3
-    PyObject *module = PyModule_Create(&moduledef);
-#else
-    PyObject *module = Py_InitModule3("msaio", msaio_methods,
-                          "Multiple sequence alignment IO tools.");
 #endif
 
-    import_array();
-    
-    if (module == NULL)
-        INITERROR;
-    struct module_state *st = GETSTATE(module);
-
-    st->error = PyErr_NewException("myextension.Error", NULL, NULL);
-    if (st->error == NULL) {
-        Py_DECREF(module);
-        INITERROR;
-    }
-
-#if PY_MAJOR_VERSION >= 3
-    return module;
-#endif
-}
 

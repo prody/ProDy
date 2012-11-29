@@ -22,18 +22,6 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 #define NUMCHARS 27
-
-struct module_state {
-    PyObject *error;
-};
-
-#if PY_MAJOR_VERSION >= 3
-#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
-#else
-#define GETSTATE(m) (&_state)
-static struct module_state _state;
-#endif
-
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
 const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 
@@ -888,70 +876,26 @@ static PyMethodDef msatools_methods[] = {
 };
 
 
-/*PyMODINIT_FUNC initmsatools(void) {
+
+#if PY_MAJOR_VERSION >= 3
+
+static struct PyModuleDef msatools = {
+        PyModuleDef_HEAD_INIT,
+        "msatools",
+        "Multiple sequence alignment analysis tools.",
+        -1,
+        msatools_methods,
+};
+PyMODINIT_FUNC PyInit_msatools(void) {
+    import_array();
+    return PyModule_Create(&msatools);
+}
+#else
+PyMODINIT_FUNC initmsatools(void) {
 
     Py_InitModule3("msatools", msatools_methods,
         "Multiple sequence alignment analysis tools.");
         
     import_array();
-}*/
-
-#if PY_MAJOR_VERSION >= 3
-
-static int msatools_traverse(PyObject *m, visitproc visit, void *arg) {
-    Py_VISIT(GETSTATE(m)->error);
-    return 0;
 }
-
-static int msatools_clear(PyObject *m) {
-    Py_CLEAR(GETSTATE(m)->error);
-    return 0;
-}
-
-static struct PyModuleDef moduledef = {
-        PyModuleDef_HEAD_INIT,
-        "msatools",
-        NULL,
-        sizeof(struct module_state),
-        msatools_methods,
-        NULL,
-        msatools_traverse,
-        msatools_clear,
-        NULL
-};
-
-#define INITERROR return NULL
-
-PyObject *
-PyInit_msatools(void)
-
-#else
-#define INITERROR return
-
-void
-initmsatools(void)
 #endif
-{
-#if PY_MAJOR_VERSION >= 3
-    PyObject *module = PyModule_Create(&moduledef);
-#else
-    PyObject *module = Py_InitModule3("msatools", msatools_methods,
-        "Multiple sequence alignment analysis tools.");
-#endif
-
-    import_array();
-    
-    if (module == NULL)
-        INITERROR;
-    struct module_state *st = GETSTATE(module);
-
-    st->error = PyErr_NewException("myextension.Error", NULL, NULL);
-    if (st->error == NULL) {
-        Py_DECREF(module);
-        INITERROR;
-    }
-
-#if PY_MAJOR_VERSION >= 3
-    return module;
-#endif
-}
