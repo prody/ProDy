@@ -22,11 +22,11 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import all, zeros, dtype, array, char, fromstring
-
+from numpy import indices, tril_indices
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
-           'applyMutinfoCorr', 'applyMutinfoNorm']
+           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
@@ -266,4 +266,54 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
         raise ValueError('correction must be prod or sum, not ' + corr)
     
     return mi
-            
+
+def calcRankorder(matrix, zscore=False, **kwargs):
+    """Rank orders (sorts) the elements of the 2D matrix in descending order 
+    if *descend* is **True** (default). Can apply a zscore normalization; by 
+    default along *axis* - 0 such that each column has mean=0 and std=1. Returns
+    a tuple of indices (row, column, value) and a flattened sorted matrix such
+    that value=matrix[row, column]. If zcore is applied, than return value
+    contains the zscores"""
+    
+    try:
+        ndim, shape = matrix.ndim, matrix.shape
+    except AttributeError:
+        raise TypeError('matrix must be a 2D array')
+    
+    if ndim != 2:
+        raise ValueError('matrix must be a 2D array')
+    
+    try:
+        symm = (matrix.transpose() == matrix).all()
+    except:
+        symm = False
+    
+    if zscore:
+        axis = int(bool(kwargs.get('axis', 0)))
+        matrix = (matrix - matrix.mean(axis)) / matrix.std(axis)
+        LOGGER.info('zscore normalization applied')
+        
+    descend = kwargs.get('descend', True)
+    if not symm:    
+        if descend:
+            sorted_index = matrix.argsort(axis=None)[::-1]
+        else:
+            sorted_index = matrix.argsort(axis=None)
+        row = indices(shape)[0].flatten()[sorted_index]
+        column = indices(shape)[1].flatten()[sorted_index]
+    else:
+        LOGGER.info('Matrix is symmetric, only lower traingle indices '
+                    'will be returned')
+        ind_row, ind_column = tril_indices(shape[0], k=0)  # return diagonal elements as well
+        matrix_lt = matrix[ind_row, ind_column]
+        if descend:
+            sorted_index = matrix_lt.argsort(axis=None)[::-1]
+        else:
+            sorted_index = matrix_lt.argsort(axis=None)
+        row = ind_row[sorted_index]
+        column = ind_column[sorted_index]
+        
+    return (row, column, matrix[row, column])
+
+    
+    
