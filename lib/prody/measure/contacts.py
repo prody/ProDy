@@ -51,7 +51,7 @@ class Contacts(object):
                     ndim, shape = atoms.ndim, atoms.shape
                 except AttributeError:
                     raise TypeError('atoms must be an Atomic or Frame instance'
-                                    ', not a {0:s}'.format(type(atoms)))
+                                    ', not a {0}'.format(type(atoms)))
                 else:
                     if not (ndim == 2 and shape[1] == 3):
                         raise ValueError('atoms.shape must be (n_atoms, 3) or '
@@ -83,7 +83,7 @@ class Contacts(object):
 
     def __repr__(self):
         
-        return '<Contacts: {0:s} (active coordset index: {1:d})>'.format(
+        return '<Contacts: {0} (active coordset index: {1})>'.format(
                                                 str(self._atoms), self._acsi)
 
     def __str__(self):

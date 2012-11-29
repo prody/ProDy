@@ -166,10 +166,10 @@ def sliceVector(vector, atoms, select):
     :returns: (:class:`.Vector`, :class:`.Selection`)"""
     
     if not isinstance(vector, VectorBase):
-        raise TypeError('vector must be a VectorBase instance, not {0:s}'
+        raise TypeError('vector must be a VectorBase instance, not {0}'
                         .format(type(vector)))
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance, not {0:s}'
+        raise TypeError('atoms must be an Atomic instance, not {0}'
                         .format(type(atoms)))
     if atoms.numAtoms() != vector.numAtoms(): 
         raise ValueError('number of atoms in model and atoms must be equal')
@@ -205,7 +205,7 @@ def sliceVector(vector, atoms, select):
         
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
-                 '{0:s} slice {1:s}'.format(str(vector), repr(selstr)), 
+                 '{0} slice {1}'.format(str(vector), repr(selstr)), 
                  vector.is3d())
     return (vec, sel)
 
@@ -230,10 +230,10 @@ def sliceMode(mode, atoms, select):
     :returns: (:class:`.Vector`, :class:`.Selection`)"""
     
     if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance, not {0:s}'
+        raise TypeError('mode must be a Mode instance, not {0}'
                         .format(type(mode)))
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance, not {0:s}'
+        raise TypeError('atoms must be an Atomic instance, not {0}'
                         .format(type(atoms)))
     if atoms.numAtoms() != mode.numAtoms(): 
         raise ValueError('number of atoms in model and atoms must be equal')
@@ -269,7 +269,7 @@ def sliceMode(mode, atoms, select):
     
     vec = Vector(mode.getArrayNx3()[
                  which,:].flatten() * mode.getVariance()**0.5,
-                 '{0:s} slice {1:s}'.format(str(mode), repr(selstr)), 
+                 '{0} slice {1}'.format(str(mode), repr(selstr)), 
                  mode.is3d()) 
     return (vec, sel)
 
@@ -290,10 +290,10 @@ def sliceModel(model, atoms, select):
     :returns: (:class:`.NMA`, :class:`.Selection`)"""
     
     if not isinstance(model, NMA):
-        raise TypeError('mode must be a NMA instance, not {0:s}'
+        raise TypeError('mode must be a NMA instance, not {0}'
                         .format(type(model)))
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance, not {0:s}'
+        raise TypeError('atoms must be an Atomic instance, not {0}'
                         .format(type(atoms)))
     if atoms.numAtoms() != model.numAtoms(): 
         raise ValueError('number of atoms in model and atoms must be equal')
@@ -329,7 +329,7 @@ def sliceModel(model, atoms, select):
     else:
         raise TypeError('select must be a string or a Selection instance')
         
-    nma = type(model)('{0:s} slice {1:s}'
+    nma = type(model)('{0} slice {1}'
                       .format(model.getTitle(), repr(selstr)))
     if model.is3d():
         which = [which.reshape((len(which),1))*3]
@@ -365,7 +365,7 @@ def reduceModel(model, atoms, select):
     linalg = importLA()
 
     if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance, not {0:s}'
+        raise TypeError('model must be an NMA instance, not {0}'
                         .format(type(model)))
     if not isinstance(atoms, (AtomGroup, AtomSubset, AtomMap)):
         raise TypeError('atoms type is not valid')

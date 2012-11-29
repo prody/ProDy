@@ -144,7 +144,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             try:
                 polymers = parsePDBHeader(seq[:4], 'polymers')
             except Exception as err:
-                LOGGER.warn('failed to parse header for {0:s} ({1:s})'
+                LOGGER.warn('failed to parse header for {0} ({1})'
                             .format(seq[:4], str(err)))
             else:
                 chid = seq[4:].upper()
@@ -155,14 +155,14 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
                         if dbref.database != 'UniProt':
                             continue
                         idcode = dbref.idcode
-                        LOGGER.info('UniProt ID code {0:s} for {1:s} chain '
-                                    '{2:s} will be used.'
+                        LOGGER.info('UniProt ID code {0} for {1} chain '
+                                    '{2} will be used.'
                                     .format(idcode, seq[:4], poly.chid))
                         break
                     if idcode is not None:
                         break
             if idcode is None:
-                LOGGER.warn('A UniProt ID code for PDB {0:s} could not be '
+                LOGGER.warn('A UniProt ID code for PDB {0} could not be '
                             'parsed.'.format(repr(seq)))
                 url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
             else:
@@ -229,7 +229,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         query = 'Query sequence'
 
     if matches:
-        LOGGER.info(query + ' matched {0:d} Pfam families.'.format(len(matches)))
+        LOGGER.info(query + ' matched {0} Pfam families.'.format(len(matches)))
     else:
         LOGGER.info(query + ' did not match any Pfam families.')
     return matches
@@ -275,7 +275,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     url_flag = False
     
     if not re.search('(?<=PF)[0-9]{5}$', acc):
-        raise ValueError('{0:s} is not a valid Pfam ID or Accession Code'
+        raise ValueError('{0} is not a valid Pfam ID or Accession Code'
                          .format(repr(orig_acc)))
         
     

@@ -62,7 +62,7 @@ def prody_gnm(pdb, **kwargs):
     from os.path import isdir, splitext, join
     outdir = kwargs['outdir']
     if not isdir(outdir):
-        raise IOError('{0:s} is not a valid path'.format(repr(outdir)))
+        raise IOError('{0} is not a valid path'.format(repr(outdir)))
         
     import numpy as np
     import prody
@@ -82,9 +82,9 @@ def prody_gnm(pdb, **kwargs):
 
     select = pdb.select(selstr)
     if select is None:
-        raise ValueError('selection {0:s} do not match any atoms'
+        raise ValueError('selection {0} do not match any atoms'
                           .format(repr(selstr)))
-    LOGGER.info('{0:d} atoms will be used for GNM calculations.'
+    LOGGER.info('{0} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
     gnm = prody.GNM(pdb.getTitle())

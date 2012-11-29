@@ -216,7 +216,7 @@ class VectorBase(object):
     
     def __neg__(self):
         
-        return Vector(-self._getArray(), '-({0:s})'.format(str(self)), 
+        return Vector(-self._getArray(), '-({0})'.format(str(self)), 
                       self.is3d())
     
     def __div__(self, other):
@@ -224,9 +224,9 @@ class VectorBase(object):
         try:
             result = self._getArray() / other
         except Exception as err:
-            raise TypeError('{0} is not a scalar {1:s}'
+            raise TypeError('{0} is not a scalar {1}'
                             .format(other, str(err)))
-        return Vector(result, '({0:s})/{1}'.format(str(self), other), 
+        return Vector(result, '({0})/{1}'.format(str(self), other), 
                       self.is3d())
     
     def __idiv__(self, other):
@@ -242,10 +242,10 @@ class VectorBase(object):
             try:
                 result = other * self._getArray()
             except Exception as err:
-                raise TypeError('{0} is not a scalar or a mode ({1:s})'
+                raise TypeError('{0} is not a scalar or a mode ({1})'
                                 .format(other, str(err)))
             else:
-                return Vector(result, '({1:s})*{0}'.format(other, str(self)), 
+                return Vector(result, '({1})*{0}'.format(other, str(self)), 
                               self.is3d())
         else:
             try:
@@ -264,10 +264,10 @@ class VectorBase(object):
             try:
                 result = other * self._getArray()
             except Exception as err:
-                raise TypeError('{0} is not a scalar or a mode ({1:s})'
+                raise TypeError('{0} is not a scalar or a mode ({1})'
                                 .format(other, str(err)))
             else:
-                return Vector(result, '{0}*({1:s})'.format(other, str(self)), 
+                return Vector(result, '{0}*({1})'.format(other, str(self)), 
                               self.is3d())
         else:
             try:
@@ -286,7 +286,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return Vector(self._getArray() + other._getArray(), 
-                          '({0:s}) + ({1:s})'.format(str(self), str(other)), 
+                          '({0}) + ({1})'.format(str(self), str(other)), 
                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -297,7 +297,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return Vector(self._getArray() + other._getArray(), 
-                          '({0:s}) + ({1:s})'.format(str(other), str(self)), 
+                          '({0}) + ({1})'.format(str(other), str(self)), 
                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -312,7 +312,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return Vector(self._getArray() - other._getArray(), 
-                          '({0:s}) - ({1:s})'.format(str(self), str(other)), 
+                          '({0}) - ({1})'.format(str(self), str(other)), 
                           self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -323,7 +323,7 @@ class VectorBase(object):
             if len(self) != len(other):
                 raise ValueError('modes do not have the same length')
             return  Vector(other._getArray() - self._getArray(), 
-                           '({0:s}) - ({1:s})'.format(str(other), str(self)), 
+                           '({0}) - ({1})'.format(str(other), str(self)), 
                            self.is3d())
         else:
             raise TypeError('{0} is not a mode instance'.format(other))
@@ -337,10 +337,10 @@ class VectorBase(object):
         try:
             result = self._getArray() ** other
         except Exceptions as err:
-            raise TypeError('{0} is not a scalar ({0:s})'
+            raise TypeError('{0} is not a scalar ({0})'
                             .format(other, str(err)))
         else:
-            return Vector(result, '({0:s})**{1}'.format(str(self), other), 
+            return Vector(result, '({0})**{1}'.format(str(self), other), 
                           self.is3d())
 
     def getArray(self):
@@ -410,12 +410,12 @@ class Mode(VectorBase):
     
     def __repr__(self):
         
-        return '<Mode: {0:d} from {1:s}>'.format(self._index + 1, 
+        return '<Mode: {0} from {1}>'.format(self._index + 1, 
                                                  str(self._model))
 
     def __str__(self):
         
-        return 'Mode {0:d} from {1:s}'.format(self._index+1, str(self._model))
+        return 'Mode {0} from {1}'.format(self._index+1, str(self._model))
 
     def __int__(self):
         
@@ -518,7 +518,7 @@ class Vector(VectorBase):
         return len(self._array)
     
     def __repr__(self):
-        return '<Vector: {0:s}>'.format(self._title)
+        return '<Vector: {0}>'.format(self._title)
     
     def __str__(self):
         return self._title 
@@ -553,7 +553,7 @@ class Vector(VectorBase):
         """Return mode after normalizing it."""
         
         return Vector(self._array/(self._array**2).sum()**0.5, 
-                      '({0:s})/||{0:s}||'.format(self._title), self._is3d)
+                      '({0})/||{0}||'.format(self._title), self._is3d)
 
     def numDOF(self):
         """Return number of degrees of freedom."""

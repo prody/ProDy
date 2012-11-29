@@ -54,7 +54,7 @@ class GNMBase(NMA):
         
     def __repr__(self):
         
-        return '<{0:s}: {1:s} ({2:d} modes; {3:d} nodes)>'.format(
+        return '<{0}: {1} ({2} modes; {3} nodes)>'.format(
                 self.__class__.__name__, self._title, self.__len__(), 
                 self._n_atoms)
     
@@ -304,7 +304,7 @@ class GNM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
-        LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
+        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                           ''.format(self._n_modes, time.time()-start))
 
 
@@ -324,7 +324,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
         else: 
             title = ag.getAtomGroup().getTitle()
     else:
-        raise TypeError('pdb must be an atom container, not {0:s}'
+        raise TypeError('pdb must be an atom container, not {0}'
                         .format(type(pdb)))
     gnm = GNM(title)
     sel = ag.select(selstr)

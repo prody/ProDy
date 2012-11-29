@@ -63,7 +63,7 @@ def openTrajFile(filename, *args, **kwargs):
     try:
         return TRAJFILE[ext](filename, *args, **kwargs)
     except KeyError: 
-        raise ValueError('trajectory file type {0:s} is not recognized'
+        raise ValueError('trajectory file type {0} is not recognized'
                          .format(repr(ext)))
 
 from . import trajbase

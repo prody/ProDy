@@ -47,11 +47,11 @@ class ModeSet(object):
             yield self._model[i]
     
     def __repr__(self):
-        return '<ModeSet: {0:d} modes from {1:s}>'.format(len(self),
+        return '<ModeSet: {0} modes from {1}>'.format(len(self),
                                                        str(self._model))
 
     def __str__(self):
-        return '{0:d} modes from {1:s}'.format(len(self._indices), 
+        return '{0} modes from {1}'.format(len(self._indices), 
                                                str(self._model))
     
     def is3d(self):

@@ -114,7 +114,7 @@ class PCA(NMA):
             mean = coordsets._getCoords().flatten()
             n_confs = 0
             n_frames = len(coordsets)
-            LOGGER.info('Covariance will be calculated using {0:d} frames.'
+            LOGGER.info('Covariance will be calculated using {0} frames.'
                             .format(n_frames))
             coordsum = np.zeros(dof)
             LOGGER.progress('Building covariance', n_frames, '_prody_pca')
@@ -142,7 +142,7 @@ class PCA(NMA):
             if n_atoms < 3:
                 raise ValueError('coordsets must have more than 3 atoms')
             dof = n_atoms * 3
-            LOGGER.info('Covariance is calculated using {0:d} coordinate sets.'
+            LOGGER.info('Covariance is calculated using {0} coordinate sets.'
                             .format(len(coordsets)))
             if weights is None:
                 if coordsets.dtype == float:
@@ -222,7 +222,7 @@ class PCA(NMA):
         self._array = vectors[:, which]
         self._vars = self._eigvals
         self._n_modes = len(self._eigvals)
-        LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
+        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))
 
     def performSVD(self, coordsets):
@@ -278,7 +278,7 @@ class PCA(NMA):
         self._vars = self._eigvals
         self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
-        LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
+        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                          .format(self._n_modes, time.time()-start))
         
     def addEigenpair(self, eigenvector, eigenvalue=None):

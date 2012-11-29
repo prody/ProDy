@@ -65,7 +65,7 @@ def prody_pca(coords, **kwargs):
     from os.path import isdir, splitext, join
     outdir = kwargs['outdir']
     if not isdir(outdir):
-        raise IOError('{0:s} is not a valid path'.format(repr(outdir)))
+        raise IOError('{0} is not a valid path'.format(repr(outdir)))
         
     import prody
     LOGGER = prody.LOGGER
@@ -95,14 +95,14 @@ def prody_pca(coords, **kwargs):
             if pdb.numAtoms() == dcd.numAtoms():
                 select = pdb.select(selstr)
                 dcd.setAtoms(select)
-                LOGGER.info('{0:d} atoms are selected for calculations.'
+                LOGGER.info('{0} atoms are selected for calculations.'
                             .format(len(select)))
             else:
                 select = pdb.select(selstr)
                 if select.numAtoms() != dcd.numAtoms():
-                    raise ValueError('number of selected atoms ({0:d}) does '
+                    raise ValueError('number of selected atoms ({0}) does '
                                      'not match number of atoms in the DCD '
-                                     'file ({1:d})'.format(select.numAtoms(),
+                                     'file ({1})'.format(select.numAtoms(),
                                                            dcd.numAtoms()))
                 if pdb.numCoordsets():
                     dcd.setCoords(select.getCoords())
@@ -130,12 +130,12 @@ def prody_pca(coords, **kwargs):
             prefix = pdb.getTitle() + prefix
             
         select = pdb.select(selstr)
-        LOGGER.info('{0:d} atoms are selected for calculations.'
+        LOGGER.info('{0} atoms are selected for calculations.'
                     .format(len(select)))
         if select is None:
-            raise ValueError('selection {0:s} do not match any atoms'
+            raise ValueError('selection {0} do not match any atoms'
                                 .format(repr(selstr)))
-        LOGGER.info('{0:d} atoms will be used for PCA calculations.'
+        LOGGER.info('{0} atoms will be used for PCA calculations.'
                     .format(len(select)))
         ensemble = prody.Ensemble(select)
         pca = prody.PCA(pdb.getTitle())

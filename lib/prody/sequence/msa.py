@@ -161,10 +161,10 @@ class MSA(object):
     def __repr__(self):
         
         if self._aligned:
-            return '<MSA: {0:s} ({1:d} sequences, {2:d} residues)>'.format(
+            return '<MSA: {0} ({1} sequences, {2} residues)>'.format(
                     self._title, self.numSequences(), self.numResidues())
         else:
-            return '<MSA: {0:s} ({1:d} sequences, not aligned)>'.format(
+            return '<MSA: {0} ({1} sequences, not aligned)>'.format(
                     self._title, self.numSequences())
     
     def __getitem__(self, index):
@@ -412,7 +412,7 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
             try:
                 polymers = parsePDBHeader(label[:4], 'polymers')
             except Exception as err:
-                LOGGER.warn('failed to parse header for {0:s} ({1:s})'
+                LOGGER.warn('failed to parse header for {0} ({1})'
                             .format(label[:4], str(err)))
             else:
                 chid = label[4:].upper()
@@ -423,15 +423,15 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
                         if index is None: 
                             index = msa.getIndex(dbref.idcode)
                             if index is not None:
-                                LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s}'
-                                            'is found in {3:s}'.format(
+                                LOGGER.info('{0} idcode {1} for {2}{3}'
+                                            'is found in {3}'.format(
                                             dbref.database, dbref.idcode,
                                             label[:4], poly.chid, str(msa)))
                         if index is None: 
                             index = msa.getIndex(dbref.accession)
                             if index is not None:
-                                LOGGER.info('{0:s} idcode {1:s} for {2:s}{3:s}'
-                                            ' is found in {3:s}'.format(
+                                LOGGER.info('{0} idcode {1} for {2}{3}'
+                                            ' is found in {3}'.format(
                                             dbref.database, dbref.accession,
                                             label[:4], poly.chid, str(msa)))
                     
@@ -448,7 +448,7 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         try:
             row_occ = float(row_occ)
         except Exception as err:
-            raise TypeError('row_occ must be a float ({0:s})'.format(str(err)))
+            raise TypeError('row_occ must be a float ({0})'.format(str(err)))
         assert 0. <= row_occ <= 1., 'row_occ must be between 0 and 1'
         
         rows = (calcMSAOccupancy(arr, 'row') >= row_occ).nonzero()[0]
@@ -459,7 +459,7 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         try:
             col_occ = float(col_occ)
         except Exception as err:
-            raise TypeError('col_occ must be a float ({0:s})'.format(str(err)))
+            raise TypeError('col_occ must be a float ({0})'.format(str(err)))
         assert 0. <= col_occ <= 1., 'col_occ must be between 0 and 1'
         
         cols = (calcMSAOccupancy(arr, 'col') >= col_occ).nonzero()[0]
@@ -484,5 +484,5 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
             labels = msa._labels
             labels = [labels[i] for i in rows]
             mapping = None
-        return MSA(arr, title=msa.getTitle() + ' refined ({0:s})'
+        return MSA(arr, title=msa.getTitle() + ' refined ({0})'
                    .format(', '.join(title)), labels=labels, mapping=mapping)

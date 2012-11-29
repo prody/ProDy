@@ -277,7 +277,7 @@ class ANM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
-        LOGGER.debug('{0:d} modes were calculated in {1:.2f}s.'
+        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                           ''.format(self._n_modes, time.time()-start))
 
 
@@ -297,7 +297,7 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
         else: 
             title = ag.getAtomGroup().getTitle()
     else:
-        raise TypeError('pdb must be an atomic class, not {0:s}'
+        raise TypeError('pdb must be an atomic class, not {0}'
                         .format(type(pdb)))
     anm = ANM(title)
     sel = ag.select(selstr)

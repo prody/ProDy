@@ -136,7 +136,7 @@ def evol_search(query, **kwargs):
                                  str(evalue)]) + '\n'               
         out.write(output)
     if outname:
-        prody.LOGGER.info('Search results written in {0:s}.'.format(filepath))    
+        prody.LOGGER.info('Search results written in {0}.'.format(filepath))    
         out.close()
         
 APP.setFunction(evol_search)

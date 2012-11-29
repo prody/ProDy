@@ -44,7 +44,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     returned. This function makes use of :func:`numpy.savez` function."""
     
     if not isinstance(ensemble, Ensemble):
-        raise TypeError('invalid type for ensemble, {0:s}'
+        raise TypeError('invalid type for ensemble, {0}'
                         .format(type(ensemble)))
     if len(ensemble) == 0:
         raise ValueError('ensemble instance does not contain data')
@@ -126,7 +126,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     if 'occupancy' in kwargs:
         occupancy = float(kwargs['occupancy'])
         assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
-                                   '{0:s}'.format(repr(occupancy)))
+                                   '{0}'.format(repr(occupancy)))
         n_confs = pdb_ensemble.numConfs()
         assert n_confs > 0, 'pdb_ensemble does not contain any conformations'
         occupancies = calcOccupancies(pdb_ensemble, normed=True)
@@ -277,11 +277,11 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         pdb = label[:4]
         filename = pdbdict.get(pdb, fetchPDB(pdb))
         if filename is None:
-            LOGGER.warning('PDB file for conformation {0:s} is not found.'
+            LOGGER.warning('PDB file for conformation {0} is not found.'
                            .format(label))
             output.append(None)
             continue
-        LOGGER.info('Parsing PDB file {0:s} for conformation {1:s}.'
+        LOGGER.info('Parsing PDB file {0} for conformation {1}.'
                     .format(pdb, label))
 
         acsi = None
@@ -290,7 +290,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
             model = label[model+1:]
             if model.isdigit():
                 acsi = int(model) - 1
-            LOGGER.info('Applying transformation to model {0:s}.'
+            LOGGER.info('Applying transformation to model {0}.'
                         .format(model))
 
         if isinstance(filename, str):
@@ -300,7 +300,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
 
         if acsi is not None:
             if acsi >= ag.numCoordsets():
-                LOGGER.warn('Model number {0:s} for {1:s} is out of range.'
+                LOGGER.warn('Model number {0} for {1} is out of range.'
                             .format(model, pdb))
                 output.append(None)
                 continue

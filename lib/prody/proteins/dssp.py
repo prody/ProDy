@@ -78,10 +78,10 @@ def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
         out = os.path.join(outputdir, outputname + '.dssp')
         
     if not stderr and PLATFORM != 'Windows':
-        status = os.system('{0:s} {1:s} > {2:s} 2> /dev/null'.format(
+        status = os.system('{0} {1} > {2} 2> /dev/null'.format(
                             dssp, pdb, out))
     else:
-        status = os.system('{0:s} {1:s} > {2:s}'.format(dssp, pdb, out))
+        status = os.system('{0} {1} > {2}'.format(dssp, pdb, out))
 
     if status == 0:
         return out
@@ -125,7 +125,7 @@ def parseDSSP(dssp, ag, parseall=False):
     See http://swift.cmbi.ru.nl/gv/dssp/DSSP_3.html for details."""
     
     if not os.path.isfile(dssp):
-        raise IOError('{0:s} is not a valid file path'.format(dssp))
+        raise IOError('{0} is not a valid file path'.format(dssp))
     if not isinstance(ag, AtomGroup):
         raise TypeError('ag argument must be an AtomGroup instance')
         

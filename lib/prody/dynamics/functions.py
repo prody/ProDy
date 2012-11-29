@@ -56,7 +56,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     function makes use of :func:`numpy.savez` function."""
     
     if not isinstance(nma, NMA):
-        raise TypeError('invalid type for nma, {0:s}'.format(type(nma)))
+        raise TypeError('invalid type for nma, {0}'.format(type(nma)))
     if len(nma) == 0:
         raise ValueError('nma instance does not contain data')
     
@@ -106,7 +106,7 @@ def loadModel(filename):
     try:
         type_ = attr_dict['type']
     except KeyError:
-        raise IOError('{0:s} is not a valid NMA model file'.format(filename))
+        raise IOError('{0} is not a valid NMA model file'.format(filename))
     try:
         title = str(attr_dict['_title'])
     except KeyError: 
@@ -142,7 +142,7 @@ def saveVector(vector, filename, **kwargs):
     of :func:`numpy.savez` function."""
     
     if not isinstance(vector, Vector):
-        raise TypeError('invalid type for vector, {0:s}'.format(type(vector)))
+        raise TypeError('invalid type for vector, {0}'.format(type(vector)))
     attr_dict = {}
     attr_dict['title'] = vector.getTitle()
     attr_dict['array'] = vector._getArray()
@@ -222,9 +222,9 @@ def setVMDpath(path):
     if isExecutable(path):
         SETTINGS['vmd'] = path
         SETTINGS.save()
-        LOGGER.info("VMD path is set to '{0:s}'.".format(path))
+        LOGGER.info("VMD path is set to '{0}'.".format(path))
     else:
-        raise OSError('{0:s} is not executable.'.format(str(path)))
+        raise OSError('{0} is not executable.'.format(str(path)))
 
 
 NMD_LABEL_MAP = {
@@ -263,8 +263,8 @@ def parseNMD(filename, type=None):
                 if atomic[label] is None:
                     atomic[label] = (i + 1, data)
                 else:
-                    LOGGER.warn('Data label {0:s} is found more than once in '
-                                '{1:s}.'.format(repr(label), repr(filename)))
+                    LOGGER.warn('Data label {0} is found more than once in '
+                                '{1}.'.format(repr(label), repr(filename)))
     
     name = atomic.pop('name', '')[1].strip() or splitext(split(filename)[1])[0]
     ag = AtomGroup(name)
@@ -276,7 +276,7 @@ def parseNMD(filename, type=None):
         coords = np.fromstring(coords, dtype=float, sep=' ')
         dof = coords.shape[0]
         if dof % 3 != 0:
-            LOGGER.warn('Coordinate data in {0:s} at line {1:d} is corrupt '
+            LOGGER.warn('Coordinate data in {0} at line {1} is corrupt '
                         'and will be omitted.'.format(repr(filename), line))
         else:
             n_atoms = dof / 3
@@ -294,8 +294,8 @@ def parseNMD(filename, type=None):
             n_atoms = len(data)
             dof = n_atoms * 3
         elif len(data) != n_atoms:
-            LOGGER.warn('Data with label {0:s} in {1:s} at line {2:d} is '
-                        'corrupt, expected {2:d} values, parsed {3:d}.'.format(
+            LOGGER.warn('Data with label {0} in {1} at line {2} is '
+                        'corrupt, expected {2} values, parsed {3}.'.format(
                         repr(label), repr(filename), line, n_atoms, len(data)))
             continue
         label = NMD_LABEL_MAP[label]
@@ -320,7 +320,7 @@ def parseNMD(filename, type=None):
         mode = np.fromstring(mode, dtype=float, sep=' ')
         diff = len(mode) - dof
         if diff < 0 or diff > 2:
-            LOGGER.warn('Mode data in {0:s} at line {1:d} is corrupt.'
+            LOGGER.warn('Mode data in {0} at line {1} is corrupt.'
                         .format(repr(filename), line))
             continue
         array[:, i - less] = mode[diff:] 
@@ -333,16 +333,16 @@ def parseNMD(filename, type=None):
     try:
         eigvals = np.array(eigvals, dtype=float)
     except TypeError:
-        LOGGER.warn('Failed to parse eigenvalues from {0:s}.'
+        LOGGER.warn('Failed to parse eigenvalues from {0}.'
                     .format(repr(filename)))
 
     if eigvals.shape[1] > 2:
-        LOGGER.warn('Failed to parse eigenvalues from {0:s}.'
+        LOGGER.warn('Failed to parse eigenvalues from {0}.'
                     .format(repr(filename)))
         eigvals = None
     elif eigvals.shape[1] == 1:
         if np.all(eigvals % 1 == 0):
-            LOGGER.warn('Failed to parse eigenvalues from {0:s}.'
+            LOGGER.warn('Failed to parse eigenvalues from {0}.'
                         .format(repr(filename)))
             eigvals = None
         else:        
@@ -377,13 +377,13 @@ def writeNMD(filename, modes, atoms):
     
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
-                        'not {0:s}'.format(type(modes)))
+                        'not {0}'.format(type(modes)))
     if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
     out = openFile(filename, 'w')
     
-    #out.write('#!{0:s} -e\n'.format(VMDPATH))
-    out.write('nmwiz_load {0:s}\n'.format(abspath(filename)))
+    #out.write('#!{0} -e\n'.format(VMDPATH))
+    out.write('nmwiz_load {0}\n'.format(abspath(filename)))
     name = modes.getTitle()
     name = name.replace(' ', '_').replace('.', '_')
     if not name.replace('_', '').isalnum() or len(name) > 30:
@@ -391,7 +391,7 @@ def writeNMD(filename, modes, atoms):
         name = name.replace(' ', '_').replace('.', '_')
     if not name.replace('_', '').isalnum() or len(name) > 30:
         name = splitext(split(filename)[1])[0]
-    out.write('name {0:s}\n'.format(name))
+    out.write('name {0}\n'.format(name))
     try:
         coords = atoms.getCoords()
     except:
@@ -402,13 +402,13 @@ def writeNMD(filename, modes, atoms):
     try:
         data = atoms.getNames()
         if data is not None:
-            out.write('atomnames {0:s}\n'.format(' '.join(data)))
+            out.write('atomnames {0}\n'.format(' '.join(data)))
     except:
         pass
     try:
         data = atoms.getResnames()
         if data is not None:
-            out.write('resnames {0:s}\n'.format(' '.join(data)))
+            out.write('resnames {0}\n'.format(' '.join(data)))
     except:
         pass
     try:
@@ -422,7 +422,7 @@ def writeNMD(filename, modes, atoms):
     try:
         data = atoms.getChids()
         if data is not None:
-            out.write('chainids {0:s}\n'.format(' '.join(data)))
+            out.write('chainids {0}\n'.format(' '.join(data)))
     except:
         pass
     
@@ -451,7 +451,7 @@ def writeNMD(filename, modes, atoms):
         for mode in modes:
             if mode.getEigval() < ZERO:
                 continue
-            out.write('mode {0:d} {1:.2f} '.format(
+            out.write('mode {0} {1:.2f} '.format(
                        mode.getIndex()+1, mode.getVariance()**0.5))
             arr = mode._getArray().tofile(out, ' ', '%.3f')
             out.write('\n')
@@ -467,14 +467,14 @@ def viewNMDinVMD(filename):
     
     vmd = SETTINGS.get('vmd')
     if vmd:
-        os.system('{0:s} -e {1:s}'.format(vmd, abspath(filename)))
+        os.system('{0} -e {1}'.format(vmd, abspath(filename)))
         
 def writeModes(filename, modes, format='%.18e', delimiter=' '):
     """Write *modes* (eigenvectors) into a plain text file with name 
     *filename*. See also :func:`writeArray`."""
     
     if not isinstance(modes, (NMA, ModeSet, Mode)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
+        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
     return writeArray(filename, modes._getArray(), format=format, 
                       delimiter=delimiter)
@@ -556,11 +556,11 @@ def writeArray(filename, array, format='%d', delimiter=' '):
     *filename* will be returned upon successful writing."""
     
     if not isinstance(array, np.ndarray):
-        raise TypeError('array must be a Numpy ndarray, not {0:s}'
+        raise TypeError('array must be a Numpy ndarray, not {0}'
                         .format(type(array)))
     elif not array.ndim in (1, 2):
         raise ValueError('array must be a 1 or 2-dimensional Numpy ndarray, '
-                         'not {0:d}-d'.format(type(array.ndim)))
+                         'not {0}-d'.format(type(array.ndim)))
     np.savetxt(filename, array, format, delimiter)
     return filename
 

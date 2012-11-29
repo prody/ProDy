@@ -112,9 +112,9 @@ def calcProjection(ensemble, modes, rmsd=True):
     
     if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
         raise TypeError('ensemble must be Ensemble, Conformation, Vector, '
-                        'or a TrajBase, not {0:s}'.format(type(ensemble)))
+                        'or a TrajBase, not {0}'.format(type(ensemble)))
     if not isinstance(modes, (NMA, ModeSet, VectorBase)):
-        raise TypeError('rows must be NMA, ModeSet, or Mode, not {0:s}'
+        raise TypeError('rows must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
     if not modes.is3d(): 
         raise ValueError('modes must be 3-dimensional')
@@ -165,14 +165,14 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
     
     if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
         raise TypeError('ensemble must be Ensemble, Conformation, Vector, '
-                        'or a Trajectory, not {0:s}'.format(type(ensemble)))
+                        'or a Trajectory, not {0}'.format(type(ensemble)))
     if not isinstance(mode1, VectorBase):
-        raise TypeError('mode1 must be a Mode instance, not {0:s}'
+        raise TypeError('mode1 must be a Mode instance, not {0}'
                         .format(type(mode1)))
     if not mode1.is3d():
         raise ValueError('mode1 must be 3-dimensional')
     if not isinstance(mode2, VectorBase):
-        raise TypeError('mode2 must be a Mode instance, not {0:s}'
+        raise TypeError('mode2 must be a Mode instance, not {0}'
                         .format(type(mode2)))
     if not mode2.is3d():
         raise ValueError('mode2 must be 3-dimensional')
@@ -193,11 +193,11 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
                       (xcoords.max() - xcoords.min())
                       ) * np.sign(np.dot(xcoords, ycoords))
             if scale == 'x':
-                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
+                LOGGER.info('Projection onto {0} is scaled by {1:.2f}'
                             .format(mode1, scalar))
             else:
                 scalar = 1 / scalar
-                LOGGER.info('Projection onto {0:s} is scaled by {1:.2f}'
+                LOGGER.info('Projection onto {0} is scaled by {1:.2f}'
                             .format(mode2, scalar))
 
         if scale == 'x':
@@ -219,7 +219,7 @@ def calcSqFlucts(modes):
     
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0:s}'.format(type(modes)))
+                        'not {0}'.format(type(modes)))
     is3d = modes.is3d()
     if isinstance(modes, Vector):
         if is3d:
@@ -255,7 +255,7 @@ def calcCrossCorr(modes, n_cpu=1):
         
     if not isinstance(modes, (Mode, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0:s}'.format(type(modes)))
+                        'not {0}'.format(type(modes)))
         
     if modes.is3d():
         model = modes

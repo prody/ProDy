@@ -153,7 +153,7 @@ class MarkovModel(object):
         j = np.zeros(length, int)
         v = np.zeros(length, float)
         k = 0
-        for key, value in affinity.iteritems():
+        for key, value in affinity.items():
             i[k] = key[0]
             j[k] = key[1]
             v[k] = value

@@ -172,10 +172,10 @@ def writePSF(filename, atoms):
     
     out = openFile(filename, 'w')
     write = out.write
-    write('PSF{0:s}\n'.format( ' NAMD' if long_fields else ''))
+    write('PSF{0}\n'.format( ' NAMD' if long_fields else ''))
     write('\n')
     write('{0:8d} !NTITLE\n'.format(1))
-    write(' REMARKS {0:s}\n'.format(str(atoms)))
+    write(' REMARKS {0}\n'.format(str(atoms)))
     write('\n')
     write('{0:8d} !NATOM\n'.format(n_atoms))
     

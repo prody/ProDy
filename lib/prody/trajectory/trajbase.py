@@ -61,7 +61,7 @@ class TrajBase(object):
 
     def __str__(self):
 
-        return '{0:s} {1:s}'.format(self.__class__.__name__, self._title)
+        return '{0} {1}'.format(self.__class__.__name__, self._title)
 
     def __getitem__(self, index):
 
@@ -73,10 +73,10 @@ class TrajBase(object):
 
         elif isinstance(index, (slice, list, np.ndarray)):
             if isinstance(index, slice):
-                ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+                ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                     self._title, index.indices(len(self))))
             else:
-                ens = Ensemble('{0:s} slice'.format(self._title))
+                ens = Ensemble('{0} slice'.format(self._title))
             ens.setCoords(self.getCoords())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -212,7 +212,7 @@ class TrajBase(object):
             return self._ag
         else:
             if len(ag) > 1:
-                raise TypeError('link() takes at most 1 argument ({0:d} given)'
+                raise TypeError('link() takes at most 1 argument ({0} given)'
                                 .format(len(ag)))
             ag = ag[0]
             try:
@@ -276,7 +276,7 @@ class TrajBase(object):
             pass
         else:
             if coords is None:
-                raise ValueError('coordinates of {0:s} are not set'
+                raise ValueError('coordinates of {0} are not set'
                                    .format(str(atoms)))
 
         try:

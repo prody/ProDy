@@ -84,10 +84,10 @@ def prody_blast(sequence, **kwargs):
     title = None
     if os.path.isfile(sequence):
         title, sequence = readFirstSequenceFasta(sequence)
-        LOGGER.info("First sequence ({0:s}) is parsed from {1:s}."
+        LOGGER.info("First sequence ({0}) is parsed from {1}."
                     .format(title, repr(sequence)))
     if not sequence.isalpha() or not sequence.isupper():
-        raise ValueError("{0:s} is not a valid sequence or a file"
+        raise ValueError("{0} is not a valid sequence or a file"
                         .format(repr(sequence)))
         
     outdir = kwargs.get('outdir')

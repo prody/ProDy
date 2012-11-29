@@ -119,14 +119,14 @@ class Frame(object):
 
         sel = ''
         if self._traj._indices is not None:
-            sel = 'selected {0:d} of '.format(self.numSelected())
+            sel = 'selected {0} of '.format(self.numSelected())
 
-        return ('<Frame: {0:d} from {1:s} ({2:s}{3:d} atoms)>').format(
+        return ('<Frame: {0} from {1} ({2}{3} atoms)>').format(
                 self._index, self._traj.getTitle(), sel, self._traj.numAtoms())
             
     def __str__(self):
         
-        return 'Frame {0:d} from {1:s}'.format(self._index, 
+        return 'Frame {0} from {1}'.format(self._index, 
                                                self._traj.getTitle())
 
     def numAtoms(self):

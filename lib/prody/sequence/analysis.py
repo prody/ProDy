@@ -217,7 +217,7 @@ def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
         raise ValueError('for joint entropy normalization, use '
                          'buildMutinfoMatrix function')
     else:    
-        raise ValueError('norm={0:s} is not a valid normalization type'
+        raise ValueError('norm={0} is not a valid normalization type'
                          .format(norm))
 
     mi = mutinfo.copy()

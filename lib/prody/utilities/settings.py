@@ -95,8 +95,8 @@ class PackageSettings(object):
                 settings = unpickle(self._rcfile)
             except Exception as err:
                 if self._logger:
-                    self._logger.warning("{0:s} configuration file '{1:s}' "
-                                "could not be loaded ({2:s})."
+                    self._logger.warning("{0} configuration file '{1}' "
+                                "could not be loaded ({2})."
                                 .format(self._package, self._rcfile, err))
             else:                    
                 if isinstance(settings, dict):
@@ -110,12 +110,12 @@ class PackageSettings(object):
                 pickle(self._settings, self._rcfile, backup=backup)
             except Exception as err:
                 if self._logger:
-                    self._logger.warning("{0:s} cannot write configuration "
-                                "file '{1:s}' ({2:s})."
+                    self._logger.warning("{0} cannot write configuration "
+                                "file '{1}' ({2})."
                                 .format(self._package, self._rcfile, err))
         elif self._logger:
-            self._logger.warning("{0:s} cannot write configuration file to "
-                                "'{1:s}', user does not have write access."
+            self._logger.warning("{0} cannot write configuration file to "
+                                "'{1}', user does not have write access."
                                 .format(self._package, USERHOME))
 
 
@@ -126,7 +126,7 @@ def setPackagePath(path):
         try:
             os.mkdir(path)
         except Exception as err:
-            pkg.LOGGER.warning('Failed to make folder "{0:s}": {1:s}'
+            pkg.LOGGER.warning('Failed to make folder "{0}": {1}'
                            .format(path, err.strerror))
             return False
     pkg.SETTINGS['package_path'] = path
@@ -141,21 +141,21 @@ def getPackagePath():
     
     update = False
     if path is None:
-        pkg.LOGGER.warning('{0:s} package path is not yet set by the user.'
+        pkg.LOGGER.warning('{0} package path is not yet set by the user.'
                        .format(pkg.SETTINGS._package))
         update = True
     elif not os.path.isdir(path):
-        pkg.LOGGER.warning("{0:s} package path '{1:s}' does not exist."
+        pkg.LOGGER.warning("{0} package path '{1}' does not exist."
                        .format(pkg.SETTINGS._package, path))
         update = True
     elif not os.access(path, os.W_OK):
-        pkg.LOGGER.warning("User does not have write access to {0:s} package "
-                           "path '{1:s}'.".format(pkg.SETTINGS._package, path))
+        pkg.LOGGER.warning("User does not have write access to {0} package "
+                           "path '{1}'.".format(pkg.SETTINGS._package, path))
         update = True
     if update:
         default = os.path.join(USERHOME, '.' + pkg.SETTINGS._package)
-        path = input('Please specify a folder for storing {0:s} data '
-                     '(press enter for "{1:s}"):'
+        path = input('Please specify a folder for storing {0} data '
+                     '(press enter for "{1}"):'
                      .format(pkg.SETTINGS._package, default)) or default
         while not setPackagePath(path):
             path = input('Please specify a valid folder name with write ' 

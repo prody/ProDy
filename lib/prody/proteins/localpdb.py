@@ -27,6 +27,7 @@ from os.path import abspath, isdir, isfile, join, split, splitext
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, isWritable
+from prody.utilities import sympath
 
 from . import wwpdb
 from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP
@@ -61,12 +62,12 @@ def pathPDBFolder(folder=None, divided=False):
             if isdir(folder):
                 return folder, SETTINGS.get('pdb_local_divided', True)
             else:
-                LOGGER.warn('PDB local folder {0:s} is not a accessible.'
+                LOGGER.warn('PDB local folder {0} is not a accessible.'
                             .format(repr(folder)))
     else:
         if isdir(folder):
             folder = abspath(folder)
-            LOGGER.info('Local PDB folder is set: {0:s}'.format(repr(folder)))
+            LOGGER.info('Local PDB folder is set: {0}'.format(repr(folder)))
             if divided:
                 LOGGER.info('wwPDB divided folder structure will be assumed.')
             else:
@@ -77,12 +78,12 @@ def pathPDBFolder(folder=None, divided=False):
         else:
             current = SETTINGS.pop('pdb_local_folder')
             if current:
-                LOGGER.info('PDB folder {0:s} is released.'
+                LOGGER.info('PDB folder {0} is released.'
                             .format(repr(current)))
                 SETTINGS.pop('pdb_local_divided')
                 SETTINGS.save()
             else:
-                LOGGER.warn('{0:s} is not a valid path.'.format(repr(folder)))
+                LOGGER.warn('{0} is not a valid path.'.format(repr(folder)))
 
 wwpdb.pathPDBFolder = pathPDBFolder
 
@@ -112,23 +113,23 @@ def pathPDBMirror(path=None):
             if isdir(path):
                 return path
             else:
-                LOGGER.warning('PDB mirror path {0:s} is not a accessible.'
+                LOGGER.warning('PDB mirror path {0} is not a accessible.'
                                .format(repr(path)))
     else:
         if isdir(path):
             path = abspath(path)
-            LOGGER.info('Local PDB mirror path is set: {0:s}'
+            LOGGER.info('Local PDB mirror path is set: {0}'
                         .format(repr(path)))
             SETTINGS['pdb_mirror_path'] = path
             SETTINGS.save()
         else:
             current = SETTINGS.pop('pdb_mirror_path')
             if current:
-                LOGGER.info('PDB mirror {0:s} is released.'
+                LOGGER.info('PDB mirror {0} is released.'
                             .format(repr(current)))
                 SETTINGS.save()
             else:
-                LOGGER.warn('{0:s} is not a valid path.'.format(repr(path)))
+                LOGGER.warn('{0} is not a valid path.'.format(repr(path)))
 
 
 def getPDBMirrorPath():
@@ -187,7 +188,7 @@ def fetchPDBfromMirror(*pdb, **kwargs):
         ftp_prefix = ''
         extension = '.cif'
     else:
-        raise ValueError('{0:s} is not a recognized format'
+        raise ValueError('{0} is not a recognized format'
                          .format(repr(format)))
     
     folder = kwargs.get('folder')
@@ -220,15 +221,13 @@ def fetchPDBfromMirror(*pdb, **kwargs):
         fn = filenames[0]
         if kwargs.get('report', True):
             if success:
-                items = fn.split(pathsep) 
-                LOGGER.debug('PDB file is found in the local mirror ({0:s}).'
-                             .format(pathsep.join(items[:3] + ['...'] + 
-                                                  items[-1:])))
+                LOGGER.debug('PDB file is found in the local mirror ({0}).'
+                             .format(sympath(fn)))
         return fn
     else:
         if kwargs.get('report', True):
-            LOGGER.debug('PDB files found in the local mirror ({0:d} found, '
-                         '{1:d} missed).'.format(success, failure))
+            LOGGER.debug('PDB files found in the local mirror ({0} found, '
+                         '{1} missed).'.format(success, failure))
         return filenames
 
 
@@ -251,6 +250,8 @@ def fetchPDB(*pdb, **kwargs):
     
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
+    
+    # check *folder* specified by the user, usually pwd ('.')
     filedict = findPDBFiles(folder, compressed=compressed)
     
     filenames = [] 
@@ -267,10 +268,15 @@ def fetchPDB(*pdb, **kwargs):
             not_found.append((i, pdb))
     
     if not not_found:
-        return filenames[0] if len(identifiers) == 1 else filenames
+        if len(filenames) == 1:
+            filenames = filenames[0]
+            if exists:
+                LOGGER.debug('PDB file is found in the local mirror ({0}).'
+                             .format(sympath(filenames)))
+        return filenames
 
     if not isWritable(folder):
-        raise IOError('permission to write in {0:s} is denied, please '
+        raise IOError('permission to write in {0} is denied, please '
                       'specify another folder'.format(folder))
 
     if compressed is not None and not compressed:
@@ -308,15 +314,18 @@ def fetchPDB(*pdb, **kwargs):
                     filenames[i] = fn
             else:
                 not_found.append((i, pdb))
-
+    
     if not not_found:
         if len(identifiers) == 1:
             fn = filenames[0]
             if kwargs.get('report', True):
-                items = fn.split(pathsep) 
-                LOGGER.debug('PDB file is found in the local folder ({0:s}).'
-                             .format(pathsep.join(items[:3] + ['...'] + 
-                                                  items[-1:])))
+                items = fn.split(pathsep)
+                if len(items) > 5: 
+                    fndisp = pathsep.join(items[:3] + ['...'] + items[-1:])
+                else:
+                    fndisp = relpath(fn)
+                LOGGER.debug('PDB file is found in the local folder ({0}).'
+                             .format(fndisp))
             return fn
         else:
             return filenames
@@ -350,13 +359,13 @@ def fetchPDB(*pdb, **kwargs):
     try:
         fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
     except Exception as err:
-        LOGGER.warn('Downloading PDB files via FTP failed ({0:s}), '
+        LOGGER.warn('Downloading PDB files via FTP failed ({0}), '
                     'trying HTTP.'.format(str(err)))
         try:
             fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
         except Exception as err:
             LOGGER.warn('Downloading PDB files via HTTP also failed '
-                        '({0:s}).'.format(str(err)))
+                        '({0}).'.format(str(err)))
     if len(downloads) == 1: fns = [fns]
     if fns:
         for i, fn in zip([i for i, pdb in not_found], fns):

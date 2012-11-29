@@ -93,15 +93,15 @@ def fetchPDBLigand(cci, filename=None):
             if isfile(xmlgz):
                 with openFile(xmlgz) as inp:
                     xml = inp.read()
-        url = ('http://ligand-expo.rcsb.org/reports/{0[0]:s}/{0:s}/{0:s}'
+        url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
                '.xml'.format(cci.upper()))
         if not xml:
-            #'http://www.pdb.org/pdb/files/ligand/{0:s}.xml'
+            #'http://www.pdb.org/pdb/files/ligand/{0}.xml'
             import urllib2
             try:
                 inp = urllib2.urlopen(url)
             except urllib2.HTTPError:
-                raise IOError('XML file for ligand {0:s} is not found online'
+                raise IOError('XML file for ligand {0} is not found online'
                               .format(cci))
             else:
                 xml = inp.read()
@@ -193,7 +193,7 @@ def fetchPDBLigand(cci, filename=None):
 
     pdbid = dict_.get('model_coordinates_db_code')
     if pdbid:
-        model = AtomGroup(cci + ' model ({0:s})'.format(pdbid))
+        model = AtomGroup(cci + ' model ({0})'.format(pdbid))
     else:
         model = AtomGroup(cci + ' model')
     model.setCoords(model_coords)
@@ -223,11 +223,11 @@ def fetchPDBLigand(cci, filename=None):
         except KeyError:
             if name_1 not in warned and name_1 not in name2index:
                 warned.add(name_1)
-                LOGGER.warn('{0:s} specified {1:s} in bond category is not '
+                LOGGER.warn('{0} specified {1} in bond category is not '
                             'a valid atom name.'.format(repr(name_1), cci))
             if name_2 not in warned and name_2 not in name2index:
                 warned.add(name_2)
-                LOGGER.warn('{0:s} specified {1:s} in bond category is not '
+                LOGGER.warn('{0} specified {1} in bond category is not '
                             'a valid atom name.'.format(repr(name_2), cci))
     if bonds:
         bonds = np.array(bonds, int)

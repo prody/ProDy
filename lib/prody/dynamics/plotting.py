@@ -102,7 +102,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     from mpl_toolkits.mplot3d import Axes3D
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
-                        'not {0:s}'.format(type(modes)))
+                        'not {0}'.format(type(modes)))
     if not modes.is3d():
         raise ValueError('modes must be from a 3-dimensional model')
     if len(modes) != 3:
@@ -110,7 +110,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     if onto is not None:
         if not isinstance(onto, (NMA, ModeSet)):
             raise TypeError('onto must be a NMA or ModeSet instance, '
-                            'not {0:s}'.format(type(onto)))
+                            'not {0}'.format(type(onto)))
         if not onto.is3d():
             raise ValueError('onto must be from a 3-dimensional model')
         if len(onto) != 3:
@@ -152,14 +152,14 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
-        show.set_xlabel('Mode {0:d} coordinate'.format(int(onto[0])+1))
-        show.set_ylabel('Mode {0:d} coordinate'.format(int(onto[1])+1))
-        show.set_zlabel('Mode {0:d} coordinate'.format(int(onto[2])+1))
+        show.set_xlabel('Mode {0} coordinate'.format(int(onto[0])+1))
+        show.set_ylabel('Mode {0} coordinate'.format(int(onto[1])+1))
+        show.set_zlabel('Mode {0} coordinate'.format(int(onto[2])+1))
     else:
         modes = list(modes)
-        show.set_xlabel('Mode {0:d} coordinate'.format(int(modes[0])+1))
-        show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
-        show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
+        show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
+        show.set_zlabel('Mode {0} coordinate'.format(int(modes[2])+1))
     if SETTINGS['auto_show']:
         plt.show(block=False)
     return show
@@ -178,7 +178,7 @@ def showFractVars(modes, *args, **kwargs):
     
     import matplotlib.pyplot as plt
     if not isinstance(modes, (ModeSet, NMA)):
-        raise TypeError('modes must be NMA, or ModeSet, not {0:s}'
+        raise TypeError('modes must be NMA, or ModeSet, not {0}'
                         .format(type(modes)))
     
     fracts = calcFractVariance(modes)
@@ -205,7 +205,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     import matplotlib.pyplot as plt
     if not isinstance(modes, (Mode, NMA, ModeSet)):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0:s}'.format(type(modes)))
+                        'not {0}'.format(type(modes)))
     if isinstance(modes, Mode):
         indices = modes.getIndices() + 0.5
         modes = [modes]
@@ -290,12 +290,12 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('{0:s} coordinate'.format(str(modes)))
+        plt.xlabel('{0} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
         raise ValueError('Projection onto up to 3 modes can be shown. '
-                         'You have given {0:d} mode.'.format(len(modes)))
+                         'You have given {0} mode.'.format(len(modes)))
         
     num = projection.shape[0]
 
@@ -304,7 +304,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         markers = [markers] * num
     elif isinstance(markers, list):
         if len(markers) != num:
-            raise ValueError('length of marker must be {0:d}'.format(num))
+            raise ValueError('length of marker must be {0}'.format(num))
     else: 
         raise TypeError('marker must be a string or a list')
 
@@ -313,7 +313,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         colors = [colors] * num
     elif isinstance(colors, list): 
         if len(colors) != num:
-            raise ValueError('length of color must be {0:d}'.format(num))
+            raise ValueError('length of color must be {0}'.format(num))
     else: 
         raise TypeError('color must be a string or a list')
 
@@ -322,7 +322,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         labels = [labels] * num
     elif isinstance(labels, list):
         if len(labels) != num:
-            raise ValueError('length of label must be {0:d}'.format(num))
+            raise ValueError('length of label must be {0}'.format(num))
     elif labels is not None: 
         raise TypeError('label must be a string or a list')
 
@@ -333,7 +333,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         if not isinstance(texts, list):
             raise TypeError('text must be a list')
         elif len(texts) != num:
-            raise TypeError('length of text must be {0:d}'.format(num))
+            raise TypeError('length of text must be {0}'.format(num))
         size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
     
     modes = [m for m in modes]
@@ -378,12 +378,12 @@ def showProjection(ensemble, modes, *args, **kwargs):
             text(*args, **kwargs)
             
     if len(modes) == 2:
-        plt.xlabel('{0:d} coordinate'.format(int(modes[0])+1))
-        plt.ylabel('{0:d} coordinate'.format(int(modes[1])+1))
+        plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('{0} coordinate'.format(int(modes[1])+1))
     elif len(modes) == 3:
-        show.set_xlabel('Mode {0:d} coordinate'.format(int(modes[0])+1))
-        show.set_ylabel('Mode {0:d} coordinate'.format(int(modes[1])+1))
-        show.set_zlabel('Mode {0:d} coordinate'.format(int(modes[2])+1))
+        show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
+        show.set_zlabel('Mode {0} coordinate'.format(int(modes[2])+1))
 
     if SETTINGS['auto_show']:
         plt.show(block=False)
@@ -450,7 +450,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         markers = [markers] * num
     elif isinstance(markers, list):
         if len(markers) != num:
-            raise ValueError('length of marker must be {0:d}'.format(num))
+            raise ValueError('length of marker must be {0}'.format(num))
     else: 
         raise TypeError('marker must be a string or a list')
 
@@ -459,7 +459,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         colors = [colors] * num
     elif isinstance(colors, list): 
         if len(colors) != num:
-            raise ValueError('length of color must be {0:d}'.format(num))
+            raise ValueError('length of color must be {0}'.format(num))
     else: 
         raise TypeError('color must be a string or a list')
 
@@ -468,7 +468,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         labels = [labels] * num
     elif isinstance(labels, list):
         if len(labels) != num:
-            raise ValueError('length of label must be {0:d}'.format(num))
+            raise ValueError('length of label must be {0}'.format(num))
     elif labels is not None: 
         raise TypeError('label must be a string or a list')
 
@@ -479,7 +479,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         if not isinstance(texts, list):
             raise TypeError('text must be a list')
         elif len(texts) != num:
-            raise TypeError('length of text must be {0:d}'.format(num))
+            raise TypeError('length of text must be {0}'.format(num))
         size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
         
     indict = defaultdict(list)
@@ -501,8 +501,8 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
             kwargs['size'] = size
         for x, y, t in zip(xcoords, ycoords, texts):
             plt.text(x, y, t, **kwargs)
-    plt.xlabel('{0:s} coordinate'.format(mode_x))
-    plt.ylabel('{0:s} coordinate'.format(mode_y))
+    plt.xlabel('{0} coordinate'.format(mode_x))
+    plt.ylabel('{0} coordinate'.format(mode_y))
     if SETTINGS['auto_show']:
         plt.show(block=False)
     return show
@@ -575,7 +575,7 @@ def showCrossCorr(modes, *args, **kwargs):
         kwargs['origin'] = 'lower'
     show = plt.imshow(cross_correlations, *args, **kwargs), plt.colorbar()
     plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
-    plt.title('Cross-correlations for {0:s}'.format(str(modes))) 
+    plt.title('Cross-correlations for {0}'.format(str(modes))) 
     plt.xlabel('Indices')
     plt.ylabel('Indices')
     if SETTINGS['auto_show']:
@@ -597,7 +597,7 @@ def showMode(mode, *args, **kwargs):
     import matplotlib.pyplot as plt
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
-                        'not {0:s}'.format(type(mode)))
+                        'not {0}'.format(type(mode)))
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = plt.plot(a3d[:, 0], *args, label='x-component', **kwargs)
@@ -666,7 +666,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
         sqf = calcSqFlucts(modes)
         scalar = mean / sqf.mean()
         show.append(plt.plot(sqf * scalar, *args, 
-                           label='{0:s} (x{1:.2f})'.format(str(modes), scalar), 
+                           label='{0} (x{1:.2f})'.format(str(modes), scalar), 
                            **kwargs))
     if SETTINGS['auto_show']:
         plt.show(block=False)
@@ -694,13 +694,13 @@ def showNormedSqFlucts(modes, *args, **kwargs):
         else:
             i += 1
     show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
-                        label='{0:s}'.format(str(modes)), **kwargs)]    
+                        label='{0}'.format(str(modes)), **kwargs)]    
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     for modes in modesarg:
         sqf = calcSqFlucts(modes)
         show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args, 
-                    label='{0:s}'.format(str(modes)), **kwargs))
+                    label='{0}'.format(str(modes)), **kwargs))
     if SETTINGS['auto_show']:
         plt.show(block=False)
     return show
@@ -726,7 +726,7 @@ def showContactMap(enm, *args, **kwargs):
         LOGGER.warning('kirchhoff matrix is not set')
         return None
     show = plt.spy(kirchhoff, *args, **kwargs)
-    plt.title('{0:s} contact map'.format(enm.getTitle())) 
+    plt.title('{0} contact map'.format(enm.getTitle())) 
     plt.xlabel('Residue index')
     plt.ylabel('Residue index')
     if SETTINGS['auto_show']:
@@ -751,10 +751,10 @@ def showOverlap(mode, modes, *args, **kwargs):
     
     import matplotlib.pyplot as plt
     if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0:s}'
+        raise TypeError('mode must be Mode or Vector, not {0}'
                         .format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
-        raise TypeError('modes must be NMA or ModeSet, not {0:s}'
+        raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
     overlap = abs(calcOverlap(mode, modes))
     if isinstance(modes, NMA):
@@ -762,8 +762,8 @@ def showOverlap(mode, modes, *args, **kwargs):
     else:
         arange = modes.getIndices() + 0.5
     show = plt.bar(arange, overlap, *args, **kwargs)
-    plt.title('Overlap with {0:s}'.format(str(mode)))
-    plt.xlabel('{0:s} mode index'.format(modes))
+    plt.title('Overlap with {0}'.format(str(mode)))
+    plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Overlap')
     if SETTINGS['auto_show']:
         plt.show(block=False)
@@ -787,10 +787,10 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     
     import matplotlib.pyplot as plt
     if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0:s}'
+        raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0}'
                         .format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
-        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0:s}'
+        raise TypeError('modes must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
     cumov = (calcOverlap(mode, modes) ** 2).cumsum() ** 0.5
     if isinstance(modes, NMA):
@@ -798,8 +798,8 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     else:
         arange = modes.getIndices() + 0.5
     show = plt.plot(arange, cumov, *args, **kwargs)
-    plt.title('Cumulative overlap with {0:s}'.format(str(mode)))
-    plt.xlabel('{0:s} mode index'.format(modes))
+    plt.title('Cumulative overlap with {0}'.format(str(mode)))
+    plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Cumulative overlap')
     plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
     if SETTINGS['auto_show']:

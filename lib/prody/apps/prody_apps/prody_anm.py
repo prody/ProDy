@@ -62,7 +62,7 @@ def prody_anm(pdb, **kwargs):
     from os.path import isdir, splitext, join
     outdir = kwargs['outdir']
     if not isdir(outdir):
-        raise IOError('{0:s} is not a valid path'.format(repr(outdir)))    
+        raise IOError('{0} is not a valid path'.format(repr(outdir)))    
         
     import numpy as np
     import prody
@@ -82,10 +82,10 @@ def prody_anm(pdb, **kwargs):
 
     select = pdb.select(selstr)
     if select is None:
-        LOGGER.warn('Selection {0:s} did not match any atoms.'
+        LOGGER.warn('Selection {0} did not match any atoms.'
                         .format(repr(selstr)))
         return
-    LOGGER.info('{0:d} atoms will be used for ANM calculations.'
+    LOGGER.info('{0} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
     anm = prody.ANM(pdb.getTitle())

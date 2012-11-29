@@ -225,8 +225,8 @@ class DCDFile(TrajFile):
         n_csets = (getsize(self._filename) - self._first_byte
                                                     ) / self._bytes_per_frame
         if n_csets != self._n_csets: 
-            LOGGER.warning('DCD header claims {0:d} frames, file size '
-                           'indicates there are actually {1:d} frames.'
+            LOGGER.warning('DCD header claims {0} frames, file size '
+                           'indicates there are actually {1} frames.'
                            .format(self._n_csets, n_csets))
             self._n_csets = n_csets
         self._coords = self.nextCoordset()
@@ -331,7 +331,7 @@ class DCDFile(TrajFile):
             if len(data) > n_floats * n_csets:
                 n_csets = len(data)/n_floats
                 data = data[:n_csets]
-                LOGGER.warning('DCD is corrupt, {0:d} out of {1:d} frames '
+                LOGGER.warning('DCD is corrupt, {0} out of {1} frames '
                                'were parsed.'.format(n_csets, self._n_csets))
             data = data.reshape((n_csets, n_floats))
             if self._unitcell:
@@ -500,7 +500,7 @@ def parseDCD(filename, start=None, stop=None, step=None, astype=None):
     dcd = DCDFile(filename, astype=astype)
     time_ = time()
     n_frames = dcd.numFrames()
-    LOGGER.info('DCD file contains {0:d} coordinate sets for {1:d} atoms.'
+    LOGGER.info('DCD file contains {0} coordinate sets for {1} atoms.'
                 .format(n_frames, dcd.numAtoms()))
     ensemble = dcd[slice(start,stop,step)]    
     dcd.close()
@@ -509,7 +509,7 @@ def parseDCD(filename, start=None, stop=None, step=None, astype=None):
     LOGGER.info('DCD file was parsed in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB parsed at input rate {1:.2f} MB/s.'
                 .format(dcd_size, dcd_size/time_))
-    LOGGER.info('{0:d} coordinate sets parsed at input rate {1:d} frame/s.'
+    LOGGER.info('{0} coordinate sets parsed at input rate {1} frame/s.'
                 .format(n_frames, int(n_frames/time_)))
     return ensemble
 
@@ -523,7 +523,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     output of file."""
     
     if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0:s} is not a valid type for trajectory'
+        raise TypeError('{0} is not a valid type for trajectory'
                         .format(type(trajectory)))
     
     irange = list(range(*slice(start, stop,step)
@@ -612,10 +612,10 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     LOGGER.info('DCD file was written in {0:.2f} seconds.'.format(time_))
     LOGGER.info('{0:.2f} MB written at input rate {1:.2f} MB/s.'
                 .format(dcd_size, dcd_size/time_))
-    LOGGER.info('{0:d} coordinate sets written at output rate {1:d} frame/s.'
+    LOGGER.info('{0} coordinate sets written at output rate {1} frame/s.'
                 .format(n_csets, int(n_csets/time_)))
     if j != n_csets:
-        LOGGER.warn('Warning: {0:d} frames expected, {1:d} written.'
+        LOGGER.warn('Warning: {0} frames expected, {1} written.'
                     .format(n_csets, j))
     if isTrajectory:
         trajectory.goto(nfi)

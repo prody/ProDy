@@ -35,6 +35,10 @@ from prody import LOGGER
 from prody.tests.test_datafiles import *
 from prody.atomic.atommap import DUMMY
 
+try:
+    range = xrange
+except NameError:
+    pass
 
 prody.atomic.select.DEBUG = False
 LOGGER.verbosity = 'none'
@@ -52,8 +56,8 @@ SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': len(pdb3mht),
      'ag': pdb3mht,
      'all': pdb3mht.all,
-     'atommap': AtomMap(pdb3mht, [DUMMY] + range(1500) + [DUMMY] + 
-                        range(1500, len(pdb3mht)) + [DUMMY]),
+     'atommap': AtomMap(pdb3mht, [DUMMY] + list(range(1500)) + [DUMMY] + 
+                        list(range(1500, len(pdb3mht))) + [DUMMY]),
                         
      'test_flags':  [('none', 0),
         ('all', 3211),
@@ -371,8 +375,8 @@ SELECTION_TESTS['imatinib'] = {
     'n_atoms': len(ligand),
     'ag': ligand,
     'all': ligand.all,
-    'atommap': AtomMap(ligand, [DUMMY] + range(10) + [DUMMY] + 
-                       range(10, len(ligand)) + [DUMMY]),
+    'atommap': AtomMap(ligand, [DUMMY] + list(range(10)) + [DUMMY] + 
+                       list(range(10, len(ligand))) + [DUMMY]),
     
     'test_bondedto': [
         ('bonded to index 0', ligand[0].numBonds() + 1),
@@ -452,24 +456,24 @@ for case, items in SELECTION_TESTS.items():
                 elif selstr2 is None:
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
                     self.assertEqual(len(sel), natoms,
-                        'selection {0:s} for {1:s} failed, expected '
-                        '{2:d}, selected {3:d}'.format(repr(selstr), 
+                        'selection {0} for {1} failed, expected '
+                        '{2}, selected {3}'.format(repr(selstr), 
                         str(atoms), natoms, len(sel)))
                 else:
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
                     sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
                     self.assertTrue(len(sel) == len(sel2) == natoms and
                             np.all(sel == sel2),
-                        'selection strings {0:s} and {1:s} for '
-                        '{2:s} failed to select same number of atoms, '
-                        'expected ({3:d})'.format(repr(selstr), 
+                        'selection strings {0} and {1} for '
+                        '{2} failed to select same number of atoms, '
+                        'expected ({3})'.format(repr(selstr), 
                         repr(selstr2), str(atoms), natoms))
                         
             count += 1
-            func.__name__ = 'test{0:s}Selection{1:d}'.format(
+            func.__name__ = 'test{0}Selection{1}'.format(
                                                 type_.title(), count)
-            func.__doc__ = ('Test {0:s} selections {1:s} for '
-                                    '{2:s}').format(type_, 
+            func.__doc__ = ('Test {0} selections {1} for '
+                                    '{2}').format(type_, 
                                     repr(test[0]), case)
             setattr(TestSelect, func.__name__, func)
 
@@ -493,23 +497,23 @@ for case, items in SELECTION_TESTS.items():
                 elif selstr2 is None:
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
                     self.assertEqual(len(sel), natoms,
-                        'selection {0:s} for {1:s} failed, expected '
-                        '{2:d}, selected {3:d}'.format(repr(selstr), 
+                        'selection {0} for {1} failed, expected '
+                        '{2}, selected {3}'.format(repr(selstr), 
                         str(atoms), natoms, len(sel)))
                 else:
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
                     sel2 = SELECT.getIndices(atoms, selstr2, **kwargs)
                     self.assertTrue(len(sel) == len(sel2) == natoms and
                             np.all(sel == sel2),
-                        'selection strings {0:s} and {1:s} for '
-                        '{2:s} failed to select same number of atoms, '
-                        'expected ({3:d})'.format(repr(selstr), 
+                        'selection strings {0} and {1} for '
+                        '{2} failed to select same number of atoms, '
+                        'expected ({3})'.format(repr(selstr), 
                         repr(selstr2), str(atoms), natoms))
                         
             count += 1
-            func.__name__ = 'test{0:s}Selection{1:d}'.format(type_.title(), 
+            func.__name__ = 'test{0}Selection{1}'.format(type_.title(), 
                                                              count)
-            func.__doc__ = 'Test {0:s} selections "{1:s}"'.format(type_, 
+            func.__doc__ = 'Test {0} selections "{1}"'.format(type_, 
                                                                   test[0])
             setattr(TestSelect, func.__name__, func)
 del func
@@ -535,7 +539,6 @@ class TestMacros(unittest.TestCase):
 count = 0        
 for name, macro in MACROS:
 
-
     def func(self, name=name, macro=macro):
     
         prody.defSelectionMacro(name, macro)
@@ -548,7 +551,7 @@ for name, macro in MACROS:
         prody.delSelectionMacro(name)
     count += 1
 
-    func.__name__ = 'testMacro{0:d}'.format(count)
-    func.__doc__ = 'Test macro *{0:s}*: {1:s}'.format(name, repr(macro))
+    func.__name__ = 'testMacro{0}'.format(count)
+    func.__doc__ = 'Test macro *{0}*: {1}'.format(name, repr(macro))
     setattr(TestMacros, func.__name__, func)
 del func

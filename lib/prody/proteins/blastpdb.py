@@ -76,7 +76,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     timeout = float(kwargs.pop('timeout', 20))
     
     if kwargs:
-        LOGGER.warn('Keyword argument(s) {0:s} are not used.'
+        LOGGER.warn('Keyword argument(s) {0} are not used.'
                     .format(', '.join([repr(key) for key in kwargs])))
 
     import urllib, urllib2
@@ -85,7 +85,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     
     data = urllib.urlencode(query)
     LOGGER.timeit('_prody_blast')
-    LOGGER.info('Blast searching NCBI PDB database for "{0:s}..."'
+    LOGGER.info('Blast searching NCBI PDB database for "{0}..."'
                 .format(sequence[:5]))
     request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
     handle = urllib2.urlopen(request)
@@ -139,7 +139,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         out = open(filename, 'w')
         out.write(results)
         out.close()
-        LOGGER.info('Results are saved as {0:s}.'.format(repr(filename)))
+        LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
     return PDBBlastRecord(results, sequence)
 
 

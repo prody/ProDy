@@ -233,27 +233,27 @@ def calcOmega(residue, radian=False, dist=4.1):
     the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
     if not isinstance(residue, Residue):
-        raise TypeError('{0:s} must be a Residue instance')
+        raise TypeError('{0} must be a Residue instance')
     
     next = residue.getNext()
     if not isinstance(next, Residue):
-        raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+        raise ValueError('{0} is a terminal residue'.format(str(residue)))
     
     CA = residue['CA']
     if CA is None:
-        raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
+        raise ValueError('{0} does not have CA atom'.format(str(residue)))
     C = residue['C']
     if C is None:
-        raise ValueError('{0:s} does not have C atom'.format(str(residue)))
+        raise ValueError('{0} does not have C atom'.format(str(residue)))
     _N = next['N']
     if _N is None:
-        raise ValueError('{0:s} does not have N atom'.format(str(residue)))
+        raise ValueError('{0} does not have N atom'.format(str(residue)))
     _CA = next['CA']
     if _CA is None:
-        raise ValueError('{0:s} does not have CA atom'.format(str(next)))
+        raise ValueError('{0} does not have CA atom'.format(str(next)))
     
     if dist and dist < calcDistance(CA, _CA):
-        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+        raise ValueError('{0} and {1} does not seem to be connected'
                          .format(str(residue), str(next)))
     
     return getDihedral(CA._getCoords(), C._getCoords(), _N._getCoords(), 
@@ -266,7 +266,7 @@ def calcPhi(residue, radian=False, dist=4.1):
     the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
     if not isinstance(residue, Residue):
-        raise TypeError('{0:s} must be a Residue instance')
+        raise TypeError('{0} must be a Residue instance')
 
     C_, N, CA, C = getPhiAtoms(residue, dist=dist)
 
@@ -281,29 +281,29 @@ def getPhiAtoms(residue, dist=4.1):
     try:
         isaa = prev.isaminoacid
     except AttributeError:
-        raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+        raise ValueError('{0} is a terminal residue'.format(str(residue)))
     
     if not isaa:
-        raise ValueError('{0:s} is not an amino acid'.format(str(prev)))
+        raise ValueError('{0} is not an amino acid'.format(str(prev)))
 
     C_ = prev['C']
     if C_ is None:
-        raise ValueError('{0:s} does not have C atom'.format(str(prev)))
+        raise ValueError('{0} does not have C atom'.format(str(prev)))
     N = residue['N']
     if N is None:
-        raise ValueError('{0:s} does not have N atom'.format(str(residue)))
+        raise ValueError('{0} does not have N atom'.format(str(residue)))
     CA = residue['CA']
     if CA is None:
-        raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
+        raise ValueError('{0} does not have CA atom'.format(str(residue)))
     C = residue['C']
     if C is None:
-        raise ValueError('{0:s} does not have C atom'.format(str(residue)))
+        raise ValueError('{0} does not have C atom'.format(str(residue)))
     CA_ = prev['CA']
     if CA_ is None:
-        raise ValueError('{0:s} does not have CA atom'.format(str(prev)))
+        raise ValueError('{0} does not have CA atom'.format(str(prev)))
 
     if dist and dist < calcDistance(CA, CA_):
-        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+        raise ValueError('{0} and {1} does not seem to be connected'
                          .format(str(residue), str(prev)))
     
     return C_, N, CA, C
@@ -315,7 +315,7 @@ def calcPsi(residue, radian=False, dist=4.1):
     the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
     if not isinstance(residue, Residue):
-        raise TypeError('{0:s} must be a Residue instance')
+        raise TypeError('{0} must be a Residue instance')
         
     N, CA, C, _N = getPsiAtoms(residue, dist=dist)
     
@@ -329,28 +329,28 @@ def getPsiAtoms(residue, dist=4.1):
     try:
         isaa = next.isaminoacid
     except AttributeError:
-        raise ValueError('{0:s} is a terminal residue'.format(str(residue)))
+        raise ValueError('{0} is a terminal residue'.format(str(residue)))
 
     if not isaa:
-        raise ValueError('{0:s} is not an amino acid'.format(str(next)))
+        raise ValueError('{0} is not an amino acid'.format(str(next)))
     
     N = residue['N']
     if N is None:
-        raise ValueError('{0:s} does not have N atom'.format(str(residue)))
+        raise ValueError('{0} does not have N atom'.format(str(residue)))
     CA = residue['CA']
     if CA is None:
-        raise ValueError('{0:s} does not have CA atom'.format(str(residue)))
+        raise ValueError('{0} does not have CA atom'.format(str(residue)))
     C = residue['C']
     if C is None:
-        raise ValueError('{0:s} does not have C atom'.format(str(residue)))
+        raise ValueError('{0} does not have C atom'.format(str(residue)))
     _N = next['N']
     if _N is None:
-        raise ValueError('{0:s} does not have N atom'.format(str(next)))
+        raise ValueError('{0} does not have N atom'.format(str(next)))
     _CA = next['CA']
     if _CA is None:
-        raise ValueError('{0:s} does not have CA atom'.format(str(next)))
+        raise ValueError('{0} does not have CA atom'.format(str(next)))
     if dist and dist < calcDistance(CA, _CA):
-        raise ValueError('{0:s} and {1:s} does not seem to be connected'
+        raise ValueError('{0} and {1} does not seem to be connected'
                          .format(str(residue), str(next)))
                         
     return N, CA, C, _N
@@ -568,7 +568,7 @@ def calcMSF(coordsets):
         total = zeros((natoms, 3))
         sqsum = zeros((natoms, 3))
 
-        LOGGER.progress('Evaluating {0:d} frames from {1:s}:'
+        LOGGER.progress('Evaluating {0} frames from {1}:'
                         .format(ncsets, str(coordsets)), ncsets, 
                         '_prody_calcMSF')
         ncsets = 0
@@ -599,7 +599,7 @@ def calcDeformVector(from_atoms, to_atoms):
     """Return deformation from *from_atoms* to *atoms_to* as a :class:`.Vector`
     instance."""
     
-    name = '{0:s} => {1:s}'.format(repr(from_atoms), repr(to_atoms))
+    name = '{0} => {1}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30: 
         name = 'Deformation'
     arr = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
@@ -667,7 +667,7 @@ def calcADPAxes(atoms, **kwargs):
     
     linalg = importLA()
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be of type Atomic, not {0:s}'
+        raise TypeError('atoms must be of type Atomic, not {0}'
                         .format(type(atoms)))
     anisous = atoms.getAnisous()
     if anisous is None:
@@ -747,7 +747,7 @@ def calcADPs(atom):
     
     linalg = importLA()
     if not isinstance(atom, Atom):
-        raise TypeError('atom must be of type Atom, not {0:s}'
+        raise TypeError('atom must be of type Atom, not {0}'
                         .format(type(atom)))
     anisou = atom.getAnisou()
     if anisou is None:
@@ -774,7 +774,7 @@ def buildADPMatrix(atoms):
     >>> adp_matrix = buildADPMatrix( calphas )"""
     
     if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be of type Atomic, not {0:s}'
+        raise TypeError('atoms must be of type Atomic, not {0}'
                         .format(type(atoms)))
     anisous = atoms.getAnisous()
     if anisous is None:

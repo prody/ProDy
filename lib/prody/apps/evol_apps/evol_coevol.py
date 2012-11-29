@@ -147,17 +147,17 @@ def evol_coevol(msa, **kwargs):
             matrix = mutinfo
             suffix = ''
         elif which == 'joint':
-            LOGGER.info('Applying {0:s} normalization.'.format(repr(which)))
+            LOGGER.info('Applying {0} normalization.'.format(repr(which)))
             matrix = buildMutinfoMatrix(msa, norm=True, **kwargs)
             suffix = '_norm_joint'
         elif what == 'norm':
-            LOGGER.info('Applying {0:s} normalization.'.format(repr(which)))
+            LOGGER.info('Applying {0} normalization.'.format(repr(which)))
             if entropy is None:
                 entropy = calcShannonEntropy(msa, **kwargs)
             matrix = applyMutinfoNorm(mutinfo, entropy, norm=which)
             suffix = '_norm_' + which
         else:
-            LOGGER.info('Applying {0:s} correction.'.format(repr(which)))
+            LOGGER.info('Applying {0} correction.'.format(repr(which)))
             matrix = applyMutinfoCorr(mutinfo, which)
             suffix = '_corr_' + which
         

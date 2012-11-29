@@ -55,7 +55,7 @@ class TrajFile(TrajBase):
         TrajBase.__init__(self, name)
         self._file = None
         if mode == 'r' and not isfile(filename):
-            raise IOError("[Errno 2] No such file or directory: '{0:s}'"
+            raise IOError("[Errno 2] No such file or directory: '{0}'"
                           .format(filename))
         self._filename = filename
         if mode in ('a', 'r+'):
@@ -82,7 +82,7 @@ class TrajFile(TrajBase):
     def __repr__(self):
 
         if self._closed:
-            return ('<{0:s}: {1:s} (closed)>').format(
+            return ('<{0}: {1} (closed)>').format(
                         self.__class__.__name__, self._title)
                         
         link = ''
@@ -90,18 +90,18 @@ class TrajFile(TrajBase):
             link = 'linked to ' + str(self._ag) + '; '
             
         if self._mode == 'r':
-            next = 'next {0:d} of {1:d} frames; '.format(self._nfi, 
+            next = 'next {0} of {1} frames; '.format(self._nfi, 
                                                        self._n_csets)
         else:
-            next = '{0:d} frames written; '.format(self._n_csets)
+            next = '{0} frames written; '.format(self._n_csets)
             
         if self._indices is None:
-            atoms = '{0:d} atoms'.format(self._n_atoms)
+            atoms = '{0} atoms'.format(self._n_atoms)
         else:
-            atoms = 'selected {0:d} of {1:d} atoms'.format(
+            atoms = 'selected {0} of {1} atoms'.format(
                                         self.numSelected(), self._n_atoms)
             
-        return '<{0:s}: {1:s} ({2:s}{3:s}{4:s})>'.format(
+        return '<{0}: {1} ({2}{3}{4})>'.format(
                    self.__class__.__name__, self._title, link, next, atoms)                                                       
     
     def getFilename(self, absolute=False):
@@ -163,7 +163,7 @@ class TrajFile(TrajBase):
                 self.skip(diff-1)
             xyz = next()
             if xyz is None:         
-                LOGGER.warning('Expected {0:d} frames, but parsed {1:d}.'
+                LOGGER.warning('Expected {0} frames, but parsed {1}.'
                                .format(len(indices), i))
                 self.goto(nfi)
                 return coords[:i]

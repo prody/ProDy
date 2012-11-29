@@ -126,14 +126,14 @@ class DevelApp(object):
         
         kwargs = self._args[arg]
         dest = kwargs.get('dest', arg[0])
-        desc = ':arg {0:s}: {1:s}'.format(dest, kwargs['help'])
+        desc = ':arg {0}: {1}'.format(dest, kwargs['help'])
         choices = kwargs.get('choices')
         if choices:
             desc += ', one of ' + ', '.join(['``' + repr(ch) + '``' 
                                              for ch in choices])
         default = kwargs.get('default')
         if default:
-            desc += ', default is ``{0:s}``'.format(repr(default))
+            desc += ', default is ``{0}``'.format(repr(default))
         doc.extend(wrapText(desc, join=False, subsequent_indent='    '))
         try:
             type = kwargs['type']
@@ -148,14 +148,14 @@ class DevelApp(object):
                 else:
                     type = None
         if type is not None:
-            doc.append(':type {0:s}: {1:s}'.format(dest, type.__name__))
+            doc.append(':type {0}: {1}'.format(dest, type.__name__))
         doc.append('')
     
     def addGroup(self, name, description, mutexc=False, required=False):
         """If *mutexc* is **True** add a mutually exclusive group. """
 
         if name in self._group_args:
-            raise ValueError('group {0:s} is already defined'.format(name))
+            raise ValueError('group {0} is already defined'.format(name))
                  
         self._groups.append((name, mutexc, required))
         self._group_desc[name] = description
@@ -164,7 +164,7 @@ class DevelApp(object):
     def addArgument(self, *args, **kwargs):
         
         if args in self._args:
-            raise ValueError('argument {0:s} is already defined'
+            raise ValueError('argument {0} is already defined'
                              .format(str(args)))
         if len(args) == 1 and args[0][0] != '-':
             group = 'positional'
@@ -182,7 +182,7 @@ class DevelApp(object):
         be added automatically."""
         
         if args in self._args:
-            raise ValueError('argument {0:s} is already defined'
+            raise ValueError('argument {0} is already defined'
                              .format(str(args)))
         if args[0][0] != '-':
             raise ValueError('figure argument cannot be a positional argument')
@@ -196,7 +196,7 @@ class DevelApp(object):
     def addFigarg(self, *args, **kwargs):
         
         if args in self._args:
-            raise ValueError('argument {0:s} is already defined'
+            raise ValueError('argument {0} is already defined'
                              .format(str(args)))
         if args[0][0] != '-':
             raise ValueError('figure argument cannot be a positional argument')

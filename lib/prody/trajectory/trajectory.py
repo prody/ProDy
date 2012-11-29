@@ -55,7 +55,7 @@ class Trajectory(TrajBase):
     def __repr__(self):
         
         if self._closed:
-            return '<Trajectory: {0:s} (closed)>'.format(self._title)
+            return '<Trajectory: {0} (closed)>'.format(self._title)
         
         link = ''
         if self._ag is not None:
@@ -63,17 +63,17 @@ class Trajectory(TrajBase):
         
         files = ''
         if self._n_files > 1:
-            files = '{0:d} files; '.format(self._n_files)
+            files = '{0} files; '.format(self._n_files)
         
-        next = 'next {0:d} of {1:d} frames; '.format(self._nfi, self._n_csets)
+        next = 'next {0} of {1} frames; '.format(self._nfi, self._n_csets)
         
         if self._indices is None:
-            atoms = '{0:d} atoms'.format(self._n_atoms)
+            atoms = '{0} atoms'.format(self._n_atoms)
         else:
-            atoms = 'selected {0:d} of {1:d} atoms'.format(
+            atoms = 'selected {0} of {1} atoms'.format(
                                             self.numSelected(), self._n_atoms)
         
-        return '<Trajectory: {0:s} ({1:s}{2:s}{3:s}{4:s})>'.format(
+        return '<Trajectory: {0} ({1}{2}{3}{4})>'.format(
                                         self._title, link, files, next, atoms)
     
     def _nextFile(self):
@@ -118,13 +118,13 @@ class Trajectory(TrajBase):
         if not isinstance(filename, str):
             raise ValueError('filename must be a string')
         if os.path.abspath(filename) in self._filenames:        
-            raise IOError('{0:s} is already added to the trajectory'
+            raise IOError('{0} is already added to the trajectory'
                           .format(filename))
         assert 'mode' not in kwargs, 'mode is an invalid keyword argument'
         traj = openTrajFile(filename, **(kwargs or self._kwargs))
         n_atoms = self._n_atoms
         if n_atoms != 0 and n_atoms != traj.numAtoms():
-            raise IOError('{0:s} must have same number of atoms as '
+            raise IOError('{0} must have same number of atoms as '
                             'previously loaded files'.format(traj.getTitle()))
          
         if self._n_files == 0:

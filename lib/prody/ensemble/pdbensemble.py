@@ -64,12 +64,12 @@ class PDBEnsemble(Ensemble):
         used in the result."""
         
         if not isinstance(other, Ensemble):
-            raise TypeError('an Ensemble instance cannot be added to an {0:s} '
+            raise TypeError('an Ensemble instance cannot be added to an {0} '
                             'instance'.format(type(other)))
         elif self.numAtoms() != other.numAtoms():
             raise ValueError('Ensembles must have same number of atoms.')
     
-        ensemble = PDBEnsemble('{0:s} + {1:s}'.format(self.getTitle(), 
+        ensemble = PDBEnsemble('{0} + {1}'.format(self.getTitle(), 
                                                    other.getTitle()))
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
@@ -96,7 +96,7 @@ class PDBEnsemble(Ensemble):
             return self.getConformation(index) 
             
         elif isinstance(index, slice):
-            ens = PDBEnsemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+            ens = PDBEnsemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
@@ -107,7 +107,7 @@ class PDBEnsemble(Ensemble):
             return ens
             
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0:s}'.format(self._title))
+            ens = PDBEnsemble('Conformations of {0}'.format(self._title))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(), 
                             self._weights[index].copy(),
@@ -213,7 +213,7 @@ class PDBEnsemble(Ensemble):
 
         if n_csets > 1:
             if isinstance(label, str):
-                self._labels.extend('{0:s}_m{1:d}'
+                self._labels.extend('{0}_m{1}'
                     .format(label, i+1) for i in range(n_csets))
             else:
                 if len(label) != n_csets: 
@@ -364,7 +364,7 @@ class PDBEnsemble(Ensemble):
                 weights = weights.astype(float)
             except ValueError:
                 raise ValueError('coords array cannot be assigned type '
-                                 '{0:s}'.format(float))
+                                 '{0}'.format(float))
         if np.any(weights < 0):
             raise ValueError('weights must greater or equal to 0')
             

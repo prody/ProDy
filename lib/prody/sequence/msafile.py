@@ -271,7 +271,7 @@ class MSAFile(object):
             if mode == 'w' and format == STOCKHOLM:
                 write('# STOCKHOLM 1.0\n')
             if format.startswith('S'):
-                self._selex_line = '{0:' + str(LEN_SELEX_LABEL) + 's} {1:s}\n'
+                self._selex_line = '{0:' + str(LEN_SELEX_LABEL) + 's} {1}\n'
         self._mode = mode
        
     def __del__(self):
@@ -319,10 +319,10 @@ class MSAFile(object):
     def __repr__(self):
         
         if self._closed:
-            return '<MSAFile: {0:s} ({1:s}; closed)>'.format(self._title, 
+            return '<MSAFile: {0} ({1}; closed)>'.format(self._title, 
                 self._format) 
         else:
-            return '<MSAFile: {0:s} ({1:s}; mode {2:s})>'.format(
+            return '<MSAFile: {0} ({1}; mode {2})>'.format(
                     self._title, self._format, repr(self._mode)) 
     
     def __enter__(self):
@@ -396,8 +396,8 @@ class MSAFile(object):
             if not lenseq:
                 self._lenseq = lenseq = len(seq)
             if aligned and lenseq != len(seq):
-                raise IOError('sequence for {0:s} does not have '
-                              'expected length {1:d}'
+                raise IOError('sequence for {0} does not have '
+                              'expected length {1}'
                               .format(label, lenseq))
             numseq += 1
             yield label, seq
@@ -420,8 +420,8 @@ class MSAFile(object):
                     if not lenseq:
                         self._lenseq = lenseq = len(seq)
                     if aligned and lenseq != len(seq):
-                        raise IOError('sequence for {0:s} does not have '
-                                      'expected length {1:d}'
+                        raise IOError('sequence for {0} does not have '
+                                      'expected length {1}'
                                       .format(label, lenseq))
                     yield label, seq
                     temp = []
@@ -455,8 +455,8 @@ class MSAFile(object):
                 if not lenseq:
                     self._lenseq = lenseq = len(seq)
                 if aligned and lenseq != len(seq):
-                    raise IOError('sequence for {0:s} does not have '
-                                  'expected length {1:d}'
+                    raise IOError('sequence for {0} does not have '
+                                  'expected length {1}'
                                   .format(label, lenseq))
                 yield label, seq
             lines = readlines(NUMLINES)
@@ -645,10 +645,10 @@ def parseMSA(filename, **kwargs):
     msa = MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
 
     if aligned:
-        LOGGER.report('{0:d} sequence(s) with {1:d} residues were parsed in '
+        LOGGER.report('{0} sequence(s) with {1} residues were parsed in '
                       '%.2fs.'.format(*msaarr.shape), '_parsemsa') 
     else:
-        LOGGER.report('{0:d} sequence(s) were parsed in %.2fs.'
+        LOGGER.report('{0} sequence(s) were parsed in %.2fs.'
                       .format(*msaarr.shape), '_parsemsa') 
     return msa
 
@@ -670,7 +670,7 @@ def writeMSA(filename, msa, **kwargs):
         try:
             format = MSAFORMATS[format.lower()]
         except KeyError:
-            raise ValueError('format {0:s} is not recognized'
+            raise ValueError('format {0} is not recognized'
                              .format(repr(format)))
     else:
         if ext == '.gz':
@@ -680,7 +680,7 @@ def writeMSA(filename, msa, **kwargs):
             format = EXTENSIONS[ext]
         except KeyError:
             raise ValueError('format is not specified, and file extension '
-                             '{0:s} is not recognized'.format(repr(ext)))
+                             '{0} is not recognized'.format(repr(ext)))
         
     fast = False
     try:

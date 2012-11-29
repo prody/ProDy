@@ -95,7 +95,7 @@ class PackageLogger(object):
     def _setverbosity(self, level):
         lvl = LOGGING_LEVELS.get(str(level).lower(), None)
         if lvl is None: 
-            self.warn('{0:s} is not a valid log level.'.format(level))
+            self.warn('{0} is not a valid log level.'.format(level))
         else:
             self._logger.handlers[0].level = lvl
             self._level = lvl 
@@ -224,11 +224,11 @@ class PackageLogger(object):
                     backupCount=kwargs.get('backupcount', 1))
         logfile.setLevel(LOGGING_LEVELS[kwargs.get('loglevel', 'debug')])
         logfile.setFormatter(logging.Formatter('%(message)s'))
-        self.info("Logging into file: {0:s}".format(filename))
+        self.info("Logging into file: {0}".format(filename))
         self._logger.addHandler(logfile)
         if rollover:
             logfile.doRollover()
-        self.info("Logging started at {0:s}".format(str(now())))
+        self.info("Logging started at {0}".format(str(now())))
         
     def close(self, filename):
         """Close logfile *filename*."""
@@ -239,12 +239,12 @@ class PackageLogger(object):
         for index, handler in enumerate(self.getHandlers()):
             if isinstance(handler, logging.handlers.RotatingFileHandler):
                 if handler.stream.name in (filename,os.path.abspath(filename)):
-                    self.info("Logging stopped at {0:s}".format(str(now())))
+                    self.info("Logging stopped at {0}".format(str(now())))
                     handler.close()
                     self.delHandler(index)
-                    self.info("Closing logfile: {0:s}".format(filename))
+                    self.info("Closing logfile: {0}".format(filename))
                     return
-        self.warning("Logfile '{0:s}' was not found.".format(filename))
+        self.warning("Logfile '{0}' was not found.".format(filename))
 
     # ====================
     # Progress and timing
@@ -297,7 +297,7 @@ class PackageLogger(object):
         
         msg = str(msg)
         for second in range(int(seconds), 0, -1):
-            self.write('Waiting for {0:d}s {1:s}'.format(second, msg))
+            self.write('Waiting for {0}s {1}'.format(second, msg))
             time.sleep(1)
             self.clear()
 

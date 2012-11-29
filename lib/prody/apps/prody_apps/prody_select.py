@@ -61,10 +61,10 @@ def prody_select(selstr, *pdbs, **kwargs):
             
         pdbselect = pdb.select(selstr)
         if pdbselect is None:
-            LOGGER.warn('Selection {0:s} did not match any atoms.'
+            LOGGER.warn('Selection {0} did not match any atoms.'
                         .format(repr(selstr)))
             return
-        LOGGER.info('Selection {0:s} matched {1:d} atoms.'
+        LOGGER.info('Selection {0} matched {1} atoms.'
                     .format(repr(selstr), len(pdbselect)))
 
         outname = output or ((prefix or pdb.getTitle()) + suffix)

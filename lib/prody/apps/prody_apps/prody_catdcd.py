@@ -84,16 +84,16 @@ def prody_catdcd(*dcd, **kwargs):
         if select:
             select = ag.select(select)
             if select is None:
-                raise ValueError('{0:s} did not match any atoms'
+                raise ValueError('{0} did not match any atoms'
                                  .format(repr(kwargs.get('select'))))
         else:
             select = ag
-        LOGGER.info('{0:d} atoms are selected for writing output.'
+        LOGGER.info('{0} atoms are selected for writing output.'
                     .format(len(select)))
         if align:
             align = ag.select(align)
             traj.setAtoms(align)
-            LOGGER.info('{0:d} atoms are selected for aligning frames.'
+            LOGGER.info('{0} atoms are selected for aligning frames.'
                         .format(len(align)))
     
     output = kwargs.get('output', 'trajectory.dcd')
@@ -116,7 +116,7 @@ def prody_catdcd(*dcd, **kwargs):
         count += 1
     traj.close()
     out.close()
-    LOGGER.info("{0:d} frames are written into {1:s}."
+    LOGGER.info("{0} frames are written into {1}."
                 .format(count, output))
 
 def addCommand(commands):

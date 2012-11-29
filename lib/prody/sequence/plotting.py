@@ -50,7 +50,7 @@ def pickSequence(msa):
             if end - start + 1 == length:
                 msa.split = split
                 return (arange(start, end + 1),
-                        'Residue number ({0:s})'.format(label)) 
+                        'Residue number ({0})'.format(label)) 
         msa.split = split
         return None, None
 

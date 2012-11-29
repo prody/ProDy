@@ -102,9 +102,9 @@ def wwPDBServer(*key):
             SETTINGS['wwpdb'] = key
             SETTINGS.save()
         else:
-            raise ValueError('{0:s} is not a valid key'.format(repr(key)))
+            raise ValueError('{0} is not a valid key'.format(repr(key)))
     else:
-        raise TypeError('one key argument is expected, {0:d} given'
+        raise TypeError('one key argument is expected, {0} given'
                         .format(len(key)))
 
 
@@ -130,11 +130,11 @@ def checkIdentifiers(*pdb):
         try:        
             pid = pid.strip().lower()
         except AttributeError:
-            LOGGER.warn('{0:s} is not a valid identifier.'.format(repr(pid)))
+            LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
             identifiers.append(None)
         else:        
             if not (len(pid) == 4 and pid.isalnum()):
-                LOGGER.warn('{0:s} is not a valid identifier.'
+                LOGGER.warn('{0} is not a valid identifier.'
                             .format(repr(pid)))
                 identifiers.append(None)
             else:
@@ -219,7 +219,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         
     
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
-    LOGGER.debug('Connecting wwPDB FTP server {0:s}.'.format(ftp_name))
+    LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
 
     from ftplib import FTP
     try:
@@ -245,13 +245,13 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                 ftp.retrbinary('RETR ' + ftp_fn, data.append)
             except Exception as error:
                 if ftp_fn in ftp.nlst():
-                    LOGGER.warn('{0:s} download failed ({1:s}). It is '
+                    LOGGER.warn('{0} download failed ({1}). It is '
                                 'possible that you do not have rights to '
                                 'download .gz files in the current network.'
                                 .format(pdb, str(error)))
                 else:
-                    LOGGER.warn('{0:s} download failed. {1:s} does not exist '
-                                'on {2:s}.'.format(ftp_fn, pdb, ftp_host))
+                    LOGGER.warn('{0} download failed. {1} does not exist '
+                                'on {2}.'.format(ftp_fn, pdb, ftp_host))
                 failure += 1
                 filenames.append(None)
             else:
@@ -263,12 +263,12 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                         [write(block) for block in data]
 
                     filename = relpath(second(filename, pdb))
-                    LOGGER.debug('{0:s} downloaded ({1:s})'
+                    LOGGER.debug('{0} downloaded ({1})'
                                  .format(pdb, filename))
                     success += 1
                     filenames.append(filename)
                 else:
-                    LOGGER.warn('{0:s} download failed, reason unknown.'
+                    LOGGER.warn('{0} download failed, reason unknown.'
                                 .format(pdb))
                     failure += 1
                     filenames.append(None)
@@ -276,8 +276,8 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         ftp.quit()
 
     if kwargs.get('report', True):
-        LOGGER.debug('PDB download via FTP completed ({0:d} downloaded, '
-                     '{1:d} failed).'.format(success, failure))
+        LOGGER.debug('PDB download via FTP completed ({0} downloaded, '
+                     '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]    
     else:
@@ -341,7 +341,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         try:
             handle = openURL(getURL(pdb))
         except Exception as err:
-            LOGGER.warn('{0:s} download failed ({0:s}).'.format(pdb, str(err)))
+            LOGGER.warn('{0} download failed ({0}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
         else:
@@ -354,19 +354,19 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                     [write(block) for block in data]
 
                 filename = relpath(second(filename, pdb))
-                LOGGER.debug('{0:s} downloaded ({1:s})'
+                LOGGER.debug('{0} downloaded ({1})'
                              .format(pdb, filename))
                 success += 1
                 filenames.append(filename)
             else:
-                LOGGER.warn('{0:s} download failed, reason unknown.'
+                LOGGER.warn('{0} download failed, reason unknown.'
                             .format(pdb))
                 failure += 1
                 filenames.append(None)
 
     if kwargs.get('report', True):
-        LOGGER.debug('PDB download via HTTP completed ({0:d} downloaded, '
-                     '{1:d} failed).'.format(success, failure))
+        LOGGER.debug('PDB download via HTTP completed ({0} downloaded, '
+                     '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]    
     else:

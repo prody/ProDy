@@ -62,11 +62,11 @@ def prody_align(*pdbs, **kwargs):
         if pdbselect is None:
             subparser = kwargs.get('subparser')
             if subparser:
-                subparser.error('Selection {0:s} do not match any atoms.'
+                subparser.error('Selection {0} do not match any atoms.'
                                 .format(repr(selstr)))
             else:
                 raise ValueError('select does not match any atoms')
-        LOGGER.info('{0:d} atoms will be used for alignment.'
+        LOGGER.info('{0} atoms will be used for alignment.'
                     .format(len(pdbselect)))
         pdbselect.setACSIndex(model-1)
         printRMSD(pdbselect, msg='Before alignment ')
@@ -85,10 +85,10 @@ def prody_align(*pdbs, **kwargs):
         
         ref_sel = ref.select(selstr)
         if ref_sel:
-            LOGGER.info('Selection {0:s} matched {1:d} atoms.'
+            LOGGER.info('Selection {0} matched {1} atoms.'
                         .format(repr(selstr), len(ref_sel)))
         else:
-            raise ValueError('selection {0:s} did not match any atoms'
+            raise ValueError('selection {0} did not match any atoms'
                                .format(repr(selstr)))
         match = True
         if ref_sel.numAtoms('ca') < 2:
@@ -112,7 +112,7 @@ def prody_align(*pdbs, **kwargs):
                     continue
 
             pdb_sel = pdb.select(selstr)
-            LOGGER.info('Selection {0:s} matched {1:d} atoms.'
+            LOGGER.info('Selection {0} matched {1} atoms.'
                         .format(repr(selstr), len(pdb_sel)))
             if (len(pdb_sel) == len(ref_sel) and 
                 all(pdb_sel.getNames() == ref_sel.getNames())):

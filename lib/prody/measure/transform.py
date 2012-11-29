@@ -291,7 +291,7 @@ def moveAtoms(atoms, **kwargs):
     if point is None:
         offset = kwargs.pop('by', None)
         if offset is None:
-            raise TypeError('moveAtoms() expects one of {0:s} or {1:s} '
+            raise TypeError('moveAtoms() expects one of {0} or {1} '
                             'arguments'.format(repr('to'), repr('by')))
 
         try:
@@ -490,10 +490,10 @@ def alignCoordsets(atoms, weights=None):
     try:
         acsi, n_csets = atoms.getACSIndex(), atoms.numCoordsets()
     except AttributeError:
-        raise TypeError('atoms must have type Atomic, not {0:s}'
+        raise TypeError('atoms must have type Atomic, not {0}'
                         .format(type(atoms)))
         if n_csets < 2:
-            LOGGER.warning('{0:s} contains fewer than two coordinate sets, '
+            LOGGER.warning('{0} contains fewer than two coordinate sets, '
                            'alignment was not performed.'.format(str(atoms)))
             return
     

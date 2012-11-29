@@ -65,16 +65,16 @@ class Ensemble(object):
     def __repr__(self):
     
         if self._indices is None:
-            return ('<Ensemble: {0:s} ({1:d} conformations; {2:d} atoms)>'
+            return ('<Ensemble: {0} ({1} conformations; {2} atoms)>'
                     ).format(self._title, len(self), self._n_atoms)
         else:
-            return ('<Ensemble: {0:s} ({1:d} conformations; selected {2:d} of '
-                    '{3:d} atoms)>').format(self._title, len(self), 
+            return ('<Ensemble: {0} ({1} conformations; selected {2} of '
+                    '{3} atoms)>').format(self._title, len(self), 
                                            self.numSelected(), self._n_atoms)
 
     def __str__(self):
     
-        return 'Ensemble {0:s}'.format(self._title)
+        return 'Ensemble {0}'.format(self._title)
 
     def __len__(self):
     
@@ -97,7 +97,7 @@ class Ensemble(object):
             return self.getConformation(index) 
             
         elif isinstance(index, slice):
-            ens = Ensemble('{0:s} ({1[0]:d}:{1[1]:d}:{1[2]:d})'.format(
+            ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self.getCoordsets(index))
@@ -106,7 +106,7 @@ class Ensemble(object):
             return ens
             
         elif isinstance(index, (list, ndarray)):
-            ens = Ensemble('Conformations of {0:s}'.format(self._title))
+            ens = Ensemble('Conformations of {0}'.format(self._title))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self.getCoordsets(index))
             if self._weights is not None:
@@ -121,18 +121,18 @@ class Ensemble(object):
         *self* is used in the resulting ensemble."""
         
         if not isinstance(other, Ensemble):
-            raise TypeError('an Ensemble instance cannot be added to an {0:s} '
+            raise TypeError('an Ensemble instance cannot be added to an {0} '
                             'instance'.format(type(other)))
         elif self.numAtoms() != other.numAtoms():
             raise ValueError('Ensembles must have same number of atoms.')
     
-        ensemble = Ensemble('{0:s} + {1:s}'.format(self.getTitle(), 
+        ensemble = Ensemble('{0} + {1}'.format(self.getTitle(), 
                                                    other.getTitle()))
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
         ensemble.addCoordset(other.getCoordsets())
         if self._weights is not None: 
-            LOGGER.info('Atom weights from {0:s} are used in {1:s}.'
+            LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
         return ensemble
@@ -269,7 +269,7 @@ class Ensemble(object):
             pass
         else:
             if coords is None:
-                raise ValueError('coordinates of {0:s} are not set'
+                raise ValueError('coordinates of {0} are not set'
                                  .format(str(atoms)))
             
         try:
@@ -562,7 +562,7 @@ class Ensemble(object):
             rmsdif = getRMSD(self._coords, newxyz)
             self._coords = newxyz
             step += 1
-            LOGGER.info(('Step #{0:d}: RMSD difference = '
+            LOGGER.info(('Step #{0}: RMSD difference = '
                                '{1:.4e}').format(step, rmsdif))
         LOGGER.report('Iterative superposition completed in %.2fs.',
                       '_prody_ensemble')

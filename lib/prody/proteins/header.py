@@ -104,7 +104,7 @@ class Chemical(object):
         return self.resname
     
     def __repr__(self):
-        return '<Chemical: {0:s} ({1:s}_{2:s}_{3:d})>'.format(
+        return '<Chemical: {0} ({1}_{2}_{3})>'.format(
                     self.resname, self.pdbentry, self.chain, self.resnum)
 
     def __len__(self):
@@ -203,7 +203,7 @@ class Polymer(object):
         return self.name
     
     def __repr__(self):
-        return '<Polymer: {0:s} ({1:s}_{2:s})>'.format(self.name, 
+        return '<Polymer: {0} ({1}_{2})>'.format(self.name, 
                                                 self.pdbentry, self.chid)
 
     def __len__(self): 
@@ -248,7 +248,7 @@ class DBRef(object):
         return self.accession
     
     def __repr__(self):
-        return '<DBRef: {0:s} ({1:s})>'.format(self.accession, self.database)
+        return '<DBRef: {0} ({1})>'.format(self.accession, self.database)
 
 _START_COORDINATE_SECTION = set(['ATOM  ', 'MODEL ', 'HETATM'])
 
@@ -315,11 +315,11 @@ def parsePDBHeader(pdb, *keys):
         if len(pdb) == 4 and pdb.isalnum():
             filename = fetchPDB(pdb)
             if filename is None:
-                raise IOError('PDB file for {0:s} could not be downloaded.'
+                raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
             pdb = filename
         else:
-            raise IOError('{0:s} is not a valid filename or a valid PDB '
+            raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
     pdb = openFile(pdb)
     header, _ = getHeaderDict(pdb, *keys)
@@ -351,7 +351,7 @@ def getHeaderDict(stream, *keys):
                 value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
-                raise KeyError('{0:s} is not a valid header data identifier'
+                raise KeyError('{0} is not a valid header data identifier'
                                .format(repr(key)))
             if key in ('chemicals', 'polymers'):
                 for component in value:
@@ -517,7 +517,7 @@ def _getPolymers(lines):
         if ch == ' ':
             if not len(polymers) == 1:
                 LOGGER.warn('DBREF chain identifier is not specified '
-                            '({0:s}:{1:d})'.format(pdbid, i))
+                            '({0}:{1})'.format(pdbid, i))
                 continue
             else:
                 ch = list(polymers)[0]
@@ -531,27 +531,27 @@ def _getPolymers(lines):
         try:
             first = int(line[14:18])
         except:
-            LOGGER.warn('DBREF for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF for chain {2}: failed to parse '
                         'initial sequence number of the PDB sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         try:
             last = int(line[20:24])
         except:
-            LOGGER.warn('DBREF for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF for chain {2}: failed to parse '
                         'ending sequence number of the PDB sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         try:
             dbref.first = (first, line[18], int(line[56:60]))
         except:
-            LOGGER.warn('DBREF for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF for chain {2}: failed to parse '
                         'initial sequence number of the database sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         try:
             dbref.last = (last, line[24].strip(), int(line[62:67]))
         except:
-            LOGGER.warn('DBREF for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF for chain {2}: failed to parse '
                         'ending sequence number of the database sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
@@ -579,37 +579,37 @@ def _getPolymers(lines):
         try:
             first = int(line[14:18])
         except:
-            LOGGER.warn('DBREF1 for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF1 for chain {2}: failed to parse '
                         'initial sequence number of the PDB sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         try:
             last = int(line[20:24])
         except:
-            LOGGER.warn('DBREF1 for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF1 for chain {2}: failed to parse '
                         'ending sequence number of the PDB sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         i, line = dbref2
         i += 1
         if line[12] == ' ':
             LOGGER.warn('DBREF2 chain identifier is not specified '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         elif line[12] != ch:
             LOGGER.warn('DBREF1 and DBREF2 chain id mismatch'
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))            
+                        '({0}:{1})'.format(pdbid, i, ch))            
 
         dbref.accession = line[18:40].strip()
         try:
             dbref.first = (first, line[18].strip(), int(line[45:55]))
         except:
-            LOGGER.warn('DBREF2 for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF2 for chain {2}: failed to parse '
                         'initial sequence number of the database sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
         try:
             dbref.last = (last, line[24].strip(), int(line[57:67]))
         except:
-            LOGGER.warn('DBREF2 for chain {2:s}: failed to parse '
+            LOGGER.warn('DBREF2 for chain {2}: failed to parse '
                         'ending sequence number of the database sequence '
-                        '({0:s}:{1:d})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, i, ch))
 
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
@@ -621,13 +621,13 @@ def _getPolymers(lines):
             dbabbr = dbref.dbabbr
             if dbabbr == 'PDB':
                 if not (pdbid == dbref.accession == dbref.idcode):
-                    LOGGER.warn('DBREF for chain {2:s} refers to PDB '
-                                'entry {3:s} ({0:s}:{1:d})'
+                    LOGGER.warn('DBREF for chain {2} refers to PDB '
+                                'entry {3} ({0}:{1})'
                                 .format(pdbid, i, ch, dbref.accession))
             else:
                 if pdbid == dbref.accession or pdbid == dbref.idcode:
-                    LOGGER.warn('DBREF for chain {2:s} is {3:s}, '
-                                'expected PDB ({0:s}:{1:d})'
+                    LOGGER.warn('DBREF for chain {2} is {3}, '
+                                'expected PDB ({0}:{1})'
                                 .format(pdbid, i, ch, dbabbr))
                     dbref.database = 'PDB'
             resnum.append((dbref.first[0], dbref.last[0]))
@@ -635,7 +635,7 @@ def _getPolymers(lines):
         last = -10000
         for first, temp in resnum:
             if first <= last:
-                LOGGER.warn('DBREF records overlap for chain {0:s} ({1:s})'
+                LOGGER.warn('DBREF records overlap for chain {0} ({1})'
                             .format(poly.chid, pdbid))
             last = temp
 
@@ -644,7 +644,7 @@ def _getPolymers(lines):
         if ch == ' ':
             if not len(polymers) == 1:
                 LOGGER.warn('MODRES chain identifier is not specified '
-                            '({0:s}:{1:d})'.format(pdbid, i))
+                            '({0}:{1})'.format(pdbid, i))
                 continue
             else:
                 ch = list(polymers)[0]
@@ -661,7 +661,7 @@ def _getPolymers(lines):
         if ch == ' ':
             if not len(polymers) == 1:
                 LOGGER.warn('MODRES chain identifier is not specified '
-                            '({0:s}:{1:d})'.format(pdbid, i))
+                            '({0}:{1})'.format(pdbid, i))
                 continue
             else:
                 ch = list(polymers)[0]
@@ -673,16 +673,16 @@ def _getPolymers(lines):
             resnum = int(line[18:22].strip())
         except:
             continue
-            LOGGER.warn('SEQADV for chain {2:s}: failed to parse PDB sequence '
-                        'number ({0:s}:{1:d})'.format(pdbid, i, ch))
+            LOGGER.warn('SEQADV for chain {2}: failed to parse PDB sequence '
+                        'number ({0}:{1})'.format(pdbid, i, ch))
         icode = line[22].strip()
         dbname = line[39:42].strip()
         try:
             dbnum = int(line[43:48].strip())
         except:
             continue
-            LOGGER.warn('SEQADV for chain {2:s}: failed to parse database '
-                        'sequence number ({0:s}:{1:d})'.format(pdbid, i, ch))
+            LOGGER.warn('SEQADV for chain {2}: failed to parse database '
+                        'sequence number ({0}:{1})'.format(pdbid, i, ch))
 
         comment = line[49:70].strip()
         match = False
@@ -691,23 +691,23 @@ def _getPolymers(lines):
                 continue
             match = True
             if dbref.dbabbr != dbabbr:
-                LOGGER.warn('SEQADV for chain {2:s}: reference database '
-                            'mismatch, expected {3:s} parsed {4:s} '
-                            '({0:s}:{1:d})'.format(pdbid, i, ch, 
+                LOGGER.warn('SEQADV for chain {2}: reference database '
+                            'mismatch, expected {3} parsed {4} '
+                            '({0}:{1})'.format(pdbid, i, ch, 
                             repr(dbref.dbabbr), repr(dbabbr)))
                 continue
             dbacc = line[29:38].strip() 
             if dbref.accession != dbacc:
-                LOGGER.warn('SEQADV for chain {2:s}: accession code '
-                            'mismatch, expected {3:s} parsed {4:s} '
-                            '({0:s}:{1:d})'.format(pdbid, i, ch, 
+                LOGGER.warn('SEQADV for chain {2}: accession code '
+                            'mismatch, expected {3} parsed {4} '
+                            '({0}:{1})'.format(pdbid, i, ch, 
                             repr(dbref.accession), repr(dbacc)))
                 continue
             dbref.diff.append((resname, resnum, icode, dbnum, dbnum, comment))
         if not match:
             continue
-            LOGGER.warn('SEQADV for chain {2:s}: database sequence reference '
-                        'not found ({0:s}:{1:d})'.format(pdbid, i, ch))
+            LOGGER.warn('SEQADV for chain {2}: database sequence reference '
+                        'not found ({0}:{1})'.format(pdbid, i, ch))
 
     string = ' '.join([line[10:].strip() for i, line in lines['COMPND']])
     if string.startswith('MOL_ID'):
@@ -937,7 +937,7 @@ def assignSecstr(header, atoms, coil=False):
             continue
         res.setSecstrs('E')
         count += 1
-    LOGGER.info('Secondary structures were assigned to {0:d} residues.'
+    LOGGER.info('Secondary structures were assigned to {0} residues.'
                 .format(count))
     return atoms
 
@@ -981,7 +981,7 @@ def buildBiomolecules(header, atoms, biomol=None):
         if biomol in biomt:
             keys = [biomol]
         else:
-            LOGGER.warn('Transformations for biomolecule {0:s} was not '
+            LOGGER.warn('Transformations for biomolecule {0} was not '
                         'found in the header dictionary.'.format(biomol))
             return None
 
@@ -995,7 +995,7 @@ def buildBiomolecules(header, atoms, biomol=None):
         # following items are lines corresponding to transformation
         # mt must have 3n + 1 lines
         if (len(mt) - 1) % 3 != 0:
-            LOGGER.warn('Biomolecular transformations {0:s} were not '
+            LOGGER.warn('Biomolecular transformations {0} were not '
                         'applied'.format(i))
             continue
         chids_used = []
@@ -1044,10 +1044,10 @@ def buildBiomolecules(header, atoms, biomol=None):
                 while ags:
                     newag += ags.pop(0)
                 if len(ags_) > 1:
-                    newag.setTitle('{0:s} biomolecule {1:s} part {2:d}'
+                    newag.setTitle('{0} biomolecule {1} part {2}'
                                    .format(atoms.getTitle(), i, k+1))
                 else:
-                    newag.setTitle('{0:s} biomolecule {1:s}'
+                    newag.setTitle('{0} biomolecule {1}'
                                    .format(atoms.getTitle(), i))
                 parts.append(newag)
             if len(parts) == 1:

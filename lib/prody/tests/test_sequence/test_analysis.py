@@ -45,7 +45,7 @@ class TestCalcShannonEntropy(TestCase):
                      list('AACDaacdAACDaacd'),
                      list('ACCEacceacceACCE'),
                      list('ACDFacdfacdfACDF'),
-                     list('ACDGacdgacdgACDG')])
+                     list('ACDGacdgacdgACDG')], dtype='|S1')
 
         expect = -log(1. / array([1, 2, 3, 6] * 4)) 
         result = calcShannonEntropy(msa)
@@ -53,7 +53,7 @@ class TestCalcShannonEntropy(TestCase):
 
     def testTwenty(self):
         
-        msa = array([[char] for char in 'ACDEFGHIKLMNPQRSTVWY'])
+        msa = array([[char] for char in 'ACDEFGHIKLMNPQRSTVWY'], dtype='|S1')
 
         expect = -log(1. / 20)
         result = calcShannonEntropy(msa)
@@ -74,7 +74,7 @@ class TestCalcShannonEntropy(TestCase):
     def testAmbiguous(self):
         
         msa = array([list('bjzxBJZX'),
-                     list('bjzxBJZX'),])
+                     list('bjzxBJZX'),], dtype='|S1')
 
         expect = -log(1. / array([2, 2, 2, 20] * 2)) 
         result = calcShannonEntropy(msa)
@@ -88,7 +88,7 @@ class TestCalcShannonEntropy(TestCase):
                      list('ACCE'),
                      list('ACDF'),
                      list('ACDG'),
-                     list('----')])
+                     list('----')], dtype='|S1')
 
         expect = -log(1. / array([1, 2, 3, 6])) 
         result = calcShannonEntropy(msa, omitgaps=True)
@@ -118,7 +118,7 @@ class TestCalcMutualInfo(TestCase):
         msa = array([list('ACCA'), 
                      list('ACDA'),
                      list('ACEC'),
-                     list('ACGC')])
+                     list('ACGC')], dtype='|S1')
 
         expect = array([[0., 0., 0., 0.],
                         [0., 0., 0., 0.],
@@ -133,7 +133,7 @@ class TestCalcMutualInfo(TestCase):
     def testTwenty(self):
         
         seq = 'ACDEFGHIKLMNPQRSTVWY'
-        msa = array([[s, s] for s in seq])
+        msa = array([[s, s] for s in seq], dtype='|S1')
 
         expect = log(20.)
         expect = array([[0., expect],
@@ -147,7 +147,7 @@ class TestCalcMutualInfo(TestCase):
     def testTwentyReversed(self):
         
         seq = 'ACDEFGHIKLMNPQRSTVWY'
-        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)])
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)], dtype='|S1')
 
         expect = log(20.)
         expect = array([[0., expect],
@@ -161,7 +161,7 @@ class TestCalcMutualInfo(TestCase):
     def testAmbiguity(self):
         
         msa = array([list('OX'),
-                     list('XO')])
+                     list('XO')], dtype='|S1')
 
         expect = array([[0., log(2.)],
                         [log(2.), 0.]]) 
@@ -174,7 +174,7 @@ class TestCalcMutualInfo(TestCase):
     def testNoAmbiguity(self):
         
         msa = array([list('OX'),
-                     list('XO')])
+                     list('XO')], dtype='|S1')
 
         expect = array([[0., log(2.)],
                         [log(2.), 0.]]) 
@@ -187,7 +187,7 @@ class TestCalcMutualInfo(TestCase):
     def testAmbiguity2(self):
         
         msa = array([list('AB'),
-                     list('BZ')])
+                     list('BZ')], dtype='|S1')
         expect = (2 * .25 * log(.25 / .5 / .25) + 
                   4 * .125 * log(.125 / .25 / .25))
         expect = array([[0., expect],
@@ -200,7 +200,7 @@ class TestCalcMutualInfo(TestCase):
 
     def testAmbiguity3(self):
         
-        msa = array([list('XX')])
+        msa = array([list('XX')], dtype='|S1')
 
         expect = zeros((2, 2)) 
         result = buildMutinfoMatrix(msa, debug=False)
@@ -213,7 +213,7 @@ class TestCalcMutualInfo(TestCase):
         
         msa = array([list('Bb'),
                      list('jJ'),
-                     list('Zz'),])
+                     list('Zz'),], dtype='|S1')
 
         expect = log((1./12) / (1./6) / (1./6))
         expect = array([[0., expect],
@@ -231,7 +231,7 @@ class TestCalcMutualInfo(TestCase):
 
         for seq in ['bx', 'Xb', 'jX', 'Xj', 'xz', 'ZX',
                     'bj', 'jb', 'bz', 'zb', 'jz', 'zj']:
-            msa = array([list(seq)])
+            msa = array([list(seq)], dtype='|S1')
             result = buildMutinfoMatrix(msa, debug=False)
             assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
 
@@ -241,14 +241,14 @@ class TestCalcMutualInfo(TestCase):
         expect = zeros((2, 2)) 
 
         for seq in ['bb', 'jj', 'zz']:
-            msa = array([list(seq)])
+            msa = array([list(seq)], dtype='|S1')
             result = buildMutinfoMatrix(msa, debug=False)
             assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
 
     def testAmbiguity7(self):
         
         msa = array([list('bx'),
-                     list('xb')])
+                     list('xb')], dtype='|S1')
         expect = (72 * 0.0125 * log(0.0125/0.0250/0.275) + 
                   4 * 0.0250 * log(0.0250/0.275/0.275))
         expect = array([[0., expect],
@@ -274,7 +274,7 @@ class TestCalcMutualInfo(TestCase):
     def testNorm(self):
         
         seq = 'ACDEFGHIKLMNPQRSTVWY'
-        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)])
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)], dtype='|S1')
 
         expect = 1. 
         expect = array([[0., expect],
@@ -285,7 +285,8 @@ class TestCalcMutualInfo(TestCase):
     def testNorm2(self):
         
         seq = 'ACDEFGHIKLMNPQRSTVWY'
-        msa = array([[s, 'O' if i % 2 else 'U'] for i, s in enumerate(seq)])
+        msa = array([[s, 'O' if i % 2 else 'U'] for i, s in enumerate(seq)], 
+                    dtype='|S1')
         
         expect = log(1./20. / (1./20. * 1./2.)) / (-log(1./20.)) 
         expect = array([[0., expect],

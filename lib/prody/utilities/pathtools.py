@@ -60,7 +60,7 @@ def backupFile(filename, backup=None, backup_ext='.BAK', **kwargs):
     try:
         exists = isfile(filename)
     except Exception as err:
-        raise TypeError('filename must be a string ({0:s})'.format(str(err)))
+        raise TypeError('filename must be a string ({0})'.format(str(err)))
         
     from prody import SETTINGS
     if exists and (backup or SETTINGS.get('backup', False)):
@@ -89,7 +89,7 @@ def openFile(filename, *args, **kwargs):
     try:
         exists = isfile(filename)
     except Exception as err:
-        raise TypeError('filename must be a string ({0:s})'.format(str(err)))
+        raise TypeError('filename must be a string ({0})'.format(str(err)))
     
     folder = kwargs.pop('folder', None)
     if folder:
@@ -215,7 +215,7 @@ def makePath(path):
                 if not isdir(dirname): 
                     os.mkdir(dirname)
             except OSError:
-                raise OSError('{0:s} could not be created, please '
+                raise OSError('{0} could not be created, please '
                             'specify another path'.format(path))
     return path
 
@@ -288,7 +288,7 @@ def openURL(url, timeout=5):
     try:
         return urlopen(url, timeout=int(timeout))
     except URLError: 
-        raise IOError('{0:s} could not be opened for reading, invalid URL or '
+        raise IOError('{0} could not be opened for reading, invalid URL or '
                       'no internet connection'.format(repr(url)))
 
 

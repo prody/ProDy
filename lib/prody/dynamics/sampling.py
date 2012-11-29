@@ -125,7 +125,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
        
     if not isinstance(modes, (Mode, NMA, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
-                        'not {0:s}'.format(type(modes)))
+                        'not {0}'.format(type(modes)))
     if not modes.is3d():
         raise ValueError('modes must be from a 3-dimensional model')
     n_confs = int(n_confs)
@@ -133,7 +133,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     initial = None
     if atoms is not None:
         if not isinstance(atoms, (Atomic)):
-            raise TypeError('{0:s} is not correct type for atoms'
+            raise TypeError('{0} is not correct type for atoms'
                             .format(type(atoms)))
         if atoms.numAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
@@ -142,7 +142,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     rmsd = float(rmsd)
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
     n_confs = int(n_confs)
-    LOGGER.info('Parameter: n_confs = {0:d}'.format(n_confs))
+    LOGGER.info('Parameter: n_confs = {0}'.format(n_confs))
     
     
     if isinstance(modes, Mode):
@@ -157,7 +157,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     coef = ((randn ** 2 * variances).sum(1) ** 0.5).mean()
     scale = n_atoms**0.5 * rmsd / coef
     
-    LOGGER.info('Modes are scaled by {0:g}.'.format(scale))
+    LOGGER.info('Modes are scaled by {0}.'.format(scale))
     
     confs = []
     append = confs.append
@@ -170,7 +170,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
         for i in range(n_confs):
             append( (array * scale * randn[i]).reshape((n_atoms, 3)) )
 
-    ensemble = Ensemble('Conformations along {0:s}'.format(modes))
+    ensemble = Ensemble('Conformations along {0}'.format(modes))
     if initial is None:
         ensemble.setCoords(np.zeros((n_atoms, 3)))
         ensemble.addCoordset(np.array(confs))
@@ -233,14 +233,14 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
        
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
-                        'not {0:s}'.format(type(mode)))
+                        'not {0}'.format(type(mode)))
     if not mode.is3d():
         raise ValueError('mode must be from a 3-dimensional model.')
     n_atoms = mode.numAtoms()
     initial = None
     if atoms is not None:
         if not isinstance(atoms, Atomic):
-            raise TypeError('{0:s} is not correct type for atoms'
+            raise TypeError('{0} is not correct type for atoms'
                             .format(type(atoms)))
         if atoms.numAtoms() != n_atoms:
             raise ValueError('number of atoms do not match')
@@ -251,13 +251,13 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     rmsd = float(rmsd) + 0.000004
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
     n_steps = int(n_steps)
-    LOGGER.info('Parameter: n_steps = {0:d}'.format(n_steps))
+    LOGGER.info('Parameter: n_steps = {0}'.format(n_steps))
     step = rmsd / n_steps
     LOGGER.info('Step size is {0:.2f} A RMSD'.format(step))
     arr = mode.getArrayNx3()
     var = mode.getVariance()
     scale = ((n_atoms * step**2) / var) **0.5
-    LOGGER.info('Mode is scaled by {0:g}.'.format(scale))
+    LOGGER.info('Mode is scaled by {0}.'.format(scale))
 
     array = arr * var**0.5 * scale 
     confs_add = [initial + array]
@@ -267,7 +267,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     for s in range(1, n_steps):
         confs_sub.append( confs_sub[-1] - array)
     confs_sub.reverse()
-    ensemble = Ensemble('Conformations along {0:s}'.format(name))
+    ensemble = Ensemble('Conformations along {0}'.format(name))
     ensemble.setCoords(initial)    
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
@@ -290,11 +290,11 @@ def deformAtoms(atoms, mode, rmsd=None):
     [ 0.     0.41   0.308  0.513  1.   ]"""
 
     if not isinstance(atoms, AtomGroup):
-        raise TypeError('atoms must be an AtomGroup, not {0:s}'
+        raise TypeError('atoms must be an AtomGroup, not {0}'
                         .format(type(atoms)))
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
-                        'not {0:s}'.format(type(mode)))
+                        'not {0}'.format(type(mode)))
     if not mode.is3d():
         raise ValueError('mode must be from a 3-dimensional model.')
     if atoms.numAtoms() != mode.numAtoms():
@@ -306,7 +306,7 @@ def deformAtoms(atoms, mode, rmsd=None):
         rmsd = float(rmsd)
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
         scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
-        LOGGER.info('Mode is scaled by {0:g}.'.format(scalar))
+        LOGGER.info('Mode is scaled by {0}.'.format(scalar))
         atoms.addCoordset( atoms.getCoords() + array * scalar)
     else:     
         atoms.addCoordset( atoms.getCoords() + array)

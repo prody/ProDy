@@ -49,15 +49,15 @@ def loadPDBClusters(sqid=None):
         assert isinstance(sqid, int), 'sqid must be an integer' 
         if sqid not in PDB_CLUSTERS:
             raise ValueError('PDB cluster data is not available for sequence '
-                             'identity {0:d}%, try one of {1:s}'
+                             'identity {0}%, try one of {1}'
                              .format(sqid, PDB_CLUSTERS_SQID_STR))
         LOGGER.info('Loading PDB sequence clusters for sequence identity '
-                    '{0:d}.'.format(sqid))
+                    '{0}.'.format(sqid))
         sqid_list = [sqid]
     global PDB_CLUSTERS_UPDATE_WARNING
     for sqid in sqid_list:
         filename = os.path.join(PDB_CLUSTERS_PATH, 
-                                'bc-{0:d}.out.gz'.format(sqid))
+                                'bc-{0}.out.gz'.format(sqid))
         if not os.path.isfile(filename):
             fetchPDBClusters(sqid)
             
@@ -143,12 +143,12 @@ def fetchPDBClusters(sqid=None):
                     '_prody_fetchPDBClusters')
     count = 0
     for i, x in enumerate(keys):
-        filename = 'bc-{0:d}.out'.format(x)
+        filename = 'bc-{0}.out'.format(x)
         url = ('ftp://resources.rcsb.org/sequence/clusters/' + filename)
         try:
             inp = urllib2.urlopen(url)
         except urllib2.HTTPError:
-            LOGGER.warning('Clusters at {0:d}% sequence identity level could '
+            LOGGER.warning('Clusters at {0}% sequence identity level could '
                            'not be downloaded.')
             continue
         else:

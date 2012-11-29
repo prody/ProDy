@@ -56,7 +56,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
     try:
         atoms.getACSIndex()
     except AttributeError:
-        raise TypeError('atoms must be Atomic instance, not {0:s}'
+        raise TypeError('atoms must be Atomic instance, not {0}'
                         .format(type(atoms)))
 
     try:
@@ -127,7 +127,7 @@ def loadAtoms(filename):
     files = set(attr_dict.files)
 
     if not 'n_atoms' in files:
-        raise ValueError('{0:s} is not a valid atomic data file'
+        raise ValueError('{0} is not a valid atomic data file'
                          .format(repr(filename)))
     title = str(attr_dict['title'])
     
@@ -295,7 +295,7 @@ def sortAtoms(atoms, label, reverse=False):
         raise TypeError('atoms must be an Atomic instance')
     else:
         if data is None:
-            raise ValueError('{0:s} data is not set for {1:s}'
+            raise ValueError('{0} data is not set for {1}'
                                 .format(repr(label), atoms))
     sort = data.argsort()
     if reverse:

@@ -42,10 +42,10 @@ def calcOverlap(rows, cols):
     Both rows and columns are normalized prior to calculating overlap."""
     
     if not isinstance(rows, (NMA, ModeSet, Mode, Vector)):
-        raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0:s}'
+        raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0}'
                         .format(type(rows)))
     if not isinstance(rows, (NMA, ModeSet, Mode, Vector)):
-        raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0:s}'
+        raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0}'
                         .format(type(cols)))
     
     if rows.numDOF() != cols.numDOF(): 

@@ -168,7 +168,7 @@ def evol_rankorder(mutinfo, **kwargs):
                     pdbflag = True
                     label = pdb.getTitle()
                     LOGGER.info('Residue numbers will be based on pdb: '
-                                '{0:s}'.format(pdb.getTitle()))
+                                '{0}'.format(pdb.getTitle()))
                 else:
                     LOGGER.info('Number of residues in PDB does not match '
                                 'mutinfo matrix, ignoring PDB input')
@@ -192,14 +192,14 @@ def evol_rankorder(mutinfo, **kwargs):
                 if (start and end is not None) and (start < end):
                     resnum = np.arange(start, end+1)
                     if len(resnum) != shape[0]:
-                        LOGGER.info('Label: {0:s}/{1:d}-{2:d} and mutinfo do '
+                        LOGGER.info('Label: {0}/{1}-{2} and mutinfo do '
                                     'not have similar no of residues, using '
                                     'serial indexing'.format(label, start, end))
                         label = 'Serial Index'
                         resnum = np.arange(1, shape[0]+1)
                     else:
                         LOGGER.info('Residue numbers will be based on label: '
-                                    '{0:s}'.format(label))
+                                    '{0}'.format(label))
                 else:
                     LOGGER.info('Could not identify residue indexes from MSA'
                                     ' using serial indexing')
@@ -209,7 +209,7 @@ def evol_rankorder(mutinfo, **kwargs):
             LOGGER.info('MSA or PDB not given or does not match mutinfo, '
                         'using serial indexing')
             resnum = np.arange(1, shape[0]+1)
-    LOGGER.info('Residue numbers start and end with {0:s}-{1:s}'.
+    LOGGER.info('Residue numbers start and end with {0}-{1}'.
                 format(str(resnum[0]), str(resnum[-1])))
     outname = kwargs.get('outname')
     if outname is None:
@@ -255,7 +255,7 @@ def evol_rankorder(mutinfo, **kwargs):
         f.write((header + '\n'))
         while count <=numpairs  and i < size:        
             if row[i] > (column[i] + seqsep):
-                f.write('{0:d}\t{1:d}\t{2:d}\t{3:.3f}\n'.
+                f.write('{0}\t{1}\t{2}\t{3:.3f}\n'.
                         format(count, resnum[row[i]], resnum[column[i]],
                                mi[row[i], column[i]]))
                 count += 1
@@ -265,7 +265,7 @@ def evol_rankorder(mutinfo, **kwargs):
         f.write((header + '\tDistance Cutoff: ' + str(structsep) + '\n'))        
         while count <=numpairs  and i < size:        
             if distance[row[i], column[i]] > structsep:
-                f.write('{0:d}\t{1:d}\t{2:d}\t{3:.3f}\t{4:.2f}\n'.
+                f.write('{0}\t{1}\t{2}\t{3:.3f}\t{4:.2f}\n'.
                         format(count, resnum[row[i]], resnum[column[i]],
                                mi[row[i], column[i]],
                                distance[row[i], column[i]]))

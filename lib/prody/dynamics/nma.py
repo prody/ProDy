@@ -59,7 +59,7 @@ class NMA(object):
         """A list or tuple of integers can be used for indexing."""
         
         if self._n_modes == 0:
-            raise ValueError('{0:s} modes are not calculated, try '
+            raise ValueError('{0} modes are not calculated, try '
                              'calcModes() method'.format(str(self)))
         indices = self._indices
         if indices is None:
@@ -82,7 +82,7 @@ class NMA(object):
     
     def __repr__(self):
         
-        return '<{0:s}: {1:s} ({2:d} modes; {3:d} atoms)>'.format(
+        return '<{0}: {1} ({2} modes; {3} atoms)>'.format(
                 self.__class__.__name__, self._title, self._n_modes, 
                 self._n_atoms)
 
@@ -123,8 +123,8 @@ class NMA(object):
                 diff = False
             if diff:
                 from prody import LOGGER
-                LOGGER.warn('Total variance for {0:s} is calculated using '
-                            '{1:d} available modes out of {2:d} possible.'
+                LOGGER.warn('Total variance for {0} is calculated using '
+                            '{1} available modes out of {2} possible.'
                             .format(str(self), self._n_modes, self._dof))
         return trace            
     
@@ -281,11 +281,11 @@ class NMA(object):
                 n_atoms = dof
             if self._n_atoms > 0 and n_atoms != self._n_atoms:
                     raise ValueError('vectors do not have the right shape, '
-                                 'which is (M,{0:d})'.format(n_atoms*3))
+                                 'which is (M,{0})'.format(n_atoms*3))
             n_modes = vectors.shape[1]
         if values is not None:
             if not isinstance(vectors, np.ndarray):
-                raise TypeError('values must be a numpy.ndarray, not {0:s}'
+                raise TypeError('values must be a numpy.ndarray, not {0}'
                                 .format(type(vectors)))
             elif values.ndim != 1:
                 raise ValueError('values must be a 1-dimensional array')

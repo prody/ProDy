@@ -158,7 +158,7 @@ class SimpleResidue(object):
         self._res = residue
         
     def __repr__(self):
-        return '<SimpleResidue: {0:s}{1:d}>'.format(self._name, self._num)
+        return '<SimpleResidue: {0}{1}>'.format(self._name, self._num)
         
     def getResidue(self):
         return self._res
@@ -209,11 +209,11 @@ class SimpleChain(object):
         return self._list.__iter__()
     
     def __repr__(self):
-        return '<SimpleChain: {0:s} with {1:d} residues>'.format(
+        return '<SimpleChain: {0} with {1} residues>'.format(
                     self._title, len(self._list))
 
     def __str__(self):
-        return '{0:s} with {1:d} residues'.format(self._title, len(self._list))
+        return '{0} with {1} residues'.format(self._title, len(self._list))
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -280,7 +280,7 @@ class SimpleChain(object):
             self._seq += aa
             self._list.append(simpres)
             self._dict[(resid, incod)] = simpres
-        self._title = 'Chain {0:s} from {1:s}'.format(chain.getChid(),
+        self._title = 'Chain {0} from {1}'.format(chain.getChid(),
                                              chain.getAtomGroup().getTitle())
 
 
@@ -403,7 +403,7 @@ def matchAlign(mobile, target, **kwargs):
             subset = 'all'
         sel = target.select(selstr)
         if sel is None:
-            raise ValueError('selection {0:s} did not match any atoms'
+            raise ValueError('selection {0} did not match any atoms'
                              .format(repr(selstr)))
         chid = set(sel.getChids())
         if len(chid) == 1:
@@ -428,13 +428,13 @@ def matchAlign(mobile, target, **kwargs):
         cslabel = kwargs.get('cslabel', 'Coordinate set')
         csincr = kwargs.get('csincr', 0)
         indent = (lambda acsi, cslabel=cslabel, csincr=csincr:
-                  '  {0:s} {1:d}: '.format(cslabel, acsi + csincr))
+                  '  {0} {1}: '.format(cslabel, acsi + csincr))
         csets = range(mobile.numCoordsets()) # PY3K: OK
     else:
         indent = lambda acsi: ''
         csets = [mobile.getACSIndex()]
     
-    LOGGER.info('Alignment is based on {0:d} atoms matching {1:s}.'
+    LOGGER.info('Alignment is based on {0} atoms matching {1}.'
                 .format(n_atoms, repr(selstr)))
     printRMSD(tar._getCoords()[which], mob._getCoordsets()[:, which], 
               msg='Before alignment ')
@@ -503,7 +503,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     
     subset = kwargs.get('subset', 'calpha')
     if subset not in _SUBSETS:
-        raise ValueError('{0:s} is not a valid subset argument'
+        raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
     assert isinstance(seqid, (float, int)), 'seqid must be float'
@@ -529,7 +529,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             chains.append(simpch)
     chains1 = chains
     if not isinstance(atoms1, Chain):
-        LOGGER.debug('Checking {0:s}: {1:d} chains are identified'
+        LOGGER.debug('Checking {0}: {1} chains are identified'
                      .format(str(atoms1), len(chains1)))
         
     if isinstance(atoms2, Chain):
@@ -546,7 +546,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             chains.append(simpch)
     chains2 = chains
     if not isinstance(atoms2, Chain):
-        LOGGER.debug('Checking {0:s}: {1:d} chains are identified'
+        LOGGER.debug('Checking {0}: {1} chains are identified'
                      .format(str(atoms2), len(chains2)))
 
     matches = []
@@ -554,7 +554,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     LOGGER.debug('Trying to match chains based on residue numbers and names:')
     for simpch1 in chains1:
         for simpch2 in chains2:
-            LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} (len={3:d}):'
+            LOGGER.debug('  Comparing {0} (len={1}) and {2} (len={3}):'
                          .format(simpch1.getTitle(), len(simpch1), 
                                  simpch2.getTitle(), len(simpch2)))
             
@@ -563,7 +563,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
 
             if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% '
+                LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
                              'sequence identity and {2:.0f}% overlap.'
                             .format(len(match1), _seqid, _cover))
                 matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
@@ -576,18 +576,18 @@ def matchChains(atoms1, atoms2, **kwargs):
     if pwalign or (not matches and (pwalign is None or pwalign)): 
         pairwise2 = importBioPairwise2()
         if pairwise2:
-            LOGGER.debug('Trying to match chains based on {0:s} sequence '
+            LOGGER.debug('Trying to match chains based on {0} sequence '
                          'alignment:'.format(ALIGNMENT_METHOD))
             for simpch1, simpch2 in unmatched:
-                LOGGER.debug('  Comparing {0:s} (len={1:d}) and {2:s} '
-                             '(len={3:d}):'
+                LOGGER.debug('  Comparing {0} (len={1}) and {2} '
+                             '(len={3}):'
                              .format(simpch1.getTitle(), len(simpch1), 
                                      simpch2.getTitle(), len(simpch2)))
                 match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
                 _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
                 _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
                 if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMatch: {0:d} residues match with {1:.0f}% '
+                    LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
                                  'sequence identity and {2:.0f}% overlap.'
                                  .format(len(match1), _seqid, _cover))
                     matches.append((match1, match2, _seqid, _cover, 
@@ -782,7 +782,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         
     subset = str(kwargs.get('subset', 'calpha')).lower()
     if subset not in _SUBSETS:
-        raise ValueError('{0:s} is not a valid subset argument'
+        raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
     seqid = kwargs.get('seqid', 90.)
     coverage = kwargs.get('overlap')
@@ -799,7 +799,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         else:
             map_ag = atoms.getAtomGroup()
         chains = list(atoms.getHierView().iterChains())
-        LOGGER.debug('Evaluating {0:s}: {1:d} chains are identified'
+        LOGGER.debug('Evaluating {0}: {1} chains are identified'
                      .format(str(atoms), len(chains)))
     
     if subset != 'all':
@@ -816,10 +816,10 @@ def mapOntoChain(atoms, chain, **kwargs):
         simple_chain = SimpleChain(True)
         simple_chain.buildFromChain(chain)
         if len(simple_chain) == 0:
-            LOGGER.debug('  Skipping {0:s}, which does not contain any amino '
+            LOGGER.debug('  Skipping {0}, which does not contain any amino '
                          'acid residues.'.format(simple_chain))
             continue
-        LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
+        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                      .format(simple_chain.getTitle(), len(simple_chain), 
                              simple_target.getTitle()))
         
@@ -833,7 +833,7 @@ def mapOntoChain(atoms, chain, **kwargs):
             _cover = 0
         
         if _seqid >= seqid and _cover >= coverage:
-            LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}% '
+            LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
                          'sequence identity and {2:.0f}% overlap.'
                          .format(n_mapped, _seqid, _cover))
             mappings.append((target_list, chain_list, _seqid, _cover))
@@ -845,10 +845,10 @@ def mapOntoChain(atoms, chain, **kwargs):
 
 
     if pwalign or (not mappings and (pwalign is None or pwalign)): 
-        LOGGER.debug('Trying to map atoms based on {0:s} sequence alignment:'
+        LOGGER.debug('Trying to map atoms based on {0} sequence alignment:'
                      .format(ALIGNMENT_METHOD))
         for simple_chain in unmapped:
-            LOGGER.debug('  Comparing {0:s} (len={1:d}) with {2:s}:'
+            LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                          .format(simple_chain.getTitle(), len(simple_chain), 
                                  simple_target.getTitle()))
             result = getAlignedMapping(simple_target, simple_chain)
@@ -862,7 +862,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                     _seqid = 0
                     _cover = 0
                 if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMapped: {0:d} residues match with {1:.0f}%'
+                    LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
                                  ' sequence identity and {2:.0f}% overlap.'
                                  .format(n_mapped, _seqid, _cover))
                     mappings.append((target_list, chain_list, _seqid, _cover))

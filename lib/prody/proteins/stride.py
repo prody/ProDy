@@ -76,7 +76,7 @@ def execSTRIDE(pdb, outputname=None, outputdir=None):
     else:
         out = os.path.join(outputdir, outputname + '.stride')
         
-    status = os.system('{0:s} {1:s} > {2:s}'.format(stride, pdb, out))
+    status = os.system('{0} {1} > {2}'.format(stride, pdb, out))
     if status == 0:
         return out
     
@@ -94,7 +94,7 @@ def parseSTRIDE(stride, ag):
     * *stride_area*: residue solvent accessible area"""
     
     if not os.path.isfile(stride):
-        raise IOError('{0:s} is not a valid file path'.format(stride))
+        raise IOError('{0} is not a valid file path'.format(stride))
     if not isinstance(ag, AtomGroup):
         raise TypeError('ag argument must be an AtomGroup instance')
         

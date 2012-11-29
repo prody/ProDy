@@ -115,7 +115,7 @@ def checkWeights(weights, natoms, ncsets=None, dtype=float):
             try:
                 weights = weights.astype(dtype)
             except ValueError:
-                raise ValueError('weights.astype({0:s}) failed, {0:s} type '
+                raise ValueError('weights.astype({0}) failed, {0} type '
                                    'could not be assigned'.format(str(dtype)))
     if any(weights < 0):
         raise ValueError('all weights must be greater or equal to 0')
@@ -152,7 +152,7 @@ def checkTypes(args, **types):
             else:
                 tstr = repr(allowed.__name__)
             
-            raise TypeError('{0:s} must be an instance of {1:s}, not {2:s}'
+            raise TypeError('{0} must be an instance of {1}, not {2}'
                             .format(repr(arg), tstr, repr(type(val).__name__)))
 
     return True

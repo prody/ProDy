@@ -127,7 +127,7 @@ class KDTree(object):
                     pass
                 else:
                     if unitcell is not None:
-                        LOGGER.info('Unitcell information from {0:s} will be '
+                        LOGGER.info('Unitcell information from {0} will be '
                                     'used.'.format(str(coords)))
             try:
                 # using getCoords() because coords will be stored internally

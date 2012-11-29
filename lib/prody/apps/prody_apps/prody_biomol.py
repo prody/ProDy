@@ -47,14 +47,14 @@ def prody_biomol(pdbname,**kwargs):
     
     for i, biomol in enumerate(biomols):
         if isinstance(biomol, prody.Atomic):
-            outfn = '{0:s}_biomol_{1:d}.pdb'.format(prefix, i+1)
-            LOGGER.info('Writing {0:s}'.format(outfn))
+            outfn = '{0}_biomol_{1}.pdb'.format(prefix, i+1)
+            LOGGER.info('Writing {0}'.format(outfn))
             prody.writePDB(outfn, biomol)
         elif isinstance(biomol, tuple):
             for j, part in enumerate(biomol):
-                outfn = ('{0:s}_biomol_{1:d}_part_{2:d}.pdb'
+                outfn = ('{0}_biomol_{1}_part_{2}.pdb'
                          .format(prefix, i+1, j+1))
-                LOGGER.info('Writing {0:s}'.format(outfn))
+                LOGGER.info('Writing {0}'.format(outfn))
                 prody.writePDB(outfn, part)
                 
 def addCommand(commands):
