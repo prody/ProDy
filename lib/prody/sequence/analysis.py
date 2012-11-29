@@ -26,7 +26,7 @@ from numpy import all, zeros, dtype, array, char, fromstring
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
-           'applyMICorrection', 'applyMINormalization']
+           'applyMutinfoCorr', 'applyMutinfoNorm']
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
@@ -154,7 +154,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     return calcMSAOccupancy(msa, occ, count=bool(count))
 
 
-def applyMINormalization(mutinfo, entropy, norm='sument'):
+def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
     """Apply one of the normalizations discussed in [MLC05]_ to *mutinfo* 
     matrix.  *norm* can be one of the following: 
         
@@ -229,7 +229,7 @@ def applyMINormalization(mutinfo, entropy, norm='sument'):
 
     return mi
 
-def applyMICorrection(mutinfo, corr='prod'):
+def applyMutinfoCorr(mutinfo, corr='prod'):
     """Return a copy of *mutinfo* array after average product correction 
     (default) or average sum correction is applied.  See [DSD08]_ for details.
     """

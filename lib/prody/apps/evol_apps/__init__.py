@@ -34,7 +34,7 @@ path_prody = imp.find_module('prody')[1]
 path_apps = imp.find_module('apps', [path_prody])[1]
 path_apps = imp.find_module('evol_apps', [path_apps])[1]
 
-EVOL_APPS = ['search', 'fetch', 'filter', 'refine', 'conserv', 'coevol']
+EVOL_APPS = ['search', 'fetch', 'filter', 'refine', 'conserv', 'coevol', 'rankorder']
 
 __all__ = ['evol_main']
 
