@@ -81,8 +81,8 @@ FIELDS = defaultdict(set) # flags that fill be nulled when a field changes
 FIELDSDEFAULT = ['name', 'resname', 'resnum']
 TIMESTAMP = 0
 
-PDBLIGSUM = ('.. _{0:s}: '
-             'http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId={0:s}\n')
+PDBLIGSUM = ('.. _{0}: '
+             'http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId={0}\n')
 
 STANDARDAA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 
               'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 
@@ -269,7 +269,7 @@ def changeResnames(flag, resnames):
     names."""
     
     if flag not in EDITORS:
-        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+        raise ValueError('{0} is not an editable flag'.format(repr(flag)))
     
     resnames = [str(rn) for rn in resnames]
     changeDefinitions(**{flag: resnames})
@@ -281,12 +281,12 @@ def changeNameRegex(flag, regex):
     See :ref:`element-flags` for the default list of flags."""
     
     if flag not in EDITORS:
-        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+        raise ValueError('{0} is not an editable flag'.format(repr(flag)))
 
     try:
         recompile(regex)
     except Exception as err:
-        raise ValueError('{0:s} is not a valid regular expression, {1:s}'
+        raise ValueError('{0} is not a valid regular expression, {1}'
                          .format(repr(regex), str(err)))
     else:
         changeDefinitions(**{flag: regex})
@@ -296,7 +296,7 @@ def changeBackbone(flag, names):
     *names* must be a list of atom names."""
     
     if flag not in EDITORS:
-        raise ValueError('{0:s} is not an editable flag'.format(repr(flag)))
+        raise ValueError('{0} is not an editable flag'.format(repr(flag)))
     
     names = [str(nm) for nm in names]
     
@@ -322,7 +322,7 @@ Protein
 
 
    stdaa
-      {stdaa:s}
+      {stdaa}
 
 
    nonstdaa
@@ -389,8 +389,8 @@ for cat in cats:
     res = CATEGORIZED[cat]
     res.sort() 
     __doc__ += """
-   {cat:s}
-       {res:s}
+   {cat}
+       {res}
 
 """.format(cat=cat, 
 res=wrapText('residues ' + ', '.join(res), subsequent_indent=' '*6))
@@ -550,15 +550,15 @@ Heteros
 
 
    lipid
-      {lipid:s}
+      {lipid}
 
 
    sugar
-      {sugar:s}
+      {sugar}
 
 
    heme
-      {heme:s}
+      {heme}
 
 
 """.format(
@@ -992,7 +992,7 @@ def flagDefinition(*arg, **kwarg):
         try:
             definition = DEFINITIONS[arg]
         except KeyError:
-            raise ValueError('{0:s} is not a valid flag label'
+            raise ValueError('{0} is not a valid flag label'
                                .format(repr(arg)))
         else:
             try:
@@ -1016,13 +1016,13 @@ def flagDefinition(*arg, **kwarg):
         try:
             editor = EDITORS[key]
         except KeyError:
-            raise ValueError('{0:s} is not an editable flag or a valid '
+            raise ValueError('{0} is not an editable flag or a valid '
                                'keyword'.format(repr(key)))
         else:
             type_ = type(flagDefinition(key))
             if type(val) != type_:
-                raise TypeError('expected {0:s} as type of new definition, '
-                                  'found {1:s}'.format(repr(type_.__name__), 
+                raise TypeError('expected {0} as type of new definition, '
+                                  'found {1}'.format(repr(type_.__name__), 
                                   repr(type(val).__name__)))
             editor(key, val)
     else:
@@ -1049,20 +1049,20 @@ def addNonstdAminoacid(resname, *properties):
     
     resname = str(resname)
     if len(resname) > 4:
-        LOGGER.warn('Residue name {0:s} is unusually long.'
+        LOGGER.warn('Residue name {0} is unusually long.'
                     .format(repr(resname)))
     propset = set(properties)
     for cat, val in CATEGORIES.items():
         intersection = val.intersection(propset)
         if intersection:
             if len(intersection) > 1:
-                raise ValueError('amino acid properties {0:s} cannot be '
+                raise ValueError('amino acid properties {0} cannot be '
                                    'present together'
                       .format(', '.join([repr(prp) for prp in intersection])))
             for prop in intersection:
                 propset.remove(prop)
     if propset:
-        raise ValueError('amino acid property {0:s} is not valid'
+        raise ValueError('amino acid property {0} is not valid'
                            .format(repr(propset.pop())))
         
     nonstd = SETTINGS.get(NONSTANDARD_KEY, NONSTANDARD)
@@ -1072,7 +1072,7 @@ def addNonstdAminoacid(resname, *properties):
 INDEPENDENT.sort()
 addNonstdAminoacid.__doc__ = addNonstdAminoacid.__doc__.format(
     props='\n      * '.join([
-        '*{0:s}*: {1:s}'.format(cat, joinTerms(terms, last=', or ', sort=True))
+        '*{0}*: {1}'.format(cat, joinTerms(terms, last=', or ', sort=True))
         for cat, terms in CATEGORIES.items()
     ])
 )
@@ -1094,7 +1094,7 @@ def delNonstdAminoacid(resname):
     try:
         nonstd.pop(resname)
     except KeyError:
-        raise ValueError('{0:s} is not a non-standard residue name'
+        raise ValueError('{0} is not a non-standard residue name'
                            .format(repr(resname)))
     else:
         updateNonstandard(nonstd)
@@ -1119,7 +1119,7 @@ def listNonstdAAProps(resname):
     try:
         alist = list(SETTINGS.get(NONSTANDARD_KEY, NONSTANDARD)[resname])
     except KeyError:
-        raise ValueError('{0:s} is not a non-standard residue name'
+        raise ValueError('{0} is not a non-standard residue name'
                            .format(repr(resname)))
     else:
         alist.sort()

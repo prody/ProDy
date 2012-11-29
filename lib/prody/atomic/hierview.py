@@ -356,16 +356,16 @@ class HierView(object):
     def __repr__(self):
         
         if self._segments:
-            return ('<HierView: {0:s} ({1:d} segments, {2:d} chains, {3:d} '
+            return ('<HierView: {0} ({1} segments, {2} chains, {3} '
                     'residues)>').format(str(self._atoms), self.numSegments(),
                                          self.numChains(), self.numResidues())
         else:
-            return ('<HierView: {0:s} ({1:d} chains, {2:d} residues)>'
+            return ('<HierView: {0} ({1} chains, {2} residues)>'
                ).format(str(self._atoms), self.numChains(), self.numResidues())
     
     def __str__(self):
         
-        return 'HierView of {0:s}'.format(str(self._atoms))
+        return 'HierView of {0}'.format(str(self._atoms))
     
     def __len__(self):
         

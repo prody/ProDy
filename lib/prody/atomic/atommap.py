@@ -199,15 +199,15 @@ class AtomMap(AtomPointer):
     
     def __repr__(self):
         
-        rep = '<AtomMap: {0:s} from {1:s} ({2:d} atoms'.format(
+        rep = '<AtomMap: {0} from {1} ({2} atoms'.format(
                 self._title, self._ag.getTitle(), self._len) 
         if self.numDummies():
-            rep += ', {0:d} mapped, {1:d} dummy'.format(self.numMapped(), 
+            rep += ', {0} mapped, {1} dummy'.format(self.numMapped(), 
                                                         self.numDummies())
         
         n_csets = self._ag.numCoordsets()
         if n_csets > 1:
-            rep += '; active #{0:d} of {1:d} coordsets)>'.format(
+            rep += '; active #{0} of {1} coordsets)>'.format(
                     self.getACSIndex(), n_csets)
         elif n_csets == 0:
             rep += '; no coordinates'
@@ -215,7 +215,7 @@ class AtomMap(AtomPointer):
         
     def __str__(self):
     
-        return 'AtomMap {0:s}'.format(self._title)
+        return 'AtomMap {0}'.format(self._title)
     
     def __len__(self):
     
@@ -232,7 +232,7 @@ class AtomMap(AtomPointer):
         else:
             mapping = (indices > -1).nonzero()[0]
             return AtomMap(self._ag, indices, self._acsi,  
-                       title='({0:s})[{1:s}]'.format(self._title, repr(index)), 
+                       title='({0})[{1}]'.format(self._title, repr(index)), 
                        intarrays=True, dummies=self.numDummies())
     
     def getTitle(self):
@@ -423,7 +423,7 @@ for fname, field in ATOMIC_FIELDS.items():
     getData = wrapGetMethod(getData)
     getData.__name__ = getMeth
     getData.__doc__ = (field.getDocstr('get', selex=False) +
-                       ' Entries for dummy atoms will be ``{0:s}``.'
+                       ' Entries for dummy atoms will be ``{0}``.'
                        .format(repr(dtype(field.dtype).type()))) 
     setattr(AtomMap, getMeth, getData)
     setattr(AtomMap, '_' + getMeth, getData)

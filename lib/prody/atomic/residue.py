@@ -64,28 +64,28 @@ class Residue(AtomSubset):
         if chain is None:
             chain = ''
         else:
-            chain = ' from Chain {0:s}'.format(self.getChid())
+            chain = ' from Chain {0}'.format(self.getChid())
         
         if n_csets == 1:
-            return ('<Residue: {0:s} {1:d}{2:s}{3:s} from {4:s} ({5:d} atoms)>'
+            return ('<Residue: {0} {1}{2}{3} from {4} ({5} atoms)>'
                     ).format(self.getResname(), self.getResnum(), 
                      self.getIcode() or '', chain, self._ag.getTitle(), 
                      len(self))
         elif n_csets > 1:
-            return ('<Residue: {0:s} {1:d}{2:s}{3:s} from {4:s} '
-                    '({5:d} atoms; active #{6:d} of {7:d} coordsets)>').format(
+            return ('<Residue: {0} {1}{2}{3} from {4} '
+                    '({5} atoms; active #{6} of {7} coordsets)>').format(
                     self.getResname(), self.getResnum(), self.getIcode() or '', 
                     chain, self._ag.getTitle(), len(self), self.getACSIndex(), 
                     n_csets)
         else:                        
-            return ('<Residue: {0:s} {1:d}{2:s}{3:s} from {4:s} ({5:d} atoms; '
+            return ('<Residue: {0} {1}{2}{3} from {4} ({5} atoms; '
                     'no coordinates)>').format(self.getResname(), 
                     self.getResnum(), self.getIcode() or '', chain, 
                     self._ag.getTitle(), len(self))
 
     def __str__(self):
         
-        return '{0:s} {1:d}{2:s}'.format(self.getResname(), self.getResnum(), 
+        return '{0} {1}{2}'.format(self.getResname(), self.getResnum(), 
                                          self.getIcode() or '')
 
     def getAtom(self, name):
@@ -176,12 +176,12 @@ class Residue(AtomSubset):
         chain = self.getChain()
         if chain is None:        
             if self._selstr:
-                return 'resnum {0:d}{1:s} and ({1:s})'.format(
+                return 'resnum {0}{1} and ({1})'.format(
                             self.getResnum(), icode, self._selstr)
             else:
-                return 'resnum {0:d}{1:s}'.format(self.getResnum(), icode)
+                return 'resnum {0}{1}'.format(self.getResnum(), icode)
         else:
-            return 'resnum {0:d}{1:s} and ({2:s})'.format(
+            return 'resnum {0}{1} and ({2})'.format(
                                 self.getResnum(), icode, chain.getSelstr())
 
     def getPrev(self):

@@ -45,7 +45,7 @@ class AtomPointer(Atomic):
     def __init__(self, ag, acsi):
         
         if not isinstance(ag, AtomGroup):
-            raise TypeError('ag must be an AtomGroup instance, not {0:s}'
+            raise TypeError('ag must be an AtomGroup instance, not {0}'
                             .format(type(ag)))
         self._ag = ag
         if acsi is None:
@@ -82,7 +82,7 @@ class AtomPointer(Atomic):
         torf = ones(self._ag.numAtoms(), bool)
         torf[self._indices] = False
         return Selection(self._ag, torf.nonzero()[0], 
-                         'not ({0:s})'.format(self.getSelstr()), 
+                         'not ({0})'.format(self.getSelstr()), 
                          self.getACSIndex(), unique=True)
 
     def __or__(self, other):
@@ -108,7 +108,7 @@ class AtomPointer(Atomic):
                                       other._getIndices())))
         if indices[-1] == atommap.DUMMY:
             indices = indices[:-1]
-        return Selection(self._ag, indices, '({0:s}) or ({1:s})'.format(
+        return Selection(self._ag, indices, '({0}) or ({1})'.format(
                                     self.getSelstr(), other.getSelstr()), 
                                     acsi, unique=True)
 
@@ -144,7 +144,7 @@ class AtomPointer(Atomic):
             indices = unique(indices)
             if indices[-1] == atommap.DUMMY:
                 indices = indices[:-1]
-            return Selection(self._ag, indices, '({0:s}) and ({1:s})'.format(
+            return Selection(self._ag, indices, '({0}) and ({1})'.format(
                                     self.getSelstr(), other.getSelstr()), acsi)
 
     def __add__(self, other):
@@ -154,8 +154,8 @@ class AtomPointer(Atomic):
         try:
             ag = other.getAtomGroup()
         except AttributeError:
-            raise TypeError('unsupported operand type(s) for +: {0:s} and '
-                            '{1:s}'.format(repr(type(self).__name__), 
+            raise TypeError('unsupported operand type(s) for +: {0} and '
+                            '{1}'.format(repr(type(self).__name__), 
                                            repr(type(other).__name__)))
                             
         if ag != self._ag:
@@ -164,9 +164,9 @@ class AtomPointer(Atomic):
         acsi = self.getACSIndex()
         if acsi != other.getACSIndex():
             LOGGER.warning('Active coordset indices of atoms are not the same.'
-                           ' Result will have ACSI {0:d}.'.format(acsi))
+                           ' Result will have ACSI {0}.'.format(acsi))
         
-        title = '({0:s}) + ({1:s})'.format(str(self), str(other))
+        title = '({0}) + ({1})'.format(str(self), str(other))
         indices = concatenate([self._getIndices(), other._getIndices()])
         length = len(self)
         
@@ -209,7 +209,7 @@ class AtomPointer(Atomic):
         
         acsi = self._acsi
         if acsi >= self._ag._n_csets:
-            raise ValueError('{0:s} has fewer coordsets than assumed by {1:s}'
+            raise ValueError('{0} has fewer coordsets than assumed by {1}'
                              .format(str(self._ag), str(self)))
         return acsi
 

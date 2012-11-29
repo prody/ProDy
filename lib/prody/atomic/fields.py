@@ -34,6 +34,7 @@ below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+from prody import PY3K
 from prody.utilities import tabulate, wrapText
 
 from .flags import FIELDS as FLAG_FIELDS
@@ -104,18 +105,18 @@ class Field(object):
         
         if meth == 'get':
             if plural:
-                docstr = 'Return a copy of {0:s}.'.format(self.doc_pl)
+                docstr = 'Return a copy of {0}.'.format(self.doc_pl)
             else:
-                docstr = 'Return {0:s} of the atom.'.format(self.doc)
+                docstr = 'Return {0} of the atom.'.format(self.doc)
         elif meth == 'set':
             if plural:
-                docstr = 'Set {0:s}.'.format(self.doc_pl)
+                docstr = 'Set {0}.'.format(self.doc_pl)
             else:
-                docstr = 'Set {0:s} of the atom.'.format(self.doc)
+                docstr = 'Set {0} of the atom.'.format(self.doc)
         else:
             selex = False
             if plural:
-                docstr = 'Return {0:s} array.'.format(self.doc_pl) 
+                docstr = 'Return {0} array.'.format(self.doc_pl) 
             
         if self.desc:
             docstr += '  ' + self.desc
@@ -129,43 +130,50 @@ class Field(object):
             if '(' in doc:
                 doc = doc[:doc.index('(')]
             selex = "``, ``".join([repr(s) for s in selstr])
-            selex = ("  {0:s} can be used in atom selections, e.g. "
-                     "``{1:s}``.").format(doc.capitalize(), selex)
+            selex = ("  {0} can be used in atom selections, e.g. "
+                     "``{1}``.").format(doc.capitalize(), selex)
             if self.synonym is not None:
-                selex = selex + ('  Note that *{0:s}* is a synonym for '
-                    '*{1:s}*.').format(self.synonym, self.name)
+                selex = selex + ('  Note that *{0}* is a synonym for '
+                    '*{1}*.').format(self.synonym, self.name)
             return wrapText(docstr + selex)
         else:
             return wrapText(docstr)
 
 HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 
+if PY3K:
+    DTYPE = 'U'
+else:
+    DTYPE = 'S'
+
 ATOMIC_FIELDS = {
-    'name':      Field('name', '|S6', selstr=('name CA CB',)),
-    'altloc':    Field('altloc', '|S1', doc='alternate location indicator', 
+    'name':      Field('name', DTYPE + '6', selstr=('name CA CB',)),
+    'altloc':    Field('altloc', DTYPE + '1', 
+                       doc='alternate location indicator', 
                        selstr=('altloc A B', 'altloc _'),),
     'anisou':    Field('anisou', float, doc='anisotropic temperature factor', 
                        ndim=2),
-    'chain':     Field('chain', '|S1',  doc='chain identifier', 
+    'chain':     Field('chain', DTYPE + '1',  doc='chain identifier', 
                        meth='Chid', none=HVNONE, synonym='chid', 
                        selstr=('chain A', 'chid A B C', 'chain _')),
-    'element':   Field('element', '|S2', doc='element symbol', 
+    'element':   Field('element', DTYPE + '2', doc='element symbol', 
                        selstr=('element C O N',)),
     'occupancy': Field('occupancy', float, 
                        doc='occupancy value', meth_pl='Occupancies',
                        selstr=('occupancy 1', 'occupancy > 0')),
-    'resname':   Field('resname', '|S6', doc='residue name', 
+    'resname':   Field('resname', DTYPE + '6', doc='residue name', 
                        selstr=('resname ALA GLY',)),
     'resnum':    Field('resnum', int, doc='residue number', none=HVNONE,
                        selstr=('resnum 1 2 3', 'resnum 120A 120B', 
                                'resnum 10 to 20', 'resnum 10:20:2', 
                                'resnum < 10'), synonym='resid'),
-    'secondary': Field('secondary', '|S1',  
+    'secondary': Field('secondary', DTYPE + '1',  
                        doc='secondary structure assignment', 
                        meth='Secstr', synonym='secstr',
                        selstr=('secondary H E', 'secstr H E'),
                        ),
-    'segment':   Field('segment', '|S6', doc='segment name', meth='Segname',
+    'segment':   Field('segment', DTYPE + '6', doc='segment name', 
+                       meth='Segname',
                        selstr=('segment PROT', 'segname PROT'), 
                        synonym='segname', none=HVNONE),
     'siguij':    Field('siguij', float, doc='standard deviations for '
@@ -179,9 +187,9 @@ ATOMIC_FIELDS = {
                        doc_pl='β-values (or temperature factors)', 
                        selstr=('beta 555.55', 'beta 0 to 500', 'beta 0:500', 
                        'beta < 500')),
-    'icode':     Field('icode', '|S1', doc='insertion code', none=HVNONE, 
+    'icode':     Field('icode', DTYPE + '1', doc='insertion code', none=HVNONE, 
                        selstr=('icode A', 'icode _')),
-    'type':      Field('type', '|S6', selstr=('type CT1 CT2 CT3',)),
+    'type':      Field('type', DTYPE + '6', selstr=('type CT1 CT2 CT3',)),
     'charge':    Field('charge', float, doc='partial charge', 
                        selstr=('charge 1', 'abs(charge) == 1', 'charge < 0')),
     'mass':      Field('mass', float, doc_pl='masses', 

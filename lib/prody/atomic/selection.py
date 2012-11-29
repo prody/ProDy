@@ -217,21 +217,21 @@ class Selection(AtomSubset):
         selstr = ellipsis(self._selstr)
         if n_csets:
             if n_csets == 1:
-                return ('<Selection: {0:s} from {1:s} ({2:d} atoms)>').format(
+                return ('<Selection: {0} from {1} ({2} atoms)>').format(
                     repr(selstr), self._ag.getTitle(), len(self), n_csets)
             else:
-                return ('<Selection: {0:s} from {1:s} ({2:d} atoms; '
-                        'active #{3:d} of {4:d} coordsets)>').format(
+                return ('<Selection: {0} from {1} ({2} atoms; '
+                        'active #{3} of {4} coordsets)>').format(
                         repr(selstr), self._ag.getTitle(), len(self), 
                         self.getACSIndex(), n_csets)
         else:
-            return ('<Selection: {0:s} from {1:s} ({2:d} atoms; no '
+            return ('<Selection: {0} from {1} ({2} atoms; no '
                     'coordinates)>').format(repr(selstr), self._ag.getTitle(), 
                     len(self))
 
     def __str__(self):
 
-        return 'Selection {0:s}'.format(repr(ellipsis(self._selstr)))
+        return 'Selection {0}'.format(repr(ellipsis(self._selstr)))
     
     def getSelstr(self):
         """Return selection string that selects this atom subset."""

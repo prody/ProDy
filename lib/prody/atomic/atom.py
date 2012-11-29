@@ -46,20 +46,20 @@ class Atom(AtomPointer):
 
         n_csets = self._ag.numCoordsets()
         if n_csets == 1:
-            return '<Atom: {0:s} from {1:s} (index {2:d})>'.format(
+            return '<Atom: {0} from {1} (index {2})>'.format(
                    self.getName(), self._ag.getTitle(), self._index)
         elif n_csets > 1:
-            return ('<Atom: {0:s} from {1:s} (index {2:d}; active #{3:d} of '
-                    '{4:d} coordsets)>').format(self.getName(), 
+            return ('<Atom: {0} from {1} (index {2}; active #{3} of '
+                    '{4} coordsets)>').format(self.getName(), 
                      self._ag.getTitle(), self._index, self.getACSIndex(), 
                      n_csets)
         else:
-            return ('<Atom: {0:s} from {1:s} (index {2:d}; no coordinates)>'
+            return ('<Atom: {0} from {1} (index {2}; no coordinates)>'
                     ).format(self.getName(), self._ag.getTitle(), self._index)
 
     def __str__(self):
 
-        return 'Atom {0:s} (index {1:d})'.format(self.getName(), self._index)
+        return 'Atom {0} (index {1})'.format(self.getName(), self._index)
 
     def __len__(self):
     
@@ -176,14 +176,14 @@ class Atom(AtomPointer):
         :raise AttributeError: when *label* is not in use or read-only"""
         
         if label in READONLY:
-            raise AttributeError('{0:s} is read-only'.format(repr(label)))
+            raise AttributeError('{0} is read-only'.format(repr(label)))
         if label in ATOMIC_FIELDS:
             getattr(self, 'set' + ATOMIC_FIELDS[label].meth)(data)
         else:
             try:
                 self._ag._data[label][self._index] = data 
             except KeyError:
-                raise AttributeError('data with label {0:s} must be set for'
+                raise AttributeError('data with label {0} must be set for'
                                        ' AtomGroup first'.format(repr(label)))
     
     def getFlag(self, label):
@@ -197,18 +197,18 @@ class Atom(AtomPointer):
          :raise AttributeError: when *label* is not in use or read-only"""
         
         if label in flags.PLANTERS:
-            raise AttributeError('flag {0:s} cannot be changed by user'
+            raise AttributeError('flag {0} cannot be changed by user'
                                     .format(repr(label)))
         flags = self._ag._getFlags(label)
         if flags is None:
-            raise AttributeError('flags with label {0:s} must be set for '
+            raise AttributeError('flags with label {0} must be set for '
                                     'AtomGroup first'.format(repr(label)))
         flags[self._index] = value
     
     def getSelstr(self):
         """Return selection string that will select this atom."""
         
-        return 'index {0:d}'.format(self._index)
+        return 'index {0}'.format(self._index)
 
     def numBonds(self):
         """Return number of bonds formed by this atom.  Bonds must be set first

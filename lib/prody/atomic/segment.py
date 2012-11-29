@@ -50,22 +50,22 @@ class Segment(AtomSubset):
         
         n_csets = self._ag.numCoordsets()
         if n_csets == 1:
-            return ('<Segment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms)>'
+            return ('<Segment: {0} from {1} ({2} chains, {3} atoms)>'
                     ).format(self.getSegname(), self._ag.getTitle(), 
                              self.numChains(), self.numAtoms())
         elif n_csets > 1:
-            return ('<Segment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms; '
-                    'active #{4:d} of {5:d} coordsets)>').format(
+            return ('<Segment: {0} from {1} ({2} chains, {3} atoms; '
+                    'active #{4} of {5} coordsets)>').format(
                     self.getSegname(), self._ag.getTitle(), self.numChains(),
                     self.numAtoms(), self.getACSIndex(), n_csets)
         else:
-            return ('<Segment: {0:s} from {1:s} ({2:d} chains, {3:d} atoms; '
+            return ('<Segment: {0} from {1} ({2} chains, {3} atoms; '
                     'no coordinates)>').format(self.getSegname(), 
                     self._ag.getTitle(), self.numAtoms(), self.numChains())
 
     def __str__(self):
 
-        return 'Segment {0:s}'.format(self.getSegname())
+        return 'Segment {0}'.format(self.getSegname())
 
     def __getitem__(self, chid):
         
@@ -106,7 +106,7 @@ class Segment(AtomSubset):
         """Return selection string that selects atoms in this segment."""
         
         if self._selstr:
-            return 'segname {0:s} and ({1:s})'.format(self.getSegname(), 
+            return 'segname {0} and ({1})'.format(self.getSegname(), 
                                                         self._selstr)
         else:
-            return 'segname {0:s}'.format(self.getSegname())
+            return 'segname {0}'.format(self.getSegname())

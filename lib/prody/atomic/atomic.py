@@ -68,7 +68,7 @@ class Atomic(object):
                         ag = self
                         selstr = name
                     else:
-                        selstr = '({0:s}) and ({1:s})'.format(name, 
+                        selstr = '({0}) and ({1})'.format(name, 
                                                               self.getSelstr())
                     try:
                         dummies = self.numDummies()
@@ -118,7 +118,7 @@ class Atomic(object):
                         selstr = ' '.join(items)
                         return SELECT.select(self, selstr)
 
-        raise AttributeError('{0:s} object has no attribute `{1:s}` and {2:s} '
+        raise AttributeError('{0} object has no attribute `{1}` and {2} '
                     'is not a valid selection string'
                      .format(self.__class__.__name__, name, repr(selstr)))
 

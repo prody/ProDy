@@ -268,14 +268,14 @@ def checkLabel(label):
 
     if not (''.join(label.split('_'))).isalnum():
         raise ValueError('label may contain alphanumeric characters and '
-                         'underscore, {0:s} is not valid'.format(label))
+                         'underscore, {0} is not valid'.format(label))
 
     if isReserved(label):
-        raise ValueError('{0:s} is a reserved word and cannot be used '
+        raise ValueError('{0} is a reserved word and cannot be used '
                            'as a label'.format(repr(label)))
 
     if label in READONLY:
-        raise AttributeError('{0:s} is read-only'.format(label))
+        raise AttributeError('{0} is read-only'.format(label))
 
     return label
 
@@ -374,14 +374,14 @@ class AtomGroup(Atomic):
 
         n_csets = self._n_csets
         if n_csets == 1:
-            return '<AtomGroup: {0:s} ({1:d} atoms)>'.format(
+            return '<AtomGroup: {0} ({1} atoms)>'.format(
                     self._title, self._n_atoms)
         elif n_csets > 1:
-            return ('<AtomGroup: {0:s} ({1:d} atoms; active #{2:d} of {3:d}' 
+            return ('<AtomGroup: {0} ({1} atoms; active #{2} of {3}' 
                     ' coordsets)>').format(self._title, self._n_atoms, 
                                            self._acsi, n_csets)
         else:
-            return '<AtomGroup: {0:s} ({1:d} atoms; no coordinates)>'.format(
+            return '<AtomGroup: {0} ({1} atoms; no coordinates)>'.format(
                     self._title, self._n_atoms)
         
     def __str__(self):
@@ -405,7 +405,7 @@ class AtomGroup(Atomic):
             if len(index):
                 if start > stop:
                     index = index[::-1]
-                selstr = 'index {0:d}:{1:d}:{2:d}'.format(start, stop, step)
+                selstr = 'index {0}:{1}:{2}'.format(start, stop, step)
                 return Selection(self, index, selstr, acsi, unique=True)
         
         elif isinstance(index, (list, np.ndarray)):
@@ -428,8 +428,8 @@ class AtomGroup(Atomic):
     def __add__(self, other):
         
         if not isinstance(other, AtomGroup):
-            raise TypeError('unsupported operand type(s) for +: {0:s} and '
-                            '{1:s}'.format(repr(type(self).__name__), 
+            raise TypeError('unsupported operand type(s) for +: {0} and '
+                            '{1}'.format(repr(type(self).__name__), 
                                            repr(type(other).__name__)))
                                                        
         new = AtomGroup(self._title + ' + ' + other._title)
@@ -437,15 +437,15 @@ class AtomGroup(Atomic):
             if self._n_csets == other._n_csets:
                 new.setCoords(np.concatenate((self._coords, other._coords), 1))
                 if self._n_csets > 1:
-                    LOGGER.info('All {0:d} coordinate sets are copied to '
-                                '{1:s}.'.format(self._n_csets, new.getTitle()))
+                    LOGGER.info('All {0} coordinate sets are copied to '
+                                '{1}.'.format(self._n_csets, new.getTitle()))
             else:
                 new.setCoords(np.concatenate((self._getCoords(), 
                                               other._getCoords())))
-                LOGGER.info('Active coordinate sets are copied to {0:s}.'
+                LOGGER.info('Active coordinate sets are copied to {0}.'
                             .format(new.getTitle()))
         elif other._n_csets:
-            LOGGER.warn('No coordinate sets are copied to {0:s}'
+            LOGGER.warn('No coordinate sets are copied to {0}'
                         .format(new.getTitle()))
         
         for key in set(list(self._data) + list(other._data)):
@@ -604,7 +604,7 @@ class AtomGroup(Atomic):
                 coords = np.array(coords)
         else:
             if coords is None:
-                raise ValueError('coordinates of {0:s} are not set'
+                raise ValueError('coordinates of {0} are not set'
                                  .format(str(atoms)))
         
         try:
@@ -687,7 +687,7 @@ class AtomGroup(Atomic):
             pass
         else:
             if coords is None:
-                raise ValueError('coordinates of {0:s} are not set'
+                raise ValueError('coordinates of {0} are not set'
                                  .format(str(atoms)))
 
         try:
@@ -1109,7 +1109,7 @@ class AtomGroup(Atomic):
             
             indices = sn2i[serial:stop:step]
             indices = indices[indices > -1]
-            return Selection(self, indices, 'serial {0:d}:{1:d}:{2:d}'
+            return Selection(self, indices, 'serial {0}:{1}:{2}'
                                             .format(serial, stop, step))
 
     def getACSLabel(self):
@@ -1342,14 +1342,14 @@ for fname, field in ATOMIC_FIELDS.items():
             elif not isinstance(array, np.ndarray):
                 raise TypeError('array must be an ndarray or a list')
             elif array.ndim != ndim:
-                    raise ValueError('array must be {0:d} '
+                    raise ValueError('array must be {0} '
                                        'dimensional'.format(ndim))
             elif array.dtype != dtype:
                 try:
                     array = array.astype(dtype)
                 except ValueError:
                     raise ValueError('array cannot be assigned type '
-                                     '{0:s}'.format(dtype))
+                                     '{0}'.format(dtype))
             self._data[var] = array
             if none: self._none(none)
             if flags and self._flags:

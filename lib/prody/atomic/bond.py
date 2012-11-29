@@ -48,14 +48,14 @@ class Bond(object):
         
         one, two = self._indices
         names = self._ag._getNames()
-        return '<Bond: {0:s}({1:d})--{2:s}({3:d}) from {4:s}>'.format(
+        return '<Bond: {0}({1})--{2}({3}) from {4}>'.format(
                             names[one], one, names[two], two, str(self._ag))
     
     def __str__(self):
 
         one, two = self._indices
         names = self._ag._getNames()
-        return '{0:s}({1:d})--{2:s}({3:d})'.format(
+        return '{0}({1})--{2}({3})'.format(
                                             names[one], one, names[two], two)
 
     def __eq__(self, other):
@@ -110,7 +110,7 @@ class Bond(object):
         
         acsi = self._acsi
         if acsi >= self._ag._n_csets:
-            raise ValueError('{0:s} has fewer coordsets than assumed by {1:s}'
+            raise ValueError('{0} has fewer coordsets than assumed by {1}'
                              .format(str(self._ag), str(self)))
         return acsi
 

@@ -527,20 +527,20 @@ def defSelectionMacro(name, selstr):
     if not isinstance(name, str) or not isinstance(selstr, str):
         raise TypeError('both name and selstr must be strings')
     elif isReserved(name):
-        raise ValueError('{0:s} is a reserved word and cannot be used as a '
+        raise ValueError('{0} is a reserved word and cannot be used as a '
                          'macro name'.format(repr(name)))
     elif not (name.isalpha() and name.islower()):
-        raise ValueError('macro names must be all lower case letters, {0:s} '
+        raise ValueError('macro names must be all lower case letters, {0} '
                          'is not a valid macro name'.format(repr(name)))
     
     LOGGER.info('Testing validity of selection string.')
     try:
         ATOMGROUP.select(selstr)
     except SelectionError:
-        LOGGER.warn('{0:s} is not a valid selection string, macro {1:s} is not'
+        LOGGER.warn('{0} is not a valid selection string, macro {1} is not'
                     'defined.'.format(repr(selstr), repr(name)))
     else:
-        LOGGER.info("Macro {0:s} is defined as {1:s}."
+        LOGGER.info("Macro {0} is defined as {1}."
                     .format(repr(name), repr(selstr)))
         MACROS[name] = selstr
         SETTINGS['selection_macros'] = MACROS
@@ -555,10 +555,10 @@ def delSelectionMacro(name):
     try:
         MACROS.pop(name)
     except:
-        LOGGER.warn("Macro {0:s} is not found.".format(repr(name)))
+        LOGGER.warn("Macro {0} is not found.".format(repr(name)))
     else:
         if MACROS_REGEX is not None: MACROS_REGEX.pop(name, None)
-        LOGGER.info("Macro {0:s} is deleted.".format(repr(name)))
+        LOGGER.info("Macro {0} is deleted.".format(repr(name)))
         SETTINGS['selection_macros'] = MACROS
         SETTINGS.save()
 
@@ -572,7 +572,7 @@ def getSelectionMacro(name=None):
     try:
         return MACROS[name]
     except KeyError:
-        LOGGER.info("{0:s} is not a user defined macro name."
+        LOGGER.info("{0} is not a user defined macro name."
                     .format(repr(name)))
 
 
@@ -607,7 +607,7 @@ def checkSelstr(selstr, what, error=ValueError):
         for item in selstr.split():
             if item in XYZDIST:
                 if issubclass(error, Exception):
-                    raise error('invalid selection {0:s}, coordinate '
+                    raise error('invalid selection {0}, coordinate '
                                 'based selections are not accepted'
                                 .format(repr(selstr)))
                 else:
@@ -625,7 +625,7 @@ class SelectionError(Exception):
                 tkn = str(tkn)
                 if sel.count(tkn, loc) == 1: loc = sel.index(tkn, loc)            
         
-        msg = ("An invalid selection string is encountered:\n{0:s}\n"
+        msg = ("An invalid selection string is encountered:\n{0}\n"
                .format(repr(sel)) + 
                ' ' * (loc + 1) + '^ ' + msg)
         Exception.__init__(self, msg)
@@ -648,7 +648,7 @@ class SelectionWarning(Warning):
                     if sel.count(tkn, loc) == 1: loc = sel.index(tkn, loc)            
 
             msg = ('Selection string contains typo(s):\n'
-                   '{0:s}\n '.format(repr(sel)) +
+                   '{0}\n '.format(repr(sel)) +
                    ' ' * loc + '^ ' + msg)
             LOGGER.warn(msg)
 
@@ -748,7 +748,7 @@ def regularExpParseAction(sel, loc, token):
         regexp = re_compile(token[1:-1])
     except:
         raise SelectionError(sel, loc, 'failed to compile regular '
-                        'expression {0:s}'.format(repr(token)))
+                        'expression {0}'.format(repr(token)))
     else:
         return regexp
 
@@ -779,8 +779,8 @@ def rangeParseAction(sel, loc, tokens):
         stop = float(last)
 
     if start > stop:
-        raise SelectionError(sel, loc, 'range start value ({0:s}) is greater '
-            'than and stop value ({1:s})'.format(repr(start), repr(stop)))
+        raise SelectionError(sel, loc, 'range start value ({0}) is greater '
+            'than and stop value ({1})'.format(repr(start), repr(stop)))
     elif start == stop:
         return first
 
@@ -901,7 +901,7 @@ class Select(object):
             dummies = atoms.numDummies()
         except AttributeError:
             if self._ss2idx:
-                selstr = 'index {0:s}'.format(rangeString(indices))
+                selstr = 'index {0}'.format(rangeString(indices))
             else:
                 if self._replace:
                     for key, value in kwargs.items(): # PY3K: OK
@@ -912,14 +912,14 @@ class Select(object):
                                 ss = value.getSelstr()
                             selstr = selstr.replace(key, '(' + ss + ')')
                 if isinstance(atoms, AtomPointer):
-                    selstr = '({0:s}) and ({1:s})'.format(selstr, 
+                    selstr = '({0}) and ({1})'.format(selstr, 
                                                       atoms.getSelstr())
             
             return Selection(ag, indices, selstr, atoms.getACSIndex(),
                              unique=True)
         else:
             return AtomMap(ag, indices, atoms.getACSIndex(), dummies=dummies,
-               title='Selection {0:s} from '.format(repr(selstr)) + str(atoms))
+               title='Selection {0} from '.format(repr(selstr)) + str(atoms))
                
     def getIndices(self, atoms, selstr, **kwargs):
         """Return indices of atoms matching *selstr*.  Indices correspond to 
@@ -952,20 +952,20 @@ class Select(object):
         equal to the length of *atoms* argument."""
         
         if not isinstance(atoms, Atomic):
-            raise TypeError('atoms must be an Atomic instance, not {0:s}'
+            raise TypeError('atoms must be an Atomic instance, not {0}'
                             .format(type(atoms)))
 
         self._reset()
 
         for key in kwargs.keys():
             if not key.isalnum():
-                raise TypeError('{0:s} is not a valid keyword argument, '
+                raise TypeError('{0} is not a valid keyword argument, '
                                   'keywords must be all alpha numeric '
                                   'characters'.format(repr(key)))
             if isReserved(key):
                 loc = selstr.find(key)
                 if loc > -1:
-                    raise SelectionError(selstr, loc, '{0:s} is a reserved '
+                    raise SelectionError(selstr, loc, '{0} is a reserved '
                                 'word and cannot be used as a keyword argument'
                                 .format(repr(key)))
 
@@ -1170,10 +1170,10 @@ class Select(object):
                         return data, False
                     
                     if token in ATOMIC_FIELDS:
-                        return None, SelectionError(sel, loc, '{0:s} data is '
+                        return None, SelectionError(sel, loc, '{0} data is '
                             'not found'.format(repr(token)), [token])
                     else:
-                        return None, SelectionError(sel, loc, '{0:s} could '
+                        return None, SelectionError(sel, loc, '{0} could '
                             'not be evaluated'.format(repr(token)), [token])
             else:
                 if arg in self._ag:
@@ -1273,13 +1273,13 @@ class Select(object):
                     dtype = torf.dtype
                 except AttributeError:
                     raise SelectionError(sel, loc, 'a problem '
-                        'occurred when evaluating token {0:s}'
+                        'occurred when evaluating token {0}'
                         .format(repr(first)), [first])
                     
                 else:
                     if dtype != bool:
                         raise SelectionError(sel, loc, 'a problem '
-                            'occurred when evaluating token {0:s}'
+                            'occurred when evaluating token {0}'
                             .format(repr(first)), [first])
             while evals:
                 ss = where(torf == 0)[0]
@@ -1293,13 +1293,13 @@ class Select(object):
                     dtype = arr.dtype
                 except AttributeError:
                     raise SelectionError(sel, loc, 'a problem '
-                        'occurred when evaluating token {0:s}'
+                        'occurred when evaluating token {0}'
                         .format(repr(first)), [first])
                     
                 else:
                     if dtype != bool:
                         raise SelectionError(sel, loc, 'a problem '
-                            'occurred when evaluating token {0:s}'
+                            'occurred when evaluating token {0}'
                             .format(repr(first)), [first])
                 
                 torf[ss] = arr
@@ -1320,7 +1320,7 @@ class Select(object):
         if NUMB: return
         
         if tokens[0] == 'and' or tokens[-1] == 'and':
-            return None, SelectionError(sel, loc, '{0:s} operator must be '
+            return None, SelectionError(sel, loc, '{0} operator must be '
                 'surrounded with arguments'.format(repr('and')), [tokens[0]])
         
         flags = []
@@ -1341,7 +1341,7 @@ class Select(object):
                 if token == 'and':
                     if wasand:
                         return None, SelectionError(sel, loc, 'incorrect use '
-                            'of `and` operator, expected {0:s}'
+                            'of `and` operator, expected {0}'
                             .format(repr('and ... and')), ['and', 'and'])
                     append = None
                     wasand = True
@@ -1367,14 +1367,14 @@ class Select(object):
                     elif token == 'same':
                         if len(tokens) < 3 or tokens[1] != 'as':
                             return None, SelectionError(sel, loc, 'incorrect ' 
-                                'use of `same as` statement, expected {0:s}'
+                                'use of `same as` statement, expected {0}'
                                 .format('same entity as ...'), [token])
                         append((token, tokens.pop(0), tokens.pop(0)))
                     
                     elif token.endswith('within'):
                         if len(tokens) < 3 or tokens[1] != 'of':
                             return None, SelectionError(sel, loc, 'incorrect ' 
-                                'use of `within` statement, expected {0:s}'
+                                'use of `within` statement, expected {0}'
                                 .format('[ex]within x.y of ...'), [token])
                         append((token, tokens.pop(0), tokens.pop(0)))
                     
@@ -1382,7 +1382,7 @@ class Select(object):
                         token2 = tokens.pop(0)
                         if len(tokens) < (1 + int(token2 == 'to')):
                             return None, SelectionError(sel, loc, 'incorrect ' 
-                                'use of `bonded` statement, expected {0:s}'
+                                'use of `bonded` statement, expected {0}'
                                 .format('[ex]bonded [n] to ...'), [token2])
                         if token2 == 'to':
                             append((token, 'to'))
@@ -1411,14 +1411,14 @@ class Select(object):
                         append(token)
                     except TypeError:
                         return None, SelectionError(sel, loc, 'a problem ' 
-                                    'occurred when evaluation token {0:s}'
+                                    'occurred when evaluation token {0}'
                                     .format(repr(token)), [token])
             else:
                 if dtype == bool:
                     torfs.append(token)
                 else:
                     return None, SelectionError(sel, loc, 'a problem ' 
-                                'occurred when evaluation token {0:s}'
+                                'occurred when evaluation token {0}'
                                 .format(repr(token)), [token])
             wasand = False
         torf = None
@@ -1462,13 +1462,13 @@ class Select(object):
                     dtype = torf.dtype
                 except AttributeError:
                     return None, SelectionError(sel, loc, 'a problem '
-                        'occurred when evaluating token {0:s}'
+                        'occurred when evaluating token {0}'
                         .format(repr(first)), [first])
                     
                 else:
                     if dtype != bool:
                         return None, SelectionError(sel, loc, 'a problem '
-                            'occurred when evaluating token {0:s}'
+                            'occurred when evaluating token {0}'
                             .format(repr(first)), [first])
             while evals:
                 ss = torf.nonzero()[0]
@@ -1482,13 +1482,13 @@ class Select(object):
                     dtype = arr.dtype
                 except AttributeError:
                     return None, SelectionError(sel, loc, 'a problem '
-                        'occurred when evaluating token {0:s}'
+                        'occurred when evaluating token {0}'
                         .format(repr(first)), [first])
                     
                 else:
                     if dtype != bool:
                         return None, SelectionError(sel, loc, 'a problem '
-                            'occurred when evaluating token {0:s}'
+                            'occurred when evaluating token {0}'
                             .format(repr(first)), [first])
                         
                 torf[ss] = arr
@@ -1508,7 +1508,7 @@ class Select(object):
         which = tokens[1:]
         
         if not which:
-            return None, SelectionError(sel, loc, '{0:s} must be followed by '
+            return None, SelectionError(sel, loc, '{0} must be followed by '
                 .format(repr(' '.join(what))), what)
         if len(which) == 1:
             which, err = self._eval(sel, loc, which)
@@ -1543,8 +1543,8 @@ class Select(object):
         try:
             within = float(within)
         except Exception as err:
-            return None, SelectionError('could not convert {0:s} in {1:s} to '
-                'float ({2:s})'.format(within, repr(label), str(err)), 
+            return None, SelectionError('could not convert {0} in {1} to '
+                'float ({2})'.format(within, repr(label), str(err)), 
                 [label, within])
         exclude = label.startswith('ex')
         other = False
@@ -1564,12 +1564,12 @@ class Select(object):
                             coords = coords.getCoords()
                         except AttributeError:
                             return None, SelectionError(sel, loc, 
-                                '{0:s} must be a coordinate array or have '
+                                '{0} must be a coordinate array or have '
                                 '`getCoords` method'.format(repr(which)),
                                 [label, which])
                     if coords is None:
                         return None, SelectionError(sel, loc, 
-                            'coordinates are not set for {0:s} ({1:s})'
+                            'coordinates are not set for {0} ({1})'
                             .format(repr(which), repr(self._kwargs[which])),
                             [label, which])
                     else:
@@ -1578,7 +1578,7 @@ class Select(object):
                     coords = array([coords])
                 elif not (ndim == 2 and shape[1] == 3):
                     return None, SelectionError(sel, loc, 
-                        '{0:s} must be a coordinate array or have '
+                        '{0} must be a coordinate array or have '
                         '`getCoords` method'.format(repr(which)),
                         [label, which])
                 exclude=False
@@ -1645,7 +1645,7 @@ class Select(object):
         if index is None:
             return None, SelectionError(sel, loc, 'entity in "same ... as" '
                 'must be one of "chain", "residue", "segment", or "fragment",'
-                ' not {0:s}'.format(repr(what)), [label])
+                ' not {0}'.format(repr(what)), [label])
        
         indices, err = self._getData(sel, loc, index)
         iset = set(indices[which])
@@ -1666,16 +1666,16 @@ class Select(object):
             try:
                 repeat = int(token)
             except TypeError:
-                return None, SelectionError(sel, loc, '{0:s} in {0:s} could not '
+                return None, SelectionError(sel, loc, '{0} in {0} could not '
                     'be converted to an integer'.format(token, repr(label)), 
                     [label])                
             else:
                 if float(token) != repeat:
-                    SelectionWarning(sel, loc, 'number in {0:s} should be an '
+                    SelectionWarning(sel, loc, 'number in {0} should be an '
                         'integer'.format(repr(label)), [label])                
 
             if repeat <= 0:
-                SelectionWarning(sel, loc, 'number in {0:s} should be a '
+                SelectionWarning(sel, loc, 'number in {0} should be a '
                     'positive integer'.format(repr(label)), [label])
                 return zeros(self._atoms.numAtoms(), bool), False
         
@@ -1754,12 +1754,12 @@ class Select(object):
                 data = self._atoms._getData(arg)
         except Exception as err:
             return None, SelectionError(sel, loc, 'following exception '
-                        'occurred when evaluating {0:s}: {1:s}'
+                        'occurred when evaluating {0}: {1}'
                         .format(repr(arg), str(err)))
 
         if data is not None:
             if data.dtype.char in 'US':
-                return None, SelectionError(sel, loc, '{0:s} is not a numeric '
+                return None, SelectionError(sel, loc, '{0} is not a numeric '
                         'data label'.format(repr(arg)))
             else:
                 return data, False
@@ -1776,7 +1776,7 @@ class Select(object):
         try:
             return float(arg), False
         except Exception as err:
-            return None, SelectionError(sel, loc, '{0:s} is not a number or a '
+            return None, SelectionError(sel, loc, '{0} is not a number or a '
                     'numeric data label'
                     .format(repr(arg), ))
             
@@ -1909,8 +1909,8 @@ class Select(object):
         if NUMB: return
         
         if len(tokens) != 2:
-            raise SelectionError(sel, loc, '{0:s} accepts a single numeric '
-                             'argument, e.g. {0:s}(x)'.format(repr(tokens[0])))
+            raise SelectionError(sel, loc, '{0} accepts a single numeric '
+                             'argument, e.g. {0}(x)'.format(repr(tokens[0])))
         arg, err = self._getNumeric(sel, loc, tokens[1])
         if err: raise err
         debug(sel, loc, tokens[0], arg)
@@ -1948,9 +1948,9 @@ class Select(object):
                 pass
             else:
                 if not isstr:
-                    ptrn = '"{0:s}"'.format(token.pattern)
-                    SelectionWarning(sel, loc, '{0:s} is a regular '
-                        'expression and is not evaluated for {1:s}'
+                    ptrn = '"{0}"'.format(token.pattern)
+                    SelectionWarning(sel, loc, '{0} is a regular '
+                        'expression and is not evaluated for {1}'
                         .format(ptrn, repr(label)), [label, ptrn])
                 else:
                     regexp.append(token)
@@ -1961,7 +1961,7 @@ class Select(object):
             if token[0] == 'range': 
                 if isstr:
                     SelectionWarning(sel, loc, 'number ranges '
-                        'are not evaluated with data type of {0:s}'
+                        'are not evaluated with data type of {0}'
                         .format(repr(label)), [label, token[1]])
                 else:
                     if token[-1] in OPERATORS:
@@ -1979,16 +1979,16 @@ class Select(object):
                     values.append(' ')
                 else:
                     if len(token) > maxlen:
-                        SelectionWarning(sel, loc, '{0:s} is longer than the '
-                            'maximum characters for data field {1:s}'
+                        SelectionWarning(sel, loc, '{0} is longer than the '
+                            'maximum characters for data field {1}'
                             .format(repr(token), repr(label)), [label, token])
                     values.append(token)
             else:
                 try:
                     value = type_(token)
                 except Exception as err:
-                    SelectionWarning(sel, loc, '{0:s} could not be '
-                        'converted to type of {1:s} ({2:s})'
+                    SelectionWarning(sel, loc, '{0} could not be '
+                        'converted to type of {1} ({2})'
                         .format(repr(token), repr(label), str(err)), 
                         [label, token])
                     continue                
@@ -1998,9 +1998,9 @@ class Select(object):
                     pass
                 else:
                     if val2 != value:
-                        SelectionWarning(sel, loc, '{0:s} has a different '
+                        SelectionWarning(sel, loc, '{0} has a different '
                             'values when converted to a float and to type of '
-                            '{1:s}'.format(repr(token), repr(label)), 
+                            '{1}'.format(repr(token), repr(label)), 
                             [label, token])
                 values.append(value)
 
@@ -2065,7 +2065,7 @@ class Select(object):
                     except IndexError:
                         pass
                 else:
-                    SelectionWarning(sel, loc, '{0:s} must be followed by '
+                    SelectionWarning(sel, loc, '{0} must be followed by '
                         'integers and/or number ranges'.format(repr(label)), 
                         [label, token])
                 continue
@@ -2075,9 +2075,9 @@ class Select(object):
             except AttributeError:
                 pass
             else:
-                ptrn = '"{0:s}"'.format(token.pattern)
-                SelectionWarning(sel, loc, '{0:s} is a regular '
-                    'expression and is not evaluated for {1:s}'
+                ptrn = '"{0}"'.format(token.pattern)
+                SelectionWarning(sel, loc, '{0} is a regular '
+                    'expression and is not evaluated for {1}'
                     .format(ptrn, repr(label)), [label, ptrn])
                 continue
 
@@ -2088,7 +2088,7 @@ class Select(object):
                         stop += 1
                     step = 1
                 if start % 1.0 != 0 or stop % 1.0 != 0 or step % 1.0 != 0: 
-                    SelectionWarning(sel, loc, '{0:s} number ranges should be '
+                    SelectionWarning(sel, loc, '{0} number ranges should be '
                         'specified by integers'.format(repr(label)), 
                         [label, str(start)])
                 torf[start:stop:step] = True
@@ -2097,7 +2097,7 @@ class Select(object):
             try:
                 val = float(token)
             except TypeError:
-                return None, SelectionError(sel, loc, '{0:s} must be '
+                return None, SelectionError(sel, loc, '{0} must be '
                     'followed by integers and/or number ranges',
                     [label, token])
             else:
@@ -2107,7 +2107,7 @@ class Select(object):
                     except IndexError:
                         pass
                 else:
-                    SelectionWarning(sel, loc, '{0:s} must be followed by '
+                    SelectionWarning(sel, loc, '{0} must be followed by '
                         'integers and/or number ranges'.format(repr(label)), 
                         [label, token])
 
@@ -2144,7 +2144,7 @@ class Select(object):
                     except IndexError:
                         pass
                 else:
-                    SelectionWarning(sel, loc, '{0:s} must be followed by '
+                    SelectionWarning(sel, loc, '{0} must be followed by '
                         'integers and/or number ranges'.format(repr(label)), 
                         [label, token])
                 continue
@@ -2154,9 +2154,9 @@ class Select(object):
             except AttributeError:
                 pass
             else:
-                ptrn = '"{0:s}"'.format(pattern)
-                SelectionWarning(sel, loc, '{0:s} is a regular '
-                    'expression and is not evaluated for {1:s}'
+                ptrn = '"{0}"'.format(pattern)
+                SelectionWarning(sel, loc, '{0} is a regular '
+                    'expression and is not evaluated for {1}'
                     .format(ptrn, repr(label)), [label, ptrn])
                 continue
 
@@ -2167,7 +2167,7 @@ class Select(object):
                         stop += 1
                     step = 1
                 if start % 1.0 != 0 or stop % 1.0 != 0 or step % 1.0 != 0: 
-                    SelectionWarning(sel, loc, '{0:s} number ranges should be '
+                    SelectionWarning(sel, loc, '{0} number ranges should be '
                         'specified by integers'.format(repr(label)), 
                         [label, str(start)])
                 torf[start:stop:step] = True
@@ -2176,7 +2176,7 @@ class Select(object):
             try:
                 val = float(token)
             except TypeError:
-                return None, SelectionError(sel, loc, '{0:s} must be '
+                return None, SelectionError(sel, loc, '{0} must be '
                     'followed by integers and/or number ranges',
                     [label, token])
             else:
@@ -2186,7 +2186,7 @@ class Select(object):
                     except IndexError:
                         pass
                 else:
-                    SelectionWarning(sel, loc, '{0:s} must be followed by '
+                    SelectionWarning(sel, loc, '{0} must be followed by '
                         'integers and/or number ranges'.format(repr(label)), 
                         [label, token])
         
@@ -2223,9 +2223,9 @@ class Select(object):
             except AttributeError:
                 pass
             else:
-                ptrn = '"{0:s}"'.format(pattern)
-                SelectionWarning(sel, loc, '{0:s} is a regular expression and '
-                                 'its use with {1:s} is not recommended'
+                ptrn = '"{0}"'.format(pattern)
+                SelectionWarning(sel, loc, '{0} is a regular expression and '
+                                 'its use with {1} is not recommended'
                                  .format(ptrn, repr(label)), [label, ptrn])
                 continue
 
@@ -2241,16 +2241,16 @@ class Select(object):
                 try:
                     value = int(value)
                 except:
-                    SelectionWarning(sel, loc, '{0:s} must be followed by '
+                    SelectionWarning(sel, loc, '{0} must be followed by '
                         'integers, number ranges, or integer and insertion '
-                        'code combinations, e.g. {1:s}'
+                        'code combinations, e.g. {1}'
                         .format(repr(label), repr('10A')), 
                             [label, token])
                 else:
                     wicode.add((value, '' if icode == '_' else icode))
             else:
                 if value != int(token):
-                    SelectionWarning(sel, loc, '{0:s} must be followed by '
+                    SelectionWarning(sel, loc, '{0} must be followed by '
                         'integers and/or number ranges'.format(repr(label)), 
                         [label, token])
                 values.append(token)
@@ -2286,13 +2286,13 @@ class Select(object):
                 token.pattern
             except AttributeError:
                 if not token.isalpha() or not token.isupper():
-                    SelectionWarning(sel, loc, '{0:s} does not look like a '
+                    SelectionWarning(sel, loc, '{0} does not look like a '
                         'valid sequence'.format(repr(token)),
                         [label, token])
                 try:
                     token = re_compile(token)
                 except Exception as err:
-                    SelectionWarning(sel, loc, '{0:s} could not be compiled '
+                    SelectionWarning(sel, loc, '{0} could not be compiled '
                         'as a regular expression for sequence evaluation'
                         .format(repr(token)), [label, token])
                 else:                
@@ -2358,10 +2358,10 @@ class Select(object):
         if field is None:
             data = self._atoms._getData(keyword)
             if data is None:
-                return None, SelectionError(sel, loc, '{0:s} is not a valid '
+                return None, SelectionError(sel, loc, '{0} is not a valid '
                                        'data label'.format(repr(keyword)))
             elif not isinstance(data, ndarray) and data.ndim == 1:
-                return None, SelectionError(sel, loc, '{0:s} is not a 1d '
+                return None, SelectionError(sel, loc, '{0} is not a 1d '
                                       'array'.format(repr(keyword)))
         else:
             try:
@@ -2369,7 +2369,7 @@ class Select(object):
             except Exception as err: 
                 return None, SelectionError(sel, loc, str(err))
             if data is None:
-                return None, SelectionError(sel, loc, '{0:s} is not set'
+                return None, SelectionError(sel, loc, '{0} is not set'
                                                        .format(repr(keyword)))
         self._data[keyword] = data
         return data, False

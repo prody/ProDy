@@ -98,18 +98,18 @@ class Chain(AtomSubset):
         else:
             segment = ' from ' + str(segment)
         if n_csets == 1:
-            return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, {4:d} '
+            return ('<Chain: {0}{1} from {2} ({3} residues, {4} '
                     'atoms)>').format(self.getChid(), segment, 
                     self._ag.getTitle(), self.numResidues(), self.numAtoms())
         elif n_csets > 1:
-            return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, {4:d} '
-                    'atoms; active #{5:d} of {6:d} coordsets)>').format(
+            return ('<Chain: {0}{1} from {2} ({3} residues, {4} '
+                    'atoms; active #{5} of {6} coordsets)>').format(
                     self.getChid(), segment, self._ag.getTitle(), 
                     self.numResidues(), self.numAtoms(), self.getACSIndex(), 
                     n_csets)
         else:
-            return ('<Chain: {0:s}{1:s} from {2:s} ({3:d} residues, '
-                    '{4:d} atoms; no coordinates)>').format(self.getChid(), 
+            return ('<Chain: {0}{1} from {2} ({3} residues, '
+                    '{4} atoms; no coordinates)>').format(self.getChid(), 
                     segment, self._ag.getTitle(), self.numResidues(), 
                     self.numAtoms())
 
@@ -208,10 +208,10 @@ class Chain(AtomSubset):
         segment = self.getSegment()
         if segment is None:        
             if self._selstr:
-                return 'chain {0:s} and ({1:s})'.format(
+                return 'chain {0} and ({1})'.format(
                         self.getChid(), self._selstr)
             else:
-                return 'chain {0:s}'.format(self.getChid())
+                return 'chain {0}'.format(self.getChid())
         else:
-            return 'chain {0:s} and ({1:s})'.format(
+            return 'chain {0} and ({1})'.format(
                     self.getChid(), segment.getSelstr())
