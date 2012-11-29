@@ -109,8 +109,11 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     except AttributeError:
         raise TypeError('msa must be an MSA instance or a 2D character array')
         
-    if dtype_ != dtype('|S1') or ndim != 2:
+    if ndim != 2:
         raise TypeError('msa must be an MSA instance or a 2D character array')
+
+    if dtype_ != dtype('|S1'):
+        msa = msa.astype('|S1')
         
     from .msatools import buildMutinfoMatrix
     LOGGER.timeit('_mutinfo')
