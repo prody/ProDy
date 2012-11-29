@@ -22,6 +22,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 import os
+from os.path import join
 try:
     from StringIO import StringIO
 except ImportError:
@@ -102,16 +103,16 @@ class TestParseMSA(TestCase):
         
 class TestWriteMSA(TestCase):
     
-    def testFASTA(self):
-        filename = writeMSA((TEMPDIR + '/test.slx'), FASTA)
-        SELEX_WRITE = parseMSA(pathDatafile(filename))
-        self.assertListEqual(list(SELEX), list(SELEX_WRITE))
+    def testSelex(self):
+        filename = writeMSA(join(TEMPDIR, 'test.slx'), SELEX)
+        selex = parseMSA(pathDatafile(filename))
+        self.assertListEqual(list(SELEX), list(selex))
         if os.path.isfile(filename):
             os.remove(filename)
             
-    def testSELEX(self):
-        filename = writeMSA((TEMPDIR + '/test.fasta.gz'), SELEX)
-        FASTA_WRITE = list(MSAFile(pathDatafile(filename)))
-        self.assertListEqual(list(FASTA), list(FASTA_WRITE))
+    def testFasta(self):
+        filename = writeMSA(join(TEMPDIR, 'test.fasta.gz'), FASTA)
+        fasta = list(MSAFile(pathDatafile(filename)))
+        self.assertListEqual(list(FASTA), list(fasta))
         if os.path.isfile(filename):
             os.remove(filename)
