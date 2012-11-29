@@ -631,7 +631,7 @@ def parseMSA(filename, **kwargs):
         msafile = MSAFile(filename)
         format = msafile.format
         lenseq = len(next(iter(msafile))[1])
-        numseq = getsize(filename) / (lenseq + 10)
+        numseq = int(getsize(filename) / (lenseq + 10))
         del msafile
         
         if format == FASTA:
