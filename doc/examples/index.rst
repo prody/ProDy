@@ -25,6 +25,15 @@ Notes
 * Some examples attempt to download well over 100 structure files, which 
   may take several minutes depending on connection speed.  
 
+Sequence Analysis 
+===============================================================================
+
+.. toctree::
+   :maxdepth: 1
+
+   sequence/msafiles
+
+
 Access PDB Data 
 ===============================================================================
 
