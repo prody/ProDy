@@ -28,7 +28,7 @@ from os.path import isdir, isfile, join, split, splitext
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
-
+from prody.utilities import sympath
 
 __all__ = ['wwPDBServer', 'getWWPDBFTPServer', 'setWWPDBFTPServer',
            'fetchPDBviaFTP', 'fetchPDBviaHTTP']
@@ -121,24 +121,24 @@ def getWWPDBFTPServer():
 
 
 def checkIdentifiers(*pdb):
-    """Check whether items in *identifiers* look like PDB identifiers.  Replace
-    those that do not look like one with **None** or raise a :exc:`TypeError` 
-    when a non string is encountered."""
+    """Check whether *pdb* identifiers are valid, and replace invalid ones
+    with **None** or inplace."""
     
     identifiers = []
+    append = identifiers.append
     for pid in pdb:
         try:        
             pid = pid.strip().lower()
         except AttributeError:
             LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
-            identifiers.append(None)
+            append(None)
         else:        
             if not (len(pid) == 4 and pid.isalnum()):
                 LOGGER.warn('{0} is not a valid identifier.'
                             .format(repr(pid)))
-                identifiers.append(None)
+                append(None)
             else:
-                identifiers.append(pid)
+                append(pid)
     return identifiers
 
 
@@ -235,7 +235,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
         for pdb in identifiers:
             if pdb is None:
                 filenames.append(None)
-            
+                continue
             data = []
             ftp_fn = ftp_prefix + pdb + ftp_pdbext
             try:
@@ -262,9 +262,9 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                         write = pdbfile.write
                         [write(block) for block in data]
 
-                    filename = relpath(second(filename, pdb))
+                    filename = second(filename, pdb)
                     LOGGER.debug('{0} downloaded ({1})'
-                                 .format(pdb, filename))
+                                 .format(pdb, sympath(filename)))
                     success += 1
                     filenames.append(filename)
                 else:
@@ -338,6 +338,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     for pdb in identifiers:
         if pdb is None:
             filenames.append(None)
+            continue
         try:
             handle = openURL(getURL(pdb))
         except Exception as err:
@@ -350,12 +351,11 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                 filename = getPath(pdb)
     
                 with open(filename, 'w+b') as pdbfile:
-                    write = pdbfile.write
-                    [write(block) for block in data]
+                    pdbfile.write(data)
 
-                filename = relpath(second(filename, pdb))
+                filename = second(filename, pdb)
                 LOGGER.debug('{0} downloaded ({1})'
-                             .format(pdb, filename))
+                             .format(pdb, sympath(filename)))
                 success += 1
                 filenames.append(filename)
             else:
