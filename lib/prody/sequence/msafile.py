@@ -606,7 +606,7 @@ def parseMSA(filename, **kwargs):
     if (ext.lower() == '.gz' or 'filter' in kwargs or 'slice' in kwargs or
         not aligned):
         if ext.lower() == '.gz':
-            title = spliext(title)
+            title = splitext(title)
         msa = MSAFile(filename, split=False, **kwargs)
         seqlist = []
         sappend = seqlist.append
