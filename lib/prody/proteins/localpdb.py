@@ -33,8 +33,7 @@ from . import wwpdb
 from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP
 
 
-__all__ = ['pathPDBFolder', 'getPDBLocalFolder', 'getPDBMirrorPath', 
-           'pathPDBMirror', 'setPDBLocalFolder', 'setPDBMirrorPath',
+__all__ = ['pathPDBFolder', 'pathPDBMirror',
            'fetchPDB', 'fetchPDBfromMirror',
            'iterPDBFilenames', 'findPDBFiles']
           
@@ -87,21 +86,6 @@ def pathPDBFolder(folder=None, divided=False):
 
 wwpdb.pathPDBFolder = pathPDBFolder
 
-def getPDBLocalFolder():
-    """Deprecated for removal in v1.4, use :func:`pathPDBFolder` instead."""
-
-    from prody import deprecate
-    deprecate('getPDBLocalFolder', 'pathPDBFolder')
-    return pathPDBFolder()
-
-
-def setPDBLocalFolder(folder, divided=False):
-    """Deprecated for removal in v1.4, use :func:`pathPDBFolder` instead."""
-
-    from prody import deprecate
-    deprecate('setPDBLocalFolder', 'pathPDBFolder')
-    return pathPDBFolder(folder, divided)
-
 
 def pathPDBMirror(path=None):
     """Return or specify PDB mirror path to be used by :func:`.fetchPDB`.  
@@ -130,22 +114,6 @@ def pathPDBMirror(path=None):
                 SETTINGS.save()
             else:
                 LOGGER.warn('{0} is not a valid path.'.format(repr(path)))
-
-
-def getPDBMirrorPath():
-    """Deprecated for removal in v1.4, use :func:`pathPDBMirror` instead."""
-
-    from prody import deprecate
-    deprecate('getPDBMirrorPath', 'pathPDBMirror')
-    return pathPDBMirror()
-
-
-def setPDBMirrorPath(path):
-    """Deprecated for removal in v1.4, use :func:`pathPDBMirror` instead."""
-
-    from prody import deprecate
-    deprecate('getPDBMirrorPath', 'pathPDBMirror')
-    return pathPDBMirror(folder)
 
 
 def fetchPDBfromMirror(*pdb, **kwargs):

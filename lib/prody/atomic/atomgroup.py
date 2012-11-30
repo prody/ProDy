@@ -908,13 +908,6 @@ class AtomGroup(Atomic):
             else:
                 return getattr(self, '_get' + field.meth_pl)()
 
-    def isData(self, label):
-        """Deprecated, use :meth:`isDataLabel` instead."""
-        
-        from prody import deprecate
-        deprecate('isData', 'isDataLabel', 'v1.3')
-        return self.isDataLabel(label)
-        
     def isDataLabel(self, label):
         """Return **True** if data associated with *label* is present."""
         

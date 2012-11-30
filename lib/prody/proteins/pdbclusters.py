@@ -28,8 +28,7 @@ from numpy import array, abs
 from prody import LOGGER, SETTINGS, getPackagePath
 from prody.utilities import openFile
 
-__all__ = ['fetchPDBClusters', 'loadPDBClusters', 'listPDBCluster', 
-           'getPDBCluster',]
+__all__ = ['fetchPDBClusters', 'loadPDBClusters', 'listPDBCluster']
 
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None, 
                 90: None, 95: None, 100: None}
@@ -73,14 +72,7 @@ def loadPDBClusters(sqid=None):
         PDB_CLUSTERS[sqid] = inp.read()
         inp.close()
 
-def getPDBCluster(pdb, ch, sqid=95):
-    """Deprecated for removal in v1.4, use :func:`clustPDB` instead."""
-    
-    from prody import deprecate
-    deprecate('getPDBCluster', 'listPDBCluster')
-    
-    return listPDB(pdb, ch, sqid)
-    
+   
 def listPDBCluster(pdb, ch, sqid=95):
     """Return the PDB sequence cluster that contains chain *ch* in structure 
     *pdb* for sequence identity level *sqid*.  PDB sequence cluster will be 

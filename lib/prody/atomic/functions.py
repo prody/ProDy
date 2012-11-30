@@ -39,7 +39,7 @@ from .fields import ATOMIC_FIELDS
 from .selection import Selection
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'getReservedWords', 'sortAtoms']
+           'isReserved', 'listReservedWords', 'sortAtoms']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -261,16 +261,6 @@ def isReserved(word):
     selections.  See :func:`listReservedWords` for a list of reserved words."""
     
     return word in RESERVED
-        
-        
-def getReservedWords():
-    """Deprecated for removal in v1.4, use :func:`listReservedWords` instead.
-    """
-    
-    from prody import deprecate
-    deprecate('getReservedWords', 'listReservedWords')
-    
-    return listReservedWords()
         
         
 def listReservedWords():
