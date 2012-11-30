@@ -28,7 +28,7 @@ from os.path import getsize
 import datetime
 
 import numpy as np
-from numpy import float32
+from numpy import float32, fromstring
 
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
@@ -62,11 +62,11 @@ class DCDFile(TrajFile):
     to a specified type, such as 64-bit float, using *astype* keyword argument, 
     i.e. ``astype=float``, using :meth:`ndarray.astype` method."""
     
-    def __init__(self, filename, mode='r', **kwargs):
+    def __init__(self, filename, mode='rb', **kwargs):
         
         TrajFile.__init__(self, filename, mode)
         self._astype = kwargs.get('astype', None)
-        if self._mode != 'w':
+        if not self._mode.startswith('w'):
             self._parseHeader()
             
     __init__.__doc__ = TrajFile.__init__.__doc__
@@ -87,14 +87,15 @@ class DCDFile(TrajFile):
         """
         
         dcd = self._file
-        endian = '' #'=' # native endian
+        endian = b'' #'=' # native endian
         rec_scale = RECSCALE32BIT
         charmm = None
-        dcdcordmagic = unpack(endian+'i', 'CORD')[0]
+        dcdcordmagic = unpack(endian + b'i', b'CORD')[0]
         # Check magic number in file header and determine byte order
         bits = dcd.read(calcsize('ii'))
-        temp = unpack(endian+'ii', bits)
-        if DEBUG: print((len(temp), temp))
+
+        temp = unpack(endian + b'ii', bits)
+
         if temp[0] + temp[1] == 84:
             LOGGER.info('Detected CHARMM -i8 64-bit DCD file of native '
                         'endianness.')
@@ -104,18 +105,18 @@ class DCDFile(TrajFile):
             #LOGGER.info('Detected standard 32-bit DCD file of native '
             #            'endianness.')
         else:
-            if unpack('>ii', bits) == temp:
+            if unpack(b'>ii', bits) == temp:
                 endian = '>'
             else:
                 endian = '<'
-            temp = unpack(endian+'ii', bits)
+            temp = unpack(endian + b'ii', bits)
             if temp[0] + temp[1] == 84:
                 rec_scale = RECSCALE64BIT
                 LOGGER.info('Detected CHARMM -i8 64-bit DCD file of opposite '
                             'endianness.')
             else:
                 endian = ''
-                temp = unpack(endian+'ii', bits)
+                temp = unpack(endian + b'ii', bits)
                 if temp[0] == 84 and temp[1] == dcdcordmagic:
                     LOGGER.info('Detected standard 32-bit DCD file of '
                                 'opposite endianness.')
@@ -127,25 +128,26 @@ class DCDFile(TrajFile):
         # check for magic string, in case of long record markers
         if rec_scale == RECSCALE64BIT:
             raise IOError('CHARMM 64-bit DCD files are not yet supported.');
-            temp = unpack('I', dcd.read(calcsize('I')))
+            temp = unpack(b'I', dcd.read(calcsize('I')))
             if temp[0] != dcdcordmagic: 
                 raise IOError('Failed to find CORD magic in CHARMM -i8 64-bit '
                               'DCD file.');
         
         # Buffer the entire header for random access
         bits = dcd.read(80)
+
         # CHARMm-genereate DCD files set the last integer in the
         # header, which is unused by X-PLOR, to its version number.
         # Checking if this is nonzero tells us this is a CHARMm file
         # and to look for other CHARMm flags.
-        temp = unpack(endian + 'i'*20 , bits)
-        if DEBUG: print((len(temp), temp))
+        temp = unpack(endian + b'i'*20 , bits)
+        
         if temp[-1] != 0:
             charmm = True
 
         if charmm:
             #LOGGER.info('CHARMM format DCD file (also NAMD 2.1 and later).')
-            temp = unpack(endian + 'i'*9 + 'f' + 'i'*10 , bits)
+            temp = unpack(endian + b'i'*9 + b'f' + b'i'*10 , bits)
         else:
             LOGGER.info('X-PLOR format DCD file (also NAMD 2.0 and earlier) '
                         'is not supported.')
@@ -169,37 +171,37 @@ class DCDFile(TrajFile):
         self._unitcell = temp[10] == 1
         
         # Get the end size of the first block
-        if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 84:
+        if unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))[0] != 84:
             raise IOError('Unrecognized DCD format.')
         
         # Read in the size of the next block
-        temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        if DEBUG: print((len(temp), temp))
+        temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
+        
         if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
         # Read NTITLE, the number of 80 character title strings there are
-        temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        if DEBUG: print((len(temp), temp))
+        temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
+        
         self._dcdtitle = dcd.read(80)
-        if DEBUG: print((self._dcdtitle))
+        
         self._remarks = dcd.read(80)
-        if DEBUG: print((self._remarks))
+        
         # Get the ending size for this block
-        temp = unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))
-        if DEBUG: print((len(temp), temp))
+        temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
+        
         if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
-
         # Read in an integer '4'
-        if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
+        if unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
             raise IOError('Unrecognized DCD format.')
 
         # Read in the number of atoms
-        self._n_atoms = unpack(endian+'i',dcd.read(rec_scale*calcsize('i')))[0]
+        self._n_atoms = unpack(endian + b'i', 
+                               dcd.read(rec_scale*calcsize('i')))[0]
         # Read in an integer '4'
-        if unpack(endian+'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
+        if unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
             raise IOError('Bad DCD format.')
 
         self._is64bit = rec_scale == RECSCALE64BIT
@@ -214,12 +216,14 @@ class DCDFile(TrajFile):
             LOGGER.warning('Reading of 64 bit DCD files has not been tested. '
                            'Please report any problems that you may find.')
             self._dtype = np.float64
+            self._itemsize = 8
         else: 
             if self._unitcell:
                 self._bytes_per_frame = 56 + self._n_floats * 4
             else:
                 self._bytes_per_frame = self._n_floats * 4
-            self._dtype = float32
+            self._dtype = np.float32
+            self._itemsize = 4
         
         self._first_byte = self._file.tell()
         n_csets = (getsize(self._filename) - self._first_byte
@@ -229,10 +233,11 @@ class DCDFile(TrajFile):
                            'indicates there are actually {1} frames.'
                            .format(self._n_csets, n_csets))
             self._n_csets = n_csets
+
         self._coords = self.nextCoordset()
         self._file.seek(self._first_byte)
         self._nfi = 0
-   
+
     def hasUnitcell(self):
         
         return self._unitcell
@@ -281,7 +286,8 @@ class DCDFile(TrajFile):
     
         n_floats = self._n_floats
         n_atoms = self._n_atoms
-        xyz = np.fromfile(self._file, dtype=self._dtype, count=n_floats)
+        xyz = fromstring(self._file.read(self._itemsize * n_floats), 
+                            self._dtype)
         if len(xyz) != n_floats:
             return None
         xyz = xyz.reshape((3, n_atoms+2)).T[1:-1,:]
@@ -301,7 +307,7 @@ class DCDFile(TrajFile):
         
         if self._unitcell:
             self._file.read(4)
-            unitcell = np.fromfile(self._file, dtype=np.float64, count=6)
+            unitcell = fromstring(self._file.read(48), dtype=np.float64)
             unitcell = unitcell[[0,2,5,1,3,4]]
             if np.all(abs(unitcell[3:]) <= 1):
                 # This file was generated by CHARMM, or by NAMD > 2.5, with the angle */
@@ -326,8 +332,8 @@ class DCDFile(TrajFile):
             n_floats = self._n_floats + self._unitcell * 14
             n_atoms = self._n_atoms
             n_csets = self._n_csets
-            data = np.fromfile(self._file, self._dtype, 
-                               n_floats * n_csets)
+            data = self._file.read(self._itemsize * n_floats * n_csets)
+            data = fromstring(data, self._dtype)
             if len(data) > n_floats * n_csets:
                 n_csets = len(data)/n_floats
                 data = data[:n_csets]
@@ -406,19 +412,19 @@ class DCDFile(TrajFile):
             framefreq = int(kwargs.get('framefreq', 1))
             n_fixed = 0
 
-            pack_i_0 = pack('i', 0)
-            pack_ix4_0x4 = pack('i'*4, 0, 0, 0, 0)
-            pack_i_1 = pack('i', 1)
-            pack_i_2 = pack('i', 2)
-            pack_i_4 = pack('i', 4)
-            pack_i_84 = pack('i', 84)
-            pack_i_164 = pack('i', 164)
+            pack_i_0 = pack(b'i', 0)
+            pack_ix4_0x4 = pack(b'i'*4, 0, 0, 0, 0)
+            pack_i_1 = pack(b'i', 1)
+            pack_i_2 = pack(b'i', 2)
+            pack_i_4 = pack(b'i', 4)
+            pack_i_84 = pack(b'i', 84)
+            pack_i_164 = pack(b'i', 164)
 
             dcd.write(pack_i_84)
-            dcd.write('CORD')
+            dcd.write(b'CORD')
             dcd.write(pack_i_0) # 0 Number of frames in file, none written yet
-            dcd.write(pack('i', first_ts)) # 1 Starting timestep
-            dcd.write(pack('i', framefreq)) # 2 Timesteps between frames
+            dcd.write(pack(b'i', first_ts)) # 1 Starting timestep
+            dcd.write(pack(b'i', framefreq)) # 2 Timesteps between frames
             dcd.write(pack_i_0) # 3 Number of timesteps in simulation
             dcd.write(pack_i_0) # 4 NAMD writes NSTEP or ISTART - NSAVC here?
             dcd.write(pack_ix4_0x4) # 5, 6, 7, 8
@@ -430,13 +436,17 @@ class DCDFile(TrajFile):
             dcd.write(pack_i_84)
             dcd.write(pack_i_164)
             dcd.write(pack_i_2)
-            dcd.write('{0:80s}'.format('Created by ProDy'))
-            dcd.write('{0:80s}'.format('REMARKS Created ' + 
-                                       now().strftime('%d %B, %Y at %H:%M')))
+            dcd.write(b'Created by ProDy'.ljust(80))
+            temp = now().strftime('%d %B, %Y at %H:%M')
+            try:
+                temp = bytes(temp, encoding='utf-8')
+            except TypeError:
+                pass
+            dcd.write((b'REMARKS Created ' + temp).ljust(80))
             dcd.write(pack_i_164)
             
             dcd.write(pack_i_4)
-            dcd.write(pack('i', n_atoms))
+            dcd.write(pack(b'i', n_atoms))
             dcd.write(pack_i_4)
             self._first_byte = dcd.tell()
         if self._unitcell: 

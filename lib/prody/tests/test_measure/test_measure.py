@@ -34,6 +34,8 @@ from prody.measure import calcDistance, buildDistMatrix
 from prody.measure import calcAngle, calcPsi, calcPhi
 from prody.measure import calcCenter
 from prody.measure import calcMSF
+from prody import LOGGER
+LOGGER.verbosity = None
 
 ATOL = 1e-5
 RTOL = 0

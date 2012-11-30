@@ -42,7 +42,8 @@ class TrajFile(TrajBase):
     
     def __init__(self, filename, mode='r'):
         """Open *filename* for reading (default, ``mode="r"``), writing 
-        (``mode="w"``), or appending (``mode="r+"`` or ``mode="a"``)."""
+        (``mode="w"``), or appending (``mode="r+"`` or ``mode="a"``).
+        Binary mode option will be appended automatically."""
 
         if not isinstance(filename, str):
             raise TypeError("filename argument must be a string")
@@ -63,7 +64,10 @@ class TrajFile(TrajBase):
             self._file.seek(0)
             mode = 'a'
         else:
-            self._file = open(filename, mode+'b')
+            if not mode.endswith('b'):
+                mode += 'b'
+            self._file = open(filename, mode)
+            
         self._mode = mode
         self._bytes_per_frame = None
         self._first_byte = None
