@@ -93,7 +93,7 @@ class TrajFile(TrajBase):
         if self._ag is not None:
             link = 'linked to ' + str(self._ag) + '; '
             
-        if self._mode == 'r':
+        if self._mode.startswith('r'):
             next = 'next {0} of {1} frames; '.format(self._nfi, 
                                                        self._n_csets)
         else:
