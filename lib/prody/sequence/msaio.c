@@ -380,7 +380,7 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
         
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa); 
-    
+
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
     
     if (numseq != PyList_Size(labels)) {
@@ -399,18 +399,25 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
     
     char *outline = (char *) malloc((label_length + lenseq + 2) * 
                                     sizeof(char));
-    
+
     outline[label_length + lenseq] = '\n'; 
     outline[label_length + lenseq + 1] = '\0';
     
+    #if PY_MAJOR_VERSION >= 3
+    PyObject *plabel;
+    #endif
     for (i = 0; i < numseq; i++) {
         #if PY_MAJOR_VERSION >= 3
-        char *label = PyBytes_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
+        plabel = PyUnicode_AsEncodedString(
+                PyList_GetItem(labels, (Py_ssize_t) i), "utf-8", 
+                               "label encoding");
+        char *label =  PyBytes_AsString(plabel);
+        Py_DECREF(plabel);
         #else
         char *label = PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
         #endif
         int labelbuffer = label_length - strlen(label);
-        
+
         strcpy(outline, label);
 
         if (labelbuffer > 0)
