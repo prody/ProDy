@@ -50,9 +50,34 @@ if major > 2 and minor < 3:
     
     class TextIOWrapper(io.TextIOWrapper):
         
+        def _getlines(self):
+
+            try:
+                lines = self._lines
+            except AttributeError:
+                self._lines = None
+                        
+            if self._lines is None:
+                self._lines = self.read().split('\n')
+            return self._lines
+        
+        def readline(self, *args):
+            
+            lines = self._getlines()
+            if lines:
+                return lines.pop(0)
+            else:
+                return ''
+        
         def readlines(self, size=None):
             
-            return self.read().split('\n')
+            lines = self._getlines()
+            if size is None:
+                self._lines = []
+                return lines
+            else:
+                self._lines = lines[size:]
+                return lines[:size]
 
 
     def gzip_open(filename, mode="rb", compresslevel=9,
