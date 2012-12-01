@@ -223,14 +223,17 @@ class MSA(object):
         except AttributeError:
             return msa
         else:
-            if ndim == 0:
-                return msa
-            elif ndim == 1:
+            if ndim < 2:
+                seq = msa.tostring()
+                try:
+                    seq.format
+                except AttributeError:
+                    seq = seq.decode('utf')
                 if cols is None:
                     label, start, end = splitSeqLabel(self._labels[rows])
-                    return label, msa.tostring(), start, end
+                    return label, seq, start, end
                 else:
-                    return msa.tostring()
+                    return seq
             else:
                 if msa.base is not None:
                     msa = msa.copy()
@@ -246,7 +249,12 @@ class MSA(object):
         if self._split:
             for i, label in enumerate(self._labels):
                 label, start, end = splitSeqLabel(label)
-                yield label, self._msa[i].tostring(), start, end
+                seq = self._msa[i].tostring()
+                try:
+                    seq.format
+                except AttributeError:
+                    seq = seq.decode('utf-8')
+                yield label, seq, start, end
         else:
             for i, label in enumerate(self._labels):
                 yield label, self._msa[i].tostring()

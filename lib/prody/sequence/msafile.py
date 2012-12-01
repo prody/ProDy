@@ -32,7 +32,7 @@ MSAFORMATS = {
     SELEX.lower(): SELEX,
     STOCKHOLM.lower(): STOCKHOLM,
 }
-EXTENSIONS = {
+MSAEXTMAP = {
     FASTA: '.fasta',
     SELEX: '.slx',
     STOCKHOLM: '.sth',
@@ -134,144 +134,106 @@ class MSAFile(object):
     ('O62275_CAEEL', 'TFVFIITD.DYAKRGRNLWN', 594, 924)"""
     
     def __init__(self, msa, mode='r', format=None, aligned=True, **kwargs):
-        """*msa* may be a filename or a stream.  Multiple sequence alignment
-        can be read or written in FASTA (:file:`.fasta`), Stockholm 
-        (:file:`.sth`), or SELEX (:file:`.slx`) *format*.  For recognized 
-        extensions, specifying *format* is not needed.  If *aligned* is 
+        """*msa* may be a filename or a stream.  Multiple sequence alignments
+        can be read from or written in FASTA (:file:`.fasta`), Stockholm 
+        (:file:`.sth`), or SELEX (:file:`.slx`) *format*.  For spesified 
+        extensions, *format* argument is not needed.  If *aligned* is 
         **True**, unaligned sequences in the file or stream will cause an 
         :exc:`IOError` exception.  *filter*, a function that returns a 
         boolean, can be used for filtering sequences, see :meth:`setFilter`
         for details.  *slice* can be used to slice sequences, and is applied 
         after filtering, see :meth:`setSlice` for details."""
         
-        if mode not in 'rwa':
+        if mode[0] not in 'rwa':
             raise ValueError("mode string must be one of 'r', 'w', or 'a', "
                              "not {0}".format(repr(mode)))
         
-        self._bio = self._filename = None
-        self._lenseq = None
+        if 'b' in mode:
+            mode = mode.replace('b', '')
+        if 't' not in mode:
+            mode += 't'
+
         self._format = None
+        if format is not None:
+            try:
+                self._format = format = MSAFORMATS[format.lower()]
+            except AttributeError:
+                raise TypeError('format argument must be a string')
+            except KeyError:
+                raise ValueError('format argument is not recognized')
+
+        self._filename = filename = None
+        if mode.startswith('r'):
+            try:
+                torf = isfile(msa)
+            except:
+                pass
+            else:
+                if torf:
+                    self._filename = filename = msa
+        else:
+            try:
+                _ = msa.lower, msa.strip
+            except AttributeError:
+                pass
+            else:
+                self._filename = filename = msa
+
+        if filename is not None:
+            self._filename = filename
+            title, ext = splitext(split(filename)[1])
+            if ext.lower() == '.gz':
+                title, ext = splitext(split(title)[1])
+            if format is None:
+                try:
+                    self._format = format = MSAEXTMAP[ext.lower()]
+                except KeyError:
+                    raise TypeError('format is not specified and could not be '
+                                    'determined from file extension')
+            self._title = title
+            self._stream =  openFile(msa, mode)
+                
+        else:
+            if self._format is None:
+                raise ValueError('format must be specified when msa is a '
+                                 'stream')
+            self._stream = msa
+            self._title = 'stream'
+            try:
+                if self._stream.closed:
+                    raise ValueError('msa stream must not be closed')
+            except AttributeError:
+                pass
+
+        self._lenseq = None
         self._closed = False
-        self._readline = self._readlines = readline = None
+        self._readline = None
         self._aligned = bool(aligned)
 
-        if mode == 'r':
-            filename = str(msa)
-            if isfile(filename):
-                self._filename = filename
-                title, ext = splitext(split(msa)[1])
-                if ext.lower() == '.gz':
-                    title, ext = splitext(split(title)[1])
-                self._title = title
-                self._stream =  openFile(msa)
-                self._readline = readline = self._stream.readline
+
+        if mode.startswith('r'):
+            self._readline = self._stream.readline
+            try:
                 self._readlines = self._stream.readlines
-            else:
-                try:
-                    self._readline = readline = msa.readline
-                except AttributeError:
-                    pass
-                else:
-                    self._stream = msa
-                    try:
-                        self._readlines = msa.readlines
-                    except AttributeError:
-                        pass
-                    self._title = 'input stream'
+            except AttributeError:
+                pass
                     
-            if readline is not None: 
-                self._firstline = line = readline()
-                if line[0] == '>':
-                    LOGGER.info('Opened MSA file in FASTA format')
-                    self._iterator = self._iterFasta
-                    self._format = FASTA
-                elif line[0] == '#' and 'STOCKHOLM' in line:
-                    LOGGER.info('Opened MSA file in Stockholm format')
-                    self._iterator = self._iterStockholm
-                    self._format = STOCKHOLM
-                else:
-                    LOGGER.info('Opened MSA file in SELEX format')
-                    self._iterator = self._iterStockholm
-                    self._format = SELEX
-
-            else:        
-                try:
-                    bio = iter(msa)
-                except TypeError:
-                    raise TypeError('msa must be a filename, a stream, or '
-                                    'Bio object')
-                else:
-                    record = bio.next()
-                    try:
-                        label, seq = record.id, str(record.seq)
-                    except AttributeError:
-                        raise TypeError('msa must be a filename, a stream,'
-                                        ' or Bio object')
-                    else:
-                        self._bio = iter(msa)
-                        self._iter = self._iterBio
-                        self._format = 'Biopython'
-
-        
             self._split = bool(kwargs.get('split', True))
             self.setFilter(kwargs.get('filter', None),
                            kwargs.get('filter_full', False))
             self.setSlice(kwargs.get('slice', None))
-            self._iter = self._iterator()
+            self._iter = self._itermap[format](self)
         else:
-            if format is not None:
-                try:
-                    format = format.lower()
-                except AttributeError:
-                    raise ValueError('format must be a string')
-
-                if format.startswith('f'):
-                    self._format = format = FASTA
-                elif format.startswith('st'):
-                    self._format = format = STOCKHOLM
-                else:
-                    self._format = format = SELEX
             try:
-                self._write = write = msa.write
+                self._write = write = self._stream.write
             except AttributeError:
-                try:
-                    title, ext = splitext(split(msa)[1])
-                    if ext:
-                        if ext.lower() == '.gz':
-                            title, ext = splitext(split(title)[1])
-                    self._title = title
-                    if ext:
-                        if not format:
-                            if ext.startswith('.f'):
-                                self._format = format = FASTA
-                            elif ext.startswith('.st'):
-                                self._format = format = STOCKHOLM
-                            else:
-                                self._format = format = SELEX
-                except Exception:
-                    raise TypeError('msa must be a file name or a stream')
-                else:
-                    if not ext:
-                        msa +=  EXTENSIONS[self._format]
-                
-                self._filename = msa
-                self._stream = stream = openFile(msa, mode)
-                self._write = write = stream.write
-                
-            else:
-                try:
-                    closed = msa.closed
-                except AttributeError:
-                    pass
-                else:
-                    if closed:
-                        raise ValueError('msa stream must not be closed')
-                self._title = 'output stream'
-            
-            if mode == 'w' and format == STOCKHOLM:
+                raise TypeError('msa must be a filename or a stream with '
+                                'write method')
+            if mode.startswith('w') and format == STOCKHOLM:
                 write('# STOCKHOLM 1.0\n')
             if format.startswith('S'):
                 self._selex_line = '{0:' + str(LEN_SELEX_LABEL) + 's} {1}\n'
+
         self._mode = mode
        
     def __del__(self):
@@ -280,7 +242,7 @@ class MSAFile(object):
             
     def __iter__(self):
         
-        if self._mode != 'r':
+        if not self._mode.startswith('r'):
             raise IOError('File not open for reading')
         
         filter = self._filter
@@ -342,23 +304,31 @@ class MSAFile(object):
         size = size or sys.maxint
         lines = []
         append = lines.append
-        readline = stream.readline
+        readline = self._stream.readline
         for i in range(size):
-            append(readline)
+            line = readline()
+            if line:
+                append(line)
+            else:
+                break
         return lines
         
     def close(self):
         """Close the file.  This method will not affect a stream."""
         
-        if self._filename:
-            if not self._stream.closed:
-                if (self._mode != 'r' and self._format == STOCKHOLM):
-                    self._write('//\n')
-                try:
-                    self._stream.close()
-                except Exception:
-                    pass
+        if self._filename is None:
             self._closed = True
+            return
+        
+        if (not self._stream.closed and not self._mode.startswith('r') and 
+            self._format == STOCKHOLM):
+            self._write('//\n')
+
+        try:
+            self._stream.close()
+        except Exception:
+            pass
+        self._closed = True
     
     def _isClosed(self):
         
@@ -409,13 +379,17 @@ class MSAFile(object):
         lenseq = self._lenseq
         temp = []
         
-        readlines = self._readlines
-        line = self._firstline
-        label = line[1:]
-        lines = readlines(NUMLINES)
+        label = ''
+        lines = []
+        while not label.startswith('>'):
+            if not lines:
+                lines = self._readlines(NUMLINES)
+            label = lines.pop(0)
+        label = label[1:].strip()
+
         while lines:
             for line in lines:
-                if line[0] == '>':
+                if line.startswith('>'):
                     seq = ESJOIN(temp)
                     if not lenseq:
                         self._lenseq = lenseq = len(seq)
@@ -428,18 +402,17 @@ class MSAFile(object):
                     label = line[1:].strip()
                 else:
                     temp.append(line.strip())
-            lines = readlines(NUMLINES)
+            lines = self._readlines(NUMLINES)
         yield label, ESJOIN(temp)
     
-    def _iterStockholm(self):
+    def _iterSelex(self):
         """Yield sequences from an MSA file in Stockholm/SELEX format."""
 
         aligned = self._aligned
         lenseq = self._lenseq
         readlines = self._readlines
 
-        lines = [self._firstline]
-        lines.extend(readlines(NUMLINES))
+        lines = readlines(NUMLINES)
         while lines:
             for line in lines:
                 ch = line[0] 
@@ -460,6 +433,12 @@ class MSAFile(object):
                                   .format(label, lenseq))
                 yield label, seq
             lines = readlines(NUMLINES)
+    
+    _itermap = {
+        FASTA: _iterFasta,
+        SELEX: _iterSelex,
+        STOCKHOLM: _iterSelex,
+    }
     
     def getTitle(self):
         """Return title of the instance."""
@@ -555,6 +534,11 @@ class MSAFile(object):
         except AttributeError:
             raise TypeError('label and sequence must be sequences')
         
+        try:
+            sequence.format # bytes in Py3 does not have this attribute
+        except AttributeError:
+            sequence = sequence.decode('utf-8')
+
         if self._lenseq is None:
             lenseq = self._lenseq = len(sequence)
         else:
@@ -562,6 +546,7 @@ class MSAFile(object):
             if self._aligned and lenseq != self._lenseq:
                 raise ValueError('writing an aligned MSA file, '
                                  'len(sequence) must be ' + str(lenseq))
+        
         if self._format == FASTA:
             write('>')
             write(label)
@@ -677,7 +662,7 @@ def writeMSA(filename, msa, **kwargs):
             ext = splitext(fntemp)[1].lower()
         
         try:
-            format = EXTENSIONS[ext]
+            format = MSAEXTMAP[ext]
         except KeyError:
             raise ValueError('format is not specified, and file extension '
                              '{0} is not recognized'.format(repr(ext)))

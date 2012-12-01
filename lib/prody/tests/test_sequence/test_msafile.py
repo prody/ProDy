@@ -59,7 +59,7 @@ class TestMSAFile(TestCase):
                                       split=False):
                 out.write(label, seq)
         fasta.seek(0)
-        fasta_list = list(MSAFile(fasta))
+        fasta_list = list(MSAFile(fasta, format='fasta'))
         self.assertListEqual(FASTA_LIST, fasta_list)        
    
     def testWriteSelex(self):
@@ -70,18 +70,18 @@ class TestMSAFile(TestCase):
                                       split=False):
                 out.write(label, seq)
         selex.seek(0)
-        selex_list = list(MSAFile(selex))
+        selex_list = list(MSAFile(selex, format='selex'))
         self.assertListEqual(SELEX_LIST, selex_list) 
         
     def testWriteStockholm(self):
         
         stock = StringIO()
-        with MSAFile(stock, 'w', format='stock') as out:
+        with MSAFile(stock, 'w', format='stockholm') as out:
             for label, seq in MSAFile(pathDatafile('msa_Cys_knot.sth'), 
                                       split=False):
                 out.write(label, seq)
         stock.seek(0)
-        stock_list = list(MSAFile(stock))
+        stock_list = list(MSAFile(stock, format='stockholm'))
         self.assertListEqual(STOCK_LIST, stock_list)      
 
 class TestParseMSA(TestCase):
