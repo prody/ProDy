@@ -200,17 +200,16 @@ class TestWritePDB(unittest.TestCase):
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
     def testModelArgument(self):
-        """Test valid and invalid model arguments and if specified model
-        is correctly written."""
+        """Test valid and invalid model arguments."""
         
         self.assertRaises(IndexError, writePDB, self.tmp, self.ag, csets='s')
         for i in range(self.ag.numCoordsets()):
-            out = parsePDB(writePDB(self.tmp, self.ag, csets=i))
+            out = writePDB(self.tmp, self.ag, csets=i)
+            out = parsePDB(out)
             self.assertEqual(out.numCoordsets(), 1,
-                'writePDB failed to write correct number of models')
+                'failed to write correct number of models')
             assert_equal(out.getCoords(), self.ag.getCoordsets(i),
-                         'writePDB failed to write model {0:d} coordinates '
-                         'correctly'.format(i+1))
+                 'failed to write model {0} coordinates correctly'.format(i+1))
                 
     @dec.slow
     def tearDown(self):
