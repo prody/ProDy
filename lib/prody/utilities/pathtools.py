@@ -319,11 +319,12 @@ def which(program):
     return None
 
 
-def pickle(obj, filename, **kwargs):
-    """Pickle *obj* using :func:`pickle.dump` in *filename*."""
+def pickle(obj, filename, protocol=2, **kwargs):
+    """Pickle *obj* using :func:`pickle.dump` in *filename*.  *protocol* is set
+    to 2 for compatibility between Python 2 and 3."""
     
     out = openFile(filename, 'wb', **kwargs)
-    pypickle.dump(obj, out)
+    pypickle.dump(obj, out, protocol=2)
     out.close()
     return filename
 
