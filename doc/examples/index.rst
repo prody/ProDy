@@ -32,6 +32,7 @@ Sequence Analysis
    :maxdepth: 1
 
    sequence/msafiles
+   sequence/msaanalysis
 
 
 Access PDB Data 

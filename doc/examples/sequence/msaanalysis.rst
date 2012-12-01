@@ -1,4 +1,4 @@
-.. _msa_analysis:
+.. _msa-analysis:
 
 *******************************************************************************
 MSA Analysis: Entropy and Mutual Information and Plotting
