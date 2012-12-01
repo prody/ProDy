@@ -704,7 +704,7 @@ XYZDIST = set(['x', 'y', 'z', 'within', 'exwithin'])
 
 OR = pp.Keyword('or')
 AND = pp.Keyword('and')
-WORD = pp.Word(pp.alphanums + '''~@#$.:;_',''')
+WORD = pp.Word(pp.alphanums + '''~@#$.:;_'`,''')
 
 _ = list(FUNCTIONS)
 FUNCNAMES = set(_)
@@ -717,11 +717,11 @@ for func in _[1:]:
     FUNCNAMES_OPLIST = FUNCNAMES_OPLIST | kwfunc 
     FUNCNAMES_EXPR += ~kwfunc
 
-RE_SCHARS = re_compile('`[\w\W]*`')
+RE_SCHARS = re_compile('`[\w\W]*?`')
 PP_SCHARS = pp.Regex(RE_SCHARS)
 
 def specialCharsParseAction(sel, loc, token):
-
+    
     token = token[0][1:-1]
     if not token:
         raise SelectionError(sel, loc, '`` is invalid, no special characters')
@@ -1057,7 +1057,7 @@ class Select(object):
             return self._noParser
 
         try:
-            return self._parsers[key].parseString
+            return self._parsers[key][0].parseString
         except KeyError:
             pass
 
@@ -1094,7 +1094,7 @@ class Select(object):
         parser.setParseAction(self._default)
         parser.leaveWhitespace()
         parser.enablePackrat()
-        self._parsers[key] = parser
+        self._parsers[key] = parser, expr, oplist
         return parser.parseString
        
     def _noParser(self, selstr, parseAll=True):
@@ -1422,7 +1422,7 @@ class Select(object):
                                 .format(repr(token)), [token])
             wasand = False
         torf = None
-        
+
         if torfs:
             torf = torfs.pop(0)
 

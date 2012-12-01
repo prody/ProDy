@@ -140,6 +140,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('chain C', 248),
         ('chain C D', 521),
         ('chain CD', 0),
+        #('chain x', 0),
         ('resname DG', 132),
         ('resname DG ALA', 212),
         ('altloc A', 0),
@@ -224,6 +225,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('sq(x x) > 1', None),],
         
      'test_composite': [
+        ('resnum `1` `2`', 16, 'resnum 1 2'),
         ('same residue as within 4 of resname SAH', 177),
         ('name CA and same residue as within 4 of resname SAH', 20),
         ('water and within 5 of not protein', 70),
@@ -271,7 +273,9 @@ SELECTION_TESTS = {'pdb3mht':
     
      'test_specialchar': [
         ('altloc ` `', 3211),
-         ('z `+100.291`', 1),],
+        ('name A` `CA`', 328),
+        ('name `A``', 0),
+        ('z `+100.291`', 1),],
     
      'test_logical': [
         ('name or name', None),
