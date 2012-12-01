@@ -1,7 +1,7 @@
 .. _msafiles:
 
 *******************************************************************************
-Accessing Pfam data and handling MSA files
+Pfam Database and MSA Files
 *******************************************************************************
 
 Synopsis
@@ -13,7 +13,8 @@ The following examples shows how to do the following:
   * fetch the MSA of the pfam using acession no 
   * parse the MSA, filter, slice MSA, write the MSA
 
-search Pfam database
+
+Search Pfam 
 ===============================================================================
 
 This example demonstrates how to search Pfam database with a given query, 
@@ -25,9 +26,10 @@ not contain gaps and should be at least 12 characters long.
 Matching Pfam accession (one or more) as keys will map to a dictionary that 
 contains locations (alignment start, end, evalue etc), pfam family type, 
 accession and id.
+ 
   
-UniProt ID 
-===============================================================================
+UniProt ID search
+-------------------------------------------------------------------------------
 
 We start by importing everything from the ProDy package:
 
@@ -42,8 +44,9 @@ The function will return a dictionary if successful.
  'ali_end': '405', 'ali_start': '111', 'start': '110', 'evalue': '6.8e-61', 
  'hmm_end': '304'}], 'type': 'Pfam-A', 'accession': 'PF02171', 'id': 'Piwi'}
 
-Sequence and Parameters
-===============================================================================
+
+Sequence search
+-------------------------------------------------------------------------------
 
 This function also accepts a protein sequence:
 
@@ -61,7 +64,8 @@ sequences, default is ``timeout=30`` seconds.
 
 >>> matches = searchPfam(sequence, search_b=True, evalue=2.0) # doctest: +SKIP
 
-fetch MSA from Pfam
+
+Retrieve MSA files
 ===============================================================================
 
 This example demonstrates how to search Pfam database with a given query using  
@@ -89,13 +93,8 @@ are necessary for larger families. Some other parameters like ``gap``,
     
 >>> msafile = 'piwi_seed.sth'
 
-Parse, Modify and Write MSAs
-===============================================================================
 
-These examples show how to use :class:`.MSAFile` object and 
-:class:`.MSA` object to parse, refine the MSA and write the MSA. 
-
-Parse MSAs
+Parsing MSA files
 ===============================================================================
 
 This shows how to use the :class:`.MSAFile` or :func:`.parseMSA` to read the 
@@ -124,7 +123,8 @@ compressed files, but reading uncompressed files are much faster as shown.
 'PF02171_full.fasta'
 >>> msa = parseMSA('PF02171_full.fasta')
 
-Filter or Slice MSA
+
+Filtering and Slicing
 ===============================================================================
 
 This shows how to use the :class:`.MSAFile` object or :class:`.MSA` object to 
@@ -173,8 +173,10 @@ UniProt identifier of the sequence as follows:
 >>> msa = parseMSA(msafile)
 >>> 'YQ53_CAEEL' in msa
 True
+ 
     
-*Indexing and slicing*
+Indexing MSA objects
+===============================================================================
     
 Retrieve a sequence at a given index:
     
@@ -207,8 +209,9 @@ Slice MSA rows and columns:
     
 >>> msa[:10,20:40]
 <MSA: piwi_seed' (10 sequences, 20 residues)>
+
     
-write MSA
+Writing MSA files
 ===============================================================================
 
 :func:`.writeMSA` can be used to write MSA. It takes filename as input 
