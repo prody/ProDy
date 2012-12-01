@@ -17,8 +17,8 @@ search Pfam database
 ===============================================================================
 
 This example demonstrates how to search Pfam database with a given query, 
-:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. ``"P69332"``, or 
-PDB file, e.g. ``"1mkp"`` or ``"1mkpA"`` with chain identifier. Input can also 
+:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. ``"PIWI_ARCFU"``, or 
+PDB file, e.g. ``"3luc"`` or ``"3lucA"`` with chain identifier. Input can also 
 be a protein sequence or a file containing the sequence, but sequence should 
 not contain gaps and should be at least 12 characters long.
 
@@ -35,12 +35,12 @@ We start by importing everything from the ProDy package:
 
 The function will return a dictionary if successful.
  
->>> matches = searchPfam('P69332')
->>> for family, match in matches: # doctest: +SKIP
-...     print family, match  
- PF00001 {'locations': [{'end': '291', 'bitscore': '161.50', 'hmm_start': '1', 
-'ali_end': '291', 'ali_start': '50', 'start': '50', 'evalue': '2.1e-44', 
-'hmm_end': '257'}], 'type': 'Pfam-A', 'accession': 'PF00001', 'id': '7tm_1'}
+>>> matches = searchPfam('PIWI_ARCFU')
+>>> for family, in matches: # doctest: +SKIP
+...     print family, matches[family]  
+  PF02171 {'locations': [{'end': '406', 'bitscore': '215.70', 'hmm_start': '2', 
+ 'ali_end': '405', 'ali_start': '111', 'start': '110', 'evalue': '6.8e-61', 
+ 'hmm_end': '304'}], 'type': 'Pfam-A', 'accession': 'PF02171', 'id': 'Piwi'}
 
 Sequence and Parameters
 ===============================================================================
@@ -65,9 +65,12 @@ fetch MSA from Pfam
 ===============================================================================
 
 This example demonstrates how to search Pfam database with a given query using  
-:func:`.fetchPfamMSA`. Valid inputs are Pfam ID, e.g. ``"7tm_1"``, or Pfam
-accession, e.g. ``"PF00001"`` obtained from :func:`.searchPfam`.  Alignment 
+:func:`.fetchPfamMSA`. Valid inputs are Pfam ID, e.g. ``"Piwi"``, or Pfam
+accession, e.g. ``"PF02171"`` obtained from :func:`.searchPfam`.  Alignment 
 type can be ``'full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``.
+
+>>> fetchPfamMSA('piwi', alignment='seed')
+'piwi_seed.sth'
 
 A compressed file can be downloaded by setting ``compressed=True``. 
 The ``format`` of the MSA can be of ``"selex"``, (default), ``"stockholm"`` or
@@ -75,19 +78,16 @@ The ``format`` of the MSA can be of ``"selex"``, (default), ``"stockholm"`` or
 The ``output`` name can be specified, for by default it will have 
 ``"accession/ID_alignment.format"``.
 
->>> fetchPfamMSA('PF00001', compressed=True, format='fasta', timeout=60)
-'PF00001_full.fasta.gz'
-
 Note that in this case we passed a folder name, the downloaded file is saved 
 in this folder, after it is created if it did not exist. Also bigger timeouts
 are necessary for larger families. Some other parameters like ``gap``, 
 ``order`` or ``inserts`` can be set, as shown in the following example. 
 
->>> fetchPfamMSA('piwi', 'seed', gaps='mixed', inserts='lower', 
-... order='alphabetical')
-'piwi_seed.slx'
+>>> fetchPfamMSA('PF02171', compressed=True, gaps='mixed', inserts='lower', 
+... order='alphabetical', format='fasta')
+'PF02171_full.fasta.gz'
     
->>> msafile = 'piwi_seed.slx'
+>>> msafile = 'piwi_seed.sth'
 
 Parse, Modify and Write MSAs
 ===============================================================================
@@ -99,7 +99,7 @@ Parse MSAs
 ===============================================================================
 
 This shows how to use the :class:`.MSAFile` or :func:`.parseMSA` to read the 
-MSA file. 
+MSA file. :func:`.parseMSA` returns a :class:`.MSA` object. 
 
 Reading using :class:`.MSAFile` yields an MSAFile object. Iterating over the 
 object will yield sequence id, sequence, residue start and end indices:
@@ -118,9 +118,11 @@ object will yield sequence id, sequence, residue start and end indices:
 Reading using :func:`.parseMSA` yields an :class:`.MSA` object.  We can parse 
 compressed files, but reading uncompressed files are much faster as shown.
 
->>> msa = parseMSA('PF00001_full.fasta.gz')
+>>> msa = parseMSA('PF02171_full.fasta.gz')
 
->>> msa = parseMSA('PF00001_full.fasta')
+>>> fetchPfamMSA('PF02171', format='fasta')
+'PF02171_full.fasta'
+>>> msa = parseMSA('PF02171_full.fasta')
 
 Filter or Slice MSA
 ===============================================================================
@@ -135,8 +137,8 @@ value can be used for filtering the sequences.  A sequence will be yielded
 if the function returns **True**.  In the following example, sequences from
 organism *ARATH* are filtered:
     
->>> msa = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
->>> for seq in msa: # doctest: +ELLIPSIS 
+>>> msafobj = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
+>>> for seq in msafobj: # doctest: +ELLIPSIS 
 ...     print(seq)
 ('AGO6_ARATH', 'FIL...FTK', 541, 851)
 ('AGO4_ARATH', 'FIL...FMK', 577, 885)
@@ -218,7 +220,7 @@ a compressed file will be written.
 Returns the name of the MSA file that is written. 
 
 >>> writeMSA('sliced_MSA.gz', msa, format='SELEX')
-    'test.gz'
+'sliced_MSA.gz'
 >>> filename = writeMSA('sliced_MSA.fasta', msafobj)
 
 
