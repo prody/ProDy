@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from os import remove
 import shlex
 from os.path import isfile, join, split, splitext
-from unittest import TestCase, skipIf
+from unittest import TestCase, skipIf, skipUnless
 
 from numpy.testing import *
 
@@ -33,7 +33,7 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.apps import prody_parser 
 
-from . import NOPRODYCMD
+from prody.tests import MATPLOTLIB, NOPRODYCMD
 
 class TestCatdcdCommand(TestCase): 
     

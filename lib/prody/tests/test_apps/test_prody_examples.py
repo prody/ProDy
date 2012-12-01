@@ -23,7 +23,7 @@ import os
 import glob
 import shlex
 import os.path
-from unittest import TestCase, skipIf
+from unittest import TestCase, skipIf, skipUnless
 from subprocess import Popen, PIPE, call 
 
 from numpy.testing import *
@@ -34,7 +34,7 @@ LOGGER.verbosity = None
 from prody.apps.prody_apps import prody_commands
 from prody.tests.test_datafiles import TEMPDIR
 
-from . import NOPRODYCMD
+from prody.tests import MATPLOTLIB, NOPRODYCMD
 
 TESTDIR = os.path.join(TEMPDIR, 'prody_tests')
 
@@ -82,6 +82,7 @@ for cmd in prody_commands.choices:
          
         @dec.slow  
         @skipIf(NOPRODYCMD, 'prody command not found')
+        @skipUnless(MATPLOTLIB, 'matplotlib not found')
         def func(self, examples=egs):
             
             for eg in examples:

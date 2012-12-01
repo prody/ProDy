@@ -37,6 +37,16 @@ import tempfile
 
 from prody import LOGGER
 
+from prody.utilities import which
+NOPRODYCMD = which('prody') is None
+
+try:
+    import matplotlib
+except ImportError:
+    MATPLOTLIB = False
+else:
+    MATPLOTLIB = True
+
 TESTDIR = abspath(split(inspect.getfile(inspect.currentframe()))[0])
 TEMPDIR = tempfile.gettempdir()
 
