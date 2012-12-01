@@ -133,7 +133,7 @@ def parseDSSP(dssp, ag, parseall=False):
     
     n_atoms = ag.numAtoms()
     NUMBER = np.zeros(n_atoms, int)
-    SHEETLABEL = np.zeros(n_atoms, '|S1')
+    SHEETLABEL = np.zeros(n_atoms, np.array(['a']).dtype.char + '1')
     ACC = np.zeros(n_atoms, float)
     KAPPA = np.zeros(n_atoms, float)
     ALPHA = np.zeros(n_atoms, float)

@@ -53,6 +53,9 @@ def writePQR(filename, atoms):
             atomnames[i] = ' ' + an
         elif lenan > 4:
             atomnames[i] = an[:4]
+        
+    s_or_u = np.array(['a']).dtype.char
+    
     resnames = atoms._getResnames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
@@ -61,7 +64,7 @@ def writePQR(filename, atoms):
         resnums = np.ones(n_atoms, int)
     chainids = atoms._getChids()
     if chainids is None: 
-        chainids = np.zeros(n_atoms, '|S1')
+        chainids = np.zeros(n_atoms, s_or_u + '1')
     charges = atoms._getCharges()
     if charges is None:
         charges = np.zeros(n_atoms, float)
@@ -70,17 +73,17 @@ def writePQR(filename, atoms):
         radii = np.zeros(n_atoms, float)
     icodes = atoms._getIcodes()
     if icodes is None:
-        icodes = np.zeros(n_atoms, '|S1')
+        icodes = np.zeros(n_atoms, s_or_u + '1')
     hetero = ['ATOM'] * n_atoms 
     heteroflags = atoms._getFlags('hetatm')
     if heteroflags is None:
         heteroflags = atoms._getFlags('hetero')
     if heteroflags is not None:
-        hetero = np.array(hetero, '|S6')
+        hetero = np.array(hetero, s_or_u + '6')
         hetero[heteroflags] = 'HETATM'
     altlocs = atoms._getAltlocs()
     if altlocs is None:
-        altlocs = np.zeros(n_atoms, '|S1')
+        altlocs = np.zeros(n_atoms, s_or_u + '1')
     
     format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
               '{4:4s}{5:1s}{6:4d}{7:1s}   ' + 

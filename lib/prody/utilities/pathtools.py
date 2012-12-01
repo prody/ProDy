@@ -21,7 +21,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os
-import gzip
+import sys
 from os import sep as pathsep
 from glob import glob as pyglob
 import pickle as pypickle
@@ -41,10 +41,77 @@ __all__ = ['gunzip', 'backupFile', 'openFile',
            'makePath', 'relpath', 'sympath', 'which', 
            'pickle', 'unpickle', 'glob',
            'PLATFORM', 'USERHOME']
+
+major, minor = sys.version_info[:2] 
+if major > 2 and minor < 3:
+    import gzip
+    from gzip import GzipFile
+    import io
+    
+    class TextIOWrapper(io.TextIOWrapper):
         
+        def readlines(self, size=None):
+            
+            return self.read().split('\n')
+
+
+    def gzip_open(filename, mode="rb", compresslevel=9,
+             encoding=None, errors=None, newline=None):
+        """Open a gzip-compressed file in binary or text mode.
+
+        The filename argument can be an actual filename (a str or bytes object), or
+        an existing file object to read from or write to.
+
+        The mode argument can be "r", "rb", "w", "wb", "a" or "ab" for binary mode,
+        or "rt", "wt" or "at" for text mode. The default mode is "rb", and the
+        default compresslevel is 9.
+
+        For binary mode, this function is equivalent to the GzipFile constructor:
+        GzipFile(filename, mode, compresslevel). In this case, the encoding, errors
+        and newline arguments must not be provided.
+
+        For text mode, a GzipFile object is created, and wrapped in an
+        io.TextIOWrapper instance with the specified encoding, error handling
+        behavior, and line ending(s).
+
+        """
+        if "t" in mode:
+            if "b" in mode:
+                raise ValueError("Invalid mode: %r" % (mode,))
+        else:
+            if encoding is not None:
+                raise ValueError("Argument 'encoding' not supported in binary mode")
+            if errors is not None:
+                raise ValueError("Argument 'errors' not supported in binary mode")
+            if newline is not None:
+                raise ValueError("Argument 'newline' not supported in binary mode")
+
+        gz_mode = mode.replace("t", "")
+        if isinstance(filename, (str, bytes)):
+            binary_file = GzipFile(filename, gz_mode, compresslevel)
+        elif hasattr(filename, "read") or hasattr(filename, "write"):
+            binary_file = GzipFile(None, gz_mode, compresslevel, filename)
+        else:
+            raise TypeError("filename must be a str or bytes object, or a file")
+
+        if "t" in mode:
+            return TextIOWrapper(binary_file, encoding, errors, newline)
+        else:
+            return binary_file
+else:
+    import gzip
+    def gzip_open(filename, *args, **kwargs):
+        if isinstance(filename, str):
+            return gzip.open(filename, *args, **kwargs)
+        else:
+            return gzip.GzipFile(filename, *args, **kwargs)
+
+if (major, minor) >= (3, 2):
+    from gzip import compress as gzip_compress
+    from gzip import decompress as gzip_decompress
 
 OPEN = {
-    '.gz': gzip.open,
+    '.gz': gzip_open,
     '.zip': zipfile.ZipFile,
 }
 
@@ -130,30 +197,47 @@ def gunzip(filename, outname=None):
             else:
                 outname = filename
                 
-        inp = gzip.open(filename, 'rb')
+        inp = gzip_open(filename, 'rb')
         data = inp.read()
         inp.close()
-        out = open(outname, 'w')
+        out = open(outname, 'wb')
         out.write(data)
         out.close()
         return outname
     else:
+        result = None
         try:
             from StringIO import StringIO
         except ImportError:
-            from io import StringIO
-        buff = gzip.GzipFile(fileobj=StringIO(filename))
-        if outname is None:
-            try:
-                return buff.read()
-            except IOError:
-                raise ValueError('filename is not a valid path or a compressed'
-                                 ' string buffer')
+            from io import BytesIO
+            buff = gzip_open(BytesIO(filename))
+            if outname is None:
+                try:
+                    result = buff.read()
+                except IOError:
+                    pass
+            else:
+                with open(outname, 'w') as out: 
+                    out.write(buff.read())
+                return outname
         else:
-            with open(outname, 'w') as out: 
-                out.write(buff.read())
-            return outname
-        
+            from StringIO import StringIO
+            buff = gzip.GzipFile(fileobj=StringIO(filename))
+            try:
+                result = buff.read()
+            except IOError:
+                pass
+
+        if result is not None:
+            if outname is None:
+                return result
+            else:
+                with open(outname, 'w') as out: 
+                    out.write(result)
+                return outname
+        raise ValueError('filename is not a valid path or a compressed'
+                         ' string buffer')
+
 
 def isExecutable(path):
     """Return true if *path* is an executable."""

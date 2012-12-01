@@ -92,5 +92,7 @@ class TestFetchPDB(unittest.TestCase):
         """Remove downloaded files from disk."""
         
         for fn in self.filenames:
-            if os.path.isfile(fn):
+            try:
                 os.remove(fn)
+            except:
+                pass

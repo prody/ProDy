@@ -128,7 +128,7 @@ def parsePDB(pdb, **kwargs):
         if len(title) == 7 and title.startswith('pdb'):
             title = title[3:]
         kwargs['title'] = title
-    pdb = openFile(pdb)
+    pdb = openFile(pdb, 'rt')
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
@@ -281,7 +281,7 @@ def parsePQR(filename, **kwargs):
         ag = AtomGroup(title + title_suffix)
         n_csets = 0
         
-    pqr = openFile(filename)
+    pqr = openFile(filename, 'rt')
     lines = pqr.readlines()
     pqr.close()
     LOGGER.timeit()
@@ -807,9 +807,11 @@ def writePDBStream(stream, atoms, csets=None):
         if len(an) < 4:
             atomnames[i] = ' ' + an
     
+    s_or_u = np.array(['a']).dtype.char
+    
     altlocs = atoms._getAltlocs()
     if altlocs is None:
-        altlocs = np.zeros(n_atoms, '|S1')
+        altlocs = np.zeros(n_atoms, s_or_u + '1')
 
     resnames = atoms._getResnames()
     if resnames is None:
@@ -817,7 +819,7 @@ def writePDBStream(stream, atoms, csets=None):
     
     chainids = atoms._getChids()
     if chainids is None: 
-        chainids = np.zeros(n_atoms, '|S1')
+        chainids = np.zeros(n_atoms, s_or_u + '1')
     
     resnums = atoms._getResnums()
     if resnums is None:
@@ -833,25 +835,25 @@ def writePDBStream(stream, atoms, csets=None):
     
     icodes = atoms._getIcodes()
     if icodes is None:
-        icodes = np.zeros(n_atoms, '|S1')
+        icodes = np.zeros(n_atoms, s_or_u + '1')
     
     hetero = ['ATOM'] * n_atoms 
     heteroflags = atoms._getFlags('hetatm')
     if heteroflags is None:
         heteroflags = atoms._getFlags('hetero')
     if heteroflags is not None:
-        hetero = np.array(hetero, '|S6')
+        hetero = np.array(hetero, s_or_u + '6')
         hetero[heteroflags] = 'HETATM'
     
     elements = atoms._getElements()
     if elements is None:
-        elements = np.zeros(n_atoms, '|S1')
+        elements = np.zeros(n_atoms, s_or_u + '1')
     else:
         elements = np.char.rjust(elements, 2)
     
     segments = atoms._getSegnames()
     if segments is None:
-        segments = np.zeros(n_atoms, '|S6')
+        segments = np.zeros(n_atoms, s_or_u + '6')
     
     stream.write('REMARK {0}\n'.format(remark))
 
@@ -873,7 +875,7 @@ def writePDBStream(stream, atoms, csets=None):
                          segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
-            altlocs = np.zeros(n_atoms, '|S1')
+            altlocs = np.zeros(n_atoms, s_or_u + '1')
 
 writePDBStream.__doc__ += _writePDBdoc
 
@@ -885,7 +887,7 @@ def writePDB(filename, atoms, csets=None, autoext=True):
     if not ('.pdb' in filename or '.pdb.gz' in filename or 
              '.ent' in filename or '.ent.gz' in filename):  
         filename += '.pdb'
-    out = openFile(filename, 'w')
+    out = openFile(filename, 'wt')
     writePDBStream(out, atoms, csets)
     out.close()
     return filename

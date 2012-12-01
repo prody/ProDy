@@ -34,7 +34,8 @@ below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from prody import PY3K
+from numpy import array
+
 from prody.utilities import tabulate, wrapText
 
 from .flags import FIELDS as FLAG_FIELDS
@@ -141,10 +142,7 @@ class Field(object):
 
 HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 
-if PY3K:
-    DTYPE = 'U'
-else:
-    DTYPE = 'S'
+DTYPE = array(['a']).dtype.char # 'S' for PY2K and 'U' for PY3K
 
 ATOMIC_FIELDS = {
     'name':      Field('name', DTYPE + '6', selstr=('name CA CB',)),
