@@ -57,7 +57,7 @@ def pickSequence(msa):
 
 def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
     """Show a bar plot of occupancy calculated for :class:`.MSA` instance *msa*
-    using :func:`.calcMSAOccupancy`.  *occ* may be ``'res'`` or``'col'``, or a
+    using :func:`.calcMSAOccupancy`.  *occ* may be ``'res'`` or ``'col'``, or a
     a pre-calculated occupancy array.  If x-axis *indices* are not specified,
     they will be inferred from *msa*.
     

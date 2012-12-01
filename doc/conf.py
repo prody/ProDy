@@ -67,7 +67,7 @@ def getRevisionNumber():
     from subprocess import PIPE, Popen
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
-version = '1.3.1'
+version = '1.4-dev'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -157,8 +157,7 @@ html_index = 'index.html'
 generic_sidebars = ['docversion.html', 'howtocite.html', 'localtoc.html', 
                     'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': [],#['docversion.html', 'getprody.html', 'credits.html', ],
-    'index2': ['slideshow.html', 'docversion.html', 'howtocite.html', 
+    'index': ['slideshow.html', 'docversion.html', 'howtocite.html', 
               'getprody.html', 'credits.html', 'getintouch.html', 
               'searchbox.html',], 
     'genindex': ['searchbox.html'],  

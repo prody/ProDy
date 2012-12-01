@@ -11,15 +11,28 @@ Release 1.4 (in development)
 
 **New Features**:
 
-  * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
-    for searching and retrieving Pfam data.
-  
-  * :class:`.MSAFile`, :class:`.MSA` classes and :func:`.parseMSA` function are
-    implemented for handling and manipulating multiple sequence alignments.
+  * ProDy have been refactored to support Python 3. 
 
-  * :func:`.calcShannonEntropy`, :func:`.calcMutualInfo`, and 
+  * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
+    for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
+    examples.
+  
+  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`writeMSA` functions 
+    are implemented for reading and writing multiple sequence alignments.
+    See :ref:`msafiles` for usage examples.
+    
+  * :class:`.MSA` class has been implemented for storing and manipulating
+    MSAs in memory.  
+
+  * :func:`.calcShannonEntropy`, :func:`.buildMutinfoMatrix`, and 
     :func:`.calcMSAOccupancy` functions are implemented implemented for 
     MSA analysis.
+
+  * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and 
+    :func:`.showMSAOccupancy` functions are implemented implemented for 
+    MSA analysis.
+    
+
 
 
 Release 1.3.1 (Nov 6, 2012)
