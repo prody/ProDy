@@ -17,7 +17,7 @@ Release 1.4 (in development)
     for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
     examples.
   
-  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`writeMSA` functions 
+  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`.writeMSA` functions 
     are implemented for reading and writing multiple sequence alignments.
     See :ref:`msafiles` for usage examples.
     
