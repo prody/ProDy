@@ -26,13 +26,11 @@ Release 1.4 (in development)
 
   * :func:`.calcShannonEntropy`, :func:`.buildMutinfoMatrix`, and 
     :func:`.calcMSAOccupancy` functions are implemented implemented for 
-    MSA analysis.
+    MSA analysis.  See :ref:`msa-analysis` for usage examples.
 
   * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and 
     :func:`.showMSAOccupancy` functions are implemented implemented for 
-    MSA analysis.
-    
-
+    MSA analysis.  See :ref:`msa-analysis` for usage examples.
 
 
 Release 1.3.1 (Nov 6, 2012)

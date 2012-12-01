@@ -1,18 +1,20 @@
 .. _msa-analysis:
 
 *******************************************************************************
-MSA Analysis: Entropy and Mutual Information and Plotting
+Conservation and Co-evolution Analysis
 *******************************************************************************
 
 Synopsis
 ===============================================================================
 
-This example follows from :ref:`msafiles.rst`. The aim of this part
-is to show how to do the following:
+This example follows from :ref:`msafiles`. The aim of this part
+is to show how to:
 
-* refining mutual info for comparison with dynamics
-* calculating entropy and mutual information
-* writing and plotting the calculated data
+  * entropy calculations for conservation analsis
+  * mutual information for co-evolution analsis
+  * refine mutual info for comparison with dynamics
+  * calculate entropy and mutual information
+  * write and plot the calculated data
 
 Get MSA data
 ===============================================================================
@@ -135,6 +137,11 @@ the effects of different corrections and normalizations.
    :include-source:
 
    >>> showMutinfoMatrix(mutinfo) # doctest: +SKIP
+
+.. plot::
+   :context:
+   :include-source:
+   
    >>> showMutinfoMatrix(mutinfo_corr, clim=[-1,1], xlabel='1KA2: 4-131') # doctest: +SKIP
    
 Note ylabel does not need to be set, since xlabel = ylabel
