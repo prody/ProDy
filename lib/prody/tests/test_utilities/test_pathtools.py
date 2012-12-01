@@ -37,16 +37,24 @@ class TestGunzip(TestCase):
         self.pref = join(TEMPDIR, 'compressed.txt')
         self.gzfn = self.pref + '.gz' 
         self.text = '\n'.join(['some random text'] * 100)
-        with openFile(self.gzfn, 'w') as out:
+        try:
+            self.bytes = bytes(self.text, encoding='utf-8')
+        except TypeError:
+            self.bytes = self.text            
+        with openFile(self.gzfn, 'wt') as out:
             out.write(self.text)
         
     def testFile(self):
         
-        self.assertEqual(open(gunzip(self.gzfn)).read(), self.text)
+        fn = gunzip(self.gzfn)
+        text = open(fn).read() 
+        self.assertEqual(text, self.text)
 
     def testBuffer(self):
         
-        self.assertEqual(gunzip(open(self.gzfn).read()), self.text)
+        buff = open(self.gzfn, 'rb').read()
+        text = gunzip(buff)
+        self.assertEqual(text, self.bytes)
         
     def tearDown(self):
         
