@@ -41,15 +41,16 @@ with open('README.rst') as inp:
     long_description = inp.read()
 
 
-PACKAGES = ['prody', 'prody.atomic', 'prody.dynamics', 'prody.ensemble',
-            'prody.kdtree', 'prody.measure', 'prody.proteins', 
-            'prody.routines', 'prody.sequence', 'prody.utilities', 
-            'prody.trajectory', 'prody.routines.prody_routines',
-            'prody.routines.evol_routines']
+PACKAGES = ['prody', 'prody.apps', 'prody.atomic', 'prody.dynamics', 
+            'prody.ensemble', 'prody.kdtree', 'prody.measure', 
+            'prody.proteins', 'prody.sequence', 'prody.utilities', 
+            'prody.trajectory', 'prody.apps.prody_apps',
+            'prody.apps.evol_apps']
 PACKAGE_DATA = {}
 
 if sys.version_info[:2] > (2, 6):
     PACKAGES.extend(['prody.tests',
+                     'prody.tests.test_apps',
                      'prody.tests.test_atomic',
                      'prody.tests.test_datafiles',
                      'prody.tests.test_dynamics',
@@ -57,7 +58,6 @@ if sys.version_info[:2] > (2, 6):
                      'prody.tests.test_kdtree', 
                      'prody.tests.test_measure',
                      'prody.tests.test_proteins',
-                     'prody.tests.test_routines',
                      'prody.tests.test_sequence',
                      'prody.tests.test_trajectory',
                      'prody.tests.test_utilities',])
