@@ -50,7 +50,7 @@ def parsePSF(filename, title=None, ag=None):
         if not isinstance(ag, AtomGroup):
             raise TypeError('ag must be an AtomGroup instance') 
     
-    psf = openFile(filename)
+    psf = openFile(filename, 'rb')
     line = psf.readline()
     i_line = 1
     while line:
@@ -166,7 +166,7 @@ def writePSF(filename, atoms):
         raise ValueError('atom names are not set')
 
     if types is None:
-        atomtypes = zeros(n_atoms, '|S1')
+        atomtypes = zeros(n_atoms, array(['a']).dtype.char + '1')
     
     long_fields = array([len(tp) for tp in types]).max() > 4
     
