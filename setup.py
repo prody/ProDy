@@ -41,32 +41,41 @@ with open('README.rst') as inp:
     long_description = inp.read()
 
 
-PACKAGES = ['prody', 'prody.apps', 'prody.atomic', 'prody.dynamics', 
-            'prody.ensemble', 'prody.kdtree', 'prody.measure', 
-            'prody.proteins', 'prody.sequence', 'prody.utilities', 
-            'prody.trajectory', 'prody.apps.prody_apps',
-            'prody.apps.evol_apps']
-PACKAGE_DATA = {}
+PACKAGES = ['prody', 
+            'prody.atomic', 
+            'prody.database', 
+            'prody.dynamics', 
+            'prody.ensemble', 
+            'prody.kdtree', 
+            'prody.measure', 
+            'prody.proteins', 
+            'prody.sequence', 
+            'prody.trajectory', 
+            'prody.utilities', 
+            'prody.apps', 
+            'prody.apps.prody_apps',
+            'prody.apps.evol_apps',
+            'prody.tests',
+            'prody.tests.test_apps',
+            'prody.tests.test_atomic',
+            'prody.tests.test_datafiles',
+            'prody.tests.test_dynamics',
+            'prody.tests.test_ensemble', 
+            'prody.tests.test_kdtree', 
+            'prody.tests.test_measure',
+            'prody.tests.test_proteins',
+            'prody.tests.test_sequence',
+            'prody.tests.test_trajectory',
+            'prody.tests.test_utilities',]
+PACKAGE_DATA = {
+    'prody.tests': ['test_datafiles/pdb*.pdb', 
+                    'test_datafiles/*.dat', 
+                    'test_datafiles/*.coo', 
+                    'test_datafiles/dcd*.dcd',
+                    'test_datafiles/xml*.xml',
+                    'test_datafiles/msa*',]
+}
 
-if sys.version_info[:2] > (2, 6):
-    PACKAGES.extend(['prody.tests',
-                     'prody.tests.test_apps',
-                     'prody.tests.test_atomic',
-                     'prody.tests.test_datafiles',
-                     'prody.tests.test_dynamics',
-                     'prody.tests.test_ensemble', 
-                     'prody.tests.test_kdtree', 
-                     'prody.tests.test_measure',
-                     'prody.tests.test_proteins',
-                     'prody.tests.test_sequence',
-                     'prody.tests.test_trajectory',
-                     'prody.tests.test_utilities',])
-    PACKAGE_DATA['prody.tests'] = ['test_datafiles/pdb*.pdb', 
-                                   'test_datafiles/*.dat', 
-                                   'test_datafiles/*.coo', 
-                                   'test_datafiles/dcd*.dcd',
-                                   'test_datafiles/xml*.xml',
-                                   'test_datafiles/msa*',]
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join('lib', *pkg.split('.'))
@@ -90,7 +99,7 @@ SCRIPTS = ['scripts/prody', 'scripts/evol']
 if (platform.system() == 'Windows' or 
     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
     for script in list(SCRIPTS):
-        SCRIPTS.append(script + 'bat')
+        SCRIPTS.append(script + '.bat')
 
 setup(
     name='ProDy',
