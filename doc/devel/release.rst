@@ -13,14 +13,9 @@ How to Make a Release
    See :ref:`testing` for alternative testing methods. 
 
 
-#. Clean the contents of the :file:`Documentation` folder::
-
-     $ cd doc
-     $ make clean
-
-
 #. Make sure ProDy passes doctests::
 
+     $ cd doc
      $ make doctest
   
 
@@ -53,14 +48,10 @@ How to Make a Release
      $ python setup.py sdist --formats=gztar,zip
   
   
-#. Generate Windows installers using Python 2.6 and 2.7
-   (see :ref:`wininst`)::
+#. Prepare and test Windows installers (see :ref:`wininst`)::
 
-     $ C:\python26\python setup.py bdist_wininst
-     $ C:\python27\python setup.py bdist_wininst
-
-
-#. Test the installers.
+     $ C:\Python27\python setup.py bdist_wininst
+     $ C:\Python32\python setup.py bdist_wininst
 
 
 #. Register new release to PyPI::
@@ -80,6 +71,7 @@ How to Make a Release
 
 #. Generate HTML and PDF documentation::
 
+     $ make clean
      $ make html
      $ make latexpdf
 
@@ -90,12 +82,8 @@ How to Make a Release
      $ git commit -a
   
   
-#. Tag the repository with the current version number::
+#. Tag the repository with the current version number and push the changes 
+   with tags to `Bitbucket <https://bitbucket.org/abakan/prody>`_::
 
      $ git tag vX.Y
   
-  
-#. Push the changes with tags to 
-   `Bitbucket <https://bitbucket.org/abakan/prody>`_::
-
-     $ git push --tags origin master
