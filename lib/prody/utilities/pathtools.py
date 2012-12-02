@@ -126,7 +126,7 @@ if major > 2 and minor < 3:
 else:
     import gzip
     def gzip_open(filename, *args, **kwargs):
-        if "t" in args[0]:
+        if args and "t" in args[0]:
             args = (args[0].replace("t", ""), ) + args[1:]
         if isinstance(filename, str):
             return gzip.open(filename, *args, **kwargs)
