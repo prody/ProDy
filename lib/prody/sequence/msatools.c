@@ -572,7 +572,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     unsigned char *jseq = iseq; /* so that we don't get uninitialized warning*/
     
     /* lenseq*27, a row for each column in the MSA */
-    double **probs = malloc(lenseq * sizeof(double *));
+    double **probs = malloc(lenseq * sizeof(double *)), *prow;
     if (!probs) {
         free(mut);
         if (turbo)
@@ -584,7 +584,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     }
 
     /* 27x27, alphabet characters and a gap*/
-    double **joint = malloc(NUMCHARS * sizeof(double *));
+    double **joint = malloc(NUMCHARS * sizeof(double *)), *jrow;
     if (!joint) {
         free(mut);
         if (turbo)
@@ -597,8 +597,8 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     }
     
     for (i = 0; i < lenseq; i++) {
-        probs[i] = malloc(NUMCHARS * sizeof(double));
-        if (!probs[i]) {
+        prow = malloc(NUMCHARS * sizeof(double));
+        if (!prow) {
             free(mut);
             for (j = 0; j < i; j++)
                 free(probs[j]);
@@ -611,8 +611,9 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             free(iseq);
             return PyErr_NoMemory();
         }
+        probs[i] = prow; 
         for (j = 0; j < NUMCHARS; j++)
-            probs[i][j] = 0;
+            prow[j] = 0;
     }
 
     for (i = 0; i < NUMCHARS; i++)  {
@@ -633,11 +634,16 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             return PyErr_NoMemory();
         }
     }
+    
+    if (debug)
+        printProbs(probs, lenseq);
 
     unsigned char a, b;
     long k, l, diff, offset;
-    double *prow = probs[0], *jrow, p_incr = 1. / numseq, prb = 0;
+    double p_incr = 1. / numseq, prb = 0;
+    prow = probs[0];
     
+    /* zero mut array */
     for (i = 0; i < lenseq; i++) {
         jrow = mut + i * lenseq;
         for (j = 0; j < lenseq; j++)
@@ -645,7 +651,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     }
     
     i = 0;
-    /* calculate first row of MI matrix, while calculating probabilities */
+    /* calculate first row of MI matrix and all column probabilities */
     for (j = 1; j < lenseq; j++) {
         jrow = probs[j];
         zeroJoint(joint);
@@ -665,6 +671,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
                 if (a < 1 || a > 26)
                     a = 0; /* gap character */
                 iseq[k] = a;
+                prow[a] += p_incr;
             }
             
             b = (unsigned char) seq[offset + j];
@@ -677,27 +684,38 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             if (turbo)
                 jseq[k] = b;
             joint[a][b] += p_incr;
-            if (!diff)
-                prow[a] += p_incr;
             jrow[b] += p_incr;
         }
         
         if (ambiguity) {
-            for (k = 0; k < lenseq; k++) {
+
+            if (debug)
+                printProbs(probs, lenseq);
+            if (diff)
+                k = j;
+            else
+                k = 0;
+            for (; k <= j; k++) {
                 prow = probs[k];
                 prb = prow[2];
                 if (prb > 0) { /* B -> D, N  */
-                    prow[4] = prow[14] = prb / 2.;
+                    prb = prb / 2.;
+                    prow[4] += prb;
+                    prow[14] += prb;
                     prow[2] = 0;
                 }
                 prb = prow[10];
                 if (prb > 0) { /* J -> I, L  */
-                    prow[9] = prow[12] = prb / 2.;
+                    prb = prb / 2.;
+                    prow[9] += prb; 
+                    prow[12] += prb;
                     prow[10] = 0;
                 }
                 prb = prow[26]; 
                 if (prb > 0) { /* Z -> E, Q  */
-                    prow[5] = prow[17] = prb / 2.;
+                    prb = prb / 2.;
+                    prow[5] += prb;
+                    prow[17] += prb;
                     prow[26] = 0;
                 }
                 if (prow[24] > 0) { /* X -> 20 AA */
@@ -707,6 +725,9 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
                     prow[24] = 0;
                 }
             }
+
+            if (debug)
+                printProbs(probs, lenseq);
             if (debug)
                 printJoint(joint, i, j);
             sortJoint(joint);
