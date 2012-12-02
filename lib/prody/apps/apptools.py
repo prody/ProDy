@@ -21,7 +21,10 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from copy import copy
-import argparse
+try:
+    import argparse
+except ImportError:
+    from . import argparse
 import textwrap
 
 from prody.utilities import wrapText
