@@ -26,20 +26,20 @@ import numpy as np
 
 __all__ = ['evol_rankorder']
 
-APP = DevelApp('rankorder', 'identify highly coevolving pairs of residues based '
-               'on mutual information')
+APP = DevelApp('rankorder', 'identify highly coevolving pairs of residues')
 
 APP.setExample(
-"""This application identifies that top ranking pairs of residues that
-coevolve based on their mutual information. By default coevolution is reported
-for pairs that are at least 3 residues apart in sequence. A zscore normalization
-can be applied to the mutinfo matrix to identify coevolving pairs. The following
-examples show how to use with default as well as additional options:
+"""This application identifies that top ranking pairs of residues that \
+coevolve based on their mutual information.  By default coevolution is \
+reported for pairs that are at least 3 residues apart in sequence. A z-score \
+normalization can be applied to the mutinfo matrix to identify coevolving \
+pairs.  The following examples show how to use with default as well as \
+additional options:
 
     $ evol rankorder piwi_refined_mutinfo.txt -z
     
-    $evol rankorder piwi_refined_mutinfo.txt --msa piwi_refined.slx
-    --label AGO6_ARATH""", [])
+    $ evol rankorder piwi_refined_mutinfo.txt --msa piwi_refined.slx \
+--label AGO6_ARATH""", [])
 
 
 APP.addArgument('mutinfo', 
@@ -54,7 +54,7 @@ APP.addArgument('-z', '--zscore',
     )
 APP.addArgument('-d', '--delimiter', 
     dest='delimiter',  
-    help='delimiter for input mutinfo matrix file',
+    help='delimiter used in mutual information matrix file',
     type=str,
     metavar='STR',
     default=None,
@@ -62,8 +62,8 @@ APP.addArgument('-d', '--delimiter',
     )
 APP.addArgument('-p', '--pdb',
     dest='pdb',
-    help='PDB file containing same no of residues as the mutinfo maxtrix.'
-    ' Output residue numbers will be based on PDB file',
+    help='PDB file that contains same number of residues as the mutual '
+    'information matrix, output residue numbers will be based on PDB file',
     default=None,
     type=str,
     metavar='STR',
@@ -71,9 +71,9 @@ APP.addArgument('-p', '--pdb',
     )
 APP.addArgument('-m', '--msa',
     dest='msa',
-    help='MSA file used for building the mutual info matrix.'
-    ' Output residue numbers will be based on most complete sequence '
-    'in msa if PDB or label is not specified',
+    help='MSA file used for building the mutual info matrix, '
+    'output residue numbers will be based on the most complete sequence '
+    'in MSA if a PDB file or sequence label is not specified',
     default=None,
     type=str,
     metavar='STR',
@@ -90,7 +90,7 @@ APP.addArgument('-l', '--label',
 APP.addGroup('output', 'output options')
 APP.addArgument('-n', '--num-pairs',
     dest='numpairs',
-    help='number of top pairs to list',
+    help='number of top ranking residue pairs to list',
     default=100,
     type=int,
     metavar='INT',
@@ -98,25 +98,25 @@ APP.addArgument('-n', '--num-pairs',
     )
 APP.addArgument('-q', '--seq-sep',
     dest='seqsep',
-    help='Report coevolution for residue pairs that are sequentailly '
+    help='report coevolution for residue pairs that are sequentially '
     'separated by input value',
     default=3,
     type=int,
     metavar='INT',
     group='output'
     )
-APP.addArgument('-t', '--struct-sep',
-    dest='structsep',
-    help='Report coevolution for residue pairs whose CA atoms are structurally '
-    'separated by input value. Only used when a valid PDB file is also given'
-    'and --use-struct-sep is true',
+APP.addArgument('-t', '--min-dist',
+    dest='dist',
+    help='report coevolution for residue pairs whose CA atoms are spatially '
+    'separated by at least the input value, used when a PDB file is given '
+    'and --use-dist is true',
     default=10.0,
     type=float,
     metavar='FLOAT',
     group='output'
     )
-APP.addArgument('-u', '--use-struct-sep',
-    dest='usestructsep',
+APP.addArgument('-u', '--use-dist',
+    dest='usedist',
     action='store_true', 
     help='use structural separation to report coevolving pairs',
     group='output'
@@ -130,12 +130,15 @@ APP.addArgument('-o', '--outname',
     )
 
 def calcAllDist(coordset):
+    
     from prody import calcDistance
     shape = coordset.shape
     distance = np.zeros((shape[1], shape[1]))
+    
     for i in range(shape[1]):
         temp = np.tile(coordset[0,i,:], (1, shape[1], 1))
         distance[:,i] = calcDistance(coordset, temp)
+    
     return distance
 
 def evol_rankorder(mutinfo, **kwargs):
@@ -145,12 +148,17 @@ def evol_rankorder(mutinfo, **kwargs):
     
     delimiter = kwargs.get('delimiter')
     mi = np.loadtxt(str(mutinfo), delimiter=delimiter)
+    
     ndim, shape = mi.ndim, mi.shape
-    if ndim !=2 or shape[0] != shape[1]:
-        raise ValueError('Input mutinfo must be a 2D square array')
+    if ndim != 2 or shape[0] != shape[1]:
+        raise ValueError('mutinfo must contain a square matrix')
+    
     msa, label = kwargs.get('msa'), kwargs.get('label')
+    
     pdb, pdbflag = kwargs.get('pdb'), False
+    
     resnum = None
+    
     if pdb is not None:
         from prody import parsePDB
         try:
@@ -172,6 +180,7 @@ def evol_rankorder(mutinfo, **kwargs):
                 else:
                     LOGGER.info('Number of residues in PDB does not match '
                                 'mutinfo matrix, ignoring PDB input')
+    
     if not pdbflag:
         if msa is not None:
             msa = parseMSA(msa)
@@ -209,8 +218,10 @@ def evol_rankorder(mutinfo, **kwargs):
             LOGGER.info('MSA or PDB not given or does not match mutinfo, '
                         'using serial indexing')
             resnum = np.arange(1, shape[0]+1)
+    
     LOGGER.info('Residue numbers start and end with {0}-{1}'.
                 format(str(resnum[0]), str(resnum[-1])))
+    
     outname = kwargs.get('outname')
     if outname is None:
         outname, ext = splitext(str(mutinfo))
@@ -220,15 +231,17 @@ def evol_rankorder(mutinfo, **kwargs):
         outname, ext = splitext(str(outname))
         if ext is None:
             ext = '.txt'
+    
     outname += '_rankorder' + ext
     zscore = kwargs.get('zscore')
     if zscore:
         LOGGER.info('zscore normalization applied such that each column '
-                    ' has 0 mean and standard deviation 1')
+                    'has 0 mean and standard deviation 1')
         header = 'Serial\tRow\tColumn\tZscore'
         mi = (mi - mi.mean(0)) / mi.std(0)
     else:
         header = 'Serial\tRow\tColumn\tMI'
+    
     mi_ind_start, mi_ind_end = np.tril_indices(shape[0], k=-1)
     mi_matrix = mi[mi_ind_start, mi_ind_end]
     sorted_index = mi_matrix.argsort(axis=None)[::-1]
@@ -236,16 +249,18 @@ def evol_rankorder(mutinfo, **kwargs):
     column = mi_ind_end[sorted_index]
     count = 1
     i = 0
+    
     f = openFile(outname, 'wb')
     if label is None:
         label = 'Serial Index'
     f.write(('Label: '+ label + '\t' + 'Residue Numbers: ' +
              str(resnum[0]) + '-' + str(resnum[-1]) + '\n'))
+    
     numpairs = kwargs.get('numpairs')
     size = len(row)
     seqsep = kwargs.get('seqsep')
-    if not kwargs.get('usestructsep') or not pdbflag:
-        if kwargs.get('usestructsep'):
+    if not kwargs.get('usedist') or not pdbflag:
+        if kwargs.get('usedist'):
             LOGGER.info('use-struct-sep set to true, but PDB not given or '
                         'incorrect residue number. Using sequence separation')
         else:
@@ -261,7 +276,7 @@ def evol_rankorder(mutinfo, **kwargs):
                 count += 1
             i += 1
     else:
-        structsep = kwargs.get('structsep')
+        structsep = kwargs.get('distsep')
         f.write((header + '\tDistance Cutoff: ' + str(structsep) + '\n'))        
         while count <=numpairs  and i < size:        
             if distance[row[i], column[i]] > structsep:
@@ -272,4 +287,5 @@ def evol_rankorder(mutinfo, **kwargs):
                 count += 1                
             i += 1
     f.close()
+    
 APP.setFunction(evol_rankorder)

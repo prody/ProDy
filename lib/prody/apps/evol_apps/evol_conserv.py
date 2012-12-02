@@ -25,7 +25,7 @@ from ..apptools import DevelApp
 __all__ = ['evol_conserv']
 
 APP = DevelApp('conserv', 
-               help='analyze conserved residues using Shannon entropy')
+               help='analyze conservation using Shannon entropy')
 
 APP.setExample(
 """This application calculates conservation using Shannon entropy for a \ 
