@@ -36,7 +36,7 @@ class TestGunzip(TestCase):
         
         self.pref = join(TEMPDIR, 'compressed.txt')
         self.gzfn = self.pref + '.gz' 
-        self.text = '\n'.join(['some random text'] * 100)
+        self.text = ''.join(['some random text '] * 100)
         try:
             self.bytes = bytes(self.text, encoding='utf-8')
         except TypeError:

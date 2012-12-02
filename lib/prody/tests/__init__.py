@@ -35,10 +35,13 @@ from os.path import sep as dirsep
 import inspect
 import tempfile
 
+from prody.utilities import PLATFORM
 from prody import LOGGER
 
 from prody.utilities import which
 NOPRODYCMD = which('prody') is None
+
+WINDOWS = PLATFORM == 'Windows'
 
 try:
     import matplotlib

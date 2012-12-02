@@ -33,7 +33,7 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.apps import prody_parser 
 
-from prody.tests import MATPLOTLIB, NOPRODYCMD
+from prody.tests import MATPLOTLIB, NOPRODYCMD, WINDOWS
 
 class TestCatdcdCommand(TestCase): 
     
@@ -53,6 +53,7 @@ class TestCatdcdCommand(TestCase):
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testSimpleConcat(self):
 
         command = self.command + ' {0:s} {0:s} {0:s}'.format(self.dcdpath)
@@ -68,6 +69,7 @@ class TestCatdcdCommand(TestCase):
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testSelectConcat(self):
             
         command = self.command + ' -s ca --pdb {1:s} {0:s} {0:s}'.format(
@@ -94,6 +96,7 @@ class TestCatdcdCommand(TestCase):
         
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testAlignConcat(self):
             
         command = self.command + ' --align ca --pdb {1:s} {0:s} {0:s}'.format(
@@ -122,6 +125,7 @@ class TestCatdcdCommand(TestCase):
             
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command is not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testSelectException(self):
         
         command = self.command + ' -s ca {0:s} {0:s}'.format(
@@ -131,6 +135,7 @@ class TestCatdcdCommand(TestCase):
          
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command is not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testAlignException(self):
         
         command = self.command + ' --align ca {0:s} {0:s}'.format(
@@ -140,6 +145,7 @@ class TestCatdcdCommand(TestCase):
            
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command is not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testIOException(self):
         
         command = self.command + ' {0:s} {0:s}'.format('deneme.dcd')
@@ -148,6 +154,7 @@ class TestCatdcdCommand(TestCase):
             
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command is not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testSelectException2(self):
         
         command = self.command + ' -s None {0:s} {0:s}'.format(self.dcdpath)

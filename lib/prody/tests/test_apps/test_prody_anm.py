@@ -31,7 +31,7 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.apps import prody_parser 
 
-from prody.tests import MATPLOTLIB, NOPRODYCMD
+from prody.tests import MATPLOTLIB, NOPRODYCMD, WINDOWS
 
 class TestANMCommand(TestCase): 
     
@@ -58,6 +58,7 @@ class TestANMCommand(TestCase):
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
     @skipUnless(MATPLOTLIB, 'matplotlib not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testANMCommand(self):
             
         pdb = pathDatafile('multi_model_truncated')

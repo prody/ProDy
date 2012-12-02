@@ -34,7 +34,7 @@ LOGGER.verbosity = None
 from prody.apps.prody_apps import prody_commands
 from prody.tests.test_datafiles import TEMPDIR
 
-from prody.tests import MATPLOTLIB, NOPRODYCMD
+from prody.tests import MATPLOTLIB, NOPRODYCMD, WINDOWS
 
 TESTDIR = os.path.join(TEMPDIR, 'prody_tests')
 
@@ -83,6 +83,7 @@ for cmd in prody_commands.choices:
         @dec.slow  
         @skipIf(NOPRODYCMD, 'prody command not found')
         @skipUnless(MATPLOTLIB, 'matplotlib not found')
+        @skipIf(WINDOWS, 'examples are not tested in Windows')
         def func(self, examples=egs):
             
             for eg in examples:

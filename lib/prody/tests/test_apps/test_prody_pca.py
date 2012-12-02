@@ -31,7 +31,7 @@ from prody.tests.test_datafiles import TEMPDIR, pathDatafile
 
 from prody.apps import prody_parser 
 
-from prody.tests import MATPLOTLIB, NOPRODYCMD
+from prody.tests import MATPLOTLIB, NOPRODYCMD, WINDOWS
 
 class TestPCACommand(TestCase): 
     
@@ -62,6 +62,7 @@ class TestPCACommand(TestCase):
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
     @skipUnless(MATPLOTLIB, 'matplotlib not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testPCACommandDCD(self):
         
         dcd = pathDatafile('dcd')
@@ -78,6 +79,7 @@ class TestPCACommand(TestCase):
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
     @skipUnless(MATPLOTLIB, 'matplotlib not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testPCACommandPDB(self):
             
         dcd = pathDatafile('multi_model_truncated')

@@ -126,6 +126,8 @@ if major > 2 and minor < 3:
 else:
     import gzip
     def gzip_open(filename, *args, **kwargs):
+        if "t" in args[0]:
+            args = (args[0].replace("t", ""), ) + args[1:]
         if isinstance(filename, str):
             return gzip.open(filename, *args, **kwargs)
         else:
@@ -159,7 +161,15 @@ def backupFile(filename, backup=None, backup_ext='.BAK', **kwargs):
         if backup_ext == '.BAK':
             backup_ext = SETTINGS.get('backup_ext', '.BAK')
         bak = filename + backup_ext
-        os.rename(filename, bak)
+        if isfile(bak):
+            try:
+                os.remove(bak)
+            except Exception as err:
+                pass
+        try:
+            os.rename(filename, bak)
+        except Exception as err:
+            pass
         return bak
     else:
         return filename
