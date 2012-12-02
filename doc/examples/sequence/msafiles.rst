@@ -235,3 +235,5 @@ See :mod:`.sequence` module for all sequence analysis functions.
 |questions|
 
 |suggestions|
+
+.. sectionauthor:: Anindita Dutta
