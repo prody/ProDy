@@ -268,12 +268,12 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
     return mi
 
 def calcRankorder(matrix, zscore=False, **kwargs):
-    """Rank orders (sorts) the elements of the 2D matrix in descending order 
+    """Rank orders (sorts) the elements of the 2D matrix in descending order, 
     if *descend* is **True** (default). Can apply a zscore normalization; by 
-    default along *axis* - 0 such that each column has mean=0 and std=1. Returns
-    a tuple of indices (row, column, value) and a flattened sorted matrix such
-    that value=matrix[row, column]. If zcore is applied, than return value
-    contains the zscores"""
+    default along *axis* - 0 such that each column has mean=0 and std=1.  
+    Returns a tuple of indices (row, column, value) and a flattened sorted 
+    matrix such that ``value=matrix[row, column]``.  If *zcore* analysis is 
+    used, return value contains the zscores."""
     
     try:
         ndim, shape = matrix.ndim, matrix.shape
