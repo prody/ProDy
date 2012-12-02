@@ -11,9 +11,18 @@ Release 1.4 (Dec 2, 2012)
 
 **New Features**:
 
-  * ProDy supports Python 3.
+*Python 3 Support*
 
-  * New applications :ref:`evol-apps` are developed. 
+  * ProDy has been refactored to support Python 3.  Windows installers for 
+    Python 2.6, 2.7, 3.1, and 3.2 are available in :ref:`getprody`.  
+    
+  * Unit tests are compatible with Python 2.7 and 3.2, and running them with 
+    other versions gives errors due to unavailability of some :mod:`unittest` 
+    features.
+
+*Sequence Analysis*
+
+  * New applications :ref:`evol-apps` are available. 
 
   * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
     for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
@@ -33,6 +42,13 @@ Release 1.4 (Dec 2, 2012)
   * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and 
     :func:`.showMSAOccupancy` functions are implemented implemented for 
     MSA analysis.  See :ref:`msa-analysis` for usage examples.
+    
+  * :func:`.applyMutinfoCorr` and :func:`.applyMutinfoNorm` functions are 
+    implemented for applying normalization and corrections to mutual 
+    information matrices. 
+  
+  * :func:`.calcRankorder` function is implemented for identifying highly
+    correlated/co-evolving pairs of residues.
 
 
 **Bugfix**:
