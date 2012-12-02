@@ -384,22 +384,28 @@ def openSQLite(filename, *args):
     return sqlite3.connect(filename)
     
     
-def openURL(url, timeout=5):
+def openURL(url, timeout=5, **kwargs):
     """Open *url* for reading. Raise an :exc:`IOError` if *url* cannot be 
-    reached.  Small *timeout* values are suitable if *url* is an ip address."""
+    reached.  Small *timeout* values are suitable if *url* is an ip address.
+    *kwargs* will be used to make :class:`urllib.request.Request` instance
+    for opening the *url*."""
     
     try:
-        from urllib2 import urlopen, URLError
+        from urllib2 import urlopen, URLError, Request
     except ImportError:
-        from urllib.request import urlopen
+        from urllib.request import urlopen, Request
         from urllib.error import URLError
     
-    url = str(url)
+    if kwargs:
+        request = Request(url, **kwargs)
+    else: 
+        request = str(url)
+        
     try:
-        return urlopen(url, timeout=int(timeout))
+        return urlopen(request, timeout=int(timeout))
     except URLError: 
         raise IOError('{0} could not be opened for reading, invalid URL or '
-                      'no internet connection'.format(repr(url)))
+                      'no internet connection'.format(repr(request)))
 
 
 def glob(*pathnames):

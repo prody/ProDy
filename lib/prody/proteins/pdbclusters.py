@@ -26,7 +26,7 @@ import os.path
 from numpy import array, abs
 
 from prody import LOGGER, SETTINGS, getPackagePath
-from prody.utilities import openFile
+from prody.utilities import openFile, openURL
 
 __all__ = ['fetchPDBClusters', 'loadPDBClusters', 'listPDBCluster']
 
@@ -127,7 +127,6 @@ def fetchPDBClusters(sqid=None):
     else:
         keys = list(PDB_CLUSTERS)
     
-    import urllib2
     PDB_CLUSTERS_PATH = os.path.join(getPackagePath(), 'pdbclusters')
     if not os.path.isdir(PDB_CLUSTERS_PATH):
         os.mkdir(PDB_CLUSTERS_PATH)
@@ -138,8 +137,8 @@ def fetchPDBClusters(sqid=None):
         filename = 'bc-{0}.out'.format(x)
         url = ('ftp://resources.rcsb.org/sequence/clusters/' + filename)
         try:
-            inp = urllib2.urlopen(url)
-        except urllib2.HTTPError:
+            inp = openURL(url)
+        except IOError:
             LOGGER.warning('Clusters at {0}% sequence identity level could '
                            'not be downloaded.')
             continue

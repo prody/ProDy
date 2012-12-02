@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import os.path
 
 from prody import LOGGER
-from prody.utilities import dictElement
+from prody.utilities import dictElement, openURL
 
 __all__ = ['PDBBlastRecord', 'blastPDB']
            
@@ -79,43 +79,45 @@ def blastPDB(sequence, filename=None, **kwargs):
         LOGGER.warn('Keyword argument(s) {0} are not used.'
                     .format(', '.join([repr(key) for key in kwargs])))
 
-    import urllib, urllib2
-    
+    try:
+        import urllib.parse 
+        urlencode = lambda data: bytes(urllib.parse.urlencode(data), 'utf-8')
+    except ImportError:
+        from urllib import urlencode
+
     url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
     
-    data = urllib.urlencode(query)
+    data = urlencode(query)
     LOGGER.timeit('_prody_blast')
     LOGGER.info('Blast searching NCBI PDB database for "{0}..."'
                 .format(sequence[:5]))
-    request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
-    handle = urllib2.urlopen(request)
-    
+    handle = openURL(url, data=data, headers={'User-agent': 'ProDy'})
+
     html = handle.read()
-    index = html.find('RID =')
+    index = html.find(b'RID =')
     if index == -1:
         raise Exception('NCBI did not return expected response.')
     else:
-        last = html.find('\n', index)
+        last = html.find(b'\n', index)
         rid = html[index + len('RID ='):last].strip()
 
-    index = html.find('RTOE =')
+    index = html.find(b'RTOE =')
     if index == -1:
         rtoe = None # This is not used
     else:
-        last = html.find('\n', index)
+        last = html.find(b'\n', index)
         rtoe = int(html[index + len('RTOE ='):last].strip())
 
     query = [('ALIGNMENTS', 500), ('DESCRIPTIONS', 500), 
              ('FORMAT_TYPE', 'XML'), ('RID', rid), ('CMD', 'Get')]
-    data = urllib.urlencode(query)
+    data = urlencode(query)
     
     while True:
         LOGGER.sleep(int(sleep), 'to reconnect NCBI for search results.')
         LOGGER.write('Connecting NCBI for search results...')
-        request = urllib2.Request(url, data, {'User-agent': 'ProDy'})
-        handle = urllib2.urlopen(request)
+        handle = openURL(url, data=data, headers={'User-agent': 'ProDy'})
         results = handle.read()
-        index = results.find('Status=')
+        index = results.find(b'Status=')
         LOGGER.clear()
         if index < 0:
             break
@@ -171,7 +173,6 @@ class PDBBlastRecord(object):
         self._sequence = sequence
         
         import xml.etree.cElementTree as ET
-        assert isinstance(xml, str), 'xml must be a string'
         if len(xml) < 100:
             if os.path.isfile(xml):
                 xml = ET.parse(xml)
@@ -224,7 +225,7 @@ class PDBBlastRecord(object):
                     pdbch['chain_id'] = chain_id
                     pdbch['title'] = (head[-1][1:] + title).strip()
                     hits.append((p_identity, p_overlap, pdbch))
-        hits.sort(reverse=True)
+        hits.sort(key=lambda hit: hit[0], reverse=True)
         self._hits = hits
         
     def getSequence(self):    

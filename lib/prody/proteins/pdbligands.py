@@ -27,7 +27,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS, getPackagePath
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
-from prody.utilities import openFile, makePath
+from prody.utilities import openFile, makePath, openURL
 
 __all__ = ['fetchPDBLigand']
 
@@ -97,10 +97,9 @@ def fetchPDBLigand(cci, filename=None):
                '.xml'.format(cci.upper()))
         if not xml:
             #'http://www.pdb.org/pdb/files/ligand/{0}.xml'
-            import urllib2
             try:
-                inp = urllib2.urlopen(url)
-            except urllib2.HTTPError:
+                inp = openURL(url)
+            except IOError:
                 raise IOError('XML file for ligand {0} is not found online'
                               .format(cci))
             else:
