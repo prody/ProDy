@@ -33,6 +33,10 @@ Release 1.4 (in development)
     MSA analysis.  See :ref:`msa-analysis` for usage examples.
 
 
+**Bugfix**:
+
+  * Selection issues :issue:`12` and  :issue:`13` are resolved.
+
 Release 1.3.1 (Nov 6, 2012)
 ===============================================================================
 

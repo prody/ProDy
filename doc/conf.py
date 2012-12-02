@@ -29,6 +29,7 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc', 
               'sphinx.ext.doctest', 
               'sphinx.ext.coverage', 
+              'sphinx.ext.extlinks', 
               'sphinx.ext.graphviz',
               'sphinx.ext.ifconfig', 
               'sphinx.ext.viewcode',
@@ -220,6 +221,9 @@ html_copy_source = False
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'ProDydoc'
+
+extlinks = {'issue': ('https://bitbucket.org/abakan/prody/issue/%s',
+                      'issue ')}
 
 # Plot directive configuration
 # ----------------------------
