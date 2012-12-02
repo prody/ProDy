@@ -121,7 +121,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         LOGGER.clear()
         if index < 0:
             break
-        last = results.index('\n', index)
+        last = results.index(b'\n', index)
         status = results[index+len('Status='):last].strip()
         if status.upper() == 'READY':
             break
