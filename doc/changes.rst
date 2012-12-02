@@ -6,12 +6,12 @@
 Changes
 *******************************************************************************
 
-Release 1.4 (in development)
+Release 1.4 (Dec 2, 2012)
 ===============================================================================
 
 **New Features**:
 
-  * ProDy have been refactored to support Python 3. 
+  * ProDy supports Python 3.
 
   * New applications :ref:`evol-apps` are developed. 
 

@@ -6,6 +6,39 @@
 Changes
 *******************************************************************************
 
+Release 1.4 (Dec 2, 2012)
+===============================================================================
+
+**New Features**:
+
+  * ProDy supports Python 3.
+
+  * New applications :ref:`evol-apps` are developed. 
+
+  * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
+    for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
+    examples.
+  
+  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`.writeMSA` functions 
+    are implemented for reading and writing multiple sequence alignments.
+    See :ref:`msafiles` for usage examples.
+    
+  * :class:`.MSA` class has been implemented for storing and manipulating
+    MSAs in memory.  
+
+  * :func:`.calcShannonEntropy`, :func:`.buildMutinfoMatrix`, and 
+    :func:`.calcMSAOccupancy` functions are implemented implemented for 
+    MSA analysis.  See :ref:`msa-analysis` for usage examples.
+
+  * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and 
+    :func:`.showMSAOccupancy` functions are implemented implemented for 
+    MSA analysis.  See :ref:`msa-analysis` for usage examples.
+
+
+**Bugfix**:
+
+  * Selection :issue:`12` and  :issue:`13` are resolved.
+
 Release 1.3.1 (Nov 6, 2012)
 ===============================================================================
 
@@ -67,7 +100,7 @@ Release 1.3 (Sep 30, 2012)
     These messages can be turned of using :func:`.confProDy`
 
   * Functions used in :ref:`commands` have been refactored to allow for using 
-    them directly.  See :mod:`.routines` for their documentation.
+    them directly.  See :mod:`.apps` for their documentation.
      
 **Bugfix**:
 
@@ -803,8 +836,8 @@ Release 0.9.2 (Jan 11, 2012)
     :func:`.setVerbosity` and :func:`.getVerbosity`, respectively. 
     Old names will be removed in v1.0.
     
-  * ProDy routines (commands) module is rewritten to use new :mod:`argparse`
-    module. See :ref:`commands` for details of changes.
+  * ProDy applications (commands) module is rewritten to use new 
+    :mod:`argparse` module. See :ref:`commands` for details of changes.
     
   * :mod:`argparse` module is added to the package for Python versions 2.6
     and older.
@@ -1245,7 +1278,8 @@ Release 0.8 (Aug 24, 2011)
     :func:`.showCrossProjection` functions can optionally calculate/display 
     RMSD along the normal mode. 
   
-  * ANM, GNM, and PCA routines can optionally write compressed ProDy data files.
+  * ANM, GNM, and PCA applications can optionally write compressed ProDy data 
+    files.
   
   * :func:`.fetchPDB` function can optionally write decompressed 
     files and force copying a file from local mirror to target folder.

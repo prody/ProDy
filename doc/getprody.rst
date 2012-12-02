@@ -7,8 +7,8 @@ Getting ProDy
 Required Software
 ===============================================================================
 
-* `Python`_ 2.6 or 2.7 (for Windows, choose a 32bit installer that is supported
-  by NumPy and ProDy packages)
+* `Python`_ 2.6 or later (for Windows, choose a 32bit installer that is 
+  supported by NumPy and ProDy packages)
 * `NumPy`_ 1.4+
 
 When compiling from source, on Linux for example, you will need a C compiler 

@@ -23,7 +23,7 @@ DOCUMENTATION
 
 * Homepage: http://www.csb.pitt.edu/ProDy
 
-* Examples: http://www.csb.pitt.edu/ProDy/apps
+* Examples: http://www.csb.pitt.edu/ProDy/examples
 
 * Tutorial: http://www.csb.pitt.edu/ProDy/tutorial
 
@@ -39,7 +39,7 @@ DOCUMENTATION
 SOURCE CODE
 -----------
 
-* Source code: https://bitbucket.org/abakan/prody/
+* Source code: https://bitbucket.org/abakan/prody
 
 * Issue tracker: https://bitbucket.org/abakan/prody/issues
 

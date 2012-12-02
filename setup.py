@@ -86,10 +86,11 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
-SCRIPTS = ['scripts/prody']
+SCRIPTS = ['scripts/prody', 'scripts/evol']
 if (platform.system() == 'Windows' or 
     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
-    SCRIPTS.append('scripts/prody.bat')
+    for script in list(SCRIPTS):
+        SCRIPTS.append(script + 'bat')
 
 setup(
     name='ProDy',
@@ -117,6 +118,7 @@ setup(
                  'Operating System :: POSIX',
                  'Programming Language :: Python',
                  'Programming Language :: Python :: 2',
+                 'Programming Language :: Python :: 3',
                  'Topic :: Scientific/Engineering :: Bio-Informatics',
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],

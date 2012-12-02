@@ -14,9 +14,8 @@ subcommands:
     fetch               fetch MSA files from Pfam
     filter              filter an MSA using sequence labels
     refine              refine an MSA by removing gapped rows/colums
-    conserv             analyze conserved residues using Shannon entropy
-    coevol              analyze co-evolving residues using mutual information
-    rankorder           identify highly coevolving pairs of residues based on
-                        mutual information
+    conserv             analyze conservation using Shannon entropy
+    coevol              analyze co-evolution using mutual information
+    rankorder           identify highly coevolving pairs of residues
 
 See 'evol <command> -h' for more information on a specific command.
