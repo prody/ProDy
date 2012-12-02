@@ -14,9 +14,9 @@ Running :command:`evol search -h` displays::
                      query
   
   positional arguments:
-    query                 protein UniProt ID or sequence, or a sequence file,
-                          where sequence have no gaps and more than 11
-                          characters
+    query                 protein UniProt ID or sequence, a PDB identifier, or a
+                          sequence file, where sequence have no gaps and 12 or
+                          more characters
   
   optional arguments:
     -h, --help            show this help message and exit
@@ -37,7 +37,7 @@ Running :command:`evol search -h` displays::
     -o STR, --outname STR
                           name for output file, default is standard output
     -d STR, --delimiter STR
-                          delimiter for output data columns (default: '\t')
+                          delimiter for output data columns (default: )
 
 Examples
 ===============================================================================
@@ -50,6 +50,11 @@ Running :command:`evol search --examples` displays::
   sequence should be 12 and should not contain gaps.  If outname is
   specified it will output the results obtained in a file or the output
   will be directed to standard output.
+  
+  Search Pfam with PDB and chain identifier and output results to
+  screen:
+  
+      $ evol search 1mkpA
   
   Search Pfam with UniProt ID and write output into a file:
   

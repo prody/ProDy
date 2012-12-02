@@ -1,0 +1,19 @@
+usage: pdbindex [-h] [-c] [-v] {count,interact,list,build,clean,fetch} ...
+
+PDBIndex:
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c, --cite            print citation info and exit
+  -v, --version         print ProDy version and exit
+
+subcommands:
+  {count,interact,list,build,clean,fetch}
+    list                list instances of polymer/chemical entities
+    count               count instances of polymer/chemical entities
+    interact            interactive session for repeated list/count calls
+    build               build PDBIndex database from local PDB mirror
+    fetch               fetch PDBIndex database from ProDy website
+    clean               maintain PDBIndex database
+
+See 'pdbindex <command> -h' for more information on a specific command.
