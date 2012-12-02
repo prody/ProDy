@@ -2,45 +2,39 @@ SYNOPSIS
 --------
 
 ProDy is a free and open-source Python package for protein structure, dynamics,
-and sequence analysis.  ProDy is designed as a fast and flexible API suitable
-for both interactive usage and software development.  It suits for comparative
-analysis and modeling of protein structural dynamics and sequence co-evolution.
+and sequence analysis.  It allows for comparative analysis and modeling of 
+protein structural dynamics and sequence co-evolution.  Fast and flexible ProDy
+API is for interactive usage as well as application development.  ProDy also  
+comes with several analysis applications and a graphical user interface for 
+visual analysis. You can run ProDy on all major platforms, see the instructions
+for downloading and installing below:   
+
+  * http://www.csb.pitt.edu/ProDy/getprody.html
 
 
-TUTORIAL, EXAMPLES, and DOCUMENTATION
--------------------------------------
-
-http://www.csb.pitt.edu/ProDy 
-
-DOWNLOADS & INSTALLATION
-------------------------
-  
-* http://www.csb.pitt.edu/ProDy/getprody.html
-
-GRAPHICAL INTERFACE
--------------------
-
-http://www.csb.pitt.edu/NMWiz 
-
-CHANGES
--------
-
-* http://www.csb.pitt.edu/ProDy/changes.html
-
-SOURCE
-------
-
-* https://bitbucket.org/abakan/prody/
-
-EMAILING LIST
+DOCUMENTATION
 -------------
 
-* http://groups.google.com/group/prody-news
+* Documentation: http://www.csb.pitt.edu/ProDy
 
-REPORT ISSUES
--------------
+* Applications: http://www.csb.pitt.edu/ProDy/apps
 
-* https://bitbucket.org/abakan/prody/issues
+* Examples: http://www.csb.pitt.edu/ProDy/apps
+
+* Tutorial: http://www.csb.pitt.edu/ProDy/tutorial
+
+* Graphical Interface: http://www.csb.pitt.edu/NMWiz 
+
+* Change log: http://www.csb.pitt.edu/ProDy/changes.html
+
+
+SOURCE CODE
+-----------
+
+* Source code: https://bitbucket.org/abakan/prody/
+
+* Issue tracker: https://bitbucket.org/abakan/prody/issues
+
 
 LICENSE
 -------
