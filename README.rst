@@ -6,26 +6,34 @@ and sequence analysis.  It allows for comparative analysis and modeling of
 protein structural dynamics and sequence co-evolution.  Fast and flexible ProDy
 API is for interactive usage as well as application development.  ProDy also  
 comes with several analysis applications and a graphical user interface for 
-visual analysis. You can run ProDy on all major platforms, see the instructions
-for downloading and installing below:   
+visual analysis. 
 
-  * http://www.csb.pitt.edu/ProDy/getprody.html
+
+GETTING PRODY
+-------------   
+
+You can run ProDy on all major platforms.  For download and installation
+instructions see:
+
+* http://www.csb.pitt.edu/ProDy/getprody.html
 
 
 DOCUMENTATION
 -------------
 
-* Documentation: http://www.csb.pitt.edu/ProDy
-
-* Applications: http://www.csb.pitt.edu/ProDy/apps
+* Homepage: http://www.csb.pitt.edu/ProDy
 
 * Examples: http://www.csb.pitt.edu/ProDy/apps
 
 * Tutorial: http://www.csb.pitt.edu/ProDy/tutorial
 
-* Graphical Interface: http://www.csb.pitt.edu/NMWiz 
+* Reference: http://www.csb.pitt.edu/ProDy/reference
 
-* Change log: http://www.csb.pitt.edu/ProDy/changes.html
+* Applications: http://www.csb.pitt.edu/ProDy/apps
+
+* NMWiz GUI: http://www.csb.pitt.edu/NMWiz 
+
+* Changes: http://www.csb.pitt.edu/ProDy/changes.html
 
 
 SOURCE CODE
