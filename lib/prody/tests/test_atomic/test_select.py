@@ -138,9 +138,12 @@ SELECTION_TESTS = {'pdb3mht':
         ('name P CA', 352),
         ('name `A 1`', 0), 
         ('chain C', 248),
+        ('chain x', 0),
+        ('chain x y', 0),
+        ('chain x y z', 0),
+        ('chain x y z C', 248),
         ('chain C D', 521),
         ('chain CD', 0),
-        #('chain x', 0),
         ('resname DG', 132),
         ('resname DG ALA', 212),
         ('altloc A', 0),
@@ -225,6 +228,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('sq(x x) > 1', None),],
         
      'test_composite': [
+        ('chain x y z C and x 10', 0),
         ('resnum `1` `2`', 16, 'resnum 1 2'),
         ('same residue as within 4 of resname SAH', 177),
         ('name CA and same residue as within 4 of resname SAH', 20),

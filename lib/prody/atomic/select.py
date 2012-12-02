@@ -699,7 +699,8 @@ OPERATORS = {
 SAMEAS_MAP = {'residue': 'resindex', 'chain': 'chindex', 
               'segment': 'segindex', 'fragment': 'fragindex'}
 
-
+# maybe a value to a field/data label or field label
+XYZ = set(['x', 'y', 'z']) 
 XYZDIST = set(['x', 'y', 'z', 'within', 'exwithin'])
 
 OR = pp.Keyword('or')
@@ -1353,10 +1354,41 @@ class Select(object):
                 
                 elif (isDataLabel(token) or token in self._evalmap or
                       token in ATOMIC_FIELDS):
-                    evals.append([])
-                    append = evals[-1].append 
+                    # not evals, must start a new list
+                    # last evals list must have more than one values
+                    # 
+                    if not evals:
+                        evals.append([])
+                        append = evals[-1].append
+                    elif len(evals[-1]) == 1:
+                        if token in XYZ:
+                            pass
+                        else:
+                            return None, SelectionError(sel, loc, '{0} ' 
+                                'must be followed by values'
+                                .format(evals[-1][0]), [evals[-1][0]])
+                    elif token in XYZ:        
+                        if (not tokens or tokens[0] in self._evalmap or 
+                              tokens[0] in ATOMIC_FIELDS or
+                              isDataLabel(tokens[0]) or tokens[0] == 'and'):
+                            pass
+                        else:
+                            try:
+                                float(tokens[0])
+                            except ValueError as err:
+                                pass
+                            else:
+                                evals.append([])
+                                append = evals[-1].append
+                    elif not tokens:
+                        return None, SelectionError(sel, loc, '{0} ' 
+                            'must be followed by values'
+                            .format(token), [token])
+                    else:
+                        evals.append([])
+                        append = evals[-1].append
                     append(token)
-                
+
                 elif token in UNARY:
                     unary.append([])
                     append = unary[-1].append
