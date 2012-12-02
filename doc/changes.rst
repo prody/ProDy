@@ -13,6 +13,8 @@ Release 1.4 (in development)
 
   * ProDy have been refactored to support Python 3. 
 
+  * New applications :ref:`evol-apps` are developed. 
+
   * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
     for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
     examples.

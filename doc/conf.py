@@ -124,7 +124,7 @@ html_theme = 'sphinxdoc'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-#html_title = None
+html_title = "ProDy"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -367,9 +367,6 @@ rst_epilog = u"""
 .. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
 .. |A2| replace:: Å\ :sup:`2`
-
-.. |tracker| replace:: ProDy 
-   `issue tracker <https://bitbucket.org/abakan/prody/issues>`
 
 .. |questions| replace:: To receive new release announcements, join our 
    ProDy-News Google Group: http://groups.google.com/group/prody-news

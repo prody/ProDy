@@ -7,10 +7,17 @@ ProDy Applications
 ProDy applications are command line programs that automates structural data
 analysis, theoretical calculations, and plotting resulting data.  Applications
 come in two following groups.  If you have new application ideas, visit 
-|tracker| and make a proposal. 
+`issue tracker`_ and make a proposal. 
+
+.. _issue tracker: https://bitbucket.org/abakan/prody/issues
+
+.. _prody-apps:
 
 Structure and Dynamics Analysis
 ===============================================================================
+
+Following applications are available for structure and dynamics analysis, and
+also for testing your ProDy installation:
 
 .. toctree::
    :maxdepth: 1
@@ -18,14 +25,35 @@ Structure and Dynamics Analysis
 
    prody_*
 
+
+Running :command:`prody` command will provide a description of applications::
+  
+  $ prody
+  
+
+.. literalinclude:: prody.txt
+
+
+.. _evol-apps:
+
 Sequence Evolution Analysis
 ===============================================================================
+
+Following applications are for analysis of protein sequence evolution:
 
 .. toctree::
    :maxdepth: 1
    :glob:
 
    evol_*
+
+
+Running :command:`evol` command will provide a description of applications::
+  
+  $ evol
+  
+
+.. literalinclude:: evol.txt
 
 
 Application Setup
@@ -38,31 +66,16 @@ On Windows, installer places the scripts into the :file:`Scripts` folder under
 Python distribution folder, e.g. :file:`C:\\Python27\\Scripts`.  You may need 
 to add this path to :envvar:`PATH` environment variable yourself. 
 
-A list of applications can be obtained by running :command:`prody` and 
-:command:`evol` commands::
-  
-  $ prody
-  
-This will display available commands and short descriptions:
-
-.. literalinclude:: prody.txt
-
-::
-
-  $ evol
-  
-.. literalinclude:: evol.txt
-
-
-To get more information on a specific command, type in command name, e.g.
-:command:`prody anm`.
 
 Usage Example
 ===============================================================================
 
-Running the following command will perform ANM calculations for the p38 MAP 
-kinase structure, and will write eigenvalues/vectors in plain text and 
-:term:`NMD` formats::
+Detailed information on a specific application can be obtained 
+by typing the command and application names as :command:`prody anm -h`.
+
+Running :command:`prody anm` application as follows will perform ANM 
+calculations for the p38 MAP kinase structure, and will write 
+eigenvalues/vectors in plain text and :term:`NMD` formats::
 
   $ prody anm 1p38
   
