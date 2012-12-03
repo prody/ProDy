@@ -28,8 +28,7 @@ const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
 
 
-static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
-                                    PyObject *kwargs) {
+static PyObject *msaentropy(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     PyArrayObject *msa;
     int ambiguity = 1, omitgaps = 0;
@@ -48,26 +47,26 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa); 
 
-    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    long number = msa->dimensions[0], length = msa->dimensions[1];
        
-    double *ent = malloc(lenseq * sizeof(double));
+    double *ent = malloc(length * sizeof(double));
     if (!ent)
         return PyErr_NoMemory();
         
     char *seq = (char *) PyArray_DATA(msa);
 
     /* start here */
-    long size = numseq * lenseq; 
+    long size = number * length; 
     double count[128]; /* number of ASCII characters*/
-    double shannon = 0, probability = 0, numgap = 0, denom = numseq;
+    double shannon = 0, probability = 0, numgap = 0, denom = number;
     long i = 0, j = 0;
     
     double ambiguous = 0;
     int twenty[20] = {65, 67, 68, 69, 70, 71, 72, 73, 75, 76, 
                       77, 78, 80, 81, 82, 83, 84, 86, 87, 89};
-    for (i = 0; i < lenseq; i++)
+    for (i = 0; i < length; i++)
         ent[j] = 0;
-    for (i = 0; i < lenseq; i++) {
+    for (i = 0; i < length; i++) {
 
         /* zero counters */
         for (j = 65; j < 91; j++)
@@ -76,7 +75,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
             count[j] = 0;
         
         /* count characters in a column*/
-        for (j = i; j < size; j += lenseq)
+        for (j = i; j < size; j += length)
             count[(int) seq[j]]++;
         for (j = 65; j < 91; j++)
             count[j] += count[j + 32];
@@ -109,16 +108,16 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
             }
         }
         /* non-gap counts */
-        numgap = numseq;
+        numgap = number;
         for (j = 65; j < 91; j++)
             numgap -= count[j];
         
         shannon = 0;
-        denom = numseq;
+        denom = number;
         if (omitgaps)
-            denom = numseq - numgap;
+            denom = number - numgap;
         else if (numgap > 0) {
-            probability = numgap / numseq;
+            probability = numgap / number;
             shannon += probability * log(probability);
         }
 
@@ -130,7 +129,7 @@ static PyObject *calcShannonEntropy(PyObject *self, PyObject *args,
         }
         ent[i] = -shannon;
     }
-    npy_intp dims[1] = {lenseq};
+    npy_intp dims[1] = {length};
     PyObject *entropy = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, ent);
     PyObject *result = Py_BuildValue("O", entropy);
     Py_DECREF(entropy);
@@ -491,7 +490,7 @@ static void printJoint(double **joint, long k, long l) {
 }
 
 
-static void printProbs(double **probs, long lenseq) {
+static void printProbs(double **probs, long length) {
 
     /* Print probability matrix for debugging purposes. */
     
@@ -502,7 +501,7 @@ static void printProbs(double **probs, long lenseq) {
     for (i = 0; i < NUMCHARS; i++)
         printf("%c_%-2i ", i + 64, i);
     printf("SUM\n");
-    for (i = 0; i < lenseq; i++) {
+    for (i = 0; i < length; i++) {
         sum = 0;
         row = probs[i];
         for (j = 0; j < NUMCHARS; j++) {
@@ -514,8 +513,7 @@ static void printProbs(double **probs, long lenseq) {
 }
 
 
-static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
-                                    PyObject *kwargs) {
+static PyObject *msamutinfo(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     PyArrayObject *msa;
     int ambiguity = 1, turbo = 1, debug = 0, norm = 0;
@@ -531,19 +529,19 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     msa = PyArray_GETCONTIGUOUS(msa); 
 
     /* check dimensions */
-    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    long number = msa->dimensions[0], length = msa->dimensions[1];
     
     /* get pointers to data */
-    char *seq = (char *) PyArray_DATA(msa); /*size: numseq x lenseq */
+    char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
     
 
     long i, j;
     /* allocate memory */
-    double *mut = malloc(lenseq * lenseq * sizeof(double));
+    double *mut = malloc(length * length * sizeof(double));
     if (!mut)
         return PyErr_NoMemory();
 
-    unsigned char *iseq = malloc(numseq * sizeof(unsigned char));
+    unsigned char *iseq = malloc(number * sizeof(unsigned char));
     if (!iseq) {
         free(mut);
         return PyErr_NoMemory();
@@ -551,7 +549,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
         
     
     /* hold transpose of the sorted character array */
-    unsigned char **trans = malloc(lenseq * sizeof(unsigned char *));
+    unsigned char **trans = malloc(length * sizeof(unsigned char *));
     if (!trans) {
         turbo = 0;
     }
@@ -559,8 +557,8 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     if (turbo) {
         /* allocate rows that will store columns of MSA */
         trans[0] = iseq;
-        for (i = 1; i < lenseq; i++) {
-            trans[i] = malloc(numseq * sizeof(unsigned char));
+        for (i = 1; i < length; i++) {
+            trans[i] = malloc(number * sizeof(unsigned char));
             if (!trans[i]) {
                 for (j = 1; j < i; j++)
                     free(trans[j]);
@@ -571,12 +569,12 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     }
     unsigned char *jseq = iseq; /* so that we don't get uninitialized warning*/
     
-    /* lenseq*27, a row for each column in the MSA */
-    double **probs = malloc(lenseq * sizeof(double *)), *prow;
+    /* length*27, a row for each column in the MSA */
+    double **probs = malloc(length * sizeof(double *)), *prow;
     if (!probs) {
         free(mut);
         if (turbo)
-            for (j = 1; j < lenseq; j++)
+            for (j = 1; j < length; j++)
                 free(trans[j]);
         free(trans);
         free(iseq);
@@ -588,7 +586,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     if (!joint) {
         free(mut);
         if (turbo)
-            for (j = 1; j < lenseq; j++)
+            for (j = 1; j < length; j++)
                 free(trans[j]);
         free(trans);
         free(iseq);
@@ -596,7 +594,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
         return PyErr_NoMemory();
     }
     
-    for (i = 0; i < lenseq; i++) {
+    for (i = 0; i < length; i++) {
         prow = malloc(NUMCHARS * sizeof(double));
         if (!prow) {
             free(mut);
@@ -605,7 +603,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             free(probs);
             free(joint);
             if (turbo)
-                for (j = 1; j < lenseq; j++)
+                for (j = 1; j < length; j++)
                     free(trans[j]);
             free(trans);
             free(iseq);
@@ -623,11 +621,11 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             for (j = 0; j < i; j++)
                 free(joint[j]);
             free(joint);
-            for (j = 0; j < lenseq; j++)
+            for (j = 0; j < length; j++)
                 free(probs[j]);
             free(probs);
             if (turbo)
-                for (j = 1; j < lenseq; j++)
+                for (j = 1; j < length; j++)
                     free(trans[j]);
             free(trans);
             free(iseq);
@@ -636,30 +634,31 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     }
     
     if (debug)
-        printProbs(probs, lenseq);
+        printProbs(probs, length);
 
     unsigned char a, b;
     long k, l, diff, offset;
-    double p_incr = 1. / numseq, prb = 0;
+    double p_incr = 1. / number, prb = 0;
     prow = probs[0];
     
     /* zero mut array */
-    for (i = 0; i < lenseq; i++) {
-        jrow = mut + i * lenseq;
-        for (j = 0; j < lenseq; j++)
+    for (i = 0; i < length; i++) {
+        jrow = mut + i * length;
+        for (j = 0; j < length; j++)
             jrow[j] = 0;
     }
     
-    i = 0;
+    /* START mutinfo calculation */    
     /* calculate first row of MI matrix and all column probabilities */
-    for (j = 1; j < lenseq; j++) {
+    i = 0;
+    for (j = 1; j < length; j++) {
         jrow = probs[j];
         zeroJoint(joint);
         diff = j - 1;
-        if (turbo)
+        if (turbo) /* in turbo mode, there is a row for refined sequences */
             jseq = trans[j]; 
-        for (k = 0; k < numseq; k++) {
-            offset = k * lenseq;
+        for (k = 0; k < number; k++) {
+            offset = k * length;
             if (diff) {
                 a = iseq[k];
             } else {
@@ -681,7 +680,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
                 b -= 64;
             if (b < 1 || b > 26)
                 b = 0; /* gap character */
-            if (turbo)
+            if (turbo)  /* we keep the refined chars for all sequences*/
                 jseq[k] = b;
             joint[a][b] += p_incr;
             jrow[b] += p_incr;
@@ -690,7 +689,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
         if (ambiguity) {
 
             if (debug)
-                printProbs(probs, lenseq);
+                printProbs(probs, length);
             if (diff)
                 k = j;
             else
@@ -727,7 +726,7 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             }
 
             if (debug)
-                printProbs(probs, lenseq);
+                printProbs(probs, length);
             if (debug)
                 printJoint(joint, i, j);
             sortJoint(joint);
@@ -735,36 +734,36 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
                 printJoint(joint, i, j);
         }
         if (norm)
-            mut[j] = mut[lenseq * j] = calcMI(joint, probs, i, j, debug) / 
+            mut[j] = mut[length * j] = calcMI(joint, probs, i, j, debug) / 
                                       jointEntropy(joint);
         else
-            mut[j] = mut[lenseq * j] = calcMI(joint, probs, i, j, debug);
+            mut[j] = mut[length * j] = calcMI(joint, probs, i, j, debug);
     }
     if (debug)
-        printProbs(probs, lenseq);
+        printProbs(probs, length);
     if (turbo)
         free(iseq);
 
     
     /* calculate rest of MI matrix */
     long ioffset;
-    for (i = 1; i < lenseq; i++) {
-        ioffset = i * lenseq;
+    for (i = 1; i < length; i++) {
+        ioffset = i * length;
         if (turbo)
             iseq = trans[i];
             
-        for (j = i + 1; j < lenseq; j++) {
+        for (j = i + 1; j < length; j++) {
             zeroJoint(joint);
 
             if (turbo) {
                 jseq = trans[j];
-                for (k = 0; k < numseq; k++)
+                for (k = 0; k < number; k++)
                     joint[iseq[k]][jseq[k]] += p_incr;
                     
             } else {         
                 diff = j - i - 1;
-                for (k = 0; k < numseq; k++) {
-                    offset = k * lenseq;
+                for (k = 0; k < number; k++) {
+                    offset = k * length;
                     if (diff) {
                         a = iseq[k];
                     } else {
@@ -791,16 +790,16 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
             if (ambiguity)
                 sortJoint(joint);
         if (norm)
-            mut[ioffset + j] = mut[i + lenseq * j] = 
+            mut[ioffset + j] = mut[i + length * j] = 
                 calcMI(joint, probs, i, j, debug) / jointEntropy(joint);
         else
-            mut[ioffset + j] = mut[i + lenseq * j] = 
+            mut[ioffset + j] = mut[i + length * j] = 
                 calcMI(joint, probs, i, j, debug);
         }
     }
 
     /* free memory */
-    for (i = 0; i < lenseq; i++){  
+    for (i = 0; i < length; i++){  
         free(probs[i]);
     }  
     free(probs);
@@ -809,19 +808,18 @@ static PyObject *buildMutinfoMatrix(PyObject *self, PyObject *args,
     }  
     free(joint);
     if (turbo)
-        for (j = 1; j < lenseq; j++)
+        for (j = 1; j < length; j++)
             free(trans[j]);
     free(trans);
 
-    npy_intp dims[2] = {lenseq, lenseq};
+    npy_intp dims[2] = {length, length};
     PyObject *mutinfo = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, mut);
     PyObject *result = Py_BuildValue("O", mutinfo);
     Py_DECREF(mutinfo);
     return result;
 }
 
-static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args, 
-                                  PyObject *kwargs) {
+static PyObject *msaocc(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     PyArrayObject *msa;
     int dim;
@@ -833,7 +831,7 @@ static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args,
                                      &msa, &dim, &count))
         return NULL;
     
-    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    long number = msa->dimensions[0], length = msa->dimensions[1];
     long *cnt = malloc(msa->dimensions[dim] * sizeof(long));
 
     if (!cnt)
@@ -850,9 +848,9 @@ static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args,
     for (i = 0; i < msa->dimensions[dim]; i++)
         cnt[i] = 0;
 
-    for (i = 0; i < numseq; i++) {
-        row = seq + i * lenseq;
-        for (j = 0; j < lenseq; j++) {
+    for (i = 0; i < number; i++) {
+        row = seq + i * length;
+        for (j = 0; j < length; j++) {
             ch = row[j];
             if ((64 < ch && ch < 91) || (96 < ch && ch < 123))
                 cnt[*k]++;
@@ -865,9 +863,9 @@ static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args,
     } else {
         double divisor;
         if (dim)
-            divisor = 1. * numseq;
+            divisor = 1. * number;
         else 
-            divisor = 1. * lenseq;
+            divisor = 1. * length;
         double *occ = malloc(msa->dimensions[dim] * sizeof(double));
         for (i = 0; i < msa->dimensions[dim]; i++)
             occ[i] = cnt[i] / divisor;
@@ -879,18 +877,16 @@ static PyObject *calcMSAOccupancy(PyObject *self, PyObject *args,
 
 static PyMethodDef msatools_methods[] = {
 
-    {"calcShannonEntropy",  (PyCFunction)calcShannonEntropy, 
+    {"msaentropy",  (PyCFunction)msaentropy, 
      METH_VARARGS | METH_KEYWORDS, 
-     "Calculate information entropy for given character array into given \n"
-     "double array."},
+     "Return an Shannon entropy array calculated for given character \n"
+     "array that contains an MSA."},
 
-    {"buildMutinfoMatrix",  (PyCFunction)buildMutinfoMatrix, 
-     METH_VARARGS | METH_KEYWORDS, 
-     "Calculate mutual information for given character array into given \n"
-     "2D double array, and return True if turbo mode was used."},
+    {"msamutinfo",  (PyCFunction)msamutinfo, METH_VARARGS | METH_KEYWORDS, 
+     "Return mutual information matrix calculated for given character \n"
+     "array that contains an MSA."},
      
-    {"calcMSAOccupancy",  (PyCFunction)calcMSAOccupancy, 
-     METH_VARARGS | METH_KEYWORDS,
+    {"msaocc",  (PyCFunction)msaocc, METH_VARARGS | METH_KEYWORDS,
      "Return occupancy (or count) array calculated for MSA rows or columns."},
 
     {NULL, NULL, 0, NULL}

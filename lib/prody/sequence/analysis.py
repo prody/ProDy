@@ -72,9 +72,8 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
     if dtype_ != dtype('|S1') or ndim != 2:
         raise TypeError('msa must be an MSA instance or a 2D character array')
         
-    from .msatools import calcShannonEntropy
-    return calcShannonEntropy(msa, ambiguity=bool(ambiguity), 
-                              omitgaps=bool(omitgaps))
+    from .msatools import msaentropy
+    return msaentropy(msa, ambiguity=bool(ambiguity), omitgaps=bool(omitgaps))
     
     
 def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
@@ -118,12 +117,11 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     if dtype_ != dtype('|S1'):
         msa = msa.astype('|S1')
         
-    from .msatools import buildMutinfoMatrix
+    from .msatools import msamutinfo
     LOGGER.timeit('_mutinfo')
-    mutinfo = buildMutinfoMatrix(msa, ambiguity=bool(ambiguity), 
-                                 turbo=bool(turbo), 
-                                 norm=bool(kwargs.get('norm', False)), 
-                                 debug=bool(kwargs.get('debug', False)))
+    mutinfo = msamutinfo(msa, ambiguity=bool(ambiguity), turbo=bool(turbo), 
+                         norm=bool(kwargs.get('norm', False)), 
+                         debug=bool(kwargs.get('debug', False)))
     LOGGER.report('Mutual information matrix was calculated in %.2fs.', 
                   '_mutinfo')
         
@@ -140,7 +138,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     If *count* is **True**, count of non-gap characters will be returned. 
     Implementation is case insensitive."""
     
-    from .msatools import calcMSAOccupancy
+    from .msatools import msaocc
     
     try:
         msa = msa._getArray()
@@ -159,7 +157,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
         occ = occ.startswith('res') or occ.startswith('col')
     except AttributeError:
         raise TypeError('occ must be a string')
-    return calcMSAOccupancy(msa, occ, count=bool(count))
+    return msaocc(msa, occ, count=bool(count))
 
 
 def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
