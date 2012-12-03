@@ -26,8 +26,16 @@ from numpy import indices, tril_indices
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy', 
-           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder']
+           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
+           'buildSeqidMatrix', 'uniqueSequences']
 
+
+doc_turbo = """
+
+    By default, *turbo* mode, which uses memory as large as the MSA array 
+    itself but runs four to five times faster, will be used.  If memory 
+    allocation fails, the implementation will fall back to slower and 
+    memory efficient mode."""
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
     """Return Shannon entropy array calculated for *msa*, which may be 
@@ -89,11 +97,6 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     characters as considered as distinct types.  All non-alphabet characters 
     are considered as gaps.
     
-    By default, the will try to run in the *turbo* mode, which uses memory
-    as large as the MSA array itself but runs four to five times faster.  If
-    memory allocation fails, the implementation will switch to slower and
-    memory efficient mode.
-    
     Mutual information matrix can be normalized or corrected using
     :func:`applyMINormalization` and :func:`applyMICorrection` methods,
     respectively.  Normalization by joint entropy can performed using this
@@ -125,6 +128,8 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
                   '_mutinfo')
         
     return mutinfo
+
+buildMutinfoMatrix.__doc__ += doc_turbo
 
 
 def calcMSAOccupancy(msa, occ='res', count=False):
@@ -232,6 +237,7 @@ def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
 
     return mi
 
+
 def applyMutinfoCorr(mutinfo, corr='prod'):
     """Return a copy of *mutinfo* array after average product correction 
     (default) or average sum correction is applied.  See [DSD08]_ for details.
@@ -266,6 +272,33 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
         raise ValueError('correction must be prod or sum, not ' + corr)
     
     return mi
+
+
+def buildSeqidMatrix(msa, turbo=True):
+    """Return sequence identity matrix for *msa*."""
+    
+    from .seqtools import msaeye
+    
+    return msaeye(msa._getArray(), turbo=bool(turbo))
+    
+buildSeqidMatrix.__doc__ += doc_turbo
+
+    
+def uniqueSequences(msa, seqid=0.98, turbo=True):
+    """Return a boolean array marking unique sequences in *msa*.  When a
+    sequence (row in *msa*) shares at *sqid* or more sequence identity
+    with another sequence coming before itsel in the *msa*, corresponding 
+    value in the boolean array will be set to **False**."""
+        
+    from .seqtools import msaeye
+    
+    if not (0 < seqid <= 1):
+        raise ValueError('seqid must satisfy 0 < seqid <= 1')
+    
+    return msaeye(msa._getArray(), unique=seqid, turbo=bool(turbo))
+    
+uniqueSequences.__doc__ += doc_turbo
+
 
 def calcRankorder(matrix, zscore=False, **kwargs):
     """Rank orders (sorts) the elements of the 2D matrix in descending order, 
@@ -316,4 +349,4 @@ def calcRankorder(matrix, zscore=False, **kwargs):
     return (row, column, matrix[row, column])
 
     
-    
+

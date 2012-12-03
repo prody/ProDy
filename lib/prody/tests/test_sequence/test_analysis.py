@@ -22,18 +22,34 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from unittest import TestCase
 
-from numpy import array, log, zeros, char
+from numpy import array, log, zeros, char, ones
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from prody.tests.test_datafiles import *
 
 from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
-from prody import calcMSAOccupancy
+from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
 
 LOGGER.verbosity = None
 
 FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
-FASTA_ALPHA = char.isalpha(FASTA._msa) 
+FASTA_ALPHA = char.isalpha(FASTA._msa)
+FASTA_UPPER = char.upper(FASTA._msa)
+
+FASTA_NUMBER, FASTA_LENGTH = FASTA_ALPHA.shape
+FASTA_EYE = zeros((FASTA_NUMBER, FASTA_NUMBER))  
+for i in range(FASTA_NUMBER):
+    FASTA_EYE[i, i] = 1
+    for j in range(i + 1, FASTA_NUMBER):
+        score = 0.0
+        ncols = 0
+        for k in range(FASTA_LENGTH):
+            if FASTA_ALPHA[i, k] or FASTA_ALPHA[j, k]:
+                if FASTA_UPPER[i, k] == FASTA_UPPER[j, k]:
+                    score += 1
+                ncols += 1
+        FASTA_EYE[i, j] = FASTA_EYE[j, i] = score / ncols
+
 
 class TestCalcShannonEntropy(TestCase):
 
@@ -317,3 +333,43 @@ class TestCalcMSAOccupancy(TestCase):
         assert_array_equal(calcMSAOccupancy(FASTA, 'sequence'),
                            FASTA_ALPHA.sum(1) / (FASTA.numResidues() * 1.0))
         
+
+class TestIdentity(TestCase):
+    
+    def testIdentityMatrix(self):
+
+        assert_array_almost_equal(FASTA_EYE, buildSeqidMatrix(FASTA))
+
+    def testIdentityMatrixNonTurbo(self):
+
+        assert_array_almost_equal(FASTA_EYE, 
+                                  buildSeqidMatrix(FASTA, turbo=False))
+
+
+class TestUnique(TestCase):
+    
+    def testUnique(self):
+
+        seqid = 0.98
+        unique = ones(FASTA_NUMBER, bool)
+        for i in range(FASTA_NUMBER):
+            if not unique[i]:
+                continue
+            for j in range(i+1, FASTA_NUMBER):
+                if FASTA_EYE[i, j] >= seqid:
+                    unique[j] = False
+                
+        assert_array_equal(unique, uniqueSequences(FASTA, seqid))
+
+    def testUnique2(self):
+
+        seqid = 0.5
+        unique = ones(FASTA_NUMBER, bool)
+        for i in range(FASTA_NUMBER):
+            if not unique[i]:
+                continue
+            for j in range(i+1, FASTA_NUMBER):
+                if FASTA_EYE[i, j] >= seqid:
+                    unique[j] = False
+                
+        assert_array_equal(unique, uniqueSequences(FASTA, seqid))
