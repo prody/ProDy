@@ -6,6 +6,20 @@
 Changes
 *******************************************************************************
 
+Release 1.4.1 (in development)
+===============================================================================
+
+**New Features**:
+
+  * :func:`.buildSeqidMatrix` and :func:`.uniqueSequences` functions
+    are implemented for comparing sequences in an :class:`.MSA` object.
+     
+**Improvements**:
+
+  * :func:`.refineMSA` function and :ref:`evol-refine` application
+    can perform MSA refinements by removing similar sequences.
+     
+
 Release 1.4 (Dec 2, 2012)
 ===============================================================================
 

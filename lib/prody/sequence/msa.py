@@ -357,29 +357,39 @@ class MSA(object):
             return index
 
 
-def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
+def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that 
     contain gaps.
     
     :arg msa: multiple sequence alignment
     :type msa: :class:`.MSA`
     
-    :arg label: sequence label used for indexing
+    :arg label: remove columns that are gaps in the sequence matching label,
+    ``msa.getIndex(label)`` must return a sequence index
     :type label: str
     
-    :arg row_occ: row occupancy, sequences with less occupancy will be 
-        removed after *label* refinement is applied
-    :type row_occ: float
+    :arg seqid: keep unique sequences at specified sequence identity level,
+        unique sequences are identified using :func:`.uniqueSequences`
+    :type seqid: float
     
-    :arg col_occ: column occupancy, residue positions with less occupancy
+    :arg rowocc: row occupancy, sequences with less occupancy will be 
+        removed after *label* refinement is applied
+    :type rowocc: float
+
+    :arg colocc: column occupancy, residue positions with less occupancy
         will be removed after other refinements are applied
-    :type col_occ: float
+    :type colocc: float
     
     For Pfam MSA data, *label* is UniProt entry name for the protein.  You may
     also use PDB structure and chain identifiers, e.g. ``'1p38'`` or 
     ``'1p38A'``, for *label* argument and UniProt entry names will be parsed 
     using :func:`.parsePDBHeader` function (see also :class:`.Polymer` and 
-    :class:`DBRef`)."""
+    :class:`.DBRef`).
+    
+    The order of refinements are applied in the order of arguments.  If *label*
+    and *unique* is specified is specified, sequence matching *label* will
+    be kept in the refined :class:`.MSA` although it may be similar to some
+    other sequence."""
 
     # if msa is a char array, it will be refined but label won't work
     try:    
@@ -397,10 +407,10 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         raise ValueError('msa must be a character array or an MSA instance')
     if ndim != 2:
         raise ValueError('msa must be a 2D array or an MSA instance')
-            
 
     title = []
     cols = None
+    index = None
     if label is not None:
         try:
             upper, lower = label.upper(), label.lower()
@@ -449,33 +459,46 @@ def refineMSA(msa, label=None, row_occ=None, col_occ=None, **kwargs):
         title.append('label=' + label)
         cols = char.isalpha(arr[index]).nonzero()[0]
         arr = arr.take(cols, 1)
-        
-    rows = None
-    from .analysis import calcMSAOccupancy
-    if row_occ is not None:
-        try:
-            row_occ = float(row_occ)
-        except Exception as err:
-            raise TypeError('row_occ must be a float ({0})'.format(str(err)))
-        assert 0. <= row_occ <= 1., 'row_occ must be between 0 and 1'
-        
-        rows = (calcMSAOccupancy(arr, 'row') >= row_occ).nonzero()[0]
-        arr = arr[rows]
-        title.append('row_occ>=' + str(row_occ))
+   
+    from .analysis import calcMSAOccupancy, uniqueSequences
 
-    if col_occ is not None:
-        try:
-            col_occ = float(col_occ)
-        except Exception as err:
-            raise TypeError('col_occ must be a float ({0})'.format(str(err)))
-        assert 0. <= col_occ <= 1., 'col_occ must be between 0 and 1'
+    unique = None
+    if seqid is not None:
+        unique = uniqueSequences(arr, seqid)
+        if index is not None:
+            unique[index] = True
+        unique = unique.nonzero()[0]
+        arr = arr[unique]
+        title.append('seqid>=' + str(seqid))
         
-        cols = (calcMSAOccupancy(arr, 'col') >= col_occ).nonzero()[0]
+    if rowocc is not None:
+        try:
+            rowocc = float(rowocc)
+        except Exception as err:
+            raise TypeError('rowocc must be a float ({0})'.format(str(err)))
+        assert 0. <= rowocc <= 1., 'rowocc must be between 0 and 1'
+        
+        rows = (calcMSAOccupancy(arr, 'row') >= rowocc).nonzero()[0]
+        arr = arr[rows]
+        title.append('rowocc>=' + str(rowocc))
+        if unique is not None:
+            rows = unique[rows]
+    else:
+        rows = unique
+    
+    if colocc is not None:
+        try:
+            colocc = float(colocc)
+        except Exception as err:
+            raise TypeError('colocc must be a float ({0})'.format(str(err)))
+        assert 0. <= colocc <= 1., 'colocc must be between 0 and 1'
+        
+        cols = (calcMSAOccupancy(arr, 'col') >= colocc).nonzero()[0]
         arr = arr.take(cols, 1)
-        title.append('col_occ>=' + str(col_occ))
+        title.append('colocc>=' + str(colocc))
         
     if not title:
-        raise ValueError('label, row_occ, col_occ all cannot be None')
+        raise ValueError('label, rowocc, colocc all cannot be None')
     
     # depending on slicing of rows, arr may not have it's own memory
     if arr.base is not None:

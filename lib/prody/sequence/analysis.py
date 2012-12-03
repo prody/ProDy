@@ -36,6 +36,26 @@ doc_turbo = """
     itself but runs four to five times faster, will be used.  If memory 
     allocation fails, the implementation will fall back to slower and 
     memory efficient mode."""
+    
+
+def getMSA(msa):
+    """Return MSA character array."""
+    
+    try:
+        msa = msa._getArray()
+    except AttributeError:
+        pass
+    
+    try:
+        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
+    except AttributeError:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+        
+    if dtype_ != dtype('|S1') or ndim != 2:
+        raise TypeError('msa must be an MSA instance or a 2D character array')
+
+    return msa
+    
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
     """Return Shannon entropy array calculated for *msa*, which may be 
@@ -59,18 +79,7 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
       * as a distinct character with its own probability, when *omitgaps* is 
         **False**"""  
     
-    try:
-        msa = msa._getArray()
-    except AttributeError:
-        pass
-    
-    try:
-        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
-    except AttributeError:
-        raise TypeError('msa must be an MSA instance or a 2D character array')
-        
-    if dtype_ != dtype('|S1') or ndim != 2:
-        raise TypeError('msa must be an MSA instance or a 2D character array')
+    msa = getMSA(msa)
         
     from .msatools import msaentropy
     return msaentropy(msa, ambiguity=bool(ambiguity), omitgaps=bool(omitgaps))
@@ -101,21 +110,7 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     respectively.  Normalization by joint entropy can performed using this
     function with *norm* option set **True**."""
     
-    try:
-        msa = msa._getArray()
-    except AttributeError:
-        pass
-    
-    try:
-        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
-    except AttributeError:
-        raise TypeError('msa must be an MSA instance or a 2D character array')
-        
-    if ndim != 2:
-        raise TypeError('msa must be an MSA instance or a 2D character array')
-
-    if dtype_ != dtype('|S1'):
-        msa = msa.astype('|S1')
+    msa = getMSA(msa)
         
     from .msatools import msamutinfo
     LOGGER.timeit('_mutinfo')
@@ -140,18 +135,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     
     from .msatools import msaocc
     
-    try:
-        msa = msa._getArray()
-    except AttributeError:
-        pass
-    
-    try:
-        dtype_, ndim, shape = msa.dtype, msa.ndim, msa.shape
-    except AttributeError:
-        raise TypeError('msa must be an MSA instance or a 2D character array')
-        
-    if dtype_ != dtype('|S1') or ndim != 2:
-        raise TypeError('msa must be an MSA instance or a 2D character array')
+    msa = getMSA(msa)
 
     try:
         occ = occ.startswith('res') or occ.startswith('col')
@@ -275,9 +259,11 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
 def buildSeqidMatrix(msa, turbo=True):
     """Return sequence identity matrix for *msa*."""
     
+    msa = getMSA(msa)
+    
     from .seqtools import msaeye
     
-    return msaeye(msa._getArray(), turbo=bool(turbo))
+    return msaeye(msa, turbo=bool(turbo))
     
 buildSeqidMatrix.__doc__ += doc_turbo
 
@@ -288,12 +274,14 @@ def uniqueSequences(msa, seqid=0.98, turbo=True):
     with another sequence coming before itsel in the *msa*, corresponding 
     value in the boolean array will be set to **False**."""
         
+    msa = getMSA(msa)
+        
     from .seqtools import msaeye
     
     if not (0 < seqid <= 1):
         raise ValueError('seqid must satisfy 0 < seqid <= 1')
     
-    return msaeye(msa._getArray(), unique=seqid, turbo=bool(turbo))
+    return msaeye(msa, unique=seqid, turbo=bool(turbo))
     
 uniqueSequences.__doc__ += doc_turbo
 

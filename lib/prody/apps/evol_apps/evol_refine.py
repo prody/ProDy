@@ -45,16 +45,24 @@ APP.addArgument('-l', '--label',
     metavar='STR',
     group='refine')
 
-APP.addArgument('-c', '--col-occ',
-    dest='col_occ',
+APP.addArgument('-s', '--seqid',
+    dest='seqid',
+    help='identity threshold for selecting unique sequences',
+    default=None,
+    type=float,
+    metavar='FLOAT',
+    group='refine')
+
+APP.addArgument('-c', '--colocc',
+    dest='colocc',
     help='column (residue position) occupancy',
     default=None,
     type=float,
     metavar='FLOAT',
     group='refine')
 
-APP.addArgument('-r', '--row-occ',
-    dest='row_occ',
+APP.addArgument('-r', '--rowocc',
+    dest='rowocc',
     help='row (sequence) occupancy',
     default=None,
     type=float,

@@ -28,6 +28,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from prody.tests.test_datafiles import *
 
 from prody import LOGGER, refineMSA, parseMSA, calcMSAOccupancy
+from prody import uniqueSequences
 
 LOGGER.verbosity = None
 
@@ -49,48 +50,67 @@ class TestRefinement(TestCase):
         
     def testRowocc(self):
 
-        refined = refineMSA(FASTA, row_occ=0.9)._getArray()
+        refined = refineMSA(FASTA, rowocc=0.9)._getArray()
         expected = FASTA._getArray()[FASTA_ALPHA.sum(1) / 112. >= 0.9,:]
         
         assert_array_equal(refined, expected)
         
     def testColocc(self):
         
-        refined = refineMSA(FASTA, col_occ=0.9)._getArray()
+        refined = refineMSA(FASTA, colocc=0.9)._getArray()
         expected = FASTA._getArray()[:, FASTA_ALPHA.sum(0) / 24. >= 0.9]
         
         assert_array_equal(refined, expected)
         
     def testRowCol(self):
         
-        row_occ = 0.9 
-        col_occ = 1.0 
-        refined = refineMSA(FASTA, row_occ=row_occ,
-                            col_occ=col_occ)._getArray()
-        rows = FASTA_ALPHA.sum(1) / 112. >= row_occ
+        rowocc = 0.9 
+        colocc = 1.0 
+        refined = refineMSA(FASTA, rowocc=rowocc,
+                            colocc=colocc)._getArray()
+        rows = FASTA_ALPHA.sum(1) / 112. >= rowocc
         expected = FASTA._getArray()[rows]
         cols = char.isalpha(expected).sum(0, 
-                    dtype=float) / expected.shape[0] >= col_occ 
+                    dtype=float) / expected.shape[0] >= colocc 
         
         expected = expected.take(cols.nonzero()[0], 1)
         assert_array_equal(refined, expected)
 
+    def testSeqid(self):
+
+        seqid = 0.50
+        label = 'FSHB_BOVIN'
+        unique = uniqueSequences(FASTA, seqid)
+        refined = refineMSA(FASTA, seqid=seqid)
+        assert_array_equal(refined._getArray(), FASTA._getArray()[unique])
+
+    def testSeqidLabel(self):
+
+        seqid = 0.50
+        label = 'FSHB_BOVIN'
+        labeled = refineMSA(FASTA, label=label)
+        unique = uniqueSequences(labeled, seqid)
+        unique[FASTA.getIndex(label)] = True
+        refined = refineMSA(FASTA, label=label, seqid=seqid)
+        assert_array_equal(refined._getArray(), labeled._getArray()[unique])
+
 
     def testAll(self):
 
-        row_occ = 0.9 
-        col_occ = 0.9 
+        rowocc = 0.9 
+        colocc = 0.9 
+        seqid = 0.98
         label = 'FSHB_BOVIN'
-        refined = refineMSA(FASTA, label=label, 
-                            row_occ=row_occ, col_occ=col_occ)
+        refined = refineMSA(FASTA, label=label, seqid=seqid, 
+                            rowocc=rowocc, colocc=colocc)
 
         index = FASTA.getIndex(label)
         which = FASTA_ALPHA[index].nonzero()[0]
         expected = FASTA._getArray().take(which, 1)
         
-        expected = expected[calcMSAOccupancy(expected, 'row') >= row_occ]
+        expected = expected[calcMSAOccupancy(expected, 'row') >= rowocc]
         
-        which = (calcMSAOccupancy(expected) >= col_occ).nonzero()[0]
+        which = (calcMSAOccupancy(expected) >= colocc).nonzero()[0]
         expected = expected.take(which, 1)
 
         assert_array_equal(refined._getArray(), expected)
