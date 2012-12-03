@@ -142,7 +142,7 @@ the effects of different corrections and normalizations.
    :context:
    :include-source:
    
-   >>> showMutinfoMatrix(mutinfo_corr, clim=[-1,1], xlabel='1KA2: 4-131') # doctest: +SKIP
+   >>> showMutinfoMatrix(mutinfo_corr, clim=[0, mutinfo_corr.max()], xlabel='1K2A: 4-131') # doctest: +SKIP
    
 Note ylabel does not need to be set, since xlabel = ylabel
    
