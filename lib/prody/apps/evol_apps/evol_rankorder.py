@@ -276,7 +276,7 @@ def evol_rankorder(mutinfo, **kwargs):
                 count += 1
             i += 1
     else:
-        structsep = kwargs.get('distsep')
+        structsep = kwargs.get('dist')
         f.write((header + '\tDistance Cutoff: ' + str(structsep) + '\n'))        
         while count <=numpairs  and i < size:        
             if distance[row[i], column[i]] > structsep:
