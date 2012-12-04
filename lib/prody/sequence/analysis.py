@@ -269,10 +269,9 @@ buildSeqidMatrix.__doc__ += doc_turbo
 
     
 def uniqueSequences(msa, seqid=0.98, turbo=True):
-    """Return a boolean array marking unique sequences in *msa*.  When a
-    sequence (row in *msa*) shares at *sqid* or more sequence identity
-    with another sequence coming before itsel in the *msa*, corresponding 
-    value in the boolean array will be set to **False**."""
+    """Return a boolean array marking unique sequences in *msa*.  A sequence 
+    sharing sequence identity of *sqid* or more with another sequence coming 
+    before itself in *msa* will have a **False** value in the array."""
         
     msa = getMSA(msa)
         
