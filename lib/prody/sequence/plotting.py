@@ -137,7 +137,7 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     if ndim != 1:
         raise ValueError('entropy must be a 1D array')
 
-    msa = kwargs.pop('msa', msa)
+    msa = kwargs.pop('msa', msa) 
     xlabel = kwargs.pop('xlabel', None)
     if indices is None:
         length = len(entropy)    
@@ -196,7 +196,7 @@ def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
         kwargs['origin'] = 'lower'
     
     if msa is not None:
-        indices, xlabel = pickSequence(msa)
+        indices, msalabel = pickSequence(msa)
         if indices is not None:
             start = indices[0] + 0.5
             end = start + x
@@ -204,10 +204,12 @@ def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
         else:
             extent = [0.5, x + 0.5, 0.5, y + 0.5]
     else:
-        xlabel = None
+        msalabel = None
         extent = [0.5, x + 0.5, 0.5, y + 0.5]
     
-    xlabel = kwargs.pop('xlabel', xlabel or 'MSA column index')
+    xlabel = kwargs.pop('xlabel', None)
+    if xlabel is None:
+        xlabel = msalabel or 'MSA column index'
     title = kwargs.pop('title', None)
     format = kwargs.pop('format', True)
     
