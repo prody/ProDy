@@ -101,7 +101,18 @@ APP.addFigarg('-U', '--cmax',
     help='apply upper limits for figure plot',
     type=float,
     metavar='FLOAT')
-        
+APP.addFigarg('-l', '--xlabel',
+    dest='xlabel',
+    help='specify xlabel, by default will be applied on ylabel',
+    type=str,
+    metavar='STR',
+    default=None)
+APP.addFigarg('-t', '--title',
+    dest='title',
+    help='figure title',
+    type=str,
+    metavar='STR',
+    default=None)    
 APP.addFigure('-S', '--save-plot', 
     dest='figcoevol', 
     action='store_true', 
@@ -171,15 +182,16 @@ def evol_coevol(msa, **kwargs):
                 LOGGER.warn('Matplotlib could not be imported, '
                             'figures are not saved.')
             else:
-                #cmin = kwargs.get('cmin', matrix.min())
-                #cmax = kwargs.get('cmax', matrix.max())
+                cmin = kwargs.get('cmin', matrix.min())
+                cmax = kwargs.get('cmax', matrix.max())
                 prody.SETTINGS['auto_show'] = False
                 width = kwargs.get('figwidth', 8)
                 height = kwargs.get('figheight', 6)
                 figargs = kwargs.get('figargs', ())
+                print "Printing figargs" + figargs
                 figure = plt.figure(figsize=(width, height))
-                show = showMutinfoMatrix(matrix, *figargs, msa=msa) 
-                                      #clim=(cmin, cmax))
+                show = showMutinfoMatrix(matrix, *figargs, msa=msa,
+                                         clim=(cmin, cmax))
                         
                 format = kwargs.get('figformat', 'pdf')
                 figure.savefig(prefix + suffix + '.' + format, format=format,
