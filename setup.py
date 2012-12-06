@@ -93,6 +93,9 @@ EXTENSIONS = [
     Extension('prody.sequence.msaio',
               [join('lib', 'prody', 'sequence', 'msaio.c'),],
               include_dirs=[numpy.get_include()]),
+    Extension('prody.sequence.seqtools',
+              [join('lib', 'prody', 'sequence', 'seqtools.c'),],
+              include_dirs=[numpy.get_include()]),
 ]
 
 SCRIPTS = ['scripts/prody', 'scripts/evol']
