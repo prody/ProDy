@@ -186,7 +186,7 @@ def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
     msa = kwargs.pop('msa', msa)
     if ndim != 2:
         raise ValueError('mutinfo must be a 2D matrix')
-    x, y = shape
+    y, x = shape
     if x != y:
         raise ValueError('mutinfo matrix must be a square matrix')
     
