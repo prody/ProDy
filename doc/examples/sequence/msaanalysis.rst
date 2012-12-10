@@ -50,9 +50,9 @@ in the refined msa that have more than 20% gaps can be eliminated. We use the
    >>> msa_refine = msa[:,'RNAS2_HUMAN']
    >>> msa_refine
    <MSA: PF00074_full' (525 sequences, 128 residues)>
-   >>> msa_refine = refineMSA(msa_refine, row_occ=0.8)
+   >>> msa_refine = refineMSA(msa_refine, rowocc=0.8)
    >>> msa_refine
-   <MSA: PF00074_full' refined (row_occ>=0.8) (466 sequences, 128 residues)>
+   <MSA: PF00074_full' refined (rowocc>=0.8) (466 sequences, 128 residues)>
 
 
 Plotting occupancy

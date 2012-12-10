@@ -23,7 +23,9 @@ Release 1.4.1 (in development)
 
   * :func:`.refineMSA` function and :ref:`evol-refine` application
     can perform MSA refinements by removing similar sequences.
-    
+
+  * :func:`.writePDB` function takes *beta* and *occupancy* arguments
+    to be outputted in corresponding columns.      
 
 Release 1.4 (Dec 2, 2012)
 ===============================================================================
