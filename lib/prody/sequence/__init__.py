@@ -61,3 +61,7 @@ __all__.extend(analysis.__all__)
 from . import plotting
 from .plotting import *
 __all__.extend(plotting.__all__)
+
+from . import functions
+from .functions import *
+__all__.extend(functions.__all__)
