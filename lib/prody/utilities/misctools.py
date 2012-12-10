@@ -24,7 +24,8 @@ from textwrap import wrap as textwrap
 
 from numpy import unique
 
-__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement']
+__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
+           'intorfloat']
         
 class Everything(object):
     
@@ -126,3 +127,14 @@ def dictElement(element, prefix=None):
         else:
             dict_[tag] = child
     return dict_
+
+
+def intorfloat(x):
+    """Return ``int(x)``, or ``float(x)`` upon :exc:`ValueError`."""
+    
+    try: 
+        return int(x)
+    except ValueError:
+        return float(x)
+        
+    
