@@ -16,16 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines functions for supporting VMD Heatmapper_ plugin format. 
+"""This module defines functions for supporting VMD plugin `Heat Mapper`_ 
+format files.
 
-. _Heatmapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/"""
+.. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/"""
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import arange, fromstring, array
 
-from prody.utilities import openFile, intorfloat
+from prody.utilities import openFile, intorfloat, startswith
 
 from prody import LOGGER
 
@@ -44,67 +45,61 @@ HMTYPES = {
 }
 
 
-
-def showHeatmap(heatmap, clim=None, *args, **kwargs):
-    """Show *heatmap*, which can be an 2D matrix or an :file:`.hm` file in 
-    VMD Heatmapper plugin  format. 
+def showHeatmap(heatmap, *args, **kwargs):
+    """Show *heatmap*, which can be an two dimensional array or a Heat Mapper 
+    :file:`.hm` file.
     
-    Heatmap is plotted using :func:`~matplotlib.pyplot.imshow`
-    function."""
+    Heatmap is plotted using :func:`~matplotlib.pyplot.imshow` function.
+    Default values passed to this function are ``interpolation='nearest'``, 
+    ``aspect='auto'``, and ``origin='lower'``."""
 
     try:
         ndim, shape = heatmap.ndim, heatmap.shape
     except AttributeError:
-        headers, heatmap = parseHeatmap(heatmap)
+        heatmap, headers = parseHeatmap(heatmap)
         ndim, shape = heatmap.ndim, heatmap.shape
-    
+        
+        xorigin = headers.pop('xorigin', 0)
+        xextent = headers.pop('xstep', 1) * shape[0]
+        
+        ylabel = kwargs.get('ylabel', '').lower()
+        indices = None
+        if ylabel:
+            for key in headers.get('numbering', []):
+                if startswith(ylabel, key.lower()):
+                    indices = headers.get(key)                    
+        if indices is not None:
+            extent = [indices[0] - .5, indices[0] + len(indices) - .5, 
+                      xorigin - .5, xextent - .5]
+        else:
+            extent = [-.5, shape[1] * 2 - .5, xorigin - .5, xextent - .5]
+        kwargs.setdefault('extent', extent)
+        
+        for key in ['numbering', 'min', 'max'] + headers.get('numbering', []):
+            headers.pop(key, None)
+        headers.update(kwargs)
+        kwargs = headers
+        
+
     if ndim != 2:
         raise ValueError('mutinfo must be a 2D matrix')
     
-    if not 'interpolation' in kwargs:
-        kwargs['interpolation'] = 'nearest'
-    
-    if not 'origin' in kwargs:
-        kwargs['origin'] = 'lower'
-    
-    y, x = shape
-    indices = kwargs.pop('indices', None)
-    if indices is not None:
-        start = indices[0] - 0.5
-        end = start + y
-        extent = [-0.5, x - 0.5, start, end]
-    else:
-        extent = [-0.5, x - 0.5, -0.5, y - 0.5]
+    kwargs.setdefault('interpolation', 'nearest') 
+    kwargs.setdefault('origin', 'lower')
+    kwargs.setdefault('aspect', 'auto')
     
     xlabel = kwargs.pop('xlabel', None)
     ylabel = kwargs.pop('ylabel', None)
-    title = kwargs.pop('title', 'HeatMap')
-    format = kwargs.pop('format', True)
+    title = kwargs.pop('title', None)
     
     import matplotlib.pyplot as plt
-    show = plt.imshow(heatmap, extent=extent, *args, **kwargs), plt.colorbar()
-    
-    if clim is not None:
-        try:
-            cmin, cmax = clim
-        except:
-            try:
-                cmin, cmax = clim[0], clim[1]
-            except:
-                LOGGER.warn('clim should be a tuple or list containing min and '
-                        'max values. Could not set limits')
-        else:
-            if cmin < cmax:
-                show[0].set_clim(cmin, cmax)
-            else:
-                LOGGER.warn('first element of clim should be smaller than the'
-                            ' second. Could not set limits')
+    show = plt.imshow(heatmap, *args, **kwargs), plt.colorbar()
             
-    if format:
-        if xlabel is not None:
-            plt.xlabel(xlabel)
-        if ylabel is not None:
-            plt.ylabel(ylabel)
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+    if title is not None:
         plt.title(title)
     return show
 
@@ -112,7 +107,7 @@ def showHeatmap(heatmap, clim=None, *args, **kwargs):
 def parseHeatmap(heatmap, **kwargs):
     """Return a two dimensional array and a dictionary with information parsed
     from *heatmap*, which may be an input stream or an :file:`.hm` file in VMD
-    plugin Heatmapper format."""    
+    plugin Heat Mapper format."""    
     
     try:
         readline, close = heatmap.readline, lambda: None
@@ -174,8 +169,8 @@ def parseHeatmap(heatmap, **kwargs):
             
         
 def writeHeatmap(filename, heatmap, **kwargs):
-    """Return *filename* that contains *heatmap* in :file:`.hm` format of VMD 
-    plugin Heatmapper.  *filename* may also be an output stream.
+    """Return *filename* that contains *heatmap* in Heat Mapper :file:`.hm` 
+    file.  *filename* may also be an output stream.
     
     :arg title: title of the heatmap
     :type title: str

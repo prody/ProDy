@@ -25,7 +25,7 @@ from textwrap import wrap as textwrap
 from numpy import unique
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
-           'intorfloat']
+           'intorfloat', 'startswith']
         
 class Everything(object):
     
@@ -137,4 +137,12 @@ def intorfloat(x):
     except ValueError:
         return float(x)
         
+    
+def startswith(this, that):
+    """Return **True** if *this* or *that* starts with the other."""
+    
+    if len(this) < len(that):        
+        return that.startswith(this)
+    else:
+        return this.startswith(that)
     

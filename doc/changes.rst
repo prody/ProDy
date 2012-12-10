@@ -13,12 +13,17 @@ Release 1.4.1 (in development)
 
   * :func:`.buildSeqidMatrix` and :func:`.uniqueSequences` functions
     are implemented for comparing sequences in an :class:`.MSA` object.
+    
+  * :func:`.showHeatmap`, :func:`.parseHeatmap`, and :func:`.writeHeatmap`
+    functions are implemented to support VMD plugin `Heat Mapper`_ file format.
+    
+    .. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/  
      
 **Improvements**:
 
   * :func:`.refineMSA` function and :ref:`evol-refine` application
     can perform MSA refinements by removing similar sequences.
-     
+    
 
 Release 1.4 (Dec 2, 2012)
 ===============================================================================

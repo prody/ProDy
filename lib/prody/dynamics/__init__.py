@@ -176,6 +176,20 @@ Arguments and keyword arguments are passed to the Matplotlib functions.
   * :func:`.showCumulFractVars` - cumulative fraction of variances 
   * :func:`.resetTicks` - change ticks in a plot
 
+
+Heat Mapper support
+===================
+
+Following functions can be used to read, write, and plot VMD plugin 
+`Heat Mapper`_ files.
+
+  * :func:`.showHeatmap`
+  * :func:`.parseHeatmap`
+  * :func:`.writeHeatmap`
+
+.. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/
+ 
+
 Visualize modes
 ===============
 
@@ -273,3 +287,6 @@ from . import pca
 from .pca import *
 __all__.extend(pca.__all__)
 
+from . import heatmapper
+from .heatmapper import *
+__all__.extend(heatmapper.__all__)

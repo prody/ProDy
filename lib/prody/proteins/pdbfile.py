@@ -752,7 +752,7 @@ _writePDBdoc = """
     :arg csets: coordinate set indices, default is all coordinate sets
     """
 
-def writePDBStream(stream, atoms, csets=None):
+def writePDBStream(stream, atoms, csets=None, beta=None, occupancy=None):
     """Write *atoms* in PDB format to a *stream*.
     
     :arg stream: anything that implements a :meth:`write` method (e.g. file, 
@@ -798,6 +798,18 @@ def writePDBStream(stream, atoms, csets=None):
     else:
         atoms = atoms.select('all')
 
+    occupancies = atoms._getOccupancies()
+    if occupancies is None:
+        occupancies = np.zeros(n_atoms, float)
+
+    if beta is None:    
+        bfactors = atoms._getBetas()
+        if bfactors is None:
+            bfactors = np.zeros(n_atoms, float)
+    else:
+        pass
+
+
     n_atoms = atoms.numAtoms()
     
     atomnames = atoms.getNames()
@@ -825,13 +837,6 @@ def writePDBStream(stream, atoms, csets=None):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
     
-    occupancies = atoms._getOccupancies()
-    if occupancies is None:
-        occupancies = np.zeros(n_atoms, float)
-    
-    bfactors = atoms._getBetas()
-    if bfactors is None:
-        bfactors = np.zeros(n_atoms, float)
     
     icodes = atoms._getIcodes()
     if icodes is None:
