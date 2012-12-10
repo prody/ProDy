@@ -27,7 +27,7 @@ from numpy import arange, fromstring, array
 
 from .analysis import *
 
-from prody.utilities import openFile
+from prody.utilities import openFile, intorfloat
 
 from prody import LOGGER
 
@@ -41,8 +41,8 @@ HMTYPES = {
     'title': str,
     'xlabel': str,
     'ylabel': str,
-    'xorigin': float,
-    'xstep': float,
+    'xorigin': intorfloat,
+    'xstep': intorfloat,
 }
 
 
@@ -111,31 +111,41 @@ def showHeatmap(heatmap, clim=None, *args, **kwargs):
     return show
 
 
-def parseHeatmap(filename, **kwargs):
+def parseHeatmap(heatmap, **kwargs):
     """Return a two dimensional array and a dictionary with information parsed
-    from :file:`.hm` file in VMD Heatmapper plugin format."""    
+    from *heatmap*, which may be an input stream or an :file:`.hm` file in VMD
+    plugin Heatmapper format."""    
+    
+    try:
+        readline, close = heatmap.readline, lambda: None
+    except AttributeError:
+        heatmap = openFile(heatmap)
+        readline, close = heatmap.readline, heatmap.close 
     
     meta = {}
     arrs = []
-    with openFile(filename) as hm:
-        for line in hm:
-            if line.startswith('-'):
-                label, data = line[1:].split(None, 1)
-                data = data.strip()
-                if data[0] == data[-1] == '"':
-                    data = data[1:-1]
-                label = label.strip()
-                try:
-                    meta[label] = HMTYPES[label](data)
-                except KeyError: 
-                    LOGGER.warn('Unrecognized label encountered: {0}'
-                                .format(repr(label)))
-                    meta[label] = HMTYPES[label](data)
-                except TypeError:
-                    LOGGER.warn('Could not parse data with label {0}.'
-                                .format(repr(label)))
-            else:
-                arrs.append(line.rstrip())
+    
+    line = readline()
+    while line:
+        if line.startswith('-'):
+            label, data = line[1:].split(None, 1)
+            data = data.strip()
+            if data[0] == data[-1] == '"':
+                data = data[1:-1]
+            label = label.strip()
+            try:
+                meta[label] = HMTYPES[label](data)
+            except KeyError: 
+                LOGGER.warn('Unrecognized label encountered: {0}'
+                            .format(repr(label)))
+                meta[label] = HMTYPES[label](data)
+            except TypeError:
+                LOGGER.warn('Could not parse data with label {0}.'
+                            .format(repr(label)))
+        else:
+            arrs.append(line.rstrip())
+        line = readline()
+    close()
     nnums = len(meta.get('numbering', '')) 
     heatmap = []
     numbers = []
@@ -165,49 +175,78 @@ def parseHeatmap(filename, **kwargs):
     return heatmap, meta
             
         
-def writeHeatmap(filename, heatmap, prefix=None, **kwargs):
-    """This writes the input 2D array into a ``"".hm""`` file in the same
-    format as VMD's Heapmapper plugin. Input arguments may contain the files`
-    header information like ``"-max"``, ``"-min""`` , ``"xorigin"``,
-    ``""xstep""``, ``""xlabel""``,  ``""ylabel""``, ``"title"`` or
-    ``"numbering"``. y axis can also be labeled based on input indices."""
+def writeHeatmap(filename, heatmap, **kwargs):
+    """Return *filename* that contains *heatmap* in :file:`.hm` format of VMD 
+    plugin Heatmapper.  *filename* may also be an output stream.
+    
+    :arg title: title of the heatmap
+    :type title: str
+    
+    :arg xlabel: x-axis lab, default is ``'unknown'``
+    :type xlabel: str
+
+    :arg ylabel: y-axis lab, default is ``'unknown'``
+    :type ylabel: str
+
+    :arg xorigin: x-axis origin, default is 0
+    :type xorigin: float
+
+    :arg xstep: x-axis step, default is 1
+    :type xstep: float
+
+    :arg min: minimum value, default is minimum in *heatmap*
+    :type min: float
+
+    :arg max: maximum value, default is maximum in *heatmap*
+    :type max: float
+
+    Other keyword arguments that are arrays with length equal to the y-axis
+    (second dimension of heatmap) will be considered as *numbering*."""
     
     try:
         ndim, shape = heatmap.ndim, heatmap.shape
     except:
-        raise TypeError('heatmap should be an array object')
+        raise TypeError('heatmap must be an array object')
     if ndim!= 2:
-        raise TypeError('heatmap should be a 2D array')
+        raise TypeError('heatmap must be a 2D array')
     
-    if not filename.lower().endswith('.hm'):
-        filename += '.hm'
-    out = openFile(filename, 'wb')
+    try:
+        write, close = filename.write, lambda: None
+    except AttributeError: 
+        out = openFile(filename, 'wb')
+        write, close = out.write, out.close
     
-    for key in hmheaders:
-        item = kwargs.get(key[1:], hmheaders[key])
-        if key == '-min':
-            if item is None:
-                item = '{0:.2f}'.format(heatmap.min())
-        if key == '-max':
-            if item is None:
-                item = '{0:.2f}'.format(heatmap.max())
-        line = key + ' "' + str(item) + '"\n'
-        out.write(line)
+    write('-min "{0}"\n'.format(kwargs.pop('min', heatmap.min())))
+    write('-max "{0}"\n'.format(kwargs.pop('max', heatmap.max())))
+    for label, default in [
+        ('title', 'unknown'),
+        ('xlabel', 'unknown'),
+        ('xorigin', 0),
+        ('xstep', 1),
+        ('ylabel', 'unknown'),
+    ]:
+        write('-{0} "{1}"\n'.format(label, kwargs.pop(label, default)))
     
-    col1 = kwargs.get('indices', None)
-    if col1 == None or len(col1) != shape[0]:
-        col1 = arange(1, shape[0]+1)
-    col2 = arange(0, shape[0])
+    numbering = []
+    numlabels = []
+    for key, val in kwargs.items():
+        try:
+            length = len(val)
+        except TypeError:
+            LOGGER.warn('Keyword argument {0} is not used.'.format(key))
+        if length == shape[0]:
+            numlabels.append(key)
+            numbering.append(val)
+    if not numbering:
+        numlabels.append('unknown')
+        numbering.append(arange(1, shape[0] + 1))
     
-    firstelem = map(lambda x,y,z: x+':'+y+':'+z, map(str, col1),
-                    map(str, col2), map(str, heatmap[:,0]))
-    heatmap = array(map(str, heatmap.reshape(heatmap.size))).reshape(
-        (shape[0], shape[1]))
-    heatmap[:,0] = firstelem
-    for i in xrange(shape[0]):
-        out.write((';'.join(heatmap[i,:])+'\n'))
-    out.close()
-    LOGGER.info('Heatmap file is written as {0:s}'.format(outname))
-        
+    write('-numbering "{0}"\n'.format(':'.join(numlabels)))
+    
+    for i, row in enumerate(heatmap):
+        write(':'.join(str(nums[i])for nums in numbering) + ':')
+        write(';'.join(row.astype('|S10')))
+        write(';\n')
+    
+    close()
     return filename
-    
