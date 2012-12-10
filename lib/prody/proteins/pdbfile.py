@@ -101,7 +101,7 @@ def parsePDB(pdb, **kwargs):
     
     This function extends :func:`.parsePDBStream`.
     
-    |example| See :ref:`parsepdb` for a detailed example.
+    See :ref:`parsepdb` for a detailed usage example.
     
     :arg pdb: a PDB identifier or a filename
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
@@ -750,9 +750,14 @@ _writePDBdoc = """
     :arg atoms: an object with atom and coordinate data
     
     :arg csets: coordinate set indices, default is all coordinate sets
+    
+    :arg beta: a list or array of number to be outputted in beta column
+    
+    :arg occupancy: a list or array of number to be outputted in occupancy 
+        column
     """
 
-def writePDBStream(stream, atoms, csets=None, beta=None, occupancy=None):
+def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
     
     :arg stream: anything that implements a :meth:`write` method (e.g. file, 
@@ -798,20 +803,28 @@ def writePDBStream(stream, atoms, csets=None, beta=None, occupancy=None):
     else:
         atoms = atoms.select('all')
 
-    occupancies = atoms._getOccupancies()
-    if occupancies is None:
-        occupancies = np.zeros(n_atoms, float)
+    n_atoms = atoms.numAtoms()
 
+    occupancy = kwargs.get('occupancy')
+    if occupancy is None:
+        occupancies = atoms._getOccupancies()
+        if occupancies is None:
+            occupancies = np.zeros(n_atoms, float)
+    else:
+        occupancies = np.array(occupancy)
+        if len(occupancies) != n_atoms:
+            raise ValueError('len(occupancy) must be equal to number of atoms')
+
+    beta = kwargs.get('beta')
     if beta is None:    
         bfactors = atoms._getBetas()
         if bfactors is None:
             bfactors = np.zeros(n_atoms, float)
     else:
-        pass
+        bfactors = np.array(beta)
+        if len(bfactors) != n_atoms:
+            raise ValueError('len(beta) must be equal to number of atoms')
 
-
-    n_atoms = atoms.numAtoms()
-    
     atomnames = atoms.getNames()
     if atomnames is None:
         raise ValueError('atom names are not set')
@@ -884,7 +897,7 @@ def writePDBStream(stream, atoms, csets=None, beta=None, occupancy=None):
 
 writePDBStream.__doc__ += _writePDBdoc
 
-def writePDB(filename, atoms, csets=None, autoext=True):
+def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """Write *atoms* in PDB format to a file with name *filename* and return 
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will 
     be written."""
@@ -893,7 +906,7 @@ def writePDB(filename, atoms, csets=None, autoext=True):
              '.ent' in filename or '.ent.gz' in filename):  
         filename += '.pdb'
     out = openFile(filename, 'wt')
-    writePDBStream(out, atoms, csets)
+    writePDBStream(out, atoms, csets, **kwargs)
     out.close()
     return filename
 
