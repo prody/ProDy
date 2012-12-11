@@ -21,13 +21,13 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import all, zeros, dtype, array, char, fromstring, arange
+from numpy import all, zeros, dtype, array, char, fromstring, arange, cumsum
 
 from .msafile import splitSeqLabel, MSAFile 
 
 from prody import LOGGER
 
-__all__ = ['MSA', 'refineMSA']
+__all__ = ['MSA', 'refineMSA', 'mergeMSA']
 
 class MSA(object):
     
@@ -356,6 +356,17 @@ class MSA(object):
         else:
             return index
 
+    def iterLabels(self, full=False):
+        """Yield sequence labels, by default the part of the label used for 
+        indexing sequences."""
+        
+        if full:
+            for label in self._labels:
+                yield label
+        else:
+            for label in self._labels:
+                yield splitSeqLabel(label)[0]
+    
 
 def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that 
@@ -517,3 +528,51 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
             mapping = None
         return MSA(arr, title=msa.getTitle() + ' refined ({0})'
                    .format(', '.join(title)), labels=labels, mapping=mapping)
+
+
+def mergeMSA(*msa, **kwargs):
+    """Return an :class:`.MSA` obtained from merging parts of the sequences 
+    of proteins present in multiple *msa* instances.  Sequences are matched 
+    based on protein identifiers found in the sequence labels.  Order of 
+    sequences in the merged MSA will follow the order of sequences in the 
+    first *msa* instance."""
+    
+    if len(msa) <= 1:
+        raise ValueError('more than one msa instances are needed')
+    
+    try:    
+        arrs = [m._getArray() for m in msa]
+        sets = [set(m.iterLabels()) for m in msa]
+    except AttributeError:
+        raise TypeError('all msa arguments must be MSA instances')
+        
+    sets = iter(sets)
+    common = sets.next()
+    for aset in sets: 
+        common = common.intersection(aset)
+    if not common:
+        return None
+    
+    lens = [m.numResidues() for m in msa]
+    rngs = [0]
+    rngs.extend(cumsum(lens))
+    rngs = [(start, end) for start, end in zip(rngs[:-1], rngs[1:])]
+
+    idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
+    
+    merger = zeros((len(common), sum(lens)), '|S1')
+    index = 0
+    labels = []
+    mapping = {}
+    for label in msa[0].iterLabels():
+        if label not in common:
+            continue
+        for idx, arr, (start, end) in idx_arr_rng:
+            merger[index, start:end] = arr[idx(label)]
+        
+        labels.append(label)
+        mapping[label] = index
+        index += 1
+    merger = MSA(merger, labels=labels, mapping=mapping, 
+                 title=' + '.join([m.getTitle() for m in msa]))
+    return merger

@@ -27,7 +27,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from prody.tests.test_datafiles import *
 
-from prody import LOGGER, refineMSA, parseMSA, calcMSAOccupancy
+from prody import LOGGER, refineMSA, parseMSA, calcMSAOccupancy, mergeMSA
 from prody import uniqueSequences
 
 LOGGER.verbosity = None
@@ -114,3 +114,13 @@ class TestRefinement(TestCase):
         expected = expected.take(which, 1)
 
         assert_array_equal(refined._getArray(), expected)
+
+
+class TestMerging(TestCase):
+
+
+    def testMerge(self):
+        
+        merged = mergeMSA(FASTA, FASTA)
+        length = FASTA.numResidues()
+        self.assertEqual(merged[:, :length], merged[:, length:])
