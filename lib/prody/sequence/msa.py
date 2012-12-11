@@ -480,7 +480,7 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
         if index is None:        
             raise ValueError('label is not in msa, or msa is not indexed')
         try:
-            len(index):
+            len(index)
         except TypeError:
             pass
         else:
