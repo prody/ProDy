@@ -34,6 +34,7 @@ LOGGER.verbosity = None
 
 FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
 FASTA_ALPHA = char.isalpha(FASTA._msa) 
+NUMSEQ = FASTA.numSequences() * 1.
 
 class TestRefinement(TestCase):
 
@@ -58,7 +59,7 @@ class TestRefinement(TestCase):
     def testColocc(self):
         
         refined = refineMSA(FASTA, colocc=0.9)._getArray()
-        expected = FASTA._getArray()[:, FASTA_ALPHA.sum(0) / 24. >= 0.9]
+        expected = FASTA._getArray()[:, FASTA_ALPHA.sum(0) / NUMSEQ >= 0.9]
         
         assert_array_equal(refined, expected)
         
@@ -107,6 +108,8 @@ class TestRefinement(TestCase):
         index = FASTA.getIndex(label)
         which = FASTA_ALPHA[index].nonzero()[0]
         expected = FASTA._getArray().take(which, 1)
+
+        expected = expected[uniqueSequences(expected, seqid)]
         
         expected = expected[calcMSAOccupancy(expected, 'row') >= rowocc]
         
