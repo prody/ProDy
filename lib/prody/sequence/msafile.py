@@ -611,13 +611,17 @@ def parseMSA(filename, **kwargs):
         del msafile
         
         if format == FASTA:
-            from .msaio import parseFasta
-            msaarr, labels, mapping = parseFasta(filename, lenseq, numseq)
+            from .msaio import parseFasta as parser
         elif format == SELEX or format == STOCKHOLM:
-            from .msaio import parseSelex
-            msaarr, labels, mapping = parseSelex(filename, lenseq, numseq)
+            from .msaio import parseSelex as parser
         else:
             raise IOError('MSA file format is not recognized')
+        
+        msaarr, labels, mapping, lcount = parser(filename, lenseq, numseq)
+        if lcount != len(msaarr):
+            LOGGER.warn('Failed to parse {0} sequence labels.'
+                        .format(len(msaarr) - lcount))
+        
     msa = MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
 
     if aligned:

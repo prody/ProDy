@@ -34,15 +34,15 @@ static char *intcat(char *msg, int line) {
 }
     
 
-static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
-                      long ccount, int size) {
+static int parseLabel(PyObject *labels, PyObject *mapping, char line[], 
+                      int length) {
     
-    /* Parse protein database identifier from sequence label, and map the 
-       sequence. */
+    /* Append label to *labels*, extract identifier, and index label 
+       position in the list. Return 1 when successful, 0 on failure. */
     
     int i, slash = 0, dash = 0, pipes[4] = {0, 0, 0, 0};
     
-    for (i = 0; i < size; i++)
+    for (i = 0; i < length; i++)
         if (line[i] == '\n' || line[i] == ' ') 
             break;
         else if (line[i] == '/' && slash == 0 && dash == 0)
@@ -54,49 +54,54 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
             pipes[pipes[0]] = i;
         }
     
-    PyObject *plabel, *pcount;
+    PyObject *label, *index;
     #if PY_MAJOR_VERSION >= 3
-    plabel = PyUnicode_FromStringAndSize(line, i);
-    pcount = PyLong_FromLong(ccount);
+    label = PyUnicode_FromStringAndSize(line, i);
+    index = PyLong_FromSsize_t(PyList_Size(labels));
     #else
-    plabel = PyString_FromStringAndSize(line, i);
-    pcount = PyInt_FromLong(ccount);
+    label = PyString_FromStringAndSize(line, i);
+    index = PyInt_FromSsize_t(PyList_Size(labels));
     #endif
 
-    if (!plabel || !pcount || PyList_Append(labels, plabel) < 0) {
-        Py_XDECREF(pcount);
-        Py_XDECREF(plabel);
-        return 1;
+    if (!label || !index || PyList_Append(labels, label) < 0) {
+        PyObject *none = Py_None;
+        PyList_Append(labels, none);
+        Py_DECREF(none);
+
+        Py_XDECREF(index);
+        Py_XDECREF(label);
+        return 0;
     }
     
-    PyObject *pkey = plabel;
+    PyObject *key = label;
         
     if (slash > 0 && dash > slash) {
-        Py_DECREF(plabel);
+        Py_DECREF(label);
         #if PY_MAJOR_VERSION >= 3
-        pkey = PyUnicode_FromStringAndSize(line, slash);
+        key = PyUnicode_FromStringAndSize(line, slash);
         #else
-        pkey = PyString_FromStringAndSize(line, slash);
+        key = PyString_FromStringAndSize(line, slash);
         #endif
-    } 
+    }
 
-    if (PyDict_Contains(mapping, pkey)) {
-        PyObject *pitem = PyDict_GetItem(mapping, pkey);
-        if (PyList_Check(pitem)) {
-            PyList_Append(pitem, pcount);
+    if (PyDict_Contains(mapping, key)) {
+        PyObject *item = PyDict_GetItem(mapping, key); /* borrowed */
+        if (PyList_Check(item)) {
+            PyList_Append(item, index);
+            Py_DECREF(index);
         } else {
-            PyObject *plist = PyList_New(2);
-            PyList_SetItem(plist, 0, pitem);
-            PyList_SetItem(plist, 1, pcount);
-            PyDict_SetItem(mapping, pkey, plist);
-            Py_DECREF(plist);
+            PyObject *list = PyList_New(2); /* new reference */
+            PyList_SetItem(list, 0, item);
+            PyList_SetItem(list, 1, index); /* steals reference, no DECREF */
+            PyDict_SetItem(mapping, key, list);
+            Py_DECREF(list);
         }
     } else {
-        PyDict_SetItem(mapping, pkey, pcount);
+        PyDict_SetItem(mapping, key, index);
+        Py_DECREF(index);
     }     
 
-    Py_DECREF(pkey);
-    Py_DECREF(pcount);
+    Py_DECREF(key);
     return 1;
 }
 
@@ -148,7 +153,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     fseek(file, 0, SEEK_SET);
 
     int j = 0;
-    long index = 0, ccount = 0;
+    long index = 0, ccount = 0, clabel = 0;
 
     while (fgets(line, size, file) != NULL) {
         iline++;
@@ -159,12 +164,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
                 break;
 
         /* parse label */
-        if (!parseLabel(labels, mapping, line + i, ccount, size)) {
-            free(line);
-            free(data);
-            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
-            return NULL;
-        }
+        clabel += parseLabel(labels, mapping, line + i, size); 
 
         /* parse sequence */
         for (i = 0; i < numlines; i++) {
@@ -197,7 +197,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     data = realloc(data, lenseq * ccount * sizeof(char));
     npy_intp dims[2] = {ccount, lenseq};
     PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
-    PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
+    PyObject *result = Py_BuildValue("(OOOi)", msa, labels, mapping, clabel);
     Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
@@ -323,7 +323,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     iline--;
     fseek(file, - strlen(line), SEEK_CUR);
 
-    long index = 0, ccount = 0;
+    long index = 0, ccount = 0, clabel = 0;
 
     int space = beg - 1; /* index of space character before sequence */
     while (fgets(line, size, file) != NULL) {
@@ -339,12 +339,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
         } 
 
         /* parse label */
-        if (!parseLabel(labels, mapping, line, ccount, size)) {
-            free(line);
-            free(data);
-            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
-            return NULL;
-        }
+        clabel += parseLabel(labels, mapping, line, size);
         
         /* parse sequence */
         for (i = beg; i < end; i++)
@@ -357,7 +352,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     data = realloc(data, lenseq * ccount * sizeof(char));
     npy_intp dims[2] = {ccount, lenseq};
     PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
-    PyObject *result = Py_BuildValue("(OOO)", msa, labels, mapping);
+    PyObject *result = Py_BuildValue("(OOOi)", msa, labels, mapping, clabel);
     Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
