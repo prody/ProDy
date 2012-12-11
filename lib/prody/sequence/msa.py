@@ -23,7 +23,8 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import all, zeros, dtype, array, char, fromstring, arange, cumsum
 
-from .msafile import splitSeqLabel, MSAFile 
+from .msafile import MSAFile
+from .sequence import splitSeqLabel 
 
 from prody import LOGGER
 
@@ -347,7 +348,8 @@ class MSA(object):
         return self._msa
     
     def getIndex(self, label):
-        """Return index of the sequence entry with *label*."""
+        """Return index of the sequence that *label* maps onto.  If *label* 
+        maps onto multiple sequences, a list of indices is returned."""
         
         try:
             index = self._mapping.get(label)
@@ -357,8 +359,8 @@ class MSA(object):
             return index
 
     def iterLabels(self, full=False):
-        """Yield sequence labels, by default the part of the label used for 
-        indexing sequences."""
+        """Yield sequence labels.  By default the part of the label used for 
+        indexing sequences is yielded."""
         
         if full:
             for label in self._labels:
@@ -366,6 +368,16 @@ class MSA(object):
         else:
             for label in self._labels:
                 yield splitSeqLabel(label)[0]
+    
+    def countLabel(self, label):
+        """Return the number of sequences that *label* maps onto."""
+        
+        try:
+            return len(self._mapping[label])    
+        except KeyError:
+            return 0
+        except TypeError:
+            return 1        
     
 
 def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
@@ -467,6 +479,14 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
             
         if index is None:        
             raise ValueError('label is not in msa, or msa is not indexed')
+        try:
+            len(index):
+        except TypeError:
+            pass
+        else:
+            raise ValueError('label {0} maps onto multiple sequences, '
+                             'so cannot be used for refinement'.format(label))
+                        
         title.append('label=' + label)
         cols = char.isalpha(arr[index]).nonzero()[0]
         arr = arr.take(cols, 1)
@@ -535,14 +555,23 @@ def mergeMSA(*msa, **kwargs):
     of proteins present in multiple *msa* instances.  Sequences are matched 
     based on protein identifiers found in the sequence labels.  Order of 
     sequences in the merged MSA will follow the order of sequences in the 
-    first *msa* instance."""
+    first *msa* instance.  Note that protein identifiers that map to multiple
+    sequences will be excluded."""
     
     if len(msa) <= 1:
         raise ValueError('more than one msa instances are needed')
     
     try:    
         arrs = [m._getArray() for m in msa]
-        sets = [set(m.iterLabels()) for m in msa]
+        sets = []
+        for m in msa:
+            aset = set([])
+            add = aset.add
+            count = m.countLabel
+            for label in m.iterLabels():
+                if count(label) == 1:
+                    aset.add(label)
+            sets.append(aset)
     except AttributeError:
         raise TypeError('all msa arguments must be MSA instances')
         

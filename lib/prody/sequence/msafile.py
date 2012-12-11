@@ -51,32 +51,16 @@ NUMLINES = 1000
 LEN_FASTA_LINE = 60
 LEN_SELEX_LABEL = 31
 
-import re
 from os.path import isfile, splitext, split, getsize
 
 from numpy import all, zeros, dtype, array, char, fromstring
+
+from .sequence import splitSeqLabel
 
 from prody import LOGGER, PY2K
 from prody.utilities import openFile
 
 if PY2K: range = xrange
-
-SPLITLABEL = re.compile('/*-*').split 
-
-
-def splitSeqLabel(label):
-    """Return label, starting residue number, and ending residue number parsed
-    from sequence label."""
-    
-    try:
-        idcode, start, end = SPLITLABEL(label)
-    except Exception:
-        return label, None, None
-    else:   
-        try:
-            return idcode, int(start), int(end)
-        except Exception:
-            return label, None, None
 
 
 class MSAFile(object):
@@ -607,7 +591,14 @@ def parseMSA(filename, **kwargs):
                 if len(seq) > maxlen:
                     maxlen = len(seq)
                 sappend(seq)
-            mapping[splitSeqLabel(label)[0]] = i
+            key = splitSeqLabel(label)[0]
+            if key in mapping:
+                try:
+                    mapping[key].append(i)
+                except AttributeError:
+                    mapping[key] = [mapping[key], i]
+            else:
+                mapping[key] = i
         if aligned:
             msaarr = array(seqlist, '|S1')
         else:

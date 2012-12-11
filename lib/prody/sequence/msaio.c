@@ -55,40 +55,47 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
         }
     
     PyObject *plabel, *pcount;
+    #if PY_MAJOR_VERSION >= 3
+    plabel = PyUnicode_FromStringAndSize(line, i);
+    pcount = PyLong_FromLong(ccount);
+    #else
+    plabel = PyString_FromStringAndSize(line, i);
+    pcount = PyInt_FromLong(ccount);
+    #endif
+
+    if (!plabel || !pcount || PyList_Append(labels, plabel) < 0) {
+        Py_XDECREF(pcount);
+        Py_XDECREF(plabel);
+        return 1;
+    }
+    
+    PyObject *pkey = plabel;
+        
     if (slash > 0 && dash > slash) {
+        Py_DECREF(plabel);
         #if PY_MAJOR_VERSION >= 3
-        PyObject *pkey = PyUnicode_FromStringAndSize(line, slash);
-        plabel = PyUnicode_FromStringAndSize(line, i);
-        pcount = PyLong_FromLong(ccount);
+        pkey = PyUnicode_FromStringAndSize(line, slash);
         #else
-        PyObject *pkey = PyString_FromStringAndSize(line, slash);
-        plabel = PyString_FromStringAndSize(line, i);
-        pcount = PyInt_FromLong(ccount);
+        pkey = PyString_FromStringAndSize(line, slash);
         #endif
-        if (!plabel || !pcount || PyList_Append(labels, plabel) < 0 ||
-            PyDict_SetItem(mapping, pkey, pcount)) {
-            Py_XDECREF(pcount);
-            Py_XDECREF(plabel);
-            Py_XDECREF(pkey);
-            return 0;
+    } 
+
+    if (PyDict_Contains(mapping, pkey)) {
+        PyObject *pitem = PyDict_GetItem(mapping, pkey);
+        if (PyList_Check(pitem)) {
+            PyList_Append(pitem, pcount);
+        } else {
+            PyObject *plist = PyList_New(2);
+            PyList_SetItem(plist, 0, pitem);
+            PyList_SetItem(plist, 1, pcount);
+            PyDict_SetItem(mapping, pkey, plist);
+            Py_DECREF(plist);
         }
-        Py_DECREF(pkey);
     } else {
-        #if PY_MAJOR_VERSION >= 3
-        plabel = PyUnicode_FromStringAndSize(line, i);
-        pcount = PyLong_FromLong(ccount);
-        #else
-        plabel = PyString_FromStringAndSize(line, i);
-        pcount = PyInt_FromLong(ccount);
-        #endif
-        if (!plabel || !pcount || PyList_Append(labels, plabel) < 0 ||
-            PyDict_SetItem(mapping, plabel, pcount)) {
-            Py_XDECREF(pcount);
-            Py_XDECREF(plabel);
-            return 0;
-        }
-     }
-    Py_DECREF(plabel);
+        PyDict_SetItem(mapping, pkey, pcount);
+    }     
+
+    Py_DECREF(pkey);
     Py_DECREF(pcount);
     return 1;
 }
