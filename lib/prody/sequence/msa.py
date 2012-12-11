@@ -168,6 +168,10 @@ class MSA(object):
             return '<MSA: {0} ({1} sequences, not aligned)>'.format(
                     self._title, self.numSequences())
     
+    def __len__(self):
+        
+        return len(self._msa)
+
     def __getitem__(self, index):
         
         try:
@@ -309,6 +313,23 @@ class MSA(object):
         
         if self._aligned:
             return self._msa.shape[1]
+    
+    def numIndexed(self):
+        """Return number of sequences that are indexed using the identifier
+        part or all of their labels.  The return value should be equal to
+        number of sequences."""
+        
+        count = len(self._mapping)
+        if len(self._msa) == count:
+            return count
+        else:
+            count = len(self._mapping)
+            for val in self._mapping.values():
+                try:
+                    count += len(val) - 1
+                except TypeError:
+                    pass
+            return count
     
     def getTitle(self):
         """Return title of the instance."""
