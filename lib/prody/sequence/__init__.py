@@ -24,6 +24,7 @@ MSA IO
   * :func:`.parseMSA` - parse MSA files
   * :class:`.MSAFile` - read/write MSA files in FASTA/SELEX/Stockholm formats
   * :class:`.MSA` - manipulate MSA in memory
+  * :class:`.Sequence` - maintain indiviual sequence record
   
 Analysis
 ========
@@ -61,4 +62,8 @@ __all__.extend(analysis.__all__)
 from . import plotting
 from .plotting import *
 __all__.extend(plotting.__all__)
+
+from . import sequence
+from .sequence import *
+__all__.extend(sequence.__all__)
 

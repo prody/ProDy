@@ -164,16 +164,16 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     return show
 
 
-def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
+def showMutinfoMatrix(mutinfo, *args, **kwargs):
     """Show a heatmap of mutual information array.  :class:`.MSA` instances 
     or Numpy character arrays storing sequence alignment are also accepted 
     as *mutinfo* argument, in which case :func:`.buildMutinfoMatrix` will 
     be used for calculations.  Note that x, y axes contain indices of the
-    matrix starting from 1. clim can be used to set upper and lower limits
-    of the data to achieve better signals.
+    matrix starting from 1.
     
     Mutual information is plotted using :func:`~matplotlib.pyplot.imshow`
-    function."""
+    function. vmin and vmax values can be set by user to achieve better
+    signals using this function."""
     
     msa = None
     try:
@@ -190,10 +190,8 @@ def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
     if x != y:
         raise ValueError('mutinfo matrix must be a square matrix')
     
-    if not kwargs.has_key('interpolation'):
-        kwargs['interpolation'] = 'nearest'
-    if not kwargs.has_key('origin'):
-        kwargs['origin'] = 'lower'
+    kwargs.setdefault('interpolation', 'nearest') 
+    kwargs.setdefault('origin', 'lower')
     
     if msa is not None:
         indices, msalabel = pickSequence(msa)
@@ -216,22 +214,6 @@ def showMutinfoMatrix(mutinfo, clim=None, *args, **kwargs):
     import matplotlib.pyplot as plt
     show = plt.imshow(mutinfo, extent=extent, *args, **kwargs), plt.colorbar()
     
-    if clim is not None:
-        try:
-            cmin, cmax = clim
-        except:
-            try:
-                cmin, cmax = clim[0], clim[1]
-            except:
-                LOGGER.warn('clim should be a tuple or list containing min and '
-                        'max values. Could not set limits')
-        else:
-            if cmin < cmax:
-                show[0].set_clim(cmin, cmax)
-            else:
-                LOGGER.warn('first element of clim should be smaller than the'
-                            ' second. Could not set limits')
-            
     if format:
         plt.xlabel(xlabel)
         plt.ylabel(xlabel)
