@@ -9,8 +9,8 @@ Usage
 
 Running :command:`evol refine -h` displays::
 
-  usage: evol refine [-h] [--quiet] [--examples] [-l STR] [-c FLOAT] [-r FLOAT]
-                     [-o STR] [-f STR] [-z]
+  usage: evol refine [-h] [--quiet] [--examples] [-l STR] [-s FLOAT] [-c FLOAT]
+                     [-r FLOAT] [-o STR] [-f STR] [-z]
                      msa
   
   positional arguments:
@@ -24,9 +24,11 @@ Running :command:`evol refine -h` displays::
   refinement options:
     -l STR, --label STR   sequence label, UniProt ID code or PDB and chain
                           identifier
-    -c FLOAT, --col-occ FLOAT
+    -s FLOAT, --seqid FLOAT
+                          identity threshold for selecting unique sequences
+    -c FLOAT, --colocc FLOAT
                           column (residue position) occupancy
-    -r FLOAT, --row-occ FLOAT
+    -r FLOAT, --rowocc FLOAT
                           row (sequence) occupancy
   
   output options:

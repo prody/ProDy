@@ -1,5 +1,5 @@
 usage: evol [-h] [-c] [-v]
-            {search,fetch,filter,refine,conserv,coevol,rankorder} ...
+            {search,fetch,filter,refine,merge,conserv,coevol,rankorder} ...
 
 Evol: Sequence Evolution and Dynamics Analysis
 
@@ -9,11 +9,12 @@ optional arguments:
   -v, --version         print ProDy version and exit
 
 subcommands:
-  {search,fetch,filter,refine,conserv,coevol,rankorder}
+  {search,fetch,filter,refine,merge,conserv,coevol,rankorder}
     search              search Pfam with given query
     fetch               fetch MSA files from Pfam
     filter              filter an MSA using sequence labels
     refine              refine an MSA by removing gapped rows/colums
+    merge               merge multiple MSAs based on common labels
     conserv             analyze conservation using Shannon entropy
     coevol              analyze co-evolution using mutual information
     rankorder           identify highly coevolving pairs of residues

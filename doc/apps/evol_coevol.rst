@@ -10,8 +10,8 @@ Usage
 Running :command:`evol coevol -h` displays::
 
   usage: evol coevol [-h] [--quiet] [--examples] [-n] [-g] [-c STR] [-m STR]
-                     [-p STR] [-f STR] [-S] [-L FLOAT] [-U FLOAT] [-F STR]
-                     [-D INT] [-W FLOAT] [-H FLOAT]
+                     [-p STR] [-f STR] [-S] [-L FLOAT] [-U FLOAT] [-X STR]
+                     [-T STR] [-F STR] [-D INT] [-W FLOAT] [-H FLOAT]
                      msa
   
   positional arguments:
@@ -46,6 +46,8 @@ Running :command:`evol coevol -h` displays::
                           apply lower limits for figure plot
     -U FLOAT, --cmax FLOAT
                           apply upper limits for figure plot
+    -X STR, --xlabel STR  specify xlabel, by default will be applied on ylabel
+    -T STR, --title STR   figure title
     -F STR, --figure-format STR
                           figure file format, one of svgz, ps, svg, eps, raw,
                           rgba, pdf, png (default: pdf)
