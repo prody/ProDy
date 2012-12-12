@@ -16,17 +16,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-""" This module handles individual sequences and label of an `.MSA` object."""
+"""This module handles individual sequences."""
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import re
-SPLITLABEL = re.compile('/*-*').split
-from prody import LOGGER
-import numpy as np
 
-__all__ = ['Sequence', 'splitSeqLabel']
+from numpy import arange, char, fromstring, zeros
+
+from prody import LOGGER
+
+try:
+    range = xrange
+except NameError:
+    pass
+
+SPLITLABEL = re.compile('/*-*').split
+
+__all__ = ['Sequence']
 
 def splitSeqLabel(label):
    """Return label, starting residue number, and ending residue number parsed
@@ -46,135 +54,107 @@ class Sequence(object):
     
     """Handle individual sequences of an `.MSA` object""" 
     
-    def __init__(self, **kwargs):
-        """ Takes the following input arguements:
-        arg msa: a :class:`.MSA` ojbect for reference.
-        type msa: class:`.MSA` object
+    __slots__ = ['_msa', '_seq', '_index', '_label']
+    
+    def __init__(self, *args):
+        """Depending on input arguments, instances may point to an 
+        :class:`.MSA` object or store its own data:
         
-        arg index: can specify index for a particular sequence of the *msa*
-        type index: int
+        *MSA Pointer*
+
+        An :class:`.MSA` instance and an index:
+
+        >>> seq = Sequence(msa, 0)
         
-        arg label: can specify a label. If *msa* is given than *seq* is set
-                    based on *label*
-        type label: str
+        *Independent*
         
-        arg seq: user specified sequence
-        type seq: str
+        Instantiation with sequence and label (optional) string:
         
-        *Instantiation*
-        >>> seq = Sequence(msa=msaobj, index=0)
-        >>> seq = Sequence(seq='SOME-SEQUENCE-STRING', label='MySeq/1-18')"""
+        >>> seq = Sequence('SOME-SEQUENCE-STRING', 'MySeq/1-18')"""
         
-        msa = kwargs.get('msa')
-        label = kwargs.get('label')
-        seq = kwargs.get('seq')
-        index = kwargs.get('index')
-        self._msa = None
-        self._index = None
-        self._label = None
-        self._seq = None
-        if msa is not None:
+        if len(args) == 2:
+            one, two = args
             try:
-                self._msasize = msa.numSequences()
+                one.lower, two.lower
             except AttributeError:
-                raise TypeError('msa must be an MSA object')
+                self._msa = one
+                self._index = two
+                self._seq = self._label = None
             else:
-                self._msa = msa
-                if index is None:
-                    raise ValueError('Index missing. {0} should be '
-                                     'accompanied by index'.format(str(msa)))
-                else:
-                    index = int(index)
-                    if index >= self._msasize or index < 0:
-                        raise ValueError('index cannot be < than 0 or > than '
-                                         'the number of sequences in the msa')
-                    self._index = index
+                self._seq = fromstring(one, '|S1')
+                self._label = two
+                self._msa = self._index = None
+        elif len(args) == 1:
+            self._seq = fromstring(args[0], '|S1')
+            self._msa = self._index = None
         else:
-            if label is not None and seq is not None:
-                self._label = str(label)
-                self._seq = str(seq)
-            else:
-                raise ValueError('Either msa and index, or label and sequence'
-                                 ' need to be specified.')
+            raise ValueError('msa and index, or seq [and label] must be'
+                             'specified')
+    
+    @property
+    def _array(self):
+        """Sequence data array."""
+        
+        return self._seq if self._msa is None else self._msa._msa[self._index]
         
     def __str__(self):
         
-        if self._seq is None:
-            return self._msa._getArray()[self._index].tostring()
-        else:
-            return self._seq
-     
+        return self._array.tostring()
+        
     def __len__(self):
         
-        if self._seq is None:
-            return self._msa.numResidues()
-        else:        
-            return len(self._seq)
+        return len(self._array)
                       
     def __repr__(self):
         
-        return '<Sequence: {0} (length {1}; {2} residues and {3} gaps)>'.format(
-                self.getLabel(), len(self), self.numResidues(), self.numGaps())
-    
-    def setMSA(self, msa):
-        """ Set a reference to an `.MSA` object"""
-        
-        try:
-            self._msaSize = msa.numSequences()
-        except AttributeError:
-            raise TypeError('msa must be an MSA object')
-        else:
-            self._msa = msa
+        msa = ''
+        if self._msa is not None:
+            msa = '{0}[{1}]; '.format(self._msa.getTitle(), self._index)
+        return ('<Sequence: {0} ({1}length {2}; {3} residues and '
+                '{4} gaps)>').format(self.getLabel(), msa, len(self), 
+                self.numResidues(), self.numGaps())
     
     def getMSA(self):
-        """ Get the msa reference"""
+        """Return :class:`.MSA` instance or **None**."""
         
         return self._msa
     
     def getIndex(self):
-        """ Get the index associated with object"""
+        """Return sequence index or **None**."""
         
         return self._index
-        
-    def setLabel(self, label):
-        """Set the label to be associated with object"""
-        
-        self._label = str(label)
-        
-    def getLabel(self):
-        """Get the label associated with object"""
-        
-        if self._label is None:
-            return self._msa._labels[self._index]
-        else:
-            return self._label
     
-    def setSeq(self, seq):
-        """ Set the *seq* to be associated with object"""
+    # This function should be able to update MSA._mapping and MSA._labels
+    #def setLabel(self, label):
+    #    """Set the label to be associated with object"""
+    #    
+    #    self._label = str(label)
         
-        self._seq = str(seq)
+    def getLabel(self, full=False):
+        """Return label of the sequence."""
         
+        label = self._label or self._msa._labels[self._index]
+        return label if full else splitSeqLabel(label)[0]
+    
     def numGaps(self):
-        """Return the no of gaps associated with *seq*. If *seq* is not set,
-        returns *None*"""
+        """Return number of gaps."""
         
-        return len(self) - sum(np.char.isalpha(list(str(self))))
-            
+        array = self._array
+        return len(array) - sum(char.isalpha(array))
             
     def numResidues(self):
-        """Return the length of nongapped *seq*. If *seq* is not set,
-        returns *None*"""
+        """Return the number of alphabet characters."""
         
-        return sum(np.char.isalpha(list(str(self))))
+        return sum(char.isalpha(self._array))
         
     def getResnums(self, gaps=False):
-        """Return a list of residue numbers associated with nongapped *seq* if
-        *gaps* is set to False (default). Else return a list containing the
-        residue numbers with gaps appearing as *None*. Resiues numbers are
-        based on *label* start-end position if given, otherwise the residues
-        are indices starting at 1 to length of ungapped *seq*"""
+        """Return list of residue numbers associated with non-gapped *seq*.  
+        When *gaps* is **True**, return a list containing the residue numbers 
+        with gaps appearing as *None*. Residue numbers are based on *label* 
+        start-end position if given, otherwise the residues
+        are indices starting at 1 to length of non-gapped *seq*"""
         
-        title, start, end = splitSeqLabel(self.getLabel())
+        title, start, end = splitSeqLabel(self.getLabel(True))
         try:
             start, end = int(start), int(end)
         except:
@@ -187,21 +167,15 @@ class Sequence(object):
                             'length of ungapped sequence. Setting '
                             'resnums 1 to {0:d}'.format(self.numResidues()))
                 start, end = 1, self.numResidues()
-        resnums = list(xrange(start, end + 1))
+        
+        resnums = iter(range(start, end + 1))
         if gaps:
-            resnums = np.zeros(len(self), dtype='object')
-            cols = np.char.isalpha(list(str(self)))
-            resnums[cols] = list(xrange(start, end + 1))
-            resnums[np.where(cols == False)[0]] = None
-            resnums = list(resnums)
-        return resnums
+            return [next(resnums) if torf else None 
+                    for torf in char.isalpha(self._array())]
+        else:
+            return list(resnums)
         
     def copy(self):
+        """Return a copy of the instance that owns its sequence data."""
         
-        return Sequence(label=getLabel(), seq=str(self))
-        
-    
-        
-        
-        
-            
+        return Sequence(str(self), self.getLabel())

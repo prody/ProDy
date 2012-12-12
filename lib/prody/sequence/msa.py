@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from numpy import all, zeros, dtype, array, char, fromstring, arange, cumsum
 
 from .msafile import MSAFile
-from .sequence import splitSeqLabel 
+from .sequence import Sequence, splitSeqLabel  
 
 from prody import LOGGER
 
@@ -50,17 +50,26 @@ class MSA(object):
     >>> 'YQ53_CAEEL' in msa
     True
     
-    *Indexing and slicing*
+    *Indexing*
     
-    Retrieve a sequence at a given index:
+    Access a sequence at a given index:
     
     >>> msa[0] # doctest: +ELLIPSIS
-    ('YQ53_CAEEL', 'DIL...YK', 650, 977)
+    <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
     
-    Retrieve a sequence by UniProt ID:
+    Access a sequence by UniProt ID:
     
     >>> msa['YQ53_CAEEL'] # doctest: +ELLIPSIS
-    ('YQ53_CAEEL', 'DIL...YK', 650, 977)
+    <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+    
+    Retrieve a character or a slice of a sequence:
+
+    >>> msa[0,0]
+    <Sequence: YQ53_CAEEL (length 1; 1 residues and 0 gaps)>
+    >>> msa[0,0:10]
+    <Sequence: YQ53_CAEEL (length 10; 9 residues and 1 gaps)>
+
+    *Slicing*
     
     Slice an MSA instance:
     
@@ -72,28 +81,10 @@ class MSA(object):
     >>> msa[:2] == msa[['YQ53_CAEEL', 'Q21691_CAEEL']]
     True
     
-    Retrieve a character or a slice of a sequence:
-
-    >>> msa[0,0]
-    'D'
-    >>> msa[0,0:10]
-    'DILVGIAR.E'
-    
     Slice MSA rows and columns:
     
     >>> msa[:10,20:40]
     <MSA: piwi_seed' (10 sequences, 20 residues)>
-    
-    *Refinement*
-    
-    Columns in an MSA that are gaps for a given sequence can be eliminated
-    from the data as follows:
-        
-    >>> msa[:, 'YQ53_CAEEL'] # doctest: +ELLIPSIS
-    <MSA: piwi_seed' (20 sequences, 328 residues)>
-    
-    This operation removed 76 columns, which is the number of gaps in sequence
-    with label ``'YQ53_CAEEL'``.
     
     *Selective parsing*
     
@@ -136,9 +127,19 @@ class MSA(object):
         if mapping is None:
             if labels is not None:
                 # map labels to sequence index
-                self._mapping = mapping = {
-                splitSeqLabel(label)[0]: i for i, label in enumerate(labels)
-                }
+                self._mapping = mapping = {}
+                for index, label in enumerate(labels):
+                    label = splitSeqLabel(label)[0]
+                    try:
+                        value = mapping[label]
+                    except KeyError:
+                        mapping[label] = index
+                    else:
+                        try:
+                            value.append(index)
+                        except AttributeError:
+                            mapping[label] = [value, index] 
+                
         elif mapping:
             try:
                 mapping['isdict']
@@ -174,80 +175,80 @@ class MSA(object):
 
     def __getitem__(self, index):
         
-        try:
-            length = len(index)
-        except TypeError: # type(index) -> int, slice
-            rows, cols = index, None
+        if isinstance(index, int):
+            return Sequence(self, index)
+        
+        if isinstance(index, str):
+            try:
+                rows = self._mapping[index]
+            except KeyError:
+                raise KeyError('label {0} is not mapped to a sequence'
+                               .format(index))
+            else:
+                msa = self._msa[rows]
+                if msa.ndim == 1:
+                    return Sequence(self, rows)
+                else:
+                    if msa.base is not None:
+                        msa = msa.copy()
+                    labels = self._labels
+                    return MSA(msa, title='{0}[{1}]'.format(self._title, 
+                               index), labels=[labels[i] for i in rows])
+        elif isinstance(index, tuple):
+            if len(index) == 1:            
+                return self[index[0]]
+            elif len(index) == 2:
+                rows, cols = index
+            else:
+                raise IndexError('invalid index: ' + str(index))
         else:
+            rows, cols = index, None
+            
+        # handle list of labels    
+        if isinstance(rows, list):        
+            rows = self.getIndex(rows) or rows
+        elif isinstance(rows, int):
+            return Sequence(self._msa[rows, cols].tostring(), 
+                            self._labels[rows])
+        elif isinstance(rows, str):
             try:
-                _ = index.strip
-            except AttributeError: # type(index) -> tuple, list
-                try:
-                    _ = index.sort
-                except AttributeError: # type(index) -> tuple
-                    if length == 1:
-                        rows, cols = index[0], None
-                    elif length == 2:
-                        rows, cols = index
-                    else:
-                        raise IndexError('invalid index: ' + repr(index))
-                else: # type(index) -> list
-                    rows, cols = index, None
-            else: # type(index) -> str
-                rows, cols = index, None 
-
-        try: # ('PROT_HUMAN', )
-            rows = self._mapping.get(rows, rows)
-        except (TypeError, KeyError):
-            mapping = self._mapping
-            try:
-                rows = [mapping[key] for key in rows]
-            except (KeyError, TypeError):
-                pass
-
+                rows = self._mapping[rows]
+            except KeyError:
+                raise KeyError('label {0} is not mapped to a sequence'
+                               .format(index))
+            else:
+                if isinstance(rows, int):
+                    return Sequence(self._msa[rows, cols].tostring(), 
+                                    self._labels[rows])
+                    
         if cols is None:
             msa = self._msa[rows]
         else:
-            if not self._aligned:
-                raise ValueError('msa is not aligned, '
-                                 'column indexing is not possible')
-            try:
-                cols = self._mapping[cols]
-            except (KeyError, TypeError):
-                pass
-            else:
-                cols = char.isalpha(self._msa[cols])
-                
-            try:
+            if isinstance(cols, (slice, int)):
                 msa = self._msa[rows, cols]
-            except Exception:
-                raise IndexError('invalid index: ' + str(index))
-            
-        try:
-            shape, ndim = msa.shape, msa.ndim
-        except AttributeError:
-            return msa
-        else:
-            if ndim < 2:
-                seq = msa.tostring()
-                try:
-                    seq.format
-                except AttributeError:
-                    seq = seq.decode('utf')
-                if cols is None:
-                    label, start, end = splitSeqLabel(self._labels[rows])
-                    return label, seq, start, end
-                else:
-                    return seq
             else:
-                if msa.base is not None:
-                    msa = msa.copy()
                 try:
-                    labels = self._labels[rows]
+                    msa = self._msa[rows].take(cols, 1)
                 except TypeError:
-                    temp = self._labels
-                    labels = [temp[i] for i in rows]
-                return MSA(msa, title=self._title + '\'', labels=labels) 
+                    raise IndexError('invalid index: ' + str(index))
+
+        try:
+            lbls = self._labels[rows]
+        except TypeError:
+            labels = self._labels
+            lbls = [labels[i] for i in rows]
+        else:            
+            if not isinstance(lbls, list):
+                lbls = [lbls]
+
+        if msa.ndim == 0:
+            msa = msa.reshape((1,1))
+        elif msa.ndim == 1:
+            msa = msa.reshape((1,len(msa)))
+        if msa.base is not None:
+            msa = msa.copy()
+        
+        return MSA(msa=msa, title=self._title + '\'', labels=lbls)
                
     def __iter__(self):
         
@@ -370,14 +371,33 @@ class MSA(object):
     
     def getIndex(self, label):
         """Return index of the sequence that *label* maps onto.  If *label* 
-        maps onto multiple sequences, a list of indices is returned."""
+        maps onto multiple sequences or *label* is a list of labels, a list 
+        of indices is returned.  If an index for a label is not found, 
+        return **None**."""
         
         try:
-            index = self._mapping.get(label)
+            index = self._mapping[label]
+        except KeyError:
+            return None
         except TypeError:
-            raise TypeError('label must be a string')
+            mapping = self._mapping
+            indices = []
+            append, extend = indices.append, indices.extend
+            for key in label:
+                try:
+                    index = mapping[key]
+                except KeyError:
+                    return None
+                try:
+                    extend(index)
+                except TypeError:
+                    append(index)
+            return indices
         else:
-            return index
+            try:
+                return list(index)
+            except TypeError:
+                return index
 
     def iterLabels(self, full=False):
         """Yield sequence labels.  By default the part of the label used for 
@@ -409,7 +429,7 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
     :type msa: :class:`.MSA`
     
     :arg label: remove columns that are gaps in the sequence matching label,
-    ``msa.getIndex(label)`` must return a sequence index
+        ``msa.getIndex(label)`` must return a sequence index
     :type label: str
     
     :arg seqid: keep unique sequences at specified sequence identity level,
