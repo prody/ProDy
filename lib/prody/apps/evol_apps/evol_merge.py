@@ -34,14 +34,15 @@ following example show how to merge two MSAs:
     $ evol merge piwi.slx -l GTHB2_ONCKE""", [])
 
 
-APP.addArgument('msas',
+APP.addArgument('msa',
     nargs='+',
     help='MSA filenames to be merged')
 
 APP.addGroup('output', 'output options')
 APP.addArgument('-o', '--outname',
     dest='outname',
-    help='output filename, default is first input MSA filename_merged suffix',
+    help='output filename, default is first input filename '
+         'with _merged suffix',
     type=str,
     metavar='STR',
     group='output')
@@ -59,40 +60,27 @@ APP.addArgument('-z', '--compressed',
     help='gzip merged MSA output',
     group='output')
 
-def evol_merge(*msas, **kwargs):
+def evol_merge(*msa, **kwargs):
     
     import prody
-    from prody import parseMSA, mergeMSA, LOGGER, writeMSA
+    from prody import parseMSA, mergeMSA, LOGGER, writeMSA, MSAFile
+    from prody.sequence.msafile import MSAEXTMAP
     from os.path import splitext
-    if len(msas) < 2:
-        raise ValueError('There has to more than one msa for merging.')
+    if len(msa) < 2:
+        raise ValueError('multiple msa filenames must be specified')
     msaobj = []
-    for i, msa in enumerate(list(msas)):
-        try:
-            msaobj.append(parseMSA(str(msa)))
-        except:
-            LOGGER.info('Could not parse msa file {0}. Ignoring that input'
-                        .format(msa))
-        else:
-            if i == 0:
-                format = kwargs.get('format', None)
-                if format is None:
-                    title,  ext = splitext(msa)
-                    if ext.lower() == '.gz':
-                        title, ext = splitext(outname)
-                    if ext == 'fasta':
-                        format = 'FASTA'
-                    elif ext == 'sth':
-                        format = 'Stockholm'
-                    else:
-                        format = 'SELEX'
-                    kwargs['format'] = format
-                    outname = kwargs.get('outname')
-                    if outname is None:
-                        outname = title + '_merged' + ext
-                        
+    try:
+        msaobj = [parseMSA(fn) for fn in msa]
+    except:
+        raise IOError('failed to parse {0}'.format(fn))
+    
+    msafile = MSAFile(msa[0])
+
+    format = kwargs.get('format') or msafile.format
+    outname = kwargs.get('outname') or (msafile.getTitle() + '_merged' + 
+                                        MSAEXTMAP[msafile.format])
     writeMSA(outname, mergeMSA(*msaobj), **kwargs)    
-    LOGGER.info('Wrote merged file {0}'.format(outname))
+    LOGGER.info('Merged MSA is saved as: {0}'.format(outname))
     
 APP.setFunction(evol_merge)
 

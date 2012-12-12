@@ -185,7 +185,7 @@ coevolving pairs based on a zscore cutoff.
 See Also
 ===============================================================================
 
-See :mod:`.sequence` module for all sequence analysis functions.
+See :mod:`~.prody.sequence` module for all sequence analysis functions.
 
 |questions|
 

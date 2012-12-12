@@ -230,7 +230,7 @@ Returns the name of the MSA file that is written.
 See Also
 ===============================================================================
 
-See :mod:`.sequence` module for all sequence analysis functions. 
+See :mod:`~.prody.sequence` module for all sequence analysis functions. 
 
 |questions|
 
