@@ -137,7 +137,7 @@ class Sequence(object):
         return label if full else splitSeqLabel(label)[0]
     
     def numGaps(self):
-        """Return number of gaps."""
+        """Return number of gap characters."""
         
         array = self._array
         return len(array) - sum(char.isalpha(array))
@@ -150,9 +150,9 @@ class Sequence(object):
     def getResnums(self, gaps=False):
         """Return list of residue numbers associated with non-gapped *seq*.  
         When *gaps* is **True**, return a list containing the residue numbers 
-        with gaps appearing as *None*. Residue numbers are based on *label* 
-        start-end position if given, otherwise the residues
-        are indices starting at 1 to length of non-gapped *seq*"""
+        with gaps appearing as **None**.  Residue numbers are inferred from the
+        full label.  When label does not contain residue number information, 
+        indices a range of numbers starting from 1 is returned."""
         
         title, start, end = splitSeqLabel(self.getLabel(True))
         try:
