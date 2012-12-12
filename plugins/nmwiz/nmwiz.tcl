@@ -37,20 +37,11 @@
 
 package require exectool
 package require multiplot
+package require heatmapper
 package provide nmwiz 1.2
 
 
 proc sign x {expr {($x>0) - ($x<0)}}
-
-# List of NMWiz functions
-#   ::NMWiz::initGUI                 make main window
-#   ::NMWiz::loadNMD                 load NMD file
-
-#   ::nmguiX::deleteMolecules        delete molecules storing coordinates/graphics/animations/selection
-#   ::nmguiX::prepareSelmol          prepare the molecule where selections are displayed
-#   ::nmguiX::getPDBLines            return PDB files for the molecule
-#   ::nmguiX::clearSelection         turn selection representation of and clear labels
-
 
 namespace eval ::NMWiz:: {
   namespace export nmwizgui
@@ -258,8 +249,6 @@ namespace eval ::NMWiz:: {
       $log.text insert end "\n\n\n"
       $log.text insert end "Settings and Options\n"
       $log.text insert end "--------------------\n\n"
-      $log.text insert end "NMWiz saves some user settings in your home folder. These settings can be changed using 'Settings' window."
-      $log.text insert end "\n\n"
       $log.text insert end "**Preserve View**\n\n"
       $log.text insert end "When NMWiz loads data, VMD will shift focus to the new molecule. Check this to preserve the current view when loading a new dataset."
     }
@@ -279,7 +268,7 @@ namespace eval ::NMWiz:: {
       return 
     }
     set w [toplevel .nmwizgui]
-    wm title $w "NMWiz 1.0 - Main"
+    wm title $w "NMWiz 1.2 - Main"
     wm resizable $w 0 0
 
     set wmf [frame $w.mainframe -bd 2]
@@ -329,7 +318,7 @@ namespace eval ::NMWiz:: {
               -command "${ns}::nmwizgui" ] \
             -row 0 -column 0 -sticky we
           grid [button $wgf.remove -text "Remove" \
-              -command "lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+              -command "::NMWiz::removeDataset $ns"] \
             -row 0 -column 1 -sticky we
           grid [button $wgf.save -text "Save" \
               -command "::NMWiz::writeNMD $ns"] \
@@ -1632,7 +1621,7 @@ orange3"
           -command "${ns}::nmwizgui" ] \
         -row 0 -column 0 -sticky we
       grid [button $wgf.remove -text "Remove" \
-          -command "lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget $wgf; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+          -command "::NMWiz::removeDataset $ns"] \
         -row 0 -column 1 -sticky we
       grid [button $wgf.save -text "Save" \
           -command "::NMWiz::writeNMD $ns"] \
@@ -1641,6 +1630,20 @@ orange3"
       pack $wgf -side top -fill x -expand 1
     
     }
+  }
+  
+  proc removeDataset {ns} {
+    
+   if {"ok" != [tk_messageBox -type okcancel -title "Remove dataset" \
+               -message "All associated molecules, plots, and heatmaps will be closed. Do you want to remove this dataset?"]} {
+      return         
+   }
+
+    lset ::NMWiz::titles $::NMWiz::guicount NONE; 
+    pack forget .nmwizgui.{[string range $ns 2 end]}frame;
+    ${ns}::cleanup
+    namespace delete $ns; 
+    destroy .[string range $ns 2 end]
   }
   
   proc array2xyz {arr} {
@@ -1679,6 +1682,10 @@ orange3"
       variable ndim 3
       variable bothdirections 0
       variable porcupine 0
+      variable paircolor "blue"
+      variable addlabel 1
+      variable numatoms 0
+      variable numresid 0
       
       #GNM option
       variable msformode "Mobility"
@@ -1724,6 +1731,7 @@ orange3"
       variable anmopt 0
       variable prtopt 0
       variable pltopt 0
+      variable hmpopt 0
 
       variable selid -1
       variable overplot 0
@@ -1736,7 +1744,7 @@ orange3"
       variable lornol "lines"
       variable marker "circle"
       variable plothandles [list]
-      
+      variable hmhandles [list]
       
       proc handle { args } {
         set cmd [lindex $args 0]
@@ -2118,7 +2126,16 @@ setmode, getlen, setlen, addmode"
       }
       
       #vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-      proc deleteMolecules {} {
+      proc cleanup {} {
+      
+        set ns [namespace current]
+        lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget .nmwizgui.{[string range $ns 2 end]}frame;  
+      
+        # remove molecules associated with the NMD dataset
+        # close Heatmaps
+        # close plots
+      
+      
         variable molid
         variable animidlist
         variable selid
@@ -2139,9 +2156,57 @@ setmode, getlen, setlen, addmode"
         if {[lsearch [molinfo list] $selid] > -1} {
           mol delete $selid
         }
+        
+        closeFigures
+        
+        return 1
       }
       
-      proc Plot {ns} {
+      proc closeFigures {} {
+
+        variable hmhandles
+        foreach handle $hmhandles {
+          catch {$handle quit}
+        }
+        variable plothandles
+        foreach handle $plothandles {
+          catch {$handle quit}
+        }
+      }
+      
+      proc loadHeatmap {} {
+        
+        set tempfile [tk_getOpenFile \
+          -filetypes {{"Heat Mapper files" { .hm .HM }} {"All files" *}}]
+        if {[string equal $tempfile ""]} {
+          return
+        }
+        set handle [heatmapper -loadfile $tempfile] 
+
+        variable hmhandles
+        lappend hmhandles $handle
+
+        set shape [$handle cget shape]
+        set size [lindex $shape 0]
+        if {$size != [lindex $shape 1]} {
+          vmdcon -warn "Heatmap in $tempfile is not a 2D matrix, mouse selection actions will not be available."
+          return
+        }
+        variable numatoms
+        variable numresid
+        if {$size == $numatoms} {
+          $handle configure -callback [namespace current]::highlightAtomPair
+        } elseif {$size == $numatoms} {
+          $handle configure -callback [namespace current]::highlightResiduePair
+        } else {
+          vmdcon -warn "Size of heatmap in $tempfile does not match number of atoms or residues, mouse selection actions will not be available."
+          return
+        }
+      }
+      
+      proc Plot {} {
+        
+        set ns [namespace current]
         
         #puts [subst $${ns}::overplot]
         set plothandle 0
@@ -2168,7 +2233,7 @@ setmode, getlen, setlen, addmode"
             -radius [subst $${ns}::mradius] \
             -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
             -xlabel "Atom/Residue #" \
-            -callback $ns\::highlight \
+            -callback $ns\::highlightAtom \
             -plot
              
         } else {
@@ -2182,7 +2247,7 @@ setmode, getlen, setlen, addmode"
             -radius [subst $${ns}::mradius] \
             -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
             -xlabel "Atom/Residue #" \
-            -callback $ns\::highlight \
+            -callback $ns\::highlightAtom \
             -plot]
         }
         vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
@@ -2190,6 +2255,9 @@ setmode, getlen, setlen, addmode"
       }
       
       proc prepareSelmol {} {
+        
+        # prepare a molecule for atom selections
+        
         variable selid
         variable molid
         # make sure selmol exists
@@ -2197,8 +2265,8 @@ setmode, getlen, setlen, addmode"
           set selid [mol new]
           variable title
           variable w
-          mol rename $selid "$title selections"
-          $w.draw_arrows.plot_label configure -text "Plotting ($selid):"
+          mol rename $selid "$title highlights"
+          $w.draw_arrows.plot_label configure -text "Figures ($selid):"
         }
         # make sure coordinates are loaded
         if {[molinfo $selid get numframes] == 0} {
@@ -2226,14 +2294,14 @@ setmode, getlen, setlen, addmode"
           }
           for {set i 0} {$i < [llength $resids]} {incr i} {
             mol addrep $selid
-            mol modstyle $i $selid VDW
             mol showrep $selid $i off
+            mol modstyle $i $selid VDW
           }
         }
         mol top $molid
       }
-
-      proc clearSelection {} {
+      
+      proc clearHighlights {} {
         variable selid
         if {$selid > -1 && [lsearch [molinfo list] $selid] > -1} {
           for {set i [expr [molinfo $selid get numreps] - 1]} {$i >= 0} {incr i -1} {
@@ -2246,9 +2314,16 @@ setmode, getlen, setlen, addmode"
             label delete Atoms $i
           }
         }
-      }
+        set labels [label list Bonds]
+        for {set i [expr [llength $labels] - 1]} {$i >= 0} {incr i -1} {
+          set label [lindex $labels $i]
+          if {[lindex [lindex $label 0] 0] == $selid && [lindex [lindex $label 1] 0]} {
+            label delete Bonds $i
+          }
+        }
+     }
 
-      proc highlight {args} {
+      proc highlightAtom {args} {
 
         [namespace current]::loadCoordinates
         set resid [lindex $args 0] 
@@ -2283,6 +2358,53 @@ setmode, getlen, setlen, addmode"
           mol modselect $which $selid "index $which"
           mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
         }
+      }
+      
+      proc highlightAtomPair {args} {
+
+        [namespace current]::loadCoordinates
+        set x [lindex $args 0] 
+        set y [lindex $args 1]
+        if {$x == $y} {
+          return
+        } 
+
+
+        set value [lindex $args 2]
+        [namespace current]::prepareSelmol
+        
+        variable selid
+        variable selection
+        variable selectscale
+        variable resolution
+        variable material
+        variable chainids
+        variable resnames
+        variable resids
+        variable paircolor
+        variable addlabel
+        
+        if {$addlabel} {label add Bonds $selid/$x $selid/$y}
+
+        #set i [molinfo $selid get numreps]
+        #mol addrep $selid
+        
+        
+        set which $x        
+        vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+        mol showrep $selid $which on
+        mol modstyle $which $selid VDW $selectscale $resolution
+        mol modmaterial $which $selid $material
+        mol modselect $which $selid "index $which"
+        mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $paircolor]
+
+        set which $y
+        vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+        mol showrep $selid $which on
+        mol modstyle $which $selid VDW $selectscale $resolution
+        mol modmaterial $which $selid $material
+        mol modselect $which $selid "index $which"
+        mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $paircolor]
       }
 
       proc updateProtRep {targetid} {
@@ -2824,6 +2946,11 @@ setmode, getlen, setlen, addmode"
             molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
           }
         }
+        
+        variable numatoms [molinfo $molid get numatoms]
+        set sel [atomselect $molid "all"]
+        variable numresid [llength [lsort -unique [$sel get residue]]]
+        $sel delete
       }
 
       proc checkCoordinates {} {
@@ -3091,6 +3218,15 @@ setmode, getlen, setlen, addmode"
               -command ${ns}::drawArrows] \
             -row 5 -column 4 -sticky we
         }
+
+        grid [button $wam.plotmobility -text "Plot Mobility" \
+            -command ${ns}::Plot] \
+          -row 7 -column 1 -columnspan 2 -sticky we
+        grid [button $wam.loadheatmap -text "Load Heatmap" \
+            -command ${ns}::loadHeatmap] \
+          -row 7 -column 3  -columnspan 2 -sticky we
+
+
         grid [button $wam.showmain -text "Main" \
             -command nmwiz_tk] \
           -row 8 -column 1 -sticky we
@@ -3098,7 +3234,7 @@ setmode, getlen, setlen, addmode"
             -command "::NMWiz::writeNMD $ns"] \
           -row 8 -column 2 -sticky we
         grid [button $wam.remove -text "Remove" \
-            -command "lset ::NMWiz::titles $::NMWiz::guicount NONE; pack forget .nmwizgui.{[string range $ns 2 end]}frame; ${ns}::deleteMolecules; namespace delete $ns; destroy .[string range $ns 2 end]"] \
+            -command "::NMWiz::removeDataset $ns"] \
           -row 8 -column 3 -sticky we
         grid [button $wam.showhelp -text "Help" \
             -command {::NMWiz::showHelp wizard}] \
@@ -3144,13 +3280,13 @@ setmode, getlen, setlen, addmode"
             -row 6 -column 5 -sticky ew
         }
 
-        grid [label $wda.plot_label -text "Plotting:"] \
+        grid [label $wda.plot_label -text "Figures:"] \
           -row 8 -column 0 -sticky w
-        grid [button $wda.plot_plot -text "Plot" \
-            -command "${ns}::Plot ${ns}"] \
+        grid [button $wda.plot_plot -text "Close" \
+            -command "${ns}::closeFigures"] \
           -row 8 -column 2 -sticky ew
         grid [button $wda.plot_clear -text "Clear" \
-            -command "${ns}::clearSelection"] \
+            -command "${ns}::clearHighlights"] \
           -row 8 -column 3 -sticky ew
         grid [button $wda.plot_showhide -text "Hide" \
             -command "if {\$${ns}::selid > -1 && \[lsearch \[molinfo list] \$${ns}::selid] > -1} {if {\[molinfo \$${ns}::selid get displayed]} {mol off \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Show} else {mol on \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Hide}}"] \
@@ -3162,19 +3298,19 @@ setmode, getlen, setlen, addmode"
         ##-command "if {\$${ns}::pltopt} {pack forget \$${ns}::w.animation_options; set ${ns}::pltopt 0; \$${ns}::w.draw_arrows.plot_options configure -relief raised} else {pack \$${ns}::w.plot_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::pltopt 1; \$${ns}::w.draw_arrows.plot_options configure -relief sunken}"] \
 
         grid [label $wda.protbuttons_label -text "Molecule:"] \
-          -row 9 -column 0 -sticky w
+          -row 10 -column 0 -sticky w
         grid [button $wda.prt_update -text "Update" \
             -command "${ns}::loadCoordinates; ${ns}::updateProtRep \$${ns}::molid"] \
-          -row 9 -column 2 -sticky ew
+          -row 10 -column 2 -sticky ew
         grid [button $wda.protbuttons_focus -text "Focus" \
             -command "${ns}::loadCoordinates; mol top \$${ns}::molid; display resetview"] \
-          -row 9 -column 3  -sticky ew
+          -row 10 -column 3  -sticky ew
         grid [button $wda.protbuttons_showhide -text "Hide" \
             -command "${ns}::loadCoordinates; if {\[molinfo \$${ns}::molid get displayed]} {mol off \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Show;} else {mol on \$${ns}::molid; \$${ns}::w.draw_arrows.protbuttons_showhide configure -text Hide;}"] \
-          -row 9 -column 4 -sticky ew
+          -row 10 -column 4 -sticky ew
         grid [button $wda.protbuttons_repoptions -text "Options" \
             -command "if {\$${ns}::prtopt} {pack forget \$${ns}::w.prograph_options; set ${ns}::prtopt 0; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief raised} else {pack \$${ns}::w.prograph_options -side top -ipadx 10 -ipady 5 -fill x -expand 1; set ${ns}::prtopt 1; \$${ns}::w.draw_arrows.protbuttons_repoptions configure -relief sunken}"] \
-          -row 9 -column 5 -sticky ew
+          -row 10 -column 5 -sticky ew
 
         pack $wda -side top -fill x -expand 1
 
@@ -3184,7 +3320,7 @@ setmode, getlen, setlen, addmode"
             -variable ${ns}::autoupdate] \
           -row 0 -column 1 -sticky w
 
-        grid [checkbutton $wgo.hideprev_check -text " auto hide inactive mode" \
+        grid [checkbutton $wgo.hideprev_check -text " hide inactive mode" \
             -variable ${ns}::hideprev] \
           -row 0 -column 2 -sticky w
 
@@ -3459,40 +3595,28 @@ setmode, getlen, setlen, addmode"
         pack $wao.nframes_frame.entry $wao.nframes_frame.decr5 \
           $wao.nframes_frame.incr5 -side left -anchor w -fill x
 
-        set wpo [labelframe $w.plotting_options -text "Plotting Options" -bd 2]
+        set wpo [labelframe $w.plotting_options -text "Figure Options" -bd 2]
 
-        grid [checkbutton $wpo.overplot_check -text " add new plot to most recent MultiPlot" \
+        grid [checkbutton $wpo.overplot_check -text " add to most recent MultiPlot" \
             -variable ${ns}::overplot] \
-          -row 0 -column 1 -columnspan 2 -sticky w
+          -row 0 -column 1 -columnspan 4 -sticky w
   
-        if {$ndim == 1} {        
-          grid [label $wpo.plotcolor_label -text "Line color:"] \
-            -row 0 -column 5 -sticky w
-            
-          grid [frame $wpo.pcf] \
-            -row 0 -column 6 -sticky w
-          tk_optionMenu $wpo.pcf.color ${ns}::color "blue"
-            $wpo.pcf.color.menu delete 0
-            foreach acolor "blue red gray orange yellow tan green white pink \
-          cyan purple black yellow2 yellow3 green2 green3 \
-          cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
-          orange3" {
-              $wpo.pcf.color.menu add radiobutton -label $acolor \
-                  -variable ${ns}::color
-            }
-          pack $wpo.pcf.color -side left -anchor w -fill x
-        }
+        grid [checkbutton $wpo.label_check -text " label atoms/pairs" \
+          -variable ${ns}::addlabel] \
+        -row 1 -column 1 -columnspan 4 -sticky w
+
+  
         grid [label $wpo.plotwidth_label -text "Plot width:"] \
-          -row 1 -column 1 -sticky w
+          -row 2 -column 1 -sticky w
         grid [entry $wpo.plotwidth_entry -width 4 -textvariable ${ns}::plotwidth] \
-          -row 1 -column 2 -sticky w
+          -row 2 -column 2 -sticky w
         grid [label $wpo.spacing_label -text "  "] \
-          -row 1 -column 3 -sticky w
+          -row 2 -column 3 -sticky w
 
         grid [label $wpo.plotheight_label -text "Plot height:"] \
-          -row 1 -column 5 -sticky w
+          -row 2 -column 5 -sticky w
         grid [entry $wpo.plotheight_entry -width 4 -textvariable ${ns}::plotheight] \
-          -row 1 -column 6 -sticky w
+          -row 2 -column 6 -sticky w
 
         grid [label $wpo.line_label -text "Lines:"] \
           -row 3 -column 1 -sticky w
@@ -3527,6 +3651,41 @@ setmode, getlen, setlen, addmode"
           -row 5 -column 5 -sticky w
         grid [entry $wpo.radius_entry -width 4 -textvariable ${ns}::mradius] \
           -row 5 -column 6 -sticky w
+          
+        if {$ndim == 1} {
+          grid [label $wpo.plotcolor_label -text "Line color:"] \
+            -row 6 -column 1 -sticky w
+            
+          grid [frame $wpo.pcf] \
+            -row 6 -column 2 -sticky w
+          tk_optionMenu $wpo.pcf.color ${ns}::color "blue"
+            $wpo.pcf.color.menu delete 0
+            foreach acolor "blue red gray orange yellow tan green white pink \
+          cyan purple black yellow2 yellow3 green2 green3 \
+          cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
+          orange3" {
+              $wpo.pcf.color.menu add radiobutton -label $acolor \
+                  -variable ${ns}::color
+            }
+          pack $wpo.pcf.color -side left -anchor w -fill x
+        }
+        
+        grid [label $wpo.paircolor_label -text "Pair color:"] \
+          -row 8 -column 1 -sticky w
+          
+        grid [frame $wpo.hcf] \
+          -row 8 -column 2 -sticky w
+        tk_optionMenu $wpo.hcf.color ${ns}::paircolor "blue"
+          $wpo.hcf.color.menu delete 0
+          foreach acolor "blue red gray orange yellow tan green white pink \
+        cyan purple black yellow2 yellow3 green2 green3 \
+        cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
+        orange3" {
+            $wpo.hcf.color.menu add radiobutton -label $acolor \
+                -variable ${ns}::paircolor
+          }
+        pack $wpo.hcf.color -side left -anchor w -fill x
+
 
         #grid [button $wpo.dash_help -text "?" \
         #    -command {tk_messageBox -type ok -title "HELP" \
@@ -3543,6 +3702,7 @@ setmode, getlen, setlen, addmode"
         #      -variable ${ns}::dash
         #}
         #pack $wpo.dash_frame.list -side left -anchor w -fill x  
+        
         
         ${ns}::loadCoordinates
         if {$ndim == 3} {
