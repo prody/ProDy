@@ -47,12 +47,12 @@ in the refined msa that have more than 20% gaps can be eliminated. We use the
    :nofigs:
    :include-source:
    
-   >>> msa_refine = msa[:,'RNAS2_HUMAN']
+   >>> msa_refine = refineMSA(msa, label='RNAS2_HUMAN')
    >>> msa_refine
-   <MSA: PF00074_full' (525 sequences, 128 residues)>
+   <MSA: PF00074_full refined (label=RNAS2_HUMAN) (525 sequences, 128 residues)>
    >>> msa_refine = refineMSA(msa_refine, rowocc=0.8)
    >>> msa_refine
-   <MSA: PF00074_full' refined (rowocc>=0.8) (466 sequences, 128 residues)>
+   <MSA: PF00074_full refined (label=RNAS2_HUMAN) refined (rowocc>=0.8) (466 sequences, 128 residues)>
 
 
 Plotting occupancy

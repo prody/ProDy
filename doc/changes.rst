@@ -18,6 +18,9 @@ Release 1.4.1 (in development)
     functions are implemented to support VMD plugin `Heat Mapper`_ file format.
     
     .. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/  
+
+  * :class:`.Sequence` is implemented to handle individual sequence records
+    and point to sequences in :class:`.MSA` instances.
      
 **Improvements**:
 
@@ -25,7 +28,13 @@ Release 1.4.1 (in development)
     can perform MSA refinements by removing similar sequences.
 
   * :func:`.writePDB` function takes *beta* and *occupancy* arguments
-    to be outputted in corresponding columns.      
+    to be outputted in corresponding columns.
+    
+  * :class:`.MSA` indexing and slicing are revised and improved.
+  
+  * :func:`.parseMSA` is improved to handle indexing of sequences that
+    have the same label in an MSA file, e.g. domains repeated in a protein.
+        
 
 Release 1.4 (Dec 2, 2012)
 ===============================================================================

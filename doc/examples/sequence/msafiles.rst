@@ -181,12 +181,12 @@ Indexing MSA objects
 Retrieve a sequence at a given index:
     
 >>> msa[0] # doctest: +ELLIPSIS
-('YQ53_CAEEL', 'DIL...YK', 650, 977)
+<Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
     
 Retrieve a sequence by UniProt ID:
     
 >>> msa['YQ53_CAEEL'] # doctest: +ELLIPSIS
-('YQ53_CAEEL', 'DIL...YK', 650, 977)
+<Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
     
 Slice an MSA instance:
     
@@ -201,9 +201,9 @@ True
 Retrieve a character or a slice of a sequence:
 
 >>> msa[0,0]
-'D'
+<Sequence: YQ53_CAEEL (length 1; 1 residues and 0 gaps)>
 >>> msa[0,0:10]
-'DILVGIAR.E'
+<Sequence: YQ53_CAEEL (length 10; 9 residues and 1 gaps)>
     
 Slice MSA rows and columns:
     
