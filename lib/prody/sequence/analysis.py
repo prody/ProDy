@@ -261,9 +261,14 @@ def buildSeqidMatrix(msa, turbo=True):
     
     msa = getMSA(msa)
     
+    LOGGER.timeit('_seqid')
     from .seqtools import msaeye
-    
-    return msaeye(msa, turbo=bool(turbo))
+
+    seqid = msaeye(msa, turbo=bool(turbo))
+
+    LOGGER.report('Sequence identity matrix was calculated in %.2fs.', 
+                  '_seqid')
+    return seqid
     
 buildSeqidMatrix.__doc__ += doc_turbo
 
