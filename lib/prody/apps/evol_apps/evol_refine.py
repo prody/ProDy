@@ -71,6 +71,14 @@ APP.addArgument('-r', '--rowocc',
     metavar='FLOAT',
     group='refine')
 
+APP.addArgument('-k', '--keep',
+    dest='pdbres',
+    help='keep columns corresponding to residues not resolved in PDB '
+         'structure, applies label argument is a PDB identifier',
+    default=False,
+    action='store_true',
+    group='refine')
+
 APP.addGroup('output', 'output options')
 APP.addArgument('-o', '--outname',
     dest='outname',
