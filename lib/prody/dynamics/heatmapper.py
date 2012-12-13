@@ -192,6 +192,9 @@ def writeHeatmap(filename, heatmap, **kwargs):
 
     :arg max: maximum value, default is maximum in *heatmap*
     :type max: float
+    
+    :arg format: number format, default is ``'%f'``
+    :type format: str
 
     Other keyword arguments that are arrays with length equal to the y-axis
     (second dimension of heatmap) will be considered as *numbering*."""
@@ -204,11 +207,12 @@ def writeHeatmap(filename, heatmap, **kwargs):
         raise TypeError('heatmap must be a 2D array')
     
     try:
-        write, close = filename.write, lambda: None
+        write, close, stream = filename.write, lambda: None, filename
     except AttributeError: 
         out = openFile(filename, 'wb')
-        write, close = out.write, out.close
+        write, close, stream = out.write, out.close, out
     
+    format = kwargs.pop('format', '%f') 
     write('-min "{0}"\n'.format(kwargs.pop('min', heatmap.min())))
     write('-max "{0}"\n'.format(kwargs.pop('max', heatmap.max())))
     for label, default in [
@@ -237,8 +241,8 @@ def writeHeatmap(filename, heatmap, **kwargs):
     write('-numbering "{0}"\n'.format(':'.join(numlabels)))
     
     for i, row in enumerate(heatmap):
-        write(':'.join(str(nums[i])for nums in numbering) + ':')
-        write(';'.join(row.astype('|S10')))
+        write(':'.join(str(nums[i]) for nums in numbering) + ':')
+        row.tofile(stream, sep=';', format=format)
         write(';\n')
     
     close()
