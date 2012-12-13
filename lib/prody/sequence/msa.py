@@ -421,7 +421,7 @@ class MSA(object):
             return 1        
     
 
-def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
+def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that 
     contain gaps.
     
@@ -432,14 +432,14 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
         ``msa.getIndex(label)`` must return a sequence index
     :type label: str
     
-    :arg seqid: keep unique sequences at specified sequence identity level,
-        unique sequences are identified using :func:`.uniqueSequences`
-    :type seqid: float
-    
     :arg rowocc: row occupancy, sequences with less occupancy will be 
         removed after *label* refinement is applied
     :type rowocc: float
 
+    :arg seqid: keep unique sequences at specified sequence identity level,
+        unique sequences are identified using :func:`.uniqueSequences`
+    :type seqid: float
+    
     :arg colocc: column occupancy, residue positions with less occupancy
         will be removed after other refinements are applied
     :type colocc: float
@@ -476,6 +476,8 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
     cols = None
     index = None
     if label is not None:
+        before = arr.shape[1]
+        LOGGER.timeit('_refine')
         try:
             upper, lower = label.upper(), label.lower()
         except AttributeError:
@@ -531,34 +533,52 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
         title.append('label=' + label)
         cols = char.isalpha(arr[index]).nonzero()[0]
         arr = arr.take(cols, 1)
+        LOGGER.report('Label refinement reduced number of columns from {0} to '
+                      '{1} in %.2fs.'.format(before, arr.shape[1]), '_refine')
    
     from .analysis import calcMSAOccupancy, uniqueSequences
 
-    unique = None
-    if seqid is not None:
-        unique = uniqueSequences(arr, seqid)
-        if index is not None:
-            unique[index] = True
-        unique = unique.nonzero()[0]
-        arr = arr[unique]
-        title.append('seqid>=' + str(seqid))
-        
+
+    rows = None        
     if rowocc is not None:
+        before = arr.shape[0]
+        LOGGER.timeit('_refine')
         try:
             rowocc = float(rowocc)
         except Exception as err:
             raise TypeError('rowocc must be a float ({0})'.format(str(err)))
         assert 0. <= rowocc <= 1., 'rowocc must be between 0 and 1'
         
-        rows = (calcMSAOccupancy(arr, 'row') >= rowocc).nonzero()[0]
+        rows = calcMSAOccupancy(arr, 'row') >= rowocc
+        if index is not None:
+            index = rows[:index].sum()
+        rows = (rows).nonzero()[0]
         arr = arr[rows]
         title.append('rowocc>=' + str(rowocc))
-        if unique is not None:
-            rows = unique[rows]
-    else:
-        rows = unique
+        LOGGER.report('Row occupancy refinement reduced number of rows from '
+                      '{0} to {1} in %.2fs.'.format(before, arr.shape[0]), 
+                      '_refine')
     
+    if seqid is not None:
+        before = arr.shape[0]
+        LOGGER.timeit('_refine')
+        unique = uniqueSequences(arr, seqid)
+        if index is not None:
+            unique[index] = True
+        unique = unique.nonzero()[0]
+        arr = arr[unique]
+        title.append('seqid>=' + str(seqid))
+        if rows is not None:
+            rows = rows[unique]
+        else:
+            rows = unique
+        LOGGER.report('Sequence identity refinement reduced number of rows '
+                      'from {0} to {1} in %.2fs.'.format(before, arr.shape[0]), 
+                      '_refine')
+
     if colocc is not None:
+        before = arr.shape[1]
+        LOGGER.timeit('_refine')
         try:
             colocc = float(colocc)
         except Exception as err:
@@ -568,6 +588,10 @@ def refineMSA(msa, label=None, seqid=None, rowocc=None, colocc=None, **kwargs):
         cols = (calcMSAOccupancy(arr, 'col') >= colocc).nonzero()[0]
         arr = arr.take(cols, 1)
         title.append('colocc>=' + str(colocc))
+        LOGGER.report('Column occupancy refinement reduced number of columns '
+                      'from {0} to {1} in %.2fs.'.format(before, arr.shape[1]), 
+                      '_refine')
+
         
     if not title:
         raise ValueError('label, rowocc, colocc all cannot be None')
