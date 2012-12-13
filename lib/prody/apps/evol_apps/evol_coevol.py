@@ -28,16 +28,17 @@ APP = DevelApp('coevol',
                help='analyze co-evolution using mutual information')
 
 APP.setExample(
-"""This application calculates mutual information between MSA postions for a \
-refined multiple sequence alignment.  Following example will save coevolution \
-data and plot using default options:
+"""Analyze coevolution by performing mutual information calculation between 
+MSA positions.  A refined MSA without gaps should be used. 
 
-    $ evol coevol piwi_refined.slx -S
+Following example will save coevolution data and plot using default options:
+
+  $ evol coevol piwi_refined.slx -S
     
 Following example will save coevolution data and plot for all correction and \
 normalizations:
 
-    $ evol coevol piwi_refined.slx -S -c apc -c asc -m sument -m minent \
+  $ evol coevol piwi_refined.slx -S -c apc -c asc -m sument -m minent \
 -m maxent -m mincon -m maxcon -m joint""", [])
 
 
