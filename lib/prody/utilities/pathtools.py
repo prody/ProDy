@@ -438,6 +438,6 @@ def copyFile(src, dst):
 
 
 def addext(filename, extension):
-    """Return *filename* after add *extension*, it it does not have one."""
+    """Return *filename*, with *extension* if it does not have one."""
 
     return filename + ('' if splitext(filename)[1] else extension)
