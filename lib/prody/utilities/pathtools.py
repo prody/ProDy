@@ -39,7 +39,7 @@ __all__ = ['gunzip', 'backupFile', 'openFile',
            'openDB', 'openSQLite', 'openURL', 'copyFile',
            'isExecutable', 'isReadable', 'isWritable', 
            'makePath', 'relpath', 'sympath', 'which', 
-           'pickle', 'unpickle', 'glob',
+           'pickle', 'unpickle', 'glob', 'addext',
            'PLATFORM', 'USERHOME']
 
 major, minor = sys.version_info[:2] 
@@ -435,3 +435,9 @@ def copyFile(src, dst):
     
     copy(src, dst)
     return dst
+
+
+def addext(filename, extension):
+    """Return *filename* after add *extension*, it it does not have one."""
+
+    return filename + ('' if splitext(filename)[1] else extension)

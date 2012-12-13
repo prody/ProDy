@@ -27,7 +27,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup
-from prody.utilities import openFile, isExecutable, which, PLATFORM
+from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
@@ -365,9 +365,9 @@ def parseNMD(filename, type=None):
     
 
 def writeNMD(filename, modes, atoms):
-    """Writes an NMD file for given *modes* and includes applicable data from 
-    *atoms*.  Returns *filename*, if file is successfully written.  NMD file 
-    format is described at :ref:`nmd-format`.
+    """Return *filename* that contains *modes* and *atoms* data in NMD format
+    described in :ref:`nmd-format`.  :file:`.nmd` extension is appended to
+    filename, if it does not have an extension.
     
     .. note:: 
        #. This function skips modes with zero eigenvalues.
@@ -380,7 +380,7 @@ def writeNMD(filename, modes, atoms):
                         'not {0}'.format(type(modes)))
     if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
-    out = openFile(filename, 'w')
+    out = openFile(addext(filename, '.nmd'), 'w')
     
     #out.write('#!{0} -e\n'.format(VMDPATH))
     out.write('nmwiz_load {0}\n'.format(abspath(filename)))

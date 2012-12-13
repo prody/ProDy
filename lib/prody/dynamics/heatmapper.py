@@ -26,7 +26,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import arange, fromstring, array
 
-from prody.utilities import openFile, intorfloat, startswith
+from prody.utilities import openFile, intorfloat, startswith, addext
 
 from prody import LOGGER
 
@@ -170,7 +170,8 @@ def parseHeatmap(heatmap, **kwargs):
         
 def writeHeatmap(filename, heatmap, **kwargs):
     """Return *filename* that contains *heatmap* in Heat Mapper :file:`.hm` 
-    file.  *filename* may also be an output stream.
+    file (extension is automatically added when not found).  *filename* may 
+    also be an output stream.
     
     :arg title: title of the heatmap
     :type title: str
@@ -209,7 +210,7 @@ def writeHeatmap(filename, heatmap, **kwargs):
     try:
         write, close, stream = filename.write, lambda: None, filename
     except AttributeError: 
-        out = openFile(filename, 'wb')
+        out = openFile(addext(filename, '.hm'), 'wb')
         write, close, stream = out.write, out.close, out
     
     format = kwargs.pop('format', '%f') 
