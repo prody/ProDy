@@ -61,24 +61,42 @@ FIGARGS = {
 }
 
 class Quiet(argparse.Action):
+    
     def __call__(self, parser, namespace, values, option_string=None):
+    
         import prody
         prody.LOGGER.verbosity = 'warning'
 
 
 class UsageExample(argparse.Action):
+    
     def __call__(self, parser, namespace, values, option_string=None):
+    
         tw = textwrap.TextWrapper()
-        for line in namespace.usage_example.splitlines():
-            if line.lstrip().startswith('$'):
-                print(line)
+        lines = [line.strip() for line in 
+                 namespace.usage_example.splitlines()]
+        #from code import interact; interact(local=locals())
+        buff = ''
+        for line in lines:
+            if not line and buff:
+                print('\n'.join(tw.wrap(buff)))
+                print('')
+                buff = ''
+            elif line.startswith('$'):
+                print('  ' + line)
+                print('')
             else:
-                print('\n'.join(tw.wrap(line)))
+                if buff:
+                    buff += '  ' if buff.endswith('.') else ' '
+                buff += line
+                
         parser.exit()
 
 
 class ProDyCitation(argparse.Action):
+    
     def __call__(self, parser, namespace, values, option_string=None):
+    
         print("Bakan A, Meireles LM, Bahar I "
               "ProDy: Protein Dynamics Inferred from Theory and Experiments "
               "Bioinformatics 2011 27(11):1575-1577.")
@@ -86,7 +104,9 @@ class ProDyCitation(argparse.Action):
 
 
 class ProDyVersion(argparse.Action):
+    
     def __call__(self, parser, namespace, values, option_string=None):
+    
         import prody
         print("ProDy " + prody.__version__)
         parser.exit()

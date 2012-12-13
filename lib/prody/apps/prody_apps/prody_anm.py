@@ -230,17 +230,17 @@ def addCommand(commands):
     subparser.add_argument('--examples', action=UsageExample, nargs=0,
         help='show usage examples and exit')
     subparser.set_defaults(usage_example=
-    """This command performs ANM calculations for given PDB structure and \
-outputs results in NMD format. If an identifier is passed, structure file \
+"""Perform ANM calculations for given PDB structure and 
+output results in NMD format.  If an identifier is passed, structure file
 will be downloaded from the PDB FTP server.
 
-Fetch PDB 1p38, run ANM calculations using default parameters, and write \
+Fetch PDB 1p38, run ANM calculations using default parameters, and write
 NMD file:
     
   $ prody anm 1p38
     
-Fetch PDB 1aar, run ANM calculations using default parameters for chain A \
-carbon alpha atoms with residue numbers less than 70, and save all of the \
+Fetch PDB 1aar, run ANM calculations using default parameters for chain A
+carbon alpha atoms with residue numbers less than 70, and save all of the
 graphical output files:
 
   $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A""",
