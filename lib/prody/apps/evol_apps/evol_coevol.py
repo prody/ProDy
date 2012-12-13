@@ -53,13 +53,6 @@ APP.addArgument('-n', '--no-ambiguity',
     action='store_false',
     group='calc')
 
-APP.addArgument('-g', '--gaps',
-    dest='omitgaps',
-    help='do not omit gap characters',
-    default=True,
-    action='store_false',
-    group='calc')
-
 APP.addArgument('-c', '--correction',
     dest='correction',
     help='also save corrected mutual information matrix data and plot',
@@ -79,6 +72,14 @@ APP.addArgument('-m', '--normalization',
     group='calc')
 
 APP.addGroup('output', 'output options')
+
+APP.addArgument('-t', '--heatmap',
+    dest='heatmap',
+    help='output heatmap files for mutual info matrices',
+    default=False,
+    action='store_true',
+    group='output')
+
 APP.addArgument('-p', '--prefix',
     dest='prefix',
     help='output filename prefix, default is '
@@ -90,6 +91,7 @@ APP.addArgument('-p', '--prefix',
 APP.addArgument('-f', '--number-format', 
     dest='numformat', type=str, default='%12g', 
     metavar='STR', help='number output format', group='output')
+
 
 APP.addFigarg('-L', '--cmin',
     dest='cmin',
@@ -122,10 +124,12 @@ APP.addFigure('-S', '--save-plot',
 
 def evol_coevol(msa, **kwargs):
     
+    from numpy import arange
+    
     import prody
     from prody import parseMSA, buildMutinfoMatrix, showMutinfoMatrix
     from prody import applyMutinfoCorr, calcShannonEntropy
-    from prody import writeArray, LOGGER, applyMutinfoNorm
+    from prody import writeArray, LOGGER, applyMutinfoNorm, writeHeatmap
     from os.path import splitext
 
     prefix = kwargs.get('prefix')
@@ -137,8 +141,14 @@ def evol_coevol(msa, **kwargs):
     
     msa = parseMSA(msa)
     mutinfo = buildMutinfoMatrix(msa, **kwargs)
-    writeArray(prefix + '.txt', 
-               mutinfo, format=kwargs.get('numformat', '%12g'))
+    numformat = kwargs.get('numformat', '%12g')
+    heatmap = kwargs.get('heatmap', False)
+    #writeArray(prefix + '.txt', mutinfo, format=numformat)
+    if heatmap:
+        hmargs = {
+                  'xlabel': 'Residue', 'ylabel': 'Residue',
+                  'xorigin': 1, 'xstep': 1, 
+                  'residue': arange(msa.numResidues())}
 
     todo = [(None, None)]
     norm = kwargs.get('normalization', [])
@@ -158,23 +168,31 @@ def evol_coevol(msa, **kwargs):
         if what is None:
             matrix = mutinfo
             suffix = ''
+            tuffix = ' Mutual Information'
         elif which == 'joint':
             LOGGER.info('Applying {0} normalization.'.format(repr(which)))
             matrix = buildMutinfoMatrix(msa, norm=True, **kwargs)
             suffix = '_norm_joint'
+            tuffix = ' MI - Normalization: ' + which
         elif what == 'norm':
             LOGGER.info('Applying {0} normalization.'.format(repr(which)))
             if entropy is None:
                 entropy = calcShannonEntropy(msa, **kwargs)
             matrix = applyMutinfoNorm(mutinfo, entropy, norm=which)
             suffix = '_norm_' + which
+            tuffix = ' MI - Normalization: ' + which
         else:
             LOGGER.info('Applying {0} correction.'.format(repr(which)))
             matrix = applyMutinfoCorr(mutinfo, which)
             suffix = '_corr_' + which
+            tuffix = ' MI - Correction: ' + which
         
         writeArray(prefix + suffix + '.txt', 
                    matrix, format=kwargs.get('numformat', '%12g'))
+    
+        if heatmap:
+            writeHeatmap(prefix + suffix + '.hm', mutinfo,
+                         title = msa.getTitle() + tuffix, **hmargs)
     
         if kwargs.get('figcoevol'):
             try:
