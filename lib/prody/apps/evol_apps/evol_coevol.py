@@ -191,7 +191,7 @@ def evol_coevol(msa, **kwargs):
                    matrix, format=kwargs.get('numformat', '%12g'))
     
         if heatmap:
-            writeHeatmap(prefix + suffix + '.hm', mutinfo,
+            writeHeatmap(prefix + suffix + '.hm', matrix,
                          title = msa.getTitle() + tuffix, **hmargs)
     
         if kwargs.get('figcoevol'):
