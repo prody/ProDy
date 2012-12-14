@@ -183,7 +183,7 @@ def prody_pca(coords, **kwargs):
                              ext), cc, delimiter=delim, format=format)
         if outall or kwargs.get('outhm'):
             prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
-                               cc, resnum=pdb.getResnums(), 
+                               cc, resnum=select.getResnums(), 
                                xlabel='Residue', ylabel='Residue number',
                                title=pca.getTitle() + ' cross-correlations')
                          

@@ -141,7 +141,7 @@ def prody_gnm(pdb, **kwargs):
                              ext), cc, delimiter=delim, format=format)
         if outall or kwargs.get('outhm'):
             prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
-                               cc, resnum=pdb.getResnums(), 
+                               cc, resnum=select.getResnums(), 
                                xlabel='Residue', ylabel='Residue number',
                                title=gnm.getTitle() + ' cross-correlations')
     
