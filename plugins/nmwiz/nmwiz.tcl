@@ -4,9 +4,7 @@
 # Copyright 2010-2011 Ahmet Bakan
 # All rights reserved.
 # 
-# Developed by:		
-#       Ahmet Bakan
-# 			http://www.pitt.edu/~ahb12/
+# Designed and Developed by: Ahmet Bakan http://www.pitt.edu/~ahb12/
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the Software), to deal with 
@@ -65,6 +63,10 @@ namespace eval ::NMWiz:: {
       catch {set tmpdir $::env(TMP)}
       catch {set tmpdir $::env(TEMP)}
     }
+  }
+  
+  proc getColorID {color} {
+    return [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
   }
   
   proc showHelp {context} {
@@ -1687,6 +1689,12 @@ orange3"
       variable numatoms 0
       variable numresid 0
       
+      # map indices to 
+      variable hl_atoms [dict create]
+      variable hl_resididues [dict create]
+      variable hl_atoms_pairs [dict create]
+      variable hl_residue_pairs [dict create]
+      
       #GNM option
       variable msformode "Mobility"
       
@@ -2285,23 +2293,18 @@ setmode, getlen, setlen, addmode"
           foreach id [molinfo list] {
             molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
           }
-        }
         
-        variable resids
-        if {[molinfo $selid get numreps] != [llength $resids]} {
           for {set i [molinfo $selid get numreps]} {$i >= 0} {incr i -1} {
             mol delrep $i $selid
-          }
-          for {set i 0} {$i < [llength $resids]} {incr i} {
-            mol addrep $selid
-            mol showrep $selid $i off
-            mol modstyle $i $selid VDW
           }
         }
         mol top $molid
       }
       
       proc clearHighlights {} {
+        
+        variable hl_atoms [dict create]
+        variable hl_atoms_pairs [dict create]
         variable selid
         if {$selid > -1 && [lsearch [molinfo list] $selid] > -1} {
           for {set i [expr [molinfo $selid get numreps] - 1]} {$i >= 0} {incr i -1} {
@@ -2321,17 +2324,17 @@ setmode, getlen, setlen, addmode"
             label delete Bonds $i
           }
         }
+        for {set i [molinfo $selid get numreps]} {$i >= 0} {incr i -1} {
+          mol delrep $i $selid
+        }
+
      }
 
       proc highlightAtom {args} {
 
         [namespace current]::loadCoordinates
-        set resid [lindex $args 0] 
-        set y [lindex $args 1]
-        set color [lindex $args 2]
-        variable plotrids
-        set which [lsearch $plotrids $resid]
-        if {$which == -1} {return 0}
+        set which [lindex $args 0] 
+        set color [lindex $args 3]
         [namespace current]::prepareSelmol
         
         variable selid
@@ -2342,21 +2345,36 @@ setmode, getlen, setlen, addmode"
         variable chainids
         variable resnames
         variable resids
+        variable atomnames
+        variable addlabel
+        
+        if {$addlabel} {label add Atoms $selid/$which}
 
-        label add Atoms $selid/$which
 
-        #set i [molinfo $selid get numreps]
-        #mol addrep $selid
-        if {[mol showrep $selid $which]} {
-          mol showrep $selid $which off
-          vmdcon -info "Deselected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+        variable hl_atoms
+        if {[dict exists $hl_atoms $which]} {
+          set value [dict get $hl_atoms $which]
+          set repid [lindex $value 0]
+          set state [lindex $value 1]
         } else {
-          vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
-          mol showrep $selid $which on
-          mol modstyle $which $selid VDW $selectscale $resolution
-          mol modmaterial $which $selid $material
-          mol modselect $which $selid "index $which"
-          mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
+          mol addrep $selid
+          set repid [expr [molinfo $selid get numreps] - 1]
+          set state "off"
+        }
+
+        set text "[lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]_[lindex $atomnames $which]"
+        if {$state == "on"} {
+          mol showrep $selid $repid off
+          vmdcon -info "Deselected $text"
+          dict set hl_atoms $which "$repid off"
+        } else {
+          vmdcon -info "Selected $text"
+          mol showrep $selid $repid on
+          mol modstyle $repid $selid VDW $selectscale $resolution
+          mol modmaterial $repid $selid $material
+          mol modselect $repid $selid "index $which"
+          mol modcolor $repid $selid ColorID [::NMWiz::getColorID $color]
+          dict set hl_atoms $which "$repid on" 
         }
       }
       
@@ -2380,31 +2398,51 @@ setmode, getlen, setlen, addmode"
         variable material
         variable chainids
         variable resnames
+        variable atomnames
         variable resids
         variable paircolor
         variable addlabel
         
-        if {$addlabel} {label add Bonds $selid/$x $selid/$y}
+        if {$addlabel} {
+          label add Bonds $selid/$x $selid/$y
+          label add Atoms $selid/$x
+          label add Atoms $selid/$y
+        }
 
         #set i [molinfo $selid get numreps]
         #mol addrep $selid
         
+        if {$x < $y} {
+          set which "$x\_$y"  
+        } else {
+          set which "$y\_$x"
+        }
         
-        set which $x        
-        vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
-        mol showrep $selid $which on
-        mol modstyle $which $selid VDW $selectscale $resolution
-        mol modmaterial $which $selid $material
-        mol modselect $which $selid "index $which"
-        mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $paircolor]
+        variable hl_atoms_pairs
+        if {[dict exists $hl_atoms_pairs $which]} {
+          set value [dict get $hl_atoms_pairs $which]
+          set repid [lindex $value 0]
+          set state [lindex $value 1]
+        } else {
+          mol addrep $selid
+          set repid [expr [molinfo $selid get numreps] - 1]
+          set state "off"
+        }
 
-        set which $y
-        vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
-        mol showrep $selid $which on
-        mol modstyle $which $selid VDW $selectscale $resolution
-        mol modmaterial $which $selid $material
-        mol modselect $which $selid "index $which"
-        mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $paircolor]
+        set text "[lindex $chainids $x]:[lindex $resnames $x][lindex $resids $x]_[lindex $atomnames $x] - [lindex $chainids $y]:[lindex $resnames $y][lindex $resids $y]_[lindex $atomnames $y]"
+        if {$state == "on"} {
+          mol showrep $selid $repid off
+          vmdcon -info "Deselected pair $text"
+          dict set hl_atoms_pairs $which "$repid off"
+        } else {
+          vmdcon -info "Selected pair $text"
+          mol showrep $selid $repid on
+          mol modstyle $repid $selid VDW $selectscale $resolution
+          mol modmaterial $repid $selid $material
+          mol modselect $repid $selid "index $x $y"
+          mol modcolor $repid $selid ColorID [::NMWiz::getColorID $paircolor]
+          dict set hl_atoms_pairs $which "$repid on"
+        }
       }
 
       proc updateProtRep {targetid} {
@@ -3282,11 +3320,11 @@ setmode, getlen, setlen, addmode"
 
         grid [label $wda.plot_label -text "Figures:"] \
           -row 8 -column 0 -sticky w
-        grid [button $wda.plot_plot -text "Close" \
-            -command "${ns}::closeFigures"] \
-          -row 8 -column 2 -sticky ew
         grid [button $wda.plot_clear -text "Clear" \
             -command "${ns}::clearHighlights"] \
+          -row 8 -column 2 -sticky ew
+        grid [button $wda.plot_plot -text "Close" \
+            -command "${ns}::closeFigures"] \
           -row 8 -column 3 -sticky ew
         grid [button $wda.plot_showhide -text "Hide" \
             -command "if {\$${ns}::selid > -1 && \[lsearch \[molinfo list] \$${ns}::selid] > -1} {if {\[molinfo \$${ns}::selid get displayed]} {mol off \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Show} else {mol on \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Hide}}"] \
