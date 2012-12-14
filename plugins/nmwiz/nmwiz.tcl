@@ -2517,10 +2517,11 @@ setmode, getlen, setlen, addmode"
         [namespace current]::loadCoordinates
         set x [lindex $args 0] 
         set y [lindex $args 1]
-        if {$x == $y} {
-          return
-        } 
 
+        variable paircolor
+        if {$x == $y} {
+          return [[namespace current]::highlightAtom $x $y $y $paircolor] 
+        } 
 
         set value [lindex $args 2]
         [namespace current]::prepareSelmol
@@ -2534,7 +2535,7 @@ setmode, getlen, setlen, addmode"
         variable resnames
         variable atomnames
         variable resids
-        variable paircolor
+
         variable addlabel
         
         if {$addlabel} {
@@ -2581,10 +2582,11 @@ setmode, getlen, setlen, addmode"
         [namespace current]::loadCoordinates
         set x [lindex $args 0] 
         set y [lindex $args 1]
+        
+        variable paircolor
         if {$x == $y} {
-          return
+          return [[namespace current]::highlightResidue $x $y $y $paircolor] 
         } 
-
 
         set value [lindex $args 2]
         [namespace current]::prepareSelmol
@@ -2597,7 +2599,6 @@ setmode, getlen, setlen, addmode"
         variable chainids
         variable resnames
         variable resids
-        variable paircolor
         variable addlabel
         variable tuberadius
         
