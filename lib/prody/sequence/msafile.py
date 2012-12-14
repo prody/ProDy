@@ -599,6 +599,9 @@ def parseMSA(filename, **kwargs):
                     mapping[key] = [mapping[key], i]
             else:
                 mapping[key] = i
+        if not seqlist:
+            LOGGER.warn('No sequences were parsed from {0}.'.format(filename))
+            return
         if aligned:
             msaarr = array(seqlist, '|S1')
         else:
