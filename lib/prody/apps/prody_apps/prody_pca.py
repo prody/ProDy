@@ -63,16 +63,16 @@ def prody_pca(coords, **kwargs):
             kwargs[key] = DEFAULTS[key]
     
     from os.path import isdir, splitext, join
-    outdir = kwargs['outdir']
+    outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))
         
     import prody
     LOGGER = prody.LOGGER
         
-    prefix = kwargs['prefix']
-    nmodes = kwargs['nmodes']
-    selstr = kwargs['select']
+    prefix = kwargs.get('prefix')
+    nmodes = kwargs.get('nmodes')
+    selstr = kwargs.get('select')
     
     ext = splitext(coords)[1].lower() 
     if ext == '.gz':
@@ -112,12 +112,12 @@ def prody_pca(coords, **kwargs):
             select.setCoords(dcd.getCoords())
         pca = prody.PCA(dcd.getTitle())
         if len(dcd) > 1000:
-            pca.buildCovariance(dcd, aligned=kwargs['aligned'])
+            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
             pca.calcModes(nmodes)
             ensemble = dcd
         else:
             ensemble = dcd[:]
-            if not kwargs['aligned']:
+            if not kwargs.get('aligned'):
                 ensemble.iterpose()
             pca.performSVD(ensemble)
     
@@ -139,18 +139,18 @@ def prody_pca(coords, **kwargs):
                     .format(len(select)))
         ensemble = prody.Ensemble(select)
         pca = prody.PCA(pdb.getTitle())
-        if not kwargs['aligned']:
+        if not kwargs.get('aligned'):
             ensemble.iterpose()
         pca.performSVD(ensemble)
     
         
     LOGGER.info('Writing numerical output.')
-    if kwargs['outnpz']:
+    if kwargs.get('outnpz'):
         prody.saveModel(pca, join(outdir, prefix))
         
     prody.writeNMD(join(outdir, prefix + '.nmd'), pca[:nmodes], select)
     
-    extend = kwargs['extend']
+    extend = kwargs.get('extend')
     if extend:
         if pdb:
             if extend == 'all':
@@ -163,36 +163,43 @@ def prody_pca(coords, **kwargs):
         else:
             prody.LOGGER.warn('Model could not be extended, provide a PDB or '
                               'PSF file.')
-    outall = kwargs['outall']
-    delim = kwargs['numdelim']
-    ext = kwargs['numext']
-    format = kwargs['numformat']
+    outall = kwargs.get('outall')
+    delim = kwargs.get('numdelim')
+    ext = kwargs.get('numext')
+    format = kwargs.get('numformat')
     
-    if outall or kwargs['outeig']:
+    if outall or kwargs.get('outeig'):
         prody.writeArray(join(outdir, prefix + '_evectors'+ext), 
                          pca.getArray(), delimiter=delim, format=format)
         prody.writeArray(join(outdir, prefix + '_evalues'+ext), 
                          pca.getEigvals(), delimiter=delim, format=format)
-    if outall or kwargs['outcov']:
+    if outall or kwargs.get('outcov'):
         prody.writeArray(join(outdir, prefix + '_covariance'+ext), 
                          pca.getCovariance(), delimiter=delim, format=format)
-    if outall or kwargs['outcc']:
-        prody.writeArray(join(outdir, prefix + '_cross-correlations' + 
-                                              ext), prody.calcCrossCorr(pca), 
-                         delimiter=delim, format=format)
-    if outall or kwargs['outsf']:
+    if outall or kwargs.get('outcc') or kwargs.get('outhm'):
+        cc = prody.calcCrossCorr(pca)
+        if outall or kwargs.get('outcc'):
+            prody.writeArray(join(outdir, prefix + '_cross-correlations' + 
+                             ext), cc, delimiter=delim, format=format)
+        if outall or kwargs.get('outhm'):
+            prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
+                               cc, resnum=pdb.getResnums(), 
+                               xlabel='Residue', ylabel='Residue number',
+                               title=pca.getTitle() + ' cross-correlations')
+                         
+    if outall or kwargs.get('outsf'):
         prody.writeArray(join(outdir, prefix + '_sqfluct'+ext), 
                          prody.calcSqFlucts(pca), delimiter=delim, 
                          format=format)
-    if outall or kwargs['outproj']:
+    if outall or kwargs.get('outproj'):
         prody.writeArray(join(outdir, prefix + '_proj'+ext), 
                          prody.calcProjection(ensemble, pca), delimiter=delim, 
                          format=format)
           
-    figall = kwargs['figall']
-    cc = kwargs['figcc']
-    sf = kwargs['figsf']
-    sp = kwargs['figproj']
+    figall = kwargs.get('figall')
+    cc = kwargs.get('figcc')
+    sf = kwargs.get('figsf')
+    sp = kwargs.get('figproj')
 
     if figall or cc or sf or sp: 
         try:
@@ -203,10 +210,10 @@ def prody_pca(coords, **kwargs):
         else:
             prody.SETTINGS['auto_show'] = False
             LOGGER.info('Saving graphical output.')
-            format = kwargs['figformat']
-            width = kwargs['figwidth']
-            height = kwargs['figheight']
-            dpi = kwargs['figdpi']
+            format = kwargs.get('figformat')
+            width = kwargs.get('figwidth')
+            height = kwargs.get('figheight')
+            dpi = kwargs.get('figdpi')
             
             format = format.lower()
             if figall or cc:

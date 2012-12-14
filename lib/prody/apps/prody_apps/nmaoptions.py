@@ -37,6 +37,7 @@ for key, txt, val in [
     ('outcov', 'write covariance matrix', False),
     ('outnpz', 'write compressed ProDy data file', False),
     ('outcc', 'write cross-correlations', False),
+    ('outhm', 'write cross-correlations heatmap file', False),
     ('outsf', 'write square-fluctuations', False),
     ('extend', 'write NMD file for the model extended to '
                '"backbone" ("bb") or "all" atoms of the residue,'
@@ -97,6 +98,10 @@ def addNMAOutput(parser):
         action='store_true', 
         default=DEFAULTS['outcc'], help=HELPTEXT['outcc'])
         
+    parser.add_argument('-u', '--heatmap', dest='outhm', 
+        action='store_true', 
+        default=DEFAULTS['outhm'], help=HELPTEXT['outhm'])
+
     parser.add_argument('-q', '--square-fluctuations', dest='outsf', 
         action='store_true', 
         default=DEFAULTS['outsf'], help=HELPTEXT['outsf'])

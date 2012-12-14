@@ -75,7 +75,7 @@ APP.addGroup('output', 'output options')
 
 APP.addArgument('-t', '--heatmap',
     dest='heatmap',
-    help='output heatmap files for mutual info matrices',
+    help='save heatmap files for all mutual information matrices',
     default=False,
     action='store_true',
     group='output')
