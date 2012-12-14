@@ -27,10 +27,11 @@ __all__ = ['evol_filter']
 APP = DevelApp('filter', 'filter an MSA using sequence labels')
 
 APP.setExample(
-"""This application filters sequences in an MSA based on label data. \
+"""Filter sequences in an MSA based on label data.  
+
 Following example will filter human sequences:
 
-    $ evol filter piwi_seed.slx HUMAN -e""", [])
+  $ evol filter piwi_seed.slx HUMAN -e""", [])
 
 
 APP.addArgument('msa', 

@@ -60,7 +60,7 @@ def prody_gnm(pdb, **kwargs):
             kwargs[key] = DEFAULTS[key]
     
     from os.path import isdir, splitext, join
-    outdir = kwargs['outdir']
+    outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))
         
@@ -68,13 +68,13 @@ def prody_gnm(pdb, **kwargs):
     import prody
     LOGGER = prody.LOGGER
 
-    selstr = kwargs['select']
-    prefix = kwargs['prefix']
-    cutoff = kwargs['cutoff']
-    gamma = kwargs['gamma'] 
-    nmodes = kwargs['nmodes']
-    selstr = kwargs['select']
-    model = kwargs['model']
+    selstr = kwargs.get('select')
+    prefix = kwargs.get('prefix')
+    cutoff = kwargs.get('cutoff')
+    gamma = kwargs.get('gamma') 
+    nmodes = kwargs.get('nmodes')
+    selstr = kwargs.get('select')
+    model = kwargs.get('model')
     
     pdb = prody.parsePDB(pdb, model=model)
     if prefix == '_gnm':
@@ -93,12 +93,12 @@ def prody_gnm(pdb, **kwargs):
     
     LOGGER.info('Writing numerical output.')
     
-    if kwargs['outnpz']:
+    if kwargs.get('outnpz'):
         prody.saveModel(gnm, join(outdir, prefix))
     
     prody.writeNMD(join(outdir, prefix + '.nmd'), gnm, select)
     
-    extend = kwargs['extend']
+    extend = kwargs.get('extend')
     if extend:
         if extend == 'all':
             extended = prody.extendModel(gnm, select, pdb)        
@@ -107,18 +107,18 @@ def prody_gnm(pdb, **kwargs):
         prody.writeNMD(join(outdir, prefix + '_extended_' + 
                        extend + '.nmd'), *extended)
     
-    outall = kwargs['outall']
-    delim = kwargs['numdelim']
-    ext = kwargs['numext']
-    format = kwargs['numformat']
+    outall = kwargs.get('outall')
+    delim = kwargs.get('numdelim')
+    ext = kwargs.get('numext')
+    format = kwargs.get('numformat')
     
-    if outall or kwargs['outeig']:
+    if outall or kwargs.get('outeig'):
         prody.writeArray(join(outdir, prefix + '_evectors'+ext), 
                          gnm.getArray(), delimiter=delim, format=format)
         prody.writeArray(join(outdir, prefix + '_evalues'+ext), 
                          gnm.getEigvals(), delimiter=delim, format=format)
     
-    if outall or kwargs['outbeta']:
+    if outall or kwargs.get('outbeta'):
         from prody.utilities import openFile
         fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
@@ -130,31 +130,36 @@ def prody_gnm(pdb, **kwargs):
                        .format(data))
         fout.close()
         
-    if outall or kwargs['outcov']:
+    if outall or kwargs.get('outcov'):
         prody.writeArray(join(outdir, prefix + '_covariance'+ext), 
                          gnm.getCovariance(), delimiter=delim, format=format)
     
-    if outall or kwargs['outcc']:
-        prody.writeArray(join(outdir, prefix + '_cross-correlations' 
-                                                     + ext), 
-                         prody.calcCrossCorr(gnm), delimiter=delim, 
-                         format=format)
+    if outall or kwargs.get('outcc') or kwargs.get('outhm'):
+        cc = prody.calcCrossCorr(gnm)
+        if outall or kwargs.get('outcc'):
+            prody.writeArray(join(outdir, prefix + '_cross-correlations' + 
+                             ext), cc, delimiter=delim, format=format)
+        if outall or kwargs.get('outhm'):
+            prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
+                               cc, resnum=select.getResnums(), 
+                               xlabel='Residue', ylabel='Residue number',
+                               title=gnm.getTitle() + ' cross-correlations')
     
-    if outall or kwargs['kirchhoff']:
+    if outall or kwargs.get('kirchhoff'):
         prody.writeArray(join(outdir, prefix + '_kirchhoff'+ext), 
                          gnm.getKirchhoff(), delimiter=delim, format=format)
     
-    if outall or kwargs['outsf']:
+    if outall or kwargs.get('outsf'):
         prody.writeArray(join(outdir, prefix + '_sqfluct'+ext), 
                          prody.calcSqFlucts(gnm), delimiter=delim, 
                          format=format)
           
-    figall = kwargs['figall']
-    cc = kwargs['figcc']
-    sf = kwargs['figsf']
-    bf = kwargs['figbeta']
-    cm = kwargs['figcmap']
-    modes = kwargs['figmode']
+    figall = kwargs.get('figall')
+    cc = kwargs.get('figcc')
+    sf = kwargs.get('figsf')
+    bf = kwargs.get('figbeta')
+    cm = kwargs.get('figcmap')
+    modes = kwargs.get('figmode')
     
     if figall or cc or sf or bf or cm or modes: 
         try:
@@ -165,10 +170,10 @@ def prody_gnm(pdb, **kwargs):
         else:
             prody.SETTINGS['auto_show'] = False
             LOGGER.info('Saving graphical output.')
-            format = kwargs['figformat']
-            width = kwargs['figwidth']
-            height = kwargs['figheight']
-            dpi = kwargs['figdpi']
+            format = kwargs.get('figformat')
+            width = kwargs.get('figwidth')
+            height = kwargs.get('figheight')
+            dpi = kwargs.get('figdpi')
             format = format.lower()
             
             if figall or cc:

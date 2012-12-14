@@ -4,9 +4,7 @@
 # Copyright 2010-2011 Ahmet Bakan
 # All rights reserved.
 # 
-# Developed by:		
-#       Ahmet Bakan
-# 			http://www.pitt.edu/~ahb12/
+# Designed and Developed by: Ahmet Bakan http://www.pitt.edu/~ahb12/
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the Software), to deal with 
@@ -65,6 +63,10 @@ namespace eval ::NMWiz:: {
       catch {set tmpdir $::env(TMP)}
       catch {set tmpdir $::env(TEMP)}
     }
+  }
+  
+  proc getColorID {color} {
+    return [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
   }
   
   proc showHelp {context} {
@@ -347,6 +349,7 @@ orange3"
   variable prodySelAtoms 0
   variable prodyScript "ANM"
   variable prodyPrefix ""
+  variable prodyHeatmap 0
   variable prodyRmCoords 0
   variable prodyPCAfile "DCD"
   variable prodyPCAAligned 0
@@ -606,9 +609,13 @@ orange3"
     grid [entry $wf.filepEntry -width 20 -textvariable ::NMWiz::prodyPrefix] \
       -row 9 -column 2 -columnspan 2 -sticky we
 
+    grid [checkbutton $wf.heatmapEntry -text " write and load cross-correlations heatmap" \
+        -variable ::NMWiz::prodyHeatmap] \
+      -row 10 -column 1 -columnspan 3 -sticky w
+
     grid [checkbutton $wf.rmfileEntry -text " remove coordinate file upon job completion" \
         -variable ::NMWiz::prodyRmCoords] \
-      -row 10 -column 1 -columnspan 3 -sticky w
+      -row 11 -column 1 -columnspan 3 -sticky w
 
     pack $wf -side top -fill x -expand 1
     
@@ -993,9 +1000,6 @@ orange3"
     if {[::NMWiz::prodyCheckMolecule]} {
       set prefix [::NMWiz::cleanMolName $::NMWiz::prodyMolid]
       
-      if {[string range $prefix [expr [string length $prefix] - 4] end] == ".pdb"} {
-        set prefix [string range $prefix 0 [expr [string length $prefix] - 5]]
-      }
       if {$::NMWiz::prodyScript == "ANM"} {
         set ::NMWiz::prodyPrefix "$prefix\_anm"
       } elseif {$::NMWiz::prodyScript == "GNM"} {
@@ -1008,6 +1012,12 @@ orange3"
   
   proc cleanMolName {molid} {
     set name "[molinfo $molid get name]"
+    
+    set length [string length $name]
+    if {[string range $name [expr $length - 4] end] == ".pdb"} {
+      set name [string range $name 0 [expr $length - 5]]
+    }
+    
     foreach char {"\}" "\{"} { 
       set first [string first $char $name] 
       while {$first > -1} {
@@ -1143,19 +1153,20 @@ orange3"
     
     set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]    
     if {$::NMWiz::prodyExtend == "none"} {
-      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
-      set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
+      set args "anm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
       set nmdfile "$prefix.nmd"
     } else {
-      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
-      set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend "$pdbfn"]
+      set args "anm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
       set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
     }
+    if {$::NMWiz::prodyHeatmap} {lappend args "-u"}
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody $args"
+    set status [exec $::NMWiz::pybin $::NMWiz::prody {*}$args]
+
 
     if {$status != -1} {
-      tk_messageBox -type ok -title "INFO" \
-        -message "ProDy ANM calculation is finished and results are being loaded."
-      ::NMWiz::loadNMD $nmdfile
+      set handle [::NMWiz::loadNMD $nmdfile]
+      if {$::NMWiz::prodyHeatmap} {$handle loadheatmap "$prefix\_cross-correlations.hm"}
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       }
@@ -1197,19 +1208,20 @@ orange3"
     
     set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
     if {$::NMWiz::prodyExtend == "none"} {
-      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
-      set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma "$pdbfn"]
+      set args "gnm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
       set nmdfile "$prefix.nmd"
     } else {
-      vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
-      set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend "$pdbfn"]
+      set args "gnm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
       set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
     }
+    
+    if {$::NMWiz::prodyHeatmap} {lappend args "-u"}
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody $args"
+    set status [exec $::NMWiz::pybin $::NMWiz::prody {*}$args]
 
     if {$status != -1} {
-      tk_messageBox -type ok -title "INFO" \
-        -message "ProDy GNM calculation is finished and results are being loaded."
-      ::NMWiz::loadNMD $nmdfile
+      set handle [::NMWiz::loadNMD $nmdfile]
+      if {$::NMWiz::prodyHeatmap} {$handle loadheatmap "$prefix\_cross-correlations.hm"}
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
       } 
@@ -1291,9 +1303,8 @@ orange3"
       }    }
     
     if {$status != -1} {
-      tk_messageBox -type ok -title "INFO" \
-        -message "ProDy PCA calculation is finished and results are being loaded."
-      ::NMWiz::loadNMD $nmdfile 
+      set handle [::NMWiz::loadNMD $nmdfile]
+      if {$::NMWiz::prodyHeatmap} {$handle loadheatmap "$prefix\_cross-correlations.hm"}
       if {$::NMWiz::prodyRmCoords} {
         file delete -force $pdbfn
         if {$::NMWiz::prodyExtend == "none"} {
@@ -1686,6 +1697,11 @@ orange3"
       variable addlabel 1
       variable numatoms 0
       variable numresid 0
+      variable extended -1
+      variable resindices [list]
+      
+      # map indices to 
+      variable highlights [dict create]
       
       #GNM option
       variable msformode "Mobility"
@@ -1841,9 +1857,13 @@ setmode, getlen, setlen, addmode"
           set ns [namespace current]
           ${ns}::changeMode
           ${ns}::drawArrows
+        
         } elseif {$cmd=="nummodes"} {
           variable numofmodes
           return $numofmode
+          
+        } elseif {$cmd=="loadheatmap"} {
+          return [[namespace current]::loadHeatmap [lindex $args 1]]
         
         } elseif {$cmd=="numatoms"} {
           variable n_atoms
@@ -2174,14 +2194,65 @@ setmode, getlen, setlen, addmode"
         }
       }
       
-      proc loadHeatmap {} {
-        
-        set tempfile [tk_getOpenFile \
+      proc assessExtended {} {
+        variable extended
+        if {$extended > -1} {return $extended}
+        variable numatoms
+        variable numresid
+        if {$numatoms == $numresid} {
+          set extended 0
+          return $extended
+        }
+        variable n_dims
+        variable modes
+        set mode [lindex $modes 0]
+        variable molid
+        variable resindices
+        variable n_atoms
+        set i 1
+        set prev [lindex $resindices 0]
+        set prev3 [expr $prev * 3]
+        while {$i < $n_atoms} {
+          set this [lindex $resindices $i]
+          if {$this == $prev} {
+            if {$n_dims == 1} {
+              if {[lindex $mode $prev] != [lindex $mode $this]} {
+                set extended 0
+                return $extended
+              }
+            } else {
+              set prev3 [expr $prev * 3]
+              set this3 [expr $this * 3]
+              if {[lindex $mode $prev3] != [lindex $mode $this3] ||
+                  [lindex $mode [expr $prev3 + 1]] != [lindex $mode [expr $this3 + 1]] || 
+                  [lindex $mode [expr $prev3 + 2]] != [lindex $mode [expr $this3 + 2]]} {
+                set extended 0
+                return $extended
+              }
+            }
+              
+          }
+          incr i
+          set prev $this
+          set prev3 $this3
+        }
+        set extended 1
+        return $extended
+      }
+
+      proc pickHeatmap {} {
+
+        set hmfile [tk_getOpenFile \
           -filetypes {{"Heat Mapper files" { .hm .HM }} {"All files" *}}]
-        if {[string equal $tempfile ""]} {
+        if {[string equal $hmfile ""]} {
           return
         }
-        set handle [heatmapper -loadfile $tempfile] 
+        return [[namespace current]::loadHeatmap $hmfile]
+      }
+      
+      proc loadHeatmap {hmfile} {
+        
+        set handle [heatmapper -loadfile $hmfile] 
 
         variable hmhandles
         lappend hmhandles $handle
@@ -2189,17 +2260,17 @@ setmode, getlen, setlen, addmode"
         set shape [$handle cget shape]
         set size [lindex $shape 0]
         if {$size != [lindex $shape 1]} {
-          vmdcon -warn "Heatmap in $tempfile is not a 2D matrix, mouse selection actions will not be available."
+          vmdcon -warn "Heatmap in $hmfile is not a 2D matrix, mouse selection actions will not be available."
           return
         }
         variable numatoms
         variable numresid
         if {$size == $numatoms} {
           $handle configure -callback [namespace current]::highlightAtomPair
-        } elseif {$size == $numatoms} {
+        } elseif {$size == $numresid} {
           $handle configure -callback [namespace current]::highlightResiduePair
         } else {
-          vmdcon -warn "Size of heatmap in $tempfile does not match number of atoms or residues, mouse selection actions will not be available."
+          vmdcon -warn "Size of heatmap in $hmfile does not match number of atoms or residues, mouse selection actions will not be available."
           return
         }
       }
@@ -2207,7 +2278,7 @@ setmode, getlen, setlen, addmode"
       proc Plot {} {
         
         set ns [namespace current]
-        
+
         #puts [subst $${ns}::overplot]
         set plothandle 0
         if {[subst $${ns}::overplot]} {
@@ -2220,35 +2291,59 @@ setmode, getlen, setlen, addmode"
               set ${ns}::plothandles [lrange [subst $${ns}::plothandles] 0 $i]
             }
           }
-          
         }
+        set ext [${ns}::assessExtended] 
+        variable plotrids
+        variable betalist
+        if {$ext} {
+          set callback ${ns}::highlightResidue
+          variable resindices
+          variable numatoms
+          set prev [lindex $resindices 0]
+          set i 1
+          set x [list]
+          set y [list]
+          lappend x [lindex $plotrids 0]
+          lappend y [lindex $betalist 0]
+          while {$i < $numatoms} {
+            set this [lindex $resindices $i]
+            if {$this != $prev} {
+              lappend x [lindex $plotrids $i]
+              lappend y [lindex $betalist $i]
+            }
+            incr i
+            set prev $this
+          }
+        } else {
+          set callback ${ns}::highlightAtom
+          set x $plotrids
+          set y $betalist
+        }
+        variable plotheight
+        variable color
+        variable lornol
+        variable plotwidth
+        variable mradius
+        variable marker
+        variable linewidth
+        variable activemode
         if {$plothandle != 0} {
           $plothandle add \
-            [subst $${ns}::plotrids] [subst $${ns}::betalist] \
+            $x $y \
             -title "[subst $${ns}::title] square fluctuations" \
-            -linewidth [subst $${ns}::linewidth] \
-            -legend "Mode [subst $${ns}::activemode]" \
-            -[subst $${ns}::lornol] -linecolor [subst $${ns}::color] \
-            -xsize [subst $${ns}::plotwidth] -ysize [subst $${ns}::plotheight] \
-            -radius [subst $${ns}::mradius] \
-            -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
-            -xlabel "Atom/Residue #" \
-            -callback $ns\::highlightAtom \
-            -plot
+            -linewidth $linewidth -legend "Mode $activemode" \
+            -$lornol -linecolor $color -xsize $plotwidth -ysize $plotheight \
+            -radius $mradius -fillcolor $color -marker $marker \
+            -xlabel "Atom/Residue #" -callback $callback -plot
              
         } else {
           lappend ${ns}::plothandles [multiplot \
-            -x [subst $${ns}::plotrids] -y [subst $${ns}::betalist] \
+            -x $x -y $y \
             -title "[subst $${ns}::title] square fluctuations" \
-            -linewidth [subst $${ns}::linewidth] \
-            -legend "Mode [subst $${ns}::activemode]" \
-            -[subst $${ns}::lornol] -linecolor [subst $${ns}::color] \
-            -xsize [subst $${ns}::plotwidth] -ysize [subst $${ns}::plotheight] \
-            -radius [subst $${ns}::mradius] \
-            -fillcolor [subst $${ns}::color] -marker [subst $${ns}::marker] \
-            -xlabel "Atom/Residue #" \
-            -callback $ns\::highlightAtom \
-            -plot]
+            -linewidth $linewidth -legend "Mode $activemode" \
+            -$lornol -linecolor $color -xsize $plotwidth -ysize $plotheight \
+            -radius $mradius -fillcolor $color -marker $marker \
+            -xlabel "Atom/Residue #" -callback $callback -plot]
         }
         vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
         #-dash [subst $${ns}::dash] \
@@ -2285,23 +2380,17 @@ setmode, getlen, setlen, addmode"
           foreach id [molinfo list] {
             molinfo $id set {rotate_matrix center_matrix scale_matrix global_matrix} $currentview
           }
-        }
         
-        variable resids
-        if {[molinfo $selid get numreps] != [llength $resids]} {
           for {set i [molinfo $selid get numreps]} {$i >= 0} {incr i -1} {
             mol delrep $i $selid
-          }
-          for {set i 0} {$i < [llength $resids]} {incr i} {
-            mol addrep $selid
-            mol showrep $selid $i off
-            mol modstyle $i $selid VDW
           }
         }
         mol top $molid
       }
       
       proc clearHighlights {} {
+        
+        variable highlights [dict create]
         variable selid
         if {$selid > -1 && [lsearch [molinfo list] $selid] > -1} {
           for {set i [expr [molinfo $selid get numreps] - 1]} {$i >= 0} {incr i -1} {
@@ -2321,17 +2410,17 @@ setmode, getlen, setlen, addmode"
             label delete Bonds $i
           }
         }
+        for {set i [molinfo $selid get numreps]} {$i >= 0} {incr i -1} {
+          mol delrep $i $selid
+        }
+
      }
 
       proc highlightAtom {args} {
 
         [namespace current]::loadCoordinates
-        set resid [lindex $args 0] 
-        set y [lindex $args 1]
-        set color [lindex $args 2]
-        variable plotrids
-        set which [lsearch $plotrids $resid]
-        if {$which == -1} {return 0}
+        set which [lindex $args 0] 
+        set color [lindex $args 3]
         [namespace current]::prepareSelmol
         
         variable selid
@@ -2342,21 +2431,84 @@ setmode, getlen, setlen, addmode"
         variable chainids
         variable resnames
         variable resids
+        variable atomnames
+        variable addlabel
+        
+        if {$addlabel} {label add Atoms $selid/$which}
 
-        label add Atoms $selid/$which
 
-        #set i [molinfo $selid get numreps]
-        #mol addrep $selid
-        if {[mol showrep $selid $which]} {
-          mol showrep $selid $which off
-          vmdcon -info "Deselected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+        variable highlights
+        if {[dict exists $highlights $which]} {
+          set value [dict get $highlights $which]
+          set repid [lindex $value 0]
+          set state [lindex $value 1]
         } else {
-          vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
-          mol showrep $selid $which on
-          mol modstyle $which $selid VDW $selectscale $resolution
-          mol modmaterial $which $selid $material
-          mol modselect $which $selid "index $which"
-          mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $color]
+          mol addrep $selid
+          set repid [expr [molinfo $selid get numreps] - 1]
+          set state "off"
+        }
+
+        set text "[lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]_[lindex $atomnames $which]"
+        if {$state == "on"} {
+          mol showrep $selid $repid off
+          vmdcon -info "Deselected $text"
+          dict set highlights $which "$repid off"
+        } else {
+          vmdcon -info "Selected $text"
+          mol showrep $selid $repid on
+          mol modstyle $repid $selid VDW $selectscale $resolution
+          mol modmaterial $repid $selid $material
+          mol modselect $repid $selid "index $which"
+          mol modcolor $repid $selid ColorID [::NMWiz::getColorID $color]
+          dict set highlights $which "$repid on" 
+        }
+      }
+      
+      proc highlightResidue {args} {
+
+        [namespace current]::loadCoordinates
+        set which [lindex $args 0] 
+        set color [lindex $args 3]
+        [namespace current]::prepareSelmol
+        
+        variable selid
+        variable selection
+        variable selectscale
+        variable resolution
+        variable material
+        variable chainids
+        variable resnames
+        variable resids
+        variable addlabel
+        variable tuberadius
+        
+        #if {$addlabel} {label add Atoms $selid/$which}
+
+
+        variable highlights
+        if {[dict exists $highlights "r$which"]} {
+          set value [dict get $highlights "r$which"]
+          set repid [lindex $value 0]
+          set state [lindex $value 1]
+        } else {
+          mol addrep $selid
+          set repid [expr [molinfo $selid get numreps] - 1]
+          set state "off"
+        }
+
+        set text "[lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
+        if {$state == "on"} {
+          mol showrep $selid $repid off
+          vmdcon -info "Deselected $text"
+          dict set highlights "r$which" "$repid off"
+        } else {
+          vmdcon -info "Selected $text"
+          mol showrep $selid $repid on
+          mol modstyle $repid $selid Licorice $tuberadius $resolution $resolution
+          mol modmaterial $repid $selid $material
+          mol modselect $repid $selid "residue $which"
+          mol modcolor $repid $selid ColorID [::NMWiz::getColorID $color]
+          dict set highlights "r$which" "$repid on" 
         }
       }
       
@@ -2380,31 +2532,112 @@ setmode, getlen, setlen, addmode"
         variable material
         variable chainids
         variable resnames
+        variable atomnames
         variable resids
         variable paircolor
         variable addlabel
         
-        if {$addlabel} {label add Bonds $selid/$x $selid/$y}
+        if {$addlabel} {
+          label add Bonds $selid/$x $selid/$y
+          label add Atoms $selid/$x
+          label add Atoms $selid/$y
+        }
 
-        #set i [molinfo $selid get numreps]
-        #mol addrep $selid
+        if {$x < $y} {
+          set which "$x\_$y"  
+        } else {
+          set which "$y\_$x"
+        }
         
-        
-        set which $x        
-        vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
-        mol showrep $selid $which on
-        mol modstyle $which $selid VDW $selectscale $resolution
-        mol modmaterial $which $selid $material
-        mol modselect $which $selid "index $which"
-        mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $paircolor]
+        variable highlights
+        if {[dict exists $highlights $which]} {
+          set value [dict get $highlights $which]
+          set repid [lindex $value 0]
+          set state [lindex $value 1]
+        } else {
+          mol addrep $selid
+          set repid [expr [molinfo $selid get numreps] - 1]
+          set state "off"
+        }
 
-        set which $y
-        vmdcon -info "Selected [lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
-        mol showrep $selid $which on
-        mol modstyle $which $selid VDW $selectscale $resolution
-        mol modmaterial $which $selid $material
-        mol modselect $which $selid "index $which"
-        mol modcolor $which $selid ColorID [lsearch "blue red gray orange yellow tan silver green white pink cyan purple lime mauve ochre iceblue black yellow2 yellow3 green2 green3 cyan2 cyan3 blue2 blue3 violet violet2 magenta magenta2 red2 red3 orange2 orange3" $paircolor]
+        set text "[lindex $chainids $x]:[lindex $resnames $x][lindex $resids $x]_[lindex $atomnames $x] - [lindex $chainids $y]:[lindex $resnames $y][lindex $resids $y]_[lindex $atomnames $y]"
+        if {$state == "on"} {
+          mol showrep $selid $repid off
+          vmdcon -info "Deselected pair $text"
+          dict set highlights $which "$repid off"
+        } else {
+          vmdcon -info "Selected pair $text"
+          mol showrep $selid $repid on
+          mol modstyle $repid $selid VDW $selectscale $resolution
+          mol modmaterial $repid $selid $material
+          mol modselect $repid $selid "index $x $y"
+          mol modcolor $repid $selid ColorID [::NMWiz::getColorID $paircolor]
+          dict set highlights $which "$repid on"
+        }
+      }
+
+      proc highlightResiduePair {args} {
+
+        [namespace current]::loadCoordinates
+        set x [lindex $args 0] 
+        set y [lindex $args 1]
+        if {$x == $y} {
+          return
+        } 
+
+
+        set value [lindex $args 2]
+        [namespace current]::prepareSelmol
+        
+        variable selid
+        variable selection
+        variable selectscale
+        variable resolution
+        variable material
+        variable chainids
+        variable resnames
+        variable resids
+        variable paircolor
+        variable addlabel
+        variable tuberadius
+        
+        #if {$addlabel} {
+        #  label add Bonds $selid/$x $selid/$y
+        #  label add Atoms $selid/$x
+        #  label add Atoms $selid/$y
+        #}
+
+        if {$x < $y} {
+          set which "r$x\_$y"  
+        } else {
+          set which "r$y\_$x"
+        }
+        
+        variable highlights
+        if {[dict exists $highlights $which]} {
+          set value [dict get $highlights $which]
+          set repid [lindex $value 0]
+          set state [lindex $value 1]
+        } else {
+          mol addrep $selid
+          set repid [expr [molinfo $selid get numreps] - 1]
+          set state "off"
+        }
+    
+        set text "[lindex $chainids $x]:[lindex $resnames $x][lindex $resids $x] - [lindex $chainids $y]:[lindex $resnames $y][lindex $resids $y]"
+        if {$state == "on"} {
+          mol showrep $selid $repid off
+          vmdcon -info "Deselected pair $text"
+          dict set highlights $which "$repid off"
+        } else {
+          vmdcon -info "Selected pair $text"
+          mol showrep $selid $repid on
+          mol modstyle $repid $selid Licorice  $tuberadius $resolution $resolution
+          mol modmaterial $repid $selid $material
+          mol modselect $repid $selid "residue $x $y"
+          mol modcolor $repid $selid ColorID [::NMWiz::getColorID $paircolor]
+          dict set highlights $which "$repid on"
+        }
       }
 
       proc updateProtRep {targetid} {
@@ -2948,9 +3181,13 @@ setmode, getlen, setlen, addmode"
         }
         
         variable numatoms [molinfo $molid get numatoms]
-        set sel [atomselect $molid "all"]
-        variable numresid [llength [lsort -unique [$sel get residue]]]
-        $sel delete
+        variable resindices
+        if {![llength $resindices]} {
+          set sel [atomselect $molid "all"]
+          set resindices [$sel get residue]
+          $sel delete
+          variable numresid [llength [lsort -unique $resindices]]
+        }        
       }
 
       proc checkCoordinates {} {
@@ -3223,7 +3460,7 @@ setmode, getlen, setlen, addmode"
             -command ${ns}::Plot] \
           -row 7 -column 1 -columnspan 2 -sticky we
         grid [button $wam.loadheatmap -text "Load Heatmap" \
-            -command ${ns}::loadHeatmap] \
+            -command ${ns}::pickHeatmap] \
           -row 7 -column 3  -columnspan 2 -sticky we
 
 
@@ -3282,11 +3519,11 @@ setmode, getlen, setlen, addmode"
 
         grid [label $wda.plot_label -text "Figures:"] \
           -row 8 -column 0 -sticky w
-        grid [button $wda.plot_plot -text "Close" \
-            -command "${ns}::closeFigures"] \
-          -row 8 -column 2 -sticky ew
         grid [button $wda.plot_clear -text "Clear" \
             -command "${ns}::clearHighlights"] \
+          -row 8 -column 2 -sticky ew
+        grid [button $wda.plot_plot -text "Close" \
+            -command "${ns}::closeFigures"] \
           -row 8 -column 3 -sticky ew
         grid [button $wda.plot_showhide -text "Hide" \
             -command "if {\$${ns}::selid > -1 && \[lsearch \[molinfo list] \$${ns}::selid] > -1} {if {\[molinfo \$${ns}::selid get displayed]} {mol off \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Show} else {mol on \$${ns}::selid; \$${ns}::w.draw_arrows.plot_showhide configure -text Hide}}"] \

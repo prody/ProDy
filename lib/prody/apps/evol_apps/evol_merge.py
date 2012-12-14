@@ -27,11 +27,8 @@ __all__ = ['evol_merge']
 APP = DevelApp('merge', 'merge multiple MSAs based on common labels')
 
 APP.setExample(
-"""This application merges a number of MSAs into one large MSA. The merging of
-seqences in done based on common labels appearing across all the input MSAs The
-following example show how to merge two MSAs:
-
-    $ evol merge piwi.slx -l GTHB2_ONCKE""", [])
+"""Merges multiple MSAs into one MSA based on common labels 
+appearing across all the input MSAs.""", [])
 
 
 APP.addArgument('msa',

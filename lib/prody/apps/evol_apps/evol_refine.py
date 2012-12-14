@@ -27,11 +27,13 @@ __all__ = ['evol_refine']
 APP = DevelApp('refine', 'refine an MSA by removing gapped rows/colums')
 
 APP.setExample(
-"""This application refines MSA by removing gapped columns (residue positions)\
- and rows (sequences).  Following example will save entropy data and plot \
-using default options:
+"""Refines MSA by removing gapped columns (residue positions)
+and rows (sequences).  
 
-    $ evol refine piwi.slx -l GTHB2_ONCKE""", [])
+In the following, columns that are gaps in sequence with label 
+GTHB2_ONCKE will be removed from MSA:
+
+  $ evol refine piwi.slx -l GTHB2_ONCKE""", [])
 
 
 APP.addArgument('msa', 
@@ -40,7 +42,7 @@ APP.addArgument('msa',
 APP.addGroup('refine', 'refinement options')
 APP.addArgument('-l', '--label',
     dest='label',
-    help='sequence label, UniProt ID code or PDB and chain identifier',
+    help='sequence label, UniProt ID code, or PDB and chain identifier',
     type=str,
     metavar='STR',
     group='refine')
@@ -67,6 +69,14 @@ APP.addArgument('-r', '--rowocc',
     default=None,
     type=float,
     metavar='FLOAT',
+    group='refine')
+
+APP.addArgument('-k', '--keep',
+    dest='pdbres',
+    help='keep columns corresponding to residues not resolved in PDB '
+         'structure, applies label argument is a PDB identifier',
+    default=False,
+    action='store_true',
     group='refine')
 
 APP.addGroup('output', 'output options')

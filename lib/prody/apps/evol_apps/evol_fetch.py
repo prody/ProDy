@@ -28,19 +28,16 @@ APP = DevelApp('fetch', help='fetch MSA files from Pfam')
 
 
 APP.setExample(
-"""Given a Pfam ID or accession, this program fetches the MSA of \
-that family. Supported alignment options are full, seed, ncbi or metagenomics \
-and alignment formats are selex, stockholm or fasta. The output MSA is \
-downloaded and saved in the specified or default '.' directory.
+"""Fetch MSA files from Pfam database for given Pfam ID code or 
+accession.
 
 Fetch PFAM ID Cys_knot:
     
-    $ evol fetch Cys_knot
+  $ evol fetch Cys_knot
     
 Fetch PFAM accession with specific parameters:
 
-    $ evol fetch PF00007 --compressed --format fasta --outname mymsa""",
-    [0, 1])
+  $ evol fetch PF00007 --compressed --format fasta --outname mymsa""", [])
 
 
 APP.addArgument('acc', 

@@ -80,27 +80,25 @@ APP.addArgument('-d', '--delimiter',
     group='output')
 
 APP.setExample(
-"""This application searches Pfam database with a UniProt ID or protein \
-sequence or filename containing the sequence.  Some specific search options \
-are included for sequence search.  Minimum length of query sequence should \
-be 12 and should not contain gaps.  If outname is specified it will output \
-the results obtained in a file or the output will be directed to standard \
-output.
+"""Search Pfam database with a UniProt ID or protein sequence.  
+Sequence input can be parsed from a FASTA or Selex.  Minimum length 
+of query sequence should be 16 characters and should not contain gaps.  
+If output name is specified, results will be written in a file. 
+Otherwise, or the output will be directed to standard output.
 
 Search Pfam with PDB and chain identifier and output results to screen:
     
-    $ evol search 1mkpA
+  $ evol search 1mkpA
 
 Search Pfam with UniProt ID and write output into a file:
     
-    $ evol search P08581 --outname families.txt
+  $ evol search P08581 --outname families.txt
     
-Search Pfam with a sequence with search options:
+Search Pfam with a sequence and with some search options:
 
-    $ evol search PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCS\
+  $ evol search PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCS\
 LHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA --evalue 2 \
---searchBs
-    """, [0, 1])
+--searchBs""", [0, 1])
 
 def evol_search(query, **kwargs):
     

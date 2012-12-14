@@ -60,7 +60,7 @@ def prody_anm(pdb, **kwargs):
             kwargs[key] = DEFAULTS[key]
     
     from os.path import isdir, splitext, join
-    outdir = kwargs['outdir']
+    outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))    
         
@@ -68,13 +68,13 @@ def prody_anm(pdb, **kwargs):
     import prody
     LOGGER = prody.LOGGER
 
-    selstr = kwargs['select']
-    prefix = kwargs['prefix']
-    cutoff = kwargs['cutoff']
-    gamma = kwargs['gamma'] 
-    nmodes = kwargs['nmodes']
-    selstr = kwargs['select']
-    model = kwargs['model']
+    selstr = kwargs.get('select')
+    prefix = kwargs.get('prefix')
+    cutoff = kwargs.get('cutoff')
+    gamma = kwargs.get('gamma') 
+    nmodes = kwargs.get('nmodes')
+    selstr = kwargs.get('select')
+    model = kwargs.get('model')
     
     pdb = prody.parsePDB(pdb, model=model)
     if prefix == '_anm':
@@ -105,19 +105,19 @@ def prody_anm(pdb, **kwargs):
         prody.writeNMD(join(outdir, prefix + '_extended_' + 
                        extend + '.nmd'), *extended)
         
-    outall = kwargs['outall']
-    delim = kwargs['numdelim']
-    ext = kwargs['numext']
-    format = kwargs['numformat']
+    outall = kwargs.get('outall')
+    delim = kwargs.get('numdelim')
+    ext = kwargs.get('numext')
+    format = kwargs.get('numformat')
     
 
-    if outall or kwargs['outeig']:
+    if outall or kwargs.get('outeig'):
         prody.writeArray(join(outdir, prefix + '_evectors'+ext), 
                          anm.getArray(), delimiter=delim, format=format)
         prody.writeArray(join(outdir, prefix + '_evalues'+ext), 
                          anm.getEigvals(), delimiter=delim, format=format)
                          
-    if outall or kwargs['outbeta']:
+    if outall or kwargs.get('outbeta'):
         from prody.utilities import openFile
         fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
@@ -129,34 +129,40 @@ def prody_anm(pdb, **kwargs):
                        .format(data))
         fout.close()
         
-    if outall or kwargs['outcov']:
-        prody.writeArray(join(outdir, prefix + '_covariance'+ext), 
+    if outall or kwargs.get('outcov'):
+        prody.writeArray(join(outdir, prefix + '_covariance' + ext), 
                          anm.getCovariance(), delimiter=delim, format=format)
                          
-    if outall or kwargs['outcc']:
-        prody.writeArray(join(outdir, prefix + '_cross-correlations' 
-                                                     + ext), 
-                         prody.calcCrossCorr(anm), delimiter=delim, 
-                         format=format)
+    if outall or kwargs.get('outcc') or kwargs.get('outhm'):
+        cc = prody.calcCrossCorr(anm)
+        if outall or kwargs.get('outcc'):
+            prody.writeArray(join(outdir, prefix + 
+                             '_cross-correlations' + ext), 
+                             cc, delimiter=delim,  format=format)
+        if outall or kwargs.get('outhm'):
+            prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
+                               cc, resnum=select.getResnums(), 
+                               xlabel='Residue', ylabel='Residue number',
+                               title=anm.getTitle() + ' cross-correlations')
                          
-    if outall or kwargs['hessian']:
+    if outall or kwargs.get('hessian'):
         prody.writeArray(join(outdir, prefix + '_hessian'+ext), 
                          anm.getHessian(), delimiter=delim, format=format)
                          
-    if outall or kwargs['kirchhoff']:
+    if outall or kwargs.get('kirchhoff'):
         prody.writeArray(join(outdir, prefix + '_kirchhoff'+ext), 
                          anm.getKirchhoff(), delimiter=delim, format=format)
                          
-    if outall or kwargs['outsf']:
+    if outall or kwargs.get('outsf'):
         prody.writeArray(join(outdir, prefix + '_sqflucts'+ext), 
                          prody.calcSqFlucts(anm), delimiter=delim, 
                          format=format)
           
-    figall = kwargs['figall']
-    cc = kwargs['figcc']
-    sf = kwargs['figsf']
-    bf = kwargs['figbeta']
-    cm = kwargs['figcmap']
+    figall = kwargs.get('figall')
+    cc = kwargs.get('figcc')
+    sf = kwargs.get('figsf')
+    bf = kwargs.get('figbeta')
+    cm = kwargs.get('figcmap')
 
 
     if figall or cc or sf or bf or cm: 
@@ -168,10 +174,10 @@ def prody_anm(pdb, **kwargs):
         else:
             prody.SETTINGS['auto_show'] = False
             LOGGER.info('Saving graphical output.')
-            format = kwargs['figformat']
-            width = kwargs['figwidth']
-            height = kwargs['figheight']
-            dpi = kwargs['figdpi']
+            format = kwargs.get('figformat')
+            width = kwargs.get('figwidth')
+            height = kwargs.get('figheight')
+            dpi = kwargs.get('figdpi')
             format = format.lower()
             
             if figall or cc:
@@ -230,22 +236,21 @@ def addCommand(commands):
     subparser.add_argument('--examples', action=UsageExample, nargs=0,
         help='show usage examples and exit')
     subparser.set_defaults(usage_example=
-    """This command performs ANM calculations for given PDB structure and \
-outputs results in NMD format. If an identifier is passed, structure file \
-will be downloaded from the PDB FTP server.
+"""Perform ANM calculations for given PDB structure and output results in NMD 
+format.  If an identifier is passed, structure file will be downloaded from 
+the PDB FTP server.
 
-Fetch PDB 1p38, run ANM calculations using default parameters, and write \
+Fetch PDB 1p38, run ANM calculations using default parameters, and write
 NMD file:
     
   $ prody anm 1p38
     
-Fetch PDB 1aar, run ANM calculations using default parameters for chain A \
-carbon alpha atoms with residue numbers less than 70, and save all of the \
+Fetch PDB 1aar, run ANM calculations using default parameters for chain A
+carbon alpha atoms with residue numbers less than 70, and save all of the
 graphical output files:
 
   $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A""",
-  test_examples=[0,1]
-    )
+  test_examples=[0,1])
     
     group = addNMAParameters(subparser)
 
