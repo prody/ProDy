@@ -683,7 +683,7 @@ def mergeMSA(*msa, **kwargs):
         raise TypeError('all msa arguments must be MSA instances')
         
     sets = iter(sets)
-    common = sets.next()
+    common = next(sets)
     for aset in sets: 
         common = common.intersection(aset)
     if not common:
