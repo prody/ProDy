@@ -1151,17 +1151,20 @@ orange3"
     $sel writepdb $pdbfn
     $sel delete
     
-    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]    
+    set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
+    set args [list "-o" "$::NMWiz::outputdir" "-p" "$prefix" "-n" $::NMWiz::prodyNModes "-c" $::NMWiz::prodyCutoff "-g" $::NMWiz::prodyGamma] 
     if {$::NMWiz::prodyExtend == "none"} {
-      set args "anm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
+      set selstr all
       set nmdfile "$prefix.nmd"
     } else {
-      set args "anm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
+      set selstr $::NMWiz::prodySelstr
+      lappend args "-t" 
+      lappend args $::NMWiz::prodyExtend
       set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
     }
     if {$::NMWiz::prodyHeatmap} {lappend args "-u"}
-    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody $args"
-    set status [exec $::NMWiz::pybin $::NMWiz::prody {*}$args]
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody anm --quiet -s $selstr $args \"$pdbfn\""
+    set status [exec $::NMWiz::pybin $::NMWiz::prody anm --quiet -s $selstr {*}$args "$pdbfn"]
 
 
     if {$status != -1} {
@@ -1207,17 +1210,20 @@ orange3"
     $sel delete
     
     set prefix [file join $::NMWiz::outputdir $::NMWiz::prodyPrefix]
+    set args "-o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma"
     if {$::NMWiz::prodyExtend == "none"} {
-      set args "gnm --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma \"$pdbfn\""
+      set selstr "all"
       set nmdfile "$prefix.nmd"
     } else {
-      set args "gnm --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -c $::NMWiz::prodyGNMCutoff -g $::NMWiz::prodyGamma -t $::NMWiz::prodyExtend \"$pdbfn\""
+      set selstr $::NMWiz::prodySelstr
+      lappend args  "-t"
+      lappend args $::NMWiz::prodyExtend
       set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
     }
     
     if {$::NMWiz::prodyHeatmap} {lappend args "-u"}
-    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody $args"
-    set status [exec $::NMWiz::pybin $::NMWiz::prody {*}$args]
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s $selstr $args \"$pdbfn\""
+    set status [exec $::NMWiz::pybin $::NMWiz::prody gnm --quiet -s $selstr {*}$args "$pdbfn"]
 
     if {$status != -1} {
       set handle [::NMWiz::loadNMD $nmdfile]
@@ -1281,26 +1287,20 @@ orange3"
     
     $sel delete
 
-    if {$::NMWiz::prodyPCAAligned} {
-      if {$::NMWiz::prodyExtend == "none"} {
-        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
-        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
-        set nmdfile "$prefix.nmd"
-      } else {
-        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
-        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet --aligned -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb "$prefix.pdb" "$pdbfn"]
-        set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
-      }
+    if {$::NMWiz::prodyExtend == "none"} {
+      set args "pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
+      set nmdfile "$prefix.nmd"
     } else {
-      if {$::NMWiz::prodyExtend == "none"} {
-        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes \"$pdbfn\""
-        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s all -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes "$pdbfn"]
-        set nmdfile "$prefix.nmd"
-      } else {
-        vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody pca --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
-        set status [exec $::NMWiz::pybin $::NMWiz::prody pca --quiet -s "$::NMWiz::prodySelstr" -o "$::NMWiz::outputdir" -p "$prefix" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb "$prefix.pdb" "$pdbfn"]
-        set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
-      }    }
+      set args "pca --quiet -s \"$::NMWiz::prodySelstr\" -o \"$::NMWiz::outputdir\" -p \"$prefix\" -n $::NMWiz::prodyNModes -t $::NMWiz::prodyExtend --pdb \"$prefix.pdb\" \"$pdbfn\""
+      set nmdfile "$prefix\_extended_$::NMWiz::prodyExtend.nmd"
+    }    
+
+    if {$::NMWiz::prodyPCAAligned} {lappend args "--aligned"}
+    if {$::NMWiz::prodyHeatmap} {lappend args "-u"}
+
+    vmdcon -info "Executing: $::NMWiz::pybin $::NMWiz::prody $args"
+    set status [exec $::NMWiz::pybin $::NMWiz::prody {*}$args]
+
     
     if {$status != -1} {
       set handle [::NMWiz::loadNMD $nmdfile]
@@ -1755,6 +1755,7 @@ orange3"
       variable plotwidth 800
       variable plotheight 600
       variable linewidth 1
+      variable linecolor "blue"
       variable mradius 2
       variable dash "-"
       variable lornol "lines"
@@ -2275,23 +2276,40 @@ setmode, getlen, setlen, addmode"
         }
       }
       
-      proc Plot {} {
+      proc pickDatafile {} {
+
+        set hmfile [tk_getOpenFile \
+          -filetypes {{"All files" *}}]
+        if {[string equal $datafile ""]} {
+          return
+        }
+        return [[namespace current]::loadDatafile $datafile]
+      }
+      
+      proc loadDatafile {fn} {
+        
+        set datafile [open $fn]
+        
+        set legend [file rootname [lindex [file split "/deneme/denem/de.txt"] end]]
+        [file rootname [lindex -1 [file split $fn]]]
+        
+        set data [list] 
+        set line ""
+        while {[gets $datafile line] == -1} {
+          lappend data [string trim $line]
+        }
+        close $datafile
+        
+        variable title
+        variable plotrids
+        variable linecolor
+        return [[namespace current]::plotData $plotrids $data $title $legend $linecolor]        
+      }
+      
+      proc plotMobility {} {
         
         set ns [namespace current]
-
-        #puts [subst $${ns}::overplot]
-        set plothandle 0
-        if {[subst $${ns}::overplot]} {
-          for {set i [expr [llength [subst $${ns}::plothandles]] - 1]} {$i >= 0} {incr i -1} {
-            set temphandle [lindex [subst $${ns}::plothandles] $i]
-            if {[namespace exists [string range $temphandle 0 end-12]]} {
-              set plothandle $temphandle
-              break
-            } else {
-              set ${ns}::plothandles [lrange [subst $${ns}::plothandles] 0 $i]
-            }
-          }
-        }
+        
         set ext [${ns}::assessExtended] 
         variable plotrids
         variable betalist
@@ -2319,8 +2337,39 @@ setmode, getlen, setlen, addmode"
           set x $plotrids
           set y $betalist
         }
+        variable activemode
+        set title "[subst $${ns}::title] square fluctuations"
+        set legend "Mode $activemode"
+        variable n_dims
+        puts "$n_dims"
+        if {$n_dims == 0} {
+          variable linecolor
+          return [${ns}::plotData $x $y $title $legend $linecolor $callback]
+        } else {
+          variable color
+          return [${ns}::plotData $x $y $title $legend $color $callback]
+        }
+      }
+      
+      proc plotData {x y title legend color callback} {
+      
+        set ns [namespace current]
+        set plothandle 0
+        variable overplot
+        variable plothandles
+        if {$overplot} {
+          for {set i [expr [llength $plothandles] - 1]} {$i >= 0} {incr i -1} {
+            set temphandle [lindex $plothandles $i]
+            if {[namespace exists [string range $temphandle 0 end-12]]} {
+              set plothandle $temphandle
+              break
+            } else {
+              set plothandles [lrange $plothandles 0 $i]
+            }
+          }
+        }
+      
         variable plotheight
-        variable color
         variable lornol
         variable plotwidth
         variable mradius
@@ -2329,23 +2378,19 @@ setmode, getlen, setlen, addmode"
         variable activemode
         if {$plothandle != 0} {
           $plothandle add \
-            $x $y \
-            -title "[subst $${ns}::title] square fluctuations" \
-            -linewidth $linewidth -legend "Mode $activemode" \
+            $x $y -title $title -linewidth $linewidth -legend $legend \
             -$lornol -linecolor $color -xsize $plotwidth -ysize $plotheight \
             -radius $mradius -fillcolor $color -marker $marker \
             -xlabel "Atom/Residue #" -callback $callback -plot
              
         } else {
           lappend ${ns}::plothandles [multiplot \
-            -x $x -y $y \
-            -title "[subst $${ns}::title] square fluctuations" \
-            -linewidth $linewidth -legend "Mode $activemode" \
+            -x $x -y $y -title $title -linewidth $linewidth -legend $legend \
             -$lornol -linecolor $color -xsize $plotwidth -ysize $plotheight \
             -radius $mradius -fillcolor $color -marker $marker \
             -xlabel "Atom/Residue #" -callback $callback -plot]
         }
-        vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
+        #vmdcon -info "Plot handle: [lindex [subst $${ns}::plothandles] end]"
         #-dash [subst $${ns}::dash] \
       }
       
@@ -2435,7 +2480,6 @@ setmode, getlen, setlen, addmode"
         variable addlabel
         
         if {$addlabel} {label add Atoms $selid/$which}
-
 
         variable highlights
         if {[dict exists $highlights $which]} {
@@ -3457,12 +3501,21 @@ setmode, getlen, setlen, addmode"
             -row 5 -column 4 -sticky we
         }
 
-        grid [button $wam.plotmobility -text "Plot Mobility" \
-            -command ${ns}::Plot] \
-          -row 7 -column 1 -columnspan 2 -sticky we
-        grid [button $wam.loadheatmap -text "Load Heatmap" \
-            -command ${ns}::pickHeatmap] \
-          -row 7 -column 3  -columnspan 2 -sticky we
+        grid [frame $wam.plotting_frame] \
+            -row 7 -column 1 -columnspan 4 -sticky w
+
+        button $wam.plotting_frame.plotmobility -text "Plot Mobility" \
+            -command ${ns}::plotMobility
+        button $wam.plotting_frame.loadheatmap -text "Load Heatmap" \
+            -command ${ns}::pickHeatmap
+          
+        button $wam.plotting_frame.plotdata -text "Plot Data" \
+            -command ${ns}::pickDatafile
+          
+        pack $wam.plotting_frame.plotmobility \
+             $wam.plotting_frame.loadheatmap \
+             $wam.plotting_frame.plotdata \
+          -side left -anchor w -fill x
 
 
         grid [button $wam.showmain -text "Main" \
@@ -3837,11 +3890,11 @@ setmode, getlen, setlen, addmode"
 
         grid [checkbutton $wpo.overplot_check -text " add to most recent MultiPlot" \
             -variable ${ns}::overplot] \
-          -row 0 -column 1 -columnspan 4 -sticky w
+          -row 0 -column 1 -columnspan 6 -sticky w
   
         grid [checkbutton $wpo.label_check -text " label atoms/pairs" \
           -variable ${ns}::addlabel] \
-        -row 1 -column 1 -columnspan 4 -sticky w
+        -row 1 -column 1 -columnspan 6 -sticky w
 
   
         grid [label $wpo.plotwidth_label -text "Plot width:"] \
@@ -3890,29 +3943,27 @@ setmode, getlen, setlen, addmode"
         grid [entry $wpo.radius_entry -width 4 -textvariable ${ns}::mradius] \
           -row 5 -column 6 -sticky w
           
-        if {$ndim == 1} {
-          grid [label $wpo.plotcolor_label -text "Line color:"] \
-            -row 6 -column 1 -sticky w
-            
-          grid [frame $wpo.pcf] \
-            -row 6 -column 2 -sticky w
-          tk_optionMenu $wpo.pcf.color ${ns}::color "blue"
-            $wpo.pcf.color.menu delete 0
-            foreach acolor "blue red gray orange yellow tan green white pink \
-          cyan purple black yellow2 yellow3 green2 green3 \
-          cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
-          orange3" {
-              $wpo.pcf.color.menu add radiobutton -label $acolor \
-                  -variable ${ns}::color
-            }
-          pack $wpo.pcf.color -side left -anchor w -fill x
-        }
+        grid [label $wpo.plotcolor_label -text "Line color:"] \
+          -row 6 -column 1 -sticky w
+          
+        grid [frame $wpo.pcf] \
+          -row 6 -column 2 -sticky w
+        tk_optionMenu $wpo.pcf.color ${ns}::linecolor "blue"
+          $wpo.pcf.color.menu delete 0
+          foreach acolor "blue red gray orange yellow tan green white pink \
+        cyan purple black yellow2 yellow3 green2 green3 \
+        cyan2 cyan3 blue2 blue3 violet magenta magenta2 red2 red3 orange2 \
+        orange3" {
+            $wpo.pcf.color.menu add radiobutton -label $acolor \
+                -variable ${ns}::linecolor
+          }
+        pack $wpo.pcf.color -side left -anchor w -fill x
         
         grid [label $wpo.paircolor_label -text "Pair color:"] \
-          -row 8 -column 1 -sticky w
+          -row 6 -column 5 -sticky w
           
         grid [frame $wpo.hcf] \
-          -row 8 -column 2 -sticky w
+          -row 6 -column 6 -sticky w
         tk_optionMenu $wpo.hcf.color ${ns}::paircolor "blue"
           $wpo.hcf.color.menu delete 0
           foreach acolor "blue red gray orange yellow tan green white pink \
