@@ -232,9 +232,10 @@ def writeHeatmap(filename, heatmap, **kwargs):
             length = len(val)
         except TypeError:
             LOGGER.warn('Keyword argument {0} is not used.'.format(key))
-        if length == shape[0]:
-            numlabels.append(key)
-            numbering.append(val)
+        else:
+            if length == shape[0]:
+                numlabels.append(key)
+                numbering.append(val)
     if not numbering:
         numlabels.append('unknown')
         numbering.append(arange(1, shape[0] + 1))
