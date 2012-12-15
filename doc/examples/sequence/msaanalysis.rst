@@ -175,11 +175,11 @@ coevolving pairs based on a zscore cutoff.
    >>> import numpy
    >>> rank_row, rank_col, zscore_sort = calcRankorder(mutinfo, zscore=True)
    >>> print(numpy.asarray(indices)[rank_row[:5]])
-   [128 129 130 130 130]
+   [126 128 129 126 130]
    >>> print(numpy.asarray(indices)[rank_col[:5]])
-   [127 127 127 129 128]
+   [127 127 127 131 127]
    >>> print(zscore_sort[:5])
-   [ 4.73041929  4.32016678  4.1165174   3.62089428  3.10104779]
+   [ 5.06776924  4.73041929  4.32016678  4.20075802  4.1165174 ]
    
    
 See Also

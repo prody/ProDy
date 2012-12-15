@@ -65,13 +65,19 @@ class Sequence(object):
 
         An :class:`.MSA` instance and an index:
 
-        >>> seq = Sequence(msa, 0)
+        >>> from prody import *
+        >>> msa = parseMSA('piwi_seed.sth')
+        >>> Sequence(msa, 0)
+        <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+        >>> msa[0]
+        <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
         
         *Independent*
         
         Instantiation with sequence and label (optional) string:
         
-        >>> seq = Sequence('SOME-SEQUENCE-STRING', 'MySeq/1-18')"""
+        >>> Sequence('SOME-SEQUENCE-STRING', 'MySeq/1-18')
+        <Sequence: MySeq (length 20; 18 residues and 2 gaps)>"""
         
         if len(args) == 2:
             one, two = args
