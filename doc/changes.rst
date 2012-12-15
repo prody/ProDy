@@ -34,6 +34,36 @@ Release 1.4.1 (in development)
   
   * :func:`.parseMSA` is improved to handle indexing of sequences that
     have the same label in an MSA file, e.g. domains repeated in a protein.
+
+  * :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` applications
+    can write heatmap files for visualization using NMWiz and Heatmapper
+    plugins.
+  
+**Changes**:
+
+  * ProDy will not emit a warning message when a wwPDB server is not set
+    using :func:`.wwPDBServer`, and use the default US server.
+  
+**Bugfixes**:
+
+  * Fixed a syntax problem that prevented running ProDy using Python 2.6.
+  
+  * Fixed :class:`.NMA` indexing problem that was introduced in v1.4.
+    
+  
+
+:ref:`nmwiz`
+-------------------------------------------------------------------------------
+
+  * NMWiz can visualize heatmaps linked to structural view via Heatmapper.
+    Clicking on the heatmap will highlight atom or residue pairs.
+  
+  * ProDy interface has the option to write and load cross-correlations.
+  
+  * NMWiz can determined whether a model is an extended model. For extended
+    models plotting mobility has been improved. Only a single value per residue
+    will be plotted, and clicking on the plot will highlight all of the
+    residue atoms.      
         
 
 Release 1.4 (Dec 2, 2012)
