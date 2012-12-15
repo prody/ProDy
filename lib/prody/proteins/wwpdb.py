@@ -87,12 +87,7 @@ def wwPDBServer(*key):
     .. _wwPDB: http://www.wwpdb.org/"""
     
     if not key:
-        server = SETTINGS.get('wwpdb', None)
-        if server is None:
-            LOGGER.warn('A wwPDB server is not set, default server RCSB PDB '
-                        'is used. You may use `wwPDBServer` function to set '
-                        'a physically close server location.')
-        return server
+        return SETTINGS.get('wwpdb', None)
     elif len(key) == 1:
         try:
             key = key[0].lower()
@@ -106,18 +101,6 @@ def wwPDBServer(*key):
     else:
         raise TypeError('one key argument is expected, {0} given'
                         .format(len(key)))
-
-
-def setWWPDBFTPServer(key):
-    """Deprecated for removal in v1.4, use :func:`wwPDBServer` instead."""
-    
-    return wwPDBServer(key)
-
-
-def getWWPDBFTPServer():
-    """Deprecated for removal in v1.4, use :func:`wwPDBServer` instead."""
-    
-    return wwPDBServer()
 
 
 def checkIdentifiers(*pdb):
