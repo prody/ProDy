@@ -47,7 +47,8 @@ def pickSequence(msa):
                 label, indices = msa[row].getLabel(), msa[row].getResnums()
             except:
                 break
-            return (indices, 'Residue number ({0})'.format(label)) 
+            else:
+                return (indices, 'Residue number ({0})'.format(label)) 
         return None, None
 
 
@@ -70,14 +71,6 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
     except TypeError:
         raise TypeError("occ must be 'res', 'col', or an occupancy array")
     
-    xlabel = kwargs.pop('xlabel', None)
-    label = kwargs.pop('label', None)
-    if label is not None:
-        try:
-            indices = msa[label].getResnums()
-            xlabel = label
-        except:
-            LOGGER.info('Specified label not in msa.')
     try:
         sw = occ.startswith
     except (TypeError, AttributeError):
@@ -88,23 +81,25 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
         else:
             if ndim != 1:
                 raise ValueError('occ must be a 1-dimensional array')
-        if length == numseq:
-            xlabel = kwargs.pop('xlabel', xlabel) or 'MSA sequence index'
-        if length == lenseq:
-            xlabel = kwargs.pop('xlabel', xlabel) or 'MSA column index'
-        if indices is None:
-            indices = arange(1, length + 1)
     else:
         occ = calcMSAOccupancy(msa, occ, count)
         length = len(occ)
-        if indices is None and (sw('row') or sw('seq')):
-            indices = arange(1, length + 1)
-            xlabel = kwargs.pop('xlabel', xlabel) or 'MSA sequence index'            
-        elif indices is None and (sw('col') or sw('res')):
+
+    if length == numseq:
+        xlabel = kwargs.pop('xlabel', None) or 'MSA sequence index'
+        
+    if length == lenseq:
+        label = kwargs.pop('label', None)
+        if label is not None:
+            try:
+                indices = msa[label].getResnums()
+            except:
+                LOGGER.info('Specified label not in msa.')
+        xlabel = kwargs.pop('xlabel', None) or label or 'MSA column index'
+        if xlabel is None and indices is None:
             indices, xlabel = pickSequence(msa)
-            if indices is None:
-                indices = arange(1, length + 1)
-            xlabel = xlabel or 'MSA column index'
+    if indices is None:
+        indices = arange(1, length + 1)
     
     ylabel = kwargs.pop('ylabel', 'Count' if count else 'Occupancy')  
     title = kwargs.pop('title', None)
