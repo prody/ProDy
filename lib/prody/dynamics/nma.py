@@ -59,21 +59,22 @@ class NMA(object):
         """A list or tuple of integers can be used for indexing."""
         
         if self._n_modes == 0:
-            raise ValueError('{0} modes are not calculated, try '
+            raise ValueError('{0} modes are not calculated, use '
                              'calcModes() method'.format(str(self)))
-        indices = self._indices
-        if indices is None:
-            self._indices = indices = np.arange(self._n_modes)
-        try:
-            indices = indices[index]
-        except IndexError as err:
-            raise IndexError(str(err))
-        try:
-            length = len(indices)
-        except TypeError:            
-            return Mode(self, indices)
-        else:
-            return ModeSet(self, indices)
+        if isinstance(index, int):
+            return self._getMode(index)
+        elif isinstance(index, slice):
+            indices = np.arange(*index.indices(len(self)))
+            if len(indices) > 0:
+                return ModeSet(self, indices)
+        elif isinstance(index, (list, tuple)):
+            for i in index:
+                assert isinstance(i, int), 'all indices must be integers'
+            if len(index) == 1:
+                return self._getMode(index[0])
+            return ModeSet(self, index)
+        else:        
+            raise IndexError('indices must be int, slice, list, or tuple')
         
     def __iter__(self):
         
@@ -103,6 +104,18 @@ class NMA(object):
         self._trace = None
         
         self._is3d = True
+        
+    def _getMode(self, index):
+        
+        if self._n_modes == 0:
+            raise ValueError('{0} modes are not calculated, use '
+                             'calcModes() method'.format(str(self)))
+        if index >= self._n_modes or index < -self._n_modes:
+            raise IndexError('{0} contains {1} modes, try 0 <= index < '
+                             '{1}'.format(str(self), self._n_modes))
+        if index < 0:
+            index += self._n_modes
+        return Mode(self, index)
     
     def _getTrace(self):
         """Return trace, and emit a warning message if trace is calculated
