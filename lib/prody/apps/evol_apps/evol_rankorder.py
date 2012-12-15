@@ -177,6 +177,7 @@ def evol_rankorder(mutinfo, **kwargs):
                     label = pdb.getTitle()
                     LOGGER.info('Residue numbers will be based on pdb: '
                                 '{0}'.format(pdb.getTitle()))
+                    break
                 else:
                     LOGGER.info('Number of residues in PDB does not match '
                                 'mutinfo matrix, ignoring PDB input')
@@ -253,8 +254,6 @@ def evol_rankorder(mutinfo, **kwargs):
     f = openFile(outname, 'wb')
     if label is None:
         label = 'Serial Index'
-    f.write(('Label: '+ label + '\t' + 'Residue Numbers: ' +
-             str(resnum[0]) + '-' + str(resnum[-1]) + '\n'))
     
     numpairs = kwargs.get('numpairs')
     size = len(row)
@@ -265,19 +264,36 @@ def evol_rankorder(mutinfo, **kwargs):
                         'incorrect residue number. Using sequence separation')
         else:
             if pdbflag:
-                LOGGER.info('use-struct-sep not set, using sequence separation'
+                LOGGER.info('use-dist not set, using sequence separation'
                             ' to report coevolving pairs')
-        f.write((header + '\n'))
-        while count <=numpairs  and i < size:        
-            if row[i] > (column[i] + seqsep):
-                f.write('{0}\t{1}\t{2}\t{3:.3f}\n'.
-                        format(count, resnum[row[i]], resnum[column[i]],
-                               mi[row[i], column[i]]))
-                count += 1
-            i += 1
+        f.write(('Label: '+ label + '\t' + 'Residue Numbers: ' +
+             str(resnum[0]) + '-' + str(resnum[-1]) + '\tSequence Separation:' +
+             str(seqsep) + '\n'))
+        if pdbflag:
+            f.write((header + '\tDistance\n'))
+            while count <=numpairs  and i < size:        
+                if row[i] > (column[i] + seqsep):
+                    f.write('{0}\t{1}\t{2}\t{3:.3f}\t{4:.2f}\n'.
+                            format(count, resnum[row[i]], resnum[column[i]],
+                                   mi[row[i], column[i]],
+                                   distance[row[i], column[i]]))
+                    count += 1
+                i += 1
+        else:
+            f.write((header + '\n'))
+            while count <=numpairs  and i < size:        
+                if row[i] > (column[i] + seqsep):
+                    f.write('{0}\t{1}\t{2}\t{3:.3f}\n'.
+                            format(count, resnum[row[i]], resnum[column[i]],
+                                   mi[row[i], column[i]]))
+                    count += 1
+                i += 1
     else:
         structsep = kwargs.get('dist')
-        f.write((header + '\tDistance Cutoff: ' + str(structsep) + '\n'))        
+        f.write(('Label: '+ label + '\t' + 'Residue Numbers: ' +
+             str(resnum[0]) + '-' + str(resnum[-1]) + 'Distance Cutoff:' +
+             str(structsep) + '\n'))
+        f.write((header + '\tDistance\n'))        
         while count <=numpairs  and i < size:        
             if distance[row[i], column[i]] > structsep:
                 f.write('{0}\t{1}\t{2}\t{3:.3f}\t{4:.2f}\n'.

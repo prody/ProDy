@@ -291,12 +291,12 @@ uniqueSequences.__doc__ += doc_turbo
 
 
 def calcRankorder(matrix, zscore=False, **kwargs):
-    """Rank orders (sorts) the elements of the 2D matrix in descending order, 
-    if *descend* is **True** (default). Can apply a zscore normalization; by 
-    default along *axis* - 0 such that each column has mean=0 and std=1.  
-    Returns a tuple of indices (row, column, value) and a flattened sorted 
-    matrix such that ``value=matrix[row, column]``.  If *zcore* analysis is 
-    used, return value contains the zscores."""
+    """Returns indices of elements and corresponding values sorted in
+    descending order, if *descend* is **True** (default). Can apply a zscore
+    normalization; by default along *axis* - 0 such that each column has
+    mean=0 and std=1.  If *zcore* analysis is used, return value contains the
+    zscores. If matrix is smymetric only lower triangle indices will be
+    returned, with diagonal elements if *diag* is **True** (default)."""
     
     try:
         ndim, shape = matrix.ndim, matrix.shape
@@ -306,15 +306,16 @@ def calcRankorder(matrix, zscore=False, **kwargs):
     if ndim != 2:
         raise ValueError('matrix must be a 2D array')
     
+    kwargs.get('thredhold', 0.0001)
     try:
-        symm = (matrix.transpose() == matrix).all()
+        symm = abs((matrix.transpose() == matrix).max()) < threshold  
     except:
         symm = False
     
     if zscore:
         axis = int(bool(kwargs.get('axis', 0)))
         matrix = (matrix - matrix.mean(axis)) / matrix.std(axis)
-        LOGGER.info('zscore normalization applied')
+        LOGGER.info('Zscore normalization has been applied.')
         
     descend = kwargs.get('descend', True)
     if not symm:    
@@ -325,9 +326,13 @@ def calcRankorder(matrix, zscore=False, **kwargs):
         row = indices(shape)[0].flatten()[sorted_index]
         column = indices(shape)[1].flatten()[sorted_index]
     else:
-        LOGGER.info('Matrix is symmetric, only lower traingle indices '
-                    'will be returned')
-        ind_row, ind_column = tril_indices(shape[0], k=0)  # return diagonal elements as well
+        LOGGER.info('Matrix is symmetric, only lower triangle indices '
+                    'will be returned.')
+        if kwargs.get('diag', True):
+            k = 0
+        else:
+            k = 1
+        ind_row, ind_column = tril_indices(shape[0], k=1)  
         matrix_lt = matrix[ind_row, ind_column]
         if descend:
             sorted_index = matrix_lt.argsort(axis=None)[::-1]

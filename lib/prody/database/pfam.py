@@ -41,7 +41,7 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'inserts': set(['lower', 'upper']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
 
-MINSEQLEN = 12
+MINSEQLEN = 16
 
 def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     """Return Pfam search results in a dictionary.  Matching Pfam accession 
@@ -49,7 +49,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         
     :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence 
         file, sequence queries must not contain without gaps and must be at 
-        least 12 characters long 
+        least 16 characters long 
     :type query: str
     
     :arg search_b: search Pfam-B families when **True**

@@ -44,14 +44,11 @@ def pickSequence(msa):
         rows = (counts == length).nonzero()[0]
         for row in rows:
             try:
-                label, seq, start, end = msa[row]
+                label, indices = msa[row].getLabel(), msa[row].getResnums()
             except:
                 break
-            if end - start + 1 == length:
-                msa.split = split
-                return (arange(start, end + 1),
-                        'Residue number ({0})'.format(label)) 
-        msa.split = split
+            else:
+                return (indices, 'Residue number ({0})'.format(label)) 
         return None, None
 
 
@@ -59,7 +56,8 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
     """Show a bar plot of occupancy calculated for :class:`.MSA` instance *msa*
     using :func:`.calcMSAOccupancy`.  *occ* may be ``'res'`` or ``'col'``, or a
     a pre-calculated occupancy array.  If x-axis *indices* are not specified,
-    they will be inferred from *msa*.
+    they will be inferred from *msa* or given *label* that may correspond to
+    a sequence in the msa.
     
     Occupancy is plotted using :func:`~matplotlib.pyplot.bar` function."""
     
@@ -73,10 +71,9 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
     except TypeError:
         raise TypeError("occ must be 'res', 'col', or an occupancy array")
     
-    xlabel = None
     try:
         sw = occ.startswith
-    except TypeError:
+    except (TypeError, AttributeError):
         try:
             ndim = occ.ndim
         except AttributeError:
@@ -84,23 +81,25 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
         else:
             if ndim != 1:
                 raise ValueError('occ must be a 1-dimensional array')
-        if length == numseq and indices is None:
-            indices = arange(1, length + 1)  
-            xlabel = 'MSA sequence index'       
     else:
         occ = calcMSAOccupancy(msa, occ, count)
         length = len(occ)
-        if indices is None and (sw('row') or sw('seq')):
-            indices = arange(1, length + 1)
-            xlabel = 'MSA sequence index'
-    
 
-    xlabel = kwargs.pop('xlabel', xlabel)
+    if length == numseq:
+        xlabel = kwargs.pop('xlabel', None) or 'MSA sequence index'
+        
+    if length == lenseq:
+        label = kwargs.pop('label', None)
+        if label is not None:
+            try:
+                indices = msa[label].getResnums()
+            except:
+                LOGGER.info('Specified label not in msa.')
+        xlabel = kwargs.pop('xlabel', None) or label or 'MSA column index'
+        if xlabel is None and indices is None:
+            indices, xlabel = pickSequence(msa)
     if indices is None:
-        indices, xlabel = pickSequence(msa)
-        if indices is None:
-            indices = arange(1, length + 1)
-        xlabel = xlabel or 'MSA column index'
+        indices = arange(1, length + 1)
     
     ylabel = kwargs.pop('ylabel', 'Count' if count else 'Occupancy')  
     title = kwargs.pop('title', None)
@@ -111,7 +110,7 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         if title is None:
-            title = 'Occupancy: ' + str(msa)
+            title = 'Occupancy: ' + msa.getTitle()
         plt.title(title)
     return show
 
