@@ -105,14 +105,14 @@ object will yield sequence id, sequence, residue start and end indices:
 
 >>> msafobj = MSAFile(msafile)
 >>> for seq in msafobj: # doctest: +ELLIPSIS 
-...     print(seq)
-('YQ53_CAEEL', 'DILVGIAR.EKKP...NLAKRGRNNYK', 650, 977)
-('Q21691_CAEEL', 'TIVFGIIA.EKRP...NLAKRGHNNYK', 673, 1001)
-('AGO6_ARATH', 'FILCILPERKTSD...LAAAQVAQFTK', 541, 851)
+...     seq
+<Sequence: YQ53_CAEEL (length 404; 328 residues and 76 gaps)>
+<Sequence: Q21691_CAEEL (length 404; 329 residues and 75 gaps)>
+<Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
 ...
-('O02095_CAEEL', 'QLLFFVVK..SRY...RYSQRGAMVLA', 574, 878)
-('Q19645_CAEEL', 'PFVLFISD..DVP...ELAKRGTGLYK', 674, 996)
-('O62275_CAEEL', 'TFVFIITD.DSIT...EYAKRGRNLWN', 594, 924)
+<Sequence: O02095_CAEEL (length 404; 305 residues and 99 gaps)>
+<Sequence: Q19645_CAEEL (length 404; 323 residues and 81 gaps)>
+<Sequence: O62275_CAEEL (length 404; 331 residues and 73 gaps)>
 
 Reading using :func:`.parseMSA` yields an :class:`.MSA` object.  We can parse 
 compressed files, but reading uncompressed files are much faster as shown.
@@ -139,10 +139,10 @@ organism *ARATH* are filtered:
     
 >>> msafobj = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
 >>> for seq in msafobj: # doctest: +ELLIPSIS 
-...     print(seq)
-('AGO6_ARATH', 'FIL...FTK', 541, 851)
-('AGO4_ARATH', 'FIL...FMK', 577, 885)
-('AGO10_ARATH', 'LLL...YLE', 625, 946)
+...     seq
+<Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
+<Sequence: AGO4_ARATH (length 404; 309 residues and 95 gaps)>
+<Sequence: AGO10_ARATH (length 404; 322 residues and 82 gaps)>
 
 *Slicing sequences*
     
@@ -151,14 +151,15 @@ selective parsing of the MSA file.
     
 >>> msafobj = MSAFile(msafile, slice=list(range(10)) + list(range(394,404)))
 >>> for seq in msafobj: # doctest: +ELLIPSIS 
-...     print(seq)
-('YQ53_CAEEL', 'DILVGIAR.ELAKRGRNNYK', 650, 977)
-('Q21691_CAEEL', 'TIVFGIIA.ELAKRGHNNYK', 673, 1001)
-('AGO6_ARATH', 'FILCILPERKAAAQVAQFTK', 541, 851)
-(...)
-('O02095_CAEEL', 'QLLFFVVK..YSQRGAMVLA', 574, 878)
-('Q19645_CAEEL', 'PFVLFISD..LAKRGTGLYK', 674, 996)
-('O62275_CAEEL', 'TFVFIITD.DYAKRGRNLWN', 594, 924)
+...     seq
+<Sequence: YQ53_CAEEL (length 20; 19 residues and 1 gaps)>
+<Sequence: Q21691_CAEEL (length 20; 19 residues and 1 gaps)>
+<Sequence: AGO6_ARATH (length 20; 20 residues and 0 gaps)>
+...
+<Sequence: O02095_CAEEL (length 20; 18 residues and 2 gaps)>
+<Sequence: Q19645_CAEEL (length 20; 18 residues and 2 gaps)>
+<Sequence: O62275_CAEEL (length 20; 19 residues and 1 gaps)>
+
 
 Slicing can also be done using :class:`.MSA`. The :class:`.MSA`. object offers 
 other functionalities like querying, indexing, slicing row and columns and 

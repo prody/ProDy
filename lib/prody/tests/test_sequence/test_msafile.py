@@ -55,9 +55,8 @@ class TestMSAFile(TestCase):
         
         fasta = StringIO()
         with MSAFile(fasta, 'w', format='fasta') as out:
-            for label, seq in MSAFile(pathDatafile('msa_Cys_knot.fasta'), 
-                                      split=False):
-                out.write(label, seq)
+            for seq in MSAFile(pathDatafile('msa_Cys_knot.fasta')):
+                out.write(seq)
         fasta.seek(0)
         fasta_list = list(MSAFile(fasta, format='fasta'))
         self.assertListEqual(FASTA_LIST, fasta_list)        
@@ -66,9 +65,8 @@ class TestMSAFile(TestCase):
         
         selex = StringIO()
         with MSAFile(selex, 'w', format='selex') as out:
-            for label, seq in MSAFile(pathDatafile('msa_Cys_knot.slx'), 
-                                      split=False):
-                out.write(label, seq)
+            for seq in MSAFile(pathDatafile('msa_Cys_knot.slx')):
+                out.write(seq)
         selex.seek(0)
         selex_list = list(MSAFile(selex, format='selex'))
         self.assertListEqual(SELEX_LIST, selex_list) 
@@ -77,9 +75,8 @@ class TestMSAFile(TestCase):
         
         stock = StringIO()
         with MSAFile(stock, 'w', format='stockholm') as out:
-            for label, seq in MSAFile(pathDatafile('msa_Cys_knot.sth'), 
-                                      split=False):
-                out.write(label, seq)
+            for seq in MSAFile(pathDatafile('msa_Cys_knot.sth'), split=False):
+                out.write(seq)
         stock.seek(0)
         stock_list = list(MSAFile(stock, format='stockholm'))
         self.assertListEqual(STOCK_LIST, stock_list)      

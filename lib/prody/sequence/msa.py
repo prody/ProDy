@@ -30,6 +30,11 @@ from prody import LOGGER
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA']
 
+try:
+    range = xrange
+except NameError:
+    pass
+
 class MSA(object):
     
     """Store and manipulate multiple sequence alignments.
@@ -252,18 +257,8 @@ class MSA(object):
                
     def __iter__(self):
         
-        if self._split:
-            for i, label in enumerate(self._labels):
-                label, start, end = splitSeqLabel(label)
-                seq = self._msa[i].tostring()
-                try:
-                    seq.format
-                except AttributeError:
-                    seq = seq.decode('utf-8')
-                yield label, seq, start, end
-        else:
-            for i, label in enumerate(self._labels):
-                yield label, self._msa[i].tostring()
+        for i in range(len(self._msa)):
+            yield Sequence(self, i)
             
     
     def __contains__(self, key):

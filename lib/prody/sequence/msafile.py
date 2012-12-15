@@ -22,6 +22,15 @@ analyzing multiple sequence alignments."""
 __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
+from os.path import isfile, splitext, split, getsize
+
+from numpy import all, zeros, dtype, array, char, fromstring
+
+from .sequence import splitSeqLabel, Sequence
+
+from prody import LOGGER, PY2K
+from prody.utilities import openFile
+
 __all__ = ['MSAFile', 'splitSeqLabel', 'parseMSA', 'writeMSA']
 
 FASTA = 'FASTA'
@@ -51,16 +60,10 @@ NUMLINES = 1000
 LEN_FASTA_LINE = 60
 LEN_SELEX_LABEL = 31
 
-from os.path import isfile, splitext, split, getsize
-
-from numpy import all, zeros, dtype, array, char, fromstring
-
-from .sequence import splitSeqLabel
-
-from prody import LOGGER, PY2K
-from prody.utilities import openFile
-
-if PY2K: range = xrange
+try:
+    range = xrange
+except NameError:
+    pass
 
 
 class MSAFile(object):
@@ -79,14 +82,14 @@ class MSAFile(object):
 
     >>> msa = MSAFile(msafile)
     >>> for seq in msa: # doctest: +ELLIPSIS 
-    ...     print(seq)
-    ('YQ53_CAEEL', 'DILVGIAR.EKKP...NLAKRGRNNYK', 650, 977)
-    ('Q21691_CAEEL', 'TIVFGIIA.EKRP...NLAKRGHNNYK', 673, 1001)
-    ('AGO6_ARATH', 'FILCILPERKTSD...LAAAQVAQFTK', 541, 851)
-    (...)
-    ('O02095_CAEEL', 'QLLFFVVK..SRY...RYSQRGAMVLA', 574, 878)
-    ('Q19645_CAEEL', 'PFVLFISD..DVP...ELAKRGTGLYK', 674, 996)
-    ('O62275_CAEEL', 'TFVFIITD.DSIT...EYAKRGRNLWN', 594, 924)
+    ...     seq
+    <Sequence: YQ53_CAEEL (length 404; 328 residues and 76 gaps)>
+    <Sequence: Q21691_CAEEL (length 404; 329 residues and 75 gaps)>
+    <Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
+    ...
+    <Sequence: O02095_CAEEL (length 404; 305 residues and 99 gaps)>
+    <Sequence: Q19645_CAEEL (length 404; 323 residues and 81 gaps)>
+    <Sequence: O62275_CAEEL (length 404; 331 residues and 73 gaps)>
     
     *Filtering sequences*
     
@@ -97,10 +100,10 @@ class MSAFile(object):
     
     >>> msa = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
     >>> for seq in msa: # doctest: +ELLIPSIS 
-    ...     print(seq)
-    ('AGO6_ARATH', 'FIL...FTK', 541, 851)
-    ('AGO4_ARATH', 'FIL...FMK', 577, 885)
-    ('AGO10_ARATH', 'LLL...YLE', 625, 946)
+    ...     seq
+    <Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
+    <Sequence: AGO4_ARATH (length 404; 309 residues and 95 gaps)>
+    <Sequence: AGO10_ARATH (length 404; 322 residues and 82 gaps)>
 
     *Slicing sequences*
     
@@ -108,14 +111,14 @@ class MSAFile(object):
     
     >>> msa = MSAFile(msafile, slice=list(range(10)) + list(range(394,404)))
     >>> for seq in msa: # doctest: +ELLIPSIS 
-    ...     print(seq)
-    ('YQ53_CAEEL', 'DILVGIAR.ELAKRGRNNYK', 650, 977)
-    ('Q21691_CAEEL', 'TIVFGIIA.ELAKRGHNNYK', 673, 1001)
-    ('AGO6_ARATH', 'FILCILPERKAAAQVAQFTK', 541, 851)
-    (...)
-    ('O02095_CAEEL', 'QLLFFVVK..YSQRGAMVLA', 574, 878)
-    ('Q19645_CAEEL', 'PFVLFISD..LAKRGTGLYK', 674, 996)
-    ('O62275_CAEEL', 'TFVFIITD.DYAKRGRNLWN', 594, 924)"""
+    ...     seq
+    <Sequence: YQ53_CAEEL (length 20; 19 residues and 1 gaps)>
+    <Sequence: Q21691_CAEEL (length 20; 19 residues and 1 gaps)>
+    <Sequence: AGO6_ARATH (length 20; 20 residues and 0 gaps)>
+    ...
+    <Sequence: O02095_CAEEL (length 20; 18 residues and 2 gaps)>
+    <Sequence: Q19645_CAEEL (length 20; 18 residues and 2 gaps)>
+    <Sequence: O62275_CAEEL (length 20; 19 residues and 1 gaps)>"""
     
     def __init__(self, msa, mode='r', format=None, aligned=True, **kwargs):
         """*msa* may be a filename or a stream.  Multiple sequence alignments
@@ -202,7 +205,6 @@ class MSAFile(object):
             except AttributeError:
                 pass
                     
-            self._split = bool(kwargs.get('split', True))
             self.setFilter(kwargs.get('filter', None),
                            kwargs.get('filter_full', False))
             self.setSlice(kwargs.get('slice', None))
@@ -231,32 +233,18 @@ class MSAFile(object):
         
         filter = self._filter
         slicer = self._slicer
-        split = self._split
         if filter is None:
-            for label, seq in self._iter:
-                if split:
-                    label, start, end = splitSeqLabel(label)
-                    yield label, slicer(seq), start, end
-                else:
-                    yield label, slicer(seq)
+            for seq, label in self._iter:
+                yield Sequence(slicer(seq), label)
         else:
             if self._filter_full:
-                for label, seq in self._iter:
+                for seq, label in self._iter:
                     if filter(label, seq):
-                        if split:
-                            label, start, end = splitSeqLabel(label)
-                            yield label, slicer(seq), start, end    
-                        else:
-                            yield label, slicer(seq)
+                        yield Sequence(slicer(seq), label)
             else:                             
-                for label, seq in self._iter:
-                    lbl, start, end = splitSeqLabel(label)
-                    if filter(lbl, seq):
-                        if split:
-                            yield lbl, slicer(seq), start, end    
-                        else:
-                            yield label, slicer(seq)
-                
+                for seq, label in self._iter:
+                    if filter(splitSeqLabel(label)[0], seq):
+                        yield Sequence(slicer(seq), label)
         
     def __str__(self):
         
@@ -354,7 +342,7 @@ class MSAFile(object):
                               'expected length {1}'
                               .format(label, lenseq))
             numseq += 1
-            yield label, seq
+            yield seq, label
 
     def _iterFasta(self):
         """Yield sequences from a file or stream in FASTA format."""
@@ -381,13 +369,13 @@ class MSAFile(object):
                         raise IOError('sequence for {0} does not have '
                                       'expected length {1}'
                                       .format(label, lenseq))
-                    yield label, seq
+                    yield seq, label
                     temp = []
                     label = line[1:].strip()
                 else:
                     temp.append(line.strip())
             lines = self._readlines(NUMLINES)
-        yield label, ESJOIN(temp)
+        yield ESJOIN(temp), label 
     
     def _iterSelex(self):
         """Yield sequences from an MSA file in Stockholm/SELEX format."""
@@ -415,7 +403,7 @@ class MSAFile(object):
                     raise IOError('sequence for {0} does not have '
                                   'expected length {1}'
                                   .format(label, lenseq))
-                yield label, seq
+                yield seq, label
             lines = readlines(NUMLINES)
     
     _itermap = {
@@ -506,22 +494,18 @@ class MSAFile(object):
                 self._slice = slice
                 self._slicer = lambda seq, slc=slice: seq[slc]
 
-    def write(self, label, sequence):
-        """Write *label* and *sequence* into the MSA file."""
+    def write(self, seq):
+        """Write *seq*, an :class:`.Sequence` instance, into the MSA file."""
         
         if self._closed:
             raise ValueError('I/O operation on closed file')
         write = self._write
         
         try:
-            _, _ = label.upper, sequence.upper
+            label, sequence = seq.getLabel(True), str(seq)
         except AttributeError:
-            raise TypeError('label and sequence must be sequences')
+            raise TypeError('seq must be a Sequence instance')
         
-        try:
-            sequence.format # bytes in Py3 does not have this attribute
-        except AttributeError:
-            sequence = sequence.decode('utf-8')
 
         if self._lenseq is None:
             lenseq = self._lenseq = len(sequence)
@@ -583,10 +567,11 @@ def parseMSA(filename, **kwargs):
         lappend = labels.append
         mapping = {}
         maxlen = 0
-        for i, (label, seq) in enumerate(msa):
+        for i, seq in enumerate(msa):
+            label = seq.getLabel()
             lappend(label)
             if aligned:
-                sappend(fromstring(seq, '|S1'))
+                sappend(seq._array)
             else:
                 if len(seq) > maxlen:
                     maxlen = len(seq)
@@ -609,7 +594,7 @@ def parseMSA(filename, **kwargs):
     else:
         msafile = MSAFile(filename)
         format = msafile.format
-        lenseq = len(next(iter(msafile))[1])
+        lenseq = len(next(iter(msafile)))
         numseq = int(getsize(filename) / (lenseq + 10))
         del msafile
         
@@ -682,11 +667,9 @@ def writeMSA(filename, msa, **kwargs):
         fast = True
         
     if not fast or compressed:
-        split, seqiter._split = seqiter._split, False
         with MSAFile(filename, 'w', format=format) as out:
             write = out.write
-            [write(label, seq) for label, seq in seqiter]
-        seqiter._split = split
+            [write(seq) for seq in seqiter]
     else:
         from prody.utilities import backupFile
         backupFile(filename)

@@ -125,6 +125,15 @@ class Sequence(object):
                 '{4} gaps)>').format(self.getLabel(), msa, len(self), 
                 self.numResidues(), self.numGaps())
     
+    def __eq__(self, other):
+        
+        try:
+            this = self._array
+            that = other._array
+            return this.shape == that.shape and (this == that).all()
+        except AttributeError:
+            return False 
+    
     def getMSA(self):
         """Return :class:`.MSA` instance or **None**."""
         
