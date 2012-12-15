@@ -52,9 +52,10 @@ evol_parser.add_argument('-c', '--cite',
 evol_parser.add_argument('-v', '--version', 
     help="print ProDy version and exit",
     action=ProDyVersion, nargs=0)
-
+'''
 evol_parser.add_argument('-e', '--examples', action=UsageExample, nargs=0,
     help='show usage examples and exit')
+
 
 evol_parser.set_defaults(usage_example=
 """Sequence coevolution analysis involves several steps that including
@@ -90,6 +91,7 @@ Rank order analysis:
   $ 
 
 """, test_examples=[(0,1,2)])
+'''
 
 evol_commands = evol_parser.add_subparsers(
     title='subcommands')
