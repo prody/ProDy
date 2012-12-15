@@ -182,10 +182,12 @@ def prody_pca(coords, **kwargs):
             prody.writeArray(join(outdir, prefix + '_cross-correlations' + 
                              ext), cc, delimiter=delim, format=format)
         if outall or kwargs.get('outhm'):
+            resnums = select.getResnums()
+            hmargs = {} if resnums is None else {'resnums': resnums} 
             prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
-                               cc, resnum=select.getResnums(), 
-                               xlabel='Residue', ylabel='Residue number',
-                               title=pca.getTitle() + ' cross-correlations')
+                               cc, xlabel='Residue', ylabel='Residue',
+                               title=pca.getTitle() + ' cross-correlations',
+                               **hmargs)
                          
     if outall or kwargs.get('outsf'):
         prody.writeArray(join(outdir, prefix + '_sqfluct'+ext), 

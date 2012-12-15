@@ -142,7 +142,7 @@ def prody_anm(pdb, **kwargs):
         if outall or kwargs.get('outhm'):
             prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
                                cc, resnum=select.getResnums(), 
-                               xlabel='Residue', ylabel='Residue number',
+                               xlabel='Residue', ylabel='Residue',
                                title=anm.getTitle() + ' cross-correlations')
                          
     if outall or kwargs.get('hessian'):
