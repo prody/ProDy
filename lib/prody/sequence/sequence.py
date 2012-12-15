@@ -25,7 +25,7 @@ import re
 
 from numpy import arange, char, fromstring, zeros
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 
 try:
     range = xrange
@@ -49,6 +49,7 @@ def splitSeqLabel(label):
            return idcode, int(start), int(end)
        except Exception:
            return label, None, None
+
 
 class Sequence(object):
     
@@ -87,6 +88,7 @@ class Sequence(object):
         elif len(args) == 1:
             self._seq = fromstring(args[0], '|S1')
             self._msa = self._index = None
+            self._label = ''
         else:
             raise ValueError('msa and index, or seq [and label] must be'
                              'specified')
@@ -99,7 +101,10 @@ class Sequence(object):
         
     def __str__(self):
         
-        return self._array.tostring()
+        if PY3K:
+            return self._array.tostring().decode()
+        else:
+            return self._array.tostring()
         
     def __len__(self):
         
@@ -133,7 +138,8 @@ class Sequence(object):
     def getLabel(self, full=False):
         """Return label of the sequence."""
         
-        label = self._label or self._msa._labels[self._index]
+        label = self._label
+        if label is None: label = self._msa._labels[self._index] 
         return label if full else splitSeqLabel(label)[0]
     
     def numGaps(self):
