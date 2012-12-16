@@ -18,18 +18,29 @@
 
 """This module contains features for analyzing protein sequences. 
 
+Classes
+=======
+
+  * :class:`.MSA` - store MSA data indexed by label
+  * :class:`.Sequence` - store sequence data
+
+
 MSA IO
 ======
 
-  * :func:`.parseMSA` - parse MSA files
   * :class:`.MSAFile` - read/write MSA files in FASTA/SELEX/Stockholm formats
-  * :class:`.MSA` - manipulate MSA in memory
-  * :class:`.Sequence` - maintain indiviual sequence record
+  * :func:`.parseMSA` - parse MSA files
+  * :func:`.writeMSA` - parse MSA files
+
+Editing
+========
+
+  * :func:`.mergeMSA` - merge MSA data for multi-domain proteins
+  * :func:`.refineMSA` - refine MSA by removing gapped columns and/or sequences
   
 Analysis
 ========
 
-  * :func:`.refineMSA` - refine MSA by removing gapped columns and/or sequences
   * :func:`.calcShannonEntropy` - calculate Shannon entropy
   * :func:`.calcMSAOccupancy` - calculate row (sequence) or column occupancy
   * :func:`.buildMutinfoMatrix` - build mutual information matrix
