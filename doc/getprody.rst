@@ -12,9 +12,8 @@ Required Software
   *Windows*: Note that, NumPy and ProDy supports only **32-bit** Python 
   on Windows.
   
-  *Python 2.6 and 3.1*: ProDy should work with Python 2.6 and 3.1, but note 
-  that all tests are performed using Python 2.7 and 3.2, so these are the 
-  recommended versions. 
+  *Python 2.6 and 3.1* can be used to run ProDy, but note that all tests are 
+  performed using Python 2.7 and 3.2, so these are the recommended versions. 
   
 * `NumPy`_ 1.4+
 

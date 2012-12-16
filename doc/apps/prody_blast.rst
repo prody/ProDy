@@ -58,4 +58,6 @@ Running :command:`prody blast --examples` displays::
   files onto the 2avi structure:
   
     $ prody blast -d . ARKCSLTGKWTNDLGSNMTIGAVNSRGEFTGTYITAVTATSNEIKESPLHGTQNTINKRTQPTFGFTVNWKFSESTTVFT
-    $ prody align 2avi.pdb *pdb 
+  
+    $ prody align 2avi.pdb *pdb
+  

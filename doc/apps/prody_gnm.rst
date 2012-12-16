@@ -10,10 +10,10 @@ Usage
 Running :command:`prody gnm -h` displays::
 
   usage: prody gnm [-h] [--quiet] [--examples] [-n INT] [-s SEL] [-c FLOAT]
-                   [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-q] [-v] [-z]
-                   [-t STR] [-b] [-k] [-p STR] [-f STR] [-d STR] [-x STR] [-A]
-                   [-R] [-Q] [-B] [-K] [-M STR] [-F STR] [-D INT] [-W FLOAT]
-                   [-H FLOAT]
+                   [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-u] [-q] [-v]
+                   [-z] [-t STR] [-b] [-k] [-p STR] [-f STR] [-d STR] [-x STR]
+                   [-A] [-R] [-Q] [-B] [-K] [-M STR] [-F STR] [-D INT]
+                   [-W FLOAT] [-H FLOAT]
                    pdb
   
   positional arguments:
@@ -43,6 +43,7 @@ Running :command:`prody gnm -h` displays::
     -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
+    -u, --heatmap         write cross-correlations heatmap file
     -q, --square-fluctuations
                           write square-fluctuations
     -v, --covariance      write covariance matrix
@@ -104,3 +105,4 @@ Running :command:`prody gnm --examples` displays::
   save all of the graphical output files:
   
     $ prody gnm 1aar -c 7 -s "calpha and chain A and resnum < 70" -A
+  

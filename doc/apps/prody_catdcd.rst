@@ -46,3 +46,4 @@ Running :command:`prody catdcd --examples` displays::
   Concatenate two DCD files and output backbone atoms:
   
     $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb
+  

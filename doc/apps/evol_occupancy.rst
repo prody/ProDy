@@ -1,20 +1,21 @@
-.. _evol-conserv:
+.. _evol-occupancy:
 
 *******************************************************************************
-evol conserv
+evol occupancy
 *******************************************************************************
 
 Usage
 ===============================================================================
 
-Running :command:`evol conserv -h` displays::
+Running :command:`evol occupancy -h` displays::
 
-  usage: evol conserv [-h] [--quiet] [--examples] [-n] [-g] [-p STR] [-f STR]
-                      [-S] [-F STR] [-D INT] [-W FLOAT] [-H FLOAT]
-                      msa
+  usage: evol occupancy [-h] [--quiet] [--examples] [-o STR] [-p STR] [-l STR]
+                        [-f STR] [-S] [-X STR] [-Y STR] [-T STR] [-F STR]
+                        [-D INT] [-W FLOAT] [-H FLOAT]
+                        msa
   
   positional arguments:
-    msa                   refined MSA file
+    msa                   MSA file
   
   optional arguments:
     -h, --help            show this help message and exit
@@ -22,18 +23,22 @@ Running :command:`evol conserv -h` displays::
     --examples            show usage examples and exit
   
   calculation options:
-    -n, --no-ambiguity    treat amino acids characters B, Z, J, and X as non-
-                          ambiguous
-    -g, --gaps            do not omit gap characters
+    -o STR, --occ-axis STR
+                          calculate row or column occupancy or both., one of
+                          row, col, both (default: row)
   
   output options:
     -p STR, --prefix STR  output filename prefix, default is msa filename with
-                          _conserv suffix
+                          _occupancy suffix
+    -l STR, --label STR   index for column based on msa label
     -f STR, --number-format STR
                           number output format (default: %12g)
   
   figure options:
-    -S, --save-plot       save conservation plot
+    -S, --save-plot       save occupancy plot/s
+    -X STR, --xlabel STR  specify xlabel
+    -Y STR, --ylabel STR  specify ylabel
+    -T STR, --title STR   figure title
     -F STR, --figure-format STR
                           figure file format, one of svgz, ps, svg, eps, raw,
                           rgba, pdf, png (default: pdf)
@@ -46,7 +51,7 @@ Running :command:`evol conserv -h` displays::
 Examples
 ===============================================================================
 
-Running :command:`evol conserv --examples` displays::
+Running :command:`evol occupancy --examples` displays::
 
   Sequence coevolution analysis involves several steps that including
   retrieving data and refining it for calculations.  These steps are

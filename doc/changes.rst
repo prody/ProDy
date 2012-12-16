@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 1.4.1 (in development)
+Release 1.4.1 (Dec 16, 2012)
 ===============================================================================
 
 **New Features**:
@@ -21,6 +21,9 @@ Release 1.4.1 (in development)
 
   * :class:`.Sequence` is implemented to handle individual sequence records
     and point to sequences in :class:`.MSA` instances.
+    
+  * :ref:`evol-occupancy` application is implemented for refined MSA 
+    quality checking purposes. 
      
 **Improvements**:
 
@@ -55,7 +58,6 @@ Release 1.4.1 (in development)
   
   * Fixed :class:`.NMA` indexing problem that was introduced in v1.4.
     
-  
 
 :ref:`nmwiz`
 -------------------------------------------------------------------------------

@@ -57,13 +57,35 @@ Examples
 
 Running :command:`evol rankorder --examples` displays::
 
-  This application identifies that top ranking pairs of residues that
-  coevolve based on their mutual information.  By default coevolution is
-  reported for pairs that are at least 3 residues apart in sequence. A
-  z-score normalization can be applied to the mutinfo matrix to identify
-  coevolving pairs.  The following examples show how to use with default
-  as well as additional options:
+  Sequence coevolution analysis involves several steps that including
+  retrieving data and refining it for calculations.  These steps are
+  illustrated below for RnaseA protein family.
   
-      $ evol rankorder piwi_refined_mutinfo.txt -z
+  Search Pfam database:
   
-      $ evol rankorder piwi_refined_mutinfo.txt --msa piwi_refined.slx --label AGO6_ARATH
+    $  evol search 2w5i
+  
+  Download Pfam MSA file:
+  
+    $  evol fetch RnaseA
+  
+  Refine MSA file:
+  
+    $ evol refine RnaseA_full.slx -l RNAS1_BOVIN --seqid 0.98 --rowocc 0.8
+  
+  Checking occupancy:
+  
+    $ evol occupancy RnaseA_full.slx -l RNAS1_BOVIN -o col -S
+  
+  Conservation analysis:
+  
+    $ evol conserv RnaseA_full_refined.slx
+  
+  Coevolution analysis:
+  
+    $ evol coevol RnaseA_full_refined.slx -S -c apc
+  
+  Rank order analysis:
+  
+    $ evol rankorder RnaseA_full_refined_mutinfo_corr_apc.txt -p 2w5i_1-121.pdb --seq-sep 3
+  

@@ -7,8 +7,14 @@ Getting ProDy
 Required Software
 ===============================================================================
 
-* `Python`_ 2.6 or later (for Windows, choose a 32bit installer that is 
-  supported by NumPy and ProDy packages)
+* `Python`_ 2.7 or later
+  
+  *Windows*: Note that, NumPy and ProDy supports only **32-bit** Python 
+  on Windows.
+  
+  *Python 2.6 and 3.1* can be used to run ProDy, but note that all tests are 
+  performed using Python 2.7 and 3.2, so these are the recommended versions. 
+  
 * `NumPy`_ 1.4+
 
 When compiling from source, on Linux for example, you will need a C compiler 
@@ -19,9 +25,9 @@ use your package manager to install :file:`python-dev` package.
 In addition, `matplotlib`_ is required for using plotting functions.  
 ProDy and :ref:`commands` can be operated without this package.   
 
-.. _Python: http://python.org/
-.. _NumPy: http://numpy.scipy.org/
-.. _matplotlib: http://matplotlib.sourceforge.net/
+.. _Python: http://www.python.org/download/
+.. _NumPy: http://sourceforge.net/projects/numpy/files/NumPy/
+.. _matplotlib: https://github.com/matplotlib/matplotlib/downloads
 
 Easy Install
 ===============================================================================

@@ -10,7 +10,7 @@ Usage
 Running :command:`evol refine -h` displays::
 
   usage: evol refine [-h] [--quiet] [--examples] [-l STR] [-s FLOAT] [-c FLOAT]
-                     [-r FLOAT] [-o STR] [-f STR] [-z]
+                     [-r FLOAT] [-k] [-o STR] [-f STR] [-z]
                      msa
   
   positional arguments:
@@ -22,7 +22,7 @@ Running :command:`evol refine -h` displays::
     --examples            show usage examples and exit
   
   refinement options:
-    -l STR, --label STR   sequence label, UniProt ID code or PDB and chain
+    -l STR, --label STR   sequence label, UniProt ID code, or PDB and chain
                           identifier
     -s FLOAT, --seqid FLOAT
                           identity threshold for selecting unique sequences
@@ -30,6 +30,9 @@ Running :command:`evol refine -h` displays::
                           column (residue position) occupancy
     -r FLOAT, --rowocc FLOAT
                           row (sequence) occupancy
+    -k, --keep            keep columns corresponding to residues not resolved in
+                          PDB structure, applies label argument is a PDB
+                          identifier
   
   output options:
     -o STR, --outname STR
@@ -43,8 +46,35 @@ Examples
 
 Running :command:`evol refine --examples` displays::
 
-  This application refines MSA by removing gapped columns (residue
-  positions) and rows (sequences).  Following example will save entropy
-  data and plot using default options:
+  Sequence coevolution analysis involves several steps that including
+  retrieving data and refining it for calculations.  These steps are
+  illustrated below for RnaseA protein family.
   
-      $ evol refine piwi.slx -l GTHB2_ONCKE
+  Search Pfam database:
+  
+    $  evol search 2w5i
+  
+  Download Pfam MSA file:
+  
+    $  evol fetch RnaseA
+  
+  Refine MSA file:
+  
+    $ evol refine RnaseA_full.slx -l RNAS1_BOVIN --seqid 0.98 --rowocc 0.8
+  
+  Checking occupancy:
+  
+    $ evol occupancy RnaseA_full.slx -l RNAS1_BOVIN -o col -S
+  
+  Conservation analysis:
+  
+    $ evol conserv RnaseA_full_refined.slx
+  
+  Coevolution analysis:
+  
+    $ evol coevol RnaseA_full_refined.slx -S -c apc
+  
+  Rank order analysis:
+  
+    $ evol rankorder RnaseA_full_refined_mutinfo_corr_apc.txt -p 2w5i_1-121.pdb --seq-sep 3
+  

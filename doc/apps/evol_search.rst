@@ -44,23 +44,35 @@ Examples
 
 Running :command:`evol search --examples` displays::
 
-  This application searches Pfam database with a UniProt ID or protein
-  sequence or filename containing the sequence.  Some specific search
-  options are included for sequence search.  Minimum length of query
-  sequence should be 12 and should not contain gaps.  If outname is
-  specified it will output the results obtained in a file or the output
-  will be directed to standard output.
+  Sequence coevolution analysis involves several steps that including
+  retrieving data and refining it for calculations.  These steps are
+  illustrated below for RnaseA protein family.
   
-  Search Pfam with PDB and chain identifier and output results to
-  screen:
+  Search Pfam database:
   
-      $ evol search 1mkpA
+    $  evol search 2w5i
   
-  Search Pfam with UniProt ID and write output into a file:
+  Download Pfam MSA file:
   
-      $ evol search P08581 --outname families.txt
+    $  evol fetch RnaseA
   
-  Search Pfam with a sequence with search options:
+  Refine MSA file:
   
-      $ evol search PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCSLHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA --evalue 2 --searchBs
+    $ evol refine RnaseA_full.slx -l RNAS1_BOVIN --seqid 0.98 --rowocc 0.8
+  
+  Checking occupancy:
+  
+    $ evol occupancy RnaseA_full.slx -l RNAS1_BOVIN -o col -S
+  
+  Conservation analysis:
+  
+    $ evol conserv RnaseA_full_refined.slx
+  
+  Coevolution analysis:
+  
+    $ evol coevol RnaseA_full_refined.slx -S -c apc
+  
+  Rank order analysis:
+  
+    $ evol rankorder RnaseA_full_refined_mutinfo_corr_apc.txt -p 2w5i_1-121.pdb --seq-sep 3
   

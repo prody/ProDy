@@ -42,7 +42,35 @@ Examples
 
 Running :command:`evol filter --examples` displays::
 
-  This application filters sequences in an MSA based on label data.
-  Following example will filter human sequences:
+  Sequence coevolution analysis involves several steps that including
+  retrieving data and refining it for calculations.  These steps are
+  illustrated below for RnaseA protein family.
   
-      $ evol filter piwi_seed.slx HUMAN -e
+  Search Pfam database:
+  
+    $  evol search 2w5i
+  
+  Download Pfam MSA file:
+  
+    $  evol fetch RnaseA
+  
+  Refine MSA file:
+  
+    $ evol refine RnaseA_full.slx -l RNAS1_BOVIN --seqid 0.98 --rowocc 0.8
+  
+  Checking occupancy:
+  
+    $ evol occupancy RnaseA_full.slx -l RNAS1_BOVIN -o col -S
+  
+  Conservation analysis:
+  
+    $ evol conserv RnaseA_full_refined.slx
+  
+  Coevolution analysis:
+  
+    $ evol coevol RnaseA_full_refined.slx -S -c apc
+  
+  Rank order analysis:
+  
+    $ evol rankorder RnaseA_full_refined_mutinfo_corr_apc.txt -p 2w5i_1-121.pdb --seq-sep 3
+  

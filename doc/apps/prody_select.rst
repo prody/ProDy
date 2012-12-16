@@ -36,3 +36,4 @@ Running :command:`prody select --examples` displays::
   Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
   
     $ prody select backbone 1p38 1r39
+  

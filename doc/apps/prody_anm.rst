@@ -10,10 +10,10 @@ Usage
 Running :command:`prody anm -h` displays::
 
   usage: prody anm [-h] [--quiet] [--examples] [-n INT] [-s SEL] [-c FLOAT]
-                   [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-q] [-v] [-z]
-                   [-t STR] [-b] [-l] [-k] [-p STR] [-f STR] [-d STR] [-x STR]
-                   [-A] [-R] [-Q] [-B] [-K] [-F STR] [-D INT] [-W FLOAT]
-                   [-H FLOAT]
+                   [-g FLOAT] [-m INT] [-a] [-o PATH] [-e] [-r] [-u] [-q] [-v]
+                   [-z] [-t STR] [-b] [-l] [-k] [-p STR] [-f STR] [-d STR]
+                   [-x STR] [-A] [-R] [-Q] [-B] [-K] [-F STR] [-D INT]
+                   [-W FLOAT] [-H FLOAT]
                    pdb
   
   positional arguments:
@@ -43,6 +43,7 @@ Running :command:`prody anm -h` displays::
     -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
+    -u, --heatmap         write cross-correlations heatmap file
     -q, --square-fluctuations
                           write square-fluctuations
     -v, --covariance      write covariance matrix
@@ -88,9 +89,9 @@ Examples
 
 Running :command:`prody anm --examples` displays::
 
-  This command performs ANM calculations for given PDB structure and
-  outputs results in NMD format. If an identifier is passed, structure
-  file will be downloaded from the PDB FTP server.
+  Perform ANM calculations for given PDB structure and output results in
+  NMD format.  If an identifier is passed, structure file will be
+  downloaded from the PDB FTP server.
   
   Fetch PDB 1p38, run ANM calculations using default parameters, and
   write NMD file:
@@ -102,3 +103,4 @@ Running :command:`prody anm --examples` displays::
   all of the graphical output files:
   
     $ prody anm 1aar -s "calpha and chain A and resnum < 70" -A
+  

@@ -10,7 +10,7 @@ Usage
 Running :command:`prody eda -h` displays::
 
   usage: prody eda [-h] [--quiet] [--examples] [-n INT] [-s SEL] [-a] [-o PATH]
-                   [-e] [-r] [-q] [-v] [-z] [-t STR] [-j] [-p STR] [-f STR]
+                   [-e] [-r] [-u] [-q] [-v] [-z] [-t STR] [-j] [-p STR] [-f STR]
                    [-d STR] [-x STR] [-A] [-R] [-Q] [-J STR] [-F STR] [-D INT]
                    [-W FLOAT] [-H FLOAT] [--psf PSF | --pdb PDB] [--aligned]
                    dcd
@@ -40,6 +40,7 @@ Running :command:`prody eda -h` displays::
     -e, --eigenvs         write eigenvalues/vectors
     -r, --cross-correlations
                           write cross-correlations
+    -u, --heatmap         write cross-correlations heatmap file
     -q, --square-fluctuations
                           write square-fluctuations
     -v, --covariance      write covariance matrix
@@ -107,3 +108,4 @@ Running :command:`prody eda --examples` displays::
   Perform EDA for backbone atoms:
   
     $ prody eda mdm2.dcd --pdb mdm2.pdb --select backbone
+  

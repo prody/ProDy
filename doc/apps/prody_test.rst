@@ -31,17 +31,19 @@ Running :command:`prody test --examples` displays::
 
   ProDy unittests can be run as follows:
   
-      $ prody test
+    $ prody test
   
   To run all tests, use -l/--label argument as follows:
   
-      $ prody test -l full 
+    $ prody test -l full
   
   To increase verbosity, use -v/--verbose argument as follows:
   
-      $ prody test -l fast -v 2
+    $ prody test -l fast -v 2
   
   To run tests for a specific module, pass module name:
   
-      $ prody test proteins
-      $ prody test atomic.select
+    $ prody test proteins
+  
+    $ prody test atomic.select
+  

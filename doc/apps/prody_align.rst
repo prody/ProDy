@@ -47,22 +47,23 @@ Running :command:`prody align --examples` displays::
   Fetch PDB structure 2k39 and align models (reference model is the
   first model):
   
-      $ prody align 2k39
+    $ prody align 2k39
   
   Fetch PDB structure 2k39 and align models using backbone of residues
   with number less than 71:
   
-      $ prody align 2k39 --select "backbone and resnum < 71" 
+    $ prody align 2k39 --select "backbone and resnum < 71"
   
   Align 1r39 and 1zz2 onto 1p38 using residues with number less than
   300:
   
-      $ prody align --select "resnum < 300" 1p38 1r39 1zz2
+    $ prody align --select "resnum < 300" 1p38 1r39 1zz2
   
   Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
   
-      $ prody align --select "resnum 1 to 70" 1aar 2k39 
+    $ prody align --select "resnum 1 to 70" 1aar 2k39
   
   Align 1fi7 onto 1hrc using heme atoms:
   
-      $ prody align --select "noh heme and chain A" 1hrc 1fi7
+    $ prody align --select "noh heme and chain A" 1hrc 1fi7
+  

@@ -9,7 +9,7 @@ Usage
 
 Running :command:`evol coevol -h` displays::
 
-  usage: evol coevol [-h] [--quiet] [--examples] [-n] [-g] [-c STR] [-m STR]
+  usage: evol coevol [-h] [--quiet] [--examples] [-n] [-c STR] [-m STR] [-t]
                      [-p STR] [-f STR] [-S] [-L FLOAT] [-U FLOAT] [-X STR]
                      [-T STR] [-F STR] [-D INT] [-W FLOAT] [-H FLOAT]
                      msa
@@ -25,7 +25,6 @@ Running :command:`evol coevol -h` displays::
   calculation options:
     -n, --no-ambiguity    treat amino acids characters B, Z, J, and X as non-
                           ambiguous
-    -g, --gaps            do not omit gap characters
     -c STR, --correction STR
                           also save corrected mutual information matrix data and
                           plot, one of apc, asc
@@ -35,6 +34,7 @@ Running :command:`evol coevol -h` displays::
                           maxcon, joint
   
   output options:
+    -t, --heatmap         save heatmap files for all mutual information matrices
     -p STR, --prefix STR  output filename prefix, default is msa filename with
                           _coevol suffix
     -f STR, --number-format STR
@@ -62,13 +62,35 @@ Examples
 
 Running :command:`evol coevol --examples` displays::
 
-  This application calculates mutual information between MSA postions
-  for a refined multiple sequence alignment.  Following example will
-  save coevolution data and plot using default options:
+  Sequence coevolution analysis involves several steps that including
+  retrieving data and refining it for calculations.  These steps are
+  illustrated below for RnaseA protein family.
   
-      $ evol coevol piwi_refined.slx -S
+  Search Pfam database:
   
-  Following example will save coevolution data and plot for all
-  correction and normalizations:
+    $  evol search 2w5i
   
-      $ evol coevol piwi_refined.slx -S -c apc -c asc -m sument -m minent -m maxent -m mincon -m maxcon -m joint
+  Download Pfam MSA file:
+  
+    $  evol fetch RnaseA
+  
+  Refine MSA file:
+  
+    $ evol refine RnaseA_full.slx -l RNAS1_BOVIN --seqid 0.98 --rowocc 0.8
+  
+  Checking occupancy:
+  
+    $ evol occupancy RnaseA_full.slx -l RNAS1_BOVIN -o col -S
+  
+  Conservation analysis:
+  
+    $ evol conserv RnaseA_full_refined.slx
+  
+  Coevolution analysis:
+  
+    $ evol coevol RnaseA_full_refined.slx -S -c apc
+  
+  Rank order analysis:
+  
+    $ evol rankorder RnaseA_full_refined_mutinfo_corr_apc.txt -p 2w5i_1-121.pdb --seq-sep 3
+  
